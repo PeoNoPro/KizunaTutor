@@ -1,0 +1,562 @@
+-- ====================================================================================================
+-- DỰ ÁN: KIZUNA JAPANESE LEARNING & KANJI PRACTICE PLATFORM
+-- TẬP TIN DDL TẠO CƠ SỞ DỮ LIỆU ĐẦY ĐỦ CHO POSTGRESQL (29 BẢNG - 7 PHÂN HỆ)
+-- MÔI TRƯỜNG THỰC THI: pgAdmin 4 / PostgreSQL 12, 13, 14, 15, 16+
+-- ĐẶC ĐIỂM: Sử dụng Native UUID (gen_random_uuid), JSONB, ENUM types, Trigger tự động cập nhật updated_at
+-- ====================================================================================================
+
+-- 1. Kích hoạt tiện ích mở rộng tạo UUID (tương thích mọi phiên bản PostgreSQL)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ====================================================================================================
+-- TẠO CÁC KIỂU DỮ LIỆU ENUM (CUSTOM ENUM TYPES)
+-- ====================================================================================================
+
+DROP TYPE IF EXISTS user_account_status_enum CASCADE;
+CREATE TYPE user_account_status_enum AS ENUM ('PENDING', 'ACTIVE', 'SUSPENDED', 'BANNED');
+
+DROP TYPE IF EXISTS tutor_verification_status_enum CASCADE;
+CREATE TYPE tutor_verification_status_enum AS ENUM ('UNVERIFIED', 'PENDING', 'APPROVED', 'REJECTED');
+
+DROP TYPE IF EXISTS tutor_membership_status_enum CASCADE;
+CREATE TYPE tutor_membership_status_enum AS ENUM ('FREE', 'STANDARD', 'PREMIUM', 'EXPIRED');
+
+DROP TYPE IF EXISTS tutor_credential_status_enum CASCADE;
+CREATE TYPE tutor_credential_status_enum AS ENUM ('PENDING', 'VERIFIED', 'REJECTED');
+
+DROP TYPE IF EXISTS tutor_verif_action_enum CASCADE;
+CREATE TYPE tutor_verif_action_enum AS ENUM ('SUBMIT', 'APPROVE', 'REJECT', 'REQUEST_INFO');
+
+DROP TYPE IF EXISTS connection_request_status_enum CASCADE;
+CREATE TYPE connection_request_status_enum AS ENUM ('PENDING', 'ACCEPTED', 'DECLINED', 'EXPIRED');
+
+DROP TYPE IF EXISTS trial_booking_status_enum CASCADE;
+CREATE TYPE trial_booking_status_enum AS ENUM ('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED');
+
+DROP TYPE IF EXISTS learning_space_status_enum CASCADE;
+CREATE TYPE learning_space_status_enum AS ENUM ('ACTIVE', 'PAUSED', 'COMPLETED', 'CLOSED');
+
+DROP TYPE IF EXISTS assignment_submission_status_enum CASCADE;
+CREATE TYPE assignment_submission_status_enum AS ENUM ('SUBMITTED', 'GRADING', 'GRADED', 'RETURNED');
+
+DROP TYPE IF EXISTS jlpt_level_enum CASCADE;
+CREATE TYPE jlpt_level_enum AS ENUM ('N5', 'N4', 'N3', 'N2', 'N1');
+
+DROP TYPE IF EXISTS practice_submission_status_enum CASCADE;
+CREATE TYPE practice_submission_status_enum AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
+
+DROP TYPE IF EXISTS tutor_membership_state_enum CASCADE;
+CREATE TYPE tutor_membership_state_enum AS ENUM ('ACTIVE', 'EXPIRED', 'CANCELLED');
+
+DROP TYPE IF EXISTS payment_transaction_status_enum CASCADE;
+CREATE TYPE payment_transaction_status_enum AS ENUM ('PENDING', 'SUCCESS', 'FAILED', 'REFUNDED');
+
+DROP TYPE IF EXISTS support_ticket_category_enum CASCADE;
+CREATE TYPE support_ticket_category_enum AS ENUM ('ACCOUNT', 'BILLING', 'TUTOR', 'TECHNICAL', 'OTHER');
+
+DROP TYPE IF EXISTS support_ticket_priority_enum CASCADE;
+CREATE TYPE support_ticket_priority_enum AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT');
+
+DROP TYPE IF EXISTS support_ticket_status_enum CASCADE;
+CREATE TYPE support_ticket_status_enum AS ENUM ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED');
+
+DROP TYPE IF EXISTS notification_type_enum CASCADE;
+CREATE TYPE notification_type_enum AS ENUM ('SYSTEM', 'TRIAL', 'ASSIGNMENT', 'PAYMENT', 'TICKET');
+
+-- ====================================================================================================
+-- HÀM TRIGGER TỰ ĐỘNG CẬP NHẬT TRƯỜNG updated_at
+-- ====================================================================================================
+
+CREATE OR REPLACE FUNCTION update_timestamp_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ====================================================================================================
+-- PHÂN HỆ 1: NGƯỜI DÙNG & TÀI KHOẢN (ROLES, USERS, LEARNERS, TUTORS)
+-- ====================================================================================================
+
+-- 1. Bảng Phân quyền (Roles)
+DROP TABLE IF EXISTS roles CASCADE;
+CREATE TABLE roles (
+    role_id SMALLSERIAL PRIMARY KEY,
+    role_name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
+);
+COMMENT ON TABLE roles IS 'Danh mục vai trò người dùng trong hệ thống';
+
+-- 2. Bảng Người dùng hệ thống (Users)
+DROP TABLE IF EXISTS users CASCADE;
+CREATE TABLE users (
+    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_id SMALLINT NOT NULL REFERENCES roles(role_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    avatar_url VARCHAR(500),
+    account_status user_account_status_enum NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ DEFAULT NULL
+);
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_account_status ON users(account_status);
+CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+COMMENT ON TABLE users IS 'Thông tin tài khoản xác thực người dùng';
+
+-- 3. Bảng Hồ sơ Người học (Learners)
+DROP TABLE IF EXISTS learners CASCADE;
+CREATE TABLE learners (
+    learner_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    current_level VARCHAR(10),
+    target_level VARCHAR(10),
+    learning_goals TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TRIGGER trg_learners_updated_at BEFORE UPDATE ON learners FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+COMMENT ON TABLE learners IS 'Hồ sơ và mục tiêu chi tiết của học viên';
+
+-- 4. Bảng Hồ sơ Gia sư (Tutors)
+DROP TABLE IF EXISTS tutors CASCADE;
+CREATE TABLE tutors (
+    tutor_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    headline VARCHAR(200),
+    bio TEXT,
+    experience_years SMALLINT NOT NULL DEFAULT 0 CHECK (experience_years >= 0),
+    hourly_rate NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    highest_jlpt_level VARCHAR(10),
+    avg_rating NUMERIC(3, 2) NOT NULL DEFAULT 0.00 CHECK (avg_rating BETWEEN 0.00 AND 5.00),
+    total_reviews INTEGER NOT NULL DEFAULT 0 CHECK (total_reviews >= 0),
+    verification_status tutor_verification_status_enum NOT NULL DEFAULT 'UNVERIFIED',
+    membership_status tutor_membership_status_enum NOT NULL DEFAULT 'FREE',
+    is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_tutors_verif_status ON tutors(verification_status);
+CREATE INDEX idx_tutors_rating ON tutors(avg_rating);
+CREATE INDEX idx_tutors_hourly_rate ON tutors(hourly_rate);
+CREATE TRIGGER trg_tutors_updated_at BEFORE UPDATE ON tutors FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+COMMENT ON TABLE tutors IS 'Hồ sơ năng lực và danh tiếng của gia sư tiếng Nhật';
+
+-- ====================================================================================================
+-- PHÂN HỆ 2: XÁC MINH GIA SƯ & LỊCH RẢNH (VERIFICATION & AVAILABILITIES)
+-- ====================================================================================================
+
+-- 5. Bảng Chứng chỉ & Bằng cấp gia sư (Tutor Credentials)
+DROP TABLE IF EXISTS tutor_credentials CASCADE;
+CREATE TABLE tutor_credentials (
+    credential_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tutor_id UUID NOT NULL REFERENCES tutors(tutor_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    credential_type VARCHAR(50) NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    file_url VARCHAR(500) NOT NULL,
+    verified_status tutor_credential_status_enum NOT NULL DEFAULT 'PENDING',
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_credentials_tutor_id ON tutor_credentials(tutor_id);
+CREATE INDEX idx_credentials_status ON tutor_credentials(verified_status);
+COMMENT ON TABLE tutor_credentials IS 'Tài liệu và chứng chỉ học vấn phục vụ quy trình xác minh gia sư';
+
+-- 6. Bảng Nhật ký Xét duyệt Hồ sơ Gia sư (Tutor Verification Histories)
+DROP TABLE IF EXISTS tutor_verification_histories CASCADE;
+CREATE TABLE tutor_verification_histories (
+    history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tutor_id UUID NOT NULL REFERENCES tutors(tutor_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    officer_id UUID REFERENCES users(user_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    action tutor_verif_action_enum NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_verif_hist_tutor ON tutor_verification_histories(tutor_id);
+COMMENT ON TABLE tutor_verification_histories IS 'Nhật ký quy trình phê duyệt hồ sơ gia sư';
+
+-- 7. Bảng Lịch rảnh Giảng dạy của Gia sư (Tutor Availabilities)
+DROP TABLE IF EXISTS tutor_availabilities CASCADE;
+CREATE TABLE tutor_availabilities (
+    availability_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tutor_id UUID NOT NULL REFERENCES tutors(tutor_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7), -- 1=Thứ 2, ..., 7=Chủ Nhật
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
+);
+CREATE INDEX idx_avail_tutor_day ON tutor_availabilities(tutor_id, day_of_week);
+COMMENT ON TABLE tutor_availabilities IS 'Khung thời gian cố định gia sư có thể nhận dạy học viên';
+
+-- ====================================================================================================
+-- PHÂN HỆ 3: KẾT NỐI & ĐẶT LỊCH HỌC THỬ (CONNECTIONS & TRIAL BOOKINGS)
+-- ====================================================================================================
+
+-- 8. Bảng Yêu cầu Kết nối Học tập (Connection Requests)
+DROP TABLE IF EXISTS connection_requests CASCADE;
+CREATE TABLE connection_requests (
+    request_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    learner_id UUID NOT NULL REFERENCES learners(learner_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    tutor_id UUID NOT NULL REFERENCES tutors(tutor_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    initial_message TEXT,
+    status connection_request_status_enum NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    responded_at TIMESTAMPTZ DEFAULT NULL
+);
+CREATE INDEX idx_conn_learner ON connection_requests(learner_id);
+CREATE INDEX idx_conn_tutor ON connection_requests(tutor_id);
+CREATE INDEX idx_conn_status ON connection_requests(status);
+COMMENT ON TABLE connection_requests IS 'Yêu cầu kết nối trao đổi ban đầu giữa học viên và gia sư';
+
+-- 9. Bảng Đặt lịch Học thử (Trial Bookings)
+DROP TABLE IF EXISTS trial_bookings CASCADE;
+CREATE TABLE trial_bookings (
+    booking_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id UUID REFERENCES connection_requests(request_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    learner_id UUID NOT NULL REFERENCES learners(learner_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    tutor_id UUID NOT NULL REFERENCES tutors(tutor_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    scheduled_start_time TIMESTAMPTZ NOT NULL,
+    scheduled_end_time TIMESTAMPTZ NOT NULL,
+    meeting_link VARCHAR(500),
+    booking_status trial_booking_status_enum NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_trial_learner ON trial_bookings(learner_id);
+CREATE INDEX idx_trial_tutor ON trial_bookings(tutor_id);
+CREATE INDEX idx_trial_time ON trial_bookings(scheduled_start_time, scheduled_end_time);
+CREATE TRIGGER trg_trial_bookings_updated_at BEFORE UPDATE ON trial_bookings FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+COMMENT ON TABLE trial_bookings IS 'Buổi học thử 1 kèm 1 giữa học viên và gia sư';
+
+-- 10. Bảng Nhật ký Trạng thái Buổi học thử (Trial Booking Histories)
+DROP TABLE IF EXISTS trial_booking_histories CASCADE;
+CREATE TABLE trial_booking_histories (
+    history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    booking_id UUID NOT NULL REFERENCES trial_bookings(booking_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    changed_by_user_id UUID REFERENCES users(user_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    previous_status trial_booking_status_enum,
+    new_status trial_booking_status_enum NOT NULL,
+    change_reason VARCHAR(255),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+COMMENT ON TABLE trial_booking_histories IS 'Nhật ký thay đổi lịch trình và trạng thái các buổi học thử';
+
+-- ====================================================================================================
+-- PHÂN HỆ 4: KHÔNG GIAN HỌC TẬP, BÀI TẬP, TỪ ĐIỂN KANJI & AI LUYỆN VIẾT
+-- ====================================================================================================
+
+-- 11. Bảng Không gian Học tập 1-1 (Learning Spaces / Lớp học kèm)
+DROP TABLE IF EXISTS learning_spaces CASCADE;
+CREATE TABLE learning_spaces (
+    space_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tutor_id UUID NOT NULL REFERENCES tutors(tutor_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    learner_id UUID NOT NULL REFERENCES learners(learner_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    title VARCHAR(150) NOT NULL,
+    status learning_space_status_enum NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_spaces_tutor_learner ON learning_spaces(tutor_id, learner_id);
+CREATE TRIGGER trg_spaces_updated_at BEFORE UPDATE ON learning_spaces FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+COMMENT ON TABLE learning_spaces IS 'Không gian lớp học trực tuyến riêng giữa gia sư và học viên';
+
+-- 12. Bảng Tài liệu Giáo trình Lớp học (Learning Materials)
+DROP TABLE IF EXISTS learning_materials CASCADE;
+CREATE TABLE learning_materials (
+    material_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    space_id UUID NOT NULL REFERENCES learning_spaces(space_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    title VARCHAR(150) NOT NULL,
+    file_url VARCHAR(500) NOT NULL,
+    file_type VARCHAR(50),
+    uploaded_by UUID REFERENCES users(user_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+COMMENT ON TABLE learning_materials IS 'Kho tài liệu và giáo án dùng chung trong lớp học';
+
+-- 13. Bảng Bài tập Gia sư Giao (Assignments)
+DROP TABLE IF EXISTS assignments CASCADE;
+CREATE TABLE assignments (
+    assignment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    space_id UUID NOT NULL REFERENCES learning_spaces(space_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    title VARCHAR(150) NOT NULL,
+    description TEXT,
+    due_date TIMESTAMPTZ,
+    total_points NUMERIC(5, 2) NOT NULL DEFAULT 100.00,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_assignments_space_id ON assignments(space_id);
+CREATE TRIGGER trg_assignments_updated_at BEFORE UPDATE ON assignments FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+COMMENT ON TABLE assignments IS 'Danh sách bài tập và nhiệm vụ rèn luyện gia sư giao cho học viên';
+
+-- 14. Bảng Bài nộp của Học viên (Assignment Submissions)
+DROP TABLE IF EXISTS assignment_submissions CASCADE;
+CREATE TABLE assignment_submissions (
+    submission_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assignment_id UUID NOT NULL REFERENCES assignments(assignment_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    learner_id UUID NOT NULL REFERENCES learners(learner_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    submission_content TEXT,
+    attachment_url VARCHAR(500),
+    grade NUMERIC(5, 2),
+    tutor_feedback TEXT,
+    status assignment_submission_status_enum NOT NULL DEFAULT 'SUBMITTED',
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    graded_at TIMESTAMPTZ DEFAULT NULL
+);
+CREATE INDEX idx_submissions_assign_learner ON assignment_submissions(assignment_id, learner_id);
+COMMENT ON TABLE assignment_submissions IS 'Kết quả nộp bài tập của học viên và đánh giá của gia sư';
+
+-- 15. Bảng Từ điển Chữ Hán Kanji (Kanji Dictionary - Dữ liệu cốt lõi KanjiVG & Excel)
+DROP TABLE IF EXISTS kanji_dictionary CASCADE;
+CREATE TABLE kanji_dictionary (
+    kanji_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    kanji_character CHAR(1) NOT NULL UNIQUE,
+    unicode_hex CHAR(5) NOT NULL UNIQUE,
+    radical VARCHAR(4),
+    stroke_count SMALLINT NOT NULL CHECK (stroke_count >= 0),
+    han_viet VARCHAR(50),
+    onyomi VARCHAR(50),
+    kunyomi VARCHAR(100),
+    meaning VARCHAR(200),
+    jlpt_level jlpt_level_enum,
+    svg_data TEXT,
+    stroke_order_svg_url VARCHAR(500),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_kanji_char ON kanji_dictionary(kanji_character);
+CREATE INDEX idx_kanji_jlpt ON kanji_dictionary(jlpt_level);
+CREATE INDEX idx_kanji_han_viet ON kanji_dictionary(han_viet);
+CREATE INDEX idx_kanji_stroke_count ON kanji_dictionary(stroke_count);
+CREATE TRIGGER trg_kanji_updated_at BEFORE UPDATE ON kanji_dictionary FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+COMMENT ON TABLE kanji_dictionary IS 'Kho dữ liệu từ điển Chữ Hán kết hợp cấu trúc nét KanjiVG và ngữ nghĩa tiếng Việt';
+
+-- 16. Bảng Chi tiết Chữ Hán trong Bài tập (Assignment Kanji Items)
+DROP TABLE IF EXISTS assignment_kanji_items CASCADE;
+CREATE TABLE assignment_kanji_items (
+    item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assignment_id UUID NOT NULL REFERENCES assignments(assignment_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    kanji_id UUID NOT NULL REFERENCES kanji_dictionary(kanji_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    target_accuracy NUMERIC(4, 1) NOT NULL DEFAULT 80.0,
+    min_practice_times SMALLINT NOT NULL DEFAULT 3 CHECK (min_practice_times >= 0),
+    order_index INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT uq_assign_kanji UNIQUE (assignment_id, kanji_id)
+);
+COMMENT ON TABLE assignment_kanji_items IS 'Danh sách các chữ Hán mà học viên phải vẽ nét trong bài tập được giao';
+
+-- 17. Bảng Luyện viết Kanji & Phân tích AI (Kanji Practice Submissions)
+DROP TABLE IF EXISTS kanji_practice_submissions CASCADE;
+CREATE TABLE kanji_practice_submissions (
+    practice_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    learner_id UUID NOT NULL REFERENCES learners(learner_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    assignment_item_id UUID REFERENCES assignment_kanji_items(item_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    kanji_id UUID REFERENCES kanji_dictionary(kanji_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    kanji_character CHAR(1) NOT NULL,
+    canvas_vector_data JSONB,
+    drawing_image_url VARCHAR(500),
+    ai_accuracy_score NUMERIC(4, 1),
+    ai_analysis_result JSONB,
+    status practice_submission_status_enum NOT NULL DEFAULT 'PENDING',
+    practiced_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_practice_learner ON kanji_practice_submissions(learner_id);
+CREATE INDEX idx_practice_status ON kanji_practice_submissions(status);
+COMMENT ON TABLE kanji_practice_submissions IS 'Dữ liệu nét vẽ Canvas và kết quả AI phân tích độ chính xác nét chữ';
+
+-- 18. Bảng Tiến độ Thành thạo Chữ Hán của Học viên (Learning Progress Records)
+DROP TABLE IF EXISTS learning_progress_records CASCADE;
+CREATE TABLE learning_progress_records (
+    progress_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    learner_id UUID NOT NULL REFERENCES learners(learner_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    kanji_id UUID NOT NULL REFERENCES kanji_dictionary(kanji_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    total_practices INTEGER NOT NULL DEFAULT 0 CHECK (total_practices >= 0),
+    highest_score NUMERIC(4, 1) NOT NULL DEFAULT 0.0,
+    is_mastered BOOLEAN NOT NULL DEFAULT FALSE,
+    last_practiced_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_learner_kanji_progress UNIQUE (learner_id, kanji_id)
+);
+COMMENT ON TABLE learning_progress_records IS 'Hồ sơ ghi nhận mức độ ghi nhớ và thành thạo từng chữ Kanji của người học';
+
+-- 19. Bảng Đánh giá & Nhận xét Gia sư (Tutor Reviews)
+DROP TABLE IF EXISTS tutor_reviews CASCADE;
+CREATE TABLE tutor_reviews (
+    review_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    learner_id UUID NOT NULL REFERENCES learners(learner_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    tutor_id UUID NOT NULL REFERENCES tutors(tutor_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    space_id UUID REFERENCES learning_spaces(space_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    rating NUMERIC(2, 1) NOT NULL CHECK (rating BETWEEN 1.0 AND 5.0),
+    comment TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_reviews_tutor_id ON tutor_reviews(tutor_id);
+COMMENT ON TABLE tutor_reviews IS 'Học viên phản hồi và chấm điểm chất lượng giảng dạy của gia sư';
+
+-- ====================================================================================================
+-- PHÂN HỆ 5: GÓI HỘI VIÊN & THANH TOÁN (MEMBERSHIPS & PAYMENTS)
+-- ====================================================================================================
+
+-- 20. Bảng Danh mục Gói Hội viên Gia sư (Membership Plans)
+DROP TABLE IF EXISTS membership_plans CASCADE;
+CREATE TABLE membership_plans (
+    plan_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_name VARCHAR(100) NOT NULL,
+    duration_months INTEGER NOT NULL CHECK (duration_months > 0),
+    price NUMERIC(12, 2) NOT NULL,
+    features_json JSONB,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+COMMENT ON TABLE membership_plans IS 'Các gói đăng ký hội viên gia sư nâng cao thương hiệu';
+
+-- 21. Bảng Hội viên của Gia sư (Tutor Memberships)
+DROP TABLE IF EXISTS tutor_memberships CASCADE;
+CREATE TABLE tutor_memberships (
+    membership_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tutor_id UUID NOT NULL REFERENCES tutors(tutor_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    plan_id UUID NOT NULL REFERENCES membership_plans(plan_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    status tutor_membership_state_enum NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_membership_tutor ON tutor_memberships(tutor_id, status);
+COMMENT ON TABLE tutor_memberships IS 'Lịch sử đăng ký và thời hạn các gói hội viên của gia sư';
+
+-- 22. Bảng Giao dịch Thanh toán (Payment Transactions)
+DROP TABLE IF EXISTS payment_transactions CASCADE;
+CREATE TABLE payment_transactions (
+    transaction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    plan_id UUID REFERENCES membership_plans(plan_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    booking_id UUID REFERENCES trial_bookings(booking_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    amount NUMERIC(12, 2) NOT NULL,
+    payment_gateway VARCHAR(50) NOT NULL,
+    gateway_transaction_id VARCHAR(100),
+    status payment_transaction_status_enum NOT NULL DEFAULT 'PENDING',
+    transaction_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_payment_user ON payment_transactions(user_id);
+CREATE INDEX idx_payment_status ON payment_transactions(status);
+CREATE INDEX idx_payment_gateway_ref ON payment_transactions(gateway_transaction_id);
+COMMENT ON TABLE payment_transactions IS 'Ghi nhận các giao dịch tài chính nạp tiền, mua gói dịch vụ';
+
+-- 23. Bảng Nhật ký Xử lý Thanh toán / IPN Webhook (Payment Processing Logs)
+DROP TABLE IF EXISTS payment_processing_logs CASCADE;
+CREATE TABLE payment_processing_logs (
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    transaction_id UUID NOT NULL REFERENCES payment_transactions(transaction_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    request_payload JSONB,
+    response_payload JSONB,
+    http_status_code INTEGER,
+    logged_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+COMMENT ON TABLE payment_processing_logs IS 'Nhật ký đối soát chi tiết Webhook / IPN bảo vệ tính toàn vẹn dòng tiền';
+
+-- ====================================================================================================
+-- PHÂN HỆ 6: HỖ TRỢ NGƯỜI DÙNG & HỆ THỐNG THÔNG BÁO (SUPPORT & NOTIFICATIONS)
+-- ====================================================================================================
+
+-- 24. Bảng Phiếu Yêu cầu Hỗ trợ (Support Tickets)
+DROP TABLE IF EXISTS support_tickets CASCADE;
+CREATE TABLE support_tickets (
+    ticket_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    category support_ticket_category_enum NOT NULL,
+    subject VARCHAR(200) NOT NULL,
+    priority support_ticket_priority_enum NOT NULL DEFAULT 'MEDIUM',
+    status support_ticket_status_enum NOT NULL DEFAULT 'OPEN',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_tickets_user ON support_tickets(user_id);
+CREATE INDEX idx_tickets_status ON support_tickets(status);
+CREATE TRIGGER trg_tickets_updated_at BEFORE UPDATE ON support_tickets FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+COMMENT ON TABLE support_tickets IS 'Hệ thống giải quyết khiếu nại và hỗ trợ người dùng';
+
+-- 25. Bảng Tin nhắn trong Phiếu Hỗ trợ (Ticket Messages)
+DROP TABLE IF EXISTS ticket_messages CASCADE;
+CREATE TABLE ticket_messages (
+    message_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_id UUID NOT NULL REFERENCES support_tickets(ticket_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    sender_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    message_text TEXT NOT NULL,
+    attachment_url VARCHAR(500),
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+COMMENT ON TABLE ticket_messages IS 'Lịch sử hội thoại trao đổi giải quyết khiếu nại';
+
+-- 26. Bảng Thông báo Hệ thống (Notifications)
+DROP TABLE IF EXISTS notifications CASCADE;
+CREATE TABLE notifications (
+    notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(150) NOT NULL,
+    content TEXT NOT NULL,
+    notification_type notification_type_enum NOT NULL DEFAULT 'SYSTEM',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+COMMENT ON TABLE notifications IS 'Kho nội dung thông báo broadcast hoặc thông báo sự kiện';
+
+-- 27. Bảng Phân phối Thông báo tới Người dùng (User Notifications)
+DROP TABLE IF EXISTS user_notifications CASCADE;
+CREATE TABLE user_notifications (
+    user_notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    notification_id UUID NOT NULL REFERENCES notifications(notification_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    read_at TIMESTAMPTZ DEFAULT NULL
+);
+CREATE INDEX idx_user_notif_unread ON user_notifications(user_id, is_read);
+COMMENT ON TABLE user_notifications IS 'Hộp thư đến và trạng thái đọc thông báo của từng người dùng';
+
+-- ====================================================================================================
+-- PHÂN HỆ 7: CẤU HÌNH HỆ THỐNG & HẠN NGẠCH TÍNH NĂNG AI (CONFIG & QUOTAS)
+-- ====================================================================================================
+
+-- 28. Bảng Cấu hình Toàn cục Hệ thống (System Configurations)
+DROP TABLE IF EXISTS system_configurations CASCADE;
+CREATE TABLE system_configurations (
+    config_key VARCHAR(100) PRIMARY KEY,
+    config_value TEXT NOT NULL,
+    data_type VARCHAR(20) NOT NULL DEFAULT 'STRING',
+    description VARCHAR(255),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TRIGGER trg_config_updated_at BEFORE UPDATE ON system_configurations FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+COMMENT ON TABLE system_configurations IS 'Bảng tham số cấu hình toàn cục linh hoạt của hệ thống Kizuna';
+
+-- 29. Bảng Hạn ngạch Sử dụng Tính năng AI Chấm nét (AI Feature Quotas)
+DROP TABLE IF EXISTS ai_feature_quotas CASCADE;
+CREATE TABLE ai_feature_quotas (
+    quota_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    daily_ai_drawing_limit INTEGER NOT NULL DEFAULT 50 CHECK (daily_ai_drawing_limit >= 0),
+    used_today INTEGER NOT NULL DEFAULT 0 CHECK (used_today >= 0),
+    reset_date DATE NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TRIGGER trg_quotas_updated_at BEFORE UPDATE ON ai_feature_quotas FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+COMMENT ON TABLE ai_feature_quotas IS 'Kiểm soát hạn mức gọi API AI nhận diện nét vẽ để tối ưu chi phí';
+
+-- ====================================================================================================
+-- SEED DATA KHỞI TẠO HỆ THỐNG (CÁC VAI TRÒ & CẤU HÌNH MẶC ĐỊNH)
+-- ====================================================================================================
+
+INSERT INTO roles (role_id, role_name, description, is_active) VALUES
+(1, 'ROLE_ADMIN', 'Quản trị viên toàn quyền điều hành hệ thống Kizuna', TRUE),
+(2, 'ROLE_STAFF', 'Nhân viên hỗ trợ khách hàng và kiểm duyệt hồ sơ gia sư', TRUE),
+(3, 'ROLE_TUTOR', 'Gia sư giảng dạy tiếng Nhật', TRUE),
+(4, 'ROLE_LEARNER', 'Học viên học tiếng Nhật và luyện viết chữ Kanji', TRUE)
+ON CONFLICT (role_id) DO UPDATE SET
+    role_name = EXCLUDED.role_name,
+    description = EXCLUDED.description;
+
+INSERT INTO system_configurations (config_key, config_value, data_type, description) VALUES
+('FREE_TIER_DAILY_AI_LIMIT', '30', 'NUMBER', 'Số lượt AI phân tích nét vẽ miễn phí mỗi ngày cho tài khoản học viên thông thường'),
+('PRO_TIER_DAILY_AI_LIMIT', '200', 'NUMBER', 'Số lượt AI phân tích nét vẽ cho tài khoản gia sư hoặc học viên cao cấp'),
+('TRIAL_DEFAULT_DURATION_MINUTES', '45', 'NUMBER', 'Thời lượng tiêu chuẩn cho một buổi học thử (phút)'),
+('SYSTEM_SUPPORT_EMAIL', 'support@kizuna-nihongo.vn', 'STRING', 'Email tiếp nhận khiếu nại và phản hồi chính thức')
+ON CONFLICT (config_key) DO UPDATE SET
+    config_value = EXCLUDED.config_value;

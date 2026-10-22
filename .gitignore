@@ -1,0 +1,51 @@
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.secret
+secrets/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Java
+target/
+build/
+*.class
+
+# Node.js
+node_modules/
+dist/
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# KizunaTutor
+
+Japanese Language Tutor Matching and Learning Support System
+
+## Overview
+
+KizunaTutor is a platform that connects Japanese language learners
+with tutors and provides online learning support.
+
+## Features
+
+- User authentication and access control
+- Tutor onboarding and profile management
+- Tutor search and matching
+- Trial lesson booking
+- Online lesson support
+- Contract and payment management
+- AI-powered learning support
+
+## Project Status
+
+Currently in the initial setup phase.

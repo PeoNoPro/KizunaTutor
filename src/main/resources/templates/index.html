@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">KizunaTutor - Nền Tảng Học Tiếng Nhật</title>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+</head>
+<body>
+
+    <!-- Header Navigation Fragment -->
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <span class="hero-badge">🌸 Nền tảng Học tiếng Nhật & Luyện Chữ Hán Thông Minh</span>
+        <h1 class="hero-title">Kết Nối Gia Sư Tiếng Nhật Chuẩn Sư Phạm<br>& Luyện Viết Kanji Với Trợ Lý AI</h1>
+        <p class="hero-subtitle">
+            Học kèm 1:1 cùng các Sensei đạt chuẩn JLPT N1, N2. Luyện viết chữ Kanji chuẩn từng nét vẽ và ghi nhớ ngữ cảnh thông minh cùng KizunaTutor.
+        </p>
+        <div>
+            <a th:href="@{/tutors}" class="btn-primary" style="padding: 12px 28px; font-size: 16px;">🔍 Tìm Gia Sư Phù Hợp</a>
+            <a th:href="@{/kanji}" class="btn-outline" style="padding: 12px 28px; font-size: 16px; margin-left: 12px;">✍️ Thử Luyện Viết Kanji</a>
+        </div>
+    </section>
+
+    <!-- 9 Core Features Overview -->
+    <section class="features-section">
+        <h2 class="section-title">Hệ Sinh Thái Học Tập Toàn Diện KizunaTutor</h2>
+        <div class="feature-grid">
+            <div class="kizuna-card">
+                <div class="card-icon">👨‍🏫</div>
+                <h3 class="card-title">Gia Sư Tuyển Chọn</h3>
+                <p class="card-desc">100% gia sư được thẩm định bằng cấp chuyên môn, kinh nghiệm giảng dạy và kỹ năng sư phạm trước khi lên sàn.</p>
+            </div>
+
+            <div class="kizuna-card">
+                <div class="card-icon">✍️</div>
+                <h3 class="card-title">Luyện Viết Kanji Chuẩn Nét</h3>
+                <p class="card-desc">Tích hợp dữ liệu hơn 6.600 chữ Hán từ KanjiVG, hướng dẫn chi tiết thứ tự từng nét và bộ thủ trực quan.</p>
+            </div>
+
+            <div class="kizuna-card">
+                <div class="card-icon">🧠</div>
+                <h3 class="card-title">Trí Nhớ AI (Agent Memory)</h3>
+                <p class="card-desc">Hệ thống ghi nhớ các lỗi sai thường gặp, thói quen học và phong cách giao tiếp của bạn để tối ưu bài học.</p>
+            </div>
+
+            <div class="kizuna-card">
+                <div class="card-icon">📅</div>
+                <h3 class="card-title">Đặt Lịch Học Thử 45 Phút</h3>
+                <p class="card-desc">Dễ dàng chọn khung giờ rảnh và đăng ký một buổi học thử miễn phí để cảm nhận sự ăn ý trước khi ký hợp đồng.</p>
+            </div>
+
+            <div class="kizuna-card">
+                <div class="card-icon">🏫</div>
+                <h3 class="card-title">Không Gian Học Tập (Space)</h3>
+                <p class="card-desc">Lớp học trực tuyến chuyên nghiệp: chia sẻ giáo trình, giao bài tập về nhà và phản hồi nhận xét minh bạch.</p>
+            </div>
+
+            <div class="kizuna-card">
+                <div class="card-icon">💳</div>
+                <h3 class="card-title">Hợp Đồng & Thanh Toán An Toàn</h3>
+                <p class="card-desc">Chính sách giữ tiền bảo chứng an tâm, thanh toán qua cổng điện tử và minh bạch đối soát hoa hồng gia sư.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Fragment -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+</body>
+</html>

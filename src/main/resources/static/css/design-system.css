@@ -1,0 +1,328 @@
+/**
+ * KizunaTutor Design System Stylesheet
+ * Root tokens and components based on DESIGN.md (Wabi-Sabi Modern EdTech)
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+    /* Color Palette */
+    --color-primary: #1B2A4A;      /* Aizome Indigo */
+    --color-primary-hover: #131E35;
+    --color-secondary: #FAD0C4;    /* Sakura Blossom */
+    --color-secondary-dark: #E29578;
+    --color-accent: #88A064;       /* Matcha Green */
+    --color-alert: #C84B31;        /* Akane Red */
+    --color-bg: #FAF9F6;           /* Washi Off-white */
+    --color-surface: #FFFFFF;
+    --color-text: #1F2421;         /* Sumi Charcoal */
+    --color-text-muted: #687076;
+    --color-border: #E5E7EB;
+
+    /* Typography */
+    --font-latin: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    --font-japanese: 'Noto Sans JP', sans-serif;
+
+    /* Spacing & Radii */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 3px rgba(27, 42, 74, 0.06);
+    --shadow-md: 0 4px 12px rgba(27, 42, 74, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-latin);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+}
+
+/* Header & Navigation */
+.kizuna-header {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.brand-logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--color-primary);
+    font-size: 20px;
+    font-weight: 700;
+    gap: 8px;
+}
+
+.logo-kanji {
+    font-family: var(--font-japanese);
+    background: var(--color-primary);
+    color: #FFFFFF;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 18px;
+}
+
+.nav-menu {
+    display: flex;
+    gap: 24px;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: var(--color-text);
+    font-weight: 500;
+    font-size: 15px;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: var(--color-primary);
+}
+
+.auth-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: #FFFFFF !important;
+    text-decoration: none;
+    padding: 8px 18px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: inline-block;
+}
+
+.btn-primary:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--color-primary) !important;
+    border: 1px solid var(--color-primary);
+    text-decoration: none;
+    padding: 8px 18px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 14px;
+    display: inline-block;
+    transition: all 0.2s;
+}
+
+.btn-outline:hover {
+    background: var(--color-primary);
+    color: #FFFFFF !important;
+}
+
+/* Hero Section */
+.hero-section {
+    padding: 64px 24px;
+    text-align: center;
+    background: linear-gradient(180deg, #FFFFFF 0%, var(--color-bg) 100%);
+}
+
+.hero-badge {
+    display: inline-block;
+    background: var(--color-secondary);
+    color: var(--color-primary);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.hero-title {
+    font-size: 38px;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin-bottom: 16px;
+    line-height: 1.25;
+}
+
+.hero-subtitle {
+    font-size: 17px;
+    color: var(--color-text-muted);
+    max-width: 680px;
+    margin: 0 auto 32px auto;
+}
+
+/* Feature Grid */
+.features-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 24px;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 36px;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.kizuna-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kizuna-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.card-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--color-primary);
+}
+
+.card-desc {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+}
+
+/* Kanji Practice Interactive Box */
+.kanji-box-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    max-width: 500px;
+    margin: 0 auto;
+    box-shadow: var(--shadow-md);
+}
+
+.kanji-canvas-frame {
+    width: 218px;
+    height: 218px;
+    border: 3px solid var(--color-primary);
+    position: relative;
+    background-color: #FFFFFF;
+    background-image: 
+        linear-gradient(to right, #E2E8F0 1px, transparent 1px),
+        linear-gradient(to bottom, #E2E8F0 1px, transparent 1px);
+    background-size: 109px 109px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.03);
+}
+
+.kanji-canvas-frame canvas {
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+}
+
+.canvas-controls {
+    display: flex;
+    gap: 12px;
+}
+
+/* Footer */
+.kizuna-footer {
+    background: #FFFFFF;
+    border-top: 1px solid var(--color-border);
+    margin-top: 64px;
+    padding: 48px 24px 24px 24px;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 32px;
+}
+
+.footer-logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+}
+
+.footer-desc {
+    color: var(--color-text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.footer-col h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 14px;
+}
+
+.footer-col ul {
+    list-style: none;
+}
+
+.footer-col ul li {
+    margin-bottom: 8px;
+}
+
+.footer-col ul li a {
+    text-decoration: none;
+    color: var(--color-text-muted);
+    font-size: 14px;
+}
+
+.footer-col ul li a:hover {
+    color: var(--color-primary);
+}
+
+.footer-bottom {
+    text-align: center;
+    border-top: 1px solid var(--color-border);
+    padding-top: 24px;
+    color: var(--color-text-muted);
+    font-size: 13px;
+}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Đăng Ký - KizunaTutor</title>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <style>
+        .auth-container {
+            max-width: 480px;
+            margin: 50px auto;
+            background: #FFFFFF;
+            padding: 36px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-md);
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 6px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+        }
+        .role-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .role-option {
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .role-option:hover {
+            border-color: var(--color-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+    <div class="auth-container">
+        <h2 style="color: var(--color-primary); margin-bottom: 8px; text-align: center;">Tạo Tài Khoản</h2>
+        <p style="color: var(--color-text-muted); font-size: 14px; text-align: center; margin-bottom: 24px;">Tham gia cùng cộng đồng học tiếng Nhật Kizuna</p>
+
+        <form th:action="@{/register}" method="post">
+            <div class="form-group">
+                <label>Bạn tham gia với tư cách:</label>
+                <div class="role-selector">
+                    <label class="role-option">
+                        <input type="radio" name="role" value="LEARNER" checked>
+                        <div style="font-weight: 600; margin-top: 4px;">🎒 Học Viên</div>
+                    </label>
+                    <label class="role-option">
+                        <input type="radio" name="role" value="TUTOR">
+                        <div style="font-weight: 600; margin-top: 4px;">👨‍🏫 Gia Sư</div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Họ và Tên</label>
+                <input type="text" name="fullName" class="form-control" placeholder="Nguyễn Văn A" required>
+            </div>
+
+            <div class="form-group">
+                <label>Địa chỉ Email (Nhận mã kích hoạt OTP)</label>
+                <input type="email" name="email" class="form-control" placeholder="example@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>Mật khẩu</label>
+                <input type="password" name="password" class="form-control" placeholder="Tối thiểu 6 ký tự" required minlength="6">
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-size: 15px;">Đăng Ký & Nhận Mã OTP</button>
+        </form>
+
+        <p style="text-align: center; margin-top: 20px; font-size: 14px; color: var(--color-text-muted);">
+            Đã có tài khoản? <a th:href="@{/login}" style="color: var(--color-primary); font-weight: 600;">Đăng nhập</a>
+        </p>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+</body>
+</html>

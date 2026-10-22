@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Tìm Kiếm Gia Sư Tiếng Nhật - KizunaTutor</title>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <style>
+        .tutor-layout {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+        .filter-bar {
+            background: #FFFFFF;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-border);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+        }
+        .tutors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+        .tutor-card {
+            background: #FFFFFF;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .tutor-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .tutor-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--color-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+        .tutor-badge {
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+    <div class="tutor-layout">
+        <h1 style="color: var(--color-primary); margin-bottom: 8px;">Danh Sách Gia Sư Tiếng Nhật</h1>
+        <p style="color: var(--color-text-muted); margin-bottom: 24px;">Lọc theo cấp độ JLPT, chuyên môn giao tiếp, luyện thi hoặc luyện viết Kanji.</p>
+
+        <!-- Bộ lọc -->
+        <div class="filter-bar">
+            <label style="font-weight: 600; font-size: 14px;">Trình độ:</label>
+            <select class="filter-select">
+                <option value="">Tất cả (N1, N2, N3)</option>
+                <option value="N1">JLPT N1 (Chuyên gia)</option>
+                <option value="N2">JLPT N2 (Thành thạo)</option>
+            </select>
+
+            <label style="font-weight: 600; font-size: 14px;">Hình thức:</label>
+            <select class="filter-select">
+                <option value="">Online & Trực tiếp</option>
+                <option value="ONLINE">Học Online 1:1</option>
+                <option value="OFFLINE">Học tại nhà</option>
+            </select>
+
+            <button type="button" class="btn-primary" style="margin-left: auto;">Áp Dụng Bộ Lọc</button>
+        </div>
+
+        <!-- Danh sách card mẫu -->
+        <div class="tutors-grid">
+            <div class="tutor-card">
+                <div class="tutor-header">
+                    <div class="tutor-avatar">TT</div>
+                    <div>
+                        <h3 style="color: var(--color-primary); font-size: 18px;">Trần Thùy Linh (Sensei)</h3>
+                        <span class="tutor-badge">✓ Đã duyệt chứng chỉ JLPT N1</span>
+                    </div>
+                </div>
+                <p style="font-size: 14px; color: var(--color-text-muted); margin-bottom: 16px;">
+                    Cựu du học sinh Tokyo University, 4 năm kinh nghiệm luyện thi JLPT và sửa phát âm chuẩn Tokyo.
+                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: 14px;">
+                    <div>
+                        <span style="font-size: 13px; color: var(--color-text-muted);">Học phí:</span>
+                        <strong style="color: var(--color-primary); font-size: 16px;"> 250.000đ/giờ</strong>
+                    </div>
+                    <a th:href="@{/register}" class="btn-primary" style="font-size: 13px;">Đặt Lịch Học Thử</a>
+                </div>
+            </div>
+
+            <div class="tutor-card">
+                <div class="tutor-header">
+                    <div class="tutor-avatar">KD</div>
+                    <div>
+                        <h3 style="color: var(--color-primary); font-size: 18px;">Kenji Daiki (Sensei)</h3>
+                        <span class="tutor-badge">✓ Người bản xứ (Tokyo)</span>
+                    </div>
+                </div>
+                <p style="font-size: 14px; color: var(--color-text-muted); margin-bottom: 16px;">
+                    Giảng viên bản ngữ chuyên tiếng Nhật thương mại (Business Japanese) và phỏng vấn xin việc visa kỹ sư.
+                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: 14px;">
+                    <div>
+                        <span style="font-size: 13px; color: var(--color-text-muted);">Học phí:</span>
+                        <strong style="color: var(--color-primary); font-size: 16px;"> 350.000đ/giờ</strong>
+                    </div>
+                    <a th:href="@{/register}" class="btn-primary" style="font-size: 13px;">Đặt Lịch Học Thử</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+</body>
+</html>

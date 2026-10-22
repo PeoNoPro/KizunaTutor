@@ -1,0 +1,5 @@
+Repo nguồn	Bản chất gốc	Vai trò trong KizunaTutor	Chiến lược tái sử dụng tối ưu
+KanjiVG/kanjivg	Dữ liệu đồ họa vector SVG (~6.700 file nét chữ Hán) + script Python	Cung cấp dữ liệu nét vẽ cho bảng kanji_dictionary và tính năng luyện viết chữ Hán	Asset & Data Seeding: Giữ nguyên SVG/JSON để nạp (seed) vào PostgreSQL hoặc làm static resource.
+TencentDB-Agent-Memory	Hệ thống quản lý trí nhớ AI (TypeScript/NodeJS, Docker)	Phân hệ AI-powered Learning Support: lưu trí nhớ hội thoại, lộ trình học viên và hồ sơ gia sư AI	Microservice / Sidecar Docker: Chạy độc lập qua Docker Compose, Spring Boot gọi qua REST API (RestClient/WebClient).
+pbakaus/impeccable	Design System & AI audit rules (anti-slop layout)	Quy chuẩn thiết kế UI/UX giao diện KizunaTutor theo chuẩn mực cao cấp	Design Tokens & Rules: Tích hợp các file đặc tả (DESIGN.md, rule configs) vào Frontend.
+taste-skill	Bộ Agent Skill cho AI coding (SKILL.md)	Định hướng AI sinh mã Frontend có tính thẩm mỹ cao (màu sắc Nhật Bản, bố cục sư phạm)	Agent Skill Config: Đặt vào thư mục .agents/skills hoặc cấu hình tool IDE.

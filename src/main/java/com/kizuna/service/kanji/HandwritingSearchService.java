@@ -61,6 +61,34 @@ public class HandwritingSearchService {
         }
     }
 
+    public Optional<OfflineKanji> getOfflineKanji(String character) {
+        if (character == null) return Optional.empty();
+        return Optional.ofNullable(offlineDict.get(character.trim()));
+    }
+
+    public void enrichKanjiMetadata(KanjiDictionary kanji) {
+        if (kanji == null || kanji.getKanjiCharacter() == null) return;
+        OfflineKanji off = offlineDict.get(kanji.getKanjiCharacter().trim());
+        if (off == null) return;
+        if (kanji.getHanViet() == null || kanji.getHanViet().isBlank()) {
+            kanji.setHanViet(off.han_viet());
+        }
+        if (kanji.getOnyomi() == null || kanji.getOnyomi().isBlank()) {
+            kanji.setOnyomi(off.onyomi());
+        }
+        if (kanji.getKunyomi() == null || kanji.getKunyomi().isBlank()) {
+            kanji.setKunyomi(off.kunyomi());
+        }
+        if (kanji.getMeaning() == null || kanji.getMeaning().isBlank()) {
+            kanji.setMeaning(off.meaning());
+        }
+        if (kanji.getJlptLevel() == null && off.jlpt() != null && off.jlpt().matches("^N[1-5]$")) {
+            try {
+                kanji.setJlptLevel(com.kizuna.entity.JlptLevel.valueOf(off.jlpt()));
+            } catch (Exception ignored) {}
+        }
+    }
+
     public SearchResponse search(SearchRequest req) {
         int limit = req.getLimit() > 0 ? Math.min(req.getLimit(), 30) : 12;
 

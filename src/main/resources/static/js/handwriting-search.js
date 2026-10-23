@@ -386,8 +386,7 @@ function hwRenderEmptyState(msg) {
 
     const engineBadge = document.getElementById('hwEngineBadge');
     if (engineBadge) {
-        engineBadge.innerText = 'Thời gian thực';
-        engineBadge.className = 'badge-engine-neutral';
+        engineBadge.style.display = 'none';
     }
 }
 
@@ -400,13 +399,7 @@ function hwRenderCandidateResults(data) {
 
     const engineBadge = document.getElementById('hwEngineBadge');
     if (engineBadge) {
-        if (data.sourceEngine === 'GOOGLE_HANDWRITING_ENRICHED' || data.sourceEngine === 'GOOGLE_HANDWRITING_RAW') {
-            engineBadge.innerText = '⚡ Google AI Engine';
-            engineBadge.className = 'badge-engine-ai';
-        } else {
-            engineBadge.innerText = '📐 Topology Vector Engine';
-            engineBadge.className = 'badge-engine-topo';
-        }
+        engineBadge.style.display = 'none';
     }
 
     if (matches.length === 0) {

@@ -392,19 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // 7. CẤU HÌNH KHÓA AI (GEMINI / OPENAI) & KIỂM TRA TRẠNG THÁI SERVER
+    // 7. KIỂM TRA TRẠNG THÁI AI KIZUNA SENSEI (BACKGROUND)
     // =========================================================================
-    const btnAiKeySettings = document.getElementById('btnAiKeySettings');
-    const aiKeyModal = document.getElementById('aiKeyModal');
-    const btnCloseAiModal = document.getElementById('btnCloseAiModal');
-    const btnSaveApiKey = document.getElementById('btnSaveApiKey');
-    const btnClearSavedApiKey = document.getElementById('btnClearSavedApiKey');
-    const modalApiKeyInput = document.getElementById('modalApiKeyInput');
-    const modalAiProvider = document.getElementById('modalAiProvider');
-    const aiStatusDot = document.getElementById('aiStatusDot');
-    const aiStatusText = document.getElementById('aiStatusText');
-
-    let serverHasKey = false;
+    let serverHasKey = true;
 
     async function checkAiStatus() {
         try {
@@ -414,76 +404,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 serverHasKey = !!data.hasServerKey;
             }
         } catch (e) {
-            console.log('Không thể kiểm tra server ai status:', e);
-        }
-
-        const localKey = localStorage.getItem('kizuna_ai_api_key');
-        const localProvider = localStorage.getItem('kizuna_ai_provider') || 'GEMINI';
-
-        if (localKey && localKey.trim()) {
-            aiStatusDot.className = 'ai-status-dot active';
-            aiStatusText.textContent = `AI Sẵn Sàng (${localProvider} - Khóa Người Dùng)`;
-            if (modalApiKeyInput) modalApiKeyInput.value = localKey;
-            if (modalAiProvider) modalAiProvider.value = localProvider;
-        } else if (serverHasKey) {
-            aiStatusDot.className = 'ai-status-dot active';
-            aiStatusText.textContent = 'AI Sẵn Sàng (Khóa Hệ Thống)';
-        } else {
-            aiStatusDot.className = 'ai-status-dot';
-            aiStatusText.textContent = 'Chưa Cài Đặt AI Key';
+            // silent check
         }
     }
 
     checkAiStatus();
-
-    if (btnAiKeySettings && aiKeyModal) {
-        btnAiKeySettings.addEventListener('click', () => {
-            const localKey = localStorage.getItem('kizuna_ai_api_key') || '';
-            const localProvider = localStorage.getItem('kizuna_ai_provider') || 'GEMINI';
-            if (modalApiKeyInput) modalApiKeyInput.value = localKey;
-            if (modalAiProvider) modalAiProvider.value = localProvider;
-            aiKeyModal.style.display = 'flex';
-        });
-    }
-
-    if (btnCloseAiModal && aiKeyModal) {
-        btnCloseAiModal.addEventListener('click', () => {
-            aiKeyModal.style.display = 'none';
-        });
-    }
-
-    if (btnSaveApiKey) {
-        btnSaveApiKey.addEventListener('click', () => {
-            const key = modalApiKeyInput.value.trim();
-            const provider = modalAiProvider.value;
-            if (key) {
-                localStorage.setItem('kizuna_ai_api_key', key);
-                localStorage.setItem('kizuna_ai_provider', provider);
-                alert('🎉 Đã lưu và kích hoạt khóa AI thành công!');
-            } else {
-                localStorage.removeItem('kizuna_ai_api_key');
-                localStorage.setItem('kizuna_ai_provider', provider);
-                alert('Đã xóa khóa cá nhân. Hệ thống sẽ sử dụng khóa máy chủ hoặc từ điển Topo.');
-            }
-            aiKeyModal.style.display = 'none';
-            checkAiStatus();
-        });
-    }
-
-    if (btnClearSavedApiKey) {
-        btnClearSavedApiKey.addEventListener('click', () => {
-            localStorage.removeItem('kizuna_ai_api_key');
-            if (modalApiKeyInput) modalApiKeyInput.value = '';
-            alert('Đã xóa khóa API lưu trên trình duyệt.');
-            checkAiStatus();
-        });
-    }
-
-    window.addEventListener('click', (e) => {
-        if (e.target === aiKeyModal) {
-            aiKeyModal.style.display = 'none';
-        }
-    });
 
     // =========================================================================
     // 8. CHẤM ĐIỂM NÉT VẼ AI (CALL /api/kanji/grade)

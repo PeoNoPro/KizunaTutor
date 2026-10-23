@@ -642,6 +642,139 @@
             border-radius: 4px;
             font-weight: 700;
         }
+
+        /* Tab Switcher for Learner */
+        .tab-pill {
+            flex: 1;
+            padding: 11px 18px;
+            font-size: 14px;
+            font-weight: 700;
+            border: 1.5px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: #FFFFFF;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .tab-pill:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background: #FAF9F6;
+        }
+        .tab-pill.active {
+            background: var(--color-primary);
+            color: #FFFFFF;
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(27, 42, 74, 0.15);
+        }
+
+        /* Kanji Catalog Grid & Card Styles for Learner */
+        .kanji-catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+            gap: 14px;
+        }
+        .kanji-catalog-card {
+            background: #FFFFFF;
+            border: 1.5px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 14px 12px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            user-select: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        .kanji-catalog-card:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 8px 18px -2px rgba(27, 42, 74, 0.12);
+            transform: translateY(-3px);
+            background: #FAF9F6;
+        }
+        .kanji-catalog-card .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 4px;
+        }
+        .kanji-catalog-card .char-glyph {
+            font-size: 34px;
+            font-weight: 800;
+            color: var(--color-primary);
+            font-family: 'Noto Serif JP', 'Hiragino Mincho Pro', 'Yu Mincho', serif;
+            line-height: 1;
+        }
+        .kanji-catalog-card .hanviet-label {
+            font-size: 13px;
+            font-weight: 800;
+            color: #9333EA;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+        .kanji-catalog-card .meta-line {
+            font-size: 11px;
+            color: var(--color-text-muted);
+            margin-bottom: 4px;
+        }
+        .kanji-catalog-card .meaning-line {
+            font-size: 11.5px;
+            color: #334155;
+            line-height: 1.35;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-top: 2px;
+            margin-bottom: 10px;
+            flex: 1;
+        }
+        .kanji-catalog-card .btn-start-practice {
+            background: #EFF6FF;
+            color: #1D4ED8;
+            border: 1px solid #BFDBFE;
+            border-radius: var(--radius-sm);
+            padding: 5px 8px;
+            font-size: 11.5px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.15s;
+            text-decoration: none;
+            margin-top: auto;
+        }
+        .kanji-catalog-card:hover .btn-start-practice {
+            background: var(--color-primary);
+            color: #FFFFFF;
+            border-color: var(--color-primary);
+        }
+        .level-filter-btn {
+            background: #F1F5F9;
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .level-filter-btn:hover {
+            background: #E2E8F0;
+            color: var(--color-primary);
+        }
+        .level-filter-btn.active {
+            background: var(--color-primary);
+            color: #FFFFFF;
+            border-color: var(--color-primary);
+        }
     </style>
 </head>
 <body>
@@ -651,43 +784,80 @@
     <div style="text-align: center; margin-top: 28px;">
         <h1 style="color: var(--color-primary); font-size: 28px;">Luyện Viết Chữ Hán (Kanji Canvas)</h1>
         <p style="color: var(--color-text-muted);">Tự luyện viết chữ Kanji tương tác trên ô Mễ, hỗ trợ nét mờ chuẩn, mô phỏng bút thuận Shodo và chấm điểm thông minh từ AI Sensei.</p>
-        
-        <!-- Nút Cài Đặt AI Key & Trạng Thái -->
-        <div style="margin-top: 10px;">
-            <span class="ai-status-pill" id="btnAiKeySettings" title="Nhấn để cấu hình Google Gemini API Key">
-                <span class="ai-status-dot" id="aiStatusDot"></span>
-                <span id="aiStatusText">Kiểm tra kết nối AI...</span>
-                <span>⚙️</span>
-            </span>
-        </div>
     </div>
 
-    <!-- Thanh tìm kiếm chữ Hán & Tra cứu viết tay -->
-    <form th:action="@{/kanji}" method="get" class="search-bar" style="max-width: 680px;">
-        <input type="text" id="inputCharQuery" name="charQuery" class="search-input" th:value="${currentChar}" placeholder="Nhập chữ Kanji muốn học (vd: 愛, 日, 水, 学)..." maxlength="1" required>
-        <button type="submit" class="btn-primary" style="white-space: nowrap;">Tra Cứu</button>
-        <button type="button" class="tool-btn" id="btnOpenHwSearchModal" style="padding: 10px 16px; font-size: 14px; white-space: nowrap; border: 1.5px solid var(--color-primary); color: var(--color-primary); background: #FAF9F6;" title="Mở bảng vẽ tra cứu chữ Hán theo nét thời gian thực">
-            <span>🖌️</span> <span>Vẽ Nét Tra Cứu</span>
+    <!-- THANH CHUYỂN ĐỔI TAB DÀNH CHO HỌC VIÊN -->
+    <div style="display: flex; justify-content: center; gap: 12px; margin: 20px auto 10px auto; max-width: 540px; padding: 0 16px;">
+        <button type="button" class="tab-pill active" id="tabBtnPractice" onclick="switchMainTab('practice')">
+            <span>✍️</span> <span>Luyện Viết (Canvas)</span>
         </button>
-    </form>
+        <button type="button" class="tab-pill" id="tabBtnLibrary" onclick="switchMainTab('library')">
+            <span>📚</span> <span>Danh Sách Kanji (N5 - N1)</span>
+        </button>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: BẢNG LUYỆN VIẾT TƯƠNG TÁC (CANVAS Ô MỄ) -->
+    <!-- ========================================================================= -->
+    <div id="sectionPracticeTab">
+        <!-- Thanh tìm kiếm chữ Hán & Tra cứu viết tay -->
+        <form th:action="@{/kanji}" method="get" class="search-bar" style="max-width: 720px;">
+            <input type="text" id="inputCharQuery" name="charQuery" class="search-input" th:value="${currentChar}" placeholder="Nhập chữ Kanji muốn học (vd: 愛, 日, 水, 学)..." maxlength="1" required>
+            <button type="submit" class="btn-primary" style="white-space: nowrap;">Tra Cứu</button>
+            <button type="button" class="tool-btn" id="btnOpenHwSearchModal" style="padding: 10px 16px; font-size: 14px; white-space: nowrap; border: 1.5px solid var(--color-primary); color: var(--color-primary); background: #FAF9F6;" title="Mở bảng vẽ tra cứu chữ Hán theo nét thời gian thực">
+                <span>🖌️</span> <span>Vẽ Nét Tra Cứu</span>
+            </button>
+            <button type="button" class="tool-btn" onclick="switchMainTab('library')" style="padding: 10px 16px; font-size: 14px; white-space: nowrap; border: 1.5px solid var(--color-border); color: #334155; background: #FAF9F6;" title="Xem bảng danh sách chữ Kanji phân theo cấp độ N5 - N1">
+                <span>📚</span> <span>Bảng Chữ N5 - N1</span>
+            </button>
+        </form>
 
     <div class="practice-layout">
-        <!-- Cột trái: Mẫu nét chuẩn từ KanjiVG -->
+        <!-- Cột trái: Mẫu Chữ Hán & Thông tin Hán tự -->
         <div class="kanji-guide-box">
-            <h3 style="color: var(--color-primary); margin-bottom: 8px;">Nét Mẫu Chuẩn (KanjiVG)</h3>
-            <p style="font-size: 14px; color: var(--color-text-muted);">
-                Chữ: <strong style="font-size: 20px; color: var(--color-primary);" id="targetKanjiChar" th:text="${currentChar}">愛</strong> 
+            <h3 style="color: var(--color-primary); margin-bottom: 8px;">Mẫu Chữ Hán</h3>
+            <p style="font-size: 14px; color: var(--color-text-muted); margin-bottom: 8px;">
+                Chữ: <strong style="font-size: 22px; color: var(--color-primary);" id="targetKanjiChar" th:text="${currentChar}">愛</strong> 
+                | Hán Việt: <strong style="color: #9333EA;" th:text="${kanjiData != null && kanjiData.hanViet != null ? kanjiData.hanViet : '—'}">ÁI</strong>
                 | Số nét: <span id="targetStrokeCount" th:text="${kanjiData != null ? kanjiData.strokeCount : '13'}">13</span>
                 | Bộ thủ: <span th:text="${kanjiData != null && kanjiData.radical != null ? kanjiData.radical : '—'}">心</span>
             </p>
 
-            <div class="svg-preview" th:if="${kanjiData != null && kanjiData.svgData != null}" th:utext="${kanjiData.svgData}">
-                <!-- SVG từ database sẽ hiển thị ở đây -->
+            <div class="svg-preview" style="background: #FAF9F6; border: 2px solid var(--color-border); border-radius: var(--radius-md);">
+                <span style="font-size: 130px; font-family: 'Noto Serif JP', 'Hiragino Mincho Pro', 'Yu Mincho', serif; font-weight: 700; color: var(--color-primary); line-height: 1; user-select: none;" th:text="${currentChar}">愛</span>
             </div>
-            <div class="svg-preview" th:unless="${kanjiData != null && kanjiData.svgData != null}">
-                <span style="font-size: 64px; color: var(--color-primary);" th:text="${currentChar}">愛</span>
+
+            <!-- Bảng thông tin chi tiết: Âm On, Âm Kun, Hán Việt, Ý nghĩa -->
+            <div class="kanji-details-card" style="width: 100%; max-width: 320px; background: #FAF9F6; border: 1.5px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 16px; text-align: left; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px dashed #E2E8F0; padding-bottom: 6px;">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--color-primary); display: flex; align-items: center; gap: 6px;">
+                        <span>📖</span> Thông Tin Chữ Hán
+                    </span>
+                    <span class="hw-tile-jlpt" th:if="${kanjiData != null && kanjiData.jlptLevel != null}" th:text="${kanjiData.jlptLevel}">N3</span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span style="min-width: 72px; color: var(--color-text-muted); font-weight: 600;">Hán Việt:</span>
+                        <strong style="color: #9333EA; font-size: 14px; letter-spacing: 0.5px;" th:text="${kanjiData != null && kanjiData.hanViet != null ? kanjiData.hanViet : '—'}">ÁI</strong>
+                    </div>
+
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span style="min-width: 72px; color: var(--color-text-muted); font-weight: 600;">Âm On:</span>
+                        <span style="color: #1E293B; font-weight: 600;" th:text="${kanjiData != null && kanjiData.onyomi != null ? kanjiData.onyomi : '—'}">アイ (ai)</span>
+                    </div>
+
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span style="min-width: 72px; color: var(--color-text-muted); font-weight: 600;">Âm Kun:</span>
+                        <span style="color: #1E293B; font-weight: 600;" th:text="${kanjiData != null && kanjiData.kunyomi != null ? kanjiData.kunyomi : '—'}">-</span>
+                    </div>
+
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span style="min-width: 72px; color: var(--color-text-muted); font-weight: 600;">Ý nghĩa:</span>
+                        <span style="color: #334155; line-height: 1.4;" th:text="${kanjiData != null && kanjiData.meaning != null ? kanjiData.meaning : '—'}">Tình yêu, thương yêu, ái mộ</span>
+                    </div>
+                </div>
             </div>
-            <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">Mỗi nét đều được đánh số theo đúng chuẩn thư pháp Shodo Nhật Bản.</p>
         </div>
 
         <!-- Cột phải: Khung tập viết tương tác với đa lớp (Grid, Nét mờ, Canvas) -->
@@ -721,11 +891,11 @@
                 <div class="ai-loading-overlay" id="aiLoadingOverlay">
                     <div class="ai-spinner"></div>
                     <strong style="color: var(--color-primary); font-size: 14px;">Kizuna Sensei đang chấm nét...</strong>
-                    <p style="font-size: 12px; color: var(--color-text-muted); text-align: center;">Đang phân tích Topo vector và gọi Gemini AI...</p>
+                    <p style="font-size: 12px; color: var(--color-text-muted); text-align: center;">Đang phân tích nét chữ và kết nối với Kizuna Sensei...</p>
                 </div>
             </div>
 
-            <!-- Thanh công cụ hỗ trợ luyện viết đầy đủ tính năng -->
+            <!-- Thanh công cụ hỗ trợ luyện viết -->
             <div class="practice-toolbar">
                 <div class="practice-tools-row">
                     <button type="button" class="tool-btn" id="btnToggleGuideline" title="Bật/Tắt hiển thị nét mờ chuẩn bên dưới">
@@ -734,23 +904,17 @@
                     <button type="button" class="tool-btn" id="btnAnimateGuide" title="Xem lại mô phỏng thứ tự từng nét theo bút thuận">
                         ▶ Xem lại cách viết
                     </button>
-                    <button type="button" class="tool-btn tool-btn-accent" id="btnCompleteStroke" title="Tự động vẽ nét chuẩn tiếp theo">
-                        ✨ Hoàn tất nét
-                    </button>
                     <button type="button" class="tool-btn" id="btnUndoStroke" title="Xóa nét vừa vẽ gần nhất">
                         ↩ Hoàn tác
                     </button>
                     <button type="button" class="tool-btn" id="btnClearCanvas" title="Xóa toàn bộ để vẽ lại từ đầu">
                         🗑️ Xóa bảng
                     </button>
-                    <button type="button" class="tool-btn" onclick="openHwSearchModal()" title="Mở bảng vẽ tra cứu chữ Hán theo nét thời gian thực">
-                        🖌️ Tra cứu nét
-                    </button>
                 </div>
 
                 <div style="margin-top: 4px;">
                     <button type="button" id="btnGradeCanvas" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; font-size: 15px;">
-                        <span>✨</span> Chấm Điểm AI (Kizuna Sensei)
+                        <span>✨</span> Nhận xét của Kizuna Sensei
                     </button>
                 </div>
             </div>
@@ -759,56 +923,64 @@
 
     <!-- Lưu dữ liệu SVG KanjiVG thô phục vụ vẽ nét mờ & hoàn tất nét tức thì -->
     <script id="kanjiSvgRaw" type="text/template" th:if="${kanjiData != null && kanjiData.svgData != null}" th:utext="${kanjiData.svgData}"></script>
+    </div> <!-- /#sectionPracticeTab -->
 
     <!-- ========================================================================= -->
-    <!-- MODAL 1: CẤU HÌNH AI KEYS (GEMINI / OPENAI) -->
+    <!-- TAB 2: DANH SÁCH CHỮ HÁN THEO CẤP ĐỘ JLPT (N5 - N1) DÀNH CHO HỌC VIÊN -->
     <!-- ========================================================================= -->
-    <div class="kizuna-modal-backdrop" id="aiKeyModal">
-        <div class="kizuna-modal-content" style="max-width: 520px;">
-            <div class="modal-header">
-                <h3 style="color: var(--color-primary); font-size: 18px; margin: 0; display: flex; align-items: center; gap: 8px;">
-                    <span>🤖</span> Cấu Hình Khóa AI (Gemini / OpenAI)
-                </h3>
-                <button type="button" class="btn-close-modal" id="btnCloseAiModal" style="background: none; border: none; font-size: 22px; cursor: pointer; color: #94A3B8;">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p style="font-size: 14px; color: var(--color-text-muted); margin-bottom: 16px;">
-                    Hệ thống KizunaTutor cho phép bạn tích hợp trực tiếp <strong>Google Gemini API Key</strong> để AI Sensei phân tích chi tiết từng nét Shodo và đưa ra lời nhận xét thư pháp chuẩn Nhật Bản.
-                </p>
-
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 6px;">
-                        Nhà Cung Cấp AI:
-                    </label>
-                    <select id="modalAiProvider" class="search-input" style="width: 100%; padding: 8px 12px; font-size: 14px;">
-                        <option value="GEMINI">✨ Google Gemini 1.5 Flash (Khuyên dùng - Miễn phí & Cực nhanh)</option>
-                        <option value="OPENAI">🟢 OpenAI GPT-4o-mini</option>
-                    </select>
+    <div id="sectionLibraryTab" style="display: none; max-width: 1100px; margin: 0 auto; padding: 0 20px 50px 20px;">
+        <!-- Khung Bộ Lọc & Tìm Kiếm Dành Cho Học Viên -->
+        <div style="background: #FFFFFF; border: 1.5px solid var(--color-border); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+            <!-- Hàng 1: Bộ lọc Cấp độ JLPT (Pills) -->
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; border-bottom: 1px dashed var(--color-border); padding-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">🎯</span>
+                    <strong style="color: var(--color-primary); font-size: 15px;">Cấp độ JLPT:</strong>
                 </div>
-
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 6px;">
-                        🔑 Khóa API Key của bạn:
-                    </label>
-                    <input type="password" id="modalApiKeyInput" class="search-input" style="width: 100%; padding: 10px 14px; font-size: 14px;" placeholder="Dán Gemini API Key (AIzaSy...) hoặc OpenAI Key...">
-                </div>
-
-                <div style="background: #FAF9F6; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 12px; font-size: 12.5px; color: var(--color-text-muted); line-height: 1.5;">
-                    💡 <strong>Cách lấy Gemini API Key miễn phí:</strong><br>
-                    1. Truy cập <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); font-weight: 600;">Google AI Studio</a>.<br>
-                    2. Đăng nhập tài khoản Google và bấm <em>"Create API Key"</em>.<br>
-                    3. Khóa API sẽ được lưu trữ an toàn trong trình duyệt (LocalStorage) của bạn và ưu tiên gọi AI trực tiếp.
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="libLevelFilterGroup">
+                    <button type="button" class="level-filter-btn active" data-level="ALL" onclick="onSelectJlptLevel('ALL')">Tất cả cấp độ</button>
+                    <button type="button" class="level-filter-btn" data-level="N5" onclick="onSelectJlptLevel('N5')">JLPT N5</button>
+                    <button type="button" class="level-filter-btn" data-level="N4" onclick="onSelectJlptLevel('N4')">JLPT N4</button>
+                    <button type="button" class="level-filter-btn" data-level="N3" onclick="onSelectJlptLevel('N3')">JLPT N3</button>
+                    <button type="button" class="level-filter-btn" data-level="N2" onclick="onSelectJlptLevel('N2')">JLPT N2</button>
+                    <button type="button" class="level-filter-btn" data-level="N1" onclick="onSelectJlptLevel('N1')">JLPT N1</button>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-outline" id="btnClearSavedApiKey">Xóa Key Đã Lưu</button>
-                <button type="button" class="btn-primary" id="btnSaveApiKey">Lưu & Kích Hoạt</button>
+
+            <!-- Hàng 2: Bộ lọc từ khóa & Số nét -->
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                <div style="flex: 1; min-width: 240px; position: relative;">
+                    <input type="text" id="libFilterKeyword" class="search-input" placeholder="Tìm theo chữ Hán, Hán Việt, Onyomi, Kunyomi hoặc ý nghĩa..." oninput="onLibKeywordInput(this.value)" style="width: 100%; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 14px 10px 36px; font-size: 13.5px;">
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; color: var(--color-text-muted);">🔍</span>
+                </div>
+
+                <div style="width: 140px;">
+                    <input type="number" id="libFilterStrokes" min="1" max="64" class="search-input" placeholder="Số nét..." oninput="onLibStrokeCountInput(this.value)" style="width: 100%; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13.5px;" title="Lọc theo số nét vẽ">
+                </div>
+
+                <button type="button" class="tool-btn" onclick="onResetLibFilters()" style="padding: 10px 16px; font-size: 13.5px; border: 1.5px solid var(--color-border); color: #475569; background: #F8FAFC;" title="Đặt lại bộ lọc về mặc định">
+                    <span>↺</span> <span>Đặt lại</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Lưới thẻ chữ Hán (Grid) -->
+        <div id="libKanjiGrid" class="kanji-catalog-grid">
+            <!-- Thẻ chữ Hán được tải động từ kanji-catalog.js -->
+        </div>
+
+        <!-- Thanh phân trang & Tổng số lượng -->
+        <div id="libPaginationBar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 24px; padding-top: 18px; border-top: 1.5px solid var(--color-border);">
+            <div id="libPaginationInfo" style="font-size: 13px; color: var(--color-text-muted);">
+                Đang tải dữ liệu...
+            </div>
+            <div id="libPaginationBtns" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
             </div>
         </div>
     </div>
 
     <!-- ========================================================================= -->
-    <!-- MODAL 2: KẾT QUẢ ĐÁNH GIÁ NÉT VẼ & NHẬN XÉT CỦA AI SENSEI -->
+    <!-- MODAL 1: KẾT QUẢ ĐÁNH GIÁ NÉT VẼ & NHẬN XÉT CỦA AI SENSEI -->
     <!-- ========================================================================= -->
     <div class="kizuna-modal-backdrop" id="evaluationResultModal">
         <div class="kizuna-modal-content">
@@ -875,7 +1047,7 @@
                     <!-- Tiêu chí 3: Hướng nét vector -->
                     <div class="criteria-row">
                         <div class="criteria-meta">
-                            <span>3. Hướng Đi & Độ Chuẩn Nét Vector (Cosine Similarity)</span>
+                            <span>3. Hướng Đi & Độ Chuẩn Từng Nét Vẽ</span>
                             <span id="crit3Score">36/40đ (90%)</span>
                         </div>
                         <div class="progress-bar-bg">
@@ -913,7 +1085,6 @@
                     <span style="font-size: 22px;">🖌️</span>
                     <div>
                         <h3 style="color: var(--color-primary); font-size: 18px; margin: 0;">Tra Cứu Chữ Hán Bằng Nét Vẽ Viết Tay</h3>
-                        <span style="font-size: 12px; color: var(--color-text-muted);">Nhận diện thời gian thực &lt; 150ms sau mỗi nét vẽ</span>
                     </div>
                 </div>
                 <button type="button" class="btn-close-modal" id="btnCloseHwSearchModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94A3B8;">&times;</button>
@@ -954,13 +1125,13 @@
                         </div>
                     </div>
 
-                    <!-- CỘT 2: KẾT QUẢ GỢI Ý THỜI GIAN THỰC -->
+                    <!-- CỘT 2: KẾT QUẢ GỢI Ý TỪ KIZUNA SENSEI -->
                     <div class="hw-candidate-panel">
                         <div class="hw-panel-header">
                             <div class="hw-panel-title">
-                                <span>🎯 Gợi Ý Chữ Hán Khớp Nhất</span>
+                                <span>🎯 Gợi ý từ Kizuna Sensei</span>
                             </div>
-                            <span id="hwEngineBadge" class="badge-engine-neutral">Thời gian thực</span>
+                            <span id="hwEngineBadge" style="display: none;"></span>
                         </div>
 
                         <div id="hwCandidateList" class="hw-candidate-grid">
@@ -1046,5 +1217,6 @@
 
     <script th:src="@{/js/kanji-canvas.js}"></script>
     <script th:src="@{/js/handwriting-search.js}"></script>
+    <script th:src="@{/js/kanji-catalog.js}"></script>
 </body>
 </html>

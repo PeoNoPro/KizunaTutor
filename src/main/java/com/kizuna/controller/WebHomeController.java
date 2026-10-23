@@ -1,6 +1,8 @@
 package com.kizuna.controller;
 
+import com.kizuna.entity.KanjiDictionary;
 import com.kizuna.repository.KanjiDictionaryRepository;
+import com.kizuna.service.kanji.HandwritingSearchService;
 import com.kizuna.util.SvgUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class WebHomeController {
 
     private final KanjiDictionaryRepository kanjiRepository;
+    private final HandwritingSearchService handwritingSearchService;
 
     @GetMapping({"/", "/index"})
     public String index(Model model) {
@@ -22,14 +25,31 @@ public class WebHomeController {
     }
 
     @GetMapping("/kanji")
-    public String kanjiPractice(@RequestParam(required = false, defaultValue = "愛") String charQuery, Model model) {
+    public String kanjiPractice(
+            @RequestParam(required = false, defaultValue = "愛") String charQuery,
+            @RequestParam(required = false, defaultValue = "practice") String tab,
+            Model model) {
         model.addAttribute("pageTitle", "Luyện Viết Chữ Hán Kanji - KizunaTutor");
         model.addAttribute("currentChar", charQuery);
-        kanjiRepository.findByKanjiCharacter(charQuery).ifPresent(kanji -> {
+        model.addAttribute("activeTab", tab);
+        kanjiRepository.findByKanjiCharacter(charQuery).ifPresentOrElse(kanji -> {
             if (kanji.getSvgData() != null) {
                 kanji.setSvgData(SvgUtils.cleanKanjiVgSvg(kanji.getSvgData()));
             }
+            handwritingSearchService.enrichKanjiMetadata(kanji);
             model.addAttribute("kanjiData", kanji);
+        }, () -> {
+            handwritingSearchService.getOfflineKanji(charQuery).ifPresent(off -> {
+                KanjiDictionary fallback = KanjiDictionary.builder()
+                        .kanjiCharacter(charQuery)
+                        .hanViet(off.han_viet())
+                        .onyomi(off.onyomi())
+                        .kunyomi(off.kunyomi())
+                        .meaning(off.meaning())
+                        .strokeCount((short) 1)
+                        .build();
+                model.addAttribute("kanjiData", fallback);
+            });
         });
         return "kanji/practice";
     }

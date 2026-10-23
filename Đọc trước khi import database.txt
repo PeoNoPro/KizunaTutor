@@ -1,0 +1,21 @@
+Các bước thực hiện trong pgAdmin 4:
+
+Tạo Database:
+
+Ở cây thư mục bên trái, chuột phải vào Databases 
+→
+→ chọn Create 
+→
+→ Database...
+Đặt tên là kizuna_db rồi bấm Save.
+
+Mở Query Tool:
+
+Chuột phải trực tiếp vào database kizuna_db vừa tạo 
+→
+→ chọn Query Tool. (Lúc này cửa sổ soạn thảo đã kết nối thẳng vào kizuna_db, góc trên sẽ hiện tên kizuna_db).
+
+Thực thi mã:
+
+Dán toàn bộ khối code ở tin nhắn trước vào.
+Nhấn phím F5 (hoặc bấm biểu tượng nút Play ▶ trên thanh công cụ).

@@ -73,6 +73,32 @@ public class Tutor {
     @Builder.Default
     private Boolean isFeatured = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tutor_state", length = 30, nullable = false)
+    @Builder.Default
+    private TutorState tutorState = TutorState.DRAFT_PROFILE;
+
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    @Column(name = "date_of_birth")
+    private java.time.LocalDate dateOfBirth;
+
+    @Column(name = "address", length = 255)
+    private String address;
+
+    @Column(name = "certificate_urls", columnDefinition = "TEXT")
+    private String certificateUrls;
+
+    @Column(name = "verification_feedback", columnDefinition = "TEXT")
+    private String verificationFeedback;
+
+    @Column(name = "submitted_at")
+    private OffsetDateTime submittedAt;
+
+    @Column(name = "verified_at")
+    private OffsetDateTime verifiedAt;
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;

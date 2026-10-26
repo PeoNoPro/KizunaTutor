@@ -15,19 +15,11 @@
         </div>
     </div>
 
-    <div class="topbar-right">
-        <!-- Chuyển đổi ngôn ngữ hiển thị -->
-        <div class="topbar-badge-pill" title="Ngôn ngữ giao diện">
-            <span>🇻🇳</span>
-            <span>VI</span>
-        </div>
-
-        <!-- Khối người dùng học viên (Learner Profile Pill) chuẩn Node 1148-501 -->
-        <div class="topbar-user-pill" title="Tài khoản học viên">
-            <div class="topbar-avatar">HV</div>
-            <span class="topbar-user-name">Học Viên</span>
-            <span class="topbar-role-tag">Học Viên</span>
-        </div>
+    <!-- Phía phải: Khối điều hướng động theo trạng thái tài khoản -->
+    <div class="topbar-right" id="topbarRightNav">
+        <a th:href="@{/login}" class="btn btn-outline" style="padding: 6px 14px; font-size: 13px; text-decoration: none;" id="navLoginBtn">
+            <span>🔑</span> <span>Đăng Nhập</span>
+        </a>
     </div>
 
     <!-- Script điều khiển toggle sidebar di động & phím tắt tìm kiếm toàn cục -->
@@ -56,6 +48,40 @@
                 }
             }
         }
+
+        // Hiển thị thông tin người dùng động nếu đã đăng nhập phiên
+        (function() {
+            try {
+                const raw = localStorage.getItem('kizuna_user');
+                if (raw) {
+                    const user = JSON.parse(raw);
+                    const container = document.getElementById('topbarRightNav');
+                    if (container && user) {
+                        const initials = user.fullName ? user.fullName.split(' ').map(n => n[0]).slice(-2).join('').toUpperCase() : 'KZ';
+                        const roleBadge = user.roleBadge || 'Tài khoản';
+                        const dashboardRoutes = {
+                            ROLE_ADMIN: '/admin/dashboard',
+                            ROLE_MANAGER: '/manager/dashboard',
+                            ROLE_CS_STAFF: '/cs/dashboard',
+                            ROLE_ACADEMIC_OFFICER: '/academic/dashboard',
+                            ROLE_TUTOR: '/tutor/dashboard',
+                            ROLE_LEARNER: '/learner/dashboard'
+                        };
+                        const targetRoute = dashboardRoutes[user.role] || '/login';
+                        container.innerHTML = `
+                            <a href="${targetRoute}" class="topbar-user-pill" style="text-decoration: none; cursor: pointer;" title="Vào không gian làm việc của bạn">
+                                <div class="topbar-avatar">${initials}</div>
+                                <span class="topbar-user-name">${user.fullName || 'Tài khoản'}</span>
+                                <span class="topbar-role-tag">${roleBadge}</span>
+                            </a>
+                            <button onclick="if(typeof handleLogout==='function'){handleLogout();}else{localStorage.clear();window.location.href='/login';}" class="btn btn-outline" style="padding: 5px 10px; font-size: 12px; cursor: pointer;" title="Đăng xuất">
+                                🚪
+                            </button>
+                        `;
+                    }
+                }
+            } catch(e) {}
+        })();
     </script>
 </header>
 </html>

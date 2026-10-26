@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Kho Kanji &amp; Soạn Bài Tập - Gia Sư Kizuna</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased">
+    <div class="flex min-h-screen">
+        <!-- Sidebar Tutor -->
+        <aside th:replace="~{tutor/layout/sidebar :: sidebar}"></aside>
+
+        <div class="flex-1 flex flex-col min-w-0">
+            <!-- Header Tutor -->
+            <header th:replace="~{tutor/layout/header :: header}"></header>
+
+            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
+                <div class="max-w-7xl mx-auto space-y-6">
+                    <!-- Page Title -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-rose-100">
+                        <div>
+                            <div class="text-xs font-semibold text-rose-600 uppercase tracking-wider mb-1">Công Cụ Soạn Giáo Án</div>
+                            <h1 class="text-xl font-extrabold text-slate-900">Kho Kanji Giảng Dạy &amp; Giỏ Gom Chữ Soạn Bài Tập</h1>
+                            <p class="text-xs text-slate-500">Chọn lọc các chữ Kanji cần dạy trong buổi học, xem mô phỏng nét bút và tạo bài tập giao trực tiếp cho học viên.</p>
+                        </div>
+                    </div>
+
+                    <!-- GIỎ GOM CHỮ SOẠN BÀI TẬP (KANJI LESSON BASKET) -->
+                    <div class="bg-gradient-to-r from-rose-50 via-white to-rose-50/50 rounded-2xl border border-rose-200 p-5 shadow-xs">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-rose-100">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">🧺</span>
+                                <div>
+                                    <h3 class="text-sm font-bold text-slate-900">Giỏ Gom Chữ Giao Bài Tập (<span id="basketCount">0</span> chữ)</h3>
+                                    <p class="text-[11px] text-slate-500">Các chữ Hán bạn đã chọn từ kho để chuẩn bị gửi bài tập thực hành viết.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="clearBasket()" class="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-rose-600 rounded-lg hover:bg-white transition-colors">
+                                    Xóa Giỏ
+                                </button>
+                                <button type="button" onclick="openAssignModal()" id="btnCreateAssignment" disabled class="px-4 py-2 text-xs font-bold rounded-lg bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-40 transition-all shadow-xs flex items-center gap-1.5">
+                                    <span>🚀</span> Giao Bài Cho Học Viên
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Chữ trong giỏ -->
+                        <div id="basketItems" class="flex flex-wrap items-center gap-2 pt-3 min-h-[48px]">
+                            <span class="text-xs text-slate-400 italic">Chưa có chữ nào trong giỏ. Hãy bấm nút [+ Gom Chữ] ở bên dưới để thêm vào.</span>
+                        </div>
+                    </div>
+
+                    <!-- Thanh tìm kiếm & lọc cấp độ -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-wrap gap-3 items-center justify-between">
+                        <div class="flex flex-1 items-center gap-3 min-w-[280px]">
+                            <input type="text" id="tutorSearchInput" oninput="debounceTutorSearch()" placeholder="🔍 Tìm kiếm chữ Hán, âm Hán Việt hoặc nghĩa bài học..." class="flex-1 px-3.5 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500">
+                            <select id="tutorJlptSelect" onchange="loadTutorKanji(0)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none">
+                                <option value="ALL">Tất cả cấp độ</option>
+                                <option value="N5">JLPT N5 (Cơ bản)</option>
+                                <option value="N4">JLPT N4</option>
+                                <option value="N3">JLPT N3</option>
+                                <option value="N2">JLPT N2</option>
+                                <option value="N1">JLPT N1</option>
+                            </select>
+                        </div>
+                        <div class="text-xs text-slate-500" id="tutorTotalLabel">
+                            Kho lưu trữ: <strong class="text-slate-900" th:text="${totalKanjiCount != null ? totalKanjiCount : '6,600+'}">6,600+</strong> chữ
+                        </div>
+                    </div>
+
+                    <!-- Lưới thẻ chữ Kanji -->
+                    <div id="tutorKanjiGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <!-- Dynamic Kanji Cards -->
+                    </div>
+
+                    <!-- Phân trang -->
+                    <div class="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-slate-200/80 text-xs">
+                        <span id="tutorPaginationInfo" class="text-slate-500">Đang tải...</span>
+                        <div class="flex items-center gap-1.5" id="tutorPaginationBtns"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal Soạn Bài Tập & Giao Cho Lớp -->
+    <div id="modalAssignHomework" style="display: none;" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-900">Tạo Nhiệm Vụ Viết Chữ Kanji Cho Lớp</h3>
+                <button type="button" onclick="closeAssignModal()" class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
+            </div>
+
+            <form onsubmit="submitAssignment(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Tiêu Đề Bài Tập:</label>
+                    <input type="text" id="assignTitle" required value="Bài tập luyện viết nét chữ Kanji tuần này" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-slate-900 font-semibold focus:outline-none focus:ring-1 focus:ring-rose-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Giao Cho Lớp / Không Gian Học:</label>
+                    <select id="assignClass" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold focus:outline-none">
+                        <option value="Lớp Tiếng Nhật N3 (Mã: KIZUNA2026)">Lớp Tiếng Nhật N3 (Mã: KIZUNA2026)</option>
+                        <option value="Lớp Học Thử 1 Kèm 1">Lớp Học Thử 1 Kèm 1</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Hạn Nộp Bài Viết:</label>
+                    <input type="date" id="assignDeadline" value="2026-11-02" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500">
+                </div>
+                <div class="p-3 rounded-lg bg-rose-50 border border-rose-100 text-[11px] text-rose-800">
+                    Học viên trong lớp sẽ nhận được thông báo đích danh và bài tập sẽ xuất hiện trong màn hình Luyện Viết Canvas của họ.
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeAssignModal()" class="px-4 py-2 rounded-lg border border-slate-200 font-bold text-slate-600 hover:bg-slate-100">Hủy Bỏ</button>
+                    <button type="submit" id="btnSubmitAssignment" class="px-5 py-2 rounded-lg bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-xs">Xác Nhận Giao Bài</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script th:src="@{/js/authRedirect.js}"></script>
+    <script>
+        let currentTutorPage = 0;
+        let tutorDebounce = null;
+        let basket = []; // Chứa danh sách các object { id, char, hanViet }
+        let currentItems = [];
+
+        function toggleSidebar() {
+            const sb = document.getElementById('tutorSidebar');
+            if (sb) sb.classList.toggle('-translate-x-full');
+        }
+
+        function debounceTutorSearch() {
+            clearTimeout(tutorDebounce);
+            tutorDebounce = setTimeout(() => {
+                loadTutorKanji(0);
+            }, 300);
+        }
+
+        async function loadTutorKanji(page = 0) {
+            currentTutorPage = page;
+            const kw = document.getElementById('tutorSearchInput').value.trim();
+            const jlpt = document.getElementById('tutorJlptSelect').value;
+            const grid = document.getElementById('tutorKanjiGrid');
+            grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 text-xs">Đang tải kho chữ Kanji...</div>';
+
+            try {
+                const res = await fetch(`/api/tutor/kanji/catalog?page=${page}&size=16&keyword=${encodeURIComponent(kw)}&jlpt=${encodeURIComponent(jlpt)}`);
+                const data = await res.json();
+                currentItems = data.items || [];
+                renderTutorGrid(currentItems);
+                renderTutorPagination(data.currentPage, data.totalPages, data.totalElements);
+            } catch(e) {
+                grid.innerHTML = '<div class="col-span-full py-12 text-center text-rose-500 text-xs font-bold">Lỗi tải dữ liệu: ' + e.message + '</div>';
+            }
+        }
+
+        function renderTutorGrid(items) {
+            const grid = document.getElementById('tutorKanjiGrid');
+            if (!items || items.length === 0) {
+                grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 text-xs">Không tìm thấy chữ Kanji nào.</div>';
+                return;
+            }
+
+            grid.innerHTML = items.map(k => {
+                const inBasket = basket.some(b => b.id === k.id);
+                return `
+                    <div class="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs hover:border-rose-300 transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">${k.jlpt}</span>
+                                <span class="text-[11px] text-slate-400 font-semibold">${k.strokeCount || 1} nét</span>
+                            </div>
+                            <div class="text-center my-2">
+                                <div class="font-serif text-4xl font-extrabold text-slate-900">${k.kanjiChar}</div>
+                                <div class="text-xs font-bold text-rose-700 mt-1 uppercase">${k.hanViet}</div>
+                            </div>
+                            <div class="text-[11px] text-slate-500 line-clamp-2 my-2 text-center" title="${k.meaning}">${k.meaning || 'Chữ Hán giáo trình'}</div>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <button type="button" onclick="previewStrokeOrder('${k.kanjiChar}')" class="flex-1 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold">
+                                👁️ Nét Bút
+                            </button>
+                            <button type="button" onclick="toggleBasket('${k.id}', '${k.kanjiChar}', '${k.hanViet}')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${inBasket ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-rose-600 text-white hover:bg-rose-700'}">
+                                ${inBasket ? '✓ Đã Gom' : '➕ Gom Chữ'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTutorPagination(page, totalPages, totalElements) {
+            const info = document.getElementById('tutorPaginationInfo');
+            const btns = document.getElementById('tutorPaginationBtns');
+            if (info) info.innerHTML = `Trang <strong>${page + 1}</strong> / <strong>${totalPages}</strong> (${totalElements} chữ)`;
+            if (!btns) return;
+
+            let html = '';
+            html += `<button type="button" ${page === 0 ? 'disabled' : ''} onclick="loadTutorKanji(${page - 1})" class="px-2.5 py-1 rounded border border-slate-200 font-semibold disabled:opacity-40 hover:bg-slate-100">◀</button>`;
+            html += `<span class="px-2 py-1 text-slate-600 font-bold">${page + 1}</span>`;
+            html += `<button type="button" ${page >= totalPages - 1 ? 'disabled' : ''} onclick="loadTutorKanji(${page + 1})" class="px-2.5 py-1 rounded border border-slate-200 font-semibold disabled:opacity-40 hover:bg-slate-100">▶</button>`;
+            btns.innerHTML = html;
+        }
+
+        function toggleBasket(id, char, hanViet) {
+            const idx = basket.findIndex(b => b.id === id);
+            if (idx >= 0) {
+                basket.splice(idx, 1);
+            } else {
+                basket.push({ id, char, hanViet });
+            }
+            updateBasketUI();
+            renderTutorGrid(currentItems);
+        }
+
+        function clearBasket() {
+            basket = [];
+            updateBasketUI();
+            renderTutorGrid(currentItems);
+        }
+
+        function updateBasketUI() {
+            const count = document.getElementById('basketCount');
+            const container = document.getElementById('basketItems');
+            const btn = document.getElementById('btnCreateAssignment');
+
+            count.textContent = basket.length;
+            btn.disabled = (basket.length === 0);
+
+            if (basket.length === 0) {
+                container.innerHTML = '<span class="text-xs text-slate-400 italic">Chưa có chữ nào trong giỏ. Hãy bấm nút [+ Gom Chữ] ở bên dưới để thêm vào.</span>';
+                return;
+            }
+
+            container.innerHTML = basket.map(b => `
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-rose-200 shadow-2xs text-xs font-bold text-slate-800">
+                    <span class="font-serif text-base text-rose-700">${b.char}</span>
+                    <span>(${b.hanViet})</span>
+                    <button type="button" onclick="toggleBasket('${b.id}', '${b.char}', '${b.hanViet}')" class="text-slate-400 hover:text-rose-600 font-bold text-xs ml-1">✕</button>
+                </span>
+            `).join('');
+        }
+
+        function previewStrokeOrder(char) {
+            alert(`Mô phỏng nét bút lông Shodo chuẩn KanjiVG cho chữ [${char}]. Học viên sẽ viết trên ô Mễ 109px tương tác.`);
+        }
+
+        function openAssignModal() {
+            document.getElementById('modalAssignHomework').style.display = 'flex';
+        }
+
+        function closeAssignModal() {
+            document.getElementById('modalAssignHomework').style.display = 'none';
+        }
+
+        async function submitAssignment(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitAssignment');
+            btn.disabled = true;
+            btn.textContent = 'Đang giao bài...';
+
+            const payload = {
+                title: document.getElementById('assignTitle').value,
+                targetClass: document.getElementById('assignClass').value,
+                deadline: document.getElementById('assignDeadline').value,
+                kanjiIds: basket.map(b => b.id)
+            };
+
+            try {
+                const res = await fetch('/api/tutor/kanji/create-assignment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.message || 'Tạo bài tập thành công!');
+                    clearBasket();
+                    closeAssignModal();
+                } else {
+                    alert('Lỗi: ' + data.message);
+                }
+            } catch(err) {
+                alert('Lỗi kết nối: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Xác Nhận Giao Bài';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTutorKanji(0);
+        });
+    </script>
+</body>
+</html>

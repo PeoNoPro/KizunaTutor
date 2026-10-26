@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Quản Lý User & Phân Quyền - KizunaTutor</title>
+    <!-- Tailwind CSS CDN & Hệ thống Design System Figma Node 1153-3095 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@600;700;900&display=swap">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen">
+
+    <div class="app-shell flex min-h-screen">
+
+        <!-- THANH ĐIỀU HƯỚNG BÊN CỦA ADMIN (NAVY THEME) -->
+        <div th:replace="~{admin/layout/sidebar :: sidebar}"></div>
+
+        <!-- KHU VỰC CHÍNH (MAIN CANVAS) -->
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <!-- THANH ĐIỀU HƯỚNG TRÊN CÙNG CỦA ADMIN -->
+            <div th:replace="~{admin/layout/header :: header}"></div>
+
+            <!-- NỘI DUNG MÀN HÌNH QUẢN LÝ USER & PHÂN QUYỀN (MAX-W-7XL) -->
+            <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+
+                <!-- 1. TIÊU ĐỀ PHÂN HỆ VÀ NÚT TÁC VỤ CHÍNH -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                            <span>👥</span>
+                            <span>Quản Lý Người Dùng &amp; Phân Quyền</span>
+                        </h1>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                            Quản trị toàn diện vòng đời tài khoản 6 nhóm Actor: Học viên, Gia sư, CSKH, Học vụ, Vận hành và Admin
+                        </p>
+                    </div>
+
+                    <button type="button"
+                            onclick="openCreateUserModal()"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow transition-all cursor-pointer">
+                        <span class="text-base leading-none">＋</span>
+                        <span>Khởi Tạo Tài Khoản Nhân Viên</span>
+                    </button>
+                </div>
+
+                <!-- 2. KHỐI THỐNG KÊ NHANH (TOP 4 KPI CARDS) -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <!-- Thẻ 1: Tổng người dùng -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
+                        <div class="flex items-center justify-between text-slate-500 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider">Tổng Người Dùng</span>
+                            <span class="p-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm">👥</span>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-black text-slate-900" id="kpiTotalUsers">0</div>
+                        <div class="text-[11px] text-slate-400 mt-1">Toàn bộ tài khoản hệ thống</div>
+                    </div>
+
+                    <!-- Thẻ 2: Nhân sự nội bộ -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
+                        <div class="flex items-center justify-between text-indigo-600 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Nhân Sự Nội Bộ</span>
+                            <span class="p-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-sm">🛡️</span>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-black text-indigo-900" id="kpiInternalStaff">0</div>
+                        <div class="text-[11px] text-slate-400 mt-1">Admin, Manager, CS, Học vụ</div>
+                    </div>
+
+                    <!-- Thẻ 3: Gia sư đang dạy -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
+                        <div class="flex items-center justify-between text-amber-600 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Gia Sư Đang Dạy</span>
+                            <span class="p-1.5 rounded-lg bg-amber-50 text-amber-700 text-sm">👨‍🏫</span>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-black text-amber-900" id="kpiActiveTutors">0</div>
+                        <div class="text-[11px] text-slate-400 mt-1">Gia sư hoạt động chính thức</div>
+                    </div>
+
+                    <!-- Thẻ 4: Tài khoản bị khóa -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
+                        <div class="flex items-center justify-between text-rose-600 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Tài Khoản Tạm Khóa</span>
+                            <span class="p-1.5 rounded-lg bg-rose-50 text-rose-700 text-sm">🔒</span>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-black text-rose-900" id="kpiLockedUsers">0</div>
+                        <div class="text-[11px] text-slate-400 mt-1">Vô hiệu hóa hoặc chặn truy cập</div>
+                    </div>
+                </div>
+
+                <!-- 3. THANH CÔNG CỤ & BỘ LỌC TÌM KIẾM (TOOLBAR & FILTER BAR) -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                    <!-- Ô tìm kiếm Debounce 300ms -->
+                    <div class="relative flex-1 min-w-[240px]">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            🔍
+                        </span>
+                        <input type="text"
+                               id="searchUserKeyword"
+                               class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all placeholder:text-slate-400"
+                               placeholder="Tìm theo họ tên, email hoặc số điện thoại...">
+                    </div>
+
+                    <!-- Nhóm Dropdown Bộ lọc -->
+                    <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
+                        <!-- Lọc theo Vai trò -->
+                        <div class="w-full sm:w-auto">
+                            <select id="filterUserRole"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:outline-none focus:border-slate-800 transition-all">
+                                <option value="ALL">Tất cả vai trò (6 Actor)</option>
+                                <option value="ROLE_ADMIN">Quản Trị Viên (Admin)</option>
+                                <option value="ROLE_MANAGER">Quản Lý Vận Hành (Manager)</option>
+                                <option value="ROLE_ACADEMIC_OFFICER">Cán Bộ Học Vụ (Academic)</option>
+                                <option value="ROLE_CS_STAFF">Chăm Sóc Khách Hàng (CS)</option>
+                                <option value="ROLE_TUTOR">Gia Sư Kizuna (Tutor)</option>
+                                <option value="ROLE_LEARNER">Học Viên (Learner)</option>
+                            </select>
+                        </div>
+
+                        <!-- Lọc theo Trạng thái -->
+                        <div class="w-full sm:w-auto">
+                            <select id="filterUserStatus"
+                                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:outline-none focus:border-slate-800 transition-all">
+                                <option value="ALL">Tất cả trạng thái</option>
+                                <option value="ACTIVE">🟢 Đang hoạt động</option>
+                                <option value="INACTIVE">🔴 Tạm khóa (Suspended)</option>
+                                <option value="BLOCKED">⛔ Đã cấm (Banned)</option>
+                                <option value="DELETED">⚪ Đã xóa mềm (Soft Deleted)</option>
+                            </select>
+                        </div>
+
+                        <!-- Nút làm mới dữ liệu -->
+                        <button type="button"
+                                onclick="loadUsers()"
+                                class="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-all text-xs font-bold flex items-center gap-1.5 shrink-0"
+                                title="Làm mới bảng">
+                            <span>🔄</span>
+                            <span class="hidden sm:inline">Làm Mới</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. BẢNG DỮ LIỆU NGƯỜI DÙNG (DATA TABLE) -->
+                <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                    <th class="py-3 px-4">Người Dùng</th>
+                                    <th class="py-3 px-4">Số Điện Thoại</th>
+                                    <th class="py-3 px-4">Vai Trò</th>
+                                    <th class="py-3 px-4">Trạng Thái</th>
+                                    <th class="py-3 px-4">Ngày Tạo</th>
+                                    <th class="py-3 px-4 text-right">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                <!-- Dữ liệu nạp động từ userManagement.js -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Trạng thái Đang Tải Skeleton -->
+                    <div id="tableLoadingState" class="py-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+                        <div class="w-6 h-6 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin"></div>
+                        <span>Đang tải danh sách tài khoản...</span>
+                    </div>
+
+                    <!-- Trạng thái Không có kết quả -->
+                    <div id="tableEmptyState" class="hidden py-16 text-center text-slate-400">
+                        <div class="text-3xl mb-2">🔍</div>
+                        <div class="font-bold text-slate-700 text-sm">Không tìm thấy người dùng nào</div>
+                        <div class="text-xs text-slate-400 mt-1">Thử thay đổi từ khóa hoặc bộ lọc vai trò, trạng thái.</div>
+                    </div>
+
+                    <!-- Thanh phân trang (Pagination Footer) -->
+                    <div class="p-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-slate-500">
+                        <div id="paginationInfoText">
+                            Hiển thị 0 người dùng
+                        </div>
+
+                        <div class="flex items-center gap-4 self-end sm:self-auto">
+                            <!-- Kích thước trang -->
+                            <div class="flex items-center gap-2">
+                                <span>Hiển thị:</span>
+                                <select id="pageSizeSelect" class="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700">
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                </select>
+                            </div>
+
+                            <!-- Nút phân trang -->
+                            <div id="userPaginationControls" class="flex items-center gap-1.5"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL 1: KHỞI TẠO TÀI KHOẢN NHÂN VIÊN MỚI (FIGMA 1153-3095 STANDARD) -->
+    <!-- ========================================================================= -->
+    <div id="createUserModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200">
+            <!-- Nút đóng -->
+            <button type="button"
+                    onclick="closeCreateUserModal()"
+                    class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition-all">
+                ✕
+            </button>
+
+            <div class="mb-5">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="p-1.5 rounded-lg bg-slate-100 text-base">👤</span>
+                    <h3 class="text-lg font-black text-slate-900 tracking-tight">Khởi Tạo Tài Khoản Nhân Viên / Người Dùng</h3>
+                </div>
+                <p class="text-xs text-slate-500">Cấp trước tài khoản cho nhân sự vận hành hoặc người dùng với quyền tương ứng</p>
+            </div>
+
+            <form id="createUserForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Họ và tên hiển thị <span class="text-rose-600">*</span>
+                    </label>
+                    <input type="text"
+                           id="createFullName"
+                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition-all"
+                           placeholder="Trần Thị B"
+                           required>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Địa chỉ Email <span class="text-rose-600">*</span>
+                        </label>
+                        <input type="email"
+                               id="createEmail"
+                               class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition-all"
+                               placeholder="academic.tran@kizuna.vn"
+                               required>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Số điện thoại
+                        </label>
+                        <input type="text"
+                               id="createPhone"
+                               class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition-all"
+                               placeholder="0987654321">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Vai trò (Role) <span class="text-rose-600">*</span>
+                        </label>
+                        <select id="createRole"
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition-all">
+                            <option value="ROLE_ACADEMIC_OFFICER" selected>Cán Bộ Học Vụ (Academic)</option>
+                            <option value="ROLE_MANAGER">Quản Lý Vận Hành (Manager)</option>
+                            <option value="ROLE_CS_STAFF">Chăm Sóc Khách Hàng (CS)</option>
+                            <option value="ROLE_TUTOR">Gia Sư Kizuna (Tutor)</option>
+                            <option value="ROLE_LEARNER">Học Viên (Learner)</option>
+                            <option value="ROLE_ADMIN">Quản Trị Viên (Admin)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Trạng thái ban đầu
+                        </label>
+                        <select id="createStatus"
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition-all">
+                            <option value="ACTIVE" selected>Kích hoạt ngay (Active)</option>
+                            <option value="INACTIVE">Tạm dừng (Inactive)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                            Mật khẩu tạm thời <span class="text-rose-600">*</span>
+                        </label>
+                        <button type="button"
+                                onclick="generateRandomPassword()"
+                                class="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline">
+                            ⚡ Sinh ngẫu nhiên
+                        </button>
+                    </div>
+                    <input type="text"
+                           id="createPassword"
+                           minlength="6"
+                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-mono text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition-all"
+                           placeholder="TemporaryPass123@"
+                           required>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                    <button type="button"
+                            onclick="closeCreateUserModal()"
+                            class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 transition-all">
+                        Hủy Bỏ
+                    </button>
+                    <button type="submit"
+                            id="btnSubmitCreateUser"
+                            class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs hover:shadow transition-all flex items-center gap-2">
+                        <span>Lưu Tài Khoản Nhân Viên</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL 2: CHỈNH SỬA THÔNG TIN & THAY ĐỔI VAI TRÒ (ROLE SWITCH) -->
+    <!-- ========================================================================= -->
+    <div id="editUserModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200">
+            <!-- Nút đóng -->
+            <button type="button"
+                    onclick="closeEditUserModal()"
+                    class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition-all">
+                ✕
+            </button>
+
+            <div class="mb-5">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="p-1.5 rounded-lg bg-slate-100 text-base">✏️</span>
+                    <h3 class="text-lg font-black text-slate-900 tracking-tight">Chỉnh Sửa &amp; Phân Quyền Vai Trò</h3>
+                </div>
+                <p class="text-xs text-slate-500">Cập nhật hồ sơ và điều chỉnh vai trò làm việc trong hệ thống</p>
+            </div>
+
+            <!-- Cảnh báo nếu đang sửa tài khoản của chính mình -->
+            <div id="editSelfWarning" class="hidden mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs leading-relaxed flex items-center gap-2">
+                <span>⚠️</span>
+                <span>Đây là tài khoản của bạn. Để đảm bảo an toàn hệ thống, bạn không thể tự hạ quyền Admin hoặc tự khóa tài khoản của mình.</span>
+            </div>
+
+            <form id="editUserForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Địa chỉ Email (Định danh đăng nhập)
+                    </label>
+                    <input type="text"
+                           id="editEmailDisplay"
+                           class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-500 font-mono cursor-not-allowed"
+                           disabled>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Họ và tên hiển thị <span class="text-rose-600">*</span>
+                    </label>
+                    <input type="text"
+                           id="editFullName"
+                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition-all"
+                           required>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Số điện thoại
+                        </label>
+                        <input type="text"
+                               id="editPhone"
+                               class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition-all"
+                               placeholder="0987654321">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Trạng thái tài khoản
+                        </label>
+                        <select id="editStatus"
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition-all">
+                            <option value="ACTIVE">🟢 Đang hoạt động</option>
+                            <option value="INACTIVE">🔴 Tạm khóa (Suspended)</option>
+                            <option value="BLOCKED">⛔ Đã cấm (Banned)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Vai trò hệ thống (Role Assignment) <span class="text-rose-600">*</span>
+                    </label>
+                    <select id="editRole"
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 transition-all">
+                        <option value="ROLE_ADMIN">Quản Trị Viên (Admin)</option>
+                        <option value="ROLE_MANAGER">Quản Lý Vận Hành (Manager)</option>
+                        <option value="ROLE_ACADEMIC_OFFICER">Cán Bộ Học Vụ (Academic)</option>
+                        <option value="ROLE_CS_STAFF">Chăm Sóc Khách Hàng (CS)</option>
+                        <option value="ROLE_TUTOR">Gia Sư Kizuna (Tutor)</option>
+                        <option value="ROLE_LEARNER">Học Viên (Learner)</option>
+                    </select>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                    <button type="button"
+                            onclick="closeEditUserModal()"
+                            class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 transition-all">
+                        Hủy Bỏ
+                    </button>
+                    <button type="submit"
+                            id="btnSubmitEditUser"
+                            class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs hover:shadow transition-all flex items-center gap-2">
+                        <span>Lưu Thay Đổi</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL 3: XÁC NHẬN HÀNH ĐỘNG (KHÓA / MỞ KHÓA / XÓA) -->
+    <!-- ========================================================================= -->
+    <div id="confirmActionModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200">
+            <h4 class="text-base font-black text-slate-900 mb-2" id="confirmActionTitle">Xác nhận thao tác?</h4>
+            <p class="text-xs text-slate-500 leading-relaxed mb-6" id="confirmActionDesc">
+                Bạn có chắc chắn muốn thực hiện hành động này không?
+            </p>
+
+            <div class="flex items-center justify-end gap-2.5">
+                <button type="button"
+                        onclick="closeConfirmModal()"
+                        class="px-3.5 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 transition-all">
+                    Hủy
+                </button>
+                <button type="button"
+                        id="btnConfirmExecuteAction"
+                        class="px-4 py-2 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition-all shadow-xs">
+                    Xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script điều khiển bảng dữ liệu người dùng, lọc, phân trang và modals -->
+    <script th:src="@{/js/admin/userManagement.js}"></script>
+</body>
+</html>

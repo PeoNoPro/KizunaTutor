@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Không Gian Học Viên - KizunaTutor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased">
+    <div class="flex min-h-screen">
+        <aside th:replace="~{learner/layout/sidebar :: sidebar}"></aside>
+        <div class="flex-1 flex flex-col min-w-0">
+            <header th:replace="~{learner/layout/header :: header}"></header>
+
+            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
+                <div class="max-w-7xl mx-auto space-y-6">
+                    <!-- Hero Welcome Card -->
+                    <div class="bg-white rounded-xl border border-emerald-100 p-6 sm:p-8 shadow-xs relative overflow-hidden">
+                        <div class="max-w-3xl">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 mb-3">
+                                <span>🟢</span> Đang hoạt động &bull; Chuỗi Học Tập: <span th:text="${studyStreak != null and studyStreak > 0 ? studyStreak + ' Ngày liên tục 🔥' : 'Ngày đầu tiên 🌸'}">Ngày đầu tiên 🌸</span>
+                            </span>
+                            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight mb-2">
+                                Xin chào, <span th:text="${userName}">Học Viên</span>! Hôm nay bạn muốn luyện tập chữ nào?
+                            </h1>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                Hãy tra cứu các chữ Kanji mới, lưu vào bộ Flashcard cá nhân và thực hành viết trên ô Mễ tương tác để AI chấm điểm nét thuận.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Chữ Kanji Đã Thuộc</span>
+                                <span class="text-xl">🎌</span>
+                            </div>
+                            <div class="text-2xl font-extrabold text-slate-900" th:text="${learnedKanjiCount != null ? learnedKanjiCount + ' Chữ' : '0 Chữ'}">0 Chữ</div>
+                            <div class="text-xs text-slate-500 mt-1" th:text="${learnedKanjiCount != null and learnedKanjiCount > 0 ? 'Đã hoàn thành các bài viết' : 'Chưa có chữ Hán hoàn thành'}">Chưa có chữ Hán hoàn thành</div>
+                        </div>
+
+                        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Độ Chính Xác Viết AI</span>
+                                <span class="text-xl">🎯</span>
+                            </div>
+                            <div class="text-2xl font-extrabold text-emerald-600" th:text="${accuracyRate != null ? accuracyRate : 'Chưa có dữ liệu'}">Chưa có dữ liệu</div>
+                            <div class="text-xs text-slate-500 mt-1">Đánh giá theo nét bút Canvas AI</div>
+                        </div>
+
+                        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Buổi Học Kèm Kế Tiếp</span>
+                                <span class="text-xl">📅</span>
+                            </div>
+                            <div class="text-2xl font-extrabold text-slate-900" th:text="${nextLessonTime != null ? nextLessonTime : 'Chưa có lịch học'}">Chưa có lịch học</div>
+                            <div class="text-xs text-slate-500 mt-1" th:text="${assignedTutorName != null ? 'Gia sư: ' + assignedTutorName : 'Chưa phân công gia sư'}">Chưa phân công gia sư</div>
+                        </div>
+                    </div>
+
+                    <!-- Shortcut Links -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <a th:href="@{/learner/dictionary}" class="bg-white p-5 rounded-xl border border-slate-200/80 hover:border-emerald-300 transition-all shadow-xs flex items-center justify-between no-underline group">
+                            <div class="flex items-center gap-3.5">
+                                <span class="text-3xl p-3 bg-emerald-50 rounded-xl">📚</span>
+                                <div>
+                                    <div class="text-sm font-bold text-slate-900 group-hover:text-emerald-700">Tra Cứu Từ Điển Kanji</div>
+                                    <div class="text-xs text-slate-500">Tra cứu nhanh hơn 6.600 chữ, xem nghĩa và lưu vào bộ thẻ.</div>
+                                </div>
+                            </div>
+                            <span class="text-slate-400 group-hover:text-emerald-600 font-bold">➔</span>
+                        </a>
+
+                        <a th:href="@{/learner/practice-canvas}" class="bg-white p-5 rounded-xl border border-slate-200/80 hover:border-emerald-300 transition-all shadow-xs flex items-center justify-between no-underline group">
+                            <div class="flex items-center gap-3.5">
+                                <span class="text-3xl p-3 bg-emerald-50 rounded-xl">✍️</span>
+                                <div>
+                                    <div class="text-sm font-bold text-slate-900 group-hover:text-emerald-700">Phòng Luyện Viết Shodo Canvas AI</div>
+                                    <div class="text-xs text-slate-500">Tập viết trên ô Mễ 109px với hướng dẫn nét mờ và chấm điểm.</div>
+                                </div>
+                            </div>
+                            <span class="text-slate-400 group-hover:text-emerald-600 font-bold">➔</span>
+                        </a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script th:src="@{/js/authRedirect.js}"></script>
+    <script>
+        function toggleSidebar() {
+            const sb = document.getElementById('learnerSidebar');
+            if (sb) sb.classList.toggle('-translate-x-full');
+        }
+    </script>
+</body>
+</html>

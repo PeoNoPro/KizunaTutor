@@ -22,6 +22,7 @@ public class KanjiCardDto {
     private String kunyomi;
     private String meaning;
     private String jlpt;
+    private String svgData;
 
     public UUID getKanjiId() {
         return id;

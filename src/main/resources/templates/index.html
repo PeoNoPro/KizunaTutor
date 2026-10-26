@@ -38,7 +38,7 @@
                             <p class="page-subtitle">Hệ sinh thái học tiếng Nhật 1 kèm 1 cùng gia sư tuyển chọn &amp; Không gian luyện chữ Hán tương tác AI.</p>
                         </div>
                         <div class="page-actions">
-                            <a th:href="@{/kanji(tab='practice')}" class="btn btn-primary">
+                            <a th:href="@{/kanji(tab='practice')}" class="btn btn-primary" onclick="return handleProtectedSidebarClick(event, this.href, 'practice')">
                                 <span>✍️</span> <span>Luyện Viết Chữ Ngay</span>
                             </a>
                             <a th:href="@{/tutors}" class="btn btn-outline">
@@ -104,10 +104,10 @@
                             Hệ thống kết hợp thuật toán vector Topo và trợ lý Kizuna Sensei chấm điểm bút thuận, tỉ lệ khung chữ ô Mễ và độ cân đối không gian.
                         </p>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <a th:href="@{/kanji(tab='practice')}" class="btn btn-secondary" style="padding: 10px 20px; font-size: 14px;">
+                            <a th:href="@{/kanji(tab='practice')}" class="btn btn-secondary" onclick="return handleProtectedSidebarClick(event, this.href, 'practice')" style="padding: 10px 20px; font-size: 14px;">
                                 <span>✍️</span> <span>Vào Bảng Vẽ Luyện Viết</span>
                             </a>
-                            <a th:href="@{/kanji(tab='game')}" class="btn btn-outline" style="border-color: rgba(255,255,255,0.3); color: #FFFFFF; padding: 10px 20px; font-size: 14px;">
+                            <a th:href="@{/kanji(tab='game')}" class="btn btn-outline" onclick="return handleProtectedSidebarClick(event, this.href, 'game')" style="border-color: rgba(255,255,255,0.3); color: #FFFFFF; padding: 10px 20px; font-size: 14px;">
                                 <span>🎮</span> <span>Trò Chơi Mưa Chữ</span>
                             </a>
                         </div>

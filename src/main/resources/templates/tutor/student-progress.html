@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Tiến Độ Học Viên - Gia Sư Kizuna</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased">
+    <div class="flex min-h-screen">
+        <aside th:replace="~{tutor/layout/sidebar :: sidebar}"></aside>
+        <div class="flex-1 flex flex-col min-w-0">
+            <header th:replace="~{tutor/layout/header :: header}"></header>
+
+            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
+                <div class="max-w-7xl mx-auto space-y-6">
+                    <div class="pb-4 border-b border-rose-100">
+                        <div class="text-xs font-semibold text-rose-600 uppercase tracking-wider mb-1">Theo Dõi Lớp Học</div>
+                        <h1 class="text-xl font-extrabold text-slate-900">Tiến Độ Luyện Viết &amp; Nộp Bài Học Viên</h1>
+                        <p class="text-xs text-slate-500">Giám sát điểm số độ chính xác nét vẽ AI, lịch sử nộp bài và gửi lời nhắc nhở học viên trong lớp.</p>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs">
+                        <!-- Trường hợp chưa có học viên được phân công -->
+                        <div th:if="${activeSpaces == null or #lists.isEmpty(activeSpaces)}" class="py-12 text-center text-slate-400">
+                            <div class="text-4xl mb-2">👥</div>
+                            <div class="font-bold text-slate-700 text-sm">Chưa có học viên nào được phân công vào lớp</div>
+                            <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">Khi học viên đăng ký hoặc được Cán bộ học vụ phân công vào Không gian học tập của bạn, danh sách học viên sẽ tự động hiển thị tại đây.</p>
+                        </div>
+
+                        <!-- Danh sách học viên thực tế từ cơ sở dữ liệu -->
+                        <div th:if="${activeSpaces != null and not #lists.isEmpty(activeSpaces)}" class="divide-y divide-slate-100 text-xs">
+                            <div th:each="space : ${activeSpaces}" class="py-3 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center">
+                                        <span th:text="${#strings.substring(space.learner.user.fullName, 0, 1)}">H</span>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-slate-900" th:text="${space.learner.user.fullName + ' (' + space.learner.user.email + ')'}">Học viên</div>
+                                        <div class="text-slate-400 text-[11px]" th:text="${'Mục tiêu: JLPT ' + (space.learner.targetLevel != null ? space.learner.targetLevel : 'N5')}">Mục tiêu: N5</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">Đang học tập</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script th:src="@{/js/authRedirect.js}"></script>
+</body>
+</html>

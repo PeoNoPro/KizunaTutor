@@ -1,14 +1,26 @@
 package com.kizuna.controller;
 
+import com.kizuna.dto.auth.LearnerAccessState;
+import com.kizuna.dto.auth.LoginResponse;
+import com.kizuna.dto.auth.RegisterRequest;
 import com.kizuna.entity.KanjiDictionary;
 import com.kizuna.repository.KanjiDictionaryRepository;
+import com.kizuna.service.IAuthService;
+import com.kizuna.service.ILearningSpaceService;
 import com.kizuna.service.kanji.HandwritingSearchService;
 import com.kizuna.util.SvgUtils;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Controller
 @RequiredArgsConstructor
@@ -16,6 +28,31 @@ public class WebHomeController {
 
     private final KanjiDictionaryRepository kanjiRepository;
     private final HandwritingSearchService handwritingSearchService;
+    private final ILearningSpaceService learningSpaceService;
+    private final IAuthService authService;
+
+    /**
+     * Tự động bổ sung thông tin rào cản phân quyền cho toàn bộ các trang công khai & guest dashboard
+     */
+    @ModelAttribute
+    public void addAccessControlAttributes(Model model) {
+        LearnerAccessState accessState = learningSpaceService.checkCurrentUserAccessState();
+        boolean isUnlocked = (accessState == LearnerAccessState.ACTIVE_OFFICIAL_LEARNER);
+
+        model.addAttribute("accessState", accessState.name());
+        model.addAttribute("isUnlocked", isUnlocked);
+
+        if (accessState == LearnerAccessState.UNAUTHENTICATED) {
+            model.addAttribute("lockedTitle", "Đặc Quyền Dành Cho Học Viên Chính Thức");
+            model.addAttribute("lockedMessage", "Bạn cần đăng nhập và được Gia sư mở khóa để sử dụng chức năng này");
+        } else if (accessState == LearnerAccessState.UNASSIGNED_LEARNER) {
+            model.addAttribute("lockedTitle", "Chưa Được Gia Sư Thêm Vào Lớp Học");
+            model.addAttribute("lockedMessage", "Chức năng này đang bị khóa. Bạn cần được Gia sư thêm vào Không gian học tập (Learning Space) để bắt đầu luyện tập!");
+        } else {
+            model.addAttribute("lockedTitle", "Không Gian Học Tập Đã Mở Khóa");
+            model.addAttribute("lockedMessage", "Bạn đang tham gia học tập cùng Gia sư Kizuna chính thức.");
+        }
+    }
 
     @GetMapping({"/", "/index"})
     public String index(Model model) {
@@ -34,6 +71,7 @@ public class WebHomeController {
         model.addAttribute("currentChar", charQuery);
         model.addAttribute("activeTab", tab);
         model.addAttribute("folderId", folderId);
+
         kanjiRepository.findByKanjiCharacter(charQuery).ifPresentOrElse(kanji -> {
             if (kanji.getSvgData() != null) {
                 kanji.setSvgData(SvgUtils.cleanKanjiVgSvg(kanji.getSvgData()));
@@ -72,5 +110,34 @@ public class WebHomeController {
     public String register(Model model) {
         model.addAttribute("pageTitle", "Đăng Ký Tài Khoản - KizunaTutor");
         return "auth/register";
+    }
+
+    @PostMapping("/register")
+    public String handleRegisterForm(@RequestParam String fullName,
+                                     @RequestParam String email,
+                                     @RequestParam String password,
+                                     @RequestParam(required = false, defaultValue = "N5") String targetJlpt,
+                                     HttpServletResponse response,
+                                     RedirectAttributes redirectAttributes) {
+        try {
+            RegisterRequest req = RegisterRequest.builder()
+                    .fullName(fullName)
+                    .email(email)
+                    .password(password)
+                    .targetJlpt(targetJlpt)
+                    .role("ROLE_LEARNER")
+                    .build();
+            LoginResponse loginResponse = authService.register(req, response);
+            return "redirect:" + loginResponse.getRedirectUrl();
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/register?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+        }
+    }
+
+    @GetMapping("/oauth2/redirect")
+    public String oauth2Redirect(Model model) {
+        model.addAttribute("pageTitle", "Đang Chuyển Hướng Xác Thực - KizunaTutor");
+        return "auth/oauth2-redirect";
     }
 }

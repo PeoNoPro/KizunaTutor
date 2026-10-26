@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Nhật Ký Tiến Độ Cá Nhân - Học Viên Kizuna</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased">
+    <div class="flex min-h-screen">
+        <aside th:replace="~{learner/layout/sidebar :: sidebar}"></aside>
+        <div class="flex-1 flex flex-col min-w-0">
+            <header th:replace="~{learner/layout/header :: header}"></header>
+
+            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
+                <div class="max-w-7xl mx-auto space-y-6">
+                    <div class="pb-4 border-b border-emerald-100">
+                        <div class="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-1">Hồ Sơ Năng Lực</div>
+                        <h1 class="text-xl font-extrabold text-slate-900">Bảng Tổng Kết Học Tập &amp; Lộ Trình Chinh Phục JLPT</h1>
+                        <p class="text-xs text-slate-500">Thống kê số chữ Hán đã viết, lịch sử bài tập được gia sư nhận xét và chuỗi ngày rèn luyện liên tục.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-xs font-bold text-slate-500 mb-1">Mục Tiêu Tháng Này</div>
+                            <div class="text-2xl font-extrabold text-slate-900">0 / 50 Chữ</div>
+                            <div class="w-full bg-slate-100 rounded-full h-2 mt-3">
+                                <div class="bg-emerald-600 h-2 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-xs font-bold text-slate-500 mb-1">Điểm Viết Nét AI Bình Quân</div>
+                            <div class="text-2xl font-extrabold text-slate-700">Chưa có điểm</div>
+                            <div class="text-xs text-slate-400 mt-2">Luyện viết trên Canvas để AI chấm điểm</div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-xs font-bold text-slate-500 mb-1">Học Viên Chăm Chỉ</div>
+                            <div class="text-2xl font-extrabold text-slate-700">Chưa xếp hạng</div>
+                            <div class="text-xs text-slate-400 mt-2">Hoàn thành bài tập để ghi danh</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script th:src="@{/js/authRedirect.js}"></script>
+</body>
+</html>

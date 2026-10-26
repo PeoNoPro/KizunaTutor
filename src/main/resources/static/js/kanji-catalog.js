@@ -16,6 +16,9 @@ let isLibLoaded = false;
  * 1. Chuyển đổi giữa các phân hệ: Bộ Thẻ Của Tôi (Mặc định) vs Luyện Viết vs Minigame Mưa Chữ vs Thư Viện Kanji
  */
 function switchMainTab(tab) {
+    if (window.IS_WORKSPACE_UNLOCKED === false || document.getElementById('lockedWorkspaceScreen')) {
+        return;
+    }
     const secPractice = document.getElementById('sectionPracticeTab');
     const secLibrary = document.getElementById('sectionLibraryTab');
     const secFolders = document.getElementById('sectionFoldersTab');
@@ -83,6 +86,9 @@ function switchMainTab(tab) {
  * Điều hướng quay lại giao diện tra cứu chữ Hán (Tìm Kanji)
  */
 function backToKanjiSearch() {
+    if (window.IS_WORKSPACE_UNLOCKED === false || document.getElementById('lockedWorkspaceScreen')) {
+        return;
+    }
     if (typeof openHwSearchModal === 'function') {
         openHwSearchModal();
         return;
@@ -410,6 +416,10 @@ function escapeHtml(text) {
 // Tự động kích hoạt tab dựa theo URL param (?tab=...) khi tải trang
 // MẶC ĐỊNH LÀ BỘ THẺ CỦA TÔI ('folders') THEO YÊU CẦU TỐI GIẢN LEARNING SPACE
 document.addEventListener('DOMContentLoaded', () => {
+    // Nếu phân hệ đang bị khóa (Locked Screen Workspace), không nạp dữ liệu hay hiển thị nội dung tab
+    if (window.IS_WORKSPACE_UNLOCKED === false || document.getElementById('lockedWorkspaceScreen')) {
+        return;
+    }
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab') || 'folders';
     switchMainTab(tab);

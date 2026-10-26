@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Tổng Quan Học Vụ - KizunaTutor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased">
+    <div class="flex min-h-screen">
+        <aside th:replace="~{academic/layout/sidebar :: sidebar}"></aside>
+        <div class="flex-1 flex flex-col min-w-0">
+            <header th:replace="~{academic/layout/header :: header}"></header>
+
+            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
+                <div class="max-w-7xl mx-auto space-y-6">
+                    <div class="bg-white rounded-xl border border-teal-100 p-6 sm:p-8 shadow-xs">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-teal-50 text-teal-800 border border-teal-200 mb-3">
+                            <span>🟢</span> Đang hoạt động &bull; Phân Hệ Học Vụ &amp; Giáo Trình
+                        </span>
+                        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 mb-2">
+                            Xin chào, <span th:text="${userName}">Cán Bộ Học Vụ</span>! Chúc bạn ngày làm việc hiệu quả.
+                        </h1>
+                        <p class="text-xs sm:text-sm text-slate-600">
+                            Bạn phụ trách thẩm định độ chính xác các bài giảng, chuẩn hóa dữ liệu nét chữ Hán sư phạm và kiểm tra chuẩn đầu ra JLPT toàn khóa.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-xs font-bold text-slate-500 uppercase mb-2">Hồ Sơ Gia Sư Chờ Duyệt</div>
+                            <div class="text-2xl font-extrabold text-slate-900" th:text="${pendingTutorProfiles != null ? pendingTutorProfiles + ' Hồ sơ' : '0 Hồ sơ'}">0 Hồ sơ</div>
+                            <div class="text-xs text-slate-500 font-semibold mt-1" th:text="${pendingTutorProfiles != null and pendingTutorProfiles > 0 ? 'Yêu cầu kiểm tra bằng cấp' : 'Không có hồ sơ chờ duyệt'}">Không có hồ sơ chờ duyệt</div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-xs font-bold text-slate-500 uppercase mb-2">Chữ Kanji Đã Thẩm Định</div>
+                            <div class="text-2xl font-extrabold text-teal-800" th:text="${verifiedKanjiCount != null ? verifiedKanjiCount : '0 Chữ'}">0 Chữ</div>
+                            <div class="text-xs text-slate-500 mt-1">Dữ liệu từ điển gốc hệ thống</div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-xs font-bold text-slate-500 uppercase mb-2">Khung Giáo Trình Mẫu</div>
+                            <div class="text-2xl font-extrabold text-slate-900" th:text="${standardCurriculums != null ? standardCurriculums : '0 Khung'}">0 Khung</div>
+                            <div class="text-xs text-slate-500 mt-1">Chuẩn hóa theo khung JLPT</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script th:src="@{/js/authRedirect.js}"></script>
+</body>
+</html>

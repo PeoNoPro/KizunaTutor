@@ -550,6 +550,15 @@ function copyHwSelectedChar(event) {
 
 // Mở & Đóng Modal Tra Cứu Viết Tay Toàn Cảnh
 function openHwSearchModal() {
+    if (window.IS_WORKSPACE_UNLOCKED === false || document.getElementById('lockedWorkspaceScreen')) {
+        if (typeof openSidebarBarrierModal === 'function') {
+            openSidebarBarrierModal();
+        } else {
+            const lockScreen = document.getElementById('lockedWorkspaceScreen');
+            if (lockScreen) lockScreen.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+    }
     const modal = document.getElementById('hwSearchModal');
     if (modal) {
         modal.style.display = 'flex';

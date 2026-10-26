@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- ========================================================================= -->
+<!-- 1. TOP NAVBAR / HEADER (FIGMA NODE 1153-3095 STANDARD)                     -->
+<!-- ========================================================================= -->
+<header th:fragment="dashboard-header" class="h-16 bg-white border-b border-slate-200/80 sticky top-0 z-40 px-4 sm:px-8 flex items-center justify-between shadow-xs">
+    <!-- Phía trái: Mobile Toggle & Logo Thương Hiệu Chuẩn -->
+    <div class="flex items-center gap-3 sm:gap-6">
+        <button type="button" class="md:hidden p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100" onclick="toggleSidebar()">
+            ☰
+        </button>
+
+        <a th:href="@{/}" class="flex items-center gap-2.5 no-underline group" title="KizunaTutor">
+            <div class="w-8 h-8 rounded-lg bg-slate-900 text-white font-bold flex items-center justify-center font-serif text-base shadow-xs group-hover:bg-slate-800 transition-colors">
+                絆
+            </div>
+            <div class="font-extrabold text-lg text-slate-900 tracking-tight">
+                Kizuna<span class="text-rose-600">Tutor</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Phía giữa: Breadcrumbs phân hệ làm việc gọn gàng -->
+    <div class="hidden lg:flex items-center gap-2 text-xs font-medium text-slate-500">
+        <a th:href="@{/}" class="hover:text-slate-800 transition-colors">Trang chủ</a>
+        <span>/</span>
+        <span class="text-slate-400">Không Gian Làm Việc</span>
+        <span>/</span>
+        <span class="text-slate-900 font-semibold" th:text="${role.badgeText}">Quản Trị Viên</span>
+    </div>
+
+    <!-- Phía phải: Khối thông tin định danh người dùng chuẩn Figma -->
+    <div class="flex items-center gap-3 sm:gap-4">
+        <!-- Badge Role màu tương ứng vai trò -->
+        <span class="px-2.5 py-1 text-xs font-bold rounded-full border shadow-xs tracking-wide"
+              th:classappend="${role.badgeClass}"
+              th:text="${role.badgeText}">
+            Quản Trị Viên
+        </span>
+
+        <!-- Avatar & Tên người dùng -->
+        <div class="flex items-center gap-2.5 pl-1 sm:pl-2 border-l border-slate-200/80">
+            <div class="w-8 h-8 rounded-full bg-slate-800 text-white text-xs font-bold flex items-center justify-center shadow-xs"
+                 id="topbarUserAvatar"
+                 th:text="${avatarText}">
+                AD
+            </div>
+            <div class="hidden sm:block text-left leading-tight">
+                <div class="text-xs font-bold text-slate-900" id="topbarUserName" th:text="${userName}">
+                    System Administrator
+                </div>
+                <div class="text-[11px] text-slate-500" th:text="${userEmail}">
+                    admin@kizuna.vn
+                </div>
+            </div>
+        </div>
+
+        <!-- Nút Đăng Xuất tinh tế chuẩn Figma -->
+        <button type="button"
+                onclick="handleLogout()"
+                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-red-700 bg-slate-100/80 hover:bg-red-50 border border-slate-200 transition-all cursor-pointer shadow-2xs"
+                title="Đăng xuất khỏi hệ thống">
+            <span>🚪</span>
+            <span class="hidden sm:inline">Đăng Xuất</span>
+        </button>
+    </div>
+</header>
+
+<!-- ========================================================================= -->
+<!-- 2. SIDEBAR NAVIGATION RAIL (FIGMA NODE 1153-3095 STANDARD)                 -->
+<!-- ========================================================================= -->
+<aside th:fragment="dashboard-sidebar" id="dashboardSidebar" class="w-64 min-w-[16rem] bg-white border-r border-slate-200 h-screen sticky top-0 flex flex-col justify-between z-30 transition-transform duration-200 ease-in-out md:translate-x-0">
+    <div class="p-4 sm:p-5 flex-1 overflow-y-auto">
+        <!-- Logo mini trong sidebar trên mobile -->
+        <div class="md:hidden flex items-center justify-between pb-4 mb-4 border-b border-slate-200">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-md bg-slate-900 text-white font-bold flex items-center justify-center font-serif text-sm">絆</div>
+                <span class="font-extrabold text-base text-slate-900">Kizuna<span class="text-rose-600">Tutor</span></span>
+            </div>
+            <button onclick="toggleSidebar()" class="text-slate-400 hover:text-slate-600 p-1">✕</button>
+        </div>
+
+        <!-- Phân hệ danh mục vai trò -->
+        <div class="px-2 py-1 text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-3" th:text="${categoryLabel}">
+            KHÔNG GIAN LÀM VIỆC
+        </div>
+
+        <!-- Danh sách menu điều hướng đại diện từng Role -->
+        <nav class="space-y-1">
+            <th:block th:each="item : ${menuItems}">
+                <a th:href="@{${item.url}}"
+                   class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all group"
+                   th:classappend="${item.active} ? 'bg-slate-900 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-base" th:text="${item.icon}">📊</span>
+                        <span th:text="${item.label}">Tổng Quan</span>
+                    </div>
+                    <span th:if="${item.badge != null}"
+                          class="px-2 py-0.5 text-[10px] font-bold rounded-full"
+                          th:classappend="${item.active} ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-700'"
+                          th:text="${item.badge}">
+                        Mới
+                    </span>
+                </a>
+            </th:block>
+        </nav>
+
+        <!-- Menu phụ trợ chung -->
+        <div class="mt-8 pt-4 border-t border-slate-200/80">
+            <div class="px-2 py-1 text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2">
+                TIỆN ÍCH &amp; TRA CỨU
+            </div>
+            <div class="space-y-1">
+                <a th:href="@{/kanji}" class="flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+                    <span>📖</span> <span>Từ Điển Kanji</span>
+                </a>
+                <a th:href="@{/tutors}" class="flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+                    <span>👥</span> <span>Danh Sách Gia Sư</span>
+                </a>
+                <a th:href="@{/}" class="flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+                    <span>🏠</span> <span>Về Trang Chủ Kizuna</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chân Sidebar: Thông tin tóm tắt tài khoản -->
+    <div class="p-4 border-t border-slate-200 bg-slate-50/60">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-slate-800 text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-xs"
+                 th:text="${avatarText}">
+                AD
+            </div>
+            <div class="overflow-hidden leading-tight flex-1">
+                <div class="text-xs font-bold text-slate-900 truncate" th:text="${userName}">
+                    System Administrator
+                </div>
+                <div class="text-[11px] font-semibold text-slate-500 truncate" th:text="${role.badgeText}">
+                    Quản Trị Viên
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- ========================================================================= -->
+<!-- 3. KHỐI CHÀO MỪNG TRUNG TÂM (WELCOME HERO CARD - NODE 1153-3095)           -->
+<!-- ========================================================================= -->
+<section th:fragment="welcome-hero-card" class="bg-white rounded-xl border border-slate-200/80 shadow-xs p-6 sm:p-8 mb-8 relative overflow-hidden">
+    <!-- Họa tiết chìm tinh tế Wabi-Sabi -->
+    <div class="absolute -right-6 -bottom-8 select-none pointer-events-none opacity-5 font-serif text-[120px] font-black leading-none text-slate-900">
+        絆
+    </div>
+
+    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="space-y-3 max-w-3xl">
+            <!-- Badge trạng thái tài khoản theo quy chuẩn: 🟢 Đang hoạt động (Active) -->
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>🟢 Đang hoạt động (Active)</span>
+            </div>
+
+            <!-- Dòng chào mừng cá nhân hóa theo đúng yêu cầu -->
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                Xin chào, <span id="welcomeHeroName" class="text-rose-600" th:text="${userName}">Nguyễn Văn A</span>!
+            </h1>
+            <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
+                Chào mừng bạn đến với <span class="font-bold text-slate-800">Không Gian Làm Việc</span> của <span class="font-bold text-rose-600" th:text="${role.badgeText}">Quản Trị Viên</span>.
+                Bàn làm việc số được đồng bộ chuẩn hóa theo hệ thống nhận diện KizunaTutor.
+            </p>
+        </div>
+
+        <!-- Gợi ý hành động nhanh: Nút Call-To-Action cơ bản nhất của từng Role -->
+        <div class="shrink-0 flex items-center">
+            <a th:href="@{${ctaLink}}"
+               class="inline-flex items-center gap-2.5 px-5 py-3 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-sm hover:shadow transition-all cursor-pointer no-underline">
+                <span th:text="${ctaIcon}">👤</span>
+                <span th:text="${ctaText}">Quản Lý Danh Sách</span>
+                <span class="text-xs">→</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ========================================================================= -->
+<!-- 4. LƯỚI CARD THỐNG KÊ HOẠT ĐỘNG (METRIC / STATS GRID)                      -->
+<!-- ========================================================================= -->
+<section th:fragment="metric-cards-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+    <th:block th:each="card : ${metricCards}">
+        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider" th:text="${card.title}">Chỉ Số</span>
+                <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-base" th:text="${card.icon}">📊</div>
+            </div>
+            <div>
+                <div class="text-2xl font-black text-slate-900 tracking-tight mb-1" th:text="${card.value}">0</div>
+                <div class="flex items-center justify-between text-xs text-slate-500">
+                    <span th:text="${card.subtitle}">Mô tả chi tiết</span>
+                    <span class="font-bold px-2 py-0.5 rounded text-[11px] bg-slate-100 text-slate-700" th:text="${card.trend}">+0%</span>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</section>
+
+</html>

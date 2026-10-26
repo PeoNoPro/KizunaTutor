@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<aside th:fragment="sidebar" id="tutorSidebar" class="w-64 min-w-[16rem] bg-white border-r border-slate-200 h-screen sticky top-0 flex flex-col justify-between z-30 transition-transform duration-200 ease-in-out md:translate-x-0">
+    <div class="p-4 sm:p-5 flex-1 overflow-y-auto">
+        <div class="px-2 py-1 text-[11px] font-bold tracking-wider text-rose-500 uppercase mb-3">
+            GIẢNG DẠY &amp; HƯỚNG DẪN 1 KÈM 1
+        </div>
+
+        <nav class="space-y-1">
+            <!-- 1. Tổng quan lớp dạy -->
+            <a th:href="@{/tutor/dashboard}"
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all group"
+               th:classappend="${activeMenu == 'dashboard'} ? 'bg-rose-600 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-rose-700 hover:bg-rose-50/60'">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">📊</span>
+                    <span>Tổng Quan Lớp Dạy</span>
+                </div>
+            </a>
+
+            <!-- 2. Kho Kanji & Soạn bài tập (Chức năng cốt lõi) -->
+            <a th:href="@{/tutor/kanji-library}"
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all group"
+               th:classappend="${activeMenu == 'kanji-library'} ? 'bg-rose-600 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-rose-700 hover:bg-rose-50/60'">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">✍️</span>
+                    <span>Kho Kanji &amp; Soạn Bài Tập</span>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                    Giáo Án
+                </span>
+            </a>
+
+            <!-- 3. Theo dõi tiến độ học viên -->
+            <a th:href="@{/tutor/student-progress}"
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all group"
+               th:classappend="${activeMenu == 'student-progress'} ? 'bg-rose-600 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-rose-700 hover:bg-rose-50/60'">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">👨‍🎓</span>
+                    <span>Tiến Độ Học Viên Lớp</span>
+                </div>
+            </a>
+
+            <!-- 4. Lịch giảng dạy tuần -->
+            <a href="#"
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-rose-700 hover:bg-rose-50/60 transition-all group">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">📅</span>
+                    <span>Lịch Giảng Dạy Tuần</span>
+                </div>
+                <span class="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 text-slate-500">
+                    Hôm nay: 2
+                </span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Footer Sidebar -->
+    <div class="p-4 border-t border-rose-100 bg-rose-50/30">
+        <div class="text-[11px] text-rose-800 font-bold">Sensei Yamada Kenji</div>
+        <div class="text-[10px] text-slate-500">Chứng chỉ JLPT N1 &bull; Tokyo Accent</div>
+    </div>
+</aside>
+</html>

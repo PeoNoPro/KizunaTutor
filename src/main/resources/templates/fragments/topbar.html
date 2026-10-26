@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <header th:fragment="topbar" class="app-topbar">
+    <!-- Nạp script xác thực và xử lý đăng xuất toàn cục -->
+    <script th:src="@{/js/globalAuth.js}"></script>
     <div class="topbar-left">
         <!-- Nút bật/tắt Sidebar trên di động hoặc màn hình nhỏ -->
         <button type="button" class="topbar-toggle-btn" id="btnToggleSidebar" aria-label="Mở/Đóng thanh điều hướng" onclick="toggleAppSidebar()">
@@ -74,7 +76,7 @@
                                 <span class="topbar-user-name">${user.fullName || 'Tài khoản'}</span>
                                 <span class="topbar-role-tag">${roleBadge}</span>
                             </a>
-                            <button onclick="if(typeof handleLogout==='function'){handleLogout();}else{localStorage.clear();window.location.href='/login';}" class="btn btn-outline" style="padding: 5px 10px; font-size: 12px; cursor: pointer;" title="Đăng xuất">
+                            <button type="button" id="logoutBtn" data-action="logout" onclick="executeLogout()" class="btn btn-outline btn-logout" style="padding: 5px 10px; font-size: 12px; cursor: pointer;" title="Đăng xuất khỏi hệ thống">
                                 🚪
                             </button>
                         `;

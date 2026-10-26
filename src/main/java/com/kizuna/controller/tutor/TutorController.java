@@ -130,14 +130,20 @@ public class TutorController {
      */
     @GetMapping("/membership-plans")
     public String membershipPlans(Model model) {
-        populateTutorShell(model, "membership-plans", "Gói Thành Viên & Kích Hoạt", "Gói Thành Viên");
-        String userEmail = securityUtil.getCurrentUserEmail(RoleEnum.ROLE_TUTOR);
+        try {
+            populateTutorShell(model, "membership-plans", "Gói Thành Viên & Kích Hoạt", "Gói Thành Viên");
+            String userEmail = securityUtil.getCurrentUserEmail(RoleEnum.ROLE_TUTOR);
 
-        List<MembershipPlan> plans = membershipService.getActivePlans();
-        TutorMembershipDto currentMembership = membershipService.getCurrentMembership(userEmail);
+            List<MembershipPlan> plans = membershipService.getActivePlans();
+            TutorMembershipDto currentMembership = membershipService.getCurrentMembership(userEmail);
 
-        model.addAttribute("plans", plans);
-        model.addAttribute("currentMembership", currentMembership);
+            model.addAttribute("plans", plans != null ? plans : List.of());
+            model.addAttribute("currentMembership", currentMembership);
+        } catch (Exception e) {
+            log.error("Lỗi khi nạp dữ liệu gói thành viên gia sư:", e);
+            model.addAttribute("plans", List.of());
+            model.addAttribute("currentMembership", null);
+        }
         return "tutor/membership-plans";
     }
 
@@ -146,20 +152,26 @@ public class TutorController {
      */
     @GetMapping("/membership-return")
     public String vnpayReturn(@RequestParam Map<String, String> allParams, Model model) {
-        populateTutorShell(model, "membership-plans", "Kết Quả Thanh Toán", "Thanh Toán");
-        log.info("VNPay Return callback: {}", allParams);
+        try {
+            populateTutorShell(model, "membership-plans", "Kết Quả Thanh Toán", "Thanh Toán");
+            log.info("VNPay Return callback: {}", allParams);
 
-        boolean isSuccess = membershipService.processVnPayReturn(allParams);
-        model.addAttribute("paymentSuccess", isSuccess);
-        model.addAttribute("txnRef", allParams.get("vnp_TxnRef"));
-        model.addAttribute("amount", allParams.get("vnp_Amount"));
+            boolean isSuccess = membershipService.processVnPayReturn(allParams);
+            model.addAttribute("paymentSuccess", isSuccess);
+            model.addAttribute("txnRef", allParams.get("vnp_TxnRef"));
+            model.addAttribute("amount", allParams.get("vnp_Amount"));
 
-        String userEmail = securityUtil.getCurrentUserEmail(RoleEnum.ROLE_TUTOR);
-        List<MembershipPlan> plans = membershipService.getActivePlans();
-        TutorMembershipDto currentMembership = membershipService.getCurrentMembership(userEmail);
+            String userEmail = securityUtil.getCurrentUserEmail(RoleEnum.ROLE_TUTOR);
+            List<MembershipPlan> plans = membershipService.getActivePlans();
+            TutorMembershipDto currentMembership = membershipService.getCurrentMembership(userEmail);
 
-        model.addAttribute("plans", plans);
-        model.addAttribute("currentMembership", currentMembership);
+            model.addAttribute("plans", plans != null ? plans : List.of());
+            model.addAttribute("currentMembership", currentMembership);
+        } catch (Exception e) {
+            log.error("Lỗi khi xử lý callback thanh toán VNPay:", e);
+            model.addAttribute("paymentSuccess", false);
+            model.addAttribute("plans", List.of());
+        }
 
         return "tutor/membership-plans";
     }

@@ -65,10 +65,24 @@ function getAuthUser() {
  * Xóa sạch phiên đăng nhập (Token và User)
  */
 function clearAuthSession() {
-    localStorage.removeItem(STORAGE_KEYS.TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.USER);
+    const keys = [
+        STORAGE_KEYS.TOKEN,
+        STORAGE_KEYS.USER,
+        'access_token',
+        'refresh_token',
+        'current_user',
+        'kizuna_token',
+        'kizuna_user'
+    ];
+    keys.forEach(k => {
+        try { localStorage.removeItem(k); } catch (e) {}
+    });
+    try { sessionStorage.clear(); } catch (e) {}
     // Xóa cookie nếu có
-    document.cookie = "access_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    const expired = 'Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = `access_token=; path=/; max-age=0; expires=${expired}`;
+    document.cookie = `kizuna_token=; path=/; max-age=0; expires=${expired}`;
+    document.cookie = `JSESSIONID=; path=/; max-age=0; expires=${expired}`;
 }
 
 /**
@@ -191,8 +205,11 @@ async function handleLogout() {
     } catch (e) {
         console.warn('Gửi request logout backend không thành công:', e);
     }
-    window.location.href = '/login';
+    window.location.replace('/login');
 }
+
+window.executeLogout = handleLogout;
+window.handleLogout = handleLogout;
 
 /**
  * Hiển thị thông báo trên Form Đăng nhập

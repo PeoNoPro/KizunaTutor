@@ -31,6 +31,7 @@ public class SecurityConfig {
                     "/kanji", "/kanji/**",
                     "/css/**", "/js/**", "/images/**", "/static/**",
                     "/api/auth/**", "/api/public/**", "/api/test/**", "/api/kanji/**", "/api/ai/**",
+                    "/api/user/**",
                     "/error"
                 ).permitAll()
                 .anyRequest().authenticated()

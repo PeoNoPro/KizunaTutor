@@ -28,8 +28,24 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupCanvasDpi() {
         const rect = canvas.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 2;
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
+        // Nếu canvas đang ẩn (display: none), fallback về kích thước parent hoặc 280px chuẩn
+        let displayWidth = rect.width;
+        let displayHeight = rect.height;
+        if (!displayWidth || displayWidth <= 0) {
+            displayWidth = (canvas.parentElement ? canvas.parentElement.clientWidth : 280) || 280;
+        }
+        if (!displayHeight || displayHeight <= 0) {
+            displayHeight = (canvas.parentElement ? canvas.parentElement.clientHeight : 280) || 280;
+        }
+
+        const targetW = Math.round(displayWidth * dpr);
+        const targetH = Math.round(displayHeight * dpr);
+
+        if (canvas.width !== targetW || canvas.height !== targetH) {
+            canvas.width = targetW;
+            canvas.height = targetH;
+        }
+
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
 
@@ -37,6 +53,22 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = '#1B2A4A'; // Indigo Aizome
+        ctx.fillStyle = '#1B2A4A';
+    }
+
+    function ensureCanvasReady() {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 2;
+        if (canvas.width === 0 || canvas.height === 0 || (rect.width > 0 && Math.abs(canvas.width - rect.width * dpr) > 4)) {
+            setupCanvasDpi();
+            redrawAllStrokes();
+        } else {
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#1B2A4A';
+            ctx.fillStyle = '#1B2A4A';
+        }
     }
 
     setupCanvasDpi();
@@ -45,10 +77,25 @@ document.addEventListener('DOMContentLoaded', () => {
         redrawAllStrokes();
     });
 
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                    setupCanvasDpi();
+                    redrawAllStrokes();
+                }
+            }
+        });
+        ro.observe(canvas);
+        if (canvas.parentElement) {
+            ro.observe(canvas.parentElement);
+        }
+    }
+
     function getPos(e) {
         const r = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+        const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
         return {
             x: clientX - r.left,
             y: clientY - r.top,
@@ -57,9 +104,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startDraw(e) {
+        ensureCanvasReady();
         isDrawing = true;
         const pos = getPos(e);
         currentStroke = [pos];
+
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#1B2A4A';
+        ctx.fillStyle = '#1B2A4A';
+
+        // Phản hồi nét chấm tròn tức thì tại vị trí đặt bút
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
         if (e.cancelable) e.preventDefault();
@@ -92,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.addEventListener('touchstart', startDraw, { passive: false });
     canvas.addEventListener('touchmove', draw, { passive: false });
     window.addEventListener('touchend', stopDraw);
+    canvas.addEventListener('touchcancel', stopDraw);
 
     // =========================================================================
     // 2. VẼ LẠI TOÀN BỘ CÁC NÉT (REDRAW), HOÀN TÁC & XÓA BẢNG
@@ -99,6 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function redrawAllStrokes() {
         const rect = canvas.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 2;
+        const displayWidth = rect.width > 0 ? rect.width : 280;
+        const displayHeight = rect.height > 0 ? rect.height : 280;
+
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.scale(dpr, dpr);
@@ -107,9 +171,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = '#1B2A4A';
+        ctx.fillStyle = '#1B2A4A';
 
         for (const stroke of strokes) {
-            if (stroke.length < 2) continue;
+            if (!stroke || stroke.length === 0) continue;
+            if (stroke.length === 1) {
+                ctx.beginPath();
+                ctx.arc(stroke[0].x, stroke[0].y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                continue;
+            }
             ctx.beginPath();
             ctx.moveTo(stroke[0].x, stroke[0].y);
             for (let i = 1; i < stroke.length; i++) {
@@ -429,15 +500,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const kanji = currentKanjiChar;
             const rect = canvas.getBoundingClientRect();
-            const canvasLogicalW = Math.round(rect.width || 270);
-            const canvasLogicalH = Math.round(rect.height || 270);
+            const canvasLogicalW = Math.round(rect.width || 280);
+            const canvasLogicalH = Math.round(rect.height || 280);
 
             const localApiKey = localStorage.getItem('kizuna_ai_api_key') || '';
             const localProvider = localStorage.getItem('kizuna_ai_provider') || 'GEMINI';
 
             let canvasImageData = '';
             try {
-                canvasImageData = canvas.toDataURL('image/png');
+                // Bỏ qua toDataURL để tiết kiệm CPU và băng thông mạng (chuyển sang text-only)
+                canvasImageData = '';
             } catch (err) {
                 console.log('Không thể export canvas toDataURL:', err);
             }
@@ -450,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 canvasHeight: canvasLogicalH,
                 apiKey: localApiKey,
                 provider: localProvider,
-                canvasImageData: canvasImageData
+                canvasImageData: '' // Text-only mode: không cần gửi base64 ảnh
             };
 
             if (aiLoadingOverlay) aiLoadingOverlay.style.display = 'flex';
@@ -581,4 +653,9 @@ document.addEventListener('DOMContentLoaded', () => {
             closeResultModal();
         }
     });
+
+    // Xuất ra window để các module khác (như kanji-catalog khi chuyển tab) có thể gọi đồng bộ
+    window.setupKanjiCanvasDpi = setupCanvasDpi;
+    window.redrawKanjiCanvas = redrawAllStrokes;
+    window.clearKanjiCanvas = clearCanvas;
 });

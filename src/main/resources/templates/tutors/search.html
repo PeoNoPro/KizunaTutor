@@ -5,141 +5,202 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${pageTitle}">Tìm Kiếm Gia Sư Tiếng Nhật - KizunaTutor</title>
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
-    <style>
-        .tutor-layout {
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 24px;
-        }
-        .filter-bar {
-            background: #FFFFFF;
-            padding: 20px;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--color-border);
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-        }
-        .filter-select {
-            padding: 8px 12px;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-        }
-        .tutors-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 24px;
-        }
-        .tutor-card {
-            background: #FFFFFF;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            box-shadow: var(--shadow-sm);
-        }
-        .tutor-header {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        .tutor-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: var(--color-secondary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--color-primary);
-        }
-        .tutor-badge {
-            background: #E8F5E9;
-            color: #2E7D32;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-    </style>
 </head>
 <body>
 
-    <div th:replace="~{fragments/navbar :: navbar}"></div>
+    <!-- ========================================================================= -->
+    <!-- GLOBAL MASTER SHELL (FIGMA NODE 1148-501 STANDARD) -->
+    <!-- ========================================================================= -->
+    <div class="app-shell">
 
-    <div class="tutor-layout">
-        <h1 style="color: var(--color-primary); margin-bottom: 8px;">Danh Sách Gia Sư Tiếng Nhật</h1>
-        <p style="color: var(--color-text-muted); margin-bottom: 24px;">Lọc theo cấp độ JLPT, chuyên môn giao tiếp, luyện thi hoặc luyện viết Kanji.</p>
+        <!-- THANH ĐIỀU HƯỚNG BÊN (SIDEBAR NAVIGATION RAIL) -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 
-        <!-- Bộ lọc -->
-        <div class="filter-bar">
-            <label style="font-weight: 600; font-size: 14px;">Trình độ:</label>
-            <select class="filter-select">
-                <option value="">Tất cả (N1, N2, N3)</option>
-                <option value="N1">JLPT N1 (Chuyên gia)</option>
-                <option value="N2">JLPT N2 (Thành thạo)</option>
-            </select>
+        <!-- VÙNG NỘI DUNG CHÍNH (APP MAIN CONTAINER) -->
+        <div class="app-main">
 
-            <label style="font-weight: 600; font-size: 14px;">Hình thức:</label>
-            <select class="filter-select">
-                <option value="">Online & Trực tiếp</option>
-                <option value="ONLINE">Học Online 1:1</option>
-                <option value="OFFLINE">Học tại nhà</option>
-            </select>
+            <!-- THANH ĐIỀU HƯỚNG TRÊN CÙNG (TOP NAVIGATION HEADER 64PX) -->
+            <div th:replace="~{fragments/topbar :: topbar}"></div>
 
-            <button type="button" class="btn-primary" style="margin-left: auto;">Áp Dụng Bộ Lọc</button>
-        </div>
+            <!-- NỘI DUNG MÀN HÌNH (MAIN CONTENT CANVAS MAX-W-7XL) -->
+            <main class="app-content">
 
-        <!-- Danh sách card mẫu -->
-        <div class="tutors-grid">
-            <div class="tutor-card">
-                <div class="tutor-header">
-                    <div class="tutor-avatar">TT</div>
-                    <div>
-                        <h3 style="color: var(--color-primary); font-size: 18px;">Trần Thùy Linh (Sensei)</h3>
-                        <span class="tutor-badge">✓ Đã duyệt chứng chỉ JLPT N1</span>
+                <!-- TIÊU ĐỀ TRANG CHUẨN MASTER LAYOUT -->
+                <div class="page-header">
+                    <div class="page-breadcrumbs">
+                        <a th:href="@{/}">Trang chủ</a>
+                        <span class="sep">/</span>
+                        <a th:href="@{/tutors}">Gia sư</a>
+                        <span class="sep">/</span>
+                        <span>Tìm kiếm gia sư</span>
+                    </div>
+                    <div class="page-header-row">
+                        <div class="page-title-box">
+                            <h1 class="page-title">Đội Ngũ Gia Sư Tiếng Nhật Tuyển Chọn</h1>
+                            <p class="page-subtitle">Kết nối trực tiếp cùng các giảng viên đạt chuẩn JLPT N1, N2 chuyên luyện thi cấp tốc, giao tiếp thương mại và kèm chữ Hán tương tác.</p>
+                        </div>
+                        <div class="page-actions">
+                            <a th:href="@{/register}" class="btn btn-outline">
+                                <span>👨‍🏫</span> <span>Đăng Ký Làm Gia Sư</span>
+                            </a>
+                            <a th:href="@{/register}" class="btn btn-primary">
+                                <span>✨</span> <span>Đăng Ký Học Thử 1:1</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
-                <p style="font-size: 14px; color: var(--color-text-muted); margin-bottom: 16px;">
-                    Cựu du học sinh Tokyo University, 4 năm kinh nghiệm luyện thi JLPT và sửa phát âm chuẩn Tokyo.
-                </p>
-                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: 14px;">
-                    <div>
-                        <span style="font-size: 13px; color: var(--color-text-muted);">Học phí:</span>
-                        <strong style="color: var(--color-primary); font-size: 16px;"> 250.000đ/giờ</strong>
-                    </div>
-                    <a th:href="@{/register}" class="btn-primary" style="font-size: 13px;">Đặt Lịch Học Thử</a>
-                </div>
-            </div>
 
-            <div class="tutor-card">
-                <div class="tutor-header">
-                    <div class="tutor-avatar">KD</div>
-                    <div>
-                        <h3 style="color: var(--color-primary); font-size: 18px;">Kenji Daiki (Sensei)</h3>
-                        <span class="tutor-badge">✓ Người bản xứ (Tokyo)</span>
+                <!-- BẢNG CHỈ SỐ KPI ĐẦU TRANG (COMPACT STAT CARDS ROW) -->
+                <div class="stat-kpi-grid">
+                    <div class="stat-kpi-card">
+                        <div class="stat-kpi-icon" style="background: var(--color-secondary-light); color: var(--color-secondary);">
+                            👥
+                        </div>
+                        <div class="stat-kpi-meta">
+                            <div class="stat-kpi-label">Gia Sư Tuyển Chọn</div>
+                            <div class="stat-kpi-value">120+ Thầy Cô</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-kpi-card">
+                        <div class="stat-kpi-icon" style="background: var(--color-success-light); color: var(--color-success);">
+                            🏆
+                        </div>
+                        <div class="stat-kpi-meta">
+                            <div class="stat-kpi-label">Chuẩn Trình Độ</div>
+                            <div class="stat-kpi-value">100% N1 - N2</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-kpi-card">
+                        <div class="stat-kpi-icon" style="background: var(--color-warning-light); color: var(--color-warning);">
+                            ⭐
+                        </div>
+                        <div class="stat-kpi-meta">
+                            <div class="stat-kpi-label">Đánh Giá Trung Bình</div>
+                            <div class="stat-kpi-value">4.9 / 5.0</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-kpi-card">
+                        <div class="stat-kpi-icon" style="background: #F3E8FF; color: #7C3AED;">
+                            ⏱️
+                        </div>
+                        <div class="stat-kpi-meta">
+                            <div class="stat-kpi-label">Học Phí Linh Hoạt</div>
+                            <div class="stat-kpi-value">Từ 200k / giờ</div>
+                        </div>
                     </div>
                 </div>
-                <p style="font-size: 14px; color: var(--color-text-muted); margin-bottom: 16px;">
-                    Giảng viên bản ngữ chuyên tiếng Nhật thương mại (Business Japanese) và phỏng vấn xin việc visa kỹ sư.
-                </p>
-                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: 14px;">
-                    <div>
-                        <span style="font-size: 13px; color: var(--color-text-muted);">Học phí:</span>
-                        <strong style="color: var(--color-primary); font-size: 16px;"> 350.000đ/giờ</strong>
+
+                <!-- THANH CÔNG CỤ BỘ LỌC CHUẨN (MASTER TOOLBAR & FILTER BAR) -->
+                <div class="master-toolbar">
+                    <div class="master-search-bar">
+                        <input type="text" class="search-input" placeholder="Tìm theo tên gia sư, kỹ năng hoặc trường tốt nghiệp..." style="width: 100%;">
                     </div>
-                    <a th:href="@{/register}" class="btn-primary" style="font-size: 13px;">Đặt Lịch Học Thử</a>
+
+                    <div class="master-filter-group">
+                        <select class="form-select" style="min-width: 180px;">
+                            <option value="">Tất cả trình độ (N1, N2)</option>
+                            <option value="N1">Chứng chỉ JLPT N1 (Chuyên gia)</option>
+                            <option value="N2">Chứng chỉ JLPT N2 (Thành thạo)</option>
+                        </select>
+
+                        <select class="form-select" style="min-width: 180px;">
+                            <option value="">Hình thức học (Tất cả)</option>
+                            <option value="ONLINE">Lớp học trực tuyến 1:1</option>
+                            <option value="OFFLINE">Kèm trực tiếp tại nhà</option>
+                        </select>
+
+                        <button type="button" class="btn btn-primary">
+                            <span>🔍</span> <span>Lọc Gia Sư</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
+
+                <!-- LƯỚI DANH SÁCH GIA SƯ (MASTER GRID CARDS) -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
+                    <!-- Gia sư 1 -->
+                    <div class="card-master" style="display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 14px;">
+                                <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: var(--color-secondary-light); color: var(--color-secondary); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800;">
+                                    TL
+                                </div>
+                                <div>
+                                    <h3 style="color: var(--color-primary); font-size: 16px; font-weight: 700; margin: 0;">Trần Thùy Linh (Sensei)</h3>
+                                    <span class="badge badge-success" style="font-size: 11px; margin-top: 3px; display: inline-block;">✓ Đã kiểm định JLPT N1</span>
+                                </div>
+                            </div>
+                            <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 14px; line-height: 1.55;">
+                                Cựu du học sinh Đại học Tokyo, 4 năm kinh nghiệm luyện thi cấp tốc ngữ pháp JLPT và rèn phát âm chuẩn âm điệu vùng Kanto cho người đi làm.
+                            </p>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: 14px; margin-top: 10px;">
+                            <div>
+                                <span style="font-size: 11px; color: var(--color-text-muted);">Mức học phí:</span>
+                                <div style="color: var(--color-primary); font-size: 15px; font-weight: 800;">250.000đ / giờ</div>
+                            </div>
+                            <a th:href="@{/register}" class="btn btn-primary" style="padding: 7px 14px; font-size: 13px;">Đặt Lịch Học Thử</a>
+                        </div>
+                    </div>
+
+                    <!-- Gia sư 2 -->
+                    <div class="card-master" style="display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 14px;">
+                                <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: #F3E8FF; color: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800;">
+                                    KD
+                                </div>
+                                <div>
+                                    <h3 style="color: var(--color-primary); font-size: 16px; font-weight: 700; margin: 0;">Kenji Daiki (Sensei)</h3>
+                                    <span class="badge" style="background: var(--color-secondary-light); color: var(--color-secondary); font-size: 11px; margin-top: 3px; display: inline-block;">✓ Giảng viên bản xứ (Tokyo)</span>
+                                </div>
+                            </div>
+                            <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 14px; line-height: 1.55;">
+                                Giảng viên bản ngữ chuyên tiếng Nhật thương mại trong doanh nghiệp, kỹ năng phỏng vấn xin việc visa kỹ sư và văn hóa giao tiếp công sở Nhật Bản.
+                            </p>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: 14px; margin-top: 10px;">
+                            <div>
+                                <span style="font-size: 11px; color: var(--color-text-muted);">Mức học phí:</span>
+                                <div style="color: var(--color-primary); font-size: 15px; font-weight: 800;">350.000đ / giờ</div>
+                            </div>
+                            <a th:href="@{/register}" class="btn btn-primary" style="padding: 7px 14px; font-size: 13px;">Đặt Lịch Học Thử</a>
+                        </div>
+                    </div>
+
+                    <!-- Gia sư 3 -->
+                    <div class="card-master" style="display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 14px;">
+                                <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: #DCFCE7; color: #16A34A; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800;">
+                                    NH
+                                </div>
+                                <div>
+                                    <h3 style="color: var(--color-primary); font-size: 16px; font-weight: 700; margin: 0;">Nguyễn Hồng Hạnh (Sensei)</h3>
+                                    <span class="badge badge-success" style="font-size: 11px; margin-top: 3px; display: inline-block;">✓ Đã kiểm định JLPT N1</span>
+                                </div>
+                            </div>
+                            <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 14px; line-height: 1.55;">
+                                Tốt nghiệp Khoa Đông Phương Học - ĐHQG, 5 năm kèm chữ Hán từ gốc rễ hình tượng, bộ thủ và mẹo nhớ siêu tốc cho người mất gốc tiếng Nhật.
+                            </p>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: 14px; margin-top: 10px;">
+                            <div>
+                                <span style="font-size: 11px; color: var(--color-text-muted);">Mức học phí:</span>
+                                <div style="color: var(--color-primary); font-size: 15px; font-weight: 800;">220.000đ / giờ</div>
+                            </div>
+                            <a th:href="@{/register}" class="btn btn-primary" style="padding: 7px 14px; font-size: 13px;">Đặt Lịch Học Thử</a>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+
+
         </div>
     </div>
-
-    <div th:replace="~{fragments/footer :: footer}"></div>
 
 </body>
 </html>

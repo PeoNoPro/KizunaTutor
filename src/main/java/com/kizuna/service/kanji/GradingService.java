@@ -57,7 +57,14 @@ public class GradingService {
                 ? submission.getCanvasHeight() : 218.0;
 
         // 1. Phân tích vector nét vẽ từ Canvas của người học
-        List<List<Point2D>> rawUserStrokes = parseStrokeCoordinates(submission.getStrokeCoordinatesJson());
+        // 1. Phân tích vector nét vẽ từ Canvas của người học (kèm mốc thời gian t)
+        List<List<StrokeSensoryAnalyzer.StrokePoint>> strokesWithTime = parseStrokePointsWithTime(submission.getStrokeCoordinatesJson());
+        List<List<Point2D>> rawUserStrokes = strokesWithTime.stream()
+                .map(stroke -> stroke.stream().map(p -> new Point2D(p.x(), p.y())).toList())
+                .toList();
+        if (rawUserStrokes.isEmpty()) {
+            rawUserStrokes = parseStrokeCoordinates(submission.getStrokeCoordinatesJson());
+        }
 
         // 2. Trích xuất vector nét chuẩn tiêu chuẩn từ KanjiVG SVG
         List<StandardStroke> stdStrokes = (kanji != null && kanji.getSvgData() != null)
@@ -362,6 +369,28 @@ public class GradingService {
         result.setActionableTips(actionableTips);
         result.setVisualHighlightZones(highlightZones);
 
+        // Phân tích cảm quan động lực học (Kinematics & Sensory) từ chuỗi tọa độ thời gian (x, y, t)
+        StrokeSensoryAnalyzer.CharacterSensoryReport sensoryReport =
+                StrokeSensoryAnalyzer.analyzeCharacter(strokesWithTime, canvasW);
+        result.setSensoryAssessment(sensoryReport.overallAssessment());
+        result.setAverageVelocity(sensoryReport.overallAvgVelocity());
+        result.setJitterRate(sensoryReport.overallJitterRate());
+        result.setStabilityScore(sensoryReport.stabilityScore());
+
+        if (sensoryReport.overallJitterRate() > 0.22) {
+            actionableTips.add(new ActionableTip(
+                    "Độ vững tay",
+                    "Thả lỏng cổ tay và lia nét liền mạch, tránh ngập ngừng dừng giữa chừng làm nét bị run.",
+                    "⚡"
+            ));
+        } else if (sensoryReport.overallAvgVelocity() > 1.35) {
+            actionableTips.add(new ActionableTip(
+                    "Tốc độ nét",
+                    "Hãm bớt tốc độ kéo bút để nét có độ đầm, tránh lướt quá nhanh làm nét bị mỏng lực.",
+                    "🎯"
+            ));
+        }
+
         // =========================================================================
         // BƯỚC 4: KẾT NỐI AI SENSEI (GOOGLE GEMINI 1.5 FLASH / OPENAI)
         // =========================================================================
@@ -371,7 +400,7 @@ public class GradingService {
                     result,
                     submission.getApiKey(),
                     submission.getProvider(),
-                    submission.getCanvasImageData()
+                    null // Chế độ Text-Only siêu tiết kiệm token (không gửi ảnh Canvas Base64)
             );
             result.setAiFeedback(aiFeedback);
             result.setAiProvider(submission.getProvider() != null ? submission.getProvider().toUpperCase() : "GEMINI");
@@ -725,6 +754,40 @@ public class GradingService {
         double sum = 0;
         for (Point2D p : stroke) sum += p.y;
         return sum / stroke.size();
+    }
+
+    private List<List<StrokeSensoryAnalyzer.StrokePoint>> parseStrokePointsWithTime(String json) {
+        if (json == null || json.isBlank()) return Collections.emptyList();
+        try {
+            JsonNode root = objectMapper.readTree(json);
+            if (!root.isArray()) return Collections.emptyList();
+
+            List<List<StrokeSensoryAnalyzer.StrokePoint>> result = new ArrayList<>();
+            for (JsonNode strokeNode : root) {
+                JsonNode pointsArray = strokeNode.isArray() ? strokeNode :
+                        (strokeNode.has("value") ? strokeNode.get("value") :
+                        (strokeNode.has("points") ? strokeNode.get("points") : null));
+
+                if (pointsArray != null && pointsArray.isArray()) {
+                    List<StrokeSensoryAnalyzer.StrokePoint> points = new ArrayList<>();
+                    for (JsonNode pt : pointsArray) {
+                        if (pt.has("x") && pt.has("y")) {
+                            double x = pt.get("x").asDouble();
+                            double y = pt.get("y").asDouble();
+                            long t = pt.has("t") ? pt.get("t").asLong() : 0L;
+                            points.add(new StrokeSensoryAnalyzer.StrokePoint(x, y, t));
+                        }
+                    }
+                    if (!points.isEmpty()) {
+                        result.add(points);
+                    }
+                }
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("Không thể parse strokePointsWithTime: {}", e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     private List<List<Point2D>> parseStrokeCoordinates(String json) {

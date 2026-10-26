@@ -2,19 +2,20 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <header th:fragment="navbar" class="kizuna-header">
     <div class="header-container">
-        <a th:href="@{/}" class="brand-logo">
+        <a th:href="@{/}" class="brand-logo" title="KizunaTutor - Trang Chủ">
             <span class="logo-kanji">絆</span>
             <span class="logo-text">Kizuna<strong>Tutor</strong></span>
         </a>
         <nav class="nav-menu">
             <a th:href="@{/}" class="nav-link">Trang Chủ</a>
-            <a th:href="@{/kanji(tab='library')}" class="nav-link">Bảng Chữ Kanji (N5 - N1)</a>
-            <a th:href="@{/kanji}" class="nav-link">Luyện Viết Kanji</a>
+            <a th:href="@{/kanji(tab='practice')}" class="nav-link">Luyện Viết Kanji</a>
+            <a th:href="@{/kanji(tab='library')}" class="nav-link">Từ Điển</a>
+            <a th:href="@{/kanji(tab='game')}" class="nav-link">Minigame</a>
             <a th:href="@{/tutors}" class="nav-link">Tìm Gia Sư</a>
         </nav>
         <div class="auth-actions">
-            <a th:href="@{/login}" class="btn-outline">Đăng Nhập</a>
-            <a th:href="@{/register}" class="btn-primary">Đăng Ký Học Thử</a>
+            <a th:href="@{/login}" class="btn btn-ghost" style="padding: 8px 14px; font-size: 13.5px;">Đăng Nhập</a>
+            <a th:href="@{/register}" class="btn btn-primary" style="padding: 8px 16px; font-size: 13.5px;">Đăng Ký Học Thử</a>
         </div>
     </div>
 </header>

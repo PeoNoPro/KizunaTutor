@@ -16,8 +16,10 @@ import java.time.Duration;
 import java.util.*;
 
 /**
- * Service tích hợp Trí tuệ Nhân tạo (Google Gemini 1.5 Flash / OpenAI)
- * đóng vai trò Shodo Sensei (Thư pháp gia tiếng Nhật) phân tích nét vẽ người học.
+ * Service tích hợp Trí tuệ Nhân tạo (Google Gemini / OpenAI)
+ * đóng vai trò Kizuna Sensei (Chuyên gia Thư pháp Nhật Bản & Giảng viên Kanji)
+ * nhận xét nét viết học viên theo mô hình thuần văn bản (Text-Only Prompting)
+ * dựa trên các chỉ số động học tọa độ (x, y, t) và hình học Topo Vector.
  */
 @Service
 @Slf4j
@@ -64,7 +66,7 @@ public class AiStrokeAnalysisService {
     }
 
     /**
-     * Phân tích và sinh lời nhận xét thư pháp từ AI Sensei
+     * Phân tích và sinh lời nhận xét thư pháp từ AI Sensei (Thuần văn bản - Text Only)
      */
     public String generateAiSenseiFeedback(
             KanjiDictionary kanji,
@@ -82,12 +84,12 @@ public class AiStrokeAnalysisService {
 
         try {
             if ("OPENAI".equalsIgnoreCase(provider)) {
-                return callOpenAiSensei(kanji, vectorResult, effectiveKey, base64ImageData);
+                return callOpenAiSensei(kanji, vectorResult, effectiveKey);
             } else {
-                return callGeminiSensei(kanji, vectorResult, effectiveKey, base64ImageData);
+                return callGeminiSensei(kanji, vectorResult, effectiveKey);
             }
         } catch (Exception e) {
-            log.warn("[Kizuna Sensei] Lỗi khi gọi AI API ({}: {}). Sử dụng nhận xét kỹ thuật.", provider, e.getMessage());
+            log.warn("[Kizuna Sensei] Lỗi khi gọi AI API ({}: {}). Sử dụng nhận xét kỹ thuật dự phòng.", provider, e.getMessage());
             return buildFallbackSenseiNote(kanji, vectorResult);
         }
     }
@@ -110,13 +112,12 @@ public class AiStrokeAnalysisService {
     }
 
     /**
-     * Gọi Google Gemini API (tự động thử các model khả dụng: gemini-3.8-flash, gemini-flash-latest)
+     * Gọi Google Gemini API bằng Text-Only Prompt siêu tinh gọn (~100-130 tokens)
      */
     private String callGeminiSensei(
             KanjiDictionary kanji,
             ScoreResult vectorResult,
-            String apiKey,
-            String base64ImageData) throws Exception {
+            String apiKey) throws Exception {
 
         String prompt = buildPrompt(kanji, vectorResult);
         List<String> candidateModels = new ArrayList<>();
@@ -130,23 +131,7 @@ public class AiStrokeAnalysisService {
             candidateModels.add("gemini-flash-latest");
         }
 
-        List<Map<String, Object>> partsList = new ArrayList<>();
-        partsList.add(Map.of("text", prompt));
-
-        // Nếu client gửi kèm ảnh vẽ Canvas Base64, thêm vào parts để Gemini Vision phân tích
-        if (base64ImageData != null && base64ImageData.contains(",")) {
-            try {
-                String cleanBase64 = base64ImageData.substring(base64ImageData.indexOf(",") + 1).trim();
-                partsList.add(Map.of(
-                        "inlineData", Map.of(
-                                "mimeType", "image/png",
-                                "data", cleanBase64
-                        )
-                ));
-            } catch (Exception ex) {
-                log.debug("Không thể trích xuất base64 image: {}", ex.getMessage());
-            }
-        }
+        List<Map<String, Object>> partsList = List.of(Map.of("text", prompt));
 
         Map<String, Object> reqBody = Map.of(
                 "contents", List.of(
@@ -157,7 +142,7 @@ public class AiStrokeAnalysisService {
                 ),
                 "generationConfig", Map.of(
                         "temperature", 0.4,
-                        "maxOutputTokens", 600
+                        "maxOutputTokens", 350
                 )
         );
 
@@ -171,7 +156,7 @@ public class AiStrokeAnalysisService {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .header("Content-Type", "application/json")
-                        .timeout(Duration.ofSeconds(15))
+                        .timeout(Duration.ofSeconds(12))
                         .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                         .build();
 
@@ -201,37 +186,26 @@ public class AiStrokeAnalysisService {
     }
 
     /**
-     * Gọi OpenAI GPT-4o-mini API
+     * Gọi OpenAI GPT-4o-mini API bằng Text-Only Prompt
      */
     private String callOpenAiSensei(
             KanjiDictionary kanji,
             ScoreResult vectorResult,
-            String apiKey,
-            String base64ImageData) throws Exception {
+            String apiKey) throws Exception {
 
         String prompt = buildPrompt(kanji, vectorResult);
         String url = "https://api.openai.com/v1/chat/completions";
 
-        List<Map<String, Object>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", "Bạn là Kizuna Sensei - Chuyên gia Thư pháp Nhật Bản kiêm Giảng viên Kanji hàng đầu tại học viện KizunaTutor."));
-
-        if (base64ImageData != null && base64ImageData.startsWith("data:image")) {
-            messages.add(Map.of(
-                    "role", "user",
-                    "content", List.of(
-                            Map.of("type", "text", "text", prompt),
-                            Map.of("type", "image_url", "image_url", Map.of("url", base64ImageData))
-                    )
-            ));
-        } else {
-            messages.add(Map.of("role", "user", "content", prompt));
-        }
+        List<Map<String, Object>> messages = List.of(
+                Map.of("role", "system", "content", "Bạn là Kizuna Sensei - Chuyên gia Thư pháp Nhật Bản (Shodo) kiêm Giảng viên Kanji tại KizunaTutor."),
+                Map.of("role", "user", "content", prompt)
+        );
 
         Map<String, Object> reqBody = Map.of(
                 "model", "gpt-4o-mini",
                 "messages", messages,
                 "temperature", 0.4,
-                "max_tokens", 600
+                "max_tokens", 350
         );
 
         String jsonPayload = objectMapper.writeValueAsString(reqBody);
@@ -262,67 +236,69 @@ public class AiStrokeAnalysisService {
         throw new RuntimeException("Phản hồi rỗng từ OpenAI API");
     }
 
+    /**
+     * Khởi tạo Prompt Text-Only siêu tinh gọn, đưa trực tiếp kết quả phân tích động học
+     * từ thuật toán StrokeSensoryAnalyzer và Topo Vector vào để AI nhận xét chuẩn mực.
+     */
     private String buildPrompt(KanjiDictionary kanji, ScoreResult vr) {
         String kanjiChar = kanji != null ? kanji.getKanjiCharacter() : vr.getKanji();
         String hanViet = kanji != null && kanji.getHanViet() != null ? kanji.getHanViet() : "—";
         String meaning = kanji != null && kanji.getMeaning() != null ? kanji.getMeaning() : "—";
         int stdStrokes = kanji != null && kanji.getStrokeCount() != null ? kanji.getStrokeCount() : vr.getStandardStrokes();
 
-        StringBuilder deductionsSummary = new StringBuilder();
+        StringBuilder errorBullets = new StringBuilder();
         if (vr.getDeductions() != null && !vr.getDeductions().isEmpty()) {
             for (ScoreResult.ScoreDeduction d : vr.getDeductions()) {
-                deductionsSummary.append(String.format("- %s (%dđ): %s\n", d.title(), d.penalty(), d.description()));
+                errorBullets.append(String.format("* %s: %s\n", d.title(), d.description()));
             }
         } else {
-            deductionsSummary.append("- Không có lỗi trừ điểm đáng kể, nét viết rất chuẩn mực.\n");
+            errorBullets.append("* Nét vẽ chuẩn mực, đúng bút thuận và cấu trúc cân đối.\n");
         }
 
+        String sensoryFeel = vr.getSensoryAssessment() != null
+                ? vr.getSensoryAssessment()
+                : "Lực bút tương đối ổn định.";
+        String speedText = vr.getAverageVelocity() != null
+                ? String.format("%.2f px/ms", vr.getAverageVelocity())
+                : "Ổn định";
+        int stability = vr.getStabilityScore() != null ? vr.getStabilityScore() : 85;
+
         return String.format("""
-                Bạn là Kizuna Sensei - Chuyên gia Thư pháp Nhật Bản (Shodo) kiêm Giảng viên Kanji cao cấp tại KizunaTutor.
-                Nhiệm vụ của bạn là nhận xét và hướng dẫn học viên vừa tự tay viết chữ Kanji "%s" trên bảng vẽ tương tác.
+                Vai trò: Kizuna Sensei (Giảng viên Thư pháp & Kanji KizunaTutor).
+                Nhiệm vụ: Viết lời nhận xét 80-120 từ cho học viên viết chữ Kanji "%s" (%s: %s).
 
-                Thông tin chữ Hán:
-                - Chữ: %s
-                - Âm Hán Việt: %s
-                - Nghĩa: %s
-                - Số nét chuẩn: %d nét
-
-                Dữ liệu phân tích kỹ thuật hình học nét viết của học viên:
-                - Số nét học viên đã viết: %d nét (chuẩn: %d nét)
-                - Tổng điểm kỹ thuật: %d/100 (%s)
-                - Độ chính xác số nét & bút thuận: %d/25 (%d%%)
-                - Độ cân đối khung chữ & trọng tâm ô Mễ: %d/35 (%d%%)
-                - Độ chuẩn hướng đi nét & góc nghiêng (Cosine Similarity): %d/40 (%d%%)
-                - Chi tiết các điểm cần sửa:
+                Dữ liệu hình học & cảm quan nét vẽ:
+                - Điểm: %d/100 (%s) | Nét: %d/%d nét
+                - Lực bút & Tốc độ: %s (Tốc độ: %s, Độ vững tay: %d%%)
+                - Lỗi sai cụ thể từ thuật toán:
                 %s
-
-                Yêu cầu phản hồi:
-                Hãy viết lời nhận xét mang phong thái một Sensei người Nhật tận tụy, ân cần, giàu chuyên môn và khích lệ người học:
-                1. 🌸 [CẢM QUAN & NÉT VẼ]: Khen ngợi điểm tốt (lực bút, độ liền mạch, cố gắng của người học) và nêu ấn tượng tổng thể về chữ viết.
-                2. ✍️ [KỸ THUẬT & GỢI Ý CHUYÊN SÂU]: Chỉ dẫn cụ thể cách hạ bút (tome), nét gập (hane/ore), hoặc độ vươn (harai) để chữ thanh thoát, chuẩn thư pháp hơn dựa trên dữ liệu trên.
-                3. 🎯 [LỜI ĐỘNG VIÊN / CHÂM NGÔN]: 1 câu thành ngữ/châm ngôn tiếng Nhật ngắn gọn kèm dịch nghĩa tiếng Việt khích lệ học viên tiếp tục rèn chữ (ví dụ: 「継続は力なり」- Kiên trì là sức mạnh).
-                Trình bày ngắn gọn, súc tích (khoảng 100-160 từ), chia đoạn rõ ràng.
+                Format phản hồi (ngắn gọn, ân cần, định dạng 3 mục rõ ràng):
+                1. 🌸 [CẢM QUAN]: Khen ngợi 1 điểm tốt về lực bút, nhịp lia bút hoặc thế chữ.
+                2. ✍️ [SỬA LỖI]: Hướng dẫn kỹ thuật dừng bút (tome), gập (hane), vuốt (harai) hoặc sửa hướng nét dựa đúng vào lỗi ở trên.
+                3. 🎯 [ĐỘNG VIÊN]: 1 câu thành ngữ/châm ngôn tiếng Nhật ngắn gọn kèm dịch nghĩa.
                 """,
-                kanjiChar, kanjiChar, hanViet, meaning, stdStrokes,
-                vr.getUserStrokes(), stdStrokes,
+                kanjiChar, hanViet, meaning,
                 vr.getTotalScorePercent(), vr.getGrade() != null ? vr.getGrade() : "Đạt chuẩn",
-                vr.getStrokeCriterion() != null ? vr.getStrokeCriterion().score() : 20, vr.getOrderAccuracy(),
-                vr.getBalanceCriterion() != null ? vr.getBalanceCriterion().score() : 30, vr.getProportionAccuracy(),
-                vr.getTrajectoryCriterion() != null ? vr.getTrajectoryCriterion().score() : 35, vr.getDirectionAccuracy(),
-                deductionsSummary.toString()
+                vr.getUserStrokes(), stdStrokes,
+                sensoryFeel, speedText, stability,
+                errorBullets.toString()
         );
     }
 
     private String buildFallbackSenseiNote(KanjiDictionary kanji, ScoreResult vr) {
         String kanjiChar = kanji != null ? kanji.getKanjiCharacter() : vr.getKanji();
+        String sensory = vr.getSensoryAssessment() != null ? vr.getSensoryAssessment() : "Lực bút tương đối đều tay";
+
         return String.format(
                 "🌸 **Đánh giá nét viết chữ \"%s\"**:\n\n" +
-                "Chữ viết của bạn đã được thuật toán Topo Hình học Vector đánh giá đạt **%d/100 điểm (%s)**.\n" +
+                "Chữ viết của bạn đã được thuật toán Topo Hình học Vector & Động học cảm quan đánh giá đạt **%d/100 điểm (%s)**.\n" +
+                "- Cảm quan lực bút: **%s**\n" +
                 "- Độ chuẩn hướng nét (Cosine Similarity): **%d%%**\n" +
                 "- Độ cân đối khung chữ ô Mễ: **%d%%**\n" +
                 "- Điểm số nét & trình tự bút thuận: **%d/25 điểm**\n\n" +
-                "Hãy tiếp tục duy trì tốc độ lia bút đều tay để nét chữ ngày càng chuẩn mực và uyển chuyển hơn!",
+                "Hãy tiếp tục duy trì tốc độ lia bút đều tay, chú ý kỹ thuật dừng bút (tome) và vuốt nét (harai) để nét chữ ngày càng sắc nét!",
                 kanjiChar, vr.getTotalScorePercent(), vr.getGrade() != null ? vr.getGrade() : "Đạt chuẩn",
+                sensory,
                 vr.getDirectionAccuracy(), vr.getProportionAccuracy(),
                 vr.getStrokeCriterion() != null ? vr.getStrokeCriterion().score() : 20
         );

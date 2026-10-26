@@ -49,15 +49,20 @@ function initHandwritingSearch() {
     hwCtx = hwCanvas.getContext('2d');
 
     const rect = hwCanvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 2;
-    const size = Math.min(320, rect.width || 320);
+    const dpr = window.devicePixelRatio || 1;
+    const displayWidth = (rect.width > 0) ? rect.width : 280;
+    const displayHeight = (rect.height > 0) ? rect.height : 280;
 
-    hwCanvas.width = size * dpr;
-    hwCanvas.height = size * dpr;
+    hwCanvas.width = Math.round(displayWidth * dpr);
+    hwCanvas.height = Math.round(displayHeight * dpr);
+    hwCanvas.style.width = displayWidth + 'px';
+    hwCanvas.style.height = displayHeight + 'px';
+    hwCanvas.style.touchAction = 'none';
+
     hwCtx.setTransform(1, 0, 0, 1, 0, 0);
     hwCtx.scale(dpr, dpr);
 
-    // Gắn sự kiện chuột & cảm ứng
+    // Gắn sự kiện chuột & cảm ứng (đảm bảo không bị duplicate)
     hwCanvas.removeEventListener('mousedown', hwOnMouseDown);
     hwCanvas.removeEventListener('mousemove', hwOnMouseMove);
     window.removeEventListener('mouseup', hwOnMouseUp);
@@ -93,9 +98,10 @@ function initHandwritingSearch() {
 }
 
 function getHwCoords(e) {
+    if (!hwCanvas) return { x: 0, y: 0, t: Date.now() };
     const rect = hwCanvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+    const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
     return {
         x: clientX - rect.left,
         y: clientY - rect.top,
@@ -104,6 +110,8 @@ function getHwCoords(e) {
 }
 
 function hwOnMouseDown(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (e.preventDefault) e.preventDefault();
     hwIsDrawing = true;
     const pt = getHwCoords(e);
     hwCurrentStroke = [pt];
@@ -112,7 +120,12 @@ function hwOnMouseDown(e) {
 
 function hwOnMouseMove(e) {
     if (!hwIsDrawing) return;
+    if (e.preventDefault) e.preventDefault();
     const pt = getHwCoords(e);
+    if (hwCurrentStroke.length === 0) {
+        hwCurrentStroke.push(pt);
+        return;
+    }
     const lastPt = hwCurrentStroke[hwCurrentStroke.length - 1];
     hwCurrentStroke.push(pt);
     hwDrawCurrentSegment(lastPt, pt);
@@ -130,7 +143,7 @@ function hwOnMouseUp() {
 }
 
 function hwOnTouchStart(e) {
-    e.preventDefault();
+    if (e.preventDefault) e.preventDefault();
     hwIsDrawing = true;
     const pt = getHwCoords(e);
     hwCurrentStroke = [pt];
@@ -139,8 +152,12 @@ function hwOnTouchStart(e) {
 
 function hwOnTouchMove(e) {
     if (!hwIsDrawing) return;
-    e.preventDefault();
+    if (e.preventDefault) e.preventDefault();
     const pt = getHwCoords(e);
+    if (hwCurrentStroke.length === 0) {
+        hwCurrentStroke.push(pt);
+        return;
+    }
     const lastPt = hwCurrentStroke[hwCurrentStroke.length - 1];
     hwCurrentStroke.push(pt);
     hwDrawCurrentSegment(lastPt, pt);
@@ -166,6 +183,13 @@ function hwDrawCurrentSegment(p1, p2) {
     hwCtx.lineJoin = 'round';
 
     hwCtx.beginPath();
+    if (Math.abs(p1.x - p2.x) < 0.5 && Math.abs(p1.y - p2.y) < 0.5) {
+        hwCtx.arc(p1.x, p1.y, 2.5, 0, Math.PI * 2);
+        hwCtx.fillStyle = '#1B2A4A';
+        hwCtx.fill();
+        hwCtx.restore();
+        return;
+    }
     hwCtx.moveTo(p1.x, p1.y);
     hwCtx.lineTo(p2.x, p2.y);
     hwCtx.stroke();
@@ -174,8 +198,9 @@ function hwDrawCurrentSegment(p1, p2) {
 
 function hwRedraw() {
     if (!hwCanvas || !hwCtx) return;
-    const w = hwCanvas.getBoundingClientRect().width || 320;
-    const h = w;
+    const rect = hwCanvas.getBoundingClientRect();
+    const w = (rect.width > 0) ? rect.width : 280;
+    const h = (rect.height > 0) ? rect.height : 280;
 
     // Xóa sạch canvas
     hwCtx.clearRect(0, 0, w, h);
@@ -277,7 +302,8 @@ function hwTriggerDebouncedSearch() {
 async function hwExecuteRecognition() {
     if (hwStrokes.length === 0) return;
 
-    const w = hwCanvas.getBoundingClientRect().width || 320;
+    const rect = hwCanvas ? hwCanvas.getBoundingClientRect() : null;
+    const w = (rect && rect.width > 0) ? rect.width : 280;
     const h = w;
 
     // Chuẩn bị Ink format cho Google Input Tools
@@ -510,7 +536,8 @@ function practiceSelectedHwKanji(event) {
     if (event) event.stopPropagation();
     if (!hwSelectedKanji || !hwSelectedKanji.character) return;
     const char = hwSelectedKanji.character;
-    window.location.href = `/kanji?charQuery=${encodeURIComponent(char)}`;
+    sessionStorage.setItem('kizuna_practice_from', 'search');
+    window.location.href = `/kanji?charQuery=${encodeURIComponent(char)}&tab=practice&from=search`;
 }
 
 function copyHwSelectedChar(event) {
@@ -526,10 +553,11 @@ function openHwSearchModal() {
     const modal = document.getElementById('hwSearchModal');
     if (modal) {
         modal.style.display = 'flex';
-        // Delay 50ms để layout canvas tính lại rect chính xác
+        initHandwritingSearch();
+        // Delay 60ms để layout modal hiển thị hoàn tất trước khi re-calibrate rect
         setTimeout(() => {
             initHandwritingSearch();
-        }, 50);
+        }, 60);
     }
 }
 
@@ -542,7 +570,7 @@ function closeHwSearchModal(event) {
 }
 
 // Khởi chạy khi DOM sẵn sàng
-document.addEventListener('DOMContentLoaded', () => {
+function setupHwSearchDomBindings() {
     const btnOpen = document.getElementById('btnOpenHwSearchModal');
     if (btnOpen) {
         btnOpen.addEventListener('click', (e) => {
@@ -579,4 +607,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-});
+
+    initHandwritingSearch();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupHwSearchDomBindings);
+} else {
+    setupHwSearchDomBindings();
+}
+
+// Xuất các hàm điều khiển ra Window toàn cục
+window.initHandwritingSearch = initHandwritingSearch;
+window.openHwSearchModal = openHwSearchModal;
+window.closeHwSearchModal = closeHwSearchModal;
+window.hwUndoStroke = hwUndoStroke;
+window.hwClearCanvas = hwClearCanvas;
+window.hwExecuteRecognition = hwExecuteRecognition;
+window.openHwKanjiDetail = openHwKanjiDetail;
+window.closeHwDetailModal = closeHwDetailModal;
+window.practiceSelectedHwKanji = practiceSelectedHwKanji;
+window.copyHwSelectedChar = copyHwSelectedChar;

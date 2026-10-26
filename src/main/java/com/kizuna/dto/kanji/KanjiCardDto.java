@@ -22,4 +22,16 @@ public class KanjiCardDto {
     private String kunyomi;
     private String meaning;
     private String jlpt;
+
+    public UUID getKanjiId() {
+        return id;
+    }
+
+    public String getKanjiCharacter() {
+        return kanjiChar;
+    }
+
+    public String getJlptLevel() {
+        return jlpt;
+    }
 }

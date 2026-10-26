@@ -41,6 +41,12 @@ public class ScoreResult {
     private int orderAccuracy;          // Độ chuẩn thứ tự bút thuận (0-100%)
     private int proportionAccuracy;     // Độ chuẩn tỷ lệ khung chữ (0-100%)
 
+    // === CẢM QUAN ĐỘNG LỰC HỌC (KINEMATICS & SENSORY) ===
+    private String sensoryAssessment;   // Đánh giá lực bút & cảm quan
+    private Double averageVelocity;     // Vận tốc trung bình (px/ms)
+    private Double jitterRate;          // Tỷ lệ rung nét (0.0 - 1.0)
+    private Integer stabilityScore;     // Độ vững tay (0 - 100%)
+
     // Danh sách các khoản điểm bị trừ minh bạch
     private List<ScoreDeduction> deductions = new ArrayList<>();
 

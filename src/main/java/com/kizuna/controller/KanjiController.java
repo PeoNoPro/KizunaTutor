@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/kanji")
@@ -36,11 +37,13 @@ public class KanjiController {
     /**
      * Tra cứu danh sách chữ Kanji phân trang theo cấp độ JLPT, từ khóa và số nét
      */
-    @GetMapping({"/search", "/list"})
+    @GetMapping({"/search", "/list", "/catalog"})
     public ResponseEntity<Map<String, Object>> searchKanji(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String jlpt,
+            @RequestParam(required = false) String level,
             @RequestParam(required = false) Short strokeCount,
+            @RequestParam(required = false) UUID excludeFolderId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "24") int size) {
 
@@ -48,13 +51,14 @@ public class KanjiController {
         if (size <= 0) size = 24;
         if (size > 100) size = 100;
 
-        String jlptParam = (jlpt != null && !jlpt.isBlank() && !jlpt.equalsIgnoreCase("ALL"))
+        String targetJlpt = (jlpt != null && !jlpt.isBlank()) ? jlpt : level;
+        String jlptParam = (targetJlpt != null && !targetJlpt.isBlank() && !targetJlpt.equalsIgnoreCase("ALL"))
                 ? jlpt.trim().toUpperCase()
                 : null;
         String kwParam = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<KanjiDictionary> pagedResult = kanjiRepository.searchKanjiPaginated(kwParam, jlptParam, strokeCount, pageable);
+        Page<KanjiDictionary> pagedResult = kanjiRepository.searchKanjiPaginated(kwParam, jlptParam, strokeCount, excludeFolderId, pageable);
 
         List<KanjiCardDto> items = pagedResult.getContent().stream().map(k -> {
             handwritingSearchService.enrichKanjiMetadata(k);
@@ -74,10 +78,13 @@ public class KanjiController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("items", items);
+        response.put("content", items);
         response.put("totalElements", pagedResult.getTotalElements());
         response.put("totalPages", pagedResult.getTotalPages());
         response.put("currentPage", pagedResult.getNumber());
+        response.put("number", pagedResult.getNumber());
         response.put("pageSize", pagedResult.getSize());
+        response.put("size", pagedResult.getSize());
         response.put("hasNext", pagedResult.hasNext());
         response.put("hasPrev", pagedResult.hasPrevious());
 

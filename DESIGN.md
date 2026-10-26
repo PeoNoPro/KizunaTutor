@@ -67,3 +67,18 @@ Tuân thủ nghiêm ngặt theo **Leonxlnx/taste-skill** & **pbakaus/impeccable*
 3. ✅ **Tập trung vào trải nghiệm sư phạm**: Lộ trình bài học rõ ràng, bảng từ điển dễ tra cứu, thẻ gia sư làm nổi bật chứng chỉ N1/N2/Sư phạm.
 4. ✅ **Khoảng cách (Spacing)**: Sử dụng hệ số 8pt (`8px`, `16px`, `24px`, `32px`, `48px`).
 5. ✅ **Border Radius**: Vừa phải (`6px` - `10px`), tránh bo tròn quá đà làm mất vẻ nghiêm túc của ứng dụng học tập.
+
+
+---
+
+## 6. Bản Địa Hóa 100% Tiếng Việt & Không Rò Rỉ Mã Kỹ Thuật (Human-First UI)
+
+1. **Ngôn ngữ hiển thị**: Toàn bộ giao diện (tiêu đề, nút bấm, nhãn, cảnh báo, thống kê, hộp thoại modal) **phải 100% bằng Tiếng Việt**.
+2. **Không để lộ mã nguồn & cơ sở dữ liệu**: Tuyệt đối không để lọt các từ ngữ kỹ thuật như ID, UUID, entity, session, request, response, DTO, camelCase, snake_case lên màn hình học viên.
+3. **Từ ngữ thân thiện sư phạm**:
+   - Thay "Deadline" bằng "Vạch ranh giới nguy hiểm".
+   - Thay "Game Over" bằng "Kết thúc ván đấu (Chưa vượt qua)".
+   - Thay "You Win" bằng "Chiến thắng xuất sắc!".
+   - Thay "Accuracy" bằng "Độ chính xác".
+   - Thay "Score" bằng "Điểm số tích lũy".
+   - Thay "Combo" bằng "Chuỗi gõ liên hoàn".

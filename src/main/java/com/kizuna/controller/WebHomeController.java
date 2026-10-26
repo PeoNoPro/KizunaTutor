@@ -27,11 +27,13 @@ public class WebHomeController {
     @GetMapping("/kanji")
     public String kanjiPractice(
             @RequestParam(required = false, defaultValue = "愛") String charQuery,
-            @RequestParam(required = false, defaultValue = "practice") String tab,
+            @RequestParam(required = false, defaultValue = "folders") String tab,
+            @RequestParam(required = false) String folderId,
             Model model) {
-        model.addAttribute("pageTitle", "Luyện Viết Chữ Hán Kanji - KizunaTutor");
+        model.addAttribute("pageTitle", "Không Gian Học Tập Kanji - KizunaTutor");
         model.addAttribute("currentChar", charQuery);
         model.addAttribute("activeTab", tab);
+        model.addAttribute("folderId", folderId);
         kanjiRepository.findByKanjiCharacter(charQuery).ifPresentOrElse(kanji -> {
             if (kanji.getSvgData() != null) {
                 kanji.setSvgData(SvgUtils.cleanKanjiVgSvg(kanji.getSvgData()));

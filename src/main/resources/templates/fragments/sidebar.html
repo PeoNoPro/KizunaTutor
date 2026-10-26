@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<aside th:fragment="sidebar" class="app-sidebar" id="appSidebar">
+    <!-- Header Sidebar: Logo & Phân hệ Học Viên -->
+    <div class="sidebar-header">
+        <a th:href="@{/}" class="sidebar-brand" title="Về trang chủ KizunaTutor">
+            <div class="sidebar-brand-badge">絆</div>
+            <div class="sidebar-brand-name">Kizuna<span>Tutor</span></div>
+        </a>
+        <span class="sidebar-role-tag">HỌC VIÊN</span>
+    </div>
+
+    <!-- Danh mục điều hướng chính (Navigation Rail) -->
+    <nav class="sidebar-nav">
+        <!-- 1. GIA SƯ & LỚP HỌC (ĐƯA LÊN TRÊN CÙNG ĐẦU TIÊN) -->
+        <div class="sidebar-section-label">GIA SƯ &amp; LỚP HỌC</div>
+
+        <a th:href="@{/tutors}" class="sidebar-link" id="sideLinkTutors" title="Tìm gia sư tiếng Nhật 1 kèm 1">
+            <span class="sidebar-icon">🔍</span>
+            <span>Tìm Gia Sư</span>
+        </a>
+
+        <!-- 2. HỌC TẬP & LUYỆN TẬP -->
+        <div class="sidebar-section-label" style="margin-top: 14px;">HỌC TẬP &amp; LUYỆN TẬP</div>
+
+        <!-- 1. BỘ THẺ CỦA TÔI (Gọn gàng, không có nhãn phụ) -->
+        <a th:href="@{/kanji(tab='folders')}" class="sidebar-link active" id="sideLinkFolders" title="Trung tâm quản lý bộ thẻ & chọn chế độ luyện tập">
+            <span class="sidebar-icon">📁</span>
+            <span>Bộ Thẻ Của Tôi</span>
+        </a>
+
+        <!-- 2. LUYỆN VIẾT NÉT CHỮ TRÊN CANVAS -->
+        <a th:href="@{/kanji(tab='practice')}" class="sidebar-link" id="sideLinkPractice" title="Tập viết chữ Kanji tương tác trên ô Mễ">
+            <span class="sidebar-icon">✍️</span>
+            <span>Luyện Viết Nét Chữ</span>
+        </a>
+
+        <!-- 3. THƯ VIỆN CHỮ HÁN THEO CẤP ĐỘ JLPT -->
+        <a th:href="@{/kanji(tab='library')}" class="sidebar-link" id="sideLinkLibrary" title="Tra cứu chữ Hán theo cấp độ JLPT N5 - N1">
+            <span class="sidebar-icon">📚</span>
+            <span>Thư Viện Kanji</span>
+            <span class="sidebar-badge">N5 - N1</span>
+        </a>
+
+        <!-- 4. TÌM KIẾM KANJI THEO NÉT VẼ VIẾT TAY -->
+        <a th:href="@{/kanji(action='hwSearch')}" class="sidebar-link" id="sideLinkHwSearch" onclick="if(typeof openHwSearchModal==='function'){openHwSearchModal();return false;}" title="Tra cứu chữ Hán bằng nét vẽ viết tay thời gian thực">
+            <span class="sidebar-icon">🖌️</span>
+            <span>Tìm kanji</span>
+        </a>
+
+        <!-- 3. TÀI KHOẢN -->
+        <div class="sidebar-section-label" style="margin-top: 14px;">TÀI KHOẢN</div>
+
+        <a th:href="@{/login}" class="sidebar-link" id="sideLinkLogin">
+            <span class="sidebar-icon">🔑</span>
+            <span>Đăng Nhập</span>
+        </a>
+
+        <a th:href="@{/register}" class="sidebar-link" id="sideLinkRegister">
+            <span class="sidebar-icon">✨</span>
+            <span>Đăng Ký Học Thử</span>
+        </a>
+    </nav>
+
+    <!-- Thẻ thông tin học viên cố định ở chân Sidebar -->
+    <div class="sidebar-footer">
+        <div class="sidebar-user-card">
+            <div class="sidebar-avatar">HV</div>
+            <div class="sidebar-user-meta">
+                <div class="sidebar-user-name">Học Viên Kizuna</div>
+                <div class="sidebar-user-role">Cấp độ: JLPT N5-N1</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tự động đồng bộ trạng thái Active theo URL -->
+    <script>
+        (function() {
+            function syncSidebarState() {
+                const path = window.location.pathname;
+                const params = new URLSearchParams(window.location.search);
+                const tab = params.get('tab') || 'folders';
+
+                const links = {
+                    folders: document.getElementById('sideLinkFolders'),
+                    practice: document.getElementById('sideLinkPractice'),
+                    library: document.getElementById('sideLinkLibrary'),
+                    hwSearch: document.getElementById('sideLinkHwSearch'),
+                    tutors: document.getElementById('sideLinkTutors'),
+                    login: document.getElementById('sideLinkLogin'),
+                    register: document.getElementById('sideLinkRegister')
+                };
+
+                Object.values(links).forEach(l => { if (l) l.classList.remove('active'); });
+
+                if (path.includes('/kanji')) {
+                    if (params.get('action') === 'hwSearch' && links.hwSearch) {
+                        links.hwSearch.classList.add('active');
+                    } else if (links[tab]) {
+                        links[tab].classList.add('active');
+                    } else if (links.folders) {
+                        links.folders.classList.add('active');
+                    }
+                } else if (path.includes('/tutors') && links.tutors) {
+                    links.tutors.classList.add('active');
+                } else if (path.includes('/login') && links.login) {
+                    links.login.classList.add('active');
+                } else if (path.includes('/register') && links.register) {
+                    links.register.classList.add('active');
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', syncSidebarState);
+            } else {
+                syncSidebarState();
+            }
+        })();
+    </script>
+</aside>
+</html>

@@ -26,6 +26,7 @@ public interface KanjiDictionaryRepository extends JpaRepository<KanjiDictionary
     List<KanjiDictionary> findByStrokeCountBetween(Short min, Short max, Pageable pageable);
 
     @Query(value = "SELECT * FROM kanji_dictionary k WHERE " +
+           "(:excludeFolderId IS NULL OR k.kanji_id NOT IN (SELECT f.kanji_id FROM kanji_folder_items f WHERE f.folder_id = :excludeFolderId)) AND " +
            "(:jlpt IS NULL OR :jlpt = '' OR :jlpt = 'ALL' OR CAST(k.jlpt_level AS text) = :jlpt) AND " +
            "(:strokeCount IS NULL OR k.stroke_count = :strokeCount) AND " +
            "(:keyword IS NULL OR :keyword = '' OR " +
@@ -37,6 +38,7 @@ public interface KanjiDictionaryRepository extends JpaRepository<KanjiDictionary
            " k.unicode_hex ILIKE CONCAT('%', :keyword, '%')) " +
            "ORDER BY k.stroke_count ASC, k.unicode_hex ASC",
            countQuery = "SELECT count(*) FROM kanji_dictionary k WHERE " +
+           "(:excludeFolderId IS NULL OR k.kanji_id NOT IN (SELECT f.kanji_id FROM kanji_folder_items f WHERE f.folder_id = :excludeFolderId)) AND " +
            "(:jlpt IS NULL OR :jlpt = '' OR :jlpt = 'ALL' OR CAST(k.jlpt_level AS text) = :jlpt) AND " +
            "(:strokeCount IS NULL OR k.stroke_count = :strokeCount) AND " +
            "(:keyword IS NULL OR :keyword = '' OR " +
@@ -51,6 +53,24 @@ public interface KanjiDictionaryRepository extends JpaRepository<KanjiDictionary
             @Param("keyword") String keyword,
             @Param("jlpt") String jlpt,
             @Param("strokeCount") Short strokeCount,
+            @Param("excludeFolderId") UUID excludeFolderId,
             Pageable pageable
+    );
+
+    @Query(value = "SELECT * FROM kanji_dictionary WHERE kunyomi IS NOT NULL AND kunyomi != '' AND kunyomi != '-' AND han_viet IS NOT NULL ORDER BY stroke_count ASC LIMIT :limit", nativeQuery = true)
+    List<KanjiDictionary> findPlayableSampleKanjis(@Param("limit") int limit);
+
+    /**
+     * Lấy ngẫu nhiên các chữ Kanji theo cấp độ JLPT, loại trừ các chữ đã có trong bộ thẻ chỉ định.
+     */
+    @Query(value = "SELECT * FROM kanji_dictionary k WHERE " +
+           "(:jlpt IS NULL OR :jlpt = '' OR :jlpt = 'ALL' OR CAST(k.jlpt_level AS text) = :jlpt) AND " +
+           "k.kanji_id NOT IN (SELECT f.kanji_id FROM kanji_folder_items f WHERE f.folder_id = :folderId) " +
+           "ORDER BY RANDOM() LIMIT :limit",
+           nativeQuery = true)
+    List<KanjiDictionary> findRandomKanjisByJlptExcludingFolder(
+            @Param("jlpt") String jlpt,
+            @Param("folderId") UUID folderId,
+            @Param("limit") int limit
     );
 }

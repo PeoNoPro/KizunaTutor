@@ -3,101 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${pageTitle}">Đăng Ký - KizunaTutor</title>
+    <title th:text="${pageTitle}">Đăng Ký Tài Khoản - KizunaTutor</title>
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
     <style>
-        .auth-container {
+        .auth-card-master {
             max-width: 480px;
-            margin: 50px auto;
+            margin: var(--space-6) auto;
             background: #FFFFFF;
-            padding: 36px;
-            border-radius: var(--radius-lg);
+            padding: 36px 32px;
+            border-radius: var(--radius-xl);
             border: 1px solid var(--color-border);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-sm);
         }
         .form-group {
             margin-bottom: 18px;
         }
         .form-group label {
             display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--color-primary);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--color-text);
             margin-bottom: 6px;
-        }
-        .form-control {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            font-size: 15px;
-        }
-        .role-selector {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .role-option {
-            border: 2px solid var(--color-border);
-            border-radius: var(--radius-md);
-            padding: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .role-option:hover {
-            border-color: var(--color-primary);
         }
     </style>
 </head>
 <body>
 
-    <div th:replace="~{fragments/navbar :: navbar}"></div>
+    <!-- ========================================================================= -->
+    <!-- GLOBAL MASTER SHELL (FIGMA NODE 1148-501 STANDARD) -->
+    <!-- ========================================================================= -->
+    <div class="app-shell">
 
-    <div class="auth-container">
-        <h2 style="color: var(--color-primary); margin-bottom: 8px; text-align: center;">Tạo Tài Khoản</h2>
-        <p style="color: var(--color-text-muted); font-size: 14px; text-align: center; margin-bottom: 24px;">Tham gia cùng cộng đồng học tiếng Nhật Kizuna</p>
+        <!-- THANH ĐIỀU HƯỚNG BÊN (SIDEBAR NAVIGATION RAIL) -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 
-        <form th:action="@{/register}" method="post">
-            <div class="form-group">
-                <label>Bạn tham gia với tư cách:</label>
-                <div class="role-selector">
-                    <label class="role-option">
-                        <input type="radio" name="role" value="LEARNER" checked>
-                        <div style="font-weight: 600; margin-top: 4px;">🎒 Học Viên</div>
-                    </label>
-                    <label class="role-option">
-                        <input type="radio" name="role" value="TUTOR">
-                        <div style="font-weight: 600; margin-top: 4px;">👨‍🏫 Gia Sư</div>
-                    </label>
+        <!-- VÙNG NỘI DUNG CHÍNH (APP MAIN CONTAINER) -->
+        <div class="app-main">
+
+            <!-- THANH ĐIỀU HƯỚNG TRÊN CÙNG (TOP NAVIGATION HEADER 64PX) -->
+            <div th:replace="~{fragments/topbar :: topbar}"></div>
+
+            <!-- NỘI DUNG MÀN HÌNH (MAIN CONTENT CANVAS MAX-W-7XL) -->
+            <main class="app-content">
+
+                <!-- TIÊU ĐỀ TRANG CHUẨN MASTER LAYOUT -->
+                <div class="page-header">
+                    <div class="page-breadcrumbs">
+                        <a th:href="@{/}">Trang chủ</a>
+                        <span class="sep">/</span>
+                        <a th:href="@{/register}">Tài khoản</a>
+                        <span class="sep">/</span>
+                        <span>Đăng ký</span>
+                    </div>
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label>Họ và Tên</label>
-                <input type="text" name="fullName" class="form-control" placeholder="Nguyễn Văn A" required>
-            </div>
+                <div class="auth-card-master">
+                    <div style="text-align: center; margin-bottom: 24px;">
+                        <div class="sidebar-brand-badge" style="width: 44px; height: 44px; font-size: 22px; margin: 0 auto 12px auto;">絆</div>
+                        <h2 style="color: var(--color-primary); margin: 0 0 6px 0; font-size: 22px; font-weight: 800;">Tạo Tài Khoản Học Tập</h2>
+                        <p style="color: var(--color-text-secondary); font-size: 13.5px; margin: 0;">Bắt đầu lộ trình chinh phục tiếng Nhật và luyện chữ Kanji ngay hôm nay</p>
+                    </div>
 
-            <div class="form-group">
-                <label>Địa chỉ Email (Nhận mã kích hoạt OTP)</label>
-                <input type="email" name="email" class="form-control" placeholder="example@gmail.com" required>
-            </div>
+                    <form th:action="@{/register}" method="post">
+                        <div class="form-group">
+                            <label>Họ và tên học viên</label>
+                            <input type="text" name="fullName" class="search-input" placeholder="Nguyễn Văn A" required style="width: 100%;">
+                        </div>
+                        <div class="form-group">
+                            <label>Địa chỉ Email</label>
+                            <input type="email" name="email" class="search-input" placeholder="vidu@kizuna-nihongo.vn" required style="width: 100%;">
+                        </div>
+                        <div class="form-group">
+                            <label>Mật khẩu khởi tạo</label>
+                            <input type="password" name="password" class="search-input" placeholder="Ít nhất 8 ký tự" required style="width: 100%;">
+                        </div>
+                        <div class="form-group">
+                            <label>Mục tiêu JLPT mong muốn</label>
+                            <select name="targetJlpt" class="form-select" style="width: 100%;">
+                                <option value="N5">JLPT N5 (Người mới bắt đầu)</option>
+                                <option value="N4">JLPT N4 (Sơ cấp)</option>
+                                <option value="N3">JLPT N3 (Trung cấp)</option>
+                                <option value="N2">JLPT N2 (Thành thạo)</option>
+                                <option value="N1">JLPT N1 (Chuyên gia)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 11px; font-size: 14px; margin-top: 6px;">
+                            Đăng Ký Tài Khoản
+                        </button>
+                    </form>
 
-            <div class="form-group">
-                <label>Mật khẩu</label>
-                <input type="password" name="password" class="form-control" placeholder="Tối thiểu 6 ký tự" required minlength="6">
-            </div>
+                    <p style="text-align: center; margin-top: 24px; font-size: 13px; color: var(--color-text-secondary);">
+                        Đã có tài khoản học tập? <a th:href="@{/login}" style="color: var(--color-secondary); font-weight: 700; text-decoration: none;">Đăng nhập ngay</a>
+                    </p>
+                </div>
 
-            <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-size: 15px;">Đăng Ký & Nhận Mã OTP</button>
-        </form>
+            </main>
 
-        <p style="text-align: center; margin-top: 20px; font-size: 14px; color: var(--color-text-muted);">
-            Đã có tài khoản? <a th:href="@{/login}" style="color: var(--color-primary); font-weight: 600;">Đăng nhập</a>
-        </p>
+
+        </div>
     </div>
-
-    <div th:replace="~{fragments/footer :: footer}"></div>
 
 </body>
 </html>

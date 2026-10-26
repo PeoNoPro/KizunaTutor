@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<header th:fragment="topbar" class="app-topbar">
+    <div class="topbar-left">
+        <!-- Nút bật/tắt Sidebar trên di động hoặc màn hình nhỏ -->
+        <button type="button" class="topbar-toggle-btn" id="btnToggleSidebar" aria-label="Mở/Đóng thanh điều hướng" onclick="toggleAppSidebar()">
+            ☰
+        </button>
+
+        <!-- Ô Tìm Kiếm Nhanh Toàn Hệ Thống -->
+        <div class="topbar-search-box">
+            <span class="topbar-search-icon">🔍</span>
+            <input type="text" class="topbar-search-input" placeholder="Tìm nhanh kanji, bài học, gia sư..." id="globalSearchInput" onkeydown="handleGlobalSearch(event)">
+            <span class="topbar-kbd">⌘K</span>
+        </div>
+    </div>
+
+    <div class="topbar-right">
+        <!-- Chuyển đổi ngôn ngữ hiển thị -->
+        <div class="topbar-badge-pill" title="Ngôn ngữ giao diện">
+            <span>🇻🇳</span>
+            <span>VI</span>
+        </div>
+
+        <!-- Khối người dùng học viên (Learner Profile Pill) chuẩn Node 1148-501 -->
+        <div class="topbar-user-pill" title="Tài khoản học viên">
+            <div class="topbar-avatar">HV</div>
+            <span class="topbar-user-name">Học Viên</span>
+            <span class="topbar-role-tag">Học Viên</span>
+        </div>
+    </div>
+
+    <!-- Script điều khiển toggle sidebar di động & phím tắt tìm kiếm toàn cục -->
+    <script>
+        function toggleAppSidebar() {
+            const sidebar = document.getElementById('appSidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('open');
+            }
+        }
+
+        // Lắng nghe phím tắt Ctrl+K hoặc Cmd+K
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.getElementById('globalSearchInput');
+                if (searchInput) searchInput.focus();
+            }
+        });
+
+        function handleGlobalSearch(e) {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query) {
+                    window.location.href = '/kanji?charQuery=' + encodeURIComponent(query);
+                }
+            }
+        }
+    </script>
+</header>
+</html>

@@ -3,80 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${pageTitle}">Luyện Viết Chữ Kanji - KizunaTutor</title>
+    <title th:text="${pageTitle}">Không Gian Học Tập Kanji - KizunaTutor</title>
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
     <style>
-        .practice-layout {
-            max-width: 1050px;
-            margin: 32px auto;
+        /* =========================================================================
+           LEARNING SPACE SCOPED STYLES (FIGMA NODE 1148-501 & 1153-3095 STANDARD)
+           ========================================================================= */
+
+        /* 38% Controls / 62% Canvas Standard Workspace Grid */
+        .practice-workspace-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 32px;
-            padding: 0 24px;
+            grid-template-columns: 380px 1fr;
+            gap: var(--space-6);
+            align-items: start;
         }
-        @media (max-width: 768px) {
-            .practice-layout {
+        @media (max-width: 1024px) {
+            .practice-workspace-grid {
                 grid-template-columns: 1fr;
             }
         }
+
         .kanji-guide-box {
             background: #FFFFFF;
             border: 1px solid var(--color-border);
-            border-radius: var(--radius-lg);
-            padding: 24px;
+            border-radius: var(--radius-xl);
+            padding: var(--space-6);
             text-align: center;
-            box-shadow: var(--shadow-sm);
+            box-shadow: var(--shadow-xs);
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
+
         .svg-preview {
-            width: 270px;
-            height: 270px;
-            margin: 16px auto;
-            border: 2px dashed #CBD5E1;
+            width: 250px;
+            height: 250px;
+            margin: var(--space-4) auto;
+            border: 1px dashed var(--color-border-strong);
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #FAF9F6;
-            border-radius: var(--radius-md);
+            background-color: var(--color-surface-muted);
+            border-radius: var(--radius-lg);
             overflow: hidden;
         }
         .svg-preview svg {
             width: 100%;
             height: 100%;
         }
+
         .search-bar {
-            max-width: 600px;
-            margin: 20px auto 0 auto;
+            max-width: 720px;
+            margin: 0 auto var(--space-6) auto;
             display: flex;
-            gap: 8px;
-            padding: 0 24px;
+            gap: var(--space-2);
         }
         .search-input {
             flex: 1;
             padding: 10px 16px;
             border: 1px solid var(--color-border);
             border-radius: var(--radius-md);
-            font-size: 16px;
+            font-size: var(--text-sm);
+            background: #FFFFFF;
+            color: var(--color-text);
+            transition: border-color 0.15s ease;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--color-secondary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
-        /* Vùng vẽ Canvas Đa Lớp (Layered Canvas Frame) */
+        /* Layered Interactive Canvas Frame */
         .kanji-canvas-frame {
             position: relative;
-            width: 270px;
-            height: 270px;
-            margin: 16px auto;
-            border: 3px solid var(--color-primary);
-            border-radius: var(--radius-md);
+            width: 280px;
+            height: 280px;
+            margin: var(--space-4) auto;
+            border: 2px solid var(--color-primary);
+            border-radius: var(--radius-lg);
             background-color: #FFFFFF;
             box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.03);
             overflow: hidden;
             touch-action: none;
             user-select: none;
         }
-        /* Lớp 1: Lưới ô Mễ 米字格 */
         .practice-grid-svg {
             position: absolute;
             top: 0; left: 0;
@@ -84,7 +96,6 @@
             pointer-events: none;
             z-index: 1;
         }
-        /* Lớp 2: Nét mờ chuẩn KanjiVG & animation xem thứ tự nét */
         #canvasGuidelineSvg {
             position: absolute;
             top: 0; left: 0;
@@ -94,7 +105,6 @@
             display: none;
             z-index: 2;
         }
-        /* Lớp 3: Bảng vẽ Canvas tương tác */
         #kanjiCanvas {
             position: absolute;
             top: 0; left: 0;
@@ -105,12 +115,12 @@
             touch-action: none;
         }
 
-        /* Lớp 4: Vòng quay tải AI khi đang chấm điểm */
+        /* AI Loading Overlay */
         .ai-loading-overlay {
             display: none;
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(2px);
             z-index: 10;
             flex-direction: column;
@@ -120,10 +130,10 @@
             padding: 16px;
         }
         .ai-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--color-secondary);
-            border-top: 4px solid var(--color-primary);
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--color-border);
+            border-top: 3px solid var(--color-secondary);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
@@ -132,11 +142,11 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Thanh Công Cụ Luyện Viết (Practice Toolbar) */
+        /* Practice Toolbar */
         .practice-toolbar {
             width: 100%;
-            max-width: 380px;
-            margin-top: 6px;
+            max-width: 400px;
+            margin-top: 8px;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -144,26 +154,26 @@
         .practice-tools-row {
             display: flex;
             justify-content: center;
-            gap: 6px;
+            gap: 8px;
             flex-wrap: wrap;
         }
         .tool-btn {
-            background: #F1F5F9;
+            background: var(--color-surface);
             color: var(--color-text);
             border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            padding: 6px 10px;
-            font-size: 12.5px;
+            border-radius: var(--radius-md);
+            padding: 7px 12px;
+            font-size: var(--text-xs);
             font-weight: 600;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            transition: all 0.2s;
+            gap: 6px;
+            transition: all 0.15s ease;
         }
         .tool-btn:hover {
-            background: #E2E8F0;
-            border-color: #CBD5E1;
+            background: var(--color-surface-muted);
+            border-color: var(--color-border-strong);
             color: var(--color-primary);
         }
         .tool-btn.active {
@@ -171,96 +181,58 @@
             color: #FFFFFF;
             border-color: var(--color-primary);
         }
-        .tool-btn-accent {
-            background: #FEF3C7;
-            color: #92400E;
-            border-color: #FCD34D;
-        }
-        .tool-btn-accent:hover {
-            background: #FDE68A;
-            color: #78350F;
-        }
 
         /* Stroke Count Pill */
         .stroke-count-pill {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: #1B2A4A;
+            background: var(--color-primary);
             color: #FFFFFF;
             padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 13px;
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
             font-weight: 700;
-            min-width: 32px;
-            transition: background 0.25s;
+            min-width: 28px;
+            transition: background 0.2s;
         }
         .stroke-count-pill.match {
-            background: #10B981;
+            background: var(--color-success);
         }
         .stroke-count-pill.diff {
-            background: #F59E0B;
+            background: var(--color-warning);
         }
 
-        /* AI Key Status Badge */
-        .ai-status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            background: #F1F5F9;
-            color: var(--color-text-muted);
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid var(--color-border);
-        }
-        .ai-status-pill:hover {
-            border-color: var(--color-primary);
-            color: var(--color-primary);
-        }
-        .ai-status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #94A3B8;
-        }
-        .ai-status-dot.active {
-            background: #10B981;
-            box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
-        }
-
-        /* Modal Styles */
-        .kizuna-modal-backdrop {
+        /* Modals & Backdrops */
+        .kizuna-modal-backdrop,
+        .modal-backdrop {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(27, 42, 74, 0.55);
+            background: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(4px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: var(--space-4);
         }
         .kizuna-modal-content {
             background: #FFFFFF;
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-xl);
             max-width: 680px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-xl);
             border: 1px solid var(--color-border);
-            animation: modalFadeIn 0.25s ease-out;
+            animation: modalFadeIn 0.2s ease-out;
         }
         @keyframes modalFadeIn {
-            from { opacity: 0; transform: translateY(12px) scale(0.98); }
+            from { opacity: 0; transform: translateY(8px) scale(0.99); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .modal-header {
-            padding: 20px 24px;
+            padding: 18px 24px;
             border-bottom: 1px solid var(--color-border);
             display: flex;
             align-items: center;
@@ -274,29 +246,29 @@
             border-top: 1px solid var(--color-border);
             display: flex;
             justify-content: flex-end;
-            gap: 12px;
-            background: #FAF9F6;
-            border-bottom-left-radius: var(--radius-lg);
-            border-bottom-right-radius: var(--radius-lg);
+            gap: 10px;
+            background: var(--color-surface-muted);
+            border-bottom-left-radius: var(--radius-xl);
+            border-bottom-right-radius: var(--radius-xl);
         }
 
-        /* Score Ring & Breakdown in Result Modal */
+        /* Score Hero Card (AI Result Modal) */
         .score-hero-card {
             display: flex;
             align-items: center;
-            gap: 24px;
-            background: linear-gradient(135deg, #1B2A4A 0%, #2D4059 100%);
+            gap: 20px;
+            background: var(--color-primary);
             color: #FFFFFF;
-            padding: 24px;
-            border-radius: var(--radius-md);
-            margin-bottom: 24px;
+            padding: 20px 24px;
+            border-radius: var(--radius-lg);
+            margin-bottom: 20px;
         }
         .score-circle {
-            width: 90px;
-            height: 90px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.15);
-            border: 4px solid var(--color-secondary);
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid var(--color-accent);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -304,125 +276,110 @@
             flex-shrink: 0;
         }
         .score-circle-num {
-            font-size: 32px;
-            font-weight: 700;
+            font-size: 28px;
+            font-weight: 800;
             line-height: 1;
             color: #FFFFFF;
         }
         .score-circle-label {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             opacity: 0.85;
             margin-top: 2px;
         }
         .score-hero-text h4 {
-            font-size: 18px;
+            font-size: var(--text-base);
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             color: #FFFFFF;
         }
         .score-hero-text p {
-            font-size: 14px;
-            opacity: 0.9;
+            font-size: var(--text-sm);
+            opacity: 0.85;
             line-height: 1.5;
+            margin: 0;
         }
 
-        /* AI Sensei Card */
+        /* AI Sensei Feedback Box */
         .ai-sensei-box {
-            background: #FFFBF0;
+            background: #FEF9EE;
             border: 1px solid #FDE68A;
-            border-left: 4px solid #F59E0B;
+            border-left: 4px solid var(--color-warning);
             border-radius: var(--radius-md);
-            padding: 18px;
+            padding: 16px;
             margin-bottom: 20px;
         }
         .ai-sensei-header {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             font-weight: 700;
             color: #92400E;
-            margin-bottom: 8px;
-            font-size: 15px;
+            margin-bottom: 6px;
+            font-size: var(--text-sm);
         }
         .ai-sensei-content {
-            font-size: 14px;
+            font-size: var(--text-sm);
             color: #78350F;
             line-height: 1.6;
             white-space: pre-wrap;
         }
 
-        /* Criteria Breakdown Bars */
+        /* Criteria Breakdown */
         .criteria-row {
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
         .criteria-meta {
             display: flex;
             justify-content: space-between;
-            font-size: 13.5px;
+            font-size: var(--text-xs);
             margin-bottom: 4px;
             font-weight: 600;
+            color: var(--color-text);
         }
         .progress-bar-bg {
-            height: 10px;
-            background: #E2E8F0;
-            border-radius: 6px;
+            height: 8px;
+            background: var(--color-border);
+            border-radius: var(--radius-full);
             overflow: hidden;
         }
         .progress-bar-fill {
             height: 100%;
-            border-radius: 6px;
-            transition: width 0.6s ease;
+            border-radius: var(--radius-full);
+            transition: width 0.5s ease;
         }
-        .bar-green { background: #10B981; }
-        .bar-blue { background: #3B82F6; }
-        .bar-orange { background: #F59E0B; }
-        .bar-red { background: #EF4444; }
+        .bar-green { background: var(--color-success); }
+        .bar-blue { background: var(--color-secondary); }
+        .bar-orange { background: var(--color-warning); }
+        .bar-red { background: var(--color-danger); }
 
-        /* Deductions & Tips */
-        .deductions-list, .tips-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
         .deduction-item {
             display: flex;
             align-items: flex-start;
-            gap: 10px;
-            padding: 10px 12px;
+            gap: 8px;
+            padding: 8px 12px;
             background: #FEF2F2;
             border: 1px solid #FECACA;
-            border-radius: var(--radius-sm);
-            margin-bottom: 8px;
-            font-size: 13px;
+            border-radius: var(--radius-md);
+            margin-bottom: 6px;
+            font-size: var(--text-xs);
             color: #991B1B;
         }
         .tip-item {
             display: flex;
             align-items: flex-start;
-            gap: 10px;
-            padding: 10px 12px;
+            gap: 8px;
+            padding: 8px 12px;
             background: #F0FDF4;
             border: 1px solid #BBF7D0;
-            border-radius: var(--radius-sm);
-            margin-bottom: 8px;
-            font-size: 13px;
+            border-radius: var(--radius-md);
+            margin-bottom: 6px;
+            font-size: var(--text-xs);
             color: #166534;
         }
-        .badge-penalty {
-            background: #EF4444;
-            color: #FFFFFF;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
 
-        /* ========================================================
-           REAL-TIME HANDWRITING KANJI SEARCH STYLES (KIZUNATUTOR)
-           ======================================================== */
+        /* Handwriting Search Layout */
         .hw-search-layout {
             display: grid;
             grid-template-columns: 320px 1fr;
@@ -437,12 +394,11 @@
         .hw-canvas-card {
             background: #FFFFFF;
             border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
+            border-radius: var(--radius-lg);
             padding: 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            box-shadow: var(--shadow-sm);
         }
         .hw-canvas-header {
             width: 100%;
@@ -452,7 +408,7 @@
             margin-bottom: 12px;
         }
         .hw-canvas-title {
-            font-size: 15px;
+            font-size: var(--text-sm);
             font-weight: 700;
             color: var(--color-primary);
             display: flex;
@@ -460,25 +416,24 @@
             gap: 6px;
         }
         .hw-stroke-badge {
-            background: #EFF6FF;
-            color: #1D4ED8;
-            border: 1px solid #BFDBFE;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
+            background: var(--color-surface-muted);
+            color: var(--color-text-secondary);
+            border: 1px solid var(--color-border);
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 600;
         }
         .hw-canvas-wrapper {
             position: relative;
-            width: 300px;
-            height: 300px;
+            width: 280px;
+            height: 280px;
             background: #FFFFFF;
             border: 2px solid var(--color-primary);
             border-radius: var(--radius-md);
             overflow: hidden;
             touch-action: none;
             cursor: crosshair;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.03);
         }
         .hw-canvas-wrapper canvas {
             width: 100%;
@@ -489,30 +444,16 @@
             width: 100%;
             display: flex;
             gap: 8px;
-            margin-top: 14px;
-        }
-        .hw-canvas-actions .btn {
-            flex: 1;
-            padding: 8px 10px;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
+            margin-top: 12px;
         }
         .hw-candidate-panel {
             background: #FFFFFF;
             border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
+            border-radius: var(--radius-lg);
             padding: 18px;
             display: flex;
             flex-direction: column;
-            min-height: 400px;
-            box-shadow: var(--shadow-sm);
+            min-height: 380px;
         }
         .hw-panel-header {
             display: flex;
@@ -521,70 +462,29 @@
             padding-bottom: 12px;
             border-bottom: 1px solid var(--color-border);
             margin-bottom: 14px;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .hw-panel-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--color-primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .badge-engine-ai {
-            background: linear-gradient(135deg, #EFF6FF 0%, #EDE9FE 100%);
-            color: #6B21A8;
-            border: 1px solid #DDD6FE;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 11.5px;
-            font-weight: 700;
-        }
-        .badge-engine-topo {
-            background: #F0FDF4;
-            color: #166534;
-            border: 1px solid #BBF7D0;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 11.5px;
-            font-weight: 700;
-        }
-        .badge-engine-neutral {
-            background: #F8FAFC;
-            color: #64748B;
-            border: 1px solid #E2E8F0;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 11.5px;
-            font-weight: 700;
         }
         .hw-candidate-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 12px;
-            max-height: 380px;
+            gap: 10px;
+            max-height: 360px;
             overflow-y: auto;
             padding-right: 4px;
         }
         .hw-candidate-tile {
             background: #FFFFFF;
-            border: 1.5px solid var(--color-border);
-            border-radius: var(--radius-sm);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
             padding: 10px;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.15s ease;
             display: flex;
             flex-direction: column;
-            position: relative;
-            user-select: none;
-            -webkit-user-select: none;
         }
         .hw-candidate-tile:hover {
-            transform: translateY(-2px);
-            border-color: var(--color-primary);
-            box-shadow: 0 8px 16px -2px rgba(27, 42, 74, 0.12);
-            background: #FAF9F6;
+            border-color: var(--color-secondary);
+            box-shadow: var(--shadow-sm);
+            background: var(--color-surface-muted);
         }
         .hw-tile-top {
             display: flex;
@@ -594,33 +494,28 @@
         }
         .hw-tile-char {
             font-family: 'Noto Serif JP', serif, 'Hiragino Mincho Pro', 'Yu Mincho';
-            font-size: 32px;
-            font-weight: 900;
+            font-size: 28px;
+            font-weight: 700;
             color: var(--color-primary);
             line-height: 1;
         }
         .hw-tile-score {
-            font-size: 11px;
-            font-weight: 800;
+            font-size: 10px;
+            font-weight: 700;
             background: #DCFCE7;
             color: #15803D;
-            padding: 2px 6px;
-            border-radius: 6px;
-        }
-        .hw-tile-body {
-            margin-bottom: 6px;
+            padding: 2px 5px;
+            border-radius: var(--radius-sm);
         }
         .hw-tile-hanviet {
-            display: block;
-            font-size: 12.5px;
-            font-weight: 800;
+            font-size: var(--text-xs);
+            font-weight: 700;
             color: var(--color-primary);
-            letter-spacing: 0.5px;
         }
         .hw-tile-meaning {
             margin: 2px 0 0 0;
             font-size: 11px;
-            color: var(--color-text-muted);
+            color: var(--color-text-secondary);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -628,74 +523,42 @@
         .hw-tile-footer {
             display: flex;
             justify-content: space-between;
-            font-size: 10.5px;
+            font-size: 10px;
             font-weight: 600;
-            color: #94A3B8;
-            margin-top: auto;
-            border-top: 1px dashed #F1F5F9;
+            color: var(--color-text-muted);
+            margin-top: 6px;
+            border-top: 1px solid var(--color-border);
             padding-top: 4px;
         }
         .hw-tile-jlpt {
-            background: #EFF6FF;
-            color: #1D4ED8;
-            padding: 1px 5px;
-            border-radius: 4px;
+            background: var(--color-surface-muted);
+            color: var(--color-secondary);
+            padding: 1px 4px;
+            border-radius: 3px;
             font-weight: 700;
         }
 
-        /* Tab Switcher for Learner */
-        .tab-pill {
-            flex: 1;
-            padding: 11px 18px;
-            font-size: 14px;
-            font-weight: 700;
-            border: 1.5px solid var(--color-border);
-            border-radius: var(--radius-md);
-            background: #FFFFFF;
-            color: var(--color-text-muted);
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .tab-pill:hover {
-            border-color: var(--color-primary);
-            color: var(--color-primary);
-            background: #FAF9F6;
-        }
-        .tab-pill.active {
-            background: var(--color-primary);
-            color: #FFFFFF;
-            border-color: var(--color-primary);
-            box-shadow: 0 4px 12px rgba(27, 42, 74, 0.15);
-        }
-
-        /* Kanji Catalog Grid & Card Styles for Learner */
+        /* Kanji Catalog Grid (Tab 2) */
         .kanji-catalog-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 14px;
         }
         .kanji-catalog-card {
             background: #FFFFFF;
-            border: 1.5px solid var(--color-border);
-            border-radius: var(--radius-md);
-            padding: 14px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 14px;
             display: flex;
             flex-direction: column;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            user-select: none;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            transition: all 0.15s ease;
+            box-shadow: var(--shadow-xs);
         }
         .kanji-catalog-card:hover {
-            border-color: var(--color-primary);
-            box-shadow: 0 8px 18px -2px rgba(27, 42, 74, 0.12);
-            transform: translateY(-3px);
-            background: #FAF9F6;
+            border-color: var(--color-secondary);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
         }
         .kanji-catalog-card .card-top {
             display: flex;
@@ -704,17 +567,16 @@
             margin-bottom: 4px;
         }
         .kanji-catalog-card .char-glyph {
-            font-size: 34px;
-            font-weight: 800;
+            font-size: 32px;
+            font-weight: 700;
             color: var(--color-primary);
             font-family: 'Noto Serif JP', 'Hiragino Mincho Pro', 'Yu Mincho', serif;
             line-height: 1;
         }
         .kanji-catalog-card .hanviet-label {
-            font-size: 13px;
-            font-weight: 800;
-            color: #9333EA;
-            letter-spacing: 0.5px;
+            font-size: var(--text-xs);
+            font-weight: 700;
+            color: var(--color-secondary);
             margin-bottom: 2px;
         }
         .kanji-catalog-card .meta-line {
@@ -724,7 +586,7 @@
         }
         .kanji-catalog-card .meaning-line {
             font-size: 11.5px;
-            color: #334155;
+            color: var(--color-text-secondary);
             line-height: 1.35;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -735,18 +597,18 @@
             flex: 1;
         }
         .kanji-catalog-card .btn-start-practice {
-            background: #EFF6FF;
-            color: #1D4ED8;
-            border: 1px solid #BFDBFE;
+            background: var(--color-surface-muted);
+            color: var(--color-secondary);
+            border: 1px solid var(--color-border);
             border-radius: var(--radius-sm);
             padding: 5px 8px;
-            font-size: 11.5px;
-            font-weight: 700;
+            font-size: 11px;
+            font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 4px;
-            transition: all 0.15s;
+            transition: all 0.15s ease;
             text-decoration: none;
             margin-top: auto;
         }
@@ -755,224 +617,457 @@
             color: #FFFFFF;
             border-color: var(--color-primary);
         }
+
         .level-filter-btn {
-            background: #F1F5F9;
-            color: var(--color-text);
+            background: var(--color-surface);
+            color: var(--color-text-secondary);
             border: 1px solid var(--color-border);
-            border-radius: 20px;
+            border-radius: var(--radius-full);
             padding: 6px 14px;
-            font-size: 12.5px;
+            font-size: var(--text-xs);
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s ease;
         }
         .level-filter-btn:hover {
-            background: #E2E8F0;
             color: var(--color-primary);
+            border-color: var(--color-border-strong);
         }
         .level-filter-btn.active {
             background: var(--color-primary);
             color: #FFFFFF;
             border-color: var(--color-primary);
         }
+
+        /* Folder Manager Workspace */
+        .kfm-kanji-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 14px;
+        }
+        @media (max-width: 640px) {
+            .kfm-kanji-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 10px;
+            }
+        }
+        .kfm-folder-card {
+            background: #FFFFFF;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .kfm-folder-card:hover {
+            border-color: var(--color-secondary);
+            background: var(--color-surface-muted);
+        }
+        .kfm-folder-card.kfm-active {
+            border-color: var(--color-secondary);
+            background: var(--color-surface-muted);
+            border-left: 4px solid var(--color-secondary);
+        }
+
+        /* Kanji Rain Minigame */
+        .stat-card-vocapy {
+            background: #FFFFFF;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-xs);
+        }
+        @keyframes gameShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .game-shake-anim {
+            animation: gameShake 0.3s ease-in-out;
+            border-color: var(--color-danger) !important;
+            background-color: #FEF2F2 !important;
+        }
     </style>
 </head>
 <body>
 
-    <div th:replace="~{fragments/navbar :: navbar}"></div>
-
-    <div style="text-align: center; margin-top: 28px;">
-        <h1 style="color: var(--color-primary); font-size: 28px;">Luyện Viết Chữ Hán (Kanji Canvas)</h1>
-        <p style="color: var(--color-text-muted);">Tự luyện viết chữ Kanji tương tác trên ô Mễ, hỗ trợ nét mờ chuẩn, mô phỏng bút thuận Shodo và chấm điểm thông minh từ AI Sensei.</p>
-    </div>
-
-    <!-- THANH CHUYỂN ĐỔI TAB DÀNH CHO HỌC VIÊN -->
-    <div style="display: flex; justify-content: center; gap: 12px; margin: 20px auto 10px auto; max-width: 540px; padding: 0 16px;">
-        <button type="button" class="tab-pill active" id="tabBtnPractice" onclick="switchMainTab('practice')">
-            <span>✍️</span> <span>Luyện Viết (Canvas)</span>
-        </button>
-        <button type="button" class="tab-pill" id="tabBtnLibrary" onclick="switchMainTab('library')">
-            <span>📚</span> <span>Danh Sách Kanji (N5 - N1)</span>
-        </button>
-    </div>
-
     <!-- ========================================================================= -->
-    <!-- TAB 1: BẢNG LUYỆN VIẾT TƯƠNG TÁC (CANVAS Ô MỄ) -->
+    <!-- GLOBAL MASTER SHELL (FIGMA NODE 1148-501 STANDARD) -->
     <!-- ========================================================================= -->
-    <div id="sectionPracticeTab">
-        <!-- Thanh tìm kiếm chữ Hán & Tra cứu viết tay -->
-        <form th:action="@{/kanji}" method="get" class="search-bar" style="max-width: 720px;">
-            <input type="text" id="inputCharQuery" name="charQuery" class="search-input" th:value="${currentChar}" placeholder="Nhập chữ Kanji muốn học (vd: 愛, 日, 水, 学)..." maxlength="1" required>
-            <button type="submit" class="btn-primary" style="white-space: nowrap;">Tra Cứu</button>
-            <button type="button" class="tool-btn" id="btnOpenHwSearchModal" style="padding: 10px 16px; font-size: 14px; white-space: nowrap; border: 1.5px solid var(--color-primary); color: var(--color-primary); background: #FAF9F6;" title="Mở bảng vẽ tra cứu chữ Hán theo nét thời gian thực">
-                <span>🖌️</span> <span>Vẽ Nét Tra Cứu</span>
-            </button>
-        </form>
+    <div class="app-shell">
 
-    <div class="practice-layout">
-        <!-- Cột trái: Mẫu Chữ Hán & Thông tin Hán tự -->
-        <div class="kanji-guide-box">
-            <h3 style="color: var(--color-primary); margin-bottom: 8px;">Mẫu Chữ Hán</h3>
-            <p style="font-size: 14px; color: var(--color-text-muted); margin-bottom: 8px;">
-                Chữ: <strong style="font-size: 22px; color: var(--color-primary);" id="targetKanjiChar" th:text="${currentChar}">愛</strong> 
-                | Hán Việt: <strong style="color: #9333EA;" th:text="${kanjiData != null && kanjiData.hanViet != null ? kanjiData.hanViet : '—'}">ÁI</strong>
-                | Số nét: <span id="targetStrokeCount" th:text="${kanjiData != null ? kanjiData.strokeCount : '13'}">13</span>
-                | Bộ thủ: <span th:text="${kanjiData != null && kanjiData.radical != null ? kanjiData.radical : '—'}">心</span>
-            </p>
+        <!-- THANH ĐIỀU HƯỚNG BÊN (SIDEBAR NAVIGATION RAIL) -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 
-            <div class="svg-preview" style="background: #FAF9F6; border: 2px solid var(--color-border); border-radius: var(--radius-md);">
-                <span style="font-size: 130px; font-family: 'Noto Serif JP', 'Hiragino Mincho Pro', 'Yu Mincho', serif; font-weight: 700; color: var(--color-primary); line-height: 1; user-select: none;" th:text="${currentChar}">愛</span>
-            </div>
+        <!-- VÙNG NỘI DUNG CHÍNH (APP MAIN CONTAINER) -->
+        <div class="app-main">
 
-            <!-- Bảng thông tin chi tiết: Âm On, Âm Kun, Hán Việt, Ý nghĩa -->
-            <div class="kanji-details-card" style="width: 100%; max-width: 320px; background: #FAF9F6; border: 1.5px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 16px; text-align: left; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px dashed #E2E8F0; padding-bottom: 6px;">
-                    <span style="font-size: 13px; font-weight: 700; color: var(--color-primary); display: flex; align-items: center; gap: 6px;">
-                        <span>📖</span> Thông Tin Chữ Hán
-                    </span>
-                    <span class="hw-tile-jlpt" th:if="${kanjiData != null && kanjiData.jlptLevel != null}" th:text="${kanjiData.jlptLevel}">N3</span>
-                </div>
+            <!-- THANH ĐIỀU HƯỚNG TRÊN CÙNG (TOP NAVIGATION HEADER 64PX) -->
+            <div th:replace="~{fragments/topbar :: topbar}"></div>
 
-                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
-                    <div style="display: flex; align-items: baseline; gap: 8px;">
-                        <span style="min-width: 72px; color: var(--color-text-muted); font-weight: 600;">Hán Việt:</span>
-                        <strong style="color: #9333EA; font-size: 14px; letter-spacing: 0.5px;" th:text="${kanjiData != null && kanjiData.hanViet != null ? kanjiData.hanViet : '—'}">ÁI</strong>
+            <!-- NỘI DUNG MÀN HÌNH (MAIN CONTENT CANVAS MAX-W-7XL) -->
+            <main class="app-content">
+
+                <!-- TIÊU ĐỀ TRANG CHUẨN MASTER LAYOUT: TINH GIẢN, VÀO THẲNG BỘ THẺ CỦA TÔI -->
+                <div class="page-header">
+                    <div class="page-breadcrumbs">
+                        <a th:href="@{/}">Trang chủ</a>
+                        <span class="sep">/</span>
+                        <a th:href="@{/kanji}">Học tập</a>
+                        <span class="sep">/</span>
+                        <span id="breadcrumbCurrentSection">Bộ thẻ của tôi</span>
                     </div>
-
-                    <div style="display: flex; align-items: baseline; gap: 8px;">
-                        <span style="min-width: 72px; color: var(--color-text-muted); font-weight: 600;">Âm On:</span>
-                        <span style="color: #1E293B; font-weight: 600;" th:text="${kanjiData != null && kanjiData.onyomi != null ? kanjiData.onyomi : '—'}">アイ (ai)</span>
-                    </div>
-
-                    <div style="display: flex; align-items: baseline; gap: 8px;">
-                        <span style="min-width: 72px; color: var(--color-text-muted); font-weight: 600;">Âm Kun:</span>
-                        <span style="color: #1E293B; font-weight: 600;" th:text="${kanjiData != null && kanjiData.kunyomi != null ? kanjiData.kunyomi : '—'}">-</span>
-                    </div>
-
-                    <div style="display: flex; align-items: baseline; gap: 8px;">
-                        <span style="min-width: 72px; color: var(--color-text-muted); font-weight: 600;">Ý nghĩa:</span>
-                        <span style="color: #334155; line-height: 1.4;" th:text="${kanjiData != null && kanjiData.meaning != null ? kanjiData.meaning : '—'}">Tình yêu, thương yêu, ái mộ</span>
+                    <div class="page-header-row">
+                        <div class="page-title-box">
+                            <h1 class="page-title" id="pageMainHeading">📁 Bộ Thẻ Của Tôi</h1>
+                            <p class="page-subtitle" id="pageMainSubtitle">Trung tâm quản lý từ vựng và chọn chế độ luyện tập: Luyện viết nét Shodo hoặc Bắn chữ phản xạ.</p>
+                        </div>
+                        <div class="page-actions" id="pageHeaderActions">
+                            <button type="button" class="btn btn-primary" onclick="kfmOpenCreateModal()">
+                                <span>➕</span> <span>Tạo Bộ Thẻ Mới</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Cột phải: Khung tập viết tương tác với đa lớp (Grid, Nét mờ, Canvas) -->
-        <div class="kanji-guide-box">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 270px; margin-bottom: 4px;">
-                <h3 style="color: var(--color-primary); font-size: 16px; margin: 0;">Tự Luyện Viết</h3>
-                <div style="font-size: 13px; color: var(--color-text-muted);">
-                    Số nét: <span id="drawnStrokeCount" class="stroke-count-pill">0</span> / <span id="totalTargetStrokes" th:text="${kanjiData != null ? kanjiData.strokeCount : '13'}">13</span>
-                </div>
-            </div>
+                <!-- ========================================================================= -->
+                <!-- PHÂN HỆ 1 (TRỌNG TÂM): BỘ THẺ CỦA TÔI (QUẢN LÝ THƯ MỤC & CHỮ KANJI) -->
+                <!-- ========================================================================= -->
+                <div id="sectionFoldersTab" th:style="${param.tab != null && (param.tab[0] == 'practice' || param.tab[0] == 'library' || param.tab[0] == 'game')} ? 'display: none;' : 'display: block;'">
+                    <!-- Khung Làm Việc 2 Cột (Thư mục bên trái & Chi tiết bên phải) -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+                        <!-- CỘT TRÁI: DANH SÁCH BỘ THẺ -->
+                        <div style="width: 320px; flex-shrink: 0; background: #FFFFFF; border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 18px; box-shadow: var(--shadow-xs);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
+                                <span style="font-size: 13px; font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.5px;">Danh Sách Bộ Thẻ</span>
+                                <button type="button" class="btn btn-outline" onclick="kfmOpenCreateModal()" style="padding: 3px 8px; font-size: 11px;">
+                                    + Tạo Mới
+                                </button>
+                            </div>
 
-            <!-- Vùng vẽ 3 lớp lồng nhau chính xác 1:1 -->
-            <div class="kanji-canvas-frame">
-                <!-- Lớp 1: Lưới ô vuông chữ Hán chuẩn 米字格 (Mễ tự cách) -->
-                <svg class="practice-grid-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <rect x="6" y="6" width="88" height="88" fill="none" stroke="#FECDD3" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.75" />
-                    <line x1="0" y1="50" x2="100" y2="50" stroke="#F87171" stroke-width="0.9" stroke-dasharray="3,2.5" opacity="0.65" />
-                    <line x1="50" y1="0" x2="50" y2="100" stroke="#F87171" stroke-width="0.9" stroke-dasharray="3,2.5" opacity="0.65" />
-                    <line x1="0" y1="0" x2="100" y2="100" stroke="#FCA5A5" stroke-width="0.7" stroke-dasharray="3,3" opacity="0.45" />
-                    <line x1="100" y1="0" x2="0" y2="100" stroke="#FCA5A5" stroke-width="0.7" stroke-dasharray="3,3" opacity="0.45" />
-                    <circle cx="50" cy="50" r="1.5" fill="#EF4444" opacity="0.4" />
-                </svg>
+                            <!-- THANH TÌM KIẾM BỘ THẺ -->
+                            <div style="margin-bottom: 12px; position: relative;">
+                                <input type="text" id="kfmFolderSearchInput" 
+                                       placeholder="🔍 Tìm theo tên hoặc ghi chú..." 
+                                       oninput="kfmOnFolderSearchInput(this.value)"
+                                       style="width: 100%; box-sizing: border-box; padding: 8px 12px; font-size: 12.5px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #F8FAFC; color: var(--color-text); outline: none; transition: border-color 0.15s ease;">
+                            </div>
 
-                <!-- Lớp 2: Nét mờ chuẩn KanjiVG (109x109) & Hiệu ứng phát lại bút thuận -->
-                <svg id="canvasGuidelineSvg" viewBox="0 0 109 109" preserveAspectRatio="xMidYMid meet"></svg>
+                            <div id="kfmFolderList">
+                                <!-- Dynamic Folder Cards Rendered Here -->
+                            </div>
 
-                <!-- Lớp 3: Bảng vẽ Canvas tương tác -->
-                <canvas id="kanjiCanvas"></canvas>
+                            <!-- CỤM NÚT PHÂN TRANG BỘ THẺ -->
+                            <div id="kfmFolderPagination" style="display: flex; justify-content: center; align-items: center; gap: 4px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--color-border);">
+                                <!-- Dynamic Pagination Rendered Here -->
+                            </div>
 
-                <!-- Lớp 4: Vòng quay tải AI khi đang chấm điểm -->
-                <div class="ai-loading-overlay" id="aiLoadingOverlay">
-                    <div class="ai-spinner"></div>
-                    <strong style="color: var(--color-primary); font-size: 14px;">Kizuna Sensei đang chấm nét...</strong>
-                    <p style="font-size: 12px; color: var(--color-text-muted); text-align: center;">Đang phân tích nét chữ và kết nối với Kizuna Sensei...</p>
-                </div>
-            </div>
+                            <button type="button" class="btn btn-outline" onclick="kfmOpenCreateModal()" style="width: 100%; padding: 9px; font-size: 12.5px; margin-top: 12px; border-style: dashed;">
+                                <span>➕ Thêm Bộ Thẻ Mới</span>
+                            </button>
+                        </div>
 
-            <!-- Thanh công cụ hỗ trợ luyện viết -->
-            <div class="practice-toolbar">
-                <div class="practice-tools-row">
-                    <button type="button" class="tool-btn" id="btnToggleGuideline" title="Bật/Tắt hiển thị nét mờ chuẩn bên dưới">
-                        👁️ Hiện nét mờ
-                    </button>
-                    <button type="button" class="tool-btn" id="btnAnimateGuide" title="Xem lại mô phỏng thứ tự từng nét theo bút thuận">
-                        ▶ Xem lại cách viết
-                    </button>
-                    <button type="button" class="tool-btn" id="btnUndoStroke" title="Xóa nét vừa vẽ gần nhất">
-                        ↩ Hoàn tác
-                    </button>
-                    <button type="button" class="tool-btn" id="btnClearCanvas" title="Xóa toàn bộ để vẽ lại từ đầu">
-                        🗑️ Xóa bảng
-                    </button>
+                        <!-- CỘT PHẢI: CHI TIẾT & BỘ 2 CHẾ ĐỘ LUYỆN TẬP TRỰC TIẾP -->
+                        <div id="kfmFolderDetailWorkspace" style="flex: 1; min-width: 320px;">
+                            <!-- Dynamic Content Rendered Here: Header + 2 Practice Mode Actions + Kanji Grid -->
+                        </div>
+                    </div>
                 </div>
 
-                <div style="margin-top: 4px;">
-                    <button type="button" id="btnGradeCanvas" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; font-size: 15px;">
-                        <span>✨</span> Nhận xét của Kizuna Sensei
-                    </button>
+                <!-- ========================================================================= -->
+                <!-- PHÂN HỆ 2: BẢNG LUYỆN VIẾT NÉT CHỮ (CANVAS SHODO) -->
+                <!-- ========================================================================= -->
+                <div id="sectionPracticeTab" th:style="${param.tab != null && param.tab[0] == 'practice'} ? 'display: block;' : 'display: none;'">
+                    <!-- THANH TIẾN ĐỘ DUYỆT CHỮ THEO BỘ THẺ (HIỂN THỊ KHI ĐANG LUYỆN THEO BỘ) -->
+                    <div id="practiceFolderStripContainer" style="display: none; background: #FFFFFF; border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 12px 20px; margin-bottom: 20px; box-shadow: var(--shadow-xs);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 20px;">📁</span>
+                                <div>
+                                    <span style="font-size: 11px; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">Bộ thẻ đang luyện:</span>
+                                    <strong id="practiceFolderTitle" style="font-size: 14.5px; color: var(--color-primary); display: block;">...</strong>
+                                </div>
+                                <span id="practiceFolderProgress" style="background: var(--color-secondary-light); color: var(--color-secondary); font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: var(--radius-full);">Chữ 1/1</span>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button type="button" class="btn btn-outline" id="btnPrevFolderKanji" style="padding: 6px 12px; font-size: 12.5px;">
+                                    ◀ Chữ trước
+                                </button>
+                                <div id="practiceFolderKanjiPills" style="display: flex; gap: 6px; overflow-x: auto; max-width: 380px; padding: 4px 6px; scroll-behavior: smooth; position: relative; scrollbar-width: thin;">
+                                    <!-- Dynamic Kanji Pills -->
+                                </div>
+                                <button type="button" class="btn btn-outline" id="btnNextFolderKanji" style="padding: 6px 12px; font-size: 12.5px;">
+                                    Chữ tiếp ▶
+                                </button>
+                                <button type="button" class="btn btn-outline" onclick="switchMainTab('folders')" style="padding: 6px 12px; font-size: 12.5px; margin-left: 6px;">
+                                    🔙 Về Bộ Thẻ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Thanh tra cứu nhanh chữ Kanji (Ẩn hoàn toàn khi luyện tập từ Bộ Thẻ) -->
+                    <form th:action="@{/kanji}" method="get" class="search-bar" id="practiceSearchBarForm"
+                          th:style="${(param.from != null && param.from[0] == 'deck') || param.folderId != null} ? 'display: none;' : 'display: flex; gap: 8px; align-items: center;'">
+                        <input type="hidden" name="tab" value="practice">
+                        <input type="hidden" name="from" th:if="${param.from != null}" th:value="${param.from[0]}">
+                        <input type="hidden" name="folderId" th:if="${param.folderId != null}" th:value="${param.folderId[0]}">
+                        <input type="text" id="inputCharQuery" name="charQuery" class="search-input" th:value="${currentChar}" placeholder="Nhập chữ Kanji muốn học (vd: 愛, 日, 水, 学)..." maxlength="1" required style="flex: 1;">
+                        <button type="submit" class="btn btn-primary" style="white-space: nowrap;">Tra Cứu</button>
+                        <button type="button" class="btn btn-outline" id="btnSearchFormHw" onclick="openHwSearchModal()" title="Tra cứu chữ Hán bằng nét vẽ viết tay" style="white-space: nowrap;">
+                            <span>🖌️</span> <span>Vẽ Nét Tra Cứu</span>
+                        </button>
+                    </form>
+
+                    <div class="practice-workspace-grid">
+                        <!-- CỘT 1 (38%): THÔNG TIN HÁN TỰ -->
+                        <div class="kanji-guide-box">
+                            <h3 style="color: var(--color-primary); font-size: 16px; font-weight: 700; margin-bottom: 8px;">Mẫu Chữ Hán Chuẩn</h3>
+                            <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px;">
+                                Chữ: <strong style="font-size: 20px; color: var(--color-primary);" id="targetKanjiChar" th:text="${currentChar}">愛</strong> 
+                                | Hán Việt: <strong style="color: var(--color-secondary);" th:text="${kanjiData != null && kanjiData.hanViet != null ? kanjiData.hanViet : '—'}">ÁI</strong>
+                                | Số nét: <span id="targetStrokeCount" th:text="${kanjiData != null ? kanjiData.strokeCount : '13'}">13</span>
+                                | Bộ thủ: <span th:text="${kanjiData != null && kanjiData.radical != null ? kanjiData.radical : '—'}">心</span>
+                            </p>
+
+                            <div class="svg-preview">
+                                <span style="font-size: 120px; font-family: 'Noto Serif JP', 'Hiragino Mincho Pro', 'Yu Mincho', serif; font-weight: 700; color: var(--color-primary); line-height: 1; user-select: none;" th:text="${currentChar}">愛</span>
+                            </div>
+
+                            <!-- Bảng thông tin chi tiết: Âm On, Âm Kun, Hán Việt, Ý nghĩa -->
+                            <div style="width: 100%; background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; text-align: left;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px dashed var(--color-border); padding-bottom: 6px;">
+                                    <span style="font-size: 12.5px; font-weight: 700; color: var(--color-primary); display: flex; align-items: center; gap: 6px;">
+                                        <span>📖</span> Thông Tin Chữ Hán
+                                    </span>
+                                    <span class="hw-tile-jlpt" th:if="${kanjiData != null && kanjiData.jlptLevel != null}" th:text="${kanjiData.jlptLevel}">N3</span>
+                                </div>
+
+                                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+                                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                                        <span style="min-width: 68px; color: var(--color-text-muted); font-weight: 600;">Hán Việt:</span>
+                                        <strong style="color: var(--color-secondary); font-size: 14px;" th:text="${kanjiData != null && kanjiData.hanViet != null ? kanjiData.hanViet : '—'}">ÁI</strong>
+                                    </div>
+
+                                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                                        <span style="min-width: 68px; color: var(--color-text-muted); font-weight: 600;">Âm On:</span>
+                                        <span style="color: var(--color-text); font-weight: 600;" th:text="${kanjiData != null && kanjiData.onyomi != null ? kanjiData.onyomi : '—'}">アイ (ai)</span>
+                                    </div>
+
+                                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                                        <span style="min-width: 68px; color: var(--color-text-muted); font-weight: 600;">Âm Kun:</span>
+                                        <span style="color: var(--color-text); font-weight: 600;" th:text="${kanjiData != null && kanjiData.kunyomi != null ? kanjiData.kunyomi : '—'}">-</span>
+                                    </div>
+
+                                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                                        <span style="min-width: 68px; color: var(--color-text-muted); font-weight: 600;">Ý nghĩa:</span>
+                                        <span style="color: var(--color-text); line-height: 1.4;" th:text="${kanjiData != null && kanjiData.meaning != null ? kanjiData.meaning : '—'}">Tình yêu, thương yêu, ái mộ</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Nút thêm chữ đang học vào bộ thẻ cá nhân -->
+                            <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 14px; padding: 10px 14px; font-size: 13.5px;" 
+                                    th:if="${kanjiData != null}"
+                                    th:attr="data-kanji-id=${kanjiData.kanjiId},data-char=${currentChar}"
+                                    onclick="promptAddKanjiToFolder(this.getAttribute('data-kanji-id'), this.getAttribute('data-char'), event)">
+                                <span>➕</span> <span>Thêm Chữ Này Vào Bộ Thẻ</span>
+                            </button>
+                        </div>
+
+                        <!-- CỘT 2 (62%): KHUNG CANVAS TƯƠNG TÁC Ô MỄ & BỘ CÔNG CỤ SHODO -->
+                        <div class="kanji-guide-box">
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 280px; margin-bottom: 4px;">
+                                <h3 style="color: var(--color-primary); font-size: 16px; font-weight: 700; margin: 0;">Tự Luyện Viết</h3>
+                                <div style="font-size: 12.5px; color: var(--color-text-muted);">
+                                    Số nét: <span id="drawnStrokeCount" class="stroke-count-pill">0</span> / <span id="totalTargetStrokes" th:text="${kanjiData != null ? kanjiData.strokeCount : '13'}">13</span>
+                                </div>
+                            </div>
+
+                            <!-- Vùng vẽ 3 lớp lồng nhau chính xác 1:1 -->
+                            <div class="kanji-canvas-frame">
+                                <!-- Lớp 1: Lưới ô vuông chữ Hán chuẩn 米字格 (Mễ tự cách) -->
+                                <svg class="practice-grid-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <rect x="6" y="6" width="88" height="88" fill="none" stroke="#FECDD3" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.75" />
+                                    <line x1="0" y1="50" x2="100" y2="50" stroke="#F87171" stroke-width="0.9" stroke-dasharray="3,2.5" opacity="0.65" />
+                                    <line x1="50" y1="0" x2="50" y2="100" stroke="#F87171" stroke-width="0.9" stroke-dasharray="3,2.5" opacity="0.65" />
+                                    <line x1="0" y1="0" x2="100" y2="100" stroke="#FCA5A5" stroke-width="0.7" stroke-dasharray="3,3" opacity="0.45" />
+                                    <line x1="100" y1="0" x2="0" y2="100" stroke="#FCA5A5" stroke-width="0.7" stroke-dasharray="3,3" opacity="0.45" />
+                                    <circle cx="50" cy="50" r="1.5" fill="#EF4444" opacity="0.4" />
+                                </svg>
+
+                                <!-- Lớp 2: Nét mờ chuẩn KanjiVG (109x109) & Hiệu ứng phát lại bút thuận -->
+                                <svg id="canvasGuidelineSvg" viewBox="0 0 109 109" preserveAspectRatio="xMidYMid meet"></svg>
+
+                                <!-- Lớp 3: Bảng vẽ Canvas tương tác -->
+                                <canvas id="kanjiCanvas"></canvas>
+
+                                <!-- Lớp 4: Vòng quay tải AI khi đang chấm điểm -->
+                                <div class="ai-loading-overlay" id="aiLoadingOverlay">
+                                    <div class="ai-spinner"></div>
+                                    <strong style="color: var(--color-primary); font-size: 14px;">Kizuna Sensei đang chấm nét...</strong>
+                                    <p style="font-size: 12px; color: var(--color-text-secondary); text-align: center; margin: 0;">Đang phân tích nét chữ và kết nối với Kizuna Sensei...</p>
+                                </div>
+                            </div>
+
+                            <!-- Thanh công cụ hỗ trợ luyện viết -->
+                            <div class="practice-toolbar">
+                                <div class="practice-tools-row">
+                                    <button type="button" class="tool-btn" id="btnToggleGuideline" title="Bật/Tắt hiển thị nét mờ chuẩn bên dưới">
+                                        👁️ Nét mờ
+                                    </button>
+                                    <button type="button" class="tool-btn" id="btnAnimateGuide" title="Xem lại mô phỏng thứ tự từng nét theo bút thuận">
+                                        ▶ Xem cách viết
+                                    </button>
+                                    <button type="button" class="tool-btn" id="btnUndoStroke" title="Xóa nét vừa vẽ gần nhất">
+                                        ↩ Hoàn tác
+                                    </button>
+                                    <button type="button" class="tool-btn" id="btnClearCanvas" title="Xóa toàn bộ để vẽ lại từ đầu">
+                                        🗑️ Xóa bảng
+                                    </button>
+                                </div>
+
+                                <div style="margin-top: 4px;">
+                                    <button type="button" id="btnGradeCanvas" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 18px; font-size: 14px;">
+                                        <span>✨</span> Nhận xét của Kizuna Sensei
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lưu dữ liệu SVG KanjiVG thô phục vụ vẽ nét mờ & hoàn tất nét tức thì -->
+                    <script id="kanjiSvgRaw" type="text/template" th:if="${kanjiData != null && kanjiData.svgData != null}" th:utext="${kanjiData.svgData}"></script>
+                </div> <!-- /#sectionPracticeTab -->
+
+                <!-- ========================================================================= -->
+                <!-- PHÂN HỆ 3: TRÒ CHƠI MƯA CHỮ KANJI (LUYỆN PHẢN XẠ GÕ PHÍM TIẾNG NHẬT) -->
+                <!-- ========================================================================= -->
+                <div id="sectionGameTab" th:style="${param.tab != null && param.tab[0] == 'game'} ? 'display: block; max-width: 960px; margin: 0 auto;' : 'display: none; max-width: 960px; margin: 0 auto;'">
+                    <!-- Thanh tiêu đề & Tùy chọn -->
+                    <div style="background: #FFFFFF; border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 16px 22px; margin-bottom: 20px; box-shadow: var(--shadow-xs); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: #DCFCE7; border: 1px solid #86EFAC; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+                                🎮
+                            </div>
+                            <div>
+                                <h2 style="font-size: 18px; color: var(--color-primary); margin: 0; font-weight: 800;">Thử Thách Gõ Phím: Mưa Chữ Hán</h2>
+                                <span id="currentPlayingFolderBadge" style="font-size: 12.5px; color: var(--color-text-secondary); font-weight: 600;">🌸 Bộ thẻ: Đang nạp dữ liệu bài học...</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary" onclick="openGameConfigModal()" style="padding: 8px 14px; font-size: 13px;">
+                                <span>⚙️</span> <span>Thiết Lập Ván Học</span>
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="switchMainTab('folders')" style="padding: 8px 14px; font-size: 13px;">
+                                <span>🔙</span> <span>Về Bộ Thẻ Của Tôi</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bảng Thống Kê Tiến Độ -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                        <div class="stat-card-vocapy stat-card-time">
+                            <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">⏳ Thời Gian</div>
+                            <div id="gameTimerDisplay" style="font-size: 24px; font-weight: 800; color: var(--color-danger); font-family: monospace; margin-top: 4px;">01:00</div>
+                        </div>
+                        <div class="stat-card-vocapy stat-card-score">
+                            <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">🏆 Điểm Số</div>
+                            <div id="gameScoreDisplay" style="font-size: 24px; font-weight: 800; color: var(--color-secondary); margin-top: 4px;">0</div>
+                        </div>
+                        <div class="stat-card-vocapy stat-card-words">
+                            <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">🎯 Đã Bắn Trúng</div>
+                            <div id="gameWordsDisplay" style="font-size: 24px; font-weight: 800; color: var(--color-success); margin-top: 4px;">0 chữ</div>
+                        </div>
+                        <div class="stat-card-vocapy stat-card-acc">
+                            <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">⚡ Chính Xác</div>
+                            <div id="gameAccuracyDisplay" style="font-size: 24px; font-weight: 800; color: var(--color-primary); margin-top: 4px;">100%</div>
+                        </div>
+                        <div id="gameComboDisplay" class="stat-card-vocapy stat-card-combo" style="display: none; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: var(--color-warning);">
+                            🔥 Chuỗi: x2!
+                        </div>
+                    </div>
+
+                    <!-- Khung Canvas Trò Chơi -->
+                    <div style="position: relative; background: #FFFFFF; border: 1px solid var(--color-border); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-sm);">
+                        <canvas id="kanjiRainCanvas" width="860" height="520" style="display: block; width: 100%; height: 520px; cursor: crosshair;"></canvas>
+
+                        <!-- Thanh Nhập Liệu Bàn Phím -->
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(8px); border-top: 1px solid var(--color-border); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                <span style="font-size: 13px; font-weight: 700; color: var(--color-text-secondary); white-space: nowrap;">⌨️ Đang Nhập:</span>
+                                <div id="liveTypingEcho" class="live-typing-box" style="flex: 1; min-height: 42px; background: var(--color-surface-muted); border: 1px solid var(--color-secondary); border-radius: var(--radius-md); padding: 4px 14px; font-size: 20px; font-weight: 800; color: var(--color-primary); display: flex; align-items: center; letter-spacing: 1px; font-family: 'Noto Sans JP', sans-serif;">
+                                    ...
+                                </div>
+                            </div>
+                            <div style="font-size: 11.5px; color: var(--color-text-muted); text-align: right; white-space: nowrap;">
+                                <span>Nhấn phím <strong>Enter</strong> để bắn chữ</span><br>
+                                <span style="color: var(--color-danger); font-weight: 600;">⚠️ Chuyển bộ gõ sang Hiragana</span>
+                            </div>
+                        </div>
+
+                        <input type="text" id="kanjiGameInput" autocomplete="off" autocapitalize="off" spellcheck="false" style="position: absolute; opacity: 0; pointer-events: auto; left: 0; bottom: 0; width: 100%; height: 50px;">
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Lưu dữ liệu SVG KanjiVG thô phục vụ vẽ nét mờ & hoàn tất nét tức thì -->
-    <script id="kanjiSvgRaw" type="text/template" th:if="${kanjiData != null && kanjiData.svgData != null}" th:utext="${kanjiData.svgData}"></script>
-    </div> <!-- /#sectionPracticeTab -->
+                <!-- ========================================================================= -->
+                <!-- PHÂN HỆ 4: THƯ VIỆN CHỮ HÁN JLPT (N5 - N1) -->
+                <!-- ========================================================================= -->
+                <div id="sectionLibraryTab" th:style="${param.tab != null && param.tab[0] == 'library'} ? 'display: block;' : 'display: none;'">
+                    <div style="background: #FFFFFF; border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 20px 24px; margin-bottom: 24px; box-shadow: var(--shadow-xs);">
+                        <!-- Hàng 1: Bộ lọc Cấp độ JLPT (Pills) -->
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; border-bottom: 1px dashed var(--color-border); padding-bottom: 16px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 18px;">🎯</span>
+                                <strong style="color: var(--color-primary); font-size: 14px;">Cấp độ JLPT:</strong>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="libLevelFilterGroup">
+                                <button type="button" class="level-filter-btn active" data-level="ALL" onclick="onSelectJlptLevel('ALL')">Tất cả cấp độ</button>
+                                <button type="button" class="level-filter-btn" data-level="N5" onclick="onSelectJlptLevel('N5')">JLPT N5</button>
+                                <button type="button" class="level-filter-btn" data-level="N4" onclick="onSelectJlptLevel('N4')">JLPT N4</button>
+                                <button type="button" class="level-filter-btn" data-level="N3" onclick="onSelectJlptLevel('N3')">JLPT N3</button>
+                                <button type="button" class="level-filter-btn" data-level="N2" onclick="onSelectJlptLevel('N2')">JLPT N2</button>
+                                <button type="button" class="level-filter-btn" data-level="N1" onclick="onSelectJlptLevel('N1')">JLPT N1</button>
+                            </div>
+                        </div>
 
-    <!-- ========================================================================= -->
-    <!-- TAB 2: DANH SÁCH CHỮ HÁN THEO CẤP ĐỘ JLPT (N5 - N1) DÀNH CHO HỌC VIÊN -->
-    <!-- ========================================================================= -->
-    <div id="sectionLibraryTab" style="display: none; max-width: 1100px; margin: 0 auto; padding: 0 20px 50px 20px;">
-        <!-- Khung Bộ Lọc & Tìm Kiếm Dành Cho Học Viên -->
-        <div style="background: #FFFFFF; border: 1.5px solid var(--color-border); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-            <!-- Hàng 1: Bộ lọc Cấp độ JLPT (Pills) -->
-            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; border-bottom: 1px dashed var(--color-border); padding-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 18px;">🎯</span>
-                    <strong style="color: var(--color-primary); font-size: 15px;">Cấp độ JLPT:</strong>
+                        <!-- Hàng 2: Bộ lọc từ khóa & Số nét -->
+                        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                            <div style="flex: 1; min-width: 240px; position: relative;">
+                                <input type="text" id="libFilterKeyword" class="search-input" placeholder="Tìm theo chữ Hán, Hán Việt, Onyomi, Kunyomi hoặc ý nghĩa..." oninput="onLibKeywordInput(this.value)" style="width: 100%; padding-left: 36px;">
+                                <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--color-text-muted);">🔍</span>
+                            </div>
+
+                            <div style="width: 140px;">
+                                <input type="number" id="libFilterStrokes" min="1" max="64" class="search-input" placeholder="Số nét..." oninput="onLibStrokeCountInput(this.value)" style="width: 100%;" title="Lọc theo số nét vẽ">
+                            </div>
+
+                            <button type="button" class="btn btn-outline" onclick="onResetLibFilters()" style="padding: 9px 16px; font-size: 13px;" title="Đặt lại bộ lọc về mặc định">
+                                <span>↺</span> <span>Đặt lại</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lưới thẻ chữ Hán (Grid) -->
+                    <div id="libKanjiGrid" class="kanji-catalog-grid">
+                        <!-- Thẻ chữ Hán được tải động từ kanji-catalog.js -->
+                    </div>
+
+                    <!-- Thanh phân trang & Tổng số lượng -->
+                    <div id="libPaginationBar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--color-border);">
+                        <div id="libPaginationInfo" style="font-size: 13px; color: var(--color-text-secondary);">
+                            Đang tải dữ liệu...
+                        </div>
+                        <div id="libPaginationBtns" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        </div>
+                    </div>
                 </div>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="libLevelFilterGroup">
-                    <button type="button" class="level-filter-btn active" data-level="ALL" onclick="onSelectJlptLevel('ALL')">Tất cả cấp độ</button>
-                    <button type="button" class="level-filter-btn" data-level="N5" onclick="onSelectJlptLevel('N5')">JLPT N5</button>
-                    <button type="button" class="level-filter-btn" data-level="N4" onclick="onSelectJlptLevel('N4')">JLPT N4</button>
-                    <button type="button" class="level-filter-btn" data-level="N3" onclick="onSelectJlptLevel('N3')">JLPT N3</button>
-                    <button type="button" class="level-filter-btn" data-level="N2" onclick="onSelectJlptLevel('N2')">JLPT N2</button>
-                    <button type="button" class="level-filter-btn" data-level="N1" onclick="onSelectJlptLevel('N1')">JLPT N1</button>
-                </div>
-            </div>
 
-            <!-- Hàng 2: Bộ lọc từ khóa & Số nét -->
-            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
-                <div style="flex: 1; min-width: 240px; position: relative;">
-                    <input type="text" id="libFilterKeyword" class="search-input" placeholder="Tìm theo chữ Hán, Hán Việt, Onyomi, Kunyomi hoặc ý nghĩa..." oninput="onLibKeywordInput(this.value)" style="width: 100%; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 14px 10px 36px; font-size: 13.5px;">
-                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; color: var(--color-text-muted);">🔍</span>
-                </div>
+            </main>
 
-                <div style="width: 140px;">
-                    <input type="number" id="libFilterStrokes" min="1" max="64" class="search-input" placeholder="Số nét..." oninput="onLibStrokeCountInput(this.value)" style="width: 100%; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13.5px;" title="Lọc theo số nét vẽ">
-                </div>
 
-                <button type="button" class="tool-btn" onclick="onResetLibFilters()" style="padding: 10px 16px; font-size: 13.5px; border: 1.5px solid var(--color-border); color: #475569; background: #F8FAFC;" title="Đặt lại bộ lọc về mặc định">
-                    <span>↺</span> <span>Đặt lại</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Lưới thẻ chữ Hán (Grid) -->
-        <div id="libKanjiGrid" class="kanji-catalog-grid">
-            <!-- Thẻ chữ Hán được tải động từ kanji-catalog.js -->
-        </div>
-
-        <!-- Thanh phân trang & Tổng số lượng -->
-        <div id="libPaginationBar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 24px; padding-top: 18px; border-top: 1.5px solid var(--color-border);">
-            <div id="libPaginationInfo" style="font-size: 13px; color: var(--color-text-muted);">
-                Đang tải dữ liệu...
-            </div>
-            <div id="libPaginationBtns" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-            </div>
         </div>
     </div>
 
@@ -983,13 +1078,13 @@
         <div class="kizuna-modal-content">
             <div class="modal-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 24px;">🎨</span>
+                    <span style="font-size: 22px;">🎨</span>
                     <div>
-                        <h3 style="color: var(--color-primary); font-size: 18px; margin: 0;">Kết Quả Đánh Giá Nét Vẽ Chữ "<span id="resKanjiChar">愛</span>"</h3>
-                        <span id="resGradeBadge" style="font-size: 12px; font-weight: 700; color: var(--color-accent);">Xuất sắc</span>
+                        <h3 style="color: var(--color-primary); font-size: 17px; font-weight: 700; margin: 0;">Kết Quả Đánh Giá Nét Vẽ Chữ "<span id="resKanjiChar">愛</span>"</h3>
+                        <span id="resGradeBadge" style="font-size: 12px; font-weight: 700; color: var(--color-secondary);">Xuất sắc</span>
                     </div>
                 </div>
-                <button type="button" class="btn-close-modal" id="btnCloseResultModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94A3B8;">&times;</button>
+                <button type="button" class="btn-close-modal" id="btnCloseResultModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--color-text-muted);">&times;</button>
             </div>
             <div class="modal-body">
                 <!-- Thẻ điểm tổng thể -->
@@ -1017,7 +1112,7 @@
 
                 <!-- 3 Tiêu chí thành phần -->
                 <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--color-primary); font-size: 15px; margin-bottom: 12px;">📊 Điểm 3 Trụ Cột Kỹ Thuật (100 Điểm):</h4>
+                    <h4 style="color: var(--color-primary); font-size: 14px; font-weight: 700; margin-bottom: 12px;">📊 Điểm 3 Trụ Cột Kỹ Thuật (100 Điểm):</h4>
 
                     <!-- Tiêu chí 1: Số nét & Trình tự -->
                     <div class="criteria-row">
@@ -1054,20 +1149,20 @@
                 </div>
 
                 <!-- Bảng trừ điểm (nếu có) -->
-                <div id="boxDeductions" style="margin-bottom: 18px; display: none;">
-                    <h5 style="color: #991B1B; font-size: 14px; margin-bottom: 8px;">⚠️ Các Điểm Cần Chú Ý Sửa:</h5>
+                <div id="boxDeductions" style="margin-bottom: 16px; display: none;">
+                    <h5 style="color: #991B1B; font-size: 13px; font-weight: 700; margin-bottom: 6px;">⚠️ Các Điểm Cần Chú Ý Sửa:</h5>
                     <div class="deductions-list" id="resDeductionsList"></div>
                 </div>
 
                 <!-- Gợi ý hành động -->
                 <div id="boxTips">
-                    <h5 style="color: #166534; font-size: 14px; margin-bottom: 8px;">💡 Mẹo Luyện Nét Của Kizuna Sensei:</h5>
+                    <h5 style="color: #166534; font-size: 13px; font-weight: 700; margin-bottom: 6px;">💡 Mẹo Luyện Nét Của Kizuna Sensei:</h5>
                     <div class="tips-list" id="resTipsList"></div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-outline" id="btnRetryWrite">✍️ Luyện Viết Lại</button>
-                <button type="button" class="btn-primary" id="btnDoneResult">Đã Hiểu</button>
+                <button type="button" class="btn btn-outline" id="btnRetryWrite">✍️ Luyện Viết Lại</button>
+                <button type="button" class="btn btn-primary" id="btnDoneResult">Đã Hiểu</button>
             </div>
         </div>
     </div>
@@ -1079,12 +1174,10 @@
         <div class="kizuna-modal-content" style="max-width: 880px;">
             <div class="modal-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 22px;">🖌️</span>
-                    <div>
-                        <h3 style="color: var(--color-primary); font-size: 18px; margin: 0;">Tra Cứu Chữ Hán Bằng Nét Vẽ Viết Tay</h3>
-                    </div>
+                    <span style="font-size: 20px;">🖌️</span>
+                    <h3 style="color: var(--color-primary); font-size: 17px; font-weight: 700; margin: 0;">Tra Cứu Chữ Hán Bằng Nét Vẽ Viết Tay</h3>
                 </div>
-                <button type="button" class="btn-close-modal" id="btnCloseHwSearchModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94A3B8;">&times;</button>
+                <button type="button" class="btn-close-modal" id="btnCloseHwSearchModal" onclick="closeHwSearchModal(event)" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--color-text-muted);">&times;</button>
             </div>
             <div class="modal-body" style="padding: 20px;">
                 <div class="hw-search-layout">
@@ -1103,46 +1196,43 @@
                         </div>
 
                         <div class="hw-canvas-actions">
-                            <button type="button" class="btn tool-btn" onclick="hwUndoStroke()" title="Xóa nét vừa vẽ">
-                                <span>↶</span>
-                                <span>Xóa Nét</span>
+                            <button type="button" class="btn btn-outline" onclick="hwUndoStroke()" title="Xóa nét vừa vẽ" style="flex: 1; padding: 7px 10px; font-size: 12.5px;">
+                                <span>↶</span> <span>Xóa Nét</span>
                             </button>
-                            <button type="button" class="btn tool-btn" onclick="hwClearCanvas()" title="Xóa toàn bộ nét và viết lại" style="color: #DC2626;">
-                                <span>🗑️</span>
-                                <span>Xóa Hết</span>
+                            <button type="button" class="btn btn-outline" onclick="hwClearCanvas()" title="Xóa toàn bộ nét và viết lại" style="flex: 1; padding: 7px 10px; font-size: 12.5px; color: var(--color-danger);">
+                                <span>🗑️</span> <span>Xóa Hết</span>
                             </button>
-                            <button type="button" class="btn btn-primary" onclick="hwExecuteRecognition()" title="Kích hoạt nhận diện ngay">
-                                <span>⚡</span>
-                                <span>Nhận Diện</span>
+                            <button type="button" class="btn btn-primary" onclick="hwExecuteRecognition()" title="Kích hoạt nhận diện ngay" style="flex: 1; padding: 7px 10px; font-size: 12.5px;">
+                                <span>⚡</span> <span>Nhận Diện</span>
                             </button>
                         </div>
 
-                        <div style="margin-top: 12px; background: #FAF9F6; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px 12px; width: 100%; font-size: 11.5px; color: var(--color-text-muted); line-height: 1.45;">
-                            💡 <strong>Hướng dẫn:</strong> Dùng chuột hoặc ngón tay vẽ từng nét chữ Hán vào ô Mễ. Hệ thống tự động nhận diện và cập nhật danh sách chữ gợi ý tức thì sau mỗi nét vẽ!
+                        <div style="margin-top: 12px; background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 12px; width: 100%; font-size: 11.5px; color: var(--color-text-secondary); line-height: 1.45;">
+                            💡 <strong>Hướng dẫn:</strong> Vẽ từng nét chữ Hán vào ô Mễ. Hệ thống tự động nhận diện và gợi ý chữ tức thì sau mỗi nét vẽ.
                         </div>
                     </div>
 
                     <!-- CỘT 2: KẾT QUẢ GỢI Ý TỪ KIZUNA SENSEI -->
                     <div class="hw-candidate-panel">
                         <div class="hw-panel-header">
-                            <div class="hw-panel-title">
+                            <div style="font-size: 14px; font-weight: 700; color: var(--color-primary);">
                                 <span>🎯 Gợi ý từ Kizuna Sensei</span>
                             </div>
                             <span id="hwEngineBadge" style="display: none;"></span>
                         </div>
 
                         <div id="hwCandidateList" class="hw-candidate-grid">
-                            <div style="grid-column: 1/-1; text-align: center; padding: 48px 20px; background: #FAF9F6; border: 1.5px dashed var(--color-border); border-radius: 14px;">
-                                <div style="font-size: 38px; margin-bottom: 8px;">🖌️</div>
-                                <h5 style="margin: 0 0 6px 0; color: var(--color-primary); font-size: 15px; font-weight: 700;">Bảng Nhận Diện Viết Tay Sẵn Sàng</h5>
-                                <p style="margin: 0; color: var(--color-text-muted); font-size: 13px;">Hãy vẽ từng nét chữ Hán vào ô vuông bên trái. Kết quả gợi ý sẽ hiển thị tức thì theo thời gian thực.</p>
+                            <div style="grid-column: 1/-1; text-align: center; padding: 48px 20px; background: var(--color-surface-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-lg);">
+                                <div style="font-size: 32px; margin-bottom: 8px;">🖌️</div>
+                                <h5 style="margin: 0 0 6px 0; color: var(--color-primary); font-size: 14px; font-weight: 700;">Bảng Nhận Diện Sẵn Sàng</h5>
+                                <p style="margin: 0; color: var(--color-text-secondary); font-size: 12.5px;">Hãy vẽ nét chữ Hán vào ô bên trái để nhận gợi ý tức thì theo thời gian thực.</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-outline" onclick="closeHwSearchModal(event)">Đóng</button>
+                <button type="button" class="btn btn-outline" onclick="closeHwSearchModal(event)">Đóng</button>
             </div>
         </div>
     </div>
@@ -1151,38 +1241,38 @@
     <!-- MODAL 4: CHI TIẾT CHỮ HÁN TỪ TRA CỨU VIẾT TAY -->
     <!-- ========================================================================= -->
     <div class="kizuna-modal-backdrop" id="hwDetailModal" onclick="if(event.target === this) closeHwDetailModal(event)">
-        <div class="kizuna-modal-content" onclick="event.stopPropagation()" style="max-width: 540px;">
+        <div class="kizuna-modal-content" onclick="event.stopPropagation()" style="max-width: 520px;">
             <div class="modal-header">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 20px;">🔍</span>
-                    <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--color-primary);">Chi Tiết Chữ Hán Tra Cứu</h3>
+                    <span style="font-size: 18px;">🔍</span>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--color-primary);">Chi Tiết Chữ Hán Tra Cứu</h3>
                 </div>
-                <button type="button" class="btn-close-modal" onclick="closeHwDetailModal(event)" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94A3B8;">&times;</button>
+                <button type="button" class="btn-close-modal" onclick="closeHwDetailModal(event)" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--color-text-muted);">&times;</button>
             </div>
 
             <div class="modal-body" style="padding: 20px;">
-                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 20px; align-items: start; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: 130px 1fr; gap: 16px; align-items: start;">
                     <!-- CỘT TRÁI: HÌNH CHỮ HÁN SVG -->
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        <div id="hwModalSvgBox" style="width: 140px; height: 140px; background: #FFFFFF; border: 1.5px solid var(--color-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: var(--shadow-sm);">
-                            <span id="hwModalChar" style="font-family: 'Noto Serif JP', serif, 'Hiragino Mincho Pro', 'Yu Mincho'; font-size: 64px; font-weight: 900; color: var(--color-primary);">?</span>
+                        <div id="hwModalSvgBox" style="width: 130px; height: 130px; background: #FFFFFF; border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: var(--shadow-xs);">
+                            <span id="hwModalChar" style="font-family: 'Noto Serif JP', serif, 'Hiragino Mincho Pro', 'Yu Mincho'; font-size: 60px; font-weight: 700; color: var(--color-primary);">?</span>
                         </div>
-                        <span style="font-size: 11.5px; color: var(--color-text-muted); margin-top: 6px; font-weight: 600;">Chuẩn nét KanjiVG</span>
+                        <span style="font-size: 11px; color: var(--color-text-muted); margin-top: 6px; font-weight: 600;">Chuẩn KanjiVG</span>
                     </div>
 
                     <!-- CỘT PHẢI: CHI TIẾT NGỮ NGHĨA -->
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         <div>
-                            <span style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px;">Âm Hán Việt &amp; Ý Nghĩa</span>
+                            <span style="font-size: 10.5px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase;">Âm Hán Việt &amp; Ý Nghĩa</span>
                             <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 2px;">
-                                <h2 id="hwModalHanViet" style="margin: 0; font-size: 22px; font-weight: 900; color: var(--color-primary);">-</h2>
-                                <span id="hwModalJlpt" style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">N5</span>
-                                <span id="hwModalStrokes" style="background: #F1F5F9; color: #475569; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">0 nét</span>
+                                <h2 id="hwModalHanViet" style="margin: 0; font-size: 20px; font-weight: 800; color: var(--color-primary);">-</h2>
+                                <span id="hwModalJlpt" class="hw-tile-jlpt">N5</span>
+                                <span id="hwModalStrokes" style="background: var(--color-surface-muted); color: var(--color-text-secondary); font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px;">0 nét</span>
                             </div>
-                            <p id="hwModalMeaning" style="margin: 4px 0 0 0; font-size: 13.5px; color: var(--color-text); line-height: 1.5;">-</p>
+                            <p id="hwModalMeaning" style="margin: 4px 0 0 0; font-size: 13px; color: var(--color-text); line-height: 1.45;">-</p>
                         </div>
 
-                        <div style="background: #FAF9F6; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; font-size: 12.5px;">
+                        <div style="background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
                             <div>
                                 <strong style="color: var(--color-text-muted);">Âm Onyomi:</strong>
                                 <span id="hwModalOnyomi" style="color: var(--color-primary); font-weight: 600; margin-left: 6px;">-</span>
@@ -1197,23 +1287,337 @@
             </div>
 
             <div class="modal-footer" style="gap: 8px;">
-                <button type="button" class="btn-primary" onclick="practiceSelectedHwKanji(event)" style="padding: 8px 16px; font-size: 13px;">
+                <button type="button" class="btn btn-primary" onclick="practiceSelectedHwKanji(event)" style="padding: 8px 16px; font-size: 12.5px;">
                     <span>✍️</span> <span>Luyện Viết Chữ Này</span>
                 </button>
-                <button type="button" class="btn-outline" onclick="copyHwSelectedChar(event)" style="padding: 8px 14px; font-size: 13px;">
+                <button type="button" class="btn btn-outline" onclick="copyHwSelectedChar(event)" style="padding: 8px 14px; font-size: 12.5px;">
                     <span>📋</span> <span>Sao Chép</span>
                 </button>
-                <button type="button" class="btn-outline" onclick="closeHwDetailModal(event)" style="padding: 8px 14px; font-size: 13px;">
+                <button type="button" class="btn btn-outline" onclick="closeHwDetailModal(event)" style="padding: 8px 14px; font-size: 12.5px;">
                     <span>Đóng</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <div th:replace="~{fragments/footer :: footer}"></div>
+    <!-- ========================================================================= -->
+    <!-- HỘP THOẠI 1: CẤU HÌNH VÁN HỌC TẬP (MODAL MINIGAME PRE-BOUND FOLDER) -->
+    <!-- ========================================================================= -->
+    <div id="gameConfigModal" class="kizuna-modal-backdrop">
+        <div class="kizuna-modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">🎮</span>
+                    <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--color-primary);">Thiết Lập Ván Mưa Chữ Hán</h3>
+                </div>
+                <button type="button" class="btn-close-modal" onclick="closeGameConfigModal()" style="background: transparent; border: none; color: var(--color-text-muted); font-size: 22px; cursor: pointer;">&times;</button>
+            </div>
+
+            <div style="padding: 22px 24px;">
+                <!-- Khối hiển thị bộ thẻ đã chọn tự động từ Bộ Thẻ Của Tôi -->
+                <div style="background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 18px; display: none;">
+                    <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">Bộ Thẻ Đang Luyện Tập:</div>
+                    <div id="gameConfigSelectedFolderBadge" style="font-size: 14.5px; font-weight: 800; color: var(--color-primary); margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+                        Đang nạp...
+                    </div>
+                </div>
+
+                <!-- 1. Chọn Thư mục học tập (Chỉ hiển thị khi mở tổng quát) -->
+                <div id="gameConfigSelectFolderContainer" style="margin-bottom: 18px;">
+                    <label style="display: block; font-weight: 700; color: var(--color-text); margin-bottom: 6px; font-size: 13px;">📁 Chọn Thư Mục / Bộ Thẻ Chữ Hán:</label>
+                    <select id="selectGameFolder" class="search-input" style="width: 100%;">
+                        <option value="">-- Chọn bộ thẻ luyện tập --</option>
+                    </select>
+                </div>
+
+                <!-- 2. Chọn Thời gian chơi: [1 phút | 3 phút | 5 phút] -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 700; color: var(--color-text); margin-bottom: 8px; font-size: 13px;">⏱️ Chọn Thời Lượng Ván Đấu:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                        <label style="border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 6px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; background: var(--color-surface-muted);">
+                            <input type="radio" name="gameDurationRadio" value="60" checked style="margin-bottom: 4px; accent-color: var(--color-secondary);">
+                            <span style="font-weight: 700; font-size: 13px; color: var(--color-text);">1 Phút</span>
+                            <span style="font-size: 10.5px; color: var(--color-text-muted);">Khởi động</span>
+                        </label>
+                        <label style="border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 6px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; background: var(--color-surface-muted);">
+                            <input type="radio" name="gameDurationRadio" value="180" style="margin-bottom: 4px; accent-color: var(--color-secondary);">
+                            <span style="font-weight: 700; font-size: 13px; color: var(--color-text);">3 Phút</span>
+                            <span style="font-size: 10.5px; color: var(--color-text-muted);">Tiêu chuẩn</span>
+                        </label>
+                        <label style="border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 6px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; background: var(--color-surface-muted);">
+                            <input type="radio" name="gameDurationRadio" value="300" style="margin-bottom: 4px; accent-color: var(--color-secondary);">
+                            <span style="font-weight: 700; font-size: 13px; color: var(--color-text);">5 Phút</span>
+                            <span style="font-size: 10.5px; color: var(--color-text-muted);">Thử thách</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 3. Cảnh báo trực quan -->
+                <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 8px;">
+                    <span style="font-size: 18px;">⚠️</span>
+                    <div style="font-size: 12.5px; color: #92400E; line-height: 1.45;">
+                        <strong>Lưu ý:</strong> Vui lòng chuyển bộ gõ sang <strong>chế độ Hiragana</strong> để hệ thống nhận diện chính xác.
+                    </div>
+                </div>
+
+                <button type="button" id="btnStartGameSubmit" class="btn btn-primary" onclick="startKanjiRainGame()" style="width: 100%; padding: 12px; font-size: 14.5px;">
+                    🚀 Bắt Đầu Luyện Tập
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- HỘP THOẠI 2: KẾT THÚC VÁN ĐẤU (CHƯA VƯỢT QUA) -->
+    <!-- ========================================================================= -->
+    <div id="gameOverModal" class="kizuna-modal-backdrop">
+        <div class="kizuna-modal-content" style="max-width: 480px;">
+            <div style="background: var(--color-danger); color: #FFFFFF; padding: 18px 24px; text-align: center; border-top-left-radius: var(--radius-xl); border-top-right-radius: var(--radius-xl);">
+                <div style="font-size: 32px; margin-bottom: 4px;">⌛</div>
+                <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #FFFFFF;">KẾT THÚC VÁN ĐẤU</h3>
+                <p style="margin: 4px 0 0 0; font-size: 12.5px; color: #FECACA;">Chữ Hán đã chạm vào vạch nguy hiểm trước khi kịp gõ!</p>
+            </div>
+
+            <div style="padding: 22px 24px;">
+                <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-lg); padding: 14px; text-align: center; margin-bottom: 18px;">
+                    <div style="font-size: 11px; font-weight: 700; color: var(--color-danger); text-transform: uppercase;">Chữ Khiến Bạn Dừng Bước</div>
+                    <div id="goFailedChar" style="font-size: 54px; font-weight: 800; color: #991B1B; margin: 4px 0; font-family: 'Noto Sans JP', sans-serif;">?</div>
+                    <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 4px;">
+                        <span style="background: #FEE2E2; color: #991B1B; font-weight: 700; padding: 2px 10px; border-radius: 6px; font-size: 13px;" id="goFailedReading">...</span>
+                        <span style="background: #FEE2E2; color: #991B1B; font-weight: 700; padding: 2px 10px; border-radius: 6px; font-size: 13px;" id="goFailedHanViet">...</span>
+                    </div>
+                    <div id="goFailedMeaning" style="font-size: 12.5px; color: var(--color-text-secondary);">...</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 18px;">
+                    <div style="background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px; text-align: center;">
+                        <div style="font-size: 10.5px; color: var(--color-text-muted); font-weight: 600;">Đã Bắn Trúng</div>
+                        <div id="goStatWords" style="font-size: 16px; font-weight: 800; color: var(--color-success);">0 chữ</div>
+                    </div>
+                    <div style="background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px; text-align: center;">
+                        <div style="font-size: 10.5px; color: var(--color-text-muted); font-weight: 600;">Điểm Số</div>
+                        <div id="goStatScore" style="font-size: 16px; font-weight: 800; color: var(--color-secondary);">0</div>
+                    </div>
+                    <div style="background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px; text-align: center;">
+                        <div style="font-size: 10.5px; color: var(--color-text-muted); font-weight: 600;">Chính Xác</div>
+                        <div id="goStatAccuracy" style="font-size: 16px; font-weight: 800; color: var(--color-primary);">100%</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size: 11.5px; font-weight: 700; color: var(--color-text-muted); margin-bottom: 6px;">CÁC CHỮ CHƯA KỊP GÕ:</div>
+                    <div id="goRemainingList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-primary" onclick="restartKanjiGame()" style="flex: 1; padding: 10px; font-size: 13.5px;">
+                        🔄 Thử Lại
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="exitToGameSetup()" style="padding: 10px 16px; font-size: 13.5px;">
+                        Quay Về
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- HỘP THOẠI 3: CHIẾN THẮNG XUẤT SẮC -->
+    <!-- ========================================================================= -->
+    <div id="gameWinModal" class="kizuna-modal-backdrop">
+        <div class="kizuna-modal-content" style="max-width: 460px; text-align: center;">
+            <div style="background: var(--color-success); color: #FFFFFF; padding: 20px 24px; border-top-left-radius: var(--radius-xl); border-top-right-radius: var(--radius-xl);">
+                <div style="font-size: 40px; margin-bottom: 4px;">🏆</div>
+                <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: #FFFFFF;">CHIẾN THẮNG XUẤT SẮC!</h3>
+                <div id="winRankTitle" style="display: inline-block; background: rgba(255,255,255,0.2); border-radius: 20px; padding: 3px 14px; font-size: 13px; font-weight: 700; margin-top: 6px;">
+                    Bậc Thầy Chữ Hán
+                </div>
+            </div>
+
+            <div style="padding: 22px 24px;">
+                <p style="color: var(--color-text-secondary); font-size: 13.5px; margin: 0 0 18px 0;">
+                    Bạn đã xuất sắc vượt qua toàn bộ cơn mưa chữ Hán mà không để chữ nào chạm đáy!
+                </p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 20px;">
+                    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: var(--radius-md); padding: 10px; text-align: center;">
+                        <div style="font-size: 10.5px; color: #166534; font-weight: 600;">SỐ CHỮ GÕ ĐÚNG</div>
+                        <div id="winStatWords" style="font-size: 18px; font-weight: 800; color: #15803D; margin-top: 2px;">0 chữ</div>
+                    </div>
+                    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: var(--radius-md); padding: 10px; text-align: center;">
+                        <div style="font-size: 10.5px; color: #166534; font-weight: 600;">ĐIỂM TÍCH LŨY</div>
+                        <div id="winStatScore" style="font-size: 18px; font-weight: 800; color: var(--color-secondary); margin-top: 2px;">0</div>
+                    </div>
+                    <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: var(--radius-md); padding: 10px; text-align: center;">
+                        <div style="font-size: 10.5px; color: #166534; font-weight: 600;">ĐỘ CHÍNH XÁC</div>
+                        <div id="winStatAccuracy" style="font-size: 18px; font-weight: 800; color: var(--color-primary); margin-top: 2px;">100%</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-secondary" onclick="restartKanjiGame()" style="flex: 1; padding: 11px; font-size: 14px;">
+                        🎉 Luyện Ván Mới
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="exitToGameSetup()" style="padding: 11px 18px; font-size: 14px;">
+                        Quay Về
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- HỘP THOẠI 1: TẠO BỘ THẺ MỚI -->
+    <!-- ========================================================================= -->
+    <div id="kfmCreateFolderModal" class="kizuna-modal-backdrop">
+        <div class="kizuna-modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">📁</span>
+                    <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--color-primary);">Tạo Bộ Thẻ Học Tập Mới</h3>
+                </div>
+                <button type="button" class="btn-close-modal" onclick="kfmCloseCreateModal()" style="background: transparent; border: none; color: var(--color-text-muted); font-size: 22px; cursor: pointer;">&times;</button>
+            </div>
+
+            <form onsubmit="kfmSubmitCreateFolder(event)" style="padding: 20px 24px;">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 700; color: var(--color-text); margin-bottom: 6px; font-size: 13px;">
+                        Tên Bộ Thẻ Học Tập: <span style="color: var(--color-danger);">*</span>
+                    </label>
+                    <input type="text" id="kfmNewFolderName" class="search-input" placeholder="Ví dụ: Chữ Hán N5 Bài 1, Động Từ Chỉ Hành Động..." required style="width: 100%;">
+                </div>
+
+                <div style="margin-bottom: 22px;">
+                    <label style="display: block; font-weight: 700; color: var(--color-text); margin-bottom: 6px; font-size: 13px;">
+                        Mục Tiêu Hoặc Ghi Chú:
+                    </label>
+                    <input type="text" id="kfmNewFolderDesc" class="search-input" placeholder="Ví dụ: Ôn tập 20 chữ cơ bản trước ngày 15..." style="width: 100%;">
+                </div>
+
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="kfmCloseCreateModal()" style="padding: 9px 16px; font-size: 13px;">
+                        Hủy Bỏ
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="padding: 9px 20px; font-size: 13px;">
+                        ✨ Tạo Bộ Thẻ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- HỘP THOẠI 2: CHỈNH SỬA BỘ THẺ -->
+    <!-- ========================================================================= -->
+    <div id="kfmEditFolderModal" class="kizuna-modal-backdrop">
+        <div class="kizuna-modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">✏️</span>
+                    <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--color-primary);">Chỉnh Sửa Bộ Thẻ</h3>
+                </div>
+                <button type="button" class="btn-close-modal" onclick="kfmCloseEditModal()" style="background: transparent; border: none; color: var(--color-text-muted); font-size: 22px; cursor: pointer;">&times;</button>
+            </div>
+
+            <form onsubmit="kfmSubmitEditFolder(event)" style="padding: 20px 24px;">
+                <input type="hidden" id="kfmEditFolderId">
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 700; color: var(--color-text); margin-bottom: 6px; font-size: 13px;">
+                        Tên Bộ Thẻ: <span style="color: var(--color-danger);">*</span>
+                    </label>
+                    <input type="text" id="kfmEditFolderName" class="search-input" required style="width: 100%;">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 700; color: var(--color-text); margin-bottom: 6px; font-size: 13px;">
+                        Mục Tiêu Hoặc Ghi Chú:
+                    </label>
+                    <input type="text" id="kfmEditFolderDesc" class="search-input" style="width: 100%;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 700; color: var(--color-text); margin-bottom: 8px; font-size: 13px;">
+                        Màu Sắc Nhận Diện:
+                    </label>
+                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;">
+                            <input type="radio" name="kfmEditFolderColor" value="#16A34A">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #16A34A;"></span> Xanh Lá
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;">
+                            <input type="radio" name="kfmEditFolderColor" value="#2563EB">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #2563EB;"></span> Xanh Dương
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;">
+                            <input type="radio" name="kfmEditFolderColor" value="#7C3AED">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #7C3AED;"></span> Tím
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;">
+                            <input type="radio" name="kfmEditFolderColor" value="#D97706">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #D97706;"></span> Vàng
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;">
+                            <input type="radio" name="kfmEditFolderColor" value="#DC2626">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #DC2626;"></span> Đỏ
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="kfmCloseEditModal()" style="padding: 9px 16px; font-size: 13px;">
+                        Hủy
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="padding: 9px 20px; font-size: 13px;">
+                        💾 Lưu Thay Đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- HỘP THOẠI 3: THÊM NHANH CHỮ KANJI VÀO BỘ THẺ -->
+    <!-- ========================================================================= -->
+    <div id="kfmQuickAddToFolderModal" class="kizuna-modal-backdrop">
+        <div class="kizuna-modal-content" style="max-width: 460px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">➕</span>
+                    <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--color-primary);">Thêm Chữ Vào Bộ Thẻ Học Tập</h3>
+                </div>
+                <button type="button" class="btn-close-modal" onclick="closeQuickAddToFolderModal()" style="background: transparent; border: none; color: var(--color-text-muted); font-size: 22px; cursor: pointer;">&times;</button>
+            </div>
+
+            <div style="padding: 20px 24px;">
+                <input type="hidden" id="kfmQuickAddKanjiId">
+                <div style="text-align: center; margin-bottom: 16px; padding: 12px; background: var(--color-surface-muted); border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+                    <div style="font-size: 12px; color: var(--color-text-muted); font-weight: 600; margin-bottom: 2px;">Chữ Kanji đang chọn:</div>
+                    <span id="kfmQuickAddTargetChar" style="font-size: 44px; font-family: 'Noto Serif JP', serif; font-weight: 700; color: var(--color-primary); line-height: 1;">愛</span>
+                </div>
+
+                <div style="font-size: 13px; font-weight: 700; color: var(--color-text); margin-bottom: 8px;">
+                    Chọn Bộ Thẻ Muốn Thêm Vào:
+                </div>
+
+                <div id="kfmQuickAddFolderChoices" style="max-height: 220px; overflow-y: auto; margin-bottom: 16px;">
+                    <!-- Dynamic Choices -->
+                </div>
+
+                <div style="text-align: right; border-top: 1px solid var(--color-border); padding-top: 14px;">
+                    <button type="button" class="btn btn-outline" onclick="closeQuickAddToFolderModal()" style="padding: 8px 16px; font-size: 12.5px;">
+                        Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script th:src="@{/js/kanji-canvas.js}"></script>
     <script th:src="@{/js/handwriting-search.js}"></script>
     <script th:src="@{/js/kanji-catalog.js}"></script>
+    <script th:src="@{/js/kanji-folder-manager.js}"></script>
+    <script th:src="@{/js/kanji-rain-game.js}"></script>
+    <script th:src="@{/js/kanji-rain-ui.js}"></script>
 </body>
 </html>

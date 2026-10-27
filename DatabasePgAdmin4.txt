@@ -1,12 +1,22 @@
 -- ====================================================================================================
 -- DỰ ÁN: KIZUNA JAPANESE LEARNING & KANJI PRACTICE PLATFORM
--- TẬP TIN DDL TẠO CƠ SỞ DỮ LIỆU ĐẦY ĐỦ CHO POSTGRESQL (30 BẢNG - 7 PHÂN HỆ)
--- MÔI TRƯỜNG THỰC THI: pgAdmin 4 / PostgreSQL 12, 13, 14, 15, 16+
--- ĐẶC ĐIỂM: Sử dụng Native UUID (gen_random_uuid), JSONB, ENUM types, Trigger tự động cập nhật updated_at
+-- TẬP TIN DDL TẠO CƠ SỞ DỮ LIỆU ĐẦY ĐỦ CHO POSTGRESQL (34 BẢNG - 8 PHÂN HỆ)
+-- MÔI TRƯỜNG THỰC THI: pgAdmin 4 / PostgreSQL 12, 13, 14, 15, 16, 17, 18+
+-- ĐẶC ĐIỂM:
+--   - Sử dụng Native UUID (gen_random_uuid), JSONB, ENUM types
+--   - Trigger tự động cập nhật updated_at
+--   - Đầy đủ 34 bảng tương ứng toàn bộ Entity JPA hiện tại của dự án
+--   - Nạp sẵn 6 Role và đúng 6 Tài khoản mẫu chuẩn (Admin, Manager, CS Staff, Academic Officer, Tutor, Learner)
+--   - Nạp sẵn 3 Gói thành viên Gia sư (Membership Plans), Thư mục Kanji mẫu và Hạn ngạch AI
 -- ====================================================================================================
 
+-- 1. KÍCH HOẠT EXTENSION UUID
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ====================================================================================================
+-- 2. TẠO CÁC KIỂU ENUM HỆ THỐNG
+-- ====================================================================================================
 
 DROP TYPE IF EXISTS user_account_status_enum CASCADE;
 CREATE TYPE user_account_status_enum AS ENUM ('PENDING', 'ACTIVE', 'SUSPENDED', 'BANNED');
@@ -59,6 +69,10 @@ CREATE TYPE support_ticket_status_enum AS ENUM ('OPEN', 'IN_PROGRESS', 'ESCALATE
 DROP TYPE IF EXISTS notification_type_enum CASCADE;
 CREATE TYPE notification_type_enum AS ENUM ('SYSTEM', 'TRIAL', 'ASSIGNMENT', 'PAYMENT', 'TICKET');
 
+-- ====================================================================================================
+-- 3. HÀM TRIGGER CẬP NHẬT THỜI GIAN (updated_at)
+-- ====================================================================================================
+
 CREATE OR REPLACE FUNCTION update_timestamp_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -67,6 +81,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ====================================================================================================
+-- PHÂN HỆ 1: NGƯỜI DÙNG & XÁC THỰC PHÂN QUYỀN (USERS & ROLES)
+-- ====================================================================================================
+
+-- 1. Bảng Vai Trò (Roles)
 DROP TABLE IF EXISTS roles CASCADE;
 CREATE TABLE roles (
     role_id SMALLSERIAL PRIMARY KEY,
@@ -75,6 +94,7 @@ CREATE TABLE roles (
     is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
+-- 2. Bảng Người Dùng (Users)
 DROP TABLE IF EXISTS users CASCADE;
 CREATE TABLE users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -85,6 +105,7 @@ CREATE TABLE users (
     phone VARCHAR(20),
     avatar_url VARCHAR(500),
     account_status user_account_status_enum NOT NULL DEFAULT 'ACTIVE',
+    must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMPTZ DEFAULT NULL
@@ -94,6 +115,7 @@ CREATE INDEX idx_users_role_id ON users(role_id);
 CREATE INDEX idx_users_status ON users(account_status);
 CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 3. Bảng Hồ Sơ Học Viên (Learners)
 DROP TABLE IF EXISTS learners CASCADE;
 CREATE TABLE learners (
     learner_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -105,6 +127,11 @@ CREATE TABLE learners (
 );
 CREATE TRIGGER trg_learners_updated_at BEFORE UPDATE ON learners FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- ====================================================================================================
+-- PHÂN HỆ 2: HỒ SƠ GIA SƯ & THẨM ĐỊNH (TUTOR PROFILE & VERIFICATION)
+-- ====================================================================================================
+
+-- 4. Bảng Hồ Sơ Gia Sư (Tutors)
 DROP TABLE IF EXISTS tutors CASCADE;
 CREATE TABLE tutors (
     tutor_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -119,6 +146,14 @@ CREATE TABLE tutors (
     verification_status tutor_verification_status_enum NOT NULL DEFAULT 'UNVERIFIED',
     membership_status tutor_membership_status_enum NOT NULL DEFAULT 'FREE',
     is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+    tutor_state VARCHAR(30) NOT NULL DEFAULT 'DRAFT_PROFILE',
+    phone VARCHAR(20),
+    date_of_birth DATE,
+    address VARCHAR(255),
+    certificate_urls TEXT,
+    verification_feedback TEXT,
+    submitted_at TIMESTAMPTZ,
+    verified_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_tutors_verif_status ON tutors(verification_status);
@@ -127,6 +162,7 @@ CREATE INDEX idx_tutors_hourly_rate ON tutors(hourly_rate);
 CREATE INDEX idx_tutors_is_featured ON tutors(is_featured);
 CREATE TRIGGER trg_tutors_updated_at BEFORE UPDATE ON tutors FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 5. Bảng Chứng Chỉ / Bằng Cấp Gia Sư (Tutor Credentials)
 DROP TABLE IF EXISTS tutor_credentials CASCADE;
 CREATE TABLE tutor_credentials (
     credential_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -141,6 +177,7 @@ CREATE TABLE tutor_credentials (
 CREATE INDEX idx_credentials_tutor_id ON tutor_credentials(tutor_id);
 CREATE INDEX idx_credentials_status ON tutor_credentials(verified_status);
 
+-- 6. Bảng Nhật Ký Thẩm Định Gia Sư (Tutor Verification Histories)
 DROP TABLE IF EXISTS tutor_verification_histories CASCADE;
 CREATE TABLE tutor_verification_histories (
     history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -153,6 +190,7 @@ CREATE TABLE tutor_verification_histories (
 CREATE INDEX idx_verif_hist_tutor ON tutor_verification_histories(tutor_id);
 CREATE INDEX idx_verif_hist_officer ON tutor_verification_histories(officer_id);
 
+-- 7. Bảng Lịch Rảnh Giảng Dạy Của Gia Sư (Tutor Availabilities)
 DROP TABLE IF EXISTS tutor_availabilities CASCADE;
 CREATE TABLE tutor_availabilities (
     availability_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -165,6 +203,11 @@ CREATE TABLE tutor_availabilities (
 );
 CREATE INDEX idx_avail_tutor_day ON tutor_availabilities(tutor_id, day_of_week);
 
+-- ====================================================================================================
+-- PHÂN HỆ 3: KẾT NỐI, HỌC THỬ & KHÔNG GIAN HỌC TẬP (BOOKING & LEARNING SPACE)
+-- ====================================================================================================
+
+-- 8. Bảng Yêu Cầu Kết Nối (Connection Requests)
 DROP TABLE IF EXISTS connection_requests CASCADE;
 CREATE TABLE connection_requests (
     request_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -179,6 +222,7 @@ CREATE INDEX idx_conn_learner ON connection_requests(learner_id);
 CREATE INDEX idx_conn_tutor ON connection_requests(tutor_id);
 CREATE INDEX idx_conn_status ON connection_requests(status);
 
+-- 9. Bảng Đặt Lịch Học Thử (Trial Bookings)
 DROP TABLE IF EXISTS trial_bookings CASCADE;
 CREATE TABLE trial_bookings (
     booking_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -202,6 +246,7 @@ CREATE INDEX idx_trial_status ON trial_bookings(booking_status);
 CREATE INDEX idx_trial_time ON trial_bookings(scheduled_start_time, scheduled_end_time);
 CREATE TRIGGER trg_trial_bookings_updated_at BEFORE UPDATE ON trial_bookings FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 10. Bảng Nhật Ký Thay Đổi Trạng Thái Học Thử (Trial Booking Histories)
 DROP TABLE IF EXISTS trial_booking_histories CASCADE;
 CREATE TABLE trial_booking_histories (
     history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -214,6 +259,7 @@ CREATE TABLE trial_booking_histories (
 );
 CREATE INDEX idx_trial_hist_booking ON trial_booking_histories(booking_id);
 
+-- 11. Bảng Không Gian Học Tập Chính Thức (Learning Spaces)
 DROP TABLE IF EXISTS learning_spaces CASCADE;
 CREATE TABLE learning_spaces (
     space_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -228,6 +274,7 @@ CREATE TABLE learning_spaces (
 CREATE INDEX idx_spaces_tutor_learner ON learning_spaces(tutor_id, learner_id);
 CREATE TRIGGER trg_spaces_updated_at BEFORE UPDATE ON learning_spaces FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 12. Bảng Tài Liệu Học Tập (Learning Materials)
 DROP TABLE IF EXISTS learning_materials CASCADE;
 CREATE TABLE learning_materials (
     material_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -240,6 +287,7 @@ CREATE TABLE learning_materials (
 );
 CREATE INDEX idx_materials_space ON learning_materials(space_id);
 
+-- 13. Bảng Bài Tập Về Nhà (Assignments)
 DROP TABLE IF EXISTS assignments CASCADE;
 CREATE TABLE assignments (
     assignment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -254,6 +302,7 @@ CREATE TABLE assignments (
 CREATE INDEX idx_assignments_space_id ON assignments(space_id);
 CREATE TRIGGER trg_assignments_updated_at BEFORE UPDATE ON assignments FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 14. Bảng Bài Nộp Của Học Viên (Assignment Submissions)
 DROP TABLE IF EXISTS assignment_submissions CASCADE;
 CREATE TABLE assignment_submissions (
     submission_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -273,6 +322,11 @@ CREATE TABLE assignment_submissions (
 );
 CREATE INDEX idx_submissions_assign_learner ON assignment_submissions(assignment_id, learner_id);
 
+-- ====================================================================================================
+-- PHÂN HỆ 4: KHO TỪ ĐIỂN KANJI, BỘ THẺ & MINIGAME LUYỆN VIẾT
+-- ====================================================================================================
+
+-- 15. Bảng Kho Từ Điển Gốc Kanji (Kanji Dictionary)
 DROP TABLE IF EXISTS kanji_dictionary CASCADE;
 CREATE TABLE kanji_dictionary (
     kanji_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -295,6 +349,7 @@ CREATE INDEX idx_kanji_jlpt ON kanji_dictionary(jlpt_level);
 CREATE INDEX idx_kanji_han_viet ON kanji_dictionary(han_viet);
 CREATE TRIGGER trg_kanji_updated_at BEFORE UPDATE ON kanji_dictionary FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 16. Bảng Mục Kanji Trong Bài Tập (Assignment Kanji Items)
 DROP TABLE IF EXISTS assignment_kanji_items CASCADE;
 CREATE TABLE assignment_kanji_items (
     item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -306,6 +361,7 @@ CREATE TABLE assignment_kanji_items (
     CONSTRAINT uq_assign_kanji UNIQUE (assignment_id, kanji_id)
 );
 
+-- 17. Bảng Bài Thực Hành Luyện Chữ Hán Của Học Viên (Kanji Practice Submissions)
 DROP TABLE IF EXISTS kanji_practice_submissions CASCADE;
 CREATE TABLE kanji_practice_submissions (
     practice_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -323,6 +379,7 @@ CREATE TABLE kanji_practice_submissions (
 CREATE INDEX idx_practice_learner ON kanji_practice_submissions(learner_id);
 CREATE INDEX idx_practice_status ON kanji_practice_submissions(status);
 
+-- 18. Bảng Ghi Nhận Tiến Độ Học Chữ Hán (Learning Progress Records)
 DROP TABLE IF EXISTS learning_progress_records CASCADE;
 CREATE TABLE learning_progress_records (
     progress_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -335,6 +392,75 @@ CREATE TABLE learning_progress_records (
     CONSTRAINT uq_learner_kanji_progress UNIQUE (learner_id, kanji_id)
 );
 
+-- 19. Bảng Thư Mục / Bộ Thẻ Kanji Cá Nhân Của Người Dùng (Kanji Folders)
+DROP TABLE IF EXISTS kanji_folders CASCADE;
+CREATE TABLE kanji_folders (
+    folder_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    folder_name VARCHAR(100) NOT NULL,
+    description VARCHAR(500),
+    color VARCHAR(30) DEFAULT '#EF4444',
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_kanji_folders_user ON kanji_folders(user_id);
+CREATE TRIGGER trg_kanji_folders_updated_at BEFORE UPDATE ON kanji_folders FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+
+-- 20. Bảng Liên Kết Chữ Kanji Thuộc Bộ Thẻ (Kanji Folder Items)
+DROP TABLE IF EXISTS kanji_folder_items CASCADE;
+CREATE TABLE kanji_folder_items (
+    item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    folder_id UUID NOT NULL REFERENCES kanji_folders(folder_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    kanji_id UUID NOT NULL REFERENCES kanji_dictionary(kanji_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    order_index INTEGER NOT NULL DEFAULT 0,
+    notes VARCHAR(255),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_folder_kanji UNIQUE (folder_id, kanji_id)
+);
+CREATE INDEX idx_folder_items_folder ON kanji_folder_items(folder_id);
+CREATE INDEX idx_folder_items_kanji ON kanji_folder_items(kanji_id);
+
+-- 21. Bảng Phiên Chơi Minigame Bắn Chữ Kanji (Minigame Sessions)
+DROP TABLE IF EXISTS minigame_sessions CASCADE;
+CREATE TABLE minigame_sessions (
+    session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    folder_id UUID REFERENCES kanji_folders(folder_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    folder_name VARCHAR(100),
+    duration_seconds INTEGER NOT NULL,
+    target_duration_seconds INTEGER,
+    words_typed_count INTEGER NOT NULL,
+    total_mistakes INTEGER NOT NULL DEFAULT 0,
+    accuracy NUMERIC(5, 2) NOT NULL,
+    score INTEGER NOT NULL DEFAULT 0,
+    is_won BOOLEAN NOT NULL,
+    failed_kanji_id UUID REFERENCES kanji_dictionary(kanji_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    failed_kanji_character VARCHAR(10),
+    played_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_minigame_sessions_user ON minigame_sessions(user_id);
+CREATE INDEX idx_minigame_sessions_played ON minigame_sessions(played_at DESC);
+
+-- 22. Bảng Ghi Nhận Lỗi Gõ Sai Trong Minigame (Minigame Mistake Logs)
+DROP TABLE IF EXISTS minigame_mistake_logs CASCADE;
+CREATE TABLE minigame_mistake_logs (
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES minigame_sessions(session_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    kanji_id UUID REFERENCES kanji_dictionary(kanji_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    kanji_character VARCHAR(10) NOT NULL,
+    reading VARCHAR(50),
+    mistake_count INTEGER NOT NULL DEFAULT 1,
+    typed_input VARCHAR(100),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_minigame_mistakes_session ON minigame_mistake_logs(session_id);
+
+-- ====================================================================================================
+-- PHÂN HỆ 5: ĐÁNH GIÁ, GÓI THÀNH VIÊN & THANH TOÁN (REVIEWS, MEMBERSHIP & PAYMENTS)
+-- ====================================================================================================
+
+-- 23. Bảng Đánh Giá Gia Sư (Tutor Reviews)
 DROP TABLE IF EXISTS tutor_reviews CASCADE;
 CREATE TABLE tutor_reviews (
     review_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -347,6 +473,7 @@ CREATE TABLE tutor_reviews (
 );
 CREATE INDEX idx_reviews_tutor_id ON tutor_reviews(tutor_id);
 
+-- 24. Bảng Gói Thành Viên Gia Sư (Membership Plans)
 DROP TABLE IF EXISTS membership_plans CASCADE;
 CREATE TABLE membership_plans (
     plan_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -358,6 +485,7 @@ CREATE TABLE membership_plans (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 25. Bảng Hội Viên Gia Sư Đang Hoạt Động (Tutor Memberships)
 DROP TABLE IF EXISTS tutor_memberships CASCADE;
 CREATE TABLE tutor_memberships (
     membership_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -366,10 +494,15 @@ CREATE TABLE tutor_memberships (
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     status tutor_membership_state_enum NOT NULL DEFAULT 'ACTIVE',
+    amount NUMERIC(12, 2),
+    transaction_ref VARCHAR(100),
+    payment_status VARCHAR(30) DEFAULT 'PENDING',
+    payment_gateway VARCHAR(50) DEFAULT 'VNPay',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_membership_tutor ON tutor_memberships(tutor_id, status);
 
+-- 26. Bảng Giao Dịch Thanh Toán (Payment Transactions)
 DROP TABLE IF EXISTS payment_transactions CASCADE;
 CREATE TABLE payment_transactions (
     transaction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -386,6 +519,7 @@ CREATE INDEX idx_payment_user ON payment_transactions(user_id);
 CREATE INDEX idx_payment_status ON payment_transactions(status);
 CREATE INDEX idx_payment_gateway_ref ON payment_transactions(gateway_transaction_id);
 
+-- 27. Bảng Nhật Ký Xử Lý Cổng Thanh Toán (Payment Processing Logs)
 DROP TABLE IF EXISTS payment_processing_logs CASCADE;
 CREATE TABLE payment_processing_logs (
     log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -396,6 +530,11 @@ CREATE TABLE payment_processing_logs (
     logged_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ====================================================================================================
+-- PHÂN HỆ 6: CHĂM SÓC KHÁCH HÀNG & THÔNG BÁO (SUPPORT & NOTIFICATIONS)
+-- ====================================================================================================
+
+-- 28. Bảng Vé Hỗ Trợ Khách Hàng (Support Tickets)
 DROP TABLE IF EXISTS support_tickets CASCADE;
 CREATE TABLE support_tickets (
     ticket_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -420,6 +559,7 @@ CREATE INDEX idx_tickets_escalated ON support_tickets(escalated_to);
 CREATE INDEX idx_tickets_status ON support_tickets(status);
 CREATE TRIGGER trg_tickets_updated_at BEFORE UPDATE ON support_tickets FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 29. Bảng Tin Nhắn Trong Vé Hỗ Trợ (Ticket Messages)
 DROP TABLE IF EXISTS ticket_messages CASCADE;
 CREATE TABLE ticket_messages (
     message_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -430,6 +570,7 @@ CREATE TABLE ticket_messages (
     sent_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 30. Bảng Thông Báo Hệ Thống (Notifications)
 DROP TABLE IF EXISTS notifications CASCADE;
 CREATE TABLE notifications (
     notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -439,6 +580,7 @@ CREATE TABLE notifications (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 31. Bảng Thông Báo Của Người Dùng (User Notifications)
 DROP TABLE IF EXISTS user_notifications CASCADE;
 CREATE TABLE user_notifications (
     user_notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -449,6 +591,11 @@ CREATE TABLE user_notifications (
 );
 CREATE INDEX idx_user_notif_unread ON user_notifications(user_id, is_read);
 
+-- ====================================================================================================
+-- PHÂN HỆ 7: CẤU HÌNH HỆ THỐNG, HẠN NGẠCH AI & NHẬT KÝ AUDIT
+-- ====================================================================================================
+
+-- 32. Bảng Cấu Hình Toàn Cục Hệ Thống (System Configurations)
 DROP TABLE IF EXISTS system_configurations CASCADE;
 CREATE TABLE system_configurations (
     config_key VARCHAR(100) PRIMARY KEY,
@@ -459,6 +606,7 @@ CREATE TABLE system_configurations (
 );
 CREATE TRIGGER trg_config_updated_at BEFORE UPDATE ON system_configurations FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 33. Bảng Hạn Ngạch Sử Dụng Tính Năng AI Chấm Nét (AI Feature Quotas)
 DROP TABLE IF EXISTS ai_feature_quotas CASCADE;
 CREATE TABLE ai_feature_quotas (
     quota_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -470,6 +618,7 @@ CREATE TABLE ai_feature_quotas (
 );
 CREATE TRIGGER trg_quotas_updated_at BEFORE UPDATE ON ai_feature_quotas FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 34. Bảng Nhật Ký Kiểm Toán Hệ Thống (System Audit Logs)
 DROP TABLE IF EXISTS system_audit_logs CASCADE;
 CREATE TABLE system_audit_logs (
     log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -485,6 +634,11 @@ CREATE INDEX idx_audit_actor ON system_audit_logs(actor_user_id);
 CREATE INDEX idx_audit_action ON system_audit_logs(action_type);
 CREATE INDEX idx_audit_time ON system_audit_logs(created_at);
 
+-- ====================================================================================================
+-- PHẦN DỮ LIỆU BAN ĐẦU (SEED DATA CHUẨN ĐÁP ỨNG TOÀN DIỆN DỰ ÁN KIZUNATUTOR)
+-- ====================================================================================================
+
+-- 1. Nạp đúng 6 Vai trò hệ thống
 INSERT INTO roles (role_id, role_name, description, is_active) VALUES
 (1, 'ROLE_ADMIN', 'Quản trị viên toàn quyền điều hành hệ thống kỹ thuật', TRUE),
 (2, 'ROLE_MANAGER', 'Quản lý vận hành kinh doanh, báo cáo tài chính và gói hội viên', TRUE),
@@ -496,6 +650,7 @@ ON CONFLICT (role_id) DO UPDATE SET
     role_name = EXCLUDED.role_name,
     description = EXCLUDED.description;
 
+-- 2. Cấu hình tham số toàn cục hệ thống
 INSERT INTO system_configurations (config_key, config_value, data_type, description) VALUES
 ('FREE_TIER_DAILY_AI_LIMIT', '30', 'NUMBER', 'Số lượt AI phân tích nét vẽ miễn phí mỗi ngày cho tài khoản học viên thông thường'),
 ('PRO_TIER_DAILY_AI_LIMIT', '200', 'NUMBER', 'Số lượt AI phân tích nét vẽ cho tài khoản gia sư hoặc học viên cao cấp'),
@@ -505,15 +660,79 @@ INSERT INTO system_configurations (config_key, config_value, data_type, descript
 ON CONFLICT (config_key) DO UPDATE SET
     config_value = EXCLUDED.config_value;
 
-INSERT INTO users (user_id, role_id, email, password_hash, full_name, phone, account_status)
-VALUES (
-    '00000000-0000-0000-0000-000000000001',
-    1,
-    'admin@kizuna.vn',
-    '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
-    'System Administrator',
-    '0901234567',
-    'ACTIVE'
-)
-ON CONFLICT (email) DO NOTHING;
+-- 3. Nạp 3 Gói thành viên Gia sư (Membership Plans)
+INSERT INTO membership_plans (plan_id, plan_name, duration_months, price, features_json, is_active) VALUES
+('00000000-0000-0000-0001-000000000001', 'Gói Khởi Đầu (1 Tháng)', 1, 199000.00, '["Mở khóa phòng học kèm 1:1", "Tối đa 5 học viên cùng lúc", "Sử dụng kho từ điển 6.700 chữ Kanji"]'::jsonb, TRUE),
+('00000000-0000-0000-0001-000000000002', 'Gói Tiêu Chuẩn (3 Tháng)', 3, 499000.00, '["Mở khóa phòng học kèm 1:1", "Tối đa 15 học viên cùng lúc", "Sử dụng kho từ điển 6.700 chữ Kanji", "Tạo bài tập chấm điểm nét vẽ AI", "Hỗ trợ ưu tiên từ CSKH"]'::jsonb, TRUE),
+('00000000-0000-0000-0001-000000000003', 'Gói Chuyên Nghiệp (6 Tháng)', 6, 899000.00, '["Mở khóa phòng học kèm 1:1", "Không giới hạn số lượng học viên", "Toàn bộ tính năng Kanji Shodo Canvas AI", "Gắn huy hiệu Gia sư Uy tín trên trang tìm kiếm", "Hỗ trợ kỹ thuật 24/7"]'::jsonb, TRUE)
+ON CONFLICT (plan_id) DO UPDATE SET
+    plan_name = EXCLUDED.plan_name,
+    duration_months = EXCLUDED.duration_months,
+    price = EXCLUDED.price,
+    features_json = EXCLUDED.features_json,
+    is_active = EXCLUDED.is_active;
 
+-- 4. Nạp đúng 6 Tài khoản mẫu chuẩn (Mật khẩu: admin@kizuna.vn là admin123, 5 tài khoản còn lại là 123456)
+INSERT INTO users (user_id, role_id, email, password_hash, full_name, phone, account_status, must_change_password) VALUES
+('00000000-0000-0000-0000-000000000001', 1, 'admin@kizuna.vn', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'System Administrator', '0901234567', 'ACTIVE', FALSE),
+('00000000-0000-0000-0000-000000000002', 2, 'manager@kizuna.vn', '$2a$10$x0xl4z2EEPhuOlEoTRzZUOo5gwdjlItWLUaWKgrbIbIaKQUTa7Kiq', 'Trần Thị Quản Lý', '0902234567', 'ACTIVE', FALSE),
+('00000000-0000-0000-0000-000000000003', 3, 'academic@kizuna.vn', '$2a$10$x0xl4z2EEPhuOlEoTRzZUOo5gwdjlItWLUaWKgrbIbIaKQUTa7Kiq', 'Phạm Cán Bộ Học Vụ', '0904234567', 'ACTIVE', FALSE),
+('00000000-0000-0000-0000-000000000004', 4, 'cs@kizuna.vn', '$2a$10$x0xl4z2EEPhuOlEoTRzZUOo5gwdjlItWLUaWKgrbIbIaKQUTa7Kiq', 'Lê Chăm Sóc Khách Hàng', '0903234567', 'ACTIVE', FALSE),
+('00000000-0000-0000-0000-000000000005', 5, 'tutor@kizuna.vn', '$2a$10$x0xl4z2EEPhuOlEoTRzZUOo5gwdjlItWLUaWKgrbIbIaKQUTa7Kiq', 'Yamada Kenji (Gia Sư)', '0905234567', 'ACTIVE', FALSE),
+('00000000-0000-0000-0000-000000000006', 6, 'learner@kizuna.vn', '$2a$10$x0xl4z2EEPhuOlEoTRzZUOo5gwdjlItWLUaWKgrbIbIaKQUTa7Kiq', 'Nguyễn Văn An (Học Viên)', '0906234567', 'ACTIVE', FALSE)
+ON CONFLICT (email) DO UPDATE SET
+    role_id = EXCLUDED.role_id,
+    password_hash = EXCLUDED.password_hash,
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    account_status = EXCLUDED.account_status,
+    must_change_password = EXCLUDED.must_change_password;
+
+-- 5. Hồ sơ Gia sư mẫu (Yamada Kenji - Đã duyệt & Hội viên đầy đủ quyền dạy)
+INSERT INTO tutors (tutor_id, user_id, headline, bio, experience_years, hourly_rate, highest_jlpt_level, avg_rating, total_reviews, verification_status, membership_status, is_featured, tutor_state, phone) VALUES
+('00000000-0000-0000-0002-000000000001', '00000000-0000-0000-0000-000000000005', 'Gia sư tiếng Nhật JLPT N1 - 5 năm kinh nghiệm Tokyo', 'Nhiệt tình, chú trọng phương pháp trực quan và luyện chữ Hán chuẩn nét.', 5, 250000.00, 'N1', 5.00, 18, 'APPROVED', 'PREMIUM', TRUE, 'ACTIVE_PAID', '0905234567')
+ON CONFLICT (user_id) DO UPDATE SET
+    headline = EXCLUDED.headline,
+    bio = EXCLUDED.bio,
+    experience_years = EXCLUDED.experience_years,
+    hourly_rate = EXCLUDED.hourly_rate,
+    highest_jlpt_level = EXCLUDED.highest_jlpt_level,
+    verification_status = EXCLUDED.verification_status,
+    membership_status = EXCLUDED.membership_status,
+    tutor_state = EXCLUDED.tutor_state;
+
+-- 6. Hồ sơ Học viên mẫu (Nguyễn Văn An)
+INSERT INTO learners (learner_id, user_id, current_level, target_level, learning_goals) VALUES
+('00000000-0000-0000-0003-000000000001', '00000000-0000-0000-0000-000000000006', 'N4', 'N2', 'Chinh phục JLPT N2 và luyện viết nét Shodo chuyên sâu')
+ON CONFLICT (user_id) DO UPDATE SET
+    current_level = EXCLUDED.current_level,
+    target_level = EXCLUDED.target_level,
+    learning_goals = EXCLUDED.learning_goals;
+
+-- 7. Kích hoạt Gói hội viên hoạt động cho Gia sư mẫu
+INSERT INTO tutor_memberships (membership_id, tutor_id, plan_id, start_date, end_date, status, amount, transaction_ref, payment_status, payment_gateway) VALUES
+('00000000-0000-0000-0004-000000000001', '00000000-0000-0000-0002-000000000001', '00000000-0000-0000-0001-000000000002', CURRENT_DATE, CURRENT_DATE + INTERVAL '90 days', 'ACTIVE', 499000.00, 'KZ_INIT_MEMBERSHIP', 'SUCCESS', 'VNPay')
+ON CONFLICT (membership_id) DO UPDATE SET
+    status = EXCLUDED.status,
+    end_date = EXCLUDED.end_date;
+
+-- 8. Cấp hạn ngạch AI phân tích nét vẽ cho Học viên và Gia sư
+INSERT INTO ai_feature_quotas (quota_id, user_id, daily_ai_drawing_limit, used_today, reset_date) VALUES
+('00000000-0000-0000-0005-000000000001', '00000000-0000-0000-0000-000000000006', 50, 0, CURRENT_DATE),
+('00000000-0000-0000-0005-000000000002', '00000000-0000-0000-0000-000000000005', 200, 0, CURRENT_DATE)
+ON CONFLICT (user_id) DO UPDATE SET
+    daily_ai_drawing_limit = EXCLUDED.daily_ai_drawing_limit;
+
+-- 9. Tạo Bộ thẻ Kanji mặc định cho Học viên để dùng ngay cho Flashcard & Minigame
+INSERT INTO kanji_folders (folder_id, user_id, folder_name, description, color, is_default) VALUES
+('00000000-0000-0000-0006-000000000001', '00000000-0000-0000-0000-000000000006', '🌸 Kanji N5 Căn Bản (Khởi Động)', 'Bộ thẻ các chữ Hán căn bản trình độ N5 để luyện viết và chơi minigame gõ chữ', '#EF4444', TRUE)
+ON CONFLICT (folder_id) DO UPDATE SET
+    folder_name = EXCLUDED.folder_name,
+    description = EXCLUDED.description;
+
+-- 10. Nạp các chữ Kanji N5 mẫu vào Bộ thẻ (nếu bảng kanji_dictionary đã có dữ liệu)
+INSERT INTO kanji_folder_items (folder_id, kanji_id, order_index, notes)
+SELECT '00000000-0000-0000-0006-000000000001', kd.kanji_id, row_number() over (), kd.meaning
+FROM kanji_dictionary kd
+WHERE kd.unicode_hex IN ('065e5', '06708', '06728', '05c71', '05ddd', '07530', '04eba', '053e3', '08eca', '09580')
+ON CONFLICT (folder_id, kanji_id) DO NOTHING;

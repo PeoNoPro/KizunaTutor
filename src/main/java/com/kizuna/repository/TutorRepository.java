@@ -13,4 +13,7 @@ public interface TutorRepository extends JpaRepository<Tutor, UUID> {
     Optional<Tutor> findByUser_UserId(UUID userId);
     Optional<Tutor> findByUser_Email(String email);
     long countByVerificationStatus(TutorVerificationStatus verificationStatus);
+
+    @org.springframework.data.jpa.repository.Query("SELECT t FROM Tutor t LEFT JOIN FETCH t.user u")
+    java.util.List<Tutor> findAllWithUser();
 }

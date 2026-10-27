@@ -145,6 +145,7 @@ public class HandwritingSearchService {
                         : (off != null && off.jlpt() != null ? off.jlpt() : "N/A");
 
                 result.add(MatchItem.builder()
+                        .kanjiId(k.getKanjiId())
                         .character(k.getKanjiCharacter())
                         .unicodeHex(k.getUnicodeHex())
                         .hanViet(hanViet)
@@ -268,7 +269,8 @@ public class HandwritingSearchService {
                     : (off != null && off.jlpt() != null ? off.jlpt() : "N/A");
 
             results.add(MatchItem.builder()
-                    .character(k.getKanjiCharacter())
+                    .kanjiId(k.getKanjiId())
+                        .character(k.getKanjiCharacter())
                     .unicodeHex(k.getUnicodeHex())
                     .hanViet(hanViet)
                     .meaning(meaning)

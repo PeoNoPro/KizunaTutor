@@ -40,12 +40,12 @@ public interface LearningSpaceRepository extends JpaRepository<LearningSpace, UU
     @Query("SELECT COUNT(ls) FROM LearningSpace ls WHERE ls.tutor.user.email = :email AND ls.status = 'ACTIVE'")
     long countActiveSpacesByTutorEmail(@Param("email") String email);
 
-    @Query("SELECT ls FROM LearningSpace ls WHERE ls.tutor.user.email = :email AND ls.status = 'ACTIVE'")
+    @Query("SELECT ls FROM LearningSpace ls LEFT JOIN FETCH ls.tutor t LEFT JOIN FETCH t.user tu LEFT JOIN FETCH ls.learner l LEFT JOIN FETCH l.user lu WHERE ls.tutor.user.email = :email AND ls.status = 'ACTIVE'")
     List<LearningSpace> findActiveSpacesByTutorEmail(@Param("email") String email);
 
     @Query("SELECT COUNT(ls) FROM LearningSpace ls WHERE ls.learner.user.email = :email AND ls.status = 'ACTIVE'")
     long countActiveSpacesByLearnerEmail(@Param("email") String email);
 
-    @Query("SELECT ls FROM LearningSpace ls WHERE ls.learner.user.email = :email AND ls.status = 'ACTIVE'")
+    @Query("SELECT ls FROM LearningSpace ls LEFT JOIN FETCH ls.tutor t LEFT JOIN FETCH t.user tu LEFT JOIN FETCH ls.learner l LEFT JOIN FETCH l.user lu WHERE ls.learner.user.email = :email AND ls.status = 'ACTIVE'")
     List<LearningSpace> findActiveSpacesByLearnerEmail(@Param("email") String email);
 }

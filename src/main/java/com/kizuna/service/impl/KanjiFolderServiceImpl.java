@@ -39,16 +39,36 @@ public class KanjiFolderServiceImpl implements IKanjiFolderService {
 
         // Bỏ cơ chế gán cứng thư mục mặc định; nếu chưa có thư mục nào thì trả về danh sách rỗng để người dùng tự tạo
         return folders.stream().map(f -> {
-            long count = folderRepository.countItemsByFolderId(f.getFolderId());
+            List<KanjiFolderItem> folderItems = folderItemRepository.findByFolderFolderIdOrderByOrderIndexAsc(f.getFolderId());
+            List<KanjiCardDto> cardDtos = folderItems.stream().map(item -> {
+                KanjiDictionary k = item.getKanji();
+                return KanjiCardDto.builder()
+                        .id(k.getKanjiId())
+                        .unicodeHex(k.getUnicodeHex())
+                        .kanjiChar(k.getKanjiCharacter())
+                        .strokeCount(k.getStrokeCount())
+                        .radical(k.getRadical())
+                        .hanViet(k.getHanViet() != null ? k.getHanViet() : "HÁN TỰ")
+                        .onyomi(k.getOnyomi() != null ? k.getOnyomi() : "-")
+                        .kunyomi(k.getKunyomi() != null ? k.getKunyomi() : "-")
+                        .meaning(k.getMeaning() != null ? k.getMeaning() : "")
+                        .jlpt(k.getJlptLevel() != null ? k.getJlptLevel().name() : "N5")
+                        .build();
+            }).toList();
+
+            List<String> sampleChars = cardDtos.stream().map(KanjiCardDto::getKanjiChar).toList();
+
             return KanjiFolderSummaryDto.builder()
                     .folderId(f.getFolderId())
                     .folderName(f.getFolderName())
                     .description(f.getDescription())
                     .color(f.getColor() != null ? f.getColor() : "#58CC02")
                     .isDefault(Boolean.TRUE.equals(f.getIsDefault()))
-                    .kanjiCount(count)
+                    .kanjiCount((long) cardDtos.size())
                     .createdAt(f.getCreatedAt())
                     .updatedAt(f.getUpdatedAt())
+                    .items(cardDtos)
+                    .sampleChars(sampleChars)
                     .build();
         }).toList();
     }
@@ -226,6 +246,115 @@ public class KanjiFolderServiceImpl implements IKanjiFolderService {
     @Transactional
     public void removeKanjiFromFolder(UUID folderId, UUID kanjiId) {
         folderItemRepository.deleteByFolderIdAndKanjiId(folderId, kanjiId);
+    }
+
+    @Override
+    @Transactional
+    public KanjiFolderSummaryDto duplicateFolder(UUID folderId) {
+        KanjiFolder source = folderRepository.findById(folderId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bộ thẻ với ID: " + folderId));
+
+        KanjiFolder clone = KanjiFolder.builder()
+                .user(source.getUser())
+                .folderName(source.getFolderName() + " (Bản sao)")
+                .description(source.getDescription())
+                .color(source.getColor())
+                .isDefault(false)
+                .build();
+        clone = folderRepository.save(clone);
+
+        List<KanjiFolderItem> sourceItems = folderItemRepository.findByFolderFolderIdOrderByOrderIndexAsc(folderId);
+        List<KanjiCardDto> cardDtos = new ArrayList<>();
+        int order = 0;
+        for (KanjiFolderItem item : sourceItems) {
+            KanjiFolderItem clonedItem = KanjiFolderItem.builder()
+                    .folder(clone)
+                    .kanji(item.getKanji())
+                    .orderIndex(order++)
+                    .notes(item.getNotes())
+                    .build();
+            folderItemRepository.save(clonedItem);
+            KanjiDictionary k = item.getKanji();
+            cardDtos.add(KanjiCardDto.builder()
+                    .id(k.getKanjiId())
+                    .unicodeHex(k.getUnicodeHex())
+                    .kanjiChar(k.getKanjiCharacter())
+                    .strokeCount(k.getStrokeCount())
+                    .radical(k.getRadical())
+                    .hanViet(k.getHanViet() != null ? k.getHanViet() : "HÁN TỰ")
+                    .meaning(k.getMeaning() != null ? k.getMeaning() : "")
+                    .jlpt(k.getJlptLevel() != null ? k.getJlptLevel().name() : "N5")
+                    .build());
+        }
+
+        return KanjiFolderSummaryDto.builder()
+                .folderId(clone.getFolderId())
+                .folderName(clone.getFolderName())
+                .description(clone.getDescription())
+                .color(clone.getColor())
+                .isDefault(false)
+                .kanjiCount((long) cardDtos.size())
+                .createdAt(clone.getCreatedAt())
+                .updatedAt(clone.getUpdatedAt())
+                .items(cardDtos)
+                .sampleChars(cardDtos.stream().map(KanjiCardDto::getKanjiChar).toList())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public KanjiFolderSummaryDto mergeFolders(UUID sourceFolderId, UUID targetFolderId) {
+        if (sourceFolderId.equals(targetFolderId)) {
+            throw new IllegalArgumentException("Không thể gộp bộ thẻ vào chính nó");
+        }
+        KanjiFolder target = folderRepository.findById(targetFolderId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bộ thẻ đích: " + targetFolderId));
+
+        List<KanjiFolderItem> sourceItems = folderItemRepository.findByFolderFolderIdOrderByOrderIndexAsc(sourceFolderId);
+        int currentMaxOrder = folderItemRepository.findByFolderFolderIdOrderByOrderIndexAsc(targetFolderId)
+                .stream().mapToInt(KanjiFolderItem::getOrderIndex).max().orElse(-1);
+        int nextOrder = currentMaxOrder + 1;
+
+        for (KanjiFolderItem sItem : sourceItems) {
+            UUID kanjiId = sItem.getKanji().getKanjiId();
+            if (!folderItemRepository.existsByFolderFolderIdAndKanjiKanjiId(targetFolderId, kanjiId)) {
+                KanjiFolderItem newItem = KanjiFolderItem.builder()
+                        .folder(target)
+                        .kanji(sItem.getKanji())
+                        .orderIndex(nextOrder++)
+                        .notes(sItem.getNotes())
+                        .build();
+                folderItemRepository.save(newItem);
+            }
+        }
+
+        List<KanjiFolderItem> updatedItems = folderItemRepository.findByFolderFolderIdOrderByOrderIndexAsc(targetFolderId);
+        List<KanjiCardDto> cardDtos = updatedItems.stream().map(item -> {
+            KanjiDictionary k = item.getKanji();
+            return KanjiCardDto.builder()
+                    .id(k.getKanjiId())
+                    .unicodeHex(k.getUnicodeHex())
+                    .kanjiChar(k.getKanjiCharacter())
+                    .strokeCount(k.getStrokeCount())
+                    .radical(k.getRadical())
+                    .hanViet(k.getHanViet() != null ? k.getHanViet() : "HÁN TỰ")
+                    .meaning(k.getMeaning() != null ? k.getMeaning() : "")
+                    .jlpt(k.getJlptLevel() != null ? k.getJlptLevel().name() : "N5")
+                    .build();
+        }).toList();
+
+        return KanjiFolderSummaryDto.builder()
+                .folderId(target.getFolderId())
+                .folderName(target.getFolderName())
+                .description(target.getDescription())
+                .color(target.getColor())
+                .isDefault(Boolean.TRUE.equals(target.getIsDefault()))
+                .kanjiCount((long) cardDtos.size())
+                .createdAt(target.getCreatedAt())
+                .updatedAt(target.getUpdatedAt())
+                .items(cardDtos)
+                .sampleChars(cardDtos.stream().map(KanjiCardDto::getKanjiChar).toList())
+                .build();
     }
 
     @Override

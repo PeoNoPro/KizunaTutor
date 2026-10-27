@@ -11,7 +11,7 @@
  * ====================================================================================================
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Itim&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@600;700;900&display=swap');
 
 :root {
     /* =========================================================================
@@ -1299,3 +1299,203 @@ button:disabled {
         display: none;
     }
 }
+
+/* ====================================================================================================
+ * NHAITOPIK.COM RETRO HARD-SHADOW DESIGN SYSTEM (DESIGN TOKENS & UTILITIES)
+ * ====================================================================================================
+ * Single Source of Truth for Learner & Tutor Views:
+ * 1. Fixed Radius: border-radius: 5px (rounded-[5px]) strictly.
+ * 2. Hard/Retro Shadows: 4px 4px 0px 0px #000000 with crisp 1px solid black borders.
+ * 3. Color Tokens: color-1 to color-11.
+ * 4. Typography: Heading Itim cursive, Body Segoe UI sans-serif, Meta ui-sans-serif.
+ * ==================================================================================================== */
+
+:root {
+    /* 1. COLOR TOKENS */
+    --color-1: #000000;          /* Text Primary, viền đen, hard shadow */
+    --color-2: #2A5A1A;          /* Rêu đậm: Học viên (Learner Primary) */
+    --color-3: #7A2CA8;          /* Tím trầm: Gia sư (Tutor Primary) */
+    --color-4: #BF360C;          /* Đỏ đất (Terracotta): Cảnh báo, Deadline, CTA quan trọng */
+    --color-5: #1F6FB4;          /* Xanh biển: Liên kết, Thẻ bài tập */
+    --color-6: #1E8B3F;          /* Xanh lục tươi: Hoàn thành, Duyệt, Điểm cao */
+    --color-10: #E76F51;         /* Cam san hô: Đang học, Thẻ Flashcard */
+    --color-11: #FFFFFF;         /* Nền card trắng, chữ trên nền đậm */
+
+    /* 2. TYPOGRAPHY SCALE */
+    --text-scale-xs: 7px;
+    --text-scale-sm: 11px;
+    --text-scale-base: 14px;
+    --text-scale-lg: 16px;
+    --text-scale-xl: 18px;
+    --text-scale-2xl: 20px;
+    --text-scale-3xl: 30px;
+
+    /* 3. SPACING SCALE (Base 4px) */
+    --space-nhai-1: 2px;
+    --space-nhai-2: 3px;
+    --space-nhai-3: 4px;
+    --space-nhai-4: 6px;
+    --space-nhai-5: 7px;
+    --space-nhai-6: 8px;
+    --space-nhai-7: 10px;
+    --space-nhai-8: 12px;
+    --space-nhai-9: 16px;
+    --space-nhai-10: 24px;
+
+    /* 4. RETRO SHADOWS & RADIUS */
+    --radius-nhai: 5px;
+    --shadow-retro: 4px 4px 0px 0px #000000;
+    --shadow-retro-hover: 5px 5px 0px 0px #000000;
+    --shadow-retro-active: 1px 1px 0px 0px #000000;
+    --shadow-retro-sm: 2px 2px 0px 0px #000000;
+    --transition-nhai: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Typography Utility Classes */
+.font-itim {
+    font-family: 'Itim', cursive !important;
+}
+
+.font-body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, "Segoe UI Emoji", sans-serif !important;
+}
+
+.font-meta {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* Card Nhaitopik Utility Classes */
+.card-nhai {
+    background-color: var(--color-11);
+    border: 1px solid var(--color-1) !important;
+    border-radius: 5px !important;
+    box-shadow: 4px 4px 0px 0px #000000 !important;
+    transition: all var(--transition-nhai);
+}
+
+.card-nhai:hover {
+    box-shadow: 5px 5px 0px 0px #000000 !important;
+    transform: translate(-1px, -1px);
+}
+
+.card-nhai-learner {
+    background-color: var(--color-11);
+    border: 1px solid var(--color-1) !important;
+    border-top: 3px solid var(--color-2) !important;
+    border-radius: 5px !important;
+    box-shadow: 4px 4px 0px 0px #000000 !important;
+}
+
+.card-nhai-tutor {
+    background-color: var(--color-11);
+    border: 1px solid var(--color-1) !important;
+    border-top: 3px solid var(--color-3) !important;
+    border-radius: 5px !important;
+    box-shadow: 4px 4px 0px 0px #000000 !important;
+}
+
+/* Button Nhaitopik Utility Classes */
+.btn-nhai {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid var(--color-1) !important;
+    border-radius: 5px !important;
+    box-shadow: 4px 4px 0px 0px #000000 !important;
+    font-family: 'Itim', cursive !important;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--transition-nhai);
+    user-select: none;
+    padding: 8px 16px;
+}
+
+.btn-nhai:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0px 0px #000000 !important;
+}
+
+.btn-nhai:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px 0px #000000 !important;
+}
+
+/* Learner Primary CTA */
+.btn-nhai-learner {
+    background-color: var(--color-2) !important;
+    color: var(--color-11) !important;
+}
+.btn-nhai-learner:hover {
+    background-color: #214714 !important;
+}
+
+/* Tutor Primary CTA */
+.btn-nhai-tutor {
+    background-color: var(--color-3) !important;
+    color: var(--color-11) !important;
+}
+.btn-nhai-tutor:hover {
+    background-color: #632289 !important;
+}
+
+/* Urgent / Action CTA */
+.btn-nhai-urgent {
+    background-color: var(--color-4) !important;
+    color: var(--color-11) !important;
+}
+.btn-nhai-urgent:hover {
+    background-color: #9C2C09 !important;
+}
+
+/* Outline / Secondary Button */
+.btn-nhai-outline {
+    background-color: var(--color-11) !important;
+    color: var(--color-1) !important;
+}
+.btn-nhai-outline:hover {
+    background-color: #F8FAFC !important;
+}
+
+/* Badge Nhaitopik */
+.badge-nhai {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border: 1px solid var(--color-1) !important;
+    border-radius: 5px !important;
+    box-shadow: 2px 2px 0px 0px #000000 !important;
+    font-family: ui-sans-serif, system-ui, sans-serif !important;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* Input / Select Nhaitopik */
+.input-nhai {
+    border: 1px solid var(--color-1) !important;
+    border-radius: 5px !important;
+    font-family: 'Segoe UI', -apple-system, sans-serif !important;
+    font-size: 14px;
+    padding: 8px 12px;
+    transition: all var(--transition-nhai);
+    outline: none;
+}
+.input-nhai:focus {
+    box-shadow: 3px 3px 0px 0px var(--color-1) !important;
+    transform: translate(-1px, -1px);
+}
+
+/* Shadow Utility Overrides */
+.shadow-retro {
+    box-shadow: 4px 4px 0px 0px #000000 !important;
+}
+.shadow-retro-sm {
+    box-shadow: 2px 2px 0px 0px #000000 !important;
+}
+.rounded-nhai {
+    border-radius: 5px !important;
+}
+

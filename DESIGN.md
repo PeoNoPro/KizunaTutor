@@ -1,5 +1,29 @@
 # KizunaTutor Design System (DESIGN.md)
 
+<!-- ===================================================================== -->
+<!-- [IMMUTABLE CORE GUARDRAILS] DO NOT MODIFY, OVERWRITE OR DELETE BELOW  -->
+<!-- KHỐI QUY TẮC BẤT BIẾN: NGHIÊM CẤM TỰ Ý SỬA ĐỔI HOẶC XÓA BỎ DƯỚI MỌI HÌNH THỨC -->
+<!-- ===================================================================== -->
+
+> ⛔ **CẢNH BÁO BẢO VỆ HỆ THỐNG (STRICT NON-NEGOTIABLE GUARDRAILS):**  
+> Đây là 3 nguyên tắc nền tảng tối thượng của hệ thống KizunaTutor. Mọi tác vụ lập trình (Backend & Frontend) và cập nhật tài liệu BẮT BUỘC phải tuân thủ nghiêm ngặt:
+>
+> 1. **KHÔNG BAO GIỜ HIỂN THỊ NỘI DUNG BACKEND LÊN FRONTEND (ZERO BACKEND LEAKS):**
+>    - Tuyệt đối cấm để lộ các mã nội bộ, tên enum, tên Exception, mã HTTP raw hay cấu trúc dữ liệu Backend ra giao diện (ví dụ: `ROLE_ADMIN`, `ROLE_LEARNER`, `BadCredentialsException`, `NullPointerException`, `500 INTERNAL_SERVER_ERROR`, `user_id`, `is_active`).
+>    - Toàn bộ thông báo, nhãn, badge và trạng thái gửi tới người dùng BẮT BUỘC phải được chuyển hóa 100% sang ngôn ngữ người dùng tự nhiên (Human-centric / User-friendly Vietnamese).
+>
+> 2. **KHÔNG BAO GIỜ VIẾT IN HOA TOÀN BỘ TRÊN GIAO DIỆN (NO ALL-CAPS UI TEXT):**
+>    - Tuyệt đối cấm sử dụng chữ IN HOA TOÀN BỘ (ALL-CAPS) cho các dòng thông báo, tiêu đề Modal, Alert, Toast, Empty States hay nội dung giải thích (ví dụ: cấm `LỖI ĐĂNG NHẬP!`, `ĐĂNG KÝ THÀNH CÔNG!`, `KHÔNG TÌM THẤY DỮ LIỆU!`).
+>    - Chỉ áp dụng viết hoa chữ cái đầu câu (Sentence case) hoặc chữ cái đầu mỗi từ chính (Title Case cho nhãn nút/tiêu đề ngắn). Chữ in hoa chỉ được dùng duy nhất cho các từ viết tắt chuyên môn đã định nghĩa (ví dụ: `OTP`, `JLPT`, `AI`, `SVG`, `UI/UX`, `ID`).
+>
+> 3. **KHÔNG BAO GIỜ CẬP NHẬT DỮ LIỆU ẢO ĐỂ HIỂN THỊ HỆ THỐNG (NO MOCK / FAKE DATA INJECTION):**
+>    - Tuyệt đối không tự ý chèn dữ liệu ảo (hardcoded mock data, dummy JSON, dữ liệu bịa đặt) vào mã nguồn hoặc cơ sở dữ liệu để đối phó hiển thị khi chưa có API thực tế.
+>    - Mọi dữ liệu hiển thị trên màn hình của 6 Actor (Admin, Manager, CS Staff, Academic Officer, Tutor, Learner) BẮT BUỘC phải được kết nối từ Endpoint API thực tế hoặc hiển thị màn hình rỗng chuẩn (Empty State) nếu cơ sở dữ liệu chưa có dữ liệu.
+
+<!-- ===================================================================== -->
+<!-- [END IMMUTABLE CORE GUARDRAILS] - SAFE TO APPEND EXTENSIONS BELOW     -->
+<!-- ===================================================================== -->
+
 > Built upon **pbakaus/impeccable** and **Leonxlnx/taste-skill** standards.
 > Anti-slop, pedagogical, culturally rooted in modern Japanese aesthetics.
 
@@ -113,3 +137,35 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
   - Đúng: `Mã OTP không chính xác. Bạn còn 3 lần thử lại.`
   - Sai: `LỖI! MÃ OTP SAI! HÃY NHẬP LẠI NGAY!`
 - **Ngoại lệ:** Chỉ viết hoa toàn bộ đối với các từ viết tắt chuyên môn / chuẩn quốc tế đã được quy ước (như `OTP`, `JLPT`, `AI`, `SVG`, `UI/UX`, `ID`, `JWT`).
+
+---
+
+## 7. NHAITOPIK.COM RETRO HARD-SHADOW DESIGN SYSTEM (TUTOR & LEARNER VIEWS)
+
+Áp dụng cho toàn bộ các màn hình của phân hệ **Học viên (Learner)** và **Gia sư (Tutor)**:
+
+### 1. Visual Language:
+- **Bo góc cố định:** Duy nhất `border-radius: 5px` (`rounded-[5px]`). Cấm dùng bo tròn lớn mềm (`rounded-xl`, `rounded-2xl`).
+- **Đổ bóng khối cứng (Hard/Retro Shadow):** `shadow-sm: 4px 4px 0px 0px #000000` (`shadow-retro`).
+- **Viền ngoài:** Viền đen mảnh sắc sảo `border: 1px solid #000000`.
+- **Micro-interactions:** 
+  - Hover: `transform: translate(-1px, -1px); box-shadow: 5px 5px 0px 0px #000000;`
+  - Active: `transform: translate(2px, 2px); box-shadow: 1px 1px 0px 0px #000000;`
+  - Transition: `0.15s cubic-bezier(0.4, 0, 0.2, 1)`.
+
+### 2. Bảng Color Tokens:
+- `color-1` (`#000000`): Màu chữ chính, viền vi tính, shadow khối cứng.
+- `color-2` (`#2A5A1A` - Rêu đậm): Nhấn khu vực Học viên (Learner Primary CTA).
+- `color-3` (`#7A2CA8` - Tím trầm): Nhấn khu vực Gia sư (Tutor Primary CTA).
+- `color-4` (`#BF360C` - Đỏ đất / Terracotta): Cảnh báo, Deadline, nút hành động nổi bật cần lưu ý.
+- `color-5` (`#1F6FB4` - Xanh biển): Liên kết, thẻ bài tập.
+- `color-6` (`#1E8B3F` - Xanh lục tươi): Hoàn thành, Duyệt, Điểm cao.
+- `color-10` (`#E76F51` - Cam san hô): Trạng thái Đang học, Thẻ Flashcard.
+- `color-11` (`#FFFFFF`): Nền thẻ card trắng, chữ trên nền đậm.
+
+### 3. Font Stack & Typography Scale:
+- **Heading / Tiêu đề:** `Itim`, cursive (cỡ 30px cho H1, 20px cho H2, 16px cho H3).
+- **Body / Nội dung:** `Segoe UI`, sans-serif (14px).
+- **Nhãn, Badge, Meta:** `ui-sans-serif`, system-ui (11px, 7px).
+- **Nguyên tắc hành động (UX Rule):** Chỉ có DUY NHẤT 1 nút bấm Primary CTA trên mỗi màn hình/khối nhìn. Các nút khác dùng dạng Outlined (nền trắng viền đen) hoặc Secondary.
+

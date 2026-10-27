@@ -177,15 +177,15 @@ function hwOnTouchEnd() {
 function hwDrawCurrentSegment(p1, p2) {
     if (!hwCtx) return;
     hwCtx.save();
-    hwCtx.strokeStyle = '#1B2A4A'; // Indigo Aizome
-    hwCtx.lineWidth = 5;
+    hwCtx.strokeStyle = '#000000'; // Đen mực đậm
+    hwCtx.lineWidth = 6;
     hwCtx.lineCap = 'round';
     hwCtx.lineJoin = 'round';
 
     hwCtx.beginPath();
     if (Math.abs(p1.x - p2.x) < 0.5 && Math.abs(p1.y - p2.y) < 0.5) {
-        hwCtx.arc(p1.x, p1.y, 2.5, 0, Math.PI * 2);
-        hwCtx.fillStyle = '#1B2A4A';
+        hwCtx.arc(p1.x, p1.y, 3, 0, Math.PI * 2);
+        hwCtx.fillStyle = '#000000';
         hwCtx.fill();
         hwCtx.restore();
         return;
@@ -205,18 +205,18 @@ function hwRedraw() {
     // Xóa sạch canvas
     hwCtx.clearRect(0, 0, w, h);
 
-    // 1. Vẽ nền ô Mễ (米字格)
+    // 1. Vẽ nền ô Mễ (米字格) đường kẻ đứt màu xám nhạt
     hwCtx.save();
     hwCtx.fillStyle = '#FFFFFF';
     hwCtx.fillRect(0, 0, w, h);
 
-    // Khung ngoài
-    hwCtx.strokeStyle = '#CBD5E1';
-    hwCtx.lineWidth = 1.5;
+    // Khung viền ô Mễ
+    hwCtx.strokeStyle = '#E2E8F0';
+    hwCtx.lineWidth = 1;
     hwCtx.strokeRect(0, 0, w, h);
 
-    // Lưới đứt đoạn ô Mễ
-    hwCtx.strokeStyle = '#FCA5A5';
+    // Lưới đứt đoạn ô Mễ màu xám nhạt
+    hwCtx.strokeStyle = '#CBD5E1';
     hwCtx.lineWidth = 1;
     hwCtx.setLineDash([4, 4]);
 
@@ -230,11 +230,11 @@ function hwRedraw() {
     hwCtx.stroke();
     hwCtx.restore();
 
-    // 2. Vẽ lại toàn bộ các nét đã vẽ
+    // 2. Vẽ lại toàn bộ các nét đã vẽ (màu đen mực đậm #000000)
     if (hwStrokes.length > 0) {
         hwCtx.save();
-        hwCtx.strokeStyle = '#1B2A4A';
-        hwCtx.lineWidth = 5;
+        hwCtx.strokeStyle = '#000000';
+        hwCtx.lineWidth = 6;
         hwCtx.lineCap = 'round';
         hwCtx.lineJoin = 'round';
 
@@ -436,18 +436,18 @@ function hwRenderCandidateResults(data) {
     listEl.innerHTML = matches.map((item, index) => {
         const percent = Math.round((item.similarityScore || 0.9) * 100);
         return `
-            <div class="hw-candidate-tile" data-index="${index}" data-kanji="${escapeHtml(item.character)}" title="Bấm để xem chi tiết và luyện viết">
-                <div class="hw-tile-top">
-                    <span class="hw-tile-char">${escapeHtml(item.character)}</span>
-                    <span class="hw-tile-score">${percent}%</span>
+            <div class="hw-candidate-tile p-2.5 rounded-[5px] border border-black bg-white hover:bg-[#E76F51]/10 hover:border-[#E76F51] shadow-[2px_2px_0px_0px_#000000] transition active:translate-y-0.5 cursor-pointer flex flex-col justify-between" data-index="${index}" data-kanji="${escapeHtml(item.character)}" title="Bấm để xem chi tiết và luyện viết">
+                <div class="hw-tile-top flex justify-between items-center mb-1">
+                    <span class="hw-tile-char font-itim text-2xl font-bold text-black">${escapeHtml(item.character)}</span>
+                    <span class="hw-tile-score text-[10px] font-bold bg-[#DCFCE7] text-[#15803D] px-1.5 py-0.5 rounded-[3px] border border-black/20">${percent}%</span>
                 </div>
                 <div class="hw-tile-body">
-                    <strong class="hw-tile-hanviet">${escapeHtml(item.hanViet || 'HÁN TỰ')}</strong>
-                    <p class="hw-tile-meaning" title="${escapeHtml(item.meaning || '')}">${escapeHtml(item.meaning || 'Chữ Hán tra cứu')}</p>
+                    <strong class="hw-tile-hanviet block font-itim text-xs text-[#2A5A1A]">${escapeHtml(item.hanViet || 'HÁN TỰ')}</strong>
+                    <p class="hw-tile-meaning text-[11px] font-body text-slate-600 truncate m-0" title="${escapeHtml(item.meaning || '')}">${escapeHtml(item.meaning || 'Chữ Hán tra cứu')}</p>
                 </div>
-                <div class="hw-tile-footer">
+                <div class="hw-tile-footer flex justify-between text-[10px] font-meta text-slate-500 mt-1.5 pt-1 border-t border-slate-200">
                     <span class="hw-tile-strokes">${item.totalStrokes || '?'} nét</span>
-                    <span class="hw-tile-jlpt">${escapeHtml(item.jlpt || 'N/A')}</span>
+                    <span class="hw-tile-jlpt font-bold text-[#E76F51]">${escapeHtml(item.jlpt || 'N/A')}</span>
                 </div>
             </div>
         `;
@@ -518,6 +518,7 @@ async function openHwKanjiDetail(indexOrChar, event) {
         }
     }
 
+    modal.classList.remove('hidden');
     modal.style.display = 'flex';
 }
 
@@ -525,8 +526,53 @@ function closeHwDetailModal(event) {
     if (event) event.stopPropagation();
     const modal = document.getElementById('hwDetailModal');
     if (modal) {
+        modal.classList.add('hidden');
         modal.style.display = 'none';
     }
+}
+
+/**
+ * Áp dụng chữ Hán vừa tra cứu vào ngữ cảnh hiện tại (Canvas, Flashcard, Từ điển)
+ */
+function useSelectedHwChar(event) {
+    if (event) event.stopPropagation();
+    if (!hwSelectedKanji || !hwSelectedKanji.character) return;
+    const char = hwSelectedKanji.character;
+
+    // 1. Nếu đang ở phòng Luyện Viết Canvas
+    if (typeof selectKanjiForCanvas === 'function') {
+        selectKanjiForCanvas(char, hwSelectedKanji.hanViet, hwSelectedKanji.meaning, hwSelectedKanji.totalStrokes, hwSelectedKanji.radical);
+        closeHwDetailModal(event);
+        closeHwSearchModal(event);
+        return;
+    }
+
+    // 2. Nếu đang ở Modal Thêm chữ vào Bộ thẻ Flashcards
+    const flashcardInp = document.getElementById('searchKanjiModalInput');
+    if (flashcardInp) {
+        flashcardInp.value = char;
+        if (typeof onSearchKanjiInput === 'function') {
+            onSearchKanjiInput({ target: flashcardInp });
+        }
+        closeHwDetailModal(event);
+        closeHwSearchModal(event);
+        return;
+    }
+
+    // 3. Nếu đang ở Trang Tra Cứu Từ Điển
+    const dictInp = document.getElementById('learnerSearchInput');
+    if (dictInp) {
+        dictInp.value = char;
+        if (typeof loadLearnerDictionary === 'function') {
+            loadLearnerDictionary(0);
+        }
+        closeHwDetailModal(event);
+        closeHwSearchModal(event);
+        return;
+    }
+
+    // 4. Mặc định chuyển sang trang Luyện Viết Canvas
+    window.location.href = `/learner/practice-canvas?char=${encodeURIComponent(char)}`;
 }
 
 /**
@@ -537,7 +583,13 @@ function practiceSelectedHwKanji(event) {
     if (!hwSelectedKanji || !hwSelectedKanji.character) return;
     const char = hwSelectedKanji.character;
     sessionStorage.setItem('kizuna_practice_from', 'search');
-    window.location.href = `/kanji?charQuery=${encodeURIComponent(char)}&tab=practice&from=search`;
+    if (typeof selectKanjiForCanvas === 'function') {
+        selectKanjiForCanvas(char, hwSelectedKanji.hanViet, hwSelectedKanji.meaning, hwSelectedKanji.totalStrokes, hwSelectedKanji.radical);
+        closeHwDetailModal(event);
+        closeHwSearchModal(event);
+    } else {
+        window.location.href = `/learner/practice-canvas?char=${encodeURIComponent(char)}`;
+    }
 }
 
 function copyHwSelectedChar(event) {
@@ -550,23 +602,15 @@ function copyHwSelectedChar(event) {
 
 // Mở & Đóng Modal Tra Cứu Viết Tay Toàn Cảnh
 function openHwSearchModal() {
-    if (window.IS_WORKSPACE_UNLOCKED === false || document.getElementById('lockedWorkspaceScreen')) {
-        if (typeof openSidebarBarrierModal === 'function') {
-            openSidebarBarrierModal();
-        } else {
-            const lockScreen = document.getElementById('lockedWorkspaceScreen');
-            if (lockScreen) lockScreen.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        return;
-    }
     const modal = document.getElementById('hwSearchModal');
     if (modal) {
+        modal.classList.remove('hidden');
         modal.style.display = 'flex';
         initHandwritingSearch();
-        // Delay 60ms để layout modal hiển thị hoàn tất trước khi re-calibrate rect
+        // Delay 80ms để layout modal hiển thị hoàn tất trước khi re-calibrate rect
         setTimeout(() => {
             initHandwritingSearch();
-        }, 60);
+        }, 80);
     }
 }
 
@@ -574,6 +618,7 @@ function closeHwSearchModal(event) {
     if (event) event.stopPropagation();
     const modal = document.getElementById('hwSearchModal');
     if (modal) {
+        modal.classList.add('hidden');
         modal.style.display = 'none';
     }
 }
@@ -636,4 +681,5 @@ window.hwExecuteRecognition = hwExecuteRecognition;
 window.openHwKanjiDetail = openHwKanjiDetail;
 window.closeHwDetailModal = closeHwDetailModal;
 window.practiceSelectedHwKanji = practiceSelectedHwKanji;
+window.useSelectedHwChar = useSelectedHwChar;
 window.copyHwSelectedChar = copyHwSelectedChar;

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Bài Tập Sensei Giao - KizunaTutor</title>
+    <!-- Tailwind Play CDN & Nhaitopik Design System Configuration -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script th:src="@{/js/globalAuth.js}"></script>
+    <script th:src="@{/js/locales/learner-copy.js}"></script>
+</head>
+<body class="bg-[#F8FAFC] text-black font-body antialiased">
+    <div class="flex min-h-screen">
+        <!-- SIDEBAR CHUẨN ĐỒNG BỘ CHO HỌC VIÊN -->
+        <aside th:replace="~{learner/layout/sidebar :: sidebar}"></aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <!-- HEADER CHUẨN MASTER SHELL -->
+            <header th:replace="~{learner/layout/header :: header}"></header>
+
+            <!-- NỘI DUNG CHÍNH -->
+            <main class="flex-1 p-6 sm:p-8 bg-[#F8FAFC]">
+                <div class="max-w-7xl mx-auto space-y-6">
+
+                    <!-- HEADER CARD: TIÊU ĐỀ ITIM 30PX & NÚT PRIMARY CTA -->
+                    <div class="card-nhai card-nhai-learner p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+                        <!-- Sticker Capybara Samurai Rực Lửa -->
+                        <img src="/images/stickers/fiery-warrior-capi.png" 
+                             alt="Capybara Samurai Rực Lửa" 
+                             class="hidden md:block absolute -top-1 right-2 w-20 h-20 lg:w-24 lg:h-24 object-contain pointer-events-none select-none z-10 drop-shadow-md" />
+
+                        <div class="relative z-10 max-w-2xl">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] text-xs font-bold font-meta">Học Tập &amp; Luyện Tập</span>
+                                <span class="badge-nhai bg-[#E76F51]/10 text-[#E76F51] text-xs font-bold font-meta">Nhiệm Vụ Rèn Luyện</span>
+                            </div>
+                            <h1 class="text-3xl font-itim font-extrabold text-black tracking-tight">
+                                Bài Tập Sensei Giao 📚
+                            </h1>
+                            <p class="text-sm font-body text-slate-700 mt-1 leading-relaxed">
+                                Luyện viết nét chữ, làm quiz ngữ pháp và nhận feedback tận tình từ Sensei để nâng cơ tay nào! ✍️
+                            </p>
+                        </div>
+
+                        <div class="shrink-0 flex items-center gap-3 relative z-10">
+                            <a th:href="@{/learner/practice-canvas}"
+                               class="btn-nhai btn-nhai-learner px-5 py-2.5 text-base font-itim font-bold flex items-center gap-2 shadow-retro no-underline">
+                                <span>✍️</span>
+                                <span>Phòng Luyện Viết Shodo</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- THANH ĐIỀU HƯỚNG BỘ LỌC TRẠNG THÁI BÀI TẬP -->
+                    <div class="bg-white p-3 rounded-[5px] border border-black shadow-[4px_4px_0px_0px_#000000] flex flex-wrap gap-2 items-center justify-between">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button type="button" class="btn-nhai btn-nhai-learner text-xs px-3.5 py-1.5 font-itim">
+                                Tất Cả
+                            </button>
+                            <button type="button" class="btn-nhai btn-nhai-outline text-xs px-3.5 py-1.5 font-itim hover:bg-slate-100">
+                                Chưa Nộp
+                            </button>
+                            <button type="button" class="btn-nhai btn-nhai-outline text-xs px-3.5 py-1.5 font-itim hover:bg-slate-100">
+                                Đang Chấm
+                            </button>
+                            <button type="button" class="btn-nhai btn-nhai-outline text-xs px-3.5 py-1.5 font-itim hover:bg-slate-100">
+                                Đã Hoàn Thành
+                            </button>
+                        </div>
+                        <div class="text-xs font-meta text-slate-600 px-2">
+                            Tổng số bài tập: <span class="font-bold text-black font-itim text-sm">0</span>
+                        </div>
+                    </div>
+
+                    <!-- TRẠNG THÁI RỖNG CHÂN THỰC: KHI CHƯA CÓ BÀI TẬP NÀO -->
+                    <div class="p-12 text-center rounded-[5px] border-2 border-dashed border-black bg-white shadow-[4px_4px_0px_0px_#000000] space-y-3">
+                        <img src="/images/stickers/happy-capi.png" 
+                             alt="Capybara Vui Nhộn" 
+                             class="w-20 h-20 mx-auto mb-2 object-contain pointer-events-none select-none" />
+                        <h3 class="font-itim text-xl font-bold text-black">Hiện tại bạn chưa có bài tập nào cần nộp!</h3>
+                        <p class="text-xs text-slate-600 font-body max-w-md mx-auto leading-relaxed">
+                            Sensei chưa giao nhiệm vụ mới. Trong lúc rảnh rỗi, bạn có thể tự vào phòng Luyện Viết Shodo hoặc tra Từ Điển để tích lũy thêm chữ Hán nhé! 🌸
+                        </p>
+                        <div class="pt-2 flex items-center justify-center gap-3">
+                            <a th:href="@{/learner/practice-canvas}"
+                               class="btn-nhai btn-nhai-learner px-5 py-2 text-xs font-itim font-bold inline-flex items-center gap-1.5 shadow-retro no-underline">
+                                <span>✍️</span>
+                                <span>Luyện Viết Tự Do Ngay</span>
+                            </a>
+                            <a th:href="@{/learner/dictionary}"
+                               class="btn-nhai btn-nhai-outline px-4 py-2 text-xs font-itim font-bold inline-flex items-center gap-1.5 no-underline hover:bg-slate-100">
+                                <span>🔍</span>
+                                <span>Tra Cứu Từ Điển</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- FOOTER CHUẨN NHAITOPIK -->
+                    <footer class="mt-12 pt-6 pb-6 border-t border-black/10 text-center text-xs font-meta text-slate-500">
+                        KizunaTutor &copy; 2026 &bull; Rèn luyện mỗi ngày, vững vàng ngữ pháp và chữ Hán 🌸
+                    </footer>
+
+                </div>
+            </main>
+        </div>
+    </div>
+    <script th:src="@{/js/authRedirect.js}"></script>
+</body>
+</html>

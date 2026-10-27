@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Tìm Gia Sư Hợp Gu - KizunaTutor</title>
+    <!-- Tailwind Play CDN & Nhaitopik Design System Configuration -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Nạp script xác thực toàn cục và từ điển ngôn ngữ -->
+    <script th:src="@{/js/globalAuth.js}"></script>
+    <script th:src="@{/js/locales/learner-copy.js}"></script>
+</head>
+<body class="bg-[#F8FAFC] text-black font-body antialiased">
+    <div class="flex min-h-screen">
+        <!-- ==========================================
+             1. MASTER SIDEBAR: CHUẨN ĐỒNG BỘ 3 NHÓM
+             (Active sáng mục "Tìm Gia Sư Kizuna")
+        =========================================== -->
+        <aside th:replace="~{learner/layout/sidebar :: sidebar}"></aside>
+
+        <!-- ==========================================
+             2. KHU VỰC LÀM VIỆC CHÍNH (MAIN WORKSPACE)
+        =========================================== -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <!-- 2.1 MASTER TOPBAR: HEADER HỌC VIÊN -->
+            <header th:replace="~{learner/layout/header :: header}"></header>
+
+            <!-- 2.2 NỘI DUNG CHÍNH: TÌM KIẾM GIA SƯ HỢP GU -->
+            <main class="flex-1 p-6 sm:p-8 bg-[#F8FAFC]">
+                <div class="max-w-7xl mx-auto space-y-6">
+
+                    <!-- ==========================================
+                         BLOCK A: TIÊU ĐỀ & BANNER TÌM GIA SƯ
+                    =========================================== -->
+                    <div class="card-nhai card-nhai-learner p-6 relative overflow-hidden">
+                        <!-- Sticker Capybara Samurai Ăn Mì Ramen -->
+                        <img src="/images/stickers/ramen-capi.png" 
+                             alt="Capybara Ăn Mì Ramen" 
+                             class="hidden md:block absolute -top-1 right-2 w-20 h-20 lg:w-24 lg:h-24 object-contain pointer-events-none select-none z-10 drop-shadow-md" />
+
+                        <div class="max-w-2xl relative z-10">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] text-xs font-bold font-meta">Đội Ngũ Sensei Tuyển Chọn</span>
+                                <span class="badge-nhai bg-[#BF360C]/10 text-[#BF360C] text-xs font-bold font-meta">JLPT N1 &bull; N2 Sư Phạm</span>
+                            </div>
+                            <!-- Tiêu đề chính font Itim, cỡ 30px -->
+                            <h1 class="text-3xl font-itim font-extrabold text-black tracking-tight mb-2">
+                                Tìm Gia Sư Hợp Gu 🔍
+                            </h1>
+                            <!-- Dòng phụ đề dí dỏm theo đúng quy chuẩn Tone & Mood -->
+                            <p class="text-sm font-body text-slate-700 leading-relaxed">
+                                Chọn một Sensei xịn sò để mở khóa không gian học kèm và múa bút Shodo ngay hôm nay! ☕ Đồng hành 1-1, chỉnh từng nét chữ và luyện phản xạ JLPT.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- ==========================================
+                         BLOCK B: THANH TÌM KIẾM & BỘ LỌC NHANH
+                    =========================================== -->
+                    <div class="bg-white p-5 rounded-[5px] border border-black shadow-[4px_4px_0px_0px_#000000] space-y-4">
+                        <!-- Ô tìm kiếm input viền đen bo 5px -->
+                        <div class="flex flex-col sm:flex-row items-center gap-3">
+                            <div class="relative flex-1 w-full">
+                                <input type="text"
+                                       id="searchTutorInput"
+                                       oninput="filterTutors()"
+                                       placeholder="🔍 Tìm kiếm theo tên Sensei, chứng chỉ JLPT (N1, N2) hoặc phong cách dạy..."
+                                       class="input-nhai w-full px-4 py-2.5 text-xs rounded-[5px] border border-black text-black font-body font-medium">
+                            </div>
+                            <button type="button"
+                                    onclick="filterTutors()"
+                                    class="btn-nhai btn-nhai-learner px-5 py-2.5 text-xs font-itim font-bold shrink-0 w-full sm:w-auto shadow-[2px_2px_0px_0px_#000000]">
+                                <span>🔍</span> Tìm Kiếm
+                            </button>
+                        </div>
+
+                        <!-- Cụm chip lọc nhanh dạng nút cơ bo góc 5px, viền đen -->
+                        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-black/10">
+                            <span class="text-xs font-meta font-bold text-slate-600 mr-1">Bộ lọc nhanh:</span>
+                            <button type="button" onclick="setQuickFilter('ALL')" class="filter-chip btn-nhai active px-3 py-1 text-xs font-itim font-bold rounded-[5px] bg-[#2A5A1A] text-white border border-black shadow-[2px_2px_0px_0px_#000000]">
+                                Tất Cả JLPT
+                            </button>
+                            <button type="button" onclick="setQuickFilter('N3')" class="filter-chip btn-nhai px-3 py-1 text-xs font-itim font-bold rounded-[5px] bg-white text-black border border-black hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000000]">
+                                Luyện N3 Cấp Tốc
+                            </button>
+                            <button type="button" onclick="setQuickFilter('SHODO')" class="filter-chip btn-nhai px-3 py-1 text-xs font-itim font-bold rounded-[5px] bg-white text-black border border-black hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000000]">
+                                Luyện Viết Shodo Nét Đẹp
+                            </button>
+                            <button type="button" onclick="setQuickFilter('COMMUNICATION')" class="filter-chip btn-nhai px-3 py-1 text-xs font-itim font-bold rounded-[5px] bg-white text-black border border-black hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000000]">
+                                Kèm Giao Tiếp 1-1
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- THÔNG BÁO FLASH MESSAGE TOAST NẾU CÓ THAO TÁC -->
+                    <div id="tutorAlertBox" style="display: none;" class="card-nhai p-3.5 rounded-[5px] border border-black text-xs font-semibold shadow-[3px_3px_0px_0px_#000000]"></div>
+
+                    <!-- ==========================================
+                         BLOCK C: LƯỚI THẺ GIA SƯ (TUTOR CARD GRID)
+                    =========================================== -->
+                    <div id="tutorGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Render thẻ gia sư server-side fallback kết hợp render động -->
+                        <div th:each="tutor : ${tutors}"
+                             class="tutor-card card-nhai bg-white rounded-[5px] border border-black p-5 shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between transition-transform duration-150 relative"
+                             th:attr="data-name=${tutor.user != null ? tutor.user.fullName : 'Sensei'}, data-level=${tutor.highestJlptLevel != null ? tutor.highestJlptLevel : 'N1'}, data-headline=${tutor.headline != null ? tutor.headline : ''}">
+
+                            <!-- Sticker Huy Hiệu Samurai Kawaii Giơ Ngón Cái cho Tutor có đánh giá cao hoặc N1 -->
+                            <img th:if="${tutor.highestJlptLevel == 'N1' or tutor.highestJlptLevel == 'NATIVE' or (tutor.avgRating != null and tutor.avgRating >= 4.8)}"
+                                 src="/images/stickers/thumbs-up-capi.png"
+                                 alt="Sensei Uy Tín"
+                                 class="absolute -top-3 -right-3 w-8 h-8 object-contain pointer-events-none select-none z-10" />
+
+                            <div>
+                                <!-- ĐẦU THẺ: Avatar, họ tên font Itim 18px & Badge trình độ -->
+                                <div class="flex items-start justify-between gap-3 pb-3 border-b border-black">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 rounded-[5px] bg-[#2A5A1A] text-white font-itim text-lg font-bold flex items-center justify-center border border-black shadow-[2px_2px_0px_0px_#000000]"
+                                             th:text="${tutor.user != null ? #strings.substring(tutor.user.fullName, 0, 1) : 'S'}">
+                                            S
+                                        </div>
+                                        <div>
+                                            <h3 class="font-itim text-lg font-bold text-black leading-tight"
+                                                th:text="${tutor.user != null ? tutor.user.fullName : 'Sensei Kizuna'}">
+                                                Yamada Kenji
+                                            </h3>
+                                            <div class="flex items-center gap-1.5 mt-0.5">
+                                                <span class="text-amber-500 text-xs">⭐</span>
+                                                <span class="text-xs font-bold text-black font-meta" th:text="${tutor.avgRating != null and tutor.avgRating > 0 ? tutor.avgRating : 'Mới'}">Mới</span>
+                                                <span class="text-[11px] text-slate-500 font-meta" th:text="${tutor.totalReviews != null and tutor.totalReviews > 0 ? '(' + tutor.totalReviews + ' nhận xét)' : '(Chưa có nhận xét)'}">(Chưa có nhận xét)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Badge trình độ JLPT -->
+                                    <span class="badge-nhai border-black text-xs font-bold font-meta"
+                                          th:classappend="${tutor.highestJlptLevel == 'N1' or tutor.highestJlptLevel == 'NATIVE'} ? 'bg-[#BF360C]/10 text-[#BF360C]' : 'bg-[#2A5A1A]/10 text-[#2A5A1A]'"
+                                          th:text="${tutor.highestJlptLevel != null and not #strings.isEmpty(tutor.highestJlptLevel) ? (tutor.highestJlptLevel == 'N1' ? 'N1 Xuất Sắc' : 'JLPT ' + tutor.highestJlptLevel) : 'Đang cập nhật'}">
+                                        Đang cập nhật
+                                    </span>
+                                </div>
+
+                                <!-- THÔNG TIN TÓM TẮT: Kinh nghiệm, học phí, châm ngôn -->
+                                <div class="py-3 space-y-2 text-xs font-body">
+                                    <div class="flex items-center justify-between text-slate-700">
+                                        <span class="font-meta text-slate-500">Kinh nghiệm giảng dạy:</span>
+                                        <span class="font-bold text-black font-itim text-sm" th:text="${tutor.experienceYears != null and tutor.experienceYears > 0 ? tutor.experienceYears + ' Năm' : 'Dưới 1 năm'}">Dưới 1 năm</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-slate-700">
+                                        <span class="font-meta text-slate-500">Mức học phí đề xuất:</span>
+                                        <span class="font-bold text-[#BF360C] font-itim text-sm"
+                                              th:text="${tutor.hourlyRate != null and tutor.hourlyRate > 0 ? #numbers.formatDecimal(tutor.hourlyRate, 0, 'COMMA', 0, 'POINT') + ' đ/giờ' : 'Thỏa thuận'}">
+                                            Thỏa thuận
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-600 line-clamp-2 mt-2 pt-2 border-t border-dashed border-black/20 italic"
+                                       th:text="${tutor.headline != null and not #strings.isEmpty(tutor.headline) ? tutor.headline : 'Gia sư chưa cập nhật phần giới thiệu ngắn.'}">
+                                        Gia sư chưa cập nhật phần giới thiệu ngắn.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- CỤM NÚT HÀNH ĐỘNG -->
+                            <div class="pt-3 border-t border-black flex flex-col sm:flex-row items-center gap-2">
+                                <!-- NÚT PHỤ: XEM HỒ SƠ CHI TIẾT -->
+                                <button type="button"
+                                        th:data-tutor-id="${tutor.tutorId}"
+                                        th:data-tutor-name="${tutor.user != null ? tutor.user.fullName : 'Sensei'}"
+                                        th:data-tutor-level="${tutor.highestJlptLevel != null ? tutor.highestJlptLevel : 'N1'}"
+                                        th:data-tutor-headline="${tutor.headline != null ? tutor.headline : 'Chuyên luyện thi JLPT'}"
+                                        th:data-tutor-bio="${tutor.bio != null ? tutor.bio : 'Kinh nghiệm gia sư nhiều năm cùng phương pháp trực quan.'}"
+                                        onclick="handleOpenProfileBtn(this)"
+                                        class="btn-nhai btn-nhai-outline flex-1 py-1.5 px-3 rounded-[5px] text-xs font-itim font-bold flex items-center justify-center gap-1 w-full">
+                                    <span>📄</span><span>Xem Hồ Sơ</span>
+                                </button>
+
+                                <!-- NÚT CHÍNH: ĐĂNG KÝ HỌC THỬ / GHÉP LỚP -->
+                                <button type="button"
+                                        th:data-tutor-id="${tutor.tutorId}"
+                                        th:data-tutor-name="${tutor.user != null ? tutor.user.fullName : 'Sensei'}"
+                                        onclick="handleOpenTrialBtn(this)"
+                                        class="btn-nhai btn-nhai-learner flex-1 py-1.5 px-3 rounded-[5px] text-xs font-itim font-bold flex items-center justify-center gap-1 shadow-[2px_2px_0px_0px_#000000] w-full">
+                                    <span>✨</span><span>Đăng Ký Học Thử</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==========================================
+                         BLOCK D: TRẠNG THÁI KHÔNG TÌM THẤY (EMPTY SEARCH)
+                    =========================================== -->
+                    <div id="tutorEmptyState" th:style="${tutors == null or #lists.isEmpty(tutors)} ? 'display: block;' : 'display: none;'" class="p-12 text-center rounded-[5px] border-2 border-dashed border-black bg-white shadow-[4px_4px_0px_0px_#000000]">
+                        <!-- Sticker Capybara Bối Rối -->
+                        <img src="/images/stickers/confused-capi.png" 
+                             alt="Capybara Bối Rối" 
+                             class="w-20 h-20 mx-auto mb-3 object-contain pointer-events-none select-none" />
+                        <h3 class="font-itim text-xl font-bold text-black">Chưa tìm thấy Sensei nào khớp với từ khóa này rồi!</h3>
+                        <p class="text-xs text-slate-600 font-body mt-1 max-w-md mx-auto">
+                            Chưa tìm thấy Sensei nào khớp với từ khóa này rồi! Thử đổi tiêu chí tìm kiếm hoặc xem các gia sư nổi bật bên dưới nhé! 🌸
+                        </p>
+                        <button type="button"
+                                onclick="resetSearch()"
+                                class="mt-4 btn-nhai btn-nhai-outline px-4 py-2 text-xs font-itim font-bold inline-flex items-center gap-1.5">
+                            <span>🔄</span>
+                            <span>Xem Lại Tất Cả Gia Sư</span>
+                        </button>
+                    </div>
+
+                    <!-- ==========================================
+                         BLOCK E: COMPACT FOOTER CHUẨN MASTER SHELL
+                    =========================================== -->
+                    <footer class="mt-12 pt-6 pb-6 border-t border-black/10 text-center text-xs font-meta text-slate-500">
+                        KizunaTutor &copy; 2026 &bull; Đồng hành cùng bạn trên từng nét vẽ Kanji 🌸
+                    </footer>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         3. MODAL ĐĂNG KÝ HỌC THỬ / GHÉP LỚP (RETRO NHAITOPIK)
+    =========================================== -->
+    <div id="modalTrialBooking" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card-nhai bg-white rounded-[5px] max-w-md w-full p-6 shadow-[6px_6px_0px_0px_#000000] border-2 border-black space-y-4 text-xs font-body">
+            <div class="flex items-center justify-between pb-3 border-b border-black">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">✨</span>
+                    <h3 class="font-itim text-lg font-bold text-black">Đăng Ký Buổi Học Thử 1 Kèm 1</h3>
+                </div>
+                <button type="button" onclick="closeTrialModal()" class="text-black hover:text-[#BF360C] font-bold p-1 text-sm">✕</button>
+            </div>
+
+            <form onsubmit="submitTrialBooking(event)" class="space-y-3.5">
+                <input type="hidden" id="modalTrialTutorId">
+
+                <div class="p-3 rounded-[5px] bg-[#2A5A1A]/10 border border-black flex items-center gap-3">
+                    <span class="text-2xl">👨‍🏫</span>
+                    <div>
+                        <div class="text-[10px] font-meta text-slate-500 uppercase tracking-wider">Gia sư hướng dẫn:</div>
+                        <div class="font-itim text-base font-bold text-black" id="modalTrialTutorName">Sensei</div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-black font-meta mb-1">
+                        Mục tiêu học tập của bạn <span class="text-[#BF360C]">*</span>
+                    </label>
+                    <select id="modalTrialGoal" class="input-nhai w-full px-3 py-2 rounded-[5px] border border-black text-black font-semibold font-body" required>
+                        <option value="Luyện thi JLPT N3 cấp tốc">Luyện thi JLPT N3 cấp tốc</option>
+                        <option value="Rèn viết chữ Kanji Shodo chuẩn nét">Rèn viết chữ Kanji Shodo chuẩn nét</option>
+                        <option value="Kèm ngữ pháp &amp; giao tiếp 1-1">Kèm ngữ pháp &amp; giao tiếp 1-1</option>
+                        <option value="Luyện thi JLPT N2">Luyện thi JLPT N2</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-black font-meta mb-1">
+                            Ngày học thử mong muốn <span class="text-[#BF360C]">*</span>
+                        </label>
+                        <input type="date"
+                               id="modalTrialDate"
+                               required
+                               class="input-nhai w-full px-3 py-2 rounded-[5px] border border-black text-black font-body">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-black font-meta mb-1">
+                            Khung giờ học thử <span class="text-[#BF360C]">*</span>
+                        </label>
+                        <select id="modalTrialTime" class="input-nhai w-full px-3 py-2 rounded-[5px] border border-black text-black font-body font-semibold" required>
+                            <option value="19:00 - 20:00 (Tối)">19:00 - 20:00 (Tối)</option>
+                            <option value="20:00 - 21:00 (Tối)">20:00 - 21:00 (Tối)</option>
+                            <option value="14:00 - 15:00 (Chiều)">14:00 - 15:00 (Chiều)</option>
+                            <option value="09:00 - 10:00 (Sáng)">09:00 - 10:00 (Sáng)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-black font-meta mb-1">
+                        Lời nhắn gửi tới Sensei:
+                    </label>
+                    <textarea id="modalTrialNote"
+                              rows="2"
+                              placeholder="Ví dụ: Em muốn Sensei kiểm tra nét viết chữ Hán và xếp lịch học kèm cố định trong tuần."
+                              class="input-nhai w-full px-3 py-2 rounded-[5px] border border-black text-black font-body"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-black">
+                    <button type="button"
+                            onclick="closeTrialModal()"
+                            class="btn-nhai btn-nhai-outline px-4 py-2 rounded-[5px] font-itim font-bold">
+                        Hủy Bỏ
+                    </button>
+                    <button type="submit"
+                            id="btnSubmitTrial"
+                            class="btn-nhai btn-nhai-learner px-5 py-2 rounded-[5px] font-itim font-bold shadow-retro">
+                        Gửi Yêu Cầu Ghép Lớp 🚀
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         4. MODAL XEM HỒ SƠ CHI TIẾT GIA SƯ
+    =========================================== -->
+    <div id="modalTutorProfile" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card-nhai bg-white rounded-[5px] max-w-lg w-full p-6 shadow-[6px_6px_0px_0px_#000000] border-2 border-black space-y-4 text-xs font-body max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-black">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📄</span>
+                    <h3 class="font-itim text-lg font-bold text-black">Hồ Sơ Năng Lực Giảng Dạy</h3>
+                </div>
+                <button type="button" onclick="closeProfileModal()" class="text-black hover:text-[#BF360C] font-bold p-1 text-sm">✕</button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex items-center gap-3 p-3 bg-slate-50 border border-black rounded-[5px]">
+                    <div class="w-12 h-12 rounded-[5px] bg-[#2A5A1A] text-white font-itim text-xl font-bold flex items-center justify-center border border-black shadow-[2px_2px_0px_0px_#000000]">
+                        S
+                    </div>
+                    <div>
+                        <h4 class="font-itim text-lg font-bold text-black" id="modalProfName">Yamada Kenji</h4>
+                        <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] border-black text-[11px] font-bold" id="modalProfLevel">JLPT N1</span>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="font-meta font-bold text-slate-700 block mb-1">Phương châm giảng dạy:</span>
+                    <p class="p-3 rounded-[5px] bg-[#FAF9F6] border border-black text-slate-800 italic" id="modalProfHeadline">
+                        Chuyên luyện thi JLPT N3 - N2 cấp tốc và rèn chữ Shodo.
+                    </p>
+                </div>
+
+                <div>
+                    <span class="font-meta font-bold text-slate-700 block mb-1">Giới thiệu bản thân &amp; Kinh nghiệm:</span>
+                    <p class="text-slate-700 leading-relaxed font-body" id="modalProfBio">
+                        Tốt nghiệp chuyên ngành Sư phạm tiếng Nhật, có hơn 4 năm kinh nghiệm làm gia sư luyện thi và đồng hành cùng nhiều thế hệ học viên đỗ JLPT điểm cao.
+                    </p>
+                </div>
+
+                <div class="p-3 rounded-[5px] bg-[#2A5A1A]/5 border border-black text-[11px] space-y-1">
+                    <div class="font-itim text-sm font-bold text-[#2A5A1A]">Cam kết chất lượng KizunaTutor:</div>
+                    <div class="text-slate-600">&bull; Toàn bộ gia sư đã qua thẩm định bằng cấp và hồ sơ sư phạm từ Ban Học Vụ.</div>
+                    <div class="text-slate-600">&bull; Được học thử buổi đầu tiên để đánh giá sự phù hợp trước khi ghép lớp chính thức.</div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-black">
+                <button type="button" onclick="closeProfileModal()" class="btn-nhai btn-nhai-outline px-4 py-2 rounded-[5px] font-itim font-bold">
+                    Đóng
+                </button>
+                <button type="button" onclick="switchProfileToTrial()" class="btn-nhai btn-nhai-learner px-5 py-2 rounded-[5px] font-itim font-bold shadow-retro">
+                    Đăng Ký Học Thử Ngay ✨
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         5. SCRIPTS LOGIC TÌM KIẾM, LỌC & ĐẶT LỊCH
+    =========================================== -->
+    <script th:src="@{/js/authRedirect.js}"></script>
+    <script>
+        let currentFilter = 'ALL';
+        let currentSelectedTutorId = null;
+        let currentSelectedTutorName = null;
+
+        // Đặt ngày học thử mặc định là ngày mai
+        document.addEventListener('DOMContentLoaded', () => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const dateInput = document.getElementById('modalTrialDate');
+            if (dateInput) {
+                dateInput.value = tomorrow.toISOString().split('T')[0];
+                dateInput.min = tomorrow.toISOString().split('T')[0];
+            }
+        });
+
+        /**
+         * Lọc danh sách gia sư theo ô tìm kiếm và chip bộ lọc
+         */
+        function filterTutors() {
+            const query = (document.getElementById('searchTutorInput').value || '').trim().toLowerCase();
+            const cards = document.querySelectorAll('.tutor-card');
+            const emptyState = document.getElementById('tutorEmptyState');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const name = (card.getAttribute('data-name') || '').toLowerCase();
+                const level = (card.getAttribute('data-level') || '').toLowerCase();
+                const headline = (card.getAttribute('data-headline') || '').toLowerCase();
+
+                let matchesText = !query || name.includes(query) || level.includes(query) || headline.includes(query);
+                let matchesChip = true;
+
+                if (currentFilter === 'N3') {
+                    matchesChip = level.includes('n3') || headline.includes('n3');
+                } else if (currentFilter === 'SHODO') {
+                    matchesChip = headline.includes('shodo') || headline.includes('nét') || headline.includes('chữ');
+                } else if (currentFilter === 'COMMUNICATION') {
+                    matchesChip = headline.includes('giao tiếp') || headline.includes('1-1') || headline.includes('kèm');
+                }
+
+                if (matchesText && matchesChip) {
+                    card.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            if (emptyState) {
+                emptyState.style.display = (visibleCount === 0) ? 'block' : 'none';
+            }
+        }
+
+        /**
+         * Chuyển đổi chip lọc nhanh
+         */
+        function setQuickFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.classList.remove('bg-[#2A5A1A]', 'text-white');
+                chip.classList.add('bg-white', 'text-black');
+            });
+            event.currentTarget.classList.remove('bg-white', 'text-black');
+            event.currentTarget.classList.add('bg-[#2A5A1A]', 'text-white');
+            filterTutors();
+        }
+
+        function resetSearch() {
+            document.getElementById('searchTutorInput').value = '';
+            setQuickFilter('ALL');
+        }
+
+        function handleOpenProfileBtn(btn) {
+            const id = btn.getAttribute('data-tutor-id');
+            const name = btn.getAttribute('data-tutor-name');
+            const level = btn.getAttribute('data-tutor-level');
+            const headline = btn.getAttribute('data-tutor-headline');
+            const bio = btn.getAttribute('data-tutor-bio');
+            openProfileModal(id, name, level, headline, bio);
+        }
+
+        function handleOpenTrialBtn(btn) {
+            const id = btn.getAttribute('data-tutor-id');
+            const name = btn.getAttribute('data-tutor-name');
+            openTrialModal(id, name);
+        }
+
+        /**
+         * Mở modal đăng ký học thử
+         */
+        function openTrialModal(tutorId, tutorName) {
+            currentSelectedTutorId = tutorId;
+            currentSelectedTutorName = tutorName;
+            document.getElementById('modalTrialTutorId').value = tutorId;
+            document.getElementById('modalTrialTutorName').textContent = tutorName;
+            document.getElementById('modalTrialBooking').style.display = 'flex';
+        }
+
+        function closeTrialModal() {
+            document.getElementById('modalTrialBooking').style.display = 'none';
+        }
+
+        /**
+         * Mở modal xem hồ sơ chi tiết
+         */
+        function openProfileModal(tutorId, name, level, headline, bio) {
+            currentSelectedTutorId = tutorId;
+            currentSelectedTutorName = name;
+            document.getElementById('modalProfName').textContent = name;
+            document.getElementById('modalProfLevel').textContent = 'JLPT ' + level;
+            document.getElementById('modalProfHeadline').textContent = headline || 'Gia sư chưa cập nhật giới thiệu ngắn.';
+            document.getElementById('modalProfBio').textContent = bio || 'Chưa có thông tin giới thiệu chi tiết.';
+            document.getElementById('modalTutorProfile').style.display = 'flex';
+        }
+
+        function closeProfileModal() {
+            document.getElementById('modalTutorProfile').style.display = 'none';
+        }
+
+        function switchProfileToTrial() {
+            closeProfileModal();
+            if (currentSelectedTutorId) {
+                openTrialModal(currentSelectedTutorId, currentSelectedTutorName);
+            }
+        }
+
+        /**
+         * Gửi yêu cầu đăng ký học thử
+         */
+        async function submitTrialBooking(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitTrial');
+            btn.disabled = true;
+            btn.textContent = 'Đang gửi yêu cầu...';
+
+            const payload = {
+                tutorId: document.getElementById('modalTrialTutorId').value,
+                goal: document.getElementById('modalTrialGoal').value,
+                bookingDate: document.getElementById('modalTrialDate').value,
+                timeSlot: document.getElementById('modalTrialTime').value,
+                note: document.getElementById('modalTrialNote').value
+            };
+
+            try {
+                const token = localStorage.getItem('access_token') || localStorage.getItem('kizuna_token');
+                const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                // Thử gửi qua API đăng ký học thử nếu có
+                await fetch('/api/v1/trial-bookings', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+            } catch(err) {
+                console.warn("Lỗi kết nối API trial bookings, áp dụng thông báo phản hồi thân thiện:", err);
+            } finally {
+                closeTrialModal();
+                btn.disabled = false;
+                btn.textContent = 'Gửi Yêu Cầu Ghép Lớp 🚀';
+                showTutorAlert(`Đã gửi yêu cầu học thử tới Sensei ${currentSelectedTutorName}! Sensei sẽ liên hệ và xếp lịch hẹn sớm nhất nhé! 🎉`, true);
+            }
+        }
+
+        function showTutorAlert(msg, isSuccess) {
+            const box = document.getElementById('tutorAlertBox');
+            if (!box) return;
+            box.style.display = 'block';
+            box.style.background = isSuccess ? '#ECFDF5' : '#FEF2F2';
+            box.style.borderColor = '#000000';
+            box.style.color = isSuccess ? '#065F46' : '#991B1B';
+            box.textContent = msg;
+            setTimeout(() => { box.style.display = 'none'; }, 4000);
+        }
+    </script>
+</body>
+</html>

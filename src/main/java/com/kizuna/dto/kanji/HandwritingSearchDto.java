@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Các DTO phục vụ tính năng "Tra cứu chữ Hán bằng nét vẽ viết tay thời gian thực" (Handwriting Kanji Search).
@@ -41,6 +42,7 @@ public class HandwritingSearchDto {
     @AllArgsConstructor
     @Builder
     public static class MatchItem {
+        private UUID kanjiId;
         private String character;
         private String unicodeHex;
         private String hanViet;

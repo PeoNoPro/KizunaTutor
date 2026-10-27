@@ -56,6 +56,16 @@ public interface IKanjiFolderService {
     void removeKanjiFromFolder(UUID folderId, UUID kanjiId);
 
     /**
+     * Nhân bản bộ thẻ (sao chép toàn bộ chữ bên trong sang bộ thẻ mới)
+     */
+    KanjiFolderSummaryDto duplicateFolder(UUID folderId);
+
+    /**
+     * Gộp các chữ Kanji từ bộ thẻ nguồn vào bộ thẻ đích
+     */
+    KanjiFolderSummaryDto mergeFolders(UUID sourceFolderId, UUID targetFolderId);
+
+    /**
      * Lấy dữ liệu chữ Kanji kèm danh sách cách đọc Hiragana chuẩn hóa để nạp vào Minigame
      */
     List<KanjiPlayDataDto> getFolderPlayData(UUID folderId);

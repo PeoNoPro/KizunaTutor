@@ -38,9 +38,24 @@
         </nav>
     </div>
 
-    <div class="p-4 border-t border-purple-100 bg-purple-50/30">
-        <div class="text-[11px] text-purple-900 font-bold">Phòng Chăm Sóc Học Viên</div>
-        <div class="text-[10px] text-slate-500">Hotline: 1900 8888 (8:00 - 22:00)</div>
+    <!-- Footer Sidebar: Thông tin CSKH & Đăng xuất -->
+    <div class="p-3 border-t border-purple-100 bg-purple-50/40">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs" th:text="${avatarText != null ? avatarText : 'CS'}">CS</div>
+                <div class="text-xs leading-tight">
+                    <div class="font-bold text-slate-900 truncate max-w-[100px]" th:text="${userName != null ? userName : 'CS Staff'}">CS Staff</div>
+                    <div class="text-[10px] text-purple-700 font-medium">Chăm sóc khách hàng</div>
+                </div>
+            </div>
+            <button type="button"
+                    data-action="logout"
+                    onclick="executeLogout()"
+                    class="text-xs text-slate-600 hover:text-red-700 font-bold px-2 py-1 rounded-md hover:bg-red-50 transition-all cursor-pointer flex items-center gap-1"
+                    title="Đăng xuất khỏi hệ thống">
+                <span>🚪</span><span>Thoát</span>
+            </button>
+        </div>
     </div>
 </aside>
 </html>

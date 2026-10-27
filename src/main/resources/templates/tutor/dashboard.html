@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${pageTitle}">Tổng Quan Gia Sư - KizunaTutor</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script th:src="@{/js/locales/tutor-copy.js}"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased">
     <div class="flex min-h-screen">
@@ -19,60 +23,59 @@
 
             <main class="flex-1 p-6 sm:p-8 bg-slate-50">
                 <div class="max-w-7xl mx-auto space-y-6">
-                    <!-- Hero Welcome Card -->
-                    <div class="bg-white rounded-xl border border-rose-100 p-6 sm:p-8 shadow-xs relative overflow-hidden">
+                    <!-- Hero Welcome Card (Retro Nhaitopik Style - Thân thiện, đồng hành) -->
+                    <div class="card-nhai card-nhai-tutor bg-white p-6 sm:p-8 border border-black shadow-[4px_4px_0px_0px_#000000] rounded-[5px] relative overflow-hidden">
                         <div class="max-w-3xl">
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full mb-3"
-                                  th:classappend="${verificationStatusClass != null ? verificationStatusClass : 'bg-rose-50 text-rose-700 border border-rose-200'}">
+                            <span class="badge-nhai bg-[#7A2CA8]/10 text-[#7A2CA8] border-black text-xs font-bold mb-3 inline-flex items-center gap-1.5">
                                 <span th:text="${verificationDot != null ? verificationDot : '🟢'}">🟢</span>
                                 <span th:text="${verificationBadge != null ? verificationBadge : 'Đang hoạt động'}">Đang hoạt động</span> &bull; Không Gian Giảng Dạy Gia Sư
                             </span>
-                            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight mb-2">
-                                Xin chào, <span th:text="${userName}">Sensei</span>! Chúc bạn có những giờ dạy hứng khởi.
+                            <h1 class="font-itim text-2xl sm:text-3xl font-extrabold text-[#7A2CA8] tracking-tight mb-2">
+                                Chào Sensei <span th:text="${userName}">Sensei</span>! Hôm nay lớp học của mình có gì vui không nào? 🌸
                             </h1>
-                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                                Bạn có thể duyệt kho chữ Kanji, gom chữ tạo bài tập nhanh cho học viên, và chấm điểm bài viết nét chữ tương tác thời gian thực.
+                            <p class="text-xs sm:text-sm text-slate-700 font-body leading-relaxed">
+                                Kho chữ Kanji đã sẵn sàng, nhặt vài chữ "khoai khoai" thử tài học viên và cùng chiêm ngưỡng nét bút Shodo nhé! 🖌️
                             </p>
                         </div>
                     </div>
 
-                    <!-- Metrics Grid -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
+                    <!-- Metrics Grid (Hard Retro Shadow) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        <div class="card-nhai card-nhai-tutor bg-white p-5 border border-black rounded-[5px] shadow-[4px_4px_0px_0px_#000000]">
                             <div class="flex items-center justify-between mb-3">
-                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Lớp Học Hôm Nay</span>
+                                <span class="font-meta text-[11px] font-bold text-slate-600 uppercase tracking-wider">Lớp Học Hôm Nay</span>
                                 <span class="text-xl">🔔</span>
                             </div>
-                            <div class="text-2xl font-extrabold text-slate-900" th:text="${todayClassesCount != null ? todayClassesCount + ' Buổi' : '0 Buổi'}">0 Buổi</div>
-                            <div class="text-xs text-slate-500 font-semibold mt-1" th:text="${todayClassesCount != null and todayClassesCount > 0 ? 'Buổi gần nhất: Hôm nay' : 'Chưa có lịch dạy hôm nay'}">Chưa có lịch dạy hôm nay</div>
+                            <div class="font-itim text-3xl font-extrabold text-black" th:text="${todayClassesCount != null ? todayClassesCount + ' Buổi' : '0 Buổi'}">0 Buổi</div>
+                            <div class="text-xs text-slate-600 font-body font-semibold mt-1" th:text="${todayClassesCount != null and todayClassesCount > 0 ? 'Buổi gần nhất: Hôm nay' : 'Chưa có lịch dạy hôm nay, tranh thủ thưởng trà nhé! 🍵'}">Chưa có lịch dạy hôm nay, tranh thủ thưởng trà nhé! 🍵</div>
                         </div>
 
-                        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
+                        <div class="card-nhai card-nhai-tutor bg-white p-5 border border-black rounded-[5px] shadow-[4px_4px_0px_0px_#000000]">
                             <div class="flex items-center justify-between mb-3">
-                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Học Viên Phụ Trách</span>
+                                <span class="font-meta text-[11px] font-bold text-slate-600 uppercase tracking-wider">Học Viên Phụ Trách</span>
                                 <span class="text-xl">👥</span>
                             </div>
-                            <div class="text-2xl font-extrabold text-slate-900" th:text="${assignedStudentsCount != null ? assignedStudentsCount + ' Học Viên' : '0 Học Viên'}">0 Học Viên</div>
-                            <div class="text-xs text-slate-500 mt-1" th:text="${assignedStudentsCount != null and assignedStudentsCount > 0 ? 'Học viên trong lớp đang phụ trách' : 'Chưa có học viên phân công'}">Chưa có học viên phân công</div>
+                            <div class="font-itim text-3xl font-extrabold text-black" th:text="${assignedStudentsCount != null ? assignedStudentsCount + ' Học Viên' : '0 Học Viên'}">0 Học Viên</div>
+                            <div class="text-xs text-slate-600 font-body mt-1" th:text="${assignedStudentsCount != null and assignedStudentsCount > 0 ? 'Các học trò chăm chỉ đang trong lớp của bạn' : 'Chưa có học viên phân công, chuẩn bị đón trò mới nào! 🌿'}">Chưa có học viên phân công, chuẩn bị đón trò mới nào! 🌿</div>
                         </div>
 
-                        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
+                        <div class="card-nhai card-nhai-tutor bg-white p-5 border border-black rounded-[5px] shadow-[4px_4px_0px_0px_#000000]">
                             <div class="flex items-center justify-between mb-3">
-                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Bài Nộp Chờ Chấm</span>
+                                <span class="font-meta text-[11px] font-bold text-slate-600 uppercase tracking-wider">Bài Nộp Chờ Chấm</span>
                                 <span class="text-xl">✍️</span>
                             </div>
-                            <div class="text-2xl font-extrabold" th:classappend="${pendingSubmissionsCount != null and pendingSubmissionsCount > 0 ? 'text-rose-600' : 'text-slate-900'}" th:text="${pendingSubmissionsCount != null ? pendingSubmissionsCount + ' Bài' : '0 Bài'}">0 Bài</div>
-                            <div class="text-xs text-slate-500 mt-1" th:text="${pendingSubmissionsCount != null and pendingSubmissionsCount > 0 ? 'Bài nộp qua bảng vẽ Canvas AI' : 'Không có bài chờ chấm'}">Không có bài chờ chấm</div>
+                            <div class="font-itim text-3xl font-extrabold" th:classappend="${pendingSubmissionsCount != null and pendingSubmissionsCount > 0 ? 'text-[#BF360C]' : 'text-black'}" th:text="${pendingSubmissionsCount != null ? pendingSubmissionsCount + ' Bài' : '0 Bài'}">0 Bài</div>
+                            <div class="text-xs text-slate-600 font-body mt-1" th:text="${pendingSubmissionsCount != null and pendingSubmissionsCount > 0 ? 'Ting ting! Học viên vừa nộp bài, Sensei vào chấm xem nét chữ tiến bộ thế nào nhé! 📝' : 'Bàn chấm bài hôm nay đang vắng vẻ, học viên vẫn đang miệt mài múa bút! 🍃'}">Bàn chấm bài hôm nay đang vắng vẻ, học viên vẫn đang miệt mài múa bút! 🍃</div>
                         </div>
                     </div>
 
-                    <!-- Quick Action Card: Kho Kanji & Soạn Bài Tập -->
-                    <div class="bg-white rounded-xl border border-rose-100 p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <!-- Quick Action Card: DUY NHẤT 1 PRIMARY CTA -->
+                    <div class="card-nhai card-nhai-tutor bg-white p-6 border border-black rounded-[5px] shadow-[4px_4px_0px_0px_#000000] flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div>
-                            <h3 class="text-sm font-bold text-slate-900">Kho Kanji &amp; Giỏ Gom Chữ Soạn Bài Tập</h3>
-                            <p class="text-xs text-slate-500">Tra cứu chữ Hán, mô phỏng nét bút Shodo và gom các chữ cần học vào bài tập gửi đến học viên trong lớp.</p>
+                            <h3 class="font-itim text-lg font-bold text-black">Kho Kanji &amp; Giỏ Gom Chữ Soạn Bài Tập</h3>
+                            <p class="text-xs text-slate-600 font-body mt-0.5">Nhặt vài chữ "khoai khoai" để thử tài học viên tuần này nào Sensei! 💡</p>
                         </div>
-                        <a th:href="@{/tutor/kanji-library}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition-colors shadow-xs">
+                        <a th:href="@{/tutor/kanji-library}" class="btn-nhai btn-nhai-tutor text-sm font-itim font-bold px-6 py-2.5 shrink-0 flex items-center gap-2">
                             <span>✍️</span> Mở Kho Kanji Soạn Bài
                         </a>
                     </div>

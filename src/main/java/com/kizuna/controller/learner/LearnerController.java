@@ -27,6 +27,8 @@ public class LearnerController {
     private final SecurityContextUtil securityUtil;
     private final KanjiDictionaryRepository kanjiRepository;
     private final LearningSpaceRepository learningSpaceRepository;
+    private final com.kizuna.repository.TutorRepository tutorRepository;
+    private final com.kizuna.repository.LearnerRepository learnerRepository;
 
     private void populateLearnerShell(Model model, String activeMenu, String pageTitle, String breadcrumbSection) {
         String userName = securityUtil.getCurrentUserName(RoleEnum.ROLE_LEARNER);
@@ -92,15 +94,80 @@ public class LearnerController {
             Model model) {
         populateLearnerShell(model, "practice-canvas", "Luyện Viết Nét Chữ AI", "Luyện Viết Shodo");
         model.addAttribute("currentChar", charQuery);
+        java.util.Optional<com.kizuna.entity.KanjiDictionary> kanjiOpt = kanjiRepository.findByKanjiCharacter(charQuery);
+        model.addAttribute("kanjiInfo", kanjiOpt.orElse(null));
         return "learner/practice-canvas";
+    }
+
+    /**
+     * Màn hình riêng: Tra Cứu Chữ Hán Bằng Nét Vẽ Viết Tay (Handwriting Recognition AI OHR)
+     */
+    @GetMapping("/handwriting-search")
+    public String learnerHandwritingSearch(Model model) {
+        populateLearnerShell(model, "handwriting-search", "Tra Cứu Viết Tay AI", "Nhận Diện Viết Tay");
+        model.addAttribute("totalKanjiCount", kanjiRepository.count());
+        return "learner/handwriting-search";
     }
 
     /**
      * Màn hình 4: Nhật Ký Tiến Độ Cá Nhân
      */
-    @GetMapping("/my-progress")
+    @GetMapping({"/my-progress", "/progress"})
     public String learnerMyProgress(Model model) {
-        populateLearnerShell(model, "my-progress", "Nhật Ký Tiến Độ Cá Nhân", "Tiến Độ Của Tôi");
-        return "learner/my-progress";
+        populateLearnerShell(model, "progress", "Nhật Ký Tiến Độ Cá Nhân", "Tiến Độ Của Tôi");
+        String userEmail = securityUtil.getCurrentUserEmail(RoleEnum.ROLE_LEARNER);
+        com.kizuna.entity.Learner learner = learnerRepository.findByUser_Email(userEmail).orElse(null);
+        String targetLevel = (learner != null && learner.getTargetLevel() != null) ? learner.getTargetLevel() : null;
+        model.addAttribute("targetLevel", targetLevel);
+        return "learner/progress";
+    }
+
+    /**
+     * Màn hình 5: Bộ Thẻ Của Tôi (Chuẩn Master Shell Nhaitopik)
+     */
+    @GetMapping("/flashcards")
+    public String learnerFlashcards(Model model) {
+        populateLearnerShell(model, "flashcards", "Bộ Thẻ Của Tôi", "Bộ Thẻ Của Tôi");
+        return "learner/flashcards";
+    }
+
+    @GetMapping("/find-tutor")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public String learnerFindTutor(Model model) {
+        populateLearnerShell(model, "find-tutor", "Tìm Gia Sư Hợp Gu", "Gia Sư & Lớp Học");
+        java.util.List<com.kizuna.entity.Tutor> allTutors = tutorRepository.findAllWithUser();
+        java.util.List<com.kizuna.entity.Tutor> activeTutors = allTutors.stream()
+                .filter(t -> t.getTutorState() == com.kizuna.entity.TutorState.ACTIVE_PAID
+                        || t.getVerificationStatus() == com.kizuna.entity.TutorVerificationStatus.APPROVED)
+                .toList();
+        model.addAttribute("tutors", activeTutors.isEmpty() ? allTutors : activeTutors);
+        return "learner/find-tutor";
+    }
+
+    @GetMapping("/trial-schedule")
+    public String learnerTrialSchedule(Model model) {
+        populateLearnerShell(model, "trial-schedule", "Lịch Học Thử & Ghép Lớp", "Gia Sư & Lớp Học");
+        return "learner/trial-schedule";
+    }
+
+    @GetMapping("/my-classroom")
+    public String learnerMyClassroom(Model model) {
+        populateLearnerShell(model, "my-classroom", "Lớp Kèm Của Tôi", "Gia Sư & Lớp Học");
+        String userEmail = securityUtil.getCurrentUserEmail(RoleEnum.ROLE_LEARNER);
+        List<LearningSpace> activeSpaces = learningSpaceRepository.findActiveSpacesByLearnerEmail(userEmail);
+        if (!activeSpaces.isEmpty()) {
+            model.addAttribute("activeClassroom", activeSpaces.get(0));
+            model.addAttribute("assignedTutorName", activeSpaces.get(0).getTutor().getUser().getFullName());
+        } else {
+            model.addAttribute("activeClassroom", null);
+            model.addAttribute("assignedTutorName", null);
+        }
+        return "learner/my-classroom";
+    }
+
+    @GetMapping("/assignments")
+    public String learnerAssignments(Model model) {
+        populateLearnerShell(model, "assignments", "Bài Tập Sensei Giao", "Học Tập & Luyện Tập");
+        return "learner/assignments";
     }
 }

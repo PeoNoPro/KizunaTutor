@@ -82,4 +82,104 @@ public class ActorSpecificViewsTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items").isArray());
     }
+
+    @Test
+    @DisplayName("Learner: Truy cập /learner/dashboard thành công")
+    void testLearnerDashboard() throws Exception {
+        String token = loginAndGetToken("learner@kizuna.vn", "123456");
+
+        mockMvc.perform(get("/learner/dashboard")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Learner: Truy cập /learner/flashcards thành công")
+    void testLearnerFlashcards() throws Exception {
+        String token = loginAndGetToken("learner@kizuna.vn", "123456");
+
+        mockMvc.perform(get("/learner/flashcards")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Learner: Truy cập /learner/practice-canvas thành công")
+    void testLearnerPracticeCanvas() throws Exception {
+        String token = loginAndGetToken("learner@kizuna.vn", "123456");
+
+        mockMvc.perform(get("/learner/practice-canvas")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Learner: Truy cập /learner/my-progress và /learner/progress thành công")
+    void testLearnerMyProgress() throws Exception {
+        String token = loginAndGetToken("learner@kizuna.vn", "123456");
+
+        mockMvc.perform(get("/learner/my-progress")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/learner/progress")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Learner: Truy cập /learner/find-tutor thành công với Master Shell Layout")
+    void testLearnerFindTutor() throws Exception {
+        String token = loginAndGetToken("learner@kizuna.vn", "123456");
+
+        mockMvc.perform(get("/learner/find-tutor")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Learner: Truy cập /learner/trial-schedule, /learner/my-classroom, /learner/assignments thành công")
+    void testLearnerAdditionalViews() throws Exception {
+        String token = loginAndGetToken("learner@kizuna.vn", "123456");
+
+        mockMvc.perform(get("/learner/trial-schedule")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/learner/my-classroom")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/learner/assignments")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Learner: Truy cập /learner/handwriting-search thành công")
+    void testLearnerHandwritingSearch() throws Exception {
+        String token = loginAndGetToken("learner@kizuna.vn", "123456");
+
+        mockMvc.perform(get("/learner/handwriting-search")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Learner: Tra cứu chữ viết tay có kanjiId và kiểm tra endpoint thêm kanji")
+    void testHandwritingSearchMatches() throws Exception {
+        String searchBody = """
+            {
+                "strokeCount": 4,
+                "candidates": ["方", "万", "力"]
+            }
+            """;
+        mockMvc.perform(post("/api/kanji/search-by-strokes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(searchBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.matches").isArray())
+                .andExpect(jsonPath("$.matches[0].character").value("方"))
+                .andExpect(jsonPath("$.matches[0].kanjiId").isNotEmpty());
+    }
 }

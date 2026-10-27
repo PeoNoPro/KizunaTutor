@@ -17,6 +17,7 @@ import java.util.Map;
  * Tuân thủ quy chuẩn UI Copywriting: Không để lộ lỗi kỹ thuật ra bên ngoài, 100% tiếng Việt thân thiện.
  */
 @RestControllerAdvice
+@lombok.extern.slf4j.Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadRequestException.class)
@@ -84,6 +85,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneralException(Exception ex) {
+        log.error("Internal Server Error xảy ra tại: ", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "success", false,
                 "error", "INTERNAL_SERVER_ERROR",

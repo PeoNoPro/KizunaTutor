@@ -51,10 +51,24 @@
         </nav>
     </div>
 
-    <!-- Footer Sidebar -->
-    <div class="p-4 border-t border-slate-100 bg-slate-50/50">
-        <div class="text-[11px] text-slate-400 font-medium">Phiên bản Admin v2.4.0</div>
-        <div class="text-[10px] text-slate-400">PostgreSQL 18 &bull; JPA Topo Engine</div>
+    <!-- Footer Sidebar: Thông tin Quản Trị Viên & Đăng xuất -->
+    <div class="p-3 border-t border-slate-100 bg-slate-50/50">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs" th:text="${avatarText != null ? avatarText : 'AD'}">AD</div>
+                <div class="text-xs leading-tight">
+                    <div class="font-bold text-slate-900 truncate max-w-[100px]" th:text="${userName != null ? userName : 'System Admin'}">System Admin</div>
+                    <div class="text-[10px] text-slate-500">Quản trị viên</div>
+                </div>
+            </div>
+            <button type="button"
+                    data-action="logout"
+                    onclick="executeLogout()"
+                    class="text-xs text-slate-600 hover:text-red-700 font-bold px-2 py-1 rounded-md hover:bg-red-50 transition-all cursor-pointer flex items-center gap-1"
+                    title="Đăng xuất khỏi hệ thống">
+                <span>🚪</span><span>Thoát</span>
+            </button>
+        </div>
     </div>
 </aside>
 </html>

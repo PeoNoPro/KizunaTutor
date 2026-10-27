@@ -147,6 +147,34 @@ public class KanjiFolderController {
     }
 
     /**
+     * 4e. POST /api/user/kanji-folders/{id}/duplicate: Nhân bản bộ thẻ
+     */
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<KanjiFolderSummaryDto> duplicateFolder(@PathVariable("id") UUID folderId) {
+        KanjiFolderSummaryDto cloned = folderService.duplicateFolder(folderId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cloned);
+    }
+
+    /**
+     * 4f. POST /api/user/kanji-folders/{id}/merge: Gộp các chữ từ bộ thẻ nguồn vào bộ thẻ đích
+     */
+    @PostMapping("/{id}/merge")
+    public ResponseEntity<KanjiFolderSummaryDto> mergeFolders(
+            @PathVariable("id") UUID sourceFolderId,
+            @RequestParam(required = false) UUID targetFolderId,
+            @RequestBody(required = false) Map<String, Object> body) {
+        UUID targetId = targetFolderId;
+        if (targetId == null && body != null && body.get("targetFolderId") != null) {
+            targetId = UUID.fromString(body.get("targetFolderId").toString());
+        }
+        if (targetId == null) {
+            throw new IllegalArgumentException("Thiếu ID bộ thẻ đích cần gộp");
+        }
+        KanjiFolderSummaryDto merged = folderService.mergeFolders(sourceFolderId, targetId);
+        return ResponseEntity.ok(merged);
+    }
+
+    /**
      * 5. GET /api/user/kanji-folders/{id}/play-data: Lấy danh sách chữ kèm cách đọc Hiragana (kunyomi/onyomi) chuẩn hóa để nạp vào game.
      */
     @GetMapping("/{id}/play-data")

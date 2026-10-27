@@ -36,19 +36,27 @@ public class LearnerKanjiApiController {
     }
 
     /**
-     * 1. Tra cứu từ điển Hán tự tương tác cho học viên
+     * 1. Tra cứu từ điển Hán tự tương tác cho học viên (hỗ trợ từ khóa, JLPT và lọc theo số nét)
      */
     @GetMapping("/search")
     public ResponseEntity<Map<String, Object>> searchDictionary(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String jlpt,
+            @RequestParam(required = false) Short strokeCount,
+            @RequestParam(required = false) Short minStroke,
+            @RequestParam(required = false) Short maxStroke,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "18") int size) {
 
         String jlptParam = (jlpt != null && !jlpt.isBlank() && !jlpt.equalsIgnoreCase("ALL")) ? jlpt.trim().toUpperCase() : null;
         String kwParam = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
 
-        Page<KanjiDictionary> pagedResult = kanjiRepository.searchKanjiPaginated(kwParam, jlptParam, null, null, PageRequest.of(page, size));
+        Page<KanjiDictionary> pagedResult;
+        if (minStroke != null || maxStroke != null) {
+            pagedResult = kanjiRepository.searchKanjiByStrokeRange(kwParam, jlptParam, minStroke, maxStroke, PageRequest.of(page, size));
+        } else {
+            pagedResult = kanjiRepository.searchKanjiPaginated(kwParam, jlptParam, strokeCount, null, PageRequest.of(page, size));
+        }
 
         List<KanjiCardDto> items = pagedResult.getContent().stream().map(k -> {
             handwritingSearchService.enrichKanjiMetadata(k);

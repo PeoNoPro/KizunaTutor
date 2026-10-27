@@ -1,3 +1,10 @@
+-- ====================================================================================================
+-- DỰ ÁN: KIZUNA JAPANESE LEARNING & KANJI PRACTICE PLATFORM
+-- TẬP TIN DDL TẠO CƠ SỞ DỮ LIỆU ĐẦY ĐỦ CHO POSTGRESQL (30 BẢNG - 7 PHÂN HỆ)
+-- MÔI TRƯỜNG THỰC THI: pgAdmin 4 / PostgreSQL 12, 13, 14, 15, 16+
+-- ĐẶC ĐIỂM: Sử dụng Native UUID (gen_random_uuid), JSONB, ENUM types, Trigger tự động cập nhật updated_at
+-- ====================================================================================================
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -509,3 +516,4 @@ VALUES (
     'ACTIVE'
 )
 ON CONFLICT (email) DO NOTHING;
+

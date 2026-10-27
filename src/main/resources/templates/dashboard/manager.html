@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Tổng Quan Quản Lý Vận Hành - KizunaTutor</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@600;700;900&display=swap">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased selection:bg-rose-100 selection:text-rose-900">
+
+    <!-- MASTER DASHBOARD SHELL LAYOUT (FIGMA NODE 1153-3095 STANDARD) -->
+    <div class="flex min-h-screen">
+
+        <!-- THANH ĐIỀU HƯỚNG BÊN (SIDEBAR) -->
+        <aside th:replace="~{fragments/dashboard-shell :: dashboard-sidebar}"></aside>
+
+        <!-- KHU VỰC NỘI DUNG CHÍNH (MAIN CONTAINER) -->
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <!-- THANH ĐIỀU HƯỚNG TRÊN CÙNG (TOP NAVBAR) -->
+            <header th:replace="~{fragments/dashboard-shell :: dashboard-header}"></header>
+
+            <!-- NỘI DUNG CHÍNH (MAIN CONTENT CANVAS MAX-W-7XL) -->
+            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
+                <div class="max-w-7xl mx-auto">
+
+                    <!-- KHỐI CHÀO MỪNG TRUNG TÂM (WELCOME HERO CARD) -->
+                    <section th:replace="~{fragments/dashboard-shell :: welcome-hero-card}"></section>
+
+                    <!-- LƯỚI CARD THỐNG KÊ HOẠT ĐỘNG (METRIC GRID) -->
+                    <section th:replace="~{fragments/dashboard-shell :: metric-cards-grid}"></section>
+
+                    <!-- KHỐI PHÂN HỆ ĐẶC THÙ QUẢN LÝ VẬN HÀNH (MANAGER PLACEHOLDER CONTAINER) -->
+                    <div class="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs">
+                        <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-900">Báo Cáo Tăng Trưởng &amp; Vận Hành Kinh Doanh</h3>
+                                <p class="text-xs text-slate-500">Giám sát doanh số các gói hội viên, số giờ dạy gia sư và thanh toán VNPay</p>
+                            </div>
+                            <span class="px-2.5 py-1 text-xs font-bold rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">Kinh Doanh</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="p-4 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                <div class="text-xl mb-2">📈</div>
+                                <div class="text-xs font-bold text-slate-800">Biểu Đồ Doanh Thu &amp; Dòng Tiền</div>
+                                <div class="text-[11px] text-slate-500 mt-1">Tổng hợp giao dịch nạp tiền, rút tiền của gia sư và thanh toán khóa học.</div>
+                            </div>
+                            <div class="p-4 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                <div class="text-xl mb-2">👑</div>
+                                <div class="text-xs font-bold text-slate-800">Gói Hội Viên Membership</div>
+                                <div class="text-[11px] text-slate-500 mt-1">Cấu hình hạn mức AI Kanji, quyền lợi ưu tiên và bảng giá dịch vụ.</div>
+                            </div>
+                            <div class="p-4 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                <div class="text-xl mb-2">📑</div>
+                                <div class="text-xs font-bold text-slate-800">Hợp Đồng &amp; Đối Soát Gia Sư</div>
+                                <div class="text-[11px] text-slate-500 mt-1">Quản lý tỷ lệ hoa hồng, thanh toán định kỳ và thỏa thuận giảng dạy.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+
+        </div>
+    </div>
+
+    <!-- Script điều hướng, phân quyền và đăng xuất an toàn -->
+    <script th:src="@{/js/authRedirect.js}"></script>
+    <script>
+        function toggleSidebar() {
+            const sb = document.getElementById('dashboardSidebar');
+            if (sb) {
+                sb.classList.toggle('-translate-x-full');
+            }
+        }
+    </script>
+</body>
+</html>

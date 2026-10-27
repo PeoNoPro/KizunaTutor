@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<header th:fragment="header" class="h-16 bg-white border-b border-black sticky top-0 z-40 px-4 sm:px-8 flex items-center justify-between">
+    <!-- Nạp script cấu hình Tailwind Nhaitopik và Xác thực toàn cục -->
+    <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <script th:src="@{/js/globalAuth.js}"></script>
+
+    <!-- Phía trái: Logo KizunaTutor Học Viên (Nhaitopik Retro Style) -->
+    <div class="flex items-center gap-3 sm:gap-6">
+        <button type="button" class="md:hidden p-2 rounded-[5px] border border-black text-black bg-white hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000000]" onclick="toggleSidebar()">
+            ☰
+        </button>
+        <a th:href="@{/learner/dashboard}" class="flex items-center gap-2.5 no-underline group" title="KizunaTutor Học Viên">
+            <div class="w-8 h-8 rounded-[5px] bg-[#2A5A1A] text-white font-bold flex items-center justify-center font-itim text-base border border-black shadow-[2px_2px_0px_0px_#000000]">
+                絆
+            </div>
+            <div class="font-itim text-xl text-black tracking-tight">
+                Kizuna<span class="text-[#2A5A1A]">Learner</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Phía phải: Breadcrumbs Học Viên -->
+    <div class="hidden sm:flex items-center gap-2 text-xs font-meta text-slate-600">
+        <a th:href="@{/learner/dashboard}" class="hover:text-black font-semibold transition-colors">Không Gian Của Tôi</a>
+        <span>/</span>
+        <span class="text-slate-400">Học Tập &amp; Luyện Viết</span>
+        <span>/</span>
+        <span class="text-[#2A5A1A] font-bold" th:text="${breadcrumbSection != null ? breadcrumbSection : 'Tổng Quan'}">Tổng Quan</span>
+    </div>
+</header>
+</html>

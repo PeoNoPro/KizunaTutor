@@ -1,0 +1,89 @@
+====================================================================================================
+DANH SÁCH TÀI KHOẢN VÀ MẬT KHẨU 6 ACTOR HỆ THỐNG KIZUNATUTOR
+====================================================================================================
+Nguồn thiết kế: Figma Node 1153-3095 (Master Shell Layout)
+Cổng đăng nhập hệ thống: http://localhost:8080/login
+API Xác thực: POST http://localhost:8080/api/auth/login
+
+----------------------------------------------------------------------------------------------------
+BẢNG TỔNG HỢP CHI TIẾT 6 ACTOR
+----------------------------------------------------------------------------------------------------
+STT | Vai trò (Actor)        | Email / Tài khoản   | Mật khẩu | Enum Role (Backend)   | Tuyến đường (Route)   | Tên hiển thị Badge
+----+------------------------+---------------------+----------+-----------------------+-----------------------+-------------------
+ 1  | Quản trị viên (Admin)  | admin@kizuna.vn     | admin123 | ROLE_ADMIN            | /admin/dashboard      | Quản Trị Viên
+ 2  | Quản lý vận hành       | manager@kizuna.vn   | 123456   | ROLE_MANAGER          | /manager/dashboard    | Quản Lý Vận Hành
+ 3  | Nhân viên CSKH         | cs@kizuna.vn        | 123456   | ROLE_CS_STAFF         | /cs/dashboard         | Chăm Sóc Khách Hàng
+ 4  | Cán bộ học vụ          | academic@kizuna.vn  | 123456   | ROLE_ACADEMIC_OFFICER | /academic/dashboard   | Cán Bộ Học Vụ
+ 5  | Gia sư Kizuna          | tutor@kizuna.vn     | 123456   | ROLE_TUTOR            | /tutor/dashboard      | Gia Sư Kizuna
+ 6  | Học viên               | learner@kizuna.vn   | 123456   | ROLE_LEARNER          | /learner/dashboard    | Học Viên
+
+----------------------------------------------------------------------------------------------------
+THÔNG TIN CHI TIẾT TỪNG TÀI KHOẢN
+----------------------------------------------------------------------------------------------------
+
+1. QUẢN TRỊ VIÊN (ADMIN)
+   - Họ và tên     : System Administrator
+   - Email         : admin@kizuna.vn
+   - Mật khẩu      : admin123
+   - Vai trò       : ROLE_ADMIN
+   - Đường dẫn     : /admin/dashboard
+   - Badge hiển thị: Quản Trị Viên (Navy Slate)
+   - Nhiệm vụ      : Toàn quyền cấu hình hệ thống, quản lý tài khoản người dùng, giám sát nhật ký audit.
+
+2. QUẢN LÝ VẬN HÀNH (OPERATION MANAGER)
+   - Họ và tên     : Trần Thị Quản Lý
+   - Email         : manager@kizuna.vn
+   - Mật khẩu      : 123456
+   - Vai trò       : ROLE_MANAGER
+   - Đường dẫn     : /manager/dashboard
+   - Badge hiển thị: Quản Lý Vận Hành (Indigo)
+   - Nhiệm vụ      : Điều hành kinh doanh, báo cáo doanh thu, quản lý gói hội viên và hợp đồng gia sư.
+
+3. NHÂN VIÊN CHĂM SÓC KHÁCH HÀNG (CUSTOMER SERVICE STAFF)
+   - Họ và tên     : Lê Chăm Sóc Khách Hàng
+   - Email         : cs@kizuna.vn
+   - Mật khẩu      : 123456
+   - Vai trò       : ROLE_CS_STAFF
+   - Đường dẫn     : /cs/dashboard
+   - Badge hiển thị: Chăm Sóc Khách Hàng (Sky Blue)
+   - Nhiệm vụ      : Tiếp nhận và xử lý vé hỗ trợ (tickets), phản hồi thắc mắc, giải quyết khiếu nại.
+
+4. CÁN BỘ HỌC VỤ (ACADEMIC OFFICER)
+   - Họ và tên     : Phạm Cán Bộ Học Vụ
+   - Email         : academic@kizuna.vn
+   - Mật khẩu      : 123456
+   - Vai trò       : ROLE_ACADEMIC_OFFICER
+   - Đường dẫn     : /academic/dashboard
+   - Badge hiển thị: Cán Bộ Học Vụ (Teal)
+   - Nhiệm vụ      : Thẩm định hồ sơ bằng cấp gia sư (N1/N2), kiểm duyệt giáo trình và chuẩn hóa từ điển Kanji.
+
+5. GIA SƯ KIZUNA (TUTOR)
+   - Họ và tên     : Yamada Kenji (Gia Sư)
+   - Email         : tutor@kizuna.vn
+   - Mật khẩu      : 123456
+   - Vai trò       : ROLE_TUTOR
+   - Đường dẫn     : /tutor/dashboard
+   - Badge hiển thị: Gia Sư Kizuna (Amber / Warm Orange)
+   - Nhiệm vụ      : Quản lý lịch dạy 1 kèm 1, theo dõi học viên, giao bài tập và nhận xét nét vẽ Kanji.
+
+6. HỌC VIÊN KIZUNA (LEARNER / STUDENT)
+   - Họ và tên     : Nguyễn Văn An (Học Viên)
+   - Email         : learner@kizuna.vn
+   - Mật khẩu      : 123456
+   - Vai trò       : ROLE_LEARNER
+   - Đường dẫn     : /learner/dashboard
+   - Badge hiển thị: Học Viên (Emerald Green)
+   - Nhiệm vụ      : Đặt lịch học thử gia sư, luyện viết chữ Hán trên Canvas AI và quản lý bộ thẻ cá nhân.
+
+----------------------------------------------------------------------------------------------------
+7. LUỒNG ĐĂNG KÝ & ĐĂNG NHẬP GOOGLE OAUTH2 (GMAIL)
+----------------------------------------------------------------------------------------------------
+- Tuyến đường Đăng ký tài khoản mới: http://localhost:8080/register (Tự động cấp JWT và vào /learner/dashboard)
+- Nút bấm Đăng nhập bằng Google chuẩn: http://localhost:8080/oauth2/authorization/google
+- Nút bấm Kiểm thử Nhanh Google OAuth2 (1-Click Dev): http://localhost:8080/api/auth/mock-google-login
+- Trang nhận callback và đồng bộ Token: http://localhost:8080/oauth2/redirect
+
+====================================================================================================
+Ghi chú: Tại trang đăng nhập (/login), hệ thống đã tích hợp sẵn cả 6 nút bấm "1-Click Demo Login" 
+và nút "Kiểm thử Nhanh Luồng Google OAuth2 (1-Click Dev)" để kiểm thử tức thì không lo lỗi trắng trang!
+====================================================================================================

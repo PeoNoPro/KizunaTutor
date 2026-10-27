@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 1. Database PostgreSQL cho KizunaTutor
+  kizuna-postgres:
+    image: postgres:16-alpine
+    container_name: kizuna-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kizuna_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Microservice Trí nhớ AI (TencentDB Agent Memory Hub)
+  agent-memory:
+    build:
+      context: ./services/agent-memory/MemoryCore
+      dockerfile: Dockerfile
+    container_name: kizuna-agent-memory
+    restart: unless-stopped
+    ports:
+      - "8081:8420"
+    environment:
+      - TDAI_GATEWAY_HOST=0.0.0.0
+      - TDAI_GATEWAY_PORT=8420
+      - DATABASE_URL=postgresql://postgres:123@kizuna-postgres:5432/kizuna_db
+    depends_on:
+      kizuna-postgres:
+        condition: service_healthy
+    volumes:
+      - agent_memory_data:/data/tdai-memory
+
+volumes:
+  postgres_data:
+  agent_memory_data:

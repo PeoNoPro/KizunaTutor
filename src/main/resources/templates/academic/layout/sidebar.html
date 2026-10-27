@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<aside th:fragment="sidebar" id="academicSidebar" class="w-64 min-w-[16rem] bg-white border-r border-slate-200 h-screen sticky top-0 flex flex-col justify-between z-30 transition-transform duration-200 ease-in-out md:translate-x-0">
+    <div class="p-4 sm:p-5 flex-1 overflow-y-auto">
+        <div class="px-2 py-1 text-[11px] font-bold tracking-wider text-teal-700 uppercase mb-3">
+            HỌC VỤ &amp; KHẢO THÍ CHUẨN SƯ PHẠM
+        </div>
+
+        <nav class="space-y-1">
+            <a th:href="@{/academic/dashboard}"
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all group"
+               th:classappend="${activeMenu == 'dashboard'} ? 'bg-teal-700 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-teal-800 hover:bg-teal-50/60'">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">📊</span>
+                    <span>Tổng Quan Học Vụ</span>
+                </div>
+            </a>
+
+            <a th:href="@{/academic/curriculum-kanji}"
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all group"
+               th:classappend="${activeMenu == 'curriculum-kanji'} ? 'bg-teal-700 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-teal-800 hover:bg-teal-50/60'">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">📖</span>
+                    <span>Thẩm Định Giáo Trình Kanji</span>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-100 text-teal-800 border border-teal-200">
+                    JLPT
+                </span>
+            </a>
+
+            <a th:href="@{/academic/academic-records}"
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all group"
+               th:classappend="${activeMenu == 'academic-records'} ? 'bg-teal-700 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-teal-800 hover:bg-teal-50/60'">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">🎯</span>
+                    <span>Chuẩn Đầu Ra &amp; Khảo Thí</span>
+                </div>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Footer Sidebar: Thông tin Cán Bộ Học Vụ & Đăng xuất -->
+    <div class="p-3 border-t border-teal-100 bg-teal-50/40">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-full bg-teal-700 text-white flex items-center justify-center font-bold text-xs" th:text="${avatarText != null ? avatarText : 'HV'}">HV</div>
+                <div class="text-xs leading-tight">
+                    <div class="font-bold text-slate-900 truncate max-w-[100px]" th:text="${userName != null ? userName : 'Academic Officer'}">Academic Officer</div>
+                    <div class="text-[10px] text-teal-800 font-medium">Cán bộ học vụ</div>
+                </div>
+            </div>
+            <button type="button"
+                    data-action="logout"
+                    onclick="executeLogout()"
+                    class="text-xs text-slate-600 hover:text-red-700 font-bold px-2 py-1 rounded-md hover:bg-red-50 transition-all cursor-pointer flex items-center gap-1"
+                    title="Đăng xuất khỏi hệ thống">
+                <span>🚪</span><span>Thoát</span>
+            </button>
+        </div>
+    </div>
+</aside>
+</html>

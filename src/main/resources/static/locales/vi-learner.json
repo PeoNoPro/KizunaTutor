@@ -1,0 +1,35 @@
+{
+  "greetings": {
+    "dashboard_welcome": "Hôm nay lại thêm một ngày chăm chỉ cùng tiếng Nhật nhé! ☕",
+    "dashboard_subtitle": "Hãy tra cứu các chữ Kanji mới, lưu vào bộ Flashcard cá nhân và thực hành viết trên ô Mễ tương tác để AI chấm điểm nét thuận.",
+    "streak_active": "Giữ lửa {streak} ngày liên tục rồi đấy, Kizuna Sensei tự hào về bạn! 🔥",
+    "streak_first_day": "Khởi đầu ngày học đầu tiên cùng tiếng Nhật, Kizuna Sensei tự hào về bạn! 🌸"
+  },
+  "homework": {
+    "empty": "Gia sư chưa giao bài mới, tranh thủ làm cốc trà sữa hoặc cày vài chữ Kanji đi nào! 🧋",
+    "deadline_urgent": "Deadline đang thở sau gáy rồi nè, vào luyện vài nét nộp bài cho Sensei thôi! ⏰",
+    "no_class_locked": "Khu vực này dành riêng cho học viên có Sensei kèm cặp. Tìm một người thầy hợp gu ngay thôi! 🤝"
+  },
+  "canvas": {
+    "cta_practice": "Cầm bút luyện nét ngay ✍️",
+    "cta_minigame": "Bắn chữ giải ngố nào 🎮",
+    "cta_grade": "Chấm Điểm Nét AI 🎯",
+    "cta_clear": "Xóa Viết Lại 🧹",
+    "high_score": "Nét vẽ mượt như Shodo thực thụ, Sensei chấm điểm 10 không có nhưng! ✨",
+    "wrong_order": "Ối, nét này đi hơi ngược đường ray rồi, thử lại đường quyền khác nhé! 🎯",
+    "guidance": "Hãy cầm bút múa vài đường quyền theo thứ tự nét chuẩn. Sau khi viết xong, bấm [Chấm Điểm Nét AI] để xem Sensei AI chấm điểm nhé! 🖌️"
+  },
+  "dictionary": {
+    "search_placeholder": "🔍 Nhập chữ Hán, âm Hán Việt (Ái, Hòa, Tâm) hoặc nghĩa tiếng Việt...",
+    "empty_result": "Không tìm thấy chữ Kanji nào phù hợp, bạn thử tìm từ khóa khác xem sao nha! 🧐",
+    "save_deck_success": "Đã cất chữ vào bộ thẻ thành công, tha hồ lôi ra cày cuốc! 🗂️",
+    "cta_save_deck": "Lưu Thẻ 📁",
+    "cta_practice_char": "Luyện Viết ✍️"
+  },
+  "progress": {
+    "encouragement": "Mỗi ngày vài nét chữ, trình Kanji lên như diều gặp gió! 🚀",
+    "monthly_goal": "Mục Tiêu Tháng Này",
+    "no_score_yet": "Chưa có điểm bài tập nào",
+    "no_rank_yet": "Chăm chỉ cày bài để ghi danh bảng vàng nhé!"
+  }
+}

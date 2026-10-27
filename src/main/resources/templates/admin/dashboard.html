@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Tổng Quan Quản Trị Viên - KizunaTutor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased">
+    <div class="flex min-h-screen">
+        <!-- Sidebar Admin -->
+        <aside th:replace="~{admin/layout/sidebar :: sidebar}"></aside>
+
+        <div class="flex-1 flex flex-col min-w-0">
+            <!-- Header Admin -->
+            <header th:replace="~{admin/layout/header :: header}"></header>
+
+            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
+                <div class="max-w-7xl mx-auto space-y-6">
+                    <!-- Hero Welcome Card -->
+                    <div class="bg-white rounded-xl border border-slate-200/80 p-6 sm:p-8 shadow-xs relative overflow-hidden">
+                        <div class="max-w-3xl">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-700 border border-slate-200 mb-3">
+                                <span>🟢</span> Đang hoạt động (Active) &bull; Quyền Quản Trị Cao Nhất
+                            </span>
+                            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight mb-2">
+                                Xin chào, <span th:text="${userName}">Quản Trị Viên</span>! Chào mừng đến với Bảng Điều Khiển Admin.
+                            </h1>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                Bạn đang quản trị hệ thống dữ liệu chữ Hán, phân quyền tài khoản, hạ tầng dịch vụ và giám sát toàn diện hoạt động vận hành của KizunaTutor.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tổng Người Dùng</span>
+                                <span class="text-xl">👥</span>
+                            </div>
+                            <div class="text-2xl font-extrabold text-slate-900" th:text="${totalUsers != null ? totalUsers : '0'}">0</div>
+                            <div class="text-xs text-slate-500 mt-1">Gồm 6 vai trò trong hệ thống</div>
+                        </div>
+
+                        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Kho Kanji Gốc</span>
+                                <span class="text-xl">📖</span>
+                            </div>
+                            <div class="text-2xl font-extrabold text-slate-900" th:text="${totalKanji != null ? totalKanji + ' Chữ' : '0 Chữ'}">0 Chữ</div>
+                            <div class="text-xs text-emerald-600 font-semibold mt-1">100% Chuẩn nét KanjiVG</div>
+                        </div>
+
+                        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Lớp Đang Mở</span>
+                                <span class="text-xl">🏫</span>
+                            </div>
+                            <div class="text-2xl font-extrabold text-slate-900" th:text="${activeClasses != null ? activeClasses + ' Lớp' : '0 Lớp'}">0 Lớp</div>
+                            <div class="text-xs text-slate-500 mt-1" th:text="${activeClasses != null and activeClasses > 0 ? 'Không gian học tập đang mở' : 'Chưa có lớp nào được tạo'}">Chưa có lớp nào được tạo</div>
+                        </div>
+
+                        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Hạ Tầng Dịch Vụ</span>
+                                <span class="text-xl">⚡</span>
+                            </div>
+                            <div class="text-2xl font-extrabold text-emerald-600" th:text="${serverStatus != null ? serverStatus : 'Đang hoạt động'}">Đang hoạt động</div>
+                            <div class="text-xs text-slate-500 mt-1">AI Stroke Grading &amp; Vector Engine</div>
+                        </div>
+                    </div>
+
+                    <!-- Shortcut Action Banner -->
+                    <div class="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">Quản Trị Cơ Sở Dữ Liệu Chữ Hán</h3>
+                            <p class="text-xs text-slate-500">Chỉnh sửa âm Hán Việt, Onyomi, Kunyomi, số nét và kiểm tra dữ liệu nét vẽ KanjiVG chuẩn xác.</p>
+                        </div>
+                        <a th:href="@{/admin/kanji-management}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors shadow-xs">
+                            <span>⚙️</span> Vào Quản Trị Kanji
+                        </a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script th:src="@{/js/authRedirect.js}"></script>
+    <script>
+        function toggleSidebar() {
+            const sb = document.getElementById('adminSidebar');
+            if (sb) sb.classList.toggle('-translate-x-full');
+        }
+    </script>
+</body>
+</html>

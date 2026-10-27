@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<aside th:fragment="sidebar" class="app-sidebar" id="appSidebar">
+    <!-- Header Sidebar: Logo KizunaTutor -->
+    <div class="sidebar-header">
+        <a th:href="@{/}" class="sidebar-brand" title="Về trang chủ KizunaTutor">
+            <div class="sidebar-brand-badge">絆</div>
+            <div class="sidebar-brand-name">Kizuna<span>Tutor</span></div>
+        </a>
+    </div>
+
+    <!-- Danh mục điều hướng chính (Navigation Rail) -->
+    <nav class="sidebar-nav">
+        <!-- 1. GIA SƯ & LỚP HỌC (ĐƯA LÊN TRÊN CÙNG ĐẦU TIÊN) -->
+        <div class="sidebar-section-label">GIA SƯ &amp; LỚP HỌC</div>
+
+        <a th:href="@{/tutors}" class="sidebar-link" id="sideLinkTutors" title="Tìm gia sư tiếng Nhật 1 kèm 1">
+            <span class="sidebar-icon">🔍</span>
+            <span>Tìm Gia Sư</span>
+        </a>
+
+        <!-- 2. HỌC TẬP & LUYỆN TẬP -->
+        <div class="sidebar-section-label" style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between;">
+            <span>HỌC TẬP &amp; LUYỆN TẬP</span>
+            <span th:if="${!isUnlocked}" class="sidebar-lock-badge" style="font-size: 10px; font-weight: 700; color: #DC2626; background: #FEF2F2; padding: 1px 6px; border-radius: 4px; border: 1px solid #FECACA; letter-spacing: 0.5px;">🔒 KHÓA</span>
+        </div>
+
+        <!-- 1. BỘ THẺ CỦA TÔI -->
+        <a th:href="@{/kanji(tab='folders')}" class="sidebar-link" id="sideLinkFolders" onclick="return handleProtectedSidebarClick(event, this.href, 'folders')" title="Bộ Thẻ Của Tôi">
+            <span class="sidebar-icon">📁</span>
+            <span>Bộ Thẻ Của Tôi</span>
+            <span th:if="${!isUnlocked}" class="sidebar-lock-icon" style="margin-left: auto; font-size: 11px; opacity: 0.7;">🔒</span>
+        </a>
+
+        <!-- 2. LUYỆN VIẾT NÉT CHỮ TRÊN CANVAS -->
+        <a th:href="@{/kanji(tab='practice')}" class="sidebar-link" id="sideLinkPractice" onclick="return handleProtectedSidebarClick(event, this.href, 'practice')" title="Luyện Viết Nét Chữ">
+            <span class="sidebar-icon">✍️</span>
+            <span>Luyện Viết Nét Chữ</span>
+            <span th:if="${!isUnlocked}" class="sidebar-lock-icon" style="margin-left: auto; font-size: 11px; opacity: 0.7;">🔒</span>
+        </a>
+
+        <!-- 3. THƯ VIỆN CHỮ HÁN -->
+        <a th:href="@{/kanji(tab='library')}" class="sidebar-link" id="sideLinkLibrary" onclick="return handleProtectedSidebarClick(event, this.href, 'library')" title="Thư Viện Kanji">
+            <span class="sidebar-icon">📚</span>
+            <span>Thư Viện Kanji</span>
+            <span th:if="${!isUnlocked}" class="sidebar-lock-icon" style="margin-left: auto; font-size: 11px; opacity: 0.7;">🔒</span>
+        </a>
+
+        <!-- 4. TÌM KIẾM KANJI THEO NÉT VẼ VIẾT TAY -->
+        <a th:href="@{/kanji(action='hwSearch')}" class="sidebar-link" id="sideLinkHwSearch" onclick="return handleProtectedSidebarClick(event, this.href, 'hwSearch')" title="Tìm kanji">
+            <span class="sidebar-icon">🖌️</span>
+            <span>Tìm kanji</span>
+            <span th:if="${!isUnlocked}" class="sidebar-lock-icon" style="margin-left: auto; font-size: 11px; opacity: 0.7;">🔒</span>
+        </a>
+
+        <!-- 3. TÀI KHOẢN -->
+        <div class="sidebar-section-label" style="margin-top: 14px;">TÀI KHOẢN</div>
+
+        <a th:href="@{/login}" class="sidebar-link" id="sideLinkLogin">
+            <span class="sidebar-icon">🔑</span>
+            <span>Đăng Nhập</span>
+        </a>
+
+        <a th:href="@{/register}" class="sidebar-link" id="sideLinkRegister">
+            <span class="sidebar-icon">✨</span>
+            <span>Đăng Ký Học Thử</span>
+        </a>
+    </nav>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL RÀO CẢN PHÂN QUYỀN HỌC TẬP & LUYỆN TẬP (BARRIER MODAL CHO GUEST)     -->
+    <!-- ========================================================================= -->
+    <div id="modalSidebarBarrier" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 99999; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: #FFFFFF; border-radius: 20px; max-width: 520px; width: 100%; padding: 36px 30px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid #E2E8F0; text-align: center; position: relative;">
+            
+            <!-- Nút đóng X -->
+            <button type="button" onclick="closeSidebarBarrierModal()" style="position: absolute; top: 16px; right: 16px; background: #F1F5F9; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 14px; font-weight: bold; color: #64748B; display: flex; align-items: center; justify-content: center;">✕</button>
+
+            <!-- Icon Ổ khóa lớn màu đỏ -->
+            <div style="width: 68px; height: 68px; margin: 0 auto 18px auto; border-radius: 50%; background: #FEF2F2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 32px; border: 2px solid #FEE2E2;">
+                🔒
+            </div>
+
+            <!-- Badge phân loại trạng thái rào cản -->
+            <div style="margin-bottom: 14px;">
+                <span th:if="${accessState == null || accessState == 'UNAUTHENTICATED'}" id="sidebarBarrierBadgeGuest" style="background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; padding: 4px 14px; font-size: 11px; font-weight: 700; border-radius: 999px; text-transform: uppercase;">
+                    Trạng Thái 1: Khách Vãng Lai (Chưa Đăng Nhập)
+                </span>
+                <span th:if="${accessState == 'UNASSIGNED_LEARNER'}" id="sidebarBarrierBadgeUnassigned" style="background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; padding: 4px 14px; font-size: 11px; font-weight: 700; border-radius: 999px; text-transform: uppercase;">
+                    Trạng Thái 2: Học Viên Chưa Có Không Gian Học Tập
+                </span>
+            </div>
+
+            <!-- Tiêu đề rào cản -->
+            <h3 style="font-size: 20px; font-weight: 800; color: #0F172A; margin: 0 0 12px 0;" th:text="${lockedTitle != null ? lockedTitle : 'Đặc Quyền Dành Cho Học Viên Chính Thức'}">
+                Đặc Quyền Dành Cho Học Viên Chính Thức
+            </h3>
+
+            <!-- Thông báo chuẩn theo yêu cầu -->
+            <div style="border-radius: 12px; padding: 14px 18px; font-size: 13.5px; font-weight: 600; line-height: 1.5; margin-bottom: 24px;"
+                 th:styleappend="${accessState == 'UNASSIGNED_LEARNER'} ? 'background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A;' : 'background: #F8FAFC; color: #1E293B; border: 1px solid #E2E8F0;'">
+                <p style="margin: 0;" th:text="${lockedMessage != null ? lockedMessage : 'Bạn cần đăng nhập và được Gia sư mở khóa để sử dụng chức năng này'}">
+                    Bạn cần đăng nhập và được Gia sư mở khóa để sử dụng chức năng này
+                </p>
+            </div>
+
+            <!-- Nút hành động cho Trạng thái 1: Khách vãng lai -->
+            <div th:if="${accessState == null || accessState == 'UNAUTHENTICATED'}" style="display: flex; gap: 12px; justify-content: center;">
+                <a th:href="@{/login}" class="btn btn-primary" style="flex: 1; padding: 11px 18px; font-size: 13.5px; font-weight: 700; text-decoration: none; text-align: center; border-radius: 8px;">
+                    🔑 Đăng Nhập Ngay
+                </a>
+                <a th:href="@{/register}" class="btn btn-outline" style="flex: 1; padding: 11px 18px; font-size: 13.5px; font-weight: 700; text-decoration: none; text-align: center; border-radius: 8px;">
+                    ✨ Đăng Ký Tài Khoản
+                </a>
+            </div>
+
+            <!-- Nút hành động cho Trạng thái 2: Learner chưa có lớp -->
+            <div th:if="${accessState == 'UNASSIGNED_LEARNER'}" style="display: flex; gap: 12px; justify-content: center;">
+                <a th:href="@{/tutors}" class="btn btn-primary" style="flex: 1; padding: 11px 18px; font-size: 13.5px; font-weight: 700; text-decoration: none; text-align: center; border-radius: 8px;">
+                    👨‍🏫 Khám Phá &amp; Tìm Gia Sư
+                </a>
+                <button type="button" onclick="closeSidebarBarrierModal(); if(typeof openInviteCodeModal==='function'){openInviteCodeModal();}else{window.location.href='/kanji';}" class="btn btn-outline" style="flex: 1; padding: 11px 18px; font-size: 13.5px; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                    💬 Nhập Mã Mời Của Gia Sư
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tự động đồng bộ trạng thái Active theo URL & Xử lý click phân hệ bảo vệ -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        window.IS_WORKSPACE_UNLOCKED = /*[[${isUnlocked != null ? isUnlocked : false}]]*/ false;
+        window.ACCESS_STATE = /*[[${accessState != null ? accessState : 'UNAUTHENTICATED'}]]*/ 'UNAUTHENTICATED';
+        /*]]>*/
+
+        function openSidebarBarrierModal() {
+            const modal = document.getElementById('modalSidebarBarrier');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeSidebarBarrierModal() {
+            const modal = document.getElementById('modalSidebarBarrier');
+            if (modal) modal.style.display = 'none';
+        }
+
+        window.openSidebarBarrierModal = openSidebarBarrierModal;
+        window.closeSidebarBarrierModal = closeSidebarBarrierModal;
+
+        window.handleProtectedSidebarClick = function(event, targetUrl, featureKey) {
+            // Nếu tài khoản đã mở khóa (Active Official Learner) -> cho phép truy cập bình thường
+            if (window.IS_WORKSPACE_UNLOCKED === true) {
+                if (featureKey === 'hwSearch' && typeof openHwSearchModal === 'function') {
+                    if (event) event.preventDefault();
+                    openHwSearchModal();
+                    return false;
+                }
+                return true;
+            }
+
+            // Nếu phân hệ bị khóa:
+            if (event) event.preventDefault();
+
+            // Nếu đang ở màn hình /kanji và đã có màn hình rào cản -> cuộn tới rào cản và rung nhẹ
+            const lockScreen = document.getElementById('lockedWorkspaceScreen');
+            if (lockScreen) {
+                lockScreen.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                lockScreen.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
+                lockScreen.style.transform = 'scale(1.02)';
+                lockScreen.style.boxShadow = '0 0 0 4px rgba(220, 38, 38, 0.2)';
+                setTimeout(() => {
+                    lockScreen.style.transform = 'scale(1)';
+                    lockScreen.style.boxShadow = '';
+                }, 300);
+                return false;
+            }
+
+            // Ở các trang khác (trang chủ guest, danh sách gia sư, đăng nhập...): hiển thị ngay Modal Rào Cản
+            openSidebarBarrierModal();
+            return false;
+        };
+
+        (function() {
+            function syncSidebarState() {
+                const path = window.location.pathname;
+                const params = new URLSearchParams(window.location.search);
+                const tab = params.get('tab') || 'folders';
+
+                const links = {
+                    folders: document.getElementById('sideLinkFolders'),
+                    practice: document.getElementById('sideLinkPractice'),
+                    library: document.getElementById('sideLinkLibrary'),
+                    hwSearch: document.getElementById('sideLinkHwSearch'),
+                    tutors: document.getElementById('sideLinkTutors'),
+                    login: document.getElementById('sideLinkLogin'),
+                    register: document.getElementById('sideLinkRegister')
+                };
+
+                Object.values(links).forEach(l => { if (l) l.classList.remove('active'); });
+
+                if (path.includes('/kanji')) {
+                    if (params.get('action') === 'hwSearch' && links.hwSearch) {
+                        links.hwSearch.classList.add('active');
+                    } else if (links[tab]) {
+                        links[tab].classList.add('active');
+                    } else if (links.folders) {
+                        links.folders.classList.add('active');
+                    }
+                } else if (path.includes('/tutors') && links.tutors) {
+                    links.tutors.classList.add('active');
+                } else if (path.includes('/login') && links.login) {
+                    links.login.classList.add('active');
+                } else if (path.includes('/register') && links.register) {
+                    links.register.classList.add('active');
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', syncSidebarState);
+            } else {
+                syncSidebarState();
+            }
+        })();
+    </script>
+</aside>
+</html>

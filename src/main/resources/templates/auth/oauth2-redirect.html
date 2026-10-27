@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác Thực Phiên Đăng Nhập - KizunaTutor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@600;700;900&display=swap">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-lg p-8 text-center relative overflow-hidden">
+        <!-- Subtle Top Brand Bar -->
+        <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 via-indigo-500 to-emerald-500"></div>
+
+        <!-- Brand Emblem -->
+        <div class="w-14 h-14 rounded-2xl bg-slate-900 text-white font-bold flex items-center justify-center font-serif text-3xl mx-auto mb-4 shadow-sm animate-pulse">
+            絆
+        </div>
+
+        <h2 id="redirectTitle" class="text-xl font-black text-slate-900 tracking-tight mb-2">
+            Đang Đồng Bộ Tài Khoản
+        </h2>
+        
+        <p id="redirectDesc" class="text-sm text-slate-500 mb-6">
+            Hệ thống đang hoàn tất xác thực danh tính và chuẩn bị Không Gian Làm Việc của bạn...
+        </p>
+
+        <!-- Loading Spinner Container -->
+        <div id="spinnerContainer" class="flex flex-col items-center justify-center py-4 space-y-4">
+            <div class="w-10 h-10 border-4 border-slate-200 border-t-rose-600 rounded-full animate-spin"></div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Bảo Mật JWT & Đồng Bộ Phiên...
+            </span>
+        </div>
+
+        <!-- Error Container (Hidden by default) -->
+        <div id="errorContainer" class="hidden text-left bg-rose-50 border border-rose-200 rounded-xl p-4 my-4">
+            <div class="flex items-center gap-2 text-rose-700 font-bold text-sm mb-1">
+                <span>⚠️</span>
+                <span id="errorHeading">Xác thực không thành công</span>
+            </div>
+            <p id="errorMessage" class="text-xs text-rose-600 leading-relaxed mb-4">
+                Đã xảy ra lỗi trong quá trình tiếp nhận phản hồi từ dịch vụ xác thực.
+            </p>
+            <a href="/login" class="inline-flex items-center justify-center w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-all shadow-xs">
+                ← Quay Lại Trang Đăng Nhập
+            </a>
+        </div>
+
+        <!-- Success Container (Optional manual proceed button if auto-redirect delayed) -->
+        <div id="manualProceedContainer" class="hidden mt-4">
+            <button id="btnManualProceed" class="text-xs font-semibold text-rose-600 hover:text-rose-700 underline">
+                Bấm vào đây nếu trình duyệt không tự động chuyển hướng
+            </button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const DASHBOARD_ROUTES = {
+                'ROLE_ADMIN': '/admin/dashboard',
+                'ROLE_MANAGER': '/manager/dashboard',
+                'ROLE_CS_STAFF': '/cs/dashboard',
+                'ROLE_ACADEMIC_OFFICER': '/academic/dashboard',
+                'ROLE_TUTOR': '/tutor/dashboard',
+                'ROLE_LEARNER': '/learner/dashboard',
+                'ROLE_STUDENT': '/learner/dashboard'
+            };
+
+            const ROLE_BADGES = {
+                'ROLE_ADMIN': 'Quản Trị Viên',
+                'ROLE_MANAGER': 'Quản Lý Vận Hành',
+                'ROLE_CS_STAFF': 'Chăm Sóc Khách Hàng',
+                'ROLE_ACADEMIC_OFFICER': 'Cán Bộ Học Vụ',
+                'ROLE_TUTOR': 'Gia Sư Kizuna',
+                'ROLE_LEARNER': 'Học Viên'
+            };
+
+            const spinner = document.getElementById('spinnerContainer');
+            const errorBox = document.getElementById('errorContainer');
+            const errorMsg = document.getElementById('errorMessage');
+            const titleEl = document.getElementById('redirectTitle');
+            const descEl = document.getElementById('redirectDesc');
+            const manualProceed = document.getElementById('manualProceedContainer');
+            const btnManual = document.getElementById('btnManualProceed');
+
+            function showError(msg) {
+                if (spinner) spinner.classList.add('hidden');
+                if (errorBox) {
+                    errorBox.classList.remove('hidden');
+                    if (errorMsg) errorMsg.textContent = msg;
+                }
+                if (titleEl) titleEl.textContent = 'Lỗi Đăng Nhập';
+                if (descEl) descEl.textContent = 'Không thể tiếp tục với tài khoản này';
+            }
+
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const token = params.get('token');
+                const role = params.get('role') || 'ROLE_LEARNER';
+                const emailRaw = params.get('email');
+                const nameRaw = params.get('name');
+                const error = params.get('error');
+
+                if (error) {
+                    let friendlyError = 'Xác thực tài khoản với Google bị từ chối hoặc gặp trục trặc.';
+                    if (error === 'email_not_provided') friendlyError = 'Google không cung cấp địa chỉ email của bạn.';
+                    if (error === 'oauth2_failure') friendlyError = 'Đăng nhập Google thất bại hoặc bạn đã hủy ủy quyền.';
+                    showError(friendlyError);
+                    return;
+                }
+
+                if (!token) {
+                    showError('Không tìm thấy Token bảo mật trong phản hồi. Vui lòng đăng nhập lại.');
+                    return;
+                }
+
+                const email = emailRaw ? decodeURIComponent(emailRaw) : '';
+                const name = nameRaw ? decodeURIComponent(nameRaw) : (email.split('@')[0] || 'Người dùng Kizuna');
+
+                // 1. Lưu đồng bộ cả kizuna_token lẫn access_token vào localStorage
+                localStorage.setItem('kizuna_token', token);
+                localStorage.setItem('access_token', token);
+
+                // 2. Lưu thông tin người dùng kizuna_user
+                const userObj = {
+                    email: email,
+                    fullName: name,
+                    role: role,
+                    roleBadge: ROLE_BADGES[role] || 'Học Viên',
+                    accountStatus: 'ACTIVE'
+                };
+                localStorage.setItem('kizuna_user', JSON.stringify(userObj));
+
+                // 3. Dự phòng Cookie cho các request HTTP tiếp theo
+                document.cookie = "access_token=" + token + "; path=/; max-age=86400; SameSite=Lax";
+
+                // 4. Xác định Route đích
+                const targetUrl = DASHBOARD_ROUTES[role] || '/learner/dashboard';
+
+                if (titleEl) titleEl.textContent = 'Xác Thực Thành Công!';
+                if (descEl) descEl.textContent = 'Đang chuyển hướng bạn đến ' + (ROLE_BADGES[role] || 'Dashboard') + '...';
+
+                if (manualProceed && btnManual) {
+                    btnManual.onclick = function() { window.location.replace(targetUrl); };
+                    setTimeout(() => { manualProceed.classList.remove('hidden'); }, 1500);
+                }
+
+                // 5. Chuyển hướng nhanh chóng mượt mà
+                setTimeout(function() {
+                    window.location.replace(targetUrl);
+                }, 400);
+
+            } catch (err) {
+                console.error('[OAuth2Redirect] Ngoại lệ xử lý tham số:', err);
+                showError('Có lỗi xảy ra khi lưu trữ phiên làm việc: ' + (err.message || 'Không rõ nguyên nhân'));
+            }
+        })();
+    </script>
+</body>
+</html>

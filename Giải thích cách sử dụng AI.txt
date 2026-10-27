@@ -1,0 +1,14 @@
+1. Chức năng Chấm điểm luyện viết (Grading)
+- Tên công nghệ: Thuật toán Động học cảm quan nét vẽ thời gian thực (Stroke Kinematics & Sensory Analysis) kết hợp Topo Hình học Vector (Vector Geometry Topology) và Mô hình Ngôn ngữ Lớn (LLM - Text Only).
+- Mô hình cụ thể: Google Gemini (gemini-3.8-flash, gemini-flash-latest) hoặc OpenAI GPT (gpt-4o-mini).
+- Kiến trúc xử lý:
+  + Chặng 1 (Client -> Server): Frontend chỉ gửi mảng chuỗi tọa độ kèm mốc thời gian [(x, y, t)] siêu nhẹ (~2KB), loại bỏ hoàn toàn việc chụp ảnh Canvas Base64 nặng nề (~100KB).
+  + Chặng 2 (Tầng thuật toán tại Server):
+    * Vector Topology Engine: Đo đạc số nét, thứ tự bút thuận, tỷ lệ khung chữ ô Mễ và góc hướng vector (Cosine Similarity) so với SVG chuẩn.
+    * Stroke Sensory Analyzer: Phân tích động học vận tốc v_i = dist / dt và biến thiên góc chuyển hướng (Jitter) để suy diễn lực bút, nhận diện kỹ thuật dừng bút (Tome - 止め), vuốt nét (Harai/Hane - 払い/跳ね) và độ ổn định cổ tay.
+  + Chặng 3 (Server -> AI Sensei): Gửi Prompt Text-Only siêu tinh gọn (~110 - 130 tokens) chứa toàn bộ các chỉ số động học và danh sách lỗi cụ thể. AI đóng vai trò Shodo Sensei tận tụy, đưa ra nhận xét sư phạm chuẩn xác trong 80-120 từ mà không bị ảo giác thị giác hay tốn kém token.
+
+2. Chức năng Nhận diện nét để tra cứu (Search)
+- Tên công nghệ: Online Handwriting Recognition (OHR) qua mô hình Deep Sequential Learning (Học sâu chuỗi thời gian - Bi-LSTM / Spatial-Temporal GCN kết hợp CTC Loss).
+- Công cụ / Service cụ thể: Google Input Tools Handwriting Engine (Japanese - "ja").
+- Cách dùng: Xử lý chuỗi tọa độ kèm mốc thời gian [X, Y, T] (Ink Format) theo thời gian thực để dự đoán danh sách ký tự Kanji ứng viên với độ trễ thấp (< 150ms).

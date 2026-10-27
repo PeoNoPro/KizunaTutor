@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<aside th:fragment="sidebar" id="tutorSidebar" class="w-64 min-w-[16rem] bg-white border-r border-black h-screen sticky top-0 flex flex-col justify-between z-30 transition-transform duration-200 ease-in-out md:translate-x-0">
+    <div class="p-4 sm:p-5 flex-1 overflow-y-auto">
+
+        <!-- NHÓM 1: QUẢN LÝ HỒ SƠ & TƯ CÁCH GIA SƯ -->
+        <div class="px-2 py-1 text-[11px] font-bold tracking-wider text-[#7A2CA8] uppercase mb-3 font-meta border-b border-black pb-2">
+            HỒ SƠ &amp; TƯ CÁCH GIA SƯ
+        </div>
+
+        <nav class="space-y-1.5 mb-5">
+            <!-- 1. Trạng thái Hồ sơ giảng dạy (Dynamic theo state machine) -->
+            <a th:href="@{/tutor/profile}"
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold transition-all group border"
+               th:classappend="${activeMenu == 'profile'} ? 'bg-[#7A2CA8] text-white border-black shadow-[3px_3px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-[#7A2CA8]/10'">
+                <div class="flex items-center gap-2.5">
+                    <!-- Icon theo state -->
+                    <span class="text-base" th:if="${isDraft}">📝</span>
+                    <span class="text-base" th:if="${isPending}">⏳</span>
+                    <span class="text-base" th:if="${isRejected}">⚠️</span>
+                    <span class="text-base" th:if="${isApprovedUnpaid || isActivePaid}">👤</span>
+
+                    <span class="font-itim" th:if="${isDraft}">Cập Nhật Hồ Sơ</span>
+                    <span class="font-itim" th:if="${isPending}">Đang Chờ Xác Minh</span>
+                    <span class="font-itim" th:if="${isRejected}">Hồ Sơ Cần Bổ Sung</span>
+                    <span class="font-itim" th:if="${isApprovedUnpaid}">Hồ Sơ Đã Duyệt</span>
+                    <span class="font-itim" th:if="${isActivePaid}">Hồ Sơ Giảng Dạy</span>
+                </div>
+
+                <!-- Badges -->
+                <span th:if="${isDraft}" class="badge-nhai bg-[#BF360C]/10 text-[#BF360C] border-black text-[10px]">
+                    Bắt buộc
+                </span>
+                <span th:if="${isPending}" class="badge-nhai bg-[#1F6FB4]/10 text-[#1F6FB4] border-black text-[10px]">
+                    Đang duyệt
+                </span>
+                <span th:if="${isRejected}" class="badge-nhai bg-[#BF360C]/15 text-[#BF360C] border-black text-[10px]">
+                    Cần sửa
+                </span>
+                <span th:if="${isApprovedUnpaid}" class="badge-nhai bg-[#1E8B3F]/15 text-[#1E8B3F] border-black text-[10px]">
+                    Đã duyệt
+                </span>
+                <span th:if="${isActivePaid}" class="badge-nhai bg-white text-black border-black text-[10px]">
+                    Đã xác minh
+                </span>
+            </a>
+
+            <!-- 2. Gói thành viên & Kích hoạt quyền (Module 7) -->
+            <!-- Trường hợp được phép truy cập (APPROVED_UNPAID hoặc ACTIVE_PAID) -->
+            <a th:if="${isApprovedUnpaid || isActivePaid}"
+               th:href="@{/tutor/membership-plans}"
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold transition-all group border"
+               th:classappend="${activeMenu == 'membership-plans'} ? 'bg-[#7A2CA8] text-white border-black shadow-[3px_3px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-[#7A2CA8]/10'">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">💳</span>
+                    <span class="font-itim">Gói Thành Viên</span>
+                </div>
+                <span th:if="${isApprovedUnpaid}" class="badge-nhai bg-[#BF360C] text-white border-black text-[10px] animate-pulse">
+                    Kích hoạt ngay
+                </span>
+                <span th:if="${isActivePaid}" class="badge-nhai bg-[#1E8B3F]/15 text-[#1E8B3F] border-black text-[10px]">
+                    Đang hoạt động
+                </span>
+            </a>
+
+            <!-- Trường hợp bị khóa gói khi chưa duyệt hồ sơ -->
+            <div th:unless="${isApprovedUnpaid || isActivePaid}"
+                 title="Hồ sơ giảng dạy cần được phê duyệt trước khi chọn gói thành viên"
+                 class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold text-slate-400 bg-slate-50 border border-dashed border-black/30 cursor-not-allowed select-none opacity-60">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">🔒</span>
+                    <span class="font-itim">Gói Thành Viên</span>
+                </div>
+                <span class="badge-nhai bg-slate-200 text-slate-600 border-black/40 text-[10px]">
+                    Chờ duyệt hồ sơ
+                </span>
+            </div>
+        </nav>
+
+        <!-- NHÓM 2: KHÔNG GIAN GIẢNG DẠY (CHỈ MỞ KHI ACTIVE_PAID) -->
+        <div class="px-2 py-1 text-[11px] font-bold tracking-wider text-slate-700 uppercase mb-3 font-meta border-b border-black pb-2 flex items-center justify-between">
+            <span>GIẢNG DẠY &amp; HỌC VIÊN</span>
+            <span th:unless="${isActivePaid}" class="badge-nhai bg-[#BF360C]/10 text-[#BF360C] border-black text-[10px]">
+                Khóa
+            </span>
+        </div>
+
+        <nav class="space-y-1.5">
+            <!-- 1. Tổng quan lớp dạy -->
+            <div th:if="${isActivePaid}">
+                <a th:href="@{/tutor/dashboard}"
+                   class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold transition-all group border"
+                   th:classappend="${activeMenu == 'dashboard'} ? 'bg-[#7A2CA8] text-white border-black shadow-[3px_3px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-[#7A2CA8]/10'">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-base">📊</span>
+                        <span class="font-itim">Tổng Quan Lớp Dạy</span>
+                    </div>
+                </a>
+            </div>
+            <div th:unless="${isActivePaid}"
+                 title="Vui lòng hoàn thành thẩm định và mua gói thành viên để mở khóa"
+                 class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold text-slate-400 bg-slate-50 border border-dashed border-black/30 cursor-not-allowed select-none opacity-60">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">🔒</span>
+                    <span class="font-itim">Tổng Quan Lớp Dạy</span>
+                </div>
+            </div>
+
+            <!-- 2. Kho Kanji & Soạn bài tập -->
+            <div th:if="${isActivePaid}">
+                <a th:href="@{/tutor/kanji-library}"
+                   class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold transition-all group border"
+                   th:classappend="${activeMenu == 'kanji-library'} ? 'bg-[#7A2CA8] text-white border-black shadow-[3px_3px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-[#7A2CA8]/10'">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-base">✍️</span>
+                        <span class="font-itim">Kho Kanji &amp; Soạn Bài Tập</span>
+                    </div>
+                    <span class="badge-nhai bg-white text-black border-black text-[10px]"
+                          th:classappend="${activeMenu == 'kanji-library'} ? '!bg-white !text-black' : ''">
+                        Giáo Án
+                    </span>
+                </a>
+            </div>
+            <div th:unless="${isActivePaid}"
+                 title="Vui lòng hoàn thành thẩm định và mua gói thành viên để mở khóa"
+                 class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold text-slate-400 bg-slate-50 border border-dashed border-black/30 cursor-not-allowed select-none opacity-60">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">🔒</span>
+                    <span class="font-itim">Kho Kanji &amp; Soạn Bài Tập</span>
+                </div>
+            </div>
+
+            <!-- 3. Theo dõi tiến độ học viên -->
+            <div th:if="${isActivePaid}">
+                <a th:href="@{/tutor/student-progress}"
+                   class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold transition-all group border"
+                   th:classappend="${activeMenu == 'student-progress'} ? 'bg-[#7A2CA8] text-white border-black shadow-[3px_3px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-[#7A2CA8]/10'">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-base">👨‍🎓</span>
+                        <span class="font-itim">Tiến Độ Học Viên Lớp</span>
+                    </div>
+                </a>
+            </div>
+            <div th:unless="${isActivePaid}"
+                 title="Vui lòng hoàn thành thẩm định và mua gói thành viên để mở khóa"
+                 class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold text-slate-400 bg-slate-50 border border-dashed border-black/30 cursor-not-allowed select-none opacity-60">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">🔒</span>
+                    <span class="font-itim">Tiến Độ Học Viên Lớp</span>
+                </div>
+            </div>
+
+            <!-- 4. Lịch giảng dạy tuần -->
+            <div th:if="${isActivePaid}">
+                <a href="#"
+                   class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold text-black border border-transparent hover:border-black hover:bg-[#7A2CA8]/10 transition-all group">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-base">📅</span>
+                        <span class="font-itim">Lịch Giảng Dạy Tuần</span>
+                    </div>
+                </a>
+            </div>
+            <div th:unless="${isActivePaid}"
+                 title="Vui lòng hoàn thành thẩm định và mua gói thành viên để mở khóa"
+                 class="flex items-center justify-between px-3.5 py-2.5 rounded-[5px] text-sm font-semibold text-slate-400 bg-slate-50 border border-dashed border-black/30 cursor-not-allowed select-none opacity-60">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-base">🔒</span>
+                    <span class="font-itim">Lịch Giảng Dạy Tuần</span>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Footer Sidebar: Thông tin Gia Sư & Đăng xuất -->
+    <div class="p-4 border-t border-black bg-[#7A2CA8]/5">
+        <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-[5px] bg-[#7A2CA8] text-white flex items-center justify-center font-bold text-xs border border-black shadow-[1px_1px_0px_0px_#000000] font-itim" th:text="${avatarText != null ? avatarText : 'TK'}">TK</div>
+                <div class="text-xs leading-tight">
+                    <div class="font-bold text-black font-itim truncate max-w-[100px]" th:text="${userName != null ? userName : 'Sensei Kizuna'}">Sensei Kizuna</div>
+                    <div class="text-[10px] text-slate-500 font-meta">Tài khoản gia sư</div>
+                </div>
+            </div>
+            <button type="button"
+                    data-action="logout"
+                    onclick="executeLogout()"
+                    class="text-xs text-slate-700 hover:text-[#BF360C] font-bold font-itim px-2 py-1 rounded-[5px] border border-transparent hover:border-black hover:bg-white transition-all cursor-pointer flex items-center gap-1"
+                    title="Đăng xuất khỏi tài khoản">
+                <span>🚪</span><span>Thoát</span>
+            </button>
+        </div>
+        <div class="flex items-center gap-1.5 mt-1.5">
+            <span th:if="${isActivePaid}" class="badge-nhai bg-[#1E8B3F]/15 text-[#1E8B3F] border-black text-[10px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#1E8B3F] inline-block mr-1"></span> Thành viên Kizuna
+            </span>
+            <span th:if="${isApprovedUnpaid}" class="badge-nhai bg-[#BF360C]/15 text-[#BF360C] border-black text-[10px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#BF360C] inline-block mr-1"></span> Chờ kích hoạt gói
+            </span>
+            <span th:if="${isPending}" class="badge-nhai bg-[#1F6FB4]/15 text-[#1F6FB4] border-black text-[10px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#1F6FB4] inline-block mr-1"></span> Đang chờ thẩm định
+            </span>
+            <span th:if="${isRejected}" class="badge-nhai bg-[#BF360C]/15 text-[#BF360C] border-black text-[10px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#BF360C] inline-block mr-1"></span> Cần bổ sung hồ sơ
+            </span>
+            <span th:if="${isDraft}" class="badge-nhai bg-slate-100 text-slate-700 border-black text-[10px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block mr-1"></span> Hồ sơ chưa nộp
+            </span>
+        </div>
+    </div>
+</aside>
+</html>

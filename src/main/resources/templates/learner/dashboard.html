@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Không Gian Học Viên - KizunaTutor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script th:src="@{/js/locales/learner-copy.js}"></script>
+</head>
+<body class="bg-[#F8FAFC] text-black font-body antialiased">
+    <div class="flex min-h-screen">
+        <aside th:replace="~{learner/layout/sidebar :: sidebar}"></aside>
+        <div class="flex-1 flex flex-col min-w-0">
+            <header th:replace="~{learner/layout/header :: header}"></header>
+
+            <main class="flex-1 p-6 sm:p-8 bg-[#F8FAFC]">
+                <div class="max-w-7xl mx-auto space-y-6">
+
+                    <!-- Hero Welcome Card (Nhaitopik Retro Style - Trẻ trung, hóm hỉnh) -->
+                    <div class="card-nhai card-nhai-learner p-6 sm:p-8 relative overflow-hidden">
+                        <!-- Sticker Capybara Samurai đính nhẹ góc banner -->
+                        <img src="/images/stickers/thumbs-up-capi.png" 
+                             alt="Capybara Samurai Giơ Ngón Cái" 
+                             class="hidden md:block absolute -top-1 right-2 w-20 h-20 lg:w-24 lg:h-24 object-contain pointer-events-none select-none z-10 drop-shadow-md" />
+
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                            <div class="max-w-2xl">
+                                <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] mb-3">
+                                    <span>🟢</span> Đang hoạt động &bull; <span th:text="${studyStreak != null and studyStreak > 0 ? 'Giữ lửa ' + studyStreak + ' ngày liên tục rồi đấy, Kizuna Sensei tự hào về bạn! 🔥' : 'Khởi đầu ngày học cùng tiếng Nhật, Kizuna Sensei tự hào về bạn! 🌸'}">Giữ lửa ngày học tiếng Nhật, Kizuna Sensei tự hào về bạn! 🌸</span>
+                                </span>
+                                <h1 class="text-[30px] font-itim text-black leading-tight mb-2">
+                                    Xin chào, <span class="text-[#2A5A1A]" th:text="${userName}">Học Viên</span>! Hôm nay lại thêm một ngày chăm chỉ cùng tiếng Nhật nhé! ☕
+                                </h1>
+                                <p class="text-sm font-body text-slate-700 leading-relaxed">
+                                    Gia sư chưa giao bài mới, tranh thủ làm cốc trà sữa hoặc cày vài chữ Kanji đi nào! 🧋 Tra cứu chữ mới và cầm bút múa vài đường quyền ngay nhé.
+                                </p>
+                            </div>
+
+                            <!-- DUY NHẤT 1 NÚT PRIMARY CTA TRÊN MÀN HÌNH -->
+                            <div class="shrink-0">
+                                <a th:href="@{/learner/practice-canvas}" class="btn-nhai btn-nhai-learner text-base py-3 px-6 shadow-retro font-itim">
+                                    <span>✍️</span>
+                                    <span>Cầm Bút Luyện Nét Ngay</span>
+                                    <span>→</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Grid (3 Khối Hộp Viền Đen Bóng Đổ Cứng) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        <div class="card-nhai p-5 relative">
+                            <!-- Sticker Capybara Chibi Lấp Lánh -->
+                            <img src="/images/stickers/sparkle-capi.png" 
+                                 alt="Capybara Lấp Lánh" 
+                                 class="absolute -top-3 -right-3 w-10 h-10 object-contain pointer-events-none select-none z-10" />
+
+                            <div class="flex items-center justify-between mb-3 border-b border-black pb-2">
+                                <span class="text-xs font-meta font-bold text-slate-700 uppercase tracking-wider">Chữ Kanji Đã Thuộc</span>
+                                <span class="text-xl">🎌</span>
+                            </div>
+                            <div class="text-[30px] font-itim text-black" th:text="${learnedKanjiCount != null ? learnedKanjiCount + ' Chữ' : '0 Chữ'}">0 Chữ</div>
+                            <div class="text-xs font-meta text-slate-600 mt-1" th:text="${learnedKanjiCount != null and learnedKanjiCount > 0 ? 'Nét vẽ mượt như Shodo thực thụ, Sensei chấm điểm 10 không có nhưng! ✨' : 'Chưa có chữ Hán hoàn thành, vào luyện ngay thôi! 🎯'}">Chưa có chữ Hán hoàn thành, vào luyện ngay thôi! 🎯</div>
+                        </div>
+
+                        <div class="card-nhai p-5 relative">
+                            <!-- Sticker Capybara Chiến Binh Rực Lửa -->
+                            <img src="/images/stickers/fiery-warrior-capi.png" 
+                                 alt="Capybara Rực Lửa" 
+                                 class="absolute -top-3 -right-3 w-10 h-10 object-contain pointer-events-none select-none z-10" />
+
+                            <div class="flex items-center justify-between mb-3 border-b border-black pb-2">
+                                <span class="text-xs font-meta font-bold text-slate-700 uppercase tracking-wider">Độ Chính Xác Viết AI</span>
+                                <span class="text-xl">🎯</span>
+                            </div>
+                            <div class="text-[30px] font-itim text-[#2A5A1A]" th:text="${accuracyRate != null ? accuracyRate : 'Chưa có dữ liệu'}">Chưa có dữ liệu</div>
+                            <div class="text-xs font-meta text-slate-600 mt-1">Đánh giá theo nét bút Shodo AI thời gian thực</div>
+                        </div>
+
+                        <div class="card-nhai p-5 relative">
+                            <!-- Sticker Capybara Thiền Trà Hoa Anh Đào -->
+                            <img src="/images/stickers/tea-meditation-capi.png" 
+                                 alt="Capybara Thiền Trà" 
+                                 class="absolute -top-3 -right-3 w-10 h-10 object-contain pointer-events-none select-none z-10" />
+
+                            <div class="flex items-center justify-between mb-3 border-b border-black pb-2">
+                                <span class="text-xs font-meta font-bold text-slate-700 uppercase tracking-wider">Buổi Học Kèm Kế Tiếp</span>
+                                <span class="text-xl">📅</span>
+                            </div>
+                            <div class="text-[30px] font-itim text-black" th:text="${nextLessonTime != null ? nextLessonTime : 'Chưa có lịch'}">Chưa có lịch</div>
+                            <div class="text-xs font-meta text-slate-600 mt-1" th:text="${assignedTutorName != null ? 'Gia sư đồng hành: ' + assignedTutorName : 'Khu vực này dành riêng cho học viên có Sensei kèm cặp. Tìm một người thầy hợp gu ngay thôi! 🤝'}">Khu vực này dành riêng cho học viên có Sensei kèm cặp. Tìm một người thầy hợp gu ngay thôi! 🤝</div>
+                        </div>
+                    </div>
+
+                    <!-- Khu Vực Thao Tác Nhanh (Secondary Outline Cards) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <a th:href="@{/learner/dictionary}" class="card-nhai p-5 flex items-center justify-between no-underline group hover:border-[#2A5A1A]">
+                            <div class="flex items-center gap-3.5">
+                                <div class="w-12 h-12 rounded-[5px] bg-[#2A5A1A]/10 border border-black flex items-center justify-center text-2xl shadow-[2px_2px_0px_0px_#000000]">
+                                    📚
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-itim text-black group-hover:text-[#2A5A1A]">Tra Cứu Từ Điển Kanji</h3>
+                                    <p class="text-xs font-body text-slate-600 mt-0.5">Tra cứu nhanh hơn 6.600 chữ, xem thứ tự nét và âm Hán Việt.</p>
+                                </div>
+                            </div>
+                            <span class="btn-nhai btn-nhai-outline text-xs px-2.5 py-1">Tra Cứu →</span>
+                        </a>
+
+                        <a th:href="@{/learner/flashcards}" class="card-nhai p-5 flex items-center justify-between no-underline group hover:border-[#E76F51]">
+                            <div class="flex items-center gap-3.5">
+                                <div class="w-12 h-12 rounded-[5px] bg-[#E76F51]/10 border border-black flex items-center justify-center text-2xl shadow-[2px_2px_0px_0px_#000000]">
+                                    📁
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-itim text-black group-hover:text-[#E76F51]">Bộ Thẻ Flashcard Của Tôi</h3>
+                                    <p class="text-xs font-body text-slate-600 mt-0.5">Gom các chữ khó nhằn để múa bút Shodo hoặc bắn chữ giải ngố.</p>
+                                </div>
+                            </div>
+                            <span class="btn-nhai btn-nhai-outline text-xs px-2.5 py-1">Vào Bộ Thẻ →</span>
+                        </a>
+                    </div>
+
+                    <!-- COMPACT FOOTER CHUẨN MASTER SHELL -->
+                    <footer class="mt-12 pt-6 pb-6 border-t border-black/10 text-center text-xs font-meta text-slate-500">
+                        KizunaTutor &copy; 2026 &bull; Đồng hành cùng bạn trên từng nét vẽ Kanji 🌸
+                    </footer>
+
+                </div>
+            </main>
+        </div>
+    </div>
+    <script th:src="@{/js/authRedirect.js}"></script>
+    <script>
+        function toggleSidebar() {
+            const sb = document.getElementById('learnerSidebar');
+            if (sb) sb.classList.toggle('-translate-x-full');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- SIDEBAR CHUẨN ĐỒNG BỘ 3 NHÓM CHO HỌC VIÊN ĐÃ ĐĂNG NHẬP (MASTER SHELL NHAITOPIK) -->
+<aside th:fragment="sidebar" id="learnerSidebar" class="w-64 min-w-[16rem] bg-white border-r border-black h-screen sticky top-0 flex flex-col justify-between p-4 shrink-0 z-30 transition-transform duration-200 ease-in-out md:translate-x-0 font-['Segoe_UI']">
+    <div class="space-y-4 flex-1 overflow-y-auto pr-1">
+
+        <!-- KHỐI 1: BÀN HỌC TẬP (TỔNG QUAN) -->
+        <div>
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 font-meta">BÀN HỌC TẬP</div>
+            <a th:href="@{/learner/dashboard}"
+               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
+               th:classappend="${activeMenu == 'dashboard'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
+                <span>📊</span><span class="font-itim text-base">Tổng Quan Học Tập</span>
+            </a>
+        </div>
+
+        <!-- KHỐI 2: GIA SƯ & LỚP HỌC (TÍNH NĂNG MỞ RỘNG ĐỒNG BỘ) -->
+        <div>
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 font-meta">GIA SƯ &amp; LỚP HỌC</div>
+            <!-- 1. Tìm kiếm gia sư phù hợp -->
+            <a th:href="@{/learner/find-tutor}"
+               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
+               th:classappend="${activeMenu == 'find-tutor'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
+                <span>🔍</span><span class="font-itim text-base">Tìm Gia Sư Kizuna</span>
+            </a>
+            <!-- 2. Lịch học thử & yêu cầu kết nối -->
+            <a th:href="@{/learner/trial-schedule}"
+               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
+               th:classappend="${activeMenu == 'trial-schedule'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
+                <span>📅</span><span class="font-itim text-base">Lịch Học Thử &amp; Ghép Lớp</span>
+            </a>
+            <!-- 3. Không gian lớp kèm của tôi -->
+            <a th:href="@{/learner/my-classroom}"
+               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
+               th:classappend="${activeMenu == 'my-classroom'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
+                <span>🏫</span><span class="font-itim text-base">Lớp Kèm Của Tôi</span>
+            </a>
+        </div>
+
+        <!-- KHỐI 3: HỌC TẬP & LUYỆN TẬP (CÔNG CỤ HỌC CHỦ LỰC) -->
+        <div>
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 font-meta">HỌC TẬP &amp; LUYỆN TẬP</div>
+            <!-- 1. Bài tập Sensei giao -->
+            <a th:href="@{/learner/assignments}"
+               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
+               th:classappend="${activeMenu == 'assignments'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
+                <span>📚</span><span class="font-itim text-base">Bài Tập Sensei Giao</span>
+            </a>
+            <!-- 2. Phòng Luyện Viết Shodo Canvas AI -->
+            <a th:href="@{/learner/practice-canvas}"
+               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
+               th:classappend="${activeMenu == 'practice-canvas'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
+                <span>✍️</span><span class="font-itim text-base">Phòng Luyện Viết Shodo</span>
+            </a>
+            <!-- 3. Bộ Thẻ Của Tôi (Kích hoạt Active khi ở /learner/flashcards) -->
+            <a th:href="@{/learner/flashcards}"
+               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
+               th:classappend="${activeMenu == 'flashcards'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
+                <span>📁</span><span class="font-itim text-base">Bộ Thẻ Của Tôi</span>
+            </a>
+            <!-- 4. Tra cứu từ điển chữ Hán -->
+            <a th:href="@{/learner/dictionary}"
+               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
+               th:classappend="${activeMenu == 'dictionary'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
+                <span>🔍</span><span class="font-itim text-base">Tra Cứu Chữ Hán</span>
+            </a>
+            <!-- 5. Tra cứu bằng nét vẽ viết tay (Chuột / Cảm ứng) -->
+            <a th:href="@{/learner/handwriting-search}"
+               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
+               th:classappend="${activeMenu == 'handwriting-search'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
+                <span>🖌️</span><span class="font-itim text-base">Tra Cứu Viết Tay</span>
+            </a>
+            <!-- 6. Nhật ký tiến độ cá nhân -->
+            <a th:href="@{/learner/progress}"
+               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
+               th:classappend="${activeMenu == 'progress' || activeMenu == 'my-progress'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
+                <span>📈</span><span class="font-itim text-base">Nhật Ký Tiến Độ</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- KHỐI THÔNG TIN HỌC VIÊN DƯỚI CÙNG (KHÔNG CÓ NÚT KHÁCH VÃNG LAI) -->
+    <div class="pt-4 border-t border-black bg-white">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-[5px] bg-[#2A5A1A] text-white flex items-center justify-center font-bold text-xs border border-black shadow-[1px_1px_0px_0px_#000000] font-itim" th:text="${avatarText != null ? avatarText : 'HV'}">HV</div>
+                <div class="text-xs leading-tight">
+                    <div class="font-bold text-black font-itim truncate max-w-[100px]" id="sidebarLearnerName" th:text="${userName != null ? userName : 'Học Viên Kizuna'}">Học Viên Kizuna</div>
+                    <div class="text-[10px] text-slate-500 font-meta">Tài khoản học viên</div>
+                </div>
+            </div>
+            <button type="button"
+                    data-action="logout"
+                    onclick="executeLogout()"
+                    class="text-xs text-slate-700 hover:text-[#BF360C] font-bold font-itim px-2 py-1 rounded-[5px] border border-transparent hover:border-black hover:bg-slate-50 transition-all cursor-pointer flex items-center gap-1"
+                    title="Đăng xuất khỏi tài khoản">
+                <span>🚪</span><span>Thoát</span>
+            </button>
+        </div>
+    </div>
+</aside>
+</html>

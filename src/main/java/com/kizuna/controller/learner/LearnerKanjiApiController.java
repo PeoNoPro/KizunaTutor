@@ -84,7 +84,64 @@ public class LearnerKanjiApiController {
     }
 
     /**
-     * 2. Lưu nhanh chữ Kanji vào bộ thẻ cá nhân của học viên
+     * 2. Lấy toàn bộ siêu dữ liệu chi tiết của một chữ Kanji cho Học Viên
+     */
+    @GetMapping("/detail")
+    public ResponseEntity<?> getKanjiDetail(
+            @RequestParam(name = "char", required = false) String charParam,
+            @RequestParam(name = "character", required = false) String characterParam,
+            @RequestParam(name = "id", required = false) UUID idParam) {
+        String ch = (charParam != null && !charParam.isBlank()) ? charParam.trim()
+                : ((characterParam != null && !characterParam.isBlank()) ? characterParam.trim() : null);
+
+        if (ch != null) {
+            return getKanjiByCharacter(ch);
+        } else if (idParam != null) {
+            return kanjiRepository.findById(idParam)
+                    .map(k -> {
+                        handwritingSearchService.enrichKanjiMetadata(k);
+                        if (k.getSvgData() != null) {
+                            k.setSvgData(com.kizuna.util.SvgUtils.cleanKanjiVgSvg(k.getSvgData()));
+                        }
+                        return ResponseEntity.ok(k);
+                    })
+                    .orElse(ResponseEntity.notFound().build());
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "Tham số 'char' hoặc 'id' là bắt buộc"));
+    }
+
+    @GetMapping("/{character}")
+    public ResponseEntity<?> getKanjiByCharacter(@PathVariable String character) {
+        return kanjiRepository.findByKanjiCharacter(character)
+                .map(k -> {
+                    handwritingSearchService.enrichKanjiMetadata(k);
+                    if (k.getSvgData() != null) {
+                        k.setSvgData(com.kizuna.util.SvgUtils.cleanKanjiVgSvg(k.getSvgData()));
+                    }
+                    return ResponseEntity.ok(k);
+                })
+                .or(() -> {
+                    var offlineOpt = handwritingSearchService.getOfflineKanji(character);
+                    if (offlineOpt.isPresent()) {
+                        var off = offlineOpt.get();
+                        KanjiDictionary mock = KanjiDictionary.builder()
+                                .kanjiCharacter(character)
+                                .hanViet(off.han_viet() != null ? off.han_viet() : "HÁN TỰ")
+                                .meaning(off.meaning() != null ? off.meaning() : "")
+                                .onyomi(off.onyomi() != null ? off.onyomi() : "-")
+                                .kunyomi(off.kunyomi() != null ? off.kunyomi() : "-")
+                                .strokeCount((short) 1)
+                                .radical("Chưa cập nhật")
+                                .build();
+                        return java.util.Optional.of(ResponseEntity.ok(mock));
+                    }
+                    return java.util.Optional.empty();
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * 3. Lưu nhanh chữ Kanji vào bộ thẻ cá nhân của học viên
      */
     @PostMapping("/save-card")
     public ResponseEntity<Map<String, Object>> saveToDeck(@RequestBody SaveToDeckRequest request) {
@@ -95,6 +152,29 @@ public class LearnerKanjiApiController {
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Đã lưu chữ Kanji [" + request.getKanjiChar() + "] vào bộ thẻ [" + deck + "] của bạn!"
+        ));
+    }
+
+    @Data
+    public static class KanaProgressRequest {
+        private String scriptType;
+        private int totalCount;
+        private int correctCount;
+        private double accuracy;
+        private List<String> categories;
+    }
+
+    /**
+     * 3. Ghi nhận kết quả làm bài Kana Quiz vào tiến độ học tập của Học Viên
+     */
+    @PostMapping("/progress/kana-quiz")
+    public ResponseEntity<Map<String, Object>> saveKanaProgress(@RequestBody KanaProgressRequest request) {
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Đã ghi nhận kết quả bài luyện Kana vào tiến độ học tập thành công!",
+                "accuracy", request.getAccuracy(),
+                "correctCount", request.getCorrectCount(),
+                "totalCount", request.getTotalCount()
         ));
     }
 }

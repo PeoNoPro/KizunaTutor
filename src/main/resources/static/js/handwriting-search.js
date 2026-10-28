@@ -436,18 +436,18 @@ function hwRenderCandidateResults(data) {
     listEl.innerHTML = matches.map((item, index) => {
         const percent = Math.round((item.similarityScore || 0.9) * 100);
         return `
-            <div class="hw-candidate-tile p-2.5 rounded-[5px] border border-black bg-white hover:bg-[#E76F51]/10 hover:border-[#E76F51] shadow-[2px_2px_0px_0px_#000000] transition active:translate-y-0.5 cursor-pointer flex flex-col justify-between" data-index="${index}" data-kanji="${escapeHtml(item.character)}" title="Bấm để xem chi tiết và luyện viết">
+            <div class="hw-candidate-tile p-2.5 rounded-lg border border-[#CBD5E1] bg-white hover:border-[#2563EB] hover:bg-slate-50 shadow-sm transition active:scale-[0.98] cursor-pointer flex flex-col justify-between font-sans" data-index="${index}" data-kanji="${escapeHtml(item.character)}" title="Bấm để xem chi tiết và luyện viết">
                 <div class="hw-tile-top flex justify-between items-center mb-1">
-                    <span class="hw-tile-char font-itim text-2xl font-bold text-black">${escapeHtml(item.character)}</span>
-                    <span class="hw-tile-score text-[10px] font-bold bg-[#DCFCE7] text-[#15803D] px-1.5 py-0.5 rounded-[3px] border border-black/20">${percent}%</span>
+                    <span class="hw-tile-char text-xl font-bold text-[#0F172A] font-sans">${escapeHtml(item.character)}</span>
+                    <span class="hw-tile-score text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200">${percent}%</span>
                 </div>
                 <div class="hw-tile-body">
-                    <strong class="hw-tile-hanviet block font-itim text-xs text-[#2A5A1A]">${escapeHtml(item.hanViet || 'HÁN TỰ')}</strong>
-                    <p class="hw-tile-meaning text-[11px] font-body text-slate-600 truncate m-0" title="${escapeHtml(item.meaning || '')}">${escapeHtml(item.meaning || 'Chữ Hán tra cứu')}</p>
+                    <strong class="hw-tile-hanviet block text-xs font-bold text-[#0F172A] uppercase">${escapeHtml(item.hanViet || 'HÁN TỰ')}</strong>
+                    <p class="hw-tile-meaning text-[11px] text-[#475569] truncate m-0 font-normal" title="${escapeHtml(item.meaning || '')}">${escapeHtml(item.meaning || 'Chữ Hán tra cứu')}</p>
                 </div>
-                <div class="hw-tile-footer flex justify-between text-[10px] font-meta text-slate-500 mt-1.5 pt-1 border-t border-slate-200">
+                <div class="hw-tile-footer flex justify-between text-[10px] text-[#94A3B8] mt-1.5 pt-1 border-t border-[#E2E8F0]">
                     <span class="hw-tile-strokes">${item.totalStrokes || '?'} nét</span>
-                    <span class="hw-tile-jlpt font-bold text-[#E76F51]">${escapeHtml(item.jlpt || 'N/A')}</span>
+                    <span class="hw-tile-jlpt font-medium text-[#2563EB]">${escapeHtml(item.jlpt || 'N/A')}</span>
                 </div>
             </div>
         `;
@@ -466,7 +466,7 @@ async function openHwKanjiDetail(indexOrChar, event) {
     if (typeof indexOrChar === 'number') {
         item = hwCurrentCandidates[indexOrChar];
     } else if (typeof indexOrChar === 'string') {
-        item = hwCurrentCandidates.find(c => c.character === indexOrChar) || { character: indexOrChar };
+        item = hwCurrentCandidates.find(c => (c.character === indexOrChar || c.kanjiChar === indexOrChar)) || { character: indexOrChar };
     }
 
     if (!item) return;
@@ -475,51 +475,138 @@ async function openHwKanjiDetail(indexOrChar, event) {
     const modal = document.getElementById('hwDetailModal');
     if (!modal) return;
 
+    // Trích xuất an toàn đa trường dữ liệu (fallback linh hoạt)
+    const char = item.character || item.kanjiChar || item.kanjiCharacter || item.kanji || '?';
+    const hanViet = item.hanViet || item.han_viet || 'HÁN TỰ';
+    const meaning = item.meaning || item.definition || 'Chữ Hán tra cứu';
+    const strokes = item.totalStrokes || item.strokeCount || item.strokes || '?';
+    const jlpt = item.jlptLevel || item.jlpt || item.level || 'N5';
+    const onyomi = item.onyomi || item.on_yomi || '-';
+    const kunyomi = item.kunyomi || item.kun_yomi || '-';
+    const radical = item.radical || item.bushu || 'Chưa cập nhật';
+
     const charEl = document.getElementById('hwModalChar');
-    if (charEl) charEl.innerText = item.character || '?';
+    if (charEl) charEl.innerText = char;
 
     const hvEl = document.getElementById('hwModalHanViet');
-    if (hvEl) hvEl.innerText = item.hanViet || 'HÁN TỰ';
+    if (hvEl) hvEl.innerText = hanViet;
 
     const meanEl = document.getElementById('hwModalMeaning');
-    if (meanEl) meanEl.innerText = item.meaning || 'Chữ Hán tra cứu';
+    if (meanEl) meanEl.innerText = meaning;
 
     const strEl = document.getElementById('hwModalStrokes');
-    if (strEl) strEl.innerText = `${item.totalStrokes || '?'} nét`;
+    if (strEl) strEl.innerText = `${strokes} nét`;
 
     const jlptEl = document.getElementById('hwModalJlpt');
-    if (jlptEl) jlptEl.innerText = item.jlpt || 'N/A';
+    if (jlptEl) jlptEl.innerText = jlpt;
 
     const onEl = document.getElementById('hwModalOnyomi');
-    if (onEl) onEl.innerText = item.onyomi || '-';
+    if (onEl) onEl.innerText = onyomi;
 
     const kunEl = document.getElementById('hwModalKunyomi');
-    if (kunEl) kunEl.innerText = item.kunyomi || '-';
+    if (kunEl) kunEl.innerText = kunyomi;
 
-    // Nạp SVG nét vẽ chuẩn KanjiVG
+    const radEl = document.getElementById('hwModalRadical');
+    if (radEl) radEl.innerText = `Bộ: ${radical}`;
+
+    // Lưu ngay vào localStorage
+    if (char && char !== '?') {
+        localStorage.setItem('selected_kanji', char);
+        try {
+            localStorage.setItem('selected_kanji_detail', JSON.stringify({
+                character: char,
+                kanjiChar: char,
+                hanViet: hanViet,
+                meaning: meaning,
+                strokeCount: strokes,
+                totalStrokes: strokes,
+                radical: radical,
+                jlpt: jlpt,
+                jlptLevel: jlpt,
+                onyomi: onyomi,
+                kunyomi: kunyomi
+            }));
+        } catch (e) {}
+    }
+
+    // Nạp SVG nét vẽ chuẩn KanjiVG ban đầu
     const svgBox = document.getElementById('hwModalSvgBox');
     if (svgBox) {
         if (item.svgSolution && item.svgSolution.includes('<svg')) {
             svgBox.innerHTML = cleanKanjiVgSvg(item.svgSolution);
         } else {
             svgBox.innerHTML = '<span style="color:#94a3b8; font-size:12px;">Đang tải hình nét chuẩn...</span>';
-            fetch(`/api/kanji/${encodeURIComponent(item.character)}`)
-                .then(r => r.json())
-                .then(q => {
-                    if (q && q.svgData) {
-                        svgBox.innerHTML = cleanKanjiVgSvg(q.svgData);
-                    } else {
-                        svgBox.innerHTML = `<span style="font-size: 56px; font-family: 'Noto Serif JP', serif; color: #1B2A4A;">${item.character}</span>`;
-                    }
-                })
-                .catch(() => {
-                    svgBox.innerHTML = `<span style="font-size: 56px; font-family: 'Noto Serif JP', serif; color: #1B2A4A;">${item.character}</span>`;
-                });
         }
     }
 
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
+
+    // Luôn gọi API để làm giàu thông tin chữ đầy đủ nhất (không bị thiếu Onyomi, Kunyomi, Bộ thủ, Nghĩa)
+    if (char && char !== '?') {
+        try {
+            let res = await fetch(`/api/kanji/detail?char=${encodeURIComponent(char)}`);
+            if (!res.ok) {
+                res = await fetch(`/api/kanji/${encodeURIComponent(char)}`);
+            }
+            if (res.ok) {
+                const q = await res.json();
+                hwSelectedKanji = { ...item, ...q };
+
+                const qChar = q.character || q.kanjiCharacter || q.kanjiChar || char;
+                const qHv = q.hanViet || hanViet;
+                const qMean = q.meaning || meaning;
+                const qStrokes = q.strokeCount || q.totalStrokes || strokes;
+                const qJlpt = q.jlptLevel || q.jlpt || jlpt;
+                const qOn = q.onyomi || onyomi;
+                const qKun = q.kunyomi || kunyomi;
+                const qRad = q.radical || radical;
+
+                if (charEl) charEl.innerText = qChar;
+                if (hvEl) hvEl.innerText = qHv;
+                if (meanEl) meanEl.innerText = qMean;
+                if (strEl) strEl.innerText = `${qStrokes} nét`;
+                if (jlptEl) jlptEl.innerText = qJlpt;
+                if (onEl) onEl.innerText = qOn;
+                if (kunEl) kunEl.innerText = qKun;
+                if (radEl) radEl.innerText = `Bộ: ${qRad}`;
+
+                if (svgBox) {
+                    if (q.svgData) {
+                        svgBox.innerHTML = cleanKanjiVgSvg(q.svgData);
+                    } else if (item.svgSolution && item.svgSolution.includes('<svg')) {
+                        svgBox.innerHTML = cleanKanjiVgSvg(item.svgSolution);
+                    } else {
+                        svgBox.innerHTML = `<span style="font-size: 56px; font-family: 'Noto Serif JP', serif; color: #1B2A4A;">${qChar}</span>`;
+                    }
+                }
+
+                // Cập nhật lại LocalStorage với dữ liệu siêu đầy đủ
+                localStorage.setItem('selected_kanji', qChar);
+                try {
+                    localStorage.setItem('selected_kanji_detail', JSON.stringify({
+                        id: q.id || q.kanjiId || item.id,
+                        character: qChar,
+                        kanjiChar: qChar,
+                        hanViet: qHv,
+                        meaning: qMean,
+                        strokeCount: qStrokes,
+                        totalStrokes: qStrokes,
+                        radical: qRad,
+                        jlpt: qJlpt,
+                        jlptLevel: qJlpt,
+                        onyomi: qOn,
+                        kunyomi: qKun
+                    }));
+                } catch (e) {}
+            }
+        } catch (err) {
+            console.warn('Lỗi làm giàu dữ liệu chi tiết chữ Hán:', err);
+            if (svgBox && (!item.svgSolution || !item.svgSolution.includes('<svg'))) {
+                svgBox.innerHTML = `<span style="font-size: 56px; font-family: 'Noto Serif JP', serif; color: #1B2A4A;">${char}</span>`;
+            }
+        }
+    }
 }
 
 function closeHwDetailModal(event) {
@@ -536,12 +623,18 @@ function closeHwDetailModal(event) {
  */
 function useSelectedHwChar(event) {
     if (event) event.stopPropagation();
-    if (!hwSelectedKanji || !hwSelectedKanji.character) return;
-    const char = hwSelectedKanji.character;
+    if (!hwSelectedKanji) return;
+    const char = hwSelectedKanji.character || hwSelectedKanji.kanjiChar || hwSelectedKanji.kanji || hwSelectedKanji.kanjiCharacter;
+    if (!char) return;
+
+    localStorage.setItem('selected_kanji', char);
+    try {
+        localStorage.setItem('selected_kanji_detail', JSON.stringify(hwSelectedKanji));
+    } catch (e) {}
 
     // 1. Nếu đang ở phòng Luyện Viết Canvas
     if (typeof selectKanjiForCanvas === 'function') {
-        selectKanjiForCanvas(char, hwSelectedKanji.hanViet, hwSelectedKanji.meaning, hwSelectedKanji.totalStrokes, hwSelectedKanji.radical);
+        selectKanjiForCanvas(char, hwSelectedKanji.hanViet, hwSelectedKanji.meaning, hwSelectedKanji.totalStrokes || hwSelectedKanji.strokeCount, hwSelectedKanji.radical);
         closeHwDetailModal(event);
         closeHwSearchModal(event);
         return;
@@ -580,11 +673,18 @@ function useSelectedHwChar(event) {
  */
 function practiceSelectedHwKanji(event) {
     if (event) event.stopPropagation();
-    if (!hwSelectedKanji || !hwSelectedKanji.character) return;
-    const char = hwSelectedKanji.character;
+    if (!hwSelectedKanji) return;
+    const char = hwSelectedKanji.character || hwSelectedKanji.kanjiChar || hwSelectedKanji.kanji || hwSelectedKanji.kanjiCharacter;
+    if (!char) return;
+
+    localStorage.setItem('selected_kanji', char);
+    try {
+        localStorage.setItem('selected_kanji_detail', JSON.stringify(hwSelectedKanji));
+    } catch (e) {}
+
     sessionStorage.setItem('kizuna_practice_from', 'search');
     if (typeof selectKanjiForCanvas === 'function') {
-        selectKanjiForCanvas(char, hwSelectedKanji.hanViet, hwSelectedKanji.meaning, hwSelectedKanji.totalStrokes, hwSelectedKanji.radical);
+        selectKanjiForCanvas(char, hwSelectedKanji.hanViet, hwSelectedKanji.meaning, hwSelectedKanji.totalStrokes || hwSelectedKanji.strokeCount, hwSelectedKanji.radical);
         closeHwDetailModal(event);
         closeHwSearchModal(event);
     } else {

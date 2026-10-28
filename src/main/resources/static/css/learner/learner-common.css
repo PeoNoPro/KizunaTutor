@@ -1,0 +1,365 @@
+/* ==========================================================================
+   KIZUNATUTOR - LEARNER ACTOR COMMON STYLES
+   Áp dụng chung cho toàn bộ các màn hình phân hệ Học Viên (Learner)
+   ========================================================================== */
+
+:root {
+  --color-learner-primary: var(--color-primary);        /* #15803D (Uguisu-iro) */
+  --color-learner-primary-hover: var(--color-primary-hover);
+  --color-learner-accent: var(--script-katakana-text);  /* #1D4ED8 */
+  --color-learner-accent-light: var(--script-katakana-bg);
+
+  /* Token màu chuẩn nút phân hệ học viên */
+  --learner-btn-bg: #FDF2F8;
+  --learner-btn-text: #D2358F;
+  --learner-btn-border: #D2358F;
+  --learner-btn-hover-bg: #D2358F;
+  --learner-btn-hover-text: #FDF2F8;
+  --learner-btn-hover-border: #D2358F;
+}
+
+/* ==========================================================================
+   HỆ THỐNG MÀU NÚT BẤM TOÀN DIỆN PHÂN HỆ HỌC VIÊN (LEARNER BUTTON SYSTEM)
+   - Trạng thái mặc định: Chữ #D2358F | Nền #FDF2F8 | Viền #D2358F
+   - Rê chuột (Hover): Chữ #FDF2F8 | Nền #D2358F | Viền #D2358F (Đảo ngược)
+   - Đang chọn / Active: Chữ #FDF2F8 | Nền #D2358F | Viền #D2358F
+   ========================================================================== */
+
+/* 1. Trạng thái mặc định: Nền #FDF2F8, Chữ #D2358F */
+button:not(.nav-item),
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.btn,
+.btn-nhai,
+.btn-nhai-learner,
+.btn-nhai-outline,
+.btn-retro,
+.btn-retro-learner,
+.btn-primary,
+.btn-secondary,
+.btn-learner-blue,
+.btn-learner-primary,
+.filter-chip,
+.tab-script-hiragana,
+.tab-script-katakana,
+a.btn,
+a.btn-nhai,
+a.btn-retro,
+a.btn-primary,
+a.btn-secondary,
+a.btn-nhai-learner,
+a.btn-nhai-outline,
+a.btn-retro-learner,
+a[role="button"]:not(.nav-item),
+a[class*="btn-"]:not(.nav-item) {
+  background-color: #FDF2F8 !important;
+  color: #D2358F !important;
+  border: 1px solid #D2358F !important;
+  box-shadow: 2px 2px 0px 0px #0F172A;
+  text-decoration: none;
+  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, border-color 0.15s ease-in-out, transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Đồng bộ màu chữ cho các thành phần con bên trong nút */
+button:not(.nav-item) *:not(svg):not(path),
+input[type="button"] *,
+input[type="submit"] *,
+input[type="reset"] *,
+.btn *:not(svg):not(path),
+.btn-nhai *:not(svg):not(path),
+.btn-nhai-learner *:not(svg):not(path),
+.btn-nhai-outline *:not(svg):not(path),
+.btn-retro *:not(svg):not(path),
+.btn-retro-learner *:not(svg):not(path),
+.btn-primary *:not(svg):not(path),
+.btn-secondary *:not(svg):not(path),
+.btn-learner-blue *:not(svg):not(path),
+.btn-learner-primary *:not(svg):not(path),
+.filter-chip *:not(svg):not(path),
+.tab-script-hiragana *:not(svg):not(path),
+.tab-script-katakana *:not(svg):not(path),
+a.btn *:not(svg):not(path),
+a.btn-nhai *:not(svg):not(path),
+a.btn-retro *:not(svg):not(path),
+a.btn-primary *:not(svg):not(path),
+a.btn-secondary *:not(svg):not(path),
+a.btn-nhai-learner *:not(svg):not(path),
+a.btn-nhai-outline *:not(svg):not(path),
+a.btn-retro-learner *:not(svg):not(path),
+a[role="button"]:not(.nav-item) *:not(svg):not(path),
+a[class*="btn-"]:not(.nav-item) *:not(svg):not(path) {
+  color: #D2358F !important;
+}
+
+/* Biểu tượng SVG bên trong nút */
+button:not(.nav-item) svg,
+.btn svg,
+a.btn svg,
+a[role="button"]:not(.nav-item) svg,
+[class*="btn-"]:not(.nav-item) svg {
+  color: #D2358F !important;
+  stroke: currentColor;
+}
+
+/* 2. Trạng thái Hover: ĐẢO NGƯỢC (Nền #D2358F, Chữ #FDF2F8) */
+button:not(.nav-item):hover:not(:disabled),
+input[type="button"]:hover:not(:disabled),
+input[type="submit"]:hover:not(:disabled),
+input[type="reset"]:hover:not(:disabled),
+.btn:hover:not(:disabled),
+.btn-nhai:hover:not(:disabled),
+.btn-nhai-learner:hover:not(:disabled),
+.btn-nhai-outline:hover:not(:disabled),
+.btn-retro:hover:not(:disabled),
+.btn-retro-learner:hover:not(:disabled),
+.btn-primary:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled),
+.btn-learner-blue:hover:not(:disabled),
+.btn-learner-primary:hover:not(:disabled),
+.filter-chip:hover:not(:disabled),
+.tab-script-hiragana:hover:not(:disabled),
+.tab-script-katakana:hover:not(:disabled),
+a.btn:hover,
+a.btn-nhai:hover,
+a.btn-retro:hover,
+a.btn-primary:hover,
+a.btn-secondary:hover,
+a.btn-nhai-learner:hover,
+a.btn-nhai-outline:hover,
+a.btn-retro-learner:hover,
+a[role="button"]:not(.nav-item):hover,
+a[class*="btn-"]:not(.nav-item):hover {
+  background-color: #D2358F !important;
+  color: #FDF2F8 !important;
+  border-color: #D2358F !important;
+  box-shadow: 3px 3px 0px 0px #0F172A;
+  transform: translate3d(-1px, -1px, 0);
+}
+
+button:not(.nav-item):hover:not(:disabled) *:not(svg):not(path),
+input[type="button"]:hover:not(:disabled) *,
+input[type="submit"]:hover:not(:disabled) *,
+input[type="reset"]:hover:not(:disabled) *,
+.btn:hover:not(:disabled) *:not(svg):not(path),
+.btn-nhai:hover:not(:disabled) *:not(svg):not(path),
+.btn-nhai-learner:hover:not(:disabled) *:not(svg):not(path),
+.btn-nhai-outline:hover:not(:disabled) *:not(svg):not(path),
+.btn-retro:hover:not(:disabled) *:not(svg):not(path),
+.btn-retro-learner:hover:not(:disabled) *:not(svg):not(path),
+.btn-primary:hover:not(:disabled) *:not(svg):not(path),
+.btn-secondary:hover:not(:disabled) *:not(svg):not(path),
+.btn-learner-blue:hover:not(:disabled) *:not(svg):not(path),
+.btn-learner-primary:hover:not(:disabled) *:not(svg):not(path),
+.filter-chip:hover:not(:disabled) *:not(svg):not(path),
+.tab-script-hiragana:hover:not(:disabled) *:not(svg):not(path),
+.tab-script-katakana:hover:not(:disabled) *:not(svg):not(path),
+a.btn:hover *:not(svg):not(path),
+a.btn-nhai:hover *:not(svg):not(path),
+a.btn-retro:hover *:not(svg):not(path),
+a.btn-primary:hover *:not(svg):not(path),
+a.btn-secondary:hover *:not(svg):not(path),
+a.btn-nhai-learner:hover *:not(svg):not(path),
+a.btn-nhai-outline:hover *:not(svg):not(path),
+a.btn-retro-learner:hover *:not(svg):not(path),
+a[role="button"]:not(.nav-item):hover *:not(svg):not(path),
+a[class*="btn-"]:not(.nav-item):hover *:not(svg):not(path) {
+  color: #FDF2F8 !important;
+}
+
+button:not(.nav-item):hover:not(:disabled) svg,
+.btn:hover:not(:disabled) svg,
+a.btn:hover svg,
+a[role="button"]:not(.nav-item):hover svg,
+[class*="btn-"]:not(.nav-item):hover svg {
+  color: #FDF2F8 !important;
+  stroke: currentColor;
+}
+
+/* 3. Trạng thái Active / Nhấn chuột (Active Click) */
+button:not(.nav-item):active:not(:disabled),
+input[type="button"]:active:not(:disabled),
+input[type="submit"]:active:not(:disabled),
+input[type="reset"]:active:not(:disabled),
+.btn:active:not(:disabled),
+a.btn:active,
+a[role="button"]:not(.nav-item):active,
+[class*="btn-"]:not(.nav-item):active:not(:disabled) {
+  transform: translate3d(2px, 2px, 0);
+  box-shadow: 1px 1px 0px 0px #0F172A;
+}
+
+/* 4. Trạng thái Được Chọn / Active Class (.active, .is-selected) */
+button.active:not(.nav-item),
+button.is-selected:not(.nav-item),
+.btn.active,
+.btn.is-selected,
+.filter-chip.active,
+.tab-script-hiragana.active,
+.tab-script-katakana.active {
+  background-color: #D2358F !important;
+  color: #FDF2F8 !important;
+  border-color: #D2358F !important;
+}
+
+button.active:not(.nav-item) *:not(svg):not(path),
+button.is-selected:not(.nav-item) *:not(svg):not(path),
+.btn.active *:not(svg):not(path),
+.btn.is-selected *:not(svg):not(path),
+.filter-chip.active *:not(svg):not(path),
+.tab-script-hiragana.active *:not(svg):not(path),
+.tab-script-katakana.active *:not(svg):not(path) {
+  color: #FDF2F8 !important;
+}
+
+button.active:not(.nav-item) svg,
+.btn.active svg {
+  color: #FDF2F8 !important;
+  stroke: currentColor;
+}
+
+/* --- LEARNER CARDS & ACCENTS --- */
+.card-nhai-learner,
+.card-retro-learner {
+  border-top: 3px solid var(--color-learner-primary) !important;
+}
+
+.card-learner-blue {
+  border-top: 3px solid var(--color-learner-accent) !important;
+}
+
+/* --- LEARNER SIDEBAR NAVIGATION --- */
+#learnerSidebar {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
+#learnerSidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+#learnerSidebar::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1;
+  border-radius: var(--radius-sm);
+}
+
+#learnerSidebar .nav-item {
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  user-select: none;
+  will-change: background-color, color;
+  transform: none !important;
+  border: 1px solid transparent;
+  box-sizing: border-box !important;
+}
+
+#learnerSidebar .nav-item:hover:not(.active) {
+  background-color: #F1F5F9;
+  color: var(--color-text-main);
+  transform: none !important;
+}
+
+#learnerSidebar .nav-item.active {
+  background-color: #E0399A !important;
+  color: #FFFFFF !important;
+  border-color: #0F172A !important;
+}
+
+/* --- LEARNER BADGES --- */
+.badge-learner {
+  background-color: rgba(42, 90, 26, 0.1);
+  color: var(--color-learner-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+/* --- SHARED MODAL (HANDWRITING RECOGNITION POPUP CHO LEARNER) --- */
+#handwritingModal.active,
+.learner-modal-overlay.active {
+  display: flex !important;
+  opacity: 1;
+}
+
+.learner-modal-box {
+  background-color: var(--color-11);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 6px 6px 0px 0px var(--color-border);
+  animation: learnerModalSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes learnerModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --- SAKURA PETAL DECORATION SYSTEM --- */
+.card-retro,
+.card-nhai,
+.card-retro-learner,
+.card-nhai-learner {
+  position: relative;
+}
+
+/* Nâng toàn bộ các khối nội dung con của Card lên trên cụm cánh hoa */
+.card-retro > *:not(.sakura-petal-cluster),
+.card-nhai > *:not(.sakura-petal-cluster),
+.card-retro-learner > *:not(.sakura-petal-cluster),
+.card-nhai-learner > *:not(.sakura-petal-cluster) {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Đảm bảo toàn bộ văn bản và phần tử thao tác sâu bên trong luôn nổi trên cánh hoa */
+.card-retro > *:not(.sakura-petal-cluster) *,
+.card-nhai > *:not(.sakura-petal-cluster) *,
+.card-retro h1, .card-retro h2, .card-retro h3, .card-retro h4, .card-retro h5, .card-retro h6,
+.card-retro p, .card-retro span, .card-retro button, .card-retro input,
+.card-retro textarea, .card-retro select, .card-retro a, .card-retro svg,
+.card-retro label, .card-retro strong, .card-retro em, .card-retro b,
+.card-retro canvas, .card-retro .text-content, .card-retro .badge-retro,
+.card-nhai h1, .card-nhai h2, .card-nhai h3, .card-nhai h4, .card-nhai h5, .card-nhai h6,
+.card-nhai p, .card-nhai span, .card-nhai button, .card-nhai input,
+.card-nhai textarea, .card-nhai select, .card-nhai a, .card-nhai svg,
+.card-nhai label, .card-nhai strong, .card-nhai em, .card-nhai b,
+.card-nhai canvas, .card-nhai .text-content, .card-nhai .badge-retro {
+  position: relative;
+  z-index: 11;
+}
+
+/* Khung cụm cánh hoa: đè lên nền, viền và bóng của card (z-index: 5), NHƯNG DƯỚI TOÀN BỘ NỘI DUNG (z-index: 10 & 11) */
+.sakura-petal-cluster {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5 !important;
+  user-select: none;
+  width: 0;
+  height: 0;
+}
+
+.sakura-petal-item {
+  position: absolute;
+  width: 24px;
+  height: auto;
+  filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.15));
+  opacity: 0.92;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, filter 0.2s ease;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+
+.card-retro:hover .sakura-petal-item,
+.card-nhai:hover .sakura-petal-item {
+  filter: drop-shadow(1px 3px 4px rgba(224, 57, 154, 0.3));
+  opacity: 0.98;
+}

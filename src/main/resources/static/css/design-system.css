@@ -15,54 +15,80 @@
 
 :root {
     /* =========================================================================
-       1. COLOR TOKENS (FIGMA COLOR PALETTE)
+       1. STANDARDIZED DESIGN TOKENS (60 - 30 - 10 RULE)
        ========================================================================= */
-    /* Primary (Chàm đậm / Deep Slate Navy) */
-    --color-primary: #0F172A;
-    --color-primary-hover: #1E293B;
-    --color-primary-light: #F1F5F9;
+    /* Nền & Bề mặt (60%) */
+    --bg-app: #FAF9F6;
+    --bg-canvas: #FFFFFF;
+    --bg-surface: #FFFFFF;
+    --border-subtle: #E2E8F0;
+    --border-strong: #CBD5E1;
 
-    /* Brand Accent (Đỏ Son / Japanese Crimson Sakura) */
-    --color-accent: #DC2626;
-    --color-accent-hover: #B91C1C;
-    --color-accent-light: #FEE2E2;
+    /* Văn bản & Nét chữ (30%) */
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
 
-    /* Secondary (Xanh Công Nghệ / Clean Indigo Blue) */
-    --color-secondary: #2563EB;
-    --color-secondary-hover: #1D4ED8;
-    --color-secondary-light: #EFF6FF;
+    /* Nhóm màu chức năng phân loại hệ chữ (Script Badges & Tabs) */
+    --script-hiragana-bg: #FDF2F8;
+    --script-hiragana-text: #BE185D;
+    --script-hiragana-border: #FBCFE8;
 
-    /* Trạng Thái & Phản Hồi */
+    --script-katakana-bg: #EFF6FF;
+    --script-katakana-text: #1D4ED8;
+    --script-katakana-border: #BFDBFE;
+
+    --script-kanji-bg: #FEFCE8;
+    --script-kanji-text: #854D0E;
+    --script-kanji-border: #FEF08A;
+
+    /* Hành động & Phản hồi AI (10% Uguisu-iro) */
+    --color-primary: #15803D;
+    --color-primary-hover: #166534;
+    --color-primary-light: #F0FDF4;
     --color-success: #16A34A;
     --color-success-light: #DCFCE7;
-    --color-warning: #D97706;
-    --color-warning-light: #FEF3C7;
+    --color-error: #DC2626;
+    --color-error-light: #FEE2E2;
+
+    /* Legacy Token Aliases Mapped to Clean Standard */
+    --color-secondary: #15803D;
+    --color-secondary-hover: #166534;
+    --color-secondary-light: #F0FDF4;
+    --color-accent: #15803D;
+    --color-accent-hover: #166534;
+    --color-accent-light: #F0FDF4;
+    --color-warning: #854D0E;
+    --color-warning-light: #FEFCE8;
     --color-danger: #DC2626;
     --color-danger-light: #FEE2E2;
 
     /* Surfaces & Neutrals */
-    --color-bg: #F8FAFC;
-    --color-surface: #FFFFFF;
+    --color-bg-app: var(--bg-app);
+    --color-bg: var(--bg-app);
+    --color-surface: var(--bg-surface);
     --color-surface-hover: #F8FAFC;
     --color-surface-muted: #F1F5F9;
 
     /* Borders */
-    --color-border: #E2E8F0;
-    --color-border-strong: #CBD5E1;
-    --color-border-subtle: #F1F5F9;
+    --color-border: var(--border-subtle);
+    --color-border-strong: var(--border-strong);
+    --color-border-subtle: var(--border-subtle);
+    --color-border-card: var(--border-subtle);
 
     /* Typography Colors */
-    --color-text: #0F172A;
-    --color-text-secondary: #475569;
-    --color-text-muted: #64748B;
-    --color-text-light: #94A3B8;
+    --color-text: var(--text-primary);
+    --color-text-heading: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-muted: var(--text-muted);
+    --color-text-light: var(--text-muted);
     --color-text-inverse: #FFFFFF;
 
     /* =========================================================================
        2. TYPOGRAPHY SYSTEM
        ========================================================================= */
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
-    --font-kanji: 'Noto Serif JP', 'Hiragino Mincho Pro', 'Yu Mincho', serif;
+    --font-sans: "Noto Sans JP", "Inter", "Segoe UI", sans-serif;
+    --font-kanji: "Noto Sans JP", "Noto Serif JP", serif;
 
     /* Scale & Line Height */
     --text-xs: 0.75rem;     /* 12px */
@@ -88,7 +114,7 @@
     --space-12: 48px;
 
     /* =========================================================================
-       4. RADII & SHADOWS (ELEVATION)
+       4. RADII & SHADOWS (MODERN SOFT ELEVATION)
        ========================================================================= */
     --radius-sm: 6px;
     --radius-md: 8px;
@@ -97,14 +123,14 @@
     --radius-full: 9999px;
 
     --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-    --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.08);
-    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08);
 
     /* Tương thích ngược với các biến cũ */
     --vocapy-green: var(--color-success);
     --vocapy-green-shadow: transparent;
-    --vocapy-blue: var(--color-secondary);
+    --vocapy-blue: var(--color-primary);
     --vocapy-blue-shadow: transparent;
     --vocapy-purple: var(--color-primary);
     --vocapy-purple-shadow: transparent;
@@ -257,94 +283,87 @@ a {
 }
 
 /* =========================================================================
-   BUTTON DESIGN SYSTEM (FLAT / SOFT MINIMALIST - PROFESSIONAL UI)
+   BUTTON DESIGN SYSTEM (STANDARDIZED 3 VARIANTS: PRIMARY, SECONDARY, GHOST)
    ========================================================================= */
+/* Variant 1: Primary Button (#2563EB, White text, no border) */
 .btn-primary {
-    background-color: #4F46E5;
+    background-color: var(--color-primary);
     color: #FFFFFF !important;
-    border: 1px solid #4F46E5;
-    border-radius: 6px;
-    box-shadow: 0 1px 2px 0 rgba(79, 70, 229, 0.15);
+    border: none !important;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
 }
 .btn-primary:hover {
-    background-color: #4338CA;
-    border-color: #4338CA;
-    box-shadow: 0 2px 4px 0 rgba(79, 70, 229, 0.2);
+    background-color: var(--color-primary-hover);
+    box-shadow: var(--shadow-md);
 }
 .btn-primary:active {
-    background-color: #3730A3;
-    border-color: #3730A3;
+    background-color: #1E40AF;
 }
 
-/* Secondary Button (Soft Indigo / Clean Tech) */
+/* Variant 2: Secondary Button (White bg, 1px solid #CBD5E1 border, Slate-600 text) */
 .btn-secondary,
+.btn-outline,
 .btn-blue,
 .btn-purple,
-.btn-3d-blue {
-    background-color: #EEF2FF;
-    color: #4338CA !important;
-    border: 1px solid #C7D2FE;
-    border-radius: 6px;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-}
-.btn-secondary:hover,
-.btn-blue:hover,
-.btn-purple:hover,
-.btn-3d-blue:hover {
-    background-color: #E0E7FF;
-    color: #3730A3 !important;
-    border-color: #A5B4FC;
-}
-.btn-secondary:active,
-.btn-3d-blue:active {
-    background-color: #C7D2FE;
-}
-
-/* Outline / Neutral Secondary Button (Nền trắng/trong suốt, viền xám nhẹ #E5E7EB, text trung tính #374151) */
-.btn-outline,
+.btn-3d-blue,
 .btn-3d-outline {
     background-color: #FFFFFF;
-    color: #374151 !important;
-    border: 1px solid #E5E7EB;
-    border-radius: 6px;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+    font-weight: 500;
 }
+.btn-secondary:hover,
 .btn-outline:hover,
+.btn-blue:hover,
+.btn-purple:hover,
+.btn-3d-blue:hover,
 .btn-3d-outline:hover {
-    background-color: #F9FAFB;
-    color: #111827 !important;
-    border-color: #D1D5DB;
+    background-color: #F8FAFC;
+    color: var(--text-primary) !important;
+    border-color: var(--border-strong) !important;
+    box-shadow: var(--shadow-md);
 }
+.btn-secondary:active,
 .btn-outline:active,
 .btn-3d-outline:active {
-    background-color: #F3F4F6;
-    border-color: #9CA3AF;
+    background-color: #F1F5F9;
 }
 
-/* Accent Button (Crimson) */
-.btn-accent,
-.btn-3d-green {
-    background-color: #DC2626;
-    color: #FFFFFF !important;
-    border: 1px solid #DC2626;
-    border-radius: 6px;
-    box-shadow: 0 1px 2px 0 rgba(220, 38, 38, 0.15);
-}
-.btn-accent:hover,
-.btn-3d-green:hover {
-    background-color: #B91C1C;
-    border-color: #B91C1C;
-}
-
-/* Ghost Button */
+/* Variant 3: Ghost Button (Transparent bg, text-muted, hover #F1F5F9) */
 .btn-ghost {
     background-color: transparent;
-    color: #4B5563;
-    border: 1px solid transparent;
-    border-radius: 6px;
+    color: var(--text-secondary);
+    border: 1px solid transparent !important;
+    border-radius: var(--radius-sm);
+    box-shadow: none;
+    font-weight: 500;
 }
 .btn-ghost:hover {
-    background-color: #F3F4F6;
+    background-color: #F1F5F9;
+    color: var(--text-primary);
+}
+
+/* Action Accent / Destructive Button (Optional danger variant) */
+.btn-accent,
+.btn-danger,
+.btn-3d-green {
+    background-color: var(--color-error);
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+}
+.btn-accent:hover,
+.btn-danger:hover,
+.btn-3d-green:hover {
+    background-color: #B91C1C;
+    box-shadow: var(--shadow-md);
+}
     color: #111827;
 }
 
@@ -1301,53 +1320,33 @@ button:disabled {
 }
 
 /* ====================================================================================================
- * NHAITOPIK.COM RETRO HARD-SHADOW DESIGN SYSTEM (DESIGN TOKENS & UTILITIES)
+ * STANDARDIZED COMPONENT & UTILITY TOKENS (FIGMA & CLEAN DESIGN SYSTEM)
  * ====================================================================================================
- * Single Source of Truth for Learner & Tutor Views:
- * 1. Fixed Radius: border-radius: 5px (rounded-[5px]) strictly.
- * 2. Hard/Retro Shadows: 4px 4px 0px 0px #000000 with crisp 1px solid black borders.
- * 3. Color Tokens: color-1 to color-11.
- * 4. Typography: Heading Itim cursive, Body Segoe UI sans-serif, Meta ui-sans-serif.
+ * 1. Fixed Radius: border-radius: 6px / 8px strictly.
+ * 2. Elevation: Modern soft shadows (--shadow-sm, --shadow-md).
+ * 3. Color Tokens: Clean slate, primary blue, success green, error red.
+ * 4. Typography: "Noto Sans JP", "Inter", "Segoe UI", sans-serif.
  * ==================================================================================================== */
 
 :root {
     /* 1. COLOR TOKENS */
-    --color-1: #000000;          /* Text Primary, viền đen, hard shadow */
-    --color-2: #2A5A1A;          /* Rêu đậm: Học viên (Learner Primary) */
-    --color-3: #7A2CA8;          /* Tím trầm: Gia sư (Tutor Primary) */
-    --color-4: #BF360C;          /* Đỏ đất (Terracotta): Cảnh báo, Deadline, CTA quan trọng */
-    --color-5: #1F6FB4;          /* Xanh biển: Liên kết, Thẻ bài tập */
-    --color-6: #1E8B3F;          /* Xanh lục tươi: Hoàn thành, Duyệt, Điểm cao */
-    --color-10: #E76F51;         /* Cam san hô: Đang học, Thẻ Flashcard */
-    --color-11: #FFFFFF;         /* Nền card trắng, chữ trên nền đậm */
+    --color-bg-app: var(--bg-app);
+    --color-1: #0F172A;          /* Slate-900: Chữ chính, tiêu đề, nét mực gốc */
+    --color-text-body: #475569;  /* Slate-600: Nội dung, nhãn phụ */
+    --color-2: #2563EB;          /* Blue-600: Primary Action / Học viên */
+    --color-3: #2563EB;          /* Blue-600: Primary Action / Gia sư */
+    --color-4: #DC2626;          /* Red-600: Báo lỗi, xóa, nguy hiểm */
+    --color-5: #2563EB;          /* Blue-600: Liên kết, Thẻ bài tập */
+    --color-6: #16A34A;          /* Green-600: Nét đúng, hoàn thành */
+    --color-10: #2563EB;         /* Blue-600 */
+    --color-11: #FFFFFF;         /* Nền card trắng tinh */
 
-    /* 2. TYPOGRAPHY SCALE */
-    --text-scale-xs: 7px;
-    --text-scale-sm: 11px;
-    --text-scale-base: 14px;
-    --text-scale-lg: 16px;
-    --text-scale-xl: 18px;
-    --text-scale-2xl: 20px;
-    --text-scale-3xl: 30px;
-
-    /* 3. SPACING SCALE (Base 4px) */
-    --space-nhai-1: 2px;
-    --space-nhai-2: 3px;
-    --space-nhai-3: 4px;
-    --space-nhai-4: 6px;
-    --space-nhai-5: 7px;
-    --space-nhai-6: 8px;
-    --space-nhai-7: 10px;
-    --space-nhai-8: 12px;
-    --space-nhai-9: 16px;
-    --space-nhai-10: 24px;
-
-    /* 4. RETRO SHADOWS & RADIUS */
-    --radius-nhai: 5px;
-    --shadow-retro: 4px 4px 0px 0px #000000;
-    --shadow-retro-hover: 5px 5px 0px 0px #000000;
-    --shadow-retro-active: 1px 1px 0px 0px #000000;
-    --shadow-retro-sm: 2px 2px 0px 0px #000000;
+    /* 2. ELEVATION & RADII */
+    --radius-nhai: 8px;
+    --shadow-retro: var(--shadow-sm);
+    --shadow-retro-hover: var(--shadow-md);
+    --shadow-retro-active: var(--shadow-sm);
+    --shadow-retro-sm: var(--shadow-sm);
     --transition-nhai: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1357,145 +1356,153 @@ button:disabled {
 }
 
 .font-body {
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, "Segoe UI Emoji", sans-serif !important;
+    font-family: 'Noto Sans JP', 'Inter', 'Segoe UI', sans-serif !important;
 }
 
 .font-meta {
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
 }
 
-/* Card Nhaitopik Utility Classes */
+/* Standardized Card Classes */
 .card-nhai {
-    background-color: var(--color-11);
-    border: 1px solid var(--color-1) !important;
-    border-radius: 5px !important;
-    box-shadow: 4px 4px 0px 0px #000000 !important;
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 8px !important;
+    box-shadow: var(--shadow-sm) !important;
     transition: all var(--transition-nhai);
 }
 
 .card-nhai:hover {
-    box-shadow: 5px 5px 0px 0px #000000 !important;
-    transform: translate(-1px, -1px);
+    box-shadow: var(--shadow-md) !important;
+    border-color: var(--border-strong) !important;
 }
 
 .card-nhai-learner {
-    background-color: var(--color-11);
-    border: 1px solid var(--color-1) !important;
-    border-top: 3px solid var(--color-2) !important;
-    border-radius: 5px !important;
-    box-shadow: 4px 4px 0px 0px #000000 !important;
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-subtle) !important;
+    border-top: 3px solid var(--color-primary) !important;
+    border-radius: 8px !important;
+    box-shadow: var(--shadow-sm) !important;
 }
 
 .card-nhai-tutor {
-    background-color: var(--color-11);
-    border: 1px solid var(--color-1) !important;
-    border-top: 3px solid var(--color-3) !important;
-    border-radius: 5px !important;
-    box-shadow: 4px 4px 0px 0px #000000 !important;
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-subtle) !important;
+    border-top: 3px solid var(--color-primary) !important;
+    border-radius: 8px !important;
+    box-shadow: var(--shadow-sm) !important;
 }
 
-/* Button Nhaitopik Utility Classes */
+/* Standardized Button Classes */
 .btn-nhai {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    border: 1px solid var(--color-1) !important;
-    border-radius: 5px !important;
-    box-shadow: 4px 4px 0px 0px #000000 !important;
-    font-family: 'Itim', cursive !important;
-    font-size: 14px;
-    font-weight: 600;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 6px !important;
+    box-shadow: var(--shadow-sm) !important;
+    font-family: 'Noto Sans JP', 'Inter', 'Segoe UI', sans-serif !important;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     text-decoration: none;
     transition: all var(--transition-nhai);
     user-select: none;
     padding: 8px 16px;
+    background-color: #FFFFFF;
+    color: var(--text-secondary);
 }
 
 .btn-nhai:hover {
-    transform: translate(-1px, -1px);
-    box-shadow: 5px 5px 0px 0px #000000 !important;
+    background-color: #F8FAFC;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-md) !important;
+    border-color: var(--border-strong) !important;
 }
 
 .btn-nhai:active {
-    transform: translate(2px, 2px);
-    box-shadow: 1px 1px 0px 0px #000000 !important;
+    background-color: #F1F5F9;
+    box-shadow: var(--shadow-sm) !important;
 }
 
-/* Learner Primary CTA */
-.btn-nhai-learner {
-    background-color: var(--color-2) !important;
-    color: var(--color-11) !important;
-}
-.btn-nhai-learner:hover {
-    background-color: #214714 !important;
-}
-
-/* Tutor Primary CTA */
+/* Primary Action Buttons */
+.btn-nhai-learner,
 .btn-nhai-tutor {
-    background-color: var(--color-3) !important;
-    color: var(--color-11) !important;
+    background-color: var(--color-primary) !important;
+    color: #FFFFFF !important;
+    border-color: var(--color-primary) !important;
+    font-weight: 600;
 }
+.btn-nhai-learner:hover,
 .btn-nhai-tutor:hover {
-    background-color: #632289 !important;
+    background-color: var(--color-primary-hover) !important;
+    border-color: var(--color-primary-hover) !important;
 }
 
-/* Urgent / Action CTA */
+/* Destructive / Action CTA */
 .btn-nhai-urgent {
-    background-color: var(--color-4) !important;
-    color: var(--color-11) !important;
+    background-color: var(--color-error) !important;
+    color: #FFFFFF !important;
+    border-color: var(--color-error) !important;
+    font-weight: 600;
 }
 .btn-nhai-urgent:hover {
-    background-color: #9C2C09 !important;
+    background-color: #B91C1C !important;
+    border-color: #B91C1C !important;
 }
 
-/* Outline / Secondary Button */
+/* Secondary / Outline Button */
 .btn-nhai-outline {
-    background-color: var(--color-11) !important;
-    color: var(--color-1) !important;
+    background-color: #FFFFFF !important;
+    color: var(--text-secondary) !important;
+    border-color: var(--border-strong) !important;
 }
 .btn-nhai-outline:hover {
     background-color: #F8FAFC !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-strong) !important;
 }
 
-/* Badge Nhaitopik */
+/* Standardized Badge */
 .badge-nhai {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
-    border: 1px solid var(--color-1) !important;
-    border-radius: 5px !important;
-    box-shadow: 2px 2px 0px 0px #000000 !important;
-    font-family: ui-sans-serif, system-ui, sans-serif !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
 }
 
-/* Input / Select Nhaitopik */
+/* Standardized Form Input / Select */
 .input-nhai {
-    border: 1px solid var(--color-1) !important;
-    border-radius: 5px !important;
-    font-family: 'Segoe UI', -apple-system, sans-serif !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 6px !important;
+    font-family: 'Noto Sans JP', 'Inter', 'Segoe UI', sans-serif !important;
     font-size: 14px;
     padding: 8px 12px;
     transition: all var(--transition-nhai);
     outline: none;
+    background-color: #FFFFFF;
+    color: var(--text-primary);
 }
 .input-nhai:focus {
-    box-shadow: 3px 3px 0px 0px var(--color-1) !important;
-    transform: translate(-1px, -1px);
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
 }
 
-/* Shadow Utility Overrides */
+/* Utility Overrides */
 .shadow-retro {
-    box-shadow: 4px 4px 0px 0px #000000 !important;
+    box-shadow: var(--shadow-sm) !important;
 }
 .shadow-retro-sm {
-    box-shadow: 2px 2px 0px 0px #000000 !important;
+    box-shadow: var(--shadow-sm) !important;
 }
 .rounded-nhai {
-    border-radius: 5px !important;
+    border-radius: 6px !important;
 }
 

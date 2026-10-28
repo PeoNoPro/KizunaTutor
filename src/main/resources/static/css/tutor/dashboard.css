@@ -1,0 +1,32 @@
+/* ==========================================================================
+   KIZUNATUTOR - TUTOR PAGE: DASHBOARD (TỔNG QUAN BÀN GIẢNG DẠY)
+   File CSS chuyên biệt riêng cho màn hình Bàn Giảng Dạy Gia Sư
+   ========================================================================== */
+
+/* --- 1. THẺ CHỈ SỐ DOANH THU & HỌC VIÊN --- */
+.tutor-kpi-card {
+  background-color: var(--color-11);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: 20px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.tutor-kpi-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* --- 2. LỊCH DẠY HÔM NAY (TODAY'S TEACHING SLOTS) --- */
+.teaching-slot-card {
+  border-left: 4px solid var(--color-tutor-primary);
+  background-color: var(--color-11);
+  border-top: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  margin-bottom: 12px;
+}

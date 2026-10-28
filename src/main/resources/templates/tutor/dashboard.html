@@ -6,34 +6,40 @@
     <title th:text="${pageTitle}">Tổng Quan Gia Sư - KizunaTutor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/design-tokens.css}">
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" th:href="@{/css/tutor/tutor-common.css}">
+    <link rel="stylesheet" th:href="@{/css/tutor/dashboard.css}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script th:src="@{/js/locales/tutor-copy.js}"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased">
-    <div class="flex min-h-screen">
-        <!-- Sidebar Tutor -->
+    <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
+        <!-- Sidebar Tutor: Cố Định Độc Lập -->
         <aside th:replace="~{tutor/layout/sidebar :: sidebar}"></aside>
 
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- Main Content Area: Cuộn Độc Lập -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
             <!-- Header Tutor -->
             <header th:replace="~{tutor/layout/header :: header}"></header>
 
-            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
-                <div class="max-w-7xl mx-auto space-y-6">
-                    <!-- Hero Welcome Card (Retro Nhaitopik Style - Thân thiện, đồng hành) -->
-                    <div class="card-nhai card-nhai-tutor bg-white p-6 sm:p-8 border border-black shadow-[4px_4px_0px_0px_#000000] rounded-[5px] relative overflow-hidden">
-                        <div class="max-w-3xl">
-                            <span class="badge-nhai bg-[#7A2CA8]/10 text-[#7A2CA8] border-black text-xs font-bold mb-3 inline-flex items-center gap-1.5">
-                                <span th:text="${verificationDot != null ? verificationDot : '🟢'}">🟢</span>
-                                <span th:text="${verificationBadge != null ? verificationBadge : 'Đang hoạt động'}">Đang hoạt động</span> &bull; Không Gian Giảng Dạy Gia Sư
-                            </span>
-                            <h1 class="font-itim text-2xl sm:text-3xl font-extrabold text-[#7A2CA8] tracking-tight mb-2">
-                                Chào Sensei <span th:text="${userName}">Sensei</span>! Hôm nay lớp học của mình có gì vui không nào? 🌸
-                            </h1>
-                            <p class="text-xs sm:text-sm text-slate-700 font-body leading-relaxed">
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-7xl mx-auto space-y-3">
+                    <!-- MẪU CHUẨN BANNER ĐẦU TRANG (SLIM HERO BANNER) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <span class="badge-retro bg-[#7A2CA8]/10 text-[#7A2CA8] border border-black text-[10px] font-bold px-2 py-0.5 rounded-[3px]">
+                                    <span th:text="${verificationDot != null ? verificationDot : '🟢'}">🟢</span>
+                                    <span th:text="${verificationBadge != null ? verificationBadge : 'Đang hoạt động'}">Đang hoạt động</span> &bull; Bàn Giảng Dạy
+                                </span>
+                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Chào Sensei <span class="text-[#7A2CA8]" th:text="${userName}">Sensei</span>! 🌸
+                                </h1>
+                            </div>
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
                                 Kho chữ Kanji đã sẵn sàng, nhặt vài chữ "khoai khoai" thử tài học viên và cùng chiêm ngưỡng nét bút Shodo nhé! 🖌️
                             </p>
                         </div>

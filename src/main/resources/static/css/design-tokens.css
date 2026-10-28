@@ -1,0 +1,665 @@
+/* ==========================================================================
+   KIZUNATUTOR STANDARDIZED CORE DESIGN TOKENS (SAKURA / UGUISU SPECIFICATION)
+   Global Design Tokens, Root CSS Variables & Script Categorization System
+   ========================================================================== */
+
+:root {
+  /* =========================================================================
+     1. NỀN & BỀ MẶT (BASE UI) - 60%
+     ========================================================================= */
+  --bg-app: #FAF9F6;                  /* Trắng kem Washi nhẹ mắt, chống chói mắt */
+  --bg-canvas: #FFFFFF;               /* Nền khung tập viết chữ Hán */
+  --bg-surface: #FFFFFF;              /* Nền card, modal, dialog */
+  --border-subtle: #E2E8F0;           /* Đường viền thanh mảnh phân vùng */
+  --border-strong: #CBD5E1;           /* Đường viền khung tập viết, thẻ tương tác */
+
+  /* =========================================================================
+     2. VĂN BẢN & MỰC VIẾT (TEXT & STROKES) - 30%
+     ========================================================================= */
+  --text-primary: #0F172A;            /* Mực đen than chính, nét chữ gốc Kanji/Kana */
+  --text-secondary: #475569;          /* Nghĩa từ, âm Hán Việt, tiêu đề phụ */
+  --text-muted: #94A3B8;              /* Lưới Canvas ô chữ mễ tự môn, Furigana mờ */
+
+  /* =========================================================================
+     3. NHÓM MÀU CHỨC NĂNG PHÂN LOẠI HỆ CHỮ (SCRIPT BADGES & TABS)
+     ========================================================================= */
+  /* Hiragana (Mềm mại, nhập môn / Hoa Anh Đào Sakura) */
+  --script-hiragana-bg: #FDF2F8;      /* Hồng phấn Sakura nhạt */
+  --script-hiragana-text: #BE185D;    /* Hồng sen đậm Sakura */
+  --script-hiragana-border: #FBCFE8;
+
+  /* Katakana (Hiện đại, góc cạnh) */
+  --script-katakana-bg: #EFF6FF;      /* Xanh dương dịu nhạt */
+  --script-katakana-text: #1D4ED8;    /* Xanh dương đậm */
+  --script-katakana-border: #BFDBFE;
+
+  /* Kanji (Tập trung nét, tương phản cao / Vàng kem & Nâu mực tàu) */
+  --script-kanji-bg: #FEFCE8;         /* Vàng kem nhạt cổ điển */
+  --script-kanji-text: #854D0E;       /* Nâu đen đậm / Mực tàu */
+  --script-kanji-border: #FEF08A;
+
+  /* =========================================================================
+     4. HÀNH ĐỘNG & TRẠNG THÁI ACTIVE / SELECTION (PRIMARY SELECTION TOKENS)
+     ========================================================================= */
+  --color-active-pink: #E0399A;       /* Hồng Hiragana Sakura - Màu đại diện trạng thái được chọn */
+  --color-active-pink-hover: #D02B89; /* Hồng đậm hơn khi hover */
+  --color-active-pink-light: #FDF2F8; /* Hồng phấn nhạt cho vùng phụ trợ */
+  --color-active-pink-text: #FFFFFF;  /* Chữ tương phản cao trên nền hồng */
+  --color-selection-bg: var(--color-active-pink);
+  --color-selection-text: var(--color-active-pink-text);
+
+  --color-primary: #15803D;           /* Xanh lá non Uguisu-iro đậm - học tập & sinh trưởng */
+  --color-primary-hover: #166534;     /* Uguisu đậm khi hover */
+  --color-primary-light: #F0FDF4;     /* Uguisu nhạt cho highlight trạng thái */
+  --color-success: #16A34A;           /* Báo nét viết đúng, thứ tự bút thuận chuẩn */
+  --color-success-light: #DCFCE7;
+  --color-error: #DC2626;             /* Báo nét sai, ngược chiều bút */
+  --color-error-light: #FEE2E2;
+
+  /* =========================================================================
+     5. BÓNG ĐỔ MỀM MẠI (MODERN SOFT ELEVATION)
+     ========================================================================= */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-canvas: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08);
+  --shadow-hover: 0 6px 12px -2px rgba(15, 23, 42, 0.08);
+  --shadow-active: 0 1px 2px rgba(15, 23, 42, 0.05);
+
+  /* =========================================================================
+     6. HỆ THỐNG TYPOGRAPHY & PHÂN CẤP CHỮ
+     ========================================================================= */
+  --font-sans: "Noto Sans JP", "Inter", "Segoe UI", sans-serif;
+  --font-kanji: "Noto Sans JP", "Noto Serif JP", serif;
+  --font-body: var(--font-sans);
+  --font-headline: var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-brand: 'Itim', cursive;
+
+  /* Thang kích thước font chữ chuẩn */
+  --text-xs: 0.75rem;                 /* 12px */
+  --text-sm: 0.875rem;                /* 14px */
+  --text-base: 1rem;                  /* 16px */
+  --text-lg: 1.125rem;                /* 18px - Ngưỡng tối thiểu của Kanji mẫu */
+  --text-xl: 1.25rem;                 /* 20px */
+  --text-2xl: 1.5rem;                 /* 24px */
+  --text-3xl: 1.875rem;               /* 30px */
+
+  /* =========================================================================
+     7. HÌNH KHỐI, BO GÓC & CHUYỂN ĐỘNG
+     ========================================================================= */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Ánh xạ tương thích ngược chuẩn hóa (loại bỏ hoàn toàn 27 màu rác) */
+  --color-1: var(--text-primary);
+  --color-2: var(--color-primary);
+  --color-3: var(--color-primary);
+  --color-4: var(--color-error);
+  --color-5: var(--script-katakana-text);
+  --color-6: var(--color-success);
+  --color-7: var(--color-primary);
+  --color-8: var(--script-katakana-text);
+  --color-9: var(--script-hiragana-text);
+  --color-10: var(--script-kanji-text);
+  --color-11: var(--bg-surface);
+  --color-bg-app: var(--bg-app);
+  --color-text-main: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border-strong);
+  --color-warning-light: var(--script-kanji-bg);
+}
+
+/* ==========================================================================
+   GLOBAL ZERO LAYOUT SHIFT & ANTI-JANK ARCHITECTURE (ZERO CLS REFIT)
+   Khóa cố định khung hình toàn hệ thống, triệt tiêu giật cuộn và rung giật tương tác
+   ========================================================================== */
+
+/* 1. Khóa cố định thanh cuộn toàn hệ thống (Triệt tiêu 100% rung giật ngang 15px) */
+html {
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+  height: 100%;
+}
+
+/* 2. Reset Box-Sizing toàn diện: mọi border và padding tính gọn trong kích thước hộp */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   GLOBAL BASE STYLES
+   ========================================================================== */
+
+body {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, .font-headline {
+  font-family: var(--font-headline);
+}
+
+/* ==========================================================================
+   ZERO GEOMETRY SHIFT & FOCUS STABILIZATION (CHỐNG NỞ VIỀN / CO GIẬT HỘP)
+   ========================================================================== */
+
+:focus-visible {
+  outline: 2px solid var(--border-strong);
+  outline-offset: 1px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-retro:focus-visible,
+.btn-nhai:focus-visible,
+.input-retro:focus-visible,
+.input-nhai:focus-visible,
+.clickable-chip:focus-visible,
+.kana-tile:focus-visible,
+.focusable-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* ==========================================================================
+   STANDARDIZED BUTTONS (PRIMARY & SECONDARY ARCHITECTURE)
+   ========================================================================== */
+
+/* Primary Button (Uguisu-iro #15803D, chữ trắng, bo góc chuẩn 8px) */
+.btn-primary,
+.btn-retro,
+.btn-nhai,
+.btn-retro-learner,
+.btn-nhai-learner,
+.btn-retro-tutor {
+  font-family: var(--font-sans);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: #FFFFFF !important;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  user-select: none;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-retro:hover:not(:disabled),
+.btn-nhai:hover:not(:disabled),
+.btn-retro-learner:hover:not(:disabled),
+.btn-nhai-learner:hover:not(:disabled),
+.btn-retro-tutor:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-canvas);
+  transform: translate3d(0, -1px, 0);
+}
+
+
+.btn-primary:active:not(:disabled),
+.btn-retro:active:not(:disabled),
+.btn-nhai:active:not(:disabled),
+.btn-retro-learner:active:not(:disabled),
+.btn-nhai-learner:active:not(:disabled),
+.btn-retro-tutor:active:not(:disabled) {
+  transform: translate3d(0, 1px, 0);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:disabled,
+.btn-retro:disabled,
+.btn-nhai:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Secondary Button (Nền trắng, viền border-strong, chữ text-secondary) */
+.btn-secondary,
+.btn-retro-outline,
+.btn-nhai-outline {
+  font-family: var(--font-sans);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary) !important;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  user-select: none;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.btn-secondary:hover:not(:disabled),
+.btn-retro-outline:hover:not(:disabled),
+.btn-nhai-outline:hover:not(:disabled) {
+  background-color: #F8FAFC;
+  color: var(--text-primary) !important;
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-canvas);
+  transform: translate3d(0, -1px, 0);
+}
+
+.btn-secondary:active:not(:disabled),
+.btn-retro-outline:active:not(:disabled),
+.btn-nhai-outline:active:not(:disabled) {
+  transform: translate3d(0, 1px, 0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Biến thể Danger */
+.btn-danger,
+.btn-retro-danger {
+  background-color: var(--color-error);
+  color: #FFFFFF !important;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-danger:hover:not(:disabled),
+.btn-retro-danger:hover:not(:disabled) {
+  background-color: #B91C1C;
+  border-color: #B91C1C;
+  box-shadow: var(--shadow-canvas);
+}
+
+/* ==========================================================================
+   CARDS & SURFACES (SOFT SHADOWS & COMPACT HIGH-DENSITY PADDING)
+   ========================================================================== */
+
+.card-retro,
+.card-nhai,
+.card-retro-learner,
+.card-nhai-learner,
+.card-retro-tutor,
+.card-nhai-tutor {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 8px 12px; /* Siêu gọn mật độ cao (Ultra-compact high-density) */
+  box-sizing: border-box;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Card phiên bản nhỏ gọn (Dùng cho thanh công cụ, dải lọc, banner mini) */
+.card-retro-compact,
+.card-nhai-compact {
+  padding: 6px 10px;
+  box-sizing: border-box;
+}
+
+/* Khống chế khoảng đệm của các ô thẻ chữ (Kana, Kanji chips) */
+.kana-card-item,
+.kanji-chip,
+.clickable-chip {
+  padding: 3px 3px !important; /* Mép chữ cách viền siêu gọn, tối ưu hiển thị lưới */
+  box-sizing: border-box;
+}
+
+.card-retro:hover,
+.card-nhai:hover {
+  box-shadow: var(--shadow-canvas);
+  transform: translate3d(0, -1px, 0);
+}
+
+/* Ô nhập liệu chuẩn */
+.input-retro,
+.input-nhai {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  outline: none;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input-retro:focus,
+.input-nhai:focus {
+  box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.15);
+  border-color: var(--color-primary);
+}
+
+/* ==========================================================================
+   SCRIPT BADGES & SCRIPT TABS (PHÂN LOẠI HỆ CHỮ TIẾNG NHẬT)
+   ========================================================================== */
+
+/* Hiragana: Mềm mại, Sakura */
+.badge-script-hiragana,
+.script-badge-hiragana,
+.tab-script-hiragana.active {
+  background-color: var(--script-hiragana-bg) !important;
+  color: var(--script-hiragana-text) !important;
+  border: 1px solid var(--script-hiragana-border) !important;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+/* Katakana: Hiện đại, góc cạnh */
+.badge-script-katakana,
+.script-badge-katakana,
+.tab-script-katakana.active {
+  background-color: var(--script-katakana-bg) !important;
+  color: var(--script-katakana-text) !important;
+  border: 1px solid var(--script-katakana-border) !important;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+/* Kanji: Ô chữ mẫu tập trung nét, vàng kem cổ điển */
+.badge-script-kanji,
+.script-badge-kanji,
+.kanji-sample-box,
+.tab-script-kanji.active {
+  background-color: var(--script-kanji-bg) !important;
+  color: var(--script-kanji-text) !important;
+  border: 1px solid var(--script-kanji-border) !important;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+/* Cỡ chữ Kanji mẫu hiển thị tối thiểu 18px để bảo toàn nét bộ thủ */
+.kanji-sample-glyph,
+.kanji-glyph-large,
+#canvasActiveChar,
+.hw-glyph {
+  font-family: var(--font-kanji);
+  font-size: max(1.125rem, 18px);
+  color: var(--text-primary);
+}
+
+/* Thẻ Chữ Hán Kanji Chuẩn */
+.kanji-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.kanji-card:hover {
+  transform: translate3d(0, -1px, 0);
+  box-shadow: var(--shadow-canvas);
+}
+
+/* ==========================================================================
+   DYNAMIC CONTAINERS & ANTI-COLLAPSE (CHỐNG SỤT LÚN KHUNG KHI TẢI DỮ LIỆU)
+   ========================================================================== */
+
+.dynamic-grid-container,
+.dynamic-container,
+#learnerKanjiGrid,
+#tutorGrid,
+#deckGrid,
+#tutorKanjiGrid,
+#membershipPlansContainer,
+#kanaQuizGrid,
+#pageHwCandidateList,
+#deckHwCandidateList,
+#addKanjiResultsArea,
+#rowBreakdownContainer,
+#feedbackContainer,
+#tutorListContainer,
+#searchResultsContainer {
+  min-height: 240px;
+  contain: layout;
+}
+
+.dynamic-bar-container,
+#dictStrokeButtonsContainer,
+#dictRadicalButtonsContainer,
+#modalStrokeButtonsContainer {
+  min-height: 48px;
+  contain: layout;
+}
+
+/* ==========================================================================
+   SLOTS & CHIP GEOMETRY STABILIZATION (CỐ ĐỊNH TỶ LỆ KHUNG & RESERVED SLOTS)
+   ========================================================================== */
+
+.kana-tile,
+.clickable-chip {
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
+  contain: layout;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.hw-candidate-chip {
+  width: 58px;
+  height: 64px;
+  box-sizing: border-box;
+  contain: layout;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.kana-romaji-label,
+.hw-score,
+.chip-sublabel {
+  min-height: 14px;
+  line-height: 14px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   SIDEBAR NAVIGATION STABILIZATION & HIGH-DENSITY GEOMETRY LOCK
+   ========================================================================== */
+
+#learnerSidebar,
+#tutorSidebar {
+  overflow-x: hidden;
+  contain: layout;
+  background-color: var(--bg-surface);
+  scrollbar-gutter: stable;
+}
+
+#learnerSidebar .nav-item,
+#tutorSidebar nav a,
+.sidebar-link,
+.nav-link {
+  box-sizing: border-box !important;
+  text-decoration: none;
+  contain: layout;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px !important; /* Siêu gọn mật độ cao toàn hệ thống */
+  min-height: 32px;
+  font-size: var(--text-xs);
+  line-height: 1.25;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transform: none !important; /* Triệt tiêu hoàn toàn rung giật xô lệch trên hover/active */
+  will-change: background-color, color;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Tuyệt đối KHÔNG dùng transform translate trên hover/active để tránh giật khung */
+#learnerSidebar .nav-item:hover:not(.active),
+#tutorSidebar nav a:hover:not(.font-bold) {
+  transform: none !important;
+  background-color: #F1F5F9;
+  color: var(--text-primary);
+  border-color: transparent;
+}
+
+#learnerSidebar .nav-item.active,
+#learnerSidebar .nav-item[data-active="true"] {
+  background-color: var(--color-active-pink) !important;
+  color: var(--color-active-pink-text) !important;
+  border-color: #0F172A !important;
+  box-shadow: 2px 2px 0px 0px #0F172A !important;
+  transform: none !important;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   GLOBAL STANDARDIZED SELECTION & ACTIVE UTILITIES (HIRAGANA PINK SPEC)
+   ========================================================================== */
+
+.is-selected,
+.is-active,
+[data-state="active"],
+[aria-selected="true"] {
+  background-color: var(--color-active-pink) !important;
+  color: var(--color-active-pink-text) !important;
+  border-color: #0F172A !important;
+  box-shadow: 2px 2px 0px 0px #0F172A !important;
+}
+
+/* ==========================================================================
+   OVERLAY & MODAL ISOLATION (CHỐNG ĐẨY LAYOUT KHI MỞ MODAL/DROPDOWN)
+   ========================================================================== */
+
+.modal-overlay,
+.learner-modal-overlay,
+.tutor-modal-overlay,
+#handwritingModal,
+#modalCreateDeck,
+#modalAddKanjiToDeck,
+#modalEditDeck,
+#modalMergeDeck,
+#modalConfirmDeleteDeck {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000 !important;
+  overflow-y: auto;
+  contain: layout paint;
+}
+
+.dropdown-menu,
+.dropdown-popup {
+  position: absolute !important;
+  z-index: 500 !important;
+  contain: layout paint;
+}
+
+/* ==========================================================================
+   HỆ THỐNG TRANG TRÍ CÁNH HOA ANH ĐÀO (SAKURA PETAL DECORATION SYSTEM)
+   - Cánh hoa tự do đè lên TẤT CẢ (nền, viền card, bóng đổ retro) ở tầng z-index: 5
+   - TUYỆT ĐỐI KHÔNG ĐÈ LÊN NỘI DUNG: Toàn bộ khối nội dung (chữ, nút, input, icon) được nâng lên z-index: 10 & 11
+   - Không cản trở thao tác click (pointer-events: none)
+   ========================================================================== */
+
+.card-retro,
+.card-nhai,
+.card-retro-learner,
+.card-nhai-learner {
+  position: relative;
+}
+
+/* Nâng toàn bộ các khối nội dung con của Card lên trên cụm cánh hoa */
+.card-retro > *:not(.sakura-petal-cluster),
+.card-nhai > *:not(.sakura-petal-cluster),
+.card-retro-learner > *:not(.sakura-petal-cluster),
+.card-nhai-learner > *:not(.sakura-petal-cluster) {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Đảm bảo toàn bộ văn bản và phần tử thao tác sâu bên trong luôn nổi trên cánh hoa */
+.card-retro > *:not(.sakura-petal-cluster) *,
+.card-nhai > *:not(.sakura-petal-cluster) *,
+.card-retro h1, .card-retro h2, .card-retro h3, .card-retro h4, .card-retro h5, .card-retro h6,
+.card-retro p, .card-retro span, .card-retro button, .card-retro input,
+.card-retro textarea, .card-retro select, .card-retro a, .card-retro svg,
+.card-retro label, .card-retro strong, .card-retro em, .card-retro b,
+.card-retro canvas, .card-retro .text-content, .card-retro .badge-retro,
+.card-nhai h1, .card-nhai h2, .card-nhai h3, .card-nhai h4, .card-nhai h5, .card-nhai h6,
+.card-nhai p, .card-nhai span, .card-nhai button, .card-nhai input,
+.card-nhai textarea, .card-nhai select, .card-nhai a, .card-nhai svg,
+.card-nhai label, .card-nhai strong, .card-nhai em, .card-nhai b,
+.card-nhai canvas, .card-nhai .text-content, .card-nhai .badge-retro {
+  position: relative;
+  z-index: 11;
+}
+
+/* Khung cụm cánh hoa: nằm trên nền, viền và bóng của card (z-index: 5), NHƯNG DƯỚI TOÀN BỘ NỘI DUNG (z-index: 10 & 11) */
+.sakura-petal-cluster {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5 !important;
+  user-select: none;
+  width: 0;
+  height: 0;
+}
+
+/* Từng cánh hoa con trong cụm */
+.sakura-petal-item {
+  position: absolute;
+  width: 24px;  /* Kích thước cánh hoa tự nhiên */
+  height: auto;
+  filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.15));
+  opacity: 0.92;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, filter 0.2s ease;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+
+.card-retro:hover .sakura-petal-item,
+.card-nhai:hover .sakura-petal-item {
+  filter: drop-shadow(1px 3px 4px rgba(224, 57, 154, 0.3));
+  opacity: 0.98;
+}

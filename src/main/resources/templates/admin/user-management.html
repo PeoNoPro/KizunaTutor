@@ -9,41 +9,48 @@
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@600;700;900&display=swap">
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen">
+<body class="bg-slate-50 text-slate-900 font-sans antialiased">
 
-    <div class="app-shell flex min-h-screen">
+    <div class="app-shell flex h-screen overflow-hidden bg-[#FAF9F6]">
 
-        <!-- THANH ĐIỀU HƯỚNG BÊN CỦA ADMIN (NAVY THEME) -->
+        <!-- THANH ĐIỀU HƯỚNG BÊN CỦA ADMIN (NAVY THEME): CỐ ĐỊNH ĐỘC LẬP -->
         <div th:replace="~{admin/layout/sidebar :: sidebar}"></div>
 
-        <!-- KHU VỰC CHÍNH (MAIN CANVAS) -->
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- KHU VỰC CHÍNH: CỐ ĐỊNH HEADER & CUỘN ĐỘC LẬP TẠI MAIN -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
 
             <!-- THANH ĐIỀU HƯỚNG TRÊN CÙNG CỦA ADMIN -->
             <div th:replace="~{admin/layout/header :: header}"></div>
 
             <!-- NỘI DUNG MÀN HÌNH QUẢN LÝ USER & PHÂN QUYỀN (MAX-W-7XL) -->
-            <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-7xl mx-auto space-y-3">
 
-                <!-- 1. TIÊU ĐỀ PHÂN HỆ VÀ NÚT TÁC VỤ CHÍNH -->
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-                            <span>👥</span>
-                            <span>Quản Lý Người Dùng &amp; Phân Quyền</span>
-                        </h1>
-                        <p class="text-xs sm:text-sm text-slate-500 mt-1">
-                            Quản trị toàn diện vòng đời tài khoản 6 nhóm Actor: Học viên, Gia sư, CSKH, Học vụ, Vận hành và Admin
-                        </p>
+                    <!-- MẪU CHUẨN BANNER ĐẦU TRANG (SLIM HERO BANNER) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <span class="badge-retro bg-slate-100 text-slate-800 border border-black text-[10px] font-bold px-2 py-0.5 rounded-[3px]">
+                                    👥 Quản Lý Người Dùng
+                                </span>
+                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Quản Lý Người Dùng &amp; Phân Quyền 👥
+                                </h1>
+                            </div>
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
+                                Quản trị toàn diện vòng đời tài khoản 6 nhóm Actor: Học viên, Gia sư, CSKH, Học vụ, Vận hành và Admin.
+                            </p>
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button"
+                                    onclick="openCreateUserModal()"
+                                    class="btn-nhai px-3 py-1.5 rounded-[5px] bg-black text-white border border-black text-xs font-bold shadow-[2px_2px_0px_0px_#000000] inline-flex items-center gap-1.5 transition active:scale-[0.98]">
+                                <span>＋</span>
+                                <span>Tạo Tài Khoản Nhân Viên</span>
+                            </button>
+                        </div>
                     </div>
-
-                    <button type="button"
-                            onclick="openCreateUserModal()"
-                            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow transition-all cursor-pointer">
-                        <span class="text-base leading-none">＋</span>
-                        <span>Khởi Tạo Tài Khoản Nhân Viên</span>
-                    </button>
-                </div>
 
                 <!-- 2. KHỐI THỐNG KÊ NHANH (TOP 4 KPI CARDS) -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

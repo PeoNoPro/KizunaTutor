@@ -48,11 +48,28 @@ public class HandwritingSearchDto {
         private String hanViet;
         private String meaning;
         private Integer totalStrokes;
+        private String radical;
         private String onyomi;
         private String kunyomi;
         private String jlpt;
         private double similarityScore;
         private String svgSolution;
+
+        public String getKanjiChar() {
+            return character;
+        }
+
+        public String getKanjiCharacter() {
+            return character;
+        }
+
+        public String getJlptLevel() {
+            return jlpt;
+        }
+
+        public Integer getStrokeCount() {
+            return totalStrokes != null ? totalStrokes : 1;
+        }
     }
 
     @Data

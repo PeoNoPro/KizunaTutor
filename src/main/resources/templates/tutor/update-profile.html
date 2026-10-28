@@ -6,7 +6,10 @@
     <title th:text="${pageTitle}">Hồ Sơ Giảng Dạy - Gia Sư Kizuna</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/design-tokens.css}">
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" th:href="@{/css/tutor/tutor-common.css}">
+    <link rel="stylesheet" th:href="@{/css/tutor/update-profile.css}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -15,16 +18,34 @@
     <script th:src="@{/js/locales/tutor-copy.js}"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased">
-    <div class="flex min-h-screen">
-        <!-- Sidebar Tutor -->
+    <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
+        <!-- Sidebar Tutor: Cố Định Độc Lập -->
         <aside th:replace="~{tutor/layout/sidebar :: sidebar}"></aside>
 
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- Main Content Area: Cuộn Độc Lập -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
             <!-- Header Tutor -->
             <header th:replace="~{tutor/layout/header :: header}"></header>
 
-            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
-                <div class="max-w-4xl mx-auto space-y-6">
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-4xl mx-auto space-y-3">
+
+                    <!-- MẪU CHUẨN BANNER ĐẦU TRANG (SLIM HERO BANNER) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <span class="badge-retro bg-[#7A2CA8]/10 text-[#7A2CA8] border border-black text-[10px] font-bold px-2 py-0.5 rounded-[3px]">
+                                    📝 Hồ Sơ Giảng Dạy
+                                </span>
+                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Cập Nhật Hồ Sơ &amp; Tư Cách Gia Sư 👤
+                                </h1>
+                            </div>
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
+                                Hoàn thiện hồ sơ năng lực và minh chứng JLPT để đón nhận học trò nhé Sensei! 🌸
+                            </p>
+                        </div>
+                    </div>
 
                     <!-- 1. CÁC BANNER TRẠNG THÁI (STATE MACHINE BANNERS - Dí dỏm & Đồng hành) -->
                     <!-- A. Trạng thái DRAFT_PROFILE: Hồ sơ chưa nộp -->

@@ -442,7 +442,7 @@ function hwRenderCandidateResults(data) {
                     <span class="hw-tile-score text-[10px] font-bold bg-[#DCFCE7] text-[#15803D] px-1.5 py-0.5 rounded-[3px] border border-black/20">${percent}%</span>
                 </div>
                 <div class="hw-tile-body">
-                    <strong class="hw-tile-hanviet block font-itim text-xs text-[#2A5A1A]">${escapeHtml(item.hanViet || 'HÁN TỰ')}</strong>
+                    <strong class="hw-tile-hanviet block font-itim text-xs text-[#15803D]">${escapeHtml(item.hanViet || 'HÁN TỰ')}</strong>
                     <p class="hw-tile-meaning text-[11px] font-body text-slate-600 truncate m-0" title="${escapeHtml(item.meaning || '')}">${escapeHtml(item.meaning || 'Chữ Hán tra cứu')}</p>
                 </div>
                 <div class="hw-tile-footer flex justify-between text-[10px] font-meta text-slate-500 mt-1.5 pt-1 border-t border-slate-200">

@@ -42,6 +42,7 @@ public class SecurityConfig {
                     "/oauth2/**", "/login/oauth2/**", "/oauth2/redirect",
                     "/tutors", "/tutors/**",
                     "/kanji", "/kanji/**",
+                    "/kana-quiz", "/kana-quiz/**", "/api/kana/**",
                     "/css/**", "/js/**", "/images/**", "/static/**", "/webjars/**",
                     "/api/auth/**", "/api/v1/auth/**", "/api/public/**", "/api/test/**",
                     "/api/kanji/**", "/api/ai/**", "/api/user/**",

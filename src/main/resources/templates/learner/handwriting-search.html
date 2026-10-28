@@ -6,48 +6,45 @@
     <title th:text="${pageTitle}">Tra Cứu Viết Tay AI - KizunaTutor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/design-tokens.css}">
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" th:href="@{/css/learner/learner-common.css}">
+    <link rel="stylesheet" th:href="@{/css/learner/handwriting-search.css}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body class="bg-[#F8FAFC] text-black font-body antialiased">
-    <div class="flex min-h-screen">
-        <!-- Sidebar Learner -->
+<body class="bg-[#FAF9F6] text-black font-body antialiased">
+    <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
+        <!-- Sidebar Learner Cố Định -->
         <aside th:replace="~{learner/layout/sidebar :: sidebar}"></aside>
 
-        <div class="flex-1 flex flex-col min-w-0">
-            <!-- Header Learner -->
+        <!-- Main Content Area: Cuộn Độc Lập -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
             <header th:replace="~{learner/layout/header :: header}"></header>
 
-            <main class="flex-1 p-6 sm:p-8 bg-[#F8FAFC]">
-                <div class="max-w-7xl mx-auto space-y-6">
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-7xl mx-auto space-y-3">
 
-                    <!-- Page Header Card -->
-                    <div class="card-nhai card-nhai-learner p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
-                        <!-- Sticker Capybara Lấp Lánh -->
-                        <img src="/images/stickers/sparkle-capi.png" 
-                             alt="Capybara Lấp Lánh" 
-                             class="hidden md:block absolute -top-1 right-2 w-16 h-16 object-contain pointer-events-none select-none z-10 drop-shadow-md" />
-
-                        <div class="relative z-10 max-w-2xl">
-                            <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] mb-1 font-meta">
-                                <span>🖌️</span> AI OHR Thời Gian Thực &bull; Nhận Diện Nét Chuột
-                            </span>
-                            <h1 class="text-2xl sm:text-3xl font-itim text-black leading-tight">
-                                Tra Cứu Chữ Hán Bằng Nét Vẽ Viết Tay
-                            </h1>
-                            <p class="text-xs sm:text-sm font-body text-slate-700 mt-1 leading-relaxed">
-                                Cầm chuột hoặc dùng ngón tay múa từng nét chữ Hán vào ô Mễ bên dưới. Kizuna Sensei AI sẽ nhận diện tức thì và gợi ý các chữ Hán khớp nhất! 🎯
+                    <!-- MẪU CHUẨN BANNER ĐẦU TRANG (SLIM HERO BANNER) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Tra Cứu Chữ Hán Bằng Nét Vẽ Viết Tay 🖌️
+                                </h1>
+                            </div>
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
+                                Dùng chuột vẽ từng nét vào ô Mễ, Sensei AI nhận diện và gợi ý chữ Hán tức thì! 🎯
                             </p>
                         </div>
 
-                        <div class="flex items-center gap-2 self-start sm:self-auto relative z-10">
-                            <a th:href="@{/learner/practice-canvas}" class="btn-nhai btn-nhai-learner text-xs px-4 py-2 font-itim shadow-retro flex items-center gap-1.5">
-                                <span>✍️</span> Phòng Luyện Viết Shodo
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a th:href="@{/learner/practice-canvas}" class="btn-nhai px-3 py-1.5 rounded-[5px] bg-[#E0399A] text-white border border-black text-xs font-itim font-bold shadow-[2px_2px_0px_0px_#000000] flex items-center gap-1.5 transition active:scale-[0.98]">
+                                <span>✍️</span> Luyện Viết Shodo
                             </a>
-                            <a th:href="@{/learner/dictionary}" class="btn-nhai btn-nhai-outline text-xs px-3.5 py-2 font-itim shadow-retro flex items-center gap-1.5 bg-white border-black">
-                                <span>📚</span> Kho Từ Điển
+                            <a th:href="@{/learner/dictionary}" class="btn-nhai px-2.5 py-1.5 rounded-[5px] bg-white border border-black text-xs font-itim font-bold shadow-[2px_2px_0px_0px_#000000] hover:bg-slate-50 transition active:scale-[0.98]">
+                                <span>📚</span> Từ Điển
                             </a>
                         </div>
                     </div>
@@ -72,13 +69,13 @@
 
                                 <!-- Cụm Phím Thao Tác Canvas Chuẩn Design System -->
                                 <div class="w-[300px] grid grid-cols-3 gap-2 mt-3.5">
-                                    <button type="button" onclick="pageHwUndoStroke()" class="btn-nhai btn-nhai-outline text-xs py-2 px-1 font-itim flex items-center justify-center gap-1 border border-black rounded-[5px] bg-white text-black shadow-[2px_2px_0px_0px_#000000]" title="Xóa nét vừa vẽ">
+                                    <button type="button" onclick="pageHwUndoStroke()" class="btn-secondary text-xs py-2 px-1 font-sans flex items-center justify-center gap-1 border border-[#CBD5E1] rounded-md bg-white text-[#475569] shadow-sm hover:bg-slate-50" title="Xóa nét vừa vẽ">
                                         <span>↩️</span> Hoàn tác nét
                                     </button>
-                                    <button type="button" onclick="pageHwClearCanvas()" class="btn-nhai btn-nhai-outline text-xs py-2 px-1 font-itim flex items-center justify-center gap-1 text-[#BF360C] hover:bg-rose-50 border border-black rounded-[5px] bg-white shadow-[2px_2px_0px_0px_#000000]" title="Xóa toàn bộ nét">
+                                    <button type="button" onclick="pageHwClearCanvas()" class="btn-secondary text-xs py-2 px-1 font-sans flex items-center justify-center gap-1 text-[#DC2626] hover:bg-rose-50 border border-[#CBD5E1] rounded-md bg-white shadow-sm" title="Xóa toàn bộ nét">
                                         <span>🧹</span> Xóa toàn bộ
                                     </button>
-                                    <button type="button" onclick="pageHwExecuteRecognition()" class="btn-nhai text-xs py-2 px-1 font-itim flex items-center justify-center gap-1 bg-[#2A5A1A] text-white hover:bg-[#1e4012] border border-black rounded-[5px] shadow-[2px_2px_0px_0px_#000000] active:translate-y-0.5" title="Kích hoạt nhận diện">
+                                    <button type="button" onclick="pageHwExecuteRecognition()" class="btn-primary text-xs py-2 px-1 font-sans flex items-center justify-center gap-1 bg-[#15803D] text-white hover:bg-[#166534] border border-[#15803D] rounded-md shadow-sm active:translate-y-0.5" title="Kích hoạt nhận diện">
                                         <span>🔍</span> Nhận diện chữ
                                     </button>
                                 </div>
@@ -243,14 +240,14 @@
         function pageHwDrawSegment(p1, p2) {
             if (!pageHwCtx) return;
             pageHwCtx.save();
-            pageHwCtx.strokeStyle = '#000000';
+            pageHwCtx.strokeStyle = '#0F172A';
             pageHwCtx.lineWidth = 6;
             pageHwCtx.lineCap = 'round';
             pageHwCtx.lineJoin = 'round';
             pageHwCtx.beginPath();
             if (Math.abs(p1.x - p2.x) < 0.5 && Math.abs(p1.y - p2.y) < 0.5) {
                 pageHwCtx.arc(p1.x, p1.y, 3, 0, Math.PI * 2);
-                pageHwCtx.fillStyle = '#000000';
+                pageHwCtx.fillStyle = '#0F172A';
                 pageHwCtx.fill();
                 pageHwCtx.restore();
                 return;
@@ -290,10 +287,10 @@
             pageHwCtx.stroke();
             pageHwCtx.restore();
 
-            // Vẽ lại toàn bộ nét đã vẽ (đen mực đậm #000000)
+            // Vẽ lại toàn bộ nét đã vẽ (đen mực than #0F172A)
             if (pageHwStrokes.length > 0) {
                 pageHwCtx.save();
-                pageHwCtx.strokeStyle = '#000000';
+                pageHwCtx.strokeStyle = '#0F172A';
                 pageHwCtx.lineWidth = 6;
                 pageHwCtx.lineCap = 'round';
                 pageHwCtx.lineJoin = 'round';
@@ -462,9 +459,9 @@
                         </div>
                         <div>
                             <div class="flex items-center gap-1.5 mb-1 flex-wrap">
-                                <span class="font-bold text-[#2A5A1A] font-itim text-sm">${escapeHtml(m.hanViet || 'HÁN TỰ')}</span>
-                                <span class="badge-nhai bg-slate-100 text-black text-[10px] border-black font-bold font-meta">${m.totalStrokes ? m.totalStrokes + ' nét' : ''}</span>
-                                <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] text-[10px] border-black font-bold">${escapeHtml(m.jlpt || 'N/A')}</span>
+                                <span class="font-bold text-[#15803D] font-sans text-sm">${escapeHtml(m.hanViet || 'HÁN TỰ')}</span>
+                                <span class="badge-nhai bg-slate-100 text-[#0F172A] text-[10px] border border-[#CBD5E1] font-bold font-meta">${m.totalStrokes ? m.totalStrokes + ' nét' : ''}</span>
+                                <span class="badge-script-kanji text-[10px] px-1.5 py-0.5 font-bold">${escapeHtml(m.jlpt || 'N/A')}</span>
                             </div>
                             <p class="text-xs text-slate-600 line-clamp-2 m-0" title="${escapeHtml(m.meaning || '')}">${escapeHtml(m.meaning || 'Chữ Hán tra cứu')}</p>
                         </div>
@@ -499,5 +496,6 @@
             initPageHwCanvas();
         });
     </script>
+    <script th:src="@{/js/learner/sakuraSticker.js}"></script>
 </body>
 </html>

@@ -100,6 +100,16 @@ public class WebHomeController {
         return "tutors/search";
     }
 
+    /**
+     * Đấu Trường Gõ Kana Siêu Tốc (Public Route mở rộng cho Guest và Learner)
+     */
+    @GetMapping("/kana-quiz")
+    public String publicKanaQuiz(Model model) {
+        model.addAttribute("pageTitle", "Đấu Trường Gõ Kana Siêu Tốc - KizunaTutor");
+        model.addAttribute("isGuest", true);
+        return "learner/kana-quiz";
+    }
+
     @GetMapping("/login")
     public String login(Model model) {
         model.addAttribute("pageTitle", "Đăng Nhập - KizunaTutor");

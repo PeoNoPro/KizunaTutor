@@ -448,7 +448,7 @@ function kfmBuildKanjiCardHtml(k, indexNumber, folderId) {
                 </div>
 
                 <div style="text-align: center; margin-bottom: 6px;">
-                    <span style="font-size: 13.5px; font-weight: 800; color: #7C3AED; letter-spacing: 0.5px;">
+                    <span style="font-size: 13.5px; font-weight: 800; color: #15803D; letter-spacing: 0.5px;">
                         ${escapeHtml(k.hanViet || 'HÁN TỰ')}
                     </span>
                 </div>
@@ -521,7 +521,7 @@ function kfmHandleSearchInput(event) {
                             </span>
                             <div style="min-width: 0;">
                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-weight: 800; color: #7C3AED; font-size: 14px;">${escapeHtml(k.hanViet || 'HÁN TỰ')}</span>
+                                    <span style="font-weight: 800; color: #15803D; font-size: 14px;">${escapeHtml(k.hanViet || 'HÁN TỰ')}</span>
                                     <span style="font-size: 10.5px; background: #E0E7FF; color: #3730A3; padding: 1px 6px; border-radius: 4px; font-weight: 700;">${escapeHtml(k.jlpt || 'N5')}</span>
                                 </div>
                                 <div style="font-size: 11.5px; color: #64748B; margin-top: 2px;">

@@ -7,7 +7,10 @@
     <!-- Tailwind Play CDN & Nhaitopik Design System Configuration -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/design-tokens.css}">
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" th:href="@{/css/learner/learner-common.css}">
+    <link rel="stylesheet" th:href="@{/css/learner/find-tutor.css}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,47 +18,37 @@
     <script th:src="@{/js/globalAuth.js}"></script>
     <script th:src="@{/js/locales/learner-copy.js}"></script>
 </head>
-<body class="bg-[#F8FAFC] text-black font-body antialiased">
-    <div class="flex min-h-screen">
-        <!-- ==========================================
-             1. MASTER SIDEBAR: CHUẨN ĐỒNG BỘ 3 NHÓM
-             (Active sáng mục "Tìm Gia Sư Kizuna")
-        =========================================== -->
+<body class="bg-[#FAF9F6] text-black font-body antialiased">
+    <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
+        <!-- 1. MASTER SIDEBAR: CỐ ĐỊNH ĐỘC LẬP -->
         <aside th:replace="~{learner/layout/sidebar :: sidebar}"></aside>
 
-        <!-- ==========================================
-             2. KHU VỰC LÀM VIỆC CHÍNH (MAIN WORKSPACE)
-        =========================================== -->
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- 2. KHU VỰC LÀM VIỆC CHÍNH: CỐ ĐỊNH HEADER & CUỘN ĐỘC LẬP -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
             <!-- 2.1 MASTER TOPBAR: HEADER HỌC VIÊN -->
             <header th:replace="~{learner/layout/header :: header}"></header>
 
-            <!-- 2.2 NỘI DUNG CHÍNH: TÌM KIẾM GIA SƯ HỢP GU -->
-            <main class="flex-1 p-6 sm:p-8 bg-[#F8FAFC]">
-                <div class="max-w-7xl mx-auto space-y-6">
+            <!-- 2.2 NỘI DUNG CHÍNH: CUỘN ĐỘC LẬP -->
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-7xl mx-auto space-y-3">
 
-                    <!-- ==========================================
-                         BLOCK A: TIÊU ĐỀ & BANNER TÌM GIA SƯ
-                    =========================================== -->
-                    <div class="card-nhai card-nhai-learner p-6 relative overflow-hidden">
-                        <!-- Sticker Capybara Samurai Ăn Mì Ramen -->
-                        <img src="/images/stickers/ramen-capi.png" 
-                             alt="Capybara Ăn Mì Ramen" 
-                             class="hidden md:block absolute -top-1 right-2 w-20 h-20 lg:w-24 lg:h-24 object-contain pointer-events-none select-none z-10 drop-shadow-md" />
-
-                        <div class="max-w-2xl relative z-10">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] text-xs font-bold font-meta">Đội Ngũ Sensei Tuyển Chọn</span>
-                                <span class="badge-nhai bg-[#BF360C]/10 text-[#BF360C] text-xs font-bold font-meta">JLPT N1 &bull; N2 Sư Phạm</span>
+                    <!-- MẪU CHUẨN BANNER ĐẦU TRANG (SLIM HERO BANNER) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Tìm Gia Sư Hợp Gu 🔍
+                                </h1>
                             </div>
-                            <!-- Tiêu đề chính font Itim, cỡ 30px -->
-                            <h1 class="text-3xl font-itim font-extrabold text-black tracking-tight mb-2">
-                                Tìm Gia Sư Hợp Gu 🔍
-                            </h1>
-                            <!-- Dòng phụ đề dí dỏm theo đúng quy chuẩn Tone & Mood -->
-                            <p class="text-sm font-body text-slate-700 leading-relaxed">
-                                Chọn một Sensei xịn sò để mở khóa không gian học kèm và múa bút Shodo ngay hôm nay! ☕ Đồng hành 1-1, chỉnh từng nét chữ và luyện phản xạ JLPT.
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
+                                Chọn một Sensei xịn sò để mở khóa không gian học kèm và múa bút Shodo ngay hôm nay! ☕
                             </p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a th:href="@{/learner/trial-schedule}" 
+                               class="btn-nhai px-3 py-1.5 rounded-[5px] bg-[#E0399A] text-white border border-black text-xs font-semibold shadow-[2px_2px_0px_0px_#000000] transition active:scale-[0.98]">
+                                📅 Lịch Học Thử
+                            </a>
                         </div>
                     </div>
 
@@ -82,7 +75,7 @@
                         <!-- Cụm chip lọc nhanh dạng nút cơ bo góc 5px, viền đen -->
                         <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-black/10">
                             <span class="text-xs font-meta font-bold text-slate-600 mr-1">Bộ lọc nhanh:</span>
-                            <button type="button" onclick="setQuickFilter('ALL')" class="filter-chip btn-nhai active px-3 py-1 text-xs font-itim font-bold rounded-[5px] bg-[#2A5A1A] text-white border border-black shadow-[2px_2px_0px_0px_#000000]">
+                            <button type="button" onclick="setQuickFilter('ALL')" class="filter-chip btn-nhai active px-3 py-1 text-xs font-itim font-bold rounded-[5px] bg-[#15803D] text-white border border-black shadow-[2px_2px_0px_0px_#000000]">
                                 Tất Cả JLPT
                             </button>
                             <button type="button" onclick="setQuickFilter('N3')" class="filter-chip btn-nhai px-3 py-1 text-xs font-itim font-bold rounded-[5px] bg-white text-black border border-black hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000000]">
@@ -119,7 +112,7 @@
                                 <!-- ĐẦU THẺ: Avatar, họ tên font Itim 18px & Badge trình độ -->
                                 <div class="flex items-start justify-between gap-3 pb-3 border-b border-black">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-12 h-12 rounded-[5px] bg-[#2A5A1A] text-white font-itim text-lg font-bold flex items-center justify-center border border-black shadow-[2px_2px_0px_0px_#000000]"
+                                        <div class="w-12 h-12 rounded-[5px] bg-[#15803D] text-white font-itim text-lg font-bold flex items-center justify-center border border-black shadow-[2px_2px_0px_0px_#000000]"
                                              th:text="${tutor.user != null ? #strings.substring(tutor.user.fullName, 0, 1) : 'S'}">
                                             S
                                         </div>
@@ -138,7 +131,7 @@
 
                                     <!-- Badge trình độ JLPT -->
                                     <span class="badge-nhai border-black text-xs font-bold font-meta"
-                                          th:classappend="${tutor.highestJlptLevel == 'N1' or tutor.highestJlptLevel == 'NATIVE'} ? 'bg-[#BF360C]/10 text-[#BF360C]' : 'bg-[#2A5A1A]/10 text-[#2A5A1A]'"
+                                          th:classappend="${tutor.highestJlptLevel == 'N1' or tutor.highestJlptLevel == 'NATIVE'} ? 'bg-[#DC2626]/10 text-[#DC2626]' : 'bg-[#15803D]/10 text-[#15803D]'"
                                           th:text="${tutor.highestJlptLevel != null and not #strings.isEmpty(tutor.highestJlptLevel) ? (tutor.highestJlptLevel == 'N1' ? 'N1 Xuất Sắc' : 'JLPT ' + tutor.highestJlptLevel) : 'Đang cập nhật'}">
                                         Đang cập nhật
                                     </span>
@@ -152,7 +145,7 @@
                                     </div>
                                     <div class="flex items-center justify-between text-slate-700">
                                         <span class="font-meta text-slate-500">Mức học phí đề xuất:</span>
-                                        <span class="font-bold text-[#BF360C] font-itim text-sm"
+                                        <span class="font-bold text-[#DC2626] font-itim text-sm"
                                               th:text="${tutor.hourlyRate != null and tutor.hourlyRate > 0 ? #numbers.formatDecimal(tutor.hourlyRate, 0, 'COMMA', 0, 'POINT') + ' đ/giờ' : 'Thỏa thuận'}">
                                             Thỏa thuận
                                         </span>
@@ -232,13 +225,13 @@
                     <span class="text-xl">✨</span>
                     <h3 class="font-itim text-lg font-bold text-black">Đăng Ký Buổi Học Thử 1 Kèm 1</h3>
                 </div>
-                <button type="button" onclick="closeTrialModal()" class="text-black hover:text-[#BF360C] font-bold p-1 text-sm">✕</button>
+                <button type="button" onclick="closeTrialModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm">✕</button>
             </div>
 
             <form onsubmit="submitTrialBooking(event)" class="space-y-3.5">
                 <input type="hidden" id="modalTrialTutorId">
 
-                <div class="p-3 rounded-[5px] bg-[#2A5A1A]/10 border border-black flex items-center gap-3">
+                <div class="p-3 rounded-[5px] bg-[#15803D]/10 border border-black flex items-center gap-3">
                     <span class="text-2xl">👨‍🏫</span>
                     <div>
                         <div class="text-[10px] font-meta text-slate-500 uppercase tracking-wider">Gia sư hướng dẫn:</div>
@@ -248,7 +241,7 @@
 
                 <div>
                     <label class="block font-bold text-black font-meta mb-1">
-                        Mục tiêu học tập của bạn <span class="text-[#BF360C]">*</span>
+                        Mục tiêu học tập của bạn <span class="text-[#DC2626]">*</span>
                     </label>
                     <select id="modalTrialGoal" class="input-nhai w-full px-3 py-2 rounded-[5px] border border-black text-black font-semibold font-body" required>
                         <option value="Luyện thi JLPT N3 cấp tốc">Luyện thi JLPT N3 cấp tốc</option>
@@ -261,7 +254,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block font-bold text-black font-meta mb-1">
-                            Ngày học thử mong muốn <span class="text-[#BF360C]">*</span>
+                            Ngày học thử mong muốn <span class="text-[#DC2626]">*</span>
                         </label>
                         <input type="date"
                                id="modalTrialDate"
@@ -270,7 +263,7 @@
                     </div>
                     <div>
                         <label class="block font-bold text-black font-meta mb-1">
-                            Khung giờ học thử <span class="text-[#BF360C]">*</span>
+                            Khung giờ học thử <span class="text-[#DC2626]">*</span>
                         </label>
                         <select id="modalTrialTime" class="input-nhai w-full px-3 py-2 rounded-[5px] border border-black text-black font-body font-semibold" required>
                             <option value="19:00 - 20:00 (Tối)">19:00 - 20:00 (Tối)</option>
@@ -317,17 +310,17 @@
                     <span class="text-xl">📄</span>
                     <h3 class="font-itim text-lg font-bold text-black">Hồ Sơ Năng Lực Giảng Dạy</h3>
                 </div>
-                <button type="button" onclick="closeProfileModal()" class="text-black hover:text-[#BF360C] font-bold p-1 text-sm">✕</button>
+                <button type="button" onclick="closeProfileModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm">✕</button>
             </div>
 
             <div class="space-y-4">
                 <div class="flex items-center gap-3 p-3 bg-slate-50 border border-black rounded-[5px]">
-                    <div class="w-12 h-12 rounded-[5px] bg-[#2A5A1A] text-white font-itim text-xl font-bold flex items-center justify-center border border-black shadow-[2px_2px_0px_0px_#000000]">
+                    <div class="w-12 h-12 rounded-[5px] bg-[#15803D] text-white font-itim text-xl font-bold flex items-center justify-center border border-black shadow-[2px_2px_0px_0px_#000000]">
                         S
                     </div>
                     <div>
                         <h4 class="font-itim text-lg font-bold text-black" id="modalProfName">Yamada Kenji</h4>
-                        <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] border-black text-[11px] font-bold" id="modalProfLevel">JLPT N1</span>
+                        <span class="badge-nhai bg-[#15803D]/10 text-[#15803D] border-black text-[11px] font-bold" id="modalProfLevel">JLPT N1</span>
                     </div>
                 </div>
 
@@ -345,8 +338,8 @@
                     </p>
                 </div>
 
-                <div class="p-3 rounded-[5px] bg-[#2A5A1A]/5 border border-black text-[11px] space-y-1">
-                    <div class="font-itim text-sm font-bold text-[#2A5A1A]">Cam kết chất lượng KizunaTutor:</div>
+                <div class="p-3 rounded-[5px] bg-[#15803D]/5 border border-black text-[11px] space-y-1">
+                    <div class="font-itim text-sm font-bold text-[#15803D]">Cam kết chất lượng KizunaTutor:</div>
                     <div class="text-slate-600">&bull; Toàn bộ gia sư đã qua thẩm định bằng cấp và hồ sơ sư phạm từ Ban Học Vụ.</div>
                     <div class="text-slate-600">&bull; Được học thử buổi đầu tiên để đánh giá sự phù hợp trước khi ghép lớp chính thức.</div>
                 </div>
@@ -427,11 +420,11 @@
         function setQuickFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-chip').forEach(chip => {
-                chip.classList.remove('bg-[#2A5A1A]', 'text-white');
+                chip.classList.remove('bg-[#15803D]', 'text-white');
                 chip.classList.add('bg-white', 'text-black');
             });
             event.currentTarget.classList.remove('bg-white', 'text-black');
-            event.currentTarget.classList.add('bg-[#2A5A1A]', 'text-white');
+            event.currentTarget.classList.add('bg-[#15803D]', 'text-white');
             filterTutors();
         }
 
@@ -543,5 +536,6 @@
             setTimeout(() => { box.style.display = 'none'; }, 4000);
         }
     </script>
+    <script th:src="@{/js/learner/sakuraSticker.js}"></script>
 </body>
 </html>

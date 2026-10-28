@@ -1,10 +1,13 @@
 package com.kizuna.controller.learner;
 
+import com.kizuna.entity.KanjiDictionary;
 import com.kizuna.entity.LearningSpace;
 import com.kizuna.entity.RoleEnum;
 import com.kizuna.repository.KanjiDictionaryRepository;
 import com.kizuna.repository.LearningSpaceRepository;
+import com.kizuna.service.kanji.HandwritingSearchService;
 import com.kizuna.util.SecurityContextUtil;
+import com.kizuna.util.SvgUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -29,9 +32,13 @@ public class LearnerController {
     private final LearningSpaceRepository learningSpaceRepository;
     private final com.kizuna.repository.TutorRepository tutorRepository;
     private final com.kizuna.repository.LearnerRepository learnerRepository;
+    private final HandwritingSearchService handwritingSearchService;
 
     private void populateLearnerShell(Model model, String activeMenu, String pageTitle, String breadcrumbSection) {
         String userName = securityUtil.getCurrentUserName(RoleEnum.ROLE_LEARNER);
+        if (userName != null) {
+            userName = userName.replace(" (Học Viên)", "").replace("(Học Viên)", "").trim();
+        }
         String userEmail = securityUtil.getCurrentUserEmail(RoleEnum.ROLE_LEARNER);
         String avatarText = securityUtil.getCurrentUserAvatarText(userName);
 
@@ -87,15 +94,49 @@ public class LearnerController {
 
     /**
      * Màn hình 3: Phòng Luyện Viết Shodo Canvas AI
+     * Hỗ trợ nhận cả tham số 'char' và 'charQuery' để điều hướng chính xác từ Từ điển và Tra cứu viết tay.
      */
     @GetMapping("/practice-canvas")
     public String learnerPracticeCanvas(
-            @RequestParam(required = false, defaultValue = "愛") String charQuery,
+            @RequestParam(name = "kanji", required = false) String kanjiParam,
+            @RequestParam(name = "char", required = false) String charParam,
+            @RequestParam(name = "charQuery", required = false) String charQuery,
             Model model) {
+        String selectedChar = (kanjiParam != null && !kanjiParam.isBlank()) ? kanjiParam.trim()
+                : ((charParam != null && !charParam.isBlank()) ? charParam.trim()
+                : ((charQuery != null && !charQuery.isBlank()) ? charQuery.trim() : "愛"));
+
         populateLearnerShell(model, "practice-canvas", "Luyện Viết Nét Chữ AI", "Luyện Viết Shodo");
-        model.addAttribute("currentChar", charQuery);
-        java.util.Optional<com.kizuna.entity.KanjiDictionary> kanjiOpt = kanjiRepository.findByKanjiCharacter(charQuery);
-        model.addAttribute("kanjiInfo", kanjiOpt.orElse(null));
+        model.addAttribute("currentChar", selectedChar);
+
+        kanjiRepository.findByKanjiCharacter(selectedChar).ifPresentOrElse(kanji -> {
+            if (kanji.getSvgData() != null) {
+                kanji.setSvgData(SvgUtils.cleanKanjiVgSvg(kanji.getSvgData()));
+            }
+            handwritingSearchService.enrichKanjiMetadata(kanji);
+            model.addAttribute("kanjiInfo", kanji);
+        }, () -> {
+            handwritingSearchService.getOfflineKanji(selectedChar).ifPresentOrElse(off -> {
+                KanjiDictionary fallback = KanjiDictionary.builder()
+                        .kanjiCharacter(selectedChar)
+                        .hanViet(off.han_viet())
+                        .onyomi(off.onyomi())
+                        .kunyomi(off.kunyomi())
+                        .meaning(off.meaning())
+                        .strokeCount((short) 1)
+                        .build();
+                model.addAttribute("kanjiInfo", fallback);
+            }, () -> {
+                KanjiDictionary fallback = KanjiDictionary.builder()
+                        .kanjiCharacter(selectedChar)
+                        .hanViet("HÁN TỰ")
+                        .meaning("Chữ Hán hệ thống")
+                        .strokeCount((short) 1)
+                        .build();
+                model.addAttribute("kanjiInfo", fallback);
+            });
+        });
+
         return "learner/practice-canvas";
     }
 
@@ -169,5 +210,15 @@ public class LearnerController {
     public String learnerAssignments(Model model) {
         populateLearnerShell(model, "assignments", "Bài Tập Sensei Giao", "Học Tập & Luyện Tập");
         return "learner/assignments";
+    }
+
+    /**
+     * Màn hình 7: Đấu Trường Gõ Kana Quiz (Phong cách Tofugu)
+     */
+    @GetMapping("/kana-quiz")
+    public String learnerKanaQuiz(Model model) {
+        populateLearnerShell(model, "kana-quiz", "Đấu Trường Gõ Kana", "Học Tập & Luyện Tập");
+        model.addAttribute("isGuest", false);
+        return "learner/kana-quiz";
     }
 }

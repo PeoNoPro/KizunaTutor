@@ -1,0 +1,42 @@
+/* ==========================================================================
+   KIZUNATUTOR - TUTOR PAGE: KANJI LIBRARY (THƯ VIỆN CHỮ HÁN GIA SƯ)
+   File CSS chuyên biệt riêng cho Thư Viện Kanji & Giáo Án Gia Sư
+   ========================================================================== */
+
+/* --- 1. BẢNG QUẢN LÝ DANH SÁCH CHỮ HÁN --- */
+.kanji-manage-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.kanji-manage-table th {
+  background-color: #F1F5F9;
+  border-bottom: 1px solid var(--color-border);
+  padding: 12px 16px;
+  text-align: left;
+  font-family: var(--font-label);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.kanji-manage-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #E2E8F0;
+  background-color: var(--color-11);
+  font-size: var(--text-sm);
+}
+
+.kanji-manage-table tr:last-child td {
+  border-bottom: none;
+}
+
+.kanji-manage-table tr:hover td {
+  background-color: #F8FAFC;
+}

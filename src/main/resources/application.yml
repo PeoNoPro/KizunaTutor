@@ -9,11 +9,11 @@ server:
       force: true
 
 spring:
-  # 1. KẾT NỐI POSTGRESQL (PGADMIN 4)
+  # 1. KẾT NỐI POSTGRESQL (SUPABASE / DBEAVER)
   datasource:
-    url: jdbc:postgresql://localhost:5432/kizuna_db
-    username: postgres
-    password: 123
+    url: jdbc:postgresql://aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require
+    username: postgres.dyafiyzmwzmbowkjcnwb
+    password: Duchan0868938901@
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

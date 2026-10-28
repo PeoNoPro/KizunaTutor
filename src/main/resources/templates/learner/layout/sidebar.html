@@ -1,98 +1,131 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<!-- SIDEBAR CHUẨN ĐỒNG BỘ 3 NHÓM CHO HỌC VIÊN ĐÃ ĐĂNG NHẬP (MASTER SHELL NHAITOPIK) -->
-<aside th:fragment="sidebar" id="learnerSidebar" class="w-64 min-w-[16rem] bg-white border-r border-black h-screen sticky top-0 flex flex-col justify-between p-4 shrink-0 z-30 transition-transform duration-200 ease-in-out md:translate-x-0 font-['Segoe_UI']">
-    <div class="space-y-4 flex-1 overflow-y-auto pr-1">
+<!-- SIDEBAR CHUẨN ĐỒNG BỘ CHO HỌC VIÊN ĐÃ ĐĂNG NHẬP (HIGH-DENSITY & FIXED GEOMETRY) -->
+<aside th:fragment="sidebar" id="learnerSidebar" class="w-60 min-w-[15rem] max-w-[15rem] bg-white border-r border-[#CBD5E1] h-screen sticky top-0 flex flex-col justify-between p-2.5 sm:p-3 shrink-0 z-30 transition-transform duration-200 ease-in-out md:translate-x-0 font-sans select-none">
+    <!-- Nạp script cấu hình Tailwind, Xác thực toàn cục & Hộp thoại -->
+    <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <script th:src="@{/js/globalAuth.js}"></script>
+    <script th:src="@{/js/shared/kizunaDialog.js}"></script>
+    <script th:src="@{/js/learner/sakuraSticker.js}"></script>
+    <script>
+        function toggleSidebar() {
+            const sb = document.getElementById('learnerSidebar');
+            if (sb) sb.classList.toggle('-translate-x-full');
+        }
+    </script>
+
+    <!-- KHỐI LOGO THƯƠNG HIỆU KIZUNATUTOR ĐẨY LÊN ĐẦU SIDEBAR -->
+    <div class="pb-2.5 mb-2 border-b border-[#E2E8F0] flex items-center justify-between">
+        <a th:href="@{/learner/dashboard}" class="flex items-center gap-2.5 no-underline group" title="KizunaTutor Học Viên">
+            <div class="w-8 h-8 rounded-lg bg-[#2563EB] text-white font-bold flex items-center justify-center font-brand text-base shadow-sm">
+                絆
+            </div>
+            <div class="font-brand text-lg text-[#0F172A] tracking-tight">
+                Kizuna<span class="text-[#2563EB]">Learner</span>
+            </div>
+        </a>
+        <button type="button" class="md:hidden p-1 rounded text-slate-400 hover:text-slate-600" onclick="toggleSidebar()" title="Đóng menu">
+            ✕
+        </button>
+    </div>
+
+    <div class="space-y-2.5 flex-1 overflow-y-auto pr-0.5">
 
         <!-- KHỐI 1: BÀN HỌC TẬP (TỔNG QUAN) -->
         <div>
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 font-meta">BÀN HỌC TẬP</div>
+            <div class="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1 px-2">BÀN HỌC TẬP</div>
             <a th:href="@{/learner/dashboard}"
-               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
-               th:classappend="${activeMenu == 'dashboard'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
-                <span>📊</span><span class="font-itim text-base">Tổng Quan Học Tập</span>
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'dashboard'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">📊</span><span class="text-inherit truncate">Tổng Quan Học Tập</span>
             </a>
         </div>
 
-        <!-- KHỐI 2: GIA SƯ & LỚP HỌC (TÍNH NĂNG MỞ RỘNG ĐỒNG BỘ) -->
+        <!-- KHỐI 2: GIA SƯ & LỚP HỌC -->
         <div>
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 font-meta">GIA SƯ &amp; LỚP HỌC</div>
+            <div class="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1 px-2">GIA SƯ &amp; LỚP HỌC</div>
             <!-- 1. Tìm kiếm gia sư phù hợp -->
             <a th:href="@{/learner/find-tutor}"
-               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
-               th:classappend="${activeMenu == 'find-tutor'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
-                <span>🔍</span><span class="font-itim text-base">Tìm Gia Sư Kizuna</span>
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'find-tutor'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">🔍</span><span class="text-inherit truncate">Tìm Gia Sư Kizuna</span>
             </a>
             <!-- 2. Lịch học thử & yêu cầu kết nối -->
             <a th:href="@{/learner/trial-schedule}"
-               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
-               th:classappend="${activeMenu == 'trial-schedule'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
-                <span>📅</span><span class="font-itim text-base">Lịch Học Thử &amp; Ghép Lớp</span>
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'trial-schedule'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">📅</span><span class="text-inherit truncate">Lịch Học Thử &amp; Ghép Lớp</span>
             </a>
             <!-- 3. Không gian lớp kèm của tôi -->
             <a th:href="@{/learner/my-classroom}"
-               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
-               th:classappend="${activeMenu == 'my-classroom'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
-                <span>🏫</span><span class="font-itim text-base">Lớp Kèm Của Tôi</span>
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'my-classroom'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">🏫</span><span class="text-inherit truncate">Lớp Kèm Của Tôi</span>
             </a>
         </div>
 
         <!-- KHỐI 3: HỌC TẬP & LUYỆN TẬP (CÔNG CỤ HỌC CHỦ LỰC) -->
         <div>
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 font-meta">HỌC TẬP &amp; LUYỆN TẬP</div>
-            <!-- 1. Bài tập Sensei giao -->
-            <a th:href="@{/learner/assignments}"
-               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
-               th:classappend="${activeMenu == 'assignments'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
-                <span>📚</span><span class="font-itim text-base">Bài Tập Sensei Giao</span>
-            </a>
-            <!-- 2. Phòng Luyện Viết Shodo Canvas AI -->
-            <a th:href="@{/learner/practice-canvas}"
-               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
-               th:classappend="${activeMenu == 'practice-canvas'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
-                <span>✍️</span><span class="font-itim text-base">Phòng Luyện Viết Shodo</span>
-            </a>
-            <!-- 3. Bộ Thẻ Của Tôi (Kích hoạt Active khi ở /learner/flashcards) -->
-            <a th:href="@{/learner/flashcards}"
-               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
-               th:classappend="${activeMenu == 'flashcards'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
-                <span>📁</span><span class="font-itim text-base">Bộ Thẻ Của Tôi</span>
-            </a>
-            <!-- 4. Tra cứu từ điển chữ Hán -->
+            <div class="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-1 px-2">HỌC TẬP &amp; LUYỆN TẬP</div>
+            <!-- 1. Tra cứu từ điển chữ Hán (Ưu tiên đầu mục) -->
             <a th:href="@{/learner/dictionary}"
-               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
-               th:classappend="${activeMenu == 'dictionary'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
-                <span>🔍</span><span class="font-itim text-base">Tra Cứu Chữ Hán</span>
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'dictionary'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">🔍</span><span class="text-inherit truncate">Tra Cứu Chữ Hán</span>
             </a>
-            <!-- 5. Tra cứu bằng nét vẽ viết tay (Chuột / Cảm ứng) -->
+            <!-- 2. Tra cứu bằng nét vẽ viết tay (Ưu tiên đầu mục) -->
             <a th:href="@{/learner/handwriting-search}"
-               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
-               th:classappend="${activeMenu == 'handwriting-search'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
-                <span>🖌️</span><span class="font-itim text-base">Tra Cứu Viết Tay</span>
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'handwriting-search'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">🖌️</span><span class="text-inherit truncate">Tra Cứu Viết Tay</span>
             </a>
-            <!-- 6. Nhật ký tiến độ cá nhân -->
+            <!-- 3. Bài tập Sensei giao -->
+            <a th:href="@{/learner/assignments}"
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'assignments'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">📚</span><span class="text-inherit truncate">Bài Tập Sensei Giao</span>
+            </a>
+            <!-- 4. Phòng Luyện Viết Shodo Canvas AI -->
+            <a th:href="@{/learner/practice-canvas}"
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'practice-canvas'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">✍️</span><span class="text-inherit truncate">Phòng Luyện Viết Shodo</span>
+            </a>
+            <!-- 5. Đấu Trường Gõ Kana Quiz -->
+            <a th:href="@{/learner/kana-quiz}"
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'kana-quiz'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">⚡</span><span class="text-inherit truncate">Đấu Trường Gõ Kana</span>
+            </a>
+            <!-- 6. Bộ Thẻ Của Tôi -->
+            <a th:href="@{/learner/flashcards}"
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'flashcards'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">📁</span><span class="text-inherit truncate">Bộ Thẻ Của Tôi</span>
+            </a>
+            <!-- 7. Nhật ký tiến độ cá nhân -->
             <a th:href="@{/learner/progress}"
-               class="nav-item flex items-center space-x-3 px-3 py-2 text-sm font-semibold rounded-[5px] border transition-all"
-               th:classappend="${activeMenu == 'progress' || activeMenu == 'my-progress'} ? 'text-white bg-[#2A5A1A] border-black shadow-[2px_2px_0px_0px_#000000] font-bold' : 'text-black border-transparent hover:border-black hover:bg-slate-50'">
-                <span>📈</span><span class="font-itim text-base">Nhật Ký Tiến Độ</span>
+               class="nav-item flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-md border border-transparent font-semibold transition-colors duration-150"
+               th:classappend="${activeMenu == 'progress' || activeMenu == 'my-progress'} ? 'text-white bg-[#E0399A] border-[#0F172A] shadow-xs active' : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 border-transparent'">
+                <span class="text-sm shrink-0">📈</span><span class="text-inherit truncate">Nhật Ký Tiến Độ</span>
             </a>
         </div>
     </div>
 
-    <!-- KHỐI THÔNG TIN HỌC VIÊN DƯỚI CÙNG (KHÔNG CÓ NÚT KHÁCH VÃNG LAI) -->
-    <div class="pt-4 border-t border-black bg-white">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 rounded-[5px] bg-[#2A5A1A] text-white flex items-center justify-center font-bold text-xs border border-black shadow-[1px_1px_0px_0px_#000000] font-itim" th:text="${avatarText != null ? avatarText : 'HV'}">HV</div>
-                <div class="text-xs leading-tight">
-                    <div class="font-bold text-black font-itim truncate max-w-[100px]" id="sidebarLearnerName" th:text="${userName != null ? userName : 'Học Viên Kizuna'}">Học Viên Kizuna</div>
-                    <div class="text-[10px] text-slate-500 font-meta">Tài khoản học viên</div>
+    <!-- KHỐI THÔNG TIN HỌC VIÊN DƯỚI CÙNG -->
+    <div class="pt-2 mt-1.5 border-t border-[#E2E8F0] bg-white">
+        <div class="flex items-center justify-between gap-1.5">
+            <div class="flex items-center space-x-2 min-w-0">
+                <div class="w-7 h-7 rounded-md bg-[#15803D] text-white flex items-center justify-center font-bold text-xs shadow-xs font-sans shrink-0" th:text="${avatarText != null ? avatarText : 'HV'}">HV</div>
+                <div class="text-xs leading-tight min-w-0">
+                    <div class="font-bold text-[#0F172A] font-sans truncate max-w-[85px]" id="sidebarLearnerName" th:text="${userName != null ? userName : 'Học Viên'}">Học Viên</div>
+                    <div class="text-[10px] text-[#94A3B8] truncate">Học viên</div>
                 </div>
             </div>
             <button type="button"
                     data-action="logout"
                     onclick="executeLogout()"
-                    class="text-xs text-slate-700 hover:text-[#BF360C] font-bold font-itim px-2 py-1 rounded-[5px] border border-transparent hover:border-black hover:bg-slate-50 transition-all cursor-pointer flex items-center gap-1"
+                    class="text-xs text-[#475569] hover:text-[#DC2626] hover:bg-rose-50 font-medium px-2 py-1 rounded-md border border-transparent transition-colors cursor-pointer flex items-center gap-1 shrink-0"
                     title="Đăng xuất khỏi tài khoản">
                 <span>🚪</span><span>Thoát</span>
             </button>

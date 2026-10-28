@@ -7,7 +7,10 @@
     <!-- Tailwind Play CDN & Nhaitopik Design System Configuration -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/design-tokens.css}">
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" th:href="@{/css/learner/learner-common.css}">
+    <link rel="stylesheet" th:href="@{/css/learner/flashcards.css}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,47 +18,38 @@
     <script th:src="@{/js/globalAuth.js}"></script>
     <script th:src="@{/js/locales/learner-copy.js}"></script>
 </head>
-<body class="bg-[#F8FAFC] text-black font-body antialiased">
-    <div class="flex min-h-screen">
+<body class="bg-[#FAF9F6] text-black font-body antialiased">
+    <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
         <!-- 1. SIDEBAR CHUẨN ĐỒNG BỘ CHO HỌC VIÊN ĐÃ ĐĂNG NHẬP -->
         <aside th:replace="~{learner/layout/sidebar :: sidebar}"></aside>
 
-        <!-- 2. MAIN CONTENT AREA -->
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- 2. MAIN CONTENT AREA: CỐ ĐỊNH HEADER & CUỘN ĐỘC LẬP TẠI MAIN -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
             <!-- 2.1 HEADER CHUẨN MASTER SHELL -->
             <header th:replace="~{learner/layout/header :: header}"></header>
 
             <!-- 2.2 NỘI DUNG CHÍNH: BỘ THẺ FLASHCARD CỦA TÔI -->
-            <main class="flex-1 p-6 sm:p-8 bg-[#F8FAFC]">
-                <div class="max-w-7xl mx-auto space-y-6">
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-7xl mx-auto space-y-3">
 
-                    <!-- HEADER & TOOLBAR: TIÊU ĐỀ ITIM 30PX, PHỤ ĐỀ DÍ DỎM, NÚT PRIMARY CTA -->
-                    <div class="card-nhai card-nhai-learner p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
-                        <!-- Sticker Capybara Samurai Tinh Nghịch lấp lánh -->
-                        <img src="/images/stickers/playful-capi.png" 
-                             alt="Capybara Samurai Tinh Nghịch" 
-                             class="hidden md:block absolute -top-1 right-2 w-16 h-16 object-contain pointer-events-none select-none z-10 drop-shadow-md" />
-
-                        <div class="relative z-10">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] text-xs font-bold font-meta">Kho Lưu Trữ Cá Nhân</span>
-                                <span class="badge-nhai bg-[#E76F51]/10 text-[#E76F51] text-xs font-bold font-meta">Flashcard Decks</span>
+                    <!-- MẪU CHUẨN BANNER ĐẦU TRANG (SLIM HERO BANNER) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Bộ Thẻ Ghi Nhớ Chữ Hán 🗂️
+                                </h1>
                             </div>
-                            <!-- Tiêu đề chính font Itim, cỡ 30px -->
-                            <h1 class="text-3xl font-itim font-extrabold text-black tracking-tight">
-                                Bộ Thẻ Của Tôi 📁
-                            </h1>
-                            <!-- Dòng phụ đề trẻ trung theo đúng quy chuẩn Tone & Mood -->
-                            <p class="text-sm font-body text-slate-700 mt-1 leading-relaxed">
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
                                 Gom góp chữ khó nhằn vào đây để múa bút Shodo hoặc bắn chữ giải ngố nhé! 🧋
                             </p>
                         </div>
 
-                        <!-- DUY NHẤT 1 NÚT PRIMARY CTA TRÊN MÀN HÌNH NÀY -->
-                        <div class="shrink-0 flex items-center gap-3 relative z-10">
+                        <!-- DUY NHẤT 1 NÚT PRIMARY CTA TRÊN BANNER -->
+                        <div class="flex items-center gap-2 shrink-0">
                             <button type="button"
                                     onclick="openCreateDeckModal()"
-                                    class="btn-nhai btn-nhai-learner px-5 py-2.5 text-base font-itim font-bold flex items-center gap-2 shadow-retro">
+                                    class="btn-nhai px-3 py-1.5 rounded-[5px] bg-[#E0399A] text-white border border-black text-xs font-itim font-bold shadow-[2px_2px_0px_0px_#000000] flex items-center gap-1.5 transition active:scale-[0.98]">
                                 <span>➕</span>
                                 <span>Tạo Bộ Thẻ Mới</span>
                             </button>
@@ -63,17 +57,17 @@
                     </div>
 
                     <!-- THANH TÌM KIẾM VÀ BỘ LỌC BỘ THẺ -->
-                    <div class="bg-white p-4 rounded-[5px] border border-black shadow-[4px_4px_0px_0px_#000000] flex flex-wrap gap-3 items-center justify-between">
-                        <div class="flex flex-1 items-center gap-3 min-w-[260px]">
+                    <div class="bg-white p-2 rounded-xl border border-[#CBD5E1] shadow-xs flex flex-wrap gap-2 items-center justify-between">
+                        <div class="flex flex-1 items-center gap-2.5 min-w-[240px]">
                             <input type="text"
                                    id="searchDeckInput"
                                    oninput="filterDecks()"
                                    placeholder="🔍 Tìm kiếm theo tên bộ thẻ hoặc ghi chú..."
-                                   class="input-nhai flex-1 px-3.5 py-2 text-xs rounded-[5px] border border-black text-black font-body">
+                                   class="input-nhai flex-1 px-3 py-1.5 text-xs rounded-lg border border-[#CBD5E1] text-[#0F172A] font-body">
                         </div>
-                        <div class="text-xs font-meta text-slate-700 flex items-center gap-2">
+                        <div class="text-xs font-meta text-slate-600 flex items-center gap-2">
                             <span>Tổng cộng:</span>
-                            <span id="deckCountBadge" class="badge-nhai bg-white text-black border-black font-bold font-itim text-sm">0 Bộ Thẻ</span>
+                            <span id="deckCountBadge" class="badge-nhai bg-white text-[#0F172A] border border-[#CBD5E1] font-bold font-itim text-xs px-2 py-0.5">0 Bộ Thẻ</span>
                         </div>
                     </div>
 
@@ -115,13 +109,13 @@
                     <span class="text-xl">📁</span>
                     <h3 class="font-itim text-lg font-bold text-black">Tạo Bộ Thẻ Học Tập Mới</h3>
                 </div>
-                <button type="button" onclick="closeCreateDeckModal()" class="text-black hover:text-[#BF360C] font-bold p-1 text-sm">✕</button>
+                <button type="button" onclick="closeCreateDeckModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm">✕</button>
             </div>
 
             <form onsubmit="submitCreateDeck(event)" class="space-y-3.5">
                 <div>
                     <label class="block font-bold text-black font-meta mb-1">
-                        Tên bộ thẻ <span class="text-[#BF360C]">*</span>
+                        Tên bộ thẻ <span class="text-[#DC2626]">*</span>
                     </label>
                     <input type="text"
                            id="deckNameInput"
@@ -153,7 +147,7 @@
                     </select>
                 </div>
 
-                <div class="p-3 rounded-[5px] bg-[#2A5A1A]/10 border border-black text-[11px] text-[#2A5A1A] font-meta">
+                <div class="p-3 rounded-[5px] bg-[#15803D]/10 border border-black text-[11px] text-[#15803D] font-meta">
                     Sau khi tạo xong, bạn có thể tra cứu và bấm nút <strong>[+ Thêm Chữ Kanji]</strong> để đưa chữ vào bộ thẻ này nhé! 🌸
                 </div>
 
@@ -181,7 +175,7 @@
                     <span class="text-xl">➕</span>
                     <h3 class="font-itim text-lg font-bold text-black" id="addKanjiModalTitle">Thêm Chữ Kanji Vào Bộ Thẻ</h3>
                 </div>
-                <button type="button" onclick="closeAddKanjiModal()" class="text-black hover:text-[#BF360C] font-bold p-1 text-sm">✕</button>
+                <button type="button" onclick="closeAddKanjiModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm">✕</button>
             </div>
 
             <!-- Dải 3 Tab chuyển đổi phương thức tìm kiếm chữ -->
@@ -189,7 +183,7 @@
                 <button type="button" 
                         id="tabBtnKeyword"
                         onclick="switchAddKanjiTab('keyword')"
-                        class="tab-btn-addkanji flex-1 py-1.5 text-xs font-itim font-bold rounded-[4px] border border-black bg-[#2A5A1A] text-white shadow-[2px_2px_0px_0px_#000000] transition">
+                        class="tab-btn-addkanji flex-1 py-1.5 text-xs font-itim font-bold rounded-[4px] border border-black bg-[#E0399A] text-white shadow-[2px_2px_0px_0px_#000000] transition">
                     ⌨️ Gõ Từ Khóa
                 </button>
                 <button type="button" 
@@ -228,7 +222,7 @@
                     <button type="button" 
                             onclick="setModalStrokeFilter(null)" 
                             id="btnResetModalStroke" 
-                            class="text-[11px] text-slate-500 hover:text-[#BF360C] font-bold">
+                            class="text-[11px] text-slate-500 hover:text-[#DC2626] font-bold">
                         Tất cả số nét
                     </button>
                 </div>
@@ -256,10 +250,10 @@
                             <button type="button" onclick="deckHwUndoStroke()" class="btn-nhai btn-nhai-outline text-[10px] py-1.5 px-1 font-itim flex items-center justify-center gap-0.5 border border-black rounded-[5px] bg-white text-black shadow-[1px_1px_0px_0px_#000000]" title="Xóa nét vừa vẽ">
                                 <span>↩️</span> Hoàn tác
                             </button>
-                            <button type="button" onclick="deckHwClearCanvas()" class="btn-nhai btn-nhai-outline text-[10px] py-1.5 px-1 font-itim flex items-center justify-center gap-0.5 text-[#BF360C] hover:bg-rose-50 border border-black rounded-[5px] bg-white shadow-[1px_1px_0px_0px_#000000]" title="Xóa toàn bộ nét">
+                            <button type="button" onclick="deckHwClearCanvas()" class="btn-nhai btn-nhai-outline text-[10px] py-1.5 px-1 font-itim flex items-center justify-center gap-0.5 text-[#DC2626] hover:bg-rose-50 border border-black rounded-[5px] bg-white shadow-[1px_1px_0px_0px_#000000]" title="Xóa toàn bộ nét">
                                 <span>🧹</span> Xóa hết
                             </button>
-                            <button type="button" onclick="deckHwExecuteRecognition()" class="btn-nhai text-[10px] py-1.5 px-1 font-itim flex items-center justify-center gap-0.5 bg-[#2A5A1A] text-white hover:bg-[#1e4012] border border-black rounded-[5px] shadow-[1px_1px_0px_0px_#000000] active:translate-y-0.5" title="Kích hoạt nhận diện">
+                            <button type="button" onclick="deckHwExecuteRecognition()" class="btn-nhai text-[10px] py-1.5 px-1 font-itim flex items-center justify-center gap-0.5 bg-[#15803D] text-white hover:bg-[#1e4012] border border-black rounded-[5px] shadow-[1px_1px_0px_0px_#000000] active:translate-y-0.5" title="Kích hoạt nhận diện">
                                 <span>🔍</span> Nhận diện
                             </button>
                         </div>
@@ -309,14 +303,14 @@
                     <span class="text-xl">✏️</span>
                     <h3 class="font-itim text-lg font-bold text-black">Chỉnh Sửa Bộ Thẻ</h3>
                 </div>
-                <button type="button" onclick="closeEditDeckModal()" class="text-black hover:text-[#BF360C] font-bold p-1 text-sm">✕</button>
+                <button type="button" onclick="closeEditDeckModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm">✕</button>
             </div>
 
             <form onsubmit="submitEditDeck(event)" class="space-y-3.5">
                 <input type="hidden" id="editDeckIdInput">
                 <div>
                     <label class="block font-bold text-black font-meta mb-1">
-                        Tên bộ thẻ <span class="text-[#BF360C]">*</span>
+                        Tên bộ thẻ <span class="text-[#DC2626]">*</span>
                     </label>
                     <input type="text"
                            id="editDeckNameInput"
@@ -357,7 +351,7 @@
                     <span class="text-xl">🔀</span>
                     <h3 class="font-itim text-lg font-bold text-black">Gộp Bộ Thẻ</h3>
                 </div>
-                <button type="button" onclick="closeMergeDeckModal()" class="text-black hover:text-[#BF360C] font-bold p-1 text-sm">✕</button>
+                <button type="button" onclick="closeMergeDeckModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm">✕</button>
             </div>
 
             <form onsubmit="submitMergeDeck(event)" class="space-y-3.5">
@@ -400,10 +394,10 @@
         <div class="card-nhai bg-white rounded-[5px] max-w-md w-full p-6 shadow-[6px_6px_0px_0px_#000000] border-2 border-black space-y-4 text-xs font-body">
             <div class="flex items-center justify-between pb-3 border-b border-black">
                 <div class="flex items-center gap-2">
-                    <span class="text-xl text-[#BF360C]">🗑️</span>
-                    <h3 class="font-itim text-lg font-bold text-[#BF360C]">Xác Nhận Xóa Bộ Thẻ</h3>
+                    <span class="text-xl text-[#DC2626]">🗑️</span>
+                    <h3 class="font-itim text-lg font-bold text-[#DC2626]">Xác Nhận Xóa Bộ Thẻ</h3>
                 </div>
-                <button type="button" onclick="closeConfirmDeleteModal()" class="text-black hover:text-[#BF360C] font-bold p-1 text-sm">✕</button>
+                <button type="button" onclick="closeConfirmDeleteModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm">✕</button>
             </div>
 
             <input type="hidden" id="deleteTargetDeckId">
@@ -420,7 +414,7 @@
                 <button type="button"
                         id="btnConfirmDeleteDeck"
                         onclick="executeDeleteDeck()"
-                        class="btn-nhai px-5 py-2 rounded-[5px] font-itim font-bold bg-[#BF360C] text-white hover:bg-[#992c0a] border border-black shadow-retro">
+                        class="btn-nhai px-5 py-2 rounded-[5px] font-itim font-bold bg-[#DC2626] text-white hover:bg-[#992c0a] border border-black shadow-retro">
                     Xác Nhận Xóa
                 </button>
             </div>
@@ -543,12 +537,12 @@
                         const hanViet = item.hanViet || '';
                         const meaning = item.meaning || '';
                         return `
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-white border border-black shadow-[2px_2px_0px_0px_#000000] text-sm font-bold group hover:border-[#2A5A1A] transition-colors"
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-white border border-black shadow-[2px_2px_0px_0px_#000000] text-sm font-bold group hover:border-[#15803D] transition-colors"
                                   title="${escapeHtml(char)} - Âm Hán: ${escapeHtml(hanViet)}${meaning ? ' - ' + escapeHtml(meaning) : ''}">
                                 <span class="font-serif text-base text-black">${escapeHtml(char)}</span>
                                 <button type="button"
                                         onclick="removeKanjiFromDeck(event, '${deck.folderId}', '${kanjiId}', '${escapeHtml(char)}')"
-                                        class="w-4 h-4 ml-0.5 rounded-[3px] bg-slate-100 hover:bg-[#BF360C] hover:text-white text-[10px] flex items-center justify-center border border-black/20 transition-colors"
+                                        class="w-4 h-4 ml-0.5 rounded-[3px] bg-slate-100 hover:bg-[#DC2626] hover:text-white text-[10px] flex items-center justify-center border border-black/20 transition-colors"
                                         title="Xóa chữ ${escapeHtml(char)} khỏi bộ thẻ">
                                     ✕
                                 </button>
@@ -563,7 +557,7 @@
                                 ${chips}
                                 <button type="button"
                                         onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                        class="w-8 h-8 rounded-[5px] bg-[#2A5A1A]/10 hover:bg-[#2A5A1A] hover:text-white border border-black text-[#2A5A1A] font-bold text-xs flex items-center justify-center transition-colors shadow-[1px_1px_0px_0px_#000000]"
+                                        class="w-8 h-8 rounded-[5px] bg-[#15803D]/10 hover:bg-[#15803D] hover:text-white border border-black text-[#15803D] font-bold text-xs flex items-center justify-center transition-colors shadow-[1px_1px_0px_0px_#000000]"
                                         title="Thêm chữ Hán vào bộ">
                                     ➕
                                 </button>
@@ -583,7 +577,7 @@
                                 <h3 class="font-itim text-lg font-bold text-black leading-snug line-clamp-1" title="${escapeHtml(deck.folderName)}">
                                     ${escapeHtml(deck.folderName)}
                                 </h3>
-                                <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] border-black text-xs font-bold font-meta shrink-0">
+                                <span class="badge-nhai bg-[#15803D]/10 text-[#15803D] border-black text-xs font-bold font-meta shrink-0">
                                     ${count} chữ
                                 </span>
                             </div>
@@ -661,7 +655,7 @@
                                     <div class="border-t border-black/20 my-1"></div>
                                     <button type="button"
                                             onclick="openConfirmDeleteModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                            class="w-full text-left px-3 py-1.5 hover:bg-red-50 text-[#BF360C] flex items-center gap-2 font-bold">
+                                            class="w-full text-left px-3 py-1.5 hover:bg-red-50 text-[#DC2626] flex items-center gap-2 font-bold">
                                         <span>🗑️</span><span>Xóa bộ thẻ</span>
                                     </button>
                                 </div>
@@ -739,7 +733,7 @@
             const payload = {
                 folderName: name,
                 description: desc ? `[${level}] ${desc}` : `Bộ thẻ Kanji mục tiêu ${level}`,
-                color: '#2A5A1A',
+                color: '#15803D',
                 isDefault: false,
                 kanjiIds: []
             };
@@ -806,21 +800,21 @@
             if (!container) return;
             let html = `
                 <button type="button" onclick="setModalStrokeFilter(null)"
-                        class="px-2 py-1 text-[11px] font-bold font-meta rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] transition-colors ${currentModalStrokeFilter === null ? 'bg-[#2A5A1A] text-white' : 'bg-white text-black hover:bg-slate-100'}">
+                        class="px-2 py-1 text-[11px] font-bold font-meta rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] transition-colors ${currentModalStrokeFilter === null ? 'bg-[#E0399A] text-white' : 'bg-white text-black hover:bg-slate-100'}">
                     Tất cả
                 </button>
             `;
             for (let i = 1; i <= 24; i++) {
                 html += `
                     <button type="button" onclick="setModalStrokeFilter(${i})"
-                            class="w-7 h-7 text-[11px] font-bold font-meta rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] flex items-center justify-center transition-colors ${currentModalStrokeFilter === i ? 'bg-[#2A5A1A] text-white' : 'bg-white text-black hover:bg-slate-100'}">
+                            class="w-7 h-7 text-[11px] font-bold font-meta rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] flex items-center justify-center transition-colors ${currentModalStrokeFilter === i ? 'bg-[#E0399A] text-white' : 'bg-white text-black hover:bg-slate-100'}">
                         ${i}
                     </button>
                 `;
             }
             html += `
                 <button type="button" onclick="setModalStrokeFilter(25)"
-                        class="px-2 py-1 text-[11px] font-bold font-meta rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] transition-colors ${currentModalStrokeFilter === 25 ? 'bg-[#2A5A1A] text-white' : 'bg-white text-black hover:bg-slate-100'}">
+                        class="px-2 py-1 text-[11px] font-bold font-meta rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] transition-colors ${currentModalStrokeFilter === 25 ? 'bg-[#E0399A] text-white' : 'bg-white text-black hover:bg-slate-100'}">
                     25+
                 </button>
             `;
@@ -849,7 +843,7 @@
                 const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
                 const panel = document.getElementById('tabPanel' + t.charAt(0).toUpperCase() + t.slice(1));
                 if (t === tab) {
-                    if (btn) btn.className = 'tab-btn-addkanji flex-1 py-1.5 text-xs font-itim font-bold rounded-[4px] border border-black bg-[#2A5A1A] text-white shadow-[2px_2px_0px_0px_#000000] transition';
+                    if (btn) btn.className = 'tab-btn-addkanji flex-1 py-1.5 text-xs font-itim font-bold rounded-[4px] border border-black bg-[#E0399A] text-white shadow-[2px_2px_0px_0px_#000000] transition';
                     if (panel) panel.classList.remove('hidden');
                 } else {
                     if (btn) btn.className = 'tab-btn-addkanji flex-1 py-1.5 text-xs font-itim font-bold rounded-[4px] border border-transparent hover:border-black bg-transparent text-slate-700 hover:bg-white transition';
@@ -1195,16 +1189,16 @@
                             </div>
                             <div class="min-w-0">
                                 <div class="flex items-center gap-1.5">
-                                    <span class="font-bold text-[#2A5A1A] font-itim text-xs">${escapeHtml(m.hanViet || 'HÁN TỰ')}</span>
+                                    <span class="font-bold text-[#15803D] font-itim text-xs">${escapeHtml(m.hanViet || 'HÁN TỰ')}</span>
                                     <span class="badge-nhai bg-slate-100 text-black text-[9px] border-black font-bold font-meta">${m.totalStrokes ? m.totalStrokes + ' nét' : ''}</span>
-                                    <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] text-[9px] border-black font-bold">${escapeHtml(m.jlpt || 'N/A')}</span>
+                                    <span class="badge-nhai bg-[#15803D]/10 text-[#15803D] text-[9px] border-black font-bold">${escapeHtml(m.jlpt || 'N/A')}</span>
                                 </div>
                                 <p class="text-[11px] text-slate-600 truncate mt-0.5" title="${escapeHtml(m.meaning || '')}">${escapeHtml(m.meaning || 'Chữ Hán tra cứu')}</p>
                             </div>
                         </div>
                         <div class="shrink-0">
                             ${isAdded ? `
-                                <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] border-black text-[10px] font-bold py-1 px-2">
+                                <span class="badge-nhai bg-[#15803D]/10 text-[#15803D] border-black text-[10px] font-bold py-1 px-2">
                                     ✓ Đã có
                                 </span>
                             ` : `
@@ -1314,7 +1308,7 @@
                                 </div>
                                 <div class="shrink-0">
                                     ${isAdded ? `
-                                        <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] border-black text-xs font-bold py-1 px-2.5">
+                                        <span class="badge-nhai bg-[#15803D]/10 text-[#15803D] border-black text-xs font-bold py-1 px-2.5">
                                             ✓ Đã có
                                         </span>
                                     ` : `
@@ -1330,11 +1324,11 @@
                         `;
                     }).join('');
                 } else {
-                    resultsArea.innerHTML = '<div class="py-6 text-center text-[#BF360C] font-meta text-xs">Không tải được kết quả tìm kiếm. Vui lòng thử lại sau!</div>';
+                    resultsArea.innerHTML = '<div class="py-6 text-center text-[#DC2626] font-meta text-xs">Không tải được kết quả tìm kiếm. Vui lòng thử lại sau!</div>';
                 }
             } catch(e) {
                 console.error("Lỗi tìm kiếm kanji:", e);
-                resultsArea.innerHTML = '<div class="py-6 text-center text-[#BF360C] font-meta text-xs">Có lỗi khi kết nối máy chủ tra từ điển.</div>';
+                resultsArea.innerHTML = '<div class="py-6 text-center text-[#DC2626] font-meta text-xs">Có lỗi khi kết nối máy chủ tra từ điển.</div>';
             }
         }
 
@@ -1388,7 +1382,7 @@
                     showDeckAlert(`Đã thêm chữ "${kanjiChar}" (${hanViet}) vào bộ thẻ thành công! 🎉`, true);
 
                     if (btn) {
-                        btn.outerHTML = `<span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] border-black text-xs font-bold py-1 px-2.5">✓ Đã thêm</span>`;
+                        btn.outerHTML = `<span class="badge-nhai bg-[#15803D]/10 text-[#15803D] border-black text-xs font-bold py-1 px-2.5">✓ Đã thêm</span>`;
                     }
 
                     // TỰ ĐỘNG LÀM SẠCH BẢNG Ô MỄ ĐỂ TIẾP TỤC TÌM CHỮ KHÁC
@@ -1870,7 +1864,7 @@
                     </style>
                 </head>
                 <body>
-                    <div class="no-print" style="background: #2A5A1A; color: white; padding: 10px 16px; margin-bottom: 16px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <div class="no-print" style="background: #15803D; color: white; padding: 10px 16px; margin-bottom: 16px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight: bold; font-size: 13px;">Bảng Luyện Viết Chữ Hán - Sẵn sàng in hoặc Lưu thành file PDF</span>
                         <button onclick="window.print()" style="background: white; color: black; border: 1px solid black; font-weight: bold; padding: 6px 14px; border-radius: 4px; cursor: pointer;">
                             🖨️ In Ngay / Lưu PDF
@@ -1942,5 +1936,6 @@
             loadDecks();
         });
     </script>
+    <script th:src="@{/js/learner/sakuraSticker.js}"></script>
 </body>
 </html>

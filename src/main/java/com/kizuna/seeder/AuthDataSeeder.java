@@ -64,7 +64,7 @@ public class AuthDataSeeder implements CommandLineRunner {
         seedUser("cs@kizuna.vn", "123456", "Lê Chăm Sóc Khách Hàng", "ROLE_CS_STAFF", "0903234567");
         seedUser("academic@kizuna.vn", "123456", "Phạm Cán Bộ Học Vụ", "ROLE_ACADEMIC_OFFICER", "0904234567");
         User tutorUser = seedUser("tutor@kizuna.vn", "123456", "Yamada Kenji (Gia Sư)", "ROLE_TUTOR", "0905234567");
-        User learnerUser = seedUser("learner@kizuna.vn", "123456", "Nguyễn Văn An (Học Viên)", "ROLE_LEARNER", "0906234567");
+        User learnerUser = seedUser("learner@kizuna.vn", "123456", "Nguyễn Văn An", "ROLE_LEARNER", "0906234567");
 
         // 3. Khởi tạo liên kết hồ sơ Gia Sư & Học Viên mẫu
         if (tutorUser != null) {
@@ -124,6 +124,10 @@ public class AuthDataSeeder implements CommandLineRunner {
             existing.setRole(role);
             existing.setAccountStatus(UserAccountStatus.ACTIVE);
             existing.setDeletedAt(null);
+            if (!passwordEncoder.matches(rawPassword, existing.getPasswordHash())) {
+                existing.setPasswordHash(passwordEncoder.encode(rawPassword));
+                log.info("Đã đồng bộ lại mật khẩu chuẩn cho tài khoản mẫu core [{}]", email);
+            }
             return userRepository.save(existing);
         }
     }

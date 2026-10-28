@@ -9,27 +9,30 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased">
-    <div class="flex min-h-screen">
-        <!-- Sidebar Admin -->
+    <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
+        <!-- Sidebar Admin: Cố Định Độc Lập -->
         <aside th:replace="~{admin/layout/sidebar :: sidebar}"></aside>
 
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- Main Content Area: Cuộn Độc Lập -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
             <!-- Header Admin -->
             <header th:replace="~{admin/layout/header :: header}"></header>
 
-            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
-                <div class="max-w-7xl mx-auto space-y-6">
-                    <!-- Hero Welcome Card -->
-                    <div class="bg-white rounded-xl border border-slate-200/80 p-6 sm:p-8 shadow-xs relative overflow-hidden">
-                        <div class="max-w-3xl">
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-700 border border-slate-200 mb-3">
-                                <span>🟢</span> Đang hoạt động (Active) &bull; Quyền Quản Trị Cao Nhất
-                            </span>
-                            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight mb-2">
-                                Xin chào, <span th:text="${userName}">Quản Trị Viên</span>! Chào mừng đến với Bảng Điều Khiển Admin.
-                            </h1>
-                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                                Bạn đang quản trị hệ thống dữ liệu chữ Hán, phân quyền tài khoản, hạ tầng dịch vụ và giám sát toàn diện hoạt động vận hành của KizunaTutor.
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-7xl mx-auto space-y-3">
+                    <!-- MẪU CHUẨN BANNER ĐẦU TRANG (SLIM HERO BANNER) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <span class="badge-retro bg-slate-100 text-slate-800 border border-black text-[10px] font-bold px-2 py-0.5 rounded-[3px]">
+                                    🟢 Quản Trị Hệ Thống
+                                </span>
+                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Bảng Điều Khiển Quản Trị Viên ⚙️
+                                </h1>
+                            </div>
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
+                                Quản trị hệ thống dữ liệu chữ Hán, phân quyền tài khoản và giám sát toàn diện KizunaTutor.
                             </p>
                         </div>
                     </div>

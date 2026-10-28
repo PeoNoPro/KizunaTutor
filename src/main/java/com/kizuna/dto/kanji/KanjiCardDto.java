@@ -32,7 +32,19 @@ public class KanjiCardDto {
         return kanjiChar;
     }
 
+    public String getCharacter() {
+        return kanjiChar;
+    }
+
+    public String getKanji() {
+        return kanjiChar;
+    }
+
     public String getJlptLevel() {
         return jlpt;
+    }
+
+    public Integer getTotalStrokes() {
+        return strokeCount != null ? strokeCount.intValue() : 1;
     }
 }

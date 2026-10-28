@@ -7,50 +7,46 @@
     <!-- Tailwind Play CDN & Nhaitopik Design System Configuration -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/design-tokens.css}">
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" th:href="@{/css/learner/learner-common.css}">
+    <link rel="stylesheet" th:href="@{/css/learner/my-classroom.css}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script th:src="@{/js/globalAuth.js}"></script>
     <script th:src="@{/js/locales/learner-copy.js}"></script>
 </head>
-<body class="bg-[#F8FAFC] text-black font-body antialiased">
-    <div class="flex min-h-screen">
-        <!-- SIDEBAR CHUẨN ĐỒNG BỘ CHO HỌC VIÊN -->
+<body class="bg-[#FAF9F6] text-black font-body antialiased">
+    <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
+        <!-- SIDEBAR CHUẨN ĐỒNG BỘ: CỐ ĐỊNH ĐỘC LẬP -->
         <aside th:replace="~{learner/layout/sidebar :: sidebar}"></aside>
 
-        <!-- MAIN CONTENT AREA -->
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- MAIN CONTENT AREA: CỐ ĐỊNH HEADER & CUỘN ĐỘC LẬP TẠI MAIN -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
             <!-- HEADER CHUẨN MASTER SHELL -->
             <header th:replace="~{learner/layout/header :: header}"></header>
 
-            <!-- NỘI DUNG CHÍNH -->
-            <main class="flex-1 p-6 sm:p-8 bg-[#F8FAFC]">
-                <div class="max-w-7xl mx-auto space-y-6">
+            <!-- NỘI DUNG CHÍNH: CUỘN ĐỘC LẬP -->
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-7xl mx-auto space-y-3">
 
-                    <!-- HEADER CARD: TIÊU ĐỀ ITIM 30PX & NÚT PRIMARY CTA -->
-                    <div class="card-nhai card-nhai-learner p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
-                        <!-- Sticker Capybara Samurai Chibi Lấp Lánh -->
-                        <img src="/images/stickers/sparkle-capi.png" 
-                             alt="Capybara Lấp Lánh" 
-                             class="hidden md:block absolute -top-1 right-2 w-20 h-20 lg:w-24 lg:h-24 object-contain pointer-events-none select-none z-10 drop-shadow-md" />
-
-                        <div class="relative z-10 max-w-2xl">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="badge-nhai bg-[#2A5A1A]/10 text-[#2A5A1A] text-xs font-bold font-meta">Gia Sư &amp; Lớp Học</span>
-                                <span class="badge-nhai bg-[#E76F51]/10 text-[#E76F51] text-xs font-bold font-meta">Learning Space</span>
+                    <!-- MẪU CHUẨN BANNER ĐẦU TRANG (SLIM HERO BANNER) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Lớp Kèm Của Tôi 🏫
+                                </h1>
                             </div>
-                            <h1 class="text-3xl font-itim font-extrabold text-black tracking-tight">
-                                Lớp Kèm Của Tôi 🏫
-                            </h1>
-                            <p class="text-sm font-body text-slate-700 mt-1 leading-relaxed">
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
                                 Không gian học tập 1-1 với Sensei - Quản lý buổi học, tài liệu giảng dạy và trao đổi kiến thức mỗi ngày! 🧋
                             </p>
                         </div>
 
-                        <div class="shrink-0 flex items-center gap-3 relative z-10">
+                        <div class="flex items-center gap-2 shrink-0">
                             <a th:href="@{/learner/assignments}"
-                               class="btn-nhai btn-nhai-learner px-5 py-2.5 text-base font-itim font-bold flex items-center gap-2 shadow-retro no-underline">
+                               class="btn-nhai px-3 py-1.5 rounded-[5px] bg-[#E0399A] text-white border border-black text-xs font-itim font-bold shadow-[2px_2px_0px_0px_#000000] flex items-center gap-1.5 transition active:scale-[0.98]">
                                 <span>📚</span>
                                 <span>Bài Tập Sensei Giao</span>
                             </a>
@@ -64,7 +60,7 @@
                                 <h2 class="font-itim text-xl font-bold text-black" th:text="${activeClassroom.title}">Lớp Tiếng Nhật Trung Cấp N3</h2>
                                 <p class="text-xs text-slate-600 font-body">Gia sư phụ trách: <strong class="text-black" th:text="${assignedTutorName}">Nguyễn Sensei</strong></p>
                             </div>
-                            <span class="badge-nhai bg-emerald-100 text-[#2A5A1A] border-black font-bold">Đang Hoạt Động</span>
+                            <span class="badge-nhai bg-emerald-100 text-[#15803D] border-black font-bold">Đang Hoạt Động</span>
                         </div>
                     </div>
 
@@ -101,5 +97,6 @@
         </div>
     </div>
     <script th:src="@{/js/authRedirect.js}"></script>
+    <script th:src="@{/js/learner/sakuraSticker.js}"></script>
 </body>
 </html>

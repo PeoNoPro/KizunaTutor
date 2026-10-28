@@ -1,0 +1,97 @@
+/* ==========================================================================
+   KIZUNATUTOR - TUTOR ACTOR COMMON STYLES
+   Áp dụng chung cho toàn bộ các màn hình phân hệ Gia Sư (Tutor / Sensei)
+   ========================================================================== */
+
+:root {
+  --color-tutor-primary: var(--color-primary);         /* #15803D (Uguisu-iro) */
+  --color-tutor-primary-hover: var(--color-primary-hover);
+  --color-tutor-accent-light: var(--color-primary-light);
+}
+
+/* --- TUTOR BUTTONS --- */
+.btn-retro-tutor {
+  background-color: var(--color-tutor-primary);
+  color: var(--color-11);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-headline);
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.btn-retro-tutor:hover:not(:disabled) {
+  background-color: var(--color-tutor-primary-hover);
+  transform: translate3d(-1px, -1px, 0);
+  box-shadow: var(--shadow-hover);
+}
+
+.btn-retro-tutor:active:not(:disabled) {
+  transform: translate3d(2px, 2px, 0);
+  box-shadow: var(--shadow-active);
+}
+
+/* --- TUTOR CARDS & ACCENTS --- */
+.card-nhai-tutor,
+.card-retro-tutor {
+  border-top: 3px solid var(--color-tutor-primary) !important;
+}
+
+/* --- TUTOR SIDEBAR NAVIGATION & BADGES --- */
+#tutorSidebar {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
+#tutorSidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+#tutorSidebar::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1;
+  border-radius: var(--radius-sm);
+}
+
+#tutorSidebar nav a {
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  user-select: none;
+  will-change: background-color, color;
+  transform: none !important;
+  border: 1px solid transparent;
+  box-sizing: border-box !important;
+}
+
+#tutorSidebar nav a:hover:not(.font-bold) {
+  background-color: rgba(122, 44, 168, 0.08);
+  border-color: var(--color-border);
+  transform: none !important;
+}
+
+/* --- TUTOR BADGES --- */
+.badge-tutor {
+  background-color: rgba(122, 44, 168, 0.1);
+  color: var(--color-tutor-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+/* --- TUTOR METRICS WIDGET --- */
+.tutor-metric-box {
+  background-color: var(--color-11);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: 16px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.tutor-metric-box:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hover);
+}

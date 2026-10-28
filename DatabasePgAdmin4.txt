@@ -674,7 +674,7 @@ ON CONFLICT (plan_id) DO UPDATE SET
 
 -- 4. Nạp đúng 6 Tài khoản mẫu chuẩn (Mật khẩu: admin@kizuna.vn là admin123, 5 tài khoản còn lại là 123456)
 INSERT INTO users (user_id, role_id, email, password_hash, full_name, phone, account_status, must_change_password) VALUES
-('00000000-0000-0000-0000-000000000001', 1, 'admin@kizuna.vn', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'System Administrator', '0901234567', 'ACTIVE', FALSE),
+('00000000-0000-0000-0000-000000000001', 1, 'admin@kizuna.vn', '$2a$10$NjgLtSW/2mPbuxZx6yMwZ.7TxxRSeRzOzVCkj.2aKB8j.C6BP82Ky', 'System Administrator', '0901234567', 'ACTIVE', FALSE),
 ('00000000-0000-0000-0000-000000000002', 2, 'manager@kizuna.vn', '$2a$10$x0xl4z2EEPhuOlEoTRzZUOo5gwdjlItWLUaWKgrbIbIaKQUTa7Kiq', 'Trần Thị Quản Lý', '0902234567', 'ACTIVE', FALSE),
 ('00000000-0000-0000-0000-000000000003', 3, 'academic@kizuna.vn', '$2a$10$x0xl4z2EEPhuOlEoTRzZUOo5gwdjlItWLUaWKgrbIbIaKQUTa7Kiq', 'Phạm Cán Bộ Học Vụ', '0904234567', 'ACTIVE', FALSE),
 ('00000000-0000-0000-0000-000000000004', 4, 'cs@kizuna.vn', '$2a$10$x0xl4z2EEPhuOlEoTRzZUOo5gwdjlItWLUaWKgrbIbIaKQUTa7Kiq', 'Lê Chăm Sóc Khách Hàng', '0903234567', 'ACTIVE', FALSE),

@@ -1,0 +1,34 @@
+/* ==========================================================================
+   KIZUNATUTOR - TUTOR PAGE: UPDATE PROFILE (CẬP NHẬT HỒ SƠ GIA SƯ)
+   File CSS chuyên biệt riêng cho màn hình Hoàn Thiện Hồ Sơ & Bằng Cấp
+   ========================================================================== */
+
+/* --- 1. KHUNG TẢI LÊN CHỨNG CHỈ (CERTIFICATE UPLOAD BOX) --- */
+.cert-upload-card {
+  border: 2px dashed #94A3B8;
+  border-radius: var(--radius-sm);
+  background-color: #F8FAFC;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.cert-upload-card:hover {
+  border-color: var(--color-tutor-primary);
+  background-color: rgba(122, 44, 168, 0.04);
+}
+
+/* Thẻ chứng chỉ đã tải lên */
+.cert-item-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-11);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}

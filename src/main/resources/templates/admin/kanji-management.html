@@ -9,28 +9,37 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased">
-    <div class="flex min-h-screen">
-        <!-- Sidebar Admin -->
+    <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
+        <!-- Sidebar Admin: Cố Định Độc Lập -->
         <aside th:replace="~{admin/layout/sidebar :: sidebar}"></aside>
 
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- Main Content Area: Cuộn Độc Lập -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
             <!-- Header Admin -->
             <header th:replace="~{admin/layout/header :: header}"></header>
 
-            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
-                <div class="max-w-7xl mx-auto space-y-6">
-                    <!-- Page Action Header -->
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-                        <div>
-                            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Cơ Sở Dữ Liệu Chữ Hán Gốc</div>
-                            <h1 class="text-xl font-extrabold text-slate-900">Quản Trị Kho Dữ Liệu Kanji &amp; Tọa Độ SVG</h1>
-                            <p class="text-xs text-slate-500">Thẩm định, hiệu chỉnh âm đọc, nghĩa tiếng Việt và kiểm tra nét vẽ chuẩn KanjiVG.</p>
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-7xl mx-auto space-y-3">
+                    <!-- MẪU CHUẨN BANNER ĐẦU TRANG (SLIM HERO BANNER) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <span class="badge-retro bg-slate-100 text-slate-800 border border-black text-[10px] font-bold px-2 py-0.5 rounded-[3px]">
+                                    📖 Kho Dữ Liệu Gốc
+                                </span>
+                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Quản Trị Kho Dữ Liệu Kanji &amp; Tọa Độ SVG 📖
+                                </h1>
+                            </div>
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
+                                Thẩm định, hiệu chỉnh âm đọc, nghĩa tiếng Việt và kiểm tra nét vẽ chuẩn KanjiVG.
+                            </p>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <button type="button" onclick="triggerAiEnrich()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-colors">
-                                <span>⚡</span> AI Enrich Metadata
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button" onclick="triggerAiEnrich()" class="btn-nhai px-2.5 py-1 text-xs font-bold rounded-[5px] border border-black bg-indigo-50 text-indigo-700 shadow-[2px_2px_0px_0px_#000000] hover:bg-indigo-100 transition">
+                                <span>⚡</span> AI Enrich
                             </button>
-                            <button type="button" onclick="openCreateModal()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors shadow-xs">
+                            <button type="button" onclick="openCreateModal()" class="btn-nhai px-3 py-1 text-xs font-bold rounded-[5px] border border-black bg-black text-white shadow-[2px_2px_0px_0px_#000000] hover:bg-slate-800 transition">
                                 <span>➕</span> Thêm Chữ Mới
                             </button>
                         </div>

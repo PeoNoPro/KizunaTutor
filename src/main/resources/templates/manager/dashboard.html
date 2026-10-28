@@ -8,43 +8,49 @@
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans antialiased">
-    <div class="flex min-h-screen">
+<body class="bg-[#FAF9F6] text-[#0F172A] font-sans antialiased overflow-hidden">
+    <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
         <aside th:replace="~{manager/layout/sidebar :: sidebar}"></aside>
-        <div class="flex-1 flex flex-col min-w-0">
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
             <header th:replace="~{manager/layout/header :: header}"></header>
 
-            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
-                <div class="max-w-7xl mx-auto space-y-6">
-                    <div class="bg-white rounded-xl border border-blue-100 p-6 sm:p-8 shadow-xs">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-200 mb-3">
-                            <span>🟢</span> Đang hoạt động &bull; Phân Hệ Giám Sát Vận Hành
-                        </span>
-                        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 mb-2">
-                            Xin chào, <span th:text="${userName}">Quản Lý</span>! Tình hình lớp học hôm nay rất ổn định.
-                        </h1>
-                        <p class="text-xs sm:text-sm text-slate-600">
-                            Theo dõi các chỉ số hợp đồng học kèm 1:1, đánh giá năng suất giảng dạy của gia sư và chất lượng buổi học.
-                        </p>
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-7xl mx-auto space-y-3">
+                    <!-- SLIM HERO BANNER (CHUẨN HOÁ TOÀN HỆ THỐNG) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="inline-block px-1.5 py-0.5 text-[10px] font-bold bg-[#E0399A] text-white border border-black rounded-[3px] shadow-[1px_1px_0px_0px_#000000]">GIÁM SÁT</span>
+                                <h1 class="text-lg sm:text-xl font-black text-[#0F172A] tracking-tight font-['Itim',cursive]">
+                                    Xin chào, <span th:text="${userName}">Quản Lý</span>!
+                                </h1>
+                            </div>
+                            <p class="text-xs text-[#475569] font-['Segoe_UI',sans-serif]">Theo dõi hợp đồng học kèm 1:1, đánh giá năng suất giảng dạy và chất lượng buổi học.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-[#FDF2F8] text-[#BE185D] border border-black rounded-[4px] shadow-[2px_2px_0px_0px_#000000]">
+                                <span>🟢</span> Đang hoạt động
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
-                            <div class="text-xs font-bold text-slate-500 uppercase mb-2">Lớp Đang Vận Hành</div>
-                            <div class="text-2xl font-extrabold text-slate-900" th:text="${activeClassrooms != null ? activeClassrooms + ' Lớp' : '0 Lớp'}">0 Lớp</div>
-                            <div class="text-xs text-slate-500 font-semibold mt-1" th:text="${activeClassrooms != null and activeClassrooms > 0 ? 'Không gian học tập đang mở' : 'Chưa có lớp nào đang mở'}">Chưa có lớp nào đang mở</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="card-retro bg-white border border-black rounded-[5px] p-3.5 shadow-[3px_3px_0px_0px_#000000]">
+                            <div class="text-[11px] font-bold text-[#475569] uppercase mb-1">Lớp Đang Vận Hành</div>
+                            <div class="text-xl font-black text-[#0F172A]" th:text="${activeClassrooms != null ? activeClassrooms + ' Lớp' : '0 Lớp'}">0 Lớp</div>
+                            <div class="text-[11px] text-[#475569] font-semibold mt-0.5" th:text="${activeClassrooms != null and activeClassrooms > 0 ? 'Không gian học tập đang mở' : 'Chưa có lớp nào đang mở'}">Chưa có lớp nào đang mở</div>
                         </div>
 
-                        <div class="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
-                            <div class="text-xs font-bold text-slate-500 uppercase mb-2">Doanh Thu Tháng</div>
-                            <div class="text-2xl font-extrabold text-slate-900" th:text="${monthlyRevenue != null ? monthlyRevenue : '0 đ'}">0 đ</div>
-                            <div class="text-xs text-slate-500 font-semibold mt-1">Tổng giao dịch hoàn tất</div>
+                        <div class="card-retro bg-white border border-black rounded-[5px] p-3.5 shadow-[3px_3px_0px_0px_#000000]">
+                            <div class="text-[11px] font-bold text-[#475569] uppercase mb-1">Doanh Thu Tháng</div>
+                            <div class="text-xl font-black text-[#0F172A]" th:text="${monthlyRevenue != null ? monthlyRevenue : '0 đ'}">0 đ</div>
+                            <div class="text-[11px] text-[#475569] font-semibold mt-0.5">Tổng giao dịch hoàn tất</div>
                         </div>
 
-                        <div class="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
-                            <div class="text-xs font-bold text-slate-500 uppercase mb-2">Tỷ Lệ Chuyên Cần</div>
-                            <div class="text-2xl font-extrabold text-slate-700" th:text="${avgAttendance != null ? avgAttendance : 'Chưa có dữ liệu'}">Chưa có dữ liệu</div>
-                            <div class="text-xs text-slate-500 mt-1">Ghi nhận từ các buổi học kèm</div>
+                        <div class="card-retro bg-white border border-black rounded-[5px] p-3.5 shadow-[3px_3px_0px_0px_#000000]">
+                            <div class="text-[11px] font-bold text-[#475569] uppercase mb-1">Tỷ Lệ Chuyên Cần</div>
+                            <div class="text-xl font-black text-[#0F172A]" th:text="${avgAttendance != null ? avgAttendance : 'Chưa có dữ liệu'}">Chưa có dữ liệu</div>
+                            <div class="text-[11px] text-[#475569] mt-0.5">Ghi nhận từ các buổi học kèm</div>
                         </div>
                     </div>
                 </div>

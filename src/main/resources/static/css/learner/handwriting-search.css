@@ -1,0 +1,52 @@
+/* ==========================================================================
+   KIZUNATUTOR - LEARNER PAGE: HANDWRITING SEARCH (TRA CỨU VIẾT TAY)
+   File CSS chuyên biệt riêng cho màn hình Tra Cứu Chữ Hán Bằng Nét Vẽ Tay
+   ========================================================================== */
+
+/* --- 1. KHUNG VẼ NHẬN DẠNG VIẾT TAY --- */
+.hw-draw-canvas {
+  background-color: #FFFFFF;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* --- 2. THANH KẾT QUẢ GỢI Ý KÝ TỰ (CANDIDATE CHIPS) --- */
+.hw-candidate-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 64px;
+  background-color: var(--color-11);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.hw-candidate-chip:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hover);
+  background-color: #FEF3C7;
+  border-color: #000000;
+}
+
+.hw-candidate-chip .hw-glyph {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hw-candidate-chip .hw-score {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}

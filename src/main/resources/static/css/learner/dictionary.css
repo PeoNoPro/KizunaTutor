@@ -1,0 +1,95 @@
+/* ==========================================================================
+   KIZUNATUTOR - LEARNER PAGE: DICTIONARY (TRA CỨU TỪ ĐIỂN KANJI)
+   File CSS chuyên biệt riêng cho màn hình Tra Cứu Chữ Hán
+   ========================================================================== */
+
+/* --- 1. KHUNG TÌM KIẾM TỪ ĐIỂN --- */
+.dict-search-wrapper {
+  background-color: var(--color-11);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.dict-search-wrapper:focus-within {
+  box-shadow: var(--shadow-hover);
+  border-color: #2563EB;
+}
+
+/* --- 2. BỘ LỌC CẤP ĐỘ JLPT (N5 - N1) --- */
+.jlpt-filter-pill {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  background-color: var(--color-11);
+  color: var(--color-text-main);
+  transition: all var(--transition-fast);
+}
+
+.jlpt-filter-pill:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hover);
+}
+
+.jlpt-filter-pill.active {
+  background-color: var(--color-learner-primary);
+  color: #FFFFFF;
+}
+
+/* --- 3. LƯỚI THẺ CHỮ HÁN KẾT QUẢ --- */
+.kanji-result-item {
+  background-color: var(--color-11);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: 16px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.kanji-result-item:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px var(--color-border);
+}
+
+/* Ký tự chữ Hán nổi bật */
+.kanji-glyph-large {
+  font-family: 'Noto Serif JP', serif;
+  font-weight: 700;
+  color: var(--color-1);
+}
+
+/* Tag Âm Onyomi & Kunyomi */
+.reading-tag-on {
+  background-color: var(--script-katakana-bg);
+  color: var(--script-katakana-text);
+  border: 1px solid var(--script-katakana-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.reading-tag-kun {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+/* --- 4. MODAL CHI TIẾT CHỮ HÁN TRA CỨU --- */
+.kanji-detail-modal-box {
+  background-color: var(--color-11);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 8px 8px 0px 0px var(--color-border);
+  max-width: 720px;
+  width: 100%;
+}

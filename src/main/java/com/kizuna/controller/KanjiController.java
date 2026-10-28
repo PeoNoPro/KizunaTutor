@@ -127,22 +127,68 @@ public class KanjiController {
         return ResponseEntity.ok(aiStrokeAnalysisService.getAiStatus());
     }
 
+    /**
+     * Lấy toàn bộ siêu dữ liệu chi tiết của một chữ Kanji (Hán Việt, Onyomi, Kunyomi, JLPT, Bộ thủ, Nghĩa, SVG)
+     */
+    @GetMapping("/detail")
+    public ResponseEntity<?> getKanjiDetail(
+            @RequestParam(name = "char", required = false) String charParam,
+            @RequestParam(name = "character", required = false) String characterParam,
+            @RequestParam(name = "id", required = false) UUID idParam) {
+        String ch = (charParam != null && !charParam.isBlank()) ? charParam.trim()
+                : ((characterParam != null && !characterParam.isBlank()) ? characterParam.trim() : null);
+
+        if (ch != null) {
+            return getKanjiByCharacter(ch);
+        } else if (idParam != null) {
+            return kanjiRepository.findById(idParam)
+                    .map(k -> {
+                        handwritingSearchService.enrichKanjiMetadata(k);
+                        if (k.getSvgData() != null) {
+                            k.setSvgData(SvgUtils.cleanKanjiVgSvg(k.getSvgData()));
+                        }
+                        return ResponseEntity.ok(k);
+                    })
+                    .orElse(ResponseEntity.notFound().build());
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "Tham số 'char' hoặc 'id' là bắt buộc"));
+    }
+
     @GetMapping("/{character}")
     public ResponseEntity<?> getKanjiByCharacter(@PathVariable String character) {
         return kanjiRepository.findByKanjiCharacter(character)
                 .map(k -> {
+                    handwritingSearchService.enrichKanjiMetadata(k);
                     if (k.getSvgData() != null) {
                         k.setSvgData(SvgUtils.cleanKanjiVgSvg(k.getSvgData()));
                     }
                     return ResponseEntity.ok(k);
                 })
+                .or(() -> {
+                    var offlineOpt = handwritingSearchService.getOfflineKanji(character);
+                    if (offlineOpt.isPresent()) {
+                        var off = offlineOpt.get();
+                        KanjiDictionary mock = KanjiDictionary.builder()
+                                .kanjiCharacter(character)
+                                .hanViet(off.han_viet() != null ? off.han_viet() : "HÁN TỰ")
+                                .meaning(off.meaning() != null ? off.meaning() : "")
+                                .onyomi(off.onyomi() != null ? off.onyomi() : "-")
+                                .kunyomi(off.kunyomi() != null ? off.kunyomi() : "-")
+                                .strokeCount((short) 1)
+                                .radical("Chưa cập nhật")
+                                .build();
+                        return java.util.Optional.of(ResponseEntity.ok(mock));
+                    }
+                    return java.util.Optional.empty();
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/hex/{hex}")
+    @GetMapping({"/hex/{hex}", "/strokes/{hex}"})
     public ResponseEntity<?> getKanjiByHex(@PathVariable String hex) {
         return kanjiRepository.findByUnicodeHex(hex.toLowerCase())
                 .map(k -> {
+                    handwritingSearchService.enrichKanjiMetadata(k);
                     if (k.getSvgData() != null) {
                         k.setSvgData(SvgUtils.cleanKanjiVgSvg(k.getSvgData()));
                     }

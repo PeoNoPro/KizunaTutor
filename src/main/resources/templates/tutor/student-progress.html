@@ -6,24 +6,41 @@
     <title th:text="${pageTitle}">Tiến Độ Học Viên - Gia Sư Kizuna</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/design-tokens.css}">
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    <link rel="stylesheet" th:href="@{/css/tutor/tutor-common.css}">
+    <link rel="stylesheet" th:href="@{/css/tutor/student-progress.css}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script th:src="@{/js/locales/tutor-copy.js}"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased">
-    <div class="flex min-h-screen">
+    <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
+        <!-- Sidebar Tutor: Cố Định Độc Lập -->
         <aside th:replace="~{tutor/layout/sidebar :: sidebar}"></aside>
-        <div class="flex-1 flex flex-col min-w-0">
+
+        <!-- Main Content Area: Cuộn Độc Lập -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
             <header th:replace="~{tutor/layout/header :: header}"></header>
 
-            <main class="flex-1 p-6 sm:p-8 bg-slate-50">
-                <div class="max-w-7xl mx-auto space-y-6">
-                    <div class="pb-4 border-b border-black">
-                        <div class="text-xs font-meta font-bold text-[#7A2CA8] uppercase tracking-wider mb-1">Theo Dõi Lớp Học</div>
-                        <h1 class="font-itim text-2xl font-extrabold text-black">Tiến Độ Luyện Viết &amp; Nộp Bài Học Viên</h1>
-                        <p class="text-xs text-slate-600 font-body">Cùng theo dõi tiến độ múa bút Shodo của học trò và gửi lời động viên kịp thời nhé Sensei! 🌸</p>
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FAF9F6]">
+                <div class="max-w-7xl mx-auto space-y-3">
+                    <!-- MẪU CHUẨN BANNER ĐẦU TRANG (SLIM HERO BANNER) -->
+                    <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <span class="badge-retro bg-[#7A2CA8]/10 text-[#7A2CA8] border border-black text-[10px] font-bold px-2 py-0.5 rounded-[3px]">
+                                    📈 Theo Dõi Lớp Học
+                                </span>
+                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Tiến Độ Luyện Viết &amp; Nộp Bài Học Viên 📊
+                                </h1>
+                            </div>
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
+                                Cùng theo dõi tiến độ múa bút Shodo của học trò và gửi lời động viên kịp thời nhé Sensei! 🌸
+                            </p>
+                        </div>
                     </div>
 
                     <div class="card-nhai card-nhai-tutor bg-white rounded-[5px] border border-black p-6 shadow-[4px_4px_0px_0px_#000000]">

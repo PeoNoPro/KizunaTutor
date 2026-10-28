@@ -66,4 +66,29 @@ public class KanjiDictionary {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    @Transient
+    public String getCharacter() {
+        return kanjiCharacter;
+    }
+
+    @Transient
+    public String getKanji() {
+        return kanjiCharacter;
+    }
+
+    @Transient
+    public String getKanjiChar() {
+        return kanjiCharacter;
+    }
+
+    @Transient
+    public String getJlpt() {
+        return jlptLevel != null ? jlptLevel.name() : "N5";
+    }
+
+    @Transient
+    public Integer getTotalStrokes() {
+        return strokeCount != null ? strokeCount.intValue() : 1;
+    }
 }

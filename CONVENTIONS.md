@@ -49,3 +49,32 @@
 - **Tiêu đề khối & Nút hành động:** Title Case hoặc Sentence case.
   - *Đúng:* `Tìm Gia Sư Hợp Gu`, `Cầm Bút Luyện Nét`, `Xem Hồ Sơ`
   - *Sai:* `TÌM GIA SƯ HỢP GU`, `CẦM BÚT LUYỆN NÉT`
+
+---
+
+## 3. Quy Chuẩn Khung Cố Định & Bố Cục Thẻ (Layout Containment)
+- **Container Cố Định:** Mọi Card / Box hiển thị dữ liệu dạng danh sách hoặc lưới (Deck Grid, Kanji Cards) phải khai báo khung cố định (`h-[360px]`, `min-h-[...]`, `max-h-[...]`).
+- **Nội dung con độc lập:** Vùng chứa chips hoặc empty states phải có kích thước cố định (`h-[155px]`) và thuộc tính cuộn nội bộ (`overflow-y-auto`).
+- **Menu tùy chọn nổi:** Menu 3 chấm [⋮] phải luôn sử dụng `position: absolute; z-index: 50;` và phần tử bọc nút phải có `shrink-0 w-8 h-8`, tuyệt đối không gây dịch chuyển hay co dãn thẻ cha khi kích hoạt mở menu.
+
+---
+
+## 4. Quy Chuẩn Phản Hồi Giao Diện & Thông Báo Toàn Cục (UI Feedback & Notification Conventions)
+- **Tuyệt đối cấm `window.alert()` và `window.confirm()`:** Mọi tương tác phản hồi trong mã JavaScript bắt buộc sử dụng `KizunaToast` hoặc `KizunaDialog`.
+- **Cấm Inline Alert Box trong luồng tài liệu:** Không tạo các phần tử thông báo tĩnh như `<div id="alertBox">` nằm xen kẽ giữa các công cụ tìm kiếm và lưới nội dung gây giật nảy layout (Layout Shift) khi trạng thái thay đổi.
+- **Sử dụng API chuẩn của `KizunaToast` (hoặc alias `showToast`):**
+  - Thông báo thành công: `showToast.success('Nội dung thông báo');`
+  - Thông báo cảnh báo: `showToast.warning('Nội dung cảnh báo');`
+  - Thông báo xóa / nguy hiểm: `showToast.danger('Nội dung đã xóa');`
+  - Thông báo thông tin: `showToast.info('Nội dung ghi chú');`
+- **Nguyên tắc phân định tương tác:**
+  - Sử dụng `KizunaToast` cho toàn bộ các thông báo trạng thái thụ động (lưu thành công, xóa bộ thẻ, khởi tạo dữ liệu, sao chép đường dẫn, lỗi kết nối nhẹ). Toast tự động ẩn sau 3.5 giây và không chặn click/scroll của người dùng.
+  - Sử dụng `KizunaDialog` (`KizunaDialog.show()`, `KizunaDialog.confirm()`) chỉ khi cần sự can thiệp có ý thức của người dùng (xác nhận xóa vĩnh viễn, chấm điểm nét chữ AI, nộp bài kiểm tra).
+
+---
+
+## 5. Quy Chuẩn Điều Khiển Ô Nhập Liệu & Toolbar (Input & Toolbar Conventions)
+- **Ô nhập số nét (Stroke Count):** Luôn dùng độ rộng cố định `w-20` (80px), placeholder ngắn gọn `"Số nét"`, căn giữa (`text-center`) để không làm chiếm diện tích các bộ lọc Bộ thủ và Cấp độ JLPT.
+- **Thanh công cụ Shodo Canvas:** Tối giản các nút bấm, không tạo các nút trùng lặp chức năng (như "Vẽ Lại"). Nút phát hướng dẫn tự đổi nhãn/trạng thái thành "Phát Lại" khi animation hoàn tất.
+
+

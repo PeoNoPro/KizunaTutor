@@ -39,10 +39,10 @@ public class KanjiDictionary {
     @Column(name = "han_viet", length = 50)
     private String hanViet;
 
-    @Column(name = "onyomi", length = 50)
+    @Column(name = "onyomi", length = 150)
     private String onyomi;
 
-    @Column(name = "kunyomi", length = 100)
+    @Column(name = "kunyomi", length = 300)
     private String kunyomi;
 
     @Column(name = "meaning", length = 200)

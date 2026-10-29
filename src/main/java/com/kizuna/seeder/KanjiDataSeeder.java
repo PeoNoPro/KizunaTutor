@@ -1,17 +1,25 @@
 package com.kizuna.seeder;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kizuna.entity.KanjiDictionary;
 import com.kizuna.repository.KanjiDictionaryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -23,6 +31,8 @@ import java.util.regex.Pattern;
 public class KanjiDataSeeder implements CommandLineRunner {
 
     private final KanjiDictionaryRepository kanjiRepository;
+    private final JdbcTemplate jdbcTemplate;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.seeder.kanji.enabled:true}")
     private boolean seederEnabled;
@@ -40,6 +50,15 @@ public class KanjiDataSeeder implements CommandLineRunner {
     private static final Pattern RADICAL_PATTERN_1 = Pattern.compile("kvg:element=\"([^\"]+)\"[^>]*kvg:radical=");
     private static final Pattern RADICAL_PATTERN_2 = Pattern.compile("kvg:radical=[^>]*kvg:element=\"([^\"]+)\"");
 
+    public record OfflineKanjiData(
+            String character,
+            String han_viet,
+            String onyomi,
+            String kunyomi,
+            String meaning,
+            String jlpt
+    ) {}
+
     @Override
     public void run(String... args) throws Exception {
         if (!seederEnabled) {
@@ -47,13 +66,112 @@ public class KanjiDataSeeder implements CommandLineRunner {
             return;
         }
 
-        // Kiểm tra xem bảng đã có dữ liệu chưa
+        // 1. Kiểm tra và nạp ký tự SVG từ KanjiVG nếu bảng hoàn toàn trống
         long count = kanjiRepository.count();
-        if (count > 0) {
-            log.info("[KanjiSeeder] Bảng kanji_dictionary đã có {} bản ghi. Bỏ qua quá trình nạp dữ liệu.", count);
-            return;
+        if (count == 0) {
+            seedSvgFromKanjiVg();
+        } else {
+            log.info("[KanjiSeeder] Bảng kanji_dictionary đã có {} bản ghi nét vẽ SVG.", count);
         }
 
+        // 2. Kiểm tra xem dữ liệu JLPT và Hán-Việt đã được backfill vào database chưa
+        try {
+            Integer jlptCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM kanji_dictionary WHERE jlpt_level IS NOT NULL", Integer.class);
+            if (jlptCount == null || jlptCount < 5000) {
+                log.info("[KanjiSeeder] Phát hiện chỉ có {} bản ghi có cấp độ JLPT. Bắt đầu backfill toàn bộ dữ liệu từ điển...", jlptCount != null ? jlptCount : 0);
+                syncMetadata();
+            } else {
+                log.info("[KanjiSeeder] Đã có {} bản ghi có cấp độ JLPT chuẩn xác trong PostgreSQL.", jlptCount);
+            }
+        } catch (Exception e) {
+            log.warn("[KanjiSeeder] Lỗi khi kiểm tra số lượng JLPT, thử chạy đồng bộ metadata: {}", e.getMessage());
+            syncMetadata();
+        }
+    }
+
+    /**
+     * Đồng bộ toàn bộ siêu dữ liệu: JLPT, Âm Hán Việt, Onyomi, Kunyomi, Nghĩa vào PostgreSQL
+     */
+    public int syncMetadata() {
+        log.info("[KanjiSeeder] Đang đồng bộ siêu dữ liệu từ điển Hán-Việt & JLPT từ kanji-dictionary-data.json...");
+        try {
+            // Mở rộng độ dài cột nếu cần thiết
+            try {
+                jdbcTemplate.execute("ALTER TABLE kanji_dictionary ALTER COLUMN onyomi TYPE VARCHAR(150)");
+                jdbcTemplate.execute("ALTER TABLE kanji_dictionary ALTER COLUMN kunyomi TYPE VARCHAR(300)");
+            } catch (Exception e) {
+                log.debug("[KanjiSeeder] Bỏ qua ALTER COLUMN nếu đã tồn tại hoặc bảng đã được cấu hình: {}", e.getMessage());
+            }
+
+            ClassPathResource res = new ClassPathResource("data/kanji-dictionary-data.json");
+            if (!res.exists()) {
+                log.warn("[KanjiSeeder] Không tìm thấy resource data/kanji-dictionary-data.json!");
+                return 0;
+            }
+
+            List<OfflineKanjiData> list;
+            try (InputStream is = res.getInputStream()) {
+                list = objectMapper.readValue(is, new TypeReference<>() {});
+            }
+
+            if (list == null || list.isEmpty()) {
+                log.warn("[KanjiSeeder] File kanji-dictionary-data.json rỗng!");
+                return 0;
+            }
+
+            log.info("[KanjiSeeder] Tìm thấy {} bản ghi siêu dữ liệu trong JSON. Bắt đầu batch update vào PostgreSQL...", list.size());
+
+            String sql = "UPDATE kanji_dictionary SET " +
+                         "jlpt_level = CAST(? AS jlpt_level_enum), " +
+                         "han_viet = COALESCE(?, han_viet), " +
+                         "onyomi = COALESCE(?, onyomi), " +
+                         "kunyomi = COALESCE(?, kunyomi), " +
+                         "meaning = COALESCE(?, meaning), " +
+                         "updated_at = CURRENT_TIMESTAMP " +
+                         "WHERE kanji_character = ?";
+
+            int batchChunkSize = 500;
+            int totalUpdated = 0;
+
+            for (int i = 0; i < list.size(); i += batchChunkSize) {
+                int end = Math.min(i + batchChunkSize, list.size());
+                List<OfflineKanjiData> chunk = list.subList(i, end);
+
+                int[] results = jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                    @Override
+                    public void setValues(PreparedStatement ps, int idx) throws SQLException {
+                        OfflineKanjiData item = chunk.get(idx);
+
+                        String jlpt = (item.jlpt() != null && item.jlpt().matches("^N[1-5]$")) ? item.jlpt() : "N5";
+                        ps.setString(1, jlpt);
+                        ps.setString(2, safeTruncate(item.han_viet(), 50));
+                        ps.setString(3, safeTruncate(item.onyomi(), 150));
+                        ps.setString(4, safeTruncate(item.kunyomi(), 300));
+                        ps.setString(5, safeTruncate(item.meaning(), 200));
+                        ps.setString(6, item.character());
+                    }
+
+                    @Override
+                    public int getBatchSize() {
+                        return chunk.size();
+                    }
+                });
+
+                for (int r : results) {
+                    if (r > 0) totalUpdated++;
+                }
+            }
+
+            log.info("[KanjiSeeder] HOÀN TẤT ĐỒNG BỘ SIÊU DỮ LIỆU! Đã cập nhật JLPT, Hán Việt, On/Kun, Nghĩa cho {} chữ Kanji.", totalUpdated);
+            return totalUpdated;
+        } catch (Exception e) {
+            log.error("[KanjiSeeder] Lỗi trong quá trình đồng bộ siêu dữ liệu: {}", e.getMessage(), e);
+            return -1;
+        }
+    }
+
+    private void seedSvgFromKanjiVg() {
         log.info("[KanjiSeeder] Bắt đầu quét dữ liệu SVG từ KanjiVG...");
 
         // Tìm kiếm thư mục chứa file svg
@@ -81,8 +199,6 @@ public class KanjiDataSeeder implements CommandLineRunner {
                 String unicodeHex = fileName.substring(0, 5).toLowerCase();
                 int codePoint = Integer.parseInt(unicodeHex, 16);
 
-                // Lọc các ký tự CJK Hán tự chuẩn (thông dụng từ 0x4E00 đến 0x9FAF)
-                // và các bộ thủ / ký tự mở rộng BMP (<= 0xFFFF) để vừa vặn CHAR(1)
                 if (codePoint < 0x3400 || codePoint > 0xFFFF) {
                     skipped++;
                     continue;
@@ -91,13 +207,11 @@ public class KanjiDataSeeder implements CommandLineRunner {
                 String kanjiChar = String.valueOf((char) codePoint);
                 String svgContent = Files.readString(file.toPath(), StandardCharsets.UTF_8);
 
-                // Đếm số nét bằng số thẻ <path
                 short strokeCount = (short) countMatches(PATH_PATTERN, svgContent);
                 if (strokeCount <= 0) {
                     strokeCount = 1;
                 }
 
-                // Trích xuất bộ thủ
                 String radical = extractRadical(svgContent);
 
                 KanjiDictionary kanji = KanjiDictionary.builder()
@@ -111,7 +225,6 @@ public class KanjiDataSeeder implements CommandLineRunner {
 
                 batch.add(kanji);
 
-                // Lưu theo từng lô để tối ưu hiệu năng
                 if (batch.size() >= batchSize) {
                     kanjiRepository.saveAll(batch);
                     totalSaved += batch.size();
@@ -124,7 +237,6 @@ public class KanjiDataSeeder implements CommandLineRunner {
             }
         }
 
-        // Lưu phần còn lại của batch
         if (!batch.isEmpty()) {
             kanjiRepository.saveAll(batch);
             totalSaved += batch.size();
@@ -132,6 +244,12 @@ public class KanjiDataSeeder implements CommandLineRunner {
         }
 
         log.info("[KanjiSeeder] HOÀN TẤT! Đã nạp thành công {} chữ Kanji vào bảng kanji_dictionary (Bỏ qua: {} file).", totalSaved, skipped);
+    }
+
+    private String safeTruncate(String s, int max) {
+        if (s == null) return null;
+        String trimmed = s.trim();
+        return trimmed.length() > max ? trimmed.substring(0, max) : trimmed;
     }
 
     private Path resolveKanjiDirectory() {

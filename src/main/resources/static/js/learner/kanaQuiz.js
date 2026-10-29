@@ -835,8 +835,8 @@
 
                         <div class="p-2.5 bg-slate-50 border border-[#CBD5E1] rounded-[5px] space-y-1">
                             <div class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                                <span>🤖</span>
-                                <span>Nhận Xét Từ Kizuna Sensei AI:</span>
+                                <span>🧑‍🏫</span>
+                                <span>Nhận xét từ chuyên gia nè!:</span>
                             </div>
                             <p class="text-xs sm:text-sm text-slate-800 leading-relaxed italic font-sans">
                                 "${commentText}"

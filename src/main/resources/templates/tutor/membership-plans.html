@@ -15,6 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Nạp script xác thực và xử lý đăng xuất toàn cục -->
     <script th:src="@{/js/globalAuth.js}"></script>
+    <script th:src="@{/js/common/kizunaToast.js}"></script>
     <script th:src="@{/js/locales/tutor-copy.js}"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased">
@@ -313,10 +314,10 @@
                 if (res.ok && result.success && result.paymentUrl) {
                     window.location.href = result.paymentUrl;
                 } else {
-                    alert(result.message || 'Không thể tạo liên kết thanh toán VNPay.');
+                    showToast.danger(result.message || 'Không thể tạo liên kết thanh toán VNPay.');
                 }
             } catch (err) {
-                alert('Có lỗi kết nối máy chủ, vui lòng thử lại.');
+                showToast.danger('Có lỗi kết nối máy chủ, vui lòng thử lại.');
             }
         }
 
@@ -337,13 +338,13 @@
                 });
                 const result = await res.json();
                 if (res.ok && result.success) {
-                    alert('Kích hoạt thành công rực rỡ! Quyền gia sư đã được mở khóa toàn diện, sẵn sàng đón học viên thôi! 🎉');
-                    window.location.href = '/tutor/dashboard';
+                    showToast.success('Kích hoạt thành công rực rỡ! Quyền gia sư đã được mở khóa toàn diện! 🎉');
+                    setTimeout(() => { window.location.href = '/tutor/dashboard'; }, 1000);
                 } else {
-                    alert(result.message || 'Không thể kích hoạt gói.');
+                    showToast.danger(result.message || 'Không thể kích hoạt gói.');
                 }
             } catch (err) {
-                alert('Có lỗi kết nối máy chủ, vui lòng thử lại.');
+                showToast.danger('Có lỗi kết nối máy chủ, vui lòng thử lại.');
             }
         }
     </script>

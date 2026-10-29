@@ -16,6 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Nạp script xác thực toàn cục và từ điển ngôn ngữ -->
     <script th:src="@{/js/globalAuth.js}"></script>
+    <script th:src="@{/js/common/kizunaToast.js}"></script>
     <script th:src="@{/js/locales/learner-copy.js}"></script>
 </head>
 <body class="bg-[#FAF9F6] text-black font-body antialiased">
@@ -71,26 +72,23 @@
                         </div>
                     </div>
 
-                    <!-- THÔNG BÁO FLASH MESSAGE TOAST NẾU CÓ THAO TÁC -->
-                    <div id="deckAlertBox" style="display: none;" class="card-nhai p-3.5 rounded-[5px] border border-black text-xs font-semibold shadow-[3px_3px_0px_0px_#000000]"></div>
-
                     <!-- LƯỚI THẺ FLASHCARD (FLASHCARD DECK GRID) -->
-                    <div id="deckGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div id="deckGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
                         <!-- Danh sách bộ thẻ sẽ được nạp động từ REST API bên dưới -->
                     </div>
 
                     <!-- TRẠNG THÁI RỖNG (EMPTY STATE: KHI CHƯA CÓ BỘ THẺ NÀO HOẶC TÌM KHÔNG THẤY) -->
-                    <div id="deckEmptyState" style="display: none;" class="p-12 text-center rounded-[5px] border-2 border-dashed border-black bg-white shadow-[4px_4px_0px_0px_#000000]">
+                    <div id="deckEmptyState" class="hidden p-6 sm:p-8 text-center rounded-[5px] border-2 border-dashed border-black bg-white shadow-[3px_3px_0px_0px_#000000]">
                         <img src="/images/stickers/sleepy-capi.png" 
                              alt="Capybara Samurai Buồn Ngủ" 
-                             class="w-20 h-20 mx-auto mb-3 object-contain pointer-events-none select-none" />
-                        <h3 class="font-itim text-xl font-bold text-black">Chưa có bộ thẻ nào ở đây cả!</h3>
+                             class="w-16 h-16 mx-auto mb-2.5 object-contain pointer-events-none select-none" />
+                        <h3 class="font-itim text-lg sm:text-xl font-bold text-black">Chưa có bộ thẻ nào ở đây cả!</h3>
                         <p class="text-xs text-slate-600 font-body mt-1 max-w-md mx-auto">
                             Chưa có bộ thẻ nào ở đây cả! Bấm nút tạo ngay một bộ để nhặt chữ khó vào luyện nào bạn ơi! ☕
                         </p>
                         <button type="button"
                                 onclick="openCreateDeckModal()"
-                                class="mt-4 btn-nhai btn-nhai-learner px-4 py-2 text-xs font-itim font-bold inline-flex items-center gap-1.5 shadow-retro">
+                                class="mt-3.5 btn-nhai btn-nhai-learner px-4 py-2 text-xs font-itim font-bold inline-flex items-center gap-1.5 shadow-retro">
                             <span>➕</span>
                             <span>Tạo Bộ Thẻ Đầu Tiên</span>
                         </button>
@@ -200,9 +198,8 @@
                 </button>
             </div>
 
-            <!-- Tab 1: Ô tìm kiếm Kanji bằng từ khóa -->
-            <div id="tabPanelKeyword" class="space-y-1">
-                <label class="block font-bold text-black font-meta">Tra cứu chữ Kanji, âm Hán Việt hoặc nghĩa:</label>
+            <!-- Tab 1: Ô tìm kiếm Kanji bằng từ khóa & Cấp độ JLPT -->
+            <div id="tabPanelKeyword" class="space-y-2">
                 <div class="flex gap-2">
                     <input type="text"
                            id="searchKanjiModalInput"
@@ -210,24 +207,111 @@
                            placeholder="Nhập chữ Hán (ví dụ: 日, 本), âm Hán Việt (NHẬT), hoặc nghĩa tiếng Việt..."
                            class="input-nhai flex-1 px-3 py-2 rounded-[5px] border border-black text-black font-body text-xs">
                 </div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-xs font-bold text-black font-meta flex items-center gap-1 shrink-0 mr-1">
+                        <span>⛩️</span> Cấp độ JLPT:
+                    </span>
+                    <div class="flex items-center gap-1 flex-wrap">
+                        <button type="button" onclick="setModalJlptFilter('ALL')" data-jlpt="ALL"
+                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-[#E0399A] text-white transition-colors">
+                            Tất cả
+                        </button>
+                        <button type="button" onclick="setModalJlptFilter('N5')" data-jlpt="N5"
+                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
+                            N5
+                        </button>
+                        <button type="button" onclick="setModalJlptFilter('N4')" data-jlpt="N4"
+                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
+                            N4
+                        </button>
+                        <button type="button" onclick="setModalJlptFilter('N3')" data-jlpt="N3"
+                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
+                            N3
+                        </button>
+                        <button type="button" onclick="setModalJlptFilter('N2')" data-jlpt="N2"
+                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
+                            N2
+                        </button>
+                        <button type="button" onclick="setModalJlptFilter('N1')" data-jlpt="N1"
+                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
+                            N1
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Tab 2: Cụm phím chọn số nét (1 - 25+ nét) -->
-            <div id="tabPanelStroke" class="space-y-1.5 hidden">
-                <div class="flex items-center justify-between">
-                    <span class="font-bold text-black font-meta text-[11px] flex items-center gap-1">
-                        <span>🔢</span> Lọc theo số nét:
-                        <span class="text-slate-500 font-normal">Chọn số nét để tìm chữ vừa sức múa bút nào bạn ơi! 🌸</span>
-                    </span>
-                    <button type="button" 
-                            onclick="setModalStrokeFilter(null)" 
-                            id="btnResetModalStroke" 
-                            class="text-[11px] text-slate-500 hover:text-[#DC2626] font-bold">
-                        Tất cả số nét
-                    </button>
-                </div>
-                <div class="flex items-center gap-1 flex-wrap max-h-[82px] overflow-y-auto p-1.5 bg-slate-50 rounded-[5px] border border-black/20" id="modalStrokeButtonsContainer">
-                    <!-- Nút số nét được sinh tự động từ 1 đến 25+ -->
+            <!-- Tab 2: Lọc theo số nét & Cấp độ JLPT (Nhập số nét + Bộ lọc N1-N5) -->
+            <div id="tabPanelStroke" class="space-y-2 hidden">
+                <div class="p-2.5 bg-[#FAF9F6] border border-black rounded-[5px] space-y-2.5">
+                    <!-- Hàng 1: Nhập số nét -->
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <label for="modalStrokeInput" class="text-xs font-bold text-black font-meta flex items-center gap-1 shrink-0">
+                                <span>🔢</span> Số nét:
+                            </label>
+                            <div class="relative flex items-center w-20">
+                                <input type="number"
+                                       id="modalStrokeInput"
+                                       min="1"
+                                       max="64"
+                                       oninput="onModalStrokeInputChange()"
+                                       onkeydown="if(event.key==='Enter'){event.preventDefault();onModalStrokeInputChange();}"
+                                       placeholder="Số nét"
+                                       title="Nhập số nét cần tìm (1 - 64)"
+                                       class="w-full pl-2 pr-5 py-1 text-xs rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white font-medium focus:outline-none focus:ring-1 focus:ring-[#E0399A]">
+                                <button type="button"
+                                        id="btnClearModalStrokeInput"
+                                        onclick="clearModalStrokeInput()"
+                                        class="hidden absolute right-1.5 text-slate-400 hover:text-[#DC2626] text-xs font-bold transition-colors cursor-pointer"
+                                        title="Xóa số nét">
+                                    ✕
+                                </button>
+                            </div>
+                            <button type="button"
+                                    id="btnResetModalStroke"
+                                    onclick="clearModalStrokeInput()"
+                                    class="btn-nhai px-2.5 py-1 text-[11px] font-bold rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 shrink-0"
+                                    title="Tất cả số nét">
+                                Tất cả nét
+                            </button>
+                        </div>
+                        <span class="text-[11px] text-slate-500 font-meta hidden sm:inline">
+                            Nhập số nét để tìm chữ vừa sức múa bút 🌸
+                        </span>
+                    </div>
+
+                    <!-- Hàng 2: Bộ lọc mức N (N1-N2-N3-N4-N5) -->
+                    <div class="pt-2 border-t border-black/10 flex items-center gap-1.5 flex-wrap">
+                        <span class="text-xs font-bold text-black font-meta flex items-center gap-1 shrink-0 mr-1">
+                            <span>⛩️</span> Cấp độ JLPT:
+                        </span>
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <button type="button" onclick="setModalJlptFilter('ALL')" data-jlpt="ALL"
+                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-[#E0399A] text-white transition-colors">
+                                Tất cả
+                            </button>
+                            <button type="button" onclick="setModalJlptFilter('N5')" data-jlpt="N5"
+                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
+                                N5
+                            </button>
+                            <button type="button" onclick="setModalJlptFilter('N4')" data-jlpt="N4"
+                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
+                                N4
+                            </button>
+                            <button type="button" onclick="setModalJlptFilter('N3')" data-jlpt="N3"
+                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
+                                N3
+                            </button>
+                            <button type="button" onclick="setModalJlptFilter('N2')" data-jlpt="N2"
+                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
+                                N2
+                            </button>
+                            <button type="button" onclick="setModalJlptFilter('N1')" data-jlpt="N1"
+                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
+                                N1
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -452,7 +536,15 @@
         async function loadDecks() {
             const grid = document.getElementById('deckGrid');
             const emptyState = document.getElementById('deckEmptyState');
-            grid.innerHTML = '<div class="col-span-full py-12 text-center font-meta text-slate-500 text-xs">Đang mở ngăn kéo bộ thẻ cá nhân... 🗂️</div>';
+            if (grid) {
+                grid.classList.remove('hidden');
+                grid.style.display = 'grid';
+                grid.innerHTML = '<div class="col-span-full py-6 text-center font-meta text-slate-500 text-xs">Đang mở ngăn kéo bộ thẻ cá nhân... 🗂️</div>';
+            }
+            if (emptyState) {
+                emptyState.classList.add('hidden');
+                emptyState.style.display = 'none';
+            }
 
             try {
                 const res = await fetch('/api/user/kanji-folders', { headers: getAuthHeaders() });
@@ -497,34 +589,48 @@
             const emptyState = document.getElementById('deckEmptyState');
             const badge = document.getElementById('deckCountBadge');
 
-            if (badge) badge.textContent = `${decks.length} Bộ Thẻ`;
+            if (badge) badge.textContent = `${decks ? decks.length : 0} Bộ Thẻ`;
 
             if (!decks || decks.length === 0) {
-                grid.innerHTML = '';
-                emptyState.style.display = 'block';
+                if (grid) {
+                    grid.innerHTML = '';
+                    grid.classList.add('hidden');
+                    grid.style.display = 'none';
+                }
+                if (emptyState) {
+                    emptyState.classList.remove('hidden');
+                    emptyState.style.display = 'block';
+                }
                 return;
             }
 
-            emptyState.style.display = 'none';
+            if (grid) {
+                grid.classList.remove('hidden');
+                grid.style.display = 'grid';
+            }
+            if (emptyState) {
+                emptyState.classList.add('hidden');
+                emptyState.style.display = 'none';
+            }
 
             grid.innerHTML = decks.map(deck => {
                 const items = deck.items || [];
                 const count = deck.kanjiCount || items.length;
 
-                // Tạo khu vực danh sách chữ Kanji
+                // Tạo khu vực danh sách chữ Kanji bên trong ô box cố định 155px
                 let kanjiContentHtml = '';
                 if (count === 0 || items.length === 0) {
                     kanjiContentHtml = `
-                        <div class="p-3 my-2 rounded-[5px] bg-[#F8FAFC] border border-dashed border-black/40 text-center space-y-2">
+                        <div class="h-full flex flex-col items-center justify-center text-center space-y-1.5 select-none py-1">
                             <img src="/images/stickers/thinking-capi.png" 
                                  alt="Capybara Suy Ngẫm" 
-                                 class="w-12 h-12 mx-auto object-contain pointer-events-none select-none" />
-                            <p class="text-xs font-body text-slate-600 leading-relaxed">
-                                Bộ thẻ này chưa có chữ Kanji nào. Hãy bấm 'Thêm chữ Hán' để bắt đầu học nhé!
+                                 class="w-10 h-10 object-contain pointer-events-none" />
+                            <p class="text-[11px] font-body text-slate-600 leading-snug px-2">
+                                Chưa có chữ Kanji nào trong bộ. Hãy thêm chữ để bắt đầu học nhé!
                             </p>
                             <button type="button"
                                     onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                    class="btn-nhai btn-nhai-learner px-3 py-1 text-xs font-itim font-bold inline-flex items-center gap-1 shadow-[2px_2px_0px_0px_#000000]">
+                                    class="btn-nhai btn-nhai-learner px-2.5 py-1 text-xs font-itim font-bold inline-flex items-center gap-1 shadow-[2px_2px_0px_0px_#000000]">
                                 <span>➕</span>
                                 <span>Thêm Chữ Hán</span>
                             </button>
@@ -537,12 +643,12 @@
                         const hanViet = item.hanViet || '';
                         const meaning = item.meaning || '';
                         return `
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-white border border-black shadow-[2px_2px_0px_0px_#000000] text-sm font-bold group hover:border-[#15803D] transition-colors"
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] bg-white border border-black shadow-[1.5px_1.5px_0px_0px_#000000] text-xs font-bold group hover:border-[#15803D] transition-colors"
                                   title="${escapeHtml(char)} - Âm Hán: ${escapeHtml(hanViet)}${meaning ? ' - ' + escapeHtml(meaning) : ''}">
-                                <span class="font-serif text-base text-black">${escapeHtml(char)}</span>
+                                <span class="font-serif text-sm text-black">${escapeHtml(char)}</span>
                                 <button type="button"
                                         onclick="removeKanjiFromDeck(event, '${deck.folderId}', '${kanjiId}', '${escapeHtml(char)}')"
-                                        class="w-4 h-4 ml-0.5 rounded-[3px] bg-slate-100 hover:bg-[#DC2626] hover:text-white text-[10px] flex items-center justify-center border border-black/20 transition-colors"
+                                        class="w-3.5 h-3.5 ml-0.5 rounded-[3px] bg-slate-100 hover:bg-[#DC2626] hover:text-white text-[9px] flex items-center justify-center border border-black/20 transition-colors"
                                         title="Xóa chữ ${escapeHtml(char)} khỏi bộ thẻ">
                                     ✕
                                 </button>
@@ -551,13 +657,13 @@
                     }).join('');
 
                     kanjiContentHtml = `
-                        <div class="py-2">
-                            <div class="text-[10px] font-meta text-slate-500 font-semibold mb-1.5 uppercase tracking-wider">Chữ trong bộ:</div>
-                            <div class="flex items-center gap-2 flex-wrap">
+                        <div class="h-full flex flex-col">
+                            <div class="text-[10px] font-meta text-slate-500 font-semibold mb-1.5 uppercase tracking-wider shrink-0">Chữ trong bộ:</div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
                                 ${chips}
                                 <button type="button"
                                         onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                        class="w-8 h-8 rounded-[5px] bg-[#15803D]/10 hover:bg-[#15803D] hover:text-white border border-black text-[#15803D] font-bold text-xs flex items-center justify-center transition-colors shadow-[1px_1px_0px_0px_#000000]"
+                                        class="w-7 h-7 rounded-[5px] bg-[#15803D]/10 hover:bg-[#15803D] hover:text-white border border-black text-[#15803D] font-bold text-xs flex items-center justify-center transition-colors shadow-[1px_1px_0px_0px_#000000]"
                                         title="Thêm chữ Hán vào bộ">
                                     ➕
                                 </button>
@@ -570,9 +676,9 @@
                 const firstChar = (items.length > 0 && (items[0].kanjiChar || items[0].kanjiCharacter)) ? (items[0].kanjiChar || items[0].kanjiCharacter) : '';
 
                 return `
-                    <div class="card-nhai card-nhai-learner bg-white rounded-[5px] border border-black p-5 shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between transition-transform duration-150 relative">
+                    <div class="deck-card-container card-nhai card-nhai-learner bg-white rounded-[5px] border border-black p-4 sm:p-5 shadow-[4px_4px_0px_0px_#000000] relative">
                         <!-- HEADER CARD: Tên bộ thẻ & Badge số lượng chữ -->
-                        <div>
+                        <div class="shrink-0">
                             <div class="flex items-start justify-between gap-2 mb-2 pb-2 border-b border-black">
                                 <h3 class="font-itim text-lg font-bold text-black leading-snug line-clamp-1" title="${escapeHtml(deck.folderName)}">
                                     ${escapeHtml(deck.folderName)}
@@ -582,17 +688,19 @@
                                 </span>
                             </div>
 
-                            <!-- MÔ TẢ BỘ THẺ -->
-                            <p class="text-xs text-slate-600 font-body line-clamp-2 min-h-[32px] mb-3">
+                            <!-- MÔ TẢ BỘ THẺ (CỐ ĐỊNH 32px) -->
+                            <p class="text-xs text-slate-600 font-body line-clamp-2 h-[32px] mb-2 leading-relaxed overflow-hidden">
                                 ${escapeHtml(deck.description || 'Bộ thẻ từ vựng tự soạn cá nhân.')}
                             </p>
+                        </div>
 
-                            <!-- NỘI DUNG CHỮ TRONG BỘ -->
+                        <!-- Ô BOX HIỂN THỊ NỘI DUNG THƯ MỤC CỐ ĐỊNH 155px (CHỐNG CO DÃN) -->
+                        <div class="deck-content-box">
                             ${kanjiContentHtml}
                         </div>
 
-                        <!-- CỤM NÚT HÀNH ĐỘNG DƯỚI CARD -->
-                        <div class="pt-4 mt-3 border-t border-black flex items-center gap-2 relative">
+                        <!-- CỤM NÚT HÀNH ĐỘNG DƯỚI CARD CỐ ĐỊNH -->
+                        <div class="pt-3 mt-3 border-t border-black flex items-center gap-2 shrink-0 relative">
                             <!-- NÚT 1: Luyện Viết -->
                             ${firstChar ? `
                                 <a href="/learner/practice-canvas?char=${encodeURIComponent(firstChar)}"
@@ -616,46 +724,41 @@
                                 <span>🎮</span><span>Bắn Chữ</span>
                             </a>
 
-                            <!-- NÚT 3: Icon 3 chấm [ ⋮ ] mở Dropdown Menu -->
-                            <div class="relative">
+                            <!-- NÚT 3: Icon 3 chấm [ ⋮ ] mở Dropdown Menu Nổi Độc Lập -->
+                            <div class="deck-menu-container">
                                 <button type="button"
                                         onclick="toggleDeckMenu(event, '${deck.folderId}')"
-                                        class="btn-nhai btn-nhai-outline w-8 h-8 rounded-[5px] flex items-center justify-center text-sm font-bold text-black hover:bg-slate-100"
+                                        class="btn-nhai btn-nhai-outline w-8 h-8 rounded-[5px] flex items-center justify-center text-sm font-bold text-black hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000000]"
                                         title="Tùy chọn bộ thẻ">
                                     ⋮
                                 </button>
-                                <!-- RETRO DROPDOWN MENU -->
+                                <!-- RETRO DROPDOWN MENU NỔI ĐỘC LẬP -->
                                 <div id="deckMenu_${deck.folderId}"
-                                     class="deck-dropdown-menu hidden absolute right-0 bottom-full mb-2 w-48 bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] py-1 z-30 font-body text-xs">
+                                     class="deck-dropdown-menu hidden">
                                     <button type="button"
-                                            onclick="openEditDeckModal('${deck.folderId}')"
-                                            class="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center gap-2 font-medium text-black">
+                                            onclick="openEditDeckModal('${deck.folderId}')">
                                         <span>✏️</span><span>Chỉnh sửa thông tin</span>
                                     </button>
                                     <button type="button"
-                                            onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                            class="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center gap-2 font-medium text-black">
+                                            onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')">
                                         <span>➕</span><span>Thêm chữ vào bộ</span>
                                     </button>
                                     <button type="button"
-                                            onclick="duplicateDeck('${deck.folderId}')"
-                                            class="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center gap-2 font-medium text-black">
+                                            onclick="duplicateDeck('${deck.folderId}')">
                                         <span>📋</span><span>Nhân bản bộ thẻ</span>
                                     </button>
                                     <button type="button"
-                                            onclick="openMergeDeckModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                            class="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center gap-2 font-medium text-black">
+                                            onclick="openMergeDeckModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')">
                                         <span>🔀</span><span>Gộp bộ thẻ</span>
                                     </button>
                                     <button type="button"
-                                            onclick="printDeckSheet('${deck.folderId}')"
-                                            class="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center gap-2 font-medium text-black">
+                                            onclick="printDeckSheet('${deck.folderId}')">
                                         <span>🖨️</span><span>In thẻ / Xuất PDF</span>
                                     </button>
                                     <div class="border-t border-black/20 my-1"></div>
                                     <button type="button"
                                             onclick="openConfirmDeleteModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                            class="w-full text-left px-3 py-1.5 hover:bg-red-50 text-[#DC2626] flex items-center gap-2 font-bold">
+                                            class="text-[#DC2626] font-bold">
                                         <span>🗑️</span><span>Xóa bộ thẻ</span>
                                     </button>
                                 </div>
@@ -667,24 +770,52 @@
         }
 
         /**
-         * Toggle Dropdown menu cho từng card bộ thẻ
+         * Toggle Dropdown menu cho từng card bộ thẻ (Độc lập, không co dãn khung)
          */
         function toggleDeckMenu(e, folderId) {
             e.stopPropagation();
+            const targetMenu = document.getElementById('deckMenu_' + folderId);
+            const isCurrentlyHidden = !targetMenu || targetMenu.classList.contains('hidden');
+
+            // Đóng tất cả menu khác và trả z-index thẻ cha về mặc định
             document.querySelectorAll('.deck-dropdown-menu').forEach(m => {
-                if (m.id !== 'deckMenu_' + folderId) {
-                    m.classList.add('hidden');
-                }
+                m.classList.add('hidden');
+                const parentCard = m.closest('.deck-card-container');
+                if (parentCard) parentCard.style.zIndex = '';
             });
-            const menu = document.getElementById('deckMenu_' + folderId);
-            if (menu) {
-                menu.classList.toggle('hidden');
+
+            if (targetMenu && isCurrentlyHidden) {
+                targetMenu.classList.remove('hidden');
+                const parentCard = targetMenu.closest('.deck-card-container');
+                if (parentCard) parentCard.style.zIndex = '40';
+
+                // Tự động kiểm tra vị trí xem mở xuống hay mở lên để không bị khuất màn hình
+                const triggerBtn = targetMenu.previousElementSibling;
+                if (triggerBtn) {
+                    const rect = triggerBtn.getBoundingClientRect();
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    if (spaceBelow < 250 && rect.top > 250) {
+                        targetMenu.style.top = 'auto';
+                        targetMenu.style.bottom = '100%';
+                        targetMenu.style.marginBottom = '6px';
+                        targetMenu.style.marginTop = '0';
+                    } else {
+                        targetMenu.style.top = '100%';
+                        targetMenu.style.bottom = 'auto';
+                        targetMenu.style.marginTop = '6px';
+                        targetMenu.style.marginBottom = '0';
+                    }
+                }
             }
         }
 
         // Tự động đóng dropdown menu khi click ra ngoài
         document.addEventListener('click', () => {
-            document.querySelectorAll('.deck-dropdown-menu').forEach(m => m.classList.add('hidden'));
+            document.querySelectorAll('.deck-dropdown-menu').forEach(m => {
+                m.classList.add('hidden');
+                const parentCard = m.closest('.deck-card-container');
+                if (parentCard) parentCard.style.zIndex = '';
+            });
         });
 
         /**
@@ -723,7 +854,7 @@
             const level = document.getElementById('deckLevelInput').value;
 
             if (!name) {
-                alert('Vui lòng nhập tên cho bộ thẻ nhé bạn ơi!');
+                showToast.warning('Vui lòng nhập tên cho bộ thẻ nhé bạn ơi!');
                 return;
             }
 
@@ -794,38 +925,67 @@
          * MODAL 2: THÊM CHỮ KANJI VÀO BỘ THẺ
          * ========================================================= */
         let currentModalStrokeFilter = null;
+        let currentModalJlptFilter = 'ALL';
 
-        function renderModalStrokeButtons() {
-            const container = document.getElementById('modalStrokeButtonsContainer');
-            if (!container) return;
-            let html = `
-                <button type="button" onclick="setModalStrokeFilter(null)"
-                        class="px-2 py-1 text-[11px] font-bold font-meta rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] transition-colors ${currentModalStrokeFilter === null ? 'bg-[#E0399A] text-white' : 'bg-white text-black hover:bg-slate-100'}">
-                    Tất cả
-                </button>
-            `;
-            for (let i = 1; i <= 24; i++) {
-                html += `
-                    <button type="button" onclick="setModalStrokeFilter(${i})"
-                            class="w-7 h-7 text-[11px] font-bold font-meta rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] flex items-center justify-center transition-colors ${currentModalStrokeFilter === i ? 'bg-[#E0399A] text-white' : 'bg-white text-black hover:bg-slate-100'}">
-                        ${i}
-                    </button>
-                `;
+        function onModalStrokeInputChange() {
+            clearTimeout(searchKanjiDebounceTimer);
+            const inp = document.getElementById('modalStrokeInput');
+            const clearBtn = document.getElementById('btnClearModalStrokeInput');
+            const val = inp ? inp.value.trim() : '';
+
+            if (val) {
+                if (clearBtn) clearBtn.classList.remove('hidden');
+                const num = parseInt(val, 10);
+                currentModalStrokeFilter = (!isNaN(num) && num > 0) ? num : null;
+            } else {
+                if (clearBtn) clearBtn.classList.add('hidden');
+                currentModalStrokeFilter = null;
             }
-            html += `
-                <button type="button" onclick="setModalStrokeFilter(25)"
-                        class="px-2 py-1 text-[11px] font-bold font-meta rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] transition-colors ${currentModalStrokeFilter === 25 ? 'bg-[#E0399A] text-white' : 'bg-white text-black hover:bg-slate-100'}">
-                    25+
-                </button>
-            `;
-            container.innerHTML = html;
+
+            searchKanjiDebounceTimer = setTimeout(() => {
+                triggerModalSearch();
+            }, 250);
         }
 
-        function setModalStrokeFilter(stroke) {
-            currentModalStrokeFilter = stroke;
-            renderModalStrokeButtons();
-            const kw = document.getElementById('searchKanjiModalInput').value.trim();
-            executeSearchKanjiForDeck(kw, currentModalStrokeFilter);
+        function clearModalStrokeInput() {
+            const inp = document.getElementById('modalStrokeInput');
+            const clearBtn = document.getElementById('btnClearModalStrokeInput');
+            if (inp) inp.value = '';
+            if (clearBtn) clearBtn.classList.add('hidden');
+            currentModalStrokeFilter = null;
+            triggerModalSearch();
+        }
+
+        function setModalJlptFilter(jlpt) {
+            currentModalJlptFilter = jlpt || 'ALL';
+            const btns = document.querySelectorAll('.modal-jlpt-btn');
+            btns.forEach(btn => {
+                const bJlpt = btn.getAttribute('data-jlpt');
+                if (bJlpt === currentModalJlptFilter) {
+                    btn.className = 'modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-[#E0399A] text-white transition-colors';
+                } else {
+                    btn.className = 'modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors';
+                }
+            });
+            triggerModalSearch();
+        }
+
+        function triggerModalSearch() {
+            const kw = document.getElementById('searchKanjiModalInput') ? document.getElementById('searchKanjiModalInput').value.trim() : '';
+            const hasQuery = Boolean(kw);
+            const hasStroke = currentModalStrokeFilter !== null;
+            const hasJlpt = currentModalJlptFilter && currentModalJlptFilter !== 'ALL';
+
+            if (!hasQuery && !hasStroke && !hasJlpt) {
+                document.getElementById('addKanjiResultsArea').innerHTML = `
+                    <div class="py-8 text-center text-slate-500 font-meta text-xs">
+                        Hãy gõ từ khóa, nhập số nét hoặc chọn cấp độ JLPT ở trên để tìm chữ Kanji cần thêm vào bộ thẻ nhé! 🔍
+                    </div>
+                `;
+                return;
+            }
+
+            executeSearchKanjiForDeck(kw, currentModalStrokeFilter, currentModalJlptFilter);
         }
 
         let currentAddKanjiTab = 'keyword';
@@ -862,6 +1022,9 @@
                 if (tab === 'keyword') {
                     const inp = document.getElementById('searchKanjiModalInput');
                     if (inp) inp.focus();
+                } else if (tab === 'stroke') {
+                    const sInp = document.getElementById('modalStrokeInput');
+                    if (sInp) sInp.focus();
                 }
             }
         }
@@ -1218,14 +1381,22 @@
         function openAddKanjiModal(folderId, folderName) {
             currentActiveDeckForAdd = folderId;
             currentModalStrokeFilter = null;
+            currentModalJlptFilter = 'ALL';
             document.getElementById('addKanjiModalTitle').textContent = `Thêm Chữ Kanji Vào: ${folderName}`;
             document.getElementById('searchKanjiModalInput').value = '';
-            renderModalStrokeButtons();
+            const strokeInp = document.getElementById('modalStrokeInput');
+            if (strokeInp) strokeInp.value = '';
+            const clearStrokeBtn = document.getElementById('btnClearModalStrokeInput');
+            if (clearStrokeBtn) clearStrokeBtn.classList.add('hidden');
+            
+            // Đặt lại các nút JLPT về trạng thái 'Tất cả'
+            setModalJlptFilter('ALL');
+
             switchAddKanjiTab('keyword');
             deckHwClearCanvas();
             document.getElementById('addKanjiResultsArea').innerHTML = `
                 <div class="py-8 text-center text-slate-500 font-meta text-xs">
-                    Hãy gõ chữ Hán, âm Hán Việt hoặc chọn số nét bên trên để tìm kiếm nhé! 🔍
+                    Hãy gõ chữ Hán, âm Hán Việt hoặc nhập số nét bên trên để tìm kiếm nhé! 🔍
                 </div>
             `;
             document.getElementById('modalAddKanjiToDeck').style.display = 'flex';
@@ -1236,33 +1407,30 @@
             document.getElementById('modalAddKanjiToDeck').style.display = 'none';
             currentActiveDeckForAdd = null;
             currentModalStrokeFilter = null;
+            currentModalJlptFilter = 'ALL';
         }
 
         function onSearchKanjiInput(e) {
             clearTimeout(searchKanjiDebounceTimer);
-            const query = e.target.value.trim();
-            if (!query && currentModalStrokeFilter === null) {
-                document.getElementById('addKanjiResultsArea').innerHTML = `
-                    <div class="py-8 text-center text-slate-500 font-meta text-xs">
-                        Hãy gõ từ khóa hoặc chọn số nét ở trên để tìm chữ Kanji cần thêm vào bộ thẻ nhé! 🔍
-                    </div>
-                `;
-                return;
-            }
-
             searchKanjiDebounceTimer = setTimeout(() => {
-                executeSearchKanjiForDeck(query, currentModalStrokeFilter);
+                triggerModalSearch();
             }, 300);
         }
 
-        async function executeSearchKanjiForDeck(query = '', stroke = null) {
+        async function executeSearchKanjiForDeck(query = '', stroke = null, jlpt = null) {
             const resultsArea = document.getElementById('addKanjiResultsArea');
             resultsArea.innerHTML = '<div class="py-6 text-center text-slate-500 font-meta text-xs">Đang tìm chữ trong kho từ điển... 📚</div>';
 
             try {
                 let url = `/api/learner/kanji/search?size=24`;
                 if (query) url += `&keyword=${encodeURIComponent(query)}`;
-                if (stroke !== null) url += `&strokeCount=${encodeURIComponent(stroke)}`;
+                if (stroke !== null && stroke !== undefined && stroke !== '') {
+                    url += `&strokeCount=${encodeURIComponent(stroke)}`;
+                }
+                const effectiveJlpt = (jlpt !== null && jlpt !== undefined) ? jlpt : currentModalJlptFilter;
+                if (effectiveJlpt && effectiveJlpt !== 'ALL') {
+                    url += `&jlpt=${encodeURIComponent(effectiveJlpt)}`;
+                }
 
                 const res = await fetch(url, {
                     headers: getAuthHeaders()
@@ -1275,7 +1443,7 @@
                     if (list.length === 0) {
                         resultsArea.innerHTML = `
                             <div class="py-6 text-center text-slate-500 font-meta text-xs">
-                                Không tìm thấy chữ Kanji nào khớp với điều kiện tìm kiếm. Bạn thử số nét hoặc từ khóa khác xem sao nhé!
+                                Không tìm thấy chữ Kanji nào khớp với điều kiện tìm kiếm. Bạn thử số nét, JLPT hoặc từ khóa khác xem sao nhé!
                             </div>
                         `;
                         return;
@@ -1467,7 +1635,7 @@
             const btn = document.getElementById('btnSubmitEditDeck');
 
             if (!newName) {
-                alert('Tên bộ thẻ không được để trống bạn nhé!');
+                showToast.warning('Tên bộ thẻ không được để trống bạn nhé!');
                 return;
             }
 
@@ -1548,7 +1716,7 @@
             const otherDecks = allDecks.filter(d => d.folderId !== folderId);
 
             if (otherDecks.length === 0) {
-                alert('Bạn cần có ít nhất 2 bộ thẻ để thực hiện tính năng gộp!');
+                showToast.warning('Bạn cần có ít nhất 2 bộ thẻ để thực hiện tính năng gộp!');
                 return;
             }
 
@@ -1574,7 +1742,7 @@
             const btn = document.getElementById('btnSubmitMergeDeck');
 
             if (!targetId || targetId === sourceId) {
-                alert('Vui lòng chọn bộ thẻ đích hợp lệ!');
+                showToast.warning('Vui lòng chọn bộ thẻ đích hợp lệ!');
                 return;
             }
 
@@ -1655,13 +1823,13 @@
 
             const items = deck.items || [];
             if (items.length === 0) {
-                alert(`Bộ thẻ "${deck.folderName}" hiện chưa có chữ Kanji nào để in. Hãy thêm chữ vào bộ trước bạn nhé! ☕`);
+                showToast.warning(`Bộ thẻ "${deck.folderName}" hiện chưa có chữ Kanji nào để in. Hãy thêm chữ vào bộ trước bạn nhé! ☕`);
                 return;
             }
 
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
-                alert('Vui lòng cho phép popup để mở bảng in chữ Hán!');
+                showToast.warning('Vui lòng cho phép popup để mở bảng in chữ Hán!');
                 return;
             }
 
@@ -1908,17 +2076,14 @@
         }
 
         /**
-         * Hiển thị thông báo Toast chuẩn Nhaitopik
+         * Hiển thị thông báo Toast toàn cục chuẩn Nhaitopik (Zero Layout Shift)
          */
-        function showDeckAlert(msg, isSuccess) {
-            const box = document.getElementById('deckAlertBox');
-            if (!box) return;
-            box.style.display = 'block';
-            box.style.background = isSuccess ? '#ECFDF5' : '#FEF2F2';
-            box.style.borderColor = '#000000';
-            box.style.color = isSuccess ? '#065F46' : '#991B1B';
-            box.textContent = msg;
-            setTimeout(() => { box.style.display = 'none'; }, 4000);
+        function showDeckAlert(msg, isSuccess = true) {
+            if (isSuccess) {
+                showToast.success(msg);
+            } else {
+                showToast.danger(msg);
+            }
         }
 
         function escapeHtml(text) {

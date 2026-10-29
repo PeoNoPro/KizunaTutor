@@ -14,6 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script th:src="@{/js/globalAuth.js}"></script>
+    <script th:src="@{/js/common/kizunaToast.js}"></script>
     <script th:src="@{/js/locales/learner-copy.js}"></script>
 </head>
 <body class="bg-[#FAF9F6] text-black font-body antialiased">
@@ -47,13 +48,20 @@
                     <div class="bg-white p-2.5 sm:p-3 rounded-xl border border-[#CBD5E1] shadow-xs space-y-2">
                         <!-- Hàng 1: Tra cứu cơ bản (Ô tìm kiếm + JLPT) -->
                         <div class="flex flex-col sm:flex-row items-center gap-2">
-                            <div class="flex flex-1 items-center gap-2 w-full">
+                            <div class="relative flex flex-1 items-center gap-2 w-full">
                                 <input type="text" 
                                        id="learnerSearchInput" 
-                                       oninput="debounceLearnerSearch()" 
+                                       oninput="onSearchInputChange()" 
                                        th:value="${keyword}" 
                                        placeholder="🔍 Nhập chữ Hán (日, 本), âm Hán Việt (ÁI, TÂM), âm On/Kun hoặc nghĩa tiếng Việt..." 
-                                       class="input-nhai flex-1 px-3 py-1.5 text-xs rounded-[5px] border border-[#0F172A] text-[#0F172A] font-body font-medium">
+                                       class="input-nhai flex-1 pl-3 pr-8 py-1.5 text-xs rounded-[5px] border border-[#0F172A] text-[#0F172A] font-body font-medium">
+                                <button type="button" 
+                                        id="btnClearSearchInput" 
+                                        onclick="clearLearnerSearchInput()" 
+                                        class="hidden absolute right-2.5 text-slate-400 hover:text-[#DC2626] text-xs font-bold transition-colors cursor-pointer" 
+                                        title="Xóa ô tìm kiếm">
+                                    ✕
+                                </button>
                             </div>
                             <div class="flex items-center gap-2 w-full sm:w-auto">
                                 <select id="learnerJlptSelect" onchange="loadLearnerDictionary(0)" class="input-nhai px-2.5 py-1.5 text-xs rounded-[5px] border border-[#0F172A] text-[#0F172A] font-semibold font-body shrink-0">
@@ -86,19 +94,20 @@
                                 <label for="dictStrokeInput" class="text-xs font-bold text-black font-meta flex items-center gap-1 shrink-0">
                                     <span>🔢</span> Số nét:
                                 </label>
-                                <div class="relative flex items-center w-28 sm:w-32">
+                                <div class="relative flex items-center w-20">
                                     <input type="number" 
                                            id="dictStrokeInput" 
                                            min="1" 
                                            max="35" 
                                            oninput="onDictStrokeInputChange()" 
                                            onkeydown="if(event.key==='Enter'){event.preventDefault();loadLearnerDictionary(0);}"
-                                           placeholder="Nhập số nét..." 
-                                           class="w-full pl-2.5 pr-6 py-1 text-xs rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white font-medium focus:outline-none focus:ring-1 focus:ring-[#D2358F]">
+                                           placeholder="Số nét" 
+                                           title="Nhập số nét cần tìm (1 - 35)" 
+                                           class="w-full pl-2 pr-5 py-1 text-xs rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white font-medium focus:outline-none focus:ring-1 focus:ring-[#D2358F]">
                                     <button type="button" 
                                             id="btnClearStrokeInput" 
                                             onclick="clearDictStrokeInput()" 
-                                            class="hidden absolute right-2 text-slate-400 hover:text-[#DC2626] text-xs font-bold transition-colors cursor-pointer" 
+                                            class="hidden absolute right-1.5 text-slate-400 hover:text-[#DC2626] text-xs font-bold transition-colors cursor-pointer" 
                                             title="Xóa lọc số nét">
                                         ✕
                                     </button>
@@ -137,17 +146,39 @@
                         </div>
                     </div>
 
-                    <!-- Flash Message Alert -->
-                    <div id="learnerAlertBox" style="display: none;" class="card-nhai p-3.5 rounded-[5px] border border-black text-xs font-semibold shadow-[3px_3px_0px_0px_#000000]"></div>
-
                     <!-- Dictionary Cards Grid -->
                     <div id="learnerKanjiGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-5">
-                        <!-- Dynamic Kanji Dictionary Cards -->
+                        <div class="col-span-full p-8 sm:p-12 text-center rounded-[5px] border-2 border-dashed border-black bg-white shadow-[4px_4px_0px_0px_#000000] space-y-3">
+                            <img src="/images/stickers/tea-meditation-capi.png" 
+                                 alt="Capybara Thiền Trà Shodo" 
+                                 class="w-16 h-16 mx-auto mb-2 object-contain pointer-events-none select-none" />
+                            <h3 class="font-itim text-lg sm:text-xl font-bold text-black">
+                                Sẵn sàng tra cứu Hán tự &amp; Bút thuận 📖
+                            </h3>
+                            <p class="text-xs text-slate-600 font-body max-w-lg mx-auto leading-relaxed">
+                                Hãy nhập chữ Hán, âm Hán Việt, âm On/Kun, chọn cấp độ JLPT hoặc vẽ nét bằng chuột để bắt đầu tra cứu hơn 6.600 chữ Hán nhé! ☕
+                            </p>
+                            <div class="pt-2 flex items-center justify-center gap-2 flex-wrap text-xs font-meta">
+                                <span class="text-slate-500 font-semibold">Gợi ý thử nhanh:</span>
+                                <button type="button" onclick="quickSearchPrompt('日')" class="px-2.5 py-1 rounded-[5px] bg-slate-100 hover:bg-[#15803D]/10 hover:border-[#15803D] border border-black shadow-[1px_1px_0px_0px_#000000] font-bold text-black transition-colors">
+                                    日 (NHẬT)
+                                </button>
+                                <button type="button" onclick="quickSearchPrompt('月')" class="px-2.5 py-1 rounded-[5px] bg-slate-100 hover:bg-[#15803D]/10 hover:border-[#15803D] border border-black shadow-[1px_1px_0px_0px_#000000] font-bold text-black transition-colors">
+                                    月 (NGUYỆT)
+                                </button>
+                                <button type="button" onclick="quickSearchPrompt('N5')" class="px-2.5 py-1 rounded-[5px] bg-sky-50 hover:bg-sky-100 border border-black shadow-[1px_1px_0px_0px_#000000] font-bold text-sky-800 transition-colors">
+                                    Cấp độ N5
+                                </button>
+                                <button type="button" onclick="quickSearchPrompt('N4')" class="px-2.5 py-1 rounded-[5px] bg-emerald-50 hover:bg-emerald-100 border border-black shadow-[1px_1px_0px_0px_#000000] font-bold text-emerald-800 transition-colors">
+                                    Cấp độ N4
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Pagination -->
                     <div class="flex items-center justify-between bg-white px-4 py-3 rounded-[5px] border border-black shadow-[4px_4px_0px_0px_#000000] text-xs font-meta">
-                        <span id="learnerPaginationInfo" class="text-slate-600">Đang tải từ điển...</span>
+                        <span id="learnerPaginationInfo" class="text-slate-600">Chờ bạn nhập từ khóa hoặc chọn bộ lọc... 🌸</span>
                         <div class="flex items-center gap-1.5" id="learnerPaginationBtns"></div>
                     </div>
 
@@ -176,7 +207,7 @@
                 <!-- Khung phát hoạt ảnh vẽ nét ô Mễ kèm điều khiển mini -->
                 <div class="flex flex-col items-center gap-2 shrink-0">
                     <div class="relative w-28 h-28 rounded-[5px] bg-white border-2 border-black flex items-center justify-center font-serif text-5xl font-extrabold text-[#0F172A] shadow-[2px_2px_0px_0px_#000000] overflow-hidden">
-                        <div id="detailCharBox" class="select-none pointer-events-none transition-opacity duration-200">愛</div>
+                        <div id="detailCharBox" class="select-none pointer-events-none transition-opacity duration-200">-</div>
                         <svg id="dictDetailStrokeSvg" viewBox="0 0 109 109" preserveAspectRatio="xMidYMid meet" class="absolute inset-0 w-full h-full pointer-events-none z-10" style="padding: 6px; display: none;"></svg>
                     </div>
 
@@ -203,19 +234,19 @@
 
                 <div class="space-y-1.5 text-center sm:text-left flex-1 min-w-0">
                     <div class="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                        <span id="detailHanViet" class="font-itim text-2xl font-bold text-black uppercase">ÁI</span>
-                        <span id="detailJlptBadge" class="badge-nhai bg-sky-50 text-sky-700 border-black font-bold text-xs">N3</span>
-                        <span id="detailStrokeBadge" class="badge-nhai bg-amber-100 text-amber-900 border-black font-bold text-xs">13 nét</span>
+                        <span id="detailHanViet" class="font-itim text-2xl font-bold text-black uppercase">-</span>
+                        <span id="detailJlptBadge" class="badge-nhai bg-sky-50 text-sky-700 border-black font-bold text-xs">-</span>
+                        <span id="detailStrokeBadge" class="badge-nhai bg-amber-100 text-amber-900 border-black font-bold text-xs">-</span>
                     </div>
                     <div class="text-xs text-slate-700 font-meta" id="detailRadical">
-                        Bộ thủ: <strong>心 (Tâm)</strong>
+                        Bộ thủ: <strong>-</strong>
                     </div>
                     <!-- Dòng trạng thái thứ tự nét vẽ trực quan -->
                     <div id="dictStrokeProgressText" class="text-[11px] font-meta font-semibold text-[#E76F51] min-h-[18px]">
                         Bấm [▶️ Phát] để xem thứ tự nét bút thuận.
                     </div>
                     <p id="detailMeaning" class="text-xs text-slate-800 font-body leading-relaxed pt-1">
-                        Yêu thương, lòng nhân ái, sự quý mến.
+                        Đang nạp thông tin giải nghĩa Hán tự...
                     </p>
                 </div>
             </div>
@@ -223,11 +254,11 @@
             <div class="grid grid-cols-2 gap-3">
                 <div class="p-3 rounded-[5px] bg-white border border-black shadow-[1px_1px_0px_0px_#000000]">
                     <div class="text-[10px] font-meta font-bold text-slate-500 uppercase tracking-wider mb-1">Âm Onyomi (Hán-Nhật):</div>
-                    <div id="detailOnyomi" class="text-sm font-bold font-mono text-black">アイ (ai)</div>
+                    <div id="detailOnyomi" class="text-sm font-bold font-mono text-black">-</div>
                 </div>
                 <div class="p-3 rounded-[5px] bg-white border border-black shadow-[1px_1px_0px_0px_#000000]">
                     <div class="text-[10px] font-meta font-bold text-slate-500 uppercase tracking-wider mb-1">Âm Kunyomi (Thuần Nhật):</div>
-                    <div id="detailKunyomi" class="text-sm font-bold font-mono text-black">いと.しい (ito-shii)</div>
+                    <div id="detailKunyomi" class="text-sm font-bold font-mono text-black">-</div>
                 </div>
             </div>
 
@@ -403,11 +434,78 @@
             loadLearnerDictionary(0);
         }
 
+        function onSearchInputChange() {
+            const input = document.getElementById('learnerSearchInput');
+            const clearBtn = document.getElementById('btnClearSearchInput');
+            if (clearBtn) {
+                if (input && input.value.trim().length > 0) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+            }
+            debounceLearnerSearch();
+        }
+
+        function clearLearnerSearchInput() {
+            const input = document.getElementById('learnerSearchInput');
+            if (input) input.value = '';
+            const clearBtn = document.getElementById('btnClearSearchInput');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            loadLearnerDictionary(0);
+        }
+
         function debounceLearnerSearch() {
             clearTimeout(learnerDebounce);
             learnerDebounce = setTimeout(() => {
                 loadLearnerDictionary(0);
             }, 300);
+        }
+
+        function renderStandbyState() {
+            const grid = document.getElementById('learnerKanjiGrid');
+            const pageInfo = document.getElementById('learnerPaginationInfo');
+            const pageBtns = document.getElementById('learnerPaginationBtns');
+
+            if (pageInfo) pageInfo.textContent = 'Chờ bạn nhập từ khóa hoặc chọn bộ lọc... 🌸';
+            if (pageBtns) pageBtns.innerHTML = '';
+
+            if (grid) {
+                grid.innerHTML = `
+                    <div class="col-span-full p-8 sm:p-12 text-center rounded-[5px] border-2 border-dashed border-black bg-white shadow-[4px_4px_0px_0px_#000000] space-y-3">
+                        <img src="/images/stickers/tea-meditation-capi.png" 
+                             alt="Capybara Thiền Trà Shodo" 
+                             class="w-16 h-16 mx-auto mb-2 object-contain pointer-events-none select-none" />
+                        <h3 class="font-itim text-lg sm:text-xl font-bold text-black">
+                            Sẵn sàng tra cứu Hán tự &amp; Bút thuận 📖
+                        </h3>
+                        <p class="text-xs text-slate-600 font-body max-w-lg mx-auto leading-relaxed">
+                            Hãy nhập chữ Hán, âm Hán Việt, âm On/Kun, chọn cấp độ JLPT hoặc vẽ nét bằng chuột để bắt đầu tra cứu hơn 6.600 chữ Hán nhé! ☕
+                        </p>
+                        <div class="pt-2 flex items-center justify-center gap-2 flex-wrap text-xs font-meta">
+                            <span class="text-slate-500 font-semibold">Gợi ý thử nhanh:</span>
+                            <button type="button" onclick="quickSearchPrompt('日')" class="px-2.5 py-1 rounded-[5px] bg-slate-100 hover:bg-[#15803D]/10 hover:border-[#15803D] border border-black shadow-[1px_1px_0px_0px_#000000] font-bold text-black transition-colors">
+                                日 (NHẬT)
+                            </button>
+                            <button type="button" onclick="quickSearchPrompt('月')" class="px-2.5 py-1 rounded-[5px] bg-slate-100 hover:bg-[#15803D]/10 hover:border-[#15803D] border border-black shadow-[1px_1px_0px_0px_#000000] font-bold text-black transition-colors">
+                                月 (NGUYỆT)
+                            </button>
+                            <button type="button" onclick="quickSearchPrompt('N5')" class="px-2.5 py-1 rounded-[5px] bg-sky-50 hover:bg-sky-100 border border-black shadow-[1px_1px_0px_0px_#000000] font-bold text-sky-800 transition-colors">
+                                Cấp độ N5
+                            </button>
+                            <button type="button" onclick="quickSearchPrompt('N4')" class="px-2.5 py-1 rounded-[5px] bg-emerald-50 hover:bg-emerald-100 border border-black shadow-[1px_1px_0px_0px_#000000] font-bold text-emerald-800 transition-colors">
+                                Cấp độ N4
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function quickSearchPrompt(term) {
+            if (term === 'N5' || term === 'N4' || term === 'N3' || term === 'N2' || term === 'N1') {
+                document.getElementById('learnerJlptSelect').value = term;
+            } else {
+                document.getElementById('learnerSearchInput').value = term;
+            }
+            loadLearnerDictionary(0);
         }
 
         async function loadLearnerDictionary(page = 0) {
@@ -416,6 +514,17 @@
             // Nếu có chọn bộ thủ, kết hợp vào tìm kiếm
             const kw = currentDictRadical ? (inputVal ? `${inputVal} ${currentDictRadical}` : currentDictRadical) : inputVal;
             const jlpt = document.getElementById('learnerJlptSelect').value;
+            const hasStroke = currentDictStroke !== null;
+            const hasRadical = currentDictRadical !== null;
+            const hasJlpt = jlpt && jlpt !== 'ALL';
+            const hasKeyword = !!kw;
+
+            // NGUYÊN TẮC BẢO VỆ UX: TUYỆT ĐỐI KHÔNG TỰ ĐỘNG HIỂN THỊ DỮ LIỆU KHI NGƯỜI DÙNG CHƯA TƯƠNG TÁC
+            if (!hasKeyword && !hasJlpt && !hasStroke && !hasRadical) {
+                renderStandbyState();
+                return;
+            }
+
             const grid = document.getElementById('learnerKanjiGrid');
             grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-500 font-meta text-xs">Đang lật mở các trang từ điển Kanji... 🔍</div>';
 
@@ -768,6 +877,11 @@
         function renderLearnerPagination(page, totalPages, totalElements) {
             const info = document.getElementById('learnerPaginationInfo');
             const btns = document.getElementById('learnerPaginationBtns');
+            if (!totalElements || totalElements === 0) {
+                if (info) info.innerHTML = 'Không có kết quả tra cứu';
+                if (btns) btns.innerHTML = '';
+                return;
+            }
             if (info) info.innerHTML = `Trang <strong>${page + 1}</strong> / <strong>${totalPages}</strong> (${totalElements} chữ)`;
             if (!btns) return;
 
@@ -840,13 +954,12 @@
             }
         }
 
-        function showAlert(msg, isSuccess) {
-            const box = document.getElementById('learnerAlertBox');
-            box.style.display = 'block';
-            box.style.background = isSuccess ? '#ECFDF5' : '#FEF2F2';
-            box.style.color = isSuccess ? '#065F46' : '#991B1B';
-            box.textContent = msg;
-            setTimeout(() => { box.style.display = 'none'; }, 3500);
+        function showAlert(msg, isSuccess = true) {
+            if (isSuccess) {
+                showToast.success(msg);
+            } else {
+                showToast.danger(msg);
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -860,7 +973,14 @@
                     }
                 }, { passive: false });
             }
-            loadLearnerDictionary(0);
+
+            // CHỈ GỌI API NẾU CÓ TỪ KHÓA TỪ URL PARAMETER HOẶC TRANG TRƯỚC TRUYỀN VÀO
+            const initialKeyword = document.getElementById('learnerSearchInput').value.trim();
+            if (initialKeyword) {
+                loadLearnerDictionary(0);
+            } else {
+                renderStandbyState();
+            }
         });
     </script>
     <script th:src="@{/js/learner/sakuraSticker.js}"></script>

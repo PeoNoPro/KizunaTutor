@@ -67,21 +67,110 @@
 
 /* --- 3. CÁC NÚT ĐÁNH GIÁ TRÍ NHỚ SRS (AGAIN / HARD / GOOD / EASY) --- */
 .srs-btn-again {
-  background-color: var(--color-error);
+  background-color: #BF360C;
   color: #FFFFFF;
 }
 
 .srs-btn-hard {
-  background-color: var(--script-kanji-text);
+  background-color: #E76F51;
   color: #FFFFFF;
 }
 
 .srs-btn-good {
-  background-color: var(--script-katakana-text);
+  background-color: #1F6FB4;
   color: #FFFFFF;
 }
 
 .srs-btn-easy {
-  background-color: var(--color-primary);
+  background-color: #1E8B3F;
   color: #FFFFFF;
+}
+
+/* --- 4. CỐ ĐỊNH KHUNG THẺ BỘ THẺ & CHỐNG CO DÃN (FIXED FRAME CONTAINMENT) --- */
+.deck-card-container {
+  height: 360px !important;
+  max-height: 360px !important;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: visible !important;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.deck-card-container:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* Khung chứa nội dung chữ trong bộ thẻ (Cố định 155px, cuộn nội bộ khi tràn) */
+.deck-content-box {
+  height: 155px !important;
+  max-height: 155px !important;
+  overflow-y: auto;
+  border-radius: var(--radius-sm);
+  background-color: #F8FAFC;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  padding: 10px;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+  flex-shrink: 0;
+}
+
+.deck-content-box::-webkit-scrollbar {
+  width: 4px;
+}
+
+.deck-content-box::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1;
+  border-radius: 4px;
+}
+
+/* Khung menu tùy chọn 3 chấm nổi độc lập (Decoupled Floating Menu) */
+.deck-menu-container {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-dropdown-menu {
+  position: absolute;
+  right: 0;
+  width: 196px;
+  background-color: var(--color-11);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 4px 4px 0px 0px var(--color-border);
+  padding: 4px 0;
+  z-index: 50;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  transform: translateZ(0);
+}
+
+.deck-dropdown-menu button {
+  width: 100%;
+  text-align: left;
+  padding: 6px 12px;
+  font-weight: 500;
+  color: var(--color-text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color var(--transition-fast);
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+.deck-dropdown-menu button:hover {
+  background-color: #F1F5F9;
 }

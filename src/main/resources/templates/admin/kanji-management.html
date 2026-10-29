@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" th:href="@{/css/design-system.css}">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <script th:src="@{/js/common/kizunaToast.js}"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased">
     <div class="flex h-screen overflow-hidden bg-[#FAF9F6]">
@@ -274,14 +275,14 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    alert(data.message || 'Cập nhật thành công!');
+                    showToast.success(data.message || 'Cập nhật thành công!');
                     closeEditModal();
                     loadAdminKanji(currentAdminPage);
                 } else {
-                    alert('Lỗi: ' + (data.message || 'Không thể cập nhật!'));
+                    showToast.danger('Lỗi: ' + (data.message || 'Không thể cập nhật!'));
                 }
             } catch(err) {
-                alert('Lỗi kết nối máy chủ: ' + err.message);
+                showToast.danger('Lỗi kết nối máy chủ: ' + err.message);
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Lưu Thay Đổi';
@@ -293,14 +294,14 @@
             try {
                 const res = await fetch('/api/admin/kanji/enrich-ai', { method: 'POST' });
                 const data = await res.json();
-                alert(data.message || 'Tiến trình AI đã được khởi chạy!');
+                showToast.info(data.message || 'Tiến trình AI đã được khởi chạy!');
             } catch(e) {
-                alert('Lỗi: ' + e.message);
+                showToast.danger('Lỗi: ' + e.message);
             }
         }
 
         function openCreateModal() {
-            alert('Chức năng thêm mới chữ Hán đang ở chế độ xem trước của phiên bản Admin v2.4.');
+            showToast.info('Chức năng thêm mới chữ Hán đang ở chế độ xem trước của phiên bản Admin v2.4.');
         }
 
         document.addEventListener('DOMContentLoaded', () => {

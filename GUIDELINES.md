@@ -42,6 +42,18 @@ Tài liệu này xác lập các tiêu chuẩn phát triển phần mềm cho to
    - Khi chuyển trang bên trong phân hệ, tuyệt đối không được làm mất Header/Sidebar hoặc điều hướng ra trang ngoài gây lệch layout.
 3. **Trạng Thái Rỗng (Empty States):**
    - Khi chưa có dữ liệu, hiển thị hộp rỗng thân thiện kèm icon và lời nhắn khích lệ, tuyệt đối không dùng mảng giả hardcoded.
+4. **Quy Tắc Cố Định Khung & Chống Co Dãn Giao Diện (Fixed Frame Containment):**
+   - Mọi ô box thẻ bài/thư mục (Flashcard Decks, Kanji Cards) phải có kích thước và chiều cao cố định (`h-[360px] max-h-[360px]`).
+   - Khung chứa nội dung con (danh sách Hán tự, empty state) phải cố định chiều cao (`h-[155px] max-h-[155px] overflow-y-auto`), không được làm co dãn khung cha.
+   - Menu tùy chọn 3 chấm [⋮] phải định vị tuyệt đối (`position: absolute; z-index: 50; shrink-0`) nổi độc lập trên bề mặt, cấm làm xô lệch hoặc co kéo các nút flex lân cận.
+5. **Hệ Thống Phản Hồi Không Làm Phiền & Chống Lệch Bố Cục (Non-blocking & Zero Layout Shift Feedback):**
+   - Phân tách rõ ràng giữa Modal tương tác (`KizunaDialog`) và Toast thông báo trạng thái thụ động (`KizunaToast`).
+   - Toàn bộ thông báo CRUD, lưu dữ liệu, xóa tạm thời hoặc copy link bắt buộc hiển thị dạng Toast nổi ở góc dưới bên phải (`fixed bottom-5 right-5 z-[9999]`), tự động ẩn sau 3.5s và không chặn thao tác click/scroll của người dùng.
+   - Cấm chèn khoảng trống hay ô alertbox tĩnh trực tiếp vào giữa luồng giao diện làm đẩy lùi, co dãn hay xô lệch các phần tử danh sách/lưới bên dưới.
+6. **Kiểm Soát Tỷ Lệ Bộ Lọc & Tối Giản Công Cụ (Compact Controls & Streamlined Toolbars):**
+   - Ô nhập số nét trên thanh lọc Hán tự và Flashcards bắt buộc duy trì chiều rộng gọn gàng `w-20` (80px) để bảo toàn diện tích cho các bộ lọc Bộ thủ và Cấp độ JLPT.
+   - Thanh công cụ Shodo Canvas (`practice-canvas.html`) chỉ duy trì các nút chức năng cốt lõi, nút phát hướng dẫn tự đổi trạng thái thành "Phát Lại" sau khi hoàn thành nét vẽ, loại bỏ triệt để các nút bấm trùng lặp gây rối mắt.
+
 
 ---
 

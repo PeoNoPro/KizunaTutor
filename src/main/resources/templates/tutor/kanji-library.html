@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script th:src="@{/js/common/kizunaToast.js}"></script>
     <script th:src="@{/js/locales/tutor-copy.js}"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased">
@@ -264,7 +265,7 @@
         }
 
         function previewStrokeOrder(char) {
-            alert(`Mô phỏng nét bút lông Shodo chuẩn KanjiVG cho chữ [${char}]. Học viên sẽ viết trên ô Mễ 109px tương tác.`);
+            showToast.info(`Mô phỏng nét bút lông Shodo chuẩn KanjiVG cho chữ [${char}]. Học viên sẽ viết trên ô Mễ tương tác.`);
         }
 
         function openAssignModal() {
@@ -296,14 +297,14 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    alert(data.message || 'Giao bài tập thành công! Chuẩn bị đón nhận bài nộp xịn sò từ học trò nhé! 🎉');
+                    showToast.success(data.message || 'Giao bài tập thành công! Chuẩn bị đón nhận bài nộp xịn sò từ học trò nhé! 🎉');
                     clearBasket();
                     closeAssignModal();
                 } else {
-                    alert('Lỗi: ' + data.message);
+                    showToast.danger('Lỗi: ' + data.message);
                 }
             } catch(err) {
-                alert('Lỗi kết nối: ' + err.message);
+                showToast.danger('Lỗi kết nối: ' + err.message);
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Giao Bài Cho Các Trò Thôi 🚀';

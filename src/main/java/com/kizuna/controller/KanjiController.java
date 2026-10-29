@@ -33,6 +33,20 @@ public class KanjiController {
     private final GradingService gradingService;
     private final AiStrokeAnalysisService aiStrokeAnalysisService;
     private final HandwritingSearchService handwritingSearchService;
+    private final com.kizuna.seeder.KanjiDataSeeder kanjiDataSeeder;
+
+    /**
+     * Đồng bộ siêu dữ liệu từ điển Hán-Việt & JLPT vào database
+     */
+    @RequestMapping(value = "/sync-metadata", method = {RequestMethod.GET, RequestMethod.POST})
+    public ResponseEntity<?> syncMetadata() {
+        int updated = kanjiDataSeeder.syncMetadata();
+        return ResponseEntity.ok(Map.of(
+                "status", updated >= 0 ? "SUCCESS" : "ERROR",
+                "message", updated >= 0 ? "Đồng bộ siêu dữ liệu hoàn tất" : "Lỗi đồng bộ",
+                "totalUpdated", updated
+        ));
+    }
 
     /**
      * Tra cứu danh sách chữ Kanji phân trang theo cấp độ JLPT, từ khóa và số nét
@@ -53,7 +67,7 @@ public class KanjiController {
 
         String targetJlpt = (jlpt != null && !jlpt.isBlank()) ? jlpt : level;
         String jlptParam = (targetJlpt != null && !targetJlpt.isBlank() && !targetJlpt.equalsIgnoreCase("ALL"))
-                ? jlpt.trim().toUpperCase()
+                ? targetJlpt.trim().toUpperCase()
                 : null;
         String kwParam = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
 

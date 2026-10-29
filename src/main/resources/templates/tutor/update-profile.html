@@ -15,6 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Nạp script xác thực và xử lý đăng xuất toàn cục -->
     <script th:src="@{/js/globalAuth.js}"></script>
+    <script th:src="@{/js/common/kizunaToast.js}"></script>
     <script th:src="@{/js/locales/tutor-copy.js}"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased">
@@ -313,27 +314,27 @@
                 });
                 const result = await res.json();
                 if (res.ok && result.success) {
-                    alert('Đã lưu bản nháp hồ sơ thành công! Khi nào sẵn sàng, Sensei bấm gửi duyệt nhé. ✨');
+                    showToast.success('Đã lưu bản nháp hồ sơ thành công! Khi nào sẵn sàng, Sensei bấm gửi duyệt nhé. ✨');
                 } else {
-                    alert(result.message || 'Không thể lưu bản nháp.');
+                    showToast.danger(result.message || 'Không thể lưu bản nháp.');
                 }
             } catch (err) {
-                alert('Có lỗi kết nối máy chủ, vui lòng thử lại.');
+                showToast.danger('Có lỗi kết nối máy chủ, vui lòng thử lại.');
             }
         }
 
         async function submitProfile() {
             const data = getFormData();
             if (!data.phone) {
-                alert('Vui lòng nhập số điện thoại liên hệ.');
+                showToast.warning('Vui lòng nhập số điện thoại liên hệ.');
                 return;
             }
             if (!data.highestJlptLevel) {
-                alert('Vui lòng chọn trình độ JLPT cao nhất.');
+                showToast.warning('Vui lòng chọn trình độ JLPT cao nhất.');
                 return;
             }
             if (!data.certificateUrls) {
-                alert('Vui lòng cung cấp đường dẫn minh chứng chứng chỉ JLPT hoặc bằng cấp để gửi thẩm định.');
+                showToast.warning('Vui lòng cung cấp đường dẫn minh chứng chứng chỉ JLPT hoặc bằng cấp để gửi thẩm định.');
                 return;
             }
 
@@ -349,13 +350,13 @@
                 });
                 const result = await res.json();
                 if (res.ok && result.success) {
-                    alert('Hồ sơ xịn sò của Sensei đã bay đến bàn làm việc của Ban Học Vụ! Đợi tụi mình duyệt sớm nhé. 🚀');
-                    window.location.reload();
+                    showToast.success('Hồ sơ của Sensei đã gửi lên Ban Học Vụ thành công! 🚀');
+                    setTimeout(() => { window.location.reload(); }, 1200);
                 } else {
-                    alert(result.message || 'Không thể gửi hồ sơ.');
+                    showToast.danger(result.message || 'Không thể gửi hồ sơ.');
                 }
             } catch (err) {
-                alert('Có lỗi kết nối máy chủ, vui lòng thử lại.');
+                showToast.danger('Có lỗi kết nối máy chủ, vui lòng thử lại.');
             }
         }
     </script>

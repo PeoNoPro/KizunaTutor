@@ -15,6 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@600;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
     <script th:src="@{/js/globalAuth.js}"></script>
     <script th:src="@{/js/shared/kizunaDialog.js}"></script>
+    <script th:src="@{/js/common/kizunaToast.js}"></script>
     <script th:src="@{/js/locales/learner-copy.js}"></script>
 </head>
 <body class="bg-[#FAF9F6] text-[#0F172A] font-sans antialiased">
@@ -125,14 +126,6 @@
                                         <span id="playPauseGuideText">Phát Hướng Dẫn</span>
                                     </button>
 
-                                    <!-- Nút Replay Vẽ Lại Từ Đầu -->
-                                    <button type="button" id="btnReplayGuide" onclick="replayStrokePlayer()" 
-                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-[4px] text-xs font-medium bg-white border border-[#CBD5E1] text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 shadow-xs transition active:scale-[0.98] shrink-0" 
-                                            title="Vẽ lại thứ tự nét từ đầu">
-                                        <span>🔁</span>
-                                        <span>Vẽ Lại</span>
-                                    </button>
-
                                     <!-- Nút Ẩn / Hiện Nét Mẫu -->
                                     <button type="button" id="btnToggleGuide" onclick="toggleGhostGuide()" 
                                             class="inline-flex items-center gap-1 px-2 py-1 rounded-[4px] text-xs font-medium bg-white border border-[#CBD5E1] text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 shadow-xs transition active:scale-[0.98] shrink-0" 
@@ -150,11 +143,11 @@
                                     </button>
                                 </div>
 
-                                <!-- Nút Hành Động Chính Chấm Điểm Nét AI (Sensei Phê Điểm) -->
+                                <!-- Nút Hành Động Chính Chấm Điểm Nét AI (Chuyên Gia Phê Điểm) -->
                                 <button type="button" id="btnGradeStroke" onclick="gradeStroke()" 
                                         class="w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-[5px] bg-[#15803D] hover:bg-[#166534] text-white text-xs sm:text-sm font-bold shadow-[2px_2px_0px_0px_#0F172A] border border-[#0F172A] transition active:scale-[0.98] cursor-pointer">
                                     <span id="btnGradeIcon" class="text-sm">🎯</span>
-                                    <span id="btnGradeText">Chấm Điểm Nét AI (Sensei Phê Điểm)</span>
+                                    <span id="btnGradeText">Chấm Điểm Nét AI (Chuyên Gia Phê Điểm)</span>
                                 </button>
                             </div>
                         </section>
@@ -365,6 +358,8 @@
             if (placeholder) placeholder.classList.remove('hidden');
             if (resultBox) resultBox.classList.add('hidden');
             if (scoreTag) scoreTag.classList.add('hidden');
+
+            showToast.info("Đã làm mới ô Mễ, sẵn sàng luyện viết nét mới!");
         }
 
         // =========================================================================
@@ -424,19 +419,19 @@
             if (state === 'playing') {
                 icon.textContent = '⏸️';
                 text.textContent = 'Tạm Dừng';
-                btn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#166534] text-white shadow-sm transition active:scale-[0.98] shrink-0';
+                btn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-[#166534] text-white shadow-xs transition active:scale-[0.98] shrink-0';
             } else if (state === 'paused') {
                 icon.textContent = '▶️';
                 text.textContent = 'Tiếp Tục';
-                btn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#15803D] hover:bg-[#166534] text-white shadow-sm transition active:scale-[0.98] shrink-0';
+                btn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-[#15803D] hover:bg-[#166534] text-white shadow-xs transition active:scale-[0.98] shrink-0';
             } else if (state === 'completed') {
-                icon.textContent = '🔁';
-                text.textContent = 'Vẽ Lại';
-                btn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#15803D] hover:bg-[#166534] text-white shadow-sm transition active:scale-[0.98] shrink-0';
+                icon.textContent = '▶️';
+                text.textContent = 'Phát Lại';
+                btn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-[#15803D] hover:bg-[#166534] text-white shadow-xs transition active:scale-[0.98] shrink-0';
             } else {
                 icon.textContent = '▶️';
                 text.textContent = 'Phát Hướng Dẫn';
-                btn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#15803D] hover:bg-[#166534] text-white shadow-sm transition active:scale-[0.98] shrink-0';
+                btn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-[#15803D] hover:bg-[#166534] text-white shadow-xs transition active:scale-[0.98] shrink-0';
             }
         }
 
@@ -478,37 +473,6 @@
                 }
                 showToast("Đã ẩn nét mẫu, trả lại ô Mễ sạch sẽ để bạn tự nhớ và viết.", "info");
             }
-        }
-
-        function showToast(message, type = 'info') {
-            let toast = document.getElementById('canvasRetroToast');
-            if (!toast) {
-                toast = document.createElement('div');
-                toast.id = 'canvasRetroToast';
-                toast.className = 'fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-xl border font-sans text-xs font-medium shadow-md transition-all duration-300 pointer-events-none opacity-0 translate-y-3';
-                document.body.appendChild(toast);
-            }
-            if (type === 'warning') {
-                toast.style.backgroundColor = '#FEF2F2';
-                toast.style.borderColor = '#FECACA';
-                toast.style.color = '#DC2626';
-            } else if (type === 'success') {
-                toast.style.backgroundColor = '#F0FDF4';
-                toast.style.borderColor = '#BBF7D0';
-                toast.style.color = '#16A34A';
-            } else {
-                toast.style.backgroundColor = '#FFFFFF';
-                toast.style.borderColor = '#E2E8F0';
-                toast.style.color = '#0F172A';
-            }
-            toast.textContent = message;
-            toast.classList.remove('opacity-0', 'translate-y-3');
-            toast.classList.add('opacity-100', 'translate-y-0');
-            clearTimeout(window._toastTimeout);
-            window._toastTimeout = setTimeout(() => {
-                toast.classList.remove('opacity-100', 'translate-y-0');
-                toast.classList.add('opacity-0', 'translate-y-3');
-            }, 2800);
         }
 
         // =========================================================================
@@ -662,7 +626,7 @@
             // Trạng thái đang chấm điểm
             if (btn) btn.disabled = true;
             if (icon) icon.textContent = '⏳';
-            if (text) text.textContent = 'Sensei Đang Soi Nét...';
+            if (text) text.textContent = 'Chuyên Gia Đang Soi Nét...';
 
             setTimeout(() => {
                 const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -689,12 +653,68 @@
                     comment = 'Đường nét khá mượt mà, nhưng nét sổ dọc hơi lệch góc một xíu. Thử lại đường quyền nữa là chuẩn ngay!';
                 }
 
+                // Xây dựng danh sách lý do trừ điểm chi tiết
+                const pointsDeducted = Math.max(0, 100 - score);
+                let deductionHtml = '';
+                if (pointsDeducted === 0) {
+                    deductionHtml = `
+                        <div class="p-2 bg-emerald-50 border border-emerald-200 rounded-[5px] text-emerald-800 text-xs flex items-center gap-1.5 font-sans font-medium">
+                            <span>🎉</span>
+                            <span>Không bị trừ điểm nào! Nét chữ đạt độ chuẩn xác thư pháp Shodo tuyệt đối 100/100!</span>
+                        </div>
+                    `;
+                } else {
+                    const p1 = Math.max(1, Math.round(pointsDeducted * 0.4));
+                    const p2 = Math.max(1, Math.round(pointsDeducted * 0.35));
+                    const p3 = Math.max(1, pointsDeducted - p1 - p2);
+
+                    let err1Desc = 'Trọng tâm chữ chưa đặt đúng tâm trục chữ thập ô Mễ, phân bố nét hơi dồn sang mép.';
+                    if (coverage < 60) err1Desc = 'Nét vẽ chưa phủ đủ khuôn hình chữ Hán chuẩn, còn thiếu nét hoặc độ dài nét chưa đạt.';
+
+                    let err2Desc = 'Góc nghiêng của nét phẩy/nét mác chưa đạt góc 45° so với đường chéo ô Mễ.';
+                    if (score < 60) err2Desc = 'Hướng đưa bút chưa đúng chuẩn thứ tự nét, nét kết thúc bị bẹt góc.';
+
+                    let err3Desc = 'Độ mượt đường cọ chưa đều, xuất hiện độ gãy nhẹ hoặc run tay khi đổi hướng nét.';
+
+                    deductionHtml = `
+                        <div class="p-2.5 bg-rose-50/80 border border-rose-200 rounded-[5px] space-y-1.5 text-xs font-sans">
+                            <div class="flex items-center justify-between text-rose-900 font-bold">
+                                <span class="flex items-center gap-1.5">
+                                    <span>⚠️</span>
+                                    <span>Chi Tiết Lý Do Bị Trừ Điểm (-${pointsDeducted}đ):</span>
+                                </span>
+                                <span class="text-[10px] bg-rose-200/80 text-rose-800 px-1.5 py-0.5 rounded font-bold">Bảng soi nét</span>
+                            </div>
+                            <div class="space-y-1.5 text-[11px] text-slate-700">
+                                <div class="flex items-start gap-1.5 p-1.5 bg-white/80 rounded border border-rose-100">
+                                    <span class="font-bold text-rose-600 shrink-0">-${p1}đ</span>
+                                    <div class="flex-1">
+                                        <strong class="text-slate-900">Cân đối không gian ô Mễ:</strong> ${err1Desc}
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-1.5 p-1.5 bg-white/80 rounded border border-rose-100">
+                                    <span class="font-bold text-rose-600 shrink-0">-${p2}đ</span>
+                                    <div class="flex-1">
+                                        <strong class="text-slate-900">Góc nghiêng &amp; hướng bút:</strong> ${err2Desc}
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-1.5 p-1.5 bg-white/80 rounded border border-rose-100">
+                                    <span class="font-bold text-rose-600 shrink-0">-${p3}đ</span>
+                                    <div class="flex-1">
+                                        <strong class="text-slate-900">Độ mượt &amp; lực ngòi bút:</strong> ${err3Desc}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 if (typeof KizunaDialog !== 'undefined') {
                     KizunaDialog.show({
-                        icon: '🤖',
-                        title: 'Nhận Xét Từ Kizuna Sensei AI',
+                        icon: '🧑‍🏫',
+                        title: 'Nhận xét từ chuyên gia nè!',
                         content: `
-                            <div class="space-y-3">
+                            <div class="space-y-2.5">
                                 <!-- Khối điểm số nổi bật -->
                                 <div class="flex items-center gap-3 p-3 bg-[#FAF9F6] border-2 border-[#0F172A] rounded-[5px] shadow-[2px_2px_0px_0px_#0F172A]">
                                     <span class="font-itim font-extrabold text-3xl sm:text-4xl text-[#0F172A] leading-none shrink-0">${score}<span class="text-sm font-sans font-normal text-slate-500">/100</span></span>
@@ -708,13 +728,16 @@
                                     </div>
                                 </div>
 
-                                <!-- Nhận xét chi tiết từ Sensei AI -->
+                                <!-- Chi tiết lý do bị trừ điểm -->
+                                ${deductionHtml}
+
+                                <!-- Nhận xét chi tiết từ Chuyên gia -->
                                 <div class="p-2.5 bg-slate-50 border border-[#CBD5E1] rounded-[5px] space-y-1">
                                     <div class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
                                         <span>💬</span>
-                                        <span>Lời Khuyên Từ Kizuna Sensei:</span>
+                                        <span>Lời khuyên từ chuyên gia nè!:</span>
                                     </div>
-                                    <p class="text-xs sm:text-sm text-slate-800 leading-relaxed font-sans italic">
+                                    <p class="text-xs text-slate-800 leading-relaxed font-sans italic">
                                         "${comment}"
                                     </p>
                                 </div>
@@ -743,7 +766,7 @@
                 // Phục hồi trạng thái nút chấm điểm
                 if (btn) btn.disabled = false;
                 if (icon) icon.textContent = '🎯';
-                if (text) text.textContent = 'Chấm Điểm Nét AI (Sensei Phê Điểm)';
+                if (text) text.textContent = 'Chấm Điểm Nét AI (Chuyên Gia Phê Điểm)';
             }, 500);
         }
 
@@ -813,9 +836,9 @@
                 });
                 const data = await res.json();
                 closeDeckModal();
-                showToast(data.message || 'Đã cất chữ vào bộ thẻ thành công, tha hồ lôi ra cày cuốc! 🗂️', 'success');
+                showToast.success(data.message || `Đã lưu chữ Kanji [${activeKanjiChar || '愛'}] vào bộ thẻ thành công! 🌸`);
             } catch(err) {
-                showToast('Lỗi khi lưu vào bộ thẻ: ' + err.message, 'warning');
+                showToast.danger('Lỗi khi lưu vào bộ thẻ: ' + err.message);
             } finally {
                 if (btn) {
                     btn.disabled = false;

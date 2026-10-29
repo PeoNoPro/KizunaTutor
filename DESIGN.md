@@ -169,3 +169,31 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
 - **Nhãn, Badge, Meta:** `ui-sans-serif`, system-ui (11px, 7px).
 - **Nguyên tắc hành động (UX Rule):** Chỉ có DUY NHẤT 1 nút bấm Primary CTA trên mỗi màn hình/khối nhìn. Các nút khác dùng dạng Outlined (nền trắng viền đen) hoặc Secondary.
 
+### 4. Quy tắc Cố Định Khung & Chống Co Dãn Bố Cục (Zero Layout Shift & Fixed Frame Containment):
+- **Cố định kích thước khung Card (Fixed Container Heights):** Mọi ô box thẻ bài, thư mục bộ thẻ (Flashcard Decks, Kanji Cards, Course Cards) trên lưới Grid/Flex BẮT BUỘC phải có chiều cao và kích thước cố định đồng nhất (ví dụ: `h-[360px] max-h-[360px]`). Không cho phép các card trong cùng một hàng/lưới có chiều cao khác nhau gây trồi sụt, xô lệch layout.
+- **Cố định khung nội dung con (Fixed Inner Content Box):** Khu vực hiển thị nội dung động (như danh sách chip chữ Hán, trạng thái rỗng Empty State, đoạn mô tả tóm tắt) BẮT BUỘC phải được đặt trong ô box cố định kích thước (`h-[155px] max-h-[155px] overflow-y-auto`). Khi số lượng phần tử con tăng lên hoặc khi chuyển giữa trạng thái rỗng và có dữ liệu, ô box phải giữ nguyên chiều cao, cho phép cuộn nội bộ mượt mà thay vì làm co dãn hoặc phình to thẻ cha.
+- **Bóc tách Menu tùy chọn nổi (Decoupled Floating Menus):** Các menu thao tác bổ sung (Kebab Menu 3 chấm [⋮], Dropdown Actions, Popovers) BẮT BUỘC phải định vị tuyệt đối (`position: absolute; z-index: 50;`) nổi hoàn toàn trên bề mặt giao diện. Cụm nút bấm kích hoạt phải có `relative shrink-0 w-8 h-8`. Khi mở hoặc đóng menu, tuyệt đối không được làm thay đổi kích thước của nút, không làm co kéo các nút flex bên cạnh, và không được đẩy hoặc làm biến dạng ô box chứa nó.
+
+### 5. Quy Chuẩn Hệ Thống Thông Báo Nổi Toàn Cục (Global Passive Toast Notifications - KizunaToast):
+- **Phân tách dứt khoát 2 cơ chế phản hồi:**
+  1. *Interactive Modal / Dialog (`KizunaDialog`):* Dành riêng cho các tác vụ quan trọng cần chặn màn hình và yêu cầu người dùng xác nhận hoặc tương tác trực tiếp (Chấm điểm nét AI, nộp bài kiểm tra, xác nhận xóa vĩnh viễn, thanh toán học phí).
+  2. *Passive Toast Notification (`KizunaToast` / `showToast`):* Dành cho phản hồi trạng thái nền không cần tương tác (Lưu thành công, thêm Hán tự vào bộ thẻ, xóa tạm, cập nhật trạng thái, copy đường link, cảnh báo nhẹ). Tự động hiển thị và tự biến mất sau 3.5 giây, không chặn thao tác chuột/bàn phím (`pointer-events-none` cho container, `pointer-events-auto` cho từng thẻ toast).
+- **Vị trí cố định (Container Placement):** Góc dưới bên phải màn hình (`fixed bottom-5 right-5 z-[9999]`), thông báo mới đẩy thông báo cũ lên trên theo chiều dọc (`flex flex-col-reverse gap-2.5`).
+- **Quy chuẩn Retro-Brutalist Hard Shadow:**
+  - Viền đen than sắc sảo `border border-[#0F172A]`, bo góc chuẩn `rounded-[5px]`.
+  - Đổ bóng cứng Retro `shadow-[3px_3px_0px_0px_#0F172A]`.
+  - Typography: Tiêu đề font `Itim`, nội dung font `Segoe UI` (`text-xs`).
+  - Có nút đóng nhanh `✕` (`text-xs font-bold`) cho phép người dùng ẩn ngay lập tức.
+- **Bảng biến thể màu sắc ngữ nghĩa (Semantic Variants):**
+  - **Thành công (Success / Lưu / Khởi tạo):** Nền xanh lá dịu `bg-[#DCFCE7]`, viền `#0F172A`, chữ `#14532D`, icon `🌸` hoặc `✅`.
+  - **Cảnh báo (Warning):** Nền vàng pastel `bg-[#FEF3C7]`, viền `#0F172A`, chữ `#78350F`, icon `⚠️`.
+  - **Xóa / Lỗi (Danger / Delete):** Nền đỏ/hồng nhạt `bg-[#FEE2E2]`, viền `#0F172A`, chữ `#7F1D1D`, icon `🗑️` hoặc `❌`.
+  - **Thông tin chung (Info):** Nền xanh biển nhạt `bg-[#E0F2FE]`, viền `#0F172A`, chữ `#0C4A6E`, icon `💡`.
+- **CẤM TUYỆT ĐỐI INLINE ALERT BOX (Zero Layout Shift):** Tuyệt đối không được chèn các khối thông báo tĩnh/nội bộ (`<div class="alert">`, `#deckAlertBox`) nằm chen ngang giữa thanh tìm kiếm/bộ lọc và danh sách thẻ hiển thị. Hành vi này làm đẩy lưới phần tử xuống, gây giật lag và phá vỡ bố cục thị giác. Toàn bộ thông báo trạng thái phải sử dụng `showToast` nổi ngoài luồng văn bản.
+
+### 6. Quy Chuẩn Ô Nhập Số Nét & Thanh Điều Khiển Canvas (Compact Controls & Streamlined Toolbars):
+- **Ô nhập số nét (Stroke count input):** BẮT BUỘC có độ rộng cố định nhỏ gọn `w-20` (80px) với placeholder `"Số nét"`. Cấm để ô nhập số nét co dãn tự do hoặc chiếm diện tích lớn gây chèn ép, bóp nghẹt các bộ lọc quan trọng lân cận (Bộ thủ Hán tự, Cấp độ JLPT).
+- **Thanh công cụ Shodo Canvas (`practice-canvas.html`):** Tối giản và trực quan. Chỉ duy trì các công cụ thực chất (`Phát Hướng Dẫn / Phát Lại`, `Nét Mờ`, `Xóa`, `Chấm Điểm Nét AI`). Nút phát hướng dẫn tự động chuyển đổi nhãn và trạng thái thành `Phát Lại` sau khi chạy xong animation nét vẽ, cấm tạo thêm nút "Vẽ Lại" dư thừa gây rối mắt người học.
+
+
+

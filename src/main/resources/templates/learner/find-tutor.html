@@ -16,6 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Nạp script xác thực toàn cục và từ điển ngôn ngữ -->
     <script th:src="@{/js/globalAuth.js}"></script>
+    <script th:src="@{/js/common/kizunaToast.js}"></script>
     <script th:src="@{/js/locales/learner-copy.js}"></script>
 </head>
 <body class="bg-[#FAF9F6] text-black font-body antialiased">
@@ -89,9 +90,6 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- THÔNG BÁO FLASH MESSAGE TOAST NẾU CÓ THAO TÁC -->
-                    <div id="tutorAlertBox" style="display: none;" class="card-nhai p-3.5 rounded-[5px] border border-black text-xs font-semibold shadow-[3px_3px_0px_0px_#000000]"></div>
 
                     <!-- ==========================================
                          BLOCK C: LƯỚI THẺ GIA SƯ (TUTOR CARD GRID)
@@ -525,15 +523,12 @@
             }
         }
 
-        function showTutorAlert(msg, isSuccess) {
-            const box = document.getElementById('tutorAlertBox');
-            if (!box) return;
-            box.style.display = 'block';
-            box.style.background = isSuccess ? '#ECFDF5' : '#FEF2F2';
-            box.style.borderColor = '#000000';
-            box.style.color = isSuccess ? '#065F46' : '#991B1B';
-            box.textContent = msg;
-            setTimeout(() => { box.style.display = 'none'; }, 4000);
+        function showTutorAlert(msg, isSuccess = true) {
+            if (isSuccess) {
+                showToast.success(msg);
+            } else {
+                showToast.danger(msg);
+            }
         }
     </script>
     <script th:src="@{/js/learner/sakuraSticker.js}"></script>

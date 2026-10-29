@@ -10,3 +10,6 @@
 [submodule ".skills/taste-skill"]
 	path = .skills/taste-skill
 	url = https://github.com/Leonxlnx/taste-skill.git
+[submodule ".skills/ponytail"]
+	path = .skills/ponytail
+	url = https://github.com/DietrichGebert/ponytail.git

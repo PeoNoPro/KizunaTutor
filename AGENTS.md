@@ -43,6 +43,9 @@ When creating or modifying frontend components, pages, or templates:
    - Do NOT output repetitive 3-column card layouts without semantic hierarchy.
    - Respect Japanese typography rules: ensure `font-family` supports Japanese glyphs (`"Noto Sans JP"`, `"Zen Kaku Gothic New"`).
    - Kanji practice canvases must strictly align with the `109x109` KanjiVG coordinate system.
+4. **Zero Layout Shift & Fixed Frame Containment Rule**:
+   - All card components (Decks, Folders, Kanji Cards, Curriculum Blocks) must maintain strictly fixed outer dimensions (`h-[360px] max-h-[360px]`) and fixed inner content boxes (`h-[155px] max-h-[155px] overflow-y-auto`).
+   - Floating action menus (kebab 3-dots `[⋮]`, dropdown actions, popovers) must be decoupled via `position: absolute; z-index: 50; shrink-0` so they never stretch, squeeze, or shift their parent container or sibling controls. Empty states and dynamic chip lists must fit within the fixed inner box without changing card height.
 
 ---
 
@@ -100,3 +103,21 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
   - Đúng: `Mã OTP không chính xác. Bạn còn 3 lần thử lại.`
   - Sai: `LỖI! MÃ OTP SAI! HÃY NHẬP LẠI NGAY!`
 - **Ngoại lệ:** Chỉ viết hoa toàn bộ đối với các từ viết tắt chuyên môn / chuẩn quốc tế đã được quy ước (như `OTP`, `JLPT`, `AI`, `SVG`, `UI/UX`, `ID`, `JWT`).
+
+---
+
+## 4. Engineering & Code Economy Guidelines (from `DietrichGebert/ponytail`)
+
+Tuân thủ nguyên tắc lập trình tinh gọn (Lazy Senior Developer & Strict YAGNI Mode):
+1. **The Best Code is the Code Never Written:**
+   - Luôn giải quyết trọn vẹn yêu cầu bài toán với lượng code mới ít nhất có thể.
+   - Ưu tiên tái sử dụng các hàm helper, component, service và quy ước có sẵn trong dự án KizunaTutor.
+   - Tuyệt đối không thêm abstraction, wrapper, class, interface hay tính năng "dành cho tương lai" mà người dùng chưa yêu cầu.
+2. **Lazy About the Solution, Thorough About Context:**
+   - Lười viết code thừa nhưng luôn đọc kỹ và bao quát toàn bộ ngữ cảnh trước khi sửa: đọc kỹ lời gọi hàm (callers), luồng dữ liệu, test, config và các điểm có thể bị ảnh hưởng.
+   - Sửa lỗi tận gốc ở mã nguồn chung, kiểm tra toàn bộ các nơi đang gọi trước khi sửa đổi chữ ký hoặc hành vi.
+3. **Bảo toàn bất biến (Non-Negotiable Boundaries):**
+   - Giữ nguyên vẹn cơ chế xác thực dữ liệu tại ranh giới người dùng/hệ thống, xử lý ngoại lệ chống mất mát dữ liệu, bảo mật và khả năng tiếp cận (Accessibility).
+   - Bảo toàn 3 nguyên tắc bất biến nền tảng ở đầu tài liệu này (`[IMMUTABLE CORE GUARDRAILS]`).
+4. **Tính minh bạch & Trách nhiệm (Accountability):**
+   - Luôn kiểm tra kỹ lưỡng các thay đổi và tự tin giải thích rõ ràng: phần nào đã được cập nhật, phần nào không cần đụng đến, và cảnh báo sớm nếu có bất kỳ rủi ro biên nào người dùng cần lưu ý.

@@ -69,3 +69,4 @@ Mọi trợ lý AI (Antigravity, Cursor, Claude Code, Copilot) khi lập trình 
 1. **Xác định đúng Feature Domain:** Đặt file mới vào đúng thư mục trong `features/<feature_name>/...`.
 2. **Khai báo Package chuẩn:** `package com.kizuna.features.<feature_name>.<subpackage>;`.
 3. **Không tạo class tự do ở tầng gốc `com.kizuna`** ngoại trừ `KizunaBackendApplication.java`.
+

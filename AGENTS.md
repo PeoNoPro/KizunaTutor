@@ -120,3 +120,10 @@ Khi tạo mới Controller, Service, Repository, Entity hoặc DTO, AI BẮT BU�
 - `com.kizuna.features.admin`: Quản trị hệ thống, tài khoản nhân viên & báo cáo.
 - `com.kizuna.features.notification`: Quản lý và phát thông báo hệ thống.
 
+---
+
+## 5. Quy tắc Git & Quản trị nhánh (Strict Local Only - Không tự ý Push)
+
+- **TUYỆT ĐỐI KHÔNG TỰ Ý CHẠY `git push` LÊN REMOTE:** Mọi thay đổi hoặc commit chỉ được thực hiện ở máy cục bộ (Local). AI tuyệt đối không bao giờ được tự ý thực hiện lệnh `git push` lên GitHub / GitLab / Remote server. Việc đẩy code lên remote hoàn toàn do người dùng trực tiếp kiểm tra và tự gõ lệnh push.
+
+

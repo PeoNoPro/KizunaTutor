@@ -74,10 +74,11 @@ if (typeof tailwind !== 'undefined') {
                 fontFamily: {
                     sans: ['"Noto Sans JP"', 'Inter', '"Segoe UI"', 'sans-serif'],
                     body: ['"Noto Sans JP"', 'Inter', '"Segoe UI"', 'sans-serif'],
-                    kanji: ['"Noto Sans JP"', '"Noto Serif JP"', 'serif'],
+                    kanji: ['"Noto Serif JP"', '"Noto Sans JP"', 'serif'],
+                    serif: ['"Noto Serif JP"', 'serif'],
                     meta: ['Inter', '"Segoe UI"', 'sans-serif'],
-                    brand: ['Itim', 'cursive'],
-                    itim: ['Itim', 'cursive'],
+                    brand: ['Comfortaa', 'Itim', 'cursive', 'sans-serif'],
+                    itim: ['Comfortaa', 'Itim', 'cursive', 'sans-serif'],
                 },
                 boxShadow: {
                     'sm': '0 1px 2px 0 rgba(15, 23, 42, 0.05)',

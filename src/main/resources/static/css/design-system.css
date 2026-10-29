@@ -1352,7 +1352,11 @@ button:disabled {
 
 /* Typography Utility Classes */
 .font-itim {
-    font-family: 'Itim', cursive !important;
+    font-family: 'Comfortaa', 'Itim', 'Segoe UI', cursive, sans-serif !important;
+}
+
+.font-kanji {
+    font-family: 'Noto Serif JP', 'Noto Sans JP', serif !important;
 }
 
 .font-body {

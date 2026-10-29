@@ -27,12 +27,20 @@ public class LearnerKanjiApiController {
 
     private final KanjiDictionaryRepository kanjiRepository;
     private final HandwritingSearchService handwritingSearchService;
+    private final com.kizuna.service.IKanjiFolderService folderService;
 
     @Data
     public static class SaveToDeckRequest {
         private UUID kanjiId;
         private String kanjiChar;
+        private String character;
         private String targetDeckName;
+        private String targetDeckId;
+        private String hanViet;
+        private String meaning;
+        private Short strokeCount;
+        private String onyomi;
+        private String kunyomi;
     }
 
     /**
@@ -141,17 +149,98 @@ public class LearnerKanjiApiController {
     }
 
     /**
-     * 3. Lưu nhanh chữ Kanji vào bộ thẻ cá nhân của học viên
+     * 3. Lưu nhanh chữ Kanji vào bộ thẻ cá nhân của học viên và đồng bộ cơ sở dữ liệu
      */
     @PostMapping("/save-card")
     public ResponseEntity<Map<String, Object>> saveToDeck(@RequestBody SaveToDeckRequest request) {
-        String deck = (request.getTargetDeckName() != null && !request.getTargetDeckName().isBlank())
-                ? request.getTargetDeckName()
-                : "Bộ Thẻ Mặc Định";
+        String deckName = (request.getTargetDeckName() != null && !request.getTargetDeckName().isBlank())
+                ? request.getTargetDeckName().trim()
+                : "Bộ Thẻ Cá Nhân";
+
+        String kanjiChar = request.getCharacter() != null && !request.getCharacter().isBlank()
+                ? request.getCharacter().trim()
+                : (request.getKanjiChar() != null ? request.getKanjiChar().trim() : null);
+
+        UUID kanjiId = request.getKanjiId();
+        if (kanjiId != null) {
+            java.util.Optional<KanjiDictionary> kOpt = kanjiRepository.findById(kanjiId);
+            if (kOpt.isPresent() && kanjiChar == null) {
+                kanjiChar = kOpt.get().getKanjiCharacter();
+            }
+        }
+
+        if (kanjiId == null && kanjiChar != null) {
+            java.util.Optional<KanjiDictionary> kOpt = kanjiRepository.findByKanjiCharacter(kanjiChar);
+            if (kOpt.isPresent()) {
+                kanjiId = kOpt.get().getKanjiId();
+            } else {
+                var offlineOpt = handwritingSearchService.getOfflineKanji(kanjiChar);
+                String hanViet = request.getHanViet() != null ? request.getHanViet()
+                        : (offlineOpt.map(HandwritingSearchService.OfflineKanji::han_viet).orElse("HÁN TỰ"));
+                String meaning = request.getMeaning() != null ? request.getMeaning()
+                        : (offlineOpt.map(HandwritingSearchService.OfflineKanji::meaning).orElse(""));
+                String onyomi = request.getOnyomi() != null ? request.getOnyomi()
+                        : (offlineOpt.map(HandwritingSearchService.OfflineKanji::onyomi).orElse("-"));
+                String kunyomi = request.getKunyomi() != null ? request.getKunyomi()
+                        : (offlineOpt.map(HandwritingSearchService.OfflineKanji::kunyomi).orElse("-"));
+                Short strokes = request.getStrokeCount() != null ? request.getStrokeCount() : (short) 4;
+
+                String singleChar = kanjiChar.substring(0, 1);
+                String hex = String.format("%04x", (int) singleChar.charAt(0));
+                KanjiDictionary newKanji = KanjiDictionary.builder()
+                        .kanjiCharacter(singleChar)
+                        .unicodeHex(hex)
+                        .hanViet(hanViet)
+                        .meaning(meaning)
+                        .onyomi(onyomi)
+                        .kunyomi(kunyomi)
+                        .strokeCount(strokes)
+                        .radical(singleChar)
+                        .build();
+                newKanji = kanjiRepository.save(newKanji);
+                kanjiId = newKanji.getKanjiId();
+            }
+        }
+
+        if (kanjiId == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Không tìm thấy thông tin chữ Kanji hợp lệ để cất vào bộ thẻ"
+            ));
+        }
+
+        // Tìm hoặc tạo bộ thẻ
+        UUID deckId = null;
+        if (request.getTargetDeckId() != null && !request.getTargetDeckId().isBlank()) {
+            try {
+                deckId = UUID.fromString(request.getTargetDeckId().trim());
+            } catch (Exception ignored) {}
+        }
+
+        if (deckId == null) {
+            var userFolders = folderService.getUserFolders(null);
+            var matched = userFolders.stream()
+                    .filter(f -> f.getFolderName().equalsIgnoreCase(deckName))
+                    .findFirst();
+            if (matched.isPresent()) {
+                deckId = matched.get().getFolderId();
+            } else {
+                var createReq = new com.kizuna.dto.minigame.CreateKanjiFolderRequest();
+                createReq.setFolderName(deckName);
+                createReq.setDescription("Tạo từ bảng vẽ Shodo");
+                createReq.setColor("#15803D");
+                var created = folderService.createFolder(null, createReq);
+                deckId = created.getFolderId();
+            }
+        }
+
+        folderService.addKanjiToFolder(deckId, kanjiId);
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "Đã lưu chữ Kanji [" + request.getKanjiChar() + "] vào bộ thẻ [" + deck + "] của bạn!"
+                "message", "Đã lưu chữ Kanji [" + (kanjiChar != null ? kanjiChar : "") + "] vào bộ thẻ [" + deckName + "] của bạn! 🌸",
+                "deckId", deckId,
+                "kanjiId", kanjiId
         ));
     }
 

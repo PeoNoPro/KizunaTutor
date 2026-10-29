@@ -13,7 +13,7 @@
     <link rel="stylesheet" th:href="@{/css/learner/flashcards.css}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Itim&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@600;700&family=Inter:wght@400;500;600;700;800&family=Itim&family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Serif+JP:wght@600;700;900&display=swap" rel="stylesheet">
     <!-- Nạp script xác thực toàn cục và từ điển ngôn ngữ -->
     <script th:src="@{/js/globalAuth.js}"></script>
     <script th:src="@{/js/common/kizunaToast.js}"></script>
@@ -37,11 +37,11 @@
                     <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#000000] px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center flex-wrap gap-2">
-                                <h1 class="font-['Itim'] text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                <h1 class="font-itim text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
                                     Bộ Thẻ Ghi Nhớ Chữ Hán 🗂️
                                 </h1>
                             </div>
-                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
+                            <p class="font-sans text-xs text-slate-600 mt-1 truncate">
                                 Gom góp chữ khó nhằn vào đây để múa bút Shodo hoặc bắn chữ giải ngố nhé! 🧋
                             </p>
                         </div>
@@ -379,49 +379,107 @@
         </div>
     </div>
 
-    <!-- 3.3 MODAL CHỈNH SỬA THÔNG TIN BỘ THẺ -->
-    <div id="modalEditDeck" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="card-nhai bg-white rounded-[5px] max-w-md w-full p-6 shadow-[6px_6px_0px_0px_#000000] border-2 border-black space-y-4 text-xs font-body">
-            <div class="flex items-center justify-between pb-3 border-b border-black">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">✏️</span>
-                    <h3 class="font-itim text-lg font-bold text-black">Chỉnh Sửa Bộ Thẻ</h3>
+    <!-- 3.3 MODAL XEM CHI TIẾT DANH SÁCH CHỮ TRONG BỘ THẺ (MODAL DETAIL) -->
+    <div id="deckDetailModal" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card-nhai bg-white rounded-[5px] max-w-lg w-full p-4 sm:p-5 shadow-[6px_6px_0px_0px_#000000] border-2 border-black space-y-3 text-xs font-body max-h-[85vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-2.5 border-b border-black shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-xl shrink-0">👁️</span>
+                    <h3 class="font-itim text-lg font-bold text-black truncate" id="deckDetailTitle">Chi Tiết Bộ Thẻ</h3>
+                    <span id="deckDetailCount" class="badge-nhai bg-[#15803D]/10 text-[#15803D] border-black text-xs font-bold font-meta shrink-0">0 chữ</span>
                 </div>
-                <button type="button" onclick="closeEditDeckModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm">✕</button>
+                <button type="button" onclick="closeDeckDetailModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm leading-none" title="Đóng">✕</button>
             </div>
 
-            <form onsubmit="submitEditDeck(event)" class="space-y-3.5">
-                <input type="hidden" id="editDeckIdInput">
+            <!-- Action Toolbar in Modal -->
+            <div class="flex items-center justify-between gap-2 shrink-0 bg-[#FAF9F6] p-2 border border-black rounded-[5px]">
+                <span class="text-[11px] font-meta text-slate-600 truncate">Bấm vào chữ để luyện viết Shodo hoặc gỡ [✕] ra:</span>
+                <button type="button" 
+                        onclick="openAddKanjiFromDetail()"
+                        class="btn-retro px-2.5 py-1 rounded-[5px] bg-[#E0399A] hover:bg-[#c22d81] text-white border border-black text-xs font-itim font-bold shadow-[2px_2px_0px_0px_#000000] flex items-center gap-1 transition active:scale-95 shrink-0">
+                    <span>➕</span>
+                    <span>Thêm Chữ Mới</span>
+                </button>
+            </div>
+
+            <!-- Grid Container for Kanji cards -->
+            <div id="deckCardsListContainer" class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-1 max-h-[50vh]">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-between pt-2.5 border-t border-black shrink-0">
+                <div id="deckDetailDesc" class="text-[11px] text-slate-500 font-meta truncate max-w-[280px]"></div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeDeckDetailModal()" class="btn-retro px-4 py-1.5 rounded-[5px] bg-white hover:bg-slate-100 text-black border border-black font-itim font-bold text-xs shadow-[2px_2px_0px_0px_#000000]">
+                        Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.4 MODAL CÀI ĐẶT BỘ THẺ THU GỌN (RETRO-BRUTALIST MAX-W-SM) -->
+    <div id="modalDeckSettings" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card-nhai bg-white rounded-[5px] max-w-sm w-full p-4 shadow-[5px_5px_0px_0px_#000000] border-2 border-black space-y-3 text-xs font-body">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-2 border-b border-black">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">⚙️</span>
+                    <h3 class="font-itim text-base font-bold text-black">Cài Đặt Bộ Thẻ</h3>
+                </div>
+                <button type="button" onclick="closeDeckSettingsModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm leading-none" title="Đóng">✕</button>
+            </div>
+
+            <!-- Form -->
+            <form onsubmit="submitDeckSettings(event)" class="space-y-3">
+                <input type="hidden" id="settingsDeckId">
+
                 <div>
-                    <label class="block font-bold text-black font-meta mb-1">
+                    <label class="block font-bold text-black font-meta mb-1 text-[11px]">
                         Tên bộ thẻ <span class="text-[#DC2626]">*</span>
                     </label>
                     <input type="text"
-                           id="editDeckNameInput"
+                           id="settingsDeckNameInput"
                            required
-                           class="input-nhai w-full px-3 py-2 rounded-[5px] border border-black text-black font-semibold font-body">
+                           placeholder="Nhập tên bộ thẻ..."
+                           class="w-full px-2.5 py-1.5 rounded-[5px] border border-black text-black text-xs font-semibold outline-none focus:ring-1 focus:ring-black shadow-[1.5px_1.5px_0px_0px_#000000]">
                 </div>
 
                 <div>
-                    <label class="block font-bold text-black font-meta mb-1">
+                    <label class="block font-bold text-black font-meta mb-1 text-[11px]">
                         Ghi chú / Mô tả bộ thẻ:
                     </label>
-                    <textarea id="editDeckDescInput"
-                              rows="3"
-                              class="input-nhai w-full px-3 py-2 rounded-[5px] border border-black text-black font-body"></textarea>
+                    <textarea id="settingsDeckDescInput"
+                              rows="2"
+                              placeholder="Ghi chú mục tiêu học tập..."
+                              class="w-full px-2.5 py-1.5 rounded-[5px] border border-black text-black text-xs outline-none focus:ring-1 focus:ring-black shadow-[1.5px_1.5px_0px_0px_#000000]"></textarea>
                 </div>
 
-                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-black">
+                <input type="hidden" id="settingsDeckColorInput" value="#15803D">
+
+                <!-- Footer nút lưu và nút xóa -->
+                <div class="flex items-center justify-between pt-2.5 border-t border-black">
                     <button type="button"
-                            onclick="closeEditDeckModal()"
-                            class="btn-nhai btn-nhai-outline px-4 py-2 rounded-[5px] font-itim font-bold">
-                        Hủy Bỏ
+                            onclick="deleteCurrentSettingsDeck()"
+                            class="px-2.5 py-1.5 rounded-[5px] bg-[#FEE2E2] hover:bg-[#DC2626] hover:text-white text-[#7F1D1D] border border-black font-bold font-itim text-xs shadow-[2px_2px_0px_0px_#000000] transition active:scale-95 flex items-center gap-1">
+                        <span>🗑️</span>
+                        <span>Xóa</span>
                     </button>
-                    <button type="submit"
-                            id="btnSubmitEditDeck"
-                            class="btn-nhai btn-nhai-learner px-5 py-2 rounded-[5px] font-itim font-bold shadow-retro">
-                        Lưu Thay Đổi
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button"
+                                onclick="closeDeckSettingsModal()"
+                                class="px-3 py-1.5 rounded-[5px] bg-white border border-black text-black hover:bg-slate-100 font-bold font-itim text-xs shadow-[2px_2px_0px_0px_#000000] transition">
+                            Hủy
+                        </button>
+                        <button type="submit"
+                                id="btnSubmitSettingsDeck"
+                                class="px-3.5 py-1.5 rounded-[5px] bg-[#15803D] hover:bg-[#166534] text-white border border-black font-bold font-itim text-xs shadow-[2px_2px_0px_0px_#000000] transition active:scale-95 flex items-center gap-1">
+                            <span>💾</span>
+                            <span>Lưu</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -547,16 +605,19 @@
             }
 
             try {
-                const res = await fetch('/api/user/kanji-folders', { headers: getAuthHeaders() });
+                let res = await fetch('/api/learner/decks', { headers: getAuthHeaders() });
+                if (!res.ok) {
+                    res = await fetch('/api/user/kanji-folders', { headers: getAuthHeaders() });
+                }
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data) && data.length > 0) {
                         allDecks = data.map(d => ({
-                            folderId: d.folderId,
-                            folderName: d.folderName,
+                            folderId: d.folderId || d.id,
+                            folderName: d.folderName || d.deckName,
                             description: d.description || '',
-                            kanjiCount: d.kanjiCount || (d.items ? d.items.length : 0),
-                            sampleChars: d.sampleChars || [],
+                            kanjiCount: d.kanjiCount != null ? d.kanjiCount : (d.items ? d.items.length : 0),
+                            sampleChars: d.sampleChars || (d.items ? d.items.map(i => i.kanjiChar || i.kanjiCharacter || i.character).filter(Boolean) : []),
                             items: d.items || []
                         }));
                     } else {
@@ -615,154 +676,106 @@
 
             grid.innerHTML = decks.map(deck => {
                 const items = deck.items || [];
-                const count = deck.kanjiCount || items.length;
-
-                // Tạo khu vực danh sách chữ Kanji bên trong ô box cố định 155px
-                let kanjiContentHtml = '';
-                if (count === 0 || items.length === 0) {
-                    kanjiContentHtml = `
-                        <div class="h-full flex flex-col items-center justify-center text-center space-y-1.5 select-none py-1">
-                            <img src="/images/stickers/thinking-capi.png" 
-                                 alt="Capybara Suy Ngẫm" 
-                                 class="w-10 h-10 object-contain pointer-events-none" />
-                            <p class="text-[11px] font-body text-slate-600 leading-snug px-2">
-                                Chưa có chữ Kanji nào trong bộ. Hãy thêm chữ để bắt đầu học nhé!
-                            </p>
-                            <button type="button"
-                                    onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                    class="btn-nhai btn-nhai-learner px-2.5 py-1 text-xs font-itim font-bold inline-flex items-center gap-1 shadow-[2px_2px_0px_0px_#000000]">
-                                <span>➕</span>
-                                <span>Thêm Chữ Hán</span>
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    const chips = items.map(item => {
-                        const char = item.kanjiChar || item.kanjiCharacter || '';
-                        const kanjiId = item.id || item.kanjiId || '';
-                        const hanViet = item.hanViet || '';
-                        const meaning = item.meaning || '';
-                        return `
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] bg-white border border-black shadow-[1.5px_1.5px_0px_0px_#000000] text-xs font-bold group hover:border-[#15803D] transition-colors"
-                                  title="${escapeHtml(char)} - Âm Hán: ${escapeHtml(hanViet)}${meaning ? ' - ' + escapeHtml(meaning) : ''}">
-                                <span class="font-serif text-sm text-black">${escapeHtml(char)}</span>
-                                <button type="button"
-                                        onclick="removeKanjiFromDeck(event, '${deck.folderId}', '${kanjiId}', '${escapeHtml(char)}')"
-                                        class="w-3.5 h-3.5 ml-0.5 rounded-[3px] bg-slate-100 hover:bg-[#DC2626] hover:text-white text-[9px] flex items-center justify-center border border-black/20 transition-colors"
-                                        title="Xóa chữ ${escapeHtml(char)} khỏi bộ thẻ">
-                                    ✕
-                                </button>
-                            </span>
-                        `;
-                    }).join('');
-
-                    kanjiContentHtml = `
-                        <div class="h-full flex flex-col">
-                            <div class="text-[10px] font-meta text-slate-500 font-semibold mb-1.5 uppercase tracking-wider shrink-0">Chữ trong bộ:</div>
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                ${chips}
-                                <button type="button"
-                                        onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                        class="w-7 h-7 rounded-[5px] bg-[#15803D]/10 hover:bg-[#15803D] hover:text-white border border-black text-[#15803D] font-bold text-xs flex items-center justify-center transition-colors shadow-[1px_1px_0px_0px_#000000]"
-                                        title="Thêm chữ Hán vào bộ">
-                                    ➕
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }
+                const count = deck.kanjiCount != null ? deck.kanjiCount : items.length;
 
                 // Chữ đầu tiên để luyện viết (nếu có)
                 const firstChar = (items.length > 0 && (items[0].kanjiChar || items[0].kanjiCharacter)) ? (items[0].kanjiChar || items[0].kanjiCharacter) : '';
 
                 return `
-                    <div class="deck-card-container card-nhai card-nhai-learner bg-white rounded-[5px] border border-black p-4 sm:p-5 shadow-[4px_4px_0px_0px_#000000] relative">
-                        <!-- HEADER CARD: Tên bộ thẻ & Badge số lượng chữ -->
-                        <div class="shrink-0">
-                            <div class="flex items-start justify-between gap-2 mb-2 pb-2 border-b border-black">
-                                <h3 class="font-itim text-lg font-bold text-black leading-snug line-clamp-1" title="${escapeHtml(deck.folderName)}">
-                                    ${escapeHtml(deck.folderName)}
-                                </h3>
-                                <span class="badge-nhai bg-[#15803D]/10 text-[#15803D] border-black text-xs font-bold font-meta shrink-0">
-                                    ${count} chữ
-                                </span>
+                    <div class="deck-card-container card-nhai card-nhai-learner bg-white rounded-[5px] border border-black p-3.5 sm:p-4 shadow-[4px_4px_0px_0px_#000000] relative flex flex-col justify-between">
+                        <div>
+                            <!-- HEADER CARD: Tên bộ thẻ (trái) + Badge (trái) + Nút Tùy Chọn / Thêm chức năng (phải) -->
+                            <div class="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-black/15">
+                                <div class="flex items-center gap-2 min-w-0 flex-1">
+                                    <h3 class="font-itim text-base font-bold text-black leading-none truncate" title="${escapeHtml(deck.folderName)}">
+                                        ${escapeHtml(deck.folderName)}
+                                    </h3>
+                                    <span class="badge-nhai bg-[#15803D]/10 text-[#15803D] border border-black text-[11px] font-bold font-meta shrink-0">
+                                        🌸 ${count} chữ
+                                    </span>
+                                </div>
+
+                                <!-- Nút hiển thị thêm chức năng (3 chấm ⋮) với dropdown nổi độc lập -->
+                                <div class="deck-menu-container shrink-0 relative">
+                                    <button type="button" 
+                                            onclick="toggleDeckMenu(event, '${deck.folderId}')" 
+                                            class="w-7 h-7 flex items-center justify-center border border-black rounded-[4px] bg-white hover:bg-slate-100 shadow-[1.5px_1.5px_0px_0px_#000000] text-sm font-bold text-black transition active:scale-95 cursor-pointer"
+                                            title="Thêm chức năng & Tùy chọn bộ thẻ">
+                                        ⋮
+                                    </button>
+                                    <div id="deckMenu_${deck.folderId}" class="deck-dropdown-menu hidden">
+                                        <button type="button" onclick="openDeckDetailModal('${deck.folderId}')">
+                                            <span>👁️</span><span>Xem danh sách chữ</span>
+                                        </button>
+                                        <button type="button" onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')">
+                                            <span>➕</span><span>Thêm chữ vào bộ</span>
+                                        </button>
+                                        <button type="button" onclick="openDeckSettingsModal('${deck.folderId}')">
+                                            <span>⚙️</span><span>Cài đặt bộ thẻ</span>
+                                        </button>
+                                        <button type="button" onclick="duplicateDeck('${deck.folderId}')">
+                                            <span>📋</span><span>Nhân bản bộ thẻ</span>
+                                        </button>
+                                        <button type="button" onclick="openMergeDeckModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')">
+                                            <span>🔀</span><span>Gộp bộ thẻ</span>
+                                        </button>
+                                        <button type="button" onclick="printDeckSheet('${deck.folderId}')">
+                                            <span>🖨️</span><span>In thẻ / Xuất PDF</span>
+                                        </button>
+                                        <div class="border-t border-black/20 my-1"></div>
+                                        <button type="button" onclick="openConfirmDeleteModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')" class="text-[#DC2626] font-bold">
+                                            <span>🗑️</span><span>Xóa bộ thẻ</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
-                            <!-- MÔ TẢ BỘ THẺ (CỐ ĐỊNH 32px) -->
-                            <p class="text-xs text-slate-600 font-body line-clamp-2 h-[32px] mb-2 leading-relaxed overflow-hidden">
+                            <!-- MÔ TẢ BỘ THẺ (CỐ ĐỊNH 2 DÒNG KHÔNG TRÀN) -->
+                            <p class="text-xs text-slate-600 font-body line-clamp-2 h-[34px] leading-relaxed overflow-hidden my-1" title="${escapeHtml(deck.description || '')}">
                                 ${escapeHtml(deck.description || 'Bộ thẻ từ vựng tự soạn cá nhân.')}
                             </p>
                         </div>
 
-                        <!-- Ô BOX HIỂN THỊ NỘI DUNG THƯ MỤC CỐ ĐỊNH 155px (CHỐNG CO DÃN) -->
-                        <div class="deck-content-box">
-                            ${kanjiContentHtml}
-                        </div>
-
-                        <!-- CỤM NÚT HÀNH ĐỘNG DƯỚI CARD CỐ ĐỊNH -->
-                        <div class="pt-3 mt-3 border-t border-black flex items-center gap-2 shrink-0 relative">
-                            <!-- NÚT 1: Luyện Viết -->
+                        <!-- CỤM 4 NÚT HÀNH ĐỘNG Ở ĐÁY THẺ (ACTION ROW) -->
+                        <div class="grid grid-cols-4 gap-1.5 mt-3 pt-2.5 border-t border-black/10">
+                            <!-- 1. Nút Luyện Viết -->
                             ${firstChar ? `
-                                <a href="/learner/practice-canvas?char=${encodeURIComponent(firstChar)}"
-                                   class="btn-nhai btn-nhai-learner flex-1 py-1.5 px-3 rounded-[5px] text-xs font-itim font-bold flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000000] no-underline"
-                                   title="Luyện viết nét các chữ trong bộ trên bảng Canvas Shodo">
-                                    <span>✍️</span><span>Luyện Viết</span>
+                                <a href="/learner/practice-canvas?char=${encodeURIComponent(firstChar)}&deckId=${encodeURIComponent(deck.folderId)}" 
+                                   class="btn-retro text-xs py-1.5 px-1 bg-[#15803D] hover:bg-[#166534] text-white flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] no-underline font-itim font-bold transition active:translate-y-0.5 truncate"
+                                   title="Luyện viết nét các chữ trong bộ trên Canvas Shodo">
+                                    🖌️ Viết
                                 </a>
                             ` : `
                                 <button type="button"
                                         onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                        class="btn-nhai btn-nhai-outline flex-1 py-1.5 px-3 rounded-[5px] text-xs font-itim font-bold flex items-center justify-center gap-1.5 text-slate-500 hover:text-black shadow-[2px_2px_0px_0px_#000000]"
-                                        title="Chưa có chữ để luyện viết">
-                                    <span>✍️</span><span>Luyện Viết</span>
+                                        class="btn-retro text-xs py-1.5 px-1 bg-slate-100 text-slate-600 hover:text-black flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] font-itim font-bold transition truncate"
+                                        title="Chưa có chữ nào trong bộ. Bấm để thêm chữ!">
+                                    ➕ Thêm
                                 </button>
                             `}
 
-                            <!-- NÚT 2: Bắn Chữ Minigame -->
-                            <a href="/kanji?tab=folders&folderId=${encodeURIComponent(deck.folderId)}"
-                               class="btn-nhai flex-1 py-1.5 px-3 rounded-[5px] text-xs font-itim font-bold flex items-center justify-center gap-1.5 bg-white text-black border border-black hover:!bg-[#E76F51] hover:!text-white transition-colors shadow-[2px_2px_0px_0px_#000000] no-underline"
+                            <!-- 2. Nút Bắn Chữ -->
+                            <a href="/kanji?tab=folders&folderId=${encodeURIComponent(deck.folderId)}" 
+                               class="btn-retro text-xs py-1.5 px-1 bg-[#FEF08A] hover:bg-amber-300 text-black flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] no-underline font-itim font-bold transition active:translate-y-0.5 truncate"
                                title="Chơi minigame phản xạ Kanji Mưa Chữ với bộ thẻ này">
-                                <span>🎮</span><span>Bắn Chữ</span>
+                                🎮 Bắn
                             </a>
 
-                            <!-- NÚT 3: Icon 3 chấm [ ⋮ ] mở Dropdown Menu Nổi Độc Lập -->
-                            <div class="deck-menu-container">
-                                <button type="button"
-                                        onclick="toggleDeckMenu(event, '${deck.folderId}')"
-                                        class="btn-nhai btn-nhai-outline w-8 h-8 rounded-[5px] flex items-center justify-center text-sm font-bold text-black hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000000]"
-                                        title="Tùy chọn bộ thẻ">
-                                    ⋮
-                                </button>
-                                <!-- RETRO DROPDOWN MENU NỔI ĐỘC LẬP -->
-                                <div id="deckMenu_${deck.folderId}"
-                                     class="deck-dropdown-menu hidden">
-                                    <button type="button"
-                                            onclick="openEditDeckModal('${deck.folderId}')">
-                                        <span>✏️</span><span>Chỉnh sửa thông tin</span>
-                                    </button>
-                                    <button type="button"
-                                            onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')">
-                                        <span>➕</span><span>Thêm chữ vào bộ</span>
-                                    </button>
-                                    <button type="button"
-                                            onclick="duplicateDeck('${deck.folderId}')">
-                                        <span>📋</span><span>Nhân bản bộ thẻ</span>
-                                    </button>
-                                    <button type="button"
-                                            onclick="openMergeDeckModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')">
-                                        <span>🔀</span><span>Gộp bộ thẻ</span>
-                                    </button>
-                                    <button type="button"
-                                            onclick="printDeckSheet('${deck.folderId}')">
-                                        <span>🖨️</span><span>In thẻ / Xuất PDF</span>
-                                    </button>
-                                    <div class="border-t border-black/20 my-1"></div>
-                                    <button type="button"
-                                            onclick="openConfirmDeleteModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                            class="text-[#DC2626] font-bold">
-                                        <span>🗑️</span><span>Xóa bộ thẻ</span>
-                                    </button>
-                                </div>
-                            </div>
+                            <!-- 3. Nút Xem Danh Sách Chữ -->
+                            <button type="button" 
+                                    onclick="openDeckDetailModal('${deck.folderId}')" 
+                                    class="btn-retro text-xs py-1.5 px-1 bg-white hover:bg-pink-50 text-black flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] font-itim font-bold transition active:translate-y-0.5 cursor-pointer truncate"
+                                    title="Xem chi tiết danh sách chữ Kanji trong bộ">
+                                👁️ Xem
+                            </button>
+
+                            <!-- 4. Nút Cài đặt / Tùy chọn -->
+                            <button type="button" 
+                                    onclick="openDeckSettingsModal('${deck.folderId}')" 
+                                    class="btn-retro text-xs py-1.5 px-1 bg-slate-100 hover:bg-slate-200 text-black flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] font-itim font-bold transition active:translate-y-0.5 cursor-pointer truncate"
+                                    title="Cài đặt & Tùy chọn bộ thẻ">
+                                ⚙️ Cài đặt
+                            </button>
                         </div>
                     </div>
                 `;
@@ -1347,7 +1360,7 @@
                 return `
                     <div class="flex items-center justify-between p-2.5 rounded-[5px] bg-white border border-black shadow-[2px_2px_0px_0px_#000000] hover:bg-[#E76F51]/5 transition gap-2">
                         <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-10 h-10 rounded-[5px] bg-[#FAF9F6] border border-black flex items-center justify-center font-itim text-2xl font-bold shrink-0 shadow-[1px_1px_0px_0px_#000000]">
+                            <div class="w-10 h-10 rounded-[5px] bg-[#FAF9F6] border border-black flex items-center justify-center font-kanji font-serif text-2xl font-bold shrink-0 shadow-[1px_1px_0px_0px_#000000]">
                                 ${escapeHtml(kChar)}
                             </div>
                             <div class="min-w-0">
@@ -1461,7 +1474,7 @@
                         return `
                             <div class="flex items-center justify-between p-3 rounded-[5px] bg-[#F8FAFC] border border-black shadow-[2px_2px_0px_0px_#000000] gap-3">
                                 <div class="flex items-center gap-3 min-w-0">
-                                    <div class="w-10 h-10 rounded-[5px] bg-white border border-black flex items-center justify-center font-serif text-2xl font-bold shrink-0 shadow-[1px_1px_0px_0px_#000000]">
+                                    <div class="w-10 h-10 rounded-[5px] bg-white border border-black flex items-center justify-center font-kanji font-serif text-2xl font-bold shrink-0 shadow-[1px_1px_0px_0px_#000000]">
                                         ${escapeHtml(kChar)}
                                     </div>
                                     <div class="min-w-0">
@@ -1610,29 +1623,202 @@
         }
 
         /* =========================================================
-         * MODAL 3: CHỈNH SỬA THÔNG TIN BỘ THẺ
+         * MODAL 3.3: XEM CHI TIẾT DANH SÁCH CHỮ TRONG BỘ THẺ
          * ========================================================= */
-        function openEditDeckModal(folderId) {
+        let activeDetailDeckId = null;
+        let activeDetailDeckName = '';
+
+        async function openDeckDetailModal(deckId) {
+            activeDetailDeckId = deckId;
+            let deck = allDecks.find(d => d.folderId === deckId);
+            activeDetailDeckName = deck ? deck.folderName : 'Bộ Thẻ';
+
+            const modal = document.getElementById('deckDetailModal');
+            if (modal) modal.style.display = 'flex';
+
+            document.getElementById('deckDetailTitle').textContent = activeDetailDeckName;
+            document.getElementById('deckDetailCount').textContent = `🌸 ${deck?.kanjiCount || (deck?.items ? deck.items.length : 0)} chữ`;
+            document.getElementById('deckDetailDesc').textContent = deck?.description || '';
+
+            const container = document.getElementById('deckCardsListContainer');
+            container.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-slate-500 font-meta">Đang tải danh sách chữ Kanji trong bộ...</div>';
+
+            try {
+                let res = await fetch(`/api/learner/decks/${deckId}`, { headers: getAuthHeaders() });
+                if (!res.ok) {
+                    res = await fetch(`/api/user/kanji-folders/${deckId}`, { headers: getAuthHeaders() });
+                }
+
+                let items = [];
+                if (res.ok) {
+                    const data = await res.json();
+                    items = data.items || [];
+                    if (deck) {
+                        deck.items = items;
+                        deck.kanjiCount = items.length;
+                        deck.folderName = data.folderName || deck.folderName;
+                        deck.description = data.description || deck.description;
+                    }
+                } else if (deck && deck.items) {
+                    items = deck.items;
+                }
+
+                renderDeckCardsList(deckId, items);
+                document.getElementById('deckDetailCount').textContent = `🌸 ${items.length} chữ`;
+                renderDeckGrid(allDecks);
+            } catch (err) {
+                console.error("Lỗi tải chi tiết bộ thẻ:", err);
+                if (deck && deck.items) {
+                    renderDeckCardsList(deckId, deck.items);
+                } else {
+                    container.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-rose-500 font-meta">Không thể tải danh sách chữ. Vui lòng thử lại sau!</div>';
+                }
+            }
+        }
+
+        function renderDeckCardsList(deckId, items) {
+            const container = document.getElementById('deckCardsListContainer');
+            if (!container) return;
+
+            if (!items || items.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-8 text-center text-xs text-slate-400 font-semibold space-y-2 select-none">
+                        <div class="text-3xl">📭</div>
+                        <p class="text-slate-600 font-body">Chưa có chữ Hán nào trong bộ thẻ này.</p>
+                        <button type="button" 
+                                onclick="openAddKanjiFromDetail()" 
+                                class="btn-retro text-xs py-1.5 px-3 bg-[#E0399A] text-white rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000] font-itim font-bold inline-flex items-center gap-1 cursor-pointer">
+                            <span>➕</span> Thêm Chữ Ngay
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = items.map(c => {
+                const char = c.character || c.kanjiChar || c.kanjiCharacter || '';
+                const cardId = (c.id || c.kanjiId || '').toString();
+                const hanViet = c.hanViet || 'HÁN TỰ';
+                const meaning = c.meaning || 'Chưa có chú thích nghĩa';
+                const strokeCount = c.strokeCount || c.totalStrokes || '';
+
+                return `
+                    <div class="relative flex items-center gap-2.5 p-2 bg-white border border-black rounded-[5px] shadow-[2px_2px_0px_0px_#000000] hover:border-[#15803D] transition-colors group">
+                        <a href="/learner/practice-canvas?char=${encodeURIComponent(char)}&deckId=${encodeURIComponent(deckId)}"
+                           class="w-10 h-10 rounded-[4px] bg-[#FAF9F6] border border-black flex items-center justify-center font-kanji font-serif text-2xl font-bold text-black hover:text-[#15803D] shrink-0 no-underline shadow-[1px_1px_0px_0px_#000000] transition active:scale-95"
+                           title="Bấm để luyện viết nét chữ ${escapeHtml(char)} trên Canvas Shodo">
+                            ${escapeHtml(char)}
+                        </a>
+                        <div class="min-w-0 flex-1 pr-4">
+                            <div class="text-xs font-bold text-slate-800 font-itim truncate">${escapeHtml(hanViet)}</div>
+                            <div class="text-[10px] text-slate-500 font-sans truncate" title="${escapeHtml(meaning)}">${escapeHtml(meaning)}</div>
+                            ${strokeCount ? `<span class="badge-nhai bg-slate-100 text-black text-[9px] border-black font-bold font-meta">${strokeCount} nét</span>` : ''}
+                        </div>
+                        <button type="button" 
+                                title="Gỡ chữ ${escapeHtml(char)} khỏi bộ thẻ"
+                                onclick="removeCardFromDeck('${deckId}', '${cardId}', this, '${escapeHtml(char)}')"
+                                class="w-5 h-5 absolute top-1.5 right-1.5 flex items-center justify-center bg-rose-100 hover:bg-[#DC2626] hover:text-white border border-black rounded-[3px] text-[10px] font-bold text-rose-800 transition-colors cursor-pointer">
+                            ✕
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function closeDeckDetailModal() {
+            const modal = document.getElementById('deckDetailModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function openAddKanjiFromDetail() {
+            closeDeckDetailModal();
+            if (activeDetailDeckId) {
+                openAddKanjiModal(activeDetailDeckId, activeDetailDeckName);
+            }
+        }
+
+        async function removeCardFromDeck(deckId, cardId, btnElement, char) {
+            if (!confirm(`Bạn có chắc chắn muốn gỡ chữ "${char}" ra khỏi bộ thẻ này không?`)) return;
+
+            try {
+                let res = await fetch(`/api/learner/decks/${deckId}/cards/${cardId}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+                if (!res.ok) {
+                    res = await fetch(`/api/learner/flashcard-decks/${deckId}/kanji/${cardId}`, {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+                }
+                if (!res.ok) throw new Error("Gỡ chữ thất bại!");
+
+                const cardEl = btnElement.closest('.relative');
+                if (cardEl) cardEl.remove();
+
+                const deck = allDecks.find(d => d.folderId === deckId);
+                if (deck) {
+                    deck.items = (deck.items || []).filter(i => (i.id || i.kanjiId || '').toString() !== cardId.toString());
+                    deck.sampleChars = (deck.sampleChars || []).filter(c => c !== char);
+                    deck.kanjiCount = deck.items.length;
+                    const badge = document.getElementById('deckDetailCount');
+                    if (badge) badge.textContent = `🌸 ${deck.kanjiCount} chữ`;
+                    renderDeckGrid(allDecks);
+                }
+
+                showToast.success(`Đã gỡ chữ [${char}] khỏi bộ thẻ thành công! 🌸`);
+
+                const container = document.getElementById('deckCardsListContainer');
+                if (container && container.querySelectorAll('.relative').length === 0) {
+                    renderDeckCardsList(deckId, []);
+                }
+            } catch (err) {
+                console.error("Lỗi gỡ chữ:", err);
+                showToast.danger("Có lỗi xảy ra khi gỡ chữ khỏi bộ thẻ!");
+            }
+        }
+
+        /* =========================================================
+         * MODAL 3.4: CÀI ĐẶT BỘ THẺ THU GỌN (RETRO-BRUTALIST MAX-W-SM)
+         * ========================================================= */
+        function openDeckSettingsModal(folderId) {
             const deck = allDecks.find(d => d.folderId === folderId);
             if (!deck) return;
 
-            document.getElementById('editDeckIdInput').value = deck.folderId;
-            document.getElementById('editDeckNameInput').value = deck.folderName || '';
-            document.getElementById('editDeckDescInput').value = deck.description || '';
-            document.getElementById('modalEditDeck').style.display = 'flex';
-            document.getElementById('editDeckNameInput').focus();
+            document.getElementById('settingsDeckId').value = deck.folderId;
+            document.getElementById('settingsDeckNameInput').value = deck.folderName || '';
+            document.getElementById('settingsDeckDescInput').value = deck.description || '';
+            selectDeckColor(deck.color || '#15803D');
+
+            document.getElementById('modalDeckSettings').style.display = 'flex';
+            document.getElementById('settingsDeckNameInput').focus();
         }
 
-        function closeEditDeckModal() {
-            document.getElementById('modalEditDeck').style.display = 'none';
+        function closeDeckSettingsModal() {
+            const modal = document.getElementById('modalDeckSettings');
+            if (modal) modal.style.display = 'none';
         }
 
-        async function submitEditDeck(e) {
+        function selectDeckColor(color) {
+            document.getElementById('settingsDeckColorInput').value = color;
+            document.querySelectorAll('#settingsColorPicker .deck-color-btn').forEach(btn => {
+                if (btn.getAttribute('data-color') === color) {
+                    btn.textContent = '✓';
+                    btn.classList.add('ring-2', 'ring-black');
+                } else {
+                    btn.textContent = '';
+                    btn.classList.remove('ring-2', 'ring-black');
+                }
+            });
+        }
+
+        async function submitDeckSettings(e) {
             e.preventDefault();
-            const folderId = document.getElementById('editDeckIdInput').value;
-            const newName = document.getElementById('editDeckNameInput').value.trim();
-            const newDesc = document.getElementById('editDeckDescInput').value.trim();
-            const btn = document.getElementById('btnSubmitEditDeck');
+            const folderId = document.getElementById('settingsDeckId').value;
+            const newName = document.getElementById('settingsDeckNameInput').value.trim();
+            const newDesc = document.getElementById('settingsDeckDescInput').value.trim();
+            const newColor = document.getElementById('settingsDeckColorInput').value || '#15803D';
+            const btn = document.getElementById('btnSubmitSettingsDeck');
 
             if (!newName) {
                 showToast.warning('Tên bộ thẻ không được để trống bạn nhé!');
@@ -1648,7 +1834,8 @@
                     headers: getAuthHeaders(),
                     body: JSON.stringify({
                         folderName: newName,
-                        description: newDesc
+                        description: newDesc,
+                        color: newColor
                     })
                 });
 
@@ -1658,20 +1845,59 @@
                     if (deck) {
                         deck.folderName = updated.folderName || newName;
                         deck.description = updated.description || newDesc;
+                        deck.color = updated.color || newColor;
                     }
                     renderDeckGrid(allDecks);
-                    closeEditDeckModal();
-                    showDeckAlert(`Đã cập nhật thông tin bộ thẻ "${newName}" thành công! ✨`, true);
+                    closeDeckSettingsModal();
+                    showToast.success(`Đã cập nhật cài đặt bộ thẻ "${newName}" thành công! ✨`);
                 } else {
-                    showDeckAlert('Không thể cập nhật bộ thẻ. Vui lòng thử lại!', false);
+                    showToast.danger('Không thể cập nhật bộ thẻ. Vui lòng thử lại!');
                 }
             } catch(err) {
-                console.error("Lỗi sửa bộ thẻ:", err);
-                showDeckAlert('Có lỗi kết nối máy chủ khi lưu thông tin.', false);
+                console.error("Lỗi lưu cài đặt bộ thẻ:", err);
+                showToast.danger('Có lỗi kết nối máy chủ khi lưu cài đặt.');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Lưu Thay Đổi';
+                btn.innerHTML = '<span>💾</span><span>Lưu</span>';
             }
+        }
+
+        function deleteCurrentSettingsDeck() {
+            const folderId = document.getElementById('settingsDeckId').value;
+            const deck = allDecks.find(d => d.folderId === folderId);
+            const deckName = deck ? deck.folderName : '';
+            closeDeckSettingsModal();
+            openConfirmDeleteModal(folderId, deckName);
+        }
+
+        function duplicateCurrentSettingsDeck() {
+            const folderId = document.getElementById('settingsDeckId').value;
+            closeDeckSettingsModal();
+            duplicateDeck(folderId);
+        }
+
+        function mergeCurrentSettingsDeck() {
+            const folderId = document.getElementById('settingsDeckId').value;
+            const deck = allDecks.find(d => d.folderId === folderId);
+            closeDeckSettingsModal();
+            openMergeDeckModal(folderId, deck ? deck.folderName : '');
+        }
+
+        function printCurrentSettingsDeck() {
+            const folderId = document.getElementById('settingsDeckId').value;
+            closeDeckSettingsModal();
+            printDeckSheet(folderId);
+        }
+
+        // Backward compatibility aliases
+        function openEditDeckModal(folderId) {
+            openDeckSettingsModal(folderId);
+        }
+        function closeEditDeckModal() {
+            closeDeckSettingsModal();
+        }
+        function submitEditDeck(e) {
+            submitDeckSettings(e);
         }
 
         /* =========================================================

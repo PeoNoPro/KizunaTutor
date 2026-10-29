@@ -235,30 +235,39 @@
     <div th:replace="~{learner/layout/handwriting-modal :: handwritingModal}"></div>
 
     <!-- Modal Thêm Chữ Vào Bộ Thẻ Của Học Viên -->
-    <div id="modalAddToDeck" style="display: none;" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-lg border border-[#E2E8F0] space-y-4 text-xs font-sans">
-            <div class="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
-                <h3 class="text-base font-bold text-[#0F172A]">Cất Chữ Vào Bộ Thẻ Cá Nhân</h3>
-                <button type="button" onclick="closeDeckModal()" class="text-[#94A3B8] hover:text-[#0F172A] font-bold p-1 text-sm">✕</button>
+    <div id="modalAddToDeck" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[5px] max-w-sm w-full p-5 shadow-[4px_4px_0px_0px_#000000] border border-black space-y-3.5 text-xs font-sans">
+            <div class="flex items-center justify-between pb-2.5 border-b border-black">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-base">📁</span>
+                    <h3 class="text-sm font-bold font-['Itim'] text-black">Cất Chữ Vào Bộ Thẻ Cá Nhân</h3>
+                </div>
+                <button type="button" onclick="closeDeckModal()" class="text-slate-500 hover:text-black font-bold p-1 text-sm leading-none">✕</button>
             </div>
 
-            <div class="text-center py-2">
-                <div id="modalDeckChar" class="font-sans text-5xl font-extrabold text-[#15803D]">愛</div>
-                <div id="modalDeckHanViet" class="text-xs font-bold text-[#475569] mt-1 uppercase tracking-wider">ÁI</div>
+            <div class="text-center py-2 bg-[#F8FAFC] border border-black rounded-[5px] shadow-[2px_2px_0px_0px_#000000]">
+                <div id="modalDeckChar" class="font-serif text-5xl font-black text-[#15803D]">愛</div>
+                <div id="modalDeckHanViet" class="text-xs font-bold font-['Itim'] text-black mt-1 uppercase tracking-wider">ÁI</div>
+                <div id="modalDeckMeaning" class="text-[11px] text-slate-600 font-sans mt-0.5 line-clamp-1 px-2"></div>
             </div>
 
-            <form onsubmit="submitSaveToDeck(event)" class="space-y-3.5">
+            <form onsubmit="submitSaveToDeck(event)" class="space-y-3">
                 <input type="hidden" id="modalDeckKanjiId">
                 <input type="hidden" id="modalDeckCharInput">
                 <div>
-                    <label class="block font-medium text-[#475569] mb-1">Chọn Thư Mục / Bộ Thẻ:</label>
-                    <select id="modalDeckSelect" class="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-[#0F172A] bg-white text-xs font-medium outline-none focus:border-[#15803D] focus:ring-2 focus:ring-green-100 transition">
+                    <label class="block font-bold text-black font-['Itim'] mb-1">1. Chọn Bộ Thẻ Có Sẵn:</label>
+                    <select id="modalDeckSelect" onchange="handleDeckSelectChange(this.value)" class="w-full px-2.5 py-1.5 rounded-[5px] border border-black text-black bg-white text-xs font-medium outline-none focus:ring-1 focus:ring-black shadow-[1.5px_1.5px_0px_0px_#000000]">
                         <option value="">Đang tải danh sách bộ thẻ...</option>
                     </select>
                 </div>
-                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-[#E2E8F0]">
-                    <button type="button" onclick="closeDeckModal()" class="px-4 py-2 rounded-lg bg-white border border-[#CBD5E1] text-[#475569] hover:bg-slate-50 font-medium text-xs shadow-sm transition active:scale-[0.98]">Hủy Bỏ</button>
-                    <button type="submit" id="btnConfirmSaveDeck" class="px-5 py-2 rounded-lg bg-[#15803D] hover:bg-[#166534] text-white font-semibold text-xs shadow-sm transition active:scale-[0.98]">Cất Vào Thẻ Ngay</button>
+                <div id="newDeckNameGroup" class="space-y-1">
+                    <label class="block font-bold text-black font-['Itim']">2. Hoặc Khởi Tạo Bộ Thẻ Mới:</label>
+                    <input type="text" id="newDeckNameInput" placeholder="Nhập tên bộ thẻ mới (ví dụ: Từ vựng N5)..." 
+                           class="w-full px-2.5 py-1.5 rounded-[5px] border border-black text-black bg-white text-xs outline-none focus:ring-1 focus:ring-black shadow-[1.5px_1.5px_0px_0px_#000000]">
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2.5 border-t border-black">
+                    <button type="button" onclick="closeDeckModal()" class="px-3.5 py-1.5 rounded-[5px] bg-white border border-black text-black hover:bg-slate-100 font-bold font-['Itim'] text-xs shadow-[2px_2px_0px_0px_#000000] transition active:scale-[0.98]">Hủy Bỏ</button>
+                    <button type="submit" id="btnConfirmSaveDeck" class="px-4 py-1.5 rounded-[5px] bg-[#15803D] hover:bg-[#166534] text-white border border-black font-bold font-['Itim'] text-xs shadow-[2px_2px_0px_0px_#000000] transition active:scale-[0.98]">Cất Vào Thẻ Ngay 🌸</button>
                 </div>
             </form>
         </div>
@@ -773,38 +782,84 @@
         // =========================================================================
         // QUẢN LÝ LƯU CHỮ VÀO BỘ THẺ CỦA HỌC VIÊN
         // =========================================================================
+        function getAuthHeaders() {
+            const token = localStorage.getItem('access_token') || localStorage.getItem('kizuna_token');
+            const headers = {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            };
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            return headers;
+        }
+
         function saveActiveKanjiToDeck() {
             openSaveDeckModal(activeKanjiId, activeKanjiChar, activeHanViet);
+        }
+
+        function handleDeckSelectChange(val) {
+            const newInp = document.getElementById('newDeckNameInput');
+            if (val === '__NEW__') {
+                if (newInp) {
+                    newInp.focus();
+                    if (!newInp.value) newInp.value = 'Bộ Thẻ Mới';
+                }
+            } else if (val) {
+                if (newInp && !newInp.matches(':focus')) {
+                    newInp.value = '';
+                }
+            }
         }
 
         async function loadDeckOptions() {
             const select = document.getElementById('modalDeckSelect');
             if (!select) return;
+            select.innerHTML = '<option value="">Đang tải danh sách bộ thẻ...</option>';
             try {
-                const token = localStorage.getItem('access_token') || localStorage.getItem('kizuna_token');
-                const headers = { 'Accept': 'application/json' };
-                if (token) headers['Authorization'] = 'Bearer ' + token;
-                const res = await fetch('/api/user/kanji-folders', { headers });
+                let folders = [];
+                let res = await fetch('/api/learner/decks', { headers: getAuthHeaders() });
                 if (res.ok) {
-                    const folders = await res.json();
-                    if (Array.isArray(folders) && folders.length > 0) {
-                        select.innerHTML = folders.map(f => `<option value="${f.folderName}">${f.folderName} (${f.kanjiCount || 0} chữ)</option>`).join('');
-                        return;
-                    }
+                    folders = await res.json();
+                } else {
+                    res = await fetch('/api/user/kanji-folders', { headers: getAuthHeaders() });
+                    if (res.ok) folders = await res.json();
                 }
-                select.innerHTML = '<option value="Bộ Thẻ Cá Nhân">Bộ Thẻ Cá Nhân (Khởi tạo)</option>';
+
+                if (Array.isArray(folders) && folders.length > 0) {
+                    let html = '<option value="">-- Chọn một bộ thẻ có sẵn --</option>';
+                    html += folders.map(f => {
+                        const fid = f.id || f.folderId;
+                        const fname = f.deckName || f.folderName || 'Bộ thẻ';
+                        const count = f.kanjiCount != null ? f.kanjiCount : (f.items ? f.items.length : 0);
+                        return `<option value="${fid}">${escapeHtml(fname)} (${count} chữ)</option>`;
+                    }).join('');
+                    html += '<option value="__NEW__">➕ Khởi tạo bộ thẻ mới...</option>';
+                    select.innerHTML = html;
+                } else {
+                    select.innerHTML = '<option value="__NEW__">➕ Khởi tạo bộ thẻ mới đầu tiên...</option>';
+                    const newInp = document.getElementById('newDeckNameInput');
+                    if (newInp && !newInp.value) newInp.value = 'Bộ Thẻ N5';
+                }
             } catch (err) {
-                select.innerHTML = '<option value="Bộ Thẻ Cá Nhân">Bộ Thẻ Cá Nhân</option>';
+                console.warn("Không tải được danh sách bộ thẻ:", err);
+                select.innerHTML = '<option value="__NEW__">➕ Khởi tạo bộ thẻ mới...</option>';
             }
         }
 
         function openSaveDeckModal(id, char, hanViet) {
             const modal = document.getElementById('modalAddToDeck');
             if (!modal) return;
-            document.getElementById('modalDeckKanjiId').value = id || '';
-            document.getElementById('modalDeckCharInput').value = char || activeKanjiChar;
-            document.getElementById('modalDeckChar').textContent = char || activeKanjiChar;
-            document.getElementById('modalDeckHanViet').textContent = hanViet || activeHanViet;
+            const ch = char || activeKanjiChar || '方';
+            const hv = hanViet || activeHanViet || 'HÁN TỰ';
+            document.getElementById('modalDeckKanjiId').value = id || activeKanjiId || '';
+            document.getElementById('modalDeckCharInput').value = ch;
+            document.getElementById('modalDeckChar').textContent = ch;
+            document.getElementById('modalDeckHanViet').textContent = hv;
+            const meaningEl = document.getElementById('modalDeckMeaning');
+            if (meaningEl) {
+                meaningEl.textContent = document.getElementById('panelMeaning')?.textContent?.trim() || '';
+            }
+            const newInp = document.getElementById('newDeckNameInput');
+            if (newInp) newInp.value = '';
             loadDeckOptions();
             modal.style.display = 'flex';
         }
@@ -822,27 +877,91 @@
                 btn.textContent = 'Đang cất...';
             }
 
-            const payload = {
-                kanjiId: document.getElementById('modalDeckKanjiId').value,
-                kanjiChar: document.getElementById('modalDeckCharInput').value,
-                targetDeckName: document.getElementById('modalDeckSelect').value
-            };
+            const select = document.getElementById('modalDeckSelect');
+            const selectedDeckId = select ? select.value : '';
+            const newDeckNameInput = document.getElementById('newDeckNameInput')?.value?.trim();
+            const currentChar = document.getElementById('modalDeckCharInput')?.value?.trim() || activeKanjiChar || '方';
+            const hanViet = document.getElementById('modalDeckHanViet')?.textContent?.trim() || activeHanViet || 'HÁN TỰ';
+            const meaning = document.getElementById('panelMeaning')?.textContent?.trim() || '';
+            const onyomi = document.getElementById('panelOnyomi')?.textContent?.trim() || '';
+            const kunyomi = document.getElementById('panelKunyomi')?.textContent?.trim() || '';
 
             try {
-                const res = await fetch('/api/learner/kanji/save-card', {
+                let targetDeckId = (selectedDeckId && selectedDeckId !== '__NEW__') ? selectedDeckId : null;
+
+                // 1. Nếu người dùng nhập tên bộ thẻ mới hoặc chọn "Khởi tạo bộ thẻ mới"
+                if (newDeckNameInput || selectedDeckId === '__NEW__') {
+                    const deckName = newDeckNameInput || 'Bộ Thẻ Cá Nhân';
+                    const createRes = await fetch('/api/learner/decks', {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({
+                            deckName: deckName,
+                            folderName: deckName,
+                            description: 'Khởi tạo từ bảng vẽ Kanji Shodo'
+                        })
+                    });
+
+                    if (!createRes.ok) {
+                        const errData = await createRes.json().catch(() => ({}));
+                        throw new Error(errData.message || 'Không thể tạo bộ thẻ mới');
+                    }
+                    const newDeck = await createRes.json();
+                    targetDeckId = newDeck.id || newDeck.folderId || newDeck.deckId;
+                }
+
+                if (!targetDeckId) {
+                    showToast.warning("Vui lòng chọn hoặc nhập tên bộ thẻ muốn cất!");
+                    return;
+                }
+
+                // 2. Gửi request thêm chữ Kanji vào bộ thẻ đích
+                const cardPayload = {
+                    character: currentChar,
+                    kanjiChar: currentChar,
+                    hanViet: hanViet,
+                    meaning: meaning,
+                    strokeCount: 4,
+                    onyomi: onyomi,
+                    kunyomi: kunyomi
+                };
+
+                const saveRes = await fetch(`/api/learner/decks/${targetDeckId}/cards`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(cardPayload)
                 });
-                const data = await res.json();
+
+                if (!saveRes.ok) {
+                    // Thử fallback sang /api/learner/kanji/save-card
+                    const fallbackRes = await fetch('/api/learner/kanji/save-card', {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({
+                            ...cardPayload,
+                            targetDeckId: targetDeckId
+                        })
+                    });
+                    if (!fallbackRes.ok) {
+                        const errData = await saveRes.json().catch(() => ({}));
+                        throw new Error(errData.message || 'Lỗi khi cất chữ vào bộ thẻ!');
+                    }
+                }
+
+                // 3. Chỉ bật Toast thành công KHI Database đã lưu xong
                 closeDeckModal();
-                showToast.success(data.message || `Đã lưu chữ Kanji [${activeKanjiChar || '愛'}] vào bộ thẻ thành công! 🌸`);
-            } catch(err) {
-                showToast.danger('Lỗi khi lưu vào bộ thẻ: ' + err.message);
+                showToast.success(`Đã cất thành công chữ [${currentChar}] vào bộ thẻ! 🌸`);
+
+                if (document.getElementById('newDeckNameInput')) {
+                    document.getElementById('newDeckNameInput').value = '';
+                }
+            } catch (err) {
+                console.error("Lỗi cất chữ vào bộ thẻ:", err);
+                showToast.danger(err.message || 'Có lỗi xảy ra, chưa thể lưu chữ!');
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    btn.textContent = 'Cất Vào Thẻ Ngay';
+                    btn.textContent = 'Cất Vào Thẻ Ngay 🌸';
                 }
             }
         }

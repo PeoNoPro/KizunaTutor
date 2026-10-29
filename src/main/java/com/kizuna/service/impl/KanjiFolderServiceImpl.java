@@ -30,6 +30,7 @@ public class KanjiFolderServiceImpl implements IKanjiFolderService {
     private final KanjiFolderItemRepository folderItemRepository;
     private final KanjiDictionaryRepository kanjiRepository;
     private final UserRepository userRepository;
+    private final com.kizuna.util.SecurityContextUtil securityContextUtil;
 
     @Override
     @Transactional(readOnly = true)
@@ -468,13 +469,17 @@ public class KanjiFolderServiceImpl implements IKanjiFolderService {
 
     private User resolveOrCreateUser(UUID userId) {
         if (userId != null) {
-            return userRepository.findById(userId).orElseGet(this::getOrCreateFallbackUser);
+            return userRepository.findById(userId).orElseGet(() ->
+                    securityContextUtil.getCurrentUser().orElseGet(this::getOrCreateFallbackUser)
+            );
         }
-        return getOrCreateFallbackUser();
+        return securityContextUtil.getCurrentUser().orElseGet(this::getOrCreateFallbackUser);
     }
 
     private User getOrCreateFallbackUser() {
-        return userRepository.findAll().stream().findFirst().orElseGet(() -> {
+        return userRepository.findByEmail("learner@kizuna.vn")
+                .or(() -> userRepository.findAll().stream().findFirst())
+                .orElseGet(() -> {
             User guest = User.builder().build();
             return userRepository.save(guest);
         });

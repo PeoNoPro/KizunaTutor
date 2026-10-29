@@ -1,9 +1,11 @@
 package com.kizuna;
 
+
+import com.kizuna.core.entity.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kizuna.dto.auth.LoginRequest;
-import com.kizuna.dto.auth.LoginResponse;
-import com.kizuna.repository.LearningSpaceRepository;
+import com.kizuna.features.auth.dto.LoginRequest;
+import com.kizuna.features.auth.dto.LoginResponse;
+import com.kizuna.features.classroom.repository.LearningSpaceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

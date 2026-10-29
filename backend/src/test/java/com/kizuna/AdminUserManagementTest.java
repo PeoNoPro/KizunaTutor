@@ -1,13 +1,15 @@
 package com.kizuna;
 
+
+import com.kizuna.core.entity.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kizuna.dto.admin.CreateUserRequest;
-import com.kizuna.dto.admin.UpdateStatusRequest;
-import com.kizuna.dto.admin.UpdateUserRoleRequest;
-import com.kizuna.dto.auth.LoginRequest;
-import com.kizuna.dto.auth.LoginResponse;
-import com.kizuna.entity.User;
-import com.kizuna.repository.UserRepository;
+import com.kizuna.features.admin.dto.CreateUserRequest;
+import com.kizuna.features.admin.dto.UpdateStatusRequest;
+import com.kizuna.features.admin.dto.UpdateUserRoleRequest;
+import com.kizuna.features.auth.dto.LoginRequest;
+import com.kizuna.features.auth.dto.LoginResponse;
+import com.kizuna.core.entity.User;
+import com.kizuna.core.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

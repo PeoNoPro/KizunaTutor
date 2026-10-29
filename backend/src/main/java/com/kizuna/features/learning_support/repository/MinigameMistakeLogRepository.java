@@ -1,0 +1,16 @@
+package com.kizuna.features.learning_support.repository;
+
+
+import com.kizuna.core.entity.*;
+import com.kizuna.features.learning_support.entity.MinigameMistakeLog;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public interface MinigameMistakeLogRepository extends JpaRepository<MinigameMistakeLog, UUID> {
+
+    List<MinigameMistakeLog> findBySessionSessionIdOrderByMistakeCountDesc(UUID sessionId);
+}

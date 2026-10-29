@@ -1,9 +1,11 @@
 package com.kizuna;
 
+
+import com.kizuna.core.entity.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kizuna.dto.auth.LoginRequest;
-import com.kizuna.dto.auth.LoginResponse;
-import com.kizuna.entity.RoleEnum;
+import com.kizuna.features.auth.dto.LoginRequest;
+import com.kizuna.features.auth.dto.LoginResponse;
+import com.kizuna.core.entity.RoleEnum;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

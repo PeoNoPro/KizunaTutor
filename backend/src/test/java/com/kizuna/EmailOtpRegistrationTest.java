@@ -1,11 +1,13 @@
 package com.kizuna;
 
+
+import com.kizuna.core.entity.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kizuna.dto.auth.PendingRegistration;
-import com.kizuna.dto.auth.RegisterRequest;
-import com.kizuna.dto.auth.ResendOtpRequest;
-import com.kizuna.dto.auth.VerifyOtpRequest;
-import com.kizuna.service.IOtpService;
+import com.kizuna.features.auth.dto.PendingRegistration;
+import com.kizuna.features.auth.dto.RegisterRequest;
+import com.kizuna.features.auth.dto.ResendOtpRequest;
+import com.kizuna.features.auth.dto.VerifyOtpRequest;
+import com.kizuna.features.auth.service.IOtpService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +38,7 @@ public class EmailOtpRegistrationTest {
     private IOtpService otpService;
 
     @Autowired
-    private com.kizuna.repository.UserRepository userRepository;
+    private com.kizuna.core.repository.UserRepository userRepository;
 
     @org.junit.jupiter.api.AfterEach
     void tearDown() {

@@ -1,7 +1,9 @@
 package com.kizuna;
 
+
+import com.kizuna.core.entity.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kizuna.dto.auth.RegisterRequest;
+import com.kizuna.features.auth.dto.RegisterRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +30,7 @@ public class OAuth2AndRegistrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private com.kizuna.repository.UserRepository userRepository;
+    private com.kizuna.core.repository.UserRepository userRepository;
 
     @org.junit.jupiter.api.AfterEach
     void tearDown() {

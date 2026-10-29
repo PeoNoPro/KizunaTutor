@@ -68,3 +68,24 @@ secrets/
 # OS
 Thumbs.db
 .DS_Store
+
+# Environment
+.env
+.env.local
+
+# Backend
+backend/target/
+backend/*.log
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+frontend/build/
+
+# AI Service
+ai-service/__pycache__/
+ai-service/*.pyc
+ai-service/.venv/
+ai-service/venv/

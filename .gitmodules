@@ -1,11 +1,11 @@
 [submodule "data/kanjivg"]
-	path = data/kanjivg
+	path = database/kanjivg
 	url = https://github.com/KanjiVG/kanjivg.git
 [submodule "services/agent-memory"]
-	path = services/agent-memory
+	path = backend/services/agent-memory
 	url = https://github.com/TencentCloud/TencentDB-Agent-Memory.git
 [submodule "design/impeccable"]
-	path = design/impeccable
+	path = docs/design/impeccable
 	url = https://github.com/pbakaus/impeccable.git
 [submodule ".skills/taste-skill"]
 	path = .skills/taste-skill

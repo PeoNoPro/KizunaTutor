@@ -100,3 +100,30 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
   - Đúng: `Mã OTP không chính xác. Bạn còn 3 lần thử lại.`
   - Sai: `LỖI! MÃ OTP SAI! HÃY NHẬP LẠI NGAY!`
 - **Ngoại lệ:** Chỉ viết hoa toàn bộ đối với các từ viết tắt chuyên môn / chuẩn quốc tế đã được quy ước (như `OTP`, `JLPT`, `AI`, `SVG`, `UI/UX`, `ID`, `JWT`).
+
+---
+
+## 4. Backend Feature-Driven Package Architecture (Clean Domain Names)
+
+Khi tạo mới Controller, Service, Repository, Entity hoặc DTO, AI BẮT BUỘC đặt vào đúng package Feature tương ứng theo [BACKEND_FEATURE_ARCHITECTURE.md](docs/guidelines/BACKEND_FEATURE_ARCHITECTURE.md):
+- `com.kizuna.core`: Hạ tầng dùng chung (config, security, exception, util, base entity, user, role).
+- `com.kizuna.features.auth`: Authentication, OTP, OAuth2, Email verification.
+- `com.kizuna.features.profile`: Quản lý hồ sơ Learner & Tutor.
+- `com.kizuna.features.verification`: Xét duyệt bằng cấp & lý lịch gia sư.
+- `com.kizuna.features.tutor_search`: Tìm kiếm & kết nối gia sư.
+- `com.kizuna.features.booking`: Đặt lịch học thử & kích hoạt buổi học.
+- `com.kizuna.features.classroom`: Quản lý lớp học, thư mục Kanji, tài liệu.
+- `com.kizuna.features.progress`: Bài tập, nộp bài, chấm điểm & tiến độ.
+- `com.kizuna.features.learning_support`: Kanji practice, Minigame, Flashcards, AI Memory.
+- `com.kizuna.features.payment`: Thanh toán gói hội viên, VNPay gateway.
+- `com.kizuna.features.ticket`: Hỗ trợ kỹ thuật, CSKH & khiếu nại.
+- `com.kizuna.features.admin`: Quản trị hệ thống, tài khoản nhân viên & báo cáo.
+- `com.kizuna.features.notification`: Quản lý và phát thông báo hệ thống.
+
+---
+
+## 5. Quy tắc Git & Quản trị nhánh (Strict Local Only - Không tự ý Push)
+
+- **TUYỆT ĐỐI KHÔNG TỰ Ý CHẠY `git push` LÊN REMOTE:** Mọi thay đổi hoặc commit chỉ được thực hiện ở máy cục bộ (Local). AI tuyệt đối không bao giờ được tự ý thực hiện lệnh `git push` lên GitHub / GitLab / Remote server. Việc đẩy code lên remote hoàn toàn do người dùng trực tiếp kiểm tra và tự gõ lệnh push.
+
+

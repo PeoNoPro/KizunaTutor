@@ -121,3 +121,19 @@ Tuân thủ nguyên tắc lập trình tinh gọn (Lazy Senior Developer & Stric
    - Bảo toàn 3 nguyên tắc bất biến nền tảng ở đầu tài liệu này (`[IMMUTABLE CORE GUARDRAILS]`).
 4. **Tính minh bạch & Trách nhiệm (Accountability):**
    - Luôn kiểm tra kỹ lưỡng các thay đổi và tự tin giải thích rõ ràng: phần nào đã được cập nhật, phần nào không cần đụng đến, và cảnh báo sớm nếu có bất kỳ rủi ro biên nào người dùng cần lưu ý.
+
+---
+
+## 5. Knowledge Graph & Token Economy (from `Graphify-Labs/graphify`)
+
+Dự án KizunaTutor đã được tích hợp bản đồ tri thức AST Knowledge Graph thông qua `Graphify`:
+1. **Tiết kiệm Token & Ngữ cảnh (Token Economy):**
+   - Thay vì duyệt hàng loạt file mã nguồn gây tràn context window và tiêu tốn token, hãy ưu tiên tra cứu cấu trúc qua `graphify`:
+     - Tra cứu đường đi liên kết giữa 2 module/class: `graphify path "<ClassA>" "<ClassB>"`
+     - Giải thích cấu trúc, callers và các dependencies của 1 class: `graphify explain "<ClassName>"`
+     - Tra cứu câu hỏi kiến trúc: `graphify query "<câu hỏi>"`
+2. **Cập nhật đồ thị (Incremental Updates):**
+   - Sau khi thực hiện các thay đổi code lớn, chạy `graphify update src` để đồng bộ lại đồ thị mã nguồn (hoàn toàn cục bộ qua Tree-sitter AST, không tốn credit API).
+3. **Báo cáo & Giao diện tương tác trực quan:**
+   - [graph.html](file:///C:/Users/Vuh26/Desktop/KizunaTutor/graphify-out/graph.html): Bản đồ tri thức dạng đồ thị tương tác có thể mở trên trình duyệt.
+   - [GRAPH_REPORT.md](file:///C:/Users/Vuh26/Desktop/KizunaTutor/graphify-out/GRAPH_REPORT.md): Tổng hợp cấu trúc cộng đồng (communities), god nodes và các liên kết trọng yếu trong KizunaTutor.

@@ -13,3 +13,9 @@
 [submodule ".skills/ponytail"]
 	path = .skills/ponytail
 	url = https://github.com/DietrichGebert/ponytail.git
+[submodule ".skills/graphify"]
+	path = .skills/graphify
+	url = https://github.com/Graphify-Labs/graphify.git
+[submodule "data/openjlpt"]
+	path = data/openjlpt
+	url = https://github.com/evanclan/OpenJLPT.git

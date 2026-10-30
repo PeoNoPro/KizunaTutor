@@ -1,0 +1,1642 @@
+{
+  "main/java/com/kizuna/KizunaBackendApplication.java": {
+    "mtime": 1793092009.2084367,
+    "seen": 1793336419.2893045,
+    "ast_hash": "028c7d8867e7ce52c90b75f8512594e6",
+    "semantic_hash": "028c7d8867e7ce52c90b75f8512594e6"
+  },
+  "main/java/com/kizuna/config/AiServiceWebClientConfig.java": {
+    "mtime": 1793092009.2084367,
+    "seen": 1793336419.2893045,
+    "ast_hash": "a4fc5dd1aff08ffa251c73ee9fa18483",
+    "semantic_hash": "a4fc5dd1aff08ffa251c73ee9fa18483"
+  },
+  "main/java/com/kizuna/config/AsyncConfig.java": {
+    "mtime": 1793092009.209436,
+    "seen": 1793336419.290396,
+    "ast_hash": "d72c49593ec2c7522085c69d29ae455b",
+    "semantic_hash": "d72c49593ec2c7522085c69d29ae455b"
+  },
+  "main/java/com/kizuna/config/JwtAuthenticationFilter.java": {
+    "mtime": 1793092009.209436,
+    "seen": 1793336419.290396,
+    "ast_hash": "3f38ae165aa30a24cd53415adc81c6e9",
+    "semantic_hash": "3f38ae165aa30a24cd53415adc81c6e9"
+  },
+  "main/java/com/kizuna/config/OAuth2AuthenticationSuccessHandler.java": {
+    "mtime": 1793092009.2104402,
+    "seen": 1793336419.290396,
+    "ast_hash": "9b4ea51193f84b893fdfd1f664e8084f",
+    "semantic_hash": "9b4ea51193f84b893fdfd1f664e8084f"
+  },
+  "main/java/com/kizuna/config/OpenApiSwaggerConfig.java": {
+    "mtime": 1793092009.2104402,
+    "seen": 1793336419.290396,
+    "ast_hash": "398b91b46868c969bb395967f9df6e2a",
+    "semantic_hash": "398b91b46868c969bb395967f9df6e2a"
+  },
+  "main/java/com/kizuna/config/PasswordEncoderConfig.java": {
+    "mtime": 1793092009.21144,
+    "seen": 1793336419.290396,
+    "ast_hash": "799d851d727d06bddbd0495911aa3bd9",
+    "semantic_hash": "799d851d727d06bddbd0495911aa3bd9"
+  },
+  "main/java/com/kizuna/config/SecurityConfig.java": {
+    "mtime": 1793282976.0197148,
+    "seen": 1793336419.2914038,
+    "ast_hash": "89356d39f2147098fed3b2cdf3eaff18",
+    "semantic_hash": "89356d39f2147098fed3b2cdf3eaff18"
+  },
+  "main/java/com/kizuna/config/VNPayConfig.java": {
+    "mtime": 1793092009.21144,
+    "seen": 1793336419.2914038,
+    "ast_hash": "c84e3b7c89c36faad31aeab2d864ce64",
+    "semantic_hash": "c84e3b7c89c36faad31aeab2d864ce64"
+  },
+  "main/java/com/kizuna/config/WebMvcConfig.java": {
+    "mtime": 1793092009.21244,
+    "seen": 1793336419.2914038,
+    "ast_hash": "03124418045d2c1270cd3c4a35779767",
+    "semantic_hash": "03124418045d2c1270cd3c4a35779767"
+  },
+  "main/java/com/kizuna/controller/AdminSystemController.java": {
+    "mtime": 1793092009.2134397,
+    "seen": 1793336419.2914038,
+    "ast_hash": "c57b401731ee901ee1bc5d93870c9656",
+    "semantic_hash": "c57b401731ee901ee1bc5d93870c9656"
+  },
+  "main/java/com/kizuna/controller/AgentMemoryController.java": {
+    "mtime": 1793092009.2134397,
+    "seen": 1793336419.2914038,
+    "ast_hash": "8ed6bc2ffdc0dc7a0549548a1b452e35",
+    "semantic_hash": "8ed6bc2ffdc0dc7a0549548a1b452e35"
+  },
+  "main/java/com/kizuna/controller/AssignmentController.java": {
+    "mtime": 1793092009.2144403,
+    "seen": 1793336419.2924073,
+    "ast_hash": "94297a5c1fb44c9e180a0c1fa73af835",
+    "semantic_hash": "94297a5c1fb44c9e180a0c1fa73af835"
+  },
+  "main/java/com/kizuna/controller/AuthController.java": {
+    "mtime": 1793092009.2144403,
+    "seen": 1793336419.2924073,
+    "ast_hash": "b80a3da2ac7bb7eb10124d54d9e5f31c",
+    "semantic_hash": "b80a3da2ac7bb7eb10124d54d9e5f31c"
+  },
+  "main/java/com/kizuna/controller/KanjiController.java": {
+    "mtime": 1793226590.026393,
+    "seen": 1793336419.2924073,
+    "ast_hash": "218ca42881b2572e2726aac366425c1b",
+    "semantic_hash": "218ca42881b2572e2726aac366425c1b"
+  },
+  "main/java/com/kizuna/controller/KanjiFolderController.java": {
+    "mtime": 1793092009.2154374,
+    "seen": 1793336419.2924073,
+    "ast_hash": "5bdd31141f38186134b63a8cd1e7831a",
+    "semantic_hash": "5bdd31141f38186134b63a8cd1e7831a"
+  },
+  "main/java/com/kizuna/controller/LearningSpaceController.java": {
+    "mtime": 1793092009.2168903,
+    "seen": 1793336419.2924073,
+    "ast_hash": "d490cd4bb694146c5091734b954a8814",
+    "semantic_hash": "d490cd4bb694146c5091734b954a8814"
+  },
+  "main/java/com/kizuna/controller/MembershipPaymentController.java": {
+    "mtime": 1793092009.2168903,
+    "seen": 1793336419.29341,
+    "ast_hash": "32c6321634e7b1ca5dde2256744e97c7",
+    "semantic_hash": "32c6321634e7b1ca5dde2256744e97c7"
+  },
+  "main/java/com/kizuna/controller/MinigameController.java": {
+    "mtime": 1793092009.2178903,
+    "seen": 1793336419.29341,
+    "ast_hash": "af6e0de7134738be9654ca6a8b881515",
+    "semantic_hash": "af6e0de7134738be9654ca6a8b881515"
+  },
+  "main/java/com/kizuna/controller/SupportTicketController.java": {
+    "mtime": 1793092009.2178903,
+    "seen": 1793336419.29341,
+    "ast_hash": "f9cfb9fdb828cc21e2cf78017b39646f",
+    "semantic_hash": "f9cfb9fdb828cc21e2cf78017b39646f"
+  },
+  "main/java/com/kizuna/controller/TestController.java": {
+    "mtime": 1793092009.2188907,
+    "seen": 1793336419.29341,
+    "ast_hash": "dffe123cc84759c88629a29fc337b1ae",
+    "semantic_hash": "dffe123cc84759c88629a29fc337b1ae"
+  },
+  "main/java/com/kizuna/controller/TrialBookingController.java": {
+    "mtime": 1793092009.2188907,
+    "seen": 1793336419.29341,
+    "ast_hash": "7876fce1173a0887d691eecc99446d05",
+    "semantic_hash": "7876fce1173a0887d691eecc99446d05"
+  },
+  "main/java/com/kizuna/controller/TutorSearchController.java": {
+    "mtime": 1793092009.2188907,
+    "seen": 1793336419.2945793,
+    "ast_hash": "4a1823385c3ad2386e198cefce7ceeee",
+    "semantic_hash": "4a1823385c3ad2386e198cefce7ceeee"
+  },
+  "main/java/com/kizuna/controller/UserProfileController.java": {
+    "mtime": 1793092009.21989,
+    "seen": 1793336419.2945793,
+    "ast_hash": "36e5c1e2348b051f688e163033ebb5bf",
+    "semantic_hash": "36e5c1e2348b051f688e163033ebb5bf"
+  },
+  "main/java/com/kizuna/controller/WebHomeController.java": {
+    "mtime": 1793164145.2881002,
+    "seen": 1793336419.2945793,
+    "ast_hash": "aa77fcb6df077242a466344f7a943844",
+    "semantic_hash": "aa77fcb6df077242a466344f7a943844"
+  },
+  "main/java/com/kizuna/controller/academic/AcademicController.java": {
+    "mtime": 1793092009.2208908,
+    "seen": 1793336419.2945793,
+    "ast_hash": "06874eef4643fd04e94fa8bbfae7cdf3",
+    "semantic_hash": "06874eef4643fd04e94fa8bbfae7cdf3"
+  },
+  "main/java/com/kizuna/controller/academic/AcademicTutorApiController.java": {
+    "mtime": 1793092009.22189,
+    "seen": 1793336419.2945793,
+    "ast_hash": "c8c3849242b4a52b1846e075ebb36e3f",
+    "semantic_hash": "c8c3849242b4a52b1846e075ebb36e3f"
+  },
+  "main/java/com/kizuna/controller/admin/AdminController.java": {
+    "mtime": 1793092009.22189,
+    "seen": 1793336419.2955773,
+    "ast_hash": "1cabd74cce54479aad47730571efc6b0",
+    "semantic_hash": "1cabd74cce54479aad47730571efc6b0"
+  },
+  "main/java/com/kizuna/controller/admin/AdminDiagnosticEmailController.java": {
+    "mtime": 1793092009.2228906,
+    "seen": 1793336419.2955773,
+    "ast_hash": "a27e869b15fdf396271123b0df7e0b91",
+    "semantic_hash": "a27e869b15fdf396271123b0df7e0b91"
+  },
+  "main/java/com/kizuna/controller/admin/AdminKanjiApiController.java": {
+    "mtime": 1793092009.2228906,
+    "seen": 1793336419.2955773,
+    "ast_hash": "0b4cae4967f708480f9512c061350f93",
+    "semantic_hash": "0b4cae4967f708480f9512c061350f93"
+  },
+  "main/java/com/kizuna/controller/admin/AdminUserController.java": {
+    "mtime": 1793092009.2238903,
+    "seen": 1793336419.2955773,
+    "ast_hash": "f9cfaa53357f1216d51717dbea3509c5",
+    "semantic_hash": "f9cfaa53357f1216d51717dbea3509c5"
+  },
+  "main/java/com/kizuna/controller/cs/CsController.java": {
+    "mtime": 1793092009.2248898,
+    "seen": 1793336419.2955773,
+    "ast_hash": "960375aeb2f7e12ba5add771a25d56fe",
+    "semantic_hash": "960375aeb2f7e12ba5add771a25d56fe"
+  },
+  "main/java/com/kizuna/controller/learner/LearnerController.java": {
+    "mtime": 1793215965.9751723,
+    "seen": 1793336419.296579,
+    "ast_hash": "2932834e0e985eac80b181c768be6089",
+    "semantic_hash": "2932834e0e985eac80b181c768be6089"
+  },
+  "main/java/com/kizuna/controller/learner/LearnerFlashcardApiController.java": {
+    "mtime": 1793283529.9085567,
+    "seen": 1793336419.296579,
+    "ast_hash": "2932d72572245b618b954d13a940e8c6",
+    "semantic_hash": "2932d72572245b618b954d13a940e8c6"
+  },
+  "main/java/com/kizuna/controller/learner/LearnerKanjiApiController.java": {
+    "mtime": 1793283549.5491765,
+    "seen": 1793336419.296579,
+    "ast_hash": "aa5c9103b0c7e257413d2038b9e5c34a",
+    "semantic_hash": "aa5c9103b0c7e257413d2038b9e5c34a"
+  },
+  "main/java/com/kizuna/controller/manager/ManagerController.java": {
+    "mtime": 1793092009.2278943,
+    "seen": 1793336419.296579,
+    "ast_hash": "a23639d99641bce6dafcb3d2dbfbda84",
+    "semantic_hash": "a23639d99641bce6dafcb3d2dbfbda84"
+  },
+  "main/java/com/kizuna/controller/tutor/TutorController.java": {
+    "mtime": 1793092009.2290506,
+    "seen": 1793336419.296579,
+    "ast_hash": "ab84936120abdb98dd2fab99e9641122",
+    "semantic_hash": "ab84936120abdb98dd2fab99e9641122"
+  },
+  "main/java/com/kizuna/controller/tutor/TutorKanjiApiController.java": {
+    "mtime": 1793092009.2290506,
+    "seen": 1793336419.296579,
+    "ast_hash": "645363d8fa4071237edc989ea58cdce0",
+    "semantic_hash": "645363d8fa4071237edc989ea58cdce0"
+  },
+  "main/java/com/kizuna/controller/tutor/TutorMembershipApiController.java": {
+    "mtime": 1793092009.230052,
+    "seen": 1793336419.2977633,
+    "ast_hash": "ae7a9f63273f96146a60c6a951f6cdd3",
+    "semantic_hash": "ae7a9f63273f96146a60c6a951f6cdd3"
+  },
+  "main/java/com/kizuna/controller/tutor/TutorProfileApiController.java": {
+    "mtime": 1793092009.231047,
+    "seen": 1793336419.2977633,
+    "ast_hash": "cc50fd0ede87f001466e8f52a71b7537",
+    "semantic_hash": "cc50fd0ede87f001466e8f52a71b7537"
+  },
+  "main/java/com/kizuna/dto/admin/CreateUserRequest.java": {
+    "mtime": 1793092009.231047,
+    "seen": 1793336419.2977633,
+    "ast_hash": "6aae603d947e62401dd99dc70f7ea05c",
+    "semantic_hash": "6aae603d947e62401dd99dc70f7ea05c"
+  },
+  "main/java/com/kizuna/dto/admin/UpdateStatusRequest.java": {
+    "mtime": 1793092009.2323663,
+    "seen": 1793336419.2977633,
+    "ast_hash": "8b27e7616e12cbf532412b08ce42b716",
+    "semantic_hash": "8b27e7616e12cbf532412b08ce42b716"
+  },
+  "main/java/com/kizuna/dto/admin/UpdateUserRoleRequest.java": {
+    "mtime": 1793092009.232873,
+    "seen": 1793336419.2977633,
+    "ast_hash": "30a0f5ee6c69b9e9918a539963e64c09",
+    "semantic_hash": "30a0f5ee6c69b9e9918a539963e64c09"
+  },
+  "main/java/com/kizuna/dto/admin/UserDTO.java": {
+    "mtime": 1793092009.232873,
+    "seen": 1793336419.298788,
+    "ast_hash": "534b8d4579049202d8db895dfeb5688c",
+    "semantic_hash": "534b8d4579049202d8db895dfeb5688c"
+  },
+  "main/java/com/kizuna/dto/admin/UserPageResponse.java": {
+    "mtime": 1793092009.2338808,
+    "seen": 1793336419.298788,
+    "ast_hash": "8d9c402e64ae423f8001d4df878dcf19",
+    "semantic_hash": "8d9c402e64ae423f8001d4df878dcf19"
+  },
+  "main/java/com/kizuna/dto/ai/ChatMemoryRequest.java": {
+    "mtime": 1793092009.2338808,
+    "seen": 1793336419.298788,
+    "ast_hash": "efcb5036f0cc829a5922e7f81ef05adb",
+    "semantic_hash": "efcb5036f0cc829a5922e7f81ef05adb"
+  },
+  "main/java/com/kizuna/dto/ai/ChatMemoryResponse.java": {
+    "mtime": 1793092009.2348802,
+    "seen": 1793336419.298788,
+    "ast_hash": "f072dbedcdffb6758614a903a5bce2c6",
+    "semantic_hash": "f072dbedcdffb6758614a903a5bce2c6"
+  },
+  "main/java/com/kizuna/dto/auth/FirstTimePasswordChangeRequest.java": {
+    "mtime": 1793092009.2348802,
+    "seen": 1793336419.298788,
+    "ast_hash": "1e1d32b6b7ea6b52e5054a46d10f8657",
+    "semantic_hash": "1e1d32b6b7ea6b52e5054a46d10f8657"
+  },
+  "main/java/com/kizuna/dto/auth/LearnerAccessState.java": {
+    "mtime": 1793092009.2358804,
+    "seen": 1793336419.2997875,
+    "ast_hash": "f5e9fb8f99c1fadce2b16d501b133630",
+    "semantic_hash": "f5e9fb8f99c1fadce2b16d501b133630"
+  },
+  "main/java/com/kizuna/dto/auth/LoginRequest.java": {
+    "mtime": 1793092009.2358804,
+    "seen": 1793336419.2997875,
+    "ast_hash": "6ea2de1a5b61af8469b31375e5cdcc85",
+    "semantic_hash": "6ea2de1a5b61af8469b31375e5cdcc85"
+  },
+  "main/java/com/kizuna/dto/auth/LoginResponse.java": {
+    "mtime": 1793092009.2368805,
+    "seen": 1793336419.2997875,
+    "ast_hash": "6f974f29786f855df467e6ba8dea61dd",
+    "semantic_hash": "6f974f29786f855df467e6ba8dea61dd"
+  },
+  "main/java/com/kizuna/dto/auth/PendingRegistration.java": {
+    "mtime": 1793092009.2368805,
+    "seen": 1793336419.2997875,
+    "ast_hash": "30f5c05cc4e7a2d63d4a9619f2d02de7",
+    "semantic_hash": "30f5c05cc4e7a2d63d4a9619f2d02de7"
+  },
+  "main/java/com/kizuna/dto/auth/RegisterRequest.java": {
+    "mtime": 1793092009.23788,
+    "seen": 1793336419.2997875,
+    "ast_hash": "f0211f498a2ae8c6262dd49fcd345592",
+    "semantic_hash": "f0211f498a2ae8c6262dd49fcd345592"
+  },
+  "main/java/com/kizuna/dto/auth/ResendOtpRequest.java": {
+    "mtime": 1793092009.23788,
+    "seen": 1793336419.2997875,
+    "ast_hash": "f21afebed2dc3a2c32abdc919b463fdf",
+    "semantic_hash": "f21afebed2dc3a2c32abdc919b463fdf"
+  },
+  "main/java/com/kizuna/dto/auth/UserSummaryDto.java": {
+    "mtime": 1793092009.23788,
+    "seen": 1793336419.3009405,
+    "ast_hash": "94ba6746349d9ffa7a7b66a451a89fb5",
+    "semantic_hash": "94ba6746349d9ffa7a7b66a451a89fb5"
+  },
+  "main/java/com/kizuna/dto/auth/VerifyOtpRequest.java": {
+    "mtime": 1793092009.2388804,
+    "seen": 1793336419.3009405,
+    "ast_hash": "3643fdd38b6737376d41c96f3bb277e7",
+    "semantic_hash": "3643fdd38b6737376d41c96f3bb277e7"
+  },
+  "main/java/com/kizuna/dto/kanji/HandwritingSearchDto.java": {
+    "mtime": 1793186534.21242,
+    "seen": 1793336419.3009405,
+    "ast_hash": "4c915cec67131ba03b841a8aca73edde",
+    "semantic_hash": "4c915cec67131ba03b841a8aca73edde"
+  },
+  "main/java/com/kizuna/dto/kanji/KanjiCardDto.java": {
+    "mtime": 1793186506.3048246,
+    "seen": 1793336419.3009405,
+    "ast_hash": "e8e3d3cfd5d02b6f736014fd650ece2a",
+    "semantic_hash": "e8e3d3cfd5d02b6f736014fd650ece2a"
+  },
+  "main/java/com/kizuna/dto/kanji/ScoreResult.java": {
+    "mtime": 1793092009.2408807,
+    "seen": 1793336419.3009405,
+    "ast_hash": "66c91782fc0f008cd0975186eac28f89",
+    "semantic_hash": "66c91782fc0f008cd0975186eac28f89"
+  },
+  "main/java/com/kizuna/dto/kanji/ScoreSubmission.java": {
+    "mtime": 1793092009.2408807,
+    "seen": 1793336419.3019445,
+    "ast_hash": "20ff664b914a58480f23ea6c0f327d72",
+    "semantic_hash": "20ff664b914a58480f23ea6c0f327d72"
+  },
+  "main/java/com/kizuna/dto/minigame/AddRandomKanjiRequest.java": {
+    "mtime": 1793092009.2418802,
+    "seen": 1793336419.3019445,
+    "ast_hash": "352570d5d39956a83a02f6511f0ebc0b",
+    "semantic_hash": "352570d5d39956a83a02f6511f0ebc0b"
+  },
+  "main/java/com/kizuna/dto/minigame/AddRandomKanjiResponse.java": {
+    "mtime": 1793092009.2418802,
+    "seen": 1793336419.3019445,
+    "ast_hash": "48b56e04826459e9414ac6f84ed96f05",
+    "semantic_hash": "48b56e04826459e9414ac6f84ed96f05"
+  },
+  "main/java/com/kizuna/dto/minigame/CreateKanjiFolderRequest.java": {
+    "mtime": 1793092009.2428803,
+    "seen": 1793336419.3019445,
+    "ast_hash": "420457e10f4dd31468722c04043e4174",
+    "semantic_hash": "420457e10f4dd31468722c04043e4174"
+  },
+  "main/java/com/kizuna/dto/minigame/KanjiFolderDetailDto.java": {
+    "mtime": 1793092009.2428803,
+    "seen": 1793336419.3019445,
+    "ast_hash": "90d74911513f5b685a47345581ff04f0",
+    "semantic_hash": "90d74911513f5b685a47345581ff04f0"
+  },
+  "main/java/com/kizuna/dto/minigame/KanjiFolderSummaryDto.java": {
+    "mtime": 1793092009.2438805,
+    "seen": 1793336419.3029532,
+    "ast_hash": "0f8699497844f2ba799b594868777946",
+    "semantic_hash": "0f8699497844f2ba799b594868777946"
+  },
+  "main/java/com/kizuna/dto/minigame/KanjiPlayDataDto.java": {
+    "mtime": 1793092009.2438805,
+    "seen": 1793336419.3029532,
+    "ast_hash": "13e29325130e2d18576b954a1dc18c09",
+    "semantic_hash": "13e29325130e2d18576b954a1dc18c09"
+  },
+  "main/java/com/kizuna/dto/minigame/MinigameSessionRequest.java": {
+    "mtime": 1793092009.2448807,
+    "seen": 1793336419.3029532,
+    "ast_hash": "83a33ec7b4b64f5fb5f549399d6b1101",
+    "semantic_hash": "83a33ec7b4b64f5fb5f549399d6b1101"
+  },
+  "main/java/com/kizuna/dto/minigame/MinigameSessionResponse.java": {
+    "mtime": 1793092009.2448807,
+    "seen": 1793336419.3029532,
+    "ast_hash": "8a6010e9fd9282c6d41aa71353966d7c",
+    "semantic_hash": "8a6010e9fd9282c6d41aa71353966d7c"
+  },
+  "main/java/com/kizuna/dto/minigame/MistakeItemDto.java": {
+    "mtime": 1793092009.2458801,
+    "seen": 1793336419.3029532,
+    "ast_hash": "c4f8b6ab161b842ea5ad5341a754dff4",
+    "semantic_hash": "c4f8b6ab161b842ea5ad5341a754dff4"
+  },
+  "main/java/com/kizuna/dto/minigame/UpdateKanjiFolderRequest.java": {
+    "mtime": 1793092009.2458801,
+    "seen": 1793336419.3039532,
+    "ast_hash": "859942d7a2fb3e7d7f2a37996f525b2d",
+    "semantic_hash": "859942d7a2fb3e7d7f2a37996f525b2d"
+  },
+  "main/java/com/kizuna/dto/request/AssignmentCreateRequest.java": {
+    "mtime": 1793092009.2468803,
+    "seen": 1793336419.3039532,
+    "ast_hash": "107acd51187996d100386d9641622006",
+    "semantic_hash": "107acd51187996d100386d9641622006"
+  },
+  "main/java/com/kizuna/dto/request/ConnectionRequestCreate.java": {
+    "mtime": 1793092009.2468803,
+    "seen": 1793336419.3039532,
+    "ast_hash": "0790e2f51c9fe5814f84bae26511d41a",
+    "semantic_hash": "0790e2f51c9fe5814f84bae26511d41a"
+  },
+  "main/java/com/kizuna/dto/request/HomeworkSubmitRequest.java": {
+    "mtime": 1793092009.2468803,
+    "seen": 1793336419.3039532,
+    "ast_hash": "30f746d4df3295dfea7e54922cbae0b4",
+    "semantic_hash": "30f746d4df3295dfea7e54922cbae0b4"
+  },
+  "main/java/com/kizuna/dto/request/KanjiDrawingSubmitRequest.java": {
+    "mtime": 1793092009.248132,
+    "seen": 1793336419.3039532,
+    "ast_hash": "fd570a327b454e87ad07659ce6f901dd",
+    "semantic_hash": "fd570a327b454e87ad07659ce6f901dd"
+  },
+  "main/java/com/kizuna/dto/request/LoginRequest.java": {
+    "mtime": 1793092009.248132,
+    "seen": 1793336419.304953,
+    "ast_hash": "964ea3ff4c9bc9fd33ad45ab14679fe2",
+    "semantic_hash": "964ea3ff4c9bc9fd33ad45ab14679fe2"
+  },
+  "main/java/com/kizuna/dto/request/MembershipPurchaseRequest.java": {
+    "mtime": 1793092009.248132,
+    "seen": 1793336419.304953,
+    "ast_hash": "9fffe509cd38335c8d2e455e9a5a144b",
+    "semantic_hash": "9fffe509cd38335c8d2e455e9a5a144b"
+  },
+  "main/java/com/kizuna/dto/request/RegisterRequest.java": {
+    "mtime": 1793092009.2492323,
+    "seen": 1793336419.304953,
+    "ast_hash": "7a3af50eea8a287f0b7a4df26f6e8f9f",
+    "semantic_hash": "7a3af50eea8a287f0b7a4df26f6e8f9f"
+  },
+  "main/java/com/kizuna/dto/request/SupportTicketCreateRequest.java": {
+    "mtime": 1793092009.2492323,
+    "seen": 1793336419.304953,
+    "ast_hash": "4c3765ad5f60aa386ef1a02bc1570e84",
+    "semantic_hash": "4c3765ad5f60aa386ef1a02bc1570e84"
+  },
+  "main/java/com/kizuna/dto/request/TrialBookingRequest.java": {
+    "mtime": 1793092009.2492323,
+    "seen": 1793336419.304953,
+    "ast_hash": "a1c308ea8fe5a2cf4d302cbde66445d1",
+    "semantic_hash": "a1c308ea8fe5a2cf4d302cbde66445d1"
+  },
+  "main/java/com/kizuna/dto/request/TutorSearchCriteriaRequest.java": {
+    "mtime": 1793092009.2503457,
+    "seen": 1793336419.304953,
+    "ast_hash": "706e9ec45d829a5f5a5c86c2183ca63e",
+    "semantic_hash": "706e9ec45d829a5f5a5c86c2183ca63e"
+  },
+  "main/java/com/kizuna/dto/response/AiGradingResultResponse.java": {
+    "mtime": 1793092009.2503457,
+    "seen": 1793336419.304953,
+    "ast_hash": "f10aadad67bb0b86f45827f3d32b9401",
+    "semantic_hash": "f10aadad67bb0b86f45827f3d32b9401"
+  },
+  "main/java/com/kizuna/dto/response/ApiResponse.java": {
+    "mtime": 1793092009.2515185,
+    "seen": 1793336419.304953,
+    "ast_hash": "3bb5eb50b34683482a2aa49001445e38",
+    "semantic_hash": "3bb5eb50b34683482a2aa49001445e38"
+  },
+  "main/java/com/kizuna/dto/response/AuthTokenResponse.java": {
+    "mtime": 1793092009.2515185,
+    "seen": 1793336419.3064563,
+    "ast_hash": "44b93abe4e247abcc77206919eecf3a1",
+    "semantic_hash": "44b93abe4e247abcc77206919eecf3a1"
+  },
+  "main/java/com/kizuna/dto/response/KanjiProgressSummaryResponse.java": {
+    "mtime": 1793092009.2515185,
+    "seen": 1793336419.3064563,
+    "ast_hash": "921b19272bcb4885f0f8ccb5aa3be7c5",
+    "semantic_hash": "921b19272bcb4885f0f8ccb5aa3be7c5"
+  },
+  "main/java/com/kizuna/dto/response/LearningSpaceDetailResponse.java": {
+    "mtime": 1793092009.2527018,
+    "seen": 1793336419.3064563,
+    "ast_hash": "9854ed43d88d79a71aded0bce70a7f04",
+    "semantic_hash": "9854ed43d88d79a71aded0bce70a7f04"
+  },
+  "main/java/com/kizuna/dto/response/PaymentCheckoutResponse.java": {
+    "mtime": 1793092009.2527018,
+    "seen": 1793336419.3064563,
+    "ast_hash": "586bab1d8c30a3b134dbae920964a6d0",
+    "semantic_hash": "586bab1d8c30a3b134dbae920964a6d0"
+  },
+  "main/java/com/kizuna/dto/response/TutorDetailResponse.java": {
+    "mtime": 1793092009.2527018,
+    "seen": 1793336419.3064563,
+    "ast_hash": "a2af8a21b249dfaf5ec46348cc0ff8b7",
+    "semantic_hash": "a2af8a21b249dfaf5ec46348cc0ff8b7"
+  },
+  "main/java/com/kizuna/dto/response/TutorSummaryResponse.java": {
+    "mtime": 1793092009.2537987,
+    "seen": 1793336419.3064563,
+    "ast_hash": "bdbf8c0ccb742f11c0c9adb680f18721",
+    "semantic_hash": "bdbf8c0ccb742f11c0c9adb680f18721"
+  },
+  "main/java/com/kizuna/dto/tutor/CreatePaymentRequest.java": {
+    "mtime": 1793092009.2537987,
+    "seen": 1793336419.3077178,
+    "ast_hash": "4a820fd46d23cfc116c1e6e5c0ef20df",
+    "semantic_hash": "4a820fd46d23cfc116c1e6e5c0ef20df"
+  },
+  "main/java/com/kizuna/dto/tutor/SaveTutorProfileRequest.java": {
+    "mtime": 1793092009.255207,
+    "seen": 1793336419.3077178,
+    "ast_hash": "534ae44fe83e2556d9cb95db83716db6",
+    "semantic_hash": "534ae44fe83e2556d9cb95db83716db6"
+  },
+  "main/java/com/kizuna/dto/tutor/TutorMembershipDto.java": {
+    "mtime": 1793092009.255207,
+    "seen": 1793336419.3077178,
+    "ast_hash": "5cb6d52e3dcd0462ad5d353be09b182f",
+    "semantic_hash": "5cb6d52e3dcd0462ad5d353be09b182f"
+  },
+  "main/java/com/kizuna/dto/tutor/TutorProfileDto.java": {
+    "mtime": 1793092009.255207,
+    "seen": 1793336419.3077178,
+    "ast_hash": "2b4187b6a6fca3fb8d6b40e98fb593b1",
+    "semantic_hash": "2b4187b6a6fca3fb8d6b40e98fb593b1"
+  },
+  "main/java/com/kizuna/entity/AiFeatureQuota.java": {
+    "mtime": 1793092009.256561,
+    "seen": 1793336419.3077178,
+    "ast_hash": "86032a8b6fa40c55a3bc268b60658fa9",
+    "semantic_hash": "86032a8b6fa40c55a3bc268b60658fa9"
+  },
+  "main/java/com/kizuna/entity/Assignment.java": {
+    "mtime": 1793092009.256561,
+    "seen": 1793336419.3077178,
+    "ast_hash": "67e3222bb2740a398ab78fb1ebdaaa27",
+    "semantic_hash": "67e3222bb2740a398ab78fb1ebdaaa27"
+  },
+  "main/java/com/kizuna/entity/AssignmentKanjiItem.java": {
+    "mtime": 1793092009.256561,
+    "seen": 1793336419.308885,
+    "ast_hash": "6895570411347e51b597901152a09efd",
+    "semantic_hash": "6895570411347e51b597901152a09efd"
+  },
+  "main/java/com/kizuna/entity/AssignmentSubmission.java": {
+    "mtime": 1793092009.258039,
+    "seen": 1793336419.308885,
+    "ast_hash": "fb76604c2b7a28387af4f9d4e1ffeba6",
+    "semantic_hash": "fb76604c2b7a28387af4f9d4e1ffeba6"
+  },
+  "main/java/com/kizuna/entity/AssignmentSubmissionStatus.java": {
+    "mtime": 1793092009.258039,
+    "seen": 1793336419.308885,
+    "ast_hash": "78de9ab195a5dd6ad85ca7c66559eacb",
+    "semantic_hash": "78de9ab195a5dd6ad85ca7c66559eacb"
+  },
+  "main/java/com/kizuna/entity/BaseEntity.java": {
+    "mtime": 1793092009.258039,
+    "seen": 1793336419.308885,
+    "ast_hash": "7786c4d069cd86584c93c7c77b96d406",
+    "semantic_hash": "7786c4d069cd86584c93c7c77b96d406"
+  },
+  "main/java/com/kizuna/entity/ConnectionRequest.java": {
+    "mtime": 1793092009.2592866,
+    "seen": 1793336419.308885,
+    "ast_hash": "2f212a2f9c6d76892b968e6429e661d2",
+    "semantic_hash": "2f212a2f9c6d76892b968e6429e661d2"
+  },
+  "main/java/com/kizuna/entity/ConnectionRequestStatus.java": {
+    "mtime": 1793092009.2592866,
+    "seen": 1793336419.309886,
+    "ast_hash": "806fe8933ebb94c7b74bfacd1cd9be43",
+    "semantic_hash": "806fe8933ebb94c7b74bfacd1cd9be43"
+  },
+  "main/java/com/kizuna/entity/JlptLevel.java": {
+    "mtime": 1793092009.2592866,
+    "seen": 1793336419.309886,
+    "ast_hash": "c0cc93f3161acadbd1fad731d053718d",
+    "semantic_hash": "c0cc93f3161acadbd1fad731d053718d"
+  },
+  "main/java/com/kizuna/entity/KanjiDictionary.java": {
+    "mtime": 1793226518.243285,
+    "seen": 1793336419.309886,
+    "ast_hash": "7d91367c570e44c099d5358aafe5384d",
+    "semantic_hash": "7d91367c570e44c099d5358aafe5384d"
+  },
+  "main/java/com/kizuna/entity/KanjiFolder.java": {
+    "mtime": 1793092009.2607253,
+    "seen": 1793336419.309886,
+    "ast_hash": "2429adee0a47eee7549fff267c49f9af",
+    "semantic_hash": "2429adee0a47eee7549fff267c49f9af"
+  },
+  "main/java/com/kizuna/entity/KanjiFolderItem.java": {
+    "mtime": 1793092009.2607253,
+    "seen": 1793336419.309886,
+    "ast_hash": "d65f50be85ca3fa43a4d1b83f6f2217b",
+    "semantic_hash": "d65f50be85ca3fa43a4d1b83f6f2217b"
+  },
+  "main/java/com/kizuna/entity/KanjiPracticeSubmission.java": {
+    "mtime": 1793092009.2618337,
+    "seen": 1793336419.309886,
+    "ast_hash": "9c296a9c48c92ce80cc41477cb476a20",
+    "semantic_hash": "9c296a9c48c92ce80cc41477cb476a20"
+  },
+  "main/java/com/kizuna/entity/Learner.java": {
+    "mtime": 1793092009.2618337,
+    "seen": 1793336419.3108852,
+    "ast_hash": "795334a33092dcdffa2e077c0b45e105",
+    "semantic_hash": "795334a33092dcdffa2e077c0b45e105"
+  },
+  "main/java/com/kizuna/entity/LearningMaterial.java": {
+    "mtime": 1793092009.2618337,
+    "seen": 1793336419.3108852,
+    "ast_hash": "8c6cf76b4de7cabc9c07983ff3b43820",
+    "semantic_hash": "8c6cf76b4de7cabc9c07983ff3b43820"
+  },
+  "main/java/com/kizuna/entity/LearningProgressRecord.java": {
+    "mtime": 1793092009.2631383,
+    "seen": 1793336419.3108852,
+    "ast_hash": "8e3c25910cbf3474280412df61de6410",
+    "semantic_hash": "8e3c25910cbf3474280412df61de6410"
+  },
+  "main/java/com/kizuna/entity/LearningSpace.java": {
+    "mtime": 1793092009.2643783,
+    "seen": 1793336419.3108852,
+    "ast_hash": "ca4af1e88fe49e16437f476c47daae90",
+    "semantic_hash": "ca4af1e88fe49e16437f476c47daae90"
+  },
+  "main/java/com/kizuna/entity/LearningSpaceStatus.java": {
+    "mtime": 1793092009.2643783,
+    "seen": 1793336419.3108852,
+    "ast_hash": "592df02beb8a956b7fb486d7e796a656",
+    "semantic_hash": "592df02beb8a956b7fb486d7e796a656"
+  },
+  "main/java/com/kizuna/entity/MembershipPlan.java": {
+    "mtime": 1793092009.2656252,
+    "seen": 1793336419.3118844,
+    "ast_hash": "6625579d2beebd3127a00cfc6b776330",
+    "semantic_hash": "6625579d2beebd3127a00cfc6b776330"
+  },
+  "main/java/com/kizuna/entity/MinigameMistakeLog.java": {
+    "mtime": 1793092009.2656252,
+    "seen": 1793336419.3118844,
+    "ast_hash": "34a97a056f5bc2a07c9c3727b988bc15",
+    "semantic_hash": "34a97a056f5bc2a07c9c3727b988bc15"
+  },
+  "main/java/com/kizuna/entity/MinigameSession.java": {
+    "mtime": 1793092009.2656252,
+    "seen": 1793336419.3118844,
+    "ast_hash": "b8f57b7f328813ab9bc4b8d5bdee5103",
+    "semantic_hash": "b8f57b7f328813ab9bc4b8d5bdee5103"
+  },
+  "main/java/com/kizuna/entity/Notification.java": {
+    "mtime": 1793092009.2656252,
+    "seen": 1793336419.3118844,
+    "ast_hash": "ad5ac85dff93ca21d763d633a25ba088",
+    "semantic_hash": "ad5ac85dff93ca21d763d633a25ba088"
+  },
+  "main/java/com/kizuna/entity/NotificationType.java": {
+    "mtime": 1793092009.2671099,
+    "seen": 1793336419.3118844,
+    "ast_hash": "0482d555e4efd7d1f79fb33b717520dd",
+    "semantic_hash": "0482d555e4efd7d1f79fb33b717520dd"
+  },
+  "main/java/com/kizuna/entity/PaymentProcessingLog.java": {
+    "mtime": 1793092009.2671099,
+    "seen": 1793336419.3118844,
+    "ast_hash": "cd3f88dd3f8371ca54d05ec242b44c3c",
+    "semantic_hash": "cd3f88dd3f8371ca54d05ec242b44c3c"
+  },
+  "main/java/com/kizuna/entity/PaymentTransaction.java": {
+    "mtime": 1793092009.2671099,
+    "seen": 1793336419.313018,
+    "ast_hash": "1c6fac25b7b202396294971b7d6f0816",
+    "semantic_hash": "1c6fac25b7b202396294971b7d6f0816"
+  },
+  "main/java/com/kizuna/entity/PaymentTransactionStatus.java": {
+    "mtime": 1793092009.2685575,
+    "seen": 1793336419.313018,
+    "ast_hash": "ce968be7d3d8ccef7cd8acaa38c795ac",
+    "semantic_hash": "ce968be7d3d8ccef7cd8acaa38c795ac"
+  },
+  "main/java/com/kizuna/entity/PracticeSubmissionStatus.java": {
+    "mtime": 1793092009.2685575,
+    "seen": 1793336419.313018,
+    "ast_hash": "9f23892505db406e9be84064de5162ab",
+    "semantic_hash": "9f23892505db406e9be84064de5162ab"
+  },
+  "main/java/com/kizuna/entity/Role.java": {
+    "mtime": 1793092009.2685575,
+    "seen": 1793336419.313018,
+    "ast_hash": "4f6cd7e2dd21a3c667d1a5bb788b5bd9",
+    "semantic_hash": "4f6cd7e2dd21a3c667d1a5bb788b5bd9"
+  },
+  "main/java/com/kizuna/entity/RoleEnum.java": {
+    "mtime": 1793092009.2685575,
+    "seen": 1793336419.313018,
+    "ast_hash": "39b5b6d81474bde30e97309b87269d0c",
+    "semantic_hash": "39b5b6d81474bde30e97309b87269d0c"
+  },
+  "main/java/com/kizuna/entity/SupportTicket.java": {
+    "mtime": 1793092009.2700593,
+    "seen": 1793336419.3140595,
+    "ast_hash": "90784f20eff2993c2f5d59d74851cb4d",
+    "semantic_hash": "90784f20eff2993c2f5d59d74851cb4d"
+  },
+  "main/java/com/kizuna/entity/SupportTicketCategory.java": {
+    "mtime": 1793092009.2700593,
+    "seen": 1793336419.3140595,
+    "ast_hash": "27bd364e0cbc7e3efe4fda8604c1e6a9",
+    "semantic_hash": "27bd364e0cbc7e3efe4fda8604c1e6a9"
+  },
+  "main/java/com/kizuna/entity/SupportTicketPriority.java": {
+    "mtime": 1793092009.2700593,
+    "seen": 1793336419.3140595,
+    "ast_hash": "ca1e761908cde59d7dfee47d5189c0cb",
+    "semantic_hash": "ca1e761908cde59d7dfee47d5189c0cb"
+  },
+  "main/java/com/kizuna/entity/SupportTicketStatus.java": {
+    "mtime": 1793092009.2700593,
+    "seen": 1793336419.3140595,
+    "ast_hash": "92ebce8f60b527f649853e73ee78772b",
+    "semantic_hash": "92ebce8f60b527f649853e73ee78772b"
+  },
+  "main/java/com/kizuna/entity/SystemAuditLog.java": {
+    "mtime": 1793092009.2715616,
+    "seen": 1793336419.3140595,
+    "ast_hash": "940679b39645468bcf09f9c94436df9c",
+    "semantic_hash": "940679b39645468bcf09f9c94436df9c"
+  },
+  "main/java/com/kizuna/entity/SystemConfiguration.java": {
+    "mtime": 1793092009.2715616,
+    "seen": 1793336419.3140595,
+    "ast_hash": "dc5b0f6e5b01242c6888a04412730cbe",
+    "semantic_hash": "dc5b0f6e5b01242c6888a04412730cbe"
+  },
+  "main/java/com/kizuna/entity/TicketMessage.java": {
+    "mtime": 1793092009.2727315,
+    "seen": 1793336419.3152535,
+    "ast_hash": "a6b3fb312bcf68a27c050c47cfc13022",
+    "semantic_hash": "a6b3fb312bcf68a27c050c47cfc13022"
+  },
+  "main/java/com/kizuna/entity/TrialBooking.java": {
+    "mtime": 1793092009.2727315,
+    "seen": 1793336419.3152535,
+    "ast_hash": "7c5b15fe4b7123040dbcd1737b098561",
+    "semantic_hash": "7c5b15fe4b7123040dbcd1737b098561"
+  },
+  "main/java/com/kizuna/entity/TrialBookingHistory.java": {
+    "mtime": 1793092009.2727315,
+    "seen": 1793336419.3152535,
+    "ast_hash": "9b8cc7de75207d8e5402c31a1bccb73e",
+    "semantic_hash": "9b8cc7de75207d8e5402c31a1bccb73e"
+  },
+  "main/java/com/kizuna/entity/TrialBookingStatus.java": {
+    "mtime": 1793092009.2727315,
+    "seen": 1793336419.3152535,
+    "ast_hash": "d87ce2c4d1cf2cf9f43c88ee74f7289e",
+    "semantic_hash": "d87ce2c4d1cf2cf9f43c88ee74f7289e"
+  },
+  "main/java/com/kizuna/entity/Tutor.java": {
+    "mtime": 1793092009.2741518,
+    "seen": 1793336419.3152535,
+    "ast_hash": "5692f8d84a2da029cf7b0103e79757b4",
+    "semantic_hash": "5692f8d84a2da029cf7b0103e79757b4"
+  },
+  "main/java/com/kizuna/entity/TutorAvailability.java": {
+    "mtime": 1793092009.2741518,
+    "seen": 1793336419.3162634,
+    "ast_hash": "bdfda8055c2a5ad8635eee38e89a8955",
+    "semantic_hash": "bdfda8055c2a5ad8635eee38e89a8955"
+  },
+  "main/java/com/kizuna/entity/TutorCredential.java": {
+    "mtime": 1793092009.2741518,
+    "seen": 1793336419.3162634,
+    "ast_hash": "1fe3f37d0a15feeee497b5733a146616",
+    "semantic_hash": "1fe3f37d0a15feeee497b5733a146616"
+  },
+  "main/java/com/kizuna/entity/TutorCredentialStatus.java": {
+    "mtime": 1793092009.2751508,
+    "seen": 1793336419.3162634,
+    "ast_hash": "77c760beb47b55a0a7c0ff01ae0f0e56",
+    "semantic_hash": "77c760beb47b55a0a7c0ff01ae0f0e56"
+  },
+  "main/java/com/kizuna/entity/TutorMembership.java": {
+    "mtime": 1793092009.2751508,
+    "seen": 1793336419.3162634,
+    "ast_hash": "952379aa450f033d761cd59dda0b56a1",
+    "semantic_hash": "952379aa450f033d761cd59dda0b56a1"
+  },
+  "main/java/com/kizuna/entity/TutorMembershipState.java": {
+    "mtime": 1793092009.276235,
+    "seen": 1793336419.3162634,
+    "ast_hash": "3ae9a32197eaeb55d3ee1b03493394df",
+    "semantic_hash": "3ae9a32197eaeb55d3ee1b03493394df"
+  },
+  "main/java/com/kizuna/entity/TutorMembershipStatus.java": {
+    "mtime": 1793092009.276235,
+    "seen": 1793336419.3162634,
+    "ast_hash": "f97980e1f4a87522751ebee85296b2ab",
+    "semantic_hash": "f97980e1f4a87522751ebee85296b2ab"
+  },
+  "main/java/com/kizuna/entity/TutorReview.java": {
+    "mtime": 1793092009.276235,
+    "seen": 1793336419.3172615,
+    "ast_hash": "b221b0fde10d1a7077791efb22c2ebaf",
+    "semantic_hash": "b221b0fde10d1a7077791efb22c2ebaf"
+  },
+  "main/java/com/kizuna/entity/TutorState.java": {
+    "mtime": 1793092009.2775207,
+    "seen": 1793336419.3172615,
+    "ast_hash": "b14280586894e753d2595e2cdaa2494b",
+    "semantic_hash": "b14280586894e753d2595e2cdaa2494b"
+  },
+  "main/java/com/kizuna/entity/TutorVerifAction.java": {
+    "mtime": 1793092009.2775207,
+    "seen": 1793336419.3172615,
+    "ast_hash": "e49e6bf45f931c3e90c2176f626e5d42",
+    "semantic_hash": "e49e6bf45f931c3e90c2176f626e5d42"
+  },
+  "main/java/com/kizuna/entity/TutorVerificationHistory.java": {
+    "mtime": 1793092009.2775207,
+    "seen": 1793336419.3172615,
+    "ast_hash": "56ff94fb9e67382b798af36ff4815138",
+    "semantic_hash": "56ff94fb9e67382b798af36ff4815138"
+  },
+  "main/java/com/kizuna/entity/TutorVerificationStatus.java": {
+    "mtime": 1793092009.2787855,
+    "seen": 1793336419.3172615,
+    "ast_hash": "cded6350b69a17001e5019227d05fc91",
+    "semantic_hash": "cded6350b69a17001e5019227d05fc91"
+  },
+  "main/java/com/kizuna/entity/User.java": {
+    "mtime": 1793092009.2787855,
+    "seen": 1793336419.3182688,
+    "ast_hash": "c87f2a9e92455e8baeae109ac4373404",
+    "semantic_hash": "c87f2a9e92455e8baeae109ac4373404"
+  },
+  "main/java/com/kizuna/entity/UserAccountStatus.java": {
+    "mtime": 1793092009.2787855,
+    "seen": 1793336419.3182688,
+    "ast_hash": "4d67863134259c570be991ee179089c8",
+    "semantic_hash": "4d67863134259c570be991ee179089c8"
+  },
+  "main/java/com/kizuna/entity/UserNotification.java": {
+    "mtime": 1793092009.2802224,
+    "seen": 1793336419.3182688,
+    "ast_hash": "bfd1f2427bf3acfc098c8f105883adac",
+    "semantic_hash": "bfd1f2427bf3acfc098c8f105883adac"
+  },
+  "main/java/com/kizuna/exception/AiQuotaExceededException.java": {
+    "mtime": 1793092009.281223,
+    "seen": 1793336419.3182688,
+    "ast_hash": "142fb8e73cd1f9a3dcc8e00b96515dad",
+    "semantic_hash": "142fb8e73cd1f9a3dcc8e00b96515dad"
+  },
+  "main/java/com/kizuna/exception/BadRequestException.java": {
+    "mtime": 1793092009.281223,
+    "seen": 1793336419.3182688,
+    "ast_hash": "f6c5ddf04da14171990a24919536d983",
+    "semantic_hash": "f6c5ddf04da14171990a24919536d983"
+  },
+  "main/java/com/kizuna/exception/GlobalExceptionHandler.java": {
+    "mtime": 1793092009.282223,
+    "seen": 1793336419.3192685,
+    "ast_hash": "092824024716e187bb8de0f19e4858df",
+    "semantic_hash": "092824024716e187bb8de0f19e4858df"
+  },
+  "main/java/com/kizuna/exception/PaymentProcessingException.java": {
+    "mtime": 1793092009.282223,
+    "seen": 1793336419.3192685,
+    "ast_hash": "e8cbc3587ed008b75df9603e87801d34",
+    "semantic_hash": "e8cbc3587ed008b75df9603e87801d34"
+  },
+  "main/java/com/kizuna/exception/ResourceNotFoundException.java": {
+    "mtime": 1793092009.2835805,
+    "seen": 1793336419.3192685,
+    "ast_hash": "6c4c3720ac3de3eb9832b0a138342a02",
+    "semantic_hash": "6c4c3720ac3de3eb9832b0a138342a02"
+  },
+  "main/java/com/kizuna/mapper/AssignmentMapper.java": {
+    "mtime": 1793092009.2835805,
+    "seen": 1793336419.3192685,
+    "ast_hash": "e7453eb13ee4e35be6b6be974cb6204b",
+    "semantic_hash": "e7453eb13ee4e35be6b6be974cb6204b"
+  },
+  "main/java/com/kizuna/mapper/KanjiPracticeMapper.java": {
+    "mtime": 1793092009.2845802,
+    "seen": 1793336419.3192685,
+    "ast_hash": "941a75ea57c59f3e3db2e91f2009cc3b",
+    "semantic_hash": "941a75ea57c59f3e3db2e91f2009cc3b"
+  },
+  "main/java/com/kizuna/mapper/LearningSpaceMapper.java": {
+    "mtime": 1793092009.2845802,
+    "seen": 1793336419.3202686,
+    "ast_hash": "42aefc58799ad66545ce4e4feab95d99",
+    "semantic_hash": "42aefc58799ad66545ce4e4feab95d99"
+  },
+  "main/java/com/kizuna/mapper/TutorProfileMapper.java": {
+    "mtime": 1793092009.2855818,
+    "seen": 1793336419.3202686,
+    "ast_hash": "c0eb95c23b3f2abb4e6595149b23eec2",
+    "semantic_hash": "c0eb95c23b3f2abb4e6595149b23eec2"
+  },
+  "main/java/com/kizuna/mapper/UserMapper.java": {
+    "mtime": 1793092009.2855818,
+    "seen": 1793336419.3202686,
+    "ast_hash": "eadfb263915ad3b8bf0c535e4226d79f",
+    "semantic_hash": "eadfb263915ad3b8bf0c535e4226d79f"
+  },
+  "main/java/com/kizuna/repository/AiFeatureQuotaRepository.java": {
+    "mtime": 1793092009.286582,
+    "seen": 1793336419.3202686,
+    "ast_hash": "8c922c091f88d23169b5ba8933ed3ddf",
+    "semantic_hash": "8c922c091f88d23169b5ba8933ed3ddf"
+  },
+  "main/java/com/kizuna/repository/AssignmentKanjiItemRepository.java": {
+    "mtime": 1793092009.286582,
+    "seen": 1793336419.3202686,
+    "ast_hash": "dce9d730d8e79216574b43a28f22962d",
+    "semantic_hash": "dce9d730d8e79216574b43a28f22962d"
+  },
+  "main/java/com/kizuna/repository/AssignmentRepository.java": {
+    "mtime": 1793092009.2875836,
+    "seen": 1793336419.3202686,
+    "ast_hash": "388c650eeaba64f57d0cb0a660f5651f",
+    "semantic_hash": "388c650eeaba64f57d0cb0a660f5651f"
+  },
+  "main/java/com/kizuna/repository/AssignmentSubmissionRepository.java": {
+    "mtime": 1793092009.2875836,
+    "seen": 1793336419.3202686,
+    "ast_hash": "5103a95d8287b5f43088c5e57ad830c5",
+    "semantic_hash": "5103a95d8287b5f43088c5e57ad830c5"
+  },
+  "main/java/com/kizuna/repository/ConnectionRequestRepository.java": {
+    "mtime": 1793092009.2875836,
+    "seen": 1793336419.3215775,
+    "ast_hash": "d1b2408fe0ff4a01a48df91d7b68391a",
+    "semantic_hash": "d1b2408fe0ff4a01a48df91d7b68391a"
+  },
+  "main/java/com/kizuna/repository/KanjiDictionaryRepository.java": {
+    "mtime": 1793226548.3775365,
+    "seen": 1793336419.3215775,
+    "ast_hash": "cd4207d50317857418bf09f2d4bcff27",
+    "semantic_hash": "cd4207d50317857418bf09f2d4bcff27"
+  },
+  "main/java/com/kizuna/repository/KanjiFolderItemRepository.java": {
+    "mtime": 1793092009.2895818,
+    "seen": 1793336419.3215775,
+    "ast_hash": "22e44a8c9b0b324ecc379810ef5ab779",
+    "semantic_hash": "22e44a8c9b0b324ecc379810ef5ab779"
+  },
+  "main/java/com/kizuna/repository/KanjiFolderRepository.java": {
+    "mtime": 1793092009.2895818,
+    "seen": 1793336419.3215775,
+    "ast_hash": "539da24115481ac1e21e2e27deb79e38",
+    "semantic_hash": "539da24115481ac1e21e2e27deb79e38"
+  },
+  "main/java/com/kizuna/repository/KanjiPracticeSubmissionRepository.java": {
+    "mtime": 1793092009.2895818,
+    "seen": 1793336419.3215775,
+    "ast_hash": "77f0ea9b73081367c79f7b2451de58be",
+    "semantic_hash": "77f0ea9b73081367c79f7b2451de58be"
+  },
+  "main/java/com/kizuna/repository/LearnerRepository.java": {
+    "mtime": 1793092009.2895818,
+    "seen": 1793336419.3215775,
+    "ast_hash": "03dfe4950362dc1843b05e9d5a2f9193",
+    "semantic_hash": "03dfe4950362dc1843b05e9d5a2f9193"
+  },
+  "main/java/com/kizuna/repository/LearningMaterialRepository.java": {
+    "mtime": 1793092009.2910624,
+    "seen": 1793336419.3226817,
+    "ast_hash": "e5b1e1be4d924521febf7793e6b78554",
+    "semantic_hash": "e5b1e1be4d924521febf7793e6b78554"
+  },
+  "main/java/com/kizuna/repository/LearningProgressRecordRepository.java": {
+    "mtime": 1793092009.2910624,
+    "seen": 1793336419.3226817,
+    "ast_hash": "267dba95ddbd3cbe1a0a9918523516f7",
+    "semantic_hash": "267dba95ddbd3cbe1a0a9918523516f7"
+  },
+  "main/java/com/kizuna/repository/LearningSpaceRepository.java": {
+    "mtime": 1793092009.2920609,
+    "seen": 1793336419.3226817,
+    "ast_hash": "f4a222083a0a128e277cca0636648bf1",
+    "semantic_hash": "f4a222083a0a128e277cca0636648bf1"
+  },
+  "main/java/com/kizuna/repository/MembershipPlanRepository.java": {
+    "mtime": 1793092009.2920609,
+    "seen": 1793336419.3226817,
+    "ast_hash": "225d340a93f330cbd4635a39da5dfdf1",
+    "semantic_hash": "225d340a93f330cbd4635a39da5dfdf1"
+  },
+  "main/java/com/kizuna/repository/MinigameMistakeLogRepository.java": {
+    "mtime": 1793092009.2930613,
+    "seen": 1793336419.3226817,
+    "ast_hash": "1cd5e52ada845b590fcf1cde9fd86d2f",
+    "semantic_hash": "1cd5e52ada845b590fcf1cde9fd86d2f"
+  },
+  "main/java/com/kizuna/repository/MinigameSessionRepository.java": {
+    "mtime": 1793092009.2930613,
+    "seen": 1793336419.32368,
+    "ast_hash": "990bbb5cf6a1775d410e8cbca2b962fb",
+    "semantic_hash": "990bbb5cf6a1775d410e8cbca2b962fb"
+  },
+  "main/java/com/kizuna/repository/NotificationRepository.java": {
+    "mtime": 1793092009.294062,
+    "seen": 1793336419.32368,
+    "ast_hash": "3d327247eb3a7f649650531e5b8df317",
+    "semantic_hash": "3d327247eb3a7f649650531e5b8df317"
+  },
+  "main/java/com/kizuna/repository/PaymentProcessingLogRepository.java": {
+    "mtime": 1793092009.294062,
+    "seen": 1793336419.32368,
+    "ast_hash": "8a420f58e277cc5828e42dafa00fd814",
+    "semantic_hash": "8a420f58e277cc5828e42dafa00fd814"
+  },
+  "main/java/com/kizuna/repository/PaymentTransactionRepository.java": {
+    "mtime": 1793092009.294062,
+    "seen": 1793336419.32368,
+    "ast_hash": "9a5948e5c351bc4d41c6e1672bd9ecf6",
+    "semantic_hash": "9a5948e5c351bc4d41c6e1672bd9ecf6"
+  },
+  "main/java/com/kizuna/repository/RoleRepository.java": {
+    "mtime": 1793092009.2954457,
+    "seen": 1793336419.32368,
+    "ast_hash": "9988753aff92b73a5e4adef989343cae",
+    "semantic_hash": "9988753aff92b73a5e4adef989343cae"
+  },
+  "main/java/com/kizuna/repository/SupportTicketRepository.java": {
+    "mtime": 1793092009.2954457,
+    "seen": 1793336419.32468,
+    "ast_hash": "b3da50880b8f421492fe2102ae8022c7",
+    "semantic_hash": "b3da50880b8f421492fe2102ae8022c7"
+  },
+  "main/java/com/kizuna/repository/SystemAuditLogRepository.java": {
+    "mtime": 1793092009.2954457,
+    "seen": 1793336419.32468,
+    "ast_hash": "5b9234feea0f6a2c6078e000a2c34f96",
+    "semantic_hash": "5b9234feea0f6a2c6078e000a2c34f96"
+  },
+  "main/java/com/kizuna/repository/SystemConfigurationRepository.java": {
+    "mtime": 1793092009.2954457,
+    "seen": 1793336419.32468,
+    "ast_hash": "87efbc22ff8db88c4691815a9af68d1b",
+    "semantic_hash": "87efbc22ff8db88c4691815a9af68d1b"
+  },
+  "main/java/com/kizuna/repository/TicketMessageRepository.java": {
+    "mtime": 1793092009.296922,
+    "seen": 1793336419.32468,
+    "ast_hash": "acd4243a1b4d2a49c90b220ee435d8a6",
+    "semantic_hash": "acd4243a1b4d2a49c90b220ee435d8a6"
+  },
+  "main/java/com/kizuna/repository/TrialBookingHistoryRepository.java": {
+    "mtime": 1793092009.296922,
+    "seen": 1793336419.32468,
+    "ast_hash": "43f939f93cb6e5263184f1bf49e5b08d",
+    "semantic_hash": "43f939f93cb6e5263184f1bf49e5b08d"
+  },
+  "main/java/com/kizuna/repository/TrialBookingRepository.java": {
+    "mtime": 1793092009.2979617,
+    "seen": 1793336419.3256881,
+    "ast_hash": "cd3f0df37c2f86b4eafaf06870a427b2",
+    "semantic_hash": "cd3f0df37c2f86b4eafaf06870a427b2"
+  },
+  "main/java/com/kizuna/repository/TutorAvailabilityRepository.java": {
+    "mtime": 1793092009.2979617,
+    "seen": 1793336419.3256881,
+    "ast_hash": "94b4a6efc4ef6a377a80165b87163e42",
+    "semantic_hash": "94b4a6efc4ef6a377a80165b87163e42"
+  },
+  "main/java/com/kizuna/repository/TutorCredentialRepository.java": {
+    "mtime": 1793092009.2989614,
+    "seen": 1793336419.3256881,
+    "ast_hash": "b74346ed3eb0eba3127b8ce880fe17cd",
+    "semantic_hash": "b74346ed3eb0eba3127b8ce880fe17cd"
+  },
+  "main/java/com/kizuna/repository/TutorMembershipRepository.java": {
+    "mtime": 1793092009.2989614,
+    "seen": 1793336419.3256881,
+    "ast_hash": "dfc6f4b2ae361489fd93ee8c266e584b",
+    "semantic_hash": "dfc6f4b2ae361489fd93ee8c266e584b"
+  },
+  "main/java/com/kizuna/repository/TutorRepository.java": {
+    "mtime": 1793092009.2999613,
+    "seen": 1793336419.3256881,
+    "ast_hash": "3b8672e00dd1550a69aea2866390012a",
+    "semantic_hash": "3b8672e00dd1550a69aea2866390012a"
+  },
+  "main/java/com/kizuna/repository/TutorReviewRepository.java": {
+    "mtime": 1793092009.2999613,
+    "seen": 1793336419.3266883,
+    "ast_hash": "18d10932bbdc3c508761e1f3122325c8",
+    "semantic_hash": "18d10932bbdc3c508761e1f3122325c8"
+  },
+  "main/java/com/kizuna/repository/TutorVerificationHistoryRepository.java": {
+    "mtime": 1793092009.2999613,
+    "seen": 1793336419.3266883,
+    "ast_hash": "ce759f77235bf5068092e38082ea4a11",
+    "semantic_hash": "ce759f77235bf5068092e38082ea4a11"
+  },
+  "main/java/com/kizuna/repository/UserNotificationRepository.java": {
+    "mtime": 1793092009.3009624,
+    "seen": 1793336419.3266883,
+    "ast_hash": "1a3718cf6987b8b48c12469345410b72",
+    "semantic_hash": "1a3718cf6987b8b48c12469345410b72"
+  },
+  "main/java/com/kizuna/repository/UserRepository.java": {
+    "mtime": 1793092009.3009624,
+    "seen": 1793336419.3266883,
+    "ast_hash": "80c5cfc6c33a4d7045f908c0289f16f9",
+    "semantic_hash": "80c5cfc6c33a4d7045f908c0289f16f9"
+  },
+  "main/java/com/kizuna/security/RequireActiveTutor.java": {
+    "mtime": 1793092009.301963,
+    "seen": 1793336419.3266883,
+    "ast_hash": "bb12ce489e053fbaa734aa9ded018d02",
+    "semantic_hash": "bb12ce489e053fbaa734aa9ded018d02"
+  },
+  "main/java/com/kizuna/security/TutorSecurityAspect.java": {
+    "mtime": 1793092009.301963,
+    "seen": 1793336419.3266883,
+    "ast_hash": "348c0af1c09dbb084a93099b699bd2a3",
+    "semantic_hash": "348c0af1c09dbb084a93099b699bd2a3"
+  },
+  "main/java/com/kizuna/seeder/AuthDataSeeder.java": {
+    "mtime": 1793215961.8524997,
+    "seen": 1793336419.3276923,
+    "ast_hash": "b6de53dda22541a47a6ba65dc43c7df2",
+    "semantic_hash": "b6de53dda22541a47a6ba65dc43c7df2"
+  },
+  "main/java/com/kizuna/seeder/KanjiDataSeeder.java": {
+    "mtime": 1793226579.3302267,
+    "seen": 1793336419.3276923,
+    "ast_hash": "e5e78323ba9c502f3ae1de0c0d8dd7cb",
+    "semantic_hash": "e5e78323ba9c502f3ae1de0c0d8dd7cb"
+  },
+  "main/java/com/kizuna/service/IAdminUserService.java": {
+    "mtime": 1793092009.3041525,
+    "seen": 1793336419.3276923,
+    "ast_hash": "bb8c53a57434691c64eb5a496ddab63c",
+    "semantic_hash": "bb8c53a57434691c64eb5a496ddab63c"
+  },
+  "main/java/com/kizuna/service/IAgentMemoryService.java": {
+    "mtime": 1793092009.3051753,
+    "seen": 1793336419.3276923,
+    "ast_hash": "f47277c95c31974ee640f774b1f2eadc",
+    "semantic_hash": "f47277c95c31974ee640f774b1f2eadc"
+  },
+  "main/java/com/kizuna/service/IAiStrokeAnalysisService.java": {
+    "mtime": 1793092009.3051753,
+    "seen": 1793336419.3276923,
+    "ast_hash": "8cbdf143685a16ffbee7f5e4f236d3ae",
+    "semantic_hash": "8cbdf143685a16ffbee7f5e4f236d3ae"
+  },
+  "main/java/com/kizuna/service/IAssignmentService.java": {
+    "mtime": 1793092009.3051753,
+    "seen": 1793336419.3289979,
+    "ast_hash": "c4a5f3613a3b9220cdc89cad3ddf9192",
+    "semantic_hash": "c4a5f3613a3b9220cdc89cad3ddf9192"
+  },
+  "main/java/com/kizuna/service/IAuthService.java": {
+    "mtime": 1793092009.3064694,
+    "seen": 1793336419.3289979,
+    "ast_hash": "62199f25983fb715d4cd1d4d66005b5d",
+    "semantic_hash": "62199f25983fb715d4cd1d4d66005b5d"
+  },
+  "main/java/com/kizuna/service/IEmailService.java": {
+    "mtime": 1793092009.3064694,
+    "seen": 1793336419.3289979,
+    "ast_hash": "514131ea055a645ed5e9cfcfc5d82d51",
+    "semantic_hash": "514131ea055a645ed5e9cfcfc5d82d51"
+  },
+  "main/java/com/kizuna/service/IKanjiFolderService.java": {
+    "mtime": 1793092009.3074596,
+    "seen": 1793336419.3289979,
+    "ast_hash": "208c633cfb9b9af6f9bd5d9c99c35216",
+    "semantic_hash": "208c633cfb9b9af6f9bd5d9c99c35216"
+  },
+  "main/java/com/kizuna/service/IKanjiPracticeService.java": {
+    "mtime": 1793092009.3074596,
+    "seen": 1793336419.3289979,
+    "ast_hash": "9e16d433419e889a541f7eca79b66113",
+    "semantic_hash": "9e16d433419e889a541f7eca79b66113"
+  },
+  "main/java/com/kizuna/service/ILearningSpaceService.java": {
+    "mtime": 1793092009.3074596,
+    "seen": 1793336419.3289979,
+    "ast_hash": "cde780a2fe1a6f738f3ceba9ee5a473b",
+    "semantic_hash": "cde780a2fe1a6f738f3ceba9ee5a473b"
+  },
+  "main/java/com/kizuna/service/IMembershipPaymentService.java": {
+    "mtime": 1793092009.3088505,
+    "seen": 1793336419.3302987,
+    "ast_hash": "b61c2b300df1325d3145a97a9a6f1587",
+    "semantic_hash": "b61c2b300df1325d3145a97a9a6f1587"
+  },
+  "main/java/com/kizuna/service/IMinigameService.java": {
+    "mtime": 1793092009.3088505,
+    "seen": 1793336419.3302987,
+    "ast_hash": "f673ca51fa4c6b5c5d9a49f26b412a34",
+    "semantic_hash": "f673ca51fa4c6b5c5d9a49f26b412a34"
+  },
+  "main/java/com/kizuna/service/INotificationService.java": {
+    "mtime": 1793092009.3088505,
+    "seen": 1793336419.3302987,
+    "ast_hash": "0fea0d9adc1ae13d8537430b3f1508a9",
+    "semantic_hash": "0fea0d9adc1ae13d8537430b3f1508a9"
+  },
+  "main/java/com/kizuna/service/IOtpService.java": {
+    "mtime": 1793092009.3088505,
+    "seen": 1793336419.3302987,
+    "ast_hash": "73199a6a1f1ab1ad544b272a14d9a394",
+    "semantic_hash": "73199a6a1f1ab1ad544b272a14d9a394"
+  },
+  "main/java/com/kizuna/service/ISupportTicketService.java": {
+    "mtime": 1793092009.3103557,
+    "seen": 1793336419.3302987,
+    "ast_hash": "4677d5440e8b615dddbee2f6f952e250",
+    "semantic_hash": "4677d5440e8b615dddbee2f6f952e250"
+  },
+  "main/java/com/kizuna/service/ITrialBookingService.java": {
+    "mtime": 1793092009.3103557,
+    "seen": 1793336419.3302987,
+    "ast_hash": "61dd058c1dffc11cb166c10ff8a930d0",
+    "semantic_hash": "61dd058c1dffc11cb166c10ff8a930d0"
+  },
+  "main/java/com/kizuna/service/ai/AgentMemoryService.java": {
+    "mtime": 1793092009.3115811,
+    "seen": 1793336419.331307,
+    "ast_hash": "661692f14947d2177922c54a61af1c7e",
+    "semantic_hash": "661692f14947d2177922c54a61af1c7e"
+  },
+  "main/java/com/kizuna/service/ai/AiStrokeAnalysisService.java": {
+    "mtime": 1793092009.3115811,
+    "seen": 1793336419.331307,
+    "ast_hash": "c06f66b4c5733a2a878355be3a8dc312",
+    "semantic_hash": "c06f66b4c5733a2a878355be3a8dc312"
+  },
+  "main/java/com/kizuna/service/impl/AdminUserServiceImpl.java": {
+    "mtime": 1793092009.3129153,
+    "seen": 1793336419.331307,
+    "ast_hash": "c409d51d1dad80efb7ddb53ed331b456",
+    "semantic_hash": "c409d51d1dad80efb7ddb53ed331b456"
+  },
+  "main/java/com/kizuna/service/impl/AssignmentServiceImpl.java": {
+    "mtime": 1793092009.3129153,
+    "seen": 1793336419.331307,
+    "ast_hash": "04d2184b621a87718939df28ea1f58ff",
+    "semantic_hash": "04d2184b621a87718939df28ea1f58ff"
+  },
+  "main/java/com/kizuna/service/impl/AuthServiceImpl.java": {
+    "mtime": 1793092009.3129153,
+    "seen": 1793336419.331307,
+    "ast_hash": "1f9ad0e655863a02a514f784880d1526",
+    "semantic_hash": "1f9ad0e655863a02a514f784880d1526"
+  },
+  "main/java/com/kizuna/service/impl/EmailServiceImpl.java": {
+    "mtime": 1793092009.3142757,
+    "seen": 1793336419.3323069,
+    "ast_hash": "76f21adcbdce51aa7b8f28e5783ea196",
+    "semantic_hash": "76f21adcbdce51aa7b8f28e5783ea196"
+  },
+  "main/java/com/kizuna/service/impl/KanjiFolderServiceImpl.java": {
+    "mtime": 1793283025.961876,
+    "seen": 1793336419.3323069,
+    "ast_hash": "8a18ee6567c834ee48df1239eb501993",
+    "semantic_hash": "8a18ee6567c834ee48df1239eb501993"
+  },
+  "main/java/com/kizuna/service/impl/KanjiPracticeServiceImpl.java": {
+    "mtime": 1793092009.315278,
+    "seen": 1793336419.3323069,
+    "ast_hash": "d6296cb0ff5b2730c023df63d1addec9",
+    "semantic_hash": "d6296cb0ff5b2730c023df63d1addec9"
+  },
+  "main/java/com/kizuna/service/impl/LearningSpaceServiceImpl.java": {
+    "mtime": 1793092009.315278,
+    "seen": 1793336419.3323069,
+    "ast_hash": "04379624aebffa8ddf0bdf76358a4d58",
+    "semantic_hash": "04379624aebffa8ddf0bdf76358a4d58"
+  },
+  "main/java/com/kizuna/service/impl/MembershipPaymentServiceImpl.java": {
+    "mtime": 1793092009.3167298,
+    "seen": 1793336419.3323069,
+    "ast_hash": "7c737796c32aa50d7c41b48d137e681a",
+    "semantic_hash": "7c737796c32aa50d7c41b48d137e681a"
+  },
+  "main/java/com/kizuna/service/impl/MinigameServiceImpl.java": {
+    "mtime": 1793092009.3167298,
+    "seen": 1793336419.333307,
+    "ast_hash": "9396ffcb2b1fbe3b2d04d1146d555dc3",
+    "semantic_hash": "9396ffcb2b1fbe3b2d04d1146d555dc3"
+  },
+  "main/java/com/kizuna/service/impl/NotificationServiceImpl.java": {
+    "mtime": 1793092009.3177292,
+    "seen": 1793336419.333307,
+    "ast_hash": "7e120242d7c8193c753f0f3afa4d8908",
+    "semantic_hash": "7e120242d7c8193c753f0f3afa4d8908"
+  },
+  "main/java/com/kizuna/service/impl/OtpServiceImpl.java": {
+    "mtime": 1793092009.3177292,
+    "seen": 1793336419.333307,
+    "ast_hash": "22a3409de926e7dde2837327762206fe",
+    "semantic_hash": "22a3409de926e7dde2837327762206fe"
+  },
+  "main/java/com/kizuna/service/impl/SupportTicketServiceImpl.java": {
+    "mtime": 1793092009.3177292,
+    "seen": 1793336419.333307,
+    "ast_hash": "6406b621189ec670184de179981f5c1f",
+    "semantic_hash": "6406b621189ec670184de179981f5c1f"
+  },
+  "main/java/com/kizuna/service/impl/TrialBookingServiceImpl.java": {
+    "mtime": 1793092009.3177292,
+    "seen": 1793336419.333307,
+    "ast_hash": "74d6ca5e65e7d3157d5ad51c3d76dbf2",
+    "semantic_hash": "74d6ca5e65e7d3157d5ad51c3d76dbf2"
+  },
+  "main/java/com/kizuna/service/kanji/GradingService.java": {
+    "mtime": 1793092009.3192117,
+    "seen": 1793336419.3343065,
+    "ast_hash": "a6fe4f1c5c26dceb839faa051b65e492",
+    "semantic_hash": "a6fe4f1c5c26dceb839faa051b65e492"
+  },
+  "main/java/com/kizuna/service/kanji/HandwritingSearchService.java": {
+    "mtime": 1793186587.9831672,
+    "seen": 1793336419.3343065,
+    "ast_hash": "26672b70e286e98edab8b22a88f75ee4",
+    "semantic_hash": "26672b70e286e98edab8b22a88f75ee4"
+  },
+  "main/java/com/kizuna/service/kanji/StrokeSensoryAnalyzer.java": {
+    "mtime": 1793092009.3213537,
+    "seen": 1793336419.3343065,
+    "ast_hash": "9592ffbfc761fa7949b209d8f71eedf8",
+    "semantic_hash": "9592ffbfc761fa7949b209d8f71eedf8"
+  },
+  "main/java/com/kizuna/service/payment/IVnPayService.java": {
+    "mtime": 1793092009.3223577,
+    "seen": 1793336419.3343065,
+    "ast_hash": "86e28340b65b2918f58cd98177f46422",
+    "semantic_hash": "86e28340b65b2918f58cd98177f46422"
+  },
+  "main/java/com/kizuna/service/payment/impl/VnPayServiceImpl.java": {
+    "mtime": 1793092009.3233576,
+    "seen": 1793336419.3343065,
+    "ast_hash": "e2df04068655b206a217f4da6efa1b77",
+    "semantic_hash": "e2df04068655b206a217f4da6efa1b77"
+  },
+  "main/java/com/kizuna/service/tutor/ITutorMembershipService.java": {
+    "mtime": 1793092009.3233576,
+    "seen": 1793336419.3343065,
+    "ast_hash": "6cee6e0e212f42a2f9445819f347cf2e",
+    "semantic_hash": "6cee6e0e212f42a2f9445819f347cf2e"
+  },
+  "main/java/com/kizuna/service/tutor/ITutorProfileService.java": {
+    "mtime": 1793092009.3243577,
+    "seen": 1793336419.3354218,
+    "ast_hash": "217ae1b23606dd37e9d7995c18794533",
+    "semantic_hash": "217ae1b23606dd37e9d7995c18794533"
+  },
+  "main/java/com/kizuna/service/tutor/impl/TutorMembershipServiceImpl.java": {
+    "mtime": 1793092009.3253572,
+    "seen": 1793336419.3354218,
+    "ast_hash": "049a05c618b41d4265648f94b4cd7244",
+    "semantic_hash": "049a05c618b41d4265648f94b4cd7244"
+  },
+  "main/java/com/kizuna/service/tutor/impl/TutorProfileServiceImpl.java": {
+    "mtime": 1793092009.3253572,
+    "seen": 1793336419.3354218,
+    "ast_hash": "f636796b9ec842388352a39bc3c33e42",
+    "semantic_hash": "f636796b9ec842388352a39bc3c33e42"
+  },
+  "main/java/com/kizuna/util/DateTimeUtil.java": {
+    "mtime": 1793092009.3263576,
+    "seen": 1793336419.3354218,
+    "ast_hash": "2e8c7e6c9680b21d6ea6570d0837a7ab",
+    "semantic_hash": "2e8c7e6c9680b21d6ea6570d0837a7ab"
+  },
+  "main/java/com/kizuna/util/JwtTokenProvider.java": {
+    "mtime": 1793092009.3263576,
+    "seen": 1793336419.3354218,
+    "ast_hash": "e35728e1a791dd9a70208d9a76ab7cab",
+    "semantic_hash": "e35728e1a791dd9a70208d9a76ab7cab"
+  },
+  "main/java/com/kizuna/util/KanjiReadingNormalizer.java": {
+    "mtime": 1793092009.327358,
+    "seen": 1793336419.3364358,
+    "ast_hash": "ec0faa018a1f58709bd0594f4802d984",
+    "semantic_hash": "ec0faa018a1f58709bd0594f4802d984"
+  },
+  "main/java/com/kizuna/util/SecurityContextUtil.java": {
+    "mtime": 1793092009.328358,
+    "seen": 1793336419.3364358,
+    "ast_hash": "ef3c82a03904315ae684effc8db5d8de",
+    "semantic_hash": "ef3c82a03904315ae684effc8db5d8de"
+  },
+  "main/java/com/kizuna/util/SvgUtils.java": {
+    "mtime": 1793092009.328358,
+    "seen": 1793336419.3364358,
+    "ast_hash": "6df8b80a6bcd7bc328e33c4fe074a342",
+    "semantic_hash": "6df8b80a6bcd7bc328e33c4fe074a342"
+  },
+  "main/java/com/kizuna/util/TimeZoneUtil.java": {
+    "mtime": 1793092009.328358,
+    "seen": 1793336419.3364358,
+    "ast_hash": "19645d1b990911df06bdfe43b379b3db",
+    "semantic_hash": "19645d1b990911df06bdfe43b379b3db"
+  },
+  "main/resources/application.yml": {
+    "mtime": 1793099062.312045,
+    "seen": 1793336419.3364358,
+    "ast_hash": "87fa5d00d99fa6e8b504fed44711da3a",
+    "semantic_hash": "87fa5d00d99fa6e8b504fed44711da3a"
+  },
+  "main/resources/static/js/admin/userManagement.js": {
+    "mtime": 1793092009.6966279,
+    "seen": 1793336419.3374343,
+    "ast_hash": "5770ddaa2d9016f59a18b2231f9eaa1f",
+    "semantic_hash": "5770ddaa2d9016f59a18b2231f9eaa1f"
+  },
+  "main/resources/static/js/authRedirect.js": {
+    "mtime": 1793092009.6966279,
+    "seen": 1793336419.3374343,
+    "ast_hash": "df4a0acd85c448f47f7305dfed43e075",
+    "semantic_hash": "df4a0acd85c448f47f7305dfed43e075"
+  },
+  "main/resources/static/js/common/kizunaToast.js": {
+    "mtime": 1793281174.6363885,
+    "seen": 1793336419.3374343,
+    "ast_hash": "4963e9fb380718c997e5787fec0c5420",
+    "semantic_hash": "4963e9fb380718c997e5787fec0c5420"
+  },
+  "main/resources/static/js/globalAuth.js": {
+    "mtime": 1793092009.6976275,
+    "seen": 1793336419.3374343,
+    "ast_hash": "668b92acb1b37da28009c0b360143b12",
+    "semantic_hash": "668b92acb1b37da28009c0b360143b12"
+  },
+  "main/resources/static/js/handwriting-search.js": {
+    "mtime": 1793188668.8909483,
+    "seen": 1793336419.3374343,
+    "ast_hash": "77003f443ddae378d2a63c9a5110bc91",
+    "semantic_hash": "77003f443ddae378d2a63c9a5110bc91"
+  },
+  "main/resources/static/js/kanji-canvas.js": {
+    "mtime": 1793092009.7007117,
+    "seen": 1793336419.3384345,
+    "ast_hash": "e24f42e870e03d9d6fcc2d9099c2b328",
+    "semantic_hash": "e24f42e870e03d9d6fcc2d9099c2b328"
+  },
+  "main/resources/static/js/kanji-catalog.js": {
+    "mtime": 1793092009.7007117,
+    "seen": 1793336419.3384345,
+    "ast_hash": "8651d1d699ce1c93d021c683901a0dc4",
+    "semantic_hash": "8651d1d699ce1c93d021c683901a0dc4"
+  },
+  "main/resources/static/js/kanji-folder-manager.js": {
+    "mtime": 1793193631.6439338,
+    "seen": 1793336419.3384345,
+    "ast_hash": "6cab8bf79b22ae45d132f92a6a83183b",
+    "semantic_hash": "6cab8bf79b22ae45d132f92a6a83183b"
+  },
+  "main/resources/static/js/kanji-rain-game.js": {
+    "mtime": 1793092009.7017114,
+    "seen": 1793336419.3384345,
+    "ast_hash": "942388f2004f72e004b1df6a4fb21876",
+    "semantic_hash": "942388f2004f72e004b1df6a4fb21876"
+  },
+  "main/resources/static/js/kanji-rain-ui.js": {
+    "mtime": 1793092009.702711,
+    "seen": 1793336419.3384345,
+    "ast_hash": "3101ab3a127aae7cba7123eae4547c93",
+    "semantic_hash": "3101ab3a127aae7cba7123eae4547c93"
+  },
+  "main/resources/static/js/kanji/handwriting-search.js": {
+    "mtime": 1793193607.1547472,
+    "seen": 1793336419.3384345,
+    "ast_hash": "cfd6285e9db4c962c914e94420d78c1b",
+    "semantic_hash": "cfd6285e9db4c962c914e94420d78c1b"
+  },
+  "main/resources/static/js/kanji/kanji-recognizer.js": {
+    "mtime": 1793193607.159648,
+    "seen": 1793336419.3394341,
+    "ast_hash": "cfd6285e9db4c962c914e94420d78c1b",
+    "semantic_hash": "cfd6285e9db4c962c914e94420d78c1b"
+  },
+  "main/resources/static/js/kanji/kanjiStrokePlayer.js": {
+    "mtime": 1793192692.641913,
+    "seen": 1793336419.3394341,
+    "ast_hash": "85f8e852cc73e6280542b2ef264df97b",
+    "semantic_hash": "85f8e852cc73e6280542b2ef264df97b"
+  },
+  "main/resources/static/js/learner/kanaQuiz.js": {
+    "mtime": 1793223613.9915752,
+    "seen": 1793336419.3394341,
+    "ast_hash": "4b47ff844f7c33d0a95fa3e745abe927",
+    "semantic_hash": "4b47ff844f7c33d0a95fa3e745abe927"
+  },
+  "main/resources/static/js/learner/sakuraSticker.js": {
+    "mtime": 1793218580.1554716,
+    "seen": 1793336419.3394341,
+    "ast_hash": "7a3989bb7ccf57c97348a724946769a5",
+    "semantic_hash": "7a3989bb7ccf57c97348a724946769a5"
+  },
+  "main/resources/static/js/locales/learner-copy.js": {
+    "mtime": 1793092009.705711,
+    "seen": 1793336419.3394341,
+    "ast_hash": "9b357d91e4c0f224d02d582a855ba21c",
+    "semantic_hash": "9b357d91e4c0f224d02d582a855ba21c"
+  },
+  "main/resources/static/js/locales/tutor-copy.js": {
+    "mtime": 1793092009.705711,
+    "seen": 1793336419.340434,
+    "ast_hash": "a4671e619db69a6781d9852591b61dd4",
+    "semantic_hash": "a4671e619db69a6781d9852591b61dd4"
+  },
+  "main/resources/static/js/registerOtp.js": {
+    "mtime": 1793092009.705711,
+    "seen": 1793336419.340434,
+    "ast_hash": "77ba929ffc8816fa239235897dd61575",
+    "semantic_hash": "77ba929ffc8816fa239235897dd61575"
+  },
+  "main/resources/static/js/shared/kanji-api.js": {
+    "mtime": 1793092009.707122,
+    "seen": 1793336419.340434,
+    "ast_hash": "2cbcd750e9042acbab0eb6c715633b78",
+    "semantic_hash": "2cbcd750e9042acbab0eb6c715633b78"
+  },
+  "main/resources/static/js/shared/kizunaDialog.js": {
+    "mtime": 1793214245.594445,
+    "seen": 1793336419.340434,
+    "ast_hash": "e6b8a5133194497beb39e8220afd983e",
+    "semantic_hash": "e6b8a5133194497beb39e8220afd983e"
+  },
+  "main/resources/static/js/shared/kizunaToast.js": {
+    "mtime": 1793281187.5028465,
+    "seen": 1793336419.340434,
+    "ast_hash": "778f79ee0cd856ee8a51587533578345",
+    "semantic_hash": "778f79ee0cd856ee8a51587533578345"
+  },
+  "main/resources/static/js/shared/tailwind-nhai-config.js": {
+    "mtime": 1793286784.8716488,
+    "seen": 1793336419.3414361,
+    "ast_hash": "b476055280c6d05708948aa9d663d04d",
+    "semantic_hash": "b476055280c6d05708948aa9d663d04d"
+  },
+  "main/resources/static/locales/vi-learner.json": {
+    "mtime": 1793092009.7091227,
+    "seen": 1793336419.3414361,
+    "ast_hash": "2cada3fbebe9f311ee0325659498a1d7",
+    "semantic_hash": "2cada3fbebe9f311ee0325659498a1d7",
+    "ast_empty": true
+  },
+  "main/resources/static/locales/vi-tutor.json": {
+    "mtime": 1793092009.7091227,
+    "seen": 1793336419.3414361,
+    "ast_hash": "6646dbf7869d454532a4c7dc7904ab50",
+    "semantic_hash": "6646dbf7869d454532a4c7dc7904ab50",
+    "ast_empty": true
+  },
+  "test/java/com/kizuna/ActorSpecificViewsTest.java": {
+    "mtime": 1793092009.755867,
+    "seen": 1793336419.3414361,
+    "ast_hash": "43e6c535af1b0975cfb06173df8fa3d5",
+    "semantic_hash": "43e6c535af1b0975cfb06173df8fa3d5"
+  },
+  "test/java/com/kizuna/AdminUserManagementTest.java": {
+    "mtime": 1793092009.7568662,
+    "seen": 1793336419.3414361,
+    "ast_hash": "782cd450e643632215c8de0d0dfdda2d",
+    "semantic_hash": "782cd450e643632215c8de0d0dfdda2d"
+  },
+  "test/java/com/kizuna/AuthAndDashboardRoutingTest.java": {
+    "mtime": 1793092009.7578676,
+    "seen": 1793336419.3414361,
+    "ast_hash": "5e8384710d239662b50eb26fe8ba6f98",
+    "semantic_hash": "5e8384710d239662b50eb26fe8ba6f98"
+  },
+  "test/java/com/kizuna/EmailOtpRegistrationTest.java": {
+    "mtime": 1793092009.7578676,
+    "seen": 1793336419.3414361,
+    "ast_hash": "1152053299f10e6e2fdf18bcc61d0378",
+    "semantic_hash": "1152053299f10e6e2fdf18bcc61d0378"
+  },
+  "test/java/com/kizuna/KizunaBackendApplicationTests.java": {
+    "mtime": 1793092009.7589674,
+    "seen": 1793336419.3414361,
+    "ast_hash": "7aa0deb556a9bf92dcad4f8ac92089ab",
+    "semantic_hash": "7aa0deb556a9bf92dcad4f8ac92089ab"
+  },
+  "test/java/com/kizuna/LearningSpaceAccessControlTest.java": {
+    "mtime": 1793092009.7589674,
+    "seen": 1793336419.3414361,
+    "ast_hash": "0219525b481feb57bd687cbec4e66837",
+    "semantic_hash": "0219525b481feb57bd687cbec4e66837"
+  },
+  "test/java/com/kizuna/OAuth2AndRegistrationTest.java": {
+    "mtime": 1793092009.759967,
+    "seen": 1793336419.342845,
+    "ast_hash": "efd46ab9cd83e3fcb42f6d7b6e3c7682",
+    "semantic_hash": "efd46ab9cd83e3fcb42f6d7b6e3c7682"
+  },
+  "test/java/com/kizuna/StaffCreationAndFirstTimePasswordChangeTest.java": {
+    "mtime": 1793092009.759967,
+    "seen": 1793336419.342845,
+    "ast_hash": "83dbe59ec719dff070fc7152ad33449e",
+    "semantic_hash": "83dbe59ec719dff070fc7152ad33449e"
+  },
+  "test/java/com/kizuna/TutorOnboardingAndMembershipTest.java": {
+    "mtime": 1793092009.760967,
+    "seen": 1793336419.342845,
+    "ast_hash": "ccb26ece242446818baf949f5d3686a0",
+    "semantic_hash": "ccb26ece242446818baf949f5d3686a0"
+  }
+}

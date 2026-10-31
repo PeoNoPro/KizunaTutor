@@ -1,0 +1,56 @@
+<!-- KizunaTutor Shared Header Component -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-[#fcfbf7]/95 backdrop-blur-md border-b border-[#ece8de]">
+  <div class="h-20 max-w-[1240px] mx-auto px-4 md:px-8 flex items-center justify-between gap-4">
+    <!-- Logo + Slogan -->
+    <div class="flex items-center gap-6">
+      <a class="flex items-center gap-2 group" data-path="landing-page" href="/pages/home/">
+        <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
+        <div class="flex flex-col">
+          <div class="flex items-center gap-1.5">
+            <span class="font-bold text-xl tracking-tight text-[#0f2545]">Kizuna<span class="text-[#006194]">Tutor</span></span>
+          </div>
+          <span class="text-[10px] text-[#68737D] font-medium -mt-0.5 tracking-wider">Kết nối song ngữ Việt – Nhật</span>
+        </div>
+      </a>
+      <!-- Navigation items (Desktop) -->
+      <nav class="hidden lg:flex items-center gap-1" id="main-nav">
+        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-nav="discovery" href="/pages/tutor-discovery/">Tìm gia sư</a>
+        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-nav="cach-hoat-dong" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
+        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-nav="tro-thanh-gia-su" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
+        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-nav="requests" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-nav="cong-cu-hoc" href="/pages/home/#cong-cu-hoc">Công cụ học</a>
+      </nav>
+    </div>
+
+    <!-- Actions (Chỉ có nút Vào Dashboard và nút Đăng ký, không có nút Đăng nhập) -->
+    <div class="flex items-center gap-3">
+      <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-[#006194] hover:bg-[#006194]/10 transition-colors border border-[#006194]/20" data-path="dashboard" href="#">
+        <span class="material-symbols-outlined text-[16px]">school</span>
+        <span>Vào Dashboard học tập</span>
+      </a>
+      <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-[#006194] text-white hover:bg-[#004b73] transition-all shadow-sm font-semibold flex items-center gap-1.5" data-path="dang-ky" href="#">
+        <span>Đăng ký</span>
+        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+      </a>
+      <!-- Mobile Menu Toggle Button -->
+      <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#f2efe6] transition-colors">
+        <span class="material-symbols-outlined text-[24px]">menu</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Navigation Drawer -->
+  <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ece8de] bg-[#fcfbf7] px-6 py-4 space-y-2">
+    <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/tutor-discovery/">Tìm gia sư</a>
+    <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
+    <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
+    <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+    <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cong-cu-hoc">Công cụ học</a>
+    <div class="pt-3 border-t border-[#ece8de]">
+      <a class="flex items-center gap-2 font-semibold text-xs py-2 text-[#006194]" href="#">
+        <span class="material-symbols-outlined text-[16px]">school</span>
+        <span>Vào Dashboard học tập</span>
+      </a>
+    </div>
+  </div>
+</header>

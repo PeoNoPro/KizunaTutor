@@ -1,0 +1,85 @@
+/* =====================================================================
+   KizunaTutor - Global Styles & Centralized Design Tokens
+   Compliant with FRONTEND_RULES.md & AGENTS.md
+   ===================================================================== */
+
+:root {
+  /* Brand Identity */
+  --color-primary: #006194;
+  --color-primary-hover: #007bb9;
+  --color-secondary: #4059aa;
+  --color-navy: #0f2545;
+
+  /* Backgrounds */
+  --color-background: #fcfbf7;
+  --color-surface: #ffffff;
+  --color-warm-surface: #faf8f2;
+  --color-section: #f7f4ec;
+
+  /* Text Colors */
+  --color-text-primary: #0f2545;
+  --color-text-main: #131b2e;
+  --color-text-secondary: #3f4850;
+  --color-text-muted: #707881;
+  --color-text-white: #ffffff;
+
+  /* Borders */
+  --color-border: #e5decb;
+  --color-border-light: #ece8de;
+  --color-border-input: #e2d9c6;
+  --color-border-strong: #ded7c5;
+
+  /* Status Colors */
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-error: #ba1a1a;
+  --color-info: #0284c7;
+
+  /* Accent Colors */
+  --color-amber: #d97706;
+  --color-japanese-red: #b91c1c;
+
+  /* Typography */
+  --font-primary: 'Plus Jakarta Sans', sans-serif;
+  --font-japanese: 'Noto Serif JP', serif;
+
+  /* Layout */
+  --container-width: 1240px;
+  --header-height: 80px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-primary);
+    background-color: var(--color-background);
+    color: var(--color-text-main);
+  }
+  body {
+    overscroll-behavior: none;
+  }
+  main > :first-child {
+    margin-top: 0 !important;
+  }
+  main > :last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* Custom Scrollbar - Hidden for clean minimalist aesthetic */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Japanese Typography Utility */
+.font-kanji {
+  font-family: var(--font-japanese);
+}
+

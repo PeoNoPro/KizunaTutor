@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chi tiết gia sư tiếng Nhật - KizunaTutor</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#006194",
+            "primary-container": "#007bb9",
+            navy: "#0F2545",
+            washi: "#FCFBF7"
+          }
+        }
+      }
+    };
+  </script>
+
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <link rel="stylesheet" href="/styles/utilities.css">
+</head>
+<body class="bg-[#FCFBF7] font-sans text-[#0F2545] min-h-screen flex flex-col antialiased">
+
+  <!-- Header -->
+  <header class="fixed top-0 inset-x-0 z-50 bg-[#FCFBF7]/95 backdrop-blur-md border-b border-[#ECE8DE] shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
+    <div class="h-20 max-w-[1240px] mx-auto px-4 md:px-8 flex items-center justify-between gap-4">
+      <!-- Logo + Slogan -->
+      <div class="flex items-center gap-6">
+        <a class="flex items-center gap-2 group" data-path="landing-page" href="/pages/home/">
+          <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-xl tracking-tight text-[#0f2545]">Kizuna<span class="text-[#006194]">Tutor</span></span>
+            </div>
+            <span class="text-[10px] text-[#68737D] font-medium -mt-0.5 tracking-wider">Kết nối song ngữ Việt – Nhật</span>
+          </div>
+        </a>
+        <!-- Navigation items (Desktop) -->
+        <nav class="hidden lg:flex items-center gap-1">
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg bg-[#006194] text-white font-semibold shadow-sm transition-colors" data-path="tim-gia-su" href="/pages/tutor-discovery/">Tìm gia sư</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-path="cach-hoat-dong" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-path="tro-thanh-gia-su" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-path="cong-cu-hoc" href="/pages/home/#cong-cu-hoc">Công cụ học</a>
+        </nav>
+      </div>
+
+      <!-- Actions (Chỉ có nút Vào Dashboard học tập và nút Đăng ký, không có nút Đăng nhập) -->
+      <div class="flex items-center gap-3">
+        <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-[#006194] hover:bg-[#006194]/10 transition-colors border border-[#006194]/20" data-path="dashboard" href="#">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Vào Dashboard học tập</span>
+        </a>
+        <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-[#006194] text-white hover:bg-[#004b73] transition-all shadow-sm font-semibold flex items-center gap-1.5" data-path="dang-ky" href="#">
+          <span>Đăng ký</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </a>
+        <!-- Mobile Menu Toggle Button -->
+        <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#f2efe6] transition-colors">
+          <span class="material-symbols-outlined text-[24px]">menu</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ece8de] bg-[#fcfbf7] px-6 py-4 space-y-2">
+      <a class="block font-semibold text-sm py-2 text-[#006194]" href="/pages/tutor-discovery/">Tìm gia sư</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cong-cu-hoc">Công cụ học</a>
+      <div class="pt-3 border-t border-[#ece8de]">
+        <a class="flex items-center gap-2 font-semibold text-xs py-2 text-[#006194]" href="#">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Vào Dashboard học tập</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Profile Content Container -->
+  <main class="w-full pt-28 pb-16 flex-1">
+    <div id="profile-content" class="max-w-[1200px] mx-auto px-4 md:px-8">
+      <div class="py-24 text-center">
+        <span class="material-symbols-outlined text-primary text-[40px] animate-spin">progress_activity</span>
+        <p class="text-sm font-medium mt-3 text-on-surface-variant">Đang tải hồ sơ gia sư từ hệ thống...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Đặt lịch học thử -->
+  <div id="connect-modal" class="modal-overlay fixed inset-0 z-50 hidden overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="relative w-full max-w-lg bg-white rounded-2xl border border-[#E5DECB] shadow-2xl p-6 md:p-8 space-y-6">
+      <div class="flex items-center justify-between pb-3 border-b border-[#ECE8DE]">
+        <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-[20px]">send</span>
+          Gửi yêu cầu học thử với Sensei
+        </h3>
+        <button type="button" onclick="window.closeModal('connect-modal')" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <form id="booking-form" class="space-y-4 text-xs md:text-sm">
+        <div>
+          <label class="block font-semibold text-[#0F2545] mb-1">Mục tiêu học tập của bạn:</label>
+          <select class="input-default">
+            <option value="kaiwa">Luyện giao tiếp phản xạ (Kaiwa)</option>
+            <option value="jlpt">Luyện thi chứng chỉ JLPT (N5 - N1)</option>
+            <option value="business">Tiếng Nhật thương mại &amp; phỏng vấn</option>
+            <option value="it">Tiếng Nhật chuyên ngành CNTT</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-[#0F2545] mb-1">Khung giờ bạn mong muốn học:</label>
+          <select class="input-default">
+            <option value="evening">Buổi tối các ngày trong tuần (19:00 - 21:00)</option>
+            <option value="weekend_morning">Sáng thứ 7 hoặc Chủ nhật (09:00 - 11:00)</option>
+            <option value="weekend_afternoon">Chiều thứ 7 hoặc Chủ nhật (14:30 - 16:30)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-[#0F2545] mb-1">Lời nhắn gửi tới Sensei:</label>
+          <textarea rows="3" class="input-default" placeholder="Ví dụ: Em muốn ôn tập kỹ phần nghe hiểu Choukai N2..."></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-3">
+          <button type="button" onclick="window.closeModal('connect-modal')" class="btn-secondary">
+            Hủy bỏ
+          </button>
+          <button type="submit" class="btn-primary">
+            Xác nhận gửi yêu cầu
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="w-full bg-[#131d2e] text-[#e3e8f3] pt-16 pb-10 border-t border-[#1f2d45] mt-auto">
+    <div class="max-w-[1240px] mx-auto px-4 md:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        
+        <!-- Col 1: Brand & Philosophy -->
+        <div class="space-y-4">
+          <div class="flex items-center gap-2">
+            <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-8 w-8 object-contain rounded-full shadow">
+            <span class="font-bold text-xl tracking-tight text-white">Kizuna<span class="text-sky-400">Tutor</span></span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Nền tảng kết nối tri thức và sự tận tâm giữa gia sư tiếng Nhật chuyên môn cao và người học Việt Nam trên toàn quốc theo triết lý gắn kết bền vững (Kizuna).
+          </p>
+          <div class="flex items-center gap-2 text-slate-400 text-xs">
+            <span class="material-symbols-outlined text-[18px] text-amber-400">verified</span>
+            <span>Bảo chứng hồ sơ &amp; Năng lực sư phạm chuẩn JLPT</span>
+          </div>
+        </div>
+
+        <!-- Col 2: Dành cho Học viên -->
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho học viên</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" data-path="tim-gia-su" href="/pages/tutor-discovery/">Tìm gia sư theo trình độ (N5 – N1)</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="gia-su-ban-xu" href="/pages/tutor-discovery/">Gia sư bản xứ Tokyo luyện Kaiwa</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="chuyen-de" href="/pages/home/#chuyen-de">Khóa chuyên đề &amp; Phỏng vấn IT</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="chinh-sach-hoc-thu" href="/pages/home/#cach-hoat-dong">Chính sách buổi gặp mặt học thử 0đ</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/connection-requests/">Tra cứu yêu cầu đã gửi</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Dành cho Gia sư -->
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho gia sư</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" data-path="tro-thanh-gia-su" href="/pages/home/#tro-thanh-gia-su">Đăng ký ứng tuyển gia sư mới</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="tutor-dashboard" href="#">Không gian quản lý giảng dạy</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="quy-chuan-giang-day" href="#">Bộ quy chuẩn xác thực chứng chỉ</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="goi-thanh-vien" href="#">Chính sách không cắt phế buổi học</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="cong-dong-senpai" href="#">Cộng đồng Senpai Kizuna</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 4: Hỗ trợ & Pháp lý -->
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Hỗ trợ &amp; pháp lý</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" data-path="dieu-khoan-dich-vu" href="#">Điều khoản sử dụng dịch vụ</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="chinh-sach-bao-mat" href="#">Chính sách bảo mật thông tin</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="giai-quyet-khieu-nai" href="#">Quy trình giải quyết khiếu nại</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="trung-tam-tro-giup" href="#">Trung tâm trợ giúp 24/7 (Hotline / Zalo)</a></li>
+            <li><span class="inline-block mt-2 px-2.5 py-1 rounded bg-slate-800 text-[11px] text-slate-300 font-medium">Hotline: 1900 6886 (8:00 – 22:00)</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Copyright strip -->
+      <div class="pt-6 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <div>
+          <span>© 2024 KizunaTutor. Tất cả quyền được bảo lưu. Giữ trọn tinh thần kết nối Nhật – Việt 『絆』.</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[15px]">lock</span>
+            <span>Bảo mật SSL 256-bit</span>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[15px]">translate</span>
+            <span>Hỗ trợ Song ngữ Tiếng Việt • 日本語</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="./tutor-profile.js"></script>
+</body>
+</html>
+

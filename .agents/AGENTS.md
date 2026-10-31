@@ -1,4 +1,4 @@
-# AGENTS.md — KizunaTutor Engineering Standards & AI Agent Guidelines
+# AGENTS.md: luật chung cho mọi người và mọi công cụ AI
 
 <!-- ===================================================================== -->
 <!-- [CORE SYSTEM GUARDRAILS] NON-NEGOTIABLE PRINCIPLES                     -->
@@ -22,354 +22,84 @@
 
 ---
 
-## 1. Project Context & Scope
+Dự án KizunaTutor (mã KZT, nhóm SEP490_G6): ứng dụng web responsive kết nối người học tiếng Nhật với gia sư và hỗ trợ học trực tuyến (luyện Kanji, flashcard, minigame, bài tập, tiến độ). Nhóm làm song song, mỗi người có thể dùng một công cụ AI khác nhau (Claude Code, ChatGPT/Codex, Cursor, Copilot, Gemini, Antigravity…). File này là điểm vào chung: công cụ nào cũng phải đọc file này trước khi viết mã.
 
-### 1.1 Project Information
-- **Project Name:** KizunaTutor (Mã dự án: KZT)
-- **Group:** SEP490_G6
-- **Software Type:** Responsive Web Application (Desktop & Mobile Browser friendly).
-- **Core Purpose:** KizunaTutor is a specialized web platform connecting Japanese language learners with tutors while providing comprehensive learning support tools (lesson management, homework assignments, assessments, and Kanji practice).
+Khi các tài liệu khác nhau, thứ tự thắng là: khối quy tắc bất biến ở đầu các file → `.specify/memory/constitution.md` → `tasks.md` của feature đang làm → file này → luật riêng từng phần ([backend/BACKEND_RULES.md](../backend/BACKEND_RULES.md), [frontend/FRONTEND_RULES.md](../frontend/FRONTEND_RULES.md)) → `docs/guidelines/`.
 
-### 1.2 Target User Roles (Actors)
-1. **Learner (`ROLE_LEARNER`):** Japanese language student seeking tutors, booking trial lessons, submitting homework, and practicing Kanji.
-2. **Tutor (`ROLE_TUTOR`):** Japanese tutor managing schedules, teaching materials, grading homework, and managing membership subscriptions.
-3. **Academic Officer (`ROLE_ACADEMIC_OFFICER`):** Staff responsible for verifying tutor credentials, certificates, and academic profiles.
-4. **Customer Service Staff (`ROLE_CS_STAFF`):** Support staff resolving learner and tutor inquiries and managing support tickets.
-5. **Manager (`ROLE_MANAGER`):** Operational manager handling escalated support tickets, dispute reviews, and operational reporting.
-6. **Administrator (`ROLE_ADMIN`):** System administrator managing staff accounts, platform settings, and system-wide audits.
+Nếu công cụ của bạn không tự đọc file này, hãy dán câu sau vào đầu cuộc trò chuyện:
 
-### 1.3 Core Functional Domains (Planned / Target Modules)
-The application architecture is planned around 11 key functional domains:
-1. `auth`: Authentication & Authorization (registration, OTP verification, login, password recovery).
-2. `profile`: Learner & Tutor Profile Management.
-3. `verification`: Tutor Onboarding & Credential Verification.
-4. `tutor_search`: Tutor Search, Filtering & Connection Matching.
-5. `booking`: Trial Lesson Booking & Learning Space Activation.
-6. `classroom`: Learning Materials & Shared Workspace Management.
-7. `progress`: Homework Assignments, Submissions & Progress Tracking.
-8. `learning_support`: Kanji Practice, Handwriting Recognition, Flashcards & Reflex Games.
-9. `payment`: Tutor Membership Subscriptions (VNPay gateway integration).
-10. `ticket`: Support Ticket Management & Escalation.
-11. `admin`: User Administration & Operational Reporting.
+> Đọc `.agents/AGENTS.md` và file luật của phần bạn sẽ sửa (`backend/BACKEND_RULES.md` hoặc `frontend/FRONTEND_RULES.md`). Tôi đang làm feature <FE-NN> trên nhánh <tên nhánh>, đặc tả ở `specs/<NNN-ten>/`. Chỉ sửa trong phạm vi feature này. Trước khi làm, tóm tắt cho tôi các task chưa đánh `[x]` trong `tasks.md` của feature.
 
-### 1.4 Business Boundaries & Scope Constraints
-- **Platform Limitation:** Pure responsive web application. No native mobile applications (iOS/Android) are in scope.
-- **Tuition & Contract Boundary:** Learners and tutors independently negotiate lesson fees, payment schedules, and learning agreements outside the platform. **KizunaTutor does NOT handle electronic tuition contracts, does NOT collect tuition fees, and does NOT disburse tutor wages.** Platform payment processing is strictly restricted to **Tutor Membership Subscriptions**.
-- **AI Advisory Boundary:** AI features provide automated suggestions and evaluations for study materials and Kanji writing. AI NEVER acts as the final academic authority; tutors retain full pedagogical responsibility and must manually review and confirm grades.
+## 1. Đọc gì, theo thứ tự nào
 
----
+1. File này, rồi luật của phần sẽ sửa: [backend/BACKEND_RULES.md](../backend/BACKEND_RULES.md) (Spring Boot, cơ sở dữ liệu, API, bảo mật, AI) hoặc [frontend/FRONTEND_RULES.md](../frontend/FRONTEND_RULES.md) (HTML/CSS/JS, cấu trúc trang, gọi API).
+2. Khi làm một task theo Spec Kit: `specs/NNN-*/tasks.md` → `plan.md` → `data-model.md` → `contracts/` → `research.md` → `spec.md` → `quickstart.md`. Nguồn nghiệp vụ gốc là tài liệu SRS `Report-3_Software Requirement Specification.docx` mà `spec.md` trích dẫn.
+3. Giao diện và chữ trên màn: [docs/guidelines/DESIGN.md](../docs/guidelines/DESIGN.md), [docs/guidelines/UI_LOCALIZATION_RULES.md](../docs/guidelines/UI_LOCALIZATION_RULES.md), bảng chuyển ngữ ở [.agents/rules/README.md](rules/README.md).
+4. Đặt tên: [docs/guidelines/CONVENTIONS.md](../docs/guidelines/CONVENTIONS.md); cấu trúc gói backend: [docs/guidelines/BACKEND_FEATURE_ARCHITECTURE.md](../docs/guidelines/BACKEND_FEATURE_ARCHITECTURE.md).
 
-## 2. Technology & Architecture
+## 2. Mười luật không được vi phạm
 
-### 2.1 Technology Stack (Confirmed Baseline)
-- **Backend:** Java (version 17+), Spring Boot (3.x), Spring Security 6, Spring Data JPA.
-- **Frontend:** Vanilla HTML5, CSS3, Vanilla JavaScript (ES6+).
-- **Database:** PostgreSQL (relational schema, native UUID, indexing).
-- **Architecture Pattern:** Layered Architecture organized by Feature (Package-by-Feature / Vertical Slice).
-- **Prohibited:** Do NOT introduce React, Angular, Vue, or heavy frontend SPA frameworks unless explicitly approved by the team.
+1. **Nghiệp vụ chỉ lấy từ SRS và `spec.md` của feature.** Không đoán, không tự thêm tính năng, trạng thái hay quy tắc. Chưa rõ thì dừng và hỏi (hoặc chạy `$speckit-clarify`). Không sửa `spec.md` khi chưa được yêu cầu.
+2. **Chỉ sửa phần của mình**: đúng feature, đúng thư mục của task. Không sửa, refactor, xóa mã của thành viên khác ngoài phạm vi task; cần thay đổi ở đó thì báo người phụ trách.
+3. **Feature khác chỉ gọi qua Service interface công khai** của feature đó, không gọi thẳng `Repository` của feature khác. `core/` chỉ chứa hạ tầng dùng chung, không chứa nghiệp vụ riêng của feature nào.
+4. **Test đi cùng mã**: thay đổi nghiệp vụ phải có test; thay đổi schema, hợp đồng API phải kiểm tra tích hợp liên quan. Chỉ báo "xong" và đánh `[x]` task khi đã chạy test và thấy xanh; test bị chặn (thiếu DB, thiếu biến môi trường) thì ghi rõ nguyên nhân và phần chưa xác minh.
+5. **Hợp đồng API là luật**: chỉ cài đúng endpoint, trường trong `specs/NNN-*/contracts/`. Không thêm, bớt, đổi tên endpoint hay trường. Cần đổi thì sửa hợp đồng trước và báo người dùng.
+6. **Giao diện tiếng Việt, không lộ nội dung backend, không IN HOA toàn bộ** (khối bất biến ở đầu file). Mã nguồn đặt tên tiếng Anh; tài liệu, comment, chữ trên màn tiếng Việt. File văn bản đọc/ghi UTF-8 không BOM.
+7. **Không dữ liệu giả**: màn hình của cả 6 vai trò lấy dữ liệu từ API thật; chưa có dữ liệu thì hiện trạng thái rỗng, lỗi tải thì báo lỗi thân thiện. Dữ liệu Kanji chỉ từ KanjiVG qua `KanjiDataSeeder`. Fixture test chỉ nằm trong `src/test/` hoặc `frontend/tests/`.
+8. **Ranh giới nghiệp vụ**: nền tảng không thu học phí, không lập hợp đồng học phí điện tử, không trả lương gia sư; thanh toán chỉ dành cho gói hội viên gia sư (VNPay). AI chỉ gợi ý, gia sư luôn là người chấm và xác nhận điểm cuối cùng.
+9. **Không viết mã thừa**: chỉ đủ cho task đang làm; không thêm tính năng, lớp trừu tượng, cấu hình, framework (React, Vue, Angular…) mà tasks/plan không yêu cầu; không sửa định dạng, mã kế bên. Lệch kỹ thuật so với plan thì sửa `plan.md`, `tasks.md` cùng lúc và ghi lý do.
+10. **Git**: AI không tự commit, merge, rebase, đổi nhánh khi người dùng chưa đồng ý, và **không bao giờ tự `git push`**: mọi lần đẩy lên remote do người dùng tự làm sau khi xem lại thay đổi. Làm trên nhánh được giao (nhánh theo tên thành viên hoặc nhánh feature); không commit thẳng `main` hay `dev`.
 
-### 2.2 Backend Package-by-Feature Structure
-All backend code is organized into clean, modular feature slices under `com.kizuna`:
+## 3. Định nghĩa "xong" một task hoặc một phase
 
-```text
-com.kizuna
-├── core/                               # Shared technical infrastructure ONLY
-│   ├── config/                         # SecurityConfig, WebMvcConfig, OpenApiConfig
-│   ├── security/                       # JwtFilter, TokenProvider, UserPrincipal
-│   ├── exception/                      # GlobalExceptionHandler, Custom Exceptions
-│   ├── entity/                         # BaseEntity, User, Role
-│   ├── repository/                     # UserRepository, RoleRepository
-│   ├── dto/                            # ApiResponse<T>, ErrorResponse
-│   └── util/                           # DateUtils, SecurityContextHelper
-│
-└── features/                           # Independent Functional Features
-    ├── auth/
-    ├── booking/
-    ├── classroom/
-    ├── learning_support/
-    ├── payment/
-    ├── profile/
-    ├── progress/
-    ├── ticket/
-    ├── tutor_search/
-    └── verification/
-```
+- [ ] Test của phần vừa làm đã viết và chạy xanh (nếu không chạy được thì đã ghi lý do)
+- [ ] `backend`: `.\mvnw.cmd test-compile` qua; chạy test liên quan `.\mvnw.cmd test -Dtest=<TenTest>` (Linux/macOS: `./mvnw`)
+- [ ] `frontend`: `node --test frontend/tests/` qua; đã mở trang qua `node frontend/server.js` và kiểm tra ngôn ngữ, viết hoa, trạng thái rỗng, trạng thái lỗi
+- [ ] Đánh `[x]` task trong `tasks.md`; ghi chú triển khai, lệch kỹ thuật ở `plan.md`
+- [ ] Thuật ngữ mới hoặc trạng thái mới có bản chuyển ngữ tiếng Việt cho giao diện
+- [ ] Báo cáo cho người dùng: file đã tạo hoặc sửa, kết quả lệnh kiểm tra, quyết định kỹ thuật cần nhóm xác nhận
 
-#### Mandatory Feature Package Sub-Structure:
-Inside each feature package (e.g., `com.kizuna.features.booking`), the following subpackages are **mandatory**:
-- `controller/`: REST controllers and page controllers.
-- `dto/`: Request DTOs (`*Request`), Response DTOs (`*Response`).
-- `entity/`: Domain JPA entities specific to this feature.
-- `repository/`: Spring Data JPA repository interfaces.
-- `service/`: Service interfaces (`*Service`) and implementations (`*ServiceImpl`).
+## 4. Backend (`backend/`)
 
-> **Rule:** Do NOT place `.gitkeep` files in packages that contain source code. Packages must hold legitimate Java classes or be omitted until developed.
+Toàn bộ luật backend ở [backend/BACKEND_RULES.md](../backend/BACKEND_RULES.md): công nghệ, cấu trúc gói theo feature, trách nhiệm từng tầng, đặt tên Java, cơ sở dữ liệu, migration, chuẩn API, bảo mật, tích hợp AI, kiểm thử. Ai sửa mã trong `backend/` hoặc `database/` phải đọc file đó trước.
 
-### 2.3 Layer Responsibilities
-1. **Controller Layer:** Handles HTTP requests, enforces input validation via `@Valid`, delegates execution to services, and packages responses into `ApiResponse<T>`. **Zero business logic is permitted in controllers.**
-2. **Service Layer:** Houses all business rules, validation workflows, transaction boundaries (`@Transactional`), and cross-feature orchestration. Inter-feature communication MUST pass through public Service interfaces, never cross-repository calls.
-3. **Repository Layer:** Encapsulates data access through Spring Data JPA interfaces.
-4. **Entity Layer:** Pure domain models mapping database tables. Extends `BaseEntity` for auditing fields (`createdAt`, `updatedAt`).
+## 5. Frontend (`frontend/`)
 
-### 2.4 Frontend Architecture
-- **HTML:** Semantic structure, accessibility, and content rendering (`src/main/resources/templates/` or static HTML).
-- **CSS:** Layout, Japanese-inspired visual styling, responsive design (`src/main/resources/static/css/`). No inline styles.
-- **JavaScript:** Client-side event handling, DOM manipulation, asynchronous REST API communication (`src/main/resources/static/js/`). No inline script tags in HTML bodies.
-- **Modularity:** Group frontend assets by feature (e.g., `css/features/booking.css`, `js/features/booking.js`). Extract shared styles into `css/common/` and reusable utilities into `js/common/`.
+Theo [frontend/FRONTEND_RULES.md](../frontend/FRONTEND_RULES.md): HTML5, CSS3, JavaScript ES6+ thuần (module), Tailwind; không React, Vue, Angular, TypeScript. Trang theo feature ở `frontend/pages/<ten-trang>/`, phần dùng chung ở `components/`, `styles/`, `js/`. Gọi API chỉ qua `js/api.js` với cấu hình ở `js/config/api.config.js` (backend `http://localhost:8085/api/...`, frontend chạy cổng 3000). Không viết `style="..."` hay `onclick="..."` nội tuyến; mặc định dùng `const`, không dùng `var`; bọc mọi `fetch()` bằng xử lý lỗi.
 
----
+Đặt tên frontend:
 
-## 3. Naming Conventions
-
-All naming across Java, Database, API, and Frontend must adhere strictly to these conventions:
-
-### 3.1 Backend (Java)
-
-| Component | Convention | Correct Example | Incorrect Example |
-| :--- | :--- | :--- | :--- |
-| **Package** | lowercase, snake_case for feature domain | `com.kizuna.features.tutor_search.service` | `com.kizuna.features.tutorSearch`, `com.kizuna.FE05` |
-| **Class / Interface** | PascalCase | `TrialBookingService`, `SupportTicket` | `trialBookingService`, `trial_booking` |
-| **Method** | camelCase, verb-first | `findTutorsBySkill()`, `confirmBooking()` | `FindTutors()`, `booking_confirm()` |
-| **Variable / Field** | camelCase | `hourlyRate`, `totalLessonsCount` | `HourlyRate`, `hourly_rate` |
-| **Constant** | UPPER_SNAKE_CASE | `MAX_LOGIN_ATTEMPTS`, `DEFAULT_PAGE_SIZE` | `maxLoginAttempts`, `MaxAttempts` |
-| **Enum Type / Item** | PascalCase (Type) / UPPER_SNAKE_CASE (Item) | `UserStatus.ACTIVE`, `TicketPriority.HIGH` | `user_status.active`, `UserStatus.Active` |
-| **Entity** | PascalCase, singular noun | `TrialBooking`, `TutorProfile` | `TrialBookings`, `tbl_booking` |
-| **DTO Request** | PascalCase + `Request` | `CreateBookingRequest`, `UpdateProfileRequest` | `BookingReq`, `CreateBookingDto` |
-| **DTO Response** | PascalCase + `Response` | `BookingDetailResponse`, `TutorSummaryResponse` | `BookingRes`, `TutorDataDTO` |
-| **Controller** | PascalCase + `Controller` | `TrialBookingController` | `TrialBookingCtrl`, `BookingEndpoint` |
-| **Service / Impl** | PascalCase + `Service` / `ServiceImpl` | `TrialBookingService`, `TrialBookingServiceImpl` | `BookingManager`, `IBookingService` |
-| **Repository** | PascalCase + `Repository` | `TrialBookingRepository` | `TrialBookingDao`, `BookingRepoImpl` |
-| **Exception** | PascalCase + `Exception` | `ResourceNotFoundException`, `InvalidTokenException` | `ResourceError`, `NotFoundExc` |
-| **Configuration** | PascalCase + `Config` | `SecurityConfig`, `WebMvcConfig` | `SecurityConfigurationHelper` |
-
-### 3.2 Database (PostgreSQL)
-
-| Component | Convention | Correct Example | Incorrect Example |
-| :--- | :--- | :--- | :--- |
-| **Table** | snake_case, plural nouns | `users`, `trial_bookings`, `support_tickets` | `user`, `tbl_users`, `TrialBookings` |
-| **Column** | snake_case | `user_id`, `created_at`, `hourly_rate` | `userId`, `CreatedAt`, `hourlyRate` |
-| **Primary Key** | snake_case, `<singular_table>_id` (UUID) | `booking_id`, `ticket_id`, `user_id` | `id`, `ID`, `bookingId` |
-| **Foreign Key** | snake_case, `<referenced_table_singular>_id` | `tutor_id`, `learner_id`, `role_id` | `fk_tutor`, `tutorRef` |
-| **Index** | `idx_<table>_<column>` | `idx_users_email`, `idx_bookings_status` | `index1`, `users_email_idx` |
-| **Unique Constraint**| `uq_<table>_<column>` | `uq_users_email`, `uq_roles_name` | `unique_email` |
-| **Foreign Constraint**| `fk_<table>_<referenced_table>` | `fk_bookings_tutors`, `fk_tickets_users` | `booking_tutor_fk` |
-
-### 3.3 RESTful API Endpoints
-
-| Rule | Correct Example | Incorrect Example |
+| Thành phần | Quy ước | Ví dụ đúng |
 | :--- | :--- | :--- |
-| **Resource Collection** (lowercase, plural, kebab-case) | `GET /api/v1/trial-bookings` | `GET /api/v1/getTrialBookings`, `GET /api/v1/trial_booking` |
-| **Specific Resource Item** | `GET /api/v1/trial-bookings/{bookingId}` | `GET /api/v1/trial-bookings?id=123` |
-| **State Transition / RPC Action** | `POST /api/v1/trial-bookings/{id}/confirm`<br>`POST /api/v1/support-tickets/{id}/resolve` | `POST /api/v1/confirmBooking`<br>`POST /api/v1/set-status-resolve` |
-| **Sub-resource Collection** | `GET /api/v1/tutors/{tutorId}/reviews` | `GET /api/v1/tutor-reviews/{tutorId}` |
-| **Query Parameters** (camelCase) | `GET /api/v1/tutors?jlptLevel=N2&minRating=4` | `GET /api/v1/tutors?jlpt_level=N2&min-rating=4` |
+| File HTML, CSS, JS | kebab-case | `tutor-profile.html`, `booking-service.js` |
+| Lớp CSS, thuộc tính `data-*` | kebab-case | `.tutor-card`, `data-tutor-id` |
+| HTML ID | camelCase | `id="bookingModal"` |
+| Hàm, biến JS | camelCase | `calculateScore()`, `tutorList` |
+| Hằng JS | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT` |
+| Lớp JS | PascalCase | `KanjiDrawer` |
 
-### 3.4 Frontend (HTML, CSS, JavaScript)
+Màn học viên và gia sư theo mục 7 của DESIGN.md (bo góc 5px, viền đen 1px, bóng khối cứng). Luyện viết Kanji giữ hệ tọa độ KanjiVG `0 0 109 109`.
 
-| Component | Convention | Correct Example | Incorrect Example |
-| :--- | :--- | :--- | :--- |
-| **HTML File** | lowercase, kebab-case | `tutor-profile.html`, `find-tutor.html` | `TutorProfile.html`, `tutor_profile.html` |
-| **CSS File** | lowercase, kebab-case | `tutor-search.css`, `dashboard.css` | `TutorSearch.css` |
-| **CSS Class** | lowercase, kebab-case | `.tutor-card`, `.btn-primary`, `.kanji-grid` | `.tutorCard`, `.btn_primary` |
-| **HTML ID** | camelCase | `id="bookingModal"`, `id="kanjiCanvas"` | `id="booking-modal"`, `id="Kanji_Canvas"` |
-| **Data Attribute** | lowercase, kebab-case | `data-tutor-id="123"`, `data-lesson-status="pending"` | `data-tutorId="123"` |
-| **JavaScript File**| lowercase, kebab-case | `booking-service.js`, `kanji-canvas.js` | `BookingService.js` |
-| **JS Function / Variable** | camelCase | `function calculateScore()`, `const tutorList` | `function CalculateScore()`, `let tutor_list` |
-| **JS Constant** | UPPER_SNAKE_CASE | `const MAX_RETRY_COUNT = 3;` | `const maxRetryCount = 3;` |
-| **JS Class** | PascalCase | `class KanjiDrawer { ... }` | `class kanjiDrawer { ... }` |
+## 6. Vai trò và phân hệ
 
----
+Sáu vai trò (mã nội bộ → tên trên giao diện): `ROLE_LEARNER` Học viên, `ROLE_TUTOR` Gia sư, `ROLE_ACADEMIC_OFFICER` Cán bộ học vụ, `ROLE_CS_STAFF` Chăm sóc khách hàng, `ROLE_MANAGER` Quản lý vận hành, `ROLE_ADMIN` Quản trị viên. Mã nội bộ không bao giờ hiện trên màn.
 
-## 4. Coding Standards
+Các feature trong `com.kizuna.features`: `auth`, `profile`, `verification`, `tutor_search`, `booking`, `classroom`, `progress`, `learning_support`, `payment`, `ticket`, `admin`, `notification`.
 
-### 4.1 General Clean Code Rules
-- **Single Responsibility Principle (SRP):** Every class, service method, and JavaScript function must have one clear responsibility. Keep methods under 40 lines.
-- **DRY (Don't Repeat Yourself):** Extract repeated logic into shared services or utilities.
-- **KISS & YAGNI:** Do not introduce premature abstractions, unnecessary interfaces, or multi-layered wrapper patterns.
-- **Clean Imports:** Remove unused imports, commented-out dead code, and temporary debugging statements before submitting work.
-- **Secrets & Credentials:** NEVER hardcode secrets, passwords, or API keys in Java or JavaScript. Inject all values via environment variables through `application.properties`.
+## 7. AI không được làm
 
-### 4.2 Backend Java & Spring Standards
-- **Controller Purity:** Controllers must ONLY validate inputs (`@Valid`), call service methods, and return response envelopes (`ApiResponse<T>`). No repository calls or calculations in controllers.
-- **Service Boundaries:** Annotate modifying operations with `@Transactional`. Ensure rollbacks on runtime exceptions.
-- **Repository Queries:** Optimize queries with `JOIN FETCH` for `@ManyToOne` associations to eliminate Hibernate N+1 queries.
-- **Exception Handling:** Handle all exceptions centrally via `@RestControllerAdvice` (`GlobalExceptionHandler`). Always translate exceptions into clean, user-friendly Vietnamese messages.
-- **Validation:** Enforce validation rules on all Request DTOs using Jakarta Validation annotations (`@NotBlank`, `@NotNull`, `@Size`, `@Email`, `@Min`, `@Max`).
+- Không bịa dữ liệu người dùng, gia sư, quy tắc nghiệp vụ, quyền; không chèn mảng giả, JSON giả vào mã chạy thật.
+- Không ghi mật khẩu, khóa API, JWT secret vào kho mã; dùng biến môi trường. Không đưa thông tin đăng nhập vào log hay chat.
+- Không tắt, bỏ qua, xóa test cho xanh; không sửa test của người khác cho khớp mã của mình.
+- Không sửa, ghi đè, xóa các khối quy tắc bất biến trong tài liệu dự án; khi sửa file `.md` phải giữ nguyên khối đó ở đầu file.
+- Không đổi `pom.xml`, `docker-compose.yml`, `application.properties`, thư mục `core/` khi task không yêu cầu; cần đổi thì hỏi người dùng trước.
+- Không chạy lệnh phá dữ liệu trên cơ sở dữ liệu thật (`DROP ... CASCADE`, `TRUNCATE`, xóa hàng loạt); không chạy `DatabasePgAdmin4.txt`.
+- Không sửa nội dung submodule (`database/kanjivg`, `backend/services/agent-memory`, `docs/design/impeccable`, `.skills/taste-skill`).
 
-### 4.3 Frontend Coding Rules
-- **Semantic HTML:** Use proper tags (`<header>`, `<nav>`, `<main>`, `<section>`, `<article>`, `<aside>`, `<footer>`) instead of generic nested `<div>` structures.
-- **No Inline Code:** Do not use inline `style="..."` or inline event handlers (`onclick="..."`). Attach listeners via `addEventListener` in external JavaScript files.
-- **CSS Discipline:** Avoid `!important` unless overriding third-party utility styles. Utilize predictable CSS classes instead of deeply nested, brittle selectors (`div > ul > li > span`).
-- **Modern JavaScript:**
-  - Default to `const`. Use `let` only when reassignment is mandatory. Strictly avoid `var`.
-  - Avoid polluting the global window object. Encapsulate logic in modules, namespaces, or self-executing functions.
-  - Implement robust error handling around all `fetch()` calls and DOM lookups.
-- **Responsive Layout:** Build fluid, adaptive web layouts supporting standard desktop, tablet, and mobile viewport resolutions.
+## 8. Quyết định kỹ thuật còn chờ nhóm xác nhận
 
----
-
-## 5. Database Standards
-
-- **Primary Keys:** Standardize on native UUID keys (`UUID PRIMARY KEY DEFAULT gen_random_uuid()`).
-- **Audit Columns:** Every business table MUST include `created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP` and `updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP`.
-- **Entity Mapping:**
-  ```java
-  @Entity
-  @Table(name = "trial_bookings")
-  @Getter
-  @Setter
-  @NoArgsConstructor
-  public class TrialBooking extends BaseEntity {
-      @Id
-      @GeneratedValue(strategy = GenerationType.UUID)
-      @Column(name = "booking_id", updatable = false, nullable = false)
-      private UUID bookingId;
-      // fields...
-  }
-  ```
-- **PostgreSQL Enum Mapping:** When mapping native PostgreSQL enum types, explicitly apply Hibernate 6 `@JdbcType`:
-  ```java
-  @Enumerated(EnumType.STRING)
-  @Column(name = "booking_status", columnDefinition = "booking_status_enum", nullable = false)
-  @JdbcType(PostgreSQLEnumJdbcType.class)
-  private BookingStatus status;
-  ```
-- **Foreign Keys:** Explicitly define foreign key constraints with indexed columns to maintain referential integrity.
-- **Migration Discipline:** Schema modifications MUST be executed through controlled, incremental SQL migration scripts in `database/migrations/`. **Never execute `DROP ... CASCADE` or destructive queries on live databases.**
-
----
-
-## 6. API Standards
-
-### 6.1 Standard Response Envelope
-All REST API endpoints MUST return responses wrapped in `ApiResponse<T>`:
-
-```json
-{
-  "success": true,
-  "message": "Đặt lịch học thử thành công.",
-  "data": {
-    "bookingId": "c3b8a1e2-9d3b-4c2d-8e4f-5a6b7c8d9e0f",
-    "status": "PENDING"
-  },
-  "timestamp": "2026-10-31T18:00:00+07:00"
-}
-```
-
-### 6.2 Standard Error Envelope
-On errors or validation failures, return a structured error response:
-
-```json
-{
-  "success": false,
-  "message": "Dữ liệu gửi lên không hợp lệ.",
-  "fieldErrors": [
-    {
-      "field": "lessonTime",
-      "message": "Thời gian học phải diễn ra trong tương lai."
-    }
-  ],
-  "timestamp": "2026-10-31T18:00:00+07:00"
-}
-```
-
-### 6.3 Standard HTTP Status Codes
-- `200 OK`: Request succeeded.
-- `201 CREATED`: Resource created successfully.
-- `204 NO_CONTENT`: Successful action with empty response body.
-- `400 BAD_REQUEST`: Validation failed or invalid payload syntax.
-- `401 UNAUTHORIZED`: Authentication required or invalid/expired token.
-- `403 FORBIDDEN`: Insufficient role permissions for this resource.
-- `404 NOT_FOUND`: Resource does not exist.
-- `409 CONFLICT`: Business state conflict or optimistic lock clash.
-- `500 INTERNAL_SERVER_ERROR`: Unhandled server exception (mapped to user-friendly message).
-
-### 6.4 Client-Side API Communication
-- Centralize all API requests in dedicated JavaScript service modules (e.g., `js/services/api-client.js`).
-- Send the CSRF token via the `X-CSRF-TOKEN` header on all modifying requests (POST, PUT, DELETE).
-- NEVER expose API keys, internal tokens, or database credentials in client-side code.
-
----
-
-## 7. Business Rules (KizunaTutor Core)
-
-AI Agents and developers must understand and strictly respect these business rules:
-1. **Tutor Matching & Trial Lessons:**
-   - Learners can only book trial lessons with tutors whose credential status is `APPROVED`.
-   - After a trial lesson, a shared Learning Space is only activated after **both** learner and tutor confirm the continuation of lessons.
-2. **Tuition & Payment Demarcation:**
-   - Learners and tutors negotiate tuition and payment schedules directly outside the platform.
-   - The platform never collects tuition, never generates binding electronic legal contracts, and never disburses tutor salaries.
-   - Platform financial transactions are strictly limited to **Tutor Membership Subscriptions** (via VNPay).
-3. **Homework & Progress Evaluation:**
-   - Learners submit homework assignments and Kanji stroke exercises.
-   - AI generates automated suggestions, rubric scores, and stroke feedback.
-   - **Tutors retain final grading authority.** The tutor reviews, modifies, and confirms the final score and remarks.
-4. **Scope Discipline:**
-   - Do NOT invent unapproved features or arbitrary business states.
-   - Always analyze cross-feature dependencies before modifying existing domain logic.
-
----
-
-## 8. AI Integration Rules (Pedagogical & Technical)
-
-For all AI-assisted features (homework assistance, Kanji handwriting analysis, stroke evaluation):
-1. **Backend Isolation:** All AI model interactions must execute strictly on the backend. Frontend JavaScript must NEVER invoke AI APIs or store AI API keys.
-2. **Schema & Score Validation:**
-   - Every AI response MUST be parsed and validated against strict schema rules (e.g., rubric structure, score bounds 0–100) before persistence.
-   - If AI returns invalid formatting or scores outside acceptable ranges, the payload must be rejected.
-3. **Data Segregation:**
-   - Store AI evaluation suggestions in distinct columns (`ai_suggested_score`, `ai_feedback`).
-   - Store human tutor ratings in separate columns (`final_score`, `tutor_feedback`).
-   - Never overwrite human-confirmed records with automated AI data.
-4. **Graceful Fallback on Failure:**
-   - If an AI API call fails, times out, or encounters quota exhaustion, the system must log the incident internally, display a friendly Vietnamese notification, and **seamlessly enable manual grading by the tutor**. AI failure must never block student progress.
-5. **No Speculative Architecture:**
-   - Do NOT introduce unconfirmed AI models or external microservices (e.g., standalone Agent Memory servers) unless officially requested and verified by the team. Keep the architecture lean: Spring Boot $\rightarrow$ Model Client $\rightarrow$ PostgreSQL.
-
----
-
-## 9. Security Rules
-
-1. **Defense in Depth:** Never trust client-side validation. Backend services MUST validate all inputs independently.
-2. **Authentication & RBAC:** Protect every sensitive endpoint using role-based access control (`@PreAuthorize("hasRole('TUTOR')")`).
-3. **UI Hiding is NOT Security:** Hiding a button or menu item in HTML/CSS does not constitute access control. Backend APIs must independently reject unauthorized requests with HTTP `403 FORBIDDEN`.
-4. **Password Security:** Passwords must be hashed using strong one-way hashing (BCrypt) with appropriate work factors. Never log or store plain-text passwords.
-5. **Data Protection:** Strip sensitive fields (passwords, internal hashes, private tokens) from all DTO responses before transmission.
-
----
-
-## 10. Git & Teamwork Rules
-
-1. **Branching Strategy:** Work exclusively on assigned feature branches (`feature/<feature-name>`). Never commit or push directly to `main` or `dev`.
-2. **Strict Local-Only Execution:** **NEVER execute `git push` autonomously.** All pushes to remote repositories must be performed manually by the developer after reviewing changes.
-3. **Respect Peer Code:** Do not modify, refactor, or delete code authored by teammates outside your assigned task scope.
-4. **Minimal Blast Radius:** Limit modifications strictly to the files necessary for the task. Avoid broad, unsolicited reformatting that clutters git diffs.
-
----
-
-## 11. Mandatory Operational Protocol for AI Agents
-
-Whenever assigned a coding task, every AI Agent MUST execute the following 10-step protocol:
-
-1. **Read AGENTS.md:** Review this entire specification to anchor rules, conventions, and architectural constraints.
-2. **Assess Real Codebase State:** Check existing code to understand current implementation reality. Do not assume unbuilt features exist.
-3. **Confirm Scope:** Identify the exact functional domain and boundary. Do not add out-of-scope features.
-4. **Plan File Changes:** Determine the minimal set of files to create or modify.
-5. **Adhere to Packaging:** For new feature slices, create the required 5 subpackages (`controller`, `dto`, `entity`, `repository`, `service`) and omit `.gitkeep`.
-6. **Apply Naming Conventions:** Verify that every class, method, variable, table, endpoint, and CSS class follows Section 3.
-7. **Ensure Error Resilience:** Implement central exception handling, user-friendly Vietnamese messages, and AI fallbacks where applicable.
-8. **Verify Compilation:** Run `./mvnw test-compile` to verify zero syntax/compilation errors across production and test code.
-9. **Verify Targeted Tests:** Execute relevant tests (`./mvnw test -Dtest=<TargetTest>`) when altering business logic to prevent regressions.
-10. **Report Results:** Conclude by providing a concise summary of created/modified files, compilation verification results, and any technical decisions needing team confirmation.
-
----
-
-## 12. Technical Decisions Requiring Team Confirmation
-
-The following technical specifications are intentionally left open and require formal confirmation by the engineering team:
-1. **Frontend Styling Approach:** Confirm whether to use pure custom CSS, Tailwind CSS CLI, or Bootstrap for utility classes and grid layout.
-2. **Build & Test Profiles:** Confirm test database configuration (Dockerized PostgreSQL container vs dedicated test instance profile).
-3. **AI Model & Provider:** Confirm the approved AI vendor (Google Gemini vs OpenAI), official model name (e.g., `gemini-1.5-flash`), and token quota limits.
-4. **Payment Gateway Credentials:** Confirm VNPay sandbox parameters and IPN webhook callback URL mappings.
-5. **Asset Storage:** Confirm whether uploaded files (avatars, homework documents) will be stored in PostgreSQL `bytea`, local filesystem storage, or cloud object storage (S3/Cloudinary).
+1. Cách làm style frontend: CSS tự viết, Tailwind CLI hay Tailwind CDN.
+2. Cơ sở dữ liệu cho test: PostgreSQL trong Docker hay một instance test riêng.
+3. Nhà cung cấp AI (Gemini hoặc OpenAI), tên model chính thức và hạn mức token.
+4. Tham số sandbox VNPay và URL callback IPN.
+5. Nơi lưu file tải lên (ảnh đại diện, bài tập): `bytea` trong PostgreSQL, ổ đĩa máy chủ hay dịch vụ lưu trữ đám mây.

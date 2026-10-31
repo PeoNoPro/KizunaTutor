@@ -25,3 +25,4 @@ const API_CONFIG = {
 };
 
 window.API_CONFIG = API_CONFIG;
+

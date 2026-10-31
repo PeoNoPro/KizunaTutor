@@ -1,0 +1,57 @@
+/**
+ * KizunaTutor Design Tokens & Variables
+ * Compliant with FRONTEND_RULES.md & DESIGN.md
+ */
+
+:root {
+  /* Brand Colors */
+  --color-primary: #006194;
+  --color-primary-hover: #007BB9;
+  --color-primary-container: #007BB9;
+  --color-secondary: #4059AA;
+  --color-navy: #0F2545;
+  --color-white: #FFFFFF;
+
+  /* Background Colors */
+  --color-bg-page: #FCFBF7;
+  --color-bg-surface: #FAF8F2;
+  --color-bg-section: #F7F4EC;
+  --color-bg-hero: #FAF6EE;
+
+  /* Text Colors */
+  --color-text-primary: #0F2545;
+  --color-text-main: #131B2E;
+  --color-text-secondary: #3F4850;
+  --color-text-muted: #707881;
+  --color-text-white: #FFFFFF;
+
+  /* Border Colors */
+  --color-border-default: #E5DECB;
+  --color-border-light: #ECE8DE;
+  --color-border-input: #E2D9C6;
+  --color-border-strong: #DED7C5;
+
+  /* Status & Accent Colors */
+  --color-amber: #D97706;
+  --color-red: #B91C1C;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-error: #BA1A1A;
+  --color-info: #0284C7;
+
+  /* Typography */
+  --font-family-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-family-serif: 'Noto Serif JP', serif;
+
+  /* Radius */
+  --radius-sm: 0.25rem;  /* 4px */
+  --radius-md: 0.5rem;   /* 8px */
+  --radius-lg: 0.75rem;  /* 12px */
+  --radius-xl: 1rem;     /* 16px */
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+

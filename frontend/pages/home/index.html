@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   
   <!-- Centralized Design Tokens & Global Styles -->
-  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="/styles/global.css">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -111,6 +111,9 @@
       }
     };
   </script>
+<link rel="stylesheet" href="/styles/global.css">
+<link rel="stylesheet" href="/styles/components.css">
+<link rel="stylesheet" href="/styles/utilities.css">
 </head>
 <body class="bg-[#fcfbf7] font-body-md text-on-surface antialiased selection:bg-primary-fixed selection:text-primary">
 
@@ -119,8 +122,8 @@
     <div class="h-20 max-w-[1240px] mx-auto px-gutter flex items-center justify-between gap-space-md">
       <!-- Logo + Slogan -->
       <div class="flex items-center gap-space-lg">
-        <a class="flex items-center gap-2 group" data-path="landing-page" href="#">
-          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyH1oh2xGD0KjGd0aRkiQGXWXqnKQ5NToy63KipMs8Gtmbshq0Z0uomNUCCOqdDYV5lzKWOEulWOmNigDee4j-f9hgytIskYCZCI9vuWeBEMTkxjzwBFbSZhGdJ4DI5cRSJikfVoTtnRCo56DR7IkpgTQmKbw3ZzdtiXucYSEVoEP9qfQQA7Qt6vTER4WAhmBPNCyVQVebt8pyp10BZfJdQCQMTaaATgJBZC667xi_-xr_1LxLfIpR" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
+        <a class="flex items-center gap-2 group" data-path="landing-page" href="/pages/home/">
+          <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
           <div class="flex flex-col">
             <div class="flex items-center gap-1.5">
               <span class="font-bold text-xl tracking-tight text-[#0f2545]">Kizuna<span class="text-primary">Tutor</span></span>
@@ -130,21 +133,20 @@
         </a>
         <!-- Navigation items (Desktop) -->
         <nav class="hidden lg:flex items-center gap-1">
-          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="tim-gia-su" href="#kham-pha-gia-su">Tìm gia sư</a>
-          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="cach-hoat-dong" href="#cach-hoat-dong">Cách hoạt động</a>
-          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="tro-thanh-gia-su" href="#tro-thanh-gia-su">Trở thành gia sư</a>
-          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="yeu-cau-da-gui" href="#">Yêu cầu đã gửi</a>
-          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="cong-cu-hoc" href="#">Công cụ học</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="tim-gia-su" href="/pages/tutor-discovery/">Tìm gia sư</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="cach-hoat-dong" href="#cach-hoat-dong">Cách hoạt động</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="tro-thanh-gia-su" href="#tro-thanh-gia-su">Trở thành gia sư</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="cong-cu-hoc" href="#cong-cu-hoc">Công cụ học</a>
         </nav>
       </div>
 
-      <!-- Actions -->
+      <!-- Actions (Chỉ có nút Vào Dashboard học tập và nút Đăng ký, không có nút Đăng nhập) -->
       <div class="flex items-center gap-3">
         <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-primary hover:bg-primary-fixed/40 transition-colors border border-primary/20" data-path="dashboard" href="#">
           <span class="material-symbols-outlined text-[16px]">school</span>
           <span>Vào Dashboard học tập</span>
         </a>
-        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary transition-colors" data-path="dang-nhap" href="#">Đăng nhập</a>
         <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-container transition-all shadow-sm font-semibold flex items-center gap-1.5" data-path="dang-ky" href="#">
           <span>Đăng ký</span>
           <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -158,11 +160,11 @@
 
     <!-- Mobile Navigation Drawer -->
     <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ece8de] bg-[#fcfbf7] px-6 py-4 space-y-2">
-      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#kham-pha-gia-su">Tìm gia sư</a>
+      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="/pages/tutor-discovery/">Tìm gia sư</a>
       <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#cach-hoat-dong">Cách hoạt động</a>
       <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#tro-thanh-gia-su">Trở thành gia sư</a>
-      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#">Yêu cầu đã gửi</a>
-      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#">Công cụ học</a>
+      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#cong-cu-hoc">Công cụ học</a>
       <div class="pt-3 border-t border-[#ece8de]">
         <a class="flex items-center gap-2 font-semibold text-xs py-2 text-primary" href="#">
           <span class="material-symbols-outlined text-[16px]">school</span>
@@ -371,7 +373,7 @@
             <span class="text-xs text-on-surface-variant text-center sm:text-left">
               Hơn <strong>450+</strong> hồ sơ gia sư đã xác thực bằng cấp JLPT và danh tính cá nhân.
             </span>
-            <a class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 whitespace-nowrap" href="#kham-pha-gia-su">
+            <a class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 whitespace-nowrap" href="/pages/tutor-discovery/">
               <span class="material-symbols-outlined text-[16px]">search</span>
               <span>Tìm kiếm gia sư</span>
             </a>
@@ -390,14 +392,14 @@
                 Được tuyển chọn kỹ lưỡng qua bài kiểm tra phát âm, văn bằng chứng chỉ và kinh nghiệm giảng dạy thực tế.
               </p>
             </div>
-            <a class="inline-flex items-center gap-1 text-sm font-bold text-primary hover:text-primary-container transition-colors shrink-0" data-path="tim-gia-su" href="#">
+            <a class="inline-flex items-center gap-1 text-sm font-bold text-primary hover:text-primary-container transition-colors shrink-0" href="/pages/tutor-discovery/">
               <span>Xem tất cả gia sư</span>
               <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
             </a>
           </div>
 
           <!-- 4 Tutor Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div id="featured-tutors-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             <!-- Card 1 -->
             <div class="bg-white rounded-2xl p-5 border border-[#e5decb] shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4">
               <div class="space-y-3">
@@ -742,14 +744,14 @@
   </main>
 
   <!-- 7. FOOTER -->
-  <footer class="w-full bg-[#131d2e] text-[#e3e8f3] pt-16 pb-10 border-t border-[#1f2d45]">
+  <footer class="w-full bg-[#131d2e] text-[#e3e8f3] pt-16 pb-10 border-t border-[#1f2d45] mt-auto">
     <div class="max-w-[1240px] mx-auto px-gutter">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
         
         <!-- Col 1: Brand & Philosophy -->
         <div class="space-y-4">
           <div class="flex items-center gap-2">
-            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyH1oh2xGD0KjGd0aRkiQGXWXqnKQ5NToy63KipMs8Gtmbshq0Z0uomNUCCOqdDYV5lzKWOEulWOmNigDee4j-f9hgytIskYCZCI9vuWeBEMTkxjzwBFbSZhGdJ4DI5cRSJikfVoTtnRCo56DR7IkpgTQmKbw3ZzdtiXucYSEVoEP9qfQQA7Qt6vTER4WAhmBPNCyVQVebt8pyp10BZfJdQCQMTaaATgJBZC667xi_-xr_1LxLfIpR" alt="Kizuna Logo" class="h-8 w-8 object-contain rounded-full shadow">
+            <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-8 w-8 object-contain rounded-full shadow">
             <span class="font-bold text-xl tracking-tight text-white">Kizuna<span class="text-sky-400">Tutor</span></span>
           </div>
           <p class="text-xs text-slate-400 leading-relaxed">
@@ -765,11 +767,11 @@
         <div>
           <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho học viên</h4>
           <ul class="space-y-2 text-xs text-slate-400">
-            <li><a class="hover:text-white transition-colors" data-path="tim-gia-su" href="#kham-pha-gia-su">Tìm gia sư theo trình độ (N5 - N1)</a></li>
-            <li><a class="hover:text-white transition-colors" data-path="gia-su-ban-xu" href="#kham-pha-gia-su">Gia sư bản xứ Tokyo luyện Kaiwa</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="tim-gia-su" href="/pages/tutor-discovery/">Tìm gia sư theo trình độ (N5 – N1)</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="gia-su-ban-xu" href="/pages/tutor-discovery/">Gia sư bản xứ Tokyo luyện Kaiwa</a></li>
             <li><a class="hover:text-white transition-colors" data-path="chuyen-de" href="#chuyen-de">Khóa chuyên đề &amp; Phỏng vấn IT</a></li>
-            <li><a class="hover:text-white transition-colors" data-path="chinh-sach-hoc-thu" href="#">Chính sách buổi gặp mặt học thử 0đ</a></li>
-            <li><a class="hover:text-white transition-colors" data-path="yeu-cau-da-gui" href="#">Tra cứu yêu cầu đã gửi</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="chinh-sach-hoc-thu" href="#cach-hoat-dong">Chính sách buổi gặp mặt học thử 0đ</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/connection-requests/">Tra cứu yêu cầu đã gửi</a></li>
           </ul>
         </div>
 
@@ -793,7 +795,7 @@
             <li><a class="hover:text-white transition-colors" data-path="chinh-sach-bao-mat" href="#">Chính sách bảo mật thông tin</a></li>
             <li><a class="hover:text-white transition-colors" data-path="giai-quyet-khieu-nai" href="#">Quy trình giải quyết khiếu nại</a></li>
             <li><a class="hover:text-white transition-colors" data-path="trung-tam-tro-giup" href="#">Trung tâm trợ giúp 24/7 (Hotline / Zalo)</a></li>
-            <li><span class="inline-block mt-2 px-2.5 py-1 rounded bg-slate-800 text-[11px] text-slate-300">Hotline: 1900 6886 (8:00 - 22:00)</span></li>
+            <li><span class="inline-block mt-2 px-2.5 py-1 rounded bg-slate-800 text-[11px] text-slate-300 font-medium">Hotline: 1900 6886 (8:00 – 22:00)</span></li>
           </ul>
         </div>
       </div>
@@ -801,16 +803,16 @@
       <!-- Copyright strip -->
       <div class="pt-6 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
         <div>
-          <span>© 2024 KizunaTutor. Tất cả quyền được bảo lưu. Giữ trọn tinh thần kết nối Nhật - Việt 『絆』.</span>
+          <span>© 2024 KizunaTutor. Tất cả quyền được bảo lưu. Giữ trọn tinh thần kết nối Nhật – Việt 『絆』.</span>
         </div>
         <div class="flex items-center gap-4">
-          <span class="flex items-center gap-1">
+          <span class="flex items-center gap-1.5">
             <span class="material-symbols-outlined text-[15px]">lock</span>
-            Bảo mật SSL 256-bit
+            <span>Bảo mật SSL 256-bit</span>
           </span>
-          <span class="flex items-center gap-1">
+          <span class="flex items-center gap-1.5">
             <span class="material-symbols-outlined text-[15px]">translate</span>
-            Hỗ trợ Song ngữ Tiếng Việt • 日本語
+            <span>Hỗ trợ Song ngữ Tiếng Việt • 日本語</span>
           </span>
         </div>
       </div>
@@ -818,7 +820,7 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="js/config/api.config.js"></script>
+  
   <script>
     // Responsive Mobile Menu Handler
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
@@ -829,6 +831,8 @@
       });
     }
   </script>
+<script type="module" src="/js/main.js"></script>
+<script type="module" src="./home.js"></script>
 </body>
 </html>
 

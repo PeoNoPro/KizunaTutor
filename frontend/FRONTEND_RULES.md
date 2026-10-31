@@ -1,475 +1,284 @@
-# KIZUNATUTOR – FRONTEND DEVELOPMENT RULES
+# KIZUNATUTOR – QUY CHUẨN PHÁT TRIỂN FRONTEND TOÀN DỰ ÁN
+*(KizunaTutor Frontend Development Architecture & Coding Standards)*
 
-**Project:** KizunaTutor – Japanese Language Tutor Matching and Learning Support System
-
-**Purpose:** Establish common frontend development standards to ensure consistent UI, maintainable code, and accurate implementation of the approved Stitch/Figma designs.
+> **MỤC ĐÍCH TÀI LIỆU:**  
+> Tài liệu này là **Kim chỉ nam duy nhất (Single Source of Truth)** cho toàn bộ thành viên trong nhóm phát triển Frontend của KizunaTutor. Mọi thành viên khi thêm trang mới, sửa component hoặc tích hợp API **BẮT BUỘC ĐỌC VÀ LÀM THEO 100%** để đảm bảo code đồng bộ, giao diện nhất quán, chuẩn nhận diện thương hiệu và dễ bảo trì.
 
 ---
 
-# 1. TECHNOLOGY STACK
+## ⛔ 3 NGUYÊN TẮC BẤT BIẾN (STRICT NON-NEGOTIABLE GUARDRAILS)
 
-The frontend must follow the technology stack agreed upon by the team.
+Toàn bộ thành viên lập trình Frontend BẮT BUỘC tuân thủ nghiêm ngặt 3 quy tắc sau trong mọi trường hợp:
 
-### Required technologies
-- HTML5
-- CSS3
-- JavaScript ES6+
-- Tailwind CSS
-- Fetch API for REST API communication
+1. **KHÔNG BAO GIỜ ĐỂ LỘ MÃ BACKEND RA GIAO DIỆN (ZERO BACKEND LEAKS):**
+   - Tuyệt đối cấm hiển thị: tên biến, enum, Exception, mã HTTP raw hay cấu trúc DB ra UI (ví dụ: cấm `ROLE_TUTOR`, `ROLE_LEARNER`, `BadCredentialsException`, `NullPointerException`, `500 INTERNAL_SERVER_ERROR`, `user_id`, `is_active`).
+   - 100% thông báo, nhãn, badge, modal BẮT BUỘC phải được dịch sang **Tiếng Việt tự nhiên, lịch sự, thân thiện với người dùng**.
+2. **KHÔNG BAO GIỜ VIẾT IN HOA TOÀN BỘ TRÊN GIAO DIỆN (NO ALL-CAPS UI TEXT):**
+   - Tuyệt đối cấm dùng chữ IN HOA TOÀN BỘ cho thông báo Toast, Alert, Modal title, Empty States (ví dụ: cấm `LỖI ĐĂNG KÝ!`, `THÀNH CÔNG!`, `KHÔNG TÌM THẤY GIA SƯ!`).
+   - Chỉ áp dụng viết hoa chữ cái đầu câu (Sentence case) hoặc đầu từ chính (Title Case). In hoa toàn bộ chỉ dùng cho từ viết tắt chuẩn quốc tế (`OTP`, `JLPT`, `AI`, `SVG`, `UI/UX`, `ID`, `VND`).
+3. **KHÔNG BAO GIỜ DÙNG DỮ LIỆU ẢO ĐỂ ĐỐI PHÓ (NO MOCK / FAKE DATA INJECTION):**
+   - Mọi dữ liệu hiển thị (danh sách gia sư, hồ sơ, ca rảnh, yêu cầu kết nối) **BẮT BUỘC lấy từ API Backend thực tế** nối với Supabase PostgreSQL.
+   - Khi cơ sở dữ liệu chưa có dữ liệu, **BẮT BUỘC hiển thị Màn hình rỗng chuẩn (Empty State)** với thông điệp hướng dẫn lịch sự, tuyệt đối không bịa dummy JSON vào màn hình chính.
 
-### Restrictions
-- Do not introduce React, Vue, Angular, Next.js, or TypeScript unless the team officially changes the frontend stack.
-- Do not introduce Bootstrap when Tailwind CSS is the agreed framework.
-- Do not mix multiple CSS frameworks without an approved technical reason.
-- Avoid unnecessary third-party dependencies.
-- Do not introduce a new library without checking whether the project already has an equivalent solution.
+---
 
-**Important:** Follow the existing repository and team conventions. Do not independently change the frontend technology stack.
+## 1. CÔNG NGHỆ & MÔI TRƯỜNG CHẠY (TECH STACK & RUNTIME)
 
-# 2. DESIGN SYSTEM – BRAND IDENTITY
+- **Frontend Tech Stack**: HTML5, CSS3, JavaScript ES6+ (Native Modules `type="module"`), Tailwind CSS (Config CDN / PostCSS).
+- **KHÔNG sử dụng**: Không dùng React, Vue, Angular, Next.js hay TypeScript (đảm bảo độ nhẹ, tương thích tối đa và chạy ngay trên mọi trình duyệt).
+- **Cổng phân định chuẩn (Port Standards)**:
+  - **Backend Spring Boot REST API**: `http://localhost:8085` (Prefix API: `/api/...`)
+  - **Frontend Dev Server**: `http://localhost:3000` (Khởi chạy bằng `node frontend/server.js`)
 
-The approved KizunaTutor Home Page is the primary visual reference for the project's brand identity.
+---
 
-All frontend pages must maintain the same visual language.
+## 2. CẤU TRÚC THƯ MỤC CHUẨN CỦA DỰ ÁN (PROJECT DIRECTORY STRUCTURE)
 
-### 2.1 Brand direction
-- Primary visual identity: Blue.
-- Supporting identity: Dark Navy.
-- Background style: Warm off-white and cream.
-- Accent style: Amber and subtle Japanese red.
-- Overall appearance: Professional, trustworthy, friendly, and education-oriented.
-- Japanese-inspired elements should be subtle and must not overwhelm the interface.
-
-Do not independently redesign the brand identity.
-
-# 3. COLOR SYSTEM
-
-All pages must use the centralized KizunaTutor color palette.
-
-### 3.1 Brand colors
-
-| Token | HEX | Usage |
-|---|---|---|
-| Primary | #006194 | Main buttons, links, active elements |
-| Primary Hover | #007BB9 | Hover and emphasized states |
-| Secondary | #4059AA | Supporting actions and secondary highlights |
-| Navy | #0F2545 | Main headings, strong text, dark sections |
-| White | #FFFFFF | Cards and content surfaces |
-
-### 3.2 Background colors
-
-| Token | HEX | Usage |
-|---|---|---|
-| Page Background | #FCFBF7 | Main page background |
-| Warm Surface | #FAF8F2 | Inputs, subtle content areas |
-| Section Background | #F7F4EC | Alternating page sections |
-| White Surface | #FFFFFF | Cards, forms, modals |
-| Hero Background | #FAF6EE | Hero section warm gradient start |
-
-### 3.3 Text colors
-
-| Token | HEX | Usage |
-|---|---|---|
-| Text Primary | #0F2545 | Headings and important content |
-| Text Main | #131B2E | Body text |
-| Text Secondary | #3F4850 | Descriptions and supporting text |
-| Text Muted | #707881 | Labels and less important information |
-| Text White | #FFFFFF | Text on dark backgrounds |
-
-### 3.4 Border colors
-
-| Token | HEX | Usage |
-|---|---|---|
-| Border Default | #E5DECB | Cards and containers |
-| Border Light | #ECE8DE | Dividers and subtle boundaries |
-| Border Input | #E2D9C6 | Input fields |
-| Border Strong | #DED7C5 | Emphasized boundaries |
-
-### 3.5 Accent and status colors
-
-| Token | HEX | Usage |
-|---|---|---|
-| Amber | #D97706 | Ratings, highlights, Japanese-inspired accents |
-| Red | #B91C1C | Subtle Japanese seal or special emphasis |
-| Success | #059669 | Successful actions and approved states |
-| Warning | #D97706 | Pending or attention-required states |
-| Error | #BA1A1A | Errors, rejected states and validation |
-| Info | #0284C7 | Informational indicators |
-
-Use status colors consistently. Do not use accent colors as large background areas unless the design requires them.
-
-### 3.6 Color usage rules
-
-- Primary blue must remain the main brand color.
-- Navy must be used for important headings and strong text.
-- Warm off-white should remain the dominant page background.
-- White should be used for cards, forms and content surfaces.
-- Amber should be used sparingly for ratings and highlights.
-- Red should only be used for small Japanese-inspired accents or appropriate status indicators.
-- Green should represent success or positive status, not replace the primary brand color.
-- Maintain readable contrast between text and background.
-- Do not randomly introduce new HEX colors.
-- Do not use arbitrary Tailwind colors when an approved design token already exists.
-
-# 4. CENTRALIZED DESIGN TOKENS
-
-Define colors and common design values centrally.
-
-Use CSS variables in a global stylesheet.
-
-```css
-:root {
-    /* Brand */
-    --color-primary: #006194;
-    --color-primary-hover: #007BB9;
-    --color-secondary: #4059AA;
-    --color-navy: #0F2545;
-
-    /* Background */
-    --color-background: #FCFBF7;
-    --color-surface: #FFFFFF;
-    --color-warm-surface: #FAF8F2;
-    --color-section: #F7F4EC;
-
-    /* Text */
-    --color-text-primary: #0F2545;
-    --color-text-main: #131B2E;
-    --color-text-secondary: #3F4850;
-    --color-text-muted: #707881;
-    --color-text-white: #FFFFFF;
-
-    /* Borders */
-    --color-border: #E5DECB;
-    --color-border-light: #ECE8DE;
-    --color-border-input: #E2D9C6;
-
-    /* Status */
-    --color-success: #059669;
-    --color-warning: #D97706;
-    --color-error: #BA1A1A;
-    --color-info: #0284C7;
-
-    /* Accent */
-    --color-amber: #D97706;
-    --color-japanese-red: #B91C1C;
-
-    /* Typography */
-    --font-primary: 'Plus Jakarta Sans', sans-serif;
-    --font-japanese: 'Noto Serif JP', serif;
-
-    /* Layout */
-    --container-width: 1240px;
-    --header-height: 80px;
-
-    /* Radius */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
-}
-```
-
-Keep Tailwind theme colors synchronized with these design tokens.
-
-Do not define duplicate color values independently in every page.
-
-# 5. TYPOGRAPHY RULES
-
-Use the typography from the approved Home Page.
-
-### Primary font
-**Plus Jakarta Sans**
-
-Use for:
-- Navigation
-- Headings
-- Body text
-- Buttons
-- Forms
-- Cards
-- Labels
-- Dashboard content
-
-### Japanese font
-**Noto Serif JP**
-
-Use for:
-- Japanese characters used as decorative elements
-- Kanji watermarks
-- Japanese-inspired visual accents
-
-### Typography rules
-- Use consistent font weights: 400, 500, 600, 700 and 800.
-- Maintain clear heading hierarchy.
-- Avoid using too many font sizes on one page.
-- Keep body text readable.
-- Do not randomly introduce new font families.
-- Ensure Vietnamese characters render correctly.
-- Avoid using decorative Japanese typography for ordinary Vietnamese content.
-
-# 6. LAYOUT AND SPACING RULES
-
-Follow the layout conventions of the Home Page.
-
-### Main container
-- Maximum content width: 1240px.
-- Center content horizontally.
-- Use consistent horizontal padding.
-- Maintain appropriate whitespace between sections.
-
-### Spacing scale
-
-Use consistent spacing values:
-
-- 4px – Extra small
-- 8px – Small
-- 12px – Medium small
-- 16px – Medium
-- 24px – Large
-- 32px – Extra large
-- 40px – Section spacing
-- 48px and above – Major section separation
-
-### Border radius
-
-- Small controls: 8px.
-- Inputs and buttons: 8–12px.
-- Cards: 16px.
-- Large feature sections: 24px.
-- Circular badges and avatars: 9999px where appropriate.
-
-Do not use random spacing and border-radius values without a design reason.
-
-# 7. UI COMPONENT RULES
-
-Common components must maintain consistent styling throughout the project.
-
-### Header / Navigation
-- Follow the approved Home Page navigation design.
-- Maintain the same logo position, navigation spacing and action alignment.
-- Preserve the approved header height and background.
-- Use the correct active navigation state.
-- Do not replace the logo with an avatar or use an incorrect brand asset.
-
-### Buttons
-- Primary buttons use the official primary color.
-- Secondary buttons use the approved secondary style.
-- Hover and focus states must be consistent.
-- Disabled buttons must be visually distinguishable.
-- Maintain consistent height, padding and radius.
-
-### Cards
-- Use white or approved surface backgrounds.
-- Use consistent border colors and shadows.
-- Maintain consistent internal spacing.
-- Tutor cards must follow the approved visual language.
-
-### Forms
-- Use consistent input heights, borders and focus states.
-- Labels must be clear.
-- Validation messages must be displayed consistently.
-- Required fields must be distinguishable.
-
-### Status badges
-Use consistent visual styles for:
-- Pending
-- Accepted
-- Rejected
-- Cancelled
-- Active
-- Inactive
-- Verified
-
-Do not invent additional business statuses.
-
-# 8. RESPONSIVE DESIGN
-
-All pages must support:
-
-- Desktop
-- Tablet
-- Mobile
-
-Requirements:
-- Avoid horizontal overflow.
-- Navigation must adapt to smaller screens.
-- Cards and grids must resize appropriately.
-- Forms must remain usable on mobile.
-- Text must not overlap images or buttons.
-- Maintain consistent spacing at different screen sizes.
-
-Do not implement desktop-only layouts.
-
-# 9. CODE ORGANIZATION
-
-Keep HTML, CSS and JavaScript separated.
-
-Suggested structure:
+Hệ thống Frontend được tổ chức theo kiến trúc **Modular Feature-Driven Pages & Shared Assets**:
 
 ```text
 frontend/
-├── index.html
-├── pages/
-├── assets/
-│   ├── images/
-│   └── icons/
-├── css/
-│   ├── global.css
-│   ├── layout.css
-│   └── custom.css
-├── js/
-│   ├── config/
-│   ├── services/
-│   ├── pages/
-│   └── utils/
-└── README.md
+│
+├── index.html                       # Entry point gốc (tự động chuyển hướng sang /pages/home/)
+├── server.js                        # Node.js dev server tĩnh chạy cổng 3000 (hỗ trợ routing sạch)
+├── FRONTEND_RULES.md                # Tài liệu chuẩn mực này
+│
+├── assets/                          # Tài nguyên tĩnh tập trung
+│   ├── logos/
+│   │   └── kizuna-logo.png          # Logo chính thức DUY NHẤT (dùng chung toàn hệ thống)
+│   ├── images/                      # Ảnh minh họa, banner, minh họa trống (empty state)
+│   ├── icons/                       # Icon SVG tuỳ biến
+│   └── fonts/                       # Phông chữ địa phương hóa (nếu có)
+│
+├── styles/                          # CSS chuẩn hóa & biến hệ thống
+│   ├── variables.css                # CSS Variables Design Tokens (:root)
+│   ├── global.css                   # Global styles, reset & typography căn bản
+│   ├── components.css               # Quy chuẩn style cho Buttons, Cards, Inputs, Modals
+│   └── utilities.css                # Các utility classes bổ trợ cho Tailwind
+│
+├── components/                      # Các thành phần giao diện tái sử dụng
+│   ├── header/
+│   │   └── header.html              # Thanh Header chuẩn đồng bộ toàn bộ dự án
+│   ├── footer/
+│   │   └── footer.html              # Thanh Footer chuẩn đồng bộ toàn bộ dự án
+│   └── modal/
+│       └── modal.js                 # Helper mở / đóng modal popup dùng chung
+│
+├── pages/                           # Mỗi màn hình/chức năng là một thư mục riêng biệt
+│   ├── home/                        # Trang chủ KizunaTutor
+│   │   ├── index.html
+│   │   └── home.js
+│   ├── tutor-discovery/             # Trang Khám phá & Tìm kiếm gia sư
+│   │   ├── index.html
+│   │   └── tutor-discovery.js
+│   ├── tutor-profile/               # Trang Xem chi tiết hồ sơ & lịch rảnh gia sư
+│   │   ├── index.html
+│   │   └── tutor-profile.js
+│   └── connection-requests/         # Trang Quản lý yêu cầu kết nối học thử của học viên
+│       ├── index.html
+│       └── connection-requests.js
+│
+└── js/                              # Mã nguồn JavaScript cốt lõi dùng chung
+    ├── api.js                       # Module gọi REST API tập trung (Fetch API wrapper)
+    ├── main.js                      # Tiện ích chung: formatVND, showToast, Mobile Menu toggle
+    ├── config/
+    │   └── api.config.js            # Địa chỉ Base URL API Backend (http://localhost:8085/api)
+    ├── data/
+    │   └── tutors.mock.js           # Dữ liệu mẫu tham khảo cấu trúc (CHỈ DÙNG TEST CỤC BỘ)
+    └── pages/
+        └── tutors.js                # Helper render card gia sư dùng chung
 ```
-
-Adapt this structure to the existing repository. Do not create duplicate folders unnecessarily.
-
-### Coding conventions
-- Use meaningful and consistent variable names.
-- Use reusable functions.
-- Avoid duplicated code.
-- Keep page-specific logic in separate files.
-- Avoid putting all JavaScript into one large file.
-- Avoid inline JavaScript when a separate script file is appropriate.
-- Use semantic HTML elements.
-- Add comments for non-obvious business logic.
-- Do not remove existing code without authorization.
-
-# 10. TAILWIND CSS RULES
-
-- Use Tailwind CSS for utility-based styling.
-- Configure the official KizunaTutor color palette.
-- Reuse semantic design tokens.
-- Avoid arbitrary HEX values when an official token exists.
-- Keep Tailwind configuration consistent with global CSS variables.
-- Do not use default Tailwind colors when they conflict with the project palette.
-- Use custom CSS for complex or repeated patterns when appropriate.
-- Do not mix Tailwind and Bootstrap.
-
-If Tailwind is already configured, preserve the existing setup unless a change is necessary.
-
-# 11. API INTEGRATION RULES
-
-The frontend communicates with the backend through REST APIs.
-
-Expected architecture:
-
-```text
-HTML
-  ↓
-JavaScript
-  ↓
-Fetch API
-  ↓
-Spring Boot REST API
-  ↓
-Service Layer
-  ↓
-Repository Layer
-  ↓
-Supabase PostgreSQL
-```
-
-Requirements:
-- Use Fetch API for HTTP requests.
-- Centralize API base URL configuration.
-- Separate API services from UI rendering logic.
-- Handle loading, success, empty and error states.
-- Handle HTTP errors appropriately.
-- Do not connect directly to Supabase from browser JavaScript.
-- Never expose database credentials or private secrets in frontend files.
-- Do not invent API endpoints.
-- Confirm actual backend endpoints and request/response structures before integration.
-- Follow the backend's authentication mechanism.
-
-# 12. BUSINESS RULES
-
-Frontend implementation must follow the approved KizunaTutor requirements and existing database/business design.
-
-For Learner-side features:
-
-- Learners can discover Japanese tutors.
-- Learners can search and filter tutor profiles.
-- Learners can view tutor details.
-- Learners can submit connection requests.
-- Learners can view and track their own connection requests.
-- A connection request does not automatically grant access to a Learning Space.
-- Learning Space access must follow the actual authorization workflow.
-- Do not assume learners make payments.
-- Do not invent business statuses, fields or workflows.
-- Do not change the agreed use cases without approval.
-
-# 13. SECURITY RULES
-
-- Never expose database passwords, Supabase service-role keys or private secrets in frontend code.
-- Do not trust user IDs supplied directly by the browser as proof of identity.
-- Follow backend authentication and authorization.
-- Validate user input on the frontend for usability, but backend validation remains mandatory.
-- Do not store sensitive authentication data in insecure locations.
-- Do not bypass backend authorization to make a screen work.
-
-# 14. GIT AND TEAM COLLABORATION
-
-- Work only within the assigned module and files.
-- Do not modify another member's module without permission.
-- Follow the team's branch naming convention.
-- Make commits that describe the actual changes.
-- Do not commit `.env` files or secrets.
-- Do not overwrite teammates' changes.
-- Inspect Git status before modifying shared files.
-- Do not merge or push without following the team's agreed workflow.
-
-# 15. ANTIGRAVITY WORKING RULES
-
-Before implementing any task:
-
-1. Read this FRONTEND_RULES.md file.
-2. Inspect the existing repository.
-3. Identify the assigned page and related files.
-4. Inspect the corresponding Stitch/Figma design.
-5. Reuse existing components, assets and design tokens.
-6. Check whether the required API already exists.
-7. Ask for clarification if an essential requirement is missing.
-
-During implementation:
-
-- Work only within the assigned scope.
-- Follow the approved design accurately.
-- Preserve existing functionality.
-- Do not invent business rules.
-- Do not refactor unrelated modules.
-- Do not modify backend or database files unless explicitly requested.
-
-After implementation:
-
-1. Check the page against the Stitch/Figma reference.
-2. Check the official color palette.
-3. Check responsive layouts.
-4. Check navigation and interactions.
-5. Check browser console errors.
-6. Report all created and modified files.
-7. Report any missing API or unresolved requirements.
-
-# 16. DESIGN REFERENCE PRIORITY
-
-When implementing frontend pages, follow this priority:
-
-1. Approved Stitch/Figma design for the specific screen.
-2. Official KizunaTutor Home Page and its Design System.
-3. This FRONTEND_RULES.md file.
-4. Existing project conventions.
-
-If references conflict, do not silently redesign or change the brand palette. Report the conflict and ask for clarification.
 
 ---
 
-**FINAL PRINCIPLE**
+## 3. QUY CHUẨN THANH ĐIỀU HƯỚNG HEADER (SYNCHRONIZED HEADER)
 
-Every KizunaTutor frontend page must look and feel like part of the same product.
+Tất cả các trang trong `pages/` **BẮT BUỘC dùng chung một cấu trúc Header** theo mẫu tại `components/header/header.html`:
 
-Maintain consistent colors, typography, navigation, spacing, components, responsive behavior and business logic.
+### 3.1. Nhận diện Logo
+- Sử dụng logo chính thức: `<img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">`.
+- Brand Name: `Kizuna` (`#0f2545`) + `Tutor` (`#006194`).
+- Slogan bên dưới: `Kết nối song ngữ Việt – Nhật` (font-size: 10px, màu `#68737D`).
 
-Visual accuracy, code maintainability, team consistency and business-rule correctness are all mandatory.
+### 3.2. Menu điều hướng (Desktop & Mobile Drawer)
+Gồm đúng 5 liên kết chuẩn:
+1. `Tìm gia sư` ➔ `/pages/tutor-discovery/`
+2. `Cách hoạt động` ➔ `/pages/home/#cach-hoat-dong`
+3. `Trở thành gia sư` ➔ `/pages/home/#tro-thanh-gia-su`
+4. `Yêu cầu đã gửi` ➔ `/pages/connection-requests/`
+5. `Công cụ học` ➔ `/pages/home/#cong-cu-hoc`
+
+### 3.3. Trạng thái Active Menu
+Khi người dùng đang ở trang nào, mục menu đó được kích hoạt dạng nút xanh bo tròn:
+```html
+<a aria-current="page" class="font-label-md text-label-md px-3.5 py-2 rounded-lg bg-[#006194] text-white font-semibold shadow-sm transition-colors" href="/pages/tutor-discovery/">Tìm gia sư</a>
+```
+
+### 3.4. Cụm nút hành động bên phải (Strict Action Buttons)
+- **Nút 1: Vào Dashboard học tập**:  
+  Viền mỏng trang nhã `border border-[#006194]/20 text-[#006194]`, có biểu tượng `<span class="material-symbols-outlined text-[16px]">school</span>`.
+- **Nút 2: Đăng ký**:  
+  Nút màu xanh thương hiệu `bg-[#006194] text-white hover:bg-[#004b73]`, có icon mũi tên `<span class="material-symbols-outlined text-[16px]">arrow_forward</span>`.
+- ⛔ **QUY TẮC BẮT BUỘC: KHÔNG ĐƯỢC CÓ NÚT "ĐĂNG NHẬP" TRÊN HEADER**:
+  Theo thiết kế đã duyệt, trên Header **CHỈ CÓ NÚT ĐĂNG KÝ**, tuyệt đối không thêm lại nút Đăng nhập vào Header.
+
+---
+
+## 4. QUY CHUẨN CHÂN TRANG FOOTER (SYNCHRONIZED FOOTER)
+
+Tất cả các trang **BẮT BUỘC sử dụng Footer 4 cột nền tối** theo mẫu tại `components/footer/footer.html`:
+
+- **Màu nền**: Xanh than tối `bg-[#131d2e]`, viền trên `border-[#1f2d45]`, chữ sáng `#e3e8f3`.
+- **Cấu trúc 4 cột**:
+  1. **Thương hiệu & Triết lý**: Logo Kizuna + Slogan + Triết lý gắn kết bền vững (Kizuna) + Badge `verified` *"Bảo chứng hồ sơ & Năng lực sư phạm chuẩn JLPT"*.
+  2. **Dành cho học viên**: 5 link (Tìm gia sư theo trình độ N5-N1, Gia sư bản xứ Tokyo, Khóa chuyên đề, Chính sách học thử 0đ, Tra cứu yêu cầu đã gửi).
+  3. **Dành cho gia sư**: 5 link (Đăng ký gia sư mới, Không gian quản lý, Bộ quy chuẩn xác thực, Chính sách không cắt phế, Cộng đồng Senpai).
+  4. **Hỗ trợ & Pháp lý**: 4 link (Điều khoản, Bảo mật, Khiếu nại, Trung tâm trợ giúp) + Khung nổi bật: `Hotline: 1900 6886 (8:00 – 22:00)`.
+- **Dải bản quyền chân trang**:
+  - `© 2024 KizunaTutor. Tất cả quyền được bảo lưu. Giữ trọn tinh thần kết nối Nhật – Việt 『絆』.`
+  - Cụm bên phải: Biểu tượng `lock` *"Bảo mật SSL 256-bit"* và biểu tượng `translate` *"Hỗ trợ Song ngữ Tiếng Việt • 日本語"*.
+
+---
+
+## 5. HỆ THỐNG MÀU SẮC & DESIGN TOKENS CHUẨN
+
+Toàn bộ nhóm phải dùng bảng màu đã định nghĩa trong `styles/variables.css`:
+
+| Tên Token | Mã HEX | Mục đích sử dụng |
+|---|---|---|
+| **Primary** | `#006194` | Nút bấm chính, liên kết chính, trạng thái active |
+| **Primary Hover** | `#004b73` / `#007bb9` | Hiệu ứng rê chuột trên nút chính |
+| **Navy Brand** | `#0F2545` | Chữ Kizuna, tiêu đề lớn, thanh điều hướng nổi bật |
+| **Warm Page Background** | `#FCFBF7` | Màu nền chính toàn trang (ấm áp, êm mắt phong cách Washi) |
+| **Card / Surface** | `#FFFFFF` | Nền thẻ gia sư, bảng dữ liệu, form nhập liệu |
+| **Warm Surface** | `#FAF8F2` | Nền ô input, nền phụ hỗ trợ |
+| **Borders** | `#ECE8DE` / `#E5DECB` | Đường phân cách, viền thẻ card |
+| **Text Primary** | `#0F2545` | Tiêu đề chính, tên gia sư, điểm số |
+| **Text Secondary** | `#3F4850` | Nội dung mô tả, tiêu chí chuyên môn |
+| **Text Muted** | `#68737D` | Nhãn phụ, phụ đề slogan, ghi chú nhỏ |
+| **Success / Matcha** | `#059669` / `#88A064` | Trạng thái rảnh, đã duyệt, đã xác thực CCCD |
+| **Warning / Amber** | `#D97706` | Đánh giá sao, trạng thái chờ duyệt |
+| **Error / Crimson** | `#BA1A1A` | Thông báo lỗi, từ chối, xóa |
+
+---
+
+## 6. QUY TẮC VIẾT CODE TRANG MỚI (PAGE CREATION RULES)
+
+Khi một thành viên trong nhóm cần tạo một trang mới (ví dụ: `pages/my-new-page/`):
+
+1. **Tạo thư mục**: `frontend/pages/my-new-page/`.
+2. **Tạo 2 file cơ bản**:
+   - `index.html`: File giao diện HTML.
+   - `my-new-page.js`: File xử lý logic JavaScript cho trang.
+3. **Cấu trúc khung HTML chuẩn**:
+   ```html
+   <!DOCTYPE html>
+   <html lang="vi">
+   <head>
+     <meta charset="utf-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>Tiêu đề trang - KizunaTutor</title>
+     <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+     <!-- Fonts & Icons -->
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+     <!-- Tailwind & Project CSS -->
+     <script src="https://cdn.tailwindcss.com"></script>
+     <link rel="stylesheet" href="/styles/variables.css">
+     <link rel="stylesheet" href="/styles/global.css">
+     <link rel="stylesheet" href="/styles/components.css">
+     <link rel="stylesheet" href="/styles/utilities.css">
+   </head>
+   <body class="bg-[#FCFBF7] text-[#131B2E] min-h-screen flex flex-col font-sans antialiased">
+     
+     <!-- 1. Header (Copy nguyên khối từ components/header/header.html) -->
+     <header> ... </header>
+
+     <!-- 2. Main Content -->
+     <main class="w-full pt-28 pb-16 flex-1">
+       <div class="max-w-[1240px] mx-auto px-4 md:px-8">
+         <!-- Nội dung trang tại đây -->
+       </div>
+     </main>
+
+     <!-- 3. Footer (Copy nguyên khối từ components/footer/footer.html) -->
+     <footer class="mt-auto"> ... </footer>
+
+     <!-- 4. Scripts -->
+     <script type="module" src="/js/main.js"></script>
+     <script type="module" src="./my-new-page.js"></script>
+   </body>
+   </html>
+   ```
+4. **Khai báo route trong `frontend/server.js`**: Nếu cần alias đẹp (ví dụ `/my-new-page`), hãy thêm vào mảng ánh xạ trong `frontend/server.js`.
+
+---
+
+## 7. QUY CHUẨN GỌI API & XỬ LÝ DỮ LIỆU (API INTEGRATION)
+
+### 7.1. Cấu hình Endpoint
+- Sử dụng file tập trung: `frontend/js/config/api.config.js`.
+- Tuyệt đối không hardcode URL `http://localhost:8085` rải rác trong các file giao diện.
+- Gọi qua wrapper hàm `fetchAPI` hoặc `apiService` trong `frontend/js/api.js`.
+
+### 7.2. Xử lý 4 trạng thái giao diện bắt buộc:
+Mọi màn hình gọi API BẮT BUỘC xử lý đủ 4 trạng thái sau:
+1. **Loading State**: Hiển thị hiệu ứng tải mượt mà (Skeleton loading hoặc Spinner) để người dùng không cảm giác bị đơ màn hình.
+2. **Success State**: Render danh sách hoặc dữ liệu chi tiết thực tế từ DB.
+3. **Empty State (Trạng thái rỗng)**:
+   - Khi API trả về mảng rỗng `[]`, hiển thị Card rỗng lịch sự:
+   ```html
+   <div class="text-center py-16 bg-white rounded-2xl border border-[#ECE8DE] p-8">
+     <span class="material-symbols-outlined text-5xl text-[#68737D] mb-3">sentiment_dissatisfied</span>
+     <h3 class="text-base font-bold text-[#0F2545]">Chưa tìm thấy gia sư phù hợp</h3>
+     <p class="text-sm text-[#68737D] mt-1">Vui lòng thử điều chỉnh lại bộ lọc tìm kiếm hoặc quay lại sau ít phút.</p>
+   </div>
+   ```
+4. **Error State**: Bắt lỗi `catch`, hiển thị thông báo nhẹ nhàng qua hàm `showToast('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.', 'error')`.
+
+---
+
+## 8. BẢNG ÁNH XẠ CHUYỂN NGỮ BẮT BUỘC (MÃ BACKEND SANG TIẾNG VIỆT)
+
+Trước khi hiển thị bất kỳ giá trị nào từ API Backend lên giao diện, **phải ánh xạ qua bảng sau**:
+
+| Giá trị từ Backend / Exception | Hiển thị chuẩn trên Giao diện Frontend | CẤM HIỂN THỊ |
+| :--- | :--- | :--- |
+| `ROLE_ADMIN` | Quản trị viên hệ thống | ROLE_ADMIN, Admin |
+| `ROLE_TUTOR` | Gia sư tiếng Nhật | ROLE_TUTOR, Tutor |
+| `ROLE_LEARNER` / `STUDENT` | Học viên | ROLE_LEARNER, STUDENT |
+| `ROLE_CS_STAFF` | Chăm sóc khách hàng | ROLE_CS_STAFF |
+| `ROLE_ACADEMIC_OFFICER` | Cán bộ học vụ | ROLE_ACADEMIC_OFFICER |
+| `BadCredentialsException` | Email hoặc mật khẩu không chính xác | Bad credentials |
+| `UserAlreadyExistsException` | Email này đã được đăng ký trên hệ thống | User already exists |
+| `500 Internal Server Error` | Hệ thống đang bận, bạn vui lòng thử lại sau | 500 Internal error |
+| `NullPointerException` | Đã có lỗi xảy ra trong quá trình xử lý | Null pointer exception |
+| `PENDING` | Chờ phản hồi | PENDING, pending |
+| `ACCEPTED` | Đã chấp nhận kết nối | ACCEPTED, accepted |
+| `REJECTED` | Đã từ chối kết nối | REJECTED, rejected |
+| `CANCELLED` | Đã hủy yêu cầu | CANCELLED, cancelled |
+
+---
+
+## 9. QUY TẮC QUẢN TRỊ GIT (GIT COLLABORATION RULES)
+
+1. **TUYỆT ĐỐI KHÔNG TỰ Ý CHẠY `git push` LÊN REMOTE:**  
+   Mọi commit, kiểm thử chỉ được thực hiện trên máy cục bộ (Local Repository). Việc push code lên GitHub/GitLab do trưởng nhóm hoặc từng thành viên tự thực hiện thủ công sau khi đã kiểm tra giao diện chạy ổn định.
+2. **Kiểm tra trạng thái trước khi commit:** Luôn gõ `git status` để xem các file bị ảnh hưởng, không commit đè lên code của người khác.
+3. **Commit message rõ ràng:** Ví dụ: `feat(discovery): them bo loc trinh do N5-N1`, `fix(header): dong bo thanh dieu huong khong nut dang nhap`.
+
+---
+
+## 10. CHECKLIST TRƯỚC KHI BÀN GIAO MÃ NGUỒN
+
+Trước khi hoàn thành bất kỳ task Frontend nào, hãy tự kiểm tra lại các mục sau:
+- [ ] Trang đã sử dụng đúng Logo tại `/assets/logos/kizuna-logo.png` chưa?
+- [ ] Header đã đồng bộ đúng 5 menu và **KHÔNG có nút Đăng nhập** chưa?
+- [ ] Header có nút "Đăng ký" kèm biểu tượng `arrow_forward` chưa?
+- [ ] Footer đã dùng bản 4 cột nền tối `#131d2e` kèm Hotline `1900 6886` chưa?
+- [ ] Có bị lộ chữ tiếng Anh kỹ thuật hoặc mã Backend (`ROLE_...`, `Exception`) nào không?
+- [ ] Có dòng thông báo nào bị viết IN HOA TOÀN BỘ không?
+- [ ] Đã kiểm tra giao diện co giãn hiển thị tốt trên Mobile / Tablet / Desktop chưa?
+- [ ] Mở Console trình duyệt (F12) kiểm tra không còn lỗi đỏ JavaScript nào.

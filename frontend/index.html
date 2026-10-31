@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta content="web_standard" name="shell-type">
+  <title>KizunaTutor - Kết nối Gia sư Tiếng Nhật &amp; Học viên Việt Nam</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Serif+JP:wght@400;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  
+  <!-- Centralized Design Tokens & Global Styles -->
+  <link rel="stylesheet" href="css/global.css">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "error": "#ba1a1a",
+            "on-tertiary": "#ffffff",
+            "surface-dim": "#d2d9f4",
+            "on-primary-container": "#fdfcff",
+            "surface-container-highest": "#dae2fd",
+            "surface-container-low": "#f2f3ff",
+            "on-secondary-fixed": "#00164e",
+            "outline": "#707881",
+            "secondary": "#4059aa",
+            "on-primary": "#ffffff",
+            "on-primary-fixed": "#001d31",
+            "primary": "#006194",
+            "surface-variant": "#dae2fd",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "surface-bright": "#faf8ff",
+            "error-container": "#ffdad6",
+            "surface-container-high": "#e2e7ff",
+            "background": "#faf8ff",
+            "on-secondary-fixed-variant": "#264191",
+            "inverse-primary": "#93ccff",
+            "surface-tint": "#006398",
+            "surface-container-lowest": "#ffffff",
+            "primary-container": "#007bb9",
+            "inverse-on-surface": "#eef0ff",
+            "on-tertiary-fixed": "#2f1500",
+            "on-surface": "#131b2e",
+            "on-surface-variant": "#3f4850",
+            "tertiary-fixed-dim": "#ffb77d",
+            "tertiary-container": "#b15f00",
+            "on-primary-fixed-variant": "#004b73",
+            "on-error": "#ffffff",
+            "surface-container": "#eaedff",
+            "primary-fixed-dim": "#93ccff",
+            "surface": "#faf8ff",
+            "primary-fixed": "#cce5ff",
+            "on-background": "#131b2e",
+            "secondary-fixed-dim": "#b6c4ff",
+            "outline-variant": "#bfc7d2",
+            "on-secondary": "#ffffff",
+            "tertiary": "#8d4b00",
+            "on-tertiary-container": "#fffbff",
+            "on-secondary-container": "#1d3989",
+            "tertiary-fixed": "#ffdcc3",
+            "secondary-fixed": "#dce1ff",
+            "secondary-container": "#8fa7fe",
+            "inverse-surface": "#1a2238",
+            "on-error-container": "#93000a"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "2xl": "1rem",
+            "3xl": "1.5rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "gutter-dense": "1rem",
+            "space-xs": "0.25rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem",
+            "gutter": "1.5rem",
+            "margin-mobile": "1rem",
+            "space-lg": "1.5rem"
+          },
+          fontFamily: {
+            "label-md": ["Plus Jakarta Sans", "sans-serif"],
+            "label-sm": ["Plus Jakarta Sans", "sans-serif"],
+            "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
+            "headline-md": ["Plus Jakarta Sans", "sans-serif"],
+            "title-md": ["Plus Jakarta Sans", "sans-serif"],
+            "display-hero-mobile": ["Plus Jakarta Sans", "sans-serif"],
+            "body-sm": ["Plus Jakarta Sans", "sans-serif"],
+            "title-sm": ["Plus Jakarta Sans", "sans-serif"],
+            "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
+            "caption": ["Plus Jakarta Sans", "sans-serif"],
+            "body-lg": ["Plus Jakarta Sans", "sans-serif"],
+            "body-md": ["Plus Jakarta Sans", "sans-serif"],
+            "display-hero": ["Plus Jakarta Sans", "sans-serif"],
+            "headline-sm": ["Plus Jakarta Sans", "sans-serif"],
+            "kanji": ["Noto Serif JP", "serif"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-[#fcfbf7] font-body-md text-on-surface antialiased selection:bg-primary-fixed selection:text-primary">
+
+  <!-- 1. HEADER / NAVIGATION -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-[#fcfbf7]/95 backdrop-blur-md border-b border-[#ece8de]">
+    <div class="h-20 max-w-[1240px] mx-auto px-gutter flex items-center justify-between gap-space-md">
+      <!-- Logo + Slogan -->
+      <div class="flex items-center gap-space-lg">
+        <a class="flex items-center gap-2 group" data-path="landing-page" href="#">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyH1oh2xGD0KjGd0aRkiQGXWXqnKQ5NToy63KipMs8Gtmbshq0Z0uomNUCCOqdDYV5lzKWOEulWOmNigDee4j-f9hgytIskYCZCI9vuWeBEMTkxjzwBFbSZhGdJ4DI5cRSJikfVoTtnRCo56DR7IkpgTQmKbw3ZzdtiXucYSEVoEP9qfQQA7Qt6vTER4WAhmBPNCyVQVebt8pyp10BZfJdQCQMTaaATgJBZC667xi_-xr_1LxLfIpR" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-xl tracking-tight text-[#0f2545]">Kizuna<span class="text-primary">Tutor</span></span>
+            </div>
+            <span class="text-[10px] text-on-surface-variant font-medium -mt-0.5 tracking-wider">Kết nối song ngữ Việt – Nhật</span>
+          </div>
+        </a>
+        <!-- Navigation items (Desktop) -->
+        <nav class="hidden lg:flex items-center gap-1">
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="tim-gia-su" href="#kham-pha-gia-su">Tìm gia sư</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="cach-hoat-dong" href="#cach-hoat-dong">Cách hoạt động</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="tro-thanh-gia-su" href="#tro-thanh-gia-su">Trở thành gia sư</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="yeu-cau-da-gui" href="#">Yêu cầu đã gửi</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="cong-cu-hoc" href="#">Công cụ học</a>
+        </nav>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center gap-3">
+        <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-primary hover:bg-primary-fixed/40 transition-colors border border-primary/20" data-path="dashboard" href="#">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Vào Dashboard học tập</span>
+        </a>
+        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary transition-colors" data-path="dang-nhap" href="#">Đăng nhập</a>
+        <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-container transition-all shadow-sm font-semibold flex items-center gap-1.5" data-path="dang-ky" href="#">
+          <span>Đăng ký</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </a>
+        <!-- Mobile Menu Toggle Button -->
+        <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-on-surface-variant hover:bg-[#f2efe6] transition-colors">
+          <span class="material-symbols-outlined text-[24px]">menu</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ece8de] bg-[#fcfbf7] px-6 py-4 space-y-2">
+      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#kham-pha-gia-su">Tìm gia sư</a>
+      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#cach-hoat-dong">Cách hoạt động</a>
+      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#tro-thanh-gia-su">Trở thành gia sư</a>
+      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#">Yêu cầu đã gửi</a>
+      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#">Công cụ học</a>
+      <div class="pt-3 border-t border-[#ece8de]">
+        <a class="flex items-center gap-2 font-semibold text-xs py-2 text-primary" href="#">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Vào Dashboard học tập</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="w-full pt-20 bg-[#fcfbf7] min-h-[calc(100vh-20rem)] overflow-hidden">
+    <div class="flex flex-col w-full">
+
+      <!-- 2. HERO SECTION -->
+      <section class="relative w-full pt-10 pb-12 bg-gradient-to-b from-[#faf6ee] via-[#fcfbf7] to-[#fcfbf7] border-b border-[#ece7dc]/60">
+        <!-- Watermark Kanji (Decorative) -->
+        <div class="absolute right-12 top-6 font-kanji text-[300px] font-bold text-black/[0.02] select-none pointer-events-none leading-none z-0">
+          絆
+        </div>
+
+        <div class="max-w-[1240px] mx-auto px-gutter relative z-10">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            
+            <!-- Hero Left Column -->
+            <div class="lg:col-span-7 space-y-6">
+              <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#f2ecde] border border-[#e2d9c5] shadow-xs">
+                <span class="font-kanji font-bold text-red-700 text-xs">『 絆 』</span>
+                <span class="h-3 w-px bg-[#d5ccb6]"></span>
+                <span class="font-label-sm text-xs text-on-surface-variant font-medium tracking-wide">KizunaTutor • Kết nối song ngữ Việt – Nhật</span>
+              </div>
+              <h1 class="text-3xl md:text-5xl lg:text-[46px] font-bold text-[#0f2545] tracking-tight leading-[1.25]">
+                Tìm đúng gia sư. <br>
+                <span class="relative inline-block text-primary">Học tiếng Nhật
+                  <span class="absolute -bottom-1 left-0 right-0 h-2 bg-primary/15 rounded-full -z-10"></span>
+                </span> theo cách của bạn.
+              </h1>
+              <p class="font-body-lg text-[16px] md:text-[17px] text-on-surface-variant leading-relaxed max-w-xl">
+                Nền tảng kết nối trực tiếp người học tiếng Nhật tại Việt Nam với đội ngũ gia sư tận tâm, giàu chuyên môn JLPT &amp; giao tiếp thực tế.
+              </p>
+              <div class="flex flex-wrap items-center gap-3 pt-1">
+                <a class="px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary-container font-semibold text-sm shadow-md transition-all flex items-center gap-2" href="#kham-pha-gia-su">
+                  <span>Tìm gia sư ngay</span>
+                  <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </a>
+                <a class="px-6 py-3 rounded-xl bg-white hover:bg-[#f5f1e8] text-[#0f2545] font-semibold text-sm border border-[#ded7c5] shadow-xs transition-colors flex items-center gap-2" href="#tro-thanh-gia-su">
+                  <span>Trở thành gia sư</span>
+                </a>
+              </div>
+              <!-- Trust Note -->
+              <div class="pt-2 flex items-start gap-2 text-xs text-on-surface-variant/90">
+                <span class="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">verified_user</span>
+                <p>
+                  <strong class="text-on-surface font-semibold">Minh bạch &amp; linh hoạt:</strong> Kết nối trực tiếp &amp; chủ động thỏa thuận học phí — Không ràng buộc khóa học cố định.
+                </p>
+              </div>
+            </div>
+
+            <!-- Hero Right Column: Featured Tutor Card -->
+            <div class="lg:col-span-5 relative">
+              <!-- Hanko Seal Floating -->
+              <div class="absolute -top-4 -right-3 z-20 w-14 h-14 rounded-full border-2 border-red-700 bg-red-50/90 backdrop-blur-sm flex flex-col items-center justify-center text-red-800 shadow-md rotate-12">
+                <span class="font-kanji font-bold text-xs leading-none">絆</span>
+                <span class="text-[8px] font-bold tracking-tighter uppercase mt-0.5">Kizuna</span>
+              </div>
+              
+              <div class="bg-white rounded-2xl p-6 shadow-xl border border-[#e5decb] relative space-y-4">
+                <!-- Tutor Header -->
+                <div class="flex items-start gap-4">
+                  <div class="relative w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 border border-[#e8e2d4] shrink-0">
+                    <img alt="Sensei Đặng Quỳnh Chi" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEqIi8tBTdi9m5ayOK9Dc6fyaGWNubVrpDvx6h-qVamB0_eesvqzzc9aAHBDOkNUVZsEMWUWIInHkVnHNJtCQajmk8nf8byJHIUToa-pduyNgYhdhnJ1-JAT5ZI6CchOPczVzLaXcj4ty3BJ46O2Z8Iko4eCNeaNk51dH-vQsbu44qG4HxJ0hPPhKVFMWT4Cno1Vei2ETiJzUK81KXUrC0B8J0JcKDTuLEE216pVA">
+                    <span class="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white"></span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <h3 class="font-bold text-base text-[#0f2545]">Sensei Đặng Quỳnh Chi</h3>
+                      <span class="material-symbols-outlined text-sky-600 text-[16px]" title="Đã xác thực danh tính">verified</span>
+                    </div>
+                    <p class="text-xs text-on-surface-variant truncate mt-0.5">Thạc sĩ Ngôn ngữ học • Cựu SV ĐH Ngoại ngữ</p>
+                    <div class="flex items-center gap-1 text-amber-500 mt-1">
+                      <span class="material-symbols-outlined text-[15px] fill-1 text-amber-500">star</span>
+                      <span class="text-xs font-bold text-on-surface">5.0</span>
+                      <span class="text-[11px] text-on-surface-variant">(68 buổi dạy thành công)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Badges / Highlights -->
+                <div class="flex flex-wrap gap-1.5">
+                  <span class="px-2.5 py-1 rounded-md bg-sky-50 text-sky-800 text-[11px] font-semibold border border-sky-200">JLPT N1 (172/180)</span>
+                  <span class="px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 text-[11px] font-semibold border border-amber-200">Kaiwa Thương mại BJT</span>
+                  <span class="px-2.5 py-1 rounded-md bg-rose-50 text-rose-800 text-[11px] font-semibold border border-rose-200">Phát âm Tokyo chuẩn</span>
+                </div>
+
+                <!-- Quick Info Grid -->
+                <div class="p-3 rounded-xl bg-[#faf8f2] border border-[#ece4d3] grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span class="text-on-surface-variant block text-[11px]">Lịch dạy linh hoạt:</span>
+                    <span class="font-semibold text-on-surface">Tối T3, T5 • Cuối tuần</span>
+                  </div>
+                  <div>
+                    <span class="text-on-surface-variant block text-[11px]">Hình thức:</span>
+                    <span class="font-semibold text-on-surface">Online tương tác 1-1</span>
+                  </div>
+                </div>
+
+                <!-- Rate & Status snippet -->
+                <div class="pt-1 flex items-center justify-between border-t border-[#f0ebe0]">
+                  <div>
+                    <span class="text-[11px] text-on-surface-variant">Mức học phí đề xuất</span>
+                    <p class="text-base font-bold text-primary">280.000đ <span class="text-xs font-normal text-on-surface-variant">/ 60p</span></p>
+                  </div>
+                  <div class="text-right">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Đang nhận học viên
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Feedback quote box -->
+                <div class="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-on-surface-variant flex items-start gap-2">
+                  <span class="material-symbols-outlined text-amber-700 text-[16px] shrink-0 mt-0.5">format_quote</span>
+                  <p class="italic text-[11.5px] leading-relaxed">
+                    "Sensei sửa ngữ điệu rất tỉ mỉ, giải thích cặn kẽ cách người Nhật thực tế nói chuyện trong môi trường công sở..."
+                  </p>
+                </div>
+
+                <!-- Trao đổi tự do note -->
+                <div class="text-center">
+                  <span class="text-[11px] text-on-surface-variant font-medium">
+                    ✦ Trao đổi 100% tự do — Nhắn tin trực tiếp trước khi học
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. QUICK FILTER BAR (Bộ lọc khám phá gia sư nhanh) -->
+      <section class="w-full -mt-6 relative z-20 px-gutter">
+        <div class="max-w-[1240px] mx-auto bg-white rounded-2xl p-5 shadow-lg border border-[#e5decb] space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-[#f0ebe0]">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-[20px]">filter_alt</span>
+              <span class="font-bold text-xs md:text-sm text-[#0f2545] tracking-wider">Bộ lọc khám phá gia sư nhanh</span>
+            </div>
+            <span class="text-xs text-on-surface-variant hidden sm:inline">Tìm gia sư theo mục tiêu và trình độ mong muốn</span>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+            <div class="flex flex-col space-y-1">
+              <label class="text-[11px] font-bold tracking-wider text-on-surface-variant flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px] text-primary">school</span> Trình độ JLPT
+              </label>
+              <select class="w-full h-11 px-3 rounded-lg bg-[#faf8f2] text-xs font-semibold text-on-surface border border-[#e2d9c6] focus:outline-none focus:border-primary">
+                <option>Tất cả trình độ N5 - N1</option>
+                <option>Sơ cấp (N5 - N4)</option>
+                <option>Trung cấp (N3)</option>
+                <option>Trung cao cấp (N2)</option>
+                <option>Cao cấp (N1)</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col space-y-1">
+              <label class="text-[11px] font-bold tracking-wider text-on-surface-variant flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px] text-primary">flag</span> Mục tiêu học tập
+              </label>
+              <select class="w-full h-11 px-3 rounded-lg bg-[#faf8f2] text-xs font-semibold text-on-surface border border-[#e2d9c6] focus:outline-none focus:border-primary">
+                <option>Mọi mục tiêu học</option>
+                <option>Phản xạ Kaiwa tự nhiên</option>
+                <option>Luyện thi JLPT cấp tốc</option>
+                <option>Phỏng vấn công ty Nhật / Tenshoku</option>
+                <option>Tiếng Nhật IT / Thương mại</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col space-y-1">
+              <label class="text-[11px] font-bold tracking-wider text-on-surface-variant flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px] text-primary">laptop_chromebook</span> Hình thức học
+              </label>
+              <select class="w-full h-11 px-3 rounded-lg bg-[#faf8f2] text-xs font-semibold text-on-surface border border-[#e2d9c6] focus:outline-none focus:border-primary">
+                <option>Linh hoạt tất cả hình thức</option>
+                <option>Online 1-1 qua Google Meet/Zoom</option>
+                <option>Học trực tiếp tại Hà Nội</option>
+                <option>Học trực tiếp tại TP.HCM</option>
+                <option>Học nhóm nhỏ (2 - 3 người)</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col space-y-1">
+              <label class="text-[11px] font-bold tracking-wider text-on-surface-variant flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px] text-primary">payments</span> Mức học phí tham khảo
+              </label>
+              <select class="w-full h-11 px-3 rounded-lg bg-[#faf8f2] text-xs font-semibold text-on-surface border border-[#e2d9c6] focus:outline-none focus:border-primary">
+                <option>Tất cả các mức học phí</option>
+                <option>Dưới 200.000đ / 60p</option>
+                <option>200.000đ – 300.000đ / 60p</option>
+                <option>Trên 300.000đ / 60p</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#f0ebe0]">
+            <span class="text-xs text-on-surface-variant text-center sm:text-left">
+              Hơn <strong>450+</strong> hồ sơ gia sư đã xác thực bằng cấp JLPT và danh tính cá nhân.
+            </span>
+            <a class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 whitespace-nowrap" href="#kham-pha-gia-su">
+              <span class="material-symbols-outlined text-[16px]">search</span>
+              <span>Tìm kiếm gia sư</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. SECTION 1: ĐỘI NGŨ BẢO CHỨNG - GIA SƯ TIÊU BIỂU -->
+      <section class="w-full py-16 bg-[#fcfbf7]" id="kham-pha-gia-su">
+        <div class="max-w-[1240px] mx-auto px-gutter">
+          <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+            <div>
+              <span class="font-label-sm text-xs font-bold text-primary tracking-widest block mb-1">Đội ngũ bảo chứng</span>
+              <h2 class="text-2xl md:text-3xl font-bold text-[#0f2545]">Gia sư tiêu biểu trên KizunaTutor</h2>
+              <p class="text-sm text-on-surface-variant mt-1 max-w-2xl">
+                Được tuyển chọn kỹ lưỡng qua bài kiểm tra phát âm, văn bằng chứng chỉ và kinh nghiệm giảng dạy thực tế.
+              </p>
+            </div>
+            <a class="inline-flex items-center gap-1 text-sm font-bold text-primary hover:text-primary-container transition-colors shrink-0" data-path="tim-gia-su" href="#">
+              <span>Xem tất cả gia sư</span>
+              <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+            </a>
+          </div>
+
+          <!-- 4 Tutor Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <!-- Card 1 -->
+            <div class="bg-white rounded-2xl p-5 border border-[#e5decb] shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-[#e6dfd1] shrink-0">
+                    <img alt="Nguyễn Minh Huy" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDr_Jkw9zGrJt7LJdT7peD42BBIDhA_Hu3_yyuUySMo7ey4ukIRWNx6f4TUtFyYkX2n3YR-Ca7CL9SGWc4kCWdnd358YgzbG7-aDNfcl_Fl8eoVeg_gkhXzmQflsNp3twPS5WFq15wMq2XG9tNF-w7RMQbgKzJwP8AMAWDwxQx2bESzKdwF_ku35AkWfE1NGHcqczIiRXiGGIPBb7vp0dzFVW35YzSmvfNVHNheIAk">
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1">
+                      <h3 class="font-bold text-sm text-[#0f2545] truncate">Nguyễn Minh Huy</h3>
+                      <span class="material-symbols-outlined text-sky-600 text-[14px]">verified</span>
+                    </div>
+                    <p class="text-[11px] text-on-surface-variant truncate">Cựu du học sinh ĐH Waseda</p>
+                    <div class="flex items-center gap-1 text-amber-500 mt-0.5">
+                      <span class="material-symbols-outlined text-[13px] fill-1 text-amber-500">star</span>
+                      <span class="text-xs font-bold text-on-surface">4.9</span>
+                      <span class="text-[10px] text-on-surface-variant">(42 đánh giá)</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="px-2 py-0.5 rounded bg-sky-50 text-sky-800 text-[10px] font-semibold border border-sky-200">JLPT N1</span>
+                  <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 text-[10px] font-semibold border border-amber-200">Phản xạ Kaiwa</span>
+                </div>
+                <ul class="text-xs text-on-surface-variant space-y-1.5 pt-1">
+                  <li class="flex items-start gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[14px] shrink-0 mt-0.5">check_circle</span>
+                    <span>4 năm sinh sống &amp; làm việc tại Tokyo</span>
+                  </li>
+                  <li class="flex items-start gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[14px] shrink-0 mt-0.5">check_circle</span>
+                    <span>Chuyên luyện nói tự nhiên và phát âm chuẩn</span>
+                  </li>
+                </ul>
+              </div>
+              <div class="pt-3 border-t border-[#f0ebe0] space-y-2">
+                <div class="flex items-baseline justify-between">
+                  <span class="text-[11px] text-on-surface-variant">Học phí:</span>
+                  <span class="font-bold text-sm text-primary">250.000đ <span class="text-[10px] font-normal text-on-surface-variant">/ 60p</span></span>
+                </div>
+                <a class="w-full py-2 rounded-lg bg-[#faf8f2] hover:bg-primary hover:text-white text-[#0f2545] font-semibold text-xs border border-[#ded5c2] transition-colors flex items-center justify-center gap-1" href="#">
+                  <span>Xem hồ sơ chi tiết</span>
+                  <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="bg-white rounded-2xl p-5 border border-[#e5decb] shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-[#e6dfd1] shrink-0">
+                    <img alt="Yamamoto Kenji" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF20Wisw6fRmNxBOgA-8LPd9L1eVmtCSzwFSOD-Gm6LjyPKWDr6-f8JXIuHEJOlw7V60Gc2Txthw-Gs-zsyLFEdv88YVuEzu_eaLJ8PaW3hJwVLGaWrHgUfF4vEOS1CZRVF3NIvjw7aT8l3V94cCjOpWbeVm5Wh8z79HXAIWq7NjOmioBBm436qAwi4A-K3ppPb4f8EGQmN7_UXr2LYe5JF5gDK20iJYqnSXWttwo">
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1">
+                      <h3 class="font-bold text-sm text-[#0f2545] truncate">Yamamoto Kenji</h3>
+                      <span class="material-symbols-outlined text-sky-600 text-[14px]">verified</span>
+                    </div>
+                    <p class="text-[11px] text-on-surface-variant truncate">Gia sư bản xứ Tokyo (Biết TV cơ bản)</p>
+                    <div class="flex items-center gap-1 text-amber-500 mt-0.5">
+                      <span class="material-symbols-outlined text-[13px] fill-1 text-amber-500">star</span>
+                      <span class="text-xs font-bold text-on-surface">5.0</span>
+                      <span class="text-[10px] text-on-surface-variant">(56 đánh giá)</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="px-2 py-0.5 rounded bg-rose-50 text-rose-800 text-[10px] font-semibold border border-rose-200">Bản xứ Tokyo</span>
+                  <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[10px] font-semibold border border-emerald-200">Giao tiếp thương mại</span>
+                </div>
+                <ul class="text-xs text-on-surface-variant space-y-1.5 pt-1">
+                  <li class="flex items-start gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[14px] shrink-0 mt-0.5">check_circle</span>
+                    <span>Chỉnh phát âm &amp; ngữ điệu 1-1 chuyên sâu</span>
+                  </li>
+                  <li class="flex items-start gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[14px] shrink-0 mt-0.5">check_circle</span>
+                    <span>Mô phỏng phỏng vấn xin việc công ty Nhật</span>
+                  </li>
+                </ul>
+              </div>
+              <div class="pt-3 border-t border-[#f0ebe0] space-y-2">
+                <div class="flex items-baseline justify-between">
+                  <span class="text-[11px] text-on-surface-variant">Học phí:</span>
+                  <span class="font-bold text-sm text-primary">300.000đ <span class="text-[10px] font-normal text-on-surface-variant">/ 60p</span></span>
+                </div>
+                <a class="w-full py-2 rounded-lg bg-[#faf8f2] hover:bg-primary hover:text-white text-[#0f2545] font-semibold text-xs border border-[#ded5c2] transition-colors flex items-center justify-center gap-1" href="#">
+                  <span>Xem hồ sơ chi tiết</span>
+                  <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="bg-white rounded-2xl p-5 border border-[#e5decb] shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-[#e6dfd1] shrink-0">
+                    <img alt="Trần Thu Thảo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDj_geZvOmvMPSxVP-FKNSSIPEouk3s-x1DjCzQwUJNmMwPKQytkLzzzeH6GjfJwrqxCwjD0XsJnRb20FWovromvFLvzyIktN3HqubREx1r8BEdFlVrlmXY3Vxz1VGOfZmH8_BF8U_U8Ydf_V4GuKNAaRYOWWZLwcdG17dFogP03eq4JJKnEo2yCwzxVbxL4Xo64eu6L51cUJM5f_chweLO_CxF1CMtjHDdcOtNARo">
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1">
+                      <h3 class="font-bold text-sm text-[#0f2545] truncate">Trần Thu Thảo</h3>
+                      <span class="material-symbols-outlined text-sky-600 text-[14px]">verified</span>
+                    </div>
+                    <p class="text-[11px] text-on-surface-variant truncate">Cựu Giảng viên ĐH Hà Nội</p>
+                    <div class="flex items-center gap-1 text-amber-500 mt-0.5">
+                      <span class="material-symbols-outlined text-[13px] fill-1 text-amber-500">star</span>
+                      <span class="text-xs font-bold text-on-surface">4.9</span>
+                      <span class="text-[10px] text-on-surface-variant">(89 đánh giá)</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="px-2 py-0.5 rounded bg-sky-50 text-sky-800 text-[10px] font-semibold border border-sky-200">JLPT N1</span>
+                  <span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-800 text-[10px] font-semibold border border-indigo-200">Luyện thi N2-N1</span>
+                </div>
+                <ul class="text-xs text-on-surface-variant space-y-1.5 pt-1">
+                  <li class="flex items-start gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[14px] shrink-0 mt-0.5">check_circle</span>
+                    <span>Phương pháp đọc hiểu Dokkai tốc độ cao</span>
+                  </li>
+                  <li class="flex items-start gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[14px] shrink-0 mt-0.5">check_circle</span>
+                    <span>Tỉ lệ đỗ JLPT của học viên đạt trên 92%</span>
+                  </li>
+                </ul>
+              </div>
+              <div class="pt-3 border-t border-[#f0ebe0] space-y-2">
+                <div class="flex items-baseline justify-between">
+                  <span class="text-[11px] text-on-surface-variant">Học phí:</span>
+                  <span class="font-bold text-sm text-primary">290.000đ <span class="text-[10px] font-normal text-on-surface-variant">/ 60p</span></span>
+                </div>
+                <a class="w-full py-2 rounded-lg bg-[#faf8f2] hover:bg-primary hover:text-white text-[#0f2545] font-semibold text-xs border border-[#ded5c2] transition-colors flex items-center justify-center gap-1" href="#">
+                  <span>Xem hồ sơ chi tiết</span>
+                  <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="bg-white rounded-2xl p-5 border border-[#e5decb] shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-[#e6dfd1] shrink-0">
+                    <img alt="Lê Hoàng Long" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCozsjdu_RPb_TBT_5JThRfJDc7xDYeGNPm0QA1PJzxA9dIpGjUkiOs3gwUsBwj5N-PGcZAlXwnYsjdgDElENhAJ-n-CPt40p4ppLjn-ZvPVh0piCAesW6_CAdWrkJ2bzhYex2_FqRTzzT_Syk2jkw2C2qQQUraTcYENiGlbeoa2Asl2SwWhUcUSeiStKHSXtXZQ4LPJyqzepplb3ktGVDtNbXH6BJL9zlxvGVZW_Y">
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1">
+                      <h3 class="font-bold text-sm text-[#0f2545] truncate">Lê Hoàng Long</h3>
+                      <span class="material-symbols-outlined text-sky-600 text-[14px]">verified</span>
+                    </div>
+                    <p class="text-[11px] text-on-surface-variant truncate">Kỹ sư cầu nối BrSE • JLPT N1</p>
+                    <div class="flex items-center gap-1 text-amber-500 mt-0.5">
+                      <span class="material-symbols-outlined text-[13px] fill-1 text-amber-500">star</span>
+                      <span class="text-xs font-bold text-on-surface">4.8</span>
+                      <span class="text-[10px] text-on-surface-variant">(34 đánh giá)</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="px-2 py-0.5 rounded bg-sky-50 text-sky-800 text-[10px] font-semibold border border-sky-200">Tiếng Nhật IT</span>
+                  <span class="px-2 py-0.5 rounded bg-teal-50 text-teal-800 text-[10px] font-semibold border border-teal-200">Mail Thương mại</span>
+                </div>
+                <ul class="text-xs text-on-surface-variant space-y-1.5 pt-1">
+                  <li class="flex items-start gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[14px] shrink-0 mt-0.5">check_circle</span>
+                    <span>Thực chiến họp dự án &amp; viết tài liệu kỹ thuật</span>
+                  </li>
+                  <li class="flex items-start gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[14px] shrink-0 mt-0.5">check_circle</span>
+                    <span>Định hướng nghề nghiệp IT Comtor / BrSE</span>
+                  </li>
+                </ul>
+              </div>
+              <div class="pt-3 border-t border-[#f0ebe0] space-y-2">
+                <div class="flex items-baseline justify-between">
+                  <span class="text-[11px] text-on-surface-variant">Học phí:</span>
+                  <span class="font-bold text-sm text-primary">220.000đ <span class="text-[10px] font-normal text-on-surface-variant">/ 60p</span></span>
+                </div>
+                <a class="w-full py-2 rounded-lg bg-[#faf8f2] hover:bg-primary hover:text-white text-[#0f2545] font-semibold text-xs border border-[#ded5c2] transition-colors flex items-center justify-center gap-1" href="#">
+                  <span>Xem hồ sơ chi tiết</span>
+                  <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. SECTION 2: QUY TRÌNH TINH GIẢN - CÁCH KIZUNATUTOR HOẠT ĐỘNG -->
+      <section class="w-full py-16 bg-[#f7f4ec] border-y border-[#ece4d0]" id="cach-hoat-dong">
+        <div class="max-w-[1240px] mx-auto px-gutter">
+          <div class="text-center max-w-2xl mx-auto mb-12">
+            <span class="font-label-sm text-xs font-bold text-primary tracking-widest block mb-1">Quy trình tinh giản</span>
+            <h2 class="text-2xl md:text-3xl font-bold text-[#0f2545]">Cách KizunaTutor hoạt động</h2>
+            <p class="text-sm md:text-base text-on-surface-variant mt-2 leading-relaxed">
+              Không trung gian rườm rà. Bạn nắm quyền chủ động từ bước tìm kiếm đến buổi học đầu tiên.
+            </p>
+          </div>
+
+          <!-- 3 Step Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <!-- Step 1 -->
+            <div class="bg-white rounded-2xl p-6 border border-[#e5decb] shadow-sm relative space-y-3">
+              <span class="font-kanji font-bold text-3xl text-primary/20 absolute top-5 right-6 select-none">01</span>
+              <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[22px]">search</span>
+              </div>
+              <h3 class="font-bold text-base text-[#0f2545]">Tìm kiếm &amp; Lọc gia sư phù hợp</h3>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                Duyệt hồ sơ minh bạch với đầy đủ video phát âm mẫu, chứng chỉ JLPT, kinh nghiệm giảng dạy và mức học phí rõ ràng.
+              </p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="bg-white rounded-2xl p-6 border border-[#e5decb] shadow-sm relative space-y-3">
+              <span class="font-kanji font-bold text-3xl text-primary/20 absolute top-5 right-6 select-none">02</span>
+              <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[22px]">forum</span>
+              </div>
+              <h3 class="font-bold text-base text-[#0f2545]">Gửi yêu cầu &amp; Trao đổi trực tiếp</h3>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                Nhắn tin trực tiếp cùng gia sư để chia sẻ mục tiêu, test trình độ và thống nhất tài liệu học phù hợp trước khi quyết định.
+              </p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="bg-white rounded-2xl p-6 border border-[#e5decb] shadow-sm relative space-y-3">
+              <span class="font-kanji font-bold text-3xl text-primary/20 absolute top-5 right-6 select-none">03</span>
+              <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[22px]">handshake</span>
+              </div>
+              <h3 class="font-bold text-base text-[#0f2545]">Thống nhất lịch học &amp; Đồng hành</h3>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                Bắt đầu buổi học 1-1 với sự chủ động tối đa về lịch trình. Thanh toán minh bạch theo từng buổi học hoặc gói linh hoạt.
+              </p>
+            </div>
+          </div>
+
+          <!-- 3 Trust Badges Below Steps -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-[#e2d8c3]">
+            <div class="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-white/70 border border-[#e8dfcb] text-xs text-[#0f2545]">
+              <span class="material-symbols-outlined text-emerald-600 text-[20px]">verified</span>
+              <span class="font-semibold">100% Xác thực chứng chỉ JLPT</span>
+            </div>
+            <div class="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-white/70 border border-[#e8dfcb] text-xs text-[#0f2545]">
+              <span class="material-symbols-outlined text-primary text-[20px]">currency_exchange</span>
+              <span class="font-semibold">Chủ động thỏa thuận học phí</span>
+            </div>
+            <div class="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-white/70 border border-[#e8dfcb] text-xs text-[#0f2545]">
+              <span class="material-symbols-outlined text-amber-600 text-[20px]">support_agent</span>
+              <span class="font-semibold">Hỗ trợ kết nối &amp; Đổi gia sư linh hoạt</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. SECTION 3: DUAL CTA SECTION (Dành cho Người học & Dành cho Gia sư) -->
+      <section class="w-full py-16 bg-[#fcfbf7]" id="tro-thanh-gia-su">
+        <div class="max-w-[1240px] mx-auto px-gutter">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Left Card: Dành cho Người học -->
+            <div class="bg-gradient-to-br from-[#faf6ee] to-white rounded-3xl p-8 border border-[#e2d9c4] shadow-md flex flex-col justify-between space-y-6">
+              <div class="space-y-4">
+                <span class="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold text-xs tracking-wider inline-block">
+                  Dành cho người học
+                </span>
+                <h3 class="text-2xl font-bold text-[#0f2545]">
+                  Bạn muốn bứt phá tiếng Nhật?
+                </h3>
+                <p class="text-sm text-on-surface-variant leading-relaxed">
+                  Đừng để nỗi sợ ngữ pháp hay phát âm cản bước bạn. Hãy chọn người thầy đồng điệu để tự tin giao tiếp và chinh phục JLPT.
+                </p>
+                <ul class="space-y-2.5 text-xs text-on-surface pt-1">
+                  <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
+                    <span>Miễn phí 100% phí kết nối và tìm kiếm gia sư</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
+                    <span>Được trò chuyện và phỏng vấn gia sư trước buổi học</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
+                    <span>Lịch học linh hoạt, đổi gia sư nếu không thấy hòa hợp</span>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <a class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary-container font-semibold text-sm shadow-sm transition-all" href="#kham-pha-gia-su">
+                  <span>Bắt đầu tìm gia sư</span>
+                  <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Right Card: Dành cho Gia sư -->
+            <div class="bg-gradient-to-br from-[#0f2545] to-[#18355c] rounded-3xl p-8 text-white shadow-xl flex flex-col justify-between space-y-6">
+              <div class="space-y-4">
+                <span class="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 font-bold text-xs tracking-wider inline-block border border-amber-300/30">
+                  Dành cho gia sư
+                </span>
+                <h3 class="text-2xl font-bold text-white">
+                  Bạn có chuyên môn và muốn chia sẻ tri thức?
+                </h3>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                  Gia nhập mạng lưới gia sư tiếng Nhật uy tín hàng đầu, tự do đặt mức học phí xứng đáng và chủ động quản lý lịch dạy.
+                </p>
+                <ul class="space-y-2.5 text-xs text-slate-200 pt-1">
+                  <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-400 text-[18px]">check_circle</span>
+                    <span>Nhận 100% học phí đã thỏa thuận cùng học viên</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-400 text-[18px]">check_circle</span>
+                    <span>Tự do xây dựng giáo án và phong cách giảng dạy cá nhân</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-400 text-[18px]">check_circle</span>
+                    <span>Tiếp cận hàng nghìn học viên có nhu cầu học thật thực tế</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-400 text-[18px]">check_circle</span>
+                    <span>Quy trình duyệt hồ sơ nhanh gọn trong 24 – 48 giờ</span>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <a class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-[#0f2545] font-bold text-sm shadow-md transition-all" href="#">
+                  <span>Đăng ký làm gia sư</span>
+                  <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 7. FOOTER -->
+  <footer class="w-full bg-[#131d2e] text-[#e3e8f3] pt-16 pb-10 border-t border-[#1f2d45]">
+    <div class="max-w-[1240px] mx-auto px-gutter">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        
+        <!-- Col 1: Brand & Philosophy -->
+        <div class="space-y-4">
+          <div class="flex items-center gap-2">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyH1oh2xGD0KjGd0aRkiQGXWXqnKQ5NToy63KipMs8Gtmbshq0Z0uomNUCCOqdDYV5lzKWOEulWOmNigDee4j-f9hgytIskYCZCI9vuWeBEMTkxjzwBFbSZhGdJ4DI5cRSJikfVoTtnRCo56DR7IkpgTQmKbw3ZzdtiXucYSEVoEP9qfQQA7Qt6vTER4WAhmBPNCyVQVebt8pyp10BZfJdQCQMTaaATgJBZC667xi_-xr_1LxLfIpR" alt="Kizuna Logo" class="h-8 w-8 object-contain rounded-full shadow">
+            <span class="font-bold text-xl tracking-tight text-white">Kizuna<span class="text-sky-400">Tutor</span></span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Nền tảng kết nối tri thức và sự tận tâm giữa gia sư tiếng Nhật chuyên môn cao và người học Việt Nam trên toàn quốc theo triết lý gắn kết bền vững (Kizuna).
+          </p>
+          <div class="flex items-center gap-2 text-slate-400 text-xs">
+            <span class="material-symbols-outlined text-[18px] text-amber-400">verified</span>
+            <span>Bảo chứng hồ sơ &amp; Năng lực sư phạm chuẩn JLPT</span>
+          </div>
+        </div>
+
+        <!-- Col 2: Dành cho Học viên -->
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho học viên</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" data-path="tim-gia-su" href="#kham-pha-gia-su">Tìm gia sư theo trình độ (N5 - N1)</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="gia-su-ban-xu" href="#kham-pha-gia-su">Gia sư bản xứ Tokyo luyện Kaiwa</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="chuyen-de" href="#chuyen-de">Khóa chuyên đề &amp; Phỏng vấn IT</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="chinh-sach-hoc-thu" href="#">Chính sách buổi gặp mặt học thử 0đ</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="yeu-cau-da-gui" href="#">Tra cứu yêu cầu đã gửi</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Dành cho Gia sư -->
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho gia sư</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" data-path="tro-thanh-gia-su" href="#tro-thanh-gia-su">Đăng ký ứng tuyển gia sư mới</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="tutor-dashboard" href="#">Không gian quản lý giảng dạy</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="quy-chuan-giang-day" href="#">Bộ quy chuẩn xác thực chứng chỉ</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="goi-thanh-vien" href="#">Chính sách không cắt phế buổi học</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="cong-dong-senpai" href="#">Cộng đồng Senpai Kizuna</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 4: Hỗ trợ & Pháp lý -->
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Hỗ trợ &amp; pháp lý</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" data-path="dieu-khoan-dich-vu" href="#">Điều khoản sử dụng dịch vụ</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="chinh-sach-bao-mat" href="#">Chính sách bảo mật thông tin</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="giai-quyet-khieu-nai" href="#">Quy trình giải quyết khiếu nại</a></li>
+            <li><a class="hover:text-white transition-colors" data-path="trung-tam-tro-giup" href="#">Trung tâm trợ giúp 24/7 (Hotline / Zalo)</a></li>
+            <li><span class="inline-block mt-2 px-2.5 py-1 rounded bg-slate-800 text-[11px] text-slate-300">Hotline: 1900 6886 (8:00 - 22:00)</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Copyright strip -->
+      <div class="pt-6 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <div>
+          <span>© 2024 KizunaTutor. Tất cả quyền được bảo lưu. Giữ trọn tinh thần kết nối Nhật - Việt 『絆』.</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="flex items-center gap-1">
+            <span class="material-symbols-outlined text-[15px]">lock</span>
+            Bảo mật SSL 256-bit
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="material-symbols-outlined text-[15px]">translate</span>
+            Hỗ trợ Song ngữ Tiếng Việt • 日本語
+          </span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/config/api.config.js"></script>
+  <script>
+    // Responsive Mobile Menu Handler
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (mobileMenuBtn && mobileMenu) {
+      mobileMenuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+      });
+    }
+  </script>
+</body>
+</html>

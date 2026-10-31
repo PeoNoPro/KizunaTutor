@@ -90,7 +90,24 @@ public class AuthDataSeeder implements CommandLineRunner {
             });
         }
 
-        // 4. Tự động loại bỏ toàn bộ các tài khoản thừa không dùng, bảo toàn duy nhất 6 Actor mẫu
+        // 4. Tự động liên kết Learning Space (Ghép lớp Gia sư - Học viên)
+        Tutor tutor = (tutorUser != null) ? tutorRepository.findByUser_UserId(tutorUser.getUserId()).orElse(null) : null;
+        Learner learner = (learnerUser != null) ? learnerRepository.findByUser_UserId(learnerUser.getUserId()).orElse(null) : null;
+        if (tutor != null && learner != null) {
+            learningSpaceRepository.findActiveSpacesByLearnerEmail(learnerUser.getEmail()).stream().findFirst().orElseGet(() -> {
+                LearningSpace space = LearningSpace.builder()
+                        .tutor(tutor)
+                        .learner(learner)
+                        .title("Lớp Kèm Tiếng Nhật & Shodo 1:1 (Sensei Yamada)")
+                        .status(LearningSpaceStatus.ACTIVE)
+                        .build();
+                LearningSpace savedSpace = learningSpaceRepository.save(space);
+                log.info("Đã tạo liên kết Learning Space thành công giữa Gia sư [{}] và Học viên [{}]", tutorUser.getFullName(), learnerUser.getFullName());
+                return savedSpace;
+            });
+        }
+
+        // 5. Tự động loại bỏ toàn bộ các tài khoản thừa không dùng, bảo toàn duy nhất 6 Actor mẫu
         userRepository.deleteNonCoreUsers();
 
         log.info("--- AuthDataSeeder hoàn tất thành công: Duy trì 6 Actor chuẩn ---");

@@ -1,46 +1,39 @@
 /**
  * ====================================================================================================
  * KIZUNA TUTOR - QUẢN LÝ USER & PHÂN QUYỀN VAI TRÒ ADMIN (userManagement.js)
- * ====================================================================================================
- * Xử lý:
- * 1. Tải danh sách người dùng với phân trang, tìm kiếm Debounce 300ms và bộ lọc Role / Status.
- * 2. Cập nhật động 4 thẻ KPI thống kê trên đầu trang.
- * 3. Khởi tạo tài khoản nhân sự nội bộ (Manager, Academic, CS, Tutor, Learner, Admin).
- * 4. Chỉnh sửa thông tin và thay đổi vai trò (Role Switch).
- * 5. Bật / Tắt trạng thái khóa tài khoản và Xóa mềm (Soft Delete).
- * 6. Thông báo Toast thời gian thực và xử lý Optimistic UI không reload trang.
+ * Chuẩn Retro-Brutalist Hard-Shadow Design System
  * ====================================================================================================
  */
 
 const ROLE_CONFIGS = {
     ROLE_ADMIN: {
-        label: 'Quản Trị Viên',
-        badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+        label: 'Quản trị viên',
+        badgeClass: 'bg-[#FFE4E6] text-rose-900 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A]',
         dotClass: 'bg-rose-600'
     },
     ROLE_MANAGER: {
-        label: 'Quản Lý Vận Hành',
-        badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
+        label: 'Quản lý vận hành',
+        badgeClass: 'bg-[#F3E8FF] text-purple-900 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A]',
         dotClass: 'bg-purple-600'
     },
     ROLE_ACADEMIC_OFFICER: {
-        label: 'Cán Bộ Học Vụ',
-        badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        label: 'Cán bộ học vụ',
+        badgeClass: 'bg-[#E0E7FF] text-indigo-900 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A]',
         dotClass: 'bg-indigo-600'
     },
     ROLE_CS_STAFF: {
-        label: 'Chăm Sóc Khách Hàng',
-        badgeClass: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+        label: 'Chăm sóc khách hàng',
+        badgeClass: 'bg-[#CFFAFE] text-cyan-900 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A]',
         dotClass: 'bg-cyan-600'
     },
     ROLE_TUTOR: {
-        label: 'Gia Sư Kizuna',
-        badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
+        label: 'Gia sư Kizuna',
+        badgeClass: 'bg-[#FEF3C7] text-amber-900 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A]',
         dotClass: 'bg-amber-600'
     },
     ROLE_LEARNER: {
-        label: 'Học Viên',
-        badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        label: 'Học viên',
+        badgeClass: 'bg-[#DCFCE7] text-emerald-900 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A]',
         dotClass: 'bg-emerald-600'
     }
 };
@@ -182,35 +175,35 @@ function renderUserRows(users) {
 
     users.forEach(user => {
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-50/70 border-b border-slate-100 transition-colors text-xs text-slate-700';
+        tr.className = 'hover:bg-amber-50/40 border-b border-black text-xs text-slate-800 transition-colors';
 
         const roleConfig = ROLE_CONFIGS[user.role] || {
             label: user.roleBadge || user.role,
-            badgeClass: 'bg-slate-50 text-slate-700 border-slate-200',
-            dotClass: 'bg-slate-500'
+            badgeClass: 'bg-slate-100 text-slate-800 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A]',
+            dotClass: 'bg-slate-600'
         };
 
         const isSelfBadge = user.isSelf ? `
-            <span class="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold rounded bg-slate-900 text-white">Bạn</span>
+            <span class="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold rounded-[5px] bg-slate-900 text-white border border-black shadow-[1px_1px_0px_0px_#0F172A]">Bạn</span>
         ` : '';
 
         // Trạng thái hoạt động
         let statusHtml = '';
         if (user.isDeleted) {
-            statusHtml = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Đã xóa mềm
+            statusHtml = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[5px] text-[11px] font-bold bg-slate-100 text-slate-700 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A]">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> Đã xóa mềm
             </span>`;
         } else if (user.status === 'ACTIVE') {
-            statusHtml = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Đang hoạt động
+            statusHtml = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#DCFCE7] text-emerald-900 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A]">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Đang hoạt động
             </span>`;
         } else {
-            statusHtml = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> ${user.statusBadge || 'Tạm khóa'}
+            statusHtml = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#FFE4E6] text-rose-900 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A]">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-600"></span> ${escapeHtml(user.statusBadge || 'Tạm khóa')}
             </span>`;
         }
 
-        // Action buttons
+        // Nút thao tác
         const isSelf = user.isSelf;
         const lockActionLabel = (user.status === 'ACTIVE') ? 'Khóa' : 'Mở khóa';
         const lockActionIcon = (user.status === 'ACTIVE') ? '🔒' : '🔓';
@@ -219,8 +212,8 @@ function renderUserRows(users) {
         tr.innerHTML = `
             <!-- Cột 1: Người dùng (Avatar, Tên, Email) -->
             <td class="py-3 px-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-xs shadow-xs shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-xs border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A] shrink-0">
                         ${escapeHtml(user.avatarText || 'KZ')}
                     </div>
                     <div class="min-w-0">
@@ -228,7 +221,7 @@ function renderUserRows(users) {
                             <span class="truncate">${escapeHtml(user.fullName)}</span>
                             ${isSelfBadge}
                         </div>
-                        <div class="text-[11px] text-slate-500 truncate mt-0.5">
+                        <div class="text-[11px] text-slate-500 truncate mt-0.5 font-mono">
                             ${escapeHtml(user.email)}
                         </div>
                     </div>
@@ -236,13 +229,13 @@ function renderUserRows(users) {
             </td>
 
             <!-- Cột 2: Số điện thoại -->
-            <td class="py-3 px-4 font-mono text-slate-600">
+            <td class="py-3 px-4 font-mono text-slate-700">
                 ${escapeHtml(user.phone || '-')}
             </td>
 
-            <!-- Cột 3: Vai trò (Role Badge) -->
+            <!-- Cột 3: Vai trò -->
             <td class="py-3 px-4">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${roleConfig.badgeClass}">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-[11px] font-bold ${roleConfig.badgeClass}">
                     <span class="w-1.5 h-1.5 rounded-full ${roleConfig.dotClass}"></span>
                     <span>${escapeHtml(roleConfig.label)}</span>
                 </span>
@@ -254,18 +247,18 @@ function renderUserRows(users) {
             </td>
 
             <!-- Cột 5: Ngày tạo -->
-            <td class="py-3 px-4 font-mono text-slate-500 text-[11px]">
+            <td class="py-3 px-4 font-mono text-slate-600 text-[11px]">
                 ${escapeHtml(user.createdAt)}
             </td>
 
-            <!-- Cột 6: Hành động -->
+            <!-- Cột 6: Thao tác -->
             <td class="py-3 px-4 text-right">
                 <div class="inline-flex items-center gap-1.5">
-                    <!-- Nút Gửi lại thông tin tài khoản (Cấp mật khẩu tạm mới) -->
+                    <!-- Nút Gửi lại thông tin tài khoản -->
                     <button type="button"
                             onclick="confirmResendCredentials('${user.id}', '${escapeHtml(user.fullName)}', '${escapeHtml(user.email)}')"
                             ${isSelf ? 'disabled' : ''}
-                            class="p-1.5 rounded-md hover:bg-amber-50 text-slate-600 hover:text-amber-600 border border-slate-200 hover:border-amber-300 transition-all ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}"
+                            class="p-1.5 rounded-[5px] bg-white hover:bg-[#FEF3C7] text-slate-800 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A] transition-all active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}"
                             title="${isSelf ? 'Không thể cấp lại cho chính mình' : 'Cấp lại mật khẩu tạm và gửi email'}">
                         ✉️
                     </button>
@@ -273,7 +266,7 @@ function renderUserRows(users) {
                     <!-- Nút Sửa / Đổi quyền -->
                     <button type="button"
                             onclick="openEditUserModal('${user.id}')"
-                            class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 transition-all"
+                            class="p-1.5 rounded-[5px] bg-white hover:bg-slate-100 text-slate-800 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A] transition-all active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none"
                             title="Chỉnh sửa thông tin & đổi vai trò">
                         ✏️
                     </button>
@@ -282,7 +275,7 @@ function renderUserRows(users) {
                     <button type="button"
                             onclick="confirmToggleStatus('${user.id}', '${escapeHtml(user.fullName)}', '${nextStatus}')"
                             ${isSelf ? 'disabled' : ''}
-                            class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 transition-all ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}"
+                            class="p-1.5 rounded-[5px] bg-white hover:bg-slate-100 text-slate-800 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A] transition-all active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}"
                             title="${isSelf ? 'Không thể tự khóa tài khoản của chính mình' : lockActionLabel}">
                         ${lockActionIcon}
                     </button>
@@ -291,7 +284,7 @@ function renderUserRows(users) {
                     <button type="button"
                             onclick="confirmDeleteUser('${user.id}', '${escapeHtml(user.fullName)}')"
                             ${isSelf ? 'disabled' : ''}
-                            class="p-1.5 rounded-md hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-200 transition-all ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}"
+                            class="p-1.5 rounded-[5px] bg-white hover:bg-[#FFE4E6] text-slate-800 border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A] transition-all active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}"
                             title="${isSelf ? 'Không thể tự xóa tài khoản của chính mình' : 'Xóa tài khoản'}">
                         🗑️
                     </button>
@@ -340,7 +333,7 @@ function renderPagination(currentPage, totalPages, totalElements) {
     const prevBtn = document.createElement('button');
     prevBtn.type = 'button';
     prevBtn.disabled = currentPage === 0;
-    prevBtn.className = `px-2.5 py-1.5 rounded-lg border text-xs font-semibold ${currentPage === 0 ? 'opacity-40 cursor-not-allowed text-slate-400 border-slate-200' : 'text-slate-700 border-slate-200 hover:bg-slate-100'}`;
+    prevBtn.className = `px-2.5 py-1 rounded-[5px] border border-black text-xs font-semibold shadow-[1.5px_1.5px_0px_0px_#0F172A] transition-all ${currentPage === 0 ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400' : 'bg-white hover:bg-slate-100 text-slate-800 active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none'}`;
     prevBtn.innerHTML = '← Trước';
     prevBtn.onclick = () => { if (adminUserState.page > 0) { adminUserState.page--; loadUsers(); } };
     container.appendChild(prevBtn);
@@ -356,7 +349,7 @@ function renderPagination(currentPage, totalPages, totalElements) {
     for (let p = startPage; p <= endPage; p++) {
         const pageBtn = document.createElement('button');
         pageBtn.type = 'button';
-        pageBtn.className = `w-8 h-8 rounded-lg text-xs font-bold transition-all ${p === currentPage ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 border border-slate-200 hover:bg-slate-100'}`;
+        pageBtn.className = `w-7 h-7 rounded-[5px] border border-black text-xs font-bold shadow-[1.5px_1.5px_0px_0px_#0F172A] transition-all ${p === currentPage ? 'bg-black text-white' : 'bg-white hover:bg-slate-100 text-slate-800 active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none'}`;
         pageBtn.textContent = p + 1;
         pageBtn.onclick = () => { adminUserState.page = p; loadUsers(); };
         container.appendChild(pageBtn);
@@ -366,7 +359,7 @@ function renderPagination(currentPage, totalPages, totalElements) {
     const nextBtn = document.createElement('button');
     nextBtn.type = 'button';
     nextBtn.disabled = currentPage >= totalPages - 1;
-    nextBtn.className = `px-2.5 py-1.5 rounded-lg border text-xs font-semibold ${currentPage >= totalPages - 1 ? 'opacity-40 cursor-not-allowed text-slate-400 border-slate-200' : 'text-slate-700 border-slate-200 hover:bg-slate-100'}`;
+    nextBtn.className = `px-2.5 py-1 rounded-[5px] border border-black text-xs font-semibold shadow-[1.5px_1.5px_0px_0px_#0F172A] transition-all ${currentPage >= totalPages - 1 ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400' : 'bg-white hover:bg-slate-100 text-slate-800 active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none'}`;
     nextBtn.innerHTML = 'Sau →';
     nextBtn.onclick = () => { if (adminUserState.page < totalPages - 1) { adminUserState.page++; loadUsers(); } };
     container.appendChild(nextBtn);
@@ -395,11 +388,9 @@ function initModals() {
                 return;
             }
 
-            // Hiển thị trạng thái loading: Đang tạo tài khoản và gửi email...
-            setBtnLoading(submitBtn, true, 'Đang tạo tài khoản và gửi email...');
+            setBtnLoading(submitBtn, true, 'Đang tạo tài khoản...');
 
             try {
-                // Gọi API POST /api/admin/users/create-staff
                 const response = await fetch('/api/admin/users/create-staff', {
                     method: 'POST',
                     headers: {
@@ -415,8 +406,7 @@ function initModals() {
                     throw new Error(data.message || 'Không thể khởi tạo tài khoản.');
                 }
 
-                // Toast thông báo: ✅ Đã tạo tài khoản thành công! Thông tin đăng nhập đã được gửi tới [email].
-                showAdminToast(`✅ Đã tạo tài khoản thành công! Thông tin đăng nhập đã được gửi tới ${email}.`, 'success');
+                showAdminToast(`Đã tạo tài khoản thành công! Thông tin đăng nhập đã được gửi tới ${email}.`, 'success');
                 closeCreateUserModal();
                 createForm.reset();
                 loadUsers();
@@ -424,7 +414,7 @@ function initModals() {
             } catch (err) {
                 showAdminToast(err.message, 'error');
             } finally {
-                setBtnLoading(submitBtn, false, 'Lưu Tài Khoản Nhân Viên');
+                setBtnLoading(submitBtn, false, 'Lưu tài khoản nhân viên');
             }
         });
     }
@@ -468,7 +458,7 @@ function initModals() {
             } catch (err) {
                 showAdminToast(err.message, 'error');
             } finally {
-                setBtnLoading(submitBtn, false, 'Lưu Thay Đổi');
+                setBtnLoading(submitBtn, false, 'Lưu thay đổi');
             }
         });
     }
@@ -496,7 +486,7 @@ function closeCreateUserModal() {
 }
 
 /**
- * Sinh mật khẩu mạnh ngẫu nhiên dài 10-12 ký tự gồm chữ hoa, thường, số và ký tự đặc biệt (@/!/#)
+ * Sinh mật khẩu ngẫu nhiên
  */
 function generateRandomPassword() {
     const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -505,7 +495,6 @@ function generateRandomPassword() {
     const specials = '@!#$';
     const all = uppercase + lowercase + numbers + specials;
 
-    // Đảm bảo đủ ít nhất mỗi loại 1 ký tự
     let passChars = [
         uppercase.charAt(Math.floor(Math.random() * uppercase.length)),
         lowercase.charAt(Math.floor(Math.random() * lowercase.length)),
@@ -513,13 +502,11 @@ function generateRandomPassword() {
         specials.charAt(Math.floor(Math.random() * specials.length))
     ];
 
-    // Chiều dài mục tiêu ngẫu nhiên từ 10 đến 12 ký tự
-    const targetLength = 10 + Math.floor(Math.random() * 3); // 10, 11 hoặc 12
+    const targetLength = 10 + Math.floor(Math.random() * 3);
     while (passChars.length < targetLength) {
         passChars.push(all.charAt(Math.floor(Math.random() * all.length)));
     }
 
-    // Trộn ngẫu nhiên (Fisher-Yates shuffle)
     for (let i = passChars.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [passChars[i], passChars[j]] = [passChars[j], passChars[i]];
@@ -555,7 +542,6 @@ async function openEditUserModal(userId) {
         document.getElementById('editRole').value = user.role || 'ROLE_LEARNER';
         document.getElementById('editStatus').value = user.status || 'ACTIVE';
 
-        // Cảnh báo nếu đang sửa tài khoản của chính mình
         const selfAlert = document.getElementById('editSelfWarning');
         const roleSelect = document.getElementById('editRole');
         const statusSelect = document.getElementById('editStatus');
@@ -601,12 +587,12 @@ function confirmToggleStatus(userId, fullName, nextStatus) {
     const descEl = document.getElementById('confirmActionDesc');
     const confirmBtn = document.getElementById('btnConfirmExecuteAction');
 
-    const actionText = nextStatus === 'ACTIVE' ? 'Mở Khóa' : 'Khóa';
-    if (titleEl) titleEl.textContent = `Xác nhận ${actionText} Tài Khoản?`;
-    if (descEl) descEl.textContent = `Bạn có chắc chắn muốn ${actionText.toLowerCase()} tài khoản của "${fullName}"? ${nextStatus === 'ACTIVE' ? 'Người dùng sẽ có thể đăng nhập bình thường.' : 'Người dùng sẽ bị chặn đăng nhập và hủy phiên làm việc.'}`;
+    const actionText = nextStatus === 'ACTIVE' ? 'Mở khóa' : 'Khóa';
+    if (titleEl) titleEl.textContent = `Xác nhận ${actionText} tài khoản?`;
+    if (descEl) descEl.textContent = `Bạn có chắc chắn muốn ${actionText.toLowerCase()} tài khoản của "${fullName}"? ${nextStatus === 'ACTIVE' ? 'Người dùng sẽ có thể đăng nhập bình thường.' : 'Người dùng sẽ bị chặn đăng nhập và hủy phiên làm việc hiện tại.'}`;
 
     if (confirmBtn) {
-        confirmBtn.className = `px-4 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-xs ${nextStatus === 'ACTIVE' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`;
+        confirmBtn.className = `px-3.5 py-1.5 rounded-[5px] text-xs font-bold text-slate-900 border border-black shadow-[2px_2px_0px_0px_#0F172A] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${nextStatus === 'ACTIVE' ? 'bg-[#DCFCE7] hover:bg-[#BBF7D0]' : 'bg-[#FFE4E6] hover:bg-[#FECDD3]'}`;
         confirmBtn.textContent = actionText;
         confirmBtn.onclick = executeToggleStatus;
     }
@@ -640,7 +626,7 @@ async function executeToggleStatus() {
             throw new Error(data.message || 'Cập nhật trạng thái thất bại.');
         }
 
-        showAdminToast(`Đã ${status === 'ACTIVE' ? 'mở khóa' : 'khóa'} tài khoản thành công!`, 'success');
+        showAdminToast(`Đã ${status === 'ACTIVE' ? 'mở khóa' : 'tạm khóa'} tài khoản thành công!`, 'success');
         closeConfirmModal();
         loadUsers();
 
@@ -652,7 +638,61 @@ async function executeToggleStatus() {
 }
 
 /**
- * 10. Hộp thoại xác nhận Xóa mềm (Soft Delete)
+ * 10. Hộp thoại xác nhận Cấp lại mật khẩu tạm thời
+ */
+function confirmResendCredentials(userId, fullName, email) {
+    adminUserState.pendingActionUserId = userId;
+
+    const modal = document.getElementById('confirmActionModal');
+    const titleEl = document.getElementById('confirmActionTitle');
+    const descEl = document.getElementById('confirmActionDesc');
+    const confirmBtn = document.getElementById('btnConfirmExecuteAction');
+
+    if (titleEl) titleEl.textContent = 'Cấp lại thông tin đăng nhập?';
+    if (descEl) descEl.textContent = `Hệ thống sẽ tạo mật khẩu ngẫu nhiên mới và gửi thông tin đăng nhập trực tiếp đến hộp thư "${email}" của người dùng "${fullName}".`;
+
+    if (confirmBtn) {
+        confirmBtn.className = 'px-3.5 py-1.5 rounded-[5px] text-xs font-bold text-slate-900 bg-[#FEF3C7] hover:bg-[#FDE68A] border border-black shadow-[2px_2px_0px_0px_#0F172A] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none';
+        confirmBtn.textContent = 'Gửi mật khẩu mới';
+        confirmBtn.onclick = executeResendCredentials;
+    }
+
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+
+async function executeResendCredentials() {
+    const userId = adminUserState.pendingActionUserId;
+    const confirmBtn = document.getElementById('btnConfirmExecuteAction');
+
+    setBtnLoading(confirmBtn, true, 'Đang gửi email...');
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}/resend-credentials`, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Không thể cấp lại thông tin đăng nhập.');
+        }
+
+        showAdminToast('Đã cấp mật khẩu mới và gửi email thành công!', 'success');
+        closeConfirmModal();
+
+    } catch (err) {
+        showAdminToast(err.message, 'error');
+    } finally {
+        setBtnLoading(confirmBtn, false, 'Gửi mật khẩu mới');
+    }
+}
+
+/**
+ * 11. Hộp thoại xác nhận Xóa mềm
  */
 function confirmDeleteUser(userId, fullName) {
     adminUserState.pendingActionUserId = userId;
@@ -662,12 +702,12 @@ function confirmDeleteUser(userId, fullName) {
     const descEl = document.getElementById('confirmActionDesc');
     const confirmBtn = document.getElementById('btnConfirmExecuteAction');
 
-    if (titleEl) titleEl.textContent = 'Xác nhận Xóa Tài Khoản?';
-    if (descEl) descEl.textContent = `Hệ thống sẽ thực hiện XÓA MỀM (Soft Delete) tài khoản "${fullName}". Lịch sử bài nộp và dữ liệu liên quan sẽ được bảo toàn nhưng tài khoản không thể đăng nhập.`;
+    if (titleEl) titleEl.textContent = 'Xác nhận xóa tài khoản?';
+    if (descEl) descEl.textContent = `Hệ thống sẽ thực hiện xóa mềm (vô hiệu hóa) tài khoản "${fullName}". Lịch sử bài nộp và dữ liệu liên quan sẽ được bảo toàn nhưng tài khoản không thể đăng nhập.`;
 
     if (confirmBtn) {
-        confirmBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all shadow-xs';
-        confirmBtn.textContent = 'Xóa Tài Khoản';
+        confirmBtn.className = 'px-3.5 py-1.5 rounded-[5px] text-xs font-bold text-slate-900 bg-[#FFE4E6] hover:bg-[#FECDD3] border border-black shadow-[2px_2px_0px_0px_#0F172A] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none';
+        confirmBtn.textContent = 'Xóa tài khoản';
         confirmBtn.onclick = executeDeleteUser;
     }
 
@@ -717,22 +757,21 @@ function closeConfirmModal() {
 }
 
 /**
- * Toast thông báo
+ * Toast thông báo chuẩn Retro-Brutalist
  */
 function showAdminToast(message, type) {
     let toast = document.getElementById('adminToast');
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'adminToast';
-        toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl text-xs font-bold flex items-center gap-2 transition-all transform duration-300 opacity-0 translate-y-2';
         document.body.appendChild(toast);
     }
 
     if (type === 'success') {
-        toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl text-xs font-bold flex items-center gap-2 transition-all transform duration-300 bg-slate-900 text-white border border-slate-700 opacity-100 translate-y-0';
+        toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-3 rounded-[5px] text-xs font-bold flex items-center gap-2 border border-black shadow-[3px_3px_0px_0px_#0F172A] bg-[#DCFCE7] text-emerald-950 transition-all transform duration-300 opacity-100 translate-y-0';
         toast.innerHTML = `<span>✅</span> <span>${message}</span>`;
     } else {
-        toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl text-xs font-bold flex items-center gap-2 transition-all transform duration-300 bg-rose-600 text-white shadow-rose-600/30 opacity-100 translate-y-0';
+        toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-3 rounded-[5px] text-xs font-bold flex items-center gap-2 border border-black shadow-[3px_3px_0px_0px_#0F172A] bg-[#FFE4E6] text-rose-950 transition-all transform duration-300 opacity-100 translate-y-0';
         toast.innerHTML = `<span>⚠️</span> <span>${message}</span>`;
     }
 
@@ -745,7 +784,7 @@ function setBtnLoading(btn, isLoading, defaultText) {
     if (!btn) return;
     if (isLoading) {
         btn.disabled = true;
-        btn.innerHTML = `<span class="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1"></span> <span>${defaultText}</span>`;
+        btn.innerHTML = `<span class="inline-block w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin mr-1"></span> <span>${defaultText}</span>`;
     } else {
         btn.disabled = false;
         btn.innerHTML = `<span>${defaultText}</span>`;
@@ -760,33 +799,4 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
-}
-
-/**
- * 10. Xác nhận và gửi lại thông tin tài khoản (cấp lại mật khẩu tạm thời mới)
- */
-async function confirmResendCredentials(userId, userName, userEmail) {
-    if (!confirm(`Bạn có chắc muốn cấp lại Mật Khẩu Tạm Thời mới và gửi email thông tin đăng nhập đến:\n\n• Họ tên: ${userName}\n• Email: ${userEmail}\n\nNgười dùng sẽ nhận được email và bắt buộc đổi mật khẩu mới trong lần đăng nhập tới.`)) {
-        return;
-    }
-
-    try {
-        showAdminToast(`Đang cấp lại mật khẩu và gửi email tới ${userEmail}...`, 'info');
-        const response = await fetch(`/api/admin/users/${userId}/resend-credentials`, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.message || 'Không thể gửi lại thông tin tài khoản.');
-        }
-
-        showAdminToast(`✅ Đã cấp lại mật khẩu tạm và gửi email thành công tới ${userEmail}!`, 'success');
-        loadUsers();
-    } catch (err) {
-        showAdminToast(err.message, 'error');
-    }
 }

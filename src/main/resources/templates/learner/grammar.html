@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Cẩm Nang Ngữ Pháp JLPT & AI Sensei Đặt Câu - KizunaTutor</title>
+    
+    <!-- Design System & Tokens -->
+    <link rel="stylesheet" th:href="@{/css/design-tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/design-system.css}">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@600;700&family=Inter:wght@400;500;600;700;800&family=Itim&family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Serif+JP:wght@600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Global Scripts -->
+    <script th:src="@{/js/globalAuth.js}"></script>
+    <script th:src="@{/js/common/kizunaToast.js}"></script>
+    <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#F8FAFC] text-black font-body antialiased min-h-screen flex flex-col">
+
+    <div class="flex-1 flex overflow-hidden">
+        <!-- 1. SIDEBAR HỌC VIÊN CỐ ĐỊNH BÊN TRÁI -->
+        <div th:replace="~{learner/layout/sidebar :: sidebar}"></div>
+
+        <!-- 2. VÙNG NỘI DUNG CUỘN ĐỘC LẬP (MAIN WORKSPACE) -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            <!-- HEADER BREADCRUMB -->
+            <header class="h-14 bg-white border-b border-[#CBD5E1] px-4 sm:px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
+                <div class="flex items-center gap-2 text-xs font-meta text-slate-500">
+                    <a th:href="@{/learner/dashboard}" class="hover:text-black transition">Bàn Học Tập</a>
+                    <span>/</span>
+                    <span class="text-slate-700 font-bold">Học Tập &amp; Luyện Tập</span>
+                    <span>/</span>
+                    <span class="text-[#E0399A] font-bold">Cẩm Nang Ngữ Pháp &amp; AI Sensei</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a th:href="@{/learner/flashcards}" 
+                       class="btn-retro text-xs py-1.5 px-3 bg-white hover:bg-slate-50 text-black border border-black rounded-[5px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center gap-1.5 transition no-underline">
+                        <span>📁</span>
+                        <span>Mở Bộ Thẻ Cá Nhân</span>
+                    </a>
+                </div>
+            </header>
+
+            <!-- NỘI DUNG CHÍNH -->
+            <main class="p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-4">
+                
+                <!-- SLIM HERO BANNER RETRO -->
+                <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <h1 class="font-itim text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                📖 Cẩm Nang Ngữ Pháp JLPT &amp; Kizuna AI Sensei Đặt Câu 🤖
+                            </h1>
+                        </div>
+                        <p class="font-sans text-xs text-slate-600 mt-1 truncate">
+                            Tra cứu 526 mẫu câu chuẩn N5-N1 từ OpenJLPT, phân tích công thức chia thể và nhờ AI Sensei đặt câu theo ngữ cảnh thực tế! 🍱
+                        </p>
+                    </div>
+
+                    <!-- Ô TÌM KIẾM NHANH MẪU CÂU -->
+                    <div class="w-full sm:w-72 shrink-0">
+                        <input type="text"
+                               id="searchGrammarInput"
+                               placeholder="🔍 Tìm mẫu câu, romaji, ý nghĩa..."
+                               class="w-full px-3 py-1.5 text-xs rounded-[5px] border border-black text-black font-body outline-none focus:ring-1 focus:ring-black shadow-[1.5px_1.5px_0px_0px_#0F172A]">
+                    </div>
+                </div>
+
+                <!-- DẢI NÚT CHỌN CẤP ĐỘ JLPT (N5 -> N1 TABS) -->
+                <div class="bg-white border border-black rounded-[5px] p-2.5 shadow-[3px_3px_0px_0px_#0F172A]">
+                    <div class="text-[11px] font-bold text-slate-500 font-meta mb-1.5 tracking-wider flex items-center justify-between">
+                        <span>Cấp độ ngữ pháp JLPT:</span>
+                        <span class="text-[10px] text-pink-600 font-normal">Tự động tích hợp Gemini AI Studio</span>
+                    </div>
+                    <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                        <button type="button" 
+                                onclick="selectLevel('N5')" 
+                                id="tabBtn_N5"
+                                class="grammar-level-tab px-3.5 py-1.5 rounded-[5px] border border-black font-itim text-xs font-bold transition flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#0F172A] active:translate-y-0.5 cursor-pointer bg-[#E0399A] text-white">
+                            <span>🌱 Cấp Độ N5</span>
+                            <span class="text-[10px] opacity-80" id="countBadge_N5">(81)</span>
+                        </button>
+                        <button type="button" 
+                                onclick="selectLevel('N4')" 
+                                id="tabBtn_N4"
+                                class="grammar-level-tab px-3.5 py-1.5 rounded-[5px] border border-black font-itim text-xs font-bold transition flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#0F172A] active:translate-y-0.5 cursor-pointer bg-white text-black hover:bg-slate-50">
+                            <span>🌿 Cấp Độ N4</span>
+                            <span class="text-[10px] opacity-80" id="countBadge_N4">(98)</span>
+                        </button>
+                        <button type="button" 
+                                onclick="selectLevel('N3')" 
+                                id="tabBtn_N3"
+                                class="grammar-level-tab px-3.5 py-1.5 rounded-[5px] border border-black font-itim text-xs font-bold transition flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#0F172A] active:translate-y-0.5 cursor-pointer bg-white text-black hover:bg-slate-50">
+                            <span>🎋 Cấp Độ N3</span>
+                            <span class="text-[10px] opacity-80" id="countBadge_N3">(101)</span>
+                        </button>
+                        <button type="button" 
+                                onclick="selectLevel('N2')" 
+                                id="tabBtn_N2"
+                                class="grammar-level-tab px-3.5 py-1.5 rounded-[5px] border border-black font-itim text-xs font-bold transition flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#0F172A] active:translate-y-0.5 cursor-pointer bg-white text-black hover:bg-slate-50">
+                            <span>🌸 Cấp Độ N2</span>
+                            <span class="text-[10px] opacity-80" id="countBadge_N2">(123)</span>
+                        </button>
+                        <button type="button" 
+                                onclick="selectLevel('N1')" 
+                                id="tabBtn_N1"
+                                class="grammar-level-tab px-3.5 py-1.5 rounded-[5px] border border-black font-itim text-xs font-bold transition flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#0F172A] active:translate-y-0.5 cursor-pointer bg-white text-black hover:bg-slate-50">
+                            <span>⛩️ Cấp Độ N1</span>
+                            <span class="text-[10px] opacity-80" id="countBadge_N1">(123)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- LƯỚI THẺ NGỮ PHÁP (GRAMMAR GRID) -->
+                <div id="grammarGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+                    <!-- Danh sách nạp động từ grammarHandbook.js -->
+                </div>
+
+                <!-- EMPTY STATE KHI TÌM KHÔNG THẤY -->
+                <div id="grammarEmptyState" class="hidden p-8 text-center rounded-[5px] border-2 border-dashed border-black bg-white shadow-[3px_3px_0px_0px_#0F172A]">
+                    <div class="text-3xl mb-2">🍃</div>
+                    <h3 class="font-itim text-base font-bold text-black">Không tìm thấy mẫu câu phù hợp!</h3>
+                    <p class="text-xs text-slate-500 font-body mt-1">Hãy thử tìm bằng từ khóa khác hoặc chuyển sang cấp độ khác bạn nhé.</p>
+                </div>
+
+                <!-- THANH ĐIỀU HƯỚNG PHÂN TRANG -->
+                <div id="grammarPaginationBar" class="hidden flex items-center justify-between bg-white border border-black rounded-[5px] p-2.5 shadow-[2px_2px_0px_0px_#0F172A]">
+                    <button type="button" 
+                            id="grammarPrevBtn"
+                            onclick="prevGrammarPage()"
+                            class="btn-retro text-xs py-1 px-3 bg-white hover:bg-slate-50 text-black border border-black rounded-[4px] shadow-[1.5px_1.5px_0px_0px_#000] font-itim disabled:opacity-40 disabled:cursor-not-allowed">
+                        ⬅️ Trang Trước
+                    </button>
+                    <span id="grammarPageInfo" class="text-xs font-meta font-bold text-black">Trang 1 / 1</span>
+                    <button type="button" 
+                            id="grammarNextBtn"
+                            onclick="nextGrammarPage()"
+                            class="btn-retro text-xs py-1 px-3 bg-white hover:bg-slate-50 text-black border border-black rounded-[4px] shadow-[1.5px_1.5px_0px_0px_#000] font-itim disabled:opacity-40 disabled:cursor-not-allowed">
+                        Trang Sau ➡️
+                    </button>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL 1: KIZUNA AI SENSEI ĐẶT CÂU THEO NGỮ CẢNH -->
+    <div id="modalAiSentence" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card-nhai bg-white rounded-[5px] max-w-lg w-full p-5 shadow-[6px_6px_0px_0px_#0F172A] border-2 border-black space-y-4 text-xs font-body max-h-[90vh] flex flex-col">
+            <!-- Header Modal -->
+            <div class="flex items-center justify-between pb-2 border-b border-black shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🤖</span>
+                    <div>
+                        <h3 class="font-itim text-base font-bold text-black" id="aiModalPatternTitle">AI Sensei Đặt Câu</h3>
+                        <p class="text-[11px] text-slate-500 font-meta" id="aiModalPatternDesc">...</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAiSentenceModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm leading-none">✕</button>
+            </div>
+
+            <div class="space-y-3 overflow-y-auto flex-1 pr-1">
+                <!-- Chọn Ngữ Cảnh Nhanh -->
+                <div>
+                    <label class="block font-bold text-black font-meta mb-1.5 text-[11px]">
+                        1. Chọn ngữ cảnh đời sống thực tế:
+                    </label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        <button type="button" 
+                                onclick="generateAiSentenceWithContext('Trong quán ăn / Nhà hàng')" 
+                                class="btn-retro text-[11px] py-1.5 px-2 bg-amber-50 hover:bg-amber-100 text-black rounded-[4px] border border-black shadow-[1.5px_1.5px_0px_0px_#000] font-itim text-center">
+                            🍱 Quán ăn
+                        </button>
+                        <button type="button" 
+                                onclick="generateAiSentenceWithContext('Nơi công sở / Văn phòng')" 
+                                class="btn-retro text-[11px] py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-black rounded-[4px] border border-black shadow-[1.5px_1.5px_0px_0px_#000] font-itim text-center">
+                            💼 Công sở
+                        </button>
+                        <button type="button" 
+                                onclick="generateAiSentenceWithContext('Hỏi đường / Ga tàu điện')" 
+                                class="btn-retro text-[11px] py-1.5 px-2 bg-sky-50 hover:bg-sky-100 text-black rounded-[4px] border border-black shadow-[1.5px_1.5px_0px_0px_#000] font-itim text-center">
+                            🚆 Ga tàu
+                        </button>
+                        <button type="button" 
+                                onclick="generateAiSentenceWithContext('Mua sắm siêu thị / Kombini')" 
+                                class="btn-retro text-[11px] py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-black rounded-[4px] border border-black shadow-[1.5px_1.5px_0px_0px_#000] font-itim text-center">
+                            🛍️ Mua sắm
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hoặc tự nhập ngữ cảnh tùy chỉnh -->
+                <div>
+                    <label class="block font-bold text-black font-meta mb-1 text-[11px]">
+                        2. Hoặc nhập hoàn cảnh giao tiếp tùy ý:
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text"
+                               id="aiCustomContextInput"
+                               placeholder="Ví dụ: Xin nghỉ ốm, Đi phỏng vấn, Hẹn hò..."
+                               class="flex-1 px-2.5 py-1.5 rounded-[5px] border border-black text-black text-xs outline-none shadow-[1.5px_1.5px_0px_0px_#0F172A]">
+                        <button type="button" 
+                                onclick="generateAiSentenceWithContext()"
+                                class="btn-retro px-3 py-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000] font-itim font-bold transition active:scale-95 shrink-0">
+                            ⚡ Tạo Câu
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cấu hình Khóa AI Tùy Chọn -->
+                <div class="border-t border-black/10 pt-1.5">
+                    <details class="text-[11px] text-slate-500 font-meta cursor-pointer">
+                        <summary class="hover:text-black font-semibold select-none flex items-center gap-1">
+                            <span>🔑 Khóa Gemini API cá nhân (Tùy chọn kết nối AI trực tiếp)</span>
+                        </summary>
+                        <div class="mt-2 flex gap-2">
+                            <input type="password"
+                                   id="aiCustomApiKeyInput"
+                                   placeholder="Dán mã khóa AIzaSy... (nếu có)"
+                                   class="flex-1 px-2.5 py-1 text-[11px] rounded-[4px] border border-black text-black outline-none bg-slate-50 shadow-[1px_1px_0px_0px_#0F172A]">
+                            <button type="button"
+                                    onclick="saveCustomApiKey()"
+                                    class="px-2.5 py-1 text-[11px] bg-white hover:bg-slate-100 text-black border border-black rounded-[4px] font-itim font-bold shadow-[1px_1px_0px_0px_#000]">
+                                Lưu Khóa
+                            </button>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Loading State khi gọi AI -->
+                <div id="aiSentenceLoadingBox" class="hidden p-6 text-center text-slate-500 font-meta text-xs animate-pulse bg-slate-50 border border-black/10 rounded-[5px]">
+                    🌸 Kizuna AI Sensei đang tư duy và tạo câu văn theo ngữ cảnh...
+                </div>
+
+                <!-- Khối Hiển Thị Kết Quả Đặt Câu Của AI -->
+                <div id="aiSentenceResultBox" class="hidden bg-[#FAF9F6] border-2 border-black rounded-[5px] p-3.5 shadow-[3px_3px_0px_0px_#0F172A] space-y-2.5">
+                    <div class="flex items-center justify-between pb-1.5 border-b border-black/10">
+                        <span class="badge-nhai bg-purple-100 text-purple-900 border border-black text-[10px] font-bold" id="aiResContextLabel">
+                            Ngữ cảnh: Quán ăn
+                        </span>
+                        <button type="button" 
+                                id="aiResSpeakBtn"
+                                class="w-7 h-7 rounded-[4px] border border-black bg-white hover:bg-slate-100 flex items-center justify-center text-xs shadow-[1px_1px_0px_0px_#000]"
+                                title="Nghe phát âm chuẩn giọng Nhật">
+                            🔊
+                        </button>
+                    </div>
+
+                    <!-- Câu tiếng Nhật có Furigana -->
+                    <div class="text-base sm:text-lg font-serif text-black leading-relaxed" id="aiResJapaneseHtml">
+                        ...
+                    </div>
+
+                    <!-- Nghĩa tiếng Việt -->
+                    <div class="text-xs font-bold text-[#14532D] font-body" id="aiResVietnamese">
+                        ...
+                    </div>
+
+                    <!-- Mẹo ngữ cảnh sắc thái của Sensei -->
+                    <div class="bg-white border border-black/10 rounded-[4px] p-2 text-[11px] text-slate-600 font-body leading-relaxed">
+                        <span class="font-bold text-amber-900">💡 Lời khuyên Sensei: </span>
+                        <span id="aiResNuanceNote">...</span>
+                    </div>
+
+                    <!-- Nút hành động nhanh: Luyện viết chữ Hán có trong câu -->
+                    <div class="pt-1.5 border-t border-black/10 flex flex-wrap items-center gap-1.5" id="aiResKanjiActions">
+                        <!-- Danh sách nút chữ Kanji -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CẤT NGỮ PHÁP VÀO BỘ THẺ FLASHCARD -->
+    <div id="modalAddGrammarToDeck" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="card-nhai bg-white rounded-[5px] max-w-sm w-full p-5 shadow-[6px_6px_0px_0px_#0F172A] border-2 border-black space-y-3.5 text-xs font-body">
+            <!-- Header Modal -->
+            <div class="flex items-center justify-between pb-2 border-b border-black">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">📁</span>
+                    <h3 class="font-itim text-base font-bold text-black">Cất Ngữ Pháp Vào Bộ Thẻ</h3>
+                </div>
+                <button type="button" onclick="closeAddGrammarToDeckModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm leading-none">✕</button>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-black/15 rounded-[4px] p-2.5">
+                <div class="text-base font-bold font-serif text-black" id="modalGrammarPatternWord">...</div>
+                <div class="text-xs font-bold text-[#14532D] mt-0.5" id="modalGrammarMeaning">...</div>
+                <div class="text-[10px] text-slate-500 font-mono mt-1" id="modalGrammarFormation">...</div>
+            </div>
+
+            <form onsubmit="submitAddGrammarToDeck(event)" class="space-y-3">
+                <div>
+                    <label class="block font-bold text-black font-meta mb-1 text-[11px]">
+                        1. Chọn bộ thẻ có sẵn:
+                    </label>
+                    <select id="saveGrammarDeckSelect"
+                            class="w-full px-2.5 py-1.5 rounded-[5px] border border-black text-black text-xs outline-none bg-white font-body shadow-[1.5px_1.5px_0px_0px_#0F172A]">
+                    </select>
+                </div>
+
+                <div class="text-center text-[10px] text-slate-400 font-meta font-bold">--- hoặc ---</div>
+
+                <div>
+                    <label class="block font-bold text-black font-meta mb-1 text-[11px]">
+                        2. Nhập tên tạo bộ thẻ mới:
+                    </label>
+                    <input type="text"
+                           id="newGrammarDeckNameInput"
+                           placeholder="Ví dụ: Ngữ pháp N5 quan trọng..."
+                           class="w-full px-2.5 py-1.5 rounded-[5px] border border-black text-black text-xs font-body outline-none shadow-[1.5px_1.5px_0px_0px_#0F172A]">
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-black/10">
+                    <button type="button" 
+                            onclick="closeAddGrammarToDeckModal()"
+                            class="px-3 py-1.5 rounded-[5px] bg-white border border-black text-black hover:bg-slate-100 font-bold font-itim text-xs shadow-[2px_2px_0px_0px_#0F172A] transition">
+                        Hủy
+                    </button>
+                    <button type="submit" 
+                            id="btnSubmitAddGrammarToDeck"
+                            class="px-3.5 py-1.5 rounded-[5px] bg-[#15803D] hover:bg-[#166534] text-white border border-black font-bold font-itim text-xs shadow-[2px_2px_0px_0px_#0F172A] transition active:scale-95 flex items-center gap-1 cursor-pointer">
+                        <span>💾</span>
+                        <span>Lưu Ngay</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script tương tác chính -->
+    <script th:src="@{/js/learner/grammarHandbook.js}"></script>
+</body>
+</html>

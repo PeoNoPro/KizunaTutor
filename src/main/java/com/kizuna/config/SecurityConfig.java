@@ -46,7 +46,7 @@ public class SecurityConfig {
                     "/css/**", "/js/**", "/images/**", "/static/**", "/webjars/**",
                     "/api/auth/**", "/api/v1/auth/**", "/api/public/**", "/api/test/**",
                     "/api/kanji/**", "/api/ai/**", "/api/user/**",
-                    "/api/learner/decks/**", "/api/learner/flashcard-decks/**", "/api/learner/kanji/**",
+                    "/api/learner/grammar", "/api/learner/grammar/**", "/api/learner/topics", "/api/learner/topics/**", "/api/learner/decks/**", "/api/learner/flashcard-decks/**", "/api/learner/kanji/**",
                     "/error"
                 ).permitAll()
 

@@ -221,4 +221,22 @@ public class LearnerController {
         model.addAttribute("isGuest", false);
         return "learner/kana-quiz";
     }
+
+    /**
+     * Màn hình 8: Góc Hỗ Trợ Học Tập - Học Từ Vựng Theo Chủ Đề (Topic-based Learning Support)
+     */
+    /**
+     * Màn hình 9: Cẩm Nang Ngữ Pháp JLPT & AI Sensei Đặt Câu Ngữ Cảnh
+     */
+    @GetMapping({"/grammar", "/grammar-handbook"})
+    public String learnerGrammar(Model model) {
+        populateLearnerShell(model, "grammar", "Cẩm Nang Ngữ Pháp & AI Sensei", "Học Tập & Luyện Tập");
+        return "learner/grammar";
+    }
+
+    @GetMapping({"/learning-support", "/topics"})
+    public String learnerLearningSupport(Model model) {
+        populateLearnerShell(model, "learning-support", "Góc Hỗ Trợ Học Tập · Từ Vựng Đời Sống", "Học Tập & Luyện Tập");
+        return "learner/learning-support";
+    }
 }

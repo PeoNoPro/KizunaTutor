@@ -263,10 +263,10 @@
 
             if (selectedGroups.has(key)) {
                 btn.innerHTML = `<span>✓</span> <span>${config.label}</span>`;
-                btn.className = "btn-primary px-2 py-0.5 text-xs font-bold text-white bg-[#E0399A] hover:bg-[#D02B89] border border-[#0F172A] rounded-md shadow-[1px_1px_0px_0px_#0F172A] transition-all flex items-center gap-1";
+                btn.className = "px-2.5 py-1 text-xs font-bold text-white bg-[#E0399A] hover:bg-[#D02B89] border border-[#0F172A] rounded-[5px] shadow-[1px_1px_0px_0px_#0F172A] transition-all flex items-center gap-1 cursor-pointer";
             } else {
                 btn.innerHTML = `<span>${config.label}</span>`;
-                btn.className = "btn-secondary px-2 py-0.5 text-xs font-semibold text-[#475569] bg-white border border-[#CBD5E1] rounded-md hover:bg-slate-50 transition-all flex items-center gap-1 shadow-sm";
+                btn.className = "px-2.5 py-1 text-xs font-bold text-[#0F172A] bg-white border border-[#0F172A] rounded-[5px] hover:bg-slate-50 transition-all flex items-center gap-1 shadow-[1px_1px_0px_0px_#0F172A] cursor-pointer";
             }
         }
     }
@@ -471,14 +471,14 @@
                     html += `
                         <button type="button" 
                                 onclick="toggleChar('${it.id}')"
-                                class="btn-nhai px-2 py-0.5 text-xs font-bold font-['Segoe_UI'] rounded-[4px] border border-[#0F172A] transition-all ${
+                                class="px-2 py-0.5 text-xs font-bold font-['Segoe_UI'] rounded-[4px] border border-[#0F172A] transition-all cursor-pointer ${
                                     isChecked 
                                         ? 'bg-[#E0399A] text-white shadow-[1px_1px_0px_0px_#0F172A]' 
-                                        : 'bg-white text-[#334155] hover:bg-slate-100 shadow-[1px_1px_0px_0px_#0F172A]'
+                                        : 'bg-white text-[#0F172A] hover:bg-slate-100 shadow-[1px_1px_0px_0px_#0F172A]'
                                 }"
                                 title="Romaji: ${it.romaji}">
                             <span class="text-xs sm:text-sm font-bold ${isChecked ? 'text-white' : 'text-[#0F172A]'}">${it.character}</span>
-                            <span class="text-[10px] opacity-75 font-mono ml-0.5">${it.romaji}</span>
+                            <span class="text-[10px] font-mono ml-0.5 ${isChecked ? 'text-white' : 'text-slate-600'}">${it.romaji}</span>
                         </button>
                     `;
                 });

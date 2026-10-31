@@ -46,13 +46,13 @@
                         <div class="flex items-center gap-2 shrink-0">
                             <button type="button" 
                                     onclick="openHwSearchModal()" 
-                                    class="btn-nhai px-2.5 py-1 rounded-[5px] bg-white border border-black text-xs font-semibold shadow-[2px_2px_0px_0px_#000000] hover:bg-slate-50 transition active:scale-[0.98]"
+                                    class="px-2.5 py-1 rounded-[5px] bg-white border border-black text-[#0F172A] text-xs font-bold shadow-[2px_2px_0px_0px_#000000] hover:bg-slate-50 transition active:scale-[0.98] cursor-pointer flex items-center gap-1"
                                     title="Dùng chuột vẽ từng nét để tìm chữ Hán tức thì bằng AI OHR">
-                                <span>🖌️</span> Vẽ Chuột Tìm Chữ
+                                <span>🖌️</span> <span>Vẽ Chuột Tìm Chữ</span>
                             </button>
                             <a th:href="@{/learner/dictionary}" 
-                               class="btn-nhai px-3 py-1 rounded-[5px] bg-[#E0399A] text-white border border-black text-xs font-semibold shadow-[2px_2px_0px_0px_#000000] transition active:scale-[0.98]">
-                                ← Về Từ Điển
+                               class="px-3 py-1 rounded-[5px] bg-[#E0399A] hover:bg-[#D02B89] text-white border border-black text-xs font-bold shadow-[2px_2px_0px_0px_#000000] transition active:scale-[0.98] no-underline flex items-center gap-1">
+                                <span>←</span> <span>Về Từ Điển</span>
                             </a>
                         </div>
                     </div>
@@ -200,7 +200,7 @@
                                 </div>
                                 <div class="pt-1.5 border-t border-[#E2E8F0]">
                                     <button type="button" onclick="saveActiveKanjiToDeck()" 
-                                            class="w-full inline-flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-[5px] bg-white border border-black text-[#0F172A] hover:bg-slate-50 text-xs font-medium shadow-[1px_1px_0px_0px_#000000] transition active:scale-[0.98]">
+                                            class="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-[5px] bg-[#15803D] hover:bg-[#166534] border border-black text-white text-xs font-bold shadow-[2px_2px_0px_0px_#0F172A] transition active:scale-[0.98] cursor-pointer">
                                         <span>📁</span><span>Cất Chữ Vào Bộ Thẻ Cá Nhân</span>
                                     </button>
                                 </div>

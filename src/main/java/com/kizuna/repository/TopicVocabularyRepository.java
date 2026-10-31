@@ -20,9 +20,20 @@ public interface TopicVocabularyRepository extends JpaRepository<TopicVocabulary
            "AND (:keyword IS NULL OR LOWER(v.word) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(v.meaningVn) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(v.romaji) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "OR LOWER(v.hanViet) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+           "OR LOWER(v.hanViet) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(v.furigana) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<TopicVocabulary> findByTopicIdWithSearch(
             @Param("topicId") UUID topicId,
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
+    @Query("SELECT v FROM TopicVocabulary v WHERE " +
+           "(:keyword IS NULL OR LOWER(v.word) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(v.meaningVn) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(v.romaji) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(v.hanViet) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(v.furigana) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<TopicVocabulary> findAllWithSearch(
             @Param("keyword") String keyword,
             Pageable pageable);
 

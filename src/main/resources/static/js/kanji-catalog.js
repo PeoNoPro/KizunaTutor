@@ -199,18 +199,11 @@ function updatePageHeaderForTab(tab) {
 
 // 2. Chọn cấp độ học JLPT (ALL, N5, N4, N3, N2, N1)
 function onSelectJlptLevel(level) {
-    libCurrentLevel = level;
+    libCurrentLevel = level || 'ALL';
 
-    // Cập nhật giao diện nút cấp độ active
-    const btnGroup = document.getElementById('libLevelFilterGroup');
-    if (btnGroup) {
-        btnGroup.querySelectorAll('.level-filter-btn').forEach(btn => {
-            if (btn.getAttribute('data-level') === level) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
+    const select = document.getElementById('libJlptSelect');
+    if (select && select.value !== libCurrentLevel) {
+        select.value = libCurrentLevel;
     }
 
     libCurrentPage = 0;
@@ -249,16 +242,8 @@ function onResetLibFilters() {
     const inputStrokes = document.getElementById('libFilterStrokes');
     if (inputStrokes) inputStrokes.value = '';
 
-    const btnGroup = document.getElementById('libLevelFilterGroup');
-    if (btnGroup) {
-        btnGroup.querySelectorAll('.level-filter-btn').forEach(btn => {
-            if (btn.getAttribute('data-level') === 'ALL') {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-    }
+    const select = document.getElementById('libJlptSelect');
+    if (select) select.value = 'ALL';
 
     loadKanjiCatalog(0);
 }

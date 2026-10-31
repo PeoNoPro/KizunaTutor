@@ -17,4 +17,6 @@ public interface IGrammarService {
     GrammarRuleDto getGrammarDetail(String id);
 
     AiGenerateSentenceResponse generateAiSentence(AiGenerateSentenceRequest request);
+
+    java.io.File exportGrammarExcel();
 }

@@ -207,36 +207,19 @@
                            placeholder="Nhập chữ Hán (ví dụ: 日, 本), âm Hán Việt (NHẬT), hoặc nghĩa tiếng Việt..."
                            class="input-nhai flex-1 px-3 py-2 rounded-[5px] border border-black text-black font-body text-xs">
                 </div>
-                <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="text-xs font-bold text-black font-meta flex items-center gap-1 shrink-0 mr-1">
+                <div class="flex items-center gap-2">
+                    <label for="modalJlptSelectKeyword" class="text-xs font-bold text-black font-meta flex items-center gap-1 shrink-0">
                         <span>⛩️</span> Cấp độ JLPT:
-                    </span>
-                    <div class="flex items-center gap-1 flex-wrap">
-                        <button type="button" onclick="setModalJlptFilter('ALL')" data-jlpt="ALL"
-                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-[#E0399A] text-white transition-colors">
-                            Tất cả
-                        </button>
-                        <button type="button" onclick="setModalJlptFilter('N5')" data-jlpt="N5"
-                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
-                            N5
-                        </button>
-                        <button type="button" onclick="setModalJlptFilter('N4')" data-jlpt="N4"
-                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
-                            N4
-                        </button>
-                        <button type="button" onclick="setModalJlptFilter('N3')" data-jlpt="N3"
-                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
-                            N3
-                        </button>
-                        <button type="button" onclick="setModalJlptFilter('N2')" data-jlpt="N2"
-                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
-                            N2
-                        </button>
-                        <button type="button" onclick="setModalJlptFilter('N1')" data-jlpt="N1"
-                                class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
-                            N1
-                        </button>
-                    </div>
+                    </label>
+                    <select id="modalJlptSelectKeyword" onchange="setModalJlptFilter(this.value)"
+                            class="px-2.5 py-1 text-xs font-itim font-bold rounded-[5px] border border-black bg-white shadow-[1px_1px_0px_0px_#000000] outline-none cursor-pointer focus:ring-1 focus:ring-black">
+                        <option value="ALL">🌸 Tất cả cấp độ</option>
+                        <option value="N5">🌱 JLPT N5 (Sơ cấp)</option>
+                        <option value="N4">🌿 JLPT N4 (Sơ trung cấp)</option>
+                        <option value="N3">🎋 JLPT N3 (Trung cấp)</option>
+                        <option value="N2">🌲 JLPT N2 (Trung cao cấp)</option>
+                        <option value="N1">🍁 JLPT N1 (Cao cấp)</option>
+                    </select>
                 </div>
             </div>
 
@@ -270,7 +253,7 @@
                             <button type="button"
                                     id="btnResetModalStroke"
                                     onclick="clearModalStrokeInput()"
-                                    class="btn-nhai px-2.5 py-1 text-[11px] font-bold rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 shrink-0"
+                                    class="px-2.5 py-1 text-[11px] font-bold rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-[#0F172A] hover:bg-slate-100 shrink-0 cursor-pointer"
                                     title="Tất cả số nét">
                                 Tất cả nét
                             </button>
@@ -281,36 +264,19 @@
                     </div>
 
                     <!-- Hàng 2: Bộ lọc mức N (N1-N2-N3-N4-N5) -->
-                    <div class="pt-2 border-t border-black/10 flex items-center gap-1.5 flex-wrap">
-                        <span class="text-xs font-bold text-black font-meta flex items-center gap-1 shrink-0 mr-1">
+                    <div class="pt-2 border-t border-black/10 flex items-center gap-2">
+                        <label for="modalJlptSelectStroke" class="text-xs font-bold text-black font-meta flex items-center gap-1 shrink-0">
                             <span>⛩️</span> Cấp độ JLPT:
-                        </span>
-                        <div class="flex items-center gap-1 flex-wrap">
-                            <button type="button" onclick="setModalJlptFilter('ALL')" data-jlpt="ALL"
-                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-[#E0399A] text-white transition-colors">
-                                Tất cả
-                            </button>
-                            <button type="button" onclick="setModalJlptFilter('N5')" data-jlpt="N5"
-                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
-                                N5
-                            </button>
-                            <button type="button" onclick="setModalJlptFilter('N4')" data-jlpt="N4"
-                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
-                                N4
-                            </button>
-                            <button type="button" onclick="setModalJlptFilter('N3')" data-jlpt="N3"
-                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
-                                N3
-                            </button>
-                            <button type="button" onclick="setModalJlptFilter('N2')" data-jlpt="N2"
-                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
-                                N2
-                            </button>
-                            <button type="button" onclick="setModalJlptFilter('N1')" data-jlpt="N1"
-                                    class="modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors">
-                                N1
-                            </button>
-                        </div>
+                        </label>
+                        <select id="modalJlptSelectStroke" onchange="setModalJlptFilter(this.value)"
+                                class="px-2.5 py-1 text-xs font-itim font-bold rounded-[5px] border border-black bg-white shadow-[1px_1px_0px_0px_#000000] outline-none cursor-pointer focus:ring-1 focus:ring-black">
+                            <option value="ALL">🌸 Tất cả cấp độ</option>
+                            <option value="N5">🌱 JLPT N5 (Sơ cấp)</option>
+                            <option value="N4">🌿 JLPT N4 (Sơ trung cấp)</option>
+                            <option value="N3">🎋 JLPT N3 (Trung cấp)</option>
+                            <option value="N2">🌲 JLPT N2 (Trung cao cấp)</option>
+                            <option value="N1">🍁 JLPT N1 (Cao cấp)</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -331,13 +297,13 @@
                         </div>
                         <!-- Cụm Phím Thao Tác Canvas Chuẩn Design System -->
                         <div class="w-[220px] grid grid-cols-3 gap-1.5 mt-2">
-                            <button type="button" onclick="deckHwUndoStroke()" class="btn-nhai btn-nhai-outline text-[10px] py-1.5 px-1 font-itim flex items-center justify-center gap-0.5 border border-black rounded-[5px] bg-white text-black shadow-[1px_1px_0px_0px_#000000]" title="Xóa nét vừa vẽ">
+                            <button type="button" onclick="deckHwUndoStroke()" class="text-[10px] py-1.5 px-1 font-itim font-bold flex items-center justify-center gap-0.5 border border-black rounded-[5px] bg-white text-[#0F172A] hover:bg-slate-50 shadow-[1px_1px_0px_0px_#000000] cursor-pointer" title="Xóa nét vừa vẽ">
                                 <span>↩️</span> Hoàn tác
                             </button>
-                            <button type="button" onclick="deckHwClearCanvas()" class="btn-nhai btn-nhai-outline text-[10px] py-1.5 px-1 font-itim flex items-center justify-center gap-0.5 text-[#DC2626] hover:bg-rose-50 border border-black rounded-[5px] bg-white shadow-[1px_1px_0px_0px_#000000]" title="Xóa toàn bộ nét">
+                            <button type="button" onclick="deckHwClearCanvas()" class="text-[10px] py-1.5 px-1 font-itim font-bold flex items-center justify-center gap-0.5 text-[#DC2626] hover:bg-rose-50 border border-black rounded-[5px] bg-white shadow-[1px_1px_0px_0px_#000000] cursor-pointer" title="Xóa toàn bộ nét">
                                 <span>🧹</span> Xóa hết
                             </button>
-                            <button type="button" onclick="deckHwExecuteRecognition()" class="btn-nhai text-[10px] py-1.5 px-1 font-itim flex items-center justify-center gap-0.5 bg-[#15803D] text-white hover:bg-[#1e4012] border border-black rounded-[5px] shadow-[1px_1px_0px_0px_#000000] active:translate-y-0.5" title="Kích hoạt nhận diện">
+                            <button type="button" onclick="deckHwExecuteRecognition()" class="text-[10px] py-1.5 px-1 font-itim font-bold flex items-center justify-center gap-0.5 bg-[#15803D] text-white hover:bg-[#166534] border border-black rounded-[5px] shadow-[1px_1px_0px_0px_#000000] active:translate-y-0.5 cursor-pointer" title="Kích hoạt nhận diện">
                                 <span>🔍</span> Nhận diện
                             </button>
                         </div>
@@ -412,7 +378,7 @@
             <div class="flex items-center justify-between pt-2.5 border-t border-black shrink-0">
                 <div id="deckDetailDesc" class="text-[11px] text-slate-500 font-meta truncate max-w-[280px]"></div>
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="closeDeckDetailModal()" class="btn-retro px-4 py-1.5 rounded-[5px] bg-white hover:bg-slate-100 text-black border border-black font-itim font-bold text-xs shadow-[2px_2px_0px_0px_#000000]">
+                    <button type="button" onclick="closeDeckDetailModal()" class="px-4 py-1.5 rounded-[5px] bg-white hover:bg-slate-100 text-[#0F172A] border border-black font-itim font-bold text-xs shadow-[2px_2px_0px_0px_#000000] cursor-pointer">
                         Đóng
                     </button>
                 </div>
@@ -741,14 +707,14 @@
                             <!-- 1. Nút Luyện Viết -->
                             ${firstChar ? `
                                 <a href="/learner/practice-canvas?char=${encodeURIComponent(firstChar)}&deckId=${encodeURIComponent(deck.folderId)}" 
-                                   class="btn-retro text-xs py-1.5 px-1 bg-[#15803D] hover:bg-[#166534] text-white flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] no-underline font-itim font-bold transition active:translate-y-0.5 truncate"
+                                   class="text-xs py-1.5 px-1 bg-[#15803D] hover:bg-[#166534] text-white flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] no-underline font-itim font-bold transition active:translate-y-0.5 truncate cursor-pointer"
                                    title="Luyện viết nét các chữ trong bộ trên Canvas Shodo">
                                     🖌️ Viết
                                 </a>
                             ` : `
                                 <button type="button"
                                         onclick="openAddKanjiModal('${deck.folderId}', '${escapeHtml(deck.folderName)}')"
-                                        class="btn-retro text-xs py-1.5 px-1 bg-slate-100 text-slate-600 hover:text-black flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] font-itim font-bold transition truncate"
+                                        class="text-xs py-1.5 px-1 bg-slate-100 text-[#0F172A] hover:bg-slate-200 flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] font-itim font-bold transition truncate cursor-pointer"
                                         title="Chưa có chữ nào trong bộ. Bấm để thêm chữ!">
                                     ➕ Thêm
                                 </button>
@@ -756,7 +722,7 @@
 
                             <!-- 2. Nút Bắn Chữ -->
                             <a href="/kanji?tab=folders&folderId=${encodeURIComponent(deck.folderId)}" 
-                               class="btn-retro text-xs py-1.5 px-1 bg-[#FEF08A] hover:bg-amber-300 text-black flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] no-underline font-itim font-bold transition active:translate-y-0.5 truncate"
+                               class="text-xs py-1.5 px-1 bg-[#FEF08A] hover:bg-amber-300 text-[#0F172A] flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] no-underline font-itim font-bold transition active:translate-y-0.5 truncate cursor-pointer"
                                title="Chơi minigame phản xạ Kanji Mưa Chữ với bộ thẻ này">
                                 🎮 Bắn
                             </a>
@@ -764,7 +730,7 @@
                             <!-- 3. Nút Xem Danh Sách Chữ -->
                             <button type="button" 
                                     onclick="openDeckDetailModal('${deck.folderId}')" 
-                                    class="btn-retro text-xs py-1.5 px-1 bg-white hover:bg-pink-50 text-black flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] font-itim font-bold transition active:translate-y-0.5 cursor-pointer truncate"
+                                    class="text-xs py-1.5 px-1 bg-white hover:bg-pink-50 text-[#0F172A] flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] font-itim font-bold transition active:translate-y-0.5 cursor-pointer truncate"
                                     title="Xem chi tiết danh sách chữ Kanji trong bộ">
                                 👁️ Xem
                             </button>
@@ -772,7 +738,7 @@
                             <!-- 4. Nút Cài đặt / Tùy chọn -->
                             <button type="button" 
                                     onclick="openDeckSettingsModal('${deck.folderId}')" 
-                                    class="btn-retro text-xs py-1.5 px-1 bg-slate-100 hover:bg-slate-200 text-black flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] font-itim font-bold transition active:translate-y-0.5 cursor-pointer truncate"
+                                    class="text-xs py-1.5 px-1 bg-slate-100 hover:bg-slate-200 text-[#0F172A] flex items-center justify-center gap-1 rounded-[5px] border border-black shadow-[2px_2px_0px_0px_#000000] font-itim font-bold transition active:translate-y-0.5 cursor-pointer truncate"
                                     title="Cài đặt & Tùy chọn bộ thẻ">
                                 ⚙️ Cài đặt
                             </button>
@@ -971,15 +937,10 @@
 
         function setModalJlptFilter(jlpt) {
             currentModalJlptFilter = jlpt || 'ALL';
-            const btns = document.querySelectorAll('.modal-jlpt-btn');
-            btns.forEach(btn => {
-                const bJlpt = btn.getAttribute('data-jlpt');
-                if (bJlpt === currentModalJlptFilter) {
-                    btn.className = 'modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-[#E0399A] text-white transition-colors';
-                } else {
-                    btn.className = 'modal-jlpt-btn px-2.5 py-1 text-[11px] font-bold font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] bg-white text-black hover:bg-slate-100 transition-colors';
-                }
-            });
+            const sel1 = document.getElementById('modalJlptSelectKeyword');
+            if (sel1 && sel1.value !== currentModalJlptFilter) sel1.value = currentModalJlptFilter;
+            const sel2 = document.getElementById('modalJlptSelectStroke');
+            if (sel2 && sel2.value !== currentModalJlptFilter) sel2.value = currentModalJlptFilter;
             triggerModalSearch();
         }
 

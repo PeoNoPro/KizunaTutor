@@ -45,10 +45,10 @@
                     </a>
 
                     <div class="flex items-center gap-2 sm:gap-3">
-                        <a th:href="@{/login}" class="btn-nhai text-xs py-1.5 px-3 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-white text-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] hover:bg-slate-100 transition no-underline">
+                        <a th:href="@{/login}" class="text-xs py-1.5 px-3 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-white text-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] hover:bg-slate-100 transition no-underline">
                             Đăng Nhập
                         </a>
-                        <a th:href="@{/register}" class="btn-nhai btn-nhai-learner text-xs py-1.5 px-3 font-itim font-bold border border-[#0F172A] rounded-[5px] shadow-[2px_2px_0px_0px_#0F172A] transition no-underline">
+                        <a th:href="@{/register}" class="btn-primary text-xs py-1.5 px-3 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-[#15803D] hover:bg-[#166534] text-white shadow-[2px_2px_0px_0px_#0F172A] transition no-underline">
                             Đăng Ký Miễn Phí
                         </a>
                     </div>
@@ -117,7 +117,7 @@
                                 <button type="button" 
                                         id="btnGroupMain" 
                                         onclick="toggleKanaGroup('main')" 
-                                        class="btn-primary px-2 py-0.5 text-xs font-bold text-white bg-[#E0399A] hover:bg-[#D02B89] border border-[#0F172A] rounded-md shadow-sm transition-all flex items-center gap-1">
+                                        class="px-2.5 py-1 text-xs font-bold text-white bg-[#E0399A] hover:bg-[#D02B89] border border-[#0F172A] rounded-[5px] shadow-[1px_1px_0px_0px_#0F172A] transition-all flex items-center gap-1 cursor-pointer">
                                     <span>✓</span><span>Kana Chính (46 chữ)</span>
                                 </button>
 
@@ -125,7 +125,7 @@
                                 <button type="button" 
                                         id="btnGroupDakuten" 
                                         onclick="toggleKanaGroup('dakuten')" 
-                                        class="btn-nhai px-2 py-0.5 text-xs font-semibold text-[#334155] bg-white border border-[#0F172A] rounded-[5px] hover:bg-slate-50 transition-all flex items-center gap-1 shadow-[1px_1px_0px_0px_#0F172A]">
+                                        class="px-2.5 py-1 text-xs font-bold text-[#0F172A] bg-white border border-[#0F172A] rounded-[5px] hover:bg-slate-50 transition-all flex items-center gap-1 shadow-[1px_1px_0px_0px_#0F172A] cursor-pointer">
                                     <span>Biến Âm (25 chữ)</span>
                                 </button>
 
@@ -133,7 +133,7 @@
                                 <button type="button" 
                                         id="btnGroupCombination" 
                                         onclick="toggleKanaGroup('combination')" 
-                                        class="btn-nhai px-2 py-0.5 text-xs font-semibold text-[#334155] bg-white border border-[#0F172A] rounded-[5px] hover:bg-slate-50 transition-all flex items-center gap-1 shadow-[1px_1px_0px_0px_#0F172A]">
+                                        class="px-2.5 py-1 text-xs font-bold text-[#0F172A] bg-white border border-[#0F172A] rounded-[5px] hover:bg-slate-50 transition-all flex items-center gap-1 shadow-[1px_1px_0px_0px_#0F172A] cursor-pointer">
                                     <span>Âm Ghép (33 chữ)</span>
                                 </button>
 
@@ -141,7 +141,7 @@
                                 <button type="button" 
                                         id="btnGroupAll" 
                                         onclick="selectAllGroups()" 
-                                        class="btn-nhai text-xs px-2 py-0.5 font-itim font-bold rounded-[5px] border border-[#0F172A] bg-slate-100 text-[#334155] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-slate-200 transition">
+                                        class="text-xs px-2.5 py-1 font-itim font-bold rounded-[5px] border border-[#0F172A] bg-slate-100 text-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-slate-200 transition cursor-pointer">
                                     Toàn Bộ Bảng
                                 </button>
 
@@ -149,7 +149,7 @@
                                 <button type="button" 
                                         id="btnGroupClear" 
                                         onclick="clearAllGroups()" 
-                                        class="btn-nhai text-xs px-2 py-0.5 font-itim font-bold rounded-[5px] border border-[#0F172A] bg-rose-50 text-[#DC2626] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-rose-100 transition">
+                                        class="text-xs px-2.5 py-1 font-itim font-bold rounded-[5px] border border-[#0F172A] bg-rose-50 text-[#DC2626] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-rose-100 transition cursor-pointer">
                                     Bỏ Chọn Tất Cả
                                 </button>
                             </div>
@@ -209,13 +209,13 @@
                                 <div class="flex items-center gap-2 self-end sm:self-auto">
                                     <button type="button" 
                                             onclick="backToSetup()" 
-                                            class="btn-nhai text-xs py-1 px-2.5 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-white text-[#334155] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-slate-100 transition">
+                                            class="text-xs py-1 px-2.5 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-white text-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-slate-100 transition cursor-pointer">
                                         <span>⚙️</span>
                                         <span>Chọn Lại</span>
                                     </button>
                                     <button type="button" 
                                             onclick="finishQuiz()" 
-                                            class="btn-nhai text-xs py-1 px-3 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-[#DC2626] text-white shadow-[1px_1px_0px_0px_#0F172A] active:translate-y-0.5 hover:bg-[#b91c1c] transition">
+                                            class="text-xs py-1 px-3 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-[#DC2626] text-white shadow-[1px_1px_0px_0px_#0F172A] active:translate-y-0.5 hover:bg-[#b91c1c] transition cursor-pointer">
                                         <span>🏁</span>
                                         <span>Nộp Bài</span>
                                     </button>
@@ -308,10 +308,10 @@
                                 Bạn làm rất tốt! Đăng ký tài khoản miễn phí ngay để lưu lại bảng điểm, ghi nhận vào Nhật Ký Tiến Độ và mở khóa phòng luyện viết Shodo Canvas AI nhé! ✨
                             </p>
                             <div class="flex items-center gap-2 flex-wrap pt-0.5">
-                                <a th:href="@{/register}" class="btn-nhai btn-nhai-learner px-3 py-1 font-itim font-bold text-xs shadow-retro no-underline flex items-center gap-1.5">
+                                <a th:href="@{/register}" class="px-3 py-1 font-itim font-bold text-xs bg-[#15803D] hover:bg-[#166534] text-white rounded-[5px] border border-[#0F172A] shadow-retro no-underline flex items-center gap-1.5 cursor-pointer">
                                     <span>🌸</span><span>Đăng Ký Lưu Tiến Độ</span>
                                 </a>
-                                <a th:href="@{/login}" class="btn-nhai text-xs py-1 px-2.5 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-white text-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-slate-100 no-underline flex items-center gap-1.5">
+                                <a th:href="@{/login}" class="text-xs py-1 px-2.5 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-white text-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-slate-100 no-underline flex items-center gap-1.5 cursor-pointer">
                                     <span>🔑</span><span>Đăng Nhập Ngay</span>
                                 </a>
                             </div>
@@ -339,13 +339,13 @@
                             <div class="flex items-center gap-2 flex-wrap">
                                 <button type="button" 
                                         onclick="retryCurrentQuiz()" 
-                                        class="btn-nhai btn-nhai-learner px-3 py-1.5 font-itim font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-retro">
+                                        class="px-3 py-1.5 font-itim font-bold text-xs sm:text-sm bg-[#15803D] hover:bg-[#166534] text-white rounded-[5px] border border-[#0F172A] flex items-center gap-1.5 shadow-retro cursor-pointer">
                                     <span>🔁</span>
                                     <span>Làm Lại Lượt Này</span>
                                 </button>
                                 <button type="button" 
                                         onclick="backToSetup()" 
-                                        class="btn-nhai text-xs sm:text-sm py-1.5 px-3 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-white text-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-slate-100 transition">
+                                        class="text-xs sm:text-sm py-1.5 px-3 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-white text-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-slate-100 transition cursor-pointer">
                                     <span>⚙️</span>
                                     <span>Thiết Lập Mới</span>
                                 </button>
@@ -353,12 +353,12 @@
 
                             <div class="flex items-center gap-2 flex-wrap">
                                 <a th:href="${isGuest == true} ? @{/kanji} : @{/learner/practice-canvas}" 
-                                   class="btn-nhai text-xs sm:text-sm py-1.5 px-3 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-white text-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-slate-100 transition no-underline flex items-center gap-1.5">
+                                   class="text-xs sm:text-sm py-1.5 px-3 font-itim font-bold border border-[#0F172A] rounded-[5px] bg-white text-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] hover:bg-slate-100 transition no-underline flex items-center gap-1.5 cursor-pointer">
                                     <span>✍️</span>
                                     <span>Luyện Viết Shodo</span>
                                 </a>
                                 <a th:href="${isGuest == true} ? @{/} : @{/learner/dashboard}" 
-                                   class="btn-primary text-xs sm:text-sm py-1.5 px-3 font-itim font-bold border border-[#15803D] rounded-md bg-[#15803D] text-white shadow-sm hover:bg-[#166534] transition no-underline flex items-center gap-1.5">
+                                   class="text-xs sm:text-sm py-1.5 px-3 font-itim font-bold border border-[#15803D] rounded-md bg-[#15803D] text-white shadow-sm hover:bg-[#166534] transition no-underline flex items-center gap-1.5 cursor-pointer">
                                     <span>🏠</span>
                                     <span th:text="${isGuest == true} ? 'Trang Chủ Kizuna' : 'Quay Lại Bàn Học'">Quay Lại</span>
                                 </a>

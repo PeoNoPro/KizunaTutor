@@ -69,9 +69,9 @@
 
 ---
 
-## QUY CHUẨN HIỂN THỊ VĂN BẢN TRÊN GIAO DIỆN (UI COPYWRITING STANDARDS)
+## 4. QUY CHUẨN HIỂN THỊ VĂN BẢN TRÊN GIAO DIỆN (UI COPYWRITING STANDARDS)
 
-### 1. Bảng chuyển ngữ thuật ngữ Backend sang Giao diện
+### 4.1. Bảng chuyển ngữ thuật ngữ Backend sang Giao diện
 Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh xạ theo bảng sau trước khi hiển thị:
 
 | Mã Backend / Kỹ thuật | Hiển thị chuẩn trên UI | Cấm hiển thị |
@@ -87,7 +87,7 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
 | `InternalServerError` | Hệ thống đang bận, vui lòng thử lại sau ít phút | 500 Server Error |
 | `NullPointerException` | Đã có lỗi xảy ra trong quá trình xử lý | Null pointer exception |
 
-### 2. Quy chuẩn viết hoa (Casing Rules)
+### 4.2. Quy chuẩn viết hoa (Casing Rules)
 - **Thông báo Toast / Alert:** Dùng Sentence case. 
   - Đúng: `✅ Đăng ký tài khoản thành công. Vui lòng kiểm tra email để lấy mã OTP.`
   - Sai: `✅ ĐĂNG KÝ TÀI KHOẢN THÀNH CÔNG!`
@@ -105,6 +105,24 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
 - Mọi tệp `.html`, `.js`, `.css`, `.properties`, `.java`, `.sql`, `.json` đều phải được lưu trữ và đọc dưới chuẩn mã hóa **UTF-8 (không có BOM)**.
 - Khi biên dịch Maven và chạy Spring Boot, thuộc tính `server.servlet.encoding.charset=UTF-8` và `server.servlet.encoding.force=true` luôn được kích hoạt.
 - Tuyệt đối không dùng các script PowerShell với mã hóa mặc định ANSI/Windows-1252 để ghi đè chuỗi tiếng Việt.
+
+---
+
+## 6. QUY CHUẨN CỐ ĐỊNH KHUNG TỪNG PHÂN KHU (SECTION FIXED FRAME CONTAINMENT & ZERO LAYOUT SHIFT)
+- **Cố định khung bao ngoài từng phân khu:** Toàn bộ Header, Sidebar, Toolbar, Card Grid, Chi tiết bài học, Drawer và Phân trang phải có kích thước/chiều cao cố định (`fixed height/min-height/max-height`) và phân vùng cuộn độc lập (`overflow-y-auto scrollbar-thin`).
+- **Ngăn chặn triệt để Layout Shift:** Khi nạp dữ liệu động từ API hoặc khi thay đổi số lượng bản ghi hiển thị, khung phân khu tuyệt đối không được giật nảy, phình to hay co rút gây xô lệch giao diện người dùng.
+
+---
+
+## 7. QUY CHUẨN BỘ LỌC DỮ LIỆU: BẢNG CHỌN DROPDOWN THAY VÌ NÚT BẤM TRỰC TIẾP
+- **Bắt buộc hiển thị dạng Bảng Chọn (Select / Dropdown Picker):** Toàn bộ các bộ lọc phân loại dữ liệu (Cấp độ JLPT, Chủ đề từ vựng/ngữ pháp, Loại từ, Trạng thái) BẮT BUỘC hiển thị dưới dạng Bảng Chọn (Dropdown `<select>` hoặc Popover Menu) kèm mũi tên xổ xuống (`▼`).
+- **Tuyệt đối cấm dàn hàng Nút Bấm (`<button>`) trực tiếp:** Cấm bố trí một hàng nút bấm trực tiếp lộ thiên gây tràn màn hình, vỡ dòng hoặc phình to thanh công cụ khi chuyển đổi giữa các thiết bị.
+
+---
+
+## 8. QUY CHUẨN KIẾN TRÚC TÁCH BIỆT FRONTEND & BACKEND CHẠY RIÊNG (DECOUPLED RESTFUL ARCHITECTURE)
+- **Tách biệt hoàn toàn Client và Server:** Frontend và Backend vận hành trên hai tiến trình/cổng riêng biệt, không gắn chặt chu trình sống và loại bỏ phụ thuộc SSR.
+- **Giao tiếp độc quyền qua Chuẩn RESTful API (JSON):** Tầng Client chỉ gọi dữ liệu từ Tầng Backend thông qua các Endpoint RESTful API tiêu chuẩn (`GET`, `POST`, `PUT`, `DELETE`) với payload JSON UTF-8 và xác thực bằng Bearer Token Header.
 
 ---
 *Văn bản này được ban hành cho toàn bộ các dịch vụ và thành phần trong hệ sinh thái KizunaTutor.*

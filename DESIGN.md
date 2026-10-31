@@ -170,6 +170,16 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
 - **Nguyên tắc hành động (UX Rule):** Chỉ có DUY NHẤT 1 nút bấm Primary CTA trên mỗi màn hình/khối nhìn. Các nút khác dùng dạng Outlined (nền trắng viền đen) hoặc Secondary.
 
 ### 4. Quy tắc Cố Định Khung & Chống Co Dãn Bố Cục (Zero Layout Shift & Fixed Frame Containment):
+- **Cấu trúc Master Shell 3 phân khu cố định (Fixed Header, Sidebar & Footer Shell):**
+  - Thẻ `<html>` và `<body>` BẮT BUỘC khai báo `class="h-screen overflow-hidden flex flex-col m-0 p-0"`. Tuyệt đối cấm sử dụng `min-h-screen` ở thẻ `body` vì sẽ làm cửa sổ trình duyệt (Window) xuất hiện thanh cuộn và làm xô lệch/trôi Header, Sidebar, Footer khi nội dung dài.
+  - Khung bao ngoài toàn màn hình: `class="flex-1 flex h-screen w-screen overflow-hidden"`.
+  - **Sidebar (Trái):** Cố định tuyệt đối `class="w-60 min-w-[15rem] max-w-[15rem] h-full shrink-0 border-r border-black flex flex-col justify-between overflow-y-auto z-30"`. Không bao giờ bị co dãn hay trượt theo trang.
+  - **Khu vực Workspace (Phải):** `class="flex-1 flex flex-col min-w-0 h-full overflow-hidden"`.
+  - **Header (Trên cùng Workspace):** Cố định tuyệt đối `h-14` (hoặc `md:hidden` ở phân hệ Học viên). Không bao giờ bị trượt mất khi cuộn chuột.
+  - **Loại bỏ Breadcrumbs & Header Thừa Ở Phân Hệ Học Viên (Zero Redundant Header on Desktop):** Phân hệ Learner đồng bộ dùng chuẩn `<header th:replace="~{learner/layout/header :: header}"></header>` (`md:hidden h-11`). Trên Desktop, tuyệt đối không đặt thanh header độc lập (không Breadcrumbs, không nút phụ dàn ngang), giúp mở rộng 100% không gian hiển thị cho việc học tập. Ở các phân hệ khác, Header không hiển thị Breadcrumbs dài dòng làm tốn diện tích.
+  - **Main Content (Nội dung chính):** VÙNG CUỘN DUY NHẤT CỦA TOÀN TRANG `class="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin"`. Toàn bộ thao tác lăn chuột chỉ diễn ra bên trong thẻ `main`, đảm bảo 100% không làm dịch chuyển, rung lắc hay hỏng khung Header, Sidebar, Footer.
+  - **Footer (Dưới cùng Workspace):** Cố định tuyệt đối `class="h-8 bg-white border-t border-black px-4 sm:px-6 flex items-center justify-between shrink-0 z-20 text-[11px] text-slate-600 font-meta shadow-[0px_-2px_0px_0px_#0F172A]"`. Luôn hiển thị thanh trạng thái cố định ở đáy màn hình.
+- **Cố định khung từng phân khu (Section Fixed Frame):** Mọi phân khu giao diện chính (Header, Sidebar, Thanh công cụ lọc, Khung lưới thẻ bài, Drawer chi tiết, Phân trang) phải khai báo khung cố định (`fixed height`, `min-h-[...]`, `max-h-[...]`) và chia vùng cuộn độc lập (`overflow-y-auto scrollbar-thin`). Không để việc tải dữ liệu từ API làm co giật hay xô lệch cấu trúc tổng thể trang.
 - **Cố định kích thước khung Card (Fixed Container Heights):** Mọi ô box thẻ bài, thư mục bộ thẻ (Flashcard Decks, Kanji Cards, Course Cards) trên lưới Grid/Flex BẮT BUỘC phải có chiều cao và kích thước cố định đồng nhất (ví dụ: `h-[360px] max-h-[360px]`). Không cho phép các card trong cùng một hàng/lưới có chiều cao khác nhau gây trồi sụt, xô lệch layout.
 - **Cố định khung nội dung con (Fixed Inner Content Box):** Khu vực hiển thị nội dung động (như danh sách chip chữ Hán, trạng thái rỗng Empty State, đoạn mô tả tóm tắt) BẮT BUỘC phải được đặt trong ô box cố định kích thước (`h-[155px] max-h-[155px] overflow-y-auto`). Khi số lượng phần tử con tăng lên hoặc khi chuyển giữa trạng thái rỗng và có dữ liệu, ô box phải giữ nguyên chiều cao, cho phép cuộn nội bộ mượt mà thay vì làm co dãn hoặc phình to thẻ cha.
 - **Bóc tách Menu tùy chọn nổi (Decoupled Floating Menus):** Các menu thao tác bổ sung (Kebab Menu 3 chấm [⋮], Dropdown Actions, Popovers) BẮT BUỘC phải định vị tuyệt đối (`position: absolute; z-index: 50;`) nổi hoàn toàn trên bề mặt giao diện. Cụm nút bấm kích hoạt phải có `relative shrink-0 w-8 h-8`. Khi mở hoặc đóng menu, tuyệt đối không được làm thay đổi kích thước của nút, không làm co kéo các nút flex bên cạnh, và không được đẩy hoặc làm biến dạng ô box chứa nó.
@@ -195,5 +205,26 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
 - **Ô nhập số nét (Stroke count input):** BẮT BUỘC có độ rộng cố định nhỏ gọn `w-20` (80px) với placeholder `"Số nét"`. Cấm để ô nhập số nét co dãn tự do hoặc chiếm diện tích lớn gây chèn ép, bóp nghẹt các bộ lọc quan trọng lân cận (Bộ thủ Hán tự, Cấp độ JLPT).
 - **Thanh công cụ Shodo Canvas (`practice-canvas.html`):** Tối giản và trực quan. Chỉ duy trì các công cụ thực chất (`Phát Hướng Dẫn / Phát Lại`, `Nét Mờ`, `Xóa`, `Chấm Điểm Nét AI`). Nút phát hướng dẫn tự động chuyển đổi nhãn và trạng thái thành `Phát Lại` sau khi chạy xong animation nét vẽ, cấm tạo thêm nút "Vẽ Lại" dư thừa gây rối mắt người học.
 
+### 7. Quy Chuẩn Bộ Lọc Dữ Liệu (Filter Controls: Bảng Chọn Dropdown Thay Vì Nút Bấm Trực Tiếp):
+- **Bắt buộc hiển thị dạng Bảng Chọn (Select / Dropdown Picker):**
+  - Mọi thao tác lọc dữ liệu trên thanh công cụ (Filter Toolbar) như lọc cấp độ JLPT, lọc chủ đề bài học, lọc loại từ vựng, lọc trạng thái gia sư **BẮT BUỘC sử dụng thẻ `<select>` hoặc Popover Menu bảng chọn**.
+  - Ô chọn hiển thị rõ giá trị đang lọc kèm biểu tượng mũi tên (`▼`), khi click mở danh sách tùy chọn cho người dùng lựa chọn gọn gàng.
+- **Tuyệt đối cấm dàn hàng Nút Bấm (`<button>`) trực tiếp:**
+  - Tuyệt đối không tạo một dãy hàng loạt nút bấm dàn hàng ngang hay hàng dọc (ví dụ: cấm đặt 5 nút `[Tất cả] [N5] [N4] [N3] [N2] [N1]` hoặc dãy nút chủ đề lộ thiên) làm vỡ layout, tràn viền màn hình và gây rối mắt người học.
+- **Quy chuẩn Styling Retro-Brutalist:**
+  - Ô chọn: `rounded-[5px] border border-black bg-white px-3 py-1.5 text-xs font-itim shadow-[1.5px_1.5px_0px_0px_#0F172A] outline-none cursor-pointer focus:ring-1 focus:ring-black`.
 
+### 8. Quy Chuẩn Kiến Trúc Tách Biệt Frontend & Backend Chạy Riêng Gọi Nhau Qua API (Decoupled RESTful Architecture):
+- **Tách biệt hoàn toàn Client và Server:**
+  - Frontend và Backend vận hành trên 2 môi trường/tiến trình độc lập, không gắn chặt chu trình sống.
+  - Giao diện người dùng không bị ràng buộc phụ thuộc vào cơ chế dựng giao diện máy chủ (Server-Side Rendering coupling).
+- **Giao tiếp độc quyền qua Chuẩn RESTful API (JSON):**
+  - Tầng Client chỉ gọi dữ liệu từ Tầng Backend thông qua các Endpoint RESTful API tiêu chuẩn (`GET`, `POST`, `PUT`, `DELETE`).
+  - Định dạng truyền tải 100% là chuỗi JSON UTF-8.
+  - Cơ chế xác thực và phân quyền (RBAC) sử dụng HTTP Header Bearer Token (JWT), giữ Backend ở trạng thái Stateless API Server.
 
+### 9. Quy Chuẩn Xử Lý Bộ Lọc Bất Đồng Bộ & Chống Lỗi Rỗng Dữ Liệu (Async Safe Filter & Anti-Flicker Architecture):
+- **Cơ chế Hủy Request Cũ (AbortController):** Mọi tác vụ lọc dữ liệu bất đồng bộ phải khởi tạo `AbortController` và hủy request trước đó nếu người dùng thao tác chuyển đổi filter liên tục. Bắt và bỏ qua `AbortError` để tránh việc vô tình hiển thị màn hình rỗng sai lệch.
+- **Bộ Nhớ Đệm Tạm Thời (In-Memory Cache):** Duy trì `Map` lưu trữ tạm dữ liệu theo bộ khóa duy nhất `filter_page_keyword`. Nếu người dùng chuyển lại bộ lọc đã có dữ liệu, trả về và dựng ngay trong 0ms để đạt chuẩn phản hồi tức thì (Instant Feedback, Zero Layout Shift).
+- **Tự Động Reset Tìm Kiếm Khi Đổi Bộ Lọc Chính:** Khi thay đổi cấp độ hoặc nhóm chủ đề, tự động xóa trắng ô input tìm kiếm để tránh từ khóa cũ làm triệt tiêu toàn bộ kết quả của bộ lọc mới.
+- **Chuẩn Hóa Kiểu Dữ Liệu:** Chuẩn hóa toàn bộ chuỗi ký tự lọc (String Uppercase, trim khoảng trắng) trước khi xử lý, ngăn ngừa lỗi lệch kiểu dữ liệu gây mảng rỗng.

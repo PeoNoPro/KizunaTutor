@@ -20,8 +20,13 @@ public class TopicVocabularyDto {
     private String romaji;
     private String hanViet;
     private String meaningVn;
+    private String meaningEn;
     private String jlptLevel;
+    private List<String> pos;
+    private String posVn;
+    private Integer jmdictId;
     private String exampleJp;
     private String exampleVn;
     private List<String> kanjiCharacters;
+    private List<VocabExampleDto> examples;
 }

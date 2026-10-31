@@ -1,193 +1,40 @@
-/* ==========================================================================
-   KIZUNATUTOR STANDARDIZED CORE DESIGN TOKENS (SAKURA / UGUISU SPECIFICATION)
-   Global Design Tokens, Root CSS Variables & Script Categorization System
-   ========================================================================== */
-
-:root {
-  /* =========================================================================
-     1. NỀN & BỀ MẶT (BASE UI) - 60%
-     ========================================================================= */
-  --bg-app: #FAF9F6;                  /* Trắng kem Washi nhẹ mắt, chống chói mắt */
-  --bg-canvas: #FFFFFF;               /* Nền khung tập viết chữ Hán */
-  --bg-surface: #FFFFFF;              /* Nền card, modal, dialog */
-  --border-subtle: #E2E8F0;           /* Đường viền thanh mảnh phân vùng */
-  --border-strong: #CBD5E1;           /* Đường viền khung tập viết, thẻ tương tác */
-
-  /* =========================================================================
-     2. VĂN BẢN & MỰC VIẾT (TEXT & STROKES) - 30%
-     ========================================================================= */
-  --text-primary: #0F172A;            /* Mực đen than chính, nét chữ gốc Kanji/Kana */
-  --text-secondary: #475569;          /* Nghĩa từ, âm Hán Việt, tiêu đề phụ */
-  --text-muted: #94A3B8;              /* Lưới Canvas ô chữ mễ tự môn, Furigana mờ */
-
-  /* =========================================================================
-     3. NHÓM MÀU CHỨC NĂNG PHÂN LOẠI HỆ CHỮ (SCRIPT BADGES & TABS)
-     ========================================================================= */
-  /* Hiragana (Mềm mại, nhập môn / Hoa Anh Đào Sakura) */
-  --script-hiragana-bg: #FDF2F8;      /* Hồng phấn Sakura nhạt */
-  --script-hiragana-text: #BE185D;    /* Hồng sen đậm Sakura */
-  --script-hiragana-border: #FBCFE8;
-
-  /* Katakana (Hiện đại, góc cạnh) */
-  --script-katakana-bg: #EFF6FF;      /* Xanh dương dịu nhạt */
-  --script-katakana-text: #1D4ED8;    /* Xanh dương đậm */
-  --script-katakana-border: #BFDBFE;
-
-  /* Kanji (Tập trung nét, tương phản cao / Vàng kem & Nâu mực tàu) */
-  --script-kanji-bg: #FEFCE8;         /* Vàng kem nhạt cổ điển */
-  --script-kanji-text: #854D0E;       /* Nâu đen đậm / Mực tàu */
-  --script-kanji-border: #FEF08A;
-
-  /* =========================================================================
-     4. HÀNH ĐỘNG & TRẠNG THÁI ACTIVE / SELECTION (PRIMARY SELECTION TOKENS)
-     ========================================================================= */
-  --color-active-pink: #E0399A;       /* Hồng Hiragana Sakura - Màu đại diện trạng thái được chọn */
-  --color-active-pink-hover: #D02B89; /* Hồng đậm hơn khi hover */
-  --color-active-pink-light: #FDF2F8; /* Hồng phấn nhạt cho vùng phụ trợ */
-  --color-active-pink-text: #FFFFFF;  /* Chữ tương phản cao trên nền hồng */
-  --color-selection-bg: var(--color-active-pink);
-  --color-selection-text: var(--color-active-pink-text);
-
-  --color-primary: #15803D;           /* Xanh lá non Uguisu-iro đậm - học tập & sinh trưởng */
-  --color-primary-hover: #166534;     /* Uguisu đậm khi hover */
-  --color-primary-light: #F0FDF4;     /* Uguisu nhạt cho highlight trạng thái */
-  --color-success: #16A34A;           /* Báo nét viết đúng, thứ tự bút thuận chuẩn */
-  --color-success-light: #DCFCE7;
-  --color-error: #DC2626;             /* Báo nét sai, ngược chiều bút */
-  --color-error-light: #FEE2E2;
-
-  /* =========================================================================
-     5. BÓNG ĐỔ MỀM MẠI (MODERN SOFT ELEVATION)
-     ========================================================================= */
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-canvas: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08);
-  --shadow-hover: 0 6px 12px -2px rgba(15, 23, 42, 0.08);
-  --shadow-active: 0 1px 2px rgba(15, 23, 42, 0.05);
-
-  /* =========================================================================
-     6. HỆ THỐNG TYPOGRAPHY & PHÂN CẤP CHỮ
-     ========================================================================= */
-  --font-sans: "Noto Sans JP", "Inter", "Segoe UI", sans-serif;
-  --font-kanji: "Noto Serif JP", "Noto Sans JP", serif;
-  --font-body: var(--font-sans);
-  --font-headline: 'Comfortaa', 'Itim', 'Segoe UI', cursive, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-brand: 'Comfortaa', 'Itim', cursive, sans-serif;
-
-  /* Thang kích thước font chữ chuẩn */
-  --text-xs: 0.75rem;                 /* 12px */
-  --text-sm: 0.875rem;                /* 14px */
-  --text-base: 1rem;                  /* 16px */
-  --text-lg: 1.125rem;                /* 18px - Ngưỡng tối thiểu của Kanji mẫu */
-  --text-xl: 1.25rem;                 /* 20px */
-  --text-2xl: 1.5rem;                 /* 24px */
-  --text-3xl: 1.875rem;               /* 30px */
-
-  /* =========================================================================
-     7. HÌNH KHỐI, BO GÓC & CHUYỂN ĐỘNG
-     ========================================================================= */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-full: 9999px;
-  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Ánh xạ tương thích ngược chuẩn hóa (loại bỏ hoàn toàn 27 màu rác) */
-  --color-1: var(--text-primary);
-  --color-2: var(--color-primary);
-  --color-3: var(--color-primary);
-  --color-4: var(--color-error);
-  --color-5: var(--script-katakana-text);
-  --color-6: var(--color-success);
-  --color-7: var(--color-primary);
-  --color-8: var(--script-katakana-text);
-  --color-9: var(--script-hiragana-text);
-  --color-10: var(--script-kanji-text);
-  --color-11: var(--bg-surface);
-  --color-bg-app: var(--bg-app);
-  --color-text-main: var(--text-primary);
-  --color-text-muted: var(--text-muted);
-  --color-border: var(--border-strong);
-  --color-warning-light: var(--script-kanji-bg);
+﻿/* ==========================================================================
 }
-
-/* ==========================================================================
-   GLOBAL ZERO LAYOUT SHIFT & ANTI-JANK ARCHITECTURE (ZERO CLS REFIT)
-   Khóa cố định khung hình toàn hệ thống, triệt tiêu giật cuộn và rung giật tương tác
-   ========================================================================== */
-
-/* 1. Khóa cố định thanh cuộn toàn hệ thống (Triệt tiêu 100% rung giật ngang 15px) */
-html {
-  scrollbar-gutter: stable;
-  scroll-behavior: smooth;
-  height: 100%;
-}
-
-/* 2. Reset Box-Sizing toàn diện: mọi border và padding tính gọn trong kích thước hộp */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-/* ==========================================================================
-   GLOBAL BASE STYLES
-   ========================================================================== */
-
-body {
-  background-color: var(--bg-app);
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  margin: 0;
-  padding: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  overflow-x: hidden;
-}
-
-h1, h2, h3, .font-headline {
-  font-family: var(--font-headline);
-}
-
-/* ==========================================================================
-   ZERO GEOMETRY SHIFT & FOCUS STABILIZATION (CHỐNG NỞ VIỀN / CO GIẬT HỘP)
-   ========================================================================== */
-
-:focus-visible {
-  outline: 2px solid var(--border-strong);
-  outline-offset: 1px;
-}
-
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-a:focus-visible,
-.btn-primary:focus-visible,
-.btn-secondary:focus-visible,
-.btn-retro:focus-visible,
-.btn-nhai:focus-visible,
-.input-retro:focus-visible,
-.input-nhai:focus-visible,
-.clickable-chip:focus-visible,
-.kana-tile:focus-visible,
-.focusable-item:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
 /* ==========================================================================
    STANDARDIZED BUTTONS (PRIMARY & SECONDARY ARCHITECTURE)
    ========================================================================== */
 
-/* Primary Button (Uguisu-iro #15803D, chữ trắng, bo góc chuẩn 8px) */
-.btn-primary,
+/* Base Retro Button Structure: Đảm bảo bo góc 5px chuẩn Retro-Brutalist & Hard-Shadow */
 .btn-retro,
-.btn-nhai,
+.btn-nhai {
+  font-family: var(--font-sans);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 5px;
+  border: 1px solid #0F172A;
+  box-shadow: 2px 2px 0px 0px #0F172A;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
+  user-select: none;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Primary Button (Uguisu-iro #15803D, chữ trắng, bo góc chuẩn 5px Retro) */
+.btn-primary,
+.btn-retro-primary,
 .btn-retro-learner,
 .btn-nhai-learner,
-.btn-retro-tutor {
+.btn-retro-tutor,
+.btn-forest {
   font-family: var(--font-sans);
   display: inline-flex;
   align-items: center;
@@ -196,9 +43,9 @@ a:focus-visible,
   padding: 8px 16px;
   background-color: var(--color-primary);
   color: #FFFFFF !important;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid #0F172A;
+  border-radius: 5px;
+  box-shadow: 2px 2px 0px 0px #0F172A;
   font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
@@ -214,37 +61,43 @@ a:focus-visible,
 .btn-primary:hover:not(:disabled),
 .btn-retro:hover:not(:disabled),
 .btn-nhai:hover:not(:disabled),
+.btn-retro-primary:hover:not(:disabled),
 .btn-retro-learner:hover:not(:disabled),
 .btn-nhai-learner:hover:not(:disabled),
-.btn-retro-tutor:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-  box-shadow: var(--shadow-canvas);
-  transform: translate3d(0, -1px, 0);
+.btn-retro-tutor:hover:not(:disabled),
+.btn-forest:hover:not(:disabled) {
+  box-shadow: 3px 3px 0px 0px #0F172A;
+  transform: translate3d(-1px, -1px, 0);
 }
-
 
 .btn-primary:active:not(:disabled),
 .btn-retro:active:not(:disabled),
 .btn-nhai:active:not(:disabled),
+.btn-retro-primary:active:not(:disabled),
 .btn-retro-learner:active:not(:disabled),
 .btn-nhai-learner:active:not(:disabled),
-.btn-retro-tutor:active:not(:disabled) {
-  transform: translate3d(0, 1px, 0);
-  box-shadow: var(--shadow-sm);
+.btn-retro-tutor:active:not(:disabled),
+.btn-forest:active:not(:disabled) {
+  transform: translate3d(1px, 1px, 0);
+  box-shadow: 1px 1px 0px 0px #0F172A;
 }
 
 .btn-primary:disabled,
 .btn-retro:disabled,
-.btn-nhai:disabled {
+.btn-nhai:disabled,
+.btn-retro-learner:disabled,
+.btn-nhai-learner:disabled,
+.btn-retro-tutor:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
 }
 
-/* Secondary Button (Nền trắng, viền border-strong, chữ text-secondary) */
+/* Secondary Button (Nền trắng, viền đen #0F172A, chữ đen than #0F172A) */
 .btn-secondary,
+.btn-white,
+.btn-retro-secondary,
 .btn-retro-outline,
 .btn-nhai-outline {
   font-family: var(--font-sans);
@@ -253,11 +106,11 @@ a:focus-visible,
   justify-content: center;
   gap: 6px;
   padding: 8px 16px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  color: var(--text-secondary) !important;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  background-color: #FFFFFF !important;
+  border: 1px solid #0F172A !important;
+  color: #0F172A !important;
+  border-radius: 5px;
+  box-shadow: 2px 2px 0px 0px #0F172A;
   font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
@@ -271,40 +124,280 @@ a:focus-visible,
 }
 
 .btn-secondary:hover:not(:disabled),
+.btn-white:hover:not(:disabled),
+.btn-retro-secondary:hover:not(:disabled),
 .btn-retro-outline:hover:not(:disabled),
 .btn-nhai-outline:hover:not(:disabled) {
-  background-color: #F8FAFC;
-  color: var(--text-primary) !important;
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-canvas);
-  transform: translate3d(0, -1px, 0);
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+  border-color: #0F172A !important;
+  box-shadow: 3px 3px 0px 0px #0F172A;
+  transform: translate3d(-1px, -1px, 0);
 }
 
 .btn-secondary:active:not(:disabled),
+.btn-white:active:not(:disabled),
+.btn-retro-secondary:active:not(:disabled),
 .btn-retro-outline:active:not(:disabled),
 .btn-nhai-outline:active:not(:disabled) {
-  transform: translate3d(0, 1px, 0);
-  box-shadow: var(--shadow-sm);
+  transform: translate3d(1px, 1px, 0);
+  box-shadow: 1px 1px 0px 0px #0F172A;
 }
 
 /* Biến thể Danger */
 .btn-danger,
-.btn-retro-danger {
+.btn-retro-danger,
+.btn-nhai-urgent {
   background-color: var(--color-error);
   color: #FFFFFF !important;
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid #0F172A;
+  border-radius: 5px;
+  box-shadow: 2px 2px 0px 0px #0F172A;
 }
 
 .btn-danger:hover:not(:disabled),
-.btn-retro-danger:hover:not(:disabled) {
+.btn-retro-danger:hover:not(:disabled),
+.btn-nhai-urgent:hover:not(:disabled) {
   background-color: #B91C1C;
-  border-color: #B91C1C;
-  box-shadow: var(--shadow-canvas);
+  border-color: #0F172A;
+  box-shadow: 3px 3px 0px 0px #0F172A;
+  transform: translate3d(-1px, -1px, 0);
 }
 
-/* ==========================================================================
+/* Biến thể Amber / Vàng Game Bắn Chữ */
+.btn-retro-amber {
+  background-color: #FEF08A !important;
+  color: #0F172A !important;
+  border: 1px solid #0F172A !important;
+  border-radius: 5px;
+  box-shadow: 2px 2px 0px 0px #0F172A;
+  font-weight: 700;
+}
+
+.btn-retro-amber:hover:not(:disabled) {
+  background-color: #FDE047 !important;
+  color: #0F172A !important;
+  box-shadow: 3px 3px 0px 0px #0F172A;
+  transform: translate3d(-1px, -1px, 0);
+}
+
+/* =========================================================================
+   CONTENT TYPOGRAPHY RESCUE & CORE SYSTEM TEXT STANDARDS (DESIGN_SYSTEM.MD)
+   Khôi phục 100% màu chữ nội dung văn bản chuẩn mực: Đen than #0F172A / Mực tàu #1F2421
+   Tuyệt đối không để CSS nút bấm hoặc overlay làm trùng màu nền
+   ========================================================================= */
+
+/* 1. Mọi văn bản nội dung thông thường trên trang và thẻ card mặc định là đen than */
+body,
+main,
+article,
+section,
+.card-retro,
+.card-nhai,
+.card,
+.modal-content,
+[class*="bg-white"],
+[class*="bg-[#FAF9F6]"],
+[class*="bg-[#F8FAFC]"] {
+  color: #0F172A;
+}
+
+/* 2. Bảo đảm toàn bộ nội dung bên trong Modal hộp thoại màu trắng luôn có chữ đen than rõ ràng */
+.modal-dialog,
+.modal-box,
+[id^="modal"] .bg-white,
+[id*="Modal"] .bg-white,
+[id*="modal"] .bg-white {
+  color: #0F172A !important;
+}
+
+[id^="modal"] .bg-white h1,
+[id^="modal"] .bg-white h2,
+[id^="modal"] .bg-white h3,
+[id^="modal"] .bg-white h4,
+[id^="modal"] .bg-white p,
+[id^="modal"] .bg-white label,
+[id^="modal"] .bg-white div,
+[id*="Modal"] .bg-white h1,
+[id*="Modal"] .bg-white h2,
+[id*="Modal"] .bg-white h3,
+[id*="Modal"] .bg-white h4,
+[id*="Modal"] .bg-white p,
+[id*="Modal"] .bg-white label,
+[id*="Modal"] .bg-white div {
+  color: #0F172A;
+}
+
+/* =========================================================================
+   ISOLATED BUTTON STYLING (CHỈ ÁP DỤNG TRÊN PHẦN TỬ ĐIỀU KHIỂN & NÚT BẤM)
+   Tách biệt hoàn toàn khỏi văn bản nội dung, không dùng selector wildcard (*)
+   ========================================================================= */
+
+/* 1. Base Button Structure: Bo góc 5px chuẩn Retro-Brutalist, viền đen #0F172A, bóng đổ 2px */
+button,
+input[type="button"],
+input[type="submit"],
+a.btn,
+a.btn-retro,
+a.btn-nhai,
+a.btn-primary,
+a.btn-secondary {
+  font-family: var(--font-sans);
+  border-radius: 5px;
+  border: 1px solid #0F172A;
+  box-shadow: 2px 2px 0px 0px #0F172A;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+/* 2. Primary / Dark CTA Buttons: Nền tối -> Chữ trắng */
+button.btn-primary,
+a.btn-primary,
+button.btn-retro-primary,
+a.btn-retro-primary,
+button.btn-retro-learner,
+a.btn-retro-learner,
+button.btn-nhai-learner,
+a.btn-nhai-learner,
+button.btn-retro-tutor,
+a.btn-retro-tutor,
+button.btn-forest,
+a.btn-forest,
+button.btn-danger,
+a.btn-danger,
+button.btn-retro-danger,
+a.btn-retro-danger,
+button.btn-nhai-urgent,
+a.btn-nhai-urgent,
+button[class*="bg-[#15803D]"],
+a[class*="bg-[#15803D]"],
+button[class*="bg-[#166534]"],
+a[class*="bg-[#166534]"],
+button[class*="bg-[#2A5A1A]"],
+a[class*="bg-[#2A5A1A]"],
+button[class*="bg-[#7C3AED]"],
+a[class*="bg-[#7C3AED]"],
+button[class*="bg-[#6D28D9]"],
+a[class*="bg-[#6D28D9]"],
+button[class*="bg-[#DC2626]"],
+a[class*="bg-[#DC2626]"],
+button[class*="bg-black"],
+a[class*="bg-black"],
+button[class*="bg-slate-900"],
+a[class*="bg-slate-900"] {
+  color: #FFFFFF !important;
+}
+
+button.btn-primary > span,
+a.btn-primary > span,
+button.btn-retro-primary > span,
+a.btn-retro-primary > span,
+button.btn-retro-learner > span,
+a.btn-retro-learner > span,
+button.btn-nhai-learner > span,
+a.btn-nhai-learner > span,
+button.btn-forest > span,
+a.btn-forest > span,
+button[class*="bg-[#15803D]"] > span,
+a[class*="bg-[#15803D]"] > span,
+button[class*="bg-[#7C3AED]"] > span,
+a[class*="bg-[#7C3AED]"] > span,
+button[class*="bg-black"] > span,
+a[class*="bg-black"] > span {
+  color: #FFFFFF !important;
+}
+
+/* 3. Secondary / Outlined Buttons: Nền trắng -> Chữ đen than */
+button.btn-secondary,
+a.btn-secondary,
+button.btn-white,
+a.btn-white,
+button.btn-retro-secondary,
+a.btn-retro-secondary,
+button.btn-retro-outline,
+a.btn-retro-outline,
+button.btn-nhai-outline,
+a.btn-nhai-outline,
+button[class*="bg-white"],
+a[class*="bg-white"]:not([class*="text-white"]),
+button[class*="bg-slate-100"],
+a[class*="bg-slate-100"] {
+  background-color: #FFFFFF !important;
+  border: 1px solid #0F172A !important;
+  color: #0F172A !important;
+}
+
+button.btn-secondary > span,
+a.btn-secondary > span,
+button.btn-white > span,
+a.btn-white > span,
+button.btn-retro-secondary > span,
+a.btn-retro-secondary > span,
+button.btn-retro-outline > span,
+a.btn-retro-outline > span,
+button.btn-nhai-outline > span,
+a.btn-nhai-outline > span,
+button[class*="bg-white"] > span:not([class*="text-[#DC2626]"]),
+a[class*="bg-white"] > span:not([class*="text-[#DC2626]"]) {
+  color: #0F172A !important;
+}
+
+/* Nút Xóa / Danger Outlined có chữ đỏ */
+button[class*="text-[#DC2626]"],
+a[class*="text-[#DC2626]"],
+button[class*="bg-rose-50"],
+a[class*="bg-rose-50"] {
+  color: #DC2626 !important;
+}
+
+/* 4. Amber Buttons (Game Bắn Chữ / Warning): Nền vàng -> Chữ đen than */
+button.btn-retro-amber,
+a.btn-retro-amber,
+button[class*="bg-[#FEF08A]"],
+a[class*="bg-[#FEF08A]"] {
+  background-color: #FEF08A !important;
+  border: 1px solid #0F172A !important;
+  color: #0F172A !important;
+}
+button.btn-retro-amber > span,
+a.btn-retro-amber > span,
+button[class*="bg-[#FEF08A]"] > span,
+a[class*="bg-[#FEF08A]"] > span {
+  color: #0F172A !important;
+}
+
+/* 5. Trạng thái Active trên Tabs / Pills / Nav-items (CHỈ ÁP DỤNG TRÊN PHẦN TỬ CHỌN) */
+button.is-active,
+a.is-active,
+button.is-selected,
+a.is-selected,
+button[aria-selected="true"],
+a[aria-selected="true"],
+button[class*="bg-[#E0399A]"],
+a[class*="bg-[#E0399A]"],
+.tab-script-hiragana.active,
+.tab-script-katakana.active,
+#learnerSidebar .nav-item.active {
+  background-color: var(--color-active-pink, #E0399A) !important;
+  border-color: #0F172A !important;
+  color: #FFFFFF !important;
+}
+button.is-active > span,
+a.is-active > span,
+button.is-selected > span,
+a.is-selected > span,
+button[aria-selected="true"] > span,
+a[aria-selected="true"] > span,
+button[class*="bg-[#E0399A]"] > span,
+a[class*="bg-[#E0399A]"] > span,
+.tab-script-hiragana.active > span,
+.tab-script-katakana.active > span,
+#learnerSidebar .nav-item.active > span {
+  color: #FFFFFF !important;
+}
    CARDS & SURFACES (SOFT SHADOWS & COMPACT HIGH-DENSITY PADDING)
    ========================================================================== */
 
@@ -663,3 +756,4 @@ a:focus-visible,
   filter: drop-shadow(1px 3px 4px rgba(224, 57, 154, 0.3));
   opacity: 0.98;
 }
+

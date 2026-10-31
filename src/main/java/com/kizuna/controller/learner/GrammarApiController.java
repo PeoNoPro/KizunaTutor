@@ -6,12 +6,17 @@ import com.kizuna.dto.grammar.GrammarRuleDto;
 import com.kizuna.service.IGrammarService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -85,6 +90,26 @@ public class GrammarApiController {
                     .kanjiCharacters(List.of("水", "杯", "下"))
                     .keyVocabularies(List.of("水 (みず) - Nước", "一杯 (いっぱい) - Một cốc / Một ly"))
                     .build());
+        }
+    }
+
+    /**
+     * 5. GET Xuất toàn bộ 526 mẫu ngữ pháp JLPT (N5 - N1) ra file Excel 100% tiếng Việt
+     */
+    @GetMapping("/export-excel")
+    public ResponseEntity<Resource> exportExcel() {
+        log.info("[GrammarApiController] Nhận yêu cầu xuất file Excel cẩm nang ngữ pháp OpenJLPT 100% tiếng Việt");
+        try {
+            File file = grammarService.exportGrammarExcel();
+            Resource resource = new FileSystemResource(file);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Kho_Ngu_Phap_OpenJLPT_Tieng_Viet.xlsx\"")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .contentLength(file.length())
+                    .body(resource);
+        } catch (Exception e) {
+            log.error("[GrammarApiController] Lỗi khi tạo file Excel ngữ pháp: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

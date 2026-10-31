@@ -96,13 +96,13 @@ Toàn bộ hệ thống giao diện được kiểm soát qua các token màu s�
 - `space-8` = `32px` (Khoảng cách phân đoạn lớn)
 
 #### Quy Chuẩn Bo Góc Duy Nhất (Strict Fixed Border Radius)
-> ⚠️ **ĐIỀU KHOẢN BẤT BIẾN:** Toàn bộ component hình chữ nhật (Nút bấm, Card, Input, Modal, Badge, Toast, Tab) trên hệ thống **DUY NHẤT dùng `rounded-[5px]`** (tương đương `border-radius: 5px;`).  
+> ⚠️ **ĐIỀU KHOẢN BẤT BIẾN:** Toàn bộ component hình chữ nhật (Nút bấm, Card, Input, Select, Modal, Badge, Toast, Tab) trên hệ thống **DUY NHẤT dùng `rounded-[5px]`** (tương đương `border-radius: 5px;`).  
 > Tuyệt đối cấm sử dụng bo góc lớn như `rounded-xl`, `rounded-2xl`, `rounded-3xl` gây phá vỡ phong cách Retro-Brutalist. Chỉ cho phép dùng `rounded-full` cho ảnh Avatar đại diện hoặc nút tròn icon 1:1.
 
 #### Hệ Thống Đổ Bóng Khối Cứng (Retro Hard-Shadow Tokens)
 ```css
 /* Tokens bóng đổ khối cứng (Hard Shadow) */
---shadow-retro-xs: 1.5px 1.5px 0px 0px #0F172A; /* Ô input, nút nhỏ trong table */
+--shadow-retro-xs: 1.5px 1.5px 0px 0px #0F172A; /* Ô input, dropdown select, nút nhỏ trong table */
 --shadow-retro-sm: 2px 2px 0px 0px #0F172A;     /* Nút phụ, tab level, pill bar */
 --shadow-retro-md: 3px 3px 0px 0px #0F172A;     /* Thẻ Card, Slim Hero banner, Toast */
 --shadow-retro-lg: 4px 4px 0px 0px #0F172A;     /* Card khi hover, khối thống kê */
@@ -115,11 +115,25 @@ Toàn bộ hệ thống giao diện được kiểm soát qua các token màu s�
 
 ### 3.1. Nút Bấm (Buttons)
 
-Mọi nút bấm phải có hiệu ứng nhún Retro cơ học:
+Mọi nút bấm phải có hiệu ứng nhún Retro cơ học và tuân thủ tuyệt đối quy tắc tương phản WCAG AA/AAA (Zero Invisible Text Contrast):
 - **Normal:** Viền đen `border border-black`, bo góc `rounded-[5px]`, bóng đổ `shadow-[2px_2px_0px_0px_#0F172A]`.
 - **Hover:** Dịch lên nhẹ `hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_#0F172A]`.
 - **Active / Pressed:** Lún xuống `active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_#0F172A]`.
 - **Disabled:** Mờ và vô hiệu chuột `disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none`.
+
+> ⛔ **QUY TẮC KHÓA CỨNG MÀU NỀN & MÀU CHỮ (HARD-ENFORCED TEXT CONTRAST):**
+> 1. **Nền Tối (Dark / Forest / Primary / Destructive):**
+>    - Các màu: `#15803D`, `#2A5A1A`, `#7C3AED`, `#0F172A`, `#DC2626`, `bg-black`, `bg-slate-900`.
+>    - **Bắt buộc chữ trắng tinh `#FFFFFF` (`color: #FFFFFF !important;`)** cho cả nút và mọi thẻ con bên trong.
+> 2. **Trạng thái Được Chọn (Active / Selected / Sakura Pink):**
+>    - Các màu: `#E0399A`, `#D02B89`, `.is-active`, `.is-selected`, `[aria-selected="true"]`.
+>    - **Bắt buộc chữ trắng tinh `#FFFFFF` (`color: #FFFFFF !important;`)** cho cả nút và mọi thẻ con bên trong.
+> 3. **Nền Sáng (White / Kem Washi / Secondary / Outline):**
+>    - Các màu: `#FFFFFF`, `#FAF9F6`, `bg-slate-50`, `bg-slate-100`, `.btn-secondary`, `.btn-retro-secondary`.
+>    - **Bắt buộc chữ đen than `#0F172A` (`color: #0F172A !important;`)**, tuyệt đối cấm để class `.btn-retro` làm chữ thành màu trắng.
+> 4. **Nền Vàng Amber (Minigame Bắn Chữ / Warning):**
+>    - Các màu: `#FEF08A`, `#FEF3C7`, `bg-amber-100`, `bg-amber-200`.
+>    - **Bắt buộc chữ đen than `#0F172A` (`color: #0F172A !important;`)** cho nút và thẻ con bên trong.
 
 ```html
 <!-- 1. Primary CTA Button (Học viên) -->
@@ -177,12 +191,21 @@ Mọi ô input phải tuân thủ chuẩn:
 
 ---
 
-### 3.3. Thẻ Chứa Nội Dung & Quy Tắc Cố Định Khung (Card & Fixed Frame Containment)
+### 3.3. Thẻ Chứa Nội Dung & Quy Tắc Cố Định Khung Từng Phần (Card & Section Fixed Frame Containment)
 
-> ⛔ **QUY TẮC CHỐNG CO DÃN & TRỒI SỤT BỐ CỤC (ZERO LAYOUT SHIFT):**
-> 1. Mọi thẻ card trên lưới Flex/Grid bắt buộc có chiều cao cố định đồng nhất (ví dụ: `h-[360px] max-h-[360px]` cho thẻ Flashcard, `h-full min-h-[220px]` cho thẻ ngữ pháp).
-> 2. Khung nội dung con thay đổi (danh sách Hán tự, Empty State, ví dụ) bắt buộc bọc trong ô box cố định kèm cuộn nội bộ: `h-[155px] max-h-[155px] overflow-y-auto`.
-> 3. Menu thao tác 3 chấm [⋮] bắt buộc định vị tuyệt đối `position: absolute; z-index: 50;` nổi trên bề mặt, cấm làm co kéo các nút lân cận.
+> ⛔ **QUY TẮC CỐ ĐỊNH KHUNG & CHỐNG TRỒI SỤT BỐ CỤC TOÀN DIỆN (ZERO LAYOUT SHIFT):**
+> 1. **Cố định Master Shell 3 phân khu (Fixed Header, Sidebar & Footer):** 
+>    - Thẻ `html` và `body` bắt buộc có `h-screen overflow-hidden`.
+>    - Khung bao ngoài là `h-screen w-screen overflow-hidden flex`.
+>    - **Sidebar (Trái):** Cố định tuyệt đối `h-full shrink-0 border-r border-black overflow-y-auto`.
+>    - **Header (Trên cùng):** Cố định tuyệt đối `h-14 shrink-0 border-b border-black z-20` (hoặc `md:hidden` ở phân hệ Học viên). Không bao giờ bị trượt mất khi cuộn chuột.
+>    - **Loại bỏ Breadcrumbs & Header Thừa Ở Phân Hệ Học Viên (Zero Redundant Header on Desktop):** Phân hệ Learner đồng bộ dùng `<header th:replace="~{learner/layout/header :: header}"></header>` (`md:hidden h-11`). Trên Desktop, không hiển thị thanh header độc lập (không Breadcrumbs, không nút phụ dàn ngang), giúp tối đa hóa 100% không gian hiển thị cho việc học tập. Ở các phân hệ khác, Header không hiển thị Breadcrumbs dài dòng.
+>    - **Footer (Dưới cùng):** Cố định tuyệt đối `h-8 shrink-0 border-t border-black z-20`. Luôn ghim cố định ở đáy màn hình.
+>    - **Main Content (Giữa):** VÙNG CUỘN DUY NHẤT `flex-1 overflow-y-auto scrollbar-thin`. Toàn bộ thao tác lăn chuột chỉ diễn ra bên trong vùng này, tuyệt đối không làm trượt hay hỏng khung Header, Sidebar và Footer.
+> 2. **Cố định khung từng phân khu:** Mọi phân khu giao diện (Filter Toolbar, Card Grid, Drawer/Inspector chi tiết, Pagination) phải được thiết lập kích thước cố định hoặc ngưỡng trần (`fixed height`, `min-h-[...]`, `max-h-[...]`).
+> 3. **Cố định kích thước thẻ Card:** Mọi thẻ card trên lưới Flex/Grid bắt buộc có chiều cao cố định đồng nhất (ví dụ: `h-[360px] max-h-[360px]` cho thẻ Flashcard, `h-full min-h-[220px]` cho thẻ ngữ pháp).
+> 4. **Khung nội dung con độc lập:** Vùng nội dung con thay đổi (danh sách Hán tự, Empty State, ví dụ) bắt buộc bọc trong ô box cố định kèm cuộn nội bộ: `h-[155px] max-h-[155px] overflow-y-auto`.
+> 5. **Menu tùy chọn nổi tách rời (Decoupled Floating Menus):** Menu thao tác 3 chấm [⋮] bắt buộc định vị tuyệt đối `position: absolute; z-index: 50;` nổi trên bề mặt, cấm làm co kéo các nút lân cận.
 
 ```html
 <!-- Cấu trúc Card Chuẩn Retro-Brutalist -->
@@ -260,13 +283,58 @@ Khi cơ sở dữ liệu chưa có bản ghi, hiển thị hộp rỗng thân th
 
 ---
 
-## 4. Bố Cục Đáp Ứng & Breakpoints (Responsive Patterns)
+### 3.7. Thành Phần Bộ Lọc Dữ Liệu (Filter Controls Specification: Bảng Chọn Dropdown Thay Vì Nút Bấm Trực Tiếp)
 
-| Breakpoint | Chiều Rộng Màn Hình | Hành Vi Bố Cục Thanh Điều Hướng | Lưới Thẻ Card |
-| :--- | :--- | :--- | :--- |
-| **Mobile (`sm`)** | `< 640px` | Sidebar chuyển thành Drawer trượt ẩn, có nút hamburger mở menu | `grid-cols-1` (1 cột chiếm trọn chiều ngang) |
-| **Tablet (`md`)** | `640px - 1023px` | Header cố định trên cùng, thanh menu tab cho phép cuộn ngang | `grid-cols-2` (2 cột cân đối) |
-| **Desktop (`lg` / `xl`)**| `>= 1024px` | Sidebar cố định bên trái (`w-64`), vùng nội dung cuộn độc lập (`overflow-y-auto`) | `grid-cols-3` hoặc `grid-cols-4` |
+> ⛔ **QUY TẮC BỘ LỌC DỮ LIỆU (ZERO DIRECT-BUTTON FILTERS):**
+> 1. **Bắt buộc dùng Bảng chọn (Select / Dropdown Picker):** Toàn bộ các bộ lọc phân loại dữ liệu (Cấp độ JLPT, Chủ đề, Từ loại, Trạng thái, Bộ lọc theo Gia sư, Sắp xếp) bắt buộc sử dụng phần tử `<select>` hoặc Popover Dropdown Picker có mũi tên mở danh sách tùy chọn.
+> 2. **Tuyệt đối cấm dàn hàng Nút Bấm trực tiếp:** Không dùng dãy nút bấm `<button>` dàn hàng ngang/dọc (như `[N5] [N4] [N3] [N2] [N1]` hoặc dãy nút chủ đề dài). Việc này gây vỡ layout trên màn hình nhỏ/trung bình, làm thanh công cụ phình to và che khuất nội dung học tập.
+> 3. **Hiển thị giá trị đã chọn:** Ô chọn hiển thị rõ giá trị đang được lọc kèm mũi tên xổ xuống (`▼`). Khi người dùng click, bảng chọn mở ra danh sách tùy chọn gọn gàng, tiết kiệm không gian.
+
+```html
+<!-- Bảng Chọn Lọc Cấp Độ JLPT Chuẩn Retro-Brutalist -->
+<div class="flex items-center gap-2">
+    <label for="jlptLevelSelect" class="text-[11px] font-bold text-black font-meta flex items-center gap-1 shrink-0">
+        <span>🎯</span>
+        <span>Cấp độ:</span>
+    </label>
+    <select id="jlptLevelSelect"
+            class="px-3 py-1.5 bg-white text-black font-itim text-xs font-bold rounded-[5px] border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A] outline-none cursor-pointer focus:ring-1 focus:ring-black transition">
+        <option value="ALL">🌸 Tất cả cấp độ</option>
+        <option value="N5">🌱 JLPT N5 (Sơ cấp)</option>
+        <option value="N4">🌿 JLPT N4 (Sơ trung cấp)</option>
+        <option value="N3">🎋 JLPT N3 (Trung cấp)</option>
+        <option value="N2">🌲 JLPT N2 (Trung cao cấp)</option>
+        <option value="N1">🍁 JLPT N1 (Cao cấp)</option>
+    </select>
+</div>
+
+<!-- Bảng Chọn Lọc Chủ Đề Từ Vựng / Ngữ Pháp -->
+<div class="flex items-center gap-2">
+    <label for="topicFilterSelect" class="text-[11px] font-bold text-black font-meta flex items-center gap-1 shrink-0">
+        <span>📚</span>
+        <span>Chủ đề:</span>
+    </label>
+    <select id="topicFilterSelect"
+            class="px-3 py-1.5 bg-white text-black font-itim text-xs font-bold rounded-[5px] border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A] outline-none cursor-pointer focus:ring-1 focus:ring-black transition max-w-[200px]">
+        <option value="ALL">✨ Tất cả chủ đề</option>
+        <option value="daily">🗣️ Giao tiếp hằng ngày</option>
+        <option value="food">🍱 Ẩm thực & Gọi món</option>
+        <option value="shopping">🛍️ Mua sắm & Sinh hoạt</option>
+        <option value="travel">🚆 Đi lại & Du lịch</option>
+        <option value="work">💼 Công việc & Trường học</option>
+    </select>
+</div>
+```
+
+---
+
+## 4. Bố Cục Đáp Ứng & Phân Khu Cố Định (Responsive Patterns & Section Containment)
+
+| Breakpoint | Chiều Rộng Màn Hình | Hành Vi Bố Cục Thanh Điều Hướng | Lưới Thẻ Card | Quản Lý Khung Cuộn |
+| :--- | :--- | :--- | :--- | :--- |
+| **Mobile (`sm`)** | `< 640px` | Sidebar chuyển thành Drawer trượt ẩn, có nút hamburger mở menu | `grid-cols-1` (1 cột chiếm trọn chiều ngang) | Header cố định trên cùng, vùng nội dung cuộn độc lập |
+| **Tablet (`md`)** | `640px - 1023px` | Header cố định trên cùng, thanh menu tab cho phép cuộn ngang | `grid-cols-2` (2 cột cân đối) | Khung bộ lọc cố định, lưới thẻ cuộn độc lập bên dưới |
+| **Desktop (`lg` / `xl`)**| `>= 1024px` | Sidebar cố định bên trái (`w-64`), vùng nội dung cuộn độc lập (`overflow-y-auto`) | `grid-cols-3` hoặc `grid-cols-4` | Khung từng phân khu cố định toàn diện, chống mọi Layout Shift |
 
 ---
 
@@ -279,12 +347,68 @@ Khi cơ sở dữ liệu chưa có bản ghi, hiển thị hộp rỗng thân th
 4. **Phát âm Web Speech API:** Mọi nút loa phát âm âm thanh tiếng Nhật phải gắn thuộc tính `title="Nghe phát âm chuẩn giọng Nhật"` và `aria-label`.
 
 ### 5.2. Danh Sách Kiểm Tra Khi AI Sinh Mã Nguồn (AI Pre-Flight Checklist)
-Trước khi xuất bất kỳ đoạn mã giao diện nào, AI phải tự kiểm tra 5 điều kiện sau:
+Trước khi xuất bất kỳ đoạn mã giao diện nào, AI phải tự kiểm tra 8 điều kiện sau:
 - [ ] **1. Không có từ tiếng Anh trên UI:** Toàn bộ nhãn, nút bấm, placeholder, thông báo lỗi đã được dịch 100% sang tiếng Việt tự nhiên.
 - [ ] **2. Không có chữ ALL-CAPS:** Không viết hoa toàn bộ câu (chỉ dùng Sentence case / Title case).
 - [ ] **3. Bo góc chuẩn:** Duy nhất dùng `rounded-[5px]` cho các component hình chữ nhật.
 - [ ] **4. Đổ bóng chuẩn:** Sử dụng bóng cứng `shadow-[..._#0F172A]` kèm viền đen `border border-black`.
 - [ ] **5. Không chèn dữ liệu ảo:** Dùng API thực tế hoặc hiển thị Empty State chuẩn.
+- [ ] **6. Cố định khung giao diện từng phần:** Khung Header, Toolbar, Lưới Card, Nội dung chi tiết phải có kích thước cố định, cuộn nội bộ độc lập, chống co dãn/giật nảy layout (Zero Layout Shift).
+- [ ] **7. Bộ lọc dùng Bảng Chọn (Select/Dropdown):** Bắt buộc hiển thị bảng chọn gọn gàng, tuyệt đối không dàn hàng nút bấm filter trực tiếp gây vỡ layout.
+- [ ] **8. Tách biệt Frontend - Backend qua REST API:** Frontend và Backend chạy độc lập, giao tiếp chuẩn mực qua RESTful API (JSON Payload + Token Auth), không coupling SSR.
 
 ---
-*Tài liệu này là nguồn chân lý thiết kế bất biến của KizunaTutor. Mọi màn hình mới và component phát sinh bắt buộc phải đối chiếu các Design Tokens quy định tại văn bản này.*
+
+## 6. Kiến Trúc Tách Biệt Frontend & Backend (Decoupled Client-Server & REST API Architecture)
+
+Hệ thống KizunaTutor áp dụng mô hình kiến trúc phân tách độc lập hoàn toàn giữa tầng giao diện người dùng (Frontend) và tầng xử lý nghiệp vụ/dữ liệu (Backend):
+
+```
++-------------------------------------------------------+
+|                FRONTEND CLIENT APP                    |
+|   - SPA / Modern Web Client (Port riêng / Host riêng)  |
+|   - Quản lý UI State, Components, Navigation          |
+|   - Gọi API qua Fetch/Axios (JSON Payload)            |
++---------------------------+---------------------------+
+                            |
+                 RESTful API Calls (JSON)
+                 Authorization: Bearer <Token>
+                            |
+                            v
++-------------------------------------------------------+
+|                BACKEND API SERVER                     |
+|   - Spring Boot Core Application (Port 8080)          |
+|   - Stateless REST Controllers (@RestController)      |
+|   - PostgreSQL Database + AI Microservices            |
++-------------------------------------------------------+
+```
+
+### 6.1. Nguyên Tắc Phân Tách Tiến Trình (Process & Runtime Decoupling)
+1. **Tiến trình chạy riêng biệt:** Frontend và Backend chạy trên các tiến trình/cổng độc lập, không phụ thuộc vào chu kỳ sống của nhau.
+2. **Loại bỏ phụ thuộc Server-Side Rendering (SSR Coupling):** Giao diện không bị trói buộc cứng vào cơ chế render mẫu phía máy chủ. Mọi dữ liệu thay đổi trên màn hình đều được cập nhật động thông qua các lời gọi API bất đồng bộ.
+
+### 6.2. Tiêu Chuẩn Giao Tiếp Dữ Liệu Qua RESTful API
+1. **Định dạng dữ liệu thống nhất:** 100% dữ liệu trao đổi giữa Frontend và Backend sử dụng định dạng JSON chuẩn UTF-8 (`application/json`).
+2. **Quy chuẩn phương thức HTTP:**
+   - `GET`: Truy vấn dữ liệu bài học, danh sách từ vựng, thông tin gia sư (Idempotent).
+   - `POST`: Tạo mới tài nguyên (đăng ký ca học, thêm thẻ học mới, nộp bài luyện viết Shodo).
+   - `PUT / PATCH`: Cập nhật toàn phần hoặc từng phần thông tin tài nguyên.
+   - `DELETE`: Xóa tài nguyên (xóa bộ thẻ, hủy ca học).
+3. **Xác thực & Bảo mật (Token-Based Authentication):**
+   - Xác thực người dùng thực hiện qua chuẩn Bearer Token (JWT) gửi trong HTTP Header: `Authorization: Bearer <token>`.
+   - Backend duy trì cơ chế Stateless Authentication, không lưu session cứng gắn vào HTML view.
+4. **Cấu trúc phản hồi chuẩn (Standard API Response Wrapper):**
+   ```json
+   {
+       "success": true,
+       "message": "Nội dung thông báo thân thiện bằng tiếng Việt",
+       "data": { ... },
+       "timestamp": "2026-10-31T12:00:00Z"
+   }
+   ```
+5. **Ranh giới trách nhiệm (Separation of Concerns):**
+   - **Backend:** Toàn quyền kiểm soát tính toàn vẹn dữ liệu, kiểm tra quyền truy cập (RBAC), quy tắc nghiệp vụ sư phạm, và tích hợp AI.
+   - **Frontend:** Toàn quyền kiểm soát trải nghiệm người dùng, đồ thị trạng thái màn hình, hiển thị bảng chọn filter, cố định khung giao diện và xử lý tương tác thời gian thực.
+
+---
+*Tài liệu này là nguồn chân lý thiết kế bất biến của KizunaTutor. Mọi màn hình mới và component phát sinh bắt buộc phải đối chiếu các Design Tokens và Quy Chuẩn Kiến Trúc quy định tại văn bản này.*

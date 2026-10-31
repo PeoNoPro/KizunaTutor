@@ -115,33 +115,22 @@
                                 <button type="button" 
                                         id="btnResetDictStroke" 
                                         onclick="clearDictStrokeInput()" 
-                                        class="btn-nhai px-2 py-1 text-[11px] font-bold rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#000000] shrink-0" 
+                                        class="px-2 py-1 text-[11px] font-bold rounded-[5px] border border-black bg-slate-100 text-[#0F172A] hover:bg-slate-200 shadow-[1px_1px_0px_0px_#000000] shrink-0 cursor-pointer" 
                                         title="Xem tất cả số nét">
                                     Tất cả
                                 </button>
                             </div>
 
-                            <!-- Nhóm 2: Lọc theo Bộ Thủ Thông Dụng (Radicals Strip) -->
+                            <!-- Nhóm 2: Lọc theo Bộ Thủ Thông Dụng (Bảng chọn Dropdown) -->
                             <div class="flex items-center gap-2 min-w-0 flex-1">
-                                <div class="flex items-center gap-1 shrink-0">
-                                    <span class="text-xs font-bold text-black font-meta flex items-center gap-1">
-                                        <span>⛩️</span> Bộ thủ:
-                                    </span>
-                                    <span class="text-[10px] text-slate-500 font-meta truncate max-w-[85px]" id="currentRadicalIndicator" title="Bấm bộ thủ để lọc">
-                                        Tất cả
-                                    </span>
-                                    <button type="button" 
-                                            id="btnResetRadical" 
-                                            onclick="setDictRadicalFilter(null, '')" 
-                                            class="hidden text-[11px] text-[#DC2626] font-bold hover:underline shrink-0" 
-                                            title="Bỏ lọc bộ thủ">
-                                        ✕
-                                    </button>
-                                </div>
-                                <!-- Dải chip bộ thủ cuộn ngang mượt mà, không làm phình chiều cao -->
-                                <div class="flex items-center gap-1 overflow-x-auto py-1 flex-1 pr-1 scrollbar-thin select-none" id="dictRadicalButtonsContainer">
-                                    <!-- Chip bộ thủ sinh tự động dạng inline scroll -->
-                                </div>
+                                <label for="dictRadicalSelect" class="text-xs font-bold text-black font-meta flex items-center gap-1 shrink-0">
+                                    <span>⛩️</span> Bộ thủ:
+                                </label>
+                                <select id="dictRadicalSelect"
+                                        onchange="setDictRadicalFilter(this.value)"
+                                        class="px-2.5 py-1 text-xs font-itim font-bold rounded-[5px] border border-black bg-white shadow-[1px_1px_0px_0px_#000000] outline-none cursor-pointer focus:ring-1 focus:ring-black max-w-[220px]">
+                                    <option value="">🌸 Tất cả bộ thủ</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -402,35 +391,20 @@
         }
 
         function renderDictRadicalButtons() {
-            const container = document.getElementById('dictRadicalButtonsContainer');
-            if (!container) return;
-            container.innerHTML = commonRadicals.map(r => {
-                const isSelected = (currentDictRadical === r.char);
-                return `
-                    <button type="button" onclick="setDictRadicalFilter('${r.char}', '${r.name}')"
-                            class="px-2 py-0.5 text-xs font-meta rounded-[4px] border border-black shadow-[1px_1px_0px_0px_#000000] flex items-center gap-1 shrink-0 transition-colors ${isSelected ? 'active is-selected' : ''}"
-                            title="Bộ ${r.name} (${r.char})">
-                        <span class="font-serif text-sm font-bold leading-none">${r.char}</span>
-                        <span class="text-[10px] opacity-80 leading-none">${r.name}</span>
-                    </button>
-                `;
+            const select = document.getElementById('dictRadicalSelect');
+            if (!select) return;
+            select.innerHTML = '<option value="">🌸 Tất cả bộ thủ</option>' + commonRadicals.map(r => {
+                const isSelected = (currentDictRadical === r.char) ? 'selected' : '';
+                return `<option value="${r.char}" ${isSelected}>Bộ ${r.name} (${r.char})</option>`;
             }).join('');
         }
 
-        function setDictRadicalFilter(radChar, radName) {
-            const resetBtn = document.getElementById('btnResetRadical');
-            const indicator = document.getElementById('currentRadicalIndicator');
-
-            if (currentDictRadical === radChar || !radChar) {
-                currentDictRadical = null;
-                if (indicator) indicator.textContent = 'Tất cả';
-                if (resetBtn) resetBtn.classList.add('hidden');
-            } else {
-                currentDictRadical = radChar;
-                if (indicator) indicator.textContent = `${radChar} (${radName})`;
-                if (resetBtn) resetBtn.classList.remove('hidden');
+        function setDictRadicalFilter(radChar) {
+            currentDictRadical = radChar || null;
+            const select = document.getElementById('dictRadicalSelect');
+            if (select && select.value !== (currentDictRadical || '')) {
+                select.value = currentDictRadical || '';
             }
-            renderDictRadicalButtons();
             loadLearnerDictionary(0);
         }
 
@@ -562,8 +536,8 @@
             window.lastRenderedDictionaryItems = items;
 
             grid.innerHTML = items.map((k, idx) => `
-                <div class="card-nhai card-nhai-learner bg-white rounded-[5px] border border-black p-5 shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between transition-transform duration-150 relative">
-                    <div>
+                <div class="card-nhai card-nhai-learner bg-white rounded-[5px] border border-black p-4 shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between transition-transform duration-150 relative h-[310px] max-h-[310px]">
+                    <div class="h-[230px] max-h-[230px] flex flex-col justify-between">
                         <div class="flex items-center justify-between mb-3 border-b border-black/10 pb-2">
                             <span class="badge-nhai bg-sky-50 text-sky-700 border-black text-[10px] font-bold">${escapeHtml(k.jlpt || 'N5')}</span>
                             <div class="flex items-center gap-1.5">
@@ -592,19 +566,19 @@
                     </div>
 
                     <!-- 2 NÚT HÀNH ĐỘNG DƯỚI CARD -->
-                    <div class="pt-4 mt-3 border-t border-black flex items-center gap-2">
+                    <div class="pt-3 mt-auto border-t border-black flex items-center gap-2 shrink-0">
                         <button type="button" 
                                 onclick="openSaveDeckModal('${k.id}', '${escapeHtml(k.kanjiChar)}', '${escapeHtml(k.hanViet)}')" 
-                                class="btn-nhai btn-nhai-outline flex-1 py-1.5 px-2 rounded-[5px] text-xs font-itim font-semibold flex items-center justify-center gap-1 shadow-[1px_1px_0px_0px_#000000]">
+                                class="flex-1 py-1.5 px-2 rounded-[5px] text-xs font-itim font-bold border border-black bg-white text-[#0F172A] hover:bg-slate-100 flex items-center justify-center gap-1 shadow-[1px_1px_0px_0px_#000000] cursor-pointer">
                             <span>📁</span> Lưu Thẻ
                         </button>
                         <a href="/learner/practice-canvas?char=${encodeURIComponent(k.kanjiChar)}" 
-                           class="btn-nhai btn-nhai-learner flex-1 py-1.5 px-2 rounded-[5px] text-xs font-itim font-bold flex items-center justify-center gap-1 no-underline shadow-[2px_2px_0px_0px_#000000]">
+                           class="flex-1 py-1.5 px-2 rounded-[5px] text-xs font-itim font-bold border border-black bg-[#15803D] hover:bg-[#166534] text-white flex items-center justify-center gap-1 no-underline shadow-[2px_2px_0px_0px_#000000] cursor-pointer">
                             <span>✍️</span> Luyện Nét
                         </a>
                         <button type="button" 
                                 onclick="openKanjiDetailModalByIndex(${idx})" 
-                                class="btn-nhai btn-nhai-outline w-8 h-8 rounded-[5px] flex items-center justify-center text-xs font-bold text-slate-600 hover:text-black hover:bg-slate-100" 
+                                class="w-8 h-8 rounded-[5px] border border-black bg-white flex items-center justify-center text-xs font-bold text-[#0F172A] hover:bg-slate-100 shadow-[1px_1px_0px_0px_#000000] cursor-pointer" 
                                 title="Xem chi tiết">
                             🔍
                         </button>

@@ -20,13 +20,8 @@
         </a>
     </div>
 
-    <!-- Phía phải: Breadcrumbs phân hệ Quản Trị Viên -->
-    <div class="hidden sm:flex items-center gap-2 text-xs font-medium text-slate-500">
-        <a th:href="@{/admin/dashboard}" class="hover:text-slate-800 transition-colors">Trang chủ Quản trị</a>
-        <span>/</span>
-        <span class="text-slate-400">Phân hệ Quản trị viên</span>
-        <span>/</span>
-        <span class="text-slate-900 font-semibold" th:text="${breadcrumbSection != null ? breadcrumbSection : 'Tổng Quan'}">Tổng Quan</span>
+    <!-- Phía phải: Tiện ích header -->
+    <div class="flex items-center gap-2">
     </div>
 </header>
 </html>

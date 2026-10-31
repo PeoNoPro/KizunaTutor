@@ -56,10 +56,10 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button type="button" onclick="clearBasket()" class="btn-nhai btn-nhai-outline text-xs px-3 py-1.5 font-itim font-bold">
+                                <button type="button" onclick="clearBasket()" class="text-xs px-3 py-1.5 font-itim font-bold rounded-[5px] border border-black bg-white text-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] hover:bg-slate-100 transition cursor-pointer">
                                     Xóa Giỏ
                                 </button>
-                                <button type="button" onclick="openAssignModal()" id="btnCreateAssignment" disabled class="btn-nhai btn-nhai-urgent text-xs px-4 py-2 flex items-center gap-1.5 font-itim font-bold disabled:opacity-40 disabled:cursor-not-allowed">
+                                <button type="button" onclick="openAssignModal()" id="btnCreateAssignment" disabled class="px-4 py-2 flex items-center gap-1.5 font-itim font-bold rounded-[5px] border border-black bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs shadow-[2px_2px_0px_0px_#0F172A] transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
                                     <span>🚀</span> Giao Bài Cho Các Trò Thôi
                                 </button>
                             </div>
@@ -132,8 +132,8 @@
                     Học viên trong lớp sẽ nhận được thông báo tức thì và bài tập sẽ xuất hiện trong màn hình Luyện Viết Canvas của họ. ⏰
                 </div>
                 <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-black">
-                    <button type="button" onclick="closeAssignModal()" class="btn-nhai btn-nhai-outline px-4 py-2 rounded-[5px] font-itim font-bold text-xs">Hủy Bỏ</button>
-                    <button type="submit" id="btnSubmitAssignment" class="btn-nhai btn-nhai-urgent px-5 py-2 rounded-[5px] font-itim font-bold text-xs">Giao Bài Cho Các Trò Thôi 🚀</button>
+                    <button type="button" onclick="closeAssignModal()" class="px-4 py-2 rounded-[5px] font-itim font-bold text-xs bg-white border border-black text-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] hover:bg-slate-100 transition cursor-pointer">Hủy Bỏ</button>
+                    <button type="submit" id="btnSubmitAssignment" class="px-5 py-2 rounded-[5px] font-itim font-bold text-xs bg-[#7C3AED] hover:bg-[#6D28D9] text-white border border-black shadow-[2px_2px_0px_0px_#0F172A] transition cursor-pointer">Giao Bài Cho Các Trò Thôi 🚀</button>
                 </div>
             </form>
         </div>
@@ -200,10 +200,10 @@
                         </div>
 
                         <div class="pt-3 border-t border-black flex items-center justify-between gap-2">
-                            <button type="button" onclick="previewStrokeOrder('${k.kanjiChar}')" class="btn-nhai btn-nhai-outline flex-1 py-1.5 rounded-[5px] text-xs font-itim font-semibold">
+                            <button type="button" onclick="previewStrokeOrder('${k.kanjiChar}')" class="flex-1 py-1.5 rounded-[5px] text-xs font-itim font-bold border border-black bg-white text-[#0F172A] shadow-[1.5px_1.5px_0px_0px_#0F172A] hover:bg-slate-100 transition cursor-pointer">
                                 👁️ Nét Bút
                             </button>
-                            <button type="button" onclick="toggleBasket('${k.id}', '${k.kanjiChar}', '${k.hanViet}')" class="btn-nhai flex-1 py-1.5 rounded-[5px] text-xs font-itim font-bold ${inBasket ? 'bg-[#1E8B3F] text-white border-black' : 'btn-nhai-tutor'}">
+                            <button type="button" onclick="toggleBasket('${k.id}', '${k.kanjiChar}', '${k.hanViet}')" class="flex-1 py-1.5 rounded-[5px] text-xs font-itim font-bold border border-black text-white shadow-[1.5px_1.5px_0px_0px_#0F172A] transition cursor-pointer ${inBasket ? 'bg-[#15803D] hover:bg-[#166534]' : 'bg-[#7C3AED] hover:bg-[#6D28D9]'}">
                                 ${inBasket ? '✓ Đã Gom' : '➕ Gom Chữ'}
                             </button>
                         </div>
@@ -219,9 +219,9 @@
             if (!btns) return;
 
             let html = '';
-            html += `<button type="button" ${page === 0 ? 'disabled' : ''} onclick="loadTutorKanji(${page - 1})" class="btn-nhai btn-nhai-outline px-2.5 py-1 text-xs rounded-[5px] font-bold disabled:opacity-40">◀</button>`;
+            html += `<button type="button" ${page === 0 ? 'disabled' : ''} onclick="loadTutorKanji(${page - 1})" class="px-2.5 py-1 text-xs rounded-[5px] font-bold border border-black bg-white text-[#0F172A] shadow-[1.5px_1.5px_0px_0px_#0F172A] hover:bg-slate-100 transition disabled:opacity-40 cursor-pointer">◀</button>`;
             html += `<span class="px-2 py-1 text-black font-itim font-bold">${page + 1}</span>`;
-            html += `<button type="button" ${page >= totalPages - 1 ? 'disabled' : ''} onclick="loadTutorKanji(${page + 1})" class="btn-nhai btn-nhai-outline px-2.5 py-1 text-xs rounded-[5px] font-bold disabled:opacity-40">▶</button>`;
+            html += `<button type="button" ${page >= totalPages - 1 ? 'disabled' : ''} onclick="loadTutorKanji(${page + 1})" class="px-2.5 py-1 text-xs rounded-[5px] font-bold border border-black bg-white text-[#0F172A] shadow-[1.5px_1.5px_0px_0px_#0F172A] hover:bg-slate-100 transition disabled:opacity-40 cursor-pointer">▶</button>`;
             btns.innerHTML = html;
         }
 

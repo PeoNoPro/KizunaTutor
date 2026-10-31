@@ -83,8 +83,10 @@ public class GrammarServiceImpl implements IGrammarService {
         List<GrammarRuleDto> rules = new ArrayList<>();
         for (Map<String, Object> map : rawList) {
             String id = (String) map.get("id");
-            String pattern = (String) map.get("pattern");
-            String romaji = (String) map.get("romaji");
+            String rawPattern = (String) map.get("pattern");
+            String rawRomaji = (String) map.get("romaji");
+            String pattern = cleanGrammarPattern(rawPattern);
+            String romaji = cleanGrammarRomaji(rawRomaji);
             String level = (String) map.get("level");
             String rawMeaning = (String) map.get("meaning");
             String rawFormation = (String) map.get("formation");
@@ -165,6 +167,17 @@ public class GrammarServiceImpl implements IGrammarService {
             }
         }
         return null;
+    }
+
+    @Override
+    public File exportGrammarExcel() {
+        String outputPath = "C:\\Users\\Vuh26\\Desktop\\KizunaTutor\\Kho_Ngu_Phap_OpenJLPT_Tieng_Viet.xlsx";
+        File file = new File(outputPath);
+        if (file.exists() && file.length() > 50000) {
+            log.info("[GrammarService] Sử dụng file Excel ngữ pháp sẵn có: {}", outputPath);
+            return file;
+        }
+        return com.kizuna.util.GrammarExcelGenerator.generateExcel(outputPath);
     }
 
     @Override
@@ -582,5 +595,15 @@ public class GrammarServiceImpl implements IGrammarService {
             }
         }
         return list;
+    }
+
+    private String cleanGrammarPattern(String pattern) {
+        if (pattern == null) return "";
+        return pattern.replaceAll("（[a-zA-Z\\s/_\\-]+）|\\([a-zA-Z\\s/_\\-]+\\)", "").trim();
+    }
+
+    private String cleanGrammarRomaji(String romaji) {
+        if (romaji == null) return "";
+        return romaji.replaceAll("（[a-zA-Z\\s/_\\-]+）|\\([a-zA-Z\\s/_\\-]+\\)", "").trim();
     }
 }

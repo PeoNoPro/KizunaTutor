@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<html xmlns:th="http://www.thymeleaf.org" lang="vi" class="h-screen overflow-hidden">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${pageTitle}">Góc Hỗ Trợ Học Tập · Từ Vựng Đời Sống - KizunaTutor</title>
+    <title th:text="${pageTitle}">Kho Từ Vựng &amp; Hỗ Trợ Học Tập Đời Sống - KizunaTutor</title>
     
     <!-- Design System & Tokens -->
     <link rel="stylesheet" th:href="@{/css/design-tokens.css}">
@@ -20,201 +20,146 @@
     <script th:src="@{/js/shared/tailwind-nhai-config.js}"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#F8FAFC] text-black font-body antialiased min-h-screen flex flex-col">
+<body class="bg-[#FAF9F6] text-slate-900 font-sans antialiased h-screen overflow-hidden flex flex-col m-0 p-0">
 
-    <div class="flex-1 flex overflow-hidden">
+    <div class="flex-1 flex h-screen w-screen overflow-hidden">
         <!-- 1. SIDEBAR HỌC VIÊN CỐ ĐỊNH BÊN TRÁI -->
         <div th:replace="~{learner/layout/sidebar :: sidebar}"></div>
 
-        <!-- 2. VÙNG NỘI DUNG CUỘN ĐỘC LẬP (MAIN LEARNER WORKSPACE) -->
-        <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
-            <!-- HEADER BREADCRUMB -->
-            <header class="h-14 bg-white border-b border-[#CBD5E1] px-4 sm:px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
-                <div class="flex items-center gap-2 text-xs font-meta text-slate-500">
-                    <a th:href="@{/learner/dashboard}" class="hover:text-black transition">Bàn Học Tập</a>
-                    <span>/</span>
-                    <span class="text-slate-700 font-bold">Học Tập &amp; Luyện Tập</span>
-                    <span>/</span>
-                    <span class="text-[#E0399A] font-bold">Từ Vựng Đời Sống Thực Tế</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <a th:href="@{/learner/flashcards}" 
-                       class="btn-retro text-xs py-1.5 px-3 bg-white hover:bg-slate-50 text-black border border-black rounded-[5px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center gap-1.5 transition no-underline">
-                        <span>📁</span>
-                        <span>Mở Bộ Thẻ Cá Nhân</span>
-                    </a>
-                </div>
-            </header>
+        <!-- 2. VÙNG NỘI DUNG WORKSPACE (CỐ ĐỊNH FOOTER, CHỈ CUỘN TRONG MAIN) -->
+        <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+            <!-- HEADER CHUẨN ĐỒNG BỘ CHO HỌC VIÊN (CHỈ HIỆN TRÊN MOBILE, TỐI ƯU 100% DIỆN TÍCH TRÊN DESKTOP) -->
+            <header th:replace="~{learner/layout/header :: header}"></header>
 
-            <!-- NỘI DUNG CHÍNH -->
-            <main class="p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-4">
+            <!-- NỘI DUNG CHÍNH (VÙNG CUỘN ĐỘC LẬP DUY NHẤT) -->
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+                <div class="max-w-7xl mx-auto w-full space-y-3.5">
                 
-                <!-- SLIM HERO BANNER RETRO -->
-                <div class="card-retro bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <h1 class="font-itim text-lg sm:text-xl font-bold text-black flex items-center gap-1.5 leading-none">
-                                🌸 Góc Hỗ Trợ Học Tập · Từ Vựng Đời Sống Thực Tế 🇯🇵
-                            </h1>
+                <!-- 1. GIAO DIỆN DANH SÁCH TỪ VỰNG BÊN NGOÀI (VOCAB LIST VIEW) -->
+                <div id="vocabListView" class="space-y-3.5">
+                    <!-- 1. BANNER TIÊU ĐỀ RETRO-BRUTALIST -->
+                    <div class="bg-white border border-black rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-2">
+                                <span class="bg-[#FFE5EC] text-rose-800 border border-black text-[11px] font-bold px-2 py-0.5 rounded-[5px] shadow-[1.5px_1.5px_0px_0px_#0F172A]">
+                                    🌸 Kho ngữ liệu OpenJLPT
+                                </span>
+                                <h1 class="font-['Itim'] text-xl sm:text-2xl font-bold text-black flex items-center gap-1.5 leading-none">
+                                    Kho từ vựng tiếng Nhật &amp; câu ví dụ thực tế 📚
+                                </h1>
+                            </div>
+                            <p class="font-['Segoe_UI'] text-xs text-slate-600 mt-1 truncate">
+                                Hơn 7.800 từ vựng đầy đủ 5 cấp độ N5 - N1 kèm phiên âm Furigana, Hán Việt và câu ví dụ ngữ cảnh 100% tiếng Việt!
+                            </p>
                         </div>
-                        <p class="font-sans text-xs text-slate-600 mt-1 truncate">
-                            Học từ vựng theo tình huống giao tiếp Nhật Bản, phát âm chuẩn giọng bản ngữ và chuyển thẳng vào Shodo múa bút! 🧋
-                        </p>
+
+                        <!-- Ô TÌM KIẾM NHANH BỌC FORM AN TOÀN -->
+                        <form id="vocabFilterForm" onsubmit="handleVocabSearchSubmit(event)" class="w-full sm:w-80 shrink-0 m-0 p-0">
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                                    🔍
+                                </span>
+                                <input type="text"
+                                       id="searchVocabInput"
+                                       placeholder="Tìm từ vựng, Romaji, Hiragana, nghĩa..."
+                                       class="w-full pl-8 pr-3 py-1.5 text-xs rounded-[5px] border border-black text-slate-900 bg-[#FAF9F6] outline-none focus:bg-white shadow-[1.5px_1.5px_0px_0px_#0F172A] transition">
+                            </div>
+                        </form>
                     </div>
 
-                    <!-- Ô TÌM KIẾM NHANH TRONG CHỦ ĐỀ -->
-                    <div class="w-full sm:w-72 shrink-0">
-                        <input type="text"
-                               id="searchVocabInput"
-                               placeholder="🔍 Tìm từ vựng, Romaji, nghĩa tiếng Việt..."
-                               class="w-full px-3 py-1.5 text-xs rounded-[5px] border border-black text-black font-body outline-none focus:ring-1 focus:ring-black shadow-[1.5px_1.5px_0px_0px_#0F172A]">
+                    <!-- 2. BẢNG CHỌN CHỦ ĐỀ & CẤP ĐỘ JLPT (DROPDOWN BẢNG CHỌN) -->
+                    <div class="bg-white border border-black rounded-[5px] p-3 shadow-[3px_3px_0px_0px_#0F172A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                            <label for="topicSelect" class="text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
+                                <span>📚</span>
+                                <span>Chủ đề / Cấp độ JLPT:</span>
+                            </label>
+                            <select id="topicSelect"
+                                    onchange="selectTopic(this.value)"
+                                    class="px-3 py-1.5 bg-white text-slate-900 font-['Itim'] text-xs font-bold rounded-[5px] border border-black shadow-[1.5px_1.5px_0px_0px_#0F172A] outline-none cursor-pointer focus:ring-1 focus:ring-black transition w-full max-w-md">
+                                <option value="">Đang nạp danh mục cấp độ &amp; chủ đề...</option>
+                            </select>
+                        </div>
+                        <span class="text-[10px] text-rose-700 font-bold bg-[#FFE4E6] px-2.5 py-1 rounded-[5px] border border-black shadow-[1px_1px_0px_0px_#0F172A] self-start sm:self-auto shrink-0">
+                            🌸 Tổng cộng 7.811 từ vựng OpenJLPT
+                        </span>
+                    </div>
+
+                    <!-- 3. KHỐI THÔNG TIN CHỦ ĐỀ ĐANG CHỌN -->
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-[#FEF3C7] border border-black rounded-[5px] px-3.5 py-2 text-xs gap-2 shadow-[2px_2px_0px_0px_#0F172A]">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="font-['Itim'] font-bold text-sm text-slate-900" id="activeTopicTitle">...</span>
+                            <span class="text-slate-400">|</span>
+                            <span class="text-slate-700 truncate" id="activeTopicDesc">...</span>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <span id="activeTopicCountBadge" class="font-bold text-slate-800 text-xs">...</span>
+                            <a th:href="@{/kanji(tab='game')}" class="text-[11px] font-['Itim'] font-bold text-[#E0399A] hover:underline flex items-center gap-1 no-underline">
+                                <span>🎮</span> Chơi game bắn chữ
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 4. LƯỚI THẺ TỪ VỰNG (VOCABULARY GRID) - CHỈ HIỆN THÔNG TIN CƠ BẢN + NGHĨA -->
+                    <div id="vocabGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 pb-2">
+                        <!-- Danh sách từ vựng được nạp động từ learningSupport.js -->
+                    </div>
+
+                    <!-- TRẠNG THÁI RỖNG (EMPTY STATE) -->
+                    <div id="vocabEmptyState" class="hidden p-8 text-center rounded-[5px] border border-dashed border-black bg-white shadow-[3px_3px_0px_0px_#0F172A]">
+                        <div class="text-3xl mb-2">🔍</div>
+                        <h3 class="font-['Itim'] text-base font-bold text-slate-900">Không tìm thấy từ vựng phù hợp!</h3>
+                        <p class="text-xs text-slate-600 mt-1">Hãy thử tìm bằng từ khóa khác hoặc chuyển sang cấp độ, chủ đề khác bạn nhé.</p>
+                    </div>
+
+                    <!-- 5. THANH ĐIỀU HƯỚNG PHÂN TRANG -->
+                    <div id="vocabPaginationBar" class="hidden flex flex-col sm:flex-row items-center justify-between bg-white border border-black rounded-[5px] p-2.5 shadow-[2px_2px_0px_0px_#0F172A] gap-2 text-xs">
+                        <div id="vocabPaginationSummary" class="text-slate-600 font-medium">
+                            Hiển thị 0 từ
+                        </div>
+                        <div class="flex items-center gap-1.5" id="vocabPaginationButtons">
+                            <!-- Nút phân trang tạo động -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- DẢI NÚT CHỌN CHỦ ĐỀ (TOPIC PILL BAR) -->
-                <div class="bg-white border border-black rounded-[5px] p-2.5 shadow-[3px_3px_0px_0px_#0F172A]">
-                    <div class="text-[11px] font-bold text-slate-500 font-meta mb-1.5 tracking-wider flex items-center justify-between">
-                        <span>Chủ đề đời sống thực tế:</span>
-                        <span class="text-[10px] text-pink-600 font-normal">Nguồn dữ liệu mở chuẩn OpenJLPT</span>
+                <!-- 2. TRANG GIAO DIỆN CHI TIẾT TỪ VỰNG RIÊNG BIỆT (DEDICATED VOCAB DETAIL VIEW) -->
+                <div id="vocabDetailView" class="hidden space-y-4">
+                    <!-- THANH ĐIỀU HƯỚNG QUAY LẠI -->
+                    <div class="flex items-center justify-between bg-white border border-black rounded-[5px] p-3 shadow-[3px_3px_0px_0px_#0F172A]">
+                        <button type="button" 
+                                onclick="closeVocabDetail(event)"
+                                class="text-xs py-1.5 px-3 bg-white hover:bg-slate-100 text-[#0F172A] border border-black rounded-[5px] shadow-[1.5px_1.5px_0px_0px_#0F172A] font-['Itim'] font-bold flex items-center gap-1.5 active:translate-y-0.5 cursor-pointer">
+                            <span>⬅️</span>
+                            <span>Quay Lại Kho Từ Vựng</span>
+                        </button>
+                        <div class="text-xs font-meta font-bold text-slate-500 hidden sm:flex items-center gap-2">
+                            <span>Kho Từ Vựng</span>
+                            <span>/</span>
+                            <span id="detailBreadcrumbTopic" class="text-black font-bold">JLPT N5</span>
+                            <span>/</span>
+                            <span id="detailBreadcrumbWord" class="text-[#E0399A] font-bold">...</span>
+                        </div>
                     </div>
-                    <div id="topicPillsContainer" class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                        <div class="text-xs text-slate-400 py-1">Đang tải danh sách chủ đề...</div>
+
+                    <!-- KHỐI NỘI DUNG CHI TIẾT TỪ VỰNG RETRO-BRUTALIST -->
+                    <div id="vocabDetailContent" class="space-y-4">
+                        <!-- Nội dung nạp động từ renderVocabDetailPage(vocab) -->
                     </div>
                 </div>
 
-                <!-- BANNER THÔNG TIN CHỦ ĐỀ ĐANG CHỌN -->
-                <div class="flex items-center justify-between bg-[#FEF08A]/30 border border-black/20 rounded-[5px] px-3.5 py-2 text-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="font-itim font-bold text-sm text-black" id="activeTopicTitle">...</span>
-                        <span class="text-slate-400">|</span>
-                        <span class="text-slate-600 font-body" id="activeTopicDesc">...</span>
-                    </div>
-                    <a th:href="@{/kanji(tab='game')}" class="text-[11px] font-itim font-bold text-[#E0399A] hover:underline flex items-center gap-1 no-underline">
-                        <span>🎮</span> Chơi game bắn chữ
-                    </a>
                 </div>
-
-                <!-- LƯỚI THẺ TỪ VỰNG (VOCABULARY GRID) -->
-                <div id="vocabGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
-                    <!-- Danh sách từ vựng được nạp động từ learningSupport.js -->
-                </div>
-
-                <!-- TRẠNG THÁI RỖNG (EMPTY STATE KHI TÌM KHÔNG THẤY) -->
-                <div id="vocabEmptyState" class="hidden p-8 text-center rounded-[5px] border-2 border-dashed border-black bg-white shadow-[3px_3px_0px_0px_#0F172A]">
-                    <div class="text-3xl mb-2">🍃</div>
-                    <h3 class="font-itim text-base font-bold text-black">Không tìm thấy từ vựng phù hợp!</h3>
-                    <p class="text-xs text-slate-500 font-body mt-1">Hãy thử tìm bằng từ khóa khác hoặc đổi sang chủ đề khác bạn nhé.</p>
-                </div>
-
-                <!-- THANH ĐIỀU HƯỚNG PHÂN TRANG -->
-                <div id="vocabPaginationBar" class="hidden flex items-center justify-between bg-white border border-black rounded-[5px] p-2.5 shadow-[2px_2px_0px_0px_#0F172A]">
-                    <button type="button" 
-                            id="vocabPrevBtn"
-                            onclick="prevVocabPage()"
-                            class="btn-retro text-xs py-1 px-3 bg-white hover:bg-slate-50 text-black border border-black rounded-[4px] shadow-[1.5px_1.5px_0px_0px_#000] font-itim disabled:opacity-40 disabled:cursor-not-allowed">
-                        ⬅️ Trang Trước
-                    </button>
-                    <span id="vocabPageInfo" class="text-xs font-meta font-bold text-black">Trang 1 / 1</span>
-                    <button type="button" 
-                            id="vocabNextBtn"
-                            onclick="nextVocabPage()"
-                            class="btn-retro text-xs py-1 px-3 bg-white hover:bg-slate-50 text-black border border-black rounded-[4px] shadow-[1.5px_1.5px_0px_0px_#000] font-itim disabled:opacity-40 disabled:cursor-not-allowed">
-                        Trang Sau ➡️
-                    </button>
-                </div>
-
             </main>
-        </div>
-    </div>
 
-    <!-- MODAL 1: CẤT VÀO BỘ THẺ FLASHCARD (ADD TO DECK MODAL) -->
-    <div id="modalAddToDeck" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="card-nhai bg-white rounded-[5px] max-w-sm w-full p-5 shadow-[6px_6px_0px_0px_#0F172A] border-2 border-black space-y-3.5 text-xs font-body">
-            <!-- Header Modal -->
-            <div class="flex items-center justify-between pb-2 border-b border-black">
-                <div class="flex items-center gap-2">
-                    <span class="text-lg">📁</span>
-                    <h3 class="font-itim text-base font-bold text-black">Cất Vào Bộ Thẻ Flashcard</h3>
-                </div>
-                <button type="button" onclick="closeAddToDeckModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm leading-none">✕</button>
-            </div>
-
-            <!-- Tóm tắt từ vựng đang chọn -->
-            <div class="bg-[#FAF9F6] border border-black/15 rounded-[4px] p-2.5">
-                <div class="flex items-baseline justify-between mb-1">
-                    <span class="text-lg font-bold font-serif text-black" id="modalDeckVocabWord">...</span>
-                    <span class="text-xs font-bold text-[#14532D]" id="modalDeckVocabMeaning">...</span>
-                </div>
-                <div class="text-[11px] text-slate-500 font-meta">
-                    Chữ Kanji liên kết: <span class="font-bold text-amber-900" id="modalDeckVocabKanjis">...</span>
-                </div>
-            </div>
-
-            <form onsubmit="submitAddVocabToDeck(event)" class="space-y-3">
-                <!-- Chọn bộ thẻ có sẵn -->
-                <div>
-                    <label class="block font-bold text-black font-meta mb-1 text-[11px]">
-                        1. Chọn bộ thẻ có sẵn của bạn:
-                    </label>
-                    <select id="saveDeckSelect"
-                            class="w-full px-2.5 py-1.5 rounded-[5px] border border-black text-black text-xs outline-none bg-white font-body shadow-[1.5px_1.5px_0px_0px_#0F172A]">
-                        <!-- Danh sách bộ thẻ -->
-                    </select>
-                </div>
-
-                <div class="text-center text-[10px] text-slate-400 font-meta font-bold">--- hoặc ---</div>
-
-                <!-- Tạo bộ thẻ mới nhanh -->
-                <div>
-                    <label class="block font-bold text-black font-meta mb-1 text-[11px]">
-                        2. Nhập tên tạo bộ thẻ mới:
-                    </label>
-                    <input type="text"
-                           id="newDeckNameInput"
-                           placeholder="Ví dụ: Từ vựng Quán ăn, Giao tiếp N4..."
-                           class="w-full px-2.5 py-1.5 rounded-[5px] border border-black text-black text-xs font-body outline-none shadow-[1.5px_1.5px_0px_0px_#0F172A]">
-                </div>
-
-                <!-- Footer nút bấm -->
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-black/10">
-                    <button type="button" 
-                            onclick="closeAddToDeckModal()"
-                            class="px-3 py-1.5 rounded-[5px] bg-white border border-black text-black hover:bg-slate-100 font-bold font-itim text-xs shadow-[2px_2px_0px_0px_#0F172A] transition">
-                        Hủy
-                    </button>
-                    <button type="submit" 
-                            id="btnSubmitAddToDeck"
-                            class="px-3.5 py-1.5 rounded-[5px] bg-[#15803D] hover:bg-[#166534] text-white border border-black font-bold font-itim text-xs shadow-[2px_2px_0px_0px_#0F172A] transition active:scale-95 flex items-center gap-1 cursor-pointer">
-                        <span>💾</span>
-                        <span>Lưu Ngay</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 2: BẢNG CHỌN CHỮ KANJI ĐỂ LUYỆN VIẾT SHODO (MULTI-KANJI PICKER) -->
-    <div id="modalKanjiPicker" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="card-nhai bg-white rounded-[5px] max-w-sm w-full p-5 shadow-[6px_6px_0px_0px_#0F172A] border-2 border-black space-y-3.5 text-xs font-body">
-            <!-- Header Modal -->
-            <div class="flex items-center justify-between pb-2 border-b border-black">
-                <div class="flex items-center gap-2">
-                    <span class="text-lg">🖌️</span>
-                    <h3 class="font-itim text-base font-bold text-black" id="pickerWordTitle">Chọn Chữ Hán Cần Luyện</h3>
-                </div>
-                <button type="button" onclick="closeKanjiPickerModal()" class="text-black hover:text-[#DC2626] font-bold p-1 text-sm leading-none">✕</button>
-            </div>
-
-            <p class="text-[11px] text-slate-600 font-meta">Từ vựng này gồm nhiều chữ Hán. Hãy chọn chữ bạn muốn luyện viết nét trên ô Mễ Shodo:</p>
-
-            <!-- Danh sách các chữ Kanji để bấm chọn -->
-            <div id="pickerKanjiList" class="space-y-2 py-1 max-h-60 overflow-y-auto">
-                <!-- Nạp động -->
-            </div>
+            <!-- FOOTER CỐ ĐỊNH CHÂN TRANG (FIXED FOOTER SHELL) -->
+            <footer class="h-8 bg-white border-t border-black px-4 sm:px-6 flex items-center justify-between shrink-0 z-20 text-[11px] text-slate-600 font-meta shadow-[0px_-2px_0px_0px_#0F172A]">
+                <span>🌸 KizunaTutor © 2026 • Kho Từ Vựng Tiếng Nhật Đời Sống &amp; OpenJLPT</span>
+                <span class="font-bold text-emerald-800">✓ Dữ liệu PostgreSQL thực tế • Bản địa hóa 100% Tiếng Việt</span>
+            </footer>
         </div>
     </div>
 
     <!-- Script tương tác chính -->
-    <script th:src="@{/js/learner/learningSupport.js}"></script>
+    <script th:src="@{/js/learner/learningSupport.js(v='20261031_03')}"></script>
 </body>
 </html>

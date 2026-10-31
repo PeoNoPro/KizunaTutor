@@ -31,7 +31,7 @@ This document provides system-level guidance for all AI assistants (IntelliJ AI 
 ## 1. Design & UI Guidelines (from `pbakaus/impeccable` & `Leonxlnx/taste-skill`)
 
 When creating or modifying frontend components, pages, or templates:
-1. **Source of Truth**: Always respect [DESIGN.md](DESIGN.md) and [UI_LOCALIZATION_RULES.md](UI_LOCALIZATION_RULES.md).
+1. **Source of Truth**: Always respect [DESIGN.md](DESIGN.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), and [CONVENTIONS.md](CONVENTIONS.md).
 2. **Palette Compliance**:
    - Primary: Indigo Aizome (`#1B2A4A`)
    - Secondary: Sakura Pink (`#FAD0C4`)
@@ -43,20 +43,30 @@ When creating or modifying frontend components, pages, or templates:
    - Do NOT output repetitive 3-column card layouts without semantic hierarchy.
    - Respect Japanese typography rules: ensure `font-family` supports Japanese glyphs (`"Noto Sans JP"`, `"Zen Kaku Gothic New"`).
    - Kanji practice canvases must strictly align with the `109x109` KanjiVG coordinate system.
-4. **Zero Layout Shift & Fixed Frame Containment Rule**:
+4. **Zero Layout Shift & Comprehensive Section Fixed Frame Containment**:
+   - All page sections (Header, Sidebar, Filter Toolbar, Card Grid, Detail Drawer/Inspector, Pagination) must declare fixed dimensions (`fixed height`, `min-h-[...]`, `max-h-[...]`) and independent scroll zones (`overflow-y-auto scrollbar-thin`).
+   - Loading data from APIs or switching pages must NEVER cause the overall screen layout to shift, stretch, or stutter (Zero Layout Shift).
    - All card components (Decks, Folders, Kanji Cards, Curriculum Blocks) must maintain strictly fixed outer dimensions (`h-[360px] max-h-[360px]`) and fixed inner content boxes (`h-[155px] max-h-[155px] overflow-y-auto`).
-   - Floating action menus (kebab 3-dots `[⋮]`, dropdown actions, popovers) must be decoupled via `position: absolute; z-index: 50; shrink-0` so they never stretch, squeeze, or shift their parent container or sibling controls. Empty states and dynamic chip lists must fit within the fixed inner box without changing card height.
+   - Floating action menus (kebab 3-dots `[⋮]`, dropdown actions, popovers) must be decoupled via `position: absolute; z-index: 50; shrink-0` so they never stretch, squeeze, or shift their parent container or sibling controls.
+5. **Filter Controls Convention: Dropdown Select Instead of Raw Buttons**:
+   - Always render filter selectors (JLPT Level, Topic, Part of Speech, Status, Sort) as **Dropdown Selects (`<select>`) or Popover Pickers** with a dropdown indicator (`▼`).
+   - NEVER lay out a long series of direct action buttons (`<button>`) horizontally or vertically across the toolbar. Direct button chains overflow screens, wrap awkwardly across breakpoints, and clutter the learning space.
+   - Retro-Brutalist styling: `rounded-[5px] border border-black bg-white px-3 py-1.5 text-xs font-itim shadow-[1.5px_1.5px_0px_0px_#0F172A] outline-none cursor-pointer focus:ring-1 focus:ring-black`.
 
 ---
 
 ## 2. Backend & Architecture Guidelines (Spring Boot + PostgreSQL)
 
-1. **Database Schema**:
+1. **Decoupled Frontend & Backend Architecture (API-Driven)**:
+   - Frontend and Backend run on independent processes/ports, strictly decoupled without Server-Side Rendering (SSR) tight coupling.
+   - Client and Server communicate exclusively through standard RESTful APIs returning UTF-8 JSON (`application/json`).
+   - Authentication and authorization use HTTP Header Bearer Tokens (JWT), keeping the backend stateless.
+2. **Database Schema**:
    - Sourced from [DatabasePgAdmin4.txt](DatabasePgAdmin4.txt) and [Database_Minigame_KanjiFolder.sql](Database_Minigame_KanjiFolder.sql).
    - Entities must use standard Spring Data JPA annotations (`@Entity`, `@Table`, `@Id`, UUID keys).
-2. **AI Memory Microservice**:
+3. **AI Memory Microservice**:
    - Use `com.kizuna.service.ai.AgentMemoryService` to communicate with the `agent-memory` Docker container on port `8081`.
-3. **Kanji Asset Integration**:
+4. **Kanji Asset Integration**:
    - Kanji data is sourced from `data/kanjivg/kanji` and managed via `KanjiDataSeeder`.
 
 ---

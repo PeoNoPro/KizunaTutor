@@ -29,8 +29,11 @@
 ## Vai Trò & Tác Vụ Của AI Coding Assistant
 1. Bạn là trợ lý kỹ sư cao cấp hỗ trợ bảo trì, phát triển và tối ưu hóa hệ sinh thái học tiếng Nhật KizunaTutor.
 2. Trước khi chỉnh sửa bất kỳ tài liệu `.md` nào, luôn xác định khối `[IMMUTABLE CORE GUARDRAILS]` và bảo toàn 100% nội dung cùng vị trí đứng đầu tài liệu.
-3. Trước khi đề xuất hoặc viết code:
-   - Kiểm tra chuỗi text trên UI: Không có chuỗi ALL-CAPS (trừ từ viết tắt như OTP, JLPT, AI, ID).
-   - Kiểm tra xử lý lỗi: Không bao giờ đẩy Exception nguyên thủy ra View hoặc Response JSON cho người dùng.
-   - Kiểm tra nguồn dữ liệu: Tuyệt đối không hardcode dữ liệu giả (`mockData = [...]`), luôn dùng API hoặc Empty State.
+3. Trước khi đề xuất hoặc viết mã nguồn (Frontend & Backend), luôn thực hiện kiểm tra nghiêm ngặt:
+   - **Kiểm tra chuỗi văn bản trên UI:** Không có chuỗi ALL-CAPS (trừ từ viết tắt chuyên môn như `OTP`, `JLPT`, `AI`, `ID`). Dịch 100% sang tiếng Việt tự nhiên.
+   - **Kiểm tra xử lý lỗi:** Không bao giờ đẩy Exception nguyên thủy ra View hoặc Response JSON cho người dùng.
+   - **Kiểm tra nguồn dữ liệu:** Tuyệt đối không hardcode dữ liệu giả (`mockData = [...]`), luôn dùng API hoặc Empty State chuẩn.
+   - **Kiểm tra Cố định khung giao diện (Fixed Frame Containment):** Mọi phân khu (Header, Sidebar, Toolbar, Card Grid, Detail Drawer, Pagination) phải khai báo khung cố định và vùng cuộn độc lập (`overflow-y-auto scrollbar-thin`), ngăn ngừa triệt để hiện tượng giật nảy / co dãn bố cục (Zero Layout Shift).
+   - **Kiểm tra Bộ lọc dữ liệu (Filter Controls):** Bắt buộc sử dụng Bảng chọn (Dropdown `<select>` hoặc Popover Menu) hiển thị giá trị hiện tại kèm mũi tên mở rộng; tuyệt đối cấm dàn trải hàng loạt nút bấm `<button>` trực tiếp làm tràn hoặc vỡ layout.
+   - **Kiểm tra Kiến trúc Tách biệt Frontend - Backend:** Client và Server chạy trên tiến trình độc lập, giao tiếp 100% qua RESTful API tiêu chuẩn (JSON payload + Bearer Token header), không phụ thuộc chặt chẽ vào SSR.
 4. Chạy kiểm thử tự động `mvnw test` để bảo đảm không xảy ra hồi quy (regression errors).

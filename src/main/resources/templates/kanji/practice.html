@@ -1099,19 +1099,21 @@
                 <!-- ========================================================================= -->
                 <div id="sectionLibraryTab" th:if="${isUnlocked}" th:style="${param.tab != null && param.tab[0] == 'library'} ? 'display: block;' : 'display: none;'">
                     <div style="background: #FFFFFF; border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 20px 24px; margin-bottom: 24px; box-shadow: var(--shadow-xs);">
-                        <!-- Hàng 1: Bộ lọc Cấp độ JLPT (Pills) -->
+                        <!-- Hàng 1: Bộ lọc Cấp độ JLPT (Bảng chọn Dropdown) -->
                         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; border-bottom: 1px dashed var(--color-border); padding-bottom: 16px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 18px;">🎯</span>
-                                <strong style="color: var(--color-primary); font-size: 14px;">Cấp độ JLPT:</strong>
+                                <label for="libJlptSelect" style="color: var(--color-primary); font-size: 14px; font-weight: 700; cursor: pointer;">Cấp độ JLPT:</label>
                             </div>
-                            <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="libLevelFilterGroup">
-                                <button type="button" class="level-filter-btn active" data-level="ALL" onclick="onSelectJlptLevel('ALL')">Tất cả cấp độ</button>
-                                <button type="button" class="level-filter-btn" data-level="N5" onclick="onSelectJlptLevel('N5')">JLPT N5</button>
-                                <button type="button" class="level-filter-btn" data-level="N4" onclick="onSelectJlptLevel('N4')">JLPT N4</button>
-                                <button type="button" class="level-filter-btn" data-level="N3" onclick="onSelectJlptLevel('N3')">JLPT N3</button>
-                                <button type="button" class="level-filter-btn" data-level="N2" onclick="onSelectJlptLevel('N2')">JLPT N2</button>
-                                <button type="button" class="level-filter-btn" data-level="N1" onclick="onSelectJlptLevel('N1')">JLPT N1</button>
+                            <div id="libLevelFilterGroup">
+                                <select id="libJlptSelect" onchange="onSelectJlptLevel(this.value)" class="input-nhai" style="padding: 7px 14px; font-size: 13px; font-weight: 700; border-radius: 5px; border: 1px solid #000000; box-shadow: 1.5px 1.5px 0px 0px #0F172A; background-color: #FFFFFF; cursor: pointer; min-width: 180px;">
+                                    <option value="ALL">🌸 Tất cả cấp độ</option>
+                                    <option value="N5">🌱 JLPT N5 (Sơ cấp)</option>
+                                    <option value="N4">🌿 JLPT N4 (Sơ trung cấp)</option>
+                                    <option value="N3">🎋 JLPT N3 (Trung cấp)</option>
+                                    <option value="N2">🌲 JLPT N2 (Trung cao cấp)</option>
+                                    <option value="N1">🍁 JLPT N1 (Cao cấp)</option>
+                                </select>
                             </div>
                         </div>
 

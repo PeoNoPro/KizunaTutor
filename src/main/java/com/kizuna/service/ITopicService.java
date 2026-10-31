@@ -18,5 +18,7 @@ public interface ITopicService {
 
     Map<String, Object> addVocabularyToDeck(UUID userId, UUID vocabId, AddVocabToDeckRequest request);
 
+    TopicVocabularyDto getVocabularyById(UUID vocabId);
+
     void seedTopicsAndVocabulariesIfEmpty();
 }

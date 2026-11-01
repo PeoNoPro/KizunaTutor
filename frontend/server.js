@@ -22,6 +22,11 @@ const MIME_TYPES = {
 const URL_ALIASES = {
   '/home.html': '/pages/home/index.html',
   '/home': '/pages/home/index.html',
+  '/login.html': '/pages/login/index.html',
+  '/login': '/pages/login/index.html',
+  '/register.html': '/pages/register/index.html',
+  '/register': '/pages/register/index.html',
+  '/oauth2/redirect': '/pages/login/index.html',
   '/tutors.html': '/pages/tutor-discovery/index.html',
   '/tutors': '/pages/tutor-discovery/index.html',
   '/tutor-discovery': '/pages/tutor-discovery/index.html',

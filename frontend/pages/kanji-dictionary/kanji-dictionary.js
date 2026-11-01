@@ -6,6 +6,14 @@
  */
 
 import { debounce, showToast } from '/js/main.js';
+import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+
+// Khởi tạo khung giao diện học viên dùng chung
+initLearnerShell({
+  activeMenu: 'kanji-dictionary',
+  pageTitle: 'Từ điển Hán tự Joyo',
+  badge: 'Công cụ rèn luyện'
+});
 
 // Khởi tạo trạng thái
 let currentPage = 0;

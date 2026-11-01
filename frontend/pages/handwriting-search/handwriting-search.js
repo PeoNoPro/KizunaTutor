@@ -5,6 +5,14 @@
  */
 
 import { showToast } from '/js/main.js';
+import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+
+// Khởi tạo khung giao diện học viên dùng chung
+initLearnerShell({
+  activeMenu: 'handwriting',
+  pageTitle: 'Tra cứu nét vẽ OHR',
+  badge: 'Nhận diện nét vẽ AI'
+});
 
 // =========================================================================
 // 1. TRẠNG THÁI CANVAS & QUẢN LÝ NÉT VẼ

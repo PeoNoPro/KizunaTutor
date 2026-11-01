@@ -5,18 +5,18 @@
  * Tuân thủ FRONTEND_RULES.md (Zero mock/fake data)
  */
 
+import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { showToast } from '/js/main.js';
 
+// Khởi tạo khung Layout dùng chung cho Học Viên
+initLearnerShell({
+  activeMenu: 'dashboard',
+  pageTitle: 'Tổng quan học tập',
+  badge: 'Bàn học tập'
+});
+
 // DOM Elements
-const sidebar = document.getElementById('learnerSidebar');
-const btnOpenSidebar = document.getElementById('btnOpenSidebarMobile');
-const btnCloseSidebar = document.getElementById('btnCloseSidebarMobile');
-const btnLogout = document.getElementById('btnLogoutSidebar');
-
-const sidebarLearnerName = document.getElementById('sidebarLearnerName');
 const bannerLearnerName = document.getElementById('bannerLearnerName');
-const sidebarUserAvatar = document.getElementById('sidebarUserAvatar');
-
 const statKanjiCount = document.getElementById('statKanjiCount');
 const statKanjiSubtext = document.getElementById('statKanjiSubtext');
 const statAccuracy = document.getElementById('statAccuracy');
@@ -172,20 +172,14 @@ function handleLogout() {
 // =========================================================================
 // 5. KHỞI TẠO DOM VÀ SỰ KIỆN
 // =========================================================================
-document.addEventListener('DOMContentLoaded', () => {
+function initDashboard() {
   loadLearnerProfile();
   loadRealFlashcardStats();
   loadRecentSessions();
+}
 
-  // Mở / Đóng Sidebar Mobile
-  btnOpenSidebar?.addEventListener('click', () => {
-    sidebar?.classList.remove('-translate-x-full');
-  });
-
-  btnCloseSidebarMobile?.addEventListener('click', () => {
-    sidebar?.classList.add('-translate-x-full');
-  });
-
-  // Đăng xuất
-  btnLogout?.addEventListener('click', handleLogout);
-});
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+  initDashboard();
+}

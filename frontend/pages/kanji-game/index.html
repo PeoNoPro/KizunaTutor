@@ -38,64 +38,21 @@
     }
   </style>
 </head>
-<body class="bg-[#FCFBF7] text-[#131B2E] min-h-screen flex flex-col font-sans antialiased select-none">
+<body class="bg-white text-[#1E293B] font-sans antialiased select-none">
+  <div class="flex h-screen overflow-hidden bg-white">
 
-  <!-- ==================== 1. SYNCHRONIZED HEADER ==================== -->
-  <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFBF7]/95 backdrop-blur-md border-b border-[#ECE8DE]">
-    <div class="h-20 max-w-[1240px] mx-auto px-4 md:px-8 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-6">
-        <a class="flex items-center gap-2 group" href="/pages/home/">
-          <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
-          <div class="flex flex-col">
-            <div class="flex items-center gap-1.5">
-              <span class="font-bold text-xl tracking-tight text-[#0F2545]">Kizuna<span class="text-[#006194]">Tutor</span></span>
-            </div>
-            <span class="text-[10px] text-[#68737D] font-medium -mt-0.5 tracking-wider">Kết nối song ngữ Việt – Nhật</span>
-          </div>
-        </a>
-        <nav class="hidden lg:flex items-center gap-1" id="main-nav">
-          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/tutor-discovery/">Tìm gia sư</a>
-          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
-          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
-          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg bg-[#006194] text-white font-semibold shadow-sm transition-colors" href="/kanji-game">Công cụ học</a>
-        </nav>
-      </div>
+    <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
+    <div id="learnerSidebarContainer"></div>
 
-      <div class="flex items-center gap-3">
-        <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-[#006194] hover:bg-[#006194]/10 transition-colors border border-[#006194]/20" href="/login">
-          <span class="material-symbols-outlined text-[16px]">school</span>
-          <span>Vào Dashboard học tập</span>
-        </a>
-        <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-[#006194] text-white hover:bg-[#004B73] transition-all shadow-sm font-semibold flex items-center gap-1.5" href="/register">
-          <span>Đăng ký</span>
-          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-        </a>
-        <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#F2EFE6] transition-colors">
-          <span class="material-symbols-outlined text-[24px]">menu</span>
-        </button>
-      </div>
-    </div>
+    <!-- 2. MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      
+      <!-- HEADER DÙNG CHUNG CHO HỌC VIÊN -->
+      <div id="learnerHeaderContainer"></div>
 
-    <!-- Mobile Navigation Drawer -->
-    <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ECE8DE] bg-[#FCFBF7] px-6 py-4 space-y-2">
-      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/tutor-discovery/">Tìm gia sư</a>
-      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
-      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
-      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
-      <a class="block font-semibold text-sm py-2 text-[#006194]" href="/kanji-game">Công cụ học</a>
-      <div class="pt-3 border-t border-[#ECE8DE]">
-        <a class="flex items-center gap-2 font-semibold text-xs py-2 text-[#006194]" href="/login">
-          <span class="material-symbols-outlined text-[16px]">school</span>
-          <span>Vào Dashboard học tập</span>
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <!-- ==================== 2. MAIN CONTENT ==================== -->
-  <main class="w-full pt-28 pb-16 flex-1">
-    <div class="max-w-[1240px] mx-auto px-4 md:px-8 space-y-6">
+      <!-- Scrollable Main Container -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-white flex flex-col">
+        <div class="max-w-[1240px] w-full mx-auto flex-1 space-y-6">
 
       <!-- Hero Header Banner & Fast Tool Switcher -->
       <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -428,63 +385,11 @@
     </div>
   </div>
 
-  <!-- ==================== 3. SYNCHRONIZED FOOTER ==================== -->
-  <footer class="w-full bg-[#131D2E] text-[#E3E8F3] pt-16 pb-10 border-t border-[#1F2D45] mt-auto">
-    <div class="max-w-[1240px] mx-auto px-4 md:px-8">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-        <div class="space-y-4">
-          <div class="flex items-center gap-2">
-            <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-8 w-8 object-contain rounded-full shadow">
-            <span class="font-bold text-xl tracking-tight text-white">Kizuna<span class="text-sky-400">Tutor</span></span>
-          </div>
-          <p class="text-xs text-[#94A3B8] leading-relaxed">
-            Nền tảng công nghệ giáo dục kết nối gia sư tiếng Nhật chuyên môn cao và hỗ trợ học viên luyện tập Kanji, Ngữ pháp, Flashcard thông minh.
-          </p>
         </div>
-
-        <div class="space-y-3">
-          <h4 class="font-bold text-sm text-white tracking-wide">Dành cho học viên</h4>
-          <ul class="space-y-2 text-xs text-[#94A3B8]">
-            <li><a href="/pages/tutor-discovery/" class="hover:text-white transition">Tìm kiếm gia sư</a></li>
-            <li><a href="/kanji-dictionary" class="hover:text-white transition">Từ điển Hán tự Joyo</a></li>
-            <li><a href="/shodo" class="hover:text-white transition">Luyện viết chữ Hán Shodo</a></li>
-            <li><a href="/flashcards" class="hover:text-white transition">Bộ thẻ ghi nhớ Flashcards</a></li>
-            <li><a href="/kanji-game" class="text-sky-400 font-semibold transition">Game Mưa chữ Hán</a></li>
-          </ul>
-        </div>
-
-        <div class="space-y-3">
-          <h4 class="font-bold text-sm text-white tracking-wide">Dành cho gia sư</h4>
-          <ul class="space-y-2 text-xs text-[#94A3B8]">
-            <li><a href="/pages/home/#tro-thanh-gia-su" class="hover:text-white transition">Đăng ký làm gia sư</a></li>
-            <li><a href="/login" class="hover:text-white transition">Vào Dashboard gia sư</a></li>
-            <li><a href="#" class="hover:text-white transition">Quy chuẩn giảng dạy</a></li>
-          </ul>
-        </div>
-
-        <div class="space-y-3">
-          <h4 class="font-bold text-sm text-white tracking-wide">Về KizunaTutor</h4>
-          <ul class="space-y-2 text-xs text-[#94A3B8]">
-            <li><a href="/pages/home/#cach-hoat-dong" class="hover:text-white transition">Cách thức hoạt động</a></li>
-            <li><a href="#" class="hover:text-white transition">Chính sách bảo mật</a></li>
-            <li><a href="#" class="hover:text-white transition">Điều khoản sử dụng</a></li>
-            <li><a href="#" class="hover:text-white transition">Trung tâm hỗ trợ</a></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="border-t border-[#1F2D45] pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#94A3B8]">
-        <div>
-          &copy; 2026 KizunaTutor. Tất cả các quyền được bảo lưu.
-        </div>
-        <div class="flex items-center gap-4">
-          <span>Tiếng Việt (VN)</span>
-          <span>•</span>
-          <span>Bảo vệ quyền riêng tư</span>
-        </div>
-      </div>
+        <div id="learnerFooterContainer"></div>
+      </main>
     </div>
-  </footer>
+  </div>
 
   <!-- Module Script -->
   <script type="module" src="/pages/kanji-game/kanji-game.js"></script>

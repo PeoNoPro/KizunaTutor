@@ -5,6 +5,14 @@
  */
 
 import { showToast, debounce } from '/js/main.js';
+import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+
+// Khởi tạo khung giao diện học viên dùng chung
+initLearnerShell({
+  activeMenu: 'grammar',
+  pageTitle: 'Sổ tay Ngữ pháp JLPT',
+  badge: 'Cẩm nang JLPT N5 - N1'
+});
 
 // =========================================================================
 // 1. TRẠNG THÁI TOÀN CỤC CỦA TRANG

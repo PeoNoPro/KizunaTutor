@@ -5,6 +5,14 @@
  */
 
 import { showToast } from '/js/main.js';
+import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+
+// Khởi tạo khung giao diện học viên dùng chung
+initLearnerShell({
+  activeMenu: 'shodo',
+  pageTitle: 'Phòng luyện viết Shodo',
+  badge: 'Bút thuận AI'
+});
 
 // =========================================================================
 // 1. TRẠNG THÁI TOÀN CỤC PHÒNG LUYỆN TẬP

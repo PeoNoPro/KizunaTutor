@@ -4,6 +4,14 @@
  */
 
 import { showToast } from '/js/main.js';
+import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+
+// Khởi tạo khung giao diện học viên dùng chung
+initLearnerShell({
+  activeMenu: 'kana',
+  pageTitle: 'Đấu trường gõ Kana',
+  badge: 'Căn bản Hiragana/Katakana'
+});
 
 // =========================================================================
 // 1. TỪ ĐIỂN DỮ LIỆU KANA TOÀN DIỆN (HIRAGANA & KATAKANA)

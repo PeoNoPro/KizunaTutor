@@ -5,6 +5,14 @@
  */
 
 import { debounce, showToast } from '/js/main.js';
+import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+
+// Khởi tạo khung giao diện học viên dùng chung
+initLearnerShell({
+  activeMenu: 'kanji-game',
+  pageTitle: 'Game Mưa chữ Hán',
+  badge: 'Đấu trường phản xạ'
+});
 
 // =========================================================================
 // 1. WEB AUDIO API SYNTHESIZER (Tự động phát âm không cần file MP3 bên ngoài)

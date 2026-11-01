@@ -5,6 +5,14 @@
  */
 
 import { showToast, debounce } from '/js/main.js';
+import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+
+// Khởi tạo khung giao diện học viên dùng chung
+initLearnerShell({
+  activeMenu: 'flashcards',
+  pageTitle: 'Bộ thẻ Flashcards',
+  badge: 'Bộ nhớ siêu tốc'
+});
 
 // =========================================================================
 // 1. TRẠNG THÁI TOÀN CỤC CỦA TRANG

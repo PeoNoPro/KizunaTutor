@@ -29,7 +29,11 @@ const URL_ALIASES = {
   '/connection-requests': '/pages/connection-requests/index.html',
   '/kana-quiz': '/pages/kana-quiz/index.html',
   '/kana': '/pages/kana-quiz/index.html',
-  '/kana-quiz.html': '/pages/kana-quiz/index.html'
+  '/kana-quiz.html': '/pages/kana-quiz/index.html',
+  '/shodo': '/pages/shodo-practice/index.html',
+  '/shodo-practice': '/pages/shodo-practice/index.html',
+  '/practice': '/pages/shodo-practice/index.html',
+  '/kanji-practice': '/pages/shodo-practice/index.html'
 };
 
 const server = http.createServer((req, res) => {

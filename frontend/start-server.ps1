@@ -59,8 +59,12 @@ $aliases = @{
     "/tutors"            = "/pages/tutor-discovery/index.html"
     "/kana"              = "/pages/kana-quiz/index.html"
     "/learner/dashboard" = "/pages/learner-dashboard/index.html"
+    "/learner/dashboard/"= "/pages/learner-dashboard/index.html"
+    "/learner-dashboard" = "/pages/learner-dashboard/index.html"
     "/learner"           = "/pages/learner-dashboard/index.html"
+    "/learner/"          = "/pages/learner-dashboard/index.html"
     "/dashboard"         = "/pages/learner-dashboard/index.html"
+    "/dashboard/"        = "/pages/learner-dashboard/index.html"
 }
 
 while ($listener.IsListening) {
@@ -110,8 +114,13 @@ while ($listener.IsListening) {
         }
 
         # 2. Xu ly Router Alias
+        $lookupPath = $pathPart.TrimEnd('/')
+        if ([string]::IsNullOrEmpty($lookupPath)) { $lookupPath = "/" }
+
         if ($aliases.ContainsKey($pathPart)) {
             $pathPart = $aliases[$pathPart]
+        } elseif ($aliases.ContainsKey($lookupPath)) {
+            $pathPart = $aliases[$lookupPath]
         }
 
         $localPath = Join-Path $rootDir $pathPart.TrimStart('/')

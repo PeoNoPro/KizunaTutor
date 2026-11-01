@@ -57,8 +57,12 @@ const URL_ALIASES = {
   '/game': '/pages/kanji-game/index.html',
   '/rain': '/pages/kanji-game/index.html',
   '/learner/dashboard': '/pages/learner-dashboard/index.html',
+  '/learner/dashboard/': '/pages/learner-dashboard/index.html',
+  '/learner-dashboard': '/pages/learner-dashboard/index.html',
   '/learner': '/pages/learner-dashboard/index.html',
-  '/dashboard': '/pages/learner-dashboard/index.html'
+  '/learner/': '/pages/learner-dashboard/index.html',
+  '/dashboard': '/pages/learner-dashboard/index.html',
+  '/dashboard/': '/pages/learner-dashboard/index.html'
 };
 
 const server = http.createServer((req, res) => {

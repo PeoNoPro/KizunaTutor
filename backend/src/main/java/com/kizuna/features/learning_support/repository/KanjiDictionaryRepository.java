@@ -86,4 +86,10 @@ public interface KanjiDictionaryRepository extends JpaRepository<KanjiDictionary
             @Param("maxStroke") Short maxStroke,
             Pageable pageable
     );
+    @Query(value = "SELECT * FROM kanji_dictionary k WHERE " +
+           "(:jlpt IS NULL OR :jlpt = '' OR :jlpt = 'ALL' OR UPPER(CAST(k.jlpt_level AS text)) = UPPER(:jlpt)) AND " +
+           "(k.kunyomi IS NOT NULL OR k.onyomi IS NOT NULL) " +
+           "ORDER BY RANDOM() LIMIT :limit",
+           nativeQuery = true)
+    java.util.List<KanjiDictionary> findRandomPlayableKanji(@Param("jlpt") String jlpt, @Param("limit") int limit);
 }

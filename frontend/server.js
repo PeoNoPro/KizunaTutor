@@ -51,7 +51,11 @@ const URL_ALIASES = {
   '/kanji-dictionary': '/pages/kanji-dictionary/index.html',
   '/kanji-dictionary.html': '/pages/kanji-dictionary/index.html',
   '/dictionary': '/pages/kanji-dictionary/index.html',
-  '/kanji': '/pages/kanji-dictionary/index.html'
+  '/kanji': '/pages/kanji-dictionary/index.html',
+  '/kanji-game': '/pages/kanji-game/index.html',
+  '/kanji-game.html': '/pages/kanji-game/index.html',
+  '/game': '/pages/kanji-game/index.html',
+  '/rain': '/pages/kanji-game/index.html'
 };
 
 const server = http.createServer((req, res) => {

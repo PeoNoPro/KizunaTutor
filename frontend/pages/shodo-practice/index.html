@@ -197,13 +197,13 @@
               <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
                 Kanji
               </span>
-              <span id="canvasActiveChar" class="text-2xl font-bold text-[#0F2545] font-japanese leading-none">愛</span>
-              <span id="canvasActiveHanViet" class="text-xs font-semibold text-[#68737D]">(Âm Hán: ÁI)</span>
+              <span id="canvasActiveChar" class="text-2xl font-bold text-[#0F2545] font-japanese leading-none">—</span>
+              <span id="canvasActiveHanViet" class="text-xs font-semibold text-[#68737D]">(Chưa chọn chữ)</span>
             </div>
 
             <div class="flex items-center gap-1.5">
               <span id="strokeCountBadge" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FAF8F2] border border-[#ECE8DE] text-[#0F2545]">
-                13 nét
+                0 nét
               </span>
             </div>
           </div>
@@ -270,32 +270,19 @@
         <div class="lg:col-span-7 space-y-5">
           
           <!-- Hộp Tìm / Đổi Chữ Nhanh -->
-          <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 md:p-5 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div class="flex-1">
+          <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 md:p-5 shadow-sm">
+            <div>
               <label for="inputQuickChar" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1">
                 Luyện viết chữ Hán bất kỳ:
               </label>
               <div class="flex items-center gap-2">
-                <input type="text" id="inputQuickChar" placeholder="Nhập một chữ Hán (ví dụ: 心, 道, 学, 和...)" 
+                <input type="text" id="inputQuickChar" placeholder="Nhập một chữ Hán (ví dụ: 心, 道, 学, 和, 絆...)" 
                        maxlength="5"
                        class="flex-1 px-3.5 py-2 text-sm border border-[#ECE8DE] rounded-xl bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
                 <button type="button" id="btnLoadChar" 
                         class="px-4 py-2 font-bold text-xs bg-[#006194] hover:bg-[#004B73] text-white rounded-xl transition cursor-pointer">
                   Nạp chữ
                 </button>
-              </div>
-            </div>
-
-            <!-- Nút chọn chữ nhanh phổ biến -->
-            <div class="sm:border-l sm:border-[#ECE8DE] sm:pl-4 flex flex-col justify-center">
-              <span class="text-[11px] text-[#68737D] font-medium mb-1">Gợi ý nhanh:</span>
-              <div class="flex items-center gap-1.5 flex-wrap" id="quickSampleChars">
-                <button class="w-8 h-8 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#FFE5EC] hover:text-[#831843] font-japanese font-bold text-sm transition">愛</button>
-                <button class="w-8 h-8 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#FFE5EC] hover:text-[#831843] font-japanese font-bold text-sm transition">心</button>
-                <button class="w-8 h-8 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#FFE5EC] hover:text-[#831843] font-japanese font-bold text-sm transition">道</button>
-                <button class="w-8 h-8 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#FFE5EC] hover:text-[#831843] font-japanese font-bold text-sm transition">学</button>
-                <button class="w-8 h-8 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#FFE5EC] hover:text-[#831843] font-japanese font-bold text-sm transition">日</button>
-                <button class="w-8 h-8 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#FFE5EC] hover:text-[#831843] font-japanese font-bold text-sm transition">本</button>
               </div>
             </div>
           </div>
@@ -308,26 +295,26 @@
                 <span>Thông tin tra cứu chữ Hán</span>
               </h3>
               <span id="kanjiJlptLevel" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF8F2] text-[#0F2545] border border-[#ECE8DE]">
-                Trình độ N3
+                Chưa chọn chữ
               </span>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl">
                 <div class="text-[10px] text-[#68737D] font-medium">Âm Hán Việt</div>
-                <div id="detailHanViet" class="font-bold text-base text-[#0F2545] mt-0.5">ÁI</div>
+                <div id="detailHanViet" class="font-bold text-base text-[#0F2545] mt-0.5">—</div>
               </div>
               <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl">
                 <div class="text-[10px] text-[#68737D] font-medium">Nghĩa tiếng Việt</div>
-                <div id="detailMeaning" class="font-bold text-sm text-[#0F2545] mt-0.5 truncate" title="Yêu thương, trân quý">Yêu thương, quý</div>
+                <div id="detailMeaning" class="font-bold text-sm text-[#0F2545] mt-0.5 truncate" title="Chưa có dữ liệu">—</div>
               </div>
               <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl">
                 <div class="text-[10px] text-[#68737D] font-medium">Âm Onyomi</div>
-                <div id="detailOnyomi" class="font-bold text-sm text-[#006194] mt-0.5 font-japanese">アイ (ai)</div>
+                <div id="detailOnyomi" class="font-bold text-sm text-[#006194] mt-0.5 font-japanese">—</div>
               </div>
               <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl">
                 <div class="text-[10px] text-[#68737D] font-medium">Âm Kunyomi</div>
-                <div id="detailKunyomi" class="font-bold text-sm text-[#831843] mt-0.5 font-japanese">いと.しい</div>
+                <div id="detailKunyomi" class="font-bold text-sm text-[#831843] mt-0.5 font-japanese">—</div>
               </div>
             </div>
 

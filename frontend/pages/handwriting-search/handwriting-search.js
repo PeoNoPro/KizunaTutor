@@ -1,41 +1,13 @@
 /**
  * KizunaTutor - Tra cứu chữ Hán bằng nét vẽ tay AI (OHR)
- * Feature-Based architecture module, tuân thủ FRONTEND_RULES.md
+ * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
+ * TUYỆT ĐỐI KHÔNG DÙNG DỮ LIỆU MẪU (NO MOCK DATA INJECTION)
  */
 
 import { showToast } from '/js/main.js';
 
 // =========================================================================
-// 1. TỪ ĐIỂN TRA CỨU HÁN TỰ TIÊU BIỂU (OFFLINE ENRICHMENT DICTIONARY)
-// =========================================================================
-const KANJI_METADATA_MAP = {
-  '日': { hanViet: 'NHẬT', meaning: 'Mặt trời, ban ngày, nước Nhật', jlpt: 'N5', onyomi: 'ニチ, ジツ', kunyomi: 'ひ' },
-  '月': { hanViet: 'NGUYỆT', meaning: 'Mặt trăng, tháng', jlpt: 'N5', onyomi: 'ゲツ, ガツ', kunyomi: 'つき' },
-  '火': { hanViet: 'HỎA', meaning: 'Ngọn lửa, ngày thứ ba', jlpt: 'N5', onyomi: 'カ', kunyomi: 'ひ' },
-  '水': { hanViet: 'THỦY', meaning: 'Nước, ngày thứ tư', jlpt: 'N5', onyomi: 'スイ', kunyomi: 'みず' },
-  '木': { hanViet: 'MỘC', meaning: 'Cây cối, gỗ, ngày thứ năm', jlpt: 'N5', onyomi: 'モク, ボク', kunyomi: 'き' },
-  '金': { hanViet: 'KIM', meaning: 'Vàng, tiền bạc, ngày thứ sáu', jlpt: 'N5', onyomi: 'キン', kunyomi: 'かね' },
-  '土': { hanViet: 'THỔ', meaning: 'Đất đai, ngày thứ bảy', jlpt: 'N5', onyomi: 'ド, ト', kunyomi: 'つち' },
-  '本': { hanViet: 'BỔN / BẢN', meaning: 'Sách, gốc rễ, nguồn gốc', jlpt: 'N5', onyomi: 'ホン', kunyomi: 'もと' },
-  '人': { hanViet: 'NHÂN', meaning: 'Con người, nhân loại', jlpt: 'N5', onyomi: 'ジン, ニン', kunyomi: 'ひと' },
-  '学': { hanViet: 'HỌC', meaning: 'Học tập, kiến thức', jlpt: 'N5', onyomi: 'ガク', kunyomi: 'まな.ぶ' },
-  '生': { hanViet: 'SINH', meaning: 'Sinh sống, ra đời, học sinh', jlpt: 'N5', onyomi: 'セイ, ショウ', kunyomi: 'い.きる' },
-  '先': { hanViet: 'TIÊN', meaning: 'Trước, đi trước, thầy giáo', jlpt: 'N5', onyomi: 'セン', kunyomi: 'さき' },
-  '愛': { hanViet: 'ÁI', meaning: 'Tình yêu thương, quý trọng', jlpt: 'N3', onyomi: 'アイ', kunyomi: 'いと.しい' },
-  '心': { hanViet: 'TÂM', meaning: 'Trái tim, tấm lòng, tâm trí', jlpt: 'N4', onyomi: 'シン', kunyomi: 'こころ' },
-  '道': { hanViet: 'ĐẠO', meaning: 'Con đường, đạo lý', jlpt: 'N4', onyomi: 'ドウ', kunyomi: 'みち' },
-  '和': { hanViet: 'HÒA', meaning: 'Hòa bình, hòa thuận, phong cách Nhật', jlpt: 'N3', onyomi: 'ワ', kunyomi: 'やわ.らぐ' },
-  '絆': { hanViet: 'BÁN', meaning: 'Sợi dây gắn kết bền vững Kizuna', jlpt: 'N1', onyomi: 'ハン', kunyomi: 'きずな' },
-  '山': { hanViet: 'SƠN', meaning: 'Núi non', jlpt: 'N5', onyomi: 'サン', kunyomi: 'やま' },
-  '川': { hanViet: 'XUYÊN', meaning: 'Dòng sông', jlpt: 'N5', onyomi: 'セン', kunyomi: 'かわ' },
-  '田': { hanViet: 'ĐIỀN', meaning: 'Ruộng đồng', jlpt: 'N5', onyomi: 'デン', kunyomi: 'た' },
-  '目': { hanViet: 'MỤC', meaning: 'Con mắt, cái nhìn', jlpt: 'N5', onyomi: 'モク', kunyomi: 'め' },
-  '口': { hanViet: 'KHẨU', meaning: 'Miệng, lối vào', jlpt: 'N5', onyomi: 'コウ, ク', kunyomi: 'くち' },
-  '白': { hanViet: 'BẠCH', meaning: 'Màu trắng, trong sáng', jlpt: 'N5', onyomi: 'ハク', kunyomi: 'しろ' }
-};
-
-// =========================================================================
-// 2. TRẠNG THÁI CANVAS & QUẢN LÝ NÉT VẼ
+// 1. TRẠNG THÁI CANVAS & QUẢN LÝ NÉT VẼ
 // =========================================================================
 let canvas = null;
 let ctx = null;
@@ -45,7 +17,7 @@ let isDrawing = false;
 let recognizeDebounceTimer = null;
 
 // =========================================================================
-// 3. KHỞI TẠO BẢNG CANVAS Ô MỄ (300x300 HIGH-DPI)
+// 2. KHỞI TẠO BẢNG CANVAS Ô MỄ (300x300 HIGH-DPI)
 // =========================================================================
 function setupCanvas() {
   canvas = document.getElementById('hwCanvas');
@@ -98,8 +70,8 @@ function onMouseDown(e) {
   ctx.moveTo(pt.x, pt.y);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.lineWidth = 5.5;
   ctx.strokeStyle = '#0F2545';
+  ctx.lineWidth = 5.5;
 }
 
 function onMouseMove(e) {
@@ -114,49 +86,43 @@ function onMouseMove(e) {
 function onMouseUp() {
   if (!isDrawing) return;
   isDrawing = false;
-  if (currentStroke.length > 0) {
+  if (currentStroke.length > 1) {
     strokes.push([...currentStroke]);
-    currentStroke = [];
     updateStrokeBadge();
     triggerAutoRecognition();
   }
+  currentStroke = [];
 }
 
 function onTouchStart(e) {
   e.preventDefault();
-  isDrawing = true;
-  const pt = getCoords(e);
-  currentStroke = [pt];
-
-  ctx.beginPath();
-  ctx.moveTo(pt.x, pt.y);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = 5.5;
-  ctx.strokeStyle = '#0F2545';
+  const touch = e.touches[0];
+  const me = new MouseEvent('mousedown', {
+    clientX: touch.clientX,
+    clientY: touch.clientY
+  });
+  canvas.dispatchEvent(me);
 }
 
 function onTouchMove(e) {
   e.preventDefault();
-  if (!isDrawing) return;
-  const pt = getCoords(e);
-  currentStroke.push(pt);
-
-  ctx.lineTo(pt.x, pt.y);
-  ctx.stroke();
+  const touch = e.touches[0];
+  const me = new MouseEvent('mousemove', {
+    clientX: touch.clientX,
+    clientY: touch.clientY
+  });
+  canvas.dispatchEvent(me);
 }
 
 function onTouchEnd(e) {
-  if (!isDrawing) return;
-  isDrawing = false;
-  if (currentStroke.length > 0) {
-    strokes.push([...currentStroke]);
-    currentStroke = [];
-    updateStrokeBadge();
-    triggerAutoRecognition();
-  }
+  e.preventDefault();
+  const me = new MouseEvent('mouseup', {});
+  window.dispatchEvent(me);
 }
 
+// =========================================================================
+// 3. VẼ LẠI NỀN Ô MỄ VÀ CÁC NÉT ĐÃ LƯU
+// =========================================================================
 function redrawBoard() {
   if (!canvas || !ctx) return;
   const w = 300;
@@ -164,17 +130,9 @@ function redrawBoard() {
 
   ctx.clearRect(0, 0, w, h);
 
-  // 1. Vẽ nền ô Mễ và khung viền
+  // 1. Vẽ nền ô mễ (Grid lines)
   ctx.save();
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, w, h);
-
   ctx.strokeStyle = '#ECE8DE';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(0, 0, w, h);
-
-  // Đường kẻ đứt nét chữ thập & đường chéo ô Mễ
-  ctx.strokeStyle = '#CBD5E1';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
 
@@ -243,7 +201,7 @@ function updateStrokeBadge() {
 }
 
 // =========================================================================
-// 4. KÍCH HOẠT NHẬN DIỆN HYBRID (GOOGLE OHR + FALLBACK)
+// 4. KÍCH HOẠT NHẬN DIỆN NÉT VẼ AI (GOOGLE OHR SERVICE)
 // =========================================================================
 function triggerAutoRecognition() {
   if (recognizeDebounceTimer) clearTimeout(recognizeDebounceTimer);
@@ -252,7 +210,7 @@ function triggerAutoRecognition() {
   showLoadingState();
   recognizeDebounceTimer = setTimeout(() => {
     executeRecognition();
-  }, 220);
+  }, 250);
 }
 
 async function executeRecognition() {
@@ -298,51 +256,48 @@ async function executeRecognition() {
       const data = await res.json();
       if (data && data[1] && data[1][0] && Array.isArray(data[1][0][1])) {
         const rawCandidates = data[1][0][1];
-        // Lọc các ký tự tiếng Nhật / Hán tự
-        const candidates = rawCandidates.filter(c => typeof c === 'string' && c.trim().length > 0).slice(0, 8);
-        renderCandidates(candidates);
-        return;
+        // Lọc các ký tự tiếng Nhật / Hán tự hợp lệ
+        const candidates = rawCandidates
+          .filter(c => typeof c === 'string' && c.trim().length > 0)
+          .map(c => c.trim())
+          .filter((c, idx, arr) => arr.indexOf(c) === idx)
+          .slice(0, 10);
+
+        if (candidates.length > 0) {
+          renderCandidates(candidates);
+          return;
+        }
       }
     }
   } catch (err) {
-    console.debug('Không kết nối được dịch vụ nhận diện trực tuyến, kích hoạt fallback:', err);
+    console.debug('Không thể kết nối đến dịch vụ nhận diện nét vẽ:', err);
   }
 
-  // Fallback ngoại tuyến dựa trên số nét vẽ
-  fallbackOfflineRecognition();
-}
-
-function fallbackOfflineRecognition() {
-  const strokeCount = strokes.length;
-  // Gợi ý danh sách chữ dựa trên số lượng nét
-  const suggestionsByCount = {
-    1: ['一', '乙'],
-    2: ['二', '十', '人', '入', '八', '力', '刀', '又'],
-    3: ['三', '山', '川', '大', '小', '口', '子', '女', '土'],
-    4: ['日', '月', '木', '水', '火', '心', '文', '方', '円'],
-    5: ['本', '目', '田', '白', '生', '正', '立', '石', '市'],
-    6: ['休', '先', '年', '名', '同', '多', '光', '西', '早'],
-    8: ['学', '和', '金', '東', '雨', '国', '青', '空', '京'],
-    11: ['絆', '道', '教', '理', '動', '野', '悪', '強', '問'],
-    13: ['愛', '話', '新', '感', '電', '暗', '数', '業', '想']
-  };
-
-  const matched = suggestionsByCount[strokeCount] || ['日', '本', '心', '愛', '道', '学', '和', '絆'];
-  renderCandidates(matched);
+  // Khi không tìm thấy kết quả hoặc dịch vụ không phản hồi: Hiển thị Empty State chuẩn (tuyệt đối không chèn fake data)
+  showEmptyResultState();
 }
 
 // =========================================================================
-// 5. RENDER KHAY KẾT QUẢ CHỮ HÁN GỢI Ý
+// 5. RENDER KHAY KẾT QUẢ CHỮ HÁN GỢI Ý & CÁC TRẠNG THÁI HIỂN THỊ
 // =========================================================================
 function showStandbyState() {
   document.getElementById('hwStandbyState')?.classList.remove('hidden');
   document.getElementById('hwLoadingState')?.classList.add('hidden');
+  document.getElementById('hwEmptyResultState')?.classList.add('hidden');
   document.getElementById('hwCandidateGrid')?.classList.add('hidden');
 }
 
 function showLoadingState() {
   document.getElementById('hwStandbyState')?.classList.add('hidden');
   document.getElementById('hwLoadingState')?.classList.remove('hidden');
+  document.getElementById('hwEmptyResultState')?.classList.add('hidden');
+  document.getElementById('hwCandidateGrid')?.classList.add('hidden');
+}
+
+function showEmptyResultState() {
+  document.getElementById('hwStandbyState')?.classList.add('hidden');
+  document.getElementById('hwLoadingState')?.classList.add('hidden');
+  document.getElementById('hwEmptyResultState')?.classList.remove('hidden');
   document.getElementById('hwCandidateGrid')?.classList.add('hidden');
 }
 
@@ -350,46 +305,37 @@ function renderCandidates(candidateList) {
   const grid = document.getElementById('hwCandidateGrid');
   const loading = document.getElementById('hwLoadingState');
   const standby = document.getElementById('hwStandbyState');
+  const emptyRes = document.getElementById('hwEmptyResultState');
 
   if (!grid) return;
 
   if (candidateList.length === 0) {
-    showStandbyState();
+    showEmptyResultState();
     return;
   }
 
   if (loading) loading.classList.add('hidden');
   if (standby) standby.classList.add('hidden');
+  if (emptyRes) emptyRes.classList.add('hidden');
   grid.classList.remove('hidden');
 
   let html = '';
 
-  candidateList.forEach((char, idx) => {
-    const meta = KANJI_METADATA_MAP[char] || {
-      hanViet: 'HÁN TỰ',
-      meaning: 'Tra cứu nét chữ tương ứng',
-      jlpt: 'Tự do',
-      onyomi: '—',
-      kunyomi: '—'
-    };
-
+  candidateList.forEach((char) => {
     html += `
       <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 flex items-center justify-between gap-3 hover:border-[#006194] hover:shadow-sm transition">
         <div class="flex items-center gap-3 min-w-0">
-          <!-- Chữ Hán to -->
+          <!-- Chữ Hán nhận diện được -->
           <div class="w-14 h-14 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] flex items-center justify-center font-japanese font-bold text-3xl text-[#0F2545] shrink-0">
             ${char}
           </div>
 
           <div class="min-w-0">
             <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="font-bold text-sm text-[#006194]">${meta.hanViet}</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
-                ${meta.jlpt}
-              </span>
+              <span class="font-bold text-sm text-[#0F2545]">Chữ Hán đề xuất</span>
             </div>
-            <p class="text-xs text-[#68737D] mt-0.5 truncate max-w-[180px]">
-              ${meta.meaning}
+            <p class="text-xs text-[#68737D] mt-0.5 truncate">
+              Khớp với nét vẽ trên ô Mễ
             </p>
           </div>
         </div>

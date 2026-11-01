@@ -1,58 +1,13 @@
 /**
  * KizunaTutor - Quản lý & Luyện tập Bộ thẻ ghi nhớ Flashcards
- * Feature-Based architecture module, tuân thủ FRONTEND_RULES.md
+ * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
+ * TUYỆT ĐỐI KHÔNG DÙNG DỮ LIỆU MẪU (NO MOCK DATA INJECTION)
  */
 
 import { showToast, debounce } from '/js/main.js';
 
 // =========================================================================
-// 1. DỮ LIỆU KHỞI TẠO BAN ĐẦU (SEED DATA CHO HỌC VIÊN & KHÁCH)
-// =========================================================================
-const DEFAULT_SAMPLE_DECKS = [
-  {
-    id: 'deck-n5-essential',
-    title: 'Hán tự N5 cơ bản thiết yếu',
-    description: 'Tập hợp các chữ Hán căn bản đầu đời tiếng Nhật (Nhật, Bổn, Nhân, Học...)',
-    color: 'blue',
-    cards: [
-      { char: '日', hanViet: 'NHẬT', meaning: 'Mặt trời, ngày', onyomi: 'ニチ, ジツ', kunyomi: 'ひ, -び', jlpt: 'N5' },
-      { char: '本', hanViet: 'BỔN / BẢN', meaning: 'Sách, gốc rễ', onyomi: 'ホン', kunyomi: 'もと', jlpt: 'N5' },
-      { char: '人', hanViet: 'NHÂN', meaning: 'Con người, nhân loại', onyomi: 'ジン, ニン', kunyomi: 'ひと', jlpt: 'N5' },
-      { char: '学', hanViet: 'HỌC', meaning: 'Học tập, nghiên cứu', onyomi: 'ガク', kunyomi: 'まな.ぶ', jlpt: 'N5' },
-      { char: '先', hanViet: 'TIÊN', meaning: 'Trước, đi trước', onyomi: 'セン', kunyomi: 'さき', jlpt: 'N5' },
-      { char: '生', hanViet: 'SINH', meaning: 'Sinh sống, sinh ra', onyomi: 'セイ, ショウ', kunyomi: 'い.きる, う.まれる', jlpt: 'N5' }
-    ]
-  },
-  {
-    id: 'deck-n4-nature',
-    title: 'Hán tự N4 chuyên đề Thiên nhiên',
-    description: 'Các chữ Hán liên quan đến sông núi, thời tiết, vạn vật tự nhiên',
-    color: 'green',
-    cards: [
-      { char: '山', hanViet: 'SƠN / SAN', meaning: 'Núi non', onyomi: 'サン', kunyomi: 'やま', jlpt: 'N5' },
-      { char: '川', hanViet: 'XUYÊN', meaning: 'Dòng sông', onyomi: 'セン', kunyomi: 'かわ', jlpt: 'N5' },
-      { char: '雨', hanViet: 'VŨ', meaning: 'Cơn mưa', onyomi: 'ウ', kunyomi: 'あめ', jlpt: 'N5' },
-      { char: '空', hanViet: 'KHÔNG', meaning: 'Bầu trời, khoảng trống', onyomi: 'クウ', kunyomi: 'そら, あ.く', jlpt: 'N4' },
-      { char: '海', hanViet: 'HẢI', meaning: 'Biển cả', onyomi: 'カイ', kunyomi: 'うみ', jlpt: 'N4' }
-    ]
-  },
-  {
-    id: 'deck-kizuna-shodo',
-    title: 'Hán tự Thư pháp & Triết lý Kizuna',
-    description: 'Các chữ Hán mang triết lý nhân sinh sâu sắc và vẻ đẹp thư pháp',
-    color: 'pink',
-    cards: [
-      { char: '絆', hanViet: 'BÁN', meaning: 'Sợi dây gắn kết bền vững (Kizuna)', onyomi: 'ハン', kunyomi: 'きずな', jlpt: 'N1' },
-      { char: '愛', hanViet: 'ÁI', meaning: 'Tình yêu thương, quý trọng', onyomi: 'アイ', kunyomi: 'いと.しい', jlpt: 'N3' },
-      { char: '心', hanViet: 'TÂM', meaning: 'Trái tim, tấm lòng', onyomi: 'シン', kunyomi: 'こころ', jlpt: 'N4' },
-      { char: '道', hanViet: 'ĐẠO', meaning: 'Con đường, đạo lý', onyomi: 'ドウ', kunyomi: 'みち', jlpt: 'N4' },
-      { char: '和', hanViet: 'HÒA', meaning: 'Hòa thuận, phong cách Nhật Bản', onyomi: 'ワ', kunyomi: 'やわ.らぐ', jlpt: 'N3' }
-    ]
-  }
-];
-
-// =========================================================================
-// 2. TRẠNG THÁI TOÀN CỤC CỦA TRANG
+// 1. TRẠNG THÁI TOÀN CỤC CỦA TRANG
 // =========================================================================
 const STORAGE_KEY = 'kizuna_flashcard_decks';
 let userDecks = [];
@@ -62,32 +17,68 @@ let isFlipped = false;
 let selectedColor = 'blue';
 
 // =========================================================================
-// 3. QUẢN LÝ LƯU TRỮ (LOCAL STORAGE & REST API SYNC)
+// 2. QUẢN LÝ LƯU TRỮ THỰC TẾ (LOCAL STORAGE & BACKEND API)
 // =========================================================================
-function loadDecks() {
+async function loadDecks() {
+  try {
+    // 1. Thử lấy từ REST API Backend nếu có kết nối
+    const res = await fetch('/api/user/kanji-folders').catch(() => null);
+    if (res && res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        userDecks = data.map(d => ({
+          id: String(d.id || d.folderId),
+          title: d.folderName || d.title,
+          description: d.description || '',
+          color: d.color || 'blue',
+          cards: (d.items || d.cards || []).map(c => ({
+            char: c.character || c.kanjiChar || c.char,
+            hanViet: c.hanViet || 'HÁN TỰ',
+            meaning: c.meaning || '',
+            onyomi: c.onyomi || '—',
+            kunyomi: c.kunyomi || '—',
+            jlpt: c.jlptLevel || c.jlpt || 'JLPT'
+          }))
+        }));
+        saveLocalDecks();
+        renderDecks();
+        return;
+      }
+    }
+  } catch (e) {
+    console.debug('Không kết nối được API Backend, kiểm tra bộ nhớ cục bộ:', e);
+  }
+
+  // 2. Lấy dữ liệu thực tế do người dùng tự tạo từ LocalStorage (Tuyệt đối không chèn fake data)
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      userDecks = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      // Lọc bỏ bất kỳ bộ thẻ mẫu cũ nào nếu từng tồn tại
+      userDecks = Array.isArray(parsed) 
+        ? parsed.filter(d => !String(d.id).startsWith('deck-n5-') && !String(d.id).startsWith('deck-n4-') && !String(d.id).startsWith('deck-kizuna-'))
+        : [];
     } else {
-      userDecks = [...DEFAULT_SAMPLE_DECKS];
-      saveDecks();
+      userDecks = [];
     }
   } catch (e) {
-    userDecks = [...DEFAULT_SAMPLE_DECKS];
+    userDecks = [];
   }
+
+  saveLocalDecks();
+  renderDecks();
 }
 
-function saveDecks() {
+function saveLocalDecks() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userDecks));
   } catch (e) {
-    console.debug('Không thể ghi localStorage:', e);
+    console.debug('Không thể lưu localStorage:', e);
   }
 }
 
 // =========================================================================
-// 4. RENDER DANH SÁCH BỘ THẺ
+// 3. RENDER DANH SÁCH BỘ THẺ (HIỂN THỊ EMPTY STATE NẾU CHƯA CÓ DỮ LIỆU)
 // =========================================================================
 function renderDecks(filterQuery = '') {
   const grid = document.getElementById('deckGrid');
@@ -105,7 +96,9 @@ function renderDecks(filterQuery = '') {
     countBadge.textContent = `${filtered.length} bộ thẻ`;
   }
 
+  // Khi chưa có dữ liệu thực tế hoặc tìm kiếm không khớp -> Hiển thị Empty State chuẩn
   if (filtered.length === 0) {
+    grid.innerHTML = '';
     grid.classList.add('hidden');
     emptyState.classList.remove('hidden');
     return;
@@ -136,8 +129,6 @@ function renderDecks(filterQuery = '') {
     const cardCount = deck.cards ? deck.cards.length : 0;
     const borderClass = colorBorderMap[deck.color] || 'border-[#006194]';
     const pillClass = colorBgPillMap[deck.color] || 'bg-sky-50 text-[#006194] border-sky-200';
-
-    // Lấy 4 chữ Hán tiêu biểu làm preview
     const previewChars = (deck.cards || []).slice(0, 4).map(c => c.char).join(' ');
 
     html += `
@@ -160,15 +151,14 @@ function renderDecks(filterQuery = '') {
               ${deck.title}
             </h3>
             <p class="text-xs text-[#68737D] mt-1 line-clamp-2">
-              ${deck.description || 'Chưa có mô tả cho bộ thẻ này.'}
+              ${deck.description || 'Chưa có ghi chú mô tả cho bộ thẻ này.'}
             </p>
           </div>
 
-          <!-- Dải xem trước các chữ Hán -->
           <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl flex items-center justify-between">
-            <span class="text-xs text-[#68737D] font-medium">Chữ tiêu biểu:</span>
+            <span class="text-xs text-[#68737D] font-medium">Chữ trong bộ:</span>
             <span class="font-japanese font-bold text-base text-[#0F2545] tracking-widest">
-              ${previewChars || '—'}
+              ${previewChars || '(Chưa có chữ nào)'}
             </span>
           </div>
         </div>
@@ -177,7 +167,7 @@ function renderDecks(filterQuery = '') {
           <button type="button" data-action="open-deck" data-id="${deck.id}"
                   class="flex-1 py-2 px-3 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs">
             <span class="material-symbols-outlined text-[16px]">style</span>
-            <span>Lật thẻ ôn tập</span>
+            <span>Xem &amp; Lật thẻ</span>
           </button>
         </div>
       </div>
@@ -186,7 +176,6 @@ function renderDecks(filterQuery = '') {
 
   grid.innerHTML = html;
 
-  // Gắn sự kiện cho các nút hành động
   grid.querySelectorAll('[data-action="open-deck"]').forEach(btn => {
     btn.addEventListener('click', () => openStudyModal(btn.dataset.id));
   });
@@ -200,7 +189,7 @@ function renderDecks(filterQuery = '') {
 }
 
 // =========================================================================
-// 5. CHẾ ĐỘ LẬT THẺ FLASHCARD 3D & ÔN TẬP
+// 4. CHẾ ĐỘ LẬT THẺ FLASHCARD 3D
 // =========================================================================
 function openStudyModal(deckId) {
   const deck = userDecks.find(d => d.id === deckId);
@@ -226,11 +215,15 @@ function closeStudyModal() {
 }
 
 function renderCurrentCard() {
+  const cardEl = document.getElementById('flashcardElement');
+  cardEl.classList.remove('is-flipped');
+  isFlipped = false;
+
   if (!activeDeck || !activeDeck.cards || activeDeck.cards.length === 0) {
     document.getElementById('studyCardChar').textContent = '📭';
-    document.getElementById('studyCardProgressText').textContent = 'Chưa có thẻ';
-    document.getElementById('studyCardHanViet').textContent = 'TRỐNG';
-    document.getElementById('studyCardMeaning').textContent = 'Hãy nhấn nút "Thêm chữ" ở trên để nạp chữ vào bộ thẻ nhé.';
+    document.getElementById('studyCardProgressText').textContent = '0 / 0';
+    document.getElementById('studyCardHanViet').textContent = 'CHƯA CÓ CHỮ HÁN';
+    document.getElementById('studyCardMeaning').textContent = 'Bộ thẻ này hiện chưa có chữ Hán nào. Vui lòng bấm "Thêm chữ" ở góc trên để bổ sung.';
     document.getElementById('studyCardOnyomi').textContent = '—';
     document.getElementById('studyCardKunyomi').textContent = '—';
     document.getElementById('btnStudyPracticeShodo').classList.add('hidden');
@@ -238,11 +231,6 @@ function renderCurrentCard() {
   }
 
   document.getElementById('btnStudyPracticeShodo').classList.remove('hidden');
-
-  // Đảm bảo không lật mặt sau khi chuyển thẻ mới
-  const cardEl = document.getElementById('flashcardElement');
-  cardEl.classList.remove('is-flipped');
-  isFlipped = false;
 
   const card = activeDeck.cards[currentCardIndex];
   const total = activeDeck.cards.length;
@@ -256,7 +244,6 @@ function renderCurrentCard() {
   document.getElementById('studyCardOnyomi').textContent = card.onyomi || '—';
   document.getElementById('studyCardKunyomi').textContent = card.kunyomi || '—';
 
-  // Nút Luyện viết chữ này -> chuyển sang Shodo practice
   const shodoBtn = document.getElementById('btnStudyPracticeShodo');
   shodoBtn.href = `/shodo?kanji=${encodeURIComponent(card.char)}`;
 }
@@ -272,7 +259,7 @@ function nextCard() {
   if (currentCardIndex < activeDeck.cards.length - 1) {
     currentCardIndex++;
   } else {
-    currentCardIndex = 0; // Vòng lại thẻ đầu tiên
+    currentCardIndex = 0;
     showToast('Đã xem hết bộ thẻ! Quay lại từ thẻ đầu tiên.', 'info');
   }
   renderCurrentCard();
@@ -295,6 +282,11 @@ function renderMiniGrid() {
 
   const cards = activeDeck.cards || [];
   if (countEl) countEl.textContent = `${cards.length} chữ`;
+
+  if (cards.length === 0) {
+    container.innerHTML = '<span class="text-xs text-[#68737D] italic">Chưa có chữ Hán nào trong bộ thẻ này.</span>';
+    return;
+  }
 
   let html = '';
   cards.forEach((c, idx) => {
@@ -343,14 +335,14 @@ function removeCardFromDeck(index) {
   if (currentCardIndex >= activeDeck.cards.length) {
     currentCardIndex = Math.max(0, activeDeck.cards.length - 1);
   }
-  saveDecks();
+  saveLocalDecks();
   renderCurrentCard();
   renderMiniGrid();
   showToast(`Đã xóa chữ [${removed[0]?.char}] khỏi bộ thẻ.`, 'info');
 }
 
 // =========================================================================
-// 6. TẠO & XÓA BỘ THẺ (CRUD LOGIC)
+// 5. TẠO & XÓA BỘ THẺ (CRUD LOGIC)
 // =========================================================================
 function openCreateDeckModal() {
   document.getElementById('modalCreateDeck').classList.remove('hidden');
@@ -395,7 +387,7 @@ function saveNewDeck() {
   };
 
   userDecks.unshift(newDeck);
-  saveDecks();
+  saveLocalDecks();
   closeCreateDeckModal();
   renderDecks();
   showToast(`Đã tạo thành công bộ thẻ "${title}".`, 'success');
@@ -407,14 +399,14 @@ function deleteDeck(deckId) {
 
   if (confirm(`Bạn có chắc chắn muốn xóa bộ thẻ "${target.title}" không?`)) {
     userDecks = userDecks.filter(d => d.id !== deckId);
-    saveDecks();
+    saveLocalDecks();
     renderDecks();
     showToast(`Đã xóa bộ thẻ "${target.title}".`, 'info');
   }
 }
 
 // =========================================================================
-// 7. THÊM CHỮ MỚI VÀO BỘ THẺ
+// 6. THÊM CHỮ MỚI VÀO BỘ THẺ
 // =========================================================================
 function openAddCardModal() {
   document.getElementById('modalAddCard').classList.remove('hidden');
@@ -454,7 +446,7 @@ function submitNewCard() {
     jlpt: 'Tự do'
   });
 
-  saveDecks();
+  saveLocalDecks();
   closeAddCardModal();
   currentCardIndex = activeDeck.cards.length - 1;
   renderCurrentCard();
@@ -463,13 +455,11 @@ function submitNewCard() {
 }
 
 // =========================================================================
-// 8. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
+// 7. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
   loadDecks();
-  renderDecks();
 
-  // Tìm kiếm bộ thẻ
   const searchInput = document.getElementById('inputSearchDecks');
   if (searchInput) {
     searchInput.addEventListener('input', debounce((e) => {
@@ -477,14 +467,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 250));
   }
 
-  // Mở / Đóng Modal tạo bộ thẻ
   document.getElementById('btnOpenCreateDeck')?.addEventListener('click', openCreateDeckModal);
   document.getElementById('btnEmptyCreateDeck')?.addEventListener('click', openCreateDeckModal);
   document.getElementById('btnCloseCreateDeckModal')?.addEventListener('click', closeCreateDeckModal);
   document.getElementById('btnCancelDeck')?.addEventListener('click', closeCreateDeckModal);
   document.getElementById('btnSaveDeck')?.addEventListener('click', saveNewDeck);
 
-  // Chọn màu bộ thẻ
   document.querySelectorAll('#deckColorPicker button').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedColor = btn.dataset.color;
@@ -492,14 +480,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Chế độ lật thẻ Flashcard
   document.getElementById('flashcardElement')?.addEventListener('click', flipCurrentCard);
   document.getElementById('btnFlipCard')?.addEventListener('click', flipCurrentCard);
   document.getElementById('btnNextCard')?.addEventListener('click', nextCard);
   document.getElementById('btnPrevCard')?.addEventListener('click', prevCard);
   document.getElementById('btnCloseStudyModal')?.addEventListener('click', closeStudyModal);
 
-  // Thêm chữ vào bộ thẻ
   document.getElementById('btnOpenAddCardModal')?.addEventListener('click', openAddCardModal);
   document.getElementById('btnCloseAddCardModal')?.addEventListener('click', closeAddCardModal);
   document.getElementById('btnCancelAddCard')?.addEventListener('click', closeAddCardModal);

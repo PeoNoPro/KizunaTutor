@@ -1,92 +1,15 @@
 /**
  * KizunaTutor - Phòng Luyện Viết Shodo Canvas AI
- * Module độc lập theo kiến trúc Feature-Based, tuân thủ FRONTEND_RULES.md
+ * Module độc lập theo kiến trúc Feature-Based, tuân thủ nghiêm ngặt FRONTEND_RULES.md
+ * TUYỆT ĐỐI KHÔNG DÙNG DỮ LIỆU MẪU (NO MOCK DATA INJECTION)
  */
 
 import { showToast } from '/js/main.js';
 
 // =========================================================================
-// 1. TỪ ĐIỂN MẪU HÁN TỰ TIÊU BIỂU & MÃ HEX KANJIVG
+// 1. TRẠNG THÁI TOÀN CỤC PHÒNG LUYỆN TẬP
 // =========================================================================
-const KANJI_DATABASE = {
-  '愛': {
-    char: '愛',
-    hanViet: 'ÁI',
-    meaning: 'Yêu thương, trân quý, tình yêu',
-    onyomi: 'アイ (ai)',
-    kunyomi: 'いと.しい (ito.shii), め.ずる (me.zuru)',
-    jlpt: 'N3',
-    strokes: 13
-  },
-  '心': {
-    char: '心',
-    hanViet: 'TÂM',
-    meaning: 'Trái tim, tấm lòng, tâm trí',
-    onyomi: 'シン (shin)',
-    kunyomi: 'こころ (kokoro)',
-    jlpt: 'N4',
-    strokes: 4
-  },
-  '道': {
-    char: '道',
-    hanViet: 'ĐẠO',
-    meaning: 'Con đường, đạo lý, phương pháp',
-    onyomi: 'ドウ (dou), トウ (tou)',
-    kunyomi: 'みち (michi)',
-    jlpt: 'N4',
-    strokes: 12
-  },
-  '学': {
-    char: '学',
-    hanViet: 'HỌC',
-    meaning: 'Học tập, kiến thức, nghiên cứu',
-    onyomi: 'ガク (gaku)',
-    kunyomi: 'まな.ぶ (mana.bu)',
-    jlpt: 'N5',
-    strokes: 8
-  },
-  '日': {
-    char: '日',
-    hanViet: 'NHẬT',
-    meaning: 'Mặt trời, ngày, nước Nhật',
-    onyomi: 'ニチ (nichi), ジツ (jitsu)',
-    kunyomi: 'ひ (hi), -び (-bi), -か (-ka)',
-    jlpt: 'N5',
-    strokes: 4
-  },
-  '本': {
-    char: '本',
-    hanViet: 'BỔN / BẢN',
-    meaning: 'Gốc rễ, sách, bản chất',
-    onyomi: 'ホン (hon)',
-    kunyomi: 'もと (moto)',
-    jlpt: 'N5',
-    strokes: 5
-  },
-  '和': {
-    char: '和',
-    hanViet: 'HÒA',
-    meaning: 'Hòa bình, hòa thuận, phong cách Nhật',
-    onyomi: 'ワ (wa), オ (o)',
-    kunyomi: 'やわ.らぐ (yawa.ragu), なご.む (nago.mu)',
-    jlpt: 'N3',
-    strokes: 8
-  },
-  '絆': {
-    char: '絆',
-    hanViet: 'BÁN',
-    meaning: 'Sợi dây gắn kết bền chặt, tình nghĩa Kizuna',
-    onyomi: 'ハン (han), バン (ban)',
-    kunyomi: 'きずな (kizuna)',
-    jlpt: 'N1',
-    strokes: 11
-  }
-};
-
-// =========================================================================
-// 2. TRẠNG THÁI TOÀN CỤC PHÒNG LUYỆN TẬP
-// =========================================================================
-let currentChar = '愛';
+let currentChar = null;
 let strokePaths = []; // Mảng chứa dữ liệu path nét d từ KanjiVG
 let activeStrokeFilter = null; // null = tất cả nét, số = nét cụ thể
 let isGuidelineVisible = true;
@@ -101,19 +24,21 @@ let drawnStrokes = []; // Mảng các nét người dùng vẽ [[{x, y}, ...], .
 let currentStroke = [];
 
 // =========================================================================
-// 3. TIỆN ÍCH CHUYỂN ĐỔI UNICODE SANG MÃ HEX KANJIVG
+// 2. TIỆN ÍCH CHUYỂN ĐỔI UNICODE SANG MÃ HEX KANJIVG
 // =========================================================================
 function getKanjiUnicodeHex(char) {
-  if (!char || typeof char !== 'string') return '00000';
+  if (!char || typeof char !== 'string') return null;
   const codePoint = char.codePointAt(0);
   return codePoint.toString(16).padStart(5, '0').toLowerCase();
 }
 
 // =========================================================================
-// 4. TẢI DỮ LIỆU SVG NÉT CHỮ TỪ KANJIVG CDN
+// 3. TẢI DỮ LIỆU SVG NÉT CHỮ TỪ KANJIVG CDN
 // =========================================================================
 async function loadKanjiSvg(char) {
   const hex = getKanjiUnicodeHex(char);
+  if (!hex) return [];
+
   const cdnUrl = `https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/${hex}.svg`;
 
   try {
@@ -122,8 +47,8 @@ async function loadKanjiSvg(char) {
     const svgText = await res.text();
     return parseKanjiSvgPaths(svgText);
   } catch (err) {
-    console.debug('Không tải được từ CDN, fallback về nét ước lượng:', err);
-    return getFallbackSvgPaths(char);
+    console.debug('Không thể tải dữ liệu nét bút chuẩn cho chữ này:', err);
+    return [];
   }
 }
 
@@ -138,18 +63,8 @@ function parseKanjiSvgPaths(svgText) {
     .filter(d => d && !d.includes('kvg:type="number"'));
 }
 
-function getFallbackSvgPaths(char) {
-  // Mẫu nét cơ bản nếu ngoại tuyến hoàn toàn
-  return [
-    'M20,30 C40,30 60,30 85,30',
-    'M52,15 L52,85',
-    'M30,55 C45,55 65,55 75,55',
-    'M25,85 L85,85'
-  ];
-}
-
 // =========================================================================
-// 5. RENDER SVG NÉT BÚT THUẬN & HOẠT ẢNH BÚT MỰC
+// 4. RENDER SVG NÉT BÚT THUẬN & HOẠT ẢNH BÚT MỰC
 // =========================================================================
 function renderGuidelineSvg() {
   const svg = document.getElementById('canvasGuidelineSvg');
@@ -196,6 +111,11 @@ function renderGuidelineSvg() {
 }
 
 function playStrokeAnimation() {
+  if (strokePaths.length === 0) {
+    showToast('Vui lòng nhập chữ Hán trước khi phát hoạt ảnh nét viết.', 'info');
+    return;
+  }
+
   if (isPlayingAnimation) {
     stopStrokeAnimation();
     return;
@@ -204,56 +124,39 @@ function playStrokeAnimation() {
   isPlayingAnimation = true;
   const playBtn = document.getElementById('btnPlayStroke');
   if (playBtn) {
-    playBtn.innerHTML = `
-      <span class="material-symbols-outlined text-[16px]">pause</span>
-      <span>Dừng lại</span>
-    `;
-    playBtn.className = 'py-2 px-2 text-xs font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 text-white flex items-center justify-center gap-1 transition shadow-xs cursor-pointer';
+    playBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">pause</span><span>Dừng lại</span>';
+    playBtn.classList.replace('bg-[#006194]', 'bg-amber-600');
   }
 
-  // Reset toàn bộ nét về trạng thái ẩn
+  // Đặt lại toàn bộ nét về trạng thái ẩn
   strokePaths.forEach((_, idx) => {
     const p = document.getElementById(`strokePath_${idx}`);
     if (p) {
-      const len = p.getTotalLength();
+      const len = p.getTotalLength ? p.getTotalLength() : 200;
       p.style.transition = 'none';
       p.style.strokeDashoffset = `${len}`;
-      p.setAttribute('stroke', '#0F2545');
     }
   });
 
-  let currentIdx = 0;
+  let currentAnimIdx = 0;
 
-  function runNextStroke() {
-    if (!isPlayingAnimation) return;
-
-    if (currentIdx >= strokePaths.length) {
-      // Đã vẽ xong toàn bộ chữ
-      animTimer = setTimeout(() => {
-        stopStrokeAnimation();
-        showToast('Đã phát xong toàn bộ các nét bút thuận.', 'info');
-      }, 800);
+  function animateNextStroke() {
+    if (!isPlayingAnimation || currentAnimIdx >= strokePaths.length) {
+      stopStrokeAnimation();
       return;
     }
 
-    const p = document.getElementById(`strokePath_${currentIdx}`);
+    const p = document.getElementById(`strokePath_${currentAnimIdx}`);
     if (p) {
-      // Đổi màu xanh nổi bật cho nét đang vẽ
-      p.setAttribute('stroke', '#006194');
-      p.style.transition = 'stroke-dashoffset 0.55s cubic-bezier(0.4, 0, 0.2, 1)';
+      p.style.transition = 'stroke-dashoffset 0.55s ease-in-out';
       p.style.strokeDashoffset = '0';
-
-      // Chuyển lại màu đen sau khi vẽ xong
-      setTimeout(() => {
-        if (p) p.setAttribute('stroke', '#0F2545');
-      }, 550);
     }
 
-    currentIdx++;
-    animTimer = setTimeout(runNextStroke, 650);
+    currentAnimIdx++;
+    animTimer = setTimeout(animateNextStroke, 650);
   }
 
-  animTimer = setTimeout(runNextStroke, 150);
+  animTimer = setTimeout(animateNextStroke, 100);
 }
 
 function stopStrokeAnimation() {
@@ -262,16 +165,13 @@ function stopStrokeAnimation() {
 
   const playBtn = document.getElementById('btnPlayStroke');
   if (playBtn) {
-    playBtn.innerHTML = `
-      <span class="material-symbols-outlined text-[16px]">play_arrow</span>
-      <span>Phát nét</span>
-    `;
-    playBtn.className = 'py-2 px-2 text-xs font-semibold rounded-xl bg-[#006194] hover:bg-[#004B73] text-white flex items-center justify-center gap-1 transition shadow-xs cursor-pointer';
+    playBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">play_arrow</span><span>Phát nét</span>';
+    playBtn.classList.replace('bg-amber-600', 'bg-[#006194]');
   }
 }
 
 // =========================================================================
-// 6. KHỞI TẠO BẢNG CANVAS VẼ TAY (HIGH-DPI 60FPS)
+// 5. KHỞI TẠO BẢNG CANVAS 2D ĐỒ HỌA CAO CẤP
 // =========================================================================
 function setupCanvas() {
   canvas = document.getElementById('practiceBoard');
@@ -395,41 +295,45 @@ function clearCanvas() {
 }
 
 // =========================================================================
-// 7. CẬP NHẬT THÔNG TIN HÁN TỰ & KHAY XEM TỪNG NÉT
+// 6. CẬP NHẬT THÔNG TIN HÁN TỰ & KHAY XEM TỪNG NÉT
 // =========================================================================
 async function selectKanji(char) {
   if (!char || typeof char !== 'string') return;
   const targetChar = char.trim().charAt(0);
+  if (!targetChar) return;
+
   currentChar = targetChar;
 
-  // Lấy metadata từ DB nội bộ hoặc tạo thông số cơ bản
-  const meta = KANJI_DATABASE[targetChar] || {
-    char: targetChar,
-    hanViet: 'HÁN TỰ',
-    meaning: 'Chữ Hán bổ sung',
-    onyomi: '—',
-    kunyomi: '—',
-    jlpt: 'Tự do',
-    strokes: 0
-  };
-
-  // Cập nhật giao diện
+  // Cập nhật giao diện thanh trạng thái
   const activeCharEl = document.getElementById('canvasActiveChar');
   const activeHanVietEl = document.getElementById('canvasActiveHanViet');
   const badgeEl = document.getElementById('strokeCountBadge');
 
   if (activeCharEl) activeCharEl.textContent = targetChar;
-  if (activeHanVietEl) activeHanVietEl.textContent = `(Âm Hán: ${meta.hanViet})`;
+  if (activeHanVietEl) activeHanVietEl.textContent = `(Chữ Hán: ${targetChar})`;
 
-  document.getElementById('detailHanViet').textContent = meta.hanViet;
-  document.getElementById('detailMeaning').textContent = meta.meaning;
-  document.getElementById('detailOnyomi').textContent = meta.onyomi;
-  document.getElementById('detailKunyomi').textContent = meta.kunyomi;
-  document.getElementById('kanjiJlptLevel').textContent = `Trình độ ${meta.jlpt}`;
-
-  // Tải SVG nét chữ
+  // Tải SVG nét chữ từ chuẩn KanjiVG
   strokePaths = await loadKanjiSvg(targetChar);
+
+  if (strokePaths.length === 0) {
+    if (badgeEl) badgeEl.textContent = '0 nét';
+    document.getElementById('kanjiJlptLevel').textContent = 'Chưa có mẫu nét';
+    document.getElementById('detailHanViet').textContent = '—';
+    document.getElementById('detailMeaning').textContent = '—';
+    document.getElementById('detailOnyomi').textContent = '—';
+    document.getElementById('detailKunyomi').textContent = '—';
+    renderGuidelineSvg();
+    renderStrokeStepBadges();
+    showToast(`Hệ thống chưa có sẵn vector nét bút cho ký tự "${targetChar}".`, 'info');
+    return;
+  }
+
   if (badgeEl) badgeEl.textContent = `${strokePaths.length} nét`;
+  document.getElementById('kanjiJlptLevel').textContent = `${strokePaths.length} nét chuẩn`;
+  document.getElementById('detailHanViet').textContent = targetChar;
+  document.getElementById('detailMeaning').textContent = `Chữ Hán ${targetChar}`;
+  document.getElementById('detailOnyomi').textContent = '—';
+  document.getElementById('detailKunyomi').textContent = '—';
 
   activeStrokeFilter = null;
   renderGuidelineSvg();
@@ -444,12 +348,19 @@ function renderStrokeStepBadges() {
 
   container.innerHTML = '';
 
+  if (strokePaths.length === 0) {
+    container.innerHTML = '<span class="text-xs text-[#68737D] italic p-1">Nhập một chữ Hán ở trên để nạp thứ tự từng nét.</span>';
+    return;
+  }
+
   // Nút Tất cả nét
   const allBtn = document.createElement('button');
   allBtn.type = 'button';
   allBtn.className = `stroke-step-badge ${activeStrokeFilter === null ? 'active' : ''}`;
-  allBtn.textContent = 'All';
-  allBtn.title = 'Xem toàn bộ các nét';
+  allBtn.textContent = 'Tất cả';
+  allBtn.title = 'Hiển thị tất cả các nét';
+  allBtn.style.width = 'auto';
+  allBtn.style.padding = '0 10px';
   allBtn.addEventListener('click', () => {
     activeStrokeFilter = null;
     document.getElementById('activeStrokeLabel').textContent = 'Tất cả nét';
@@ -483,9 +394,14 @@ function renderStrokeStepBadges() {
 }
 
 // =========================================================================
-// 8. THUẬT TOÁN CHẤM ĐIỂM THƯ PHÁP SHODO AI
+// 7. THUẬT TOÁN CHẤM ĐIỂM THƯ PHÁP SHODO AI
 // =========================================================================
 function gradeShodoWriting() {
+  if (!currentChar) {
+    showToast('Bạn hãy nhập một chữ Hán cần luyện viết trước nhé.', 'info');
+    return;
+  }
+
   if (drawnStrokes.length === 0) {
     showToast('Bạn hãy vẽ ít nhất một nét lên bảng trước khi yêu cầu chấm điểm nhé.', 'error');
     return;
@@ -555,10 +471,11 @@ function resetAiFeedback() {
 }
 
 // =========================================================================
-// 9. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
+// 8. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================
 document.addEventListener('DOMContentLoaded', async () => {
   setupCanvas();
+  renderStrokeStepBadges();
 
   // Nút Play hoạt ảnh
   document.getElementById('btnPlayStroke')?.addEventListener('click', playStrokeAnimation);
@@ -583,6 +500,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (input && input.value.trim()) {
       selectKanji(input.value.trim());
       input.value = '';
+    } else {
+      showToast('Vui lòng nhập một chữ Hán vào ô tìm kiếm.', 'info');
     }
   });
 
@@ -592,15 +511,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (input && input.value.trim()) {
         selectKanji(input.value.trim());
         input.value = '';
+      } else {
+        showToast('Vui lòng nhập một chữ Hán vào ô tìm kiếm.', 'info');
       }
     }
-  });
-
-  // Gợi ý nhanh các chữ Hán
-  document.querySelectorAll('#quickSampleChars button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      selectKanji(btn.textContent.trim());
-    });
   });
 
   // Bắt tham số ?kanji=... trên URL nếu có
@@ -608,7 +522,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   const urlChar = params.get('kanji') || params.get('char');
   if (urlChar && urlChar.trim()) {
     await selectKanji(urlChar.trim());
-  } else {
-    await selectKanji('愛');
   }
 });

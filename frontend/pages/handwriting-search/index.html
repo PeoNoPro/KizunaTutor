@@ -186,6 +186,15 @@
               <p class="text-xs font-bold text-[#68737D]">AI đang phân tích quỹ đạo nét vẽ...</p>
             </div>
 
+            <!-- Trạng thái không tìm thấy kết quả phù hợp -->
+            <div id="hwEmptyResultState" class="hidden p-12 text-center text-[#68737D] space-y-3">
+              <span class="material-symbols-outlined text-5xl text-amber-400">search_off</span>
+              <h4 class="font-bold text-base text-[#0F2545]">Không tìm thấy chữ Hán phù hợp</h4>
+              <p class="text-xs max-w-sm mx-auto text-[#68737D]">
+                Hệ thống chưa nhận diện được chữ Hán tương ứng với các nét vẽ hiện tại. Bạn vui lòng thêm nét hoặc xóa bảng vẽ để viết lại rõ ràng hơn.
+              </p>
+            </div>
+
             <!-- Lưới các thẻ chữ Hán ứng viên (Candidate Grid) -->
             <div id="hwCandidateGrid" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <!-- Render tự động bởi handwriting-search.js -->

@@ -26,7 +26,10 @@ const URL_ALIASES = {
   '/tutors': '/pages/tutor-discovery/index.html',
   '/tutor-discovery': '/pages/tutor-discovery/index.html',
   '/tutor-profile': '/pages/tutor-profile/index.html',
-  '/connection-requests': '/pages/connection-requests/index.html'
+  '/connection-requests': '/pages/connection-requests/index.html',
+  '/kana-quiz': '/pages/kana-quiz/index.html',
+  '/kana': '/pages/kana-quiz/index.html',
+  '/kana-quiz.html': '/pages/kana-quiz/index.html'
 };
 
 const server = http.createServer((req, res) => {

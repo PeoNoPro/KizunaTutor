@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bộ thẻ ghi nhớ Flashcards - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Tailwind & Project CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <link rel="stylesheet" href="/styles/utilities.css">
+
+  <style>
+    /* Hiệu ứng lật thẻ 3D Flashcard */
+    .flashcard-scene {
+      perspective: 1000px;
+    }
+    .flashcard-card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    .flashcard-card.is-flipped {
+      transform: rotateY(180deg);
+    }
+    .flashcard-face {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .flashcard-face-back {
+      transform: rotateY(180deg);
+    }
+  </style>
+</head>
+<body class="bg-[#FCFBF7] text-[#131B2E] min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- ==================== 1. SYNCHRONIZED HEADER ==================== -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFBF7]/95 backdrop-blur-md border-b border-[#ECE8DE]">
+    <div class="h-20 max-w-[1240px] mx-auto px-4 md:px-8 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-6">
+        <a class="flex items-center gap-2 group" href="/pages/home/">
+          <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-xl tracking-tight text-[#0F2545]">Kizuna<span class="text-[#006194]">Tutor</span></span>
+            </div>
+            <span class="text-[10px] text-[#68737D] font-medium -mt-0.5 tracking-wider">Kết nối song ngữ Việt – Nhật</span>
+          </div>
+        </a>
+        <nav class="hidden lg:flex items-center gap-1" id="main-nav">
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/tutor-discovery/">Tìm gia sư</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg bg-[#006194] text-white font-semibold shadow-sm transition-colors" href="/pages/flashcards/">Công cụ học</a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-[#006194] hover:bg-[#006194]/10 transition-colors border border-[#006194]/20" href="#">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Vào Dashboard học tập</span>
+        </a>
+        <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-[#006194] text-white hover:bg-[#004B73] transition-all shadow-sm font-semibold flex items-center gap-1.5" href="#">
+          <span>Đăng ký</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </a>
+        <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#F2EFE6] transition-colors">
+          <span class="material-symbols-outlined text-[24px]">menu</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ECE8DE] bg-[#FCFBF7] px-6 py-4 space-y-2">
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/tutor-discovery/">Tìm gia sư</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+      <a class="block font-semibold text-sm py-2 text-[#006194]" href="/pages/flashcards/">Công cụ học</a>
+      <div class="pt-3 border-t border-[#ECE8DE]">
+        <a class="flex items-center gap-2 font-semibold text-xs py-2 text-[#006194]" href="#">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Vào Dashboard học tập</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 2. MAIN CONTENT ==================== -->
+  <main class="w-full pt-28 pb-16 flex-1">
+    <div class="max-w-[1240px] mx-auto px-4 md:px-8 space-y-6">
+
+      <!-- Hero Header Banner -->
+      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] font-bold text-xl">
+            🗂️
+          </span>
+          <div>
+            <h1 class="text-xl md:text-2xl font-bold text-[#0F2545]">
+              Bộ thẻ ghi nhớ Flashcards Hán tự
+            </h1>
+            <p class="text-xs md:text-sm text-[#68737D] mt-0.5">
+              Gom góp chữ Hán khó nhớ thành từng bộ thẻ chuyên đề để ôn tập phản xạ và lật thẻ 3D
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button type="button" id="btnOpenCreateDeck" 
+                  class="px-4 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs md:text-sm font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">add</span>
+            <span>Tạo bộ thẻ mới</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Thanh công cụ tìm kiếm và lọc bộ thẻ -->
+      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 shadow-sm flex flex-wrap gap-3 items-center justify-between">
+        <div class="flex-1 min-w-[260px] relative">
+          <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#68737D] text-[18px]">search</span>
+          <input type="text" id="inputSearchDecks" 
+                 placeholder="Tìm kiếm bộ thẻ theo tên hoặc ghi chú..." 
+                 class="w-full pl-10 pr-4 py-2 text-xs md:text-sm rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
+        </div>
+
+        <div class="flex items-center gap-2 text-xs font-semibold text-[#68737D]">
+          <span>Tổng số:</span>
+          <span id="deckCountBadge" class="bg-[#FAF8F2] text-[#0F2545] border border-[#ECE8DE] font-bold text-xs px-3 py-1 rounded-full">
+            0 bộ thẻ
+          </span>
+        </div>
+      </div>
+
+      <!-- ==================== LƯỚI DANH SÁCH BỘ THẺ ==================== -->
+      <div id="deckGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Render tự động bởi flashcards.js -->
+      </div>
+
+      <!-- ==================== EMPTY STATE (KHI CHƯA CÓ BỘ THẺ) ==================== -->
+      <div id="deckEmptyState" class="hidden p-10 md:p-14 text-center rounded-2xl border-2 border-dashed border-[#ECE8DE] bg-white space-y-3">
+        <img src="/assets/images/stickers/sleepy-capi.png" 
+             alt="Capybara Kizuna" 
+             class="w-16 h-16 mx-auto object-contain pointer-events-none select-none opacity-85">
+        <h3 class="text-base md:text-lg font-bold text-[#0F2545]">Chưa tìm thấy bộ thẻ nào phù hợp</h3>
+        <p class="text-xs md:text-sm text-[#68737D] max-w-md mx-auto">
+          Tạo ngay một bộ thẻ mới để cất giữ những chữ Hán khó nhớ và luyện tập lật thẻ mỗi ngày nhé!
+        </p>
+        <button type="button" id="btnEmptyCreateDeck" 
+                class="mt-2 px-5 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs md:text-sm font-bold inline-flex items-center gap-1.5 transition cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]">add</span>
+          <span>Tạo bộ thẻ đầu tiên</span>
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==================== MODAL TẠO / SỬA BỘ THẺ ==================== -->
+  <div id="modalCreateDeck" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-[#ECE8DE] rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-[#ECE8DE] pb-3">
+        <h3 class="font-bold text-base text-[#0F2545] flex items-center gap-2">
+          <span class="material-symbols-outlined text-[20px] text-[#006194]">folder_special</span>
+          <span id="modalDeckTitle">Tạo bộ thẻ mới</span>
+        </h3>
+        <button type="button" id="btnCloseCreateDeckModal" class="text-[#68737D] hover:text-[#0F2545] p-1 rounded-lg">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label for="deckNameInput" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1">
+            Tên bộ thẻ *
+          </label>
+          <input type="text" id="deckNameInput" placeholder="Ví dụ: Hán tự N4 chuyên đề Thời tiết" 
+                 class="w-full px-3.5 py-2 text-sm border border-[#ECE8DE] rounded-xl bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
+        </div>
+
+        <div>
+          <label for="deckDescInput" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1">
+            Mô tả ngắn gọn
+          </label>
+          <textarea id="deckDescInput" rows="2" placeholder="Ghi chú thêm về mục tiêu ôn tập của bộ thẻ này..." 
+                    class="w-full px-3.5 py-2 text-sm border border-[#ECE8DE] rounded-xl bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1">
+            Màu đại diện
+          </label>
+          <div class="flex items-center gap-2" id="deckColorPicker">
+            <button type="button" data-color="blue" class="w-8 h-8 rounded-full bg-[#006194] ring-2 ring-offset-2 ring-[#006194] transition"></button>
+            <button type="button" data-color="pink" class="w-8 h-8 rounded-full bg-[#831843] transition"></button>
+            <button type="button" data-color="green" class="w-8 h-8 rounded-full bg-[#059669] transition"></button>
+            <button type="button" data-color="amber" class="w-8 h-8 rounded-full bg-[#D97706] transition"></button>
+            <button type="button" data-color="indigo" class="w-8 h-8 rounded-full bg-[#4059AA] transition"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-[#ECE8DE]">
+        <button type="button" id="btnCancelDeck" class="px-4 py-2 text-xs font-semibold rounded-xl border border-[#ECE8DE] text-[#3F4850] hover:bg-[#FAF8F2] transition">
+          Hủy bỏ
+        </button>
+        <button type="button" id="btnSaveDeck" class="px-5 py-2 text-xs font-bold rounded-xl bg-[#006194] hover:bg-[#004B73] text-white transition">
+          Lưu bộ thẻ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL XEM CHI TIẾT & CHẾ ĐỘ LẬT THẺ FLASHCARD ==================== -->
+  <div id="modalStudyDeck" class="hidden fixed inset-0 bg-[#0F2545]/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-[#ECE8DE] rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+      
+      <!-- Header Modal -->
+      <div class="flex items-center justify-between border-b border-[#ECE8DE] pb-3 shrink-0">
+        <div>
+          <h3 id="studyDeckTitle" class="font-bold text-base md:text-lg text-[#0F2545]">
+            Tên bộ thẻ
+          </h3>
+          <p id="studyDeckSubtitle" class="text-xs text-[#68737D] mt-0.5">
+            0 chữ Hán trong bộ thẻ
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnOpenAddCardModal" 
+                  class="px-3 py-1.5 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-xs font-bold text-[#006194] flex items-center gap-1 transition">
+            <span class="material-symbols-outlined text-[15px]">add</span>
+            <span>Thêm chữ</span>
+          </button>
+          <button type="button" id="btnCloseStudyModal" class="text-[#68737D] hover:text-[#0F2545] p-1 rounded-lg">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Khu Vực Lật Thẻ 3D Flashcard -->
+      <div class="flashcard-scene h-64 md:h-72 w-full shrink-0">
+        <div id="flashcardElement" class="flashcard-card">
+          <!-- Mặt trước -->
+          <div class="flashcard-face bg-gradient-to-br from-[#FAF8F2] to-white border border-[#ECE8DE] shadow-sm p-6 text-center">
+            <span class="absolute top-4 left-4 text-xs font-bold px-2 py-0.5 rounded-md bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]" id="studyCardLevel">
+              JLPT
+            </span>
+            <span class="absolute top-4 right-4 text-[11px] font-semibold text-[#68737D]" id="studyCardProgressText">
+              Thẻ 1 / 10
+            </span>
+
+            <div class="my-auto">
+              <span id="studyCardChar" class="text-6xl md:text-7xl font-bold text-[#0F2545] font-japanese leading-none select-none">
+                愛
+              </span>
+              <p class="text-xs text-[#68737D] mt-3 flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">touch_app</span>
+                <span>Chạm để lật mặt sau xem nghĩa &amp; âm đọc</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Mặt sau -->
+          <div class="flashcard-face flashcard-face-back bg-white border border-[#ECE8DE] shadow-sm p-6 text-left">
+            <div class="w-full flex items-center justify-between pb-2 border-b border-[#ECE8DE]">
+              <span class="text-3xl font-bold text-[#0F2545] font-japanese" id="studyCardCharBack">愛</span>
+              <span class="text-lg font-bold text-[#006194]" id="studyCardHanViet">ÁI</span>
+            </div>
+
+            <div class="w-full my-auto space-y-2 text-xs md:text-sm">
+              <div>
+                <span class="text-[#68737D] font-medium">Nghĩa tiếng Việt:</span>
+                <span class="font-bold text-[#0F2545] ml-1" id="studyCardMeaning">Yêu thương, trân quý</span>
+              </div>
+              <div>
+                <span class="text-[#68737D] font-medium">Onyomi:</span>
+                <span class="font-bold text-[#006194] ml-1 font-japanese" id="studyCardOnyomi">アイ</span>
+              </div>
+              <div>
+                <span class="text-[#68737D] font-medium">Kunyomi:</span>
+                <span class="font-bold text-[#831843] ml-1 font-japanese" id="studyCardKunyomi">いと.しい</span>
+              </div>
+            </div>
+
+            <div class="w-full pt-2 border-t border-[#ECE8DE] flex items-center justify-between">
+              <a id="btnStudyPracticeShodo" href="#" 
+                 class="text-xs font-semibold text-[#006194] hover:underline flex items-center gap-1 no-underline">
+                <span class="material-symbols-outlined text-[15px]">draw</span>
+                <span>Luyện viết chữ này 🖌️</span>
+              </a>
+              <span class="text-[11px] text-[#68737D]">Chạm để lật lại</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Điều Khiển Lật Thẻ Tiếp Theo / Quay Lại -->
+      <div class="flex items-center justify-between gap-3 pt-1 shrink-0">
+        <button type="button" id="btnPrevCard" 
+                class="px-4 py-2 text-xs font-semibold rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] flex items-center gap-1 transition">
+          <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+          <span>Thẻ trước</span>
+        </button>
+
+        <button type="button" id="btnFlipCard" 
+                class="px-4 py-2 text-xs font-bold rounded-xl border border-[#ECE8DE] bg-white hover:bg-[#FAF8F2] text-[#006194] flex items-center gap-1 transition shadow-xs">
+          <span class="material-symbols-outlined text-[16px]">sync</span>
+          <span>Lật thẻ</span>
+        </button>
+
+        <button type="button" id="btnNextCard" 
+                class="px-4 py-2 text-xs font-semibold rounded-xl bg-[#006194] hover:bg-[#004B73] text-white flex items-center gap-1 transition">
+          <span>Tiếp theo</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </button>
+      </div>
+
+      <!-- Danh Sách Chữ Trong Bộ Thẻ (Mini Grid) -->
+      <div class="pt-3 border-t border-[#ECE8DE] flex-1 overflow-y-auto min-h-[120px]">
+        <div class="text-xs font-bold text-[#0F2545] mb-2 flex items-center justify-between">
+          <span>Tất cả các chữ trong bộ thẻ:</span>
+          <span id="miniGridCount" class="text-[#68737D] font-normal text-[11px]">0 chữ</span>
+        </div>
+        <div id="deckCardsMiniGrid" class="flex flex-wrap gap-2">
+          <!-- Render tự động -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL THÊM CHỮ VÀO BỘ THẺ ==================== -->
+  <div id="modalAddCard" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-[#ECE8DE] rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-[#ECE8DE] pb-2.5">
+        <h4 class="font-bold text-sm text-[#0F2545] flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[18px] text-[#006194]">add_card</span>
+          <span>Thêm chữ Hán vào bộ thẻ</span>
+        </h4>
+        <button type="button" id="btnCloseAddCardModal" class="text-[#68737D] hover:text-[#0F2545]">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label for="inputNewKanjiChar" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1">
+            Ký tự chữ Hán *
+          </label>
+          <input type="text" id="inputNewKanjiChar" placeholder="Nhập một chữ Hán (ví dụ: 桜, 夢, 友...)" maxlength="5"
+                 class="w-full px-3.5 py-2 text-sm border border-[#ECE8DE] rounded-xl bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition font-japanese">
+        </div>
+
+        <div>
+          <label for="inputNewHanViet" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1">
+            Âm Hán Việt
+          </label>
+          <input type="text" id="inputNewHanViet" placeholder="Ví dụ: ANH, MỘNG, HỮU..." 
+                 class="w-full px-3.5 py-2 text-sm border border-[#ECE8DE] rounded-xl bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
+        </div>
+
+        <div>
+          <label for="inputNewMeaning" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1">
+            Nghĩa tiếng Việt
+          </label>
+          <input type="text" id="inputNewMeaning" placeholder="Ví dụ: Hoa anh đào, Giấc mơ, Bạn bè..." 
+                 class="w-full px-3.5 py-2 text-sm border border-[#ECE8DE] rounded-xl bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#ECE8DE]">
+        <button type="button" id="btnCancelAddCard" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg border border-[#ECE8DE] text-[#3F4850] hover:bg-[#FAF8F2]">
+          Hủy
+        </button>
+        <button type="button" id="btnSubmitAddCard" class="px-4 py-1.5 text-xs font-bold rounded-lg bg-[#006194] hover:bg-[#004B73] text-white">
+          Thêm vào bộ thẻ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 3. SYNCHRONIZED FOOTER ==================== -->
+  <footer class="w-full bg-[#131D2E] text-[#E3E8F3] pt-16 pb-10 border-t border-[#1F2D45] mt-auto">
+    <div class="max-w-[1240px] mx-auto px-4 md:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div class="space-y-4">
+          <div class="flex items-center gap-2">
+            <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-8 w-8 object-contain rounded-full shadow">
+            <span class="font-bold text-xl tracking-tight text-white">Kizuna<span class="text-sky-400">Tutor</span></span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Nền tảng kết nối tri thức và sự tận tâm giữa gia sư tiếng Nhật chuyên môn cao và người học Việt Nam trên toàn quốc theo triết lý gắn kết bền vững (Kizuna).
+          </p>
+          <div class="flex items-center gap-2 text-slate-400 text-xs">
+            <span class="material-symbols-outlined text-[18px] text-amber-400">verified</span>
+            <span>Bảo chứng hồ sơ &amp; Năng lực sư phạm chuẩn JLPT</span>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho học viên</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" href="/pages/tutor-discovery/">Tìm gia sư theo trình độ (N5 – N1)</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/tutor-discovery/">Gia sư bản xứ Tokyo luyện Kaiwa</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/home/#chuyen-de">Khóa chuyên đề &amp; Phỏng vấn IT</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/home/#cach-hoat-dong">Chính sách buổi gặp mặt học thử 0đ</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/connection-requests/">Tra cứu yêu cầu đã gửi</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho gia sư</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" href="/pages/home/#tro-thanh-gia-su">Đăng ký ứng tuyển gia sư mới</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Không gian quản lý giảng dạy</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Bộ quy chuẩn xác thực chứng chỉ</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Chính sách không cắt phế buổi học</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Cộng đồng Senpai Kizuna</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Hỗ trợ &amp; pháp lý</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" href="#">Điều khoản sử dụng dịch vụ</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Chính sách bảo mật thông tin</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Quy trình giải quyết khiếu nại</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Trung tâm trợ giúp 24/7 (Hotline / Zalo)</a></li>
+            <li><span class="inline-block mt-2 px-2.5 py-1 rounded bg-slate-800 text-[11px] text-slate-300 font-medium">Hotline: 1900 6886 (8:00 – 22:00)</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pt-6 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <div>
+          &copy; 2026 KizunaTutor. Tất cả quyền được bảo lưu. Giữ trọn tinh thần kết nối Nhật – Việt 『絆』.
+        </div>
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-emerald-400">lock</span>
+            <span>Bảo mật SSL 256-bit</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-sky-400">translate</span>
+            <span>Hỗ trợ song ngữ Tiếng Việt &bull; 日本語</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="./flashcards.js"></script>
+</body>
+</html>

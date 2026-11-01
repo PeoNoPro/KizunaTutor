@@ -33,7 +33,10 @@ const URL_ALIASES = {
   '/shodo': '/pages/shodo-practice/index.html',
   '/shodo-practice': '/pages/shodo-practice/index.html',
   '/practice': '/pages/shodo-practice/index.html',
-  '/kanji-practice': '/pages/shodo-practice/index.html'
+  '/kanji-practice': '/pages/shodo-practice/index.html',
+  '/flashcards': '/pages/flashcards/index.html',
+  '/flashcards.html': '/pages/flashcards/index.html',
+  '/decks': '/pages/flashcards/index.html'
 };
 
 const server = http.createServer((req, res) => {

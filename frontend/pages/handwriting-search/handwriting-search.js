@@ -341,6 +341,12 @@ function renderCandidates(candidateList) {
         </div>
 
         <div class="flex items-center gap-1.5 shrink-0">
+          <a href="/kanji-dictionary?keyword=${encodeURIComponent(char)}" 
+             class="px-2.5 py-1.5 rounded-xl bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] border border-[#ECE8DE] text-xs font-semibold transition flex items-center gap-1 no-underline"
+             title="Tra cứu nghĩa, âm Hán Việt và lưu Flashcard">
+            <span class="material-symbols-outlined text-[15px]">menu_book</span>
+            <span>Tra từ</span>
+          </a>
           <a href="/shodo?kanji=${encodeURIComponent(char)}" 
              class="px-3 py-1.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold transition flex items-center gap-1 no-underline shadow-xs"
              title="Chuyển sang phòng luyện viết Shodo Canvas cho chữ này">

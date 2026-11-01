@@ -77,4 +77,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     `;
   }
+
+  // Khối Quick Filter điều hướng sang /tutors kèm query parameters (T025)
+  const homeSearchBtn = document.getElementById('home-search-btn');
+  const homeFilterJlpt = document.getElementById('home-filter-jlpt');
+  const homeFilterGoal = document.getElementById('home-filter-goal');
+  const homeFilterFormat = document.getElementById('home-filter-format');
+  const homeFilterPrice = document.getElementById('home-filter-price');
+
+  if (homeSearchBtn) {
+    homeSearchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const params = new URLSearchParams();
+      if (homeFilterJlpt && homeFilterJlpt.value) params.set('jlpt', homeFilterJlpt.value);
+      if (homeFilterGoal && homeFilterGoal.value) params.set('goal', homeFilterGoal.value);
+      if (homeFilterFormat && homeFilterFormat.value) params.set('format', homeFilterFormat.value);
+      if (homeFilterPrice && homeFilterPrice.value) params.set('price', homeFilterPrice.value);
+
+      const qs = params.toString();
+      window.location.href = qs ? `/tutors?${qs}` : '/tutors';
+    });
+  }
 });

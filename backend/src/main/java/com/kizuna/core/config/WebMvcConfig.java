@@ -1,0 +1,50 @@
+package com.kizuna.core.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+@Configuration
+public class WebMvcConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        Path frontendPath = Paths.get("..", "frontend").toAbsolutePath().normalize();
+        String frontendUri = "file:" + frontendPath.toString().replace("\\", "/") + "/";
+
+        registry.addResourceHandler("/**")
+                .addResourceLocations(
+                        frontendUri,
+                        "file:c:/Users/Vuh26/Desktop/dev/KizunaTutor/frontend/",
+                        "classpath:/static/",
+                        "classpath:/public/"
+                );
+    }
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/").setViewName("forward:/pages/home/index.html");
+        registry.addViewController("/home").setViewName("forward:/pages/home/index.html");
+        registry.addViewController("/kanji-game").setViewName("forward:/pages/kanji-game/index.html");
+        registry.addViewController("/game").setViewName("forward:/pages/kanji-game/index.html");
+        registry.addViewController("/rain").setViewName("forward:/pages/kanji-game/index.html");
+        registry.addViewController("/kanji-dictionary").setViewName("forward:/pages/kanji-dictionary/index.html");
+        registry.addViewController("/dictionary").setViewName("forward:/pages/kanji-dictionary/index.html");
+        registry.addViewController("/kanji").setViewName("forward:/pages/kanji-dictionary/index.html");
+        registry.addViewController("/flashcards").setViewName("forward:/pages/flashcards/index.html");
+        registry.addViewController("/decks").setViewName("forward:/pages/flashcards/index.html");
+        registry.addViewController("/shodo").setViewName("forward:/pages/shodo-practice/index.html");
+        registry.addViewController("/shodo-practice").setViewName("forward:/pages/shodo-practice/index.html");
+        registry.addViewController("/grammar").setViewName("forward:/pages/grammar/index.html");
+        registry.addViewController("/handwriting").setViewName("forward:/pages/handwriting-search/index.html");
+        registry.addViewController("/login").setViewName("forward:/pages/login/index.html");
+        registry.addViewController("/register").setViewName("forward:/pages/register/index.html");
+        registry.addViewController("/tutors").setViewName("forward:/pages/tutor-discovery/index.html");
+        registry.addViewController("/kana").setViewName("forward:/pages/kana-quiz/index.html");
+    }
+}

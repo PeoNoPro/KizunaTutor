@@ -1,0 +1,139 @@
+# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
+# Khong can cai dat Node.js, chay truc tiep bang PowerShell tren moi may Windows
+
+param(
+    [int]$Port = 3000,
+    [string]$BackendUrl = "http://localhost:8085"
+)
+
+$rootDir = $PSScriptRoot
+$listener = New-Object System.Net.HttpListener
+$listener.Prefixes.Add("http://localhost:$Port/")
+
+try {
+    $listener.Start()
+    Write-Host "=======================================================" -ForegroundColor Cyan
+    Write-Host " KizunaTutor Frontend Server dang chay tai:" -ForegroundColor Green
+    Write-Host " http://localhost:$Port/" -ForegroundColor Yellow
+    Write-Host " API Proxy den Backend Spring Boot: $BackendUrl" -ForegroundColor Gray
+    Write-Host "=======================================================" -ForegroundColor Cyan
+    Write-Host "Nhan Ctrl+C de dung server bat cu luc nao.`n"
+} catch {
+    Write-Host "Khong the khoi dong server tren cong $Port. Co the cong dang bi chiem dung." -ForegroundColor Red
+    exit
+}
+
+$mimeTypes = @{
+    ".html" = "text/html; charset=UTF-8"
+    ".css"  = "text/css; charset=UTF-8"
+    ".js"   = "application/javascript; charset=UTF-8"
+    ".mjs"  = "application/javascript; charset=UTF-8"
+    ".json" = "application/json; charset=UTF-8"
+    ".png"  = "image/png"
+    ".jpg"  = "image/jpeg"
+    ".jpeg" = "image/jpeg"
+    ".svg"  = "image/svg+xml"
+    ".ico"  = "image/x-icon"
+    ".woff" = "font/woff"
+    ".woff2"= "font/woff2"
+    ".ttf"  = "font/ttf"
+}
+
+$aliases = @{
+    "/"                  = "/pages/home/index.html"
+    "/home"              = "/pages/home/index.html"
+    "/login"             = "/pages/login/index.html"
+    "/register"          = "/pages/register/index.html"
+    "/kanji-game"        = "/pages/kanji-game/index.html"
+    "/game"              = "/pages/kanji-game/index.html"
+    "/rain"              = "/pages/kanji-game/index.html"
+    "/kanji-dictionary"  = "/pages/kanji-dictionary/index.html"
+    "/dictionary"        = "/pages/kanji-dictionary/index.html"
+    "/kanji"             = "/pages/kanji-dictionary/index.html"
+    "/flashcards"        = "/pages/flashcards/index.html"
+    "/decks"             = "/pages/flashcards/index.html"
+    "/shodo"             = "/pages/shodo-practice/index.html"
+    "/shodo-practice"    = "/pages/shodo-practice/index.html"
+    "/grammar"           = "/pages/grammar/index.html"
+    "/handwriting"       = "/pages/handwriting-search/index.html"
+    "/tutors"            = "/pages/tutor-discovery/index.html"
+    "/kana"              = "/pages/kana-quiz/index.html"
+}
+
+while ($listener.IsListening) {
+    try {
+        $context = $listener.GetContext()
+        $request = $context.Request
+        $response = $context.Response
+
+        $rawUrl = $request.RawUrl
+        $pathPart = $rawUrl.Split('?')[0]
+
+        # 1. Neu la API -> Proxy chuyen tiep den Backend Spring Boot
+        if ($pathPart.StartsWith("/api/")) {
+            $targetUri = "$BackendUrl$rawUrl"
+            $webRequest = [System.Net.HttpWebRequest]::Create($targetUri)
+            $webRequest.Method = $request.HttpMethod
+            $webRequest.ContentType = $request.ContentType
+
+            if ($request.HasEntityBody) {
+                $reqStream = $request.InputStream
+                $proxyStream = $webRequest.GetRequestStream()
+                $reqStream.CopyTo($proxyStream)
+                $proxyStream.Close()
+            }
+
+            try {
+                $webResponse = $webRequest.GetResponse()
+                $response.StatusCode = [int]$webResponse.StatusCode
+                $response.ContentType = $webResponse.ContentType
+                $resStream = $webResponse.GetResponseStream()
+                $resStream.CopyTo($response.OutputStream)
+                $webResponse.Close()
+            } catch [System.Net.WebException] {
+                if ($_.Exception.Response) {
+                    $errRes = $_.Exception.Response
+                    $response.StatusCode = [int]$errRes.StatusCode
+                    $response.ContentType = $errRes.ContentType
+                    $errRes.GetResponseStream().CopyTo($response.OutputStream)
+                } else {
+                    $response.StatusCode = 502
+                    $bytes = [System.Text.Encoding]::UTF8.GetBytes("Bad Gateway: Khong the ket noi backend $BackendUrl")
+                    $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                }
+            }
+            $response.OutputStream.Close()
+            continue
+        }
+
+        # 2. Xu ly Router Alias
+        if ($aliases.ContainsKey($pathPart)) {
+            $pathPart = $aliases[$pathPart]
+        }
+
+        $localPath = Join-Path $rootDir $pathPart.TrimStart('/')
+
+        if ((Test-Path $localPath) -and (Get-Item $localPath) -is [System.IO.DirectoryInfo]) {
+            $indexPath = Join-Path $localPath "index.html"
+            if (Test-Path $indexPath) {
+                $localPath = $indexPath
+            }
+        }
+
+        if (-not (Test-Path $localPath)) {
+            $localPath = Join-Path $rootDir "pages/home/index.html"
+        }
+
+        $ext = [System.IO.Path]::GetExtension($localPath).ToLower()
+        $cType = $mimeTypes[$ext]
+        if (-not $cType) { $cType = "application/octet-stream" }
+
+        $contentBytes = [System.IO.File]::ReadAllBytes($localPath)
+        $response.ContentType = $cType
+        $response.ContentLength64 = $contentBytes.Length
+        $response.OutputStream.Write($contentBytes, 0, $contentBytes.Length)
+        $response.OutputStream.Close()
+    } catch {
+        # Bo qua loi client dong ket noi dot ngot
+    }
+}

@@ -36,7 +36,10 @@ const URL_ALIASES = {
   '/kanji-practice': '/pages/shodo-practice/index.html',
   '/flashcards': '/pages/flashcards/index.html',
   '/flashcards.html': '/pages/flashcards/index.html',
-  '/decks': '/pages/flashcards/index.html'
+  '/decks': '/pages/flashcards/index.html',
+  '/grammar': '/pages/grammar/index.html',
+  '/grammar.html': '/pages/grammar/index.html',
+  '/openjlpt': '/pages/grammar/index.html'
 };
 
 const server = http.createServer((req, res) => {

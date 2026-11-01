@@ -90,6 +90,16 @@ public class TutorSearchServiceImpl implements TutorSearchService {
         return mapToSummaryDTO(tutor);
     }
 
+    @Override
+    public TutorSummaryResponseDTO getTutorByCode(Long tutorCode) {
+        Tutor tutor = tutorSearchRepository.findByTutorCode(tutorCode)
+                .orElse(null);
+        if (tutor == null) {
+            return null;
+        }
+        return mapToSummaryDTO(tutor);
+    }
+
     private TutorSummaryResponseDTO mapToSummaryDTO(Tutor tutor) {
         List<String> specialties = Collections.emptyList();
         if (tutor.getHeadline() != null && !tutor.getHeadline().trim().isEmpty()) {
@@ -101,6 +111,7 @@ public class TutorSearchServiceImpl implements TutorSearchService {
 
         return TutorSummaryResponseDTO.builder()
                 .tutorId(tutor.getTutorId())
+                .tutorCode(tutor.getTutorCode())
                 .fullName(tutor.getUser() != null ? tutor.getUser().getFullName() : "Gia sư Kizuna")
                 .avatarUrl(tutor.getUser() != null ? tutor.getUser().getAvatarUrl() : null)
                 .headline(tutor.getHeadline())
@@ -118,4 +129,3 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                 .build();
     }
 }
-

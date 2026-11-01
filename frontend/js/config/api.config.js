@@ -3,7 +3,7 @@
  * Compliant with FRONTEND_RULES.md & AGENTS.md
  */
 
-const API_CONFIG = {
+export const API_CONFIG = {
   BASE_URL: 'http://localhost:8085/api',
   TIMEOUT_MS: 15000,
   ENDPOINTS: {

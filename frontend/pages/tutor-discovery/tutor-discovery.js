@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       currentLoadedTutors = items.map(item => ({
         id: item.tutorId,
+        tutorCode: item.tutorCode,
         fullName: item.fullName || 'Gia sư Kizuna',
         avatarUrl: item.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfWr7LjTJCoD0Gf2VNK0QdLAElZ9cyCzJkQ8IOJ7ZhfKFRiPoiK-N6PJaofpuz4ZSh0MCTyzeYN1pX3x0Uaq5OcxZn8yQJ0H4V9S7DtsrI2aXdgxRQ0o8NMGuIO63NK6Y74ZNBD0G7rqPan3Z9H-N80LBRdViJvA9zYNeJLWG53XmbteXaiLIE6gVUR1BHJBqSmUiPALj-L4qvCcRXCinX5eARKyo5T6tbevnMHOs',
         isOnline: true,
@@ -145,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Render thẻ gia sư
   function renderTutorCard(tutor) {
+    const profileUrl = tutor.tutorCode ? `/gs/${tutor.tutorCode}` : `/pages/tutor-profile/?id=${tutor.id}`;
     return `
       <article class="bg-white border border-[#E5DECB] rounded-xl p-space-md md:p-space-lg shadow-[0_1px_4px_rgba(15,37,69,0.04)] hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
         <div class="space-y-space-md">
@@ -157,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="flex-1 min-w-0 space-y-1">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="font-title-md text-title-md font-bold text-on-surface group-hover:text-primary transition-colors truncate">
-                  <a href="/pages/tutor-profile/?id=${tutor.id}">${tutor.fullName}</a>
+                  <a href="${profileUrl}">${tutor.fullName}</a>
                 </h3>
                 <div class="flex items-center gap-1 text-amber-500 font-bold shrink-0 text-sm">
                   <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
@@ -217,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           <div class="flex items-center gap-space-xs w-full sm:w-auto">
-            <a href="/pages/tutor-profile/?id=${tutor.id}" class="w-1/2 sm:w-auto px-space-md py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-semibold transition-colors text-center inline-flex items-center justify-center">
+            <a href="${profileUrl}" class="w-1/2 sm:w-auto px-space-md py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-semibold transition-colors text-center inline-flex items-center justify-center">
               Xem hồ sơ
             </a>
             <button class="w-1/2 sm:w-auto px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold transition-all shadow-sm flex items-center justify-center gap-1.5" type="button" onclick="window.handleOpenConnect('${tutor.id}')">

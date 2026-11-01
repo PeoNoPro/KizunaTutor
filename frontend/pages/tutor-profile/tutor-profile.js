@@ -1,6 +1,7 @@
 /**
  * KizunaTutor - Tutor Profile Detail Page Logic (UC-31)
- * Đọc tham số ?id=<UUID> và lấy thông tin chi tiết từ Database Supabase qua REST API.
+ * Hỗ trợ URL ngắn /gs/:tutorCode (ví dụ: /gs/10001), ?code=10001 hoặc ?id=<UUID>.
+ * Lấy thông tin chi tiết từ Database Supabase qua REST API.
  */
 
 import { API } from '../../js/api.js';
@@ -8,10 +9,14 @@ import { formatVND } from '../../js/main.js';
 import { openModal, closeModal } from '../../components/modal/modal.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Trích xuất mã gia sư (tutor_code) từ pathname /gs/:code hoặc query param
+  const pathname = window.location.pathname;
+  const gsMatch = pathname.match(/\/gs\/(\d+)/);
   const urlParams = new URLSearchParams(window.location.search);
+  const tutorCode = gsMatch ? gsMatch[1] : urlParams.get('code');
   const tutorId = urlParams.get('id');
 
-  if (!tutorId) {
+  if (!tutorCode && !tutorId) {
     window.location.href = '/pages/tutor-discovery/';
     return;
   }
@@ -20,10 +25,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!container) return;
 
   try {
-    const tutor = await API.tutors.getDetail(tutorId);
+    let tutor = null;
+
+    if (tutorCode) {
+      tutor = await API.tutors.getByCode(tutorCode);
+    } else if (tutorId) {
+      tutor = await API.tutors.getDetail(tutorId);
+    }
+
     if (!tutor) {
-      alert('Không tìm thấy thông tin gia sư yêu cầu.');
-      window.location.href = '/pages/tutor-discovery/';
+      container.innerHTML = `
+        <div class="p-12 text-center bg-white rounded-2xl border border-[#E5DECB] space-y-4 max-w-lg mx-auto my-12 shadow-sm">
+          <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <span class="material-symbols-outlined text-[32px]">person_off</span>
+          </div>
+          <h3 class="text-xl font-bold text-[#0F2545]">Không tìm thấy hồ sơ gia sư</h3>
+          <p class="text-sm text-on-surface-variant">Mã gia sư yêu cầu không tồn tại hoặc hồ sơ chưa được công khai.</p>
+          <a href="/pages/tutor-discovery/" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-sm font-semibold transition-colors">
+            Khám phá danh sách gia sư
+          </a>
+        </div>
+      `;
       return;
     }
 
@@ -60,10 +82,15 @@ document.addEventListener('DOMContentLoaded', async () => {
               </div>
 
               <div class="flex-1 space-y-2">
-                <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-2.5 flex-wrap">
                   <h1 class="text-2xl md:text-3xl font-bold text-[#0F2545]">${tutor.fullName}</h1>
-                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
-                    <span class="material-symbols-outlined text-[16px] text-emerald-600">verified</span> Đã xác thực hồ sơ
+                  ${tutor.tutorCode ? `
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md bg-sky-50 text-primary text-xs font-bold border border-sky-200">
+                      Mã: #${tutor.tutorCode}
+                    </span>
+                  ` : ''}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+                    <span class="material-symbols-outlined text-[15px] text-emerald-600">verified</span> Đã xác thực hồ sơ
                   </span>
                 </div>
 
@@ -93,30 +120,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="pt-4 border-t border-[#ECE8DE] flex flex-wrap gap-2 items-center">
               <span class="text-xs font-bold text-[#0F2545] mr-2">Chuyên môn:</span>
               <span class="px-3 py-1 rounded-lg bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">Trình độ JLPT ${tutor.highestJlptLevel || 'N1'}</span>
-              ${(tutor.specialties && tutor.specialties.length > 0) 
-                ? tutor.specialties.map(s => `<span class="px-3 py-1 rounded-lg bg-[#FAF8F2] text-[#0F2545] text-xs font-medium border border-[#E5DECB]">${s}</span>`).join('')
-                : '<span class="px-3 py-1 rounded-lg bg-[#FAF8F2] text-[#0F2545] text-xs font-medium border border-[#E5DECB]">Giao tiếp & Ngữ pháp</span>'
-              }
-              <span class="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-medium border border-emerald-200">Hình thức: ${tutor.teachingFormat || 'Online 1-1'}</span>
+              ${(tutor.specialties || []).map(s => `
+                <span class="px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">${s}</span>
+              `).join('')}
             </div>
           </div>
 
-          <!-- Bio & Phương pháp giảng dạy -->
+          <!-- Bio / Giới thiệu chi tiết -->
           <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-4">
             <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
-              <span class="material-symbols-outlined text-primary text-[22px]">person_book</span>
+              <span class="material-symbols-outlined text-primary">person</span>
               Giới thiệu bản thân &amp; Phương pháp giảng dạy
             </h3>
-            <div class="text-sm text-on-surface-variant leading-relaxed space-y-3">
-              <p>${tutor.bio || 'Nhiệt tình, chú trọng phương pháp trực quan và luyện chữ Hán chuẩn nét.'}</p>
+            <div class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+              ${tutor.bio || 'Chào mừng các bạn đến với lớp học tiếng Nhật! Với kinh nghiệm giảng dạy và tình yêu dành cho ngôn ngữ cùng văn hóa xứ sở hoa anh đào, tôi luôn đồng hành sát sao cùng từng học viên để chinh phục mục tiêu ngôn ngữ vững chắc nhất.'}
             </div>
           </div>
 
-          <!-- Availability Widget (Thông báo trung thực dữ liệu thật) -->
+          <!-- Lịch rảnh & Cam kết -->
           <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-4">
             <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
-              <span class="material-symbols-outlined text-primary text-[22px]">calendar_month</span>
-              Lịch rảnh giảng dạy trong tuần (GMT+7)
+              <span class="material-symbols-outlined text-primary">event_available</span>
+              Thời gian biểu &amp; Lịch giảng dạy
             </h3>
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
               <p class="text-xs text-on-surface-variant">
@@ -184,9 +209,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="p-12 text-center bg-white rounded-2xl border border-[#E5DECB] space-y-3">
         <h3 class="text-lg font-bold text-[#0F2545]">Không thể tải hồ sơ gia sư</h3>
         <p class="text-sm text-on-surface-variant">Vui lòng kiểm tra lại đường truyền hoặc quay lại danh sách tìm kiếm.</p>
-        <a href="/pages/tutor-discovery/" class="btn-primary">Quay lại danh sách</a>
+        <a href="/pages/tutor-discovery/" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold">Quay lại danh sách</a>
       </div>
     `;
   }
 });
-

@@ -68,7 +68,21 @@ public class TutorSearchController {
     }
 
     /**
-     * Xem thông tin chi tiết một gia sư theo ID.
+     * Xem thông tin chi tiết một gia sư theo mã tự tăng tutor_code (ví dụ: 10001).
+     * Trả về HTTP 404 khi mã gia sư không tồn tại.
+     * GET /api/tutors/code/{code}
+     */
+    @GetMapping("/code/{code}")
+    public ResponseEntity<TutorSummaryResponseDTO> getTutorByCode(@PathVariable Long code) {
+        TutorSummaryResponseDTO detail = tutorSearchService.getTutorByCode(code);
+        if (detail == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(detail);
+    }
+
+    /**
+     * Xem thông tin chi tiết một gia sư theo UUID (tương thích ngược).
      * GET /api/tutors/{id}
      */
     @GetMapping("/{id}")
@@ -77,4 +91,3 @@ public class TutorSearchController {
         return ResponseEntity.ok(detail);
     }
 }
-

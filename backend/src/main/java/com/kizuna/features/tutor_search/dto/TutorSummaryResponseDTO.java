@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * DTO dữ liệu tóm tắt của gia sư hiển thị trên thẻ kết quả tìm kiếm (Tutor Card).
+ * DTO dữ liệu tóm tắt của gia sư hiển thị trên thẻ kết quả tìm kiếm (Tutor Card) và hồ sơ chi tiết.
  */
 @Data
 @Builder
@@ -18,6 +18,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class TutorSummaryResponseDTO {
     private UUID tutorId;
+    private Long tutorCode;
     private String fullName;
     private String avatarUrl;
     private String headline;
@@ -33,4 +34,3 @@ public class TutorSummaryResponseDTO {
     private List<String> specialties;
     private String teachingFormat;
 }
-

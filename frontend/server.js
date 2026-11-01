@@ -39,7 +39,10 @@ const URL_ALIASES = {
   '/decks': '/pages/flashcards/index.html',
   '/grammar': '/pages/grammar/index.html',
   '/grammar.html': '/pages/grammar/index.html',
-  '/openjlpt': '/pages/grammar/index.html'
+  '/openjlpt': '/pages/grammar/index.html',
+  '/handwriting': '/pages/handwriting-search/index.html',
+  '/handwriting-search': '/pages/handwriting-search/index.html',
+  '/ohr': '/pages/handwriting-search/index.html'
 };
 
 const server = http.createServer((req, res) => {

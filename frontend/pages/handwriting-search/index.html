@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tra cứu chữ Hán bằng nét vẽ tay AI (OHR) - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Tailwind & Project CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <link rel="stylesheet" href="/styles/utilities.css">
+</head>
+<body class="bg-[#FCFBF7] text-[#131B2E] min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- ==================== 1. SYNCHRONIZED HEADER ==================== -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFBF7]/95 backdrop-blur-md border-b border-[#ECE8DE]">
+    <div class="h-20 max-w-[1240px] mx-auto px-4 md:px-8 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-6">
+        <a class="flex items-center gap-2 group" href="/pages/home/">
+          <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-xl tracking-tight text-[#0F2545]">Kizuna<span class="text-[#006194]">Tutor</span></span>
+            </div>
+            <span class="text-[10px] text-[#68737D] font-medium -mt-0.5 tracking-wider">Kết nối song ngữ Việt – Nhật</span>
+          </div>
+        </a>
+        <nav class="hidden lg:flex items-center gap-1" id="main-nav">
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/tutor-discovery/">Tìm gia sư</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg bg-[#006194] text-white font-semibold shadow-sm transition-colors" href="/pages/handwriting-search/">Công cụ học</a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-[#006194] hover:bg-[#006194]/10 transition-colors border border-[#006194]/20" href="#">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Vào Dashboard học tập</span>
+        </a>
+        <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-[#006194] text-white hover:bg-[#004B73] transition-all shadow-sm font-semibold flex items-center gap-1.5" href="#">
+          <span>Đăng ký</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </a>
+        <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#F2EFE6] transition-colors">
+          <span class="material-symbols-outlined text-[24px]">menu</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ECE8DE] bg-[#FCFBF7] px-6 py-4 space-y-2">
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/tutor-discovery/">Tìm gia sư</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+      <a class="block font-semibold text-sm py-2 text-[#006194]" href="/pages/handwriting-search/">Công cụ học</a>
+      <div class="pt-3 border-t border-[#ECE8DE]">
+        <a class="flex items-center gap-2 font-semibold text-xs py-2 text-[#006194]" href="#">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Vào Dashboard học tập</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 2. MAIN CONTENT ==================== -->
+  <main class="w-full pt-28 pb-16 flex-1">
+    <div class="max-w-[1240px] mx-auto px-4 md:px-8 space-y-6">
+
+      <!-- Hero Header Banner -->
+      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] font-bold text-xl">
+            🖌️
+          </span>
+          <div>
+            <h1 class="text-xl md:text-2xl font-bold text-[#0F2545]">
+              Tra cứu chữ Hán bằng nét vẽ tay AI (OHR)
+            </h1>
+            <p class="text-xs md:text-sm text-[#68737D] mt-0.5">
+              Dùng chuột hoặc cảm ứng vẽ từng nét vào ô Mễ, Sensei AI nhận diện và tra cứu chữ Hán tức thì
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap shrink-0">
+          <a href="/pages/shodo-practice/" class="px-3.5 py-2 rounded-xl bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] border border-[#ECE8DE] text-xs font-semibold flex items-center gap-1.5 transition no-underline">
+            <span>✍️</span><span>Luyện viết Shodo</span>
+          </a>
+          <a href="/pages/grammar/" class="px-3.5 py-2 rounded-xl bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] border border-[#ECE8DE] text-xs font-semibold flex items-center gap-1.5 transition no-underline">
+            <span>📖</span><span>Sổ tay Ngữ pháp</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Main Workspace: Bố Cục 2 Cột (Canvas Vẽ 340px + Khay Kết Quả) -->
+      <div class="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 items-start">
+        
+        <!-- ==================== CỘT 1: KHUNG VẼ CANVAS Ô MỄ ==================== -->
+        <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm flex flex-col items-center space-y-4">
+          
+          <div class="w-full flex items-center justify-between">
+            <span class="text-xs font-bold text-[#0F2545] flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px] text-[#006194]">draw</span>
+              <span>Ô Mễ viết nét vẽ tay</span>
+            </span>
+            <span id="hwStrokeCountBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
+              0 nét
+            </span>
+          </div>
+
+          <!-- Khung Canvas Ô Mễ 300x300 -->
+          <div class="w-[300px] h-[300px] border border-[#ECE8DE] rounded-2xl bg-white relative overflow-hidden shadow-xs cursor-crosshair">
+            <canvas id="hwCanvas" width="300" height="300" class="w-full h-full block"></canvas>
+          </div>
+
+          <!-- Cụm Phím Thao Tác Canvas -->
+          <div class="w-[300px] grid grid-cols-3 gap-2">
+            <button type="button" id="btnHwUndo" 
+                    class="py-2 px-2 text-xs font-semibold rounded-xl border border-[#ECE8DE] bg-white hover:bg-[#FAF8F2] text-[#3F4850] flex items-center justify-center gap-1 transition cursor-pointer"
+                    title="Xóa nét vừa vẽ gần nhất">
+              <span class="material-symbols-outlined text-[15px]">undo</span>
+              <span>Hoàn tác</span>
+            </button>
+            <button type="button" id="btnHwClear" 
+                    class="py-2 px-2 text-xs font-semibold rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 flex items-center justify-center gap-1 transition cursor-pointer"
+                    title="Xóa toàn bộ nét trên bảng vẽ">
+              <span class="material-symbols-outlined text-[15px]">delete</span>
+              <span>Xóa hết</span>
+            </button>
+            <button type="button" id="btnHwRecognize" 
+                    class="py-2 px-2 text-xs font-bold rounded-xl bg-[#006194] hover:bg-[#004B73] text-white flex items-center justify-center gap-1 transition shadow-xs cursor-pointer"
+                    title="Kích hoạt nhận diện AI ngay lập tức">
+              <span class="material-symbols-outlined text-[15px]">search</span>
+              <span>Nhận diện</span>
+            </button>
+          </div>
+
+          <!-- Hộp Mẹo Viết Chữ -->
+          <div class="w-[300px] p-3.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl text-xs text-[#68737D] leading-relaxed">
+            💡 <strong>Mẹo nhận diện:</strong> Bạn cứ thoải mái vẽ từng nét theo đúng quy tắc bút thuận. Hệ thống tự động kích hoạt nhận diện AI sau mỗi nét vẽ để đưa ra kết quả nhanh nhất!
+          </div>
+
+        </div>
+
+        <!-- ==================== CỘT 2: KHAY CHỮ HÁN GỢI Ý & KẾT QUẢ ==================== -->
+        <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 md:p-6 shadow-sm flex flex-col min-h-[440px] space-y-4">
+          
+          <div class="flex items-center justify-between pb-3 border-b border-[#ECE8DE] flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-[#006194]">target</span>
+              <h3 class="font-bold text-base text-[#0F2545]">
+                Các chữ Hán khớp nhất từ Kizuna AI
+              </h3>
+            </div>
+            <span class="text-xs text-[#68737D]">
+              Nhấn vào chữ để xem thông tin chi tiết hoặc chuyển sang luyện viết Shodo
+            </span>
+          </div>
+
+          <!-- Khu Vực Danh Sách Kết Quả Nhận Diện -->
+          <div id="hwCandidatesArea" class="flex-1">
+            <!-- Mặc định: Trạng thái chờ nét vẽ đầu tiên -->
+            <div id="hwStandbyState" class="p-12 text-center text-[#68737D] space-y-3">
+              <span class="material-symbols-outlined text-5xl text-[#CBD5E1]">gesture</span>
+              <h4 class="font-bold text-base text-[#0F2545]">Chưa có nét vẽ nào trên ô Mễ</h4>
+              <p class="text-xs max-w-sm mx-auto">
+                Hãy dùng chuột kéo vẽ nét chữ Hán bất kỳ vào khung bên trái. Các chữ Hán tương đồng sẽ lập tức xuất hiện tại đây!
+              </p>
+            </div>
+
+            <!-- Trạng thái Loading khi AI đang phân tích -->
+            <div id="hwLoadingState" class="hidden p-12 text-center text-[#006194] space-y-2">
+              <div class="animate-spin inline-block w-8 h-8 border-3 border-current border-t-transparent rounded-full"></div>
+              <p class="text-xs font-bold text-[#68737D]">AI đang phân tích quỹ đạo nét vẽ...</p>
+            </div>
+
+            <!-- Lưới các thẻ chữ Hán ứng viên (Candidate Grid) -->
+            <div id="hwCandidateGrid" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <!-- Render tự động bởi handwriting-search.js -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==================== 3. SYNCHRONIZED FOOTER ==================== -->
+  <footer class="w-full bg-[#131D2E] text-[#E3E8F3] pt-16 pb-10 border-t border-[#1F2D45] mt-auto">
+    <div class="max-w-[1240px] mx-auto px-4 md:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div class="space-y-4">
+          <div class="flex items-center gap-2">
+            <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-8 w-8 object-contain rounded-full shadow">
+            <span class="font-bold text-xl tracking-tight text-white">Kizuna<span class="text-sky-400">Tutor</span></span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Nền tảng kết nối tri thức và sự tận tâm giữa gia sư tiếng Nhật chuyên môn cao và người học Việt Nam trên toàn quốc theo triết lý gắn kết bền vững (Kizuna).
+          </p>
+          <div class="flex items-center gap-2 text-slate-400 text-xs">
+            <span class="material-symbols-outlined text-[18px] text-amber-400">verified</span>
+            <span>Bảo chứng hồ sơ &amp; Năng lực sư phạm chuẩn JLPT</span>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho học viên</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" href="/pages/tutor-discovery/">Tìm gia sư theo trình độ (N5 – N1)</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/tutor-discovery/">Gia sư bản xứ Tokyo luyện Kaiwa</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/home/#chuyen-de">Khóa chuyên đề &amp; Phỏng vấn IT</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/home/#cach-hoat-dong">Chính sách buổi gặp mặt học thử 0đ</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/connection-requests/">Tra cứu yêu cầu đã gửi</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho gia sư</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" href="/pages/home/#tro-thanh-gia-su">Đăng ký ứng tuyển gia sư mới</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Không gian quản lý giảng dạy</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Bộ quy chuẩn xác thực chứng chỉ</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Chính sách không cắt phế buổi học</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Cộng đồng Senpai Kizuna</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Hỗ trợ &amp; pháp lý</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" href="#">Điều khoản sử dụng dịch vụ</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Chính sách bảo mật thông tin</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Quy trình giải quyết khiếu nại</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Trung tâm trợ giúp 24/7 (Hotline / Zalo)</a></li>
+            <li><span class="inline-block mt-2 px-2.5 py-1 rounded bg-slate-800 text-[11px] text-slate-300 font-medium">Hotline: 1900 6886 (8:00 – 22:00)</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pt-6 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <div>
+          &copy; 2026 KizunaTutor. Tất cả quyền được bảo lưu. Giữ trọn tinh thần kết nối Nhật – Việt 『絆』.
+        </div>
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-emerald-400">lock</span>
+            <span>Bảo mật SSL 256-bit</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-sky-400">translate</span>
+            <span>Hỗ trợ song ngữ Tiếng Việt &bull; 日本語</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="./handwriting-search.js"></script>
+</body>
+</html>

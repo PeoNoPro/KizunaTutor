@@ -19,8 +19,8 @@ const DASHBOARD_ROUTES = {
   ROLE_CS_STAFF: '/cs/dashboard',
   ROLE_ACADEMIC_OFFICER: '/academic/dashboard',
   ROLE_TUTOR: '/tutor/dashboard',
-  ROLE_LEARNER: '/pages/home/',
-  ROLE_STUDENT: '/pages/home/'
+  ROLE_LEARNER: '/learner/dashboard',
+  ROLE_STUDENT: '/learner/dashboard'
 };
 
 const DEMO_ACCOUNTS = {

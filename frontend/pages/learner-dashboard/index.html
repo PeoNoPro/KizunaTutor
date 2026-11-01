@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Không Gian Học Viên - KizunaTutor</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Inter & Noto Serif JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+  <!-- Material Symbols Outlined -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-japanese {
+      font-family: 'Noto Serif JP', serif;
+    }
+  </style>
+</head>
+<body class="bg-white text-[#1E293B] font-sans antialiased">
+  <div class="flex h-screen overflow-hidden bg-white">
+
+    <!-- ==================== 1. SIDEBAR CHO HỌC VIÊN ==================== -->
+    <aside id="learnerSidebar" class="w-[270px] min-w-[260px] max-w-[280px] bg-[#F8FAFC] border-r border-[#E2E8F0] h-screen sticky top-0 flex flex-col justify-between p-4 shrink-0 z-30 transition-transform duration-200 ease-in-out -translate-x-full md:translate-x-0 font-sans select-none fixed md:static inset-y-0 left-0">
+      
+      <!-- Khối Logo Thương Hiệu KizunaLearner -->
+      <div class="pb-3 mb-2 border-b border-[#E2E8F0] flex items-center justify-between">
+        <a href="/learner/dashboard" class="flex items-center gap-2.5 no-underline group" title="KizunaTutor Học Viên">
+          <div class="w-8 h-8 rounded-lg bg-[#1E293B] text-white font-bold flex items-center justify-center text-base group-hover:scale-105 transition-transform shadow-xs">
+            🌸
+          </div>
+          <div class="font-sans font-bold text-[18px] text-[#0F172A] tracking-tight">
+            Kizuna<span class="text-[#831843] font-extrabold">Learner</span>
+          </div>
+        </a>
+        <button type="button" id="btnCloseSidebarMobile" class="md:hidden p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-[#F1F5F9] transition-colors" title="Đóng menu">
+          ✕
+        </button>
+      </div>
+
+      <!-- Danh Sách Menu Điều Hướng -->
+      <div class="space-y-4 flex-1 overflow-y-auto pr-1">
+
+        <!-- Khối 1: Bàn Học Tập (Tổng Quan) -->
+        <div>
+          <div class="text-[11px] font-bold text-[#64748B] uppercase tracking-[0.05em] px-2.5 mb-1.5">Bàn học tập</div>
+          <a href="/learner/dashboard"
+             class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 bg-[#FFE5EC] border-l-[3px] border-l-[#831843] border border-[#FBCFE8] text-[#831843] font-semibold no-underline">
+            <span class="material-symbols-outlined text-[18px]">dashboard</span>
+            <span class="truncate">Tổng quan học tập</span>
+          </a>
+        </div>
+
+        <!-- Khối 2: Gia Sư & Lớp Học -->
+        <div>
+          <div class="text-[11px] font-bold text-[#64748B] uppercase tracking-[0.05em] px-2.5 mb-1.5">Gia sư &amp; Lớp học</div>
+          <a href="/pages/tutor-discovery/"
+             class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-medium no-underline">
+            <span class="material-symbols-outlined text-[18px]">person_search</span>
+            <span class="truncate">Tìm gia sư Kizuna</span>
+          </a>
+          <a href="/pages/connection-requests/"
+             class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-medium no-underline">
+            <span class="material-symbols-outlined text-[18px]">connect_without_contact</span>
+            <span class="truncate">Yêu cầu đã gửi &amp; Lớp học</span>
+          </a>
+        </div>
+
+        <!-- Khối 3: Học Tập & Rèn Luyện (Bộ Công Cụ Chủ Lực) -->
+        <div>
+          <div class="text-[11px] font-bold text-[#64748B] uppercase tracking-[0.05em] px-2.5 mb-1.5">Công cụ rèn luyện</div>
+          <a href="/kanji-dictionary"
+             class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-medium no-underline">
+            <span class="material-symbols-outlined text-[18px]">menu_book</span>
+            <span class="truncate">Từ điển Hán tự Joyo</span>
+          </a>
+          <a href="/shodo"
+             class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-medium no-underline">
+            <span class="material-symbols-outlined text-[18px]">draw</span>
+            <span class="truncate">Phòng luyện viết Shodo</span>
+          </a>
+          <a href="/flashcards"
+             class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-medium no-underline">
+            <span class="material-symbols-outlined text-[18px]">style</span>
+            <span class="truncate">Bộ thẻ Flashcards</span>
+          </a>
+          <a href="/kanji-game"
+             class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-medium no-underline">
+            <span class="material-symbols-outlined text-[18px]">sports_esports</span>
+            <span class="truncate">Game Mưa chữ Hán</span>
+          </a>
+          <a href="/grammar"
+             class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-medium no-underline">
+            <span class="material-symbols-outlined text-[18px]">auto_stories</span>
+            <span class="truncate">Sổ tay Ngữ pháp JLPT</span>
+          </a>
+          <a href="/kana"
+             class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-medium no-underline">
+            <span class="material-symbols-outlined text-[18px]">keyboard</span>
+            <span class="truncate">Đấu trường gõ Kana</span>
+          </a>
+          <a href="/handwriting"
+             class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-medium no-underline">
+            <span class="material-symbols-outlined text-[18px]">history_edu</span>
+            <span class="truncate">Tra cứu nét vẽ OHR</span>
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Khối Hồ Sơ Học Viên Dưới Cùng -->
+      <div class="pt-3 mt-2 border-t border-[#E2E8F0] bg-[#F8FAFC]">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center space-x-2.5 min-w-0">
+            <div id="sidebarUserAvatar" class="w-8 h-8 rounded-lg bg-[#1E293B] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+              HV
+            </div>
+            <div class="text-xs leading-tight min-w-0">
+              <div id="sidebarLearnerName" class="font-bold text-[#0F172A] truncate max-w-[105px]">
+                Học viên
+              </div>
+              <div class="text-[11px] text-[#64748B] flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                <span>Học viên</span>
+              </div>
+            </div>
+          </div>
+          <button type="button"
+                  id="btnLogoutSidebar"
+                  class="text-[12px] text-[#334155] hover:text-[#831843] hover:bg-[#FFE5EC] font-semibold px-2.5 py-1.5 rounded-md border border-[#CBD5E1] hover:border-[#FBCFE8] transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                  title="Đăng xuất khỏi tài khoản">
+            <span class="material-symbols-outlined text-[15px]">logout</span>
+            <span>Thoát</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==================== 2. MAIN CONTENT AREA ==================== -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      
+      <!-- Mobile Header -->
+      <header class="md:hidden h-14 bg-white border-b border-[#E2E8F0] sticky top-0 z-20 px-4 flex items-center justify-between font-sans">
+        <div class="flex items-center gap-2.5">
+          <button type="button" id="btnOpenSidebarMobile" class="p-1.5 rounded-md border border-[#CBD5E1] text-[#334155] bg-white hover:bg-[#F8FAFC] transition-colors" title="Mở danh mục menu">
+            <span class="material-symbols-outlined text-[20px]">menu</span>
+          </button>
+          <span class="font-sans font-bold text-[18px] text-[#0F172A] tracking-tight">Kizuna<span class="text-[#831843] font-extrabold">Learner</span></span>
+        </div>
+        <a href="/pages/home/" class="text-xs font-semibold text-[#64748B] hover:text-[#0F172A]">
+          Về trang chủ
+        </a>
+      </header>
+
+      <!-- Scrollable Main Container -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-white">
+        <div class="max-w-[1240px] mx-auto space-y-6">
+
+          <!-- 1. BANNER ĐẦU TRANG (CHUẨN TOKEN: NỀN #FFFFFF, VIỀN #FBCFE8, CHỮ #831843) -->
+          <div class="bg-white border border-[#FBCFE8] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-xs">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center flex-wrap gap-2 mb-2">
+                <span class="bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] text-[12px] font-bold px-3 py-0.5 rounded-full inline-flex items-center gap-1">
+                  <span>🌸</span>
+                  <span>Góc học tập cá nhân</span>
+                </span>
+                <h1 class="text-[24px] sm:text-[28px] font-bold text-[#0F172A] flex items-center gap-2 leading-[1.3]">
+                  Xin chào, <span id="bannerLearnerName" class="text-[#831843]">Học viên</span>! 👋
+                </h1>
+              </div>
+              <p class="text-[14px] text-[#64748B] mt-1 leading-relaxed">
+                Tranh thủ luyện vài chữ Kanji và rèn nét bút chuẩn hôm nay bạn nhé! Chúc bạn có một buổi học thật hiệu quả.
+              </p>
+            </div>
+
+            <!-- Nút Primary CTA Trên Banner -->
+            <div class="flex items-center gap-2.5 shrink-0">
+              <a href="/shodo" class="h-[42px] px-5 rounded-xl bg-[#1E293B] hover:bg-[#334155] text-white text-[14px] font-bold inline-flex items-center gap-2 transition-all shadow-sm no-underline">
+                <span class="material-symbols-outlined text-[18px]">draw</span>
+                <span>Luyện nét ngay →</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- 2. KHỐI THỐNG KÊ TIẾN ĐỘ HỌC TẬP (3 METRIC CARDS KÈM CAPYBARA STICKERS) -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Thẻ 1: Chữ Kanji đã gom học -->
+            <div class="p-5 relative bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
+              <img src="/assets/images/stickers/sparkle-capi.png" 
+                   alt="Capybara Lấp Lánh" 
+                   class="absolute -top-3 -right-2 w-11 h-11 object-contain pointer-events-none select-none z-10" />
+
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Chữ Kanji đang học</span>
+                <span class="w-8 h-8 rounded-lg bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A] flex items-center justify-center text-sm font-bold">
+                  🗂️
+                </span>
+              </div>
+              <div id="statKanjiCount" class="text-[28px] font-bold text-[#0F172A] tracking-tight leading-[1.3]">
+                0 chữ
+              </div>
+              <div id="statKanjiSubtext" class="text-[13px] text-[#64748B] mt-1.5 truncate">
+                Lưu vào bộ thẻ Flashcards cá nhân
+              </div>
+            </div>
+
+            <!-- Thẻ 2: Điểm cao Game Mưa chữ -->
+            <div class="p-5 relative bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
+              <img src="/assets/images/stickers/tea-meditation-capi.png" 
+                   alt="Capybara Thiền Trà" 
+                   class="absolute -top-3 -right-2 w-11 h-11 object-contain pointer-events-none select-none z-10" />
+
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Kỷ lục Mưa chữ Hán</span>
+                <span class="w-8 h-8 rounded-lg bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0] flex items-center justify-center text-sm font-bold">
+                  ⚡
+                </span>
+              </div>
+              <div id="statAccuracy" class="text-[28px] font-bold text-[#166534] tracking-tight leading-[1.3]">
+                0 điểm
+              </div>
+              <div id="statAccuracySubtext" class="text-[13px] text-[#64748B] mt-1.5 truncate">
+                Luyện phản xạ gõ phím Hiragana
+              </div>
+            </div>
+
+            <!-- Thẻ 3: Buổi học kèm / Gia sư kết nối -->
+            <div class="p-5 relative bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
+              <img src="/assets/images/stickers/happy-capi.png" 
+                   alt="Capybara Vui Vẻ" 
+                   class="absolute -top-3 -right-2 w-11 h-11 object-contain pointer-events-none select-none z-10" />
+
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Gia sư kết nối</span>
+                <span class="w-8 h-8 rounded-lg bg-[#F1F5F9] text-[#1E293B] border border-[#E2E8F0] flex items-center justify-center text-sm font-bold">
+                  🧑‍🏫
+                </span>
+              </div>
+              <div id="statTutorStatus" class="text-[24px] sm:text-[26px] font-bold text-[#0F172A] tracking-tight leading-[1.3] truncate">
+                Chưa có lịch
+              </div>
+              <div class="text-[13px] text-[#64748B] mt-1.5 truncate">
+                <a href="/pages/tutor-discovery/" class="text-[#006194] hover:underline font-semibold">Tìm Sensei kèm cặp ngay →</a>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 3. KHU VỰC THAO TÁC NHANH (QUICK ACTION CARDS) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <!-- Hành động 1: Tra cứu Kanji -->
+            <a href="/kanji-dictionary" class="p-4 flex items-center justify-between no-underline group bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-12 h-12 rounded-xl bg-[#F0FDF4] border border-[#BBF7D0] text-[#166534] flex items-center justify-center text-xl shrink-0 font-bold">
+                  📖
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-[15px] font-bold text-[#0F172A] group-hover:text-[#166534] transition-colors truncate">
+                    Tra cứu từ điển Hán tự Joyo
+                  </h3>
+                  <p class="text-[13px] text-[#64748B] mt-0.5 truncate">
+                    Kho dữ liệu hơn 6.700 chữ, tra cứu âm Hán Việt, On, Kun và nét viết.
+                  </p>
+                </div>
+              </div>
+              <span class="h-[38px] px-4 text-[13px] font-bold rounded-xl border border-[#FBCFE8] bg-[#FFE5EC] text-[#831843] group-hover:bg-[#FCE7F3] shrink-0 transition-colors inline-flex items-center justify-center">
+                Tra từ →
+              </span>
+            </a>
+
+            <!-- Hành động 2: Bộ thẻ Flashcard -->
+            <a href="/flashcards" class="p-4 flex items-center justify-between no-underline group bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-12 h-12 rounded-xl bg-[#FFE5EC] border border-[#FBCFE8] text-[#831843] flex items-center justify-center text-xl shrink-0 font-bold">
+                  🗂️
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-[15px] font-bold text-[#0F172A] group-hover:text-[#831843] transition-colors truncate">
+                    Bộ thẻ Flashcard của tôi
+                  </h3>
+                  <p class="text-[13px] text-[#64748B] mt-0.5 truncate">
+                    Gom các chữ khó nhớ vào bộ thẻ riêng và lật thẻ 3D phản xạ.
+                  </p>
+                </div>
+              </div>
+              <span class="h-[38px] px-4 text-[13px] font-bold rounded-xl border border-[#FBCFE8] bg-[#FFE5EC] text-[#831843] group-hover:bg-[#FCE7F3] shrink-0 transition-colors inline-flex items-center justify-center">
+                Vào thẻ →
+              </span>
+            </a>
+
+            <!-- Hành động 3: Shodo Canvas -->
+            <a href="/shodo" class="p-4 flex items-center justify-between no-underline group bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-12 h-12 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] text-[#006194] flex items-center justify-center text-xl shrink-0 font-bold">
+                  🖌️
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-[15px] font-bold text-[#0F172A] group-hover:text-[#006194] transition-colors truncate">
+                    Phòng luyện viết Shodo Canvas AI
+                  </h3>
+                  <p class="text-[13px] text-[#64748B] mt-0.5 truncate">
+                    Tập múa nét chữ Hán chuẩn bút thuận KanjiVG và nhận xét nét vẽ.
+                  </p>
+                </div>
+              </div>
+              <span class="h-[38px] px-4 text-[13px] font-bold rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] text-[#0F2545] group-hover:bg-[#F2EFE6] shrink-0 transition-colors inline-flex items-center justify-center">
+                Luyện viết →
+              </span>
+            </a>
+
+            <!-- Hành động 4: Game Mưa chữ Hán -->
+            <a href="/kanji-game" class="p-4 flex items-center justify-between no-underline group bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center text-xl shrink-0 font-bold">
+                  🌧️
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-[15px] font-bold text-[#0F172A] group-hover:text-indigo-700 transition-colors truncate">
+                    Game Mưa chữ Hán (Kanji Rain)
+                  </h3>
+                  <p class="text-[13px] text-[#64748B] mt-0.5 truncate">
+                    Trò chơi bắn chữ rơi luyện phản xạ gõ nhanh Hiragana / Romaji.
+                  </p>
+                </div>
+              </div>
+              <span class="h-[38px] px-4 text-[13px] font-bold rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100 shrink-0 transition-colors inline-flex items-center justify-center">
+                Chơi game →
+              </span>
+            </a>
+
+          </div>
+
+          <!-- 4. LỊCH SỬ THI ĐẤU & TIẾN ĐỘ HỌC TẬP GẦN ĐÂY -->
+          <div class="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px] text-[#831843]">history</span>
+                <h3 class="font-bold text-sm text-[#0F172A]">Hoạt động luyện tập gần đây</h3>
+              </div>
+              <a href="/kanji-game" class="text-xs font-semibold text-[#006194] hover:underline">
+                Xem chi tiết Game →
+              </a>
+            </div>
+
+            <!-- Danh sách hoạt động -->
+            <div id="recentActivityList" class="space-y-2.5">
+              <div class="py-8 text-center text-xs text-[#64748B] space-y-2">
+                <span class="material-symbols-outlined text-4xl text-slate-300">school</span>
+                <p>Chưa có phiên luyện tập nào được ghi nhận. Hãy bắt đầu học ngay nhé!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- FOOTER -->
+          <footer class="mt-8 pt-4 pb-6 border-t border-[#E2E8F0] text-center text-[13px] text-[#64748B]">
+            KizunaTutor &copy; 2026 &bull; Đồng hành cùng bạn trên từng nét vẽ Kanji 🌸
+          </footer>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Module Script -->
+  <script type="module" src="/pages/learner-dashboard/learner-dashboard.js"></script>
+</body>
+</html>

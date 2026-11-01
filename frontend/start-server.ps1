@@ -58,6 +58,9 @@ $aliases = @{
     "/handwriting"       = "/pages/handwriting-search/index.html"
     "/tutors"            = "/pages/tutor-discovery/index.html"
     "/kana"              = "/pages/kana-quiz/index.html"
+    "/learner/dashboard" = "/pages/learner-dashboard/index.html"
+    "/learner"           = "/pages/learner-dashboard/index.html"
+    "/dashboard"         = "/pages/learner-dashboard/index.html"
 }
 
 while ($listener.IsListening) {

@@ -546,66 +546,36 @@ async function showKanjiDetail(charOrId, initialData = null) {
     char = initialData.character || initialData.kanjiChar || initialData.kanji || initialData.kanjiCharacter;
   }
 
-  if (initialData) {
-    renderKanjiDetail(initialData);
-  } else if (char) {
-    renderKanjiDetail({ character: char });
-  }
-
-  const modal = document.getElementById('modalKanjiDetail');
-  if (modal) modal.style.display = 'flex';
-
-  const progressText = document.getElementById('dictStrokeProgressText');
-  if (progressText) progressText.textContent = 'Đang đồng bộ dữ liệu chi tiết chữ Hán...';
-
-  let fullData = null;
-  try {
-    const targetChar = char || (initialData ? (initialData.character || initialData.kanjiChar) : '');
-    let url = '';
-    if (targetChar) {
-      url = `/api/kanji/detail?char=${encodeURIComponent(targetChar)}`;
-    } else if (charOrId) {
-      url = `/api/kanji/detail?id=${encodeURIComponent(charOrId)}`;
-    }
-
-    if (url) {
-      let resp = await fetch(url).catch(() => null);
-      if (!resp || !resp.ok && targetChar) {
-        resp = await fetch(`/api/kanji/${encodeURIComponent(targetChar)}`).catch(() => null);
-      }
-      if (resp && resp.ok) {
-        fullData = await resp.json();
-        renderKanjiDetail(fullData);
-      }
-    }
-  } catch (err) {
-    console.debug('Lỗi tải thông tin chi tiết chữ Hán:', err);
-  }
-
-  const finalChar = fullData ? (fullData.character || fullData.kanjiChar || fullData.kanjiCharacter) : char;
-  if (finalChar) {
+  if (char) {
     try {
-      if (typeof KanjiStrokePlayer !== 'undefined' && typeof KanjiStrokePlayer.loadStrokeData === 'function') {
-        const svgData = await KanjiStrokePlayer.loadStrokeData(finalChar);
-        if (svgData) {
-          initDictStrokePlayer(svgData);
-        } else {
-          initDictStrokePlayer(null);
-        }
-      } else {
-        initDictStrokePlayer(null);
-      }
-    } catch (err) {
-      initDictStrokePlayer(null);
-    }
+      localStorage.setItem('selected_kanji', char);
+      if (initialData) localStorage.setItem('selected_kanji_detail', JSON.stringify(initialData));
+    } catch (e) {}
+    window.location.href = `/kanji-detail?char=${encodeURIComponent(char)}`;
+    return;
+  }
+
+  if (charOrId) {
+    window.location.href = `/kanji-detail?id=${encodeURIComponent(charOrId)}`;
   }
 }
 
-async function openKanjiDetailModalByIndex(idx) {
+function openKanjiDetailModalByIndex(idx) {
   const list = window.lastRenderedDictionaryItems || [];
   if (!list[idx]) return;
   const k = list[idx];
-  await showKanjiDetail(k.kanjiChar || k.character || k.id, k);
+  const char = k.kanjiChar || k.character || k.kanjiCharacter || '';
+  if (char) {
+    try {
+      localStorage.setItem('selected_kanji', char);
+      localStorage.setItem('selected_kanji_detail', JSON.stringify(k));
+    } catch (e) {}
+    window.location.href = `/kanji-detail?char=${encodeURIComponent(char)}`;
+    return;
+  }
+  if (k.id) {
+    window.location.href = `/kanji-detail?id=${encodeURIComponent(k.id)}`;
+  }
 }
 
 function closeKanjiDetailModal() {

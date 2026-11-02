@@ -15,81 +15,81 @@ export const LEARNER_MENU_GROUPS = [
         key: 'dashboard',
         title: 'Tổng quan học tập',
         url: '/learner/dashboard',
-        icon: 'dashboard',
+        icon: '📊',
         matcher: ['/learner/dashboard', '/learner', '/dashboard']
       }
     ]
   },
   {
-    groupTitle: 'Gia sư & Lớp học',
+    groupTitle: 'Gia sư & lớp học',
     items: [
       {
         key: 'tutors',
         title: 'Tìm gia sư Kizuna',
         url: '/pages/tutor-discovery/',
-        icon: 'person_search',
+        icon: '🔍',
         matcher: ['/tutors', '/pages/tutor-discovery']
       },
       {
         key: 'requests',
-        title: 'Yêu cầu đã gửi & Lớp học',
+        title: 'Lịch học thử & ghép lớp',
         url: '/pages/connection-requests/',
-        icon: 'connect_without_contact',
+        icon: '📅',
         matcher: ['/connection-requests', '/pages/connection-requests']
       }
     ]
   },
   {
-    groupTitle: 'Công cụ rèn luyện',
+    groupTitle: 'Học tập & rèn luyện',
     items: [
       {
         key: 'kanji-dictionary',
-        title: 'Từ điển Hán tự Joyo',
+        title: 'Tra cứu chữ Hán',
         url: '/kanji-dictionary',
-        icon: 'menu_book',
+        icon: '📖',
         matcher: ['/kanji-dictionary', '/dictionary', '/kanji']
+      },
+      {
+        key: 'handwriting',
+        title: 'Tra cứu viết tay',
+        url: '/handwriting',
+        icon: '🖋️',
+        matcher: ['/handwriting', '/handwriting-search', '/ohr']
       },
       {
         key: 'shodo',
         title: 'Phòng luyện viết Shodo',
         url: '/shodo',
-        icon: 'draw',
+        icon: '✏️',
         matcher: ['/shodo', '/shodo-practice', '/kanji-practice']
-      },
-      {
-        key: 'flashcards',
-        title: 'Bộ thẻ Flashcards',
-        url: '/flashcards',
-        icon: 'style',
-        matcher: ['/flashcards', '/decks']
-      },
-      {
-        key: 'kanji-game',
-        title: 'Game Mưa chữ Hán',
-        url: '/kanji-game',
-        icon: 'sports_esports',
-        matcher: ['/kanji-game', '/game', '/rain']
-      },
-      {
-        key: 'grammar',
-        title: 'Sổ tay Ngữ pháp JLPT',
-        url: '/grammar',
-        icon: 'auto_stories',
-        matcher: ['/grammar', '/openjlpt']
       },
       {
         key: 'kana',
         title: 'Đấu trường gõ Kana',
         url: '/kana',
-        icon: 'keyboard',
+        icon: '⚡',
         matcher: ['/kana', '/kana-quiz']
       },
       {
-        key: 'handwriting',
-        title: 'Tra cứu nét vẽ OHR',
-        url: '/handwriting',
-        icon: 'history_edu',
-        matcher: ['/handwriting', '/handwriting-search', '/ohr']
+        key: 'flashcards',
+        title: 'Bộ thẻ của tôi',
+        url: '/flashcards',
+        icon: '🗂️',
+        matcher: ['/flashcards', '/decks']
+      },
+      {
+        key: 'grammar',
+        title: 'Ngữ pháp & AI Sensei',
+        url: '/grammar',
+        icon: '📖',
+        matcher: ['/grammar', '/openjlpt']
+      },
+      {
+        key: 'kanji-game',
+        title: 'Game Mưa chữ Hán',
+        url: '/kanji-game',
+        icon: '🎮',
+        matcher: ['/kanji-game', '/game', '/rain']
       }
     ]
   }
@@ -100,15 +100,15 @@ export const LEARNER_MENU_GROUPS = [
 // =========================================================================
 export const PAGE_META_MAP = {
   'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
-  'tutors': { title: 'Tìm gia sư Kizuna', badge: 'Gia sư & Lớp học' },
-  'requests': { title: 'Yêu cầu kết nối & Lớp học', badge: 'Gia sư & Lớp học' },
-  'kanji-dictionary': { title: 'Từ điển Hán tự Joyo', badge: 'Công cụ rèn luyện' },
-  'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Bút thuận AI' },
-  'flashcards': { title: 'Bộ thẻ Flashcards', badge: 'Ghi nhớ phản xạ' },
-  'kanji-game': { title: 'Game Mưa chữ Hán', badge: 'Đấu trường phản xạ' },
-  'grammar': { title: 'Sổ tay Ngữ pháp JLPT', badge: 'Cẩm nang JLPT' },
-  'kana': { title: 'Đấu trường gõ Kana', badge: 'Căn bản Hiragana/Katakana' },
-  'handwriting': { title: 'Tra cứu nét vẽ OHR', badge: 'Nhận diện nét vẽ AI' }
+  'tutors': { title: 'Tìm gia sư Kizuna', badge: 'Gia sư & lớp học' },
+  'requests': { title: 'Lịch học thử & ghép lớp', badge: 'Gia sư & lớp học' },
+  'kanji-dictionary': { title: 'Tra cứu chữ Hán', badge: 'Học tập & rèn luyện' },
+  'handwriting': { title: 'Tra cứu viết tay', badge: 'Học tập & rèn luyện' },
+  'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Học tập & rèn luyện' },
+  'kana': { title: 'Đấu trường gõ Kana', badge: 'Học tập & rèn luyện' },
+  'flashcards': { title: 'Bộ thẻ của tôi', badge: 'Học tập & rèn luyện' },
+  'grammar': { title: 'Ngữ pháp & AI Sensei', badge: 'Học tập & rèn luyện' },
+  'kanji-game': { title: 'Game Mưa chữ Hán', badge: 'Học tập & rèn luyện' }
 };
 
 export function detectActiveMenu(customKey = null) {
@@ -148,7 +148,7 @@ export function getLearnerProfile() {
 }
 
 // =========================================================================
-// 4. RENDER HTML SIDEBAR HỌC VIÊN
+// 4. RENDER HTML SIDEBAR HỌC VIÊN (ĐỒNG BỘ CHUẨN XÁC VỚI SIDEBAR LEGACY)
 // =========================================================================
 export function getLearnerSidebarHtml(activeKey) {
   const currentActive = detectActiveMenu(activeKey);
@@ -159,72 +159,69 @@ export function getLearnerSidebarHtml(activeKey) {
       const isActive = item.key === currentActive;
       const activeClass = isActive
         ? 'bg-[#FFE5EC] border-l-[3px] border-l-[#831843] border border-[#FBCFE8] text-[#831843] font-semibold'
-        : 'text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-medium';
+        : 'text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-normal';
 
       return `
         <a href="${item.url}"
            data-menu-key="${item.key}"
-           class="flex items-center space-x-2.5 px-3 py-2 text-[13px] rounded-lg transition-all mb-1 no-underline ${activeClass}">
-          <span class="material-symbols-outlined text-[18px]">${item.icon}</span>
-          <span class="truncate">${item.title}</span>
+           class="nav-item flex items-center space-x-2.5 px-3 py-2 text-[14px] rounded-[6px] transition-all mb-1 no-underline ${activeClass}">
+          <span class="text-sm shrink-0">${item.icon}</span>
+          <span class="text-inherit truncate">${item.title}</span>
         </a>
       `;
     }).join('');
 
     return `
       <div>
-        <div class="text-[11px] font-bold text-[#64748B] uppercase tracking-[0.05em] px-2.5 mb-1.5">${group.groupTitle}</div>
+        <div class="sidebar-group-title text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.05em] px-2.5 mb-1.5">${group.groupTitle}</div>
         ${itemsHtml}
       </div>
     `;
   }).join('');
 
   return `
-    <!-- Learner Sidebar -->
+    <!-- Learner Sidebar (Đồng bộ chuẩn 100% với legacy KizunaTutor) -->
     <aside id="learnerSidebar" class="w-[270px] min-w-[260px] max-w-[280px] bg-[#F8FAFC] border-r border-[#E2E8F0] h-screen sticky top-0 flex flex-col justify-between p-4 shrink-0 z-40 transition-transform duration-200 ease-in-out -translate-x-full md:translate-x-0 font-sans select-none fixed md:static inset-y-0 left-0 shadow-lg md:shadow-none">
       
-      <!-- Khối Logo Thương Hiệu KizunaLearner -->
+      <!-- Khối Logo Thương Hiệu KizunaLearner Đẩy Lên Đầu Sidebar -->
       <div class="pb-3 mb-2 border-b border-[#E2E8F0] flex items-center justify-between">
         <a href="/learner/dashboard" class="flex items-center gap-2.5 no-underline group" title="KizunaTutor Học Viên">
-          <div class="w-8 h-8 rounded-lg bg-[#1E293B] text-white font-bold flex items-center justify-center text-base group-hover:scale-105 transition-transform shadow-xs">
-            🌸
+          <div class="w-8 h-8 rounded-[8px] bg-[#1E293B] text-white font-bold flex items-center justify-center text-base group-hover:scale-105 transition-transform">
+            絆
           </div>
           <div class="font-sans font-bold text-[18px] text-[#0F172A] tracking-tight">
             Kizuna<span class="text-[#831843] font-extrabold">Learner</span>
           </div>
         </a>
-        <button type="button" id="btnCloseSidebarMobile" class="md:hidden p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-[#F1F5F9] transition-colors" title="Đóng menu">
+        <button type="button" id="btnCloseSidebarMobile" class="md:hidden p-1.5 rounded-[6px] text-slate-400 hover:text-slate-700 hover:bg-[#F1F5F9] transition-colors" title="Đóng menu">
           ✕
         </button>
       </div>
 
       <!-- Danh Sách Menu Điều Hướng -->
-      <div class="space-y-4 flex-1 overflow-y-auto pr-1">
+      <div class="space-y-3 flex-1 overflow-y-auto pr-1">
         ${menuSectionsHtml}
       </div>
 
-      <!-- Khối Hồ Sơ Học Viên Dưới Cùng -->
+      <!-- Khối Thông Tin Học Viên Dưới Cùng -->
       <div class="pt-3 mt-2 border-t border-[#E2E8F0] bg-[#F8FAFC]">
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center space-x-2.5 min-w-0">
-            <div id="sidebarUserAvatar" class="w-8 h-8 rounded-lg bg-[#1E293B] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+            <div id="sidebarUserAvatar" class="w-8 h-8 rounded-[8px] bg-[#1E293B] text-white flex items-center justify-center font-bold text-xs shrink-0">
               ${profile.initials}
             </div>
             <div class="text-xs leading-tight min-w-0">
-              <div id="sidebarLearnerName" class="font-bold text-[#0F172A] truncate max-w-[105px]" title="${profile.name}">
+              <div id="sidebarLearnerName" class="font-semibold text-[#0F172A] truncate max-w-[95px]" title="${profile.name}">
                 ${profile.name}
               </div>
-              <div class="text-[11px] text-[#64748B] flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                <span>${profile.roleName}</span>
-              </div>
+              <div class="text-[11px] text-[#64748B] truncate">Học viên</div>
             </div>
           </div>
           <button type="button"
                   id="btnLogoutSidebar"
-                  class="text-[12px] text-[#334155] hover:text-[#831843] hover:bg-[#FFE5EC] font-semibold px-2.5 py-1.5 rounded-md border border-[#CBD5E1] hover:border-[#FBCFE8] transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                  class="text-[13px] text-[#334155] hover:text-[#831843] hover:bg-[#FFE5EC] font-medium px-2.5 py-1.5 rounded-[6px] border border-[#CBD5E1] hover:border-[#FBCFE8] transition-all cursor-pointer flex items-center gap-1 shrink-0"
                   title="Đăng xuất khỏi tài khoản">
-            <span class="material-symbols-outlined text-[15px]">logout</span>
+            <span>🚪</span>
             <span>Thoát</span>
           </button>
         </div>

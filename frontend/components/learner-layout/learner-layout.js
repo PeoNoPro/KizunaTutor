@@ -71,13 +71,6 @@ export const LEARNER_MENU_GROUPS = [
         matcher: ['/kana', '/kana-quiz']
       },
       {
-        key: 'flashcards',
-        title: 'Bộ thẻ của tôi',
-        url: '/flashcards',
-        icon: '🗂️',
-        matcher: ['/flashcards', '/decks']
-      },
-      {
         key: 'grammar',
         title: 'Ngữ pháp & AI Sensei',
         url: '/grammar',
@@ -85,11 +78,11 @@ export const LEARNER_MENU_GROUPS = [
         matcher: ['/grammar', '/openjlpt']
       },
       {
-        key: 'kanji-game',
-        title: 'Game Mưa chữ Hán',
-        url: '/kanji-game',
-        icon: '🎮',
-        matcher: ['/kanji-game', '/game', '/rain']
+        key: 'flashcards',
+        title: 'Bộ thẻ của tôi',
+        url: '/flashcards',
+        icon: '🗂️',
+        matcher: ['/flashcards', '/decks']
       }
     ]
   }

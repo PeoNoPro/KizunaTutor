@@ -22,11 +22,7 @@ let currentLearnerPage = 0;
 let learnerDebounce = null;
 let currentDictStroke = null;
 let currentDictRadical = null;
-let selectedKanjiDetail = null;
 let currentKanjiToSave = null;
-let dictStrokePlayer = null;
-let dictSpeedIndex = 1;
-const dictSpeedOptions = [0.5, 1.0, 1.5];
 
 // Danh mục 23 bộ thủ chữ Hán thông dụng chuẩn
 const commonRadicals = [
@@ -299,10 +295,10 @@ function renderLearnerGrid(items) {
           </div>
         </div>
 
-        <!-- Bấm vào phần giữa card để mở Modal chi tiết -->
-        <div class="cursor-pointer group/item kanji-card-clickable" data-idx="${idx}" title="Bấm để xem chi tiết đầy đủ của chữ">
+        <!-- Nội dung chính của chữ Hán -->
+        <div>
           <div class="flex items-center gap-4 mb-3">
-            <div class="w-16 h-16 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] flex items-center justify-center font-serif text-4xl font-extrabold text-[#0F172A] group-hover/item:border-[#831843] transition-colors">
+            <div class="w-16 h-16 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] flex items-center justify-center font-serif text-4xl font-extrabold text-[#0F172A]">
               ${escapeHtml(k.kanjiChar)}
             </div>
             <div class="flex-1 min-w-0">
@@ -333,32 +329,11 @@ function renderLearnerGrid(items) {
            class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer">
           <span>✍️</span> Luyện Nét
         </a>
-        <button type="button" 
-                data-action="open-detail"
-                data-idx="${idx}"
-                class="w-8 h-8 rounded-lg border border-[#CBD5E1] bg-white flex items-center justify-center text-xs font-bold text-[#1E293B] hover:bg-slate-50 transition active:scale-95 cursor-pointer" 
-                title="Xem chi tiết">
-          🔍
-        </button>
       </div>
     </div>
   `).join('');
 
-  // Gắn sự kiện click
-  grid.querySelectorAll('.kanji-card-clickable').forEach(el => {
-    el.addEventListener('click', () => {
-      const idx = parseInt(el.getAttribute('data-idx'), 10);
-      openKanjiDetailModalByIndex(idx);
-    });
-  });
-
-  grid.querySelectorAll('[data-action="open-detail"]').forEach(el => {
-    el.addEventListener('click', () => {
-      const idx = parseInt(el.getAttribute('data-idx'), 10);
-      openKanjiDetailModalByIndex(idx);
-    });
-  });
-
+  // Gắn sự kiện click lưu thẻ
   grid.querySelectorAll('[data-action="save-deck"]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -377,225 +352,7 @@ function renderLearnerGrid(items) {
 }
 
 // =========================================================================
-// 7. HOẠT ẢNH BÚT THUẬN KANJI STROKE PLAYER TRONG MODAL CHI TIẾT
-// =========================================================================
-function initDictStrokePlayer(svgXml) {
-  const svgEl = document.getElementById('dictDetailStrokeSvg');
-  const charBox = document.getElementById('detailCharBox');
-  const progressText = document.getElementById('dictStrokeProgressText');
-
-  if (typeof KanjiStrokePlayer === 'undefined') {
-    if (charBox) charBox.style.opacity = '1';
-    if (svgEl) svgEl.style.display = 'none';
-    if (progressText) progressText.textContent = 'Trình phát nét đang nạp...';
-    return;
-  }
-
-  if (!dictStrokePlayer) {
-    dictStrokePlayer = new KanjiStrokePlayer({
-      target: 'dictDetailStrokeSvg',
-      baseDuration: 520,
-      pauseBetweenStrokes: 130,
-      speed: dictSpeedOptions[dictSpeedIndex],
-      autoFadeOutOnComplete: false,
-      activeStrokeColor: '#831843',
-      completedStrokeColor: '#1E293B',
-      ghostStrokeColor: '#CBD5E1',
-      numberBadgeColor: '#831843',
-      onStateChange: (state) => {
-        const playIcon = document.getElementById('dictPlayIcon');
-        const playText = document.getElementById('dictPlayText');
-        const btn = document.getElementById('btnDictPlayPause');
-        if (!btn) return;
-        if (state === 'playing') {
-          if (playIcon) playIcon.textContent = '⏸️';
-          if (playText) playText.textContent = 'Dừng';
-        } else if (state === 'paused') {
-          if (playIcon) playIcon.textContent = '▶️';
-          if (playText) playText.textContent = 'Tiếp';
-        } else if (state === 'completed') {
-          if (playIcon) playIcon.textContent = '🔁';
-          if (playText) playText.textContent = 'Lại';
-        } else {
-          if (playIcon) playIcon.textContent = '▶️';
-          if (playText) playText.textContent = 'Phát';
-        }
-      },
-      onStrokeChange: (current, total) => {
-        if (progressText) {
-          progressText.innerHTML = `Đang vẽ <strong>nét thứ ${current}</strong> / ${total}... 🖌️`;
-        }
-      },
-      onComplete: (total) => {
-        if (progressText) {
-          progressText.innerHTML = `🎉 Đã hoàn tất đủ <strong>${total} nét</strong> bút thuận!`;
-        }
-      }
-    });
-  }
-
-  const success = dictStrokePlayer.loadSvg(svgXml);
-  if (success) {
-    if (charBox) charBox.style.opacity = '0';
-    if (svgEl) svgEl.style.display = 'block';
-    if (progressText) {
-      progressText.textContent = `Bấm [▶️ Phát] để xem thứ tự ${dictStrokePlayer.strokes.length} nét viết chuẩn.`;
-    }
-  } else {
-    if (charBox) charBox.style.opacity = '1';
-    if (svgEl) svgEl.style.display = 'none';
-    if (progressText) {
-      progressText.textContent = 'Chưa có hoạt ảnh vector nét cho chữ này.';
-    }
-  }
-}
-
-function toggleDictStrokePlayer() {
-  if (!dictStrokePlayer || dictStrokePlayer.strokes.length === 0) return;
-  dictStrokePlayer.togglePlayPause();
-}
-
-function replayDictStrokePlayer() {
-  if (!dictStrokePlayer || dictStrokePlayer.strokes.length === 0) return;
-  dictStrokePlayer.replay();
-}
-
-function cycleDictSpeed() {
-  dictSpeedIndex = (dictSpeedIndex + 1) % dictSpeedOptions.length;
-  const newSpeed = dictSpeedOptions[dictSpeedIndex];
-  if (dictStrokePlayer) {
-    dictStrokePlayer.setSpeed(newSpeed);
-  }
-  const speedBtn = document.getElementById('btnDictSpeed');
-  if (speedBtn) speedBtn.textContent = newSpeed.toFixed(1) + 'x';
-}
-
-// =========================================================================
-// 8. MODAL CHI TIẾT CHỮ HÁN TRA CỨU
-// =========================================================================
-function renderKanjiDetail(kanji) {
-  if (!kanji) return;
-  selectedKanjiDetail = kanji;
-
-  const character = kanji.character || kanji.kanjiChar || kanji.kanji || kanji.kanjiCharacter || '';
-  const hanViet = kanji.hanViet || kanji.han_viet || kanji.sinoVietnamese || 'HÁN TỰ';
-  const onyomi = kanji.onyomi || kanji.on_yomi || kanji.onyomiReading || '-';
-  const kunyomi = kanji.kunyomi || kanji.kun_yomi || kanji.kunyomiReading || '-';
-  const strokeCount = kanji.strokeCount || kanji.stroke_count || kanji.strokes || kanji.totalStrokes || 1;
-  const radical = kanji.radical || kanji.bushu || kanji.mainRadical || 'Chưa cập nhật';
-  const meaning = kanji.meaning || kanji.definition || kanji.meaningVn || 'Chưa cập nhật chú thích nghĩa chi tiết.';
-  const jlpt = kanji.jlptLevel || kanji.jlpt || kanji.level || 'N5';
-
-  const charBox = document.getElementById('detailCharBox');
-  if (charBox && character) {
-    charBox.textContent = character;
-    charBox.style.opacity = '1';
-  }
-
-  const hvEl = document.getElementById('detailHanViet');
-  if (hvEl) hvEl.textContent = hanViet;
-
-  const jlptEl = document.getElementById('detailJlptBadge');
-  if (jlptEl) jlptEl.textContent = jlpt;
-
-  const strokeEl = document.getElementById('detailStrokeBadge');
-  if (strokeEl) strokeEl.textContent = `${strokeCount} nét`;
-
-  const radEl = document.getElementById('detailRadical');
-  if (radEl) radEl.innerHTML = `Bộ thủ: <strong class="text-[#0F172A]">${escapeHtml(radical)}</strong>`;
-
-  const meanEl = document.getElementById('detailMeaning');
-  if (meanEl) meanEl.textContent = meaning;
-
-  const onEl = document.getElementById('detailOnyomi');
-  if (onEl) onEl.textContent = onyomi;
-
-  const kunEl = document.getElementById('detailKunyomi');
-  if (kunEl) kunEl.textContent = kunyomi;
-
-  const btnPractice = document.getElementById('btnDetailPractice');
-  if (btnPractice && character) {
-    btnPractice.href = `/shodo?char=${encodeURIComponent(character)}`;
-  }
-
-  if (character) {
-    localStorage.setItem('selected_kanji', character);
-    try {
-      localStorage.setItem('selected_kanji_detail', JSON.stringify({
-        id: kanji.id || kanji.kanjiId,
-        character: character,
-        kanjiChar: character,
-        hanViet: hanViet,
-        onyomi: onyomi,
-        kunyomi: kunyomi,
-        strokeCount: strokeCount,
-        radical: radical,
-        meaning: meaning,
-        jlpt: jlpt,
-        jlptLevel: jlpt
-      }));
-    } catch (e) {}
-  }
-}
-
-async function showKanjiDetail(charOrId, initialData = null) {
-  if (!charOrId && !initialData) return;
-
-  let char = (typeof charOrId === 'string' && charOrId.length <= 4) ? charOrId.trim() : null;
-  if (!char && initialData) {
-    char = initialData.character || initialData.kanjiChar || initialData.kanji || initialData.kanjiCharacter;
-  }
-
-  if (char) {
-    try {
-      localStorage.setItem('selected_kanji', char);
-      if (initialData) localStorage.setItem('selected_kanji_detail', JSON.stringify(initialData));
-    } catch (e) {}
-    window.location.href = `/kanji-detail?char=${encodeURIComponent(char)}`;
-    return;
-  }
-
-  if (charOrId) {
-    window.location.href = `/kanji-detail?id=${encodeURIComponent(charOrId)}`;
-  }
-}
-
-function openKanjiDetailModalByIndex(idx) {
-  const list = window.lastRenderedDictionaryItems || [];
-  if (!list[idx]) return;
-  const k = list[idx];
-  const char = k.kanjiChar || k.character || k.kanjiCharacter || '';
-  if (char) {
-    try {
-      localStorage.setItem('selected_kanji', char);
-      localStorage.setItem('selected_kanji_detail', JSON.stringify(k));
-    } catch (e) {}
-    window.location.href = `/kanji-detail?char=${encodeURIComponent(char)}`;
-    return;
-  }
-  if (k.id) {
-    window.location.href = `/kanji-detail?id=${encodeURIComponent(k.id)}`;
-  }
-}
-
-function closeKanjiDetailModal() {
-  if (dictStrokePlayer) {
-    dictStrokePlayer.stop();
-  }
-  const modal = document.getElementById('modalKanjiDetail');
-  if (modal) modal.style.display = 'none';
-  selectedKanjiDetail = null;
-}
-
-function saveCurrentDetailToDeck() {
-  if (!selectedKanjiDetail) return;
-  const detailToSave = { ...selectedKanjiDetail };
-  closeKanjiDetailModal();
-  openSaveDeckModal(detailToSave);
-}
-
-// =========================================================================
-// 9. PHÂN TRANG (PAGINATION)
+// 7. PHÂN TRANG (PAGINATION)
 // =========================================================================
 function renderLearnerPagination(page, totalPages, totalElements) {
   const info = document.getElementById('learnerPaginationInfo');
@@ -953,14 +710,6 @@ window.onDictStrokeInputChange = onDictStrokeInputChange;
 window.clearDictStrokeInput = clearDictStrokeInput;
 window.setDictRadicalFilter = setDictRadicalFilter;
 window.loadLearnerDictionary = loadLearnerDictionary;
-window.renderKanjiDetail = renderKanjiDetail;
-window.showKanjiDetail = showKanjiDetail;
-window.openKanjiDetailModalByIndex = openKanjiDetailModalByIndex;
-window.closeKanjiDetailModal = closeKanjiDetailModal;
-window.toggleDictStrokePlayer = toggleDictStrokePlayer;
-window.replayDictStrokePlayer = replayDictStrokePlayer;
-window.cycleDictSpeed = cycleDictSpeed;
 window.openSaveDeckModal = openSaveDeckModal;
 window.closeDeckModal = closeDeckModal;
-window.saveCurrentDetailToDeck = saveCurrentDetailToDeck;
 window.submitSaveToDeck = submitSaveToDeck;

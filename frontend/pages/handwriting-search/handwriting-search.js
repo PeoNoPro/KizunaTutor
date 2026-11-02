@@ -467,7 +467,7 @@ async function openHwKanjiDetail(indexOrChar, event) {
     try {
       localStorage.setItem('selected_kanji_detail', JSON.stringify(item));
     } catch (e) {}
-    window.location.href = `/kanji-detail?char=${encodeURIComponent(char)}`;
+    window.location.href = `/kanji-dictionary?keyword=${encodeURIComponent(char)}`;
     return;
   }
 }

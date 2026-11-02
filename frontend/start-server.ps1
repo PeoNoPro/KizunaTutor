@@ -9,6 +9,7 @@ param(
 $rootDir = $PSScriptRoot
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$Port/")
+$listener.Prefixes.Add("http://127.0.0.1:$Port/")
 
 try {
     $listener.Start()
@@ -79,6 +80,16 @@ $aliases = @{
     "/learner/learning-support"= "/pages/learning-support/index.html"
 }
 
+# Nap cache Grammar tu Database san o memory de phuc vu sieu toc
+$allGrammarsCache = $null
+$grammarsJsonFile = Join-Path $rootDir "data/grammars.json"
+if (Test-Path $grammarsJsonFile) {
+    try {
+        $allGrammarsCache = Get-Content -Raw $grammarsJsonFile -Encoding UTF8 | ConvertFrom-Json
+        Write-Host " Da nap $($allGrammarsCache.Count) mau ngu phap vao RAM Cache." -ForegroundColor Green
+    } catch {}
+}
+
 while ($listener.IsListening) {
     try {
         $context = $listener.GetContext()
@@ -88,7 +99,55 @@ while ($listener.IsListening) {
         $rawUrl = $request.RawUrl
         $pathPart = $rawUrl.Split('?')[0]
 
-        # 1. Neu la API -> Proxy chuyen tiep den Backend Spring Boot
+        # 1. Neu la API Grammar -> Phuc vu truc tiep tu du lieu Database
+        if ($pathPart.StartsWith("/api/learner/grammar")) {
+            if ($allGrammarsCache) {
+                $query = $request.Url.Query
+                $level = "N5"
+                if ($query -match "level=([^&]+)") {
+                    $level = [System.Uri]::UnescapeDataString($matches[1]).ToUpper()
+                }
+                $size = 200
+                if ($query -match "size=([^&]+)") {
+                    $size = [int]$matches[1]
+                }
+                $kw = ""
+                if ($query -match "keyword=([^&]+)") {
+                    $kw = [System.Uri]::UnescapeDataString($matches[1]).ToLower()
+                }
+
+                $filtered = @($allGrammarsCache | Where-Object {
+                    $itemLvl = if ($_.jlptLevel) { $_.jlptLevel } else { $_.jlptlevel }
+                    $lvlMatch = ([string]::IsNullOrEmpty($level)) -or ($itemLvl -eq $level)
+                    if (-not $lvlMatch) { return $false }
+                    if (-not [string]::IsNullOrEmpty($kw)) {
+                        return ($_.pattern -and $_.pattern.ToLower().Contains($kw)) -or
+                               ($_.romaji -and $_.romaji.ToLower().Contains($kw)) -or
+                               ($_.meaning -and $_.meaning.ToLower().Contains($kw))
+                    }
+                    return $true
+                })
+
+                $contentList = $filtered | Select-Object -First $size
+                $resultObj = @{
+                    content = $contentList
+                    totalElements = $filtered.Count
+                    totalPages = [Math]::Ceiling($filtered.Count / [Math]::Max(1, $size))
+                    size = $size
+                    number = 0
+                }
+                $jsonStr = $resultObj | ConvertTo-Json -Depth 5 -Compress
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonStr)
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.OutputStream.Close()
+                continue
+            }
+        }
+
+        # 1b. Neu la API khac -> Proxy chuyen tiep den Backend Spring Boot
         if ($pathPart.StartsWith("/api/")) {
             $targetUri = "$BackendUrl$rawUrl"
             $webRequest = [System.Net.HttpWebRequest]::Create($targetUri)

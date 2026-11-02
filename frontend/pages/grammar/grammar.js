@@ -29,25 +29,64 @@ async function loadGrammarData() {
   const emptyState = document.getElementById('grammarEmptyState');
 
   try {
-    const res = await fetch(`/api/learner/grammar?level=${encodeURIComponent(currentLevel)}&size=50`);
+    let res = await fetch(`/api/learner/grammar?level=${encodeURIComponent(currentLevel)}&size=200`);
+    if (!res.ok) {
+      // Fallback nạp trực tiếp từ file dữ liệu đồng bộ database
+      res = await fetch('/data/grammars.json');
+    }
+
     if (res.ok) {
       const data = await res.json();
-      const content = Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+      let content = Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+
+      // Nếu nạp toàn bộ file JSON, lọc theo cấp độ hiện tại
+      if (content.length > 0 && !data.content) {
+        content = content.filter(item => (item.jlptLevel || item.level) === currentLevel);
+      }
+
       if (content.length > 0) {
-        grammarList = content.map(item => ({
-          id: String(item.grammarCode || item.id || `gm-${item.pattern}`),
-          level: item.jlptLevel || item.level || currentLevel,
-          pattern: item.pattern || '',
-          romaji: item.romaji || '',
-          meaning: item.meaning || item.meaningVn || '',
-          formation: item.formation || 'Đang cập nhật công thức',
-          notes: item.notes || 'Chưa có ghi chú đặc biệt',
-          examples: item.exampleSentence ? [{
-            ja: item.exampleSentence,
-            reading: item.exampleFurigana || item.exampleSentence,
-            vi: item.exampleMeaning || 'Ví dụ minh họa'
-          }] : (Array.isArray(item.examples) ? item.examples : [])
-        }));
+        grammarList = content.map(item => {
+          const exSentence = item.exampleSentence || item.examplesentence || '';
+          const exFurigana = item.exampleFurigana || item.examplefurigana || '';
+          const exMeaning = item.exampleMeaning || item.examplemeaning || '';
+          const extExamples = item.extendedExamples || item.extendedexamples || '';
+
+          const examples = [];
+          if (exSentence) {
+            examples.push({
+              ja: exSentence,
+              reading: exFurigana || exSentence,
+              vi: exMeaning || 'Ví dụ minh họa'
+            });
+          }
+
+          if (extExamples) {
+            const lines = extExamples.split('\n').map(l => l.trim()).filter(Boolean);
+            for (let i = 0; i < lines.length; i += 2) {
+              const jaLine = lines[i]?.replace(/^\d+\.\s*/, '') || '';
+              const viLine = lines[i + 1]?.replace(/^\(|\)$/g, '') || '';
+              if (jaLine) {
+                examples.push({
+                  ja: jaLine,
+                  reading: jaLine,
+                  vi: viLine || 'Ví dụ mở rộng'
+                });
+              }
+            }
+          }
+
+          return {
+            id: String(item.grammarCode || item.grammarcode || item.id || `gm-${item.pattern}`),
+            level: item.jlptLevel || item.jlptlevel || item.level || currentLevel,
+            pattern: item.pattern || '',
+            romaji: item.romaji || '',
+            meaning: item.meaning || item.meaningVn || '',
+            formation: item.formation || 'Đang cập nhật công thức',
+            notes: item.notes || 'Chưa có ghi chú đặc biệt',
+            examples: examples.length > 0 ? examples : (Array.isArray(item.examples) ? item.examples : [])
+          };
+        });
+
         renderGrammarCards();
         return;
       }

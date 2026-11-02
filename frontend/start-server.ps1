@@ -103,11 +103,11 @@ while ($listener.IsListening) {
         if ($pathPart.StartsWith("/api/learner/grammar")) {
             if ($allGrammarsCache) {
                 $query = $request.Url.Query
-                $level = "N5"
+                $level = "ALL"
                 if ($query -match "level=([^&]+)") {
                     $level = [System.Uri]::UnescapeDataString($matches[1]).ToUpper()
                 }
-                $size = 200
+                $size = 1000
                 if ($query -match "size=([^&]+)") {
                     $size = [int]$matches[1]
                 }
@@ -118,7 +118,7 @@ while ($listener.IsListening) {
 
                 $filtered = @($allGrammarsCache | Where-Object {
                     $itemLvl = if ($_.jlptLevel) { $_.jlptLevel } else { $_.jlptlevel }
-                    $lvlMatch = ([string]::IsNullOrEmpty($level)) -or ($itemLvl -eq $level)
+                    $lvlMatch = ([string]::IsNullOrEmpty($level)) -or ($level -eq "ALL") -or ($itemLvl -eq $level)
                     if (-not $lvlMatch) { return $false }
                     if (-not [string]::IsNullOrEmpty($kw)) {
                         return ($_.pattern -and $_.pattern.ToLower().Contains($kw)) -or

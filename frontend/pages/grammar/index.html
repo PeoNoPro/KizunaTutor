@@ -68,10 +68,36 @@
           </div>
         </div>
 
-        <!-- Bộ Lọc Cấp Độ JLPT & Ô Tìm Kiếm Nhanh -->
-        <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 md:p-5 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-          <!-- Tabs Cấp Độ N5 - N1 -->
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0" id="jlptLevelTabs">
+        <!-- Thanh Chuyển Chế Độ & Bộ Lọc Nâng Cao -->
+        <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 md:p-5 shadow-sm space-y-4">
+          <!-- Hàng 1: Chế độ Lọc + Ô Tìm Kiếm Nhanh -->
+          <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <!-- Segmented Control Chọn Chế Độ Lọc -->
+            <div class="inline-flex p-1 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl self-start md:self-auto" id="filterModeSwitcher">
+              <button type="button" data-mode="jlpt" 
+                      class="px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] text-white shadow-xs">
+                <span class="material-symbols-outlined text-[16px]">school</span>
+                <span>Theo Cấp độ JLPT</span>
+              </button>
+              <button type="button" data-mode="domain" 
+                      class="px-4 py-1.5 rounded-lg text-xs font-semibold text-[#68737D] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">category</span>
+                <span>Theo Khối Ứng dụng</span>
+              </button>
+            </div>
+
+            <!-- Ô Tìm Kiếm Mẫu Câu -->
+            <div class="relative w-full md:w-80">
+              <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#68737D] text-[18px]">search</span>
+              <input type="text" id="searchGrammarInput" 
+                     placeholder="Tìm mẫu câu, romaji, ý nghĩa..." 
+                     class="w-full pl-10 pr-4 py-2 text-xs md:text-sm rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
+            </div>
+          </div>
+
+          <!-- Hàng 2: Thanh Tab Lọc Con (Sub-tabs) -->
+          <!-- Tab 1: Cấp độ JLPT (N5 - N1) -->
+          <div id="jlptLevelTabs" class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
             <button type="button" data-level="N5" 
                     class="px-4 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer">
               JLPT N5
@@ -94,12 +120,43 @@
             </button>
           </div>
 
-          <!-- Ô Tìm Kiếm Mẫu Câu -->
-          <div class="relative w-full md:w-80">
-            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#68737D] text-[18px]">search</span>
-            <input type="text" id="searchGrammarInput" 
-                   placeholder="Tìm mẫu câu, romaji, ý nghĩa..." 
-                   class="w-full pl-10 pr-4 py-2 text-xs md:text-sm rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
+          <!-- Tab 2: Khối Ứng Dụng (Đời thường, Nhà hàng, Du lịch, Công việc, Sức khỏe, Học thuật) -->
+          <div id="domainTabs" class="hidden flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+            <button type="button" data-domain="daily" 
+                    class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0">
+              <span>☕</span><span>Đời thường</span>
+            </button>
+            <button type="button" data-domain="dining" 
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1.5 shrink-0">
+              <span>🍜</span><span>Nhà hàng</span>
+            </button>
+            <button type="button" data-domain="travel" 
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1.5 shrink-0">
+              <span>✈️</span><span>Du lịch</span>
+            </button>
+            <button type="button" data-domain="work" 
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1.5 shrink-0">
+              <span>💼</span><span>Công việc</span>
+            </button>
+            <button type="button" data-domain="health" 
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1.5 shrink-0">
+              <span>🏥</span><span>Sức khỏe</span>
+            </button>
+            <button type="button" data-domain="academic" 
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1.5 shrink-0">
+              <span>📚</span><span>Học thuật</span>
+            </button>
+          </div>
+
+          <!-- Hàng 3: Thống kê số lượng kết quả -->
+          <div class="flex items-center justify-between text-xs text-[#68737D] pt-2 border-t border-[#ECE8DE]">
+            <div id="filterResultSummary" class="flex items-center gap-2">
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Đang hiển thị: <strong id="filterActiveLabel" class="text-[#0F2545]">JLPT N5</strong> (<span id="filterActiveCount" class="font-bold text-[#006194]">0</span> mẫu câu)</span>
+            </div>
+            <div id="filterDescription" class="text-xs italic text-[#8B98A5] hidden sm:block">
+              Kiến thức sơ cấp N5 căn bản trong giao tiếp tiếng Nhật
+            </div>
           </div>
         </div>
 

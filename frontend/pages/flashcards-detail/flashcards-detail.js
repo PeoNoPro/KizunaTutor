@@ -120,7 +120,8 @@ async function loadDeckDetail() {
 
 // 5. Render Thông Tin Tổng Quan
 function renderOverview() {
-  document.getElementById('titleText').textContent = currentDeck.title || 'Bộ Thẻ';
+  const titleEl = document.getElementById('titleText');
+  if (titleEl) titleEl.textContent = currentDeck.title || 'Bộ Thẻ';
   const idBadge = document.getElementById('identifierBadge');
   if (idBadge) idBadge.textContent = `#${currentDeck.id}`;
   document.getElementById('overviewTitle').textContent = currentDeck.title || 'Chưa đặt tên';

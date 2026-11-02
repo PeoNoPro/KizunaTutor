@@ -98,6 +98,19 @@ export const LEARNER_MENU_GROUPS = [
 // =========================================================================
 // 2. HELPER: XÁC ĐỊNH MENU ACTIVE DỰA VÀO ĐƯỜNG DẪN HIỆN TẠI
 // =========================================================================
+export const PAGE_META_MAP = {
+  'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
+  'tutors': { title: 'Tìm gia sư Kizuna', badge: 'Gia sư & Lớp học' },
+  'requests': { title: 'Yêu cầu kết nối & Lớp học', badge: 'Gia sư & Lớp học' },
+  'kanji-dictionary': { title: 'Từ điển Hán tự Joyo', badge: 'Công cụ rèn luyện' },
+  'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Bút thuận AI' },
+  'flashcards': { title: 'Bộ thẻ Flashcards', badge: 'Ghi nhớ phản xạ' },
+  'kanji-game': { title: 'Game Mưa chữ Hán', badge: 'Đấu trường phản xạ' },
+  'grammar': { title: 'Sổ tay Ngữ pháp JLPT', badge: 'Cẩm nang JLPT' },
+  'kana': { title: 'Đấu trường gõ Kana', badge: 'Căn bản Hiragana/Katakana' },
+  'handwriting': { title: 'Tra cứu nét vẽ OHR', badge: 'Nhận diện nét vẽ AI' }
+};
+
 export function detectActiveMenu(customKey = null) {
   if (customKey) return customKey;
   const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
@@ -372,9 +385,33 @@ export function initLearnerShell(options = {}) {
   const footerContainer = document.getElementById('learnerFooterContainer');
 
   if (sidebarContainer || headerContainer || footerContainer) {
-    if (sidebarContainer) sidebarContainer.innerHTML = getLearnerSidebarHtml(activeMenu);
-    if (headerContainer) headerContainer.innerHTML = getLearnerHeaderHtml({ pageTitle, badge, rightContent });
-    if (footerContainer) footerContainer.innerHTML = getLearnerFooterHtml();
+    if (sidebarContainer) {
+      const tempWrapper = document.createElement('div');
+      tempWrapper.innerHTML = getLearnerSidebarHtml(activeMenu);
+      while (tempWrapper.firstChild) {
+        sidebarContainer.parentNode.insertBefore(tempWrapper.firstChild, sidebarContainer);
+      }
+      sidebarContainer.remove();
+    }
+
+    if (headerContainer) {
+      const tempWrapper = document.createElement('div');
+      tempWrapper.innerHTML = getLearnerHeaderHtml({ pageTitle, badge, rightContent });
+      while (tempWrapper.firstChild) {
+        headerContainer.parentNode.insertBefore(tempWrapper.firstChild, headerContainer);
+      }
+      headerContainer.remove();
+    }
+
+    if (footerContainer) {
+      const tempWrapper = document.createElement('div');
+      tempWrapper.innerHTML = getLearnerFooterHtml();
+      while (tempWrapper.firstChild) {
+        footerContainer.parentNode.insertBefore(tempWrapper.firstChild, footerContainer);
+      }
+      footerContainer.remove();
+    }
+
     bindLearnerLayoutEvents();
     return;
   }
@@ -459,4 +496,30 @@ if (typeof customElements !== 'undefined' && !customElements.get('kizuna-learner
 
   customElements.define('kizuna-learner-layout', KizunaLearnerLayoutElement);
 }
+
+// =========================================================================
+// 10. TỰ ĐỘNG KHỞI TẠO NẾU CÓ CÁC THẺ PLACEHOLDER TRÊN TRANG
+// =========================================================================
+export function autoInitLearnerLayout() {
+  const sidebarContainer = document.getElementById('learnerSidebarContainer');
+  const headerContainer = document.getElementById('learnerHeaderContainer');
+  const footerContainer = document.getElementById('learnerFooterContainer');
+
+  if (sidebarContainer || headerContainer || footerContainer) {
+    const activeKey = detectActiveMenu();
+    const meta = PAGE_META_MAP[activeKey] || { title: 'Không gian học viên', badge: 'Học tập' };
+    initLearnerShell({
+      activeMenu: activeKey,
+      pageTitle: meta.title,
+      badge: meta.badge
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', autoInitLearnerLayout);
+} else {
+  autoInitLearnerLayout();
+}
+
 

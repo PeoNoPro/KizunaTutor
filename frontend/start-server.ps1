@@ -132,6 +132,15 @@ while ($listener.IsListening) {
             }
         }
 
+        # 3. Neu la file .js khong tim thay o goc, tu dong tim trong pages/ hoac components/
+        if (-not (Test-Path $localPath) -and $pathPart.EndsWith(".js")) {
+            $fileName = [System.IO.Path]::GetFileName($pathPart)
+            $foundFile = Get-ChildItem -Path (Join-Path $rootDir "pages"), (Join-Path $rootDir "components"), (Join-Path $rootDir "js") -Filter $fileName -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($foundFile) {
+                $localPath = $foundFile.FullName
+            }
+        }
+
         if (-not (Test-Path $localPath)) {
             $localPath = Join-Path $rootDir "pages/home/index.html"
         }

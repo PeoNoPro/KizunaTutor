@@ -34,3 +34,6 @@
    - Kiểm tra xử lý lỗi: Không bao giờ đẩy Exception nguyên thủy ra View hoặc Response JSON cho người dùng.
    - Kiểm tra nguồn dữ liệu: Tuyệt đối không hardcode dữ liệu giả (`mockData = [...]`), luôn dùng API hoặc Empty State.
 4. Chạy kiểm thử tự động `mvnw test` để bảo đảm không xảy ra hồi quy (regression errors).
+5. **Kỷ luật phạm vi yêu cầu (Strict Scope Discipline):**
+   - Chỉ thực hiện chính xác những gì người dùng yêu cầu, không tự ý sửa các phần khác khi chưa được phép.
+   - Khi nhận yêu cầu xóa một khối giao diện hoặc nút bấm, chỉ xóa tại đúng vị trí đó; tuyệt đối không tự ý di dời sang container khác hoặc tự ý thêm bớt các thành phần ngoài phạm vi chỉ định.

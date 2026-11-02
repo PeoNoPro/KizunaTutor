@@ -371,6 +371,11 @@ export function bindLearnerLayoutEvents() {
  * @param {string} options.rightContent - Nội dung HTML tùy biến bổ sung ở góc phải header
  */
 export function initLearnerShell(options = {}) {
+  // Kiểm tra chống trùng lặp: Nếu sidebar đã được render, tuyệt đối không tạo thêm
+  if (document.getElementById('learnerSidebar')) {
+    return;
+  }
+
   const activeMenu = options.activeMenu || detectActiveMenu();
   const pageTitle = options.pageTitle || '';
   const badge = options.badge || '';
@@ -413,34 +418,28 @@ export function initLearnerShell(options = {}) {
     return;
   }
 
-  // 2. Tự động bọc phần thân nội dung hiện tại
-  const targetId = options.containerId || 'learner-content';
-  let targetEl = document.getElementById(targetId);
-
-  // Nếu chưa có target, tự tìm phần tử chính (main hoặc body child)
-  if (!targetEl) {
-    targetEl = document.querySelector('main') || document.body;
-  }
-
-  // Bọc vào bộ khung 2 cột chuẩn
-  const originalHtml = targetEl.innerHTML;
-  const shellHtml = `
-    <div class="flex h-screen overflow-hidden bg-white">
-      ${getLearnerSidebarHtml(activeMenu)}
-      <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        ${getLearnerHeaderHtml({ pageTitle, badge, rightContent })}
-        <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-white flex flex-col">
-          <div class="max-w-[1240px] w-full mx-auto flex-1">
-            ${originalHtml}
-          </div>
-          ${getLearnerFooterHtml()}
-        </main>
+  // 2. Chỉ tự động bọc nếu được chỉ định rõ ràng qua wrapBody
+  if (options.wrapBody) {
+    const targetEl = document.getElementById(options.containerId) || document.querySelector('main') || document.body;
+    const originalHtml = targetEl.innerHTML;
+    const shellHtml = `
+      <div class="flex h-screen overflow-hidden bg-white">
+        ${getLearnerSidebarHtml(activeMenu)}
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+          ${getLearnerHeaderHtml({ pageTitle, badge, rightContent })}
+          <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-white flex flex-col">
+            <div class="max-w-[1240px] w-full mx-auto flex-1">
+              ${originalHtml}
+            </div>
+            ${getLearnerFooterHtml()}
+          </main>
+        </div>
       </div>
-    </div>
-  `;
+    `;
 
-  targetEl.innerHTML = shellHtml;
-  bindLearnerLayoutEvents();
+    targetEl.innerHTML = shellHtml;
+    bindLearnerLayoutEvents();
+  }
 }
 
 // Alias thân thiện

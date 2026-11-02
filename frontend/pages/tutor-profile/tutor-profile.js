@@ -199,8 +199,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     const openBtn = document.getElementById('open-booking-btn');
     if (openBtn) {
       openBtn.addEventListener('click', () => {
+        const token = localStorage.getItem('kizuna_token');
+        if (!token) {
+          const tutorDisplay = tutor.fullName ? `Sensei ${tutor.fullName}` : 'gia sư';
+          if (typeof window.openLoginModal === 'function') {
+            window.openLoginModal({
+              tutorName: tutorDisplay,
+              onSuccess: () => {
+                openModal('connect-modal');
+              }
+            });
+            return;
+          }
+          const currentPath = window.location.pathname + window.location.search;
+          const returnUrl = currentPath.includes('connect=true')
+            ? currentPath
+            : (currentPath + (currentPath.includes('?') ? '&' : '?') + 'connect=true');
+          window.location.href = `/login?redirect=${encodeURIComponent(returnUrl)}`;
+          return;
+        }
         openModal('connect-modal');
       });
+    }
+
+    // Tự động mở modal kết nối nếu quay lại sau khi đăng nhập (có cờ connect=true)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('connect') === 'true' && localStorage.getItem('kizuna_token')) {
+      setTimeout(() => {
+        openModal('connect-modal');
+      }, 350);
     }
 
   } catch (err) {

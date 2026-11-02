@@ -19,8 +19,8 @@ const DASHBOARD_ROUTES = {
   ROLE_CS_STAFF: '/cs/dashboard',
   ROLE_ACADEMIC_OFFICER: '/academic/dashboard',
   ROLE_TUTOR: '/tutor/dashboard',
-  ROLE_LEARNER: '/learner/dashboard',
-  ROLE_STUDENT: '/learner/dashboard'
+  ROLE_LEARNER: '/pages/home/',
+  ROLE_STUDENT: '/pages/home/'
 };
 
 const DEMO_ACCOUNTS = {
@@ -158,7 +158,8 @@ async function handleLoginSubmit(event) {
 
     // 3. Điều hướng theo vai trò người dùng
     const userRole = (data.user && data.user.role) ? data.user.role : 'ROLE_LEARNER';
-    const targetUrl = data.redirectUrl || DASHBOARD_ROUTES[userRole] || '/pages/home/';
+    const isLearner = userRole === 'ROLE_LEARNER' || userRole === 'ROLE_STUDENT';
+    const targetUrl = isLearner ? '/pages/home/' : (data.redirectUrl || DASHBOARD_ROUTES[userRole] || '/pages/home/');
 
     setTimeout(() => {
       window.location.href = targetUrl;

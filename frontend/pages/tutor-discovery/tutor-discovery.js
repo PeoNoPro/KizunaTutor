@@ -504,6 +504,27 @@ document.addEventListener('DOMContentLoaded', () => {
   window.handleOpenConnect = function (tutorId) {
     const tutor = currentLoadedTutors.find(t => t.id === tutorId);
     if (!tutor) return;
+
+    // Kiểm tra phiên đăng nhập: Mở popup đăng nhập mờ mờ tại chỗ
+    const token = localStorage.getItem('kizuna_token');
+    if (!token) {
+      const tutorDisplay = tutor.fullName ? `Sensei ${tutor.fullName}` : 'gia sư';
+      if (typeof window.openLoginModal === 'function') {
+        window.openLoginModal({
+          tutorName: tutorDisplay,
+          onSuccess: () => {
+            window.handleOpenConnect(tutorId);
+          }
+        });
+        return;
+      }
+      const returnUrl = (tutor.tutorCode)
+        ? `/gs/${tutor.tutorCode}?connect=true`
+        : `/pages/tutor-profile/?id=${tutor.id}&connect=true`;
+      window.location.href = `/login?redirect=${encodeURIComponent(returnUrl)}`;
+      return;
+    }
+
     activeTutorForConnect = tutor;
     if (connectTutorAvatar) connectTutorAvatar.src = tutor.avatarUrl;
     if (connectTutorName) connectTutorName.textContent = tutor.fullName;

@@ -478,17 +478,30 @@ function saveNewDeck() {
   showToast(`Đã tạo thành công bộ thẻ "${title}".`, 'success');
 }
 
-function deleteDeck(deckId) {
+async function handleDeleteDeck(deckId) {
   const target = userDecks.find(d => d.id === deckId);
   if (!target) return;
 
-  if (confirm(`Bạn có chắc chắn muốn xóa bộ thẻ "${target.title}" không?`)) {
-    userDecks = userDecks.filter(d => d.id !== deckId);
-    saveLocalDecks();
-    renderDecks();
-    showToast(`Đã xóa bộ thẻ "${target.title}".`, 'info');
+  if (!confirm(`Bạn có chắc chắn muốn xóa bộ thẻ "${target.title}" không?`)) {
+    return;
   }
+
+  // Cố gắng xóa trên backend API nếu có kết nối
+  try {
+    await fetch(`/api/user/kanji-folders/${encodeURIComponent(deckId)}`, {
+      method: 'DELETE'
+    }).catch(() => null);
+  } catch (e) {
+    console.debug('Lỗi khi gọi API xóa folder:', e);
+  }
+
+  userDecks = userDecks.filter(d => d.id !== deckId);
+  saveLocalDecks();
+  renderDecks();
+  showToast(`Đã xóa bộ thẻ "${target.title}".`, 'info');
 }
+
+const deleteDeck = handleDeleteDeck;
 
 // =========================================================================
 // 6. THÊM CHỮ MỚI VÀO BỘ THẺ

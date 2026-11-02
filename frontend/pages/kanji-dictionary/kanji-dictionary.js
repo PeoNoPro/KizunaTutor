@@ -23,6 +23,7 @@ let learnerDebounce = null;
 let currentDictStroke = null;
 let currentDictRadical = null;
 let selectedKanjiDetail = null;
+let currentKanjiToSave = null;
 let dictStrokePlayer = null;
 let dictSpeedIndex = 1;
 const dictSpeedOptions = [0.5, 1.0, 1.5];
@@ -321,6 +322,7 @@ function renderLearnerGrid(items) {
       <div class="pt-3 mt-auto border-t border-[#E2E8F0] flex items-center gap-2 shrink-0">
         <button type="button" 
                 data-action="save-deck"
+                data-idx="${idx}"
                 data-id="${k.id || ''}"
                 data-char="${escapeHtml(k.kanjiChar)}"
                 data-hanviet="${escapeHtml(k.hanViet || '')}"
@@ -358,11 +360,18 @@ function renderLearnerGrid(items) {
   });
 
   grid.querySelectorAll('[data-action="save-deck"]').forEach(el => {
-    el.addEventListener('click', () => {
-      const id = el.getAttribute('data-id');
-      const char = el.getAttribute('data-char');
-      const hanViet = el.getAttribute('data-hanviet');
-      openSaveDeckModal(id, char, hanViet);
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(el.getAttribute('data-idx'), 10);
+      const item = (window.lastRenderedDictionaryItems && window.lastRenderedDictionaryItems[idx]) || null;
+      if (item) {
+        openSaveDeckModal(item);
+      } else {
+        const id = el.getAttribute('data-id');
+        const char = el.getAttribute('data-char');
+        const hanViet = el.getAttribute('data-hanviet');
+        openSaveDeckModal(id, char, hanViet);
+      }
     });
   });
 }
@@ -610,8 +619,9 @@ function closeKanjiDetailModal() {
 
 function saveCurrentDetailToDeck() {
   if (!selectedKanjiDetail) return;
+  const detailToSave = { ...selectedKanjiDetail };
   closeKanjiDetailModal();
-  openSaveDeckModal(selectedKanjiDetail.id, selectedKanjiDetail.kanjiChar || selectedKanjiDetail.character, selectedKanjiDetail.hanViet);
+  openSaveDeckModal(detailToSave);
 }
 
 // =========================================================================
@@ -689,16 +699,45 @@ async function loadDeckOptions() {
   select.innerHTML = options.map(f => `<option value="${escapeHtml(f.name)}">${escapeHtml(f.name)} (${f.count} chữ)</option>`).join('');
 }
 
-function openSaveDeckModal(id, char, hanViet) {
+function openSaveDeckModal(kanjiDataOrId, char, hanViet) {
+  let item = null;
+  if (typeof kanjiDataOrId === 'object' && kanjiDataOrId !== null) {
+    item = kanjiDataOrId;
+  } else {
+    const searchChar = char || kanjiDataOrId;
+    if (window.lastRenderedDictionaryItems && Array.isArray(window.lastRenderedDictionaryItems)) {
+      item = window.lastRenderedDictionaryItems.find(x => (x.kanjiChar || x.char) === searchChar || String(x.id) === String(kanjiDataOrId));
+    }
+  }
+
+  const finalId = (item && item.id) || (typeof kanjiDataOrId === 'string' ? kanjiDataOrId : '') || '';
+  const finalChar = (item && (item.kanjiChar || item.char || item.character)) || char || '';
+  const finalHanViet = (item && item.hanViet) || hanViet || '';
+  const finalMeaning = (item && (item.meaning || item.vietnameseMeaning)) || '';
+  const finalOnyomi = (item && item.onyomi) || '';
+  const finalKunyomi = (item && item.kunyomi) || '';
+  const finalJlpt = (item && (item.jlpt || item.jlptLevel)) || 'N5';
+
+  currentKanjiToSave = {
+    id: finalId,
+    kanjiChar: finalChar,
+    char: finalChar,
+    hanViet: finalHanViet,
+    meaning: finalMeaning,
+    onyomi: finalOnyomi,
+    kunyomi: finalKunyomi,
+    jlpt: finalJlpt
+  };
+
   const kanjiIdInput = document.getElementById('modalDeckKanjiId');
   const charInput = document.getElementById('modalDeckCharInput');
   const charEl = document.getElementById('modalDeckChar');
   const hvEl = document.getElementById('modalDeckHanViet');
 
-  if (kanjiIdInput) kanjiIdInput.value = id || '';
-  if (charInput) charInput.value = char || '';
-  if (charEl) charEl.textContent = char || '—';
-  if (hvEl) hvEl.textContent = hanViet || 'HÁN TỰ';
+  if (kanjiIdInput) kanjiIdInput.value = finalId;
+  if (charInput) charInput.value = finalChar;
+  if (charEl) charEl.textContent = finalChar || '—';
+  if (hvEl) hvEl.textContent = finalHanViet || 'HÁN TỰ';
 
   loadDeckOptions();
   const modal = document.getElementById('modalAddToDeck');
@@ -723,6 +762,38 @@ async function submitSaveToDeck(e) {
   const kanjiId = document.getElementById('modalDeckKanjiId') ? document.getElementById('modalDeckKanjiId').value : '';
   const hanViet = document.getElementById('modalDeckHanViet') ? document.getElementById('modalDeckHanViet').textContent : '';
 
+  // Đảm bảo có đầy đủ dữ liệu nghĩa, onyomi, kunyomi nếu chưa có
+  if (!currentKanjiToSave || !currentKanjiToSave.meaning || currentKanjiToSave.meaning === 'Chưa cập nhật nghĩa') {
+    try {
+      const res = await fetch(`/api/learner/kanji/search?keyword=${encodeURIComponent(kanjiChar)}`).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        const found = (data.items || []).find(x => (x.kanjiChar || x.char) === kanjiChar);
+        if (found) {
+          currentKanjiToSave = {
+            id: found.id || kanjiId,
+            kanjiChar: found.kanjiChar || kanjiChar,
+            char: found.kanjiChar || kanjiChar,
+            hanViet: found.hanViet || hanViet,
+            meaning: found.meaning || '',
+            onyomi: found.onyomi || '—',
+            kunyomi: found.kunyomi || '—',
+            jlpt: found.jlpt || 'N5'
+          };
+        }
+      }
+    } catch (e) {
+      console.debug('Lỗi truy vấn bổ sung thông tin kanji:', e);
+    }
+  }
+
+  const charToSave = kanjiChar || (currentKanjiToSave ? (currentKanjiToSave.kanjiChar || currentKanjiToSave.char) : '');
+  const hvToSave = (currentKanjiToSave && currentKanjiToSave.hanViet) ? currentKanjiToSave.hanViet : (hanViet || 'HÁN TỰ');
+  const meaningToSave = (currentKanjiToSave && currentKanjiToSave.meaning) ? currentKanjiToSave.meaning : 'Chưa cập nhật nghĩa';
+  const onyomiToSave = (currentKanjiToSave && currentKanjiToSave.onyomi) ? currentKanjiToSave.onyomi : '—';
+  const kunyomiToSave = (currentKanjiToSave && currentKanjiToSave.kunyomi) ? currentKanjiToSave.kunyomi : '—';
+  const jlptToSave = (currentKanjiToSave && currentKanjiToSave.jlpt) ? currentKanjiToSave.jlpt : 'N5';
+
   // 1. Lưu vào LocalStorage đồng bộ cho trang Flashcard
   try {
     const raw = localStorage.getItem('kizuna_flashcard_decks');
@@ -742,26 +813,36 @@ async function submitSaveToDeck(e) {
     }
 
     deck.cards = deck.cards || [];
-    const isDup = deck.cards.some(c => (c.char || c.kanjiChar) === kanjiChar);
-    if (!isDup) {
-      deck.cards.push({
-        char: kanjiChar,
-        kanjiChar: kanjiChar,
-        hanViet: hanViet,
-        meaning: selectedKanjiDetail ? selectedKanjiDetail.meaning : '',
-        onyomi: selectedKanjiDetail ? selectedKanjiDetail.onyomi : '',
-        kunyomi: selectedKanjiDetail ? selectedKanjiDetail.kunyomi : '',
-        jlpt: selectedKanjiDetail ? selectedKanjiDetail.jlpt : 'N5'
-      });
-      localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+    const existingIdx = deck.cards.findIndex(c => (c.char || c.kanjiChar) === charToSave);
+    const newCard = {
+      char: charToSave,
+      kanjiChar: charToSave,
+      hanViet: hvToSave,
+      meaning: meaningToSave,
+      onyomi: onyomiToSave,
+      kunyomi: kunyomiToSave,
+      jlpt: jlptToSave
+    };
+
+    if (existingIdx >= 0) {
+      // Cập nhật lại thẻ nếu đã tồn tại hoặc trước đó bị thiếu thông tin
+      deck.cards[existingIdx] = {
+        ...deck.cards[existingIdx],
+        ...newCard
+      };
+    } else {
+      deck.cards.push(newCard);
     }
-  } catch (err) {}
+    localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+  } catch (err) {
+    console.debug('Lỗi lưu thẻ localStorage:', err);
+  }
 
   // 2. Gửi request Backend nếu có endpoint
   try {
     const payload = {
       kanjiId: kanjiId,
-      kanjiChar: kanjiChar,
+      kanjiChar: charToSave,
       targetDeckName: targetDeckName
     };
     await fetch('/api/learner/kanji/save-card', {

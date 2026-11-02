@@ -665,8 +665,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (targetChar) {
     await selectKanji(targetChar);
   } else {
-    // Mặc định nạp chữ '未' nếu không có tham số trên URL
-    await selectKanji('未');
+    // Khi chưa tìm kiếm hoặc chưa có tham số trên URL, giữ trạng thái chờ, không nạp trước dữ liệu mẫu
+    currentChar = null;
+    strokePaths = [];
+    renderGuidelineSvg();
+    renderStrokeStepBadges();
   }
 });
 

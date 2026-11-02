@@ -71,70 +71,24 @@
       <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] flex flex-col min-w-0">
         <div class="space-y-6 max-w-7xl mx-auto w-full flex-1">
           
-          <!-- 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG & TÁC VỤ NHANH (ACTION TOOLBAR) -->
-          <div class="flex flex-wrap items-center justify-between gap-4 p-4 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A]">
-            <!-- Nút Quay Lại & Tiêu Đề Chính -->
-            <div class="flex items-center gap-3">
-              <button type="button" id="btnBackToList"
-                      class="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center gap-1 cursor-pointer">
-                <span>←</span>
-                <span>Quay lại</span>
-              </button>
-              <div>
-                <h1 id="detailEntityTitle" class="font-['Itim'] text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <span>🌸</span>
-                  <span id="titleText">Chi Tiết Bộ Thẻ</span>
-                </h1>
-              </div>
-            </div>
-
-            <!-- CỤM TÁC VỤ CHÍNH (ACTIONS TOOLBAR) -->
-            <div class="flex flex-wrap items-center gap-2">
-              <!-- Tác vụ 1: Luyện tập / Hành động chính -->
-              <button type="button" id="btnPrimaryAction" 
-                      class="text-xs py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center gap-1.5 cursor-pointer">
-                <span>🎮</span>
-                <span>Bắt Đầu Học / Luyện Tập</span>
-              </button>
-
-              <!-- Tác vụ 2: Chỉnh sửa -->
-              <button type="button" id="btnEditAction" 
-                      class="text-xs py-1.5 px-3 bg-white hover:bg-slate-50 text-slate-800 font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center gap-1.5 cursor-pointer">
-                <span>✏️</span>
-                <span>Chỉnh Sửa</span>
-              </button>
-
-              <!-- Tác vụ 3: Tải file / Xuất dữ liệu / In -->
-              <div class="relative">
-                <button type="button" id="btnExportMenuToggle" 
-                        class="text-xs py-1.5 px-3 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center gap-1.5 cursor-pointer">
-                  <span>📥</span>
-                  <span>Xuất File / In</span>
-                  <span>▾</span>
-                </button>
-                <div id="exportDropdownMenu" class="hidden absolute right-0 top-9 w-44 bg-white border border-[#0F172A] rounded-[4px] shadow-[3px_3px_0px_0px_#0F172A] z-30 py-1 text-xs">
-                  <button type="button" id="btnExportExcel" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800">
-                    <span>📊</span> Xuất Excel (.xlsx)
-                  </button>
-                  <button type="button" id="btnPrintDeck" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800 border-t border-slate-100">
-                    <span>🖨️</span> In ấn / Lưu PDF
-                  </button>
-                </div>
-              </div>
-
-              <!-- Tác vụ 4: Xóa -->
-              <button type="button" id="btnDeleteAction" 
-                      class="text-xs py-1.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center gap-1.5 cursor-pointer">
-                <span>🗑️</span>
-                <span>Xóa</span>
-              </button>
-            </div>
+          <!-- 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG (GỌN GÀNG - CHỈ GIỮ NÚT QUAY LẠI & TIÊU ĐỀ) -->
+          <div class="flex items-center gap-3 p-3 bg-white border border-[#0F172A] rounded-[5px] shadow-[2px_2px_0px_0px_#0F172A]">
+            <button type="button" id="btnBackToList"
+                    class="py-1 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center gap-1 cursor-pointer">
+              <span>←</span>
+              <span>Quay lại</span>
+            </button>
+            <div class="h-4 w-[1px] bg-slate-300"></div>
+            <h1 id="detailEntityTitle" class="font-['Itim'] text-base md:text-lg font-bold text-slate-900 flex items-center gap-1.5 truncate">
+              <span>🌸</span>
+              <span id="titleText">Chi Tiết Bộ Thẻ</span>
+            </h1>
           </div>
 
           <!-- 2. NỘI DUNG CHI TIẾT (BỐ CỤC 2 CỘT RESPONSIVE) -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <!-- Cột Trái (Thông tin tổng quan & Metadata - 4 cột) -->
+            <!-- Cột Trái (Thông tin tổng quan & Quản trị bộ thẻ - 4 cột) -->
             <div class="lg:col-span-4 space-y-4">
               <div class="p-5 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] space-y-4">
                 <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center justify-between">
@@ -156,13 +110,50 @@
                   </div>
                 </div>
 
-                <!-- Cụm tác vụ nhanh quản lý thẻ -->
-                <div class="pt-3 border-t border-slate-200">
+                <!-- Cụm tác vụ quản lý & học thẻ -->
+                <div class="pt-3 border-t border-slate-200 space-y-2.5">
+                  <!-- Tác vụ chính: Bắt đầu học -->
+                  <button type="button" id="btnPrimaryAction" 
+                          class="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>🎮</span>
+                    <span>Bắt Đầu Học / Luyện Tập</span>
+                  </button>
+
+                  <!-- Thêm thẻ học mới -->
                   <button type="button" id="btnOpenAddCardModal"
-                          class="w-full py-2.5 px-3 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1.5 cursor-pointer">
+                          class="w-full py-2 px-3 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1.5 cursor-pointer">
                     <span class="material-symbols-outlined text-[16px]">add_card</span>
                     <span>Thêm thẻ học mới</span>
                   </button>
+
+                  <!-- Hàng nút Sửa & Xuất file/In -->
+                  <div class="grid grid-cols-2 gap-2 pt-0.5">
+                    <button type="button" id="btnEditAction" 
+                            class="py-1.5 px-2 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate">
+                      <span>✏️</span> Sửa
+                    </button>
+                    <div class="relative">
+                      <button type="button" id="btnExportMenuToggle" 
+                              class="w-full py-1.5 px-2 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate">
+                        <span>📥</span> Xuất/In ▾
+                      </button>
+                      <div id="exportDropdownMenu" class="hidden absolute right-0 top-8 w-44 bg-white border border-[#0F172A] rounded-[4px] shadow-[3px_3px_0px_0px_#0F172A] z-30 py-1 text-xs">
+                        <button type="button" id="btnExportExcel" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800">
+                          <span>📊</span> Xuất Excel (.xlsx)
+                        </button>
+                        <button type="button" id="btnPrintDeck" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800 border-t border-slate-100">
+                          <span>🖨️</span> In ấn / Lưu PDF
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Nút Xóa bộ thẻ -->
+                  <button type="button" id="btnDeleteAction" 
+                          class="w-full py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-rose-300 rounded-[4px] flex items-center justify-center gap-1 cursor-pointer">
+                    <span>🗑️</span> Xóa bộ thẻ này
+                  </button>
+
                   <input type="file" id="inputExcelFile" accept=".xlsx, .xls" class="hidden">
                 </div>
               </div>

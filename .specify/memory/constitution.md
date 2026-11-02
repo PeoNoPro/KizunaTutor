@@ -64,6 +64,7 @@ Mục đích là giữ bản sắc và trải nghiệm học tập phù hợp t�
 Tính năng triển khai theo Spec Kit PHẢI có yêu cầu, tiêu chí chấp nhận, kế hoạch và
 công việc cụ thể; thay đổi PHẢI truy được về yêu cầu. PHẢI giới hạn phạm vi nhiệm vụ,
 tái sử dụng thành phần phù hợp và giải thích độ phức tạp bổ sung trong kế hoạch.
+Tuyệt đối KHÔNG tự ý sửa đổi, tái cấu trúc hoặc can thiệp các thành phần khác khi chưa được phép; khi được yêu cầu xóa một khối/nút bấm, chỉ xóa tại đúng vị trí đó, không tự ý dời sang vị trí khác hoặc thay đổi các vùng lân cận.
 Thay đổi nghiệp vụ PHẢI có kiểm thử phù hợp; thay đổi schema, hợp đồng API hoặc
 liên lạc dịch vụ PHẢI kiểm tra tích hợp liên quan. Thay đổi UI PHẢI kiểm tra ngôn ngữ,
 viết hoa, dữ liệu thật, trạng thái rỗng/lỗi và thiết kế phân hệ.

@@ -1,16 +1,56 @@
 @import './variables.css';
 
-*, *::before, *::after {
+/* 1. Khóa ổn định diện tích thanh cuộn - Chống giật khung ngang khi đổi trang */
+html {
+  scrollbar-gutter: stable both-edges;
   box-sizing: border-box;
+}
+
+/* 2. Dự trù kích thước cho khung Sidebar để triệt tiêu hoàn toàn Layout Shift */
+#learnerSidebarContainer {
+  width: 270px;
+  min-width: 260px;
+  max-width: 280px;
+  flex-shrink: 0;
+  height: 100vh;
+}
+@media (max-width: 767px) {
+  #learnerSidebarContainer {
+    display: none;
+  }
+}
+
+/* 3. Ép trình duyệt tối ưu vẽ đồ họa GPU cho Sidebar */
+#learnerSidebar {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* 4. Vùng nội dung chính cuộn độc lập, không làm ảnh hưởng thanh cuộn ngoài */
+main {
+  contain: paint;
+}
+
+/* 5. Khử chớp nháy font chữ (FOIT) */
+* {
+  font-display: swap;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
   margin: 0;
   padding: 0;
 }
 
-html, body {
-  min-height: 100%;
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Ngăn chặn triệt để thanh cuộn ngang ngoài ý muốn */
+  min-height: 100vh;
   font-family: var(--font-family-sans);
-  background-color: var(--color-bg-page);
-  color: var(--color-text-main);
+  background-color: var(--color-bg-page, #F8FAFC);
+  color: var(--color-text-main, #1E293B);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -44,6 +84,29 @@ input, select, textarea {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
+/* Utilities chống thanh cuộn ngang thừa & cuộn mượt không hiện scrollbar */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Ẩn triệt để dải breadcrumb / secondary top bar dư thừa trên toàn hệ thống */
+.breadcrumb-nav,
+.top-breadcrumb-bar,
+.sub-topbar,
+nav[aria-label="breadcrumb"] {
+  display: none !important;
+}
+
+/* Bảo đảm khối banner giới thiệu từ điển chỉ xuất hiện duy nhất tại trang kanji-dictionary */
+body:not(.page-dictionary) .dictionary-hero-banner,
+body:not(.page-dictionary) [data-banner="kanji-dictionary-intro"] {
+  display: none !important;
+}
+
 /* Scrollbar Minimal */
 ::-webkit-scrollbar {
   width: 6px;
@@ -59,4 +122,3 @@ input, select, textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
 }
-

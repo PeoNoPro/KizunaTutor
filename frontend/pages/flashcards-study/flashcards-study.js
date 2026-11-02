@@ -32,21 +32,7 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
-// 3. Phát âm tiếng Nhật (Web Speech API)
-function speakJapanese(text) {
-  if (!text) return;
-  if (!('speechSynthesis' in window)) {
-    showToast('Trình duyệt không hỗ trợ phát âm tự động.', 'info');
-    return;
-  }
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ja-JP';
-  utterance.rate = 0.9;
-  window.speechSynthesis.speak(utterance);
-}
-
-// 4. Tải dữ liệu bộ thẻ
+// 3. Tải dữ liệu bộ thẻ
 async function loadStudyDeck() {
   const urlParams = new URLSearchParams(window.location.search);
   currentDeckId = urlParams.get('id') || urlParams.get('deckId');
@@ -322,16 +308,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnFlipCard')?.addEventListener('click', flipCard);
   document.getElementById('btnNextCard')?.addEventListener('click', nextCard);
   document.getElementById('btnPrevCard')?.addEventListener('click', prevCard);
-
-  // Phát âm
-  document.getElementById('btnSpeakFront')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (cards[currentIndex]) speakJapanese(cards[currentIndex].char);
-  });
-  document.getElementById('btnSpeakBack')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (cards[currentIndex]) speakJapanese(cards[currentIndex].char);
-  });
 
   // Xáo trộn & Reset
   document.getElementById('btnShuffle')?.addEventListener('click', shuffleCards);

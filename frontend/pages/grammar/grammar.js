@@ -313,12 +313,6 @@ function renderGrammarCards() {
               </span>
               ${domainBadgesHtml}
             </div>
-            
-            <button type="button" data-action="pronounce" data-text="${rule.pattern}" 
-                    class="w-8 h-8 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-white text-[#68737D] hover:text-[#006194] flex items-center justify-center transition cursor-pointer shrink-0"
-                    title="Nghe phát âm">
-              <span class="material-symbols-outlined text-[18px]">volume_up</span>
-            </button>
           </div>
 
           <!-- Mẫu câu & Romaji -->
@@ -352,13 +346,6 @@ function renderGrammarCards() {
       openGrammarDetail(card.dataset.id);
     });
   });
-
-  grid.querySelectorAll('[data-action="pronounce"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      pronounceJapanese(btn.dataset.text);
-    });
-  });
 }
 
 // =========================================================================
@@ -386,11 +373,6 @@ function openGrammarDetail(ruleId) {
           <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545] break-words whitespace-normal min-w-0">
             ${ex.ja}
           </div>
-          <button type="button" data-action="pronounce-ex" data-text="${ex.ja}"
-                  class="w-7 h-7 rounded-lg border border-[#ECE8DE] bg-white hover:bg-[#FFE5EC] hover:text-[#831843] flex items-center justify-center text-xs transition cursor-pointer shrink-0"
-                  title="Nghe câu ví dụ">
-            <span class="material-symbols-outlined text-[15px]">volume_up</span>
-          </button>
         </div>
         <div class="text-xs text-[#68737D] font-mono break-words">
           Furigana: ${ex.reading}
@@ -477,12 +459,6 @@ function openGrammarDetail(ruleId) {
     </div>
   `;
 
-  container.querySelectorAll('[data-action="pronounce-ex"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      pronounceJapanese(btn.dataset.text);
-    });
-  });
-
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -493,23 +469,7 @@ function closeGrammarDetail() {
 }
 
 // =========================================================================
-// 6. PHÁT ÂM TIẾNG NHẬT (WEB SPEECH API SYNTHESIS)
-// =========================================================================
-function pronounceJapanese(text) {
-  if (!text || typeof window === 'undefined' || !window.speechSynthesis) {
-    showToast('Trình duyệt hiện chưa hỗ trợ đọc âm thanh tự động.', 'info');
-    return;
-  }
-
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ja-JP';
-  utterance.rate = 0.9;
-  window.speechSynthesis.speak(utterance);
-}
-
-// =========================================================================
-// 7. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
+// 6. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
   const modeSwitcherBtns = document.querySelectorAll('#filterModeSwitcher button');

@@ -32,20 +32,7 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
-// 3. Phát âm tiếng Nhật (Web Speech API)
-function speakText(text) {
-  if (!('speechSynthesis' in window)) {
-    showToast('Trình duyệt không hỗ trợ phát âm tự động.', 'info');
-    return;
-  }
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ja-JP';
-  utterance.rate = 0.9;
-  window.speechSynthesis.speak(utterance);
-}
-
-// 4. Tải dữ liệu bộ thẻ
+// 3. Tải dữ liệu bộ thẻ
 async function loadDeckDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   currentDeckId = urlParams.get('id');

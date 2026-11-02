@@ -53,21 +53,7 @@ function cleanKanjiVgSvg(rawSvg) {
   return svg;
 }
 
-// 3. Phát âm tiếng Nhật (Web Speech API)
-function speakJapanese(text) {
-  if (!text) return;
-  if (!('speechSynthesis' in window)) {
-    showToast('Trình duyệt không hỗ trợ phát âm tự động.', 'info');
-    return;
-  }
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ja-JP';
-  utterance.rate = 0.9;
-  window.speechSynthesis.speak(utterance);
-}
-
-// 4. Tải dữ liệu chữ Hán
+// 3. Tải dữ liệu chữ Hán
 async function loadKanjiDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   currentChar = urlParams.get('char') || urlParams.get('kanji') || urlParams.get('c');
@@ -317,12 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       showToast('Không thể sao chép chữ: ' + e.message, 'error');
     }
-  });
-
-  // Phát âm
-  document.getElementById('btnSpeak')?.addEventListener('click', () => {
-    const char = currentKanjiData?.kanjiCharacter || currentKanjiData?.kanjiChar || currentChar;
-    if (char) speakJapanese(char);
   });
 
   // Cất vào bộ thẻ

@@ -85,9 +85,6 @@
                   <span>🌸</span>
                   <span id="titleText">Chi Tiết Bộ Thẻ</span>
                 </h1>
-                <p id="detailEntitySubtitle" class="text-xs text-slate-500 mt-0.5">
-                  Mã định danh: <span id="identifierBadge" class="font-mono font-semibold text-[#006194]">#DECK_ID</span>
-                </p>
               </div>
             </div>
 
@@ -171,25 +168,12 @@
                 </div>
 
                 <!-- Cụm tác vụ nhanh quản lý thẻ -->
-                <div class="pt-3 border-t border-slate-200 space-y-2">
+                <div class="pt-3 border-t border-slate-200">
                   <button type="button" id="btnOpenAddCardModal"
-                          class="w-full py-2 px-3 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1.5 cursor-pointer">
+                          class="w-full py-2.5 px-3 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1.5 cursor-pointer">
                     <span class="material-symbols-outlined text-[16px]">add_card</span>
                     <span>Thêm thẻ học mới</span>
                   </button>
-
-                  <div class="grid grid-cols-2 gap-2">
-                    <button type="button" id="btnQuickExcelImport"
-                            class="py-1.5 px-2 bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold border border-amber-400 rounded-[4px] flex items-center justify-center gap-1 cursor-pointer">
-                      <span>📥</span>
-                      <span>Nạp Excel</span>
-                    </button>
-                    <button type="button" id="btnDownloadSample"
-                            class="py-1.5 px-2 bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold border border-slate-300 rounded-[4px] flex items-center justify-center gap-1 cursor-pointer">
-                      <span>📄</span>
-                      <span>Mẫu Excel</span>
-                    </button>
-                  </div>
                   <input type="file" id="inputExcelFile" accept=".xlsx, .xls" class="hidden">
                 </div>
               </div>
@@ -381,13 +365,42 @@
 
   <!-- ==================== MODAL THÊM THẺ MỚI ==================== -->
   <div id="modalAddCard" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white border-2 border-[#0F172A] rounded-[8px] shadow-[5px_5px_0px_0px_#0F172A] max-w-sm w-full p-5 space-y-4">
+    <div class="bg-white border-2 border-[#0F172A] rounded-[8px] shadow-[5px_5px_0px_0px_#0F172A] max-w-md w-full p-5 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-200 pb-2.5">
         <h4 class="font-bold text-sm text-[#0F2545] flex items-center gap-1.5">
           <span>➕</span>
           <span>Thêm Thẻ Học Mới</span>
         </h4>
-        <button type="button" id="btnCloseAddCardModal" class="text-slate-500 hover:text-slate-900 font-bold">✕</button>
+        <button type="button" id="btnCloseAddCardModal" class="text-slate-500 hover:text-slate-900 font-bold cursor-pointer">✕</button>
+      </div>
+
+      <!-- Khu vực Nạp Dữ Liệu từ File Excel -->
+      <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-[5px] space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-amber-900 flex items-center gap-1">
+            <span>📥</span> Nạp từ file Excel (.xlsx, .xls)
+          </span>
+          <button type="button" id="btnDownloadSample"
+                  class="text-[11px] py-1 px-2.5 bg-white hover:bg-amber-100 text-amber-900 font-bold border border-amber-400 rounded cursor-pointer"
+                  title="Tải file Excel mẫu chuẩn 2 cột">
+            📄 Mẫu Excel
+          </button>
+        </div>
+        <p class="text-[11px] text-amber-700 leading-normal">
+          Chuẩn 2 cột: <strong>Cột 1 = Mặt trước</strong> | <strong>Cột 2 = Mặt sau</strong>
+        </p>
+        <button type="button" id="btnQuickExcelImport"
+                class="w-full py-1.5 px-3 bg-amber-400 hover:bg-amber-500 text-black text-xs font-bold border border-[#0F172A] rounded shadow-[1px_1px_0px_0px_#0F172A] cursor-pointer flex items-center justify-center gap-1.5">
+          <span>📂</span>
+          <span>Chọn File Excel để nạp thẻ</span>
+        </button>
+      </div>
+
+      <!-- Đường ngăn cách -->
+      <div class="relative flex py-0.5 items-center">
+        <div class="flex-grow border-t border-slate-200"></div>
+        <span class="flex-shrink mx-2 text-[10px] text-slate-400 font-bold uppercase">Hoặc thêm thủ công</span>
+        <div class="flex-grow border-t border-slate-200"></div>
       </div>
 
       <div class="space-y-3">
@@ -409,10 +422,10 @@
       </div>
 
       <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
-        <button type="button" id="btnCancelAddCard" class="px-3.5 py-1.5 text-xs font-semibold rounded border border-slate-300 text-slate-700 hover:bg-slate-100">
+        <button type="button" id="btnCancelAddCard" class="px-3.5 py-1.5 text-xs font-semibold rounded border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer">
           Hủy
         </button>
-        <button type="button" id="btnSubmitAddCard" class="px-4 py-1.5 text-xs font-bold rounded bg-[#006194] hover:bg-[#004B73] text-white">
+        <button type="button" id="btnSubmitAddCard" class="px-4 py-1.5 text-xs font-bold rounded bg-[#006194] hover:bg-[#004B73] text-white cursor-pointer shadow-xs">
           Thêm Thẻ
         </button>
       </div>

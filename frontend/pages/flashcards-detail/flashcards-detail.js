@@ -121,7 +121,8 @@ async function loadDeckDetail() {
 // 5. Render Thông Tin Tổng Quan
 function renderOverview() {
   document.getElementById('titleText').textContent = currentDeck.title || 'Bộ Thẻ';
-  document.getElementById('identifierBadge').textContent = `#${currentDeck.id}`;
+  const idBadge = document.getElementById('identifierBadge');
+  if (idBadge) idBadge.textContent = `#${currentDeck.id}`;
   document.getElementById('overviewTitle').textContent = currentDeck.title || 'Chưa đặt tên';
   document.getElementById('overviewDesc').textContent = currentDeck.description || 'Chưa có ghi chú mô tả cho bộ thẻ này.';
   document.getElementById('overviewTotalCards').textContent = currentCards.length;
@@ -464,6 +465,7 @@ function handleExcelUpload(event) {
       saveCurrentDeck();
       renderOverview();
       renderCardsList(document.getElementById('internalSearchInput')?.value || '');
+      closeAddCardModal();
       showToast(`Đã nạp thành công ${newCards.length} thẻ mới từ file Excel!`, 'success');
     } catch (err) {
       console.error(err);

@@ -89,6 +89,7 @@ const JLPT_DESCRIPTIONS = {
 let currentFilterMode = 'jlpt'; // 'jlpt' hoặc 'domain'
 let currentLevel = 'N5';
 let currentDomain = 'daily';
+let currentDomainLevel = 'ALL'; // 'ALL', 'N5', 'N4', 'N3', 'N2', 'N1'
 let currentSearchKeyword = '';
 let masterGrammarList = []; // Toàn bộ 526 mẫu ngữ pháp đồng bộ từ Database
 
@@ -206,6 +207,30 @@ async function loadGrammarData() {
   renderGrammarCards();
 }
 
+/**
+ * Cập nhật số lượng đếm mẫu câu tương ứng trên các nút lọc cấp độ của Khối Ứng dụng
+ */
+function updateDomainSubLevelCounts() {
+  const domainList = masterGrammarList.filter(r => r.domains.includes(currentDomain));
+  document.querySelectorAll('#domainJlptTabs button').forEach(btn => {
+    const lvl = btn.dataset.domainLevel;
+    let count = 0;
+    if (lvl === 'ALL') {
+      count = domainList.length;
+      btn.innerHTML = `<span>Tất cả</span> <span class="opacity-80 text-[10px]">(${count})</span>`;
+    } else {
+      count = domainList.filter(r => r.level === lvl).length;
+      btn.innerHTML = `<span>${lvl}</span> <span class="opacity-80 text-[10px]">(${count})</span>`;
+    }
+
+    if (lvl === currentDomainLevel) {
+      btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1';
+    } else {
+      btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1';
+    }
+  });
+}
+
 // =========================================================================
 // 4. RENDER DANH SÁCH THẺ NGỮ PHÁP (GRID VIEW)
 // =========================================================================
@@ -218,17 +243,29 @@ function renderGrammarCards() {
 
   if (!grid || !emptyState) return;
 
-  // 1. Lọc theo Chế độ (Cấp độ JLPT hoặc Khối Ứng dụng)
+  // 1. Lọc theo Chế độ (Cấp độ JLPT hoặc Khối Ứng dụng kết hợp Cấp độ)
   let activeList = [];
   if (currentFilterMode === 'jlpt') {
     activeList = masterGrammarList.filter(r => r.level === currentLevel);
     if (activeLabelEl) activeLabelEl.textContent = `JLPT ${currentLevel}`;
     if (descEl) descEl.textContent = JLPT_DESCRIPTIONS[currentLevel] || '';
   } else {
-    activeList = masterGrammarList.filter(r => r.domains.includes(currentDomain));
+    // 1a. Lọc theo Khối Ứng dụng
+    const domainList = masterGrammarList.filter(r => r.domains.includes(currentDomain));
+    
+    // 1b. Lọc tiếp theo Cấp độ JLPT của khối (nếu không phải 'ALL')
+    if (currentDomainLevel !== 'ALL') {
+      activeList = domainList.filter(r => r.level === currentDomainLevel);
+    } else {
+      activeList = domainList;
+    }
+
     const domCfg = DOMAIN_CONFIG[currentDomain] || DOMAIN_CONFIG.daily;
-    if (activeLabelEl) activeLabelEl.textContent = `${domCfg.icon} Khối: ${domCfg.name}`;
+    const lvlText = currentDomainLevel === 'ALL' ? 'Tất cả cấp độ' : `JLPT ${currentDomainLevel}`;
+    if (activeLabelEl) activeLabelEl.textContent = `${domCfg.icon} Khối: ${domCfg.name} • ${lvlText}`;
     if (descEl) descEl.textContent = domCfg.description || '';
+
+    updateDomainSubLevelCounts();
   }
 
   // 2. Lọc tiếp theo Từ khóa tìm kiếm (nếu có)
@@ -478,6 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modeSwitcherBtns = document.querySelectorAll('#filterModeSwitcher button');
   const jlptTabsContainer = document.getElementById('jlptLevelTabs');
   const domainTabsContainer = document.getElementById('domainTabs');
+  const domainJlptSubFilter = document.getElementById('domainJlptSubFilter');
 
   // Đọc Query Parameters từ URL (nếu có)
   const urlParams = new URLSearchParams(window.location.search);
@@ -489,6 +527,9 @@ document.addEventListener('DOMContentLoaded', () => {
     currentFilterMode = 'domain';
     if (qDomain && DOMAIN_CONFIG[qDomain]) {
       currentDomain = qDomain;
+    }
+    if (qLevel && ['N5', 'N4', 'N3', 'N2', 'N1'].includes(qLevel.toUpperCase())) {
+      currentDomainLevel = qLevel.toUpperCase();
     }
   } else if (qLevel && ['N5', 'N4', 'N3', 'N2', 'N1'].includes(qLevel.toUpperCase())) {
     currentLevel = qLevel.toUpperCase();
@@ -506,9 +547,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (currentFilterMode === 'jlpt') {
     jlptTabsContainer?.classList.remove('hidden');
     domainTabsContainer?.classList.add('hidden');
+    domainJlptSubFilter?.classList.add('hidden');
   } else {
     jlptTabsContainer?.classList.add('hidden');
     domainTabsContainer?.classList.remove('hidden');
+    domainJlptSubFilter?.classList.remove('hidden');
   }
 
   // Cập nhật trạng thái active cho tab JLPT
@@ -536,7 +579,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentFilterMode === 'domain') {
       u.searchParams.set('mode', 'domain');
       u.searchParams.set('domain', currentDomain);
-      u.searchParams.delete('level');
+      if (currentDomainLevel !== 'ALL') {
+        u.searchParams.set('level', currentDomainLevel);
+      } else {
+        u.searchParams.delete('level');
+      }
     } else {
       u.searchParams.delete('mode');
       u.searchParams.delete('domain');
@@ -564,11 +611,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Hiển thị dải tab tương ứng
       if (currentFilterMode === 'jlpt') {
-        jlptTabsContainer.classList.remove('hidden');
-        domainTabsContainer.classList.add('hidden');
+        jlptTabsContainer?.classList.remove('hidden');
+        domainTabsContainer?.classList.add('hidden');
+        domainJlptSubFilter?.classList.add('hidden');
       } else {
-        jlptTabsContainer.classList.add('hidden');
-        domainTabsContainer.classList.remove('hidden');
+        jlptTabsContainer?.classList.add('hidden');
+        domainTabsContainer?.classList.remove('hidden');
+        domainJlptSubFilter?.classList.remove('hidden');
+        updateDomainSubLevelCounts();
       }
 
       updateUrlParams();
@@ -604,6 +654,24 @@ document.addEventListener('DOMContentLoaded', () => {
           t.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0';
         } else {
           t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1.5 shrink-0';
+        }
+      });
+
+      updateUrlParams();
+      renderGrammarCards();
+    });
+  });
+
+  // 3b. Lọc cấp độ JLPT cho Khối Ứng Dụng đã chọn (Tất cả, N5, N4, N3, N2, N1)
+  document.querySelectorAll('#domainJlptTabs button').forEach(tab => {
+    tab.addEventListener('click', () => {
+      currentDomainLevel = tab.dataset.domainLevel;
+
+      document.querySelectorAll('#domainJlptTabs button').forEach(t => {
+        if (t.dataset.domainLevel === currentDomainLevel) {
+          t.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1';
+        } else {
+          t.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1';
         }
       });
 

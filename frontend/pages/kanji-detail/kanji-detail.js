@@ -17,7 +17,7 @@ const STORAGE_KEY = 'kizuna_flashcard_decks';
 let currentChar = null;
 let currentKanjiData = null;
 
-// 2. Tiện ích An Toàn Chuỗi
+// 2. Tiện ích An Toàn Chuỗi & Làm sạch SVG
 function escapeHtml(text) {
   if (text === null || text === undefined) return '';
   return String(text)
@@ -26,6 +26,31 @@ function escapeHtml(text) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/**
+ * Chuẩn hóa và làm sạch chuỗi SVG KanjiVG:
+ * - Cắt bỏ XML declaration, comments, DOCTYPE (nguyên nhân gây lỗi hiển thị ']>')
+ * - Loại bỏ nhóm StrokeNumbers (nguyên nhân gây xuất hiện các số thứ tự nét 1, 2, 3...)
+ */
+function cleanKanjiVgSvg(rawSvg) {
+  if (!rawSvg) return '';
+  const svgStartIdx = rawSvg.indexOf('<svg');
+  const svgEndIdx = rawSvg.lastIndexOf('</svg>');
+  let svg = '';
+  if (svgStartIdx !== -1 && svgEndIdx !== -1) {
+    svg = rawSvg.substring(svgStartIdx, svgEndIdx + 6);
+  } else {
+    svg = rawSvg
+      .replace(/<\?xml[\s\S]*?\?>/gi, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<!DOCTYPE[\s\S]*?\]>/gi, '')
+      .replace(/<!DOCTYPE[^>]*>/gi, '')
+      .trim();
+  }
+  // Loại bỏ nhóm ký tự số thứ tự nét vẽ StrokeNumbers
+  svg = svg.replace(/<g[^>]*id="[^"]*StrokeNumbers[^"]*"[\s\S]*?<\/g>/gi, '');
+  return svg;
 }
 
 // 3. Phát âm tiếng Nhật (Web Speech API)
@@ -126,26 +151,33 @@ function renderDetailView() {
 
   // Cập nhật tiêu đề trang
   document.title = `Chữ Hán: ${char} (${hanViet}) - KizunaTutor`;
-  document.getElementById('headerKanjiChar').textContent = char;
-  document.getElementById('headerHanViet').textContent = `(${hanViet})`;
+  const headerKanjiCharEl = document.getElementById('headerKanjiChar');
+  if (headerKanjiCharEl) headerKanjiCharEl.textContent = char;
+  const headerHanVietEl = document.getElementById('headerHanViet');
+  if (headerHanVietEl) headerHanVietEl.textContent = `(${hanViet})`;
 
   // Khung bên trái
   const svgBox = document.getElementById('kanjiSvgContainer');
   if (currentKanjiData.svgData && svgBox) {
-    svgBox.innerHTML = currentKanjiData.svgData;
+    svgBox.innerHTML = cleanKanjiVgSvg(currentKanjiData.svgData);
     const svgEl = svgBox.querySelector('svg');
     if (svgEl) {
       svgEl.setAttribute('width', '100%');
       svgEl.setAttribute('height', '100%');
     }
   } else {
-    document.getElementById('kanjiDisplayChar').textContent = char;
+    const dispEl = document.getElementById('kanjiDisplayChar');
+    if (dispEl) dispEl.textContent = char;
   }
 
-  document.getElementById('detailHanViet').textContent = hanViet;
-  document.getElementById('badgeJlpt').textContent = `JLPT: ${jlpt}`;
-  document.getElementById('badgeStrokes').textContent = `${strokes} nét`;
-  document.getElementById('badgeRadical').textContent = `Bộ: ${radical}`;
+  const elHanViet = document.getElementById('detailHanViet');
+  if (elHanViet) elHanViet.textContent = hanViet;
+  const elBadgeJlpt = document.getElementById('badgeJlpt');
+  if (elBadgeJlpt) elBadgeJlpt.textContent = `JLPT: ${jlpt}`;
+  const elBadgeStrokes = document.getElementById('badgeStrokes');
+  if (elBadgeStrokes) elBadgeStrokes.textContent = `${strokes} nét`;
+  const elBadgeRadical = document.getElementById('badgeRadical');
+  if (elBadgeRadical) elBadgeRadical.textContent = `Bộ: ${radical}`;
 
   // Link Shodo
   const shodoBtn = document.getElementById('btnShodoPractice');
@@ -154,13 +186,20 @@ function renderDetailView() {
   }
 
   // Khung bên phải
-  document.getElementById('detailMeaning').textContent = meaning;
-  document.getElementById('detailOnyomi').textContent = onyomi;
-  document.getElementById('detailKunyomi').textContent = kunyomi;
-  document.getElementById('detailUnicodeHex').textContent = hex;
-  document.getElementById('detailStrokeCount').textContent = `${strokes} nét`;
-  document.getElementById('detailRadical').textContent = radical;
-  document.getElementById('detailJlpt').textContent = jlpt;
+  const elMeaning = document.getElementById('detailMeaning');
+  if (elMeaning) elMeaning.textContent = meaning;
+  const elOnyomi = document.getElementById('detailOnyomi');
+  if (elOnyomi) elOnyomi.textContent = onyomi;
+  const elKunyomi = document.getElementById('detailKunyomi');
+  if (elKunyomi) elKunyomi.textContent = kunyomi;
+  const elUnicodeHex = document.getElementById('detailUnicodeHex');
+  if (elUnicodeHex) elUnicodeHex.textContent = hex;
+  const elStrokeCount = document.getElementById('detailStrokeCount');
+  if (elStrokeCount) elStrokeCount.textContent = `${strokes} nét`;
+  const elRadical = document.getElementById('detailRadical');
+  if (elRadical) elRadical.textContent = radical;
+  const elJlpt = document.getElementById('detailJlpt');
+  if (elJlpt) elJlpt.textContent = jlpt;
 }
 
 // 6. Modal Cất Vào Bộ Thẻ Flashcard

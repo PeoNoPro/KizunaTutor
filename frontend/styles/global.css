@@ -62,6 +62,14 @@ input, select, textarea {
   scrollbar-width: none;
 }
 
+/* Ẩn triệt để dải breadcrumb / secondary top bar dư thừa trên toàn hệ thống */
+.breadcrumb-nav,
+.top-breadcrumb-bar,
+.sub-topbar,
+nav[aria-label="breadcrumb"] {
+  display: none !important;
+}
+
 /* Scrollbar Minimal */
 ::-webkit-scrollbar {
   width: 6px;

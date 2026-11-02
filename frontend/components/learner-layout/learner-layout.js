@@ -238,68 +238,15 @@ export function getLearnerSidebarHtml(activeKey) {
 // 5. RENDER HTML HEADER HỌC VIÊN
 // =========================================================================
 export function getLearnerHeaderHtml(options = {}) {
-  const {
-    pageTitle = '',
-    badge = '',
-    showBreadcrumbs = true,
-    rightContent = ''
-  } = options;
-
-  const profile = getLearnerProfile();
-
   return `
-    <header class="h-14 sm:h-16 bg-white border-b border-[#E2E8F0] sticky top-0 z-20 px-4 sm:px-6 flex items-center justify-between font-sans shadow-2xs">
-      
-      <!-- Left: Mobile Toggle & Page Info -->
-      <div class="flex items-center gap-3 min-w-0">
-        <button type="button" id="btnOpenSidebarMobile" class="md:hidden p-1.5 rounded-md border border-[#CBD5E1] text-[#334155] bg-white hover:bg-[#F8FAFC] transition-colors shrink-0" title="Mở danh mục menu">
+    <!-- Header tinh gọn chuẩn legacy: Ẩn hoàn toàn trên Desktop (md:hidden) để loại bỏ Breadcrumb dư thừa & giải phóng 60px viewport -->
+    <header class="md:hidden h-14 bg-white border-b border-[#E2E8F0] sticky top-0 z-30 px-4 flex items-center justify-between font-sans shadow-2xs">
+      <div class="flex items-center gap-2.5">
+        <button type="button" id="btnOpenSidebarMobile" class="p-1.5 rounded-md border border-[#CBD5E1] text-[#334155] bg-white hover:bg-[#F8FAFC] transition-colors cursor-pointer" title="Mở danh mục menu">
           <span class="material-symbols-outlined text-[20px]">menu</span>
         </button>
-
-        <!-- Brand snippet on mobile -->
-        <a href="/learner/dashboard" class="md:hidden font-sans font-bold text-[17px] text-[#0F172A] tracking-tight shrink-0 no-underline">
+        <a href="/learner/dashboard" class="font-sans font-bold text-[18px] text-[#0F172A] tracking-tight no-underline">
           Kizuna<span class="text-[#831843] font-extrabold">Learner</span>
-        </a>
-
-        <!-- Desktop Breadcrumb / Title -->
-        <div class="hidden md:flex items-center gap-2 text-sm text-[#64748B]">
-          <a href="/learner/dashboard" class="hover:text-[#0F172A] no-underline font-medium flex items-center gap-1">
-            <span class="material-symbols-outlined text-[16px]">school</span>
-            <span>Không gian học viên</span>
-          </a>
-          ${pageTitle ? `
-            <span>/</span>
-            <span class="font-bold text-[#0F172A] truncate max-w-[280px]">${pageTitle}</span>
-          ` : ''}
-          ${badge ? `
-            <span class="ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
-              ${badge}
-            </span>
-          ` : ''}
-        </div>
-      </div>
-
-      <!-- Right: User snippet & Custom actions -->
-      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-        ${rightContent}
-
-        <!-- Quick link to Dashboard (if on another page) -->
-        <a href="/learner/dashboard" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#CBD5E1] text-[#334155] hover:bg-[#F8FAFC] transition-all no-underline" title="Về tổng quan học tập">
-          <span class="material-symbols-outlined text-[16px]">home</span>
-          <span>Bàn học</span>
-        </a>
-
-        <!-- User profile badge -->
-        <div class="hidden lg:flex items-center gap-2 pl-2 border-l border-[#E2E8F0]">
-          <div class="w-7 h-7 rounded-md bg-[#1E293B] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
-            ${profile.initials}
-          </div>
-          <span class="text-xs font-bold text-[#0F172A] max-w-[120px] truncate">${profile.name}</span>
-        </div>
-
-        <!-- Quick link home -->
-        <a href="/pages/home/" class="text-xs font-semibold text-[#64748B] hover:text-[#0F172A] no-underline px-2 py-1 rounded hover:bg-[#F1F5F9] transition-colors" title="Trang chủ giới thiệu">
-          Trang chủ
         </a>
       </div>
     </header>

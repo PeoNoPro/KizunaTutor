@@ -53,6 +53,8 @@ $aliases = @{
     "/kanji"             = "/pages/kanji-dictionary/index.html"
     "/flashcards"        = "/pages/flashcards/index.html"
     "/decks"             = "/pages/flashcards/index.html"
+    "/flashcards-detail" = "/pages/flashcards-detail/index.html"
+    "/deck-detail"       = "/pages/flashcards-detail/index.html"
     "/shodo"             = "/pages/shodo-practice/index.html"
     "/shodo-practice"    = "/pages/shodo-practice/index.html"
     "/grammar"           = "/pages/grammar/index.html"
@@ -69,6 +71,8 @@ $aliases = @{
     "/learner/practice-canvas" = "/pages/shodo-practice/index.html"
     "/learner/shodo"           = "/pages/shodo-practice/index.html"
     "/learner/flashcards"      = "/pages/flashcards/index.html"
+    "/learner/flashcards-detail" = "/pages/flashcards-detail/index.html"
+    "/learner/deck-detail"     = "/pages/flashcards-detail/index.html"
     "/learner/grammar"         = "/pages/grammar/index.html"
     "/learner/kanji-dictionary"= "/pages/kanji-dictionary/index.html"
     "/learner/dictionary"      = "/pages/kanji-dictionary/index.html"
@@ -192,6 +196,8 @@ while ($listener.IsListening) {
             $pathPart = $aliases[$pathPart]
         } elseif ($aliases.ContainsKey($lookupPath)) {
             $pathPart = $aliases[$lookupPath]
+        } elseif ($pathPart -match "^/learner/flashcards/[^/]+$") {
+            $pathPart = "/pages/flashcards-detail/index.html"
         }
 
         $localPath = Join-Path $rootDir $pathPart.TrimStart('/')

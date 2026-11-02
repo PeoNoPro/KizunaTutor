@@ -419,7 +419,9 @@ function startQuiz(customItems = null) {
 
   updateArenaProgress();
   renderArenaGrid();
-  focusTargetCard(0);
+  setTimeout(() => {
+    focusTargetCard(0);
+  }, 100);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -435,6 +437,20 @@ function updateArenaProgress() {
   if (countEl) countEl.textContent = `${completed} / ${total} chữ`;
   if (percentEl) percentEl.textContent = `${percent}%`;
   if (barEl) barEl.style.width = `${percent}%`;
+}
+
+/**
+ * Tiện ích chuẩn hóa Romaji và loại bỏ dấu tiếng Việt (Telex/Unikey)
+ */
+function normalizeRomaji(str) {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
+    .trim()
+    .toLowerCase();
 }
 
 function renderArenaGrid() {
@@ -460,6 +476,10 @@ function renderArenaGrid() {
                  autocapitalize="off"
                  spellcheck="false"
                  class="w-full text-center text-xs sm:text-sm font-semibold py-1 px-1 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
+          <div id="romajiLabel_${idx}" 
+               class="hidden text-xs sm:text-sm font-mono font-bold py-1">
+            ${it.romaji}
+          </div>
         </div>
       </div>
     `;
@@ -467,27 +487,50 @@ function renderArenaGrid() {
 
   grid.innerHTML = html;
 
-  // Gắn sự kiện cho các input
+  // Gắn sự kiện cho các input với cơ chế kiểm soát IME (Unikey, Japanese IME)
   activeQuizList.forEach((_, idx) => {
     const input = document.getElementById(`romajiInput_${idx}`);
     const card = document.getElementById(`tileCard_${idx}`);
 
     if (input) {
-      input.addEventListener('input', (e) => handleRomajiInput(idx, e.target.value.trim().toLowerCase(), false));
+      let isComposing = false;
+
+      input.addEventListener('compositionstart', () => {
+        isComposing = true;
+      });
+
+      input.addEventListener('compositionend', () => {
+        isComposing = false;
+        handleRomajiInput(idx, input.value, false);
+      });
+
+      input.addEventListener('input', (e) => {
+        if (isComposing || e.isComposing) return;
+        handleRomajiInput(idx, e.target.value, false);
+      });
+
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
+          // Bỏ qua nếu bộ gõ đang trong quá trình gộp dấu / chọn ký tự IME
+          if (isComposing || e.isComposing || e.keyCode === 229) {
+            return;
+          }
           e.preventDefault();
-          handleRomajiInput(idx, input.value.trim().toLowerCase(), true);
+          handleRomajiInput(idx, input.value, true);
         }
       });
+
       input.addEventListener('focus', () => {
         highlightActiveCard(idx);
+        input.select();
       });
     }
 
     if (card) {
       card.addEventListener('click', () => {
-        if (input && !input.disabled) input.focus();
+        if (input && !input.disabled) {
+          focusTargetCard(idx);
+        }
       });
     }
   });
@@ -499,41 +542,82 @@ function highlightActiveCard(idx) {
   if (target) target.classList.add('active-target');
 }
 
+/**
+ * Focus thẻ chỉ định, đảm bảo input sạch sẽ và sẵn sàng nhận phím gõ ngay lập tức
+ */
 function focusTargetCard(idx) {
   highlightActiveCard(idx);
   const input = document.getElementById(`romajiInput_${idx}`);
   if (input && !input.disabled) {
+    // [QUAN TRỌNG] Reset sạch sẽ giá trị cũ
+    input.value = '';
     input.focus();
     input.select();
+    input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Dọn sạch tàn dư bộ đệm IME / Unikey nếu có keystroke trễ lọt vào
+    requestAnimationFrame(() => {
+      if (!input.disabled && input.value !== '') {
+        input.value = '';
+      }
+    });
   }
 }
 
-function handleRomajiInput(idx, val, isEnterPressed) {
-  if (!val) return;
-
+function handleRomajiInput(idx, rawVal, isEnterPressed) {
   const item = activeQuizList[idx];
-  const isMatch = item.aliases.includes(val);
+  if (!item) return;
 
   const card = document.getElementById(`tileCard_${idx}`);
   const input = document.getElementById(`romajiInput_${idx}`);
+  const label = document.getElementById(`romajiLabel_${idx}`);
+  if (!card || !input || input.disabled) return;
 
-  // Nếu gõ trúng hoặc bấm Enter kiểm tra
+  const val = normalizeRomaji(rawVal);
+  if (!val && !isEnterPressed) return;
+
+  const isMatch = item.aliases.includes(val);
+
   if (isMatch) {
+    // 1. CẬP NHẬT TRẠNG THÁI THẺ ĐÚNG
     card.classList.remove('tile-wrong', 'shake-card', 'active-target');
     card.classList.add('tile-correct');
-    input.value = item.romaji;
-    input.disabled = true;
 
-    // Ghi nhận kết quả
+    // [QUAN TRỌNG] Xóa sạch giá trị input, vô hiệu hóa và ẩn input, hiển thị nhãn Romaji
+    input.value = '';
+    input.disabled = true;
+    input.classList.add('hidden');
+
+    if (label) {
+      label.textContent = item.romaji;
+      label.className = 'text-xs sm:text-sm font-mono font-bold py-1 text-emerald-700';
+      label.classList.remove('hidden');
+    }
+
+    // 2. GHI NHẬN KẾT QUẢ & TIẾN ĐỘ
     recordResult(idx, item, true, val);
     updateArenaProgress();
 
-    // Tự động chuyển sang thẻ tiếp theo
-    findAndFocusNext(idx);
+    // 3. TỰ ĐỘNG CHUYỂN SANG THẺ TIẾP THEO (Delay nhẹ để ngắt buffer bàn phím)
+    setTimeout(() => {
+      findAndFocusNext(idx);
+    }, 60);
   } else if (isEnterPressed) {
-    // Nhấn Enter mà sai
+    // Nhấn Enter mà chưa chính xác hoặc muốn bỏ qua
+    card.classList.remove('active-target');
     card.classList.add('tile-wrong', 'shake-card');
     showToast(`Chưa chính xác: âm của 「${item.character}」 là "${item.romaji}"`, 'info');
+
+    // [QUAN TRỌNG] Xóa sạch giá trị input, khóa thẻ và hiển thị đáp án đúng màu đỏ
+    input.value = '';
+    input.disabled = true;
+    input.classList.add('hidden');
+
+    if (label) {
+      label.textContent = item.romaji;
+      label.className = 'text-xs sm:text-sm font-mono font-bold py-1 text-rose-600';
+      label.classList.remove('hidden');
+    }
 
     setTimeout(() => {
       card.classList.remove('shake-card');
@@ -541,7 +625,11 @@ function handleRomajiInput(idx, val, isEnterPressed) {
 
     recordResult(idx, item, false, val);
     updateArenaProgress();
-    findAndFocusNext(idx);
+
+    // Tự động chuyển sang thẻ tiếp theo
+    setTimeout(() => {
+      findAndFocusNext(idx);
+    }, 60);
   }
 }
 

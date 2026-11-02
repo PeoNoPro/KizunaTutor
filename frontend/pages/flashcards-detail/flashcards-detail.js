@@ -684,7 +684,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Chọn phương thức học
   document.getElementById('btnCloseChooseStudyModeModal')?.addEventListener('click', closeChooseStudyMode);
   document.getElementById('btnCancelChooseStudyMode')?.addEventListener('click', closeChooseStudyMode);
-  document.getElementById('btnSelectModeFlashcard')?.addEventListener('click', openStudy3D);
+  document.getElementById('btnSelectModeFlashcard')?.addEventListener('click', () => {
+    closeChooseStudyMode();
+    if (currentDeckId) {
+      window.location.href = `/flashcards-study?id=${encodeURIComponent(currentDeckId)}`;
+    }
+  });
   document.getElementById('btnSelectModeKanjiGame')?.addEventListener('click', () => {
     closeChooseStudyMode();
     window.location.href = `/kanji-game?deckId=${encodeURIComponent(currentDeckId)}`;

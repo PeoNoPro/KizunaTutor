@@ -1055,7 +1055,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnSelectModeFlashcard')?.addEventListener('click', () => {
     const deckId = selectedStudyDeckId;
     closeChooseStudyModeModal();
-    if (deckId) openStudyModal(deckId);
+    if (deckId) {
+      window.location.href = `/flashcards-study?id=${encodeURIComponent(deckId)}`;
+    }
   });
   document.getElementById('btnSelectModeKanjiGame')?.addEventListener('click', () => {
     const deckId = selectedStudyDeckId;

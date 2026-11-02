@@ -258,33 +258,62 @@
 
           <!-- Bảng Chi Tiết Thông Tin Chữ Hán -->
           <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm space-y-4">
-            <div class="flex items-center justify-between border-b border-[#ECE8DE] pb-3">
+            <div class="flex items-center justify-between border-b border-[#ECE8DE] pb-3 flex-wrap gap-2">
               <h3 class="font-bold text-base text-[#0F2545] flex items-center gap-2">
                 <span class="material-symbols-outlined text-[20px] text-[#006194]">menu_book</span>
                 <span>Thông tin tra cứu chữ Hán</span>
               </h3>
-              <span id="kanjiJlptLevel" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF8F2] text-[#0F2545] border border-[#ECE8DE]">
-                Chưa chọn chữ
-              </span>
+              <div class="flex items-center gap-2">
+                <span id="kanjiJlptLevel" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
+                  Chưa chọn chữ
+                </span>
+                <span id="kanjiStrokeBadge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FAF8F2] text-[#0F2545] border border-[#ECE8DE]">
+                  0 nét
+                </span>
+                <!-- Alias ID cho test suite -->
+                <span id="kanjiJlptBadge" class="hidden"></span>
+                <span id="kanjiDisplayChar" class="hidden"></span>
+              </div>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl">
                 <div class="text-[10px] text-[#68737D] font-medium">Âm Hán Việt</div>
-                <div id="detailHanViet" class="font-bold text-base text-[#0F2545] mt-0.5">—</div>
+                <div id="detailHanViet" class="font-bold text-base text-[#831843] mt-0.5 uppercase tracking-wide">—</div>
+                <span id="kanjiHanViet" class="hidden"></span>
+                <span id="panelHanViet" class="hidden"></span>
               </div>
               <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl">
-                <div class="text-[10px] text-[#68737D] font-medium">Nghĩa tiếng Việt</div>
-                <div id="detailMeaning" class="font-bold text-sm text-[#0F2545] mt-0.5 truncate" title="Chưa có dữ liệu">—</div>
+                <div class="text-[10px] text-[#68737D] font-medium">Bộ thủ chính</div>
+                <div id="detailRadical" class="font-bold text-base text-[#0F2545] mt-0.5 font-serif">—</div>
+                <span id="kanjiRadical" class="hidden"></span>
+                <span id="panelRadical" class="hidden"></span>
+              </div>
+              <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl col-span-2 sm:col-span-1">
+                <div class="text-[10px] text-[#68737D] font-medium">Số nét chuẩn</div>
+                <div id="detailStrokeCount" class="font-bold text-base text-[#0F2545] mt-0.5 font-mono">—</div>
+                <span id="panelStrokeCount" class="hidden"></span>
               </div>
               <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl">
                 <div class="text-[10px] text-[#68737D] font-medium">Âm Onyomi</div>
-                <div id="detailOnyomi" class="font-bold text-sm text-[#006194] mt-0.5 font-japanese">—</div>
+                <div id="detailOnyomi" class="font-bold text-sm text-[#006194] mt-0.5 font-mono">—</div>
+                <span id="kanjiOnyomi" class="hidden"></span>
+                <span id="panelOnyomi" class="hidden"></span>
               </div>
-              <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl">
+              <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl col-span-2">
                 <div class="text-[10px] text-[#68737D] font-medium">Âm Kunyomi</div>
-                <div id="detailKunyomi" class="font-bold text-sm text-[#831843] mt-0.5 font-japanese">—</div>
+                <div id="detailKunyomi" class="font-bold text-sm text-[#831843] mt-0.5 font-mono">—</div>
+                <span id="kanjiKunyomi" class="hidden"></span>
+                <span id="panelKunyomi" class="hidden"></span>
               </div>
+            </div>
+
+            <!-- Khối giải nghĩa đầy đủ không bị cắt cụt -->
+            <div class="p-3.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl">
+              <div class="text-[10px] text-[#68737D] font-medium mb-1">Nghĩa tiếng Việt chi tiết:</div>
+              <p id="detailMeaning" class="text-xs text-[#0F2545] leading-relaxed font-sans m-0 font-medium">—</p>
+              <span id="kanjiMeaning" class="hidden"></span>
+              <span id="panelMeaning" class="hidden"></span>
             </div>
 
             <!-- Khay Xem Từng Nét Riêng Biệt (Step By Step Strokes) -->

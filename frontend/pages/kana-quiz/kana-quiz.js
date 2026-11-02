@@ -1,9 +1,8 @@
 /**
  * KizunaTutor - Đấu trường gõ chữ Kana (Hiragana & Katakana)
- * Module Feature-Based độc lập tuân thủ FRONTEND_RULES.md
+ * Module Feature-Based đồng bộ giao diện và nghiệp vụ với KizunaTutor gốc.
  */
 
-import { showToast } from '/js/main.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
@@ -14,7 +13,7 @@ initLearnerShell({
 });
 
 // =========================================================================
-// 1. TỪ ĐIỂN DỮ LIỆU KANA TOÀN DIỆN (HIRAGANA & KATAKANA)
+// 1. BẢNG MÃ DỮ LIỆU KANA TOÀN DIỆN (DATA DICTIONARY MAPPING)
 // =========================================================================
 const KANA_RAW_DEFINITIONS = [
   // --- 1. KANA CHÍNH (MAIN KANA - 46 KÝ TỰ) ---
@@ -105,343 +104,68 @@ const KANA_RAW_DEFINITIONS = [
   { rowKey: 'pa', rowLabel: 'Hàng pa (bán biến âm)', cat: 'dakuten', h: 'ぺ', k: 'ペ', r: 'pe', aliases: ['pe'] },
   { rowKey: 'pa', rowLabel: 'Hàng pa (bán biến âm)', cat: 'dakuten', h: 'ぽ', k: 'ポ', r: 'po', aliases: ['po'] },
 
-  // --- 3. ÂM GHÉP (YOUON - 33 KÝ TỰ) ---
-  { rowKey: 'kya', rowLabel: 'Hàng kya', cat: 'combination', h: 'きゃ', k: 'キャ', r: 'kya', aliases: ['kya'] },
-  { rowKey: 'kya', rowLabel: 'Hàng kya', cat: 'combination', h: 'きゅ', k: 'キュ', r: 'kyu', aliases: ['kyu'] },
-  { rowKey: 'kya', rowLabel: 'Hàng kya', cat: 'combination', h: 'きょ', k: 'キョ', r: 'kyo', aliases: ['kyo'] },
+  // --- 3. ÂM GHÉP YOUON (33 KÝ TỰ) ---
+  { rowKey: 'kya', rowLabel: 'Hàng kya (âm ghép)', cat: 'youon', h: 'きゃ', k: 'キャ', r: 'kya', aliases: ['kya'] },
+  { rowKey: 'kya', rowLabel: 'Hàng kya (âm ghép)', cat: 'youon', h: 'きゅ', k: 'キュ', r: 'kyu', aliases: ['kyu'] },
+  { rowKey: 'kya', rowLabel: 'Hàng kya (âm ghép)', cat: 'youon', h: 'きょ', k: 'キョ', r: 'kyo', aliases: ['kyo'] },
 
-  { rowKey: 'sha', rowLabel: 'Hàng sha', cat: 'combination', h: 'しゃ', k: 'シャ', r: 'sha', aliases: ['sha', 'sya'] },
-  { rowKey: 'sha', rowLabel: 'Hàng sha', cat: 'combination', h: 'しゅ', k: 'シュ', r: 'shu', aliases: ['shu', 'syu'] },
-  { rowKey: 'sha', rowLabel: 'Hàng sha', cat: 'combination', h: 'しょ', k: 'ショ', r: 'sho', aliases: ['sho', 'syo'] },
+  { rowKey: 'sha', rowLabel: 'Hàng sha (âm ghép)', cat: 'youon', h: 'しゃ', k: 'シャ', r: 'sha', aliases: ['sha', 'sya'] },
+  { rowKey: 'sha', rowLabel: 'Hàng sha (âm ghép)', cat: 'youon', h: 'しゅ', k: 'シュ', r: 'shu', aliases: ['shu', 'syu'] },
+  { rowKey: 'sha', rowLabel: 'Hàng sha (âm ghép)', cat: 'youon', h: 'しょ', k: 'ショ', r: 'sho', aliases: ['sho', 'syo'] },
 
-  { rowKey: 'cha', rowLabel: 'Hàng cha', cat: 'combination', h: 'ちゃ', k: 'チャ', r: 'cha', aliases: ['cha', 'tya'] },
-  { rowKey: 'cha', rowLabel: 'Hàng cha', cat: 'combination', h: 'ちゅ', k: 'チュ', r: 'chu', aliases: ['chu', 'tyu'] },
-  { rowKey: 'cha', rowLabel: 'Hàng cha', cat: 'combination', h: 'ちょ', k: 'チョ', r: 'cho', aliases: ['cho', 'tyo'] },
+  { rowKey: 'cha', rowLabel: 'Hàng cha (âm ghép)', cat: 'youon', h: 'ちゃ', k: 'チャ', r: 'cha', aliases: ['cha', 'tya'] },
+  { rowKey: 'cha', rowLabel: 'Hàng cha (âm ghép)', cat: 'youon', h: 'ちゅ', k: 'チュ', r: 'chu', aliases: ['chu', 'tyu'] },
+  { rowKey: 'cha', rowLabel: 'Hàng cha (âm ghép)', cat: 'youon', h: 'ちょ', k: 'チョ', r: 'cho', aliases: ['cho', 'tyo'] },
 
-  { rowKey: 'nya', rowLabel: 'Hàng nya', cat: 'combination', h: 'にゃ', k: 'ニャ', r: 'nya', aliases: ['nya'] },
-  { rowKey: 'nya', rowLabel: 'Hàng nya', cat: 'combination', h: 'にゅ', k: 'ニュ', r: 'nyu', aliases: ['nyu'] },
-  { rowKey: 'nya', rowLabel: 'Hàng nya', cat: 'combination', h: 'にょ', k: 'ニョ', r: 'nyo', aliases: ['nyo'] },
+  { rowKey: 'nya', rowLabel: 'Hàng nya (âm ghép)', cat: 'youon', h: 'にゃ', k: 'ニャ', r: 'nya', aliases: ['nya'] },
+  { rowKey: 'nya', rowLabel: 'Hàng nya (âm ghép)', cat: 'youon', h: 'にゅ', k: 'ニュ', r: 'nyu', aliases: ['nyu'] },
+  { rowKey: 'nya', rowLabel: 'Hàng nya (âm ghép)', cat: 'youon', h: 'にょ', k: 'ニョ', r: 'nyo', aliases: ['nyo'] },
 
-  { rowKey: 'hya', rowLabel: 'Hàng hya', cat: 'combination', h: 'ひゃ', k: 'ヒャ', r: 'hya', aliases: ['hya'] },
-  { rowKey: 'hya', rowLabel: 'Hàng hya', cat: 'combination', h: 'ひゅ', k: 'ヒュ', r: 'hyu', aliases: ['hyu'] },
-  { rowKey: 'hya', rowLabel: 'Hàng hya', cat: 'combination', h: 'ひょ', k: 'ヒョ', r: 'hyo', aliases: ['hyo'] },
+  { rowKey: 'hya', rowLabel: 'Hàng hya (âm ghép)', cat: 'youon', h: 'ひゃ', k: 'ヒャ', r: 'hya', aliases: ['hya'] },
+  { rowKey: 'hya', rowLabel: 'Hàng hya (âm ghép)', cat: 'youon', h: 'ひゅ', k: 'ヒュ', r: 'hyu', aliases: ['hyu'] },
+  { rowKey: 'hya', rowLabel: 'Hàng hya (âm ghép)', cat: 'youon', h: 'ひょ', k: 'ヒョ', r: 'hyo', aliases: ['hyo'] },
 
-  { rowKey: 'mya', rowLabel: 'Hàng mya', cat: 'combination', h: 'みゃ', k: 'ミャ', r: 'mya', aliases: ['mya'] },
-  { rowKey: 'mya', rowLabel: 'Hàng mya', cat: 'combination', h: 'みゅ', k: 'ミュ', r: 'myu', aliases: ['myu'] },
-  { rowKey: 'mya', rowLabel: 'Hàng mya', cat: 'combination', h: 'みょ', k: 'ミョ', r: 'myo', aliases: ['myo'] },
+  { rowKey: 'mya', rowLabel: 'Hàng mya (âm ghép)', cat: 'youon', h: 'みゃ', k: 'ミャ', r: 'mya', aliases: ['mya'] },
+  { rowKey: 'mya', rowLabel: 'Hàng mya (âm ghép)', cat: 'youon', h: 'みゅ', k: 'ミュ', r: 'myu', aliases: ['myu'] },
+  { rowKey: 'mya', rowLabel: 'Hàng mya (âm ghép)', cat: 'youon', h: 'みょ', k: 'ミョ', r: 'myo', aliases: ['myo'] },
 
-  { rowKey: 'rya', rowLabel: 'Hàng rya', cat: 'combination', h: 'りゃ', k: 'リャ', r: 'rya', aliases: ['rya'] },
-  { rowKey: 'rya', rowLabel: 'Hàng rya', cat: 'combination', h: 'りゅ', k: 'リュ', r: 'ryu', aliases: ['ryu'] },
-  { rowKey: 'rya', rowLabel: 'Hàng rya', cat: 'combination', h: 'りょ', k: 'リョ', r: 'ryo', aliases: ['ryo'] },
+  { rowKey: 'rya', rowLabel: 'Hàng rya (âm ghép)', cat: 'youon', h: 'りゃ', k: 'リャ', r: 'rya', aliases: ['rya'] },
+  { rowKey: 'rya', rowLabel: 'Hàng rya (âm ghép)', cat: 'youon', h: 'りゅ', k: 'リュ', r: 'ryu', aliases: ['ryu'] },
+  { rowKey: 'rya', rowLabel: 'Hàng rya (âm ghép)', cat: 'youon', h: 'りょ', k: 'リョ', r: 'ryo', aliases: ['ryo'] },
 
-  { rowKey: 'gya', rowLabel: 'Hàng gya', cat: 'combination', h: 'ぎゃ', k: 'ギャ', r: 'gya', aliases: ['gya'] },
-  { rowKey: 'gya', rowLabel: 'Hàng gya', cat: 'combination', h: 'ぎゅ', k: 'ギュ', r: 'gyu', aliases: ['gyu'] },
-  { rowKey: 'gya', rowLabel: 'Hàng gya', cat: 'combination', h: 'ぎょ', k: 'ギョ', r: 'gyo', aliases: ['gyo'] },
+  { rowKey: 'gya', rowLabel: 'Hàng gya (âm ghép)', cat: 'youon', h: 'ぎゃ', k: 'ギャ', r: 'gya', aliases: ['gya'] },
+  { rowKey: 'gya', rowLabel: 'Hàng gya (âm ghép)', cat: 'youon', h: 'ぎゅ', k: 'ギュ', r: 'gyu', aliases: ['gyu'] },
+  { rowKey: 'gya', rowLabel: 'Hàng gya (âm ghép)', cat: 'youon', h: 'ぎょ', k: 'ギョ', r: 'gyo', aliases: ['gyo'] },
 
-  { rowKey: 'ja', rowLabel: 'Hàng ja', cat: 'combination', h: 'じゃ', k: 'ジャ', r: 'ja', aliases: ['ja', 'zya', 'jya'] },
-  { rowKey: 'ja', rowLabel: 'Hàng ja', cat: 'combination', h: 'じゅ', k: 'ジュ', r: 'ju', aliases: ['ju', 'zyu', 'jyu'] },
-  { rowKey: 'ja', rowLabel: 'Hàng ja', cat: 'combination', h: 'じょ', k: 'ジョ', r: 'jo', aliases: ['jo', 'zyo', 'jyo'] },
+  { rowKey: 'ja', rowLabel: 'Hàng ja (âm ghép)', cat: 'youon', h: 'じゃ', k: 'ジャ', r: 'ja', aliases: ['ja', 'zya', 'jya'] },
+  { rowKey: 'ja', rowLabel: 'Hàng ja (âm ghép)', cat: 'youon', h: 'じゅ', k: 'ジュ', r: 'ju', aliases: ['ju', 'zyu', 'jyu'] },
+  { rowKey: 'ja', rowLabel: 'Hàng ja (âm ghép)', cat: 'youon', h: 'じょ', k: 'ジョ', r: 'jo', aliases: ['jo', 'zyo', 'jyo'] },
 
-  { rowKey: 'bya', rowLabel: 'Hàng bya', cat: 'combination', h: 'びゃ', k: 'ビャ', r: 'bya', aliases: ['bya'] },
-  { rowKey: 'bya', rowLabel: 'Hàng bya', cat: 'combination', h: 'びゅ', k: 'ビュ', r: 'byu', aliases: ['byu'] },
-  { rowKey: 'bya', rowLabel: 'Hàng bya', cat: 'combination', h: 'びょ', k: 'ビョ', r: 'byo', aliases: ['byo'] },
+  { rowKey: 'bya', rowLabel: 'Hàng bya (âm ghép)', cat: 'youon', h: 'びゃ', k: 'ビャ', r: 'bya', aliases: ['bya'] },
+  { rowKey: 'bya', rowLabel: 'Hàng bya (âm ghép)', cat: 'youon', h: 'びゅ', k: 'ビュ', r: 'byu', aliases: ['byu'] },
+  { rowKey: 'bya', rowLabel: 'Hàng bya (âm ghép)', cat: 'youon', h: 'びょ', k: 'ビョ', r: 'byo', aliases: ['byo'] },
 
-  { rowKey: 'pya', rowLabel: 'Hàng pya', cat: 'combination', h: 'ぴゃ', k: 'ピャ', r: 'pya', aliases: ['pya'] },
-  { rowKey: 'pya', rowLabel: 'Hàng pya', cat: 'combination', h: 'ぴゅ', k: 'ピュ', r: 'pyu', aliases: ['pyu'] },
-  { rowKey: 'pya', rowLabel: 'Hàng pya', cat: 'combination', h: 'ぴょ', k: 'ピョ', r: 'pyo', aliases: ['pyo'] }
+  { rowKey: 'pya', rowLabel: 'Hàng pya (âm ghép)', cat: 'youon', h: 'ぴゃ', k: 'ピャ', r: 'pya', aliases: ['pya'] },
+  { rowKey: 'pya', rowLabel: 'Hàng pya (âm ghép)', cat: 'youon', h: 'ぴゅ', k: 'ピュ', r: 'pyu', aliases: ['pyu'] },
+  { rowKey: 'pya', rowLabel: 'Hàng pya (âm ghép)', cat: 'youon', h: 'ぴょ', k: 'ピョ', r: 'pyo', aliases: ['pyo'] }
 ];
 
 // =========================================================================
-// 2. TRẠNG THÁI ỨNG DỤNG (APPLICATION STATE)
+// 2. KHỞI TẠO BỘ DỮ LIỆU ĐƯỢC CHUẨN HÓA THEO SCRIPT TYPE
 // =========================================================================
-let currentScript = 'hiragana'; // 'hiragana' | 'katakana'
-const selectedGroups = new Set(['main']);
-const selectedKanaSet = new Set();
-
-let activeQuizList = [];
-let currentIndex = 0;
-let quizResults = [];
-
-// =========================================================================
-// 3. XỬ LÝ DỮ LIỆU & BỘ CHỌN KANA (SELECTION LOGIC)
-// =========================================================================
-
-function getKanaItems(scriptType = currentScript) {
-  return KANA_RAW_DEFINITIONS.map(def => ({
-    rowKey: def.rowKey,
-    rowLabel: def.rowLabel,
-    category: def.cat,
-    character: scriptType === 'hiragana' ? def.h : def.k,
-    romaji: def.r,
-    aliases: def.aliases || [def.r]
+function getKanaItems(scriptType) {
+  return KANA_RAW_DEFINITIONS.map((it, idx) => ({
+    id: `${scriptType}-${it.rowKey}-${idx}`,
+    character: scriptType === 'katakana' ? it.k : it.h,
+    romaji: it.r,
+    validRomaji: it.aliases,
+    rowKey: it.rowKey,
+    rowLabel: it.rowLabel,
+    category: it.cat
   }));
 }
 
-function recalculateSelectedKana() {
-  selectedKanaSet.clear();
-  const allItems = getKanaItems(currentScript);
-
-  allItems.forEach(item => {
-    if (selectedGroups.has(item.category)) {
-      selectedKanaSet.add(item.character);
-    }
-  });
-
-  updateSelectionCountBadge();
-  renderSelectionGrid();
-}
-
-function updateSelectionCountBadge() {
-  const badge = document.getElementById('selectedKanaCount');
-  if (badge) badge.textContent = selectedKanaSet.size;
-
-  const warning = document.getElementById('selectionWarning');
-  if (warning) {
-    if (selectedKanaSet.size === 0) {
-      warning.classList.remove('hidden');
-    } else {
-      warning.classList.add('hidden');
-    }
-  }
-}
-
-function setScriptType(script) {
-  currentScript = script;
-  const tabHiragana = document.getElementById('tabHiragana');
-  const tabKatakana = document.getElementById('tabKatakana');
-
-  if (script === 'hiragana') {
-    tabHiragana.className = 'py-3 px-4 font-bold text-sm flex items-center justify-center gap-2 rounded-xl border border-[#FBCFE8] bg-[#FFE5EC] text-[#831843] transition shadow-sm cursor-pointer';
-    tabKatakana.className = 'py-3 px-4 font-semibold text-sm flex items-center justify-center gap-2 rounded-xl border border-transparent bg-transparent text-[#68737D] hover:bg-[#FAF8F2] hover:text-[#0F2545] transition cursor-pointer';
-  } else {
-    tabKatakana.className = 'py-3 px-4 font-bold text-sm flex items-center justify-center gap-2 rounded-xl border border-sky-300 bg-sky-100 text-[#006194] transition shadow-sm cursor-pointer';
-    tabHiragana.className = 'py-3 px-4 font-semibold text-sm flex items-center justify-center gap-2 rounded-xl border border-transparent bg-transparent text-[#68737D] hover:bg-[#FAF8F2] hover:text-[#0F2545] transition cursor-pointer';
-  }
-
-  recalculateSelectedKana();
-}
-
-function toggleKanaGroup(groupKey) {
-  const btnMap = {
-    main: 'btnGroupMain',
-    dakuten: 'btnGroupDakuten',
-    combination: 'btnGroupCombination'
-  };
-
-  const btn = document.getElementById(btnMap[groupKey]);
-
-  if (selectedGroups.has(groupKey)) {
-    selectedGroups.delete(groupKey);
-    if (btn) {
-      btn.className = 'px-3 py-1.5 text-xs font-semibold text-[#3F4850] bg-white border border-[#ECE8DE] rounded-xl hover:bg-[#FAF8F2] transition flex items-center gap-1.5 cursor-pointer';
-      btn.innerHTML = btn.innerText.replace('✓', '').trim();
-    }
-  } else {
-    selectedGroups.add(groupKey);
-    if (btn) {
-      btn.className = 'px-3 py-1.5 text-xs font-semibold text-[#831843] bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] rounded-xl transition flex items-center gap-1.5 cursor-pointer';
-      const label = btn.innerText.replace('✓', '').trim();
-      btn.innerHTML = `<span>✓</span><span>${label}</span>`;
-    }
-  }
-
-  recalculateSelectedKana();
-}
-
-function selectAllGroups() {
-  selectedGroups.add('main');
-  selectedGroups.add('dakuten');
-  selectedGroups.add('combination');
-
-  ['main', 'dakuten', 'combination'].forEach(g => {
-    const btn = document.getElementById(g === 'main' ? 'btnGroupMain' : (g === 'dakuten' ? 'btnGroupDakuten' : 'btnGroupCombination'));
-    if (btn) {
-      btn.className = 'px-3 py-1.5 text-xs font-semibold text-[#831843] bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] rounded-xl transition flex items-center gap-1.5 cursor-pointer';
-      const label = btn.innerText.replace('✓', '').trim();
-      btn.innerHTML = `<span>✓</span><span>${label}</span>`;
-    }
-  });
-
-  recalculateSelectedKana();
-}
-
-function clearAllGroups() {
-  selectedGroups.clear();
-  ['main', 'dakuten', 'combination'].forEach(g => {
-    const btn = document.getElementById(g === 'main' ? 'btnGroupMain' : (g === 'dakuten' ? 'btnGroupDakuten' : 'btnGroupCombination'));
-    if (btn) {
-      btn.className = 'px-3 py-1.5 text-xs font-semibold text-[#3F4850] bg-white border border-[#ECE8DE] rounded-xl hover:bg-[#FAF8F2] transition flex items-center gap-1.5 cursor-pointer';
-      btn.innerHTML = btn.innerText.replace('✓', '').trim();
-    }
-  });
-
-  recalculateSelectedKana();
-}
-
-function toggleSingleKana(char) {
-  if (selectedKanaSet.has(char)) {
-    selectedKanaSet.delete(char);
-  } else {
-    selectedKanaSet.add(char);
-  }
-  updateSelectionCountBadge();
-  renderSelectionGrid();
-}
-
-function toggleRowKana(rowKey) {
-  const rowItems = getKanaItems(currentScript).filter(it => it.rowKey === rowKey);
-  const allSelected = rowItems.every(it => selectedKanaSet.has(it.character));
-
-  rowItems.forEach(it => {
-    if (allSelected) {
-      selectedKanaSet.delete(it.character);
-    } else {
-      selectedKanaSet.add(it.character);
-    }
-  });
-
-  updateSelectionCountBadge();
-  renderSelectionGrid();
-}
-
-function renderSelectionGrid() {
-  const container = document.getElementById('kanaSelectionContainer');
-  if (!container) return;
-
-  const allItems = getKanaItems(currentScript);
-  const rowMap = new Map();
-
-  allItems.forEach(item => {
-    if (!rowMap.has(item.rowKey)) {
-      rowMap.set(item.rowKey, {
-        rowKey: item.rowKey,
-        rowLabel: item.rowLabel,
-        category: item.category,
-        items: []
-      });
-    }
-    rowMap.get(item.rowKey).items.push(item);
-  });
-
-  let html = '';
-
-  rowMap.forEach(group => {
-    const rowAllActive = group.items.every(it => selectedKanaSet.has(it.character));
-    const rowAnyActive = group.items.some(it => selectedKanaSet.has(it.character));
-
-    html += `
-      <div class="p-3.5 bg-white border border-[#ECE8DE] rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
-        <div class="flex items-center gap-3 shrink-0">
-          <button type="button" 
-                  data-action="toggle-row" data-row="${group.rowKey}"
-                  class="text-xs py-1.5 px-3 rounded-lg font-bold border transition flex items-center gap-1.5 cursor-pointer ${
-                    rowAllActive 
-                      ? 'bg-[#FFE5EC] border-[#FBCFE8] text-[#831843]' 
-                      : (rowAnyActive ? 'bg-[#FAF8F2] border-[#ECE8DE] text-[#0F2545]' : 'bg-white border-[#ECE8DE] text-[#68737D] hover:bg-[#FAF8F2]')
-                  }">
-            <span>${rowAllActive ? '✓' : '＋'}</span>
-            <span>${group.rowLabel}</span>
-          </button>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2 flex-1 md:justify-end">
-    `;
-
-    group.items.forEach(it => {
-      const isSelected = selectedKanaSet.has(it.character);
-      html += `
-        <button type="button" 
-                data-action="toggle-kana" data-char="${it.character}"
-                class="w-12 h-12 flex flex-col items-center justify-center rounded-xl border transition cursor-pointer select-none ${
-                  isSelected 
-                    ? 'bg-[#FFE5EC] border-[#FBCFE8] text-[#831843] font-bold shadow-xs' 
-                    : 'bg-white border-[#ECE8DE] text-[#3F4850] hover:bg-[#FAF8F2]'
-                }">
-          <span class="text-base leading-none font-bold">${it.character}</span>
-          <span class="text-[10px] opacity-70 mt-0.5 font-mono">${it.romaji}</span>
-        </button>
-      `;
-    });
-
-    html += `
-        </div>
-      </div>
-    `;
-  });
-
-  container.innerHTML = html;
-
-  // Gắn sự kiện click
-  container.querySelectorAll('[data-action="toggle-row"]').forEach(btn => {
-    btn.addEventListener('click', () => toggleRowKana(btn.dataset.row));
-  });
-
-  container.querySelectorAll('[data-action="toggle-kana"]').forEach(btn => {
-    btn.addEventListener('click', () => toggleSingleKana(btn.dataset.char));
-  });
-}
-
-// =========================================================================
-// 4. ĐẤU TRƯỜNG GÕ ROMAJI (LIVE QUIZ ARENA)
-// =========================================================================
-
-function shuffleArray(arr) {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
-function startQuiz(customItems = null) {
-  let pool = [];
-
-  if (customItems && customItems.length > 0) {
-    pool = customItems;
-  } else {
-    const all = getKanaItems(currentScript);
-    pool = all.filter(it => selectedKanaSet.has(it.character));
-  }
-
-  if (pool.length === 0) {
-    showToast('Vui lòng chọn ít nhất một chữ Kana để bắt đầu thử tài.', 'error');
-    return;
-  }
-
-  activeQuizList = shuffleArray(pool);
-  currentIndex = 0;
-  quizResults = [];
-
-  document.getElementById('viewSetup').classList.add('hidden');
-  document.getElementById('viewScorecard').classList.add('hidden');
-  document.getElementById('viewArena').classList.remove('hidden');
-
-  updateArenaProgress();
-  renderArenaGrid();
-  setTimeout(() => {
-    focusTargetCard(0);
-  }, 100);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function updateArenaProgress() {
-  const total = activeQuizList.length;
-  const completed = quizResults.length;
-  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-  const countEl = document.getElementById('arenaProgressCount');
-  const percentEl = document.getElementById('arenaProgressPercent');
-  const barEl = document.getElementById('arenaProgressBar');
-
-  if (countEl) countEl.textContent = `${completed} / ${total} chữ`;
-  if (percentEl) percentEl.textContent = `${percent}%`;
-  if (barEl) barEl.style.width = `${percent}%`;
-}
-
-/**
- * Tiện ích chuẩn hóa Romaji và loại bỏ dấu tiếng Việt (Telex/Unikey)
- */
+// Chuẩn hóa Romaji và loại bỏ dấu tiếng Việt (Telex/Unikey)
 function normalizeRomaji(str) {
   if (!str) return '';
   return str
@@ -453,31 +177,353 @@ function normalizeRomaji(str) {
     .toLowerCase();
 }
 
-function renderArenaGrid() {
+// =========================================================================
+// 3. TRẠNG THÁI TOÀN CỤC CỦA QUIZ (APPLICATION STATE)
+// =========================================================================
+let currentScript = 'hiragana';
+const selectedGroups = new Set(['main']);
+const selectedCharIds = new Set();
+
+let quizDeck = [];
+let quizResults = [];
+let correctCount = 0;
+let hasCompleted = false;
+
+// Theo dõi trạng thái gõ IME (Unikey, Japanese IME)
+const composingMap = new Map();
+
+// =========================================================================
+// 4. THUẬT TOÁN XÁO TRỘN NGẪU NHIÊN FISHER-YATES SHUFFLE
+// =========================================================================
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// =========================================================================
+// 5. GIAI ĐOẠN 1: BỘ CHỌN NHANH MULTI-SELECT & MA TRẬN KÝ TỰ (SETUP PHASE)
+// =========================================================================
+function setScriptType(scriptType) {
+  currentScript = scriptType;
+
+  const tabHira = document.getElementById('tabHiragana');
+  const tabKata = document.getElementById('tabKatakana');
+
+  if (scriptType === 'hiragana') {
+    tabHira.className = 'tab-script-hiragana active flex-1 py-1.5 px-3 font-semibold text-xs flex items-center justify-center gap-1.5 border border-[#FBCFE8] rounded-md bg-[#FFE5EC] text-[#831843] transition cursor-pointer';
+    tabKata.className = 'tab-script-katakana flex-1 py-1.5 px-3 font-semibold text-xs flex items-center justify-center gap-1.5 border border-transparent rounded-md bg-transparent text-[#64748B] hover:bg-slate-100 hover:text-[#0F172A] transition cursor-pointer';
+  } else {
+    tabHira.className = 'tab-script-hiragana flex-1 py-1.5 px-3 font-semibold text-xs flex items-center justify-center gap-1.5 border border-transparent rounded-md bg-transparent text-[#64748B] hover:bg-slate-100 hover:text-[#0F172A] transition cursor-pointer';
+    tabKata.className = 'tab-script-katakana active flex-1 py-1.5 px-3 font-semibold text-xs flex items-center justify-center gap-1.5 border border-[#FBCFE8] rounded-md bg-[#FFE5EC] text-[#831843] transition cursor-pointer';
+  }
+
+  recalculateSelectedKana();
+}
+
+function toggleKanaGroup(groupKey) {
+  if (selectedGroups.has(groupKey)) {
+    selectedGroups.delete(groupKey);
+  } else {
+    selectedGroups.add(groupKey);
+  }
+  recalculateSelectedKana();
+}
+
+function selectAllGroups() {
+  selectedGroups.add('main');
+  selectedGroups.add('dakuten');
+  selectedGroups.add('combination');
+  recalculateSelectedKana();
+}
+
+function clearAllGroups() {
+  selectedGroups.clear();
+  selectedCharIds.clear();
+  renderButtonStates();
+  renderSelectionMatrix();
+  updateSelectionCounter();
+}
+
+function recalculateSelectedKana() {
+  selectedCharIds.clear();
+  const items = getKanaItems(currentScript);
+
+  items.forEach(it => {
+    let match = false;
+    if (it.category === 'main' && selectedGroups.has('main')) match = true;
+    if (it.category === 'dakuten' && selectedGroups.has('dakuten')) match = true;
+    if (it.category === 'youon' && selectedGroups.has('combination')) match = true;
+
+    if (match) {
+      selectedCharIds.add(it.id);
+    }
+  });
+
+  renderButtonStates();
+  renderSelectionMatrix();
+  updateSelectionCounter();
+}
+
+function renderButtonStates() {
+  const activeClass = 'px-2.5 py-1 text-xs font-semibold text-[#831843] bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] rounded-lg transition-all flex items-center gap-1 cursor-pointer';
+  const inactiveClass = 'px-2.5 py-1 text-xs font-semibold text-[#1E293B] bg-white border border-[#CBD5E1] rounded-lg hover:bg-slate-50 transition-all flex items-center gap-1 cursor-pointer';
+
+  const btnMain = document.getElementById('btnGroupMain');
+  const btnDakuten = document.getElementById('btnGroupDakuten');
+  const btnCombination = document.getElementById('btnGroupCombination');
+
+  if (btnMain) {
+    btnMain.className = selectedGroups.has('main') ? activeClass : inactiveClass;
+    btnMain.innerHTML = (selectedGroups.has('main') ? '<span>✓</span>' : '') + '<span>Kana Chính (46 chữ)</span>';
+  }
+  if (btnDakuten) {
+    btnDakuten.className = selectedGroups.has('dakuten') ? activeClass : inactiveClass;
+    btnDakuten.innerHTML = (selectedGroups.has('dakuten') ? '<span>✓</span>' : '') + '<span>Biến Âm (25 chữ)</span>';
+  }
+  if (btnCombination) {
+    btnCombination.className = selectedGroups.has('combination') ? activeClass : inactiveClass;
+    btnCombination.innerHTML = (selectedGroups.has('combination') ? '<span>✓</span>' : '') + '<span>Âm Ghép (33 chữ)</span>';
+  }
+}
+
+function toggleRow(rowKey, isChecked) {
+  const items = getKanaItems(currentScript).filter(it => it.rowKey === rowKey);
+  items.forEach(it => {
+    if (isChecked) {
+      selectedCharIds.add(it.id);
+    } else {
+      selectedCharIds.delete(it.id);
+    }
+  });
+
+  syncGroupsFromIndividualSelections();
+  renderSelectionMatrix();
+  updateSelectionCounter();
+}
+
+function toggleChar(id) {
+  if (selectedCharIds.has(id)) {
+    selectedCharIds.delete(id);
+  } else {
+    selectedCharIds.add(id);
+  }
+
+  syncGroupsFromIndividualSelections();
+  renderSelectionMatrix();
+  updateSelectionCounter();
+}
+
+function syncGroupsFromIndividualSelections() {
+  const items = getKanaItems(currentScript);
+  const categories = [
+    { cat: 'main', group: 'main' },
+    { cat: 'dakuten', group: 'dakuten' },
+    { cat: 'youon', group: 'combination' }
+  ];
+
+  categories.forEach(({ cat, group }) => {
+    const catItems = items.filter(it => it.category === cat);
+    const anyChecked = catItems.some(it => selectedCharIds.has(it.id));
+    if (anyChecked) {
+      selectedGroups.add(group);
+    } else {
+      selectedGroups.delete(group);
+    }
+  });
+  renderButtonStates();
+}
+
+function updateSelectionCounter() {
+  const count = selectedCharIds.size;
+  const countEl = document.getElementById('selectedKanaCount');
+  const btnStart = document.getElementById('btnStartQuiz');
+  const warnEl = document.getElementById('selectionWarning');
+
+  if (countEl) countEl.textContent = count;
+
+  if (btnStart) {
+    if (count > 0) {
+      btnStart.disabled = false;
+      btnStart.classList.remove('opacity-50', 'cursor-not-allowed');
+      if (warnEl) warnEl.classList.add('hidden');
+    } else {
+      btnStart.disabled = true;
+      btnStart.classList.add('opacity-50', 'cursor-not-allowed');
+      if (warnEl) warnEl.classList.remove('hidden');
+    }
+  }
+}
+
+function renderSelectionMatrix() {
+  const container = document.getElementById('kanaSelectionContainer');
+  if (!container) return;
+
+  const items = getKanaItems(currentScript);
+  const categories = [
+    { key: 'main', title: '1. Kana Chính (46 chữ căn bản)', desc: 'Nền tảng quan trọng nhất của tiếng Nhật' },
+    { key: 'dakuten', title: '2. Biến Âm Dakuten & Handakuten (25 chữ)', desc: 'Thêm dấu hai phẩy (tenten) hoặc dấu tròn (maru)' },
+    { key: 'youon', title: '3. Âm Ghép Youon (33 chữ)', desc: 'Ghép với các âm nhỏ ya, yu, yo' }
+  ];
+
+  let html = '';
+
+  categories.forEach(cat => {
+    const catItems = items.filter(it => it.category === cat.key);
+    const rowMap = new Map();
+    catItems.forEach(it => {
+      if (!rowMap.has(it.rowKey)) {
+        rowMap.set(it.rowKey, { label: it.rowLabel, items: [] });
+      }
+      rowMap.get(it.rowKey).items.push(it);
+    });
+
+    html += `
+      <div class="bg-white rounded-xl border border-[#E2E8F0] p-3.5 space-y-2">
+        <div class="flex items-center justify-between border-b border-[#F1F5F9] pb-2">
+          <div>
+            <h3 class="font-bold text-sm sm:text-base text-[#0F172A] flex items-center gap-1.5">
+              <span>🌸</span>
+              <span>${cat.title}</span>
+            </h3>
+            <p class="text-[11px] text-[#64748B] mt-0.5">${cat.desc}</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+    `;
+
+    rowMap.forEach((rowData, rKey) => {
+      const allSelected = rowData.items.every(it => selectedCharIds.has(it.id));
+
+      html += `
+        <div class="p-2.5 rounded-lg border border-[#CBD5E1] bg-[#F8FAFC] flex flex-col justify-between space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" 
+                     class="rounded accent-[#831843]" 
+                     ${allSelected ? 'checked' : ''} 
+                     data-row="${rKey}">
+              <span class="font-semibold text-xs sm:text-sm text-[#0F172A]">${rowData.label}</span>
+            </label>
+            <span class="text-[11px] text-[#64748B]">${rowData.items.length} chữ</span>
+          </div>
+          <div class="flex flex-wrap gap-1">
+      `;
+
+      rowData.items.forEach(it => {
+        const isChecked = selectedCharIds.has(it.id);
+        html += `
+          <button type="button" 
+                  data-char-id="${it.id}"
+                  class="px-2 py-0.5 text-xs font-semibold rounded-md border transition-all cursor-pointer ${
+                    isChecked 
+                      ? 'bg-[#FFE5EC] text-[#831843] border-[#FBCFE8]' 
+                      : 'bg-white text-[#1E293B] border-[#CBD5E1] hover:bg-slate-50'
+                  }"
+                  title="Romaji: ${it.romaji}">
+            <span class="text-xs sm:text-sm font-bold ${isChecked ? 'text-[#831843]' : 'text-[#0F172A]'}">${it.character}</span>
+            <span class="text-[10px] font-mono ml-0.5 ${isChecked ? 'text-[#831843]' : 'text-slate-500'}">${it.romaji}</span>
+          </button>
+        `;
+      });
+
+      html += `
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+
+  // Gắn sự kiện checkbox hàng & nút chữ
+  container.querySelectorAll('input[type="checkbox"][data-row]').forEach(cb => {
+    cb.addEventListener('change', () => toggleRow(cb.dataset.row, cb.checked));
+  });
+
+  container.querySelectorAll('button[data-char-id]').forEach(btn => {
+    btn.addEventListener('click', () => toggleChar(btn.dataset.charId));
+  });
+}
+
+// =========================================================================
+// 6. GIAI ĐOẠN 2: ĐẤU TRƯỜNG GÕ KANA TRỰC QUAN (LIVE QUIZ ARENA)
+// =========================================================================
+function startQuiz(customDeck = null) {
+  if (customDeck && Array.isArray(customDeck) && customDeck.length > 0) {
+    quizDeck = shuffleArray(customDeck);
+  } else {
+    const allItems = getKanaItems(currentScript);
+    const chosen = allItems.filter(it => selectedCharIds.has(it.id));
+    if (chosen.length === 0) {
+      alert('Vui lòng chọn ít nhất một ký tự Kana để bắt đầu thử tài!');
+      return;
+    }
+    quizDeck = shuffleArray(chosen);
+  }
+
+  quizResults = quizDeck.map((it, idx) => ({
+    quizIndex: idx,
+    item: it,
+    isCorrect: false,
+    userRomaji: '',
+    attempts: 0
+  }));
+
+  correctCount = 0;
+  hasCompleted = false;
+
+  document.getElementById('viewSetup').classList.add('hidden');
+  document.getElementById('viewScorecard').classList.add('hidden');
+  document.getElementById('viewArena').classList.remove('hidden');
+
+  updateArenaProgressBar();
+  renderQuizArena();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  setTimeout(() => {
+    const firstInput = document.getElementById('card-input-0');
+    if (firstInput) {
+      firstInput.value = '';
+      firstInput.focus();
+      handleCardFocus(0);
+    }
+  }, 120);
+}
+
+function renderQuizArena() {
   const grid = document.getElementById('kanaQuizGrid');
   if (!grid) return;
 
   let html = '';
 
-  activeQuizList.forEach((it, idx) => {
+  quizDeck.forEach((it, idx) => {
     html += `
-      <div id="tileCard_${idx}" 
-           class="kana-tile flex flex-col items-center justify-between p-2 sm:p-2.5 h-28 sm:h-32 text-center"
-           data-index="${idx}">
-        <div class="text-[10px] text-[#68737D] font-mono">#${idx + 1}</div>
-        <div class="text-2xl sm:text-3xl font-bold my-auto text-[#0F2545] font-japanese">${it.character}</div>
-        <div class="w-full">
+      <div id="card-box-${idx}" 
+           data-card-idx="${idx}"
+           class="card-quiz-item p-1.5 sm:p-2 rounded-lg border border-[#E2E8F0] bg-white flex flex-col items-center justify-between text-center transition-all duration-200 cursor-pointer min-h-[80px] sm:min-h-[88px] select-none hover:border-slate-300">
+        <div class="card-char-display text-2xl sm:text-3xl font-bold text-[#0F172A] transition-colors">
+          ${it.character}
+        </div>
+        <div class="w-full mt-1 flex flex-col items-center">
           <input type="text" 
-                 id="romajiInput_${idx}" 
-                 data-index="${idx}"
-                 placeholder="..."
-                 autocomplete="off"
-                 autocorrect="off"
-                 autocapitalize="off"
+                 id="card-input-${idx}" 
+                 data-idx="${idx}"
+                 autocomplete="off" 
+                 autocapitalize="off" 
                  spellcheck="false"
-                 class="w-full text-center text-xs sm:text-sm font-semibold py-1 px-1 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
-          <div id="romajiLabel_${idx}" 
-               class="hidden text-xs sm:text-sm font-mono font-bold py-1">
+                 class="card-input-field w-full max-w-[58px] sm:max-w-[64px] text-center font-mono font-bold text-xs sm:text-sm py-0.5 border-b-2 border-[#CBD5E1] outline-none bg-transparent transition-all text-[#0F172A] focus:border-[#831843]"
+                 placeholder="...">
+          <div id="card-romaji-label-${idx}" class="hidden text-[10px] sm:text-xs font-mono font-bold text-emerald-600 mt-0.5">
             ${it.romaji}
           </div>
         </div>
@@ -487,75 +533,71 @@ function renderArenaGrid() {
 
   grid.innerHTML = html;
 
-  // Gắn sự kiện cho các input với cơ chế kiểm soát IME (Unikey, Japanese IME)
-  activeQuizList.forEach((_, idx) => {
-    const input = document.getElementById(`romajiInput_${idx}`);
-    const card = document.getElementById(`tileCard_${idx}`);
+  // Gắn sự kiện bàn phím & chuột với cơ chế kiểm soát IME và auto-clear
+  quizDeck.forEach((_, idx) => {
+    const cardBox = document.getElementById(`card-box-${idx}`);
+    const input = document.getElementById(`card-input-${idx}`);
+
+    if (cardBox) {
+      cardBox.addEventListener('click', () => focusCardInput(idx));
+    }
 
     if (input) {
-      let isComposing = false;
+      input.addEventListener('focus', () => handleCardFocus(idx));
+      input.addEventListener('blur', () => handleCardBlur(idx));
 
       input.addEventListener('compositionstart', () => {
-        isComposing = true;
+        composingMap.set(idx, true);
       });
 
-      input.addEventListener('compositionend', () => {
-        isComposing = false;
-        handleRomajiInput(idx, input.value, false);
+      input.addEventListener('compositionend', (e) => {
+        composingMap.set(idx, false);
+        handleCardInput(e, idx);
       });
 
       input.addEventListener('input', (e) => {
-        if (isComposing || e.isComposing) return;
-        handleRomajiInput(idx, e.target.value, false);
+        if (composingMap.get(idx) || e.isComposing) return;
+        handleCardInput(e, idx);
       });
 
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
-          // Bỏ qua nếu bộ gõ đang trong quá trình gộp dấu / chọn ký tự IME
-          if (isComposing || e.isComposing || e.keyCode === 229) {
-            return;
-          }
+          if (composingMap.get(idx) || e.isComposing || e.keyCode === 229) return;
           e.preventDefault();
-          handleRomajiInput(idx, input.value, true);
-        }
-      });
-
-      input.addEventListener('focus', () => {
-        highlightActiveCard(idx);
-        input.select();
-      });
-    }
-
-    if (card) {
-      card.addEventListener('click', () => {
-        if (input && !input.disabled) {
-          focusTargetCard(idx);
+          handleCardKeydown(e, idx);
         }
       });
     }
   });
 }
 
-function highlightActiveCard(idx) {
-  document.querySelectorAll('.kana-tile').forEach(c => c.classList.remove('active-target'));
-  const target = document.getElementById(`tileCard_${idx}`);
-  if (target) target.classList.add('active-target');
+function handleCardFocus(idx) {
+  const res = quizResults[idx];
+  if (res && res.isCorrect) return;
+  const cardBox = document.getElementById(`card-box-${idx}`);
+  if (cardBox) {
+    cardBox.classList.remove('bg-white', 'border-[#E2E8F0]');
+    cardBox.classList.add('bg-[#FFE5EC]', 'border-[#FBCFE8]');
+  }
 }
 
-/**
- * Focus thẻ chỉ định, đảm bảo input sạch sẽ và sẵn sàng nhận phím gõ ngay lập tức
- */
-function focusTargetCard(idx) {
-  highlightActiveCard(idx);
-  const input = document.getElementById(`romajiInput_${idx}`);
+function handleCardBlur(idx) {
+  const res = quizResults[idx];
+  if (res && res.isCorrect) return;
+  const cardBox = document.getElementById(`card-box-${idx}`);
+  if (cardBox) {
+    cardBox.classList.remove('bg-[#FFE5EC]', 'border-[#FBCFE8]');
+    cardBox.classList.add('bg-white', 'border-[#E2E8F0]');
+  }
+}
+
+function focusCardInput(idx) {
+  const input = document.getElementById(`card-input-${idx}`);
   if (input && !input.disabled) {
-    // [QUAN TRỌNG] Reset sạch sẽ giá trị cũ
     input.value = '';
     input.focus();
     input.select();
-    input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-    // Dọn sạch tàn dư bộ đệm IME / Unikey nếu có keystroke trễ lọt vào
+    handleCardFocus(idx);
     requestAnimationFrame(() => {
       if (!input.disabled && input.value !== '') {
         input.value = '';
@@ -564,223 +606,230 @@ function focusTargetCard(idx) {
   }
 }
 
-function handleRomajiInput(idx, rawVal, isEnterPressed) {
-  const item = activeQuizList[idx];
-  if (!item) return;
-
-  const card = document.getElementById(`tileCard_${idx}`);
-  const input = document.getElementById(`romajiInput_${idx}`);
-  const label = document.getElementById(`romajiLabel_${idx}`);
-  if (!card || !input || input.disabled) return;
-
-  const val = normalizeRomaji(rawVal);
-  if (!val && !isEnterPressed) return;
-
-  const isMatch = item.aliases.includes(val);
-
-  if (isMatch) {
-    // 1. CẬP NHẬT TRẠNG THÁI THẺ ĐÚNG
-    card.classList.remove('tile-wrong', 'shake-card', 'active-target');
-    card.classList.add('tile-correct');
-
-    // [QUAN TRỌNG] Xóa sạch giá trị input, vô hiệu hóa và ẩn input, hiển thị nhãn Romaji
-    input.value = '';
-    input.disabled = true;
-    input.classList.add('hidden');
-
-    if (label) {
-      label.textContent = item.romaji;
-      label.className = 'text-xs sm:text-sm font-mono font-bold py-1 text-emerald-700';
-      label.classList.remove('hidden');
+function handleCardKeydown(e, idx) {
+  if (e.key === 'Enter') {
+    const input = document.getElementById(`card-input-${idx}`);
+    if (input) {
+      verifyCardAnswer(idx, input.value);
     }
-
-    // 2. GHI NHẬN KẾT QUẢ & TIẾN ĐỘ
-    recordResult(idx, item, true, val);
-    updateArenaProgress();
-
-    // 3. TỰ ĐỘNG CHUYỂN SANG THẺ TIẾP THEO (Delay nhẹ để ngắt buffer bàn phím)
-    setTimeout(() => {
-      findAndFocusNext(idx);
-    }, 60);
-  } else if (isEnterPressed) {
-    // Nhấn Enter mà chưa chính xác hoặc muốn bỏ qua
-    card.classList.remove('active-target');
-    card.classList.add('tile-wrong', 'shake-card');
-    showToast(`Chưa chính xác: âm của 「${item.character}」 là "${item.romaji}"`, 'info');
-
-    // [QUAN TRỌNG] Xóa sạch giá trị input, khóa thẻ và hiển thị đáp án đúng màu đỏ
-    input.value = '';
-    input.disabled = true;
-    input.classList.add('hidden');
-
-    if (label) {
-      label.textContent = item.romaji;
-      label.className = 'text-xs sm:text-sm font-mono font-bold py-1 text-rose-600';
-      label.classList.remove('hidden');
-    }
-
-    setTimeout(() => {
-      card.classList.remove('shake-card');
-    }, 400);
-
-    recordResult(idx, item, false, val);
-    updateArenaProgress();
-
-    // Tự động chuyển sang thẻ tiếp theo
-    setTimeout(() => {
-      findAndFocusNext(idx);
-    }, 60);
   }
 }
 
-function recordResult(idx, item, isCorrect, enteredVal) {
-  // Tránh ghi nhận 2 lần cho 1 card
-  const existingIdx = quizResults.findIndex(r => r.quizIndex === idx);
-  const record = { quizIndex: idx, item, isCorrect, enteredVal };
-
-  if (existingIdx >= 0) {
-    quizResults[existingIdx] = record;
-  } else {
-    quizResults.push(record);
-  }
-
-  // Nếu đã làm hết toàn bộ thẻ
-  if (quizResults.length === activeQuizList.length) {
-    setTimeout(() => {
-      finishQuiz();
-    }, 500);
+function handleCardInput(e, idx) {
+  const val = normalizeRomaji(e.target.value);
+  const it = quizDeck[idx];
+  if (it && it.validRomaji.includes(val)) {
+    verifyCardAnswer(idx, val);
   }
 }
 
-function findAndFocusNext(currentIdx) {
-  const nextIdx = activeQuizList.findIndex((_, i) => {
-    const input = document.getElementById(`romajiInput_${i}`);
-    return input && !input.disabled && i > currentIdx;
-  });
+function verifyCardAnswer(idx, rawInput) {
+  const it = quizDeck[idx];
+  const res = quizResults[idx];
+  if (!it || !res || res.isCorrect) return;
 
-  if (nextIdx !== -1) {
-    focusTargetCard(nextIdx);
+  const val = normalizeRomaji(rawInput);
+  const cardBox = document.getElementById(`card-box-${idx}`);
+  const input = document.getElementById(`card-input-${idx}`);
+  const romajiLabel = document.getElementById(`card-romaji-label-${idx}`);
+
+  res.attempts++;
+  res.userRomaji = val;
+
+  if (it.validRomaji.includes(val)) {
+    // === ĐÁP ÁN ĐÚNG ===
+    res.isCorrect = true;
+    correctCount++;
+
+    if (cardBox) {
+      cardBox.classList.remove('bg-white', 'bg-[#FFE5EC]', 'border-[#E2E8F0]', 'border-[#FBCFE8]');
+      cardBox.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
+      const charEl = cardBox.querySelector('.card-char-display');
+      if (charEl) {
+        charEl.classList.remove('text-[#0F172A]', 'text-slate-900');
+        charEl.classList.add('text-emerald-800');
+      }
+    }
+
+    if (input) {
+      input.value = '';
+      input.disabled = true;
+      input.classList.add('hidden');
+    }
+
+    if (romajiLabel) {
+      romajiLabel.textContent = it.romaji;
+      romajiLabel.classList.remove('hidden');
+    }
+
+    updateArenaProgressBar();
+
+    const nextUnsolvedIndex = findNextUnsolvedCardIndex(idx);
+    if (nextUnsolvedIndex !== -1) {
+      setTimeout(() => {
+        const nextInput = document.getElementById(`card-input-${nextUnsolvedIndex}`);
+        if (nextInput) {
+          nextInput.value = '';
+          nextInput.focus();
+          nextInput.select();
+          nextInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          handleCardFocus(nextUnsolvedIndex);
+          requestAnimationFrame(() => {
+            if (!nextInput.disabled && nextInput.value !== '') {
+              nextInput.value = '';
+            }
+          });
+        }
+      }, 50);
+    } else {
+      hasCompleted = true;
+      setTimeout(() => {
+        finishQuiz();
+      }, 400);
+    }
   } else {
-    // Tìm từ đầu xem còn ô nào chưa làm
-    const remainingIdx = activeQuizList.findIndex((_, i) => {
-      const input = document.getElementById(`romajiInput_${i}`);
-      return input && !input.disabled;
-    });
-
-    if (remainingIdx !== -1) {
-      focusTargetCard(remainingIdx);
+    // === ĐÁP ÁN SAI (Rung đỏ và dọn sạch ô nhập) ===
+    if (cardBox) {
+      cardBox.classList.remove('bg-[#FEF3C7]', 'bg-white', 'bg-[#FFE5EC]');
+      cardBox.classList.add('shake-card', 'bg-[#FEE2E2]', 'border-[#DC2626]');
+      const charEl = cardBox.querySelector('.card-char-display');
+      if (charEl) {
+        charEl.classList.add('text-[#991B1B]');
+      }
+      setTimeout(() => {
+        cardBox.classList.remove('shake-card', 'bg-[#FEE2E2]', 'border-[#DC2626]');
+        cardBox.classList.add('border-[#0F172A]');
+        if (charEl) {
+          charEl.classList.remove('text-[#991B1B]');
+        }
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
+        handleCardFocus(idx);
+      }, 400);
     }
   }
+}
+
+function findNextUnsolvedCardIndex(startIndex) {
+  for (let i = startIndex + 1; i < quizDeck.length; i++) {
+    if (!quizResults[i].isCorrect) return i;
+  }
+  for (let i = 0; i <= startIndex; i++) {
+    if (!quizResults[i].isCorrect) return i;
+  }
+  return -1;
+}
+
+function updateArenaProgressBar() {
+  const total = quizDeck.length;
+  const percent = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+
+  const countEl = document.getElementById('arenaProgressCount');
+  const barEl = document.getElementById('arenaProgressBar');
+  const percentEl = document.getElementById('arenaProgressPercent');
+
+  if (countEl) countEl.textContent = `${correctCount} / ${total} chữ`;
+  if (percentEl) percentEl.textContent = `${percent}%`;
+  if (barEl) barEl.style.width = `${percent}%`;
 }
 
 // =========================================================================
-// 5. BẢNG TỔNG KẾT & PHÂN TÍCH ĐIỂM (SCORECARD)
+// 7. GIAI ĐOẠN 3: BẢNG TỔNG KẾT & PHÂN TÍCH CHI TIẾT (SCORECARD PHASE)
 // =========================================================================
-
 function finishQuiz() {
-  // Thu thập các thẻ chưa hoàn thành coi như sai
-  activeQuizList.forEach((it, idx) => {
-    if (!quizResults.some(r => r.quizIndex === idx)) {
-      quizResults.push({ quizIndex: idx, item: it, isCorrect: false, enteredVal: '' });
-    }
-  });
+  const total = quizDeck.length;
+  const accuracy = total > 0 ? ((correctCount / total) * 100).toFixed(1) : '0.0';
 
-  const total = activeQuizList.length;
-  const correctCount = quizResults.filter(r => r.isCorrect).length;
-  const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0;
-
+  document.getElementById('viewSetup').classList.add('hidden');
   document.getElementById('viewArena').classList.add('hidden');
   document.getElementById('viewScorecard').classList.remove('hidden');
 
-  // Cập nhật thông số
-  const accText = document.getElementById('scoreAccuracyText');
-  const countText = document.getElementById('scoreCountText');
-  const pill = document.getElementById('scoreBadgePill');
-  const comment = document.getElementById('scoreSenseiComment');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  if (accText) accText.textContent = `${accuracy}%`;
-  if (countText) countText.textContent = `${correctCount} / ${total} chữ`;
+  const scoreAccEl = document.getElementById('scoreAccuracyText');
+  const scoreCountEl = document.getElementById('scoreCountText');
+  const senseiCommentEl = document.getElementById('scoreSenseiComment');
+  const scoreBadgeEl = document.getElementById('scoreBadgePill');
 
-  if (pill) {
-    if (accuracy === 100) {
-      pill.textContent = 'Hoàn hảo tuyệt đối';
-      pill.className = 'inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
-    } else if (accuracy >= 80) {
-      pill.textContent = 'Xuất sắc';
-      pill.className = 'inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200';
-    } else if (accuracy >= 50) {
-      pill.textContent = 'Khá tốt';
-      pill.className = 'inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200';
-    } else {
-      pill.textContent = 'Cần ôn luyện thêm';
-      pill.className = 'inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200';
+  if (scoreAccEl) scoreAccEl.textContent = `${accuracy}%`;
+  if (scoreCountEl) scoreCountEl.textContent = `${correctCount} / ${total} chữ`;
+
+  const numAcc = parseFloat(accuracy);
+  if (numAcc >= 90) {
+    if (senseiCommentEl) senseiCommentEl.textContent = 'Quá đỉnh! Gõ chuẩn như người bản xứ! Tốc độ ngón tay của bạn làm Sensei hoa cả mắt rồi! ✨';
+    if (scoreBadgeEl) {
+      scoreBadgeEl.textContent = 'Xuất Sắc! 🌟';
+      scoreBadgeEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
     }
-  }
-
-  if (comment) {
-    if (accuracy === 100) {
-      comment.textContent = 'Bạn gõ chữ rất chuẩn xác và phản xạ tuyệt vời. Tiếp tục duy trì phong độ nhé!';
-    } else if (accuracy >= 80) {
-      comment.textContent = 'Kết quả rất ấn tượng! Chỉ một vài âm gõ nhầm nhẹ, bạn hoàn toàn có thể đạt 100% ở lượt tiếp theo.';
-    } else {
-      comment.textContent = 'Đừng nản lòng nhé! Luyện gõ thêm vài lần sẽ giúp các ký tự Kana in sâu vào phản xạ của bạn.';
+  } else if (numAcc >= 70) {
+    if (senseiCommentEl) senseiCommentEl.textContent = 'Phong độ rất tốt! Bạn đã nắm chắc hầu hết các âm, chỉ vấp vài chữ biến âm xíu xiu thôi. Ôn lại chút là thành cao thủ ngay! 🎯';
+    if (scoreBadgeEl) {
+      scoreBadgeEl.textContent = 'Đạt Yêu Cầu 🌸';
+      scoreBadgeEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200';
+    }
+  } else {
+    if (senseiCommentEl) senseiCommentEl.textContent = 'Đừng nản chí nhé! Bảng chữ cái lúc đầu hơi lú xíu. Bấm nút [Ôn Lại Hàng Này] để Sensei cùng bạn luyện tiếp nghen! 💡';
+    if (scoreBadgeEl) {
+      scoreBadgeEl.textContent = 'Cần Cố Gắng ⚡';
+      scoreBadgeEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200';
     }
   }
 
   renderRowBreakdown();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderRowBreakdown() {
   const container = document.getElementById('rowBreakdownContainer');
   if (!container) return;
 
-  const rowMap = new Map();
+  const rowGroups = new Map();
 
   quizResults.forEach(res => {
     const it = res.item;
-    if (!rowMap.has(it.rowKey)) {
-      rowMap.set(it.rowKey, {
+    if (!rowGroups.has(it.rowKey)) {
+      rowGroups.set(it.rowKey, {
         rowKey: it.rowKey,
         rowLabel: it.rowLabel,
+        category: it.category,
         results: []
       });
     }
-    rowMap.get(it.rowKey).results.push(res);
+    rowGroups.get(it.rowKey).results.push(res);
   });
 
   let html = '';
 
-  rowMap.forEach(group => {
+  rowGroups.forEach((group, rKey) => {
     const totalInRow = group.results.length;
     const correctInRow = group.results.filter(r => r.isCorrect).length;
-    const isPerfect = correctInRow === totalInRow;
+    const isFullRow = correctInRow === totalInRow;
 
     html += `
-      <div class="p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3 border border-[#ECE8DE] rounded-2xl shadow-xs">
-        <div class="space-y-1.5 flex-1">
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-sm text-[#0F2545]">${group.rowLabel}</span>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-              isPerfect ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-            }">
+      <div class="p-3 bg-white flex flex-col md:flex-row md:items-center justify-between gap-2 border border-[#E2E8F0] rounded-xl">
+        <div class="space-y-1 flex-1">
+          <div class="flex items-center gap-1.5">
+            <span class="font-bold text-xs sm:text-sm text-[#0F172A]">${group.rowLabel}</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${isFullRow ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">
               ${correctInRow}/${totalInRow} chữ (${Math.round((correctInRow / totalInRow) * 100)}%)
             </span>
           </div>
-
-          <div class="flex flex-wrap gap-2 pt-1">
+          <div class="flex flex-wrap gap-1.5 pt-0.5">
     `;
 
     group.results.forEach(r => {
       const it = r.item;
-      const isOk = r.isCorrect;
+      const isPassed = r.isCorrect;
       html += `
-        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-semibold ${
-          isOk ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700'
-        }">
-          <span>${isOk ? '◯' : '✕'}</span>
-          <span class="font-bold font-japanese">${it.character}</span>
-          <span class="font-mono text-[10px] opacity-75">(${it.romaji})</span>
+        <div class="flex items-center gap-1 px-2 py-0.5 rounded-md border ${
+          isPassed 
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
+            : 'bg-rose-50 border-rose-200 text-rose-700'
+        } text-xs font-semibold">
+          <span>${isPassed ? '◯' : '✕'}</span>
+          <span class="font-bold text-xs sm:text-sm">${it.character}</span>
+          <span class="font-mono text-[10px] opacity-80">(${it.romaji})</span>
         </div>
       `;
     });
@@ -788,13 +837,12 @@ function renderRowBreakdown() {
     html += `
           </div>
         </div>
-
         <div class="shrink-0 flex items-center">
           <button type="button" 
-                  data-action="retry-row" data-row="${group.rowKey}"
-                  class="text-xs py-1.5 px-3 font-semibold flex items-center gap-1.5 border border-[#ECE8DE] rounded-xl bg-white hover:bg-[#FAF8F2] text-[#0F2545] transition cursor-pointer">
-            <span class="material-symbols-outlined text-[15px]">refresh</span>
-            <span>Ôn lại hàng này</span>
+                  data-retry-row="${rKey}"
+                  class="text-xs py-1.5 px-3 font-semibold flex items-center gap-1 border border-[#CBD5E1] rounded-lg bg-white hover:bg-slate-50 text-[#1E293B] transition cursor-pointer">
+            <span>↪️</span>
+            <span>Ôn Lại Hàng Này</span>
           </button>
         </div>
       </div>
@@ -803,14 +851,20 @@ function renderRowBreakdown() {
 
   container.innerHTML = html;
 
-  container.querySelectorAll('[data-action="retry-row"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const items = getKanaItems(currentScript).filter(it => it.rowKey === btn.dataset.row);
-      if (items.length > 0) {
-        startQuiz(items);
-      }
-    });
+  container.querySelectorAll('button[data-retry-row]').forEach(btn => {
+    btn.addEventListener('click', () => retrySingleRow(btn.dataset.retryRow));
   });
+}
+
+function retrySingleRow(rowKey) {
+  const items = getKanaItems(currentScript).filter(it => it.rowKey === rowKey);
+  if (items.length > 0) {
+    startQuiz(items);
+  }
+}
+
+function retryCurrentQuiz() {
+  startQuiz();
 }
 
 function backToSetup() {
@@ -821,28 +875,28 @@ function backToSetup() {
 }
 
 // =========================================================================
-// 6. KHỞI TẠO DOM & GẮN SỰ KIỆN TOÀN CỤC (EVENT LISTENERS)
+// 8. KHỞI TẠO DOM & GẮN SỰ KIỆN TOÀN CỤC (EVENT LISTENERS)
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Tabs
+  // Tabs Hiragana / Katakana
   document.getElementById('tabHiragana')?.addEventListener('click', () => setScriptType('hiragana'));
   document.getElementById('tabKatakana')?.addEventListener('click', () => setScriptType('katakana'));
 
-  // Quick Groups
+  // Quick groups
   document.getElementById('btnGroupMain')?.addEventListener('click', () => toggleKanaGroup('main'));
   document.getElementById('btnGroupDakuten')?.addEventListener('click', () => toggleKanaGroup('dakuten'));
   document.getElementById('btnGroupCombination')?.addEventListener('click', () => toggleKanaGroup('combination'));
   document.getElementById('btnGroupAll')?.addEventListener('click', selectAllGroups);
   document.getElementById('btnGroupClear')?.addEventListener('click', clearAllGroups);
 
-  // CTA
+  // Actions
   document.getElementById('btnStartQuiz')?.addEventListener('click', () => startQuiz());
   document.getElementById('btnBackToSetup')?.addEventListener('click', backToSetup);
   document.getElementById('btnFinishQuiz')?.addEventListener('click', finishQuiz);
-  document.getElementById('btnRetryQuiz')?.addEventListener('click', () => startQuiz());
+  document.getElementById('btnRetryCurrentQuiz')?.addEventListener('click', retryCurrentQuiz);
   document.getElementById('btnScorecardNewSetup')?.addEventListener('click', backToSetup);
 
-  // Khởi tạo bảng ban đầu
+  // Khởi tạo ban đầu
   selectedGroups.clear();
   selectedGroups.add('main');
   recalculateSelectedKana();

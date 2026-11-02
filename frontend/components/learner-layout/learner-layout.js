@@ -4,6 +4,8 @@
  * Tuân thủ nghiêm ngặt FRONTEND_RULES.md
  */
 
+import { initSidebarRouter } from '/js/sidebarRouter.js';
+
 // =========================================================================
 // 1. CẤU HÌNH DANH MỤC MENU HỌC VIÊN
 // =========================================================================
@@ -158,6 +160,7 @@ export function getLearnerSidebarHtml(activeKey) {
       return `
         <a href="${item.url}"
            data-menu-key="${item.key}"
+           data-spa-link
            class="nav-item flex items-center space-x-2.5 px-3 py-2 text-[14px] rounded-[6px] transition-all mb-1 no-underline ${activeClass}">
           <span class="text-sm shrink-0">${item.icon}</span>
           <span class="text-inherit truncate">${item.title}</span>
@@ -311,8 +314,9 @@ export function injectGlobalLayoutStyles() {
   const styleEl = document.createElement('style');
   styleEl.id = 'kizunaGlobalLayoutStyles';
   styleEl.textContent = `
+    /* 1. Khóa ổn định diện tích thanh cuộn - Chống giật khung ngang khi đổi trang */
     html {
-      scrollbar-gutter: stable;
+      scrollbar-gutter: stable both-edges;
       box-sizing: border-box;
     }
     *, *::before, *::after {
@@ -325,6 +329,38 @@ export function injectGlobalLayoutStyles() {
       background-color: #F8FAFC;
       min-height: 100vh;
     }
+
+    /* 2. Dự trù diện tích cho Sidebar trước khi JS chạy để triệt tiêu 100% Layout Shift (CLS = 0) */
+    #learnerSidebarContainer {
+      width: 270px;
+      min-width: 260px;
+      max-width: 280px;
+      flex-shrink: 0;
+      height: 100vh;
+    }
+    @media (max-width: 767px) {
+      #learnerSidebarContainer {
+        display: none;
+      }
+    }
+
+    /* 3. Ép trình duyệt tối ưu vẽ đồ họa GPU cho Sidebar */
+    #learnerSidebar {
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      will-change: transform;
+    }
+
+    /* 4. Vùng nội dung chính cuộn độc lập, không làm ảnh hưởng thanh cuộn ngoài */
+    main {
+      contain: paint;
+    }
+
+    /* 5. Khử chớp nháy font chữ (FOIT) */
+    * {
+      font-display: swap;
+    }
+
     .scrollbar-none::-webkit-scrollbar {
       display: none;
     }
@@ -348,6 +384,9 @@ export function injectGlobalLayoutStyles() {
 export function initLearnerShell(options = {}) {
   // 0. Bổ sung style chống rung giật thanh cuộn & chống tràn ngay lập tức
   injectGlobalLayoutStyles();
+
+  // Khởi tạo router điều hướng mượt mà không reload trang (Dynamic Shell Router)
+  initSidebarRouter();
 
   // Kiểm tra chống trùng lặp: Nếu sidebar đã được render, tuyệt đối không tạo thêm
   if (document.getElementById('learnerSidebar')) {

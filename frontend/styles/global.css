@@ -1,9 +1,40 @@
 @import './variables.css';
 
-/* Chống giật khung hình khi thanh cuộn xuất hiện/biến mất & chuẩn hóa box-sizing */
+/* 1. Khóa ổn định diện tích thanh cuộn - Chống giật khung ngang khi đổi trang */
 html {
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
   box-sizing: border-box;
+}
+
+/* 2. Dự trù kích thước cho khung Sidebar để triệt tiêu hoàn toàn Layout Shift */
+#learnerSidebarContainer {
+  width: 270px;
+  min-width: 260px;
+  max-width: 280px;
+  flex-shrink: 0;
+  height: 100vh;
+}
+@media (max-width: 767px) {
+  #learnerSidebarContainer {
+    display: none;
+  }
+}
+
+/* 3. Ép trình duyệt tối ưu vẽ đồ họa GPU cho Sidebar */
+#learnerSidebar {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* 4. Vùng nội dung chính cuộn độc lập, không làm ảnh hưởng thanh cuộn ngoài */
+main {
+  contain: paint;
+}
+
+/* 5. Khử chớp nháy font chữ (FOIT) */
+* {
+  font-display: swap;
 }
 
 *, *::before, *::after {

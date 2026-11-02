@@ -124,68 +124,80 @@ function renderDecks(filterQuery = '') {
   emptyState.classList.add('hidden');
   grid.classList.remove('hidden');
 
-  const colorBorderMap = {
-    blue: 'border-[#006194]',
-    pink: 'border-[#831843]',
-    green: 'border-[#059669]',
-    amber: 'border-[#D97706]',
-    indigo: 'border-[#4059AA]'
-  };
-
-  const colorBgPillMap = {
-    blue: 'bg-sky-50 text-[#006194] border-sky-200',
-    pink: 'bg-[#FFE5EC] text-[#831843] border-[#FBCFE8]',
-    green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    amber: 'bg-amber-50 text-amber-700 border-amber-200',
-    indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200'
-  };
-
   let html = '';
 
   filtered.forEach(deck => {
     const cardCount = deck.cards ? deck.cards.length : 0;
-    const borderClass = colorBorderMap[deck.color] || 'border-[#006194]';
-    const pillClass = colorBgPillMap[deck.color] || 'bg-sky-50 text-[#006194] border-sky-200';
-    const firstChar = (deck.cards && deck.cards.length > 0 && deck.cards[0].char) ? deck.cards[0].char : '';
 
     html += `
-      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between border-t-4 ${borderClass} group h-full">
-        <div class="space-y-3 flex-1">
+      <div class="deck-card relative flex flex-col justify-between p-4 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] hover:-translate-y-0.5 transition-transform group" data-deck-id="${deck.id}">
+        <!-- Phần thông tin thư mục -->
+        <div>
           <div class="flex items-start justify-between gap-2">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${pillClass}">
-              ${cardCount} chữ Hán
-            </span>
-            <div class="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition">
-              <button type="button" data-action="delete-deck" data-id="${deck.id}" 
-                      class="text-[#68737D] hover:text-rose-600 p-1 rounded-lg" title="Xóa bộ thẻ này">
-                <span class="material-symbols-outlined text-[18px]">delete</span>
+            <h3 class="font-['Itim'] text-base font-bold text-slate-900 truncate flex-1 cursor-pointer hover:text-[#006194] transition" 
+                title="Nhấn để học bộ thẻ: ${escapeHtml(deck.title)}"
+                data-action="open-deck" data-id="${deck.id}">
+              🌸 ${escapeHtml(deck.title)}
+            </h3>
+            
+            <!-- Nút Thao Tác Thêm (Dropdown Trigger) -->
+            <div class="relative dropdown-container shrink-0">
+              <button type="button" 
+                      data-action="toggle-menu" data-id="${deck.id}"
+                      class="w-7 h-7 flex items-center justify-center border border-[#0F172A] rounded-[4px] bg-slate-100 hover:bg-slate-200 text-xs shadow-[1px_1px_0px_0px_#0F172A] cursor-pointer transition font-bold"
+                      title="Tùy chọn khác">
+                ⋮
               </button>
+
+              <!-- Dropdown Menu Nội dung -->
+              <div id="menu-${deck.id}" class="deck-dropdown-menu hidden absolute right-0 top-8 w-48 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] z-30 py-1 text-xs">
+                <button type="button" data-action="print-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800">
+                  <span>🖨️</span> In bộ thẻ (PDF)
+                </button>
+                <button type="button" data-action="duplicate-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800">
+                  <span>📋</span> Nhân bản bộ thẻ
+                </button>
+                <button type="button" data-action="merge-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 border-t border-slate-100 cursor-pointer text-slate-800">
+                  <span>🔗</span> Gộp với bộ thẻ khác
+                </button>
+              </div>
             </div>
           </div>
 
-          <div>
-            <h3 class="font-bold text-base md:text-lg text-[#0F2545] group-hover:text-[#006194] transition">
-              ${escapeHtml(deck.title)}
-            </h3>
-            <p class="text-xs text-[#68737D] mt-1 line-clamp-2">
-              ${escapeHtml(deck.description || 'Chưa có ghi chú mô tả cho bộ thẻ này.')}
-            </p>
+          <!-- Mô tả thư mục -->
+          <p class="text-xs text-slate-600 mt-1 line-clamp-2" title="${escapeHtml(deck.description || '')}">
+            ${escapeHtml(deck.description || 'Chưa có ghi chú mô tả cho bộ thẻ này.')}
+          </p>
+          <div class="mt-2 text-[11px] font-semibold text-pink-600 flex items-center gap-1.5">
+            <span>🏷️</span>
+            <span>${cardCount} thẻ học</span>
           </div>
         </div>
 
-        <!-- Cụm nút hành động dưới đáy thư mục bám sát đáy thẻ (mt-auto) -->
-        <div class="pt-4 mt-auto border-t border-[#ECE8DE] flex items-center gap-2">
-          <a href="/shodo${firstChar ? `?char=${encodeURIComponent(firstChar)}` : ''}"
-             class="flex-1 py-2 px-2 text-xs font-bold rounded-xl bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1.5 transition no-underline text-center truncate"
-             title="Luyện viết nét các chữ trong bộ trên Canvas Shodo">
-            <span>🖌️</span>
-            <span>Luyện Viết</span>
-          </a>
-          <button type="button" data-action="open-deck" data-id="${deck.id}"
-                  class="flex-1 py-2 px-2 text-xs font-bold rounded-xl bg-[#006194] hover:bg-[#004B73] text-white flex items-center justify-center gap-1.5 transition cursor-pointer text-center truncate shadow-xs"
-                  title="Học và lật thẻ 3D chi tiết">
-            <span>👁️</span>
-            <span>Học &amp; Lật Thẻ</span>
+        <!-- Cụm nút hành động chính ở chân thẻ -->
+        <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-200">
+          <!-- Nút Học & Lật Thẻ -->
+          <button type="button" 
+                  data-action="open-deck" data-id="${deck.id}" 
+                  class="py-1.5 px-2 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate"
+                  title="Lật thẻ ôn tập 3D">
+            <span>👁️</span> Học Thẻ
+          </button>
+
+          <!-- Nút Chỉnh Sửa -->
+          <button type="button" 
+                  data-action="edit-deck" data-id="${deck.id}" 
+                  class="py-1.5 px-2 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate"
+                  title="Chỉnh sửa & nạp Excel">
+            <span>✏️</span> Sửa
+          </button>
+
+          <!-- Nút Xóa -->
+          <button type="button" 
+                  data-action="delete-deck" data-id="${deck.id}" 
+                  class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate"
+                  title="Xóa bộ thẻ này">
+            <span>🗑️</span> Xóa
           </button>
         </div>
       </div>
@@ -198,12 +210,62 @@ function renderDecks(filterQuery = '') {
     btn.addEventListener('click', () => openStudyModal(btn.dataset.id));
   });
 
+  grid.querySelectorAll('[data-action="edit-deck"]').forEach(btn => {
+    btn.addEventListener('click', () => openEditDeckModal(btn.dataset.id));
+  });
+
   grid.querySelectorAll('[data-action="delete-deck"]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      deleteDeck(btn.dataset.id);
+      handleDeleteDeck(btn.dataset.id);
     });
   });
+
+  grid.querySelectorAll('[data-action="toggle-menu"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      toggleDeckMenu(e, btn.dataset.id);
+    });
+  });
+
+  grid.querySelectorAll('[data-action="print-deck"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeAllMenus();
+      handlePrintDeck(btn.dataset.id);
+    });
+  });
+
+  grid.querySelectorAll('[data-action="duplicate-deck"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeAllMenus();
+      handleDuplicateDeck(btn.dataset.id);
+    });
+  });
+
+  grid.querySelectorAll('[data-action="merge-deck"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeAllMenus();
+      openMergeModal(btn.dataset.id);
+    });
+  });
+}
+
+function toggleDeckMenu(event, deckId) {
+  event.stopPropagation();
+  const targetMenu = document.getElementById(`menu-${deckId}`);
+  if (!targetMenu) return;
+
+  const isHidden = targetMenu.classList.contains('hidden');
+  closeAllMenus();
+  if (isHidden) {
+    targetMenu.classList.remove('hidden');
+  }
+}
+
+function closeAllMenus() {
+  document.querySelectorAll('.deck-dropdown-menu').forEach(m => m.classList.add('hidden'));
 }
 
 // =========================================================================
@@ -461,7 +523,461 @@ function submitNewCard() {
 }
 
 // =========================================================================
-// 7. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
+// 7. CHỨC NĂNG MỞ RỘNG (IN THẺ, NHÂN BẢN, GỘP BỘ THẺ)
+// =========================================================================
+
+// 1. In bộ thẻ (Print Mode A4 / Xuất PDF)
+function handlePrintDeck(deckId) {
+  const deck = userDecks.find(d => d.id === deckId);
+  if (!deck) return;
+  const cards = deck.cards || [];
+  if (cards.length === 0) {
+    showToast('Bộ thẻ này chưa có thẻ học nào để in!', 'warning');
+    return;
+  }
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    showToast('Vui lòng cho phép popup trên trình duyệt để mở giao diện in ấn.', 'error');
+    return;
+  }
+
+  const printHtml = `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>In Bộ Thẻ - ${escapeHtml(deck.title)}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 12mm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #0F172A;
+      background: #FFF;
+    }
+    .toolbar {
+      padding: 10px 14px;
+      background: #F1F5F9;
+      margin-bottom: 16px;
+      border-radius: 6px;
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      padding: 7px 16px;
+      background: #006194;
+      color: white;
+      border: 1px solid #0F172A;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .print-header {
+      border-bottom: 2px solid #0F172A;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .print-header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .print-header p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: #64748B;
+    }
+    .print-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .print-card {
+      border: 1.5px dashed #0F172A;
+      border-radius: 6px;
+      padding: 12px 14px;
+      page-break-inside: avoid;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 110px;
+      background: #FAFAFA;
+      box-sizing: border-box;
+    }
+    .card-front {
+      font-size: 16px;
+      font-weight: bold;
+      color: #0F2545;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #E2E8F0;
+      padding-bottom: 6px;
+    }
+    .card-back {
+      font-size: 12px;
+      color: #334155;
+      line-height: 1.4;
+    }
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #94A3B8;
+      margin-top: 8px;
+      padding-top: 4px;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar no-print">
+    <button class="btn" onclick="window.print()">🖨️ In Ngay (Print / Lưu PDF)</button>
+    <button class="btn" style="background:#64748B;" onclick="window.close()">Đóng Cửa Sổ</button>
+  </div>
+  <div class="print-header">
+    <div>
+      <h1>🌸 ${escapeHtml(deck.title)}</h1>
+      <p>${escapeHtml(deck.description || 'Bộ thẻ Kizuna Flashcards')} • Tổng số: ${cards.length} thẻ</p>
+    </div>
+    <div style="font-size: 11px; font-weight: bold; color: #64748B;">KizunaTutor Flashcards</div>
+  </div>
+  <div class="print-grid">
+    ${cards.map((c, i) => `
+      <div class="print-card">
+        <div>
+          <div class="card-front">${escapeHtml(c.char || '')}</div>
+          <div class="card-back">${escapeHtml(c.meaning || c.hanViet || '')}</div>
+        </div>
+        <div class="card-footer">
+          <span>Kizuna Flashcards</span>
+          <span>#${i + 1}</span>
+        </div>
+      </div>
+    `).join('')}
+  </div>
+</body>
+</html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(printHtml);
+  printWindow.document.close();
+  printWindow.focus();
+}
+
+// 2. Nhân bản bộ thẻ (Duplicate Deck)
+function handleDuplicateDeck(deckId) {
+  const target = userDecks.find(d => d.id === deckId);
+  if (!target) return;
+
+  if (!confirm(`Bạn có muốn nhân bản bộ thẻ "${target.title}" kèm toàn bộ thẻ con không?`)) return;
+
+  const duplicatedDeck = {
+    id: `deck-${Date.now()}`,
+    title: `${target.title} (Bản sao)`,
+    description: target.description || '',
+    color: target.color || 'blue',
+    cards: (target.cards || []).map(c => ({ ...c }))
+  };
+
+  userDecks.unshift(duplicatedDeck);
+  saveLocalDecks();
+  renderDecks();
+  showToast(`Đã nhân bản bộ thẻ "${duplicatedDeck.title}" thành công!`, 'success');
+}
+
+// 3. Gộp bộ thẻ (Merge Decks)
+let sourceMergeDeckId = null;
+
+function openMergeModal(deckId) {
+  const sourceDeck = userDecks.find(d => d.id === deckId);
+  if (!sourceDeck) return;
+
+  const otherDecks = userDecks.filter(d => d.id !== deckId);
+  if (otherDecks.length === 0) {
+    showToast('Bạn cần có ít nhất 2 bộ thẻ để có thể thực hiện gộp thẻ!', 'warning');
+    return;
+  }
+
+  sourceMergeDeckId = deckId;
+  document.getElementById('mergeSourceDeckTitle').textContent = sourceDeck.title;
+  document.getElementById('mergeSourceDeckCount').textContent = `${(sourceDeck.cards || []).length} thẻ học`;
+
+  const select = document.getElementById('mergeTargetDeckSelect');
+  select.innerHTML = otherDecks.map(d => `
+    <option value="${d.id}">${escapeHtml(d.title)} (${(d.cards || []).length} thẻ)</option>
+  `).join('');
+
+  document.getElementById('checkDeleteSourceAfterMerge').checked = false;
+  document.getElementById('mergeDeckModal').classList.remove('hidden');
+}
+
+function closeMergeModal() {
+  document.getElementById('mergeDeckModal').classList.add('hidden');
+  sourceMergeDeckId = null;
+}
+
+function executeMergeDecks() {
+  if (!sourceMergeDeckId) return;
+  const select = document.getElementById('mergeTargetDeckSelect');
+  const targetDeckId = select.value;
+  const sourceDeck = userDecks.find(d => d.id === sourceMergeDeckId);
+  const targetDeck = userDecks.find(d => d.id === targetDeckId);
+
+  if (!sourceDeck || !targetDeck) return;
+
+  const shouldDeleteSource = document.getElementById('checkDeleteSourceAfterMerge').checked;
+  const sourceCards = sourceDeck.cards || [];
+
+  if (sourceCards.length === 0) {
+    showToast('Bộ thẻ nguồn không có thẻ nào để gộp!', 'warning');
+    closeMergeModal();
+    return;
+  }
+
+  // Chuyển thẻ sang bộ đích
+  targetDeck.cards = (targetDeck.cards || []).concat(sourceCards.map(c => ({ ...c })));
+
+  if (shouldDeleteSource) {
+    userDecks = userDecks.filter(d => d.id !== sourceMergeDeckId);
+  }
+
+  saveLocalDecks();
+  renderDecks();
+  closeMergeModal();
+  showToast(`Đã gộp ${sourceCards.length} thẻ sang bộ "${targetDeck.title}" thành công!`, 'success');
+}
+
+// =========================================================================
+// 8. MODAL CHỈNH SỬA BỘ THẺ & IMPORT EXCEL 2 CỘT
+// =========================================================================
+let activeEditingDeck = null;
+let editingCards = [];
+
+function openEditDeckModal(deckId) {
+  const deck = userDecks.find(d => d.id === deckId);
+  if (!deck) return;
+
+  activeEditingDeck = deck;
+  editingCards = (deck.cards || []).map(c => ({ ...c }));
+
+  document.getElementById('editDeckNameInput').value = deck.title || '';
+  document.getElementById('editDeckDescInput').value = deck.description || '';
+  document.getElementById('quickAddFrontInput').value = '';
+  document.getElementById('quickAddBackInput').value = '';
+
+  renderEditingCardsList();
+  document.getElementById('editDeckModal').classList.remove('hidden');
+}
+
+function closeEditDeckModal() {
+  document.getElementById('editDeckModal').classList.add('hidden');
+  activeEditingDeck = null;
+  editingCards = [];
+}
+
+function renderEditingCardsList() {
+  const container = document.getElementById('deckCardsListContainer');
+  const countBadge = document.getElementById('deckCardCountBadge');
+  if (!container) return;
+
+  if (countBadge) {
+    countBadge.textContent = `${editingCards.length} thẻ`;
+  }
+
+  if (editingCards.length === 0) {
+    container.innerHTML = `
+      <div class="p-6 text-center text-slate-400 text-xs border border-dashed border-slate-300 rounded-[4px] bg-slate-50">
+        Chưa có thẻ nào trong bộ. Hãy thêm từ file Excel hoặc nhập nhanh ở trên nhé!
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = editingCards.map((c, idx) => `
+    <div class="flex items-center justify-between gap-2 p-2 bg-white border border-slate-200 rounded-[4px] text-xs hover:border-[#0F172A] transition">
+      <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        <div class="font-bold text-slate-900 truncate font-japanese" title="${escapeHtml(c.char)}">
+          ${escapeHtml(c.char)}
+        </div>
+        <div class="text-slate-600 truncate" title="${escapeHtml(c.meaning || c.hanViet || '')}">
+          ${escapeHtml(c.meaning || c.hanViet || '—')}
+        </div>
+      </div>
+      <button type="button" data-action="remove-editing-card" data-index="${idx}"
+              class="w-6 h-6 flex items-center justify-center rounded border border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer shrink-0 font-bold"
+              title="Xóa thẻ này">
+        ✕
+      </button>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-action="remove-editing-card"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.index, 10);
+      editingCards.splice(idx, 1);
+      renderEditingCardsList();
+    });
+  });
+}
+
+function quickAddCardToEditList() {
+  const frontInput = document.getElementById('quickAddFrontInput');
+  const backInput = document.getElementById('quickAddBackInput');
+  const front = (frontInput.value || '').trim();
+  const back = (backInput.value || '').trim();
+
+  if (!front) {
+    showToast('Vui lòng nhập nội dung mặt trước (câu hỏi/thuật ngữ).', 'error');
+    frontInput.focus();
+    return;
+  }
+
+  editingCards.push({
+    char: front,
+    hanViet: '',
+    meaning: back || '—',
+    onyomi: '—',
+    kunyomi: '—',
+    jlpt: 'Tự do'
+  });
+
+  frontInput.value = '';
+  backInput.value = '';
+  renderEditingCardsList();
+  showToast(`Đã thêm thẻ [${front}] vào danh sách.`, 'success');
+}
+
+/**
+ * Đọc file Excel 2 cột (Cột 1: Câu hỏi, Cột 2: Đáp án)
+ */
+function handleExcelUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (typeof XLSX === 'undefined') {
+    showToast('Thư viện Excel đang được tải, vui lòng kiểm tra kết nối mạng và thử lại!', 'error');
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      
+      // Chuyển sheet thành mảng 2 chiều
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      const newCards = [];
+
+      rawRows.forEach((row, index) => {
+        if (!row || row.length < 2) return;
+        const col1 = String(row[0] || '').trim();
+        const col2 = String(row[1] || '').trim();
+
+        // Bỏ qua dòng tiêu đề nếu chứa chữ câu hỏi, mặt trước, question, front, thuật ngữ
+        const lowerCol1 = col1.toLowerCase();
+        if (index === 0 && (
+          lowerCol1.includes('câu hỏi') || 
+          lowerCol1.includes('mặt trước') || 
+          lowerCol1.includes('question') || 
+          lowerCol1.includes('front') || 
+          lowerCol1.includes('thuật ngữ') || 
+          lowerCol1.includes('từ vựng')
+        )) {
+          return;
+        }
+
+        if (col1 && col2) {
+          newCards.push({
+            char: col1,
+            hanViet: '',
+            meaning: col2,
+            onyomi: '—',
+            kunyomi: '—',
+            jlpt: 'Excel'
+          });
+        }
+      });
+
+      if (newCards.length === 0) {
+        showToast('Không tìm thấy dữ liệu hợp lệ! Đảm bảo Cột 1 là Câu hỏi, Cột 2 là Đáp án.', 'warning');
+        return;
+      }
+
+      editingCards = editingCards.concat(newCards);
+      renderEditingCardsList();
+      showToast(`Đã đọc thành công ${newCards.length} thẻ từ file Excel!`, 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng file!', 'error');
+    } finally {
+      event.target.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function downloadSampleExcel() {
+  if (typeof XLSX === 'undefined') {
+    showToast('Thư viện Excel chưa sẵn sàng, vui lòng thử lại sau giây lát!', 'warning');
+    return;
+  }
+  const sampleData = [
+    ["Câu hỏi (Mặt trước)", "Đáp án (Mặt sau)"],
+    ["桜 (さくら)", "Hoa anh đào - Biểu tượng của mùa xuân Nhật Bản"],
+    ["勉強 (べんきょう)", "Học tập, rèn luyện kiến thức"],
+    ["先生 (せんせい)", "Thầy cô giáo, giáo viên, bác sĩ"],
+    ["愛 (あい)", "Tình yêu thương, ái tình, trân quý"],
+    ["ありがとうございます", "Cảm ơn bạn rất nhiều (lịch sự)"],
+    ["こんにちは", "Xin chào (lời chào ban ngày)"]
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(sampleData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Flashcards");
+  XLSX.writeFile(wb, "Kizuna_Flashcard_Mau.xlsx");
+  showToast('Đã tải xuống file Excel mẫu 2 cột thành công!', 'success');
+}
+
+function saveDeckChanges() {
+  if (!activeEditingDeck) return;
+  const nameInput = document.getElementById('editDeckNameInput');
+  const descInput = document.getElementById('editDeckDescInput');
+  const title = (nameInput.value || '').trim();
+  const desc = (descInput.value || '').trim();
+
+  if (!title) {
+    showToast('Vui lòng nhập tên bộ thẻ nhé.', 'error');
+    nameInput.focus();
+    return;
+  }
+
+  activeEditingDeck.title = title;
+  activeEditingDeck.description = desc;
+  activeEditingDeck.cards = [...editingCards];
+
+  saveLocalDecks();
+  renderDecks();
+  closeEditDeckModal();
+  showToast(`Đã lưu thay đổi bộ thẻ "${title}" thành công!`, 'success');
+}
+
+// =========================================================================
+// 9. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
   loadDecks();
@@ -489,4 +1005,27 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnCloseAddCardModal')?.addEventListener('click', closeAddCardModal);
   document.getElementById('btnCancelAddCard')?.addEventListener('click', closeAddCardModal);
   document.getElementById('btnSubmitAddCard')?.addEventListener('click', submitNewCard);
+
+  // Edit Deck Modal Events
+  document.getElementById('btnCloseEditDeckModal')?.addEventListener('click', closeEditDeckModal);
+  document.getElementById('btnCancelEditDeck')?.addEventListener('click', closeEditDeckModal);
+  document.getElementById('btnSaveDeckChanges')?.addEventListener('click', saveDeckChanges);
+  document.getElementById('btnTriggerExcelUpload')?.addEventListener('click', () => {
+    document.getElementById('excelFileInput')?.click();
+  });
+  document.getElementById('excelFileInput')?.addEventListener('change', handleExcelUpload);
+  document.getElementById('btnDownloadSampleExcel')?.addEventListener('click', downloadSampleExcel);
+  document.getElementById('btnQuickAddCard')?.addEventListener('click', quickAddCardToEditList);
+
+  // Merge Modal Events
+  document.getElementById('btnCloseMergeModal')?.addEventListener('click', closeMergeModal);
+  document.getElementById('btnCancelMerge')?.addEventListener('click', closeMergeModal);
+  document.getElementById('btnConfirmMerge')?.addEventListener('click', executeMergeDecks);
+
+  // Global click to close dropdown menus
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.dropdown-container')) {
+      closeAllMenus();
+    }
+  });
 });

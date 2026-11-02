@@ -19,6 +19,7 @@ let currentDeckId = null;
 let currentCards = [];
 let activeCardIndex = 0;
 let isFlipped = false;
+let editingCardIndex = -1;
 
 // 2. Tiện ích An Toàn Chuỗi
 function escapeHtml(text) {
@@ -198,6 +199,11 @@ function renderCardsList(filterQuery = '') {
               <span>Luyện viết</span>
             </a>
           ` : ''}
+          <button type="button" data-action="edit-card" data-index="${originalIdx}"
+                  class="w-7 h-7 flex items-center justify-center rounded border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer font-bold text-xs"
+                  title="Chỉnh sửa thẻ này">
+            ✏️
+          </button>
           <button type="button" data-action="delete-card" data-index="${originalIdx}"
                   class="w-7 h-7 flex items-center justify-center rounded border border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer font-bold text-xs"
                   title="Xóa thẻ này khỏi bộ">
@@ -208,11 +214,12 @@ function renderCardsList(filterQuery = '') {
     `;
   }).join('');
 
-  // Gắn sự kiện phát âm
-  container.querySelectorAll('[data-action="speak"]').forEach(btn => {
+  // Gắn sự kiện sửa thẻ lẻ
+  container.querySelectorAll('[data-action="edit-card"]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      speakText(btn.dataset.text);
+      const idx = parseInt(btn.dataset.index, 10);
+      openEditCardModal(idx);
     });
   });
 
@@ -321,6 +328,44 @@ function submitNewCard() {
   renderCardsList(document.getElementById('internalSearchInput')?.value || '');
   closeAddCardModal();
   showToast(`Đã thêm thẻ [${char}] vào bộ thành công!`, 'success');
+}
+
+// 10.1 Modal Chỉnh Sửa Thẻ Học
+function openEditCardModal(index) {
+  if (index < 0 || index >= currentCards.length) return;
+  editingCardIndex = index;
+  const card = currentCards[index];
+  document.getElementById('inputEditChar').value = card.char || '';
+  document.getElementById('inputEditHanViet').value = card.hanViet || '';
+  document.getElementById('inputEditMeaning').value = card.meaning || '';
+  document.getElementById('modalEditCard').classList.remove('hidden');
+}
+
+function closeEditCardModal() {
+  editingCardIndex = -1;
+  document.getElementById('modalEditCard').classList.add('hidden');
+}
+
+function saveEditCard() {
+  if (editingCardIndex < 0 || editingCardIndex >= currentCards.length) return;
+  const char = (document.getElementById('inputEditChar').value || '').trim();
+  const hanViet = (document.getElementById('inputEditHanViet').value || '').trim();
+  const meaning = (document.getElementById('inputEditMeaning').value || '').trim();
+
+  if (!char || !meaning) {
+    showToast('Vui lòng nhập đầy đủ mặt trước và mặt sau của thẻ.', 'error');
+    return;
+  }
+
+  currentCards[editingCardIndex].char = char;
+  currentCards[editingCardIndex].hanViet = hanViet;
+  currentCards[editingCardIndex].meaning = meaning;
+
+  saveCurrentDeck();
+  renderOverview();
+  renderCardsList(document.getElementById('internalSearchInput')?.value || '');
+  closeEditCardModal();
+  showToast(`Đã cập nhật thẻ [${char}] thành công!`, 'success');
 }
 
 // 11. Modal Chọn Cách Học Thẻ
@@ -688,6 +733,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnCloseAddCardModal')?.addEventListener('click', closeAddCardModal);
   document.getElementById('btnCancelAddCard')?.addEventListener('click', closeAddCardModal);
   document.getElementById('btnSubmitAddCard')?.addEventListener('click', submitNewCard);
+
+  // Sửa thẻ lẻ
+  document.getElementById('btnCloseEditCardModal')?.addEventListener('click', closeEditCardModal);
+  document.getElementById('btnCancelEditCard')?.addEventListener('click', closeEditCardModal);
+  document.getElementById('btnSaveEditCard')?.addEventListener('click', saveEditCard);
 
   // Excel Nạp & Mẫu
   document.getElementById('btnQuickExcelImport')?.addEventListener('click', () => {

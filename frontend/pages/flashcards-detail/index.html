@@ -370,6 +370,54 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL SỬA THẺ HỌC ==================== -->
+  <div id="modalEditCard" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border-2 border-[#0F172A] rounded-[8px] shadow-[5px_5px_0px_0px_#0F172A] max-w-md w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2.5">
+        <h4 class="font-bold text-sm text-[#0F2545] flex items-center gap-1.5">
+          <span>✏️</span>
+          <span>Chỉnh Sửa Thẻ Học</span>
+        </h4>
+        <button type="button" id="btnCloseEditCardModal" class="text-slate-500 hover:text-slate-900 font-bold cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label for="inputEditChar" class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
+            Mặt trước: Câu hỏi / Từ vựng / Hán tự *
+          </label>
+          <input type="text" id="inputEditChar" placeholder="Nhập câu hỏi, từ vựng hoặc Hán tự..." 
+                 class="w-full px-3 py-2 text-xs border border-[#0F172A] rounded bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 font-japanese">
+        </div>
+
+        <div>
+          <label for="inputEditHanViet" class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
+            Âm đọc / Hán Việt (Tùy chọn)
+          </label>
+          <input type="text" id="inputEditHanViet" placeholder="Ví dụ: HỌC TẬP, ÁI..." 
+                 class="w-full px-3 py-2 text-xs border border-[#0F172A] rounded bg-white focus:outline-none focus:ring-1 focus:ring-sky-500">
+        </div>
+
+        <div>
+          <label for="inputEditMeaning" class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
+            Mặt sau: Đáp án / Nghĩa tiếng Việt *
+          </label>
+          <textarea id="inputEditMeaning" rows="2" placeholder="Nhập đáp án hoặc nghĩa tiếng Việt..." 
+                    class="w-full px-3 py-2 text-xs border border-[#0F172A] rounded bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+        <button type="button" id="btnCancelEditCard" class="px-3.5 py-1.5 text-xs font-semibold rounded border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer">
+          Hủy
+        </button>
+        <button type="button" id="btnSaveEditCard" class="px-4 py-1.5 text-xs font-bold rounded bg-[#006194] hover:bg-[#004B73] text-white cursor-pointer shadow-xs">
+          Lưu Thay Đổi
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== MODAL SỬA THÔNG TIN BỘ THẺ ==================== -->
   <div id="modalEditDeckInfo" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white border-2 border-[#0F172A] rounded-[8px] shadow-[5px_5px_0px_0px_#0F172A] max-w-md w-full p-5 space-y-4">

@@ -285,9 +285,10 @@ function renderLearnerGrid(items) {
   window.lastRenderedDictionaryItems = items;
 
   grid.innerHTML = items.map((k, idx) => `
-    <div class="bg-white rounded-xl border border-[#E2E8F0] hover:border-slate-300 p-4 flex flex-col justify-between transition-all relative h-[310px] max-h-[310px]">
-      <div class="h-[230px] max-h-[230px] flex flex-col justify-between">
-        <div class="flex items-center justify-between mb-3 border-b border-[#E2E8F0] pb-2">
+    <div class="bg-white rounded-xl border border-[#E2E8F0] hover:border-slate-300 p-4 flex flex-col justify-between transition-all relative">
+      <div class="space-y-3">
+        <!-- Header thông tin: Cấp độ JLPT, số nét, bộ thủ -->
+        <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
           <span class="badge-nhai bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold px-2 py-0.5 rounded-full">${escapeHtml(k.jlpt || 'N5')}</span>
           <div class="flex items-center gap-1.5">
             <span class="badge-nhai bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold font-meta px-2 py-0.5 rounded-full">${k.strokeCount || 1} nét</span>
@@ -295,10 +296,10 @@ function renderLearnerGrid(items) {
           </div>
         </div>
 
-        <!-- Nội dung chính của chữ Hán -->
-        <div>
-          <div class="flex items-center gap-4 mb-3">
-            <div class="w-16 h-16 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] flex items-center justify-center font-serif text-4xl font-extrabold text-[#0F172A]">
+        <!-- Nội dung chính của chữ Hán: Nằm liền mạch ngay dưới Header, không bị khoảng trống -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] flex items-center justify-center font-serif text-4xl font-extrabold text-[#0F172A] shrink-0">
               ${escapeHtml(k.kanjiChar)}
             </div>
             <div class="flex-1 min-w-0">
@@ -315,7 +316,7 @@ function renderLearnerGrid(items) {
       </div>
 
       <!-- 2 NÚT HÀNH ĐỘNG DƯỚI CARD -->
-      <div class="pt-3 mt-auto border-t border-[#E2E8F0] flex items-center gap-2 shrink-0">
+      <div class="pt-3 mt-4 border-t border-[#E2E8F0] flex items-center gap-2 shrink-0">
         <button type="button" 
                 data-action="save-deck"
                 data-idx="${idx}"

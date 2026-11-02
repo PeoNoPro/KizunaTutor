@@ -245,46 +245,10 @@ function resetProgress() {
   showToast('Đã bắt đầu lại từ thẻ đầu tiên!', 'info');
 }
 
-// 11. Render thanh thumbnails
-function renderThumbnails() {
-  const container = document.getElementById('thumbnailsContainer');
-  const countEl = document.getElementById('thumbnailCount');
-  if (!container) return;
+// 11. Render thanh thumbnails (đã loại bỏ theo yêu cầu người dùng)
+function renderThumbnails() {}
 
-  if (countEl) countEl.textContent = `${cards.length} thẻ`;
-
-  container.innerHTML = cards.map((c, idx) => `
-    <button type="button" data-idx="${idx}"
-            class="thumbnail-btn shrink-0 w-8 h-8 rounded border text-xs font-japanese font-bold flex items-center justify-center transition cursor-pointer ${idx === currentIndex ? 'border-slate-900 bg-slate-900 text-white shadow-xs' : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-200'}"
-            title="${escapeHtml(c.char)}: ${escapeHtml(c.meaning || c.hanViet || '')}">
-      ${escapeHtml(c.char ? c.char.substring(0, 2) : String(idx + 1))}
-    </button>
-  `).join('');
-
-  container.querySelectorAll('.thumbnail-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.idx, 10);
-      if (!isNaN(idx)) {
-        currentIndex = idx;
-        renderCard();
-      }
-    });
-  });
-}
-
-function highlightActiveThumbnail() {
-  const container = document.getElementById('thumbnailsContainer');
-  if (!container) return;
-  container.querySelectorAll('.thumbnail-btn').forEach(btn => {
-    const idx = parseInt(btn.dataset.idx, 10);
-    if (idx === currentIndex) {
-      btn.className = 'thumbnail-btn shrink-0 w-8 h-8 rounded border border-slate-900 bg-slate-900 text-white font-japanese font-bold flex items-center justify-center shadow-xs cursor-pointer';
-      btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    } else {
-      btn.className = 'thumbnail-btn shrink-0 w-8 h-8 rounded border border-slate-300 bg-slate-50 text-slate-700 font-japanese font-bold flex items-center justify-center hover:bg-slate-200 cursor-pointer';
-    }
-  });
-}
+function highlightActiveThumbnail() {}
 
 // 12. Điều hướng quay lại
 function goBack() {

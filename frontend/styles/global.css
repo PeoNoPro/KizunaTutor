@@ -1,16 +1,25 @@
 @import './variables.css';
 
-*, *::before, *::after {
+/* Chống giật khung hình khi thanh cuộn xuất hiện/biến mất & chuẩn hóa box-sizing */
+html {
+  scrollbar-gutter: stable;
   box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
   margin: 0;
   padding: 0;
 }
 
-html, body {
-  min-height: 100%;
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Ngăn chặn triệt để thanh cuộn ngang ngoài ý muốn */
+  min-height: 100vh;
   font-family: var(--font-family-sans);
-  background-color: var(--color-bg-page);
-  color: var(--color-text-main);
+  background-color: var(--color-bg-page, #F8FAFC);
+  color: var(--color-text-main, #1E293B);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -44,6 +53,15 @@ input, select, textarea {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
+/* Utilities chống thanh cuộn ngang thừa & cuộn mượt không hiện scrollbar */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Scrollbar Minimal */
 ::-webkit-scrollbar {
   width: 6px;
@@ -59,4 +77,3 @@ input, select, textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
 }
-

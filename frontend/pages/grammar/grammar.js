@@ -167,28 +167,28 @@ function openGrammarDetail(ruleId) {
 
   if (rule.examples && rule.examples.length > 0) {
     examplesHtml = rule.examples.map(ex => `
-      <div class="p-4 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl space-y-1.5 hover:bg-white transition">
+      <div class="p-4 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl space-y-1.5 hover:bg-white transition break-words overflow-hidden">
         <div class="flex items-center justify-between gap-2">
-          <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545]">
+          <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545] break-words whitespace-normal min-w-0">
             ${ex.ja}
           </div>
           <button type="button" data-action="pronounce-ex" data-text="${ex.ja}"
-                  class="w-7 h-7 rounded-lg border border-[#ECE8DE] bg-white hover:bg-[#FFE5EC] hover:text-[#831843] flex items-center justify-center text-xs transition cursor-pointer"
+                  class="w-7 h-7 rounded-lg border border-[#ECE8DE] bg-white hover:bg-[#FFE5EC] hover:text-[#831843] flex items-center justify-center text-xs transition cursor-pointer shrink-0"
                   title="Nghe câu ví dụ">
             <span class="material-symbols-outlined text-[15px]">volume_up</span>
           </button>
         </div>
-        <div class="text-xs text-[#68737D] font-mono">
+        <div class="text-xs text-[#68737D] font-mono break-words">
           Furigana: ${ex.reading}
         </div>
-        <div class="text-xs md:text-sm font-semibold text-[#059669] pt-1">
+        <div class="text-xs md:text-sm font-semibold text-[#059669] pt-1 break-words">
           Dịch nghĩa: ${ex.vi}
         </div>
       </div>
     `).join('');
   } else {
     examplesHtml = `
-      <div class="p-4 bg-[#FAF8F2] border border-dashed border-[#ECE8DE] rounded-xl text-center text-xs text-[#68737D]">
+      <div class="p-4 bg-[#FAF8F2] border border-dashed border-[#ECE8DE] rounded-xl text-center text-xs text-[#68737D] break-words overflow-hidden">
         Đang cập nhật thêm các câu ví dụ đàm thoại thực tế cho mẫu câu này.
       </div>
     `;
@@ -196,36 +196,36 @@ function openGrammarDetail(ruleId) {
 
   container.innerHTML = `
     <!-- Header Thẻ Mẫu Câu -->
-    <div class="bg-white border border-[#ECE8DE] rounded-2xl p-6 shadow-sm space-y-3">
+    <div class="bg-white border border-[#ECE8DE] rounded-2xl p-6 shadow-sm space-y-3 break-words overflow-hidden">
       <div class="flex items-center justify-between flex-wrap gap-2">
-        <div class="flex items-center gap-3">
-          <span class="font-japanese text-3xl md:text-4xl font-bold text-[#0F2545]">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="font-japanese text-3xl md:text-4xl font-bold text-[#0F2545] break-words">
             ${rule.pattern}
           </span>
-          <span class="text-sm text-[#68737D] font-mono italic">
+          <span class="text-sm text-[#68737D] font-mono italic break-words">
             (${rule.romaji})
           </span>
         </div>
-        <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] shrink-0">
           Trình độ ${rule.level}
         </span>
       </div>
 
-      <div class="p-3.5 bg-emerald-50/60 border border-emerald-100 rounded-xl">
+      <div class="p-3.5 bg-emerald-50/60 border border-emerald-100 rounded-xl break-words overflow-hidden">
         <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-0.5">Ý nghĩa ngữ pháp:</span>
-        <p class="text-sm md:text-base font-bold text-[#0F2545] leading-relaxed">
+        <p class="text-sm md:text-base font-bold text-[#0F2545] leading-relaxed break-words">
           ${rule.meaning}
         </p>
       </div>
     </div>
 
     <!-- Công Thức Kết Hợp (Formation) -->
-    <div class="bg-white border border-[#ECE8DE] rounded-2xl p-6 shadow-sm space-y-2">
+    <div class="bg-white border border-[#ECE8DE] rounded-2xl p-6 shadow-sm space-y-2 break-words overflow-hidden">
       <h4 class="font-bold text-sm md:text-base text-[#0F2545] flex items-center gap-2">
         <span class="material-symbols-outlined text-[18px] text-[#006194]">account_tree</span>
         <span>Công thức kết hợp (Formation)</span>
       </h4>
-      <div class="p-3.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl font-mono text-xs md:text-sm font-bold text-[#006194]">
+      <div class="p-3.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl font-mono text-xs md:text-sm font-bold text-[#006194] break-words overflow-hidden whitespace-normal">
         ${rule.formation}
       </div>
     </div>

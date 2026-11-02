@@ -138,10 +138,11 @@ function renderDecks(filterQuery = '') {
     const borderClass = colorBorderMap[deck.color] || 'border-[#006194]';
     const pillClass = colorBgPillMap[deck.color] || 'bg-sky-50 text-[#006194] border-sky-200';
     const previewChars = (deck.cards || []).slice(0, 4).map(c => c.char).join(' ');
+    const firstChar = (deck.cards && deck.cards.length > 0 && deck.cards[0].char) ? deck.cards[0].char : '';
 
     html += `
-      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between border-t-4 ${borderClass} group">
-        <div class="space-y-3">
+      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between border-t-4 ${borderClass} group h-full">
+        <div class="space-y-3 flex-1">
           <div class="flex items-start justify-between gap-2">
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${pillClass}">
               ${cardCount} chữ Hán
@@ -156,10 +157,10 @@ function renderDecks(filterQuery = '') {
 
           <div>
             <h3 class="font-bold text-base md:text-lg text-[#0F2545] group-hover:text-[#006194] transition">
-              ${deck.title}
+              ${escapeHtml(deck.title)}
             </h3>
             <p class="text-xs text-[#68737D] mt-1 line-clamp-2">
-              ${deck.description || 'Chưa có ghi chú mô tả cho bộ thẻ này.'}
+              ${escapeHtml(deck.description || 'Chưa có ghi chú mô tả cho bộ thẻ này.')}
             </p>
           </div>
 
@@ -171,11 +172,25 @@ function renderDecks(filterQuery = '') {
           </div>
         </div>
 
-        <div class="pt-4 mt-4 border-t border-[#ECE8DE] flex items-center justify-between gap-2">
+        <!-- Cụm nút hành động dưới đáy thư mục bám sát đáy thẻ (mt-auto) -->
+        <div class="pt-4 mt-auto border-t border-[#ECE8DE] grid grid-cols-3 gap-2">
+          <a href="/shodo${firstChar ? `?char=${encodeURIComponent(firstChar)}` : ''}"
+             class="py-2 px-1 text-xs font-bold rounded-xl bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 transition no-underline text-center truncate"
+             title="Luyện viết nét các chữ trong bộ trên Canvas Shodo">
+            <span>🖌️</span>
+            <span>Luyện Viết</span>
+          </a>
+          <a href="/kanji-game?deckId=${encodeURIComponent(deck.id)}"
+             class="py-2 px-1 text-xs font-bold rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 flex items-center justify-center gap-1 transition no-underline text-center truncate"
+             title="Chơi minigame phản xạ Kanji Mưa Chữ với bộ thẻ này">
+            <span>🎮</span>
+            <span>Bắn Chữ</span>
+          </a>
           <button type="button" data-action="open-deck" data-id="${deck.id}"
-                  class="flex-1 py-2 px-3 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs">
-            <span class="material-symbols-outlined text-[16px]">style</span>
-            <span>Xem &amp; Lật thẻ</span>
+                  class="py-2 px-1 text-xs font-bold rounded-xl bg-[#006194] hover:bg-[#004B73] text-white flex items-center justify-center gap-1 transition cursor-pointer text-center truncate shadow-xs"
+                  title="Xem &amp; lật thẻ chi tiết">
+            <span>👁️</span>
+            <span>Xem</span>
           </button>
         </div>
       </div>

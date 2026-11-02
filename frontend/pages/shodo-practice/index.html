@@ -20,11 +20,11 @@
   <link rel="stylesheet" href="/styles/utilities.css">
 
   <style>
-    /* Bảng Canvas Shodo */
+    /* Bảng Canvas Shodo: Cố định kích thước chuẩn vuông, không co giãn làm méo nét vẽ */
     .canvas-board-wrapper {
       position: relative;
-      width: 100%;
-      max-width: 380px;
+      width: 360px;
+      max-width: 100%;
       aspect-ratio: 1 / 1;
       background-color: #FFFFFF;
       border: 1px solid #ECE8DE;
@@ -35,6 +35,8 @@
       justify-content: center;
       touch-action: none;
       box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      flex-shrink: 0;
+      margin: 0 auto;
     }
 
     #practiceBoard {
@@ -153,10 +155,10 @@
       </div>
 
       <!-- Main Layout: 2 Columns (Canvas Area 5/12 + Details & Tools 7/12) -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full min-w-0">
         
         <!-- ==================== CỘT 1: KHUNG VẼ CANVAS Ô MỄ ==================== -->
-        <div class="lg:col-span-5 bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm flex flex-col items-center space-y-4">
+        <div class="lg:col-span-5 bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm flex flex-col items-center space-y-4 min-w-0 w-full">
           
           <!-- Thông tin chữ đang chọn trên Canvas -->
           <div class="w-full flex items-center justify-between pb-3 border-b border-[#ECE8DE]">
@@ -234,7 +236,7 @@
         </div>
 
         <!-- ==================== CỘT 2: CHI TIẾT HÁN TỰ & CÔNG CỤ ==================== -->
-        <div class="lg:col-span-7 space-y-5">
+        <div class="lg:col-span-7 space-y-5 min-w-0 w-full">
           
           <!-- Hộp Tìm / Đổi Chữ Nhanh -->
           <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 md:p-5 shadow-sm">

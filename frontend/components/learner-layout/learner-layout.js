@@ -108,6 +108,7 @@ export const PAGE_META_MAP = {
   'kana': { title: 'Đấu trường gõ Kana', badge: 'Học tập & rèn luyện' },
   'flashcards': { title: 'Bộ thẻ của tôi', badge: 'Học tập & rèn luyện' },
   'grammar': { title: 'Ngữ pháp & AI Sensei', badge: 'Học tập & rèn luyện' },
+  'learning-support': { title: 'Kho từ vựng & Hỗ trợ học tập', badge: 'Học tập & rèn luyện' },
   'kanji-game': { title: 'Game Mưa chữ Hán', badge: 'Học tập & rèn luyện' }
 };
 
@@ -362,6 +363,40 @@ export function bindLearnerLayoutEvents() {
 // 8. TỰ ĐỘNG KHỞI TẠO KHUNG BẢO VỆ TOÀN DIỆN (WRAPPER SHELL)
 // =========================================================================
 /**
+ * Khóa rung giật thanh cuộn toàn cục và chống tràn màn hình ngang
+ */
+export function injectGlobalLayoutStyles() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('kizunaGlobalLayoutStyles')) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'kizunaGlobalLayoutStyles';
+  styleEl.textContent = `
+    html {
+      scrollbar-gutter: stable;
+      box-sizing: border-box;
+    }
+    *, *::before, *::after {
+      box-sizing: inherit;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden !important;
+      background-color: #F8FAFC;
+      min-height: 100vh;
+    }
+    .scrollbar-none::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-none {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  `;
+  document.head.appendChild(styleEl);
+}
+
+/**
  * Tự động bọc toàn bộ nội dung của trang học viên vào bộ khung chung
  * @param {Object} options
  * @param {string} options.activeMenu - Key của menu đang mở (vd: 'kanji-dictionary', 'shodo', 'flashcards', 'kanji-game')
@@ -371,6 +406,9 @@ export function bindLearnerLayoutEvents() {
  * @param {string} options.rightContent - Nội dung HTML tùy biến bổ sung ở góc phải header
  */
 export function initLearnerShell(options = {}) {
+  // 0. Bổ sung style chống rung giật thanh cuộn & chống tràn ngay lập tức
+  injectGlobalLayoutStyles();
+
   // Kiểm tra chống trùng lặp: Nếu sidebar đã được render, tuyệt đối không tạo thêm
   if (document.getElementById('learnerSidebar')) {
     return;

@@ -181,17 +181,18 @@ function stopStrokeAnimation() {
 // =========================================================================
 // 5. KHỞI TẠO BẢNG CANVAS 2D ĐỒ HỌA CAO CẤP
 // =========================================================================
+const CANONICAL_CANVAS_SIZE = 360;
+
 function setupCanvas() {
   canvas = document.getElementById('practiceBoard');
   if (!canvas) return;
 
   ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 2;
-  const rect = canvas.getBoundingClientRect();
 
-  const size = rect.width || 360;
-  canvas.width = Math.round(size * dpr);
-  canvas.height = Math.round(size * dpr);
+  // Giữ kích thước pixel nội tại cố định 360 * DPR, bảo toàn tỷ lệ và không bị co giãn CSS làm méo nét
+  canvas.width = Math.round(CANONICAL_CANVAS_SIZE * dpr);
+  canvas.height = Math.round(CANONICAL_CANVAS_SIZE * dpr);
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(dpr, dpr);
@@ -236,9 +237,10 @@ function setupCanvas() {
 
 function getCanvasCoordinates(e) {
   const rect = canvas.getBoundingClientRect();
+  const scale = CANONICAL_CANVAS_SIZE / (rect.width || CANONICAL_CANVAS_SIZE);
   return {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top
+    x: (e.clientX - rect.left) * scale,
+    y: (e.clientY - rect.top) * scale
   };
 }
 
@@ -271,8 +273,7 @@ function stopDrawing() {
 
 function redrawCanvas() {
   if (!canvas || !ctx) return;
-  const rect = canvas.getBoundingClientRect();
-  ctx.clearRect(0, 0, rect.width, rect.height);
+  ctx.clearRect(0, 0, CANONICAL_CANVAS_SIZE, CANONICAL_CANVAS_SIZE);
 
   drawnStrokes.forEach(stroke => {
     if (stroke.length < 2) return;

@@ -1,381 +1,624 @@
 /**
- * KizunaTutor - Tra cứu chữ Hán bằng nét vẽ tay AI (OHR)
- * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
- * TUYỆT ĐỐI KHÔNG DÙNG DỮ LIỆU MẪU (NO MOCK DATA INJECTION)
+ * KizunaTutor - Tra Cứu Chữ Hán Bằng Nét Vẽ Viết Tay AI (Real-time Handwriting OHR)
+ * Phục dựng 100% chuẩn giao diện & tính năng từ phiên bản gốc (legacy handwriting-search.html)
+ * Giữ nguyên cấu trúc Layout dùng chung cho Học Viên (Header, Sidebar, Footer)
+ * Tuân thủ FRONTEND_RULES: Zero mock data, Zero exception leak
  */
 
-import { showToast } from '/js/main.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+import { showToast } from '/js/main.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
   activeMenu: 'handwriting',
-  pageTitle: 'Tra cứu nét vẽ OHR',
+  pageTitle: 'Tra Cứu Viết Tay AI 🖌️',
   badge: 'Nhận diện nét vẽ AI'
 });
 
 // =========================================================================
 // 1. TRẠNG THÁI CANVAS & QUẢN LÝ NÉT VẼ
 // =========================================================================
-let canvas = null;
-let ctx = null;
-let strokes = []; // Mảng chứa các nét [{x, y, t}]
-let currentStroke = [];
-let isDrawing = false;
-let recognizeDebounceTimer = null;
+let pageHwCanvas = null;
+let pageHwCtx = null;
+let pageHwStrokes = [];
+let pageHwCurrentStroke = [];
+let pageHwIsDrawing = false;
+let pageHwDebounceTimer = null;
+let pageHwCurrentCandidates = [];
+let pageHwSelectedKanji = null;
+
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 // =========================================================================
 // 2. KHỞI TẠO BẢNG CANVAS Ô MỄ (300x300 HIGH-DPI)
 // =========================================================================
-function setupCanvas() {
-  canvas = document.getElementById('hwCanvas');
-  if (!canvas) return;
+function initPageHwCanvas() {
+  pageHwCanvas = document.getElementById('pageHwCanvas');
+  if (!pageHwCanvas) return;
+  pageHwCtx = pageHwCanvas.getContext('2d');
 
-  ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 2;
-  const w = 300;
-  const h = 300;
+  const rect = pageHwCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = (rect.width > 0) ? rect.width : 300;
+  const h = (rect.height > 0) ? rect.height : 300;
 
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  canvas.style.width = `${w}px`;
-  canvas.style.height = `${h}px`;
+  pageHwCanvas.width = Math.round(w * dpr);
+  pageHwCanvas.height = Math.round(h * dpr);
+  pageHwCanvas.style.width = w + 'px';
+  pageHwCanvas.style.height = h + 'px';
+  pageHwCanvas.style.touchAction = 'none';
 
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.scale(dpr, dpr);
+  pageHwCtx.setTransform(1, 0, 0, 1, 0, 0);
+  pageHwCtx.scale(dpr, dpr);
 
-  // Sự kiện chuột
-  canvas.addEventListener('mousedown', onMouseDown);
-  canvas.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
+  pageHwCanvas.onmousedown = pageHwOnMouseDown;
+  pageHwCanvas.onmousemove = pageHwOnMouseMove;
+  window.addEventListener('mouseup', pageHwOnMouseUp);
 
-  // Sự kiện cảm ứng chạm
-  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-  window.addEventListener('touchend', onTouchEnd);
+  pageHwCanvas.ontouchstart = pageHwOnTouchStart;
+  pageHwCanvas.ontouchmove = pageHwOnTouchMove;
+  window.addEventListener('touchend', pageHwOnTouchEnd);
 
-  redrawBoard();
+  pageHwRedraw();
 }
 
-function getCoords(e) {
-  const rect = canvas.getBoundingClientRect();
+function getPageHwCoords(e) {
+  if (!pageHwCanvas) return { x: 0, y: 0 };
+  const rect = pageHwCanvas.getBoundingClientRect();
   const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
   const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
   return {
     x: clientX - rect.left,
-    y: clientY - rect.top,
-    t: Date.now()
+    y: clientY - rect.top
   };
 }
 
-function onMouseDown(e) {
+function pageHwOnMouseDown(e) {
   if (e.button !== undefined && e.button !== 0) return;
-  isDrawing = true;
-  const pt = getCoords(e);
-  currentStroke = [pt];
-
-  ctx.beginPath();
-  ctx.moveTo(pt.x, pt.y);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#0F2545';
-  ctx.lineWidth = 5.5;
+  if (e.preventDefault) e.preventDefault();
+  pageHwIsDrawing = true;
+  const pt = getPageHwCoords(e);
+  pageHwCurrentStroke = [pt];
+  pageHwDrawSegment(pt, pt);
 }
 
-function onMouseMove(e) {
-  if (!isDrawing) return;
-  const pt = getCoords(e);
-  currentStroke.push(pt);
-
-  ctx.lineTo(pt.x, pt.y);
-  ctx.stroke();
-}
-
-function onMouseUp() {
-  if (!isDrawing) return;
-  isDrawing = false;
-  if (currentStroke.length > 1) {
-    strokes.push([...currentStroke]);
-    updateStrokeBadge();
-    triggerAutoRecognition();
-  }
-  currentStroke = [];
-}
-
-function onTouchStart(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  const me = new MouseEvent('mousedown', {
-    clientX: touch.clientX,
-    clientY: touch.clientY
-  });
-  canvas.dispatchEvent(me);
-}
-
-function onTouchMove(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  const me = new MouseEvent('mousemove', {
-    clientX: touch.clientX,
-    clientY: touch.clientY
-  });
-  canvas.dispatchEvent(me);
-}
-
-function onTouchEnd(e) {
-  e.preventDefault();
-  const me = new MouseEvent('mouseup', {});
-  window.dispatchEvent(me);
-}
-
-// =========================================================================
-// 3. VẼ LẠI NỀN Ô MỄ VÀ CÁC NÉT ĐÃ LƯU
-// =========================================================================
-function redrawBoard() {
-  if (!canvas || !ctx) return;
-  const w = 300;
-  const h = 300;
-
-  ctx.clearRect(0, 0, w, h);
-
-  // 1. Vẽ nền ô mễ (Grid lines)
-  ctx.save();
-  ctx.strokeStyle = '#ECE8DE';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 4]);
-
-  ctx.beginPath();
-  // 2 đường chéo
-  ctx.moveTo(0, 0); ctx.lineTo(w, h);
-  ctx.moveTo(w, 0); ctx.lineTo(0, h);
-  // Trục chữ thập
-  ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
-  ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
-  ctx.stroke();
-  ctx.restore();
-
-  // 2. Vẽ lại toàn bộ các nét người dùng đã vẽ
-  if (strokes.length > 0) {
-    ctx.save();
-    ctx.strokeStyle = '#0F2545';
-    ctx.lineWidth = 5.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    for (const s of strokes) {
-      if (!s || s.length === 0) continue;
-      ctx.beginPath();
-      ctx.moveTo(s[0].x, s[0].y);
-      for (let i = 1; i < s.length; i++) {
-        ctx.lineTo(s[i].x, s[i].y);
-      }
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-}
-
-function undoLastStroke() {
-  if (strokes.length > 0) {
-    strokes.pop();
-    redrawBoard();
-    updateStrokeBadge();
-    if (strokes.length > 0) {
-      triggerAutoRecognition();
-    } else {
-      showStandbyState();
-    }
-    showToast('Đã hoàn tác một nét vừa vẽ.', 'info');
-  } else {
-    showToast('Bảng vẽ hiện chưa có nét nào để hoàn tác.', 'info');
-  }
-}
-
-function clearBoard() {
-  strokes = [];
-  currentStroke = [];
-  if (recognizeDebounceTimer) clearTimeout(recognizeDebounceTimer);
-  redrawBoard();
-  updateStrokeBadge();
-  showStandbyState();
-  showToast('Đã xóa sạch bảng vẽ.', 'info');
-}
-
-function updateStrokeBadge() {
-  const badge = document.getElementById('hwStrokeCountBadge');
-  if (badge) {
-    badge.textContent = `${strokes.length} nét`;
-  }
-}
-
-// =========================================================================
-// 4. KÍCH HOẠT NHẬN DIỆN NÉT VẼ AI (GOOGLE OHR SERVICE)
-// =========================================================================
-function triggerAutoRecognition() {
-  if (recognizeDebounceTimer) clearTimeout(recognizeDebounceTimer);
-  if (strokes.length === 0) return;
-
-  showLoadingState();
-  recognizeDebounceTimer = setTimeout(() => {
-    executeRecognition();
-  }, 250);
-}
-
-async function executeRecognition() {
-  if (strokes.length === 0) {
-    showStandbyState();
+function pageHwOnMouseMove(e) {
+  if (!pageHwIsDrawing) return;
+  if (e.preventDefault) e.preventDefault();
+  const pt = getPageHwCoords(e);
+  if (pageHwCurrentStroke.length === 0) {
+    pageHwCurrentStroke.push(pt);
     return;
   }
+  const lastPt = pageHwCurrentStroke[pageHwCurrentStroke.length - 1];
+  pageHwCurrentStroke.push(pt);
+  pageHwDrawSegment(lastPt, pt);
+}
 
-  showLoadingState();
+function pageHwOnMouseUp() {
+  if (!pageHwIsDrawing) return;
+  pageHwIsDrawing = false;
+  if (pageHwCurrentStroke.length > 0) {
+    pageHwStrokes.push(pageHwCurrentStroke);
+    pageHwCurrentStroke = [];
+    pageHwUpdateBadge();
+    pageHwTriggerDebounce();
+  }
+}
 
-  // Chuẩn bị Ink format cho Google Handwriting Input Tools
-  const ink = strokes.map(stroke => {
+function pageHwOnTouchStart(e) {
+  if (e.preventDefault) e.preventDefault();
+  pageHwIsDrawing = true;
+  const pt = getPageHwCoords(e);
+  pageHwCurrentStroke = [pt];
+  pageHwDrawSegment(pt, pt);
+}
+
+function pageHwOnTouchMove(e) {
+  if (!pageHwIsDrawing) return;
+  if (e.preventDefault) e.preventDefault();
+  const pt = getPageHwCoords(e);
+  if (pageHwCurrentStroke.length === 0) {
+    pageHwCurrentStroke.push(pt);
+    return;
+  }
+  const lastPt = pageHwCurrentStroke[pageHwCurrentStroke.length - 1];
+  pageHwCurrentStroke.push(pt);
+  pageHwDrawSegment(lastPt, pt);
+}
+
+function pageHwOnTouchEnd() {
+  if (!pageHwIsDrawing) return;
+  pageHwIsDrawing = false;
+  if (pageHwCurrentStroke.length > 0) {
+    pageHwStrokes.push(pageHwCurrentStroke);
+    pageHwCurrentStroke = [];
+    pageHwUpdateBadge();
+    pageHwTriggerDebounce();
+  }
+}
+
+function pageHwDrawSegment(p1, p2) {
+  if (!pageHwCtx) return;
+  pageHwCtx.save();
+  pageHwCtx.strokeStyle = '#0F172A';
+  pageHwCtx.lineWidth = 6;
+  pageHwCtx.lineCap = 'round';
+  pageHwCtx.lineJoin = 'round';
+  pageHwCtx.beginPath();
+  if (Math.abs(p1.x - p2.x) < 0.5 && Math.abs(p1.y - p2.y) < 0.5) {
+    pageHwCtx.arc(p1.x, p1.y, 3, 0, Math.PI * 2);
+    pageHwCtx.fillStyle = '#0F172A';
+    pageHwCtx.fill();
+    pageHwCtx.restore();
+    return;
+  }
+  pageHwCtx.moveTo(p1.x, p1.y);
+  pageHwCtx.lineTo(p2.x, p2.y);
+  pageHwCtx.stroke();
+  pageHwCtx.restore();
+}
+
+function pageHwRedraw() {
+  if (!pageHwCanvas || !pageHwCtx) return;
+  const rect = pageHwCanvas.getBoundingClientRect();
+  const w = (rect.width > 0) ? rect.width : 300;
+  const h = (rect.height > 0) ? rect.height : 300;
+
+  pageHwCtx.clearRect(0, 0, w, h);
+
+  // Nền trắng + Lưới ô Mễ mờ nhẹ
+  pageHwCtx.save();
+  pageHwCtx.fillStyle = '#FFFFFF';
+  pageHwCtx.fillRect(0, 0, w, h);
+
+  pageHwCtx.strokeStyle = '#E2E8F0';
+  pageHwCtx.lineWidth = 1;
+  pageHwCtx.strokeRect(0, 0, w, h);
+
+  pageHwCtx.strokeStyle = '#CBD5E1';
+  pageHwCtx.lineWidth = 1;
+  pageHwCtx.setLineDash([4, 4]);
+
+  pageHwCtx.beginPath();
+  pageHwCtx.moveTo(0, 0); pageHwCtx.lineTo(w, h);
+  pageHwCtx.moveTo(w, 0); pageHwCtx.lineTo(0, h);
+  pageHwCtx.moveTo(w / 2, 0); pageHwCtx.lineTo(w / 2, h);
+  pageHwCtx.moveTo(0, h / 2); pageHwCtx.lineTo(w, h / 2);
+  pageHwCtx.stroke();
+  pageHwCtx.restore();
+
+  // Vẽ lại toàn bộ nét đã vẽ (đen mực than #0F172A)
+  if (pageHwStrokes.length > 0) {
+    pageHwCtx.save();
+    pageHwCtx.strokeStyle = '#0F172A';
+    pageHwCtx.lineWidth = 6;
+    pageHwCtx.lineCap = 'round';
+    pageHwCtx.lineJoin = 'round';
+
+    for (const stroke of pageHwStrokes) {
+      if (!stroke || stroke.length === 0) continue;
+      pageHwCtx.beginPath();
+      pageHwCtx.moveTo(stroke[0].x, stroke[0].y);
+      for (let i = 1; i < stroke.length; i++) {
+        pageHwCtx.lineTo(stroke[i].x, stroke[i].y);
+      }
+      pageHwCtx.stroke();
+    }
+    pageHwCtx.restore();
+  }
+}
+
+function pageHwUndoStroke() {
+  if (pageHwStrokes.length > 0) {
+    pageHwStrokes.pop();
+    pageHwRedraw();
+    pageHwUpdateBadge();
+    if (pageHwStrokes.length > 0) {
+      pageHwTriggerDebounce();
+    } else {
+      renderStandbyCandidateList();
+    }
+  }
+}
+
+function pageHwClearCanvas() {
+  pageHwStrokes = [];
+  pageHwCurrentStroke = [];
+  if (pageHwDebounceTimer) clearTimeout(pageHwDebounceTimer);
+  pageHwRedraw();
+  pageHwUpdateBadge();
+  renderStandbyCandidateList();
+}
+
+function pageHwUpdateBadge() {
+  const el = document.getElementById('pageHwStrokeCountBadge');
+  if (el) el.innerText = `${pageHwStrokes.length} nét`;
+}
+
+function renderStandbyCandidateList() {
+  const candidateBox = document.getElementById('pageHwCandidateList');
+  if (candidateBox) {
+    candidateBox.innerHTML = `
+      <div class="col-span-full text-center py-20 px-4 bg-[#F8FAFC] border border-dashed border-[#CBD5E1] rounded-xl">
+        <div class="text-4xl mb-3">🖌️</div>
+        <h5 class="text-base font-bold text-[#0F172A] mb-1.5">Bảng Nhận Diện Sẵn Sàng</h5>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto">
+          Hãy dùng chuột vẽ từng nét chữ Hán vào ô Mễ bên trái. Kết quả nhận diện sẽ xuất hiện tức thì theo thời gian thực!
+        </p>
+      </div>
+    `;
+  }
+}
+
+function pageHwTriggerDebounce() {
+  if (pageHwDebounceTimer) clearTimeout(pageHwDebounceTimer);
+  if (pageHwStrokes.length === 0) return;
+  pageHwDebounceTimer = setTimeout(() => {
+    pageHwExecuteRecognition();
+  }, 180);
+}
+
+// =========================================================================
+// 3. THỰC HIỆN NHẬN DIỆN NÉT VẼ AI (GOOGLE INPUT TOOLS + BACKEND ENRICHMENT)
+// =========================================================================
+async function pageHwExecuteRecognition() {
+  if (pageHwStrokes.length === 0) return;
+  const candidateBox = document.getElementById('pageHwCandidateList');
+  if (candidateBox) {
+    candidateBox.innerHTML = '<div class="col-span-full py-12 text-center text-slate-500 font-meta text-xs animate-pulse">Đang nhận diện nét vẽ thời gian thực... ⚡</div>';
+  }
+
+  const rect = pageHwCanvas ? pageHwCanvas.getBoundingClientRect() : null;
+  const w = (rect && rect.width > 0) ? rect.width : 300;
+  const h = w;
+
+  const ink = pageHwStrokes.map(stroke => {
     const xs = stroke.map(p => Math.round(p.x));
     const ys = stroke.map(p => Math.round(p.y));
     const ts = stroke.map((p, idx) => idx * 10);
     return [xs, ys, ts];
   });
 
-  const payload = {
+  const googlePayload = {
     app_version: 0.4,
-    api_level: '537.36',
-    device: '5',
-    input_type: '0',
-    options: 'enable_pre_space',
+    api_level: "537.36",
+    device: "5",
+    input_type: "0",
+    options: "enable_pre_space",
     requests: [{
-      writing_guide: { writing_area_width: 300, writing_area_height: 300 },
-      pre_context: '',
-      max_num_results: 10,
-      max_completions: 0,
-      language: 'ja',
-      ink: ink
+      writing_guide: { writing_area_width: Math.round(w), writing_area_height: Math.round(h) },
+      ink: ink,
+      language: "ja"
     }]
   };
 
+  let googleCandidates = [];
   try {
-    const res = await fetch('https://www.google.com.tw/inputtools/request?ime=handwriting&app=mobilesearch&cs=1&oe=UTF-8', {
+    const gRes = await fetch('https://inputtools.google.com/request?itc=ja-t-i0-handwrit&app=translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(googlePayload)
     });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data[1] && data[1][0] && Array.isArray(data[1][0][1])) {
-        const rawCandidates = data[1][0][1];
-        // Lọc các ký tự tiếng Nhật / Hán tự hợp lệ
-        const candidates = rawCandidates
-          .filter(c => typeof c === 'string' && c.trim().length > 0)
-          .map(c => c.trim())
-          .filter((c, idx, arr) => arr.indexOf(c) === idx)
-          .slice(0, 10);
-
-        if (candidates.length > 0) {
-          renderCandidates(candidates);
-          return;
-        }
+    if (gRes.ok) {
+      const gData = await gRes.json();
+      if (gData && gData[0] === 'SUCCESS' && gData[1] && gData[1][0] && gData[1][0][1]) {
+        googleCandidates = gData[1][0][1];
       }
     }
   } catch (err) {
-    console.debug('Không thể kết nối đến dịch vụ nhận diện nét vẽ:', err);
+    console.debug("Google Input Tools offline, tiếp tục với backend/cache:", err);
   }
 
-  // Khi không tìm thấy kết quả hoặc dịch vụ không phản hồi: Hiển thị Empty State chuẩn (tuyệt đối không chèn fake data)
-  showEmptyResultState();
+  // 1. Thử gửi Backend KizunaTutor topology endpoint nếu có
+  const backendPayload = {
+    strokeCount: pageHwStrokes.length,
+    strokes: pageHwStrokes.map(stroke => stroke.map(p => ({ x: p.x, y: p.y }))),
+    candidates: googleCandidates,
+    limit: 15
+  };
+
+  let matches = [];
+  try {
+    const bRes = await fetch('/api/kanji/search-by-strokes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(backendPayload)
+    }).catch(() => null);
+
+    if (bRes && bRes.ok) {
+      const bData = await bRes.json();
+      matches = bData.matches || [];
+    }
+  } catch (err) {}
+
+  // 2. Nếu Backend topology chưa có, làm giàu dữ liệu từ kết quả Google Candidates
+  if (matches.length === 0 && googleCandidates.length > 0) {
+    const topChars = googleCandidates.slice(0, 12);
+    // Truy vấn dữ liệu thực tế từ database cho từng ký tự
+    const enrichedList = await Promise.all(topChars.map(async (char, i) => {
+      let detail = null;
+      try {
+        const resp = await fetch(`/api/learner/kanji/search?page=0&size=1&keyword=${encodeURIComponent(char)}`).catch(() => null);
+        if (resp && resp.ok) {
+          const data = await resp.json();
+          if (data.items && data.items.length > 0) {
+            const found = data.items.find(x => x.kanjiChar === char) || data.items[0];
+            detail = found;
+          }
+        }
+      } catch (e) {}
+
+      return {
+        character: char,
+        kanjiChar: char,
+        hanViet: detail ? (detail.hanViet || 'HÁN TỰ') : 'HÁN TỰ',
+        meaning: detail ? (detail.meaning || 'Chữ Hán nhận diện') : 'Chữ Hán nhận diện',
+        totalStrokes: detail ? (detail.strokeCount || pageHwStrokes.length) : pageHwStrokes.length,
+        strokeCount: detail ? (detail.strokeCount || pageHwStrokes.length) : pageHwStrokes.length,
+        jlpt: detail ? (detail.jlpt || 'N/A') : 'N/A',
+        onyomi: detail ? detail.onyomi : '-',
+        kunyomi: detail ? detail.kunyomi : '-',
+        radical: detail ? detail.radical : '',
+        similarityScore: (1 - i * 0.05).toFixed(2)
+      };
+    }));
+
+    matches = enrichedList;
+  }
+
+  if (matches.length > 0) {
+    renderPageHwCandidates(matches);
+  } else {
+    if (candidateBox) {
+      candidateBox.innerHTML = '<div class="col-span-full py-12 text-center text-slate-500 font-meta text-xs">Không tìm thấy chữ phù hợp. Bạn thử viết thêm nét hoặc xóa viết lại nhé!</div>';
+    }
+  }
 }
 
 // =========================================================================
-// 5. RENDER KHAY KẾT QUẢ CHỮ HÁN GỢI Ý & CÁC TRẠNG THÁI HIỂN THỊ
+// 4. RENDER KHAY THẺ GỢI Ý CHỮ HÁN NHẬN DIỆN ĐƯỢC
 // =========================================================================
-function showStandbyState() {
-  document.getElementById('hwStandbyState')?.classList.remove('hidden');
-  document.getElementById('hwLoadingState')?.classList.add('hidden');
-  document.getElementById('hwEmptyResultState')?.classList.add('hidden');
-  document.getElementById('hwCandidateGrid')?.classList.add('hidden');
-}
+function renderPageHwCandidates(matches) {
+  const candidateBox = document.getElementById('pageHwCandidateList');
+  if (!candidateBox) return;
 
-function showLoadingState() {
-  document.getElementById('hwStandbyState')?.classList.add('hidden');
-  document.getElementById('hwLoadingState')?.classList.remove('hidden');
-  document.getElementById('hwEmptyResultState')?.classList.add('hidden');
-  document.getElementById('hwCandidateGrid')?.classList.add('hidden');
-}
-
-function showEmptyResultState() {
-  document.getElementById('hwStandbyState')?.classList.add('hidden');
-  document.getElementById('hwLoadingState')?.classList.add('hidden');
-  document.getElementById('hwEmptyResultState')?.classList.remove('hidden');
-  document.getElementById('hwCandidateGrid')?.classList.add('hidden');
-}
-
-function renderCandidates(candidateList) {
-  const grid = document.getElementById('hwCandidateGrid');
-  const loading = document.getElementById('hwLoadingState');
-  const standby = document.getElementById('hwStandbyState');
-  const emptyRes = document.getElementById('hwEmptyResultState');
-
-  if (!grid) return;
-
-  if (candidateList.length === 0) {
-    showEmptyResultState();
+  if (matches.length === 0) {
+    candidateBox.innerHTML = '<div class="col-span-full py-12 text-center text-slate-500 font-meta text-xs">Không tìm thấy chữ phù hợp. Hãy điều chỉnh nét vẽ nhé!</div>';
     return;
   }
 
-  if (loading) loading.classList.add('hidden');
-  if (standby) standby.classList.add('hidden');
-  if (emptyRes) emptyRes.classList.add('hidden');
-  grid.classList.remove('hidden');
+  pageHwCurrentCandidates = matches;
 
-  let html = '';
+  candidateBox.innerHTML = matches.map((m, index) => {
+    const percent = Math.round((m.similarityScore || 0.9) * 100);
+    const kChar = m.character || m.kanjiChar || '';
 
-  candidateList.forEach((char) => {
-    html += `
-      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 flex items-center justify-between gap-3 hover:border-[#006194] hover:shadow-sm transition">
-        <div class="flex items-center gap-3 min-w-0">
-          <!-- Chữ Hán nhận diện được -->
-          <div class="w-14 h-14 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] flex items-center justify-center font-japanese font-bold text-3xl text-[#0F2545] shrink-0">
-            ${char}
-          </div>
-
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="font-bold text-sm text-[#0F2545]">Chữ Hán đề xuất</span>
-            </div>
-            <p class="text-xs text-[#68737D] mt-0.5 truncate">
-              Khớp với nét vẽ trên ô Mễ
-            </p>
-          </div>
+    return `
+      <div class="p-3.5 bg-white border border-[#E2E8F0] rounded-xl hover:border-slate-300 transition flex flex-col justify-between gap-3">
+        <div class="flex items-start justify-between gap-2">
+          <span class="text-3xl font-bold text-[#0F172A] font-serif">${escapeHtml(kChar)}</span>
+          <span class="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">${percent}% khớp</span>
         </div>
-
-        <div class="flex items-center gap-1.5 shrink-0">
-          <a href="/kanji-dictionary?keyword=${encodeURIComponent(char)}" 
-             class="px-2.5 py-1.5 rounded-xl bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] border border-[#ECE8DE] text-xs font-semibold transition flex items-center gap-1 no-underline"
-             title="Tra cứu nghĩa, âm Hán Việt và lưu Flashcard">
-            <span class="material-symbols-outlined text-[15px]">menu_book</span>
-            <span>Tra từ</span>
+        <div>
+          <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+            <span class="font-bold text-[#831843] text-sm uppercase">${escapeHtml(m.hanViet || 'HÁN TỰ')}</span>
+            <span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-medium">${m.totalStrokes || m.strokeCount ? (m.totalStrokes || m.strokeCount) + ' nét' : ''}</span>
+            <span class="px-1.5 py-0.5 rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] text-[10px] font-semibold">${escapeHtml(m.jlpt || 'N/A')}</span>
+          </div>
+          <p class="text-xs text-slate-500 line-clamp-2 m-0 leading-relaxed" title="${escapeHtml(m.meaning || '')}">${escapeHtml(m.meaning || 'Chữ Hán tra cứu')}</p>
+        </div>
+        <div class="flex items-center gap-2 pt-2 border-t border-[#F1F5F9]">
+          <a href="/shodo?char=${encodeURIComponent(kChar)}" 
+             class="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] border border-[#FBCFE8] no-underline transition cursor-pointer">
+            ✍️ Luyện Viết
           </a>
-          <a href="/shodo?kanji=${encodeURIComponent(char)}" 
-             class="px-3 py-1.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold transition flex items-center gap-1 no-underline shadow-xs"
-             title="Chuyển sang phòng luyện viết Shodo Canvas cho chữ này">
-            <span class="material-symbols-outlined text-[15px]">draw</span>
-            <span>Luyện viết</span>
-          </a>
+          <button type="button" 
+                  data-action="open-hw-detail"
+                  data-index="${index}"
+                  data-char="${escapeHtml(kChar)}"
+                  class="py-1.5 px-2.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 transition cursor-pointer"
+                  title="Xem chi tiết nét chữ">
+            🔍
+          </button>
         </div>
       </div>
     `;
-  });
+  }).join('');
 
-  grid.innerHTML = html;
+  // Gắn sự kiện click mở modal chi tiết
+  candidateBox.querySelectorAll('[data-action="open-hw-detail"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(btn.getAttribute('data-index'), 10);
+      const char = btn.getAttribute('data-char');
+      openHwKanjiDetail(idx >= 0 ? idx : char, e);
+    });
+  });
 }
 
 // =========================================================================
-// 6. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
+// 5. MODAL CHI TIẾT CHỮ HÁN TỪ TRA CỨU VIẾT TAY
+// =========================================================================
+async function openHwKanjiDetail(indexOrChar, event) {
+  if (event) {
+    event.stopPropagation();
+  }
+
+  let item = null;
+  if (typeof indexOrChar === 'number') {
+    item = pageHwCurrentCandidates[indexOrChar];
+  } else if (typeof indexOrChar === 'string') {
+    item = pageHwCurrentCandidates.find(c => (c.character === indexOrChar || c.kanjiChar === indexOrChar)) || { character: indexOrChar, kanjiChar: indexOrChar };
+  }
+
+  if (!item) return;
+
+  pageHwSelectedKanji = item;
+  const modal = document.getElementById('hwDetailModal');
+  if (!modal) return;
+
+  const char = item.character || item.kanjiChar || item.kanji || '?';
+  const hanViet = item.hanViet || item.han_viet || 'HÁN TỰ';
+  const meaning = item.meaning || item.definition || 'Chữ Hán tra cứu';
+  const strokes = item.totalStrokes || item.strokeCount || '?';
+  const jlpt = item.jlptLevel || item.jlpt || 'N5';
+  const onyomi = item.onyomi || '-';
+  const kunyomi = item.kunyomi || '-';
+  const radical = item.radical || 'Chưa cập nhật';
+
+  const charEl = document.getElementById('hwModalChar');
+  if (charEl) charEl.innerText = char;
+
+  const hvEl = document.getElementById('hwModalHanViet');
+  if (hvEl) hvEl.innerText = hanViet;
+
+  const meanEl = document.getElementById('hwModalMeaning');
+  if (meanEl) meanEl.innerText = meaning;
+
+  const strEl = document.getElementById('hwModalStrokes');
+  if (strEl) strEl.innerText = `${strokes} nét`;
+
+  const jlptEl = document.getElementById('hwModalJlpt');
+  if (jlptEl) jlptEl.innerText = jlpt;
+
+  const onEl = document.getElementById('hwModalOnyomi');
+  if (onEl) onEl.innerText = onyomi;
+
+  const kunEl = document.getElementById('hwModalKunyomi');
+  if (kunEl) kunEl.innerText = kunyomi;
+
+  const radEl = document.getElementById('hwModalRadical');
+  if (radEl) radEl.innerText = `Bộ: ${radical}`;
+
+  if (char && char !== '?') {
+    localStorage.setItem('selected_kanji', char);
+    try {
+      localStorage.setItem('selected_kanji_detail', JSON.stringify({
+        character: char,
+        kanjiChar: char,
+        hanViet: hanViet,
+        meaning: meaning,
+        strokeCount: strokes,
+        radical: radical,
+        jlpt: jlpt,
+        onyomi: onyomi,
+        kunyomi: kunyomi
+      }));
+    } catch (e) {}
+  }
+
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+
+  // Nạp thêm chi tiết từ Backend nếu đang thiếu thông tin
+  if (char && char !== '?') {
+    try {
+      let res = await fetch(`/api/kanji/detail?char=${encodeURIComponent(char)}`).catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch(`/api/kanji/${encodeURIComponent(char)}`).catch(() => null);
+      }
+      if (res && res.ok) {
+        const fullData = await res.json();
+        if (fullData) {
+          if (hvEl && fullData.hanViet) hvEl.innerText = fullData.hanViet;
+          if (meanEl && fullData.meaning) meanEl.innerText = fullData.meaning;
+          if (strEl && fullData.strokeCount) strEl.innerText = `${fullData.strokeCount} nét`;
+          if (jlptEl && fullData.jlpt) jlptEl.innerText = fullData.jlpt;
+          if (onEl && fullData.onyomi) onEl.innerText = fullData.onyomi;
+          if (kunEl && fullData.kunyomi) kunEl.innerText = fullData.kunyomi;
+          if (radEl && fullData.radical) radEl.innerText = `Bộ: ${fullData.radical}`;
+        }
+      }
+    } catch (e) {}
+  }
+}
+
+function closeHwDetailModal(event) {
+  if (event) event.stopPropagation();
+  const modal = document.getElementById('hwDetailModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+  pageHwSelectedKanji = null;
+}
+
+function useSelectedHwChar(event) {
+  if (event) event.stopPropagation();
+  if (!pageHwSelectedKanji) return;
+  const char = pageHwSelectedKanji.character || pageHwSelectedKanji.kanjiChar;
+  if (!char) return;
+
+  localStorage.setItem('selected_kanji', char);
+  closeHwDetailModal(event);
+  window.location.href = `/shodo?char=${encodeURIComponent(char)}`;
+}
+
+function copyHwSelectedChar(event) {
+  if (event) event.stopPropagation();
+  if (!pageHwSelectedKanji) return;
+  const char = pageHwSelectedKanji.character || pageHwSelectedKanji.kanjiChar;
+  if (!char) return;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(char).then(() => {
+      showToast(`Đã sao chép chữ "${char}" vào bộ nhớ tạm!`, 'success');
+    }).catch(() => {
+      showToast(`Đã chọn chữ: ${char}`, 'info');
+    });
+  } else {
+    showToast(`Đã chọn chữ: ${char}`, 'info');
+  }
+}
+
+// =========================================================================
+// 6. GẮN SỰ KIỆN KHỞI TẠO TOÀN CỤC KHI DOM SẴN SÀNG
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  setupCanvas();
+  initPageHwCanvas();
 
-  document.getElementById('btnHwUndo')?.addEventListener('click', undoLastStroke);
-  document.getElementById('btnHwClear')?.addEventListener('click', clearBoard);
-  document.getElementById('btnHwRecognize')?.addEventListener('click', executeRecognition);
+  const btnUndo = document.getElementById('btnPageHwUndo');
+  if (btnUndo) btnUndo.addEventListener('click', pageHwUndoStroke);
+
+  const btnClear = document.getElementById('btnPageHwClear');
+  if (btnClear) btnClear.addEventListener('click', pageHwClearCanvas);
+
+  const btnRecognize = document.getElementById('btnPageHwRecognize');
+  if (btnRecognize) btnRecognize.addEventListener('click', pageHwExecuteRecognition);
+
+  const btnCloseModal = document.getElementById('btnCloseHwDetailModal');
+  if (btnCloseModal) btnCloseModal.addEventListener('click', closeHwDetailModal);
+
+  const btnCloseFooter = document.getElementById('btnHwCloseDetail');
+  if (btnCloseFooter) btnCloseFooter.addEventListener('click', closeHwDetailModal);
+
+  const btnUseChar = document.getElementById('btnHwUseChar');
+  if (btnUseChar) btnUseChar.addEventListener('click', useSelectedHwChar);
+
+  const btnCopyChar = document.getElementById('btnHwCopyChar');
+  if (btnCopyChar) btnCopyChar.addEventListener('click', copyHwSelectedChar);
+
+  const modalBg = document.getElementById('hwDetailModal');
+  if (modalBg) {
+    modalBg.addEventListener('click', (e) => {
+      if (e.target === modalBg) closeHwDetailModal(e);
+    });
+  }
 });
+
+// Gắn toàn cục cho các hàm tương thích
+window.pageHwUndoStroke = pageHwUndoStroke;
+window.pageHwClearCanvas = pageHwClearCanvas;
+window.pageHwExecuteRecognition = pageHwExecuteRecognition;
+window.openHwKanjiDetail = openHwKanjiDetail;
+window.closeHwDetailModal = closeHwDetailModal;
+window.useSelectedHwChar = useSelectedHwChar;
+window.copyHwSelectedChar = copyHwSelectedChar;

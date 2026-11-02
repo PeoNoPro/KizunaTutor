@@ -48,6 +48,7 @@ const URL_ALIASES = {
   '/openjlpt': '/pages/grammar/index.html',
   '/handwriting': '/pages/handwriting-search/index.html',
   '/handwriting-search': '/pages/handwriting-search/index.html',
+  '/learner/handwriting-search': '/pages/handwriting-search/index.html',
   '/ohr': '/pages/handwriting-search/index.html',
   '/kanji-dictionary': '/pages/kanji-dictionary/index.html',
   '/kanji-dictionary.html': '/pages/kanji-dictionary/index.html',

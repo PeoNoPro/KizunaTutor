@@ -178,10 +178,6 @@ function renderCardsList(filterQuery = '') {
               <span class="font-japanese font-bold text-base text-slate-900 truncate" title="${escapeHtml(c.char)}">
                 ${escapeHtml(c.char)}
               </span>
-              <button type="button" data-action="speak" data-text="${escapeHtml(c.char)}" 
-                      class="text-slate-400 hover:text-sky-600 transition p-1 cursor-pointer" title="Nghe phát âm">
-                <span class="material-symbols-outlined text-[16px]">volume_up</span>
-              </button>
             </div>
             ${c.hanViet ? `<span class="text-[11px] font-semibold text-[#006194] uppercase tracking-wider">${escapeHtml(c.hanViet)}</span>` : ''}
           </div>

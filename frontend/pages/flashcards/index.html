@@ -69,49 +69,56 @@
       <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] flex flex-col min-w-0">
         <div class="max-w-[1240px] w-full mx-auto flex-1 space-y-6">
 
-      <!-- Thanh công cụ tìm kiếm và lọc bộ thẻ -->
-      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 shadow-sm flex flex-wrap gap-3 items-center justify-between">
-        <div class="flex-1 min-w-[260px] relative">
-          <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#68737D] text-[18px]">search</span>
-          <input type="text" id="inputSearchDecks" 
-                 placeholder="Tìm kiếm bộ thẻ theo tên hoặc ghi chú..." 
-                 class="w-full pl-10 pr-4 py-2 text-xs md:text-sm rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
-        </div>
-        <button type="button" id="btnOpenCreateDeck" 
-                class="px-4 py-2 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs md:text-sm font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer shrink-0">
-          <span class="material-symbols-outlined text-[18px]">add</span>
-          <span>Tạo bộ thẻ mới</span>
-        </button>
-      </div>
+          <!-- Thanh công cụ tìm kiếm và lọc bộ thẻ -->
+          <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#68737D] text-[18px]">search</span>
+                <input type="text" id="inputSearchDecks" 
+                       placeholder="Tìm kiếm bộ thẻ theo tên hoặc ghi chú..." 
+                       class="w-full pl-10 pr-4 py-2 text-xs md:text-sm rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
+              </div>
+              <button type="button" id="btnOpenCreateDeck" 
+                      class="px-4 py-2 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer shrink-0">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                <span>Tạo bộ thẻ mới</span>
+              </button>
+            </div>
 
-        <div class="flex items-center gap-2 text-xs font-semibold text-[#68737D]">
-          <span>Tổng số:</span>
-          <span id="deckCountBadge" class="bg-[#FAF8F2] text-[#0F2545] border border-[#ECE8DE] font-bold text-xs px-3 py-1 rounded-full">
-            0 bộ thẻ
-          </span>
-        </div>
-      </div>
+            <div class="flex items-center justify-between text-xs text-[#68737D] pt-2 border-t border-[#ECE8DE]">
+              <div class="flex items-center gap-2">
+                <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="font-medium text-[#3F4850]">Bộ thẻ của bạn:</span>
+                <span id="deckCountBadge" class="bg-[#FAF8F2] text-[#0F2545] border border-[#ECE8DE] font-bold text-xs px-2.5 py-0.5 rounded-full">
+                  0 bộ thẻ
+                </span>
+              </div>
+              <div class="text-xs text-[#68737D] hidden sm:block">
+                Ôn tập từ vựng ngắt quãng thông minh (SRS) &amp; lật thẻ 3D
+              </div>
+            </div>
+          </div>
 
-      <!-- ==================== LƯỚI DANH SÁCH BỘ THẺ ==================== -->
-      <div id="deckGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
-        <!-- Render tự động bởi flashcards.js -->
-      </div>
+          <!-- ==================== LƯỚI DANH SÁCH BỘ THẺ ==================== -->
+          <div id="deckGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
+            <!-- Render tự động bởi flashcards.js -->
+          </div>
 
-      <!-- ==================== EMPTY STATE (KHI CHƯA CÓ BỘ THẺ) ==================== -->
-      <div id="deckEmptyState" class="hidden p-10 md:p-14 text-center rounded-2xl border-2 border-dashed border-[#ECE8DE] bg-white space-y-3">
-        <img src="/assets/images/stickers/sleepy-capi.png" 
-             alt="Capybara Kizuna" 
-             class="w-16 h-16 mx-auto object-contain pointer-events-none select-none opacity-85">
-        <h3 class="text-base md:text-lg font-bold text-[#0F2545]">Chưa tìm thấy bộ thẻ nào phù hợp</h3>
-        <p class="text-xs md:text-sm text-[#68737D] max-w-md mx-auto">
-          Tạo ngay một bộ thẻ mới để cất giữ những chữ Hán khó nhớ và luyện tập lật thẻ mỗi ngày nhé!
-        </p>
-        <button type="button" id="btnEmptyCreateDeck" 
-                class="mt-2 px-5 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs md:text-sm font-bold inline-flex items-center gap-1.5 transition cursor-pointer">
-          <span class="material-symbols-outlined text-[18px]">add</span>
-          <span>Tạo bộ thẻ đầu tiên</span>
-        </button>
-      </div>
+          <!-- ==================== EMPTY STATE (KHI CHƯA CÓ BỘ THẺ) ==================== -->
+          <div id="deckEmptyState" class="hidden p-10 md:p-14 text-center rounded-2xl border-2 border-dashed border-[#ECE8DE] bg-white space-y-3">
+            <img src="/assets/images/stickers/sleepy-capi.png" 
+                 alt="Capybara Kizuna" 
+                 class="w-16 h-16 mx-auto object-contain pointer-events-none select-none opacity-85">
+            <h3 class="text-base md:text-lg font-bold text-[#0F2545]">Chưa tìm thấy bộ thẻ nào phù hợp</h3>
+            <p class="text-xs md:text-sm text-[#68737D] max-w-md mx-auto">
+              Tạo ngay một bộ thẻ mới để cất giữ những chữ Hán khó nhớ và luyện tập lật thẻ mỗi ngày nhé!
+            </p>
+            <button type="button" id="btnEmptyCreateDeck" 
+                    class="mt-2 px-5 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs md:text-sm font-bold inline-flex items-center gap-1.5 transition cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">add</span>
+              <span>Tạo bộ thẻ đầu tiên</span>
+            </button>
+          </div>
 
         </div>
         <div id="learnerFooterContainer"></div>

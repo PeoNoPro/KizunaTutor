@@ -173,24 +173,18 @@ function renderDecks(filterQuery = '') {
         </div>
 
         <!-- Cụm nút hành động dưới đáy thư mục bám sát đáy thẻ (mt-auto) -->
-        <div class="pt-4 mt-auto border-t border-[#ECE8DE] grid grid-cols-3 gap-2">
+        <div class="pt-4 mt-auto border-t border-[#ECE8DE] flex items-center gap-2">
           <a href="/shodo${firstChar ? `?char=${encodeURIComponent(firstChar)}` : ''}"
-             class="py-2 px-1 text-xs font-bold rounded-xl bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 transition no-underline text-center truncate"
+             class="flex-1 py-2 px-2 text-xs font-bold rounded-xl bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1.5 transition no-underline text-center truncate"
              title="Luyện viết nét các chữ trong bộ trên Canvas Shodo">
             <span>🖌️</span>
             <span>Luyện Viết</span>
           </a>
-          <a href="/kanji-game?deckId=${encodeURIComponent(deck.id)}"
-             class="py-2 px-1 text-xs font-bold rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 flex items-center justify-center gap-1 transition no-underline text-center truncate"
-             title="Chơi minigame phản xạ Kanji Mưa Chữ với bộ thẻ này">
-            <span>🎮</span>
-            <span>Bắn Chữ</span>
-          </a>
           <button type="button" data-action="open-deck" data-id="${deck.id}"
-                  class="py-2 px-1 text-xs font-bold rounded-xl bg-[#006194] hover:bg-[#004B73] text-white flex items-center justify-center gap-1 transition cursor-pointer text-center truncate shadow-xs"
-                  title="Xem &amp; lật thẻ chi tiết">
+                  class="flex-1 py-2 px-2 text-xs font-bold rounded-xl bg-[#006194] hover:bg-[#004B73] text-white flex items-center justify-center gap-1.5 transition cursor-pointer text-center truncate shadow-xs"
+                  title="Học và lật thẻ 3D chi tiết">
             <span>👁️</span>
-            <span>Xem</span>
+            <span>Học &amp; Lật Thẻ</span>
           </button>
         </div>
       </div>

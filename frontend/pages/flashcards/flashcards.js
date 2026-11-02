@@ -146,7 +146,6 @@ function renderDecks(filterQuery = '') {
     const cardCount = deck.cards ? deck.cards.length : 0;
     const borderClass = colorBorderMap[deck.color] || 'border-[#006194]';
     const pillClass = colorBgPillMap[deck.color] || 'bg-sky-50 text-[#006194] border-sky-200';
-    const previewChars = (deck.cards || []).slice(0, 4).map(c => c.char).join(' ');
     const firstChar = (deck.cards && deck.cards.length > 0 && deck.cards[0].char) ? deck.cards[0].char : '';
 
     html += `
@@ -171,13 +170,6 @@ function renderDecks(filterQuery = '') {
             <p class="text-xs text-[#68737D] mt-1 line-clamp-2">
               ${escapeHtml(deck.description || 'Chưa có ghi chú mô tả cho bộ thẻ này.')}
             </p>
-          </div>
-
-          <div class="p-3 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl flex items-center justify-between">
-            <span class="text-xs text-[#68737D] font-medium">Chữ trong bộ:</span>
-            <span class="font-japanese font-bold text-base text-[#0F2545] tracking-widest">
-              ${previewChars || '(Chưa có chữ nào)'}
-            </span>
           </div>
         </div>
 

@@ -445,7 +445,7 @@ function renderPageHwCandidates(matches) {
 }
 
 // =========================================================================
-// 5. MODAL CHI TIẾT CHỮ HÁN TỪ TRA CỨU VIẾT TAY
+// 5. ĐIỀU HƯỚNG SANG TRANG CHI TIẾT CHỮ HÁN ĐỘC LẬP (/kanji-detail)
 // =========================================================================
 async function openHwKanjiDetail(indexOrChar, event) {
   if (event) {
@@ -461,83 +461,14 @@ async function openHwKanjiDetail(indexOrChar, event) {
 
   if (!item) return;
 
-  pageHwSelectedKanji = item;
-  const modal = document.getElementById('hwDetailModal');
-  if (!modal) return;
-
-  const char = item.character || item.kanjiChar || item.kanji || '?';
-  const hanViet = item.hanViet || item.han_viet || 'HÁN TỰ';
-  const meaning = item.meaning || item.definition || 'Chữ Hán tra cứu';
-  const strokes = item.totalStrokes || item.strokeCount || '?';
-  const jlpt = item.jlptLevel || item.jlpt || 'N5';
-  const onyomi = item.onyomi || '-';
-  const kunyomi = item.kunyomi || '-';
-  const radical = item.radical || 'Chưa cập nhật';
-
-  const charEl = document.getElementById('hwModalChar');
-  if (charEl) charEl.innerText = char;
-
-  const hvEl = document.getElementById('hwModalHanViet');
-  if (hvEl) hvEl.innerText = hanViet;
-
-  const meanEl = document.getElementById('hwModalMeaning');
-  if (meanEl) meanEl.innerText = meaning;
-
-  const strEl = document.getElementById('hwModalStrokes');
-  if (strEl) strEl.innerText = `${strokes} nét`;
-
-  const jlptEl = document.getElementById('hwModalJlpt');
-  if (jlptEl) jlptEl.innerText = jlpt;
-
-  const onEl = document.getElementById('hwModalOnyomi');
-  if (onEl) onEl.innerText = onyomi;
-
-  const kunEl = document.getElementById('hwModalKunyomi');
-  if (kunEl) kunEl.innerText = kunyomi;
-
-  const radEl = document.getElementById('hwModalRadical');
-  if (radEl) radEl.innerText = `Bộ: ${radical}`;
-
-  if (char && char !== '?') {
+  const char = item.character || item.kanjiChar || item.kanji || '';
+  if (char) {
     localStorage.setItem('selected_kanji', char);
     try {
-      localStorage.setItem('selected_kanji_detail', JSON.stringify({
-        character: char,
-        kanjiChar: char,
-        hanViet: hanViet,
-        meaning: meaning,
-        strokeCount: strokes,
-        radical: radical,
-        jlpt: jlpt,
-        onyomi: onyomi,
-        kunyomi: kunyomi
-      }));
+      localStorage.setItem('selected_kanji_detail', JSON.stringify(item));
     } catch (e) {}
-  }
-
-  modal.classList.remove('hidden');
-  modal.style.display = 'flex';
-
-  // Nạp thêm chi tiết từ Backend nếu đang thiếu thông tin
-  if (char && char !== '?') {
-    try {
-      let res = await fetch(`/api/kanji/detail?char=${encodeURIComponent(char)}`).catch(() => null);
-      if (!res || !res.ok) {
-        res = await fetch(`/api/kanji/${encodeURIComponent(char)}`).catch(() => null);
-      }
-      if (res && res.ok) {
-        const fullData = await res.json();
-        if (fullData) {
-          if (hvEl && fullData.hanViet) hvEl.innerText = fullData.hanViet;
-          if (meanEl && fullData.meaning) meanEl.innerText = fullData.meaning;
-          if (strEl && fullData.strokeCount) strEl.innerText = `${fullData.strokeCount} nét`;
-          if (jlptEl && fullData.jlpt) jlptEl.innerText = fullData.jlpt;
-          if (onEl && fullData.onyomi) onEl.innerText = fullData.onyomi;
-          if (kunEl && fullData.kunyomi) kunEl.innerText = fullData.kunyomi;
-          if (radEl && fullData.radical) radEl.innerText = `Bộ: ${fullData.radical}`;
-        }
-      }
-    } catch (e) {}
+    window.location.href = `/kanji-detail?char=${encodeURIComponent(char)}`;
+    return;
   }
 }
 

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chi Tiết Chữ Hán - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Itim&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Tailwind & Project CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <link rel="stylesheet" href="/styles/utilities.css">
+
+  <style>
+    .font-japanese {
+      font-family: 'Noto Sans JP', 'Noto Serif JP', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-800 antialiased min-h-screen">
+  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
+
+    <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
+    <div id="learnerSidebarContainer"></div>
+
+    <!-- 2. MAIN CONTENT AREA: CUỘN ĐỘC LẬP -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <!-- HEADER DÙNG CHUNG CHO HỌC VIÊN -->
+      <div id="learnerHeaderContainer"></div>
+
+      <!-- Main Shell cuộn mượt mà -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] flex flex-col min-w-0">
+        <div class="space-y-6 max-w-7xl mx-auto w-full flex-1">
+          
+          <!-- 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG (GỌN GÀNG - CHỈ GIỮ NÚT QUAY LẠI) -->
+          <div class="flex items-center gap-3 p-3 bg-white border border-[#0F172A] rounded-[5px] shadow-[2px_2px_0px_0px_#0F172A]">
+            <button type="button" id="btnBackToList"
+                    class="py-1 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center gap-1 cursor-pointer">
+              <span>←</span>
+              <span>Quay lại</span>
+            </button>
+            <div class="h-4 w-[1px] bg-slate-300"></div>
+            <h1 class="font-['Itim'] text-base md:text-lg font-bold text-slate-900 flex items-center gap-1.5 truncate">
+              <span>🌸</span>
+              <span>Chi Tiết Chữ Hán:</span>
+              <span id="headerKanjiChar" class="font-japanese text-xl text-[#831843]">—</span>
+              <span id="headerHanViet" class="text-xs uppercase text-slate-500 font-sans"></span>
+            </h1>
+          </div>
+
+          <!-- 2. NỘI DUNG CHI TIẾT (BỐ CỤC 2 CỘT RESPONSIVE) -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Cột Trái (Tiêu điểm chữ & Tác vụ - 4 cột) -->
+            <div class="lg:col-span-4 space-y-4">
+              <div class="p-5 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] space-y-4 text-center">
+                
+                <!-- Khung hiển thị chữ Hán to / SVG -->
+                <div class="w-36 h-36 mx-auto bg-slate-50 border-2 border-[#0F172A] rounded-[8px] shadow-[3px_3px_0px_0px_#0F172A] flex items-center justify-center relative overflow-hidden">
+                  <div id="kanjiSvgContainer" class="w-full h-full flex items-center justify-center p-2">
+                    <span id="kanjiDisplayChar" class="text-7xl font-bold font-japanese text-[#831843]">
+                      —
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Tên Hán Việt & Huy hiệu -->
+                <div>
+                  <h2 id="detailHanViet" class="font-bold text-xl text-[#0F172A] uppercase tracking-wider">
+                    —
+                  </h2>
+                  <div class="flex items-center justify-center gap-1.5 mt-2 flex-wrap">
+                    <span id="badgeJlpt" class="px-2 py-0.5 rounded text-xs font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
+                      JLPT: —
+                    </span>
+                    <span id="badgeStrokes" class="px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                      — nét
+                    </span>
+                    <span id="badgeRadical" class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                      Bộ: —
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Cụm tác vụ hành động -->
+                <div class="pt-3 border-t border-slate-200 space-y-2">
+                  <a id="btnShodoPractice" href="/shodo" 
+                     class="w-full py-2.5 px-3 bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] text-xs font-bold border border-pink-300 rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1.5 no-underline transition cursor-pointer">
+                    <span>✍️</span>
+                    <span>Luyện Viết Trên Shodo Canvas</span>
+                  </a>
+
+                  <button type="button" id="btnSaveToDeck"
+                          class="w-full py-2.5 px-3 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>📁</span>
+                    <span>Cất Vào Bộ Thẻ Flashcard</span>
+                  </button>
+
+                  <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button type="button" id="btnSpeak"
+                            class="py-2 px-2 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer">
+                      <span>🔊</span> Phát âm
+                    </button>
+                    <button type="button" id="btnCopyChar"
+                            class="py-2 px-2 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer">
+                      <span>📋</span> Sao chép
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Cột Phải (Chi tiết ngữ nghĩa, âm đọc & ngữ cảnh - 8 cột) -->
+            <div class="lg:col-span-8 space-y-4">
+              
+              <!-- 1. Nghĩa tiếng Việt -->
+              <div class="p-5 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] space-y-3">
+                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center gap-1.5">
+                  <span>📖</span>
+                  <span>Ý Nghĩa & Chú Giải</span>
+                </h3>
+                <div class="p-4 bg-slate-50 rounded border border-slate-200">
+                  <p id="detailMeaning" class="text-sm font-semibold text-slate-800 leading-relaxed">
+                    Đang nạp nghĩa...
+                  </p>
+                </div>
+              </div>
+
+              <!-- 2. Âm đọc Onyomi & Kunyomi -->
+              <div class="p-5 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] space-y-3">
+                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center gap-1.5">
+                  <span>🗣️</span>
+                  <span>Âm Đọc Tiếng Nhật (On / Kun)</span>
+                </h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <!-- Onyomi -->
+                  <div class="p-3.5 bg-blue-50/60 rounded border border-blue-200 space-y-1">
+                    <span class="text-[11px] font-bold text-blue-900 uppercase tracking-wider block">
+                      Âm Onyomi (Âm Hán):
+                    </span>
+                    <div id="detailOnyomi" class="text-base font-bold font-japanese text-blue-800">
+                      —
+                    </div>
+                  </div>
+
+                  <!-- Kunyomi -->
+                  <div class="p-3.5 bg-emerald-50/60 rounded border border-emerald-200 space-y-1">
+                    <span class="text-[11px] font-bold text-emerald-900 uppercase tracking-wider block">
+                      Âm Kunyomi (Âm Thuần Nhật):
+                    </span>
+                    <div id="detailKunyomi" class="text-base font-bold font-japanese text-emerald-800">
+                      —
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Thông số kỹ thuật & Ngữ nguyên -->
+              <div class="p-5 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] space-y-3">
+                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center gap-1.5">
+                  <span>🔬</span>
+                  <span>Thông Số Cấu Trúc Chữ Hán</span>
+                </h3>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div class="p-3 bg-slate-50 rounded border border-slate-200">
+                    <span class="text-slate-500 block text-[11px]">Mã Unicode:</span>
+                    <span id="detailUnicodeHex" class="font-mono font-bold text-slate-800">U+----</span>
+                  </div>
+                  <div class="p-3 bg-slate-50 rounded border border-slate-200">
+                    <span class="text-slate-500 block text-[11px]">Tổng số nét:</span>
+                    <span id="detailStrokeCount" class="font-mono font-bold text-slate-800">— nét</span>
+                  </div>
+                  <div class="p-3 bg-slate-50 rounded border border-slate-200">
+                    <span class="text-slate-500 block text-[11px]">Bộ thủ chính:</span>
+                    <span id="detailRadical" class="font-japanese font-bold text-slate-800">—</span>
+                  </div>
+                  <div class="p-3 bg-slate-50 rounded border border-slate-200">
+                    <span class="text-slate-500 block text-[11px]">Cấp độ JLPT:</span>
+                    <span id="detailJlpt" class="font-bold text-pink-700">—</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CẤT VÀO BỘ THẺ ==================== -->
+  <div id="modalAddToDeck" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border-2 border-[#0F172A] rounded-[8px] shadow-[5px_5px_0px_0px_#0F172A] max-w-sm w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2.5">
+        <h4 class="font-bold text-sm text-[#0F2545] flex items-center gap-1.5">
+          <span>📁</span>
+          <span>Cất Vào Bộ Thẻ Flashcard</span>
+        </h4>
+        <button type="button" id="btnCloseSaveDeckModal" class="text-slate-500 hover:text-slate-900 font-bold cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="p-3 bg-slate-50 rounded border border-slate-200 text-center">
+          <span id="modalDeckChar" class="text-4xl font-bold font-japanese text-[#831843] block">—</span>
+          <span id="modalDeckHanViet" class="text-xs font-bold text-slate-600 uppercase mt-1 block">HÁN TỰ</span>
+        </div>
+
+        <div>
+          <label for="selectDeckDestination" class="block text-xs font-bold text-slate-800 mb-1">
+            Chọn bộ thẻ lưu trữ:
+          </label>
+          <select id="selectDeckDestination" class="w-full px-3 py-2 text-xs border border-[#0F172A] rounded bg-white font-medium">
+            <!-- Render dynamically -->
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+        <button type="button" id="btnCancelSaveDeck" class="px-3 py-1.5 text-xs font-semibold rounded border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer">
+          Hủy
+        </button>
+        <button type="button" id="btnConfirmSaveDeck" class="px-4 py-1.5 text-xs font-bold rounded bg-[#006194] hover:bg-[#004B73] text-white cursor-pointer shadow-xs">
+          Cất Vào Thẻ Ngay
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/components/learner-layout/learner-layout.js"></script>
+  <script type="module" src="/pages/kanji-detail/kanji-detail.js"></script>
+</body>
+</html>

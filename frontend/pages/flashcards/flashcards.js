@@ -22,7 +22,6 @@ let userDecks = [];
 let activeDeck = null;
 let currentCardIndex = 0;
 let isFlipped = false;
-let selectedColor = 'blue';
 
 // =========================================================================
 // 2. QUẢN LÝ LƯU TRỮ THỰC TẾ (LOCAL STORAGE & BACKEND API)
@@ -365,22 +364,10 @@ function openCreateDeckModal() {
   document.getElementById('modalCreateDeck').classList.remove('hidden');
   document.getElementById('deckNameInput').value = '';
   document.getElementById('deckDescInput').value = '';
-  selectedColor = 'blue';
-  highlightSelectedColor();
 }
 
 function closeCreateDeckModal() {
   document.getElementById('modalCreateDeck').classList.add('hidden');
-}
-
-function highlightSelectedColor() {
-  document.querySelectorAll('#deckColorPicker button').forEach(btn => {
-    if (btn.dataset.color === selectedColor) {
-      btn.classList.add('ring-2', 'ring-offset-2', 'ring-[#006194]');
-    } else {
-      btn.classList.remove('ring-2', 'ring-offset-2', 'ring-[#006194]');
-    }
-  });
 }
 
 function saveNewDeck() {
@@ -399,7 +386,7 @@ function saveNewDeck() {
     id: `deck-${Date.now()}`,
     title: title,
     description: desc,
-    color: selectedColor,
+    color: 'blue',
     cards: []
   };
 
@@ -489,13 +476,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnCloseCreateDeckModal')?.addEventListener('click', closeCreateDeckModal);
   document.getElementById('btnCancelDeck')?.addEventListener('click', closeCreateDeckModal);
   document.getElementById('btnSaveDeck')?.addEventListener('click', saveNewDeck);
-
-  document.querySelectorAll('#deckColorPicker button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      selectedColor = btn.dataset.color;
-      highlightSelectedColor();
-    });
-  });
 
   document.getElementById('flashcardElement')?.addEventListener('click', flipCurrentCard);
   document.getElementById('btnFlipCard')?.addEventListener('click', flipCurrentCard);

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Cẩm Nang Ngữ Pháp OpenJLPT
  * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * Hỗ trợ Bộ lọc kép: Cấp độ JLPT (N5 - N1) & Khối Ứng dụng Thực tế (Đời thường, Nhà hàng, Du lịch, Công việc, Sức khỏe, Học thuật)
@@ -459,6 +459,51 @@ function openGrammarDetail(ruleId) {
     </div>
   `;
 
+  // Khối Đặt Câu Hỏi Kiểm Tra Với Sensei AI
+  const practiceBox = document.createElement('div');
+  practiceBox.className = 'bg-gradient-to-r from-[#EFF6FF] to-[#FAF8F2] border-2 border-[#006194] rounded-2xl p-5 shadow-sm space-y-3 mt-4';
+  practiceBox.innerHTML = `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="space-y-1">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#006194] text-white text-[11px] font-bold">
+          <span class="material-symbols-outlined text-[14px]">psychology</span>
+          <span>Luyện tập &amp; Kiểm tra ngữ pháp với AI</span>
+        </div>
+        <h4 class="text-base font-bold text-[#0F2545]">
+          Tập đặt câu &amp; Kiểm tra với mẫu "${rule.pattern}"
+        </h4>
+        <p class="text-xs text-[#475569] leading-relaxed max-w-xl">
+          Tự viết câu tiếng Nhật của bạn với mẫu ngữ pháp này. AI Sensei sẽ chấm điểm, bắt mạch cấu trúc câu và phân tích chi tiết bằng tiếng Việt.
+        </p>
+      </div>
+
+      <button type="button" id="btnGoToAiWritingPractice"
+              class="px-4 py-2.5 bg-[#006194] hover:bg-[#004e77] text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">edit_note</span>
+        <span>Đặt câu hỏi kiểm tra</span>
+      </button>
+    </div>
+  `;
+  container.appendChild(practiceBox);
+
+  document.getElementById('btnGoToAiWritingPractice')?.addEventListener('click', () => {
+    try {
+      sessionStorage.setItem('kizuna_selected_grammar_for_writing', JSON.stringify({
+        id: rule.id,
+        pattern: rule.pattern,
+        level: rule.level,
+        romaji: rule.romaji,
+        meaning: rule.meaning,
+        formation: rule.formation,
+        notes: rule.notes,
+        examples: rule.examples
+      }));
+    } catch (e) {
+      console.debug('SessionStorage save error:', e);
+    }
+    window.location.href = `/ai-writing?pattern=${encodeURIComponent(rule.pattern)}&level=${encodeURIComponent(rule.level)}`;
+  });
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -467,7 +512,6 @@ function closeGrammarDetail() {
   document.getElementById('grammarListView').classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 // =========================================================================
 // 6. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================

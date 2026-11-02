@@ -1,4 +1,4 @@
-﻿# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
+# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
 # Khong can cai dat Node.js, chay truc tiep bang PowerShell tren moi may Windows
 
 param(
@@ -60,6 +60,9 @@ $aliases = @{
     "/shodo"             = "/pages/shodo-practice/index.html"
     "/shodo-practice"    = "/pages/shodo-practice/index.html"
     "/grammar"           = "/pages/grammar/index.html"
+    "/ai-writing"        = "/pages/ai-writing/index.html"
+    "/sakubun"           = "/pages/ai-writing/index.html"
+    "/learner/ai-writing"= "/pages/ai-writing/index.html"
     "/handwriting"       = "/pages/handwriting-search/index.html"
     "/tutors"            = "/pages/tutor-discovery/index.html"
     "/kana"              = "/pages/kana-quiz/index.html"
@@ -212,6 +215,12 @@ while ($listener.IsListening) {
             $pathPart = $aliases[$lookupPath]
         } elseif ($pathPart -match "^/learner/flashcards/[^/]+$") {
             $pathPart = "/pages/flashcards-detail/index.html"
+        } else {
+            $cleanName = $lookupPath.TrimStart('/')
+            $candidate = Join-Path $rootDir "pages/$cleanName/index.html"
+            if (Test-Path $candidate) {
+                $pathPart = "/pages/$cleanName/index.html"
+            }
         }
 
         $localPath = Join-Path $rootDir $pathPart.TrimStart('/')

@@ -135,8 +135,8 @@ function renderDecks(filterQuery = '') {
         <div>
           <div class="flex items-start justify-between gap-2">
             <h3 class="font-['Itim'] text-base font-bold text-slate-900 truncate flex-1 cursor-pointer hover:text-[#006194] transition" 
-                title="Nhấn để học bộ thẻ: ${escapeHtml(deck.title)}"
-                data-action="open-deck" data-id="${deck.id}">
+                title="Nhấn để chọn cách học bộ thẻ: ${escapeHtml(deck.title)}"
+                data-action="prompt-study" data-id="${deck.id}">
               🌸 ${escapeHtml(deck.title)}
             </h3>
             
@@ -178,9 +178,9 @@ function renderDecks(filterQuery = '') {
         <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-200">
           <!-- Nút Học & Lật Thẻ -->
           <button type="button" 
-                  data-action="open-deck" data-id="${deck.id}" 
+                  data-action="prompt-study" data-id="${deck.id}" 
                   class="py-1.5 px-2 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate"
-                  title="Lật thẻ ôn tập 3D">
+                  title="Chọn cách học bộ thẻ (Lật thẻ 3D hoặc Minigame bắn chữ)">
             <span>👁️</span> Học Thẻ
           </button>
 
@@ -206,8 +206,8 @@ function renderDecks(filterQuery = '') {
 
   grid.innerHTML = html;
 
-  grid.querySelectorAll('[data-action="open-deck"]').forEach(btn => {
-    btn.addEventListener('click', () => openStudyModal(btn.dataset.id));
+  grid.querySelectorAll('[data-action="prompt-study"]').forEach(btn => {
+    btn.addEventListener('click', () => promptStudyDeck(btn.dataset.id));
   });
 
   grid.querySelectorAll('[data-action="edit-deck"]').forEach(btn => {
@@ -269,8 +269,25 @@ function closeAllMenus() {
 }
 
 // =========================================================================
-// 4. CHẾ ĐỘ LẬT THẺ FLASHCARD 3D
+// 4. CHỌN CHẾ ĐỘ HỌC & CHẾ ĐỘ LẬT THẺ FLASHCARD 3D
 // =========================================================================
+let selectedStudyDeckId = null;
+
+function promptStudyDeck(deckId) {
+  const deck = userDecks.find(d => d.id === deckId);
+  if (!deck) return;
+  selectedStudyDeckId = deckId;
+
+  document.getElementById('chooseStudyDeckTitle').textContent = deck.title;
+  document.getElementById('chooseStudyDeckCount').textContent = `${(deck.cards || []).length} thẻ học`;
+  document.getElementById('modalChooseStudyMode').classList.remove('hidden');
+}
+
+function closeChooseStudyModeModal() {
+  document.getElementById('modalChooseStudyMode').classList.add('hidden');
+  selectedStudyDeckId = null;
+}
+
 function openStudyModal(deckId) {
   const deck = userDecks.find(d => d.id === deckId);
   if (!deck) return;
@@ -1005,6 +1022,22 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnCloseAddCardModal')?.addEventListener('click', closeAddCardModal);
   document.getElementById('btnCancelAddCard')?.addEventListener('click', closeAddCardModal);
   document.getElementById('btnSubmitAddCard')?.addEventListener('click', submitNewCard);
+
+  // Choose Study Mode Modal Events
+  document.getElementById('btnCloseChooseStudyModeModal')?.addEventListener('click', closeChooseStudyModeModal);
+  document.getElementById('btnCancelChooseStudyMode')?.addEventListener('click', closeChooseStudyModeModal);
+  document.getElementById('btnSelectModeFlashcard')?.addEventListener('click', () => {
+    const deckId = selectedStudyDeckId;
+    closeChooseStudyModeModal();
+    if (deckId) openStudyModal(deckId);
+  });
+  document.getElementById('btnSelectModeKanjiGame')?.addEventListener('click', () => {
+    const deckId = selectedStudyDeckId;
+    closeChooseStudyModeModal();
+    if (deckId) {
+      window.location.href = `/kanji-game?deckId=${encodeURIComponent(deckId)}`;
+    }
+  });
 
   // Edit Deck Modal Events
   document.getElementById('btnCloseEditDeckModal')?.addEventListener('click', closeEditDeckModal);

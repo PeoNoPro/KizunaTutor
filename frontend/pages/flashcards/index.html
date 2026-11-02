@@ -284,6 +284,69 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL CHỌN PHƯƠNG PHÁP HỌC ==================== -->
+  <div id="modalChooseStudyMode" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border-2 border-[#0F172A] rounded-[8px] shadow-[5px_5px_0px_0px_#0F172A] w-full max-w-md flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="px-5 py-3 border-b border-[#0F172A] flex items-center justify-between bg-slate-50">
+        <h2 class="font-['Itim'] text-base font-bold text-slate-900 flex items-center gap-2">
+          <span>🎯</span>
+          <span>Chọn Cách Học Thẻ</span>
+        </h2>
+        <button type="button" id="btnCloseChooseStudyModeModal" class="w-6 h-6 flex items-center justify-center border border-black rounded text-xs hover:bg-slate-200 cursor-pointer font-bold">✕</button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-5 space-y-4">
+        <div class="text-xs text-slate-600">
+          Bộ thẻ: <span id="chooseStudyDeckTitle" class="font-bold text-slate-900">Tên bộ thẻ</span>
+          (<span id="chooseStudyDeckCount" class="text-pink-600 font-semibold">0 thẻ</span>)
+        </div>
+
+        <div class="grid grid-cols-1 gap-3">
+          <!-- Cách 1: Lật Thẻ Cơ Bản (Flashcards 3D) -->
+          <div id="btnSelectModeFlashcard" class="p-4 rounded-[6px] border-2 border-[#0F172A] bg-white hover:bg-sky-50 shadow-[3px_3px_0px_0px_#0F172A] cursor-pointer transition flex items-start gap-3 group">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 border border-sky-300 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition">
+              🎴
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-bold text-sm text-slate-900 flex items-center justify-between">
+                <span>Lật Thẻ 3D Cơ Bản</span>
+                <span class="text-xs text-sky-700 font-bold">Ôn tập &rarr;</span>
+              </div>
+              <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                Lật 2 mặt thẻ ghi nhớ từ vựng, âm đọc Hán Việt, On/Kun &amp; nghĩa tiếng Việt.
+              </p>
+            </div>
+          </div>
+
+          <!-- Cách 2: Minigame Bắn Chữ (Kanji Game) -->
+          <div id="btnSelectModeKanjiGame" class="p-4 rounded-[6px] border-2 border-[#0F172A] bg-white hover:bg-amber-50 shadow-[3px_3px_0px_0px_#0F172A] cursor-pointer transition flex items-start gap-3 group">
+            <div class="w-10 h-10 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition">
+              🎮
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-bold text-sm text-slate-900 flex items-center justify-between">
+                <span>Minigame Bắn Chữ (Mưa Kanji)</span>
+                <span class="text-xs text-amber-700 font-bold">Chơi game &rarr;</span>
+              </div>
+              <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                Luyện phản xạ nhanh bằng trò chơi gõ từ vựng trước khi chữ Hán rơi xuống đất.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-5 py-3 border-t border-[#0F172A] bg-slate-50 flex items-center justify-end">
+        <button type="button" id="btnCancelChooseStudyMode" class="py-1.5 px-4 text-xs font-bold border border-[#0F172A] rounded-[4px] bg-white hover:bg-slate-100 cursor-pointer">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== MODAL THÊM CHỮ VÀO BỘ THẺ ==================== -->
   <div id="modalAddCard" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white border border-[#ECE8DE] rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-4">

@@ -70,6 +70,12 @@ nav[aria-label="breadcrumb"] {
   display: none !important;
 }
 
+/* Bảo đảm khối banner giới thiệu từ điển chỉ xuất hiện duy nhất tại trang kanji-dictionary */
+body:not(.page-dictionary) .dictionary-hero-banner,
+body:not(.page-dictionary) [data-banner="kanji-dictionary-intro"] {
+  display: none !important;
+}
+
 /* Scrollbar Minimal */
 ::-webkit-scrollbar {
   width: 6px;

@@ -336,7 +336,6 @@ function openEditCardModal(index) {
   editingCardIndex = index;
   const card = currentCards[index];
   document.getElementById('inputEditChar').value = card.char || '';
-  document.getElementById('inputEditHanViet').value = card.hanViet || '';
   document.getElementById('inputEditMeaning').value = card.meaning || '';
   document.getElementById('modalEditCard').classList.remove('hidden');
 }
@@ -349,7 +348,6 @@ function closeEditCardModal() {
 function saveEditCard() {
   if (editingCardIndex < 0 || editingCardIndex >= currentCards.length) return;
   const char = (document.getElementById('inputEditChar').value || '').trim();
-  const hanViet = (document.getElementById('inputEditHanViet').value || '').trim();
   const meaning = (document.getElementById('inputEditMeaning').value || '').trim();
 
   if (!char || !meaning) {
@@ -358,7 +356,6 @@ function saveEditCard() {
   }
 
   currentCards[editingCardIndex].char = char;
-  currentCards[editingCardIndex].hanViet = hanViet;
   currentCards[editingCardIndex].meaning = meaning;
 
   saveCurrentDeck();

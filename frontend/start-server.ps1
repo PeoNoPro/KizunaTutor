@@ -1,4 +1,4 @@
-# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
+﻿# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
 # Khong can cai dat Node.js, chay truc tiep bang PowerShell tren moi may Windows
 
 param(
@@ -161,15 +161,17 @@ while ($listener.IsListening) {
             $webRequest = [System.Net.HttpWebRequest]::Create($targetUri)
             $webRequest.Method = $request.HttpMethod
             $webRequest.ContentType = $request.ContentType
-
-            if ($request.HasEntityBody) {
-                $reqStream = $request.InputStream
-                $proxyStream = $webRequest.GetRequestStream()
-                $reqStream.CopyTo($proxyStream)
-                $proxyStream.Close()
-            }
+            $webRequest.Timeout = 1000
+            $webRequest.ReadWriteTimeout = 1000
 
             try {
+                if ($request.HasEntityBody) {
+                    $reqStream = $request.InputStream
+                    $proxyStream = $webRequest.GetRequestStream()
+                    $reqStream.CopyTo($proxyStream)
+                    $proxyStream.Close()
+                }
+
                 $webResponse = $webRequest.GetResponse()
                 $response.StatusCode = [int]$webResponse.StatusCode
                 $response.ContentType = $webResponse.ContentType
@@ -184,9 +186,17 @@ while ($listener.IsListening) {
                     $errRes.GetResponseStream().CopyTo($response.OutputStream)
                 } else {
                     $response.StatusCode = 502
-                    $bytes = [System.Text.Encoding]::UTF8.GetBytes("Bad Gateway: Khong the ket noi backend $BackendUrl")
+                    $response.ContentType = "application/json; charset=UTF-8"
+                    $jsonErr = '{"status":502,"message":"Backend offline","error":"Khong the ket noi backend ' + $BackendUrl + '"}'
+                    $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonErr)
                     $response.OutputStream.Write($bytes, 0, $bytes.Length)
                 }
+            } catch {
+                $response.StatusCode = 502
+                $response.ContentType = "application/json; charset=UTF-8"
+                $jsonErr = '{"status":502,"message":"Backend offline","error":"Khong the ket noi backend ' + $BackendUrl + '"}'
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonErr)
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
             }
             $response.OutputStream.Close()
             continue

@@ -125,7 +125,8 @@ function renderOverview() {
   if (idBadge) idBadge.textContent = `#${currentDeck.id}`;
   document.getElementById('overviewTitle').textContent = currentDeck.title || 'Chưa đặt tên';
   document.getElementById('overviewDesc').textContent = currentDeck.description || 'Chưa có ghi chú mô tả cho bộ thẻ này.';
-  document.getElementById('overviewTotalCards').textContent = currentCards.length;
+  const totalCardsEl = document.getElementById('overviewTotalCards');
+  if (totalCardsEl) totalCardsEl.textContent = currentCards.length;
   document.getElementById('badgeCardCount').textContent = `${currentCards.length} thẻ`;
 
   // Chuẩn bị thông tin trong modal chọn cách học

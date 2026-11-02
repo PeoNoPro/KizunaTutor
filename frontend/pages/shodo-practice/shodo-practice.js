@@ -316,11 +316,13 @@ function undoLastStroke() {
   }
 }
 
-function clearCanvas() {
+function clearCanvas(showToastNotification = false) {
   drawnStrokes = [];
   redrawCanvas();
   resetAiFeedback();
-  showToast('Đã xóa trắng bảng vẽ.', 'info');
+  if (showToastNotification === true) {
+    showToast('Đã xóa trắng bảng vẽ.', 'info');
+  }
 }
 
 function setElementText(id, text) {
@@ -620,7 +622,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Nút Undo & Clear
   document.getElementById('btnUndoStroke')?.addEventListener('click', undoLastStroke);
-  document.getElementById('btnClearBoard')?.addEventListener('click', clearCanvas);
+  document.getElementById('btnClearBoard')?.addEventListener('click', () => clearCanvas(true));
 
   // Nút Chấm điểm
   document.getElementById('btnGradeWriting')?.addEventListener('click', gradeShodoWriting);

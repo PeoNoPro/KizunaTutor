@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Từ điển chữ Hán Joyo &amp; Bút thuận - KizunaTutor</title>
+  <title>Từ Điển Kanji Học Tập - KizunaTutor Learner</title>
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
 
   <!-- Tailwind CSS CDN -->
@@ -12,7 +12,7 @@
   <!-- Fonts & Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
   <!-- Kizuna Global Tokens -->
@@ -21,29 +21,19 @@
   <link rel="stylesheet" href="/styles/components.css">
   <link rel="stylesheet" href="/styles/utilities.css">
 
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            kizuna: {
-              primary: '#006194',
-              hover: '#004B73',
-              navy: '#0F2545',
-              bg: '#FCFBF7',
-              surface: '#FFFFFF',
-              warm: '#FAF8F2',
-              border: '#ECE8DE'
-            }
-          },
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-            japanese: ['"Noto Sans JP"', 'sans-serif']
-          }
-        }
-      }
+  <style>
+    /* Styling riêng cho Từ Điển Kanji chuẩn theo Clean & Airy - Stitch Design Tokens */
+    .kanji-glyph-large {
+      font-family: 'Noto Serif JP', serif;
+      font-weight: 700;
+      color: #0F172A;
     }
-  </script>
+    .badge-nhai {
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+    }
+  </style>
 </head>
 <body class="bg-[#F8FAFC] text-[#1E293B] font-sans antialiased">
   <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
@@ -51,265 +41,387 @@
     <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
     <div id="learnerSidebarContainer"></div>
 
-    <!-- 2. MAIN CONTENT AREA -->
+    <!-- 2. MAIN CONTENT AREA: CUỘN ĐỘC LẬP -->
     <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-      
       <!-- HEADER DÙNG CHUNG CHO HỌC VIÊN -->
       <div id="learnerHeaderContainer"></div>
 
-      <!-- Scrollable Main Container -->
-      <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] flex flex-col min-w-0">
-        <div class="max-w-[1240px] w-full mx-auto flex-1 space-y-6">
+      <!-- Main Shell cuộn mượt mà có chống giật scrollbar -->
+      <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#F8FAFC] flex flex-col min-w-0">
+        <div class="max-w-7xl mx-auto space-y-3 w-full flex-1">
 
-      <!-- Hero Header Banner -->
-      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#FAF8F2] text-[#006194] border border-[#ECE8DE] font-bold text-xl">
-            📖
-          </span>
-          <div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
-                Kho Hán tự Joyo
-              </span>
-              <h1 class="text-xl md:text-2xl font-bold text-[#0F2545]">
-                Từ điển chữ Hán &amp; Bút thuận
-              </h1>
+          <!-- SLIM HERO BANNER (MẪU CHUẨN ĐẦU TRANG) -->
+          <div class="bg-white border border-[#E2E8F0] rounded-xl px-5 py-4 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center flex-wrap gap-2">
+                <span class="bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  📖 Tra Cứu Hán Tự
+                </span>
+                <h1 class="text-lg sm:text-xl font-bold text-[#0F172A] flex items-center gap-2">
+                  Từ Điển Chữ Hán &amp; Bút Thuận 📖
+                </h1>
+              </div>
+              <p class="text-xs text-[#64748B] mt-1 truncate">
+                Tra cứu hơn 6.600 chữ Hán, tha hồ nhặt chữ cất vào bộ Flashcard và luyện nét Shodo nhé! ☕
+              </p>
             </div>
-            <p class="text-xs md:text-sm text-[#68737D] mt-0.5">
-              Tra cứu chữ Hán theo âm Hán Việt, On/Kun, số nét. Lưu nhanh vào Flashcard hoặc luyện viết Shodo tức thì.
-            </p>
           </div>
+
+          <!-- Search Controls: 2 Chế độ tra cứu song song (Cơ bản + Theo Số Nét & Bộ Thủ) -->
+          <div class="bg-white p-3 sm:p-4 rounded-xl border border-[#E2E8F0] space-y-3">
+            <!-- Hàng 1: Tra cứu cơ bản (Ô tìm kiếm + JLPT) -->
+            <div class="flex flex-col sm:flex-row items-center gap-2.5">
+              <div class="relative flex flex-1 items-center gap-2 w-full">
+                <input type="text" 
+                       id="learnerSearchInput" 
+                       placeholder="🔍 Nhập chữ Hán (日, 本), âm Hán Việt (ÁI, TÂM), âm On/Kun hoặc nghĩa tiếng Việt..." 
+                       class="w-full pl-3.5 pr-8 py-2 text-xs rounded-lg border border-[#CBD5E1] text-[#0F172A] bg-white font-sans font-medium outline-none focus:border-[#831843] focus:ring-2 focus:ring-[#831843]/15 transition">
+                <button type="button" 
+                        id="btnClearSearchInput" 
+                        class="hidden absolute right-2.5 text-slate-400 hover:text-[#DC2626] text-xs font-bold transition-colors cursor-pointer" 
+                        title="Xóa ô tìm kiếm">
+                  ✕
+                </button>
+              </div>
+              <div class="flex items-center gap-2 w-full sm:w-auto">
+                <select id="learnerJlptSelect" class="px-3 py-2 text-xs rounded-lg border border-[#CBD5E1] text-[#0F172A] bg-white font-semibold font-sans shrink-0 outline-none focus:border-[#831843] focus:ring-2 focus:ring-[#831843]/15 transition">
+                  <option value="ALL">Tất cả cấp độ JLPT</option>
+                  <option value="N5">Cấp độ N5 (Căn bản)</option>
+                  <option value="N4">Cấp độ N4 (Sơ cấp)</option>
+                  <option value="N3">Cấp độ N3 (Trung cấp)</option>
+                  <option value="N2">Cấp độ N2 (Thượng cấp)</option>
+                  <option value="N1">Cấp độ N1 (Chuyên sâu)</option>
+                </select>
+                <button type="button" 
+                        id="btnSearchSubmit"
+                        class="px-4 py-2 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold shrink-0 transition active:scale-95 cursor-pointer">
+                  <span>🔍</span> Tìm Kiếm
+                </button>
+                <button type="button" 
+                        id="btnOpenHwSearchModal" 
+                        class="px-3.5 py-2 rounded-lg bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] border border-[#FBCFE8] text-xs font-semibold shrink-0 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                        title="Dùng chuột vẽ từng nét để tìm chữ Hán tức thì bằng AI">
+                  <span>🖌️</span> Vẽ Nét Tra Cứu
+                </button>
+              </div>
+            </div>
+
+            <!-- Hàng 2: Bộ Lọc Nâng Cao Tinh Gọn (Số Nét Nhập Liệu + Dải Bộ Thủ Cuộn Ngang) -->
+            <div class="pt-2.5 border-t border-[#E2E8F0] flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <!-- Nhóm 1: Nhập Số Nét (Stroke Count Input) -->
+              <div class="flex items-center gap-2 shrink-0">
+                <label for="dictStrokeInput" class="text-xs font-bold text-[#0F172A] font-meta flex items-center gap-1 shrink-0">
+                  <span>🔢</span> Số nét:
+                </label>
+                <div class="relative flex items-center w-20">
+                  <input type="number" 
+                         id="dictStrokeInput" 
+                         min="1" 
+                         max="35" 
+                         placeholder="Số nét" 
+                         title="Nhập số nét cần tìm (1 - 35)" 
+                         class="w-full pl-2.5 pr-5 py-1 text-xs rounded-lg border border-[#CBD5E1] bg-white font-medium text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
+                  <button type="button" 
+                          id="btnClearStrokeInput" 
+                          class="hidden absolute right-1.5 text-slate-400 hover:text-[#DC2626] text-xs font-bold transition-colors cursor-pointer" 
+                          title="Xóa lọc số nét">
+                    ✕
+                  </button>
+                </div>
+                <button type="button" 
+                        id="btnResetDictStroke" 
+                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-[#CBD5E1] bg-slate-100 text-[#1E293B] hover:bg-slate-200 shrink-0 cursor-pointer transition" 
+                        title="Xem tất cả số nét">
+                  Tất cả
+                </button>
+              </div>
+
+              <!-- Nhóm 2: Lọc theo Bộ Thủ Thông Dụng (Bảng chọn Dropdown) -->
+              <div class="flex items-center gap-2 min-w-0 flex-1">
+                <label for="dictRadicalSelect" class="text-xs font-bold text-[#0F172A] font-meta flex items-center gap-1 shrink-0">
+                  <span>⛩️</span> Bộ thủ:
+                </label>
+                <select id="dictRadicalSelect"
+                        class="px-3 py-1 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] outline-none cursor-pointer focus:border-[#831843] focus:ring-1 focus:ring-[#831843] max-w-[220px] transition">
+                  <option value="">🌸 Tất cả bộ thủ</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dictionary Cards Grid -->
+          <div id="learnerKanjiGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-5">
+            <!-- Render động bằng JS -->
+          </div>
+
+          <!-- Pagination Bar -->
+          <div class="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-[#E2E8F0] text-xs font-meta">
+            <span id="learnerPaginationInfo" class="text-[#64748B]">Chờ bạn nhập từ khóa hoặc chọn bộ lọc... 🌸</span>
+            <div class="flex items-center gap-1.5" id="learnerPaginationBtns"></div>
+          </div>
+
         </div>
 
-        <!-- Cụm chuyển đổi nhanh sang các công cụ học tập khác -->
-        <div class="flex items-center gap-2 flex-wrap shrink-0">
-          <a href="/kanji-game" 
-             class="px-3 py-1.5 rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] text-xs font-semibold flex items-center gap-1.5 transition no-underline">
-            <span>🌧️</span>
-            <span>Mưa chữ Hán</span>
-          </a>
-          <a href="/shodo" 
-             class="px-3 py-1.5 rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] text-xs font-semibold flex items-center gap-1.5 transition no-underline">
-            <span>🖌️</span>
-            <span>Luyện viết Shodo</span>
-          </a>
-          <a href="/flashcards" 
-             class="px-3 py-1.5 rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] text-xs font-semibold flex items-center gap-1.5 transition no-underline">
-            <span>🗂️</span>
-            <span>Bộ thẻ Flashcards</span>
-          </a>
-          <a href="/handwriting" 
-             class="px-3 py-1.5 rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] text-xs font-semibold flex items-center gap-1.5 transition no-underline">
-            <span>✍️</span>
-            <span>Vẽ nét OHR</span>
-          </a>
+        <!-- FOOTER DÙNG CHUNG CHO HỌC VIÊN -->
+        <div id="learnerFooterContainer"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CHI TIẾT CHỮ HÁN CHUYÊN SÂU ==================== -->
+  <div id="modalKanjiDetail" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 border border-[#E2E8F0] space-y-5 text-xs font-sans max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📚</span>
+          <h3 class="text-lg font-bold text-[#0F172A]">Chi Tiết Hán Tự Tra Cứu</h3>
         </div>
+        <button type="button" id="btnCloseKanjiDetail" class="text-slate-400 hover:text-[#0F172A] font-bold p-1 text-sm transition cursor-pointer">✕</button>
       </div>
 
-      <!-- Thanh Công Cụ Tìm Kiếm & Bộ Lọc Nâng Cao -->
-      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 md:p-5 shadow-sm space-y-4">
-        <!-- Hàng 1: Ô tìm kiếm chính & JLPT -->
-        <div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
-          
-          <!-- Input từ khóa tìm kiếm -->
-          <div class="relative flex-1">
-            <span class="material-symbols-outlined absolute left-3.5 top-2.5 text-[#68737D] text-[20px]">
-              search
-            </span>
-            <input type="text"
-                   id="searchKanjiInput"
-                   placeholder="Nhập chữ Hán (日, 本, 心), âm Hán Việt (NHẬT, BỔN), âm On/Kun hoặc nghĩa..."
-                   class="w-full pl-10 pr-9 py-2.5 text-sm border border-[#ECE8DE] rounded-xl bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
-            <button type="button"
-                    id="btnClearSearchInput"
-                    class="hidden absolute right-3 top-2.5 text-[#68737D] hover:text-rose-600 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center transition cursor-pointer"
-                    title="Xóa ô tìm kiếm">
-              ✕
+      <!-- Chữ to ở giữa + metadata + Stroke Order Player Mini -->
+      <div class="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+        <!-- Khung phát hoạt ảnh vẽ nét ô Mễ kèm điều khiển mini -->
+        <div class="flex flex-col items-center gap-2 shrink-0">
+          <div class="relative w-28 h-28 rounded-xl bg-white border border-[#CBD5E1] flex items-center justify-center font-serif text-5xl font-extrabold text-[#0F172A] overflow-hidden">
+            <div id="detailCharBox" class="select-none pointer-events-none transition-opacity duration-200">-</div>
+            <svg id="dictDetailStrokeSvg" viewBox="0 0 109 109" preserveAspectRatio="xMidYMid meet" class="absolute inset-0 w-full h-full pointer-events-none z-10" style="padding: 6px; display: none;"></svg>
+          </div>
+
+          <!-- Cụm nút điều khiển Animation mini -->
+          <div class="flex items-center gap-1 bg-white p-1 border border-[#CBD5E1] rounded-lg">
+            <button type="button" id="btnDictPlayPause" 
+                    class="px-2.5 py-1 text-xs font-semibold rounded-md bg-[#1E293B] text-white hover:bg-[#334155] transition active:scale-95 flex items-center gap-1 cursor-pointer" 
+                    title="Phát hoặc tạm dừng xem thứ tự nét viết">
+              <span id="dictPlayIcon">▶️</span>
+              <span id="dictPlayText">Phát</span>
+            </button>
+            <button type="button" id="btnDictReplay" 
+                    class="px-2 py-1 text-xs font-semibold rounded-md bg-white text-[#1E293B] hover:bg-slate-100 border border-[#CBD5E1] transition active:scale-95 cursor-pointer" 
+                    title="Vẽ lại thứ tự nét từ đầu">
+              🔁
+            </button>
+            <button type="button" id="btnDictSpeed" 
+                    class="px-1.5 py-1 text-[10px] font-meta font-bold rounded-md bg-[#F8FAFC] text-slate-800 hover:bg-slate-100 border border-[#CBD5E1] transition active:scale-95 cursor-pointer" 
+                    title="Tốc độ vẽ nét">
+              1.0x
             </button>
           </div>
-
-          <!-- Bộ lọc Cấp độ JLPT -->
-          <div class="flex items-center gap-2">
-            <select id="selectJlptLevel" 
-                    class="px-3 py-2.5 text-xs font-bold text-[#0F2545] bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl focus:bg-white focus:border-[#006194] focus:outline-none transition cursor-pointer">
-              <option value="ALL">Tất cả cấp độ JLPT</option>
-              <option value="N5">Cấp độ N5 (Căn bản)</option>
-              <option value="N4">Cấp độ N4 (Sơ cấp)</option>
-              <option value="N3">Cấp độ N3 (Trung cấp)</option>
-              <option value="N2">Cấp độ N2 (Thượng cấp)</option>
-              <option value="N1">Cấp độ N1 (Chuyên sâu)</option>
-            </select>
-
-            <!-- Lọc theo số nét vẽ -->
-            <select id="selectStrokeCount" 
-                    class="px-3 py-2.5 text-xs font-semibold text-[#0F2545] bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl focus:bg-white focus:border-[#006194] focus:outline-none transition cursor-pointer">
-              <option value="">Tất cả số nét</option>
-              <option value="1">1 nét</option>
-              <option value="2">2 nét</option>
-              <option value="3">3 nét</option>
-              <option value="4">4 nét</option>
-              <option value="5">5 nét</option>
-              <option value="6">6 nét</option>
-              <option value="7">7 nét</option>
-              <option value="8">8 nét</option>
-              <option value="9">9 nét</option>
-              <option value="10">10 nét</option>
-              <option value="11">11 nét</option>
-              <option value="12">12 nét</option>
-              <option value="13">13 nét</option>
-              <option value="14">14 nét</option>
-              <option value="15">15+ nét</option>
-            </select>
-
-            <!-- Nút Tra Cứu Bằng Nét Vẽ Nhanh -->
-            <a href="/handwriting" 
-               class="px-3.5 py-2.5 text-xs font-bold bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] border border-[#FBCFE8] rounded-xl transition flex items-center gap-1.5 shrink-0 no-underline"
-               title="Vẽ tay để nhận diện chữ Hán bằng AI">
-              <span class="material-symbols-outlined text-[16px]">draw</span>
-              <span>Vẽ nét OHR</span>
-            </a>
-          </div>
         </div>
 
-        <!-- Hàng 2: Trạng thái & Thống kê kết quả -->
-        <div class="flex items-center justify-between text-xs text-[#68737D] pt-2 border-t border-[#ECE8DE]">
-          <div class="flex items-center gap-2">
-            <span>Kết quả:</span>
-            <span id="kanjiTotalCountBadge" class="font-bold text-[#0F2545] bg-[#FAF8F2] px-2.5 py-0.5 rounded-full border border-[#ECE8DE]">
-              0 chữ Hán
-            </span>
+        <div class="space-y-1.5 text-center sm:text-left flex-1 min-w-0">
+          <div class="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+            <span id="detailHanViet" class="text-2xl font-bold text-[#0F172A] uppercase">-</span>
+            <span id="detailJlptBadge" class="badge-nhai bg-sky-50 text-sky-700 border border-sky-200 rounded-full font-bold text-xs px-2.5 py-0.5">-</span>
+            <span id="detailStrokeBadge" class="badge-nhai bg-amber-50 text-amber-800 border border-amber-200 rounded-full font-bold text-xs px-2.5 py-0.5">-</span>
           </div>
-
-          <div class="flex items-center gap-3">
-            <span id="pageInfoText">Trang 1</span>
+          <div class="text-xs text-[#64748B] font-meta" id="detailRadical">
+            Bộ thủ: <strong class="text-[#0F172A]">-</strong>
           </div>
+          <!-- Dòng trạng thái thứ tự nét vẽ trực quan -->
+          <div id="dictStrokeProgressText" class="text-[11px] font-meta font-semibold text-[#831843] min-h-[18px]">
+            Bấm [▶️ Phát] để xem thứ tự nét bút thuận.
+          </div>
+          <p id="detailMeaning" class="text-xs text-slate-800 font-sans leading-relaxed pt-1">
+            Đang nạp thông tin giải nghĩa Hán tự...
+          </p>
         </div>
       </div>
 
-      <!-- Loading State khi đang truy vấn -->
-      <div id="dictLoadingState" class="hidden py-16 text-center text-[#006194] space-y-3">
-        <div class="animate-spin inline-block w-8 h-8 border-3 border-current border-t-transparent rounded-full"></div>
-        <p class="text-xs font-bold text-[#68737D]">Đang tra cứu kho Hán tự...</p>
+      <!-- Khối thông tin On / Kun -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="p-3.5 rounded-xl bg-white border border-[#E2E8F0]">
+          <div class="text-[10px] font-meta font-bold text-[#64748B] uppercase tracking-wider mb-1">Âm Onyomi (Hán-Nhật):</div>
+          <div id="detailOnyomi" class="text-sm font-bold font-mono text-[#0F172A]">-</div>
+        </div>
+        <div class="p-3.5 rounded-xl bg-white border border-[#E2E8F0]">
+          <div class="text-[10px] font-meta font-bold text-[#64748B] uppercase tracking-wider mb-1">Âm Kunyomi (Thuần Nhật):</div>
+          <div id="detailKunyomi" class="text-sm font-bold font-mono text-[#0F172A]">-</div>
+        </div>
       </div>
 
-      <!-- Empty State khi không tìm thấy kết quả hoặc cơ sở dữ liệu trống -->
-      <div id="dictEmptyState" class="hidden bg-white border border-[#ECE8DE] rounded-2xl p-12 text-center space-y-3 shadow-sm">
-        <span class="material-symbols-outlined text-5xl text-[#CBD5E1]">search_off</span>
-        <h3 class="font-bold text-base text-[#0F2545]">Không tìm thấy chữ Hán phù hợp</h3>
-        <p class="text-xs text-[#68737D] max-w-sm mx-auto leading-relaxed">
-          Không có kết quả khớp với điều kiện tìm kiếm. Bạn vui lòng thử từ khóa khác, hoặc đổi cấp độ JLPT / số nét vẽ.
-        </p>
+      <!-- 2 NÚT HÀNH ĐỘNG CỐT LÕI -->
+      <div class="pt-4 border-t border-[#E2E8F0] flex flex-col sm:flex-row items-center gap-3">
+        <a id="btnDetailPractice" 
+           href="/shodo" 
+           class="flex-1 py-2.5 px-4 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white font-semibold text-sm flex items-center justify-center gap-2 no-underline w-full transition active:scale-95 cursor-pointer">
+          <span>✍️</span><span>Luyện Viết Chữ Này</span>
+        </a>
         <button type="button" 
-                id="btnResetFilters"
-                class="px-4 py-2 text-xs font-bold bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#006194] border border-[#ECE8DE] rounded-xl transition cursor-pointer">
-          Xóa bộ lọc tìm kiếm
+                id="btnDetailSaveDeck"
+                class="flex-1 py-2.5 px-4 rounded-lg bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] border border-[#FBCFE8] font-semibold text-sm flex items-center justify-center gap-2 w-full transition active:scale-95 cursor-pointer">
+          <span>📁</span><span>Lưu Vào Bộ Thẻ</span>
         </button>
       </div>
-
-      <!-- Lưới Danh Sách Các Thẻ Chữ Hán (Kanji Grid) -->
-      <div id="kanjiGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <!-- Render động bởi kanji-dictionary.js -->
-      </div>
-
-        <!-- Thanh Điều Hướng Phân Trang (Pagination Controls) -->
-        <div id="paginationContainer" class="hidden flex items-center justify-center gap-2 pt-4">
-          <button type="button" id="btnPrevPage" 
-                  class="px-3.5 py-2 text-xs font-semibold rounded-xl border border-[#ECE8DE] bg-white hover:bg-[#FAF8F2] text-[#0F2545] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 cursor-pointer">
-            <span class="material-symbols-outlined text-[16px]">chevron_left</span>
-            <span>Trang trước</span>
-          </button>
-
-          <span id="paginationPageIndicator" class="px-3 text-xs font-bold text-[#0F2545]">
-            1 / 1
-          </span>
-
-          <button type="button" id="btnNextPage" 
-                  class="px-3.5 py-2 text-xs font-semibold rounded-xl border border-[#ECE8DE] bg-white hover:bg-[#FAF8F2] text-[#0F2545] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 cursor-pointer">
-            <span>Trang sau</span>
-            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-          </button>
-        </div>
-
-      </div>
-
-      <!-- FOOTER DÙNG CHUNG CHO HỌC VIÊN -->
-      <div id="learnerFooterContainer"></div>
-    </main>
+    </div>
   </div>
-</div>
 
-<!-- ==================== MODAL LƯU CHỮ VÀO BỘ THẺ FLASHCARD ==================== -->
-<div id="addToFlashcardModal" class="fixed inset-0 z-50 bg-[#0F2545]/70 backdrop-blur-sm hidden items-center justify-center p-4">
-  <div class="w-full max-w-md bg-white rounded-2xl border border-[#ECE8DE] shadow-xl p-6 relative animate-in fade-in zoom-in-95 duration-200 space-y-4">
-    
-    <!-- Nút đóng -->
-    <button type="button" id="btnCloseFlashcardModal" 
-            class="absolute top-4 right-4 text-[#68737D] hover:text-[#0F2545] w-8 h-8 rounded-full flex items-center justify-center hover:bg-[#FAF8F2] transition cursor-pointer">
-      <span class="material-symbols-outlined text-[20px]">close</span>
-    </button>
-
-    <!-- Tiêu đề Modal -->
-    <div class="flex items-center gap-3">
-      <span class="w-10 h-10 rounded-xl bg-sky-50 text-[#006194] border border-sky-100 flex items-center justify-center font-bold text-lg">
-        🗂️
-      </span>
-      <div>
-        <h3 class="font-bold text-base text-[#0F2545]">Lưu vào bộ thẻ Flashcards</h3>
-        <p class="text-xs text-[#68737D]">Chọn bộ thẻ bạn muốn nhặt chữ này vào để học</p>
+  <!-- ==================== MODAL THÊM CHỮ VÀO BỘ THẺ CỦA HỌC VIÊN ==================== -->
+  <div id="modalAddToDeck" style="display: none;" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 border border-[#E2E8F0] space-y-4 text-xs font-sans">
+      <div class="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+        <h3 class="text-lg font-bold text-[#0F172A]">Cất Chữ Vào Bộ Thẻ Cá Nhân</h3>
+        <button type="button" id="btnCloseDeckModal" class="text-slate-400 hover:text-[#0F172A] font-bold p-1 text-sm transition cursor-pointer">✕</button>
       </div>
-    </div>
 
-    <!-- Preview chữ Hán sắp thêm -->
-    <div class="p-3.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl flex items-center gap-3.5">
-      <div id="modalPreviewChar" class="w-12 h-12 rounded-lg bg-white border border-[#ECE8DE] flex items-center justify-center text-2xl font-bold font-japanese text-[#0F2545] shrink-0">
-        —
+      <div class="text-center py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
+        <div id="modalDeckChar" class="font-serif text-5xl font-extrabold text-[#831843]">愛</div>
+        <div id="modalDeckHanViet" class="text-xs font-bold text-[#0F172A] mt-1.5 uppercase tracking-wider">ÁI</div>
       </div>
-      <div class="min-w-0">
-        <div class="flex items-center gap-1.5">
-          <span id="modalPreviewHanViet" class="font-bold text-sm text-[#0F2545]">HÁN TỰ</span>
-          <span id="modalPreviewJlpt" class="px-2 py-0.2 rounded-full text-[10px] font-bold bg-[#FFE5EC] text-[#831843]">N5</span>
+
+      <form id="formSaveToDeck" class="space-y-3.5">
+        <input type="hidden" id="modalDeckKanjiId">
+        <input type="hidden" id="modalDeckCharInput">
+        <div>
+          <label class="block font-bold text-[#0F172A] font-meta mb-1">Chọn Thư Mục / Bộ Thẻ:</label>
+          <select id="modalDeckSelect" class="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-[#0F172A] bg-white font-semibold outline-none focus:border-[#831843] focus:ring-2 focus:ring-[#831843]/15 transition">
+            <option value="">Đang tải danh sách bộ thẻ...</option>
+          </select>
         </div>
-        <p id="modalPreviewMeaning" class="text-xs text-[#68737D] truncate mt-0.5">Ý nghĩa chữ Hán</p>
-      </div>
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-[#E2E8F0]">
+          <button type="button" id="btnCancelDeckModal" class="px-4 py-2 rounded-lg bg-white border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-50 font-semibold transition active:scale-95 cursor-pointer">Hủy Bỏ</button>
+          <button type="submit" id="btnConfirmSaveDeck" class="px-5 py-2 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white font-semibold transition active:scale-95 cursor-pointer">Cất Vào Thẻ Ngay</button>
+        </div>
+      </form>
     </div>
-
-    <!-- Chọn bộ thẻ đích -->
-    <div class="space-y-2">
-      <label for="selectTargetDeck" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider">
-        Chọn bộ thẻ cá nhân:
-      </label>
-      <select id="selectTargetDeck" 
-              class="w-full px-3.5 py-2.5 text-xs font-semibold text-[#0F2545] bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl focus:bg-white focus:border-[#006194] focus:outline-none transition">
-        <!-- Render danh sách bộ thẻ của người dùng -->
-      </select>
-      <p id="noDeckWarning" class="hidden text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
-        Bạn chưa có bộ thẻ cá nhân nào. Hãy bấm "Tạo bộ thẻ mới" bên dưới.
-      </p>
-    </div>
-
-    <!-- Nút hành động -->
-    <div class="pt-2 flex items-center justify-between gap-2">
-      <a href="/flashcards" class="text-xs font-semibold text-[#006194] hover:underline">
-        Quản lý bộ thẻ →
-      </a>
-
-      <div class="flex items-center gap-2">
-        <button type="button" id="btnCancelAddToDeck" 
-                class="px-3.5 py-2 text-xs font-semibold rounded-xl border border-[#ECE8DE] hover:bg-[#FAF8F2] text-[#3F4850] transition cursor-pointer">
-          Hủy bỏ
-        </button>
-        <button type="button" id="btnConfirmAddToDeck" 
-                class="px-4 py-2 text-xs font-bold rounded-xl bg-[#006194] hover:bg-[#004B73] text-white shadow-xs transition cursor-pointer">
-          Lưu ngay
-        </button>
-      </div>
-    </div>
-
   </div>
-</div>
 
-<script type="module" src="/components/learner-layout/learner-layout.js"></script>
-<script type="module" src="/pages/kanji-dictionary/kanji-dictionary.js"></script>
+  <!-- ==================== MODAL TRA CỨU VIẾT TAY BẰNG CHUỘT (HANDWRITING OHR) ==================== -->
+  <div id="hwSearchModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-[#E2E8F0] rounded-xl font-sans" onclick="event.stopPropagation()">
+      <div class="px-4 sm:px-5 py-3.5 border-b border-[#F1F5F9] bg-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🖋️</span>
+          <h3 class="text-base sm:text-lg font-bold text-[#0F172A]">Tra cứu chữ Hán bằng nét vẽ viết tay</h3>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#FFE5EC] text-[#831843] text-[11px] font-semibold border border-[#FBCFE8] hidden sm:inline-block">AI nhận diện nét bút</span>
+        </div>
+        <button type="button" id="btnCloseHwSearchModal" class="w-7 h-7 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 flex items-center justify-center font-bold text-slate-500 hover:text-black text-xs transition cursor-pointer">✕</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex-1">
+        <div class="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-5 items-start">
+          <!-- Cột 1: Khung vẽ Canvas Ô Mễ -->
+          <div class="flex flex-col items-center">
+            <div class="w-full flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-[#0F172A] flex items-center gap-1.5">
+                <span>✏️</span> Ô Mễ Viết Nét Bút
+              </span>
+              <span id="hwStrokeCountBadge" class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#FFE5EC] text-[#831843] text-xs font-semibold border border-[#FBCFE8]">Số nét: 0</span>
+            </div>
+
+            <div class="w-[280px] h-[280px] border border-[#CBD5E1] rounded-xl bg-white relative overflow-hidden cursor-crosshair">
+              <canvas id="hwSearchCanvas" width="280" height="280" class="w-full h-full block"></canvas>
+            </div>
+
+            <!-- Cụm Phím Thao Tác Canvas -->
+            <div class="w-[280px] grid grid-cols-3 gap-2 mt-3">
+              <button type="button" onclick="hwUndoStroke()" class="text-xs py-1.5 px-1.5 font-semibold flex items-center justify-center gap-1 border border-[#CBD5E1] rounded-lg bg-white text-[#1E293B] hover:bg-slate-50 transition cursor-pointer" title="Xóa nét vừa vẽ">
+                <span>↩️</span> Hoàn tác
+              </button>
+              <button type="button" onclick="hwClearCanvas()" class="text-xs py-1.5 px-1.5 font-semibold flex items-center justify-center gap-1 text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-lg bg-white transition cursor-pointer" title="Xóa toàn bộ nét">
+                <span>🧹</span> Xóa hết
+              </button>
+              <button type="button" onclick="hwExecuteRecognition()" class="text-xs py-1.5 px-1.5 font-semibold flex items-center justify-center gap-1 bg-[#1E293B] hover:bg-[#334155] text-white border border-transparent rounded-lg transition cursor-pointer" title="Kích hoạt nhận diện">
+                <span>🔍</span> Nhận diện
+              </button>
+            </div>
+
+            <div class="w-[280px] mt-3 p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs text-slate-500 leading-relaxed">
+              💡 <strong>Mẹo nhỏ:</strong> Dùng chuột hoặc bút cảm ứng vẽ từng nét vào ô Mễ. Hệ thống tự động nhận diện chữ Hán theo thời gian thực sau mỗi nét vẽ!
+            </div>
+          </div>
+
+          <!-- Cột 2: Danh sách kết quả gợi ý -->
+          <div class="flex flex-col min-h-[340px]">
+            <div class="flex items-center justify-between pb-2 border-b border-[#F1F5F9] mb-3">
+              <span class="text-xs font-bold text-[#0F172A] flex items-center gap-1.5">
+                <span>🎯</span> Gợi Ý Chữ Hán Khớp Nhất Từ Kizuna AI
+              </span>
+              <span class="text-[11px] text-slate-500">(Bấm vào chữ để xem chi tiết)</span>
+            </div>
+
+            <div id="hwCandidateList" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[380px] overflow-y-auto pr-1">
+              <div class="col-span-full text-center py-10 px-4 bg-[#F8FAFC] border border-dashed border-[#CBD5E1] rounded-xl">
+                <div class="text-3xl mb-2">🖋️</div>
+                <h5 class="text-base font-bold text-[#0F172A] mb-1">Bảng nhận diện sẵn sàng</h5>
+                <p class="text-xs text-slate-500">Hãy dùng chuột hoặc cảm ứng vẽ từng nét chữ Hán vào ô bên trái để nhận gợi ý tức thì.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-4 sm:px-5 py-3 border-t border-[#F1F5F9] bg-white flex justify-end">
+        <button type="button" onclick="closeHwSearchModal(event)" class="text-xs px-3.5 py-1.5 font-semibold rounded-lg bg-white border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-50 transition cursor-pointer">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CHI TIẾT CHỮ HÁN TỪ TRA CỨU VIẾT TAY ==================== -->
+  <div id="hwDetailModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-4" onclick="if(event.target === this) closeHwDetailModal(event)">
+    <div class="bg-white max-w-lg w-full overflow-hidden border border-[#E2E8F0] rounded-xl font-sans" onclick="event.stopPropagation()">
+      <div class="px-4 sm:px-5 py-3.5 border-b border-[#F1F5F9] bg-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🔍</span>
+          <h3 class="text-base sm:text-lg font-bold text-[#0F172A]">Chi tiết chữ Hán tra cứu</h3>
+        </div>
+        <button type="button" onclick="closeHwDetailModal(event)" class="w-7 h-7 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 flex items-center justify-center font-bold text-slate-500 hover:text-black text-xs transition cursor-pointer">✕</button>
+      </div>
+
+      <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-[110px_1fr] gap-4 items-start">
+          <div class="flex flex-col items-center">
+            <div id="hwModalSvgBox" class="w-[110px] h-[110px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl flex items-center justify-center overflow-hidden">
+              <span id="hwModalChar" class="font-serif text-5xl font-bold text-[#831843]">?</span>
+            </div>
+            <span class="text-[11px] text-slate-500 mt-1.5 font-medium">Chuẩn nét KanjiVG</span>
+          </div>
+
+          <div class="space-y-2">
+            <div>
+              <span class="text-xs font-semibold text-slate-500">Âm Hán Việt &amp; ý nghĩa</span>
+              <div class="flex items-baseline gap-2 mt-1 flex-wrap">
+                <h2 id="hwModalHanViet" class="text-xl font-bold text-[#0F172A]">-</h2>
+                <span id="hwModalJlpt" class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] text-xs font-semibold">N5</span>
+                <span id="hwModalStrokes" class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">0 nét</span>
+                <span id="hwModalRadical" class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">Bộ: -</span>
+              </div>
+              <p id="hwModalMeaning" class="text-xs text-slate-700 leading-relaxed mt-1">-</p>
+            </div>
+
+            <div class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl space-y-1 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-500 font-medium">Âm Onyomi:</span>
+                <span id="hwModalOnyomi" class="font-bold text-[#0F172A]">-</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-500 font-medium">Âm Kunyomi:</span>
+                <span id="hwModalKunyomi" class="font-bold text-[#0F172A]">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-4 sm:px-5 py-3 border-t border-[#F1F5F9] bg-white flex flex-wrap items-center justify-end gap-2">
+        <button type="button" onclick="useSelectedHwChar(event)" class="text-xs px-3.5 py-1.5 rounded-lg bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] font-semibold border border-[#FBCFE8] transition flex items-center gap-1.5 cursor-pointer">
+          <span>✏️</span> Chọn chữ / Luyện viết
+        </button>
+        <button type="button" onclick="copyHwSelectedChar(event)" class="text-xs px-3 py-1.5 rounded-lg bg-white border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-50 font-semibold transition flex items-center gap-1 cursor-pointer">
+          <span>📋</span> Sao chép
+        </button>
+        <button type="button" onclick="closeHwDetailModal(event)" class="text-xs px-3 py-1.5 rounded-lg bg-white border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-50 font-semibold transition cursor-pointer">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/kanji/kanjiStrokePlayer.js"></script>
+  <script src="/js/handwriting-search.js"></script>
+  <script type="module" src="/components/learner-layout/learner-layout.js"></script>
+  <script type="module" src="/pages/kanji-dictionary/kanji-dictionary.js"></script>
 </body>
 </html>

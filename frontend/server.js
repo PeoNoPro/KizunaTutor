@@ -37,6 +37,7 @@ const URL_ALIASES = {
   '/kana-quiz.html': '/pages/kana-quiz/index.html',
   '/shodo': '/pages/shodo-practice/index.html',
   '/shodo-practice': '/pages/shodo-practice/index.html',
+  '/learner/practice-canvas': '/pages/shodo-practice/index.html',
   '/practice': '/pages/shodo-practice/index.html',
   '/kanji-practice': '/pages/shodo-practice/index.html',
   '/flashcards': '/pages/flashcards/index.html',
@@ -50,6 +51,7 @@ const URL_ALIASES = {
   '/ohr': '/pages/handwriting-search/index.html',
   '/kanji-dictionary': '/pages/kanji-dictionary/index.html',
   '/kanji-dictionary.html': '/pages/kanji-dictionary/index.html',
+  '/learner/dictionary': '/pages/kanji-dictionary/index.html',
   '/dictionary': '/pages/kanji-dictionary/index.html',
   '/kanji': '/pages/kanji-dictionary/index.html',
   '/kanji-game': '/pages/kanji-game/index.html',
@@ -66,6 +68,31 @@ const URL_ALIASES = {
 };
 
 const server = http.createServer((req, res) => {
+  // Proxy API requests tới Spring Boot backend (port 8080)
+  if (req.url.startsWith('/api/')) {
+    const backendPort = 8080;
+    const options = {
+      hostname: '127.0.0.1',
+      port: backendPort,
+      path: req.url,
+      method: req.method,
+      headers: {
+        ...req.headers,
+        host: `127.0.0.1:${backendPort}`
+      }
+    };
+    const proxyReq = http.request(options, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    });
+    proxyReq.on('error', () => {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Backend unreachable on port ' + backendPort }));
+    });
+    req.pipe(proxyReq, { end: true });
+    return;
+  }
+
   let cleanUrl = req.url.split('?')[0];
 
   // Ánh xạ alias URL thân thiện / tương thích ngược

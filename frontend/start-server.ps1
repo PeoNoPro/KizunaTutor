@@ -70,6 +70,7 @@ $aliases = @{
     "/learner/flashcards"      = "/pages/flashcards/index.html"
     "/learner/grammar"         = "/pages/grammar/index.html"
     "/learner/kanji-dictionary"= "/pages/kanji-dictionary/index.html"
+    "/learner/dictionary"      = "/pages/kanji-dictionary/index.html"
     "/learner/handwriting"     = "/pages/handwriting-search/index.html"
     "/learner/kana"            = "/pages/kana-quiz/index.html"
     "/learner/kanji-game"      = "/pages/kanji-game/index.html"

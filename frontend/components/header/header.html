@@ -1,35 +1,43 @@
 <!-- KizunaTutor Shared Header Component (Figma Design Standard) -->
-<header class="fixed top-0 inset-x-0 z-50 bg-[#FCFBF7] border-b border-[#ECE8DE] shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
-  <div class="h-20 w-full max-w-[1360px] mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between gap-4 flex-nowrap whitespace-nowrap">
-    
+<header
+  class="fixed top-0 inset-x-0 z-50 bg-[#FCFBF7] border-b border-[#ECE8DE] shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
+  <div
+    class="h-20 w-full max-w-[1360px] mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between gap-4 flex-nowrap whitespace-nowrap">
     <!-- Logo + Slogan (Lệch về bên trái) -->
     <div class="flex items-center gap-3 shrink-0">
       <a class="flex items-center gap-2.5 group" data-path="landing-page" href="/pages/home/">
-        <img alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm border border-[#E5DECB] shrink-0" src="/assets/logos/kizuna-logo.png">
+        <img alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm border border-[#E5DECB] shrink-0"
+          src="/assets/logos/kizuna-logo.png">
         <div class="flex flex-col">
           <div class="flex items-center gap-1.5 leading-none">
-            <span class="font-bold text-xl tracking-tight text-[#0F2545]">Kizuna<span class="text-[#006194]">Tutor</span></span>
+            <span class="font-bold text-xl tracking-tight text-[#0F2545]">Kizuna<span
+                class="text-[#006194]">Tutor</span></span>
           </div>
-          <span class="text-[10px] text-[#68737D] font-medium tracking-wider uppercase mt-1">Kết nối song ngữ Việt – Nhật</span>
+          <span class="text-[10px] text-[#68737D] font-medium tracking-wider uppercase mt-1">Kết nối song ngữ Việt –
+            Nhật</span>
         </div>
       </a>
     </div>
 
     <!-- Navigation items (Desktop) -->
     <nav class="hidden lg:flex items-center justify-center gap-2 xl:gap-3 flex-1 mx-4" id="main-nav">
-      <a href="/tutors" data-nav="discovery" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors bg-[#E0EFF7] text-[#006194]">
+      <a href="/tutors" data-nav="discovery"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors bg-[#E0EFF7] text-[#006194]">
         <span class="material-symbols-outlined text-[18px]">search</span>
         <span>Tìm gia sư</span>
       </a>
-      <a href="/pages/home/#cach-hoat-dong" data-nav="cach-hoat-dong" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
+      <a href="/pages/home/#cach-hoat-dong" data-nav="cach-hoat-dong"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
         <span class="material-symbols-outlined text-[18px]">help_outline</span>
         <span>Cách hoạt động</span>
       </a>
-      <a href="/pages/home/#tro-thanh-gia-su" data-nav="tro-thanh-gia-su" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
+      <a href="/pages/home/#tro-thanh-gia-su" data-nav="tro-thanh-gia-su"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
         <span class="material-symbols-outlined text-[18px]">school</span>
         <span>Trở thành gia sư</span>
       </a>
-      <a href="/pages/home/#cong-cu-hoc" data-nav="cong-cu-hoc" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
+      <a href="/pages/home/#cong-cu-hoc" data-nav="cong-cu-hoc"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
         <span class="material-symbols-outlined text-[18px]">menu_book</span>
         <span>Công cụ học</span>
       </a>
@@ -37,12 +45,14 @@
 
     <!-- Right Action CTA -->
     <div class="flex items-center gap-3 shrink-0">
-      <a class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white font-semibold text-sm shadow-sm transition-all active:scale-[0.98] cursor-pointer" data-path="dang-ky" href="#">
+      <a class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white font-semibold text-sm shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+        data-path="dang-ky" href="#">
         <span class="material-symbols-outlined text-[18px]">person_add</span>
         <span>Đăng ký</span>
       </a>
       <!-- Mobile Menu Toggle Button -->
-      <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#FAF8F2] transition-colors cursor-pointer">
+      <button id="mobileMenuBtn" aria-label="Mở menu điều hướng"
+        class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#FAF8F2] transition-colors cursor-pointer">
         <span class="material-symbols-outlined text-[24px]">menu</span>
       </button>
     </div>
@@ -55,20 +65,24 @@
       <span class="material-symbols-outlined text-[18px]">search</span>
       <span>Tìm gia sư</span>
     </a>
-    <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cach-hoat-dong">
+    <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]"
+      href="/pages/home/#cach-hoat-dong">
       <span class="material-symbols-outlined text-[18px]">help_outline</span>
       <span>Cách hoạt động</span>
     </a>
-    <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#tro-thanh-gia-su">
+    <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]"
+      href="/pages/home/#tro-thanh-gia-su">
       <span class="material-symbols-outlined text-[18px]">school</span>
       <span>Trở thành gia sư</span>
     </a>
-    <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cong-cu-hoc">
+    <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]"
+      href="/pages/home/#cong-cu-hoc">
       <span class="material-symbols-outlined text-[18px]">menu_book</span>
       <span>Công cụ học</span>
     </a>
     <div class="pt-3 border-t border-[#ECE8DE]">
-      <a class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#006194] text-white font-semibold text-sm shadow-sm" href="#">
+      <a class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#006194] text-white font-semibold text-sm shadow-sm"
+        href="#">
         <span class="material-symbols-outlined text-[18px]">person_add</span>
         <span>Đăng ký</span>
       </a>

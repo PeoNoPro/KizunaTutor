@@ -117,62 +117,8 @@
 </head>
 <body class="bg-[#fcfbf7] font-body-md text-on-surface antialiased selection:bg-primary-fixed selection:text-primary">
 
-  <!-- 1. HEADER / NAVIGATION -->
-  <header class="fixed top-0 left-0 right-0 z-50 bg-[#fcfbf7]/95 backdrop-blur-md border-b border-[#ece8de]">
-    <div class="h-20 max-w-[1240px] mx-auto px-gutter flex items-center justify-between gap-space-md">
-      <!-- Logo + Slogan -->
-      <div class="flex items-center gap-space-lg">
-        <a class="flex items-center gap-2 group" data-path="landing-page" href="/pages/home/">
-          <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
-          <div class="flex flex-col">
-            <div class="flex items-center gap-1.5">
-              <span class="font-bold text-xl tracking-tight text-[#0f2545]">Kizuna<span class="text-primary">Tutor</span></span>
-            </div>
-            <span class="text-[10px] text-on-surface-variant font-medium -mt-0.5 tracking-wider">Kết nối song ngữ Việt – Nhật</span>
-          </div>
-        </a>
-        <!-- Navigation items (Desktop) -->
-        <nav class="hidden lg:flex items-center gap-1">
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="tim-gia-su" href="/tutors">Tìm gia sư</a>
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="cach-hoat-dong" href="#cach-hoat-dong">Cách hoạt động</a>
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="tro-thanh-gia-su" href="#tro-thanh-gia-su">Trở thành gia sư</a>
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-[#f2efe6] transition-colors" data-path="cong-cu-hoc" href="#cong-cu-hoc">Công cụ học</a>
-        </nav>
-      </div>
-
-      <!-- Actions (Chỉ có nút Vào Dashboard học tập và nút Đăng ký, không có nút Đăng nhập) -->
-      <div class="flex items-center gap-3">
-        <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-primary hover:bg-primary-fixed/40 transition-colors border border-primary/20" data-path="dashboard" href="#">
-          <span class="material-symbols-outlined text-[16px]">school</span>
-          <span>Vào Dashboard học tập</span>
-        </a>
-        <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-container transition-all shadow-sm font-semibold flex items-center gap-1.5" data-path="dang-ky" href="#">
-          <span>Đăng ký</span>
-          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-        </a>
-        <!-- Mobile Menu Toggle Button -->
-        <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-on-surface-variant hover:bg-[#f2efe6] transition-colors">
-          <span class="material-symbols-outlined text-[24px]">menu</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Mobile Navigation Drawer -->
-    <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ece8de] bg-[#fcfbf7] px-6 py-4 space-y-2">
-      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="/tutors">Tìm gia sư</a>
-      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#cach-hoat-dong">Cách hoạt động</a>
-      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#tro-thanh-gia-su">Trở thành gia sư</a>
-      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
-      <a class="block font-medium text-sm py-2 text-on-surface-variant hover:text-primary" href="#cong-cu-hoc">Công cụ học</a>
-      <div class="pt-3 border-t border-[#ece8de]">
-        <a class="flex items-center gap-2 font-semibold text-xs py-2 text-primary" href="#">
-          <span class="material-symbols-outlined text-[16px]">school</span>
-          <span>Vào Dashboard học tập</span>
-        </a>
-      </div>
-    </div>
-  </header>
+  <!-- Header dùng chung (Nạp tự động từ /components/header/header.html) -->
+  <div id="header-placeholder"></div>
 
   <!-- MAIN CONTENT -->
   <main class="w-full pt-20 bg-[#fcfbf7] min-h-[calc(100vh-20rem)] overflow-hidden">
@@ -819,19 +765,7 @@
   </footer>
 
   <!-- Scripts -->
-  
-  <script>
-    // Responsive Mobile Menu Handler
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const mobileMenu = document.getElementById('mobileMenu');
-    if (mobileMenuBtn && mobileMenu) {
-      mobileMenuBtn.addEventListener('click', () => {
-        mobileMenu.classList.toggle('hidden');
-      });
-    }
-  </script>
-<script type="module" src="/js/main.js"></script>
-<script type="module" src="./home.js"></script>
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="./home.js"></script>
 </body>
 </html>
-

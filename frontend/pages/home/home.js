@@ -23,7 +23,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    featuredContainer.innerHTML = featuredTutors.map(tutor => {
+    // Chỉ lấy đúng 4 gia sư tiêu biểu để vừa vặn lưới 4 cột (1 hàng x 4 thẻ)
+    const displayTutors = featuredTutors.slice(0, 4);
+
+    featuredContainer.innerHTML = displayTutors.map(tutor => {
       const profileUrl = tutor.tutorCode ? `/gs/${tutor.tutorCode}` : `/pages/tutor-profile/?id=${tutor.tutorId}`;
       return `
         <article class="bg-white border border-[#E5DECB] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">

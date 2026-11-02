@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     schedule: '',
     sortBy: 'rating',
     currentPage: 1,
-    pageSize: 10
+    pageSize: 6
   };
 
   // Whitelist các tham số hợp lệ
@@ -151,8 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const queryString = params.toString();
     const currentPath = window.location.pathname;
-    const basePath = (currentPath.startsWith('/tutors') || currentPath.startsWith('/pages/tutor-discovery')) 
-      ? currentPath 
+    const basePath = (currentPath.startsWith('/tutors') || currentPath.startsWith('/pages/tutor-discovery'))
+      ? currentPath
       : '/tutors';
 
     const newUrl = queryString ? `${basePath}?${queryString}` : basePath;
@@ -391,31 +391,33 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderPagination(totalPages, currentPage, totalElements, pageSize) {
     if (!paginationSection || !paginationNav) return;
 
-    if (totalElements === 0 || totalPages <= 1) {
+    if (totalElements === 0) {
       paginationSection.classList.add('hidden');
       return;
     }
 
     paginationSection.classList.remove('hidden');
 
+    const totalPagesCount = Math.max(1, totalPages);
     const start = (currentPage - 1) * pageSize + 1;
     const end = Math.min(currentPage * pageSize, totalElements);
     if (currentRangeEl) currentRangeEl.textContent = `${start} - ${end}`;
     if (totalCountEl) totalCountEl.textContent = totalElements;
 
     let navHtml = `
-      <button class="px-space-md py-2 rounded-lg bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#3F4850] disabled:opacity-50 text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1 ${currentPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}" 
+      <button class="px-space-md py-2 rounded-lg bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#3F4850] text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1 ${currentPage <= 1 ? 'pointer-events-none opacity-50 cursor-not-allowed' : 'cursor-pointer'}" 
               type="button" 
-              data-page="${currentPage - 1}">
+              data-page="${currentPage - 1}"
+              ${currentPage <= 1 ? 'disabled' : ''}>
         <span class="material-symbols-outlined text-[16px]">chevron_left</span>
         <span class="hidden sm:inline">Trước</span>
       </button>
     `;
 
-    for (let i = 1; i <= totalPages; i++) {
+    for (let i = 1; i <= totalPagesCount; i++) {
       if (i === currentPage) {
         navHtml += `
-          <button class="w-9 h-9 rounded-lg bg-primary text-white font-label-sm text-label-sm font-semibold shadow-sm" type="button">${i}</button>
+          <button class="w-9 h-9 rounded-lg bg-primary text-white font-label-sm text-label-sm font-semibold shadow-sm cursor-default" type="button">${i}</button>
         `;
       } else {
         navHtml += `
@@ -425,9 +427,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     navHtml += `
-      <button class="px-space-md py-2 rounded-lg bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#3F4850] disabled:opacity-50 text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1 ${currentPage >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}" 
+      <button class="px-space-md py-2 rounded-lg bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#3F4850] text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1 ${currentPage >= totalPagesCount ? 'pointer-events-none opacity-50 cursor-not-allowed' : 'cursor-pointer'}" 
               type="button" 
-              data-page="${currentPage + 1}">
+              data-page="${currentPage + 1}"
+              ${currentPage >= totalPagesCount ? 'disabled' : ''}>
         <span class="hidden sm:inline">Tiếp theo</span>
         <span class="material-symbols-outlined text-[16px]">chevron_right</span>
       </button>
@@ -438,11 +441,11 @@ document.addEventListener('DOMContentLoaded', () => {
     paginationNav.querySelectorAll('button[data-page]').forEach(btn => {
       btn.addEventListener('click', () => {
         const targetPage = parseInt(btn.getAttribute('data-page'), 10);
-        if (targetPage >= 1 && targetPage <= totalPages && targetPage !== state.currentPage) {
+        if (targetPage >= 1 && targetPage <= totalPagesCount && targetPage !== state.currentPage) {
           state.currentPage = targetPage;
           updateUrlFromState(true);
           loadTutors();
-          window.scrollTo({ top: 300, behavior: 'smooth' });
+          window.scrollTo({ top: 320, behavior: 'smooth' });
         }
       });
     });
@@ -485,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
-  window.removeFilter = function(key) {
+  window.removeFilter = function (key) {
     if (key === 'keyword') { state.keyword = ''; if (searchInput) searchInput.value = ''; }
     if (key === 'jlptLevel') { state.jlptLevel = 'all'; syncJlptPills(); }
     if (key === 'goal') { state.goal = ''; if (filterGoal) filterGoal.value = ''; }
@@ -498,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // 11. Modal kết nối
-  window.handleOpenConnect = function(tutorId) {
+  window.handleOpenConnect = function (tutorId) {
     const tutor = currentLoadedTutors.find(t => t.id === tutorId);
     if (!tutor) return;
     activeTutorForConnect = tutor;

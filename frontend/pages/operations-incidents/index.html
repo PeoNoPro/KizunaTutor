@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sự cố kỹ thuật - KizunaTutor</title><link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Serif+JP:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+
+<link rel="stylesheet" href="/styles/variables.css"><link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/components.css"><link rel="stylesheet" href="/styles/utilities.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css">
+</head>
+<body class="admin-dashboard operations-page">
+<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+<main id="dashboardMain" class="dashboard-main">
+<div id="operationsContent" class="operations-content" aria-busy="true"><div class="operations-page-heading"><span class="role-badge">Quản trị vận hành</span><h1>Sự cố kỹ thuật</h1><p>Ghi nhận, phân công và theo dõi quá trình khắc phục sự cố.</p></div>
+<p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+
+<form id="incidentFilters" class="operations-card operations-filters">
+<label>Trạng thái<select name="status"><option value="">Tất cả</option><option value="NEW">Mới ghi nhận</option><option value="IN_PROGRESS">Đang xử lý</option><option value="RESOLVED">Đã giải quyết</option><option value="CLOSED">Đã đóng</option></select></label>
+<label>Mức độ<select name="severity"><option value="">Tất cả</option><option value="LOW">Thấp</option><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Nghiêm trọng</option></select></label>
+<label>Thành phần<select id="filterComponent" name="component"><option value="">Tất cả</option></select></label>
+<label>Người phụ trách<select id="filterAssignee" name="assignee"><option value="">Tất cả</option></select></label>
+<label>Từ ngày<input name="fromDate" type="date"></label><label>Đến ngày<input name="toDate" type="date"></label>
+<button type="submit">Lọc danh sách</button></form>
+<section class="operations-card"><h2>Sự cố đang theo dõi</h2><div id="incidentList"></div><div class="operations-pagination"><button id="incidentPrev" type="button">Trang trước</button><span id="incidentPage"></span><button id="incidentNext" type="button">Trang sau</button></div><button id="openCreateIncident" class="portal-list-action" type="button">Ghi nhận xử lý kỹ thuật</button></section>
+</div>
+</main>
+<dialog id="createIncidentPanel" class="portal-dialog" aria-labelledby="createIncidentTitle">
+<form id="incidentCreateForm"><div class="portal-dialog-head"><h2 id="createIncidentTitle">Sự cố kỹ thuật</h2><button id="closeCreateIncident" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div>
+<div class="portal-dialog-body"><p>Ghi nhận thủ công sự cố sau khi đã kiểm tra. Hệ thống không tự tạo hồ sơ từ kết quả giám sát.</p>
+<div><label for="incidentSubject">Tiêu đề</label><input id="incidentSubject" required maxlength="200"></div>
+<div><label for="incidentDescription">Mô tả</label><textarea id="incidentDescription" required maxlength="10000"></textarea></div>
+<div><label for="incidentSeverity">Mức độ</label><select id="incidentSeverity"><option value="LOW">Thấp</option><option value="NORMAL" selected>Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Nghiêm trọng</option></select></div>
+<fieldset><legend>Thành phần bị ảnh hưởng</legend><div id="createComponents"></div></fieldset>
+<p id="recurrenceNote" hidden>Đang tạo sự cố tái diễn, liên kết với hồ sơ đã đóng.</p>
+<p id="incidentCreateNotice" class="portal-dialog-error" role="alert" tabindex="-1"></p></div>
+<div class="portal-dialog-actions"><button type="submit" class="primary">Lưu ghi nhận</button><button id="cancelCreateIncident" type="button">Hủy</button></div></form>
+</dialog>
+<script type="module" src="/js/main.js"></script>
+<script type="module" src="./operations-incidents.js"></script>
+</body></html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vai trò và quyền hạn - KizunaTutor</title>
+<link rel="icon" href="/assets/logos/kizuna-logo.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css">
+</head><body class="admin-dashboard operations-page" data-staff-mode="roles">
+<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+<main id="dashboardMain" class="dashboard-main"><div id="operationsContent" class="operations-content" aria-busy="true">
+  <div class="operations-page-heading"><span class="role-badge">Quản trị vận hành</span><h1 id="staffTitle">Quản lý tài khoản nhân viên</h1><p id="staffDescription">Tạo, cập nhật và quản lý trạng thái tài khoản nhân sự nội bộ.</p></div>
+  <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+  <button id="createStaff" type="button" class="primary portal-create-action">Tạo tài khoản nhân viên</button>
+  <div id="roleCards" class="staff-role-grid" hidden></div>
+  <section class="operations-card">
+    <h2>Nhân sự nội bộ</h2>
+    <form id="staffSearch" class="staff-toolbar"><label for="staffQuery">Tìm theo tên hoặc email<input id="staffQuery" maxlength="200" placeholder="Nhập tên hoặc email nhân viên"></label><button type="submit">Tìm kiếm</button><button id="clearStaffSearch" type="button">Xóa bộ lọc</button></form>
+    <p id="staffTotal" class="staff-help"></p>
+    <div class="table-scroll"><table class="staff-table"><caption class="sr-only">Tài khoản nhân sự nội bộ</caption><thead><tr><th scope="col">Thông tin</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="staffRows"></tbody></table></div>
+    <div class="operations-pagination"><button id="staffPrev" type="button">Trang trước</button><span id="staffPage"></span><button id="staffNext" type="button">Trang sau</button></div>
+  </section>
+  <details class="operations-card"><summary>Lịch sử quản lý nhân sự</summary><div id="staffHistory"></div><div class="operations-pagination"><button id="staffHistoryPrev" type="button">Trang trước</button><span id="staffHistoryPage"></span><button id="staffHistoryNext" type="button">Trang sau</button></div></details>
+</div></main>
+<dialog id="staffDialog" class="staff-dialog portal-dialog" aria-labelledby="staffDialogTitle">
+  <form id="staffForm"><div class="portal-dialog-head"><h2 id="staffDialogTitle"></h2><button id="closeStaff" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div><div class="portal-dialog-body"><p id="staffDialogDescription" class="staff-help"></p><p id="staffCurrentState" class="staff-help"></p>
+    <div data-staff-field="name"><label for="staffFullName">Họ và tên</label><input id="staffFullName" maxlength="100" autocomplete="name"></div>
+    <div data-staff-field="email"><label for="staffEmail">Email</label><input id="staffEmail" type="email" maxlength="254" autocomplete="email"></div>
+    <div data-staff-field="phone"><label for="staffPhone">Số điện thoại</label><input id="staffPhone" type="tel" maxlength="20" autocomplete="tel"></div>
+    <div data-staff-field="role"><label for="staffRole">Vai trò</label><select id="staffRole"></select></div>
+    <div data-staff-field="password"><label for="staffPassword">Mật khẩu khởi tạo</label><input id="staffPassword" type="password" minlength="12" maxlength="72" autocomplete="new-password"><p class="staff-help">Từ 12 đến 72 ký tự, tối đa 72 byte. Tài khoản được yêu cầu đổi mật khẩu ở lần đăng nhập thật đầu tiên. Hệ thống không tự gửi email.</p></div>
+    <div data-staff-field="reason"><label for="staffReason">Lý do</label><textarea id="staffReason" maxlength="2000"></textarea></div>
+    <div id="staffExtraActions" class="portal-dialog-extra" hidden><button id="staffOpenRole" type="button">Cập nhật vai trò và quyền</button><button id="staffOpenStatus" type="button"></button></div>
+    <p id="staffDialogNotice" class="staff-dialog-notice" role="alert"></p></div>
+    <div class="portal-dialog-actions"><button id="saveStaff" class="primary" type="submit">Lưu thay đổi</button><button id="reloadStaffItem" type="button" hidden>Tải lại và đối chiếu</button><button id="cancelStaff" type="button">Hủy</button></div>
+  </form>
+</dialog>
+<script type="module" src="../admin-staff/admin-staff.js"></script>
+</body></html>

@@ -1,43 +1,51 @@
 # Quickstart Validation: FE-10
 
-Đây là hướng dẫn chạy sau khi triển khai, không xác nhận code hoặc test dưới đây đã tồn tại/đã chạy.
+Implementation status and evidence: [validation.md](validation.md). Current paths supersede the original SSR/root-package paths.
 
-## Prerequisites
+## Run locally without unfinished FE-01 login
 
-- Java 17, Maven Wrapper, Docker/PostgreSQL 16, môi trường DB kiểm thử tách biệt.
-- Đã hoàn tất migration FE-10 và cấu hình ứng dụng trỏ đúng DB. Không chạy migration trên dữ liệu thật để thử nghiệm.
-- Các tài khoản test riêng: hai learner, một tutor, hai CS và hai manager còn hoạt động; có cách khóa tài khoản/đổi role để thử thu hồi quyền.
-- Dữ liệu booking, membership và payment thật trong môi trường kiểm thử, có cả đối tượng thuộc người khác. Fixture kiểm thử không được đưa vào dữ liệu hiển thị vận hành.
-- Tệp JPG, PNG, PDF đọc được; file hỏng/giả mạo; file đúng 10.000.000 byte, vượt một byte, tập 5 và 6 tệp. Bộ tạo fixture phải tạo file thực sự đọc được, không chỉ padding header.
-
-## Setup and commands
-
-Chạy tại thư mục repo trong PowerShell:
+From `D:\do an 2\KizunaTutor`:
 
 ```powershell
-java -version
-.\mvnw.cmd -version
-docker compose up -d kizuna-postgres
+.\scripts\start-support-dev.ps1 -AccountRole Cs
 ```
 
-Compose trên dành cho môi trường phát triển, không tự tạo DB kiểm thử. Chuẩn bị DB riêng theo cấu hình test hiện có; không đưa mật khẩu vào lệnh chia sẻ/log.
+Open http://localhost:3000/cs/dashboard once the backend is ready; choose “Yêu cầu hỗ trợ” for the full queue at `/cs/support/tickets`. The script restarts only a verified KizunaTutor Java process whose working directory is this repository's backend, starts frontend if missing, applies the additive migration to the private local development DB, and uses an existing active account of the selected role. It does not create fictional tickets or users and never enables the bypass on a shared/remote DB. Missing accounts produce an explicit error.
 
-Khi triển khai, cung cấp script SQL có phiên bản trong `src/main/resources/db/changes/` kèm README về preflight, backup/restore và lệnh psql cụ thể. Chỉ chạy theo hướng dẫn đó trên DB kiểm thử; không dùng `DatabasePgAdmin4.txt` chứa DROP CASCADE để nâng cấp DB hiện hữu. Bước này không tạo migration giả để lệnh chạy được.
+Switch roles by rerunning with `Manager`, `Learner` or `Tutor`, then use the corresponding `/manager/support/tickets`, `/learner/support/tickets` or `/tutor/support/tickets` route. One local backend uses one development identity at a time. Preserve an open terminal for the backend. Restore the admin session with `.\scripts\start-support-dev.ps1 -AccountRole Admin`; this uses the existing FE-11 admin identity and grants no ticket permissions.
 
-Profile `ticket-test` dự kiến nhận `TICKET_TEST_DB_URL`, `TICKET_TEST_DB_USERNAME`, `TICKET_TEST_DB_PASSWORD` từ môi trường. Profile phải fail nếu thiếu hoặc trỏ vào DB không được đánh dấu kiểm thử. Sau khi code/test đã được tạo:
+FE-10 is for requesters, CS and the manager receiving escalation. Admin and academic staff do not automatically gain access to private support conversations. The root admin dashboard remains FE-11.
+
+## Database and automated tests
+
+Java 17, Maven wrapper, Node 24, PostgreSQL and a separate database ending `_ticket_test` are required. Verified here on PostgreSQL 18.6; PostgreSQL 16 has not been independently verified. Follow [migration/backup instructions](../../database/migrations/README-fe10.md). Never execute the destructive baseline script to upgrade a database.
+
+Set `TICKET_TEST_DB_URL`, `TICKET_TEST_DB_USERNAME`, `TICKET_TEST_DB_PASSWORD` explicitly; the test datasource refuses missing variables or a non-test DB. Apply `database/seeds/fe10_support_ticket.sql` with psql `-v ON_ERROR_STOP=1` before the integration suite. No email/payment execution is part of ticket handling.
 
 ```powershell
-.\mvnw.cmd "-Dspring.profiles.active=ticket-test" "-Dtest=SupportTicket*Test" test
-.\mvnw.cmd "-Dspring.profiles.active=ticket-test" test
+Set-Location backend
+.\mvnw.cmd "-Dtest=SupportTicket*Test" test
 ```
 
-Ứng dụng phát triển dùng cấu hình dự án hiện có, địa chỉ mặc định localhost:8080:
+For the complete repository regression, also configure the existing isolated `OPERATIONS_TEST_DB_*` variables and set `SPRING_PROFILES_ACTIVE=ticket-test` so legacy SpringBoot tests use the ticket test database, then run `.\mvnw.cmd test`. Neither test harness may fall back to operational configuration.
+
+Frontend transport tests, from repository root:
 
 ```powershell
-.\mvnw.cmd spring-boot:run
+node --test --test-isolation=none frontend/tests/operations-api.test.mjs frontend/tests/support-api.test.mjs
 ```
 
-Không khởi động agent-memory cho riêng FE-10 trừ khi cấu hình ứng dụng hiện hữu yêu cầu. Bảo đảm môi trường được dùng không gửi email/thực thi thanh toán thật trong các test liên quan ngoài module.
+Real browser harness: `frontend/tests/support-tickets.browser.mjs` uses a separate localhost:8090 backend on `*_ticket_test`, a dedicated Chrome profile/CDP port 9340 and the isolated test key in `TICKET_BROWSER_SECRET`. It switches only the test tab's API configuration, exercises four roles and takes screenshots outside the repository. No response data is mocked.
+
+## Attachment runtime
+
+Windows parser launcher enforces 256,000,000 bytes whole-process committed memory, ten seconds per file and thirty seconds per submitted batch. PDFBox/ImageIO run only in the child process. JPG/PNG/PDF, five files maximum, 10,000,000 bytes/file, 52,000,000 bytes/request. Unsupported OS isolation, missing worker dependencies, invalid files or process failure reject the whole submission.
+
+Maven development launch supplies the worker classpath automatically. For packaged fat-jar deployment, configure `app.ticket.parser.classpath` with exploded application classes plus the dependency classpath. Verify a valid upload and the resource-limit probes before accepting uploads on another environment. The server never substitutes in-process parsing.
+
+## Load and human acceptance
+
+[Load harness instructions](../../backend/src/test/load/README.md). SC-005 requires 100 real browser sessions for ten minutes over at least 1,000 populated tickets, with separate list/detail render p95 ≤2 seconds. HTTP/SQL timings are diagnostic only. SC-001 requires ten human participants; automated browser checks do not replace them.
 
 ## End-to-end acceptance
 
@@ -58,3 +66,15 @@ Không khởi động agent-memory cho riêng FE-10 trừ khi cấu hình ứng 
 - SC-001: 10 người thử tạo/tìm lại phiếu, ghi thời gian và số cần trợ giúp; đạt ≥9 người trong 3 phút.
 - SC-005: Dùng công cụ tải của môi trường kiểm thử với 100 phiên xác thực/10 phút, 1.000 phiếu và trao đổi; đo p95 riêng list/detail ≤2 giây, error rate và đối chiếu mutation/audit. Không tính bytes tệp vào list và không gọi mục tiêu là kết quả nếu chưa đo.
 - Báo cáo kết quả theo FR-001–021 và SC-001–007; ghi lệnh, môi trường, phiên bản schema, số ca đạt/thất bại/chưa chạy, lỗi và giới hạn. Hợp đồng xem [contracts/tickets.md](contracts/tickets.md), mô hình xem [data-model.md](data-model.md).
+
+## Cập nhật thiết kế và nghiệm thu FE-10
+
+US1 chỉ nghiệm thu tạo phiếu kèm tệp, list/detail, GET hội thoại và tải tệp có phân quyền. POST bổ sung của owner, phản hồi CS và tệp trong hội thoại thuộc US2; chỉ kết luận toàn bộ FR-020 hoàn tất khi checkpoint US1 và US2 đều đạt.
+
+Hội thoại trả sequenceNo và sắp xếp tăng dần theo trường này; sentAt chỉ hiển thị. sequence_no được cấp dưới khóa ticket, UNIQUE(ticket_id, sequence_no). Hai lệnh cùng expectedVersion chỉ một thành công; lệnh stale tải version mới trước khi gửi lại. Kiểm hai message cạnh tranh không trùng số và hiển thị đúng thứ tự ngay khi timestamp trùng.
+
+Ảnh tối đa 20.000.000 pixel; PDF tối đa 100 trang, từ chối bản mã hóa không đọc được. Kiểm tra cấu trúc bằng ImageIO/PDFBox trong tiến trình con riêng: giới hạn cứng 256 MB RAM (256.000.000 byte) bằng cơ chế hệ điều hành, 10 giây/tệp và tổng 30 giây/lần gửi. -Xmx không thay thế giới hạn RAM toàn tiến trình. Hết hạn/vượt bộ nhớ phải dừng tiến trình, dọn tệp tạm và từ chối toàn bộ lần gửi, không lưu phiếu/message/tệp/audit một phần. Không kiểm tra trong JVM ứng dụng; nếu môi trường chưa áp được cách ly và giới hạn thì từ chối tiếp nhận tệp. Thực hiện kiểm tra tệp trước transaction ghi ngắn, rồi kiểm lại quyền/version/trạng thái dưới khóa trước commit.
+
+SC-005: 100 người dùng đồng thời trong 10 phút, 1.000 phiếu có trao đổi; đo riêng p95 danh sách và chi tiết từ thao tác mở trang trên trình duyệt thật đến khi render hoàn tất, mỗi loại ≤2 giây. Báo cáo HTTP timing riêng để chẩn đoán; không dùng HTTP thay phép đo render.
+
+Menu learner và tutor có mục “Yêu cầu hỗ trợ”, dẫn lần lượt tới /learner/support/tickets và /tutor/support/tickets; danh sách cá nhân có nút tạo phiếu. Kiểm thử điều hướng và quyền cả hai vai trò, kể cả truy cập trực tiếp/đổi route.

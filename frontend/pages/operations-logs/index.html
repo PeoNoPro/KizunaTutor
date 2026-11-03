@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nhật ký hệ thống - KizunaTutor</title><link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Serif+JP:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+
+<link rel="stylesheet" href="/styles/variables.css"><link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/components.css"><link rel="stylesheet" href="/styles/utilities.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css">
+</head>
+<body class="admin-dashboard operations-page">
+<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+<main id="dashboardMain" class="dashboard-main">
+<div id="operationsContent" class="operations-content" aria-busy="true"><div class="operations-page-heading"><span class="role-badge">Quản trị vận hành</span><h1>Nhật ký hệ thống</h1><p>Xem các thay đổi cấu hình, nhân sự và xử lý sự cố đã được ghi nhận. Nhật ký chỉ đọc, không sửa hoặc xóa được.</p></div>
+<p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+
+<form id="logFilters" class="operations-card operations-filters"><label>Nhóm<select name="source"><option value="">Tất cả nhóm</option><option value="CONFIG">Cấu hình</option><option value="STAFF">Nhân sự</option><option value="INCIDENT">Sự cố</option></select></label><label>Người thực hiện<select name="actor" id="logActor"><option value="">Tất cả quản trị viên</option></select></label><label>Từ ngày<input type="date" name="fromDate"></label><label>Đến ngày<input type="date" name="toDate"></label><button class="primary" type="submit">Lọc nhật ký</button></form>
+<div class="operations-card"><div class="table-scroll"><table class="audit-log-table"><caption class="sr-only">Nhật ký thao tác quản trị</caption><thead><tr><th scope="col">Thời gian</th><th scope="col">Người thực hiện</th><th scope="col">Nhóm</th><th scope="col">Hành động</th><th scope="col">Đối tượng</th><th scope="col">Kết quả</th><th scope="col">Lý do</th></tr></thead><tbody id="logRows"></tbody></table></div><div id="logEmpty"></div></div>
+<button id="logPrev" type="button">Trang trước</button><span id="logPage"></span><button id="logNext" type="button">Trang sau</button>
+</div>
+</main>
+<script type="module" src="/js/main.js"></script>
+<script type="module" src="./operations-logs.js"></script>
+</body></html>

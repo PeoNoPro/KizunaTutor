@@ -290,9 +290,11 @@ async function openMaterial(materialId, button) {
   const tab = window.open('', '_blank');
   setBusy(button, true, 'Đang mở...');
   try {
-    const link = await API.classrooms.materialFileLink(state.currentSpace.spaceId, materialId);
-    if (tab) tab.location.href = link.url;
-    else window.location.href = link.url;
+    const blob = await API.classrooms.materialFile(state.currentSpace.spaceId, materialId);
+    const url = URL.createObjectURL(blob);
+    if (tab) tab.location.href = url;
+    else window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   } catch (err) {
     if (tab) tab.close();
     showToast(friendlyErrorMessage(err), 'error');

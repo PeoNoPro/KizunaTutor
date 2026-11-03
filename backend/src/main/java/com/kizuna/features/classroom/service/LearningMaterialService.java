@@ -1,7 +1,7 @@
 package com.kizuna.features.classroom.service;
 
 import com.kizuna.features.classroom.dto.LearningMaterialResponse;
-import com.kizuna.features.classroom.dto.MaterialFileLinkResponse;
+import com.kizuna.features.classroom.dto.MaterialFileContent;
 import com.kizuna.features.classroom.util.CurrentActor;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,7 +13,7 @@ public interface LearningMaterialService {
 
     List<LearningMaterialResponse> list(CurrentActor actor, UUID spaceId);
 
-    MaterialFileLinkResponse getFileLink(CurrentActor actor, UUID spaceId, UUID materialId);
+    MaterialFileContent getFile(CurrentActor actor, UUID spaceId, UUID materialId);
 
     LearningMaterialResponse upload(CurrentActor actor, UUID spaceId, String title, String description, MultipartFile file);
 

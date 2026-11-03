@@ -1,5 +1,12 @@
 # Research: FE-06 — Classroom & Learning Materials
 
+> **Thay đổi thiết kế (2026-11-03, người phụ trách quyết định):** bỏ Supabase Storage; nội dung tệp lưu
+> trực tiếp trong cột mới `learning_materials.file_data BYTEA` (migration `007`, người phụ trách tự chạy).
+> `file_url` lưu tên tệp gốc đã làm sạch. Endpoint `/file` trả thẳng nội dung tệp sau khi kiểm quyền;
+> frontend tải bằng `fetch` kèm token rồi mở bằng blob URL. Không cần bucket, khóa dịch vụ hay biến môi trường.
+> Mục R1, R2 (phần storage) và R6 bên dưới giữ lại làm lịch sử quyết định.
+> Đánh đổi: dung lượng DB tăng theo số tệp (tối đa 10 MB/tệp).
+
 ## R1. Lưu trữ tệp — Supabase Storage qua REST
 
 - **Decision**: Gọi Supabase Storage REST API bằng `org.springframework.web.client.RestClient` (có sẵn trong Spring Boot 3.3 / Spring 6.1, **không thêm dependency, không sửa `pom.xml`**).

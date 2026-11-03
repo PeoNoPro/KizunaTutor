@@ -3,21 +3,19 @@ package com.kizuna.features.classroom;
 import com.kizuna.core.entity.Learner;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.features.classroom.dto.LearningMaterialResponse;
-import com.kizuna.features.classroom.dto.MaterialFileLinkResponse;
+import com.kizuna.features.classroom.dto.MaterialFileContent;
 import com.kizuna.features.classroom.entity.LearningMaterial;
 import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import com.kizuna.features.classroom.exception.ClassroomException;
 import com.kizuna.features.classroom.repository.LearningMaterialRepository;
 import com.kizuna.features.classroom.service.ClassroomService;
-import com.kizuna.features.classroom.service.MaterialStorageService;
 import com.kizuna.features.classroom.service.impl.LearningMaterialServiceImpl;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.classroom.util.MaterialFileValidator;
 import com.kizuna.features.payment.entity.TutorMembershipStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -38,7 +36,6 @@ class LearningMaterialServiceImplTest {
 
     private ClassroomService classrooms;
     private LearningMaterialRepository materials;
-    private MaterialStorageService storage;
     private LearningMaterialServiceImpl service;
 
     private Tutor tutor;
@@ -50,16 +47,13 @@ class LearningMaterialServiceImplTest {
     void setUp() {
         classrooms = mock(ClassroomService.class);
         materials = mock(LearningMaterialRepository.class);
-        storage = mock(MaterialStorageService.class);
-        service = new LearningMaterialServiceImpl(classrooms, materials, storage, new MaterialFileValidator());
+        service = new LearningMaterialServiceImpl(classrooms, materials, new MaterialFileValidator());
 
         tutor = tutor(TutorMembershipStatus.PREMIUM);
         learner = learner();
         space = space(tutor, learner, LearningSpaceStatus.ACTIVE);
         tutorActor = asTutor(tutor);
 
-        when(storage.isConfigured()).thenReturn(true);
-        when(storage.signedUrlTtlSeconds()).thenReturn(300);
         when(classrooms.loadManageableSpace(tutorActor, space.getSpaceId())).thenReturn(space);
         when(materials.save(any(LearningMaterial.class))).thenAnswer(inv -> {
             LearningMaterial m = inv.getArgument(0);
@@ -79,24 +73,26 @@ class LearningMaterialServiceImplTest {
 
     private LearningMaterial existing() {
         LearningMaterial m = LearningMaterial.builder().materialId(UUID.randomUUID()).space(space).title("Cũ")
-                .description("Mô tả cũ").fileUrl("spaces/" + space.getSpaceId() + "/old.pdf").fileType("PDF")
-                .uploadedBy(tutor.getUser()).build();
+                .description("Mô tả cũ").fileUrl("cu.pdf").fileType("PDF").uploadedBy(tutor.getUser()).build();
         when(materials.findByMaterialIdAndSpace_SpaceId(m.getMaterialId(), space.getSpaceId())).thenReturn(Optional.of(m));
         return m;
+    }
+
+    private void verifyNothingWritten() {
+        verify(materials, never()).save(any());
+        verify(materials, never()).updateFileData(any(), any());
     }
 
     // ----- UC-65 Upload -----
 
     @Test
-    void uploadStoresFileThenSavesRecord() {
+    void uploadSavesRecordThenFileBytes() {
         LearningMaterialResponse r = service.upload(tutorActor, space.getSpaceId(), " Từ vựng bài 1 ", " Ôn tập ", pdf());
 
-        ArgumentCaptor<String> path = ArgumentCaptor.forClass(String.class);
-        verify(storage).upload(path.capture(), eq(PDF), eq("application/pdf"));
-        assertThat(path.getValue()).startsWith("spaces/" + space.getSpaceId() + "/").endsWith(".pdf")
-                .doesNotContain("bai-1");
-        verify(materials).save(argThat(m -> m.getFileUrl().equals(path.getValue()) && m.getFileType().equals("PDF")
+        var order = inOrder(materials);
+        order.verify(materials).save(argThat(m -> m.getFileUrl().equals("bai-1.pdf") && m.getFileType().equals("PDF")
                 && m.getSpace() == space && m.getUploadedBy() == tutor.getUser()));
+        order.verify(materials).updateFileData(r.materialId(), PDF);
         assertThat(r.title()).isEqualTo("Từ vựng bài 1");
         assertThat(r.description()).isEqualTo("Ôn tập");
         assertThat(r.fileType()).isEqualTo("PDF");
@@ -104,8 +100,7 @@ class LearningMaterialServiceImplTest {
 
     @Test
     void uploadBlankDescriptionStoredAsNull() {
-        LearningMaterialResponse r = service.upload(tutorActor, space.getSpaceId(), "Bài 1", "   ", pdf());
-        assertThat(r.description()).isNull();
+        assertThat(service.upload(tutorActor, space.getSpaceId(), "Bài 1", "   ", pdf()).description()).isNull();
     }
 
     @Test
@@ -117,46 +112,42 @@ class LearningMaterialServiceImplTest {
         assertStatus(() -> service.upload(tutorActor, id, "Bài 1", null, null), HttpStatus.BAD_REQUEST);
         assertStatus(() -> service.upload(tutorActor, id, "Bài 1", null,
                 new MockMultipartFile("file", "virus.pdf", "application/pdf", new byte[]{0x4D, 0x5A, 0, 0})), HttpStatus.BAD_REQUEST);
-        verifyNoUploadOrSave();
+        verifyNothingWritten();
     }
 
     @Test
     void uploadBlockedWhenClassroomNotManageable() {
         CurrentActor learnerActor = asLearner(learner);
-        when(classrooms.loadManageableSpace(learnerActor, space.getSpaceId()))
-                .thenThrow(ClassroomException.forbidden("x"));
+        when(classrooms.loadManageableSpace(learnerActor, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
         assertStatus(() -> service.upload(learnerActor, space.getSpaceId(), "Bài", null, pdf()), HttpStatus.FORBIDDEN);
 
-        Tutor expired = tutor(TutorMembershipStatus.EXPIRED);
-        CurrentActor expiredActor = asTutor(expired);
+        CurrentActor expiredActor = asTutor(tutor(TutorMembershipStatus.EXPIRED));
         when(classrooms.loadManageableSpace(expiredActor, space.getSpaceId())).thenThrow(ClassroomException.conflict("x"));
         assertStatus(() -> service.upload(expiredActor, space.getSpaceId(), "Bài", null, pdf()), HttpStatus.CONFLICT);
-        verifyNoUploadOrSave();
+        verifyNothingWritten();
     }
 
     @Test
-    void uploadFailsCleanlyWhenStorageNotConfigured() {
-        when(storage.isConfigured()).thenReturn(false);
-        assertStatus(() -> service.upload(tutorActor, space.getSpaceId(), "Bài", null, pdf()), HttpStatus.SERVICE_UNAVAILABLE);
-        verifyNoUploadOrSave();
+    void cleanFileNameStripsPathAndUnsafeCharacters() {
+        var pdf = MaterialFileValidator.MaterialFileType.PDF;
+        var jpg = MaterialFileValidator.MaterialFileType.JPG;
+        assertThat(LearningMaterialServiceImplTest.clean("C:\\Users\\a\\Bài 1.PDF", pdf)).isEqualTo("Bài 1.pdf");
+        assertThat(clean("../../etc/pa<ss>wd.pdf", pdf)).isEqualTo("passwd.pdf");
+        assertThat(clean("anh.jpeg", jpg)).isEqualTo("anh.jpg");
+        assertThat(clean(null, pdf)).isEqualTo("tai-lieu.pdf");
+        assertThat(clean(".pdf", pdf)).isEqualTo("tai-lieu.pdf");
+        assertThat(clean("a".repeat(400) + ".pdf", pdf)).hasSize(204);
     }
 
-    @Test
-    void uploadDeletesStoredFileWhenSaveFails() {
-        when(materials.save(any())).thenThrow(new RuntimeException("db down"));
-        assertThatThrownBy(() -> service.upload(tutorActor, space.getSpaceId(), "Bài", null, pdf()))
-                .isInstanceOf(RuntimeException.class);
-
-        ArgumentCaptor<String> uploaded = ArgumentCaptor.forClass(String.class);
-        verify(storage).upload(uploaded.capture(), any(), any());
-        verify(storage).delete(uploaded.getValue());
-    }
-
-    @Test
-    void uploadNotSavedWhenStorageFails() {
-        doThrow(ClassroomException.storageUnavailable()).when(storage).upload(any(), any(), any());
-        assertStatus(() -> service.upload(tutorActor, space.getSpaceId(), "Bài", null, pdf()), HttpStatus.SERVICE_UNAVAILABLE);
-        verify(materials, never()).save(any());
+    private static String clean(String name, MaterialFileValidator.MaterialFileType type) {
+        try {
+            var m = LearningMaterialServiceImpl.class.getDeclaredMethod("cleanFileName", String.class,
+                    MaterialFileValidator.MaterialFileType.class);
+            m.setAccessible(true);
+            return (String) m.invoke(null, name, type);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     // ----- UC-61 View -----
@@ -172,6 +163,7 @@ class LearningMaterialServiceImplTest {
         verify(classrooms).loadAccessibleSpace(learnerActor, space.getSpaceId());
         assertThat(result).extracting(LearningMaterialResponse::title).containsExactly("Cũ");
         assertThat(result.get(0).uploadedByName()).isEqualTo("Gia sư A");
+        verify(materials, never()).findFileData(any());
     }
 
     @Test
@@ -183,25 +175,30 @@ class LearningMaterialServiceImplTest {
     }
 
     @Test
-    void fileLinkIsSignedForParticipant() {
+    void fileReturnedForParticipantWithContentType() {
         LearningMaterial m = existing();
-        when(storage.createSignedUrl(m.getFileUrl())).thenReturn("https://signed");
+        when(materials.findFileData(m.getMaterialId())).thenReturn(PDF);
 
-        MaterialFileLinkResponse link = service.getFileLink(asLearner(learner), space.getSpaceId(), m.getMaterialId());
+        MaterialFileContent file = service.getFile(asLearner(learner), space.getSpaceId(), m.getMaterialId());
 
-        assertThat(link.url()).isEqualTo("https://signed");
-        assertThat(link.expiresInSeconds()).isEqualTo(300);
+        assertThat(file.data()).isEqualTo(PDF);
+        assertThat(file.contentType()).isEqualTo("application/pdf");
+        assertThat(file.fileName()).isEqualTo("cu.pdf");
     }
 
     @Test
-    void fileLinkDeniedForOutsiderAndForMaterialOfOtherClassroom() {
+    void fileDeniedForOutsiderMissingForOtherClassroomOrEmpty() {
         CurrentActor outsider = asLearner(learner());
         when(classrooms.loadAccessibleSpace(outsider, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
-        assertStatus(() -> service.getFileLink(outsider, space.getSpaceId(), UUID.randomUUID()), HttpStatus.FORBIDDEN);
+        assertStatus(() -> service.getFile(outsider, space.getSpaceId(), UUID.randomUUID()), HttpStatus.FORBIDDEN);
 
         when(materials.findByMaterialIdAndSpace_SpaceId(any(), eq(space.getSpaceId()))).thenReturn(Optional.empty());
-        assertStatus(() -> service.getFileLink(tutorActor, space.getSpaceId(), UUID.randomUUID()), HttpStatus.NOT_FOUND);
-        verify(storage, never()).createSignedUrl(any());
+        assertStatus(() -> service.getFile(tutorActor, space.getSpaceId(), UUID.randomUUID()), HttpStatus.NOT_FOUND);
+        verify(materials, never()).findFileData(any());
+
+        LearningMaterial m = existing();
+        when(materials.findFileData(m.getMaterialId())).thenReturn(null);
+        assertStatus(() -> service.getFile(tutorActor, space.getSpaceId(), m.getMaterialId()), HttpStatus.NOT_FOUND);
     }
 
     // ----- UC-94 Update -----
@@ -209,31 +206,28 @@ class LearningMaterialServiceImplTest {
     @Test
     void updateMetadataOnlyKeepsFile() {
         LearningMaterial m = existing();
-        String oldPath = m.getFileUrl();
 
         LearningMaterialResponse r = service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "Mới", "", null);
 
         assertThat(r.title()).isEqualTo("Mới");
         assertThat(r.description()).isNull();
-        assertThat(m.getFileUrl()).isEqualTo(oldPath);
-        verify(storage, never()).upload(any(), any(), any());
-        verify(storage, never()).delete(any());
+        assertThat(m.getFileUrl()).isEqualTo("cu.pdf");
+        verify(materials).save(m);
+        verify(materials, never()).updateFileData(any(), any());
     }
 
     @Test
-    void updateReplacesFileAndDeletesOldAfterSave() {
+    void updateReplacesFileContentAndName() {
         LearningMaterial m = existing();
-        String oldPath = m.getFileUrl();
 
         LearningMaterialResponse r = service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "Mới", null,
                 new MockMultipartFile("file", "hinh.png", "image/png", PNG));
 
         assertThat(r.fileType()).isEqualTo("PNG");
-        assertThat(m.getFileUrl()).isNotEqualTo(oldPath).endsWith(".png");
-        var order = inOrder(storage, materials);
-        order.verify(storage).upload(eq(m.getFileUrl()), eq(PNG), eq("image/png"));
+        assertThat(m.getFileUrl()).isEqualTo("hinh.png");
+        var order = inOrder(materials);
         order.verify(materials).save(m);
-        order.verify(storage).delete(oldPath);
+        order.verify(materials).updateFileData(m.getMaterialId(), PNG);
     }
 
     @Test
@@ -242,23 +236,8 @@ class LearningMaterialServiceImplTest {
         assertStatus(() -> service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "Mới", null,
                 new MockMultipartFile("file", "video.mp4", "video/mp4", PDF)), HttpStatus.BAD_REQUEST);
         assertThat(m.getTitle()).isEqualTo("Cũ");
-        verifyNoUploadOrSave();
-    }
-
-    @Test
-    void updateSaveFailureRemovesNewFileAndKeepsOld() {
-        LearningMaterial m = existing();
-        String oldPath = m.getFileUrl();
-        when(materials.save(any())).thenThrow(new RuntimeException("db down"));
-
-        assertThatThrownBy(() -> service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "Mới", null, pdf()))
-                .isInstanceOf(RuntimeException.class);
-
-        ArgumentCaptor<String> uploaded = ArgumentCaptor.forClass(String.class);
-        verify(storage).upload(uploaded.capture(), any(), any());
-        verify(storage).delete(uploaded.getValue());
-        verify(storage, never()).delete(oldPath);
-        assertThat(m.getFileUrl()).isEqualTo(oldPath);
+        assertThat(m.getFileUrl()).isEqualTo("cu.pdf");
+        verifyNothingWritten();
     }
 
     @Test
@@ -271,11 +250,6 @@ class LearningMaterialServiceImplTest {
         when(classrooms.loadManageableSpace(learnerActor, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
         assertStatus(() -> service.update(learnerActor, space.getSpaceId(), UUID.randomUUID(), "Mới", null, null),
                 HttpStatus.FORBIDDEN);
-        verifyNoUploadOrSave();
-    }
-
-    private void verifyNoUploadOrSave() {
-        verify(storage, never()).upload(any(), any(), any());
-        verify(materials, never()).save(any());
+        verifyNothingWritten();
     }
 }

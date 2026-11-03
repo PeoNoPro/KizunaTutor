@@ -1,6 +1,8 @@
 # Data Model: FE-06
 
-Thay đổi schema duy nhất: thêm `learning_materials.description TEXT NULL` (đã được duyệt — Q3). Không đổi bảng, cột, kiểu, khóa, ràng buộc, index nào khác.
+Thay đổi schema (đều đã được người phụ trách duyệt): thêm `learning_materials.description TEXT NULL` (Q3, migration 006) và `learning_materials.file_data BYTEA NULL` (lưu tệp trong DB thay cho Supabase Storage, migration 007). Không đổi bảng, cột, kiểu, khóa, ràng buộc, index nào khác.
+
+`file_data` không ánh xạ vào entity (để danh sách không tải dữ liệu nhị phân); đọc/ghi qua native query trong `LearningMaterialRepository`. `file_url` lưu tên tệp gốc đã làm sạch (bỏ đường dẫn, ký tự không hợp lệ, tối đa 200 ký tự + đuôi đã xác minh).
 
 ## learning_spaces (sẵn có — không đổi schema)
 

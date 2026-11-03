@@ -11,7 +11,8 @@ import java.util.UUID;
 /**
  * Entity Tài Liệu Học Tập (FE-06) thuộc một Learning Space.
  * Ánh xạ đúng bảng learning_materials (không có updated_at nên không kế thừa BaseEntity).
- * fileUrl lưu đường dẫn đối tượng trong bucket Supabase Storage riêng tư, không phải URL công khai.
+ * Nội dung tệp nằm ở cột file_data (BYTEA) và cố ý KHÔNG ánh xạ ở đây để danh sách không tải dữ liệu nhị phân;
+ * đọc/ghi qua LearningMaterialRepository. fileUrl lưu tên tệp gốc đã làm sạch (dùng khi mở/tải về).
  */
 @Entity
 @Table(name = "learning_materials")

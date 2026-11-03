@@ -213,9 +213,37 @@ API.classrooms = {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/materials`);
   },
 
-  /** Liên kết tạm thời để mở tài liệu (UC-61) */
-  materialFileLink(spaceId, materialId) {
-    return classroomRequest(`/${encodeURIComponent(spaceId)}/materials/${encodeURIComponent(materialId)}/file`);
+  /** Tải nội dung tệp tài liệu (UC-61); trả về Blob để mở bằng URL.createObjectURL */
+  async materialFile(spaceId, materialId) {
+    let response;
+    try {
+      response = await fetch(
+        `${API_BASE_URL}/classrooms/${encodeURIComponent(spaceId)}/materials/${encodeURIComponent(materialId)}/file`,
+        { headers: classroomAuthHeaders(), signal: AbortSignal.timeout(120000) }
+      );
+    } catch (networkErr) {
+      console.debug('API.classrooms.materialFile network error:', networkErr);
+      const err = new Error('network');
+      err.status = 0;
+      err.userMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối và thử lại.';
+      throw err;
+    }
+    if (response.status === 401) {
+      window.location.href = '/login';
+    }
+    if (!response.ok) {
+      let json = null;
+      try {
+        json = await response.json();
+      } catch (parseErr) {
+        json = null;
+      }
+      const err = new Error('request-failed');
+      err.status = response.status;
+      err.userMessage = json && typeof json.message === 'string' ? json.message : '';
+      throw err;
+    }
+    return await response.blob();
   },
 
   /** Tải lên tài liệu mới (UC-65) */

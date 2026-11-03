@@ -1,19 +1,17 @@
 package com.kizuna.features.classroom.service.impl;
 
 import com.kizuna.features.classroom.dto.LearningMaterialResponse;
-import com.kizuna.features.classroom.dto.MaterialFileLinkResponse;
+import com.kizuna.features.classroom.dto.MaterialFileContent;
 import com.kizuna.features.classroom.entity.LearningMaterial;
 import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.exception.ClassroomException;
 import com.kizuna.features.classroom.repository.LearningMaterialRepository;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.service.LearningMaterialService;
-import com.kizuna.features.classroom.service.MaterialStorageService;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.classroom.util.MaterialFileValidator;
 import com.kizuna.features.classroom.util.MaterialFileValidator.MaterialFileType;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,20 +21,20 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Tệp được tải lên kho trước, sau đó mới lưu bản ghi. Nếu lưu bản ghi thất bại thì xóa tệp vừa tải
- * để không có tệp mồ côi. Khi thay tệp, tệp cũ chỉ bị xóa sau khi bản ghi mới được lưu thành công.
+ * Tài liệu học tập FE-06. Nội dung tệp lưu trực tiếp trong cột learning_materials.file_data (BYTEA);
+ * cột file_url lưu tên tệp gốc đã làm sạch. Bản ghi và nội dung tệp được ghi trong cùng một giao dịch
+ * nên lỗi ở bất kỳ bước nào cũng không để lại dữ liệu dở dang.
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LearningMaterialServiceImpl implements LearningMaterialService {
 
     static final int TITLE_MAX = 150;
     static final int DESCRIPTION_MAX = 1000;
+    static final int FILE_NAME_MAX = 200;
 
     private final ClassroomService classroomService;
     private final LearningMaterialRepository materialRepository;
-    private final MaterialStorageService storage;
     private final MaterialFileValidator fileValidator;
 
     @Override
@@ -50,39 +48,40 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
 
     @Override
     @Transactional(readOnly = true)
-    public MaterialFileLinkResponse getFileLink(CurrentActor actor, UUID spaceId, UUID materialId) {
+    public MaterialFileContent getFile(CurrentActor actor, UUID spaceId, UUID materialId) {
         classroomService.loadAccessibleSpace(actor, spaceId);
         LearningMaterial material = findInSpace(materialId, spaceId);
-        return new MaterialFileLinkResponse(storage.createSignedUrl(material.getFileUrl()), storage.signedUrlTtlSeconds());
+        byte[] data = materialRepository.findFileData(material.getMaterialId());
+        if (data == null || data.length == 0) {
+            throw ClassroomException.notFound("Tệp của tài liệu này hiện không còn trên hệ thống.");
+        }
+        return new MaterialFileContent(data, contentTypeOf(material.getFileType()), material.getFileUrl());
     }
 
     @Override
+    @Transactional
     public LearningMaterialResponse upload(CurrentActor actor, UUID spaceId, String title, String description,
                                            MultipartFile file) {
         LearningSpace space = classroomService.loadManageableSpace(actor, spaceId);
         String cleanTitle = normalizeTitle(title);
         String cleanDescription = normalizeDescription(description);
         MaterialFileType type = fileValidator.validate(file);
-        if (!storage.isConfigured()) throw ClassroomException.storageUnavailable();
+        byte[] bytes = readBytes(file);
 
-        String path = storeFile(spaceId, type, file);
-        try {
-            LearningMaterial saved = materialRepository.save(LearningMaterial.builder()
-                    .space(space)
-                    .title(cleanTitle)
-                    .description(cleanDescription)
-                    .fileUrl(path)
-                    .fileType(type.name())
-                    .uploadedBy(actor.user())
-                    .build());
-            return toResponse(saved);
-        } catch (RuntimeException e) {
-            storage.delete(path);
-            throw e;
-        }
+        LearningMaterial saved = materialRepository.save(LearningMaterial.builder()
+                .space(space)
+                .title(cleanTitle)
+                .description(cleanDescription)
+                .fileUrl(cleanFileName(file.getOriginalFilename(), type))
+                .fileType(type.name())
+                .uploadedBy(actor.user())
+                .build());
+        materialRepository.updateFileData(saved.getMaterialId(), bytes);
+        return toResponse(saved);
     }
 
     @Override
+    @Transactional
     public LearningMaterialResponse update(CurrentActor actor, UUID spaceId, UUID materialId, String title,
                                            String description, MultipartFile file) {
         classroomService.loadManageableSpace(actor, spaceId);
@@ -90,33 +89,22 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
         String cleanTitle = normalizeTitle(title);
         String cleanDescription = normalizeDescription(description);
 
-        boolean replaceFile = file != null && !file.isEmpty();
-        String oldPath = material.getFileUrl();
-        String oldType = material.getFileType();
-        String newPath = null;
-        if (replaceFile) {
-            MaterialFileType type = fileValidator.validate(file);
-            if (!storage.isConfigured()) throw ClassroomException.storageUnavailable();
-            newPath = storeFile(spaceId, type, file);
-            material.setFileUrl(newPath);
-            material.setFileType(type.name());
+        byte[] newBytes = null;
+        MaterialFileType newType = null;
+        if (file != null && !file.isEmpty()) {
+            newType = fileValidator.validate(file);
+            newBytes = readBytes(file);
         }
+
         material.setTitle(cleanTitle);
         material.setDescription(cleanDescription);
-
-        LearningMaterial saved;
-        try {
-            saved = materialRepository.save(material);
-        } catch (RuntimeException e) {
-            if (newPath != null) {
-                storage.delete(newPath);
-                material.setFileUrl(oldPath);
-                material.setFileType(oldType);
-            }
-            throw e;
+        if (newBytes != null) {
+            material.setFileUrl(cleanFileName(file.getOriginalFilename(), newType));
+            material.setFileType(newType.name());
         }
-        if (newPath != null) {
-            storage.delete(oldPath);
+        LearningMaterial saved = materialRepository.save(material);
+        if (newBytes != null) {
+            materialRepository.updateFileData(saved.getMaterialId(), newBytes);
         }
         return toResponse(saved);
     }
@@ -126,16 +114,32 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
                 .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy tài liệu trong lớp học này."));
     }
 
-    private String storeFile(UUID spaceId, MaterialFileType type, MultipartFile file) {
-        String path = "spaces/" + spaceId + "/" + UUID.randomUUID() + "." + type.extension;
-        byte[] bytes;
+    private static byte[] readBytes(MultipartFile file) {
         try {
-            bytes = file.getBytes();
+            return file.getBytes();
         } catch (IOException e) {
             throw ClassroomException.field("file", "Không đọc được tệp. Vui lòng chọn lại tệp khác.");
         }
-        storage.upload(path, bytes, type.contentType);
-        return path;
+    }
+
+    /** Bỏ đường dẫn, ký tự điều khiển và ký tự không hợp lệ; luôn kết thúc bằng phần mở rộng đã xác minh. */
+    static String cleanFileName(String original, MaterialFileType type) {
+        String name = original == null ? "" : original;
+        name = name.substring(Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\')) + 1);
+        name = name.replaceAll("[\\p{Cntrl}<>:\"|?*]", "").strip();
+        int dot = name.lastIndexOf('.');
+        String base = (dot >= 0 ? name.substring(0, dot) : name).strip();
+        if (base.isEmpty()) base = "tai-lieu";
+        if (base.length() > FILE_NAME_MAX) base = base.substring(0, FILE_NAME_MAX).strip();
+        return base + "." + type.extension;
+    }
+
+    static String contentTypeOf(String fileType) {
+        try {
+            return MaterialFileType.valueOf(fileType).contentType;
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return "application/octet-stream";
+        }
     }
 
     static String normalizeTitle(String raw) {

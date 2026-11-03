@@ -48,7 +48,7 @@ Không trả `file_url` (đường dẫn nội bộ).
 
 ## GET /classrooms/{spaceId}/materials/{materialId}/file
 
-Kiểm quyền → `data = { "url": "https://…signed…", "expiresInSeconds": 300 }`.
+Kiểm quyền → 200 với **nội dung tệp** (không bọc JSON): `Content-Type` theo loại tệp, `Content-Disposition: inline; filename*=UTF-8''<tên tệp>`, `Cache-Control: private, no-store`. Lỗi vẫn trả JSON chuẩn (401/403/404).
 
 ## POST /classrooms/{spaceId}/materials  *(gia sư của lớp)*
 

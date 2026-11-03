@@ -71,7 +71,18 @@ const URL_ALIASES = {
   '/learner': '/pages/learner-dashboard/index.html',
   '/learner/': '/pages/learner-dashboard/index.html',
   '/dashboard': '/pages/learner-dashboard/index.html',
-  '/dashboard/': '/pages/learner-dashboard/index.html'
+  '/dashboard/': '/pages/learner-dashboard/index.html',
+  '/tutor/verification': '/pages/tutor-verification/index.html',
+  '/tutor/verification/': '/pages/tutor-verification/index.html',
+  '/tutor/dashboard': '/pages/tutor-dashboard/index.html',
+  '/tutor/dashboard/': '/pages/tutor-dashboard/index.html',
+  '/tutor': '/pages/tutor-dashboard/index.html',
+  '/academic': '/pages/academic-verifications/index.html',
+  '/academic/dashboard': '/pages/academic-verifications/index.html',
+  '/academic/dashboard/': '/pages/academic-verifications/index.html',
+  '/academic/verifications': '/pages/academic-verifications/index.html',
+  '/academic/verifications/': '/pages/academic-verifications/index.html',
+  '/academic/verifications/detail': '/pages/academic-verification-detail/index.html'
 };
 
 const server = http.createServer((req, res) => {

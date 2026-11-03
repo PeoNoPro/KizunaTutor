@@ -52,5 +52,18 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addViewController("/learner/").setViewName("forward:/pages/learner-dashboard/index.html");
         registry.addViewController("/dashboard").setViewName("forward:/pages/learner-dashboard/index.html");
         registry.addViewController("/dashboard/").setViewName("forward:/pages/learner-dashboard/index.html");
+        // Khu vực gia sư: tổng quan và xác minh hồ sơ (FE-03)
+        registry.addViewController("/tutor/dashboard").setViewName("forward:/pages/tutor-dashboard/index.html");
+        registry.addViewController("/tutor/dashboard/").setViewName("forward:/pages/tutor-dashboard/index.html");
+        registry.addViewController("/tutor").setViewName("forward:/pages/tutor-dashboard/index.html");
+        registry.addViewController("/tutor/verification").setViewName("forward:/pages/tutor-verification/index.html");
+        registry.addViewController("/tutor/verification/").setViewName("forward:/pages/tutor-verification/index.html");
+        // Cổng học vụ: tổng quan & hàng đợi, chi tiết thẩm định hồ sơ (FE-03)
+        registry.addViewController("/academic").setViewName("forward:/pages/academic-verifications/index.html");
+        registry.addViewController("/academic/dashboard").setViewName("forward:/pages/academic-verifications/index.html");
+        registry.addViewController("/academic/dashboard/").setViewName("forward:/pages/academic-verifications/index.html");
+        registry.addViewController("/academic/verifications").setViewName("forward:/pages/academic-verifications/index.html");
+        registry.addViewController("/academic/verifications/").setViewName("forward:/pages/academic-verifications/index.html");
+        registry.addViewController("/academic/verifications/detail").setViewName("forward:/pages/academic-verification-detail/index.html");
     }
 }

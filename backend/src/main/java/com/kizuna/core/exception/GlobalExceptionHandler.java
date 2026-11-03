@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -74,6 +75,19 @@ public class GlobalExceptionHandler {
                 "error", "VALIDATION_FAILED",
                 "message", firstMessage,
                 "details", errors
+        ));
+    }
+
+    /**
+     * Trang hoặc tệp tĩnh không tồn tại: trả 404 thay vì báo lỗi hệ thống 500.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(NoResourceFoundException ex) {
+        log.debug("Không tìm thấy tài nguyên: {}", ex.getResourcePath());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "success", false,
+                "error", "NOT_FOUND",
+                "message", "Không tìm thấy trang bạn yêu cầu"
         ));
     }
 

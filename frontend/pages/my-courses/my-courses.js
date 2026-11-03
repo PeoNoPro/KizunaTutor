@@ -10,8 +10,13 @@ import {
   fileTypeLabel,
   formatDateVi,
   friendlyErrorMessage,
-  escapeHtml
+  escapeHtml,
+  ROLE_LEARNER,
+  getCurrentRole,
+  roleDeniedHtml,
+  clearSessionAndGoToLogin
 } from '../../js/classroom-helpers.js';
+import { loadLearnerAssignments, hideLearnerAssignments } from './my-assignments.js';
 
 const $ = (id) => document.getElementById(id);
 let currentSpace = null;
@@ -105,6 +110,7 @@ async function loadCourse(spaceId) {
   stateBox.classList.add('hidden');
   card.classList.add('hidden');
   materialsCard.classList.add('hidden');
+  hideLearnerAssignments();
   try {
     currentSpace = await API.classrooms.detail(spaceId);
     $('myCourseTitle').textContent = currentSpace.title;
@@ -116,6 +122,7 @@ async function loadCourse(spaceId) {
     $('myCourseReadOnlyNote').classList.toggle('hidden', !currentSpace.readOnly);
     card.classList.remove('hidden');
     materialsCard.classList.remove('hidden');
+    loadLearnerAssignments(currentSpace, { notify: showError });
     await loadMaterials();
   } catch (err) {
     renderStateBox(stateBox, friendlyErrorMessage(err), () => loadCourse(spaceId));
@@ -186,6 +193,14 @@ function init() {
   }
   if (!hasToken) {
     window.location.href = '/login';
+    return;
+  }
+
+  // Chỉ tài khoản học viên được dùng trang Lớp học của tôi
+  const role = getCurrentRole();
+  if (role !== ROLE_LEARNER) {
+    root.innerHTML = roleDeniedHtml('Lớp học của tôi', 'học viên', role);
+    root.querySelector('[data-switch-account]')?.addEventListener('click', clearSessionAndGoToLogin);
     return;
   }
 

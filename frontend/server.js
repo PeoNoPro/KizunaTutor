@@ -82,7 +82,7 @@ const URL_ALIASES = {
 const server = http.createServer((req, res) => {
   // Proxy API requests tới Spring Boot backend (port 8080)
   if (req.url.startsWith('/api/')) {
-    const backendPort = 8080;
+    const backendPort = 8085;
     const options = {
       hostname: '127.0.0.1',
       port: backendPort,

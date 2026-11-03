@@ -313,6 +313,7 @@ CREATE TABLE assignment_submissions (
     attempt_number SMALLINT NOT NULL DEFAULT 1 CHECK (attempt_number > 0),
     submission_content TEXT,
     attachment_url VARCHAR(500),
+    file_data BYTEA,
     ai_score NUMERIC(5, 2),
     ai_feedback TEXT,
     grade NUMERIC(5, 2),

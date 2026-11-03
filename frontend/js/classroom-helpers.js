@@ -105,3 +105,77 @@ export function escapeHtml(value) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+// ----------------------------------------------------------------------------
+// Phân quyền trang theo vai trò (chỉ để điều hướng giao diện; API vẫn kiểm quyền ở máy chủ)
+// ----------------------------------------------------------------------------
+export const ROLE_TUTOR = 'ROLE_TUTOR';
+export const ROLE_LEARNER = 'ROLE_LEARNER';
+
+/** Trang lớp học tương ứng mỗi vai trò (đường dẫn đầy đủ, chạy được ở cả cổng 3000 và 8085). */
+export const CLASSROOM_HOME_BY_ROLE = {
+  [ROLE_TUTOR]: '/pages/tutor-classrooms/index.html',
+  [ROLE_LEARNER]: '/pages/my-courses/index.html'
+};
+
+/** Giải mã phần payload của JWT (không xác minh chữ ký). */
+export function decodeJwtPayload(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  try {
+    let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Vai trò hiện tại: ưu tiên claim "role" trong token, sau đó tới kizuna_user.role. */
+export function resolveRole(token, userJson) {
+  const payload = decodeJwtPayload(token);
+  if (payload && typeof payload.role === 'string' && payload.role) return payload.role;
+  try {
+    const user = typeof userJson === 'string' ? JSON.parse(userJson) : userJson;
+    if (user && typeof user.role === 'string' && user.role) return user.role;
+  } catch (e) {
+    /* dữ liệu người dùng không đọc được */
+  }
+  return null;
+}
+
+export function getCurrentRole() {
+  try {
+    return resolveRole(localStorage.getItem('kizuna_token'), localStorage.getItem('kizuna_user'));
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Nội dung thông báo khi mở trang không đúng vai trò. */
+export function roleDeniedHtml(pageName, requiredRoleLabel, actualRole) {
+  const home = CLASSROOM_HOME_BY_ROLE[actualRole];
+  const homeLabel = actualRole === ROLE_TUTOR ? 'Đến trang Quản lý lớp học' : 'Đến trang Lớp học của tôi';
+  return `
+    <div class="border border-black rounded-[5px] bg-white p-6 text-center space-y-4" style="box-shadow:4px 4px 0 0 #000">
+      <h1 style="font-family:'Itim',cursive;font-size:24px">Bạn không có quyền truy cập trang này</h1>
+      <p>Trang ${escapeHtml(pageName)} chỉ dành cho tài khoản ${escapeHtml(requiredRoleLabel)}.</p>
+      <div class="flex flex-wrap justify-center gap-3">
+        ${home ? `<a href="${home}" class="inline-flex items-center border border-black rounded-[5px] px-4 py-2 font-semibold bg-white" style="box-shadow:3px 3px 0 0 #000">${homeLabel}</a>` : ''}
+        <button type="button" data-switch-account class="inline-flex items-center border border-black rounded-[5px] px-4 py-2 font-semibold bg-white" style="box-shadow:3px 3px 0 0 #000">Đăng nhập bằng tài khoản khác</button>
+      </div>
+    </div>`;
+}
+
+export function clearSessionAndGoToLogin() {
+  try {
+    localStorage.removeItem('kizuna_token');
+    localStorage.removeItem('kizuna_user');
+  } catch (e) {
+    /* không truy cập được bộ nhớ trình duyệt */
+  }
+  document.cookie = 'access_token=; Max-Age=0; path=/';
+  window.location.href = '/login';
+}

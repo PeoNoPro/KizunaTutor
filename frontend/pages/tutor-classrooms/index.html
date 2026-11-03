@@ -116,6 +116,16 @@
           <div id="materialsState" class="text-center text-[#444] py-6 hidden"></div>
           <ul id="materialsList" class="space-y-3"></ul>
         </div>
+
+        <!-- FE-07: Bài tập (UC-63, UC-66, UC-95, UC-67) -->
+        <div id="assignmentsSection" class="retro-card p-5 space-y-4 hidden">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-heading text-[20px]">Bài tập</h2>
+            <button type="button" id="openAssignmentFormBtn" class="retro-btn retro-btn-tutor hidden">Giao bài tập</button>
+          </div>
+          <div id="assignmentsState" class="text-center text-[#444] py-6 hidden"></div>
+          <ul id="assignmentsList" class="space-y-3"></ul>
+        </div>
       </section>
     </div>
   </main>
@@ -171,6 +181,74 @@
         <button type="submit" id="materialSubmit" class="retro-btn retro-btn-tutor">Tải lên</button>
       </div>
     </form>
+  </div>
+
+  <!-- ===== FE-07: HỘP THOẠI GIAO / SỬA BÀI TẬP ===== -->
+  <div id="assignmentModal" class="fixed inset-0 z-50 hidden retro-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
+    <form id="assignmentForm" class="retro-card w-full max-w-[560px] p-5 space-y-4 max-h-[90vh] overflow-y-auto" novalidate>
+      <h2 id="assignmentModalTitle" class="font-heading text-[20px]">Giao bài tập</h2>
+      <div>
+        <label for="assignmentTitleInput" class="block font-semibold mb-1">Tiêu đề bài tập</label>
+        <input id="assignmentTitleInput" type="text" maxlength="150" class="retro-input">
+        <p id="assignmentTitleError" class="field-error hidden"></p>
+      </div>
+      <div>
+        <label for="assignmentDescriptionInput" class="block font-semibold mb-1">Yêu cầu / mô tả <span class="font-normal text-[#555]">(không bắt buộc)</span></label>
+        <textarea id="assignmentDescriptionInput" rows="4" maxlength="5000" class="retro-input" placeholder="Ví dụ: Viết 10 câu dùng ～ている. Xem tài liệu Ngữ pháp bài 5 trong mục Tài liệu học tập."></textarea>
+        <p id="assignmentDescriptionError" class="field-error hidden"></p>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="assignmentDueInput" class="block font-semibold mb-1">Hạn nộp <span class="font-normal text-[#555]">(không bắt buộc)</span></label>
+          <input id="assignmentDueInput" type="datetime-local" class="retro-input">
+          <p id="assignmentDueError" class="field-error hidden"></p>
+        </div>
+        <div>
+          <label for="assignmentPointsInput" class="block font-semibold mb-1">Điểm tối đa</label>
+          <input id="assignmentPointsInput" type="text" inputmode="decimal" class="retro-input" placeholder="100">
+          <p id="assignmentPointsError" class="field-error hidden"></p>
+        </div>
+      </div>
+      <p class="font-meta text-[#555]">Để trống hạn nộp nếu bài tập không có thời hạn. Sau khi đã chấm điểm, bài tập không thể chỉnh sửa.</p>
+      <p id="assignmentFormError" class="field-error hidden"></p>
+      <div class="flex justify-end gap-3">
+        <button type="button" class="retro-btn" data-close-modal="assignmentModal">Hủy</button>
+        <button type="submit" id="assignmentSubmit" class="retro-btn retro-btn-tutor">Giao bài tập</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== FE-07: HỘP THOẠI BÀI NỘP & CHẤM ĐIỂM ===== -->
+  <div id="submissionsModal" class="fixed inset-0 z-50 hidden retro-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="submissionsModalTitle">
+    <div class="retro-card w-full max-w-[640px] p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-3">
+        <h2 id="submissionsModalTitle" class="font-heading text-[20px] break-words"></h2>
+        <button type="button" class="retro-btn" data-close-modal="submissionsModal">Đóng</button>
+      </div>
+      <p id="submissionsMeta" class="text-[#333]"></p>
+      <p id="submissionsDescription" class="text-[#333] whitespace-pre-line break-words hidden"></p>
+      <div id="submissionsState" class="text-[#444] hidden"></div>
+      <ul id="submissionsList" class="space-y-3"></ul>
+      <p id="gradeLockedNote" class="hidden border border-black rounded-[5px] bg-[#F3E8FA] text-[#5B1F80] px-3 py-2"></p>
+      <form id="gradeForm" class="hidden border border-black rounded-[5px] p-4 space-y-3 bg-[#FBF8F3]" novalidate>
+        <h3 class="font-semibold">Chấm điểm lần nộp mới nhất</h3>
+        <div>
+          <label for="gradeInput" class="block font-semibold mb-1">Điểm <span id="gradeMaxLabel" class="font-normal text-[#555]"></span></label>
+          <input id="gradeInput" type="text" inputmode="decimal" class="retro-input">
+          <p id="gradeError" class="field-error hidden"></p>
+        </div>
+        <div>
+          <label for="feedbackInput" class="block font-semibold mb-1">Nhận xét <span class="font-normal text-[#555]">(không bắt buộc)</span></label>
+          <textarea id="feedbackInput" rows="3" maxlength="5000" class="retro-input"></textarea>
+          <p id="feedbackError" class="field-error hidden"></p>
+        </div>
+        <p class="font-meta text-[#555]">Mỗi bài tập chỉ được chấm một lần, không thể sửa điểm sau khi gửi.</p>
+        <p id="gradeFormError" class="field-error hidden"></p>
+        <div class="flex justify-end">
+          <button type="submit" id="gradeSubmit" class="retro-btn retro-btn-tutor">Gửi điểm và nhận xét</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Thông báo nổi -->

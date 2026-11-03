@@ -260,3 +260,86 @@ API.classrooms = {
     });
   }
 };
+// =========================================================================
+// FE-07: BÀI TẬP, NỘP BÀI & CHẤM ĐIỂM (Homework, Assessment & Progress Tracking)
+// Bổ sung riêng cho FE-07, dùng lại classroomRequest/classroomAuthHeaders của FE-06.
+// =========================================================================
+function assignmentPath(spaceId, rest = '') {
+  return `/${encodeURIComponent(spaceId)}/assignments${rest}`;
+}
+
+API.assignments = {
+  /** Danh sách bài tập của lớp (UC-63) */
+  list(spaceId) {
+    return classroomRequest(assignmentPath(spaceId));
+  },
+
+  /** Chi tiết bài tập + các lần nộp (UC-63) */
+  detail(spaceId, assignmentId) {
+    return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}`));
+  },
+
+  /** Gia sư giao bài tập (UC-66) */
+  create(spaceId, { title, description, dueDate, totalPoints }) {
+    return classroomRequest(assignmentPath(spaceId), {
+      method: 'POST', body: { title, description, dueDate, totalPoints }
+    });
+  },
+
+  /** Gia sư sửa bài tập (UC-95) */
+  update(spaceId, assignmentId, { title, description, dueDate, totalPoints }) {
+    return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}`), {
+      method: 'PUT', body: { title, description, dueDate, totalPoints }
+    });
+  },
+
+  /** Học viên nộp / nộp lại bài (UC-64, UC-96) */
+  submit(spaceId, assignmentId, { content, file }) {
+    const fd = new FormData();
+    fd.append('content', content ?? '');
+    if (file) fd.append('file', file);
+    return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}/submissions`), {
+      method: 'POST', formData: fd, timeout: 120000
+    });
+  },
+
+  /** Gia sư chấm điểm lần nộp mới nhất (UC-67) */
+  grade(spaceId, assignmentId, submissionId, { grade, feedback }) {
+    return classroomRequest(assignmentPath(spaceId,
+      `/${encodeURIComponent(assignmentId)}/submissions/${encodeURIComponent(submissionId)}/grade`), {
+      method: 'PUT', body: { grade, feedback }
+    });
+  },
+
+  /** Tải tệp bài làm; trả về Blob */
+  async submissionFile(spaceId, assignmentId, submissionId) {
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/classrooms${assignmentPath(spaceId,
+        `/${encodeURIComponent(assignmentId)}/submissions/${encodeURIComponent(submissionId)}/file`)}`,
+        { headers: classroomAuthHeaders(), signal: AbortSignal.timeout(120000) });
+    } catch (networkErr) {
+      console.debug('API.assignments.submissionFile network error:', networkErr);
+      const err = new Error('network');
+      err.status = 0;
+      err.userMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối và thử lại.';
+      throw err;
+    }
+    if (response.status === 401) {
+      window.location.href = '/login';
+    }
+    if (!response.ok) {
+      let json = null;
+      try {
+        json = await response.json();
+      } catch (parseErr) {
+        json = null;
+      }
+      const err = new Error('request-failed');
+      err.status = response.status;
+      err.userMessage = json && typeof json.message === 'string' ? json.message : '';
+      throw err;
+    }
+    return await response.blob();
+  }
+};

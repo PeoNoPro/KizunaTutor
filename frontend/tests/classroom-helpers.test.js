@@ -81,3 +81,35 @@ test('escape HTML chống chèn mã', () => {
   assert.equal(escapeHtml('<img src=x onerror="a">'), '&lt;img src=x onerror=&quot;a&quot;&gt;');
   assert.equal(escapeHtml(null), '');
 });
+
+import { decodeJwtPayload, resolveRole, roleDeniedHtml, CLASSROOM_HOME_BY_ROLE } from '../js/classroom-helpers.js';
+
+function fakeJwt(payload) {
+  const b64url = (obj) => Buffer.from(JSON.stringify(obj), 'utf8').toString('base64')
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${b64url({ alg: 'HS256' })}.${b64url(payload)}.chu-ky`;
+}
+
+test('đọc vai trò từ token (kể cả tên tiếng Việt), dự phòng bằng kizuna_user', () => {
+  const token = fakeJwt({ role: 'ROLE_TUTOR', fullName: 'Yamada Kenji (Gia Sư)' });
+  assert.equal(decodeJwtPayload(token).fullName, 'Yamada Kenji (Gia Sư)');
+  assert.equal(resolveRole(token, null), 'ROLE_TUTOR');
+  assert.equal(resolveRole(fakeJwt({ sub: 'a' }), JSON.stringify({ role: 'ROLE_LEARNER' })), 'ROLE_LEARNER');
+  assert.equal(resolveRole('khong-phai-token', '{hỏng'), null);
+  assert.equal(resolveRole(null, null), null);
+});
+
+test('token ưu tiên hơn kizuna_user khi hai nguồn khác nhau', () => {
+  const token = fakeJwt({ role: 'ROLE_LEARNER' });
+  assert.equal(resolveRole(token, JSON.stringify({ role: 'ROLE_TUTOR' })), 'ROLE_LEARNER');
+});
+
+test('thông báo sai vai trò có nút về đúng trang, không lộ mã vai trò', () => {
+  const html = roleDeniedHtml('Quản lý lớp học', 'gia sư', 'ROLE_LEARNER');
+  assert.ok(html.includes(CLASSROOM_HOME_BY_ROLE.ROLE_LEARNER));
+  assert.ok(html.includes('Lớp học của tôi'));
+  assert.doesNotMatch(html, /ROLE_/);
+  const adminHtml = roleDeniedHtml('Lớp học của tôi', 'học viên', 'ROLE_ADMIN');
+  assert.ok(!adminHtml.includes('/pages/'));
+  assert.ok(adminHtml.includes('Đăng nhập bằng tài khoản khác'));
+});

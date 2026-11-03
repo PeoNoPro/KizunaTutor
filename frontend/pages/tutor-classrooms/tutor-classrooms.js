@@ -15,8 +15,13 @@ import {
   validateClassroomTitle,
   friendlyErrorMessage,
   escapeHtml,
-  MATERIAL_ACCEPT_ATTR
+  MATERIAL_ACCEPT_ATTR,
+  ROLE_TUTOR,
+  getCurrentRole,
+  roleDeniedHtml,
+  clearSessionAndGoToLogin
 } from '../../js/classroom-helpers.js';
+import { initTutorAssignments, loadTutorAssignments, hideTutorAssignments } from './tutor-assignments.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -208,10 +213,12 @@ async function loadSpace(spaceId) {
   stateBox.classList.add('hidden');
   card.classList.add('hidden');
   section.classList.add('hidden');
+  hideTutorAssignments();
   try {
     state.currentSpace = await API.classrooms.detail(spaceId);
     renderSpace();
     section.classList.remove('hidden');
+    loadTutorAssignments(state.currentSpace);
     await loadMaterials();
   } catch (err) {
     renderStateBox(stateBox, friendlyErrorMessage(err), { retry: () => loadSpace(spaceId) });
@@ -418,14 +425,23 @@ function init() {
     window.location.href = '/login';
     return;
   }
+  $('logoutBtn').addEventListener('click', logout);
+
+  // Chỉ tài khoản gia sư được dùng trang Quản lý lớp học
+  const role = getCurrentRole();
+  if (role !== ROLE_TUTOR) {
+    root.innerHTML = roleDeniedHtml('Quản lý lớp học', 'gia sư', role);
+    root.querySelector('[data-switch-account]')?.addEventListener('click', clearSessionAndGoToLogin);
+    return;
+  }
   renderTutorName();
 
-  $('logoutBtn').addEventListener('click', logout);
   $('openAddLearnerBtn').addEventListener('click', openAddLearner);
   $('addLearnerForm').addEventListener('submit', submitAddLearner);
   $('backToListBtn').addEventListener('click', navigateToList);
   $('openUploadBtn').addEventListener('click', () => openMaterialForm(null));
   $('materialForm').addEventListener('submit', submitMaterial);
+  initTutorAssignments({ showToast });
   document.querySelectorAll('[data-close-modal]').forEach((btn) => {
     btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
   });

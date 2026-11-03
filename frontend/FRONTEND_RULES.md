@@ -22,6 +22,12 @@ Toàn bộ thành viên lập trình Frontend BẮT BUỘC tuân thủ nghiêm n
 
 ---
 
+## ⛔ NGUYÊN TẮC KỶ LUẬT PHẠM VI (STRICT SCOPE BOUNDARY)
+- **Tuyệt đối không tự ý sửa các phần khác khi chưa được phép**: Chỉ thực hiện đúng và chính xác phạm vi người dùng yêu cầu.
+- **Quy tắc khi xóa / ẩn thành phần**: Khi được yêu cầu xóa một khối giao diện hoặc nút bấm, chỉ xóa tại đúng vị trí đó; tuyệt đối không tự ý di dời sang vị trí khác hoặc tự ý thay đổi cấu trúc, giao diện các khu vực khác khi chưa có sự đồng ý của người dùng.
+
+---
+
 ## 1. CÔNG NGHỆ & MÔI TRƯỜNG CHẠY (TECH STACK & RUNTIME)
 
 - **Frontend Tech Stack**: HTML5, CSS3, JavaScript ES6+ (Native Modules `type="module"`), Tailwind CSS (Config CDN / PostCSS).

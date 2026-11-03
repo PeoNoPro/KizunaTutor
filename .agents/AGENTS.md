@@ -40,7 +40,7 @@ Nếu công cụ của bạn không tự đọc file này, hãy dán câu sau v�
 ## 2. Mười luật không được vi phạm
 
 1. **Nghiệp vụ chỉ lấy từ SRS và `spec.md` của feature.** Không đoán, không tự thêm tính năng, trạng thái hay quy tắc. Chưa rõ thì dừng và hỏi (hoặc chạy `$speckit-clarify`). Không sửa `spec.md` khi chưa được yêu cầu.
-2. **Chỉ sửa phần của mình**: đúng feature, đúng thư mục của task. Không sửa, refactor, xóa mã của thành viên khác ngoài phạm vi task; cần thay đổi ở đó thì báo người phụ trách.
+2. **Chỉ sửa phần của mình**: đúng feature, đúng thư mục của task. Không sửa, refactor, xóa mã của thành viên khác ngoài phạm vi task; cần thay đổi ở đó thì báo người phụ trách. Tuyệt đối không tự ý sửa đổi, tái cấu trúc hoặc can thiệp các thành phần khác khi chưa được phép (ví dụ: khi người dùng yêu cầu xóa một khối/nút bấm, chỉ xóa tại vị trí đó, không tự ý dời sang chỗ khác).
 3. **Feature khác chỉ gọi qua Service interface công khai** của feature đó, không gọi thẳng `Repository` của feature khác. `core/` chỉ chứa hạ tầng dùng chung, không chứa nghiệp vụ riêng của feature nào.
 4. **Test đi cùng mã**: thay đổi nghiệp vụ phải có test; thay đổi schema, hợp đồng API phải kiểm tra tích hợp liên quan. Chỉ báo "xong" và đánh `[x]` task khi đã chạy test và thấy xanh; test bị chặn (thiếu DB, thiếu biến môi trường) thì ghi rõ nguyên nhân và phần chưa xác minh.
 5. **Hợp đồng API là luật**: chỉ cài đúng endpoint, trường trong `specs/NNN-*/contracts/`. Không thêm, bớt, đổi tên endpoint hay trường. Cần đổi thì sửa hợp đồng trước và báo người dùng.

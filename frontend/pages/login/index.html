@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập tài khoản - KizunaTutor</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts & Material Symbols -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Kizuna Global Tokens -->
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/components.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            kizuna: {
+              primary: '#006194',
+              hover: '#004B73',
+              navy: '#0F2545',
+              bg: '#FCFBF7',
+              surface: '#FFFFFF',
+              warm: '#FAF8F2',
+              border: '#ECE8DE'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            japanese: ['"Noto Sans JP"', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#FCFBF7] text-[#131B2E] min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- ==================== 1. SYNCHRONIZED HEADER ==================== -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFBF7]/95 backdrop-blur-md border-b border-[#ECE8DE]">
+    <div class="h-20 max-w-[1240px] mx-auto px-4 md:px-8 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-6">
+        <a class="flex items-center gap-2 group" href="/pages/home/">
+          <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-xl tracking-tight text-[#0F2545]">Kizuna<span class="text-[#006194]">Tutor</span></span>
+            </div>
+            <span class="text-[10px] text-[#68737D] font-medium -mt-0.5 tracking-wider">Kết nối song ngữ Việt – Nhật</span>
+          </div>
+        </a>
+        <nav class="hidden lg:flex items-center gap-1" id="main-nav">
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/tutor-discovery/">Tìm gia sư</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+          <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#F2EFE6] transition-colors" href="/pages/shodo-practice/">Công cụ học</a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-[#006194] hover:bg-[#006194]/10 transition-colors border border-[#006194]/20" href="/login">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Vào Dashboard học tập</span>
+        </a>
+        <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-[#006194] text-white hover:bg-[#004B73] transition-all shadow-sm font-semibold flex items-center gap-1.5" href="/register">
+          <span>Đăng ký</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </a>
+        <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#F2EFE6] transition-colors">
+          <span class="material-symbols-outlined text-[24px]">menu</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ECE8DE] bg-[#FCFBF7] px-6 py-4 space-y-2">
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/tutor-discovery/">Tìm gia sư</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
+      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/shodo-practice/">Công cụ học</a>
+      <div class="pt-3 border-t border-[#ECE8DE]">
+        <a class="flex items-center gap-2 font-semibold text-xs py-2 text-[#006194]" href="/login">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Vào Dashboard học tập</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 2. MAIN CONTENT ==================== -->
+  <main class="w-full pt-28 pb-16 flex-1 flex flex-col items-center justify-center px-4">
+    <div class="w-full max-w-md bg-white rounded-2xl border border-[#ECE8DE] shadow-sm p-6 sm:p-8">
+      
+      <!-- Brand Icon & Header -->
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 rounded-xl bg-[#0F2545] text-white font-bold flex items-center justify-center font-japanese text-2xl mx-auto mb-3 shadow-xs">
+          絆
+        </div>
+        <h1 class="text-xl sm:text-2xl font-bold text-[#0F2545] tracking-tight">
+          Đăng nhập tài khoản
+        </h1>
+        <p class="text-xs sm:text-sm text-[#68737D] mt-1">
+          Đăng nhập để điều hướng vào Không gian làm việc tương ứng
+        </p>
+      </div>
+
+      <!-- Alert Box thông báo trạng thái -->
+      <div id="loginAlertBox" class="hidden mb-4 p-3.5 rounded-xl text-xs sm:text-sm font-medium"></div>
+
+      <!-- Form Đăng Nhập -->
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label for="loginEmail" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1.5">
+            Địa chỉ email / Tài khoản
+          </label>
+          <input type="text"
+                 id="loginEmail"
+                 name="email"
+                 required
+                 autocomplete="username"
+                 placeholder="vidu@kizuna.vn"
+                 class="w-full px-3.5 py-2.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl text-sm text-[#0F2545] focus:bg-white focus:outline-none focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/15 transition">
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="loginPassword" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider">
+              Mật khẩu
+            </label>
+            <a href="#" class="text-xs font-semibold text-[#006194] hover:text-[#004B73] transition">
+              Quên mật khẩu?
+            </a>
+          </div>
+          <input type="password"
+                 id="loginPassword"
+                 name="password"
+                 required
+                 autocomplete="current-password"
+                 placeholder="••••••••"
+                 class="w-full px-3.5 py-2.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl text-sm text-[#0F2545] focus:bg-white focus:outline-none focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/15 transition">
+        </div>
+
+        <button type="submit"
+                id="btnLoginSubmit"
+                class="w-full py-3 px-4 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-sm font-bold shadow-xs transition flex items-center justify-center gap-2 cursor-pointer mt-2">
+          <span>Đăng nhập</span>
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
+      </form>
+
+      <!-- Phân cách hoặc tiếp tục với Google -->
+      <div class="my-5 flex items-center gap-3">
+        <div class="h-px bg-[#ECE8DE] flex-1"></div>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#68737D]">Hoặc tiếp tục với</span>
+        <div class="h-px bg-[#ECE8DE] flex-1"></div>
+      </div>
+
+      <!-- Nút Đăng nhập bằng Google -->
+      <a href="/oauth2/authorization/google"
+         class="w-full py-2.5 px-4 rounded-xl border border-[#ECE8DE] hover:border-[#CBD5E1] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] text-sm font-semibold transition flex items-center justify-center gap-3 no-underline group">
+        <svg class="w-4 h-4 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+        </svg>
+        <span>Đăng nhập với Google</span>
+      </a>
+
+      <!-- Kiểm thử nhanh 6 vai trò (1-Click Demo) -->
+      <div class="mt-6 pt-5 border-t border-[#ECE8DE]">
+        <div class="text-center mb-3">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-[#68737D] bg-white px-2">
+            Kiểm thử nhanh 6 vai trò hệ thống
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button type="button"
+                  data-role="admin"
+                  class="btn-quick-login p-2 text-left rounded-xl border border-[#ECE8DE] hover:border-[#0F2545] hover:bg-[#FAF8F2] transition cursor-pointer">
+            <div class="font-bold text-[#0F2545] flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#0F2545]"></span>
+              <span>Quản trị viên</span>
+            </div>
+            <div class="text-[10px] text-[#68737D]">admin@kizuna.vn</div>
+          </button>
+
+          <button type="button"
+                  data-role="manager"
+                  class="btn-quick-login p-2 text-left rounded-xl border border-[#ECE8DE] hover:border-indigo-600 hover:bg-indigo-50/40 transition cursor-pointer">
+            <div class="font-bold text-indigo-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+              <span>Quản lý vận hành</span>
+            </div>
+            <div class="text-[10px] text-[#68737D]">manager@kizuna.vn</div>
+          </button>
+
+          <button type="button"
+                  data-role="cs"
+                  class="btn-quick-login p-2 text-left rounded-xl border border-[#ECE8DE] hover:border-sky-600 hover:bg-sky-50/40 transition cursor-pointer">
+            <div class="font-bold text-sky-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Chăm sóc học viên</span>
+            </div>
+            <div class="text-[10px] text-[#68737D]">cs@kizuna.vn</div>
+          </button>
+
+          <button type="button"
+                  data-role="academic"
+                  class="btn-quick-login p-2 text-left rounded-xl border border-[#ECE8DE] hover:border-teal-600 hover:bg-teal-50/40 transition cursor-pointer">
+            <div class="font-bold text-teal-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-teal-600"></span>
+              <span>Cán bộ học vụ</span>
+            </div>
+            <div class="text-[10px] text-[#68737D]">academic@kizuna.vn</div>
+          </button>
+
+          <button type="button"
+                  data-role="tutor"
+                  class="btn-quick-login p-2 text-left rounded-xl border border-[#ECE8DE] hover:border-amber-600 hover:bg-amber-50/40 transition cursor-pointer">
+            <div class="font-bold text-amber-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-amber-600"></span>
+              <span>Gia sư Kizuna</span>
+            </div>
+            <div class="text-[10px] text-[#68737D]">tutor@kizuna.vn</div>
+          </button>
+
+          <button type="button"
+                  data-role="learner"
+                  class="btn-quick-login p-2 text-left rounded-xl border border-[#ECE8DE] hover:border-emerald-600 hover:bg-emerald-50/40 transition cursor-pointer">
+            <div class="font-bold text-emerald-700 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+              <span>Học viên</span>
+            </div>
+            <div class="text-[10px] text-[#68737D]">learner@kizuna.vn</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Điều hướng sang trang Đăng ký -->
+      <p class="text-center mt-6 text-xs text-[#68737D]">
+        Chưa có tài khoản học tập?
+        <a href="/register" class="font-bold text-[#006194] hover:text-[#004B73] underline ml-1">
+          Đăng ký ngay
+        </a>
+      </p>
+
+    </div>
+  </main>
+
+  <!-- ==================== MODAL ĐỔI MẬT KHẨU LẦN ĐẦU ==================== -->
+  <div id="firstTimeChangePasswordModal" class="fixed inset-0 z-50 bg-[#0F2545]/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-2xl border border-[#ECE8DE] shadow-xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 font-bold flex items-center justify-center text-2xl mx-auto mb-3 border border-amber-200">
+          🔒
+        </div>
+        <h3 class="text-lg sm:text-xl font-bold text-[#0F2545] tracking-tight">
+          Thiết lập mật khẩu mới (Lần đầu đăng nhập)
+        </h3>
+        <p class="text-xs text-[#68737D] mt-2 leading-relaxed">
+          Tài khoản của bạn được khởi tạo bởi Quản trị viên. Vui lòng thiết lập mật khẩu cá nhân mới để kích hoạt và truy cập bảng làm việc.
+        </p>
+      </div>
+
+      <div id="firstTimeModalAlert" class="hidden mb-4 p-3 rounded-xl text-xs font-semibold"></div>
+
+      <form id="firstTimeChangePasswordForm" class="space-y-4">
+        <div>
+          <label for="firstTimeCurrentPassword" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1.5">
+            Mật khẩu tạm thời hiện tại *
+          </label>
+          <input type="password"
+                 id="firstTimeCurrentPassword"
+                 required
+                 placeholder="Nhập mật khẩu tạm thời bạn vừa dùng"
+                 class="w-full px-3.5 py-2.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl text-sm text-[#0F2545] focus:bg-white focus:outline-none focus:border-[#006194] transition">
+        </div>
+
+        <div>
+          <label for="firstTimeNewPassword" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1.5">
+            Mật khẩu mới *
+          </label>
+          <input type="password"
+                 id="firstTimeNewPassword"
+                 required
+                 minlength="8"
+                 placeholder="Tối thiểu 8 ký tự (chữ hoa, số/ký tự đặc biệt)"
+                 class="w-full px-3.5 py-2.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl text-sm text-[#0F2545] focus:bg-white focus:outline-none focus:border-[#006194] transition">
+        </div>
+
+        <div>
+          <label for="firstTimeConfirmPassword" class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-1.5">
+            Xác nhận mật khẩu mới *
+          </label>
+          <input type="password"
+                 id="firstTimeConfirmPassword"
+                 required
+                 minlength="8"
+                 placeholder="Nhập lại mật khẩu mới vừa đặt"
+                 class="w-full px-3.5 py-2.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl text-sm text-[#0F2545] focus:bg-white focus:outline-none focus:border-[#006194] transition">
+        </div>
+
+        <button type="submit"
+                id="btnSubmitFirstTimePassword"
+                class="w-full py-3 px-4 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-sm font-bold shadow-xs transition flex items-center justify-center gap-2 cursor-pointer mt-2">
+          <span>Cập nhật mật khẩu &amp; Vào hệ thống</span>
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== 3. SYNCHRONIZED FOOTER ==================== -->
+  <footer class="w-full bg-[#131D2E] text-[#E3E8F3] pt-16 pb-10 border-t border-[#1F2D45] mt-auto">
+    <div class="max-w-[1240px] mx-auto px-4 md:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div class="space-y-4">
+          <div class="flex items-center gap-2">
+            <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-8 w-8 object-contain rounded-full shadow">
+            <span class="font-bold text-xl tracking-tight text-white">Kizuna<span class="text-sky-400">Tutor</span></span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Nền tảng kết nối tri thức và sự tận tâm giữa gia sư tiếng Nhật chuyên môn cao và người học Việt Nam trên toàn quốc theo triết lý gắn kết bền vững (Kizuna).
+          </p>
+          <div class="flex items-center gap-2 text-slate-400 text-xs">
+            <span class="material-symbols-outlined text-[18px] text-amber-400">verified</span>
+            <span>Bảo chứng hồ sơ &amp; Năng lực sư phạm chuẩn JLPT</span>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho học viên</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" href="/pages/tutor-discovery/">Tìm gia sư theo trình độ (N5 – N1)</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/tutor-discovery/">Gia sư bản xứ Tokyo luyện Kaiwa</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/home/#chuyen-de">Khóa chuyên đề &amp; Phỏng vấn IT</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/home/#cach-hoat-dong">Chính sách buổi gặp mặt học thử 0đ</a></li>
+            <li><a class="hover:text-white transition-colors" href="/pages/connection-requests/">Tra cứu yêu cầu đã gửi</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Dành cho gia sư</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" href="/pages/home/#tro-thanh-gia-su">Đăng ký ứng tuyển gia sư mới</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Không gian quản lý giảng dạy</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Bộ quy chuẩn xác thực chứng chỉ</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Chính sách không cắt phế buổi học</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Cộng đồng Senpai Kizuna</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold text-white mb-4 tracking-wider">Hỗ trợ &amp; Pháp lý</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a class="hover:text-white transition-colors" href="#">Điều khoản sử dụng dịch vụ</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Chính sách bảo mật thông tin</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Quy trình giải quyết khiếu nại</a></li>
+            <li><a class="hover:text-white transition-colors" href="#">Trung tâm trợ giúp 24/7 (Hotline / Zalo)</a></li>
+            <li><span class="inline-block mt-2 px-2.5 py-1 rounded bg-slate-800 text-[11px] text-slate-300 font-medium">Hotline: 1900 6886 (8:00 – 22:00)</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pt-8 border-t border-[#1F2D45] flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <p>© 2024 KizunaTutor. Tất cả quyền được bảo lưu. Giữ trọn tinh thần kết nối Nhật – Việt 『絆』.</p>
+        <div class="flex items-center gap-6">
+          <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">lock</span>Bảo mật SSL 256-bit</span>
+          <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">translate</span>Hỗ trợ Song ngữ Tiếng Việt • 日本語</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/pages/login/login.js"></script>
+</body>
+</html>

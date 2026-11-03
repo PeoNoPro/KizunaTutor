@@ -1,0 +1,187 @@
+/**
+ * KizunaTutor - Dynamic Shell Navigation Router (sidebarRouter.js)
+ * Chuyển trang mượt mà không reload toàn bộ màn hình, loại bỏ hiện tượng giật cục & chớp trắng.
+ */
+
+let isNavigating = false;
+
+/**
+ * Khởi tạo trình lắng nghe điều hướng mượt mà cho thanh Sidebar học viên
+ */
+export function initSidebarRouter() {
+  if (typeof window === 'undefined') return;
+  if (window.__kizunaSidebarRouterInitialized) return;
+  window.__kizunaSidebarRouterInitialized = true;
+
+  // Lắng nghe sự kiện click trên toàn bộ link của Sidebar
+  document.addEventListener('click', handleSidebarLinkClick);
+
+  // Lắng nghe nút Back/Forward của trình duyệt
+  window.addEventListener('popstate', handlePopState);
+}
+
+async function handleSidebarLinkClick(e) {
+  const link = e.target.closest('#learnerSidebar a[href], a[data-spa-link]');
+  if (!link) return;
+
+  const href = link.getAttribute('href');
+  if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+    return;
+  }
+
+  // Bỏ qua nếu là link mở tab mới hoặc link ngoài domain
+  if (link.target === '_blank' || href.startsWith('http://') || href.startsWith('https://')) {
+    const currentOrigin = window.location.origin;
+    if (!href.startsWith(currentOrigin)) return;
+  }
+
+  const currentPath = window.location.pathname + window.location.search;
+  const targetUrl = new URL(href, window.location.origin).pathname + new URL(href, window.location.origin).search;
+
+  if (currentPath === targetUrl) {
+    e.preventDefault();
+    return;
+  }
+
+  e.preventDefault();
+  navigateTo(targetUrl, link);
+}
+
+/**
+ * Điều hướng mượt đến trang đích không làm giật khung Sidebar
+ */
+export async function navigateTo(targetUrl, activeLink = null) {
+  if (isNavigating) return;
+  isNavigating = true;
+
+  const currentMain = document.querySelector('main');
+  const sidebar = document.getElementById('learnerSidebar');
+
+  // 1. Cập nhật trạng thái Active trên Sidebar ngay lập tức (Zero Latency)
+  if (sidebar) {
+    const allLinks = sidebar.querySelectorAll('a[data-menu-key]');
+    allLinks.forEach(l => {
+      l.className = 'nav-item flex items-center space-x-2.5 px-3 py-2 text-[14px] rounded-[6px] transition-all mb-1 no-underline text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-normal';
+    });
+
+    const activeEl = activeLink || sidebar.querySelector(`a[href="${targetUrl}"], a[href="${targetUrl.split('?')[0]}"]`);
+    if (activeEl) {
+      activeEl.className = 'nav-item flex items-center space-x-2.5 px-3 py-2 text-[14px] rounded-[6px] transition-all mb-1 no-underline bg-[#FFE5EC] border-l-[3px] border-l-[#831843] border border-[#FBCFE8] text-[#831843] font-semibold';
+    }
+
+    // Đóng sidebar nếu đang mở trên mobile
+    const backdrop = document.getElementById('learnerSidebarBackdrop');
+    if (backdrop && !backdrop.classList.contains('hidden')) {
+      sidebar.classList.add('-translate-x-full');
+      backdrop.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden', 'md:overflow-auto');
+    }
+  }
+
+  // 2. Thêm hiệu ứng mờ nhẹ vùng nội dung chính (chống chớp trắng và giật giụa)
+  if (currentMain) {
+    currentMain.style.transition = 'opacity 0.1s ease-out';
+    currentMain.style.opacity = '0.5';
+  }
+
+  try {
+    // 3. Tải HTML trang đích
+    const res = await fetch(targetUrl, {
+      headers: { 'X-Requested-With': 'KizunaShell' }
+    });
+
+    if (!res.ok) {
+      window.location.href = targetUrl;
+      return;
+    }
+
+    const htmlText = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlText, 'text/html');
+
+    const newMain = doc.querySelector('main');
+    if (!newMain || !currentMain) {
+      // Fallback nếu trang đích không cùng layout
+      window.location.href = targetUrl;
+      return;
+    }
+
+    // 4. Đồng bộ tiêu đề trang
+    if (doc.title) {
+      document.title = doc.title;
+    }
+
+    // 5. Nạp các thẻ <style> hoặc <link rel="stylesheet"> của trang mới vào <head> nếu chưa có
+    const targetStyles = doc.querySelectorAll('head style, head link[rel="stylesheet"]');
+    targetStyles.forEach(s => {
+      if (s.tagName.toLowerCase() === 'link') {
+        const href = s.getAttribute('href');
+        if (href && !document.querySelector(`head link[href="${href}"]`)) {
+          const newLink = document.createElement('link');
+          newLink.rel = 'stylesheet';
+          newLink.href = href;
+          document.head.appendChild(newLink);
+        }
+      } else if (s.tagName.toLowerCase() === 'style') {
+        const styleId = s.id || ('page-style-' + Math.random().toString(36).substring(2, 9));
+        if (!document.getElementById(styleId)) {
+          const newStyle = document.createElement('style');
+          newStyle.id = styleId;
+          newStyle.textContent = s.textContent;
+          document.head.appendChild(newStyle);
+        }
+      }
+    });
+
+    // 6. Cập nhật URL trong History
+    window.history.pushState({ targetUrl }, '', targetUrl);
+
+    // 7. Thay thế phần ruột <main>
+    currentMain.innerHTML = newMain.innerHTML;
+    currentMain.className = newMain.className;
+    currentMain.scrollTop = 0;
+
+    // 8. Đồng bộ các Modal ngoài <main> nếu trang mới có định nghĩa
+    document.querySelectorAll('body > [id*="modal"], body > [id*="Modal"]').forEach(el => {
+      if (!el.closest('#learnerSidebar')) {
+        el.remove();
+      }
+    });
+    const newModals = doc.querySelectorAll('body > [id*="modal"], body > [id*="Modal"]');
+    newModals.forEach(m => {
+      document.body.appendChild(m.cloneNode(true));
+    });
+
+    // 9. Chạy các module script của trang mới
+    const moduleScripts = doc.querySelectorAll('script[type="module"][src]');
+    for (const script of moduleScripts) {
+      const src = script.getAttribute('src');
+      if (src && !src.includes('main.js') && !src.includes('learner-layout.js')) {
+        const cleanSrc = src.split('?')[0];
+        try {
+          await import(`${cleanSrc}?t=${Date.now()}`);
+        } catch (scriptErr) {
+          console.debug('Lỗi nạp module trang mới:', scriptErr);
+        }
+      }
+    }
+
+    // 9. Kích hoạt sự kiện để trang mới khởi tạo DOM & Event Listeners
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    window.dispatchEvent(new Event('load'));
+
+  } catch (err) {
+    console.debug('Shell navigation fallback to full reload:', err);
+    window.location.href = targetUrl;
+  } finally {
+    if (currentMain) {
+      currentMain.style.opacity = '1';
+    }
+    isNavigating = false;
+  }
+}
+
+function handlePopState(e) {
+  const targetUrl = window.location.pathname + window.location.search;
+  navigateTo(targetUrl);
+}

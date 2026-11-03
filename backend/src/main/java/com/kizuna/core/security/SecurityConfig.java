@@ -13,6 +13,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -27,7 +29,7 @@ import java.util.Map;
 
 /**
  * Cấu hình Spring Security.
- * Cho phép truy cập công khai không cần đăng nhập đối với danh mục tìm kiếm gia sư (Report 3 - Non-functional Security).
+ * Cho phép truy cập công khai không cần đăng nhập đối với danh mục tìm kiếm gia sư và xác thực (Report 3 - Non-functional Security).
  * Khu vực vận hành hệ thống (FE-11) và chính sách đặt lịch yêu cầu đăng nhập bằng JWT.
  */
 @Slf4j
@@ -62,6 +64,11 @@ public class SecurityConfig {
             .addFilterBefore(new JwtAuthenticationAdapter(verifier, localDevEmail), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean

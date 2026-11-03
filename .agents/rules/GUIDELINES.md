@@ -61,3 +61,10 @@ Tài liệu này xác lập các tiêu chuẩn phát triển phần mềm cho to
 ## 4. Quy Trình Kiểm Thử Tự Động (Automated Quality Assurance)
 - Mọi pull request hoặc commit phải đảm bảo vượt qua toàn bộ bộ kiểm thử tự động `mvnw test`.
 - Các route giao diện của 6 Actor bắt buộc có bài test kiểm tra HTTP status 200 trong `ActorSpecificViewsTest.java`.
+
+
+---
+
+## 5. Kỷ Luật Phạm Vi Sửa Đổi (Strict Scope Boundary)
+- **Không tự ý sửa phần khác:** Chỉ tác động đúng thành phần và phạm vi mà người dùng yêu cầu. Tuyệt đối không tự ý sửa đổi, tái cấu trúc hoặc can thiệp vào các khu vực khác khi chưa được phép.
+- **Quy tắc khi xóa thành phần:** Khi người dùng yêu cầu xóa hoặc thu gọn một chi tiết/nút bấm, chỉ thực hiện thao tác xóa tại đúng vị trí đó; tuyệt đối không tự ý di chuyển các nút sang chỗ khác hoặc tự thêm các tính năng/thành phần mới vào màn hình nếu chưa được người dùng cho phép.

@@ -152,7 +152,7 @@
             <div class="bg-[#F7F4EC] border border-[#E5DECB] rounded-xl p-space-md md:p-space-lg shadow-sm space-y-space-md">
               
               <!-- Main Search Bar -->
-              <div class="flex flex-col sm:flex-row items-center gap-space-xs p-1.5 bg-[#FAF8F2] border border-[#E5DECB] rounded-xl">
+              <div class="flex flex-col sm:flex-row items-center gap-space-xs p-1.5 bg-[#FAF8F2] border border-[#E5DECB] rounded-xl shadow-inner">
                 <div class="flex items-center gap-space-sm w-full px-space-md py-2.5">
                   <span class="material-symbols-outlined text-outline text-[22px]">search</span>
                   <input class="w-full bg-transparent text-body-md font-body-md text-on-surface placeholder:text-outline focus:outline-none" 
@@ -186,7 +186,18 @@
                 </div>
 
                 <!-- Detailed Criteria Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-sm pt-space-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-space-sm pt-space-xs">
+                  <!-- Khu vực / Tỉnh thành (Đồng bộ theo tỉnh của gia sư trong database) -->
+                  <div class="space-y-1">
+                    <label class="font-caption text-caption text-on-surface-variant font-semibold tracking-wider">Khu vực / Tỉnh thành</label>
+                    <div class="relative">
+                      <select id="filter-location" class="w-full h-11 px-space-md pr-10 rounded-lg bg-white border border-[#E5DECB] text-body-sm font-body-sm text-[#0F2545] appearance-none focus:outline-none focus:border-[#006194] focus:ring-1 focus:ring-[#006194] cursor-pointer transition-colors shadow-sm">
+                        <option value="">Tất cả khu vực</option>
+                      </select>
+                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-[18px]">expand_more</span>
+                    </div>
+                  </div>
+
                   <!-- Goal -->
                   <div class="space-y-1">
                     <label class="font-caption text-caption text-on-surface-variant font-semibold tracking-wider">Mục tiêu học tập</label>

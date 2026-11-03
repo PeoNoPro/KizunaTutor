@@ -4,6 +4,9 @@ import com.kizuna.core.entity.Tutor;
 import com.kizuna.features.tutor_search.dto.TutorSearchCriteriaDTO;
 import com.kizuna.features.tutor_search.dto.TutorSearchPageResponse;
 import com.kizuna.features.tutor_search.dto.TutorSummaryResponseDTO;
+import com.kizuna.features.tutor_search.dto.TutorCredentialDTO;
+import com.kizuna.features.tutor_search.dto.TutorAvailabilityDTO;
+import org.springframework.jdbc.core.JdbcTemplate;
 import com.kizuna.features.tutor_search.repository.TutorSearchRepository;
 import com.kizuna.features.tutor_search.repository.TutorSearchSpecification;
 import com.kizuna.features.tutor_search.service.TutorSearchService;
@@ -32,6 +35,7 @@ import java.util.stream.Collectors;
 public class TutorSearchServiceImpl implements TutorSearchService {
 
     private final TutorSearchRepository tutorSearchRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public TutorSearchPageResponse searchTutors(TutorSearchCriteriaDTO criteria) {
@@ -91,6 +95,35 @@ public class TutorSearchServiceImpl implements TutorSearchService {
     }
 
     @Override
+    public List<String> getAvailableLocations() {
+        Specification<Tutor> spec = TutorSearchSpecification.build(new TutorSearchCriteriaDTO());
+        List<Tutor> tutors = tutorSearchRepository.findAll(spec);
+
+        return tutors.stream()
+                .map(t -> extractProvince(t.getAddress()))
+                .filter(loc -> loc != null && !loc.trim().isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    private String extractProvince(String address) {
+        if (address == null || address.trim().isEmpty()) {
+            return "Hà Nội";
+        }
+        String clean = address.trim();
+        String[] parts = clean.split(",");
+        if (parts.length >= 2) {
+            String lastPart = parts[parts.length - 1].trim();
+            if (lastPart.equalsIgnoreCase("Việt Nam") || lastPart.equalsIgnoreCase("Vietnam")) {
+                return parts[parts.length - 2].trim();
+            }
+            return lastPart;
+        }
+        return clean;
+    }
+
+    @Override
     public TutorSummaryResponseDTO getTutorByCode(Long tutorCode) {
         Tutor tutor = tutorSearchRepository.findByTutorCode(tutorCode)
                 .orElse(null);
@@ -107,6 +140,59 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .collect(Collectors.toList());
+        }
+
+        List<TutorCredentialDTO> credentials = Collections.emptyList();
+        try {
+            credentials = jdbcTemplate.query(
+                "SELECT credential_id, credential_type, title, file_url, verified_status::text " +
+                "FROM tutor_credentials WHERE tutor_id = ? AND verified_status = 'VERIFIED' ORDER BY uploaded_at ASC",
+                (rs, rowNum) -> TutorCredentialDTO.builder()
+                    .credentialId(rs.getObject("credential_id", UUID.class))
+                    .credentialType(rs.getString("credential_type"))
+                    .title(rs.getString("title"))
+                    .fileUrl(rs.getString("file_url"))
+                    .verifiedStatus(rs.getString("verified_status"))
+                    .build(),
+                tutor.getTutorId()
+            );
+        } catch (Exception e) {
+            // ignore if table not present or error
+        }
+
+        List<TutorAvailabilityDTO> availabilities = Collections.emptyList();
+        try {
+            availabilities = jdbcTemplate.query(
+                "SELECT availability_id, day_of_week, start_time::text, end_time::text " +
+                "FROM tutor_availabilities WHERE tutor_id = ? AND is_active = TRUE ORDER BY day_of_week, start_time",
+                (rs, rowNum) -> {
+                    int dow = rs.getInt("day_of_week");
+                    String dayName = switch (dow) {
+                        case 1 -> "Chủ nhật";
+                        case 2 -> "Thứ hai";
+                        case 3 -> "Thứ ba";
+                        case 4 -> "Thứ tư";
+                        case 5 -> "Thứ năm";
+                        case 6 -> "Thứ sáu";
+                        case 7 -> "Thứ bảy";
+                        default -> "Thứ " + dow;
+                    };
+                    String start = rs.getString("start_time");
+                    String end = rs.getString("end_time");
+                    if (start != null && start.length() >= 5) start = start.substring(0, 5);
+                    if (end != null && end.length() >= 5) end = end.substring(0, 5);
+                    return TutorAvailabilityDTO.builder()
+                        .availabilityId(rs.getObject("availability_id", UUID.class))
+                        .dayOfWeek(dow)
+                        .dayName(dayName)
+                        .startTime(start)
+                        .endTime(end)
+                        .build();
+                },
+                tutor.getTutorId()
+            );
+        } catch (Exception e) {
+            // ignore
         }
 
         return TutorSummaryResponseDTO.builder()
@@ -126,6 +212,8 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                 .isVerified(tutor.getVerificationStatus() == TutorVerificationStatus.APPROVED)
                 .specialties(specialties)
                 .teachingFormat("Online 1-1")
+                .credentials(credentials)
+                .availabilities(availabilities)
                 .build();
     }
 }

@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. Trạng thái tìm kiếm trung tâm (State)
   const state = {
     keyword: '',
+    location: '',
     jlptLevel: 'all',
     goal: '',
     format: '',
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('search-input');
   const searchBtn = document.getElementById('search-button');
   const jlptPills = document.querySelectorAll('.jlpt-chip');
+  const filterLocation = document.getElementById('filter-location');
   const filterGoal = document.getElementById('filter-goal');
   const filterFormat = document.getElementById('filter-format');
   const filterPrice = document.getElementById('filter-price');
@@ -69,6 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const q = params.get('q') || params.get('keyword');
     if (q && q.trim()) validated.keyword = q.trim();
 
+    const loc = params.get('location') || params.get('loc') || params.get('address');
+    if (loc && loc.trim()) validated.location = loc.trim();
+
     const jlpt = params.get('jlpt') || params.get('level');
     if (jlpt && VALID_JLPT.includes(jlpt)) validated.jlptLevel = jlpt;
     else if (jlpt) validated.jlptLevel = 'all';
@@ -100,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const validated = validateUrlParams(urlParams);
 
     state.keyword = validated.keyword || '';
+    state.location = validated.location || '';
     state.jlptLevel = validated.jlptLevel || 'all';
     state.goal = validated.goal || '';
     state.format = validated.format || '';
@@ -114,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Đồng bộ State lên các UI Controls
   function syncFiltersWithState() {
     if (searchInput) searchInput.value = state.keyword;
+    if (filterLocation) filterLocation.value = state.location;
     if (filterGoal) filterGoal.value = state.goal;
     if (filterFormat) filterFormat.value = state.format;
     if (filterPrice) filterPrice.value = state.priceRange;
@@ -141,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams();
 
     if (state.keyword && state.keyword.trim()) params.set('q', state.keyword.trim());
+    if (state.location && state.location.trim()) params.set('location', state.location.trim());
     if (state.jlptLevel && state.jlptLevel !== 'all') params.set('jlpt', state.jlptLevel);
     if (state.goal) params.set('goal', state.goal);
     if (state.format) params.set('format', state.format);
@@ -171,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('popstate', () => {
     isPopStateHandling = true;
     syncStateFromUrl();
+  loadLocationOptions();
     loadTutors();
     isPopStateHandling = false;
   });
@@ -193,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const searchParams = {
         keyword: state.keyword,
+        location: state.location,
         jlptLevel: state.jlptLevel,
         goal: state.goal,
         format: state.format,
@@ -457,6 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chips = [];
 
     if (state.keyword.trim()) chips.push({ key: 'keyword', label: `Từ khóa: "${state.keyword}"` });
+    if (state.location && state.location.trim()) chips.push({ key: 'location', label: `Khu vực: "${state.location}"` });
     if (state.jlptLevel && state.jlptLevel !== 'all') chips.push({ key: 'jlptLevel', label: `JLPT: ${state.jlptLevel}` });
     if (state.goal) {
       const map = { kaiwa: 'Luyện giao tiếp', jlpt: 'Luyện thi JLPT', business: 'Tiếng Nhật thương mại', it: 'Tiếng Nhật IT' };
@@ -490,6 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.removeFilter = function (key) {
     if (key === 'keyword') { state.keyword = ''; if (searchInput) searchInput.value = ''; }
+    if (key === 'location') { state.location = ''; if (filterLocation) filterLocation.value = ''; }
     if (key === 'jlptLevel') { state.jlptLevel = 'all'; syncJlptPills(); }
     if (key === 'goal') { state.goal = ''; if (filterGoal) filterGoal.value = ''; }
     if (key === 'format') { state.format = ''; if (filterFormat) filterFormat.value = ''; }
@@ -582,8 +594,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sự kiện 4 dropdown bộ lọc (T017)
+  // Sự kiện 5 dropdown bộ lọc (Khu vực, Mục tiêu, Hình thức, Học phí, Lịch rảnh)
   [
+    { el: filterLocation, prop: 'location' },
     { el: filterGoal, prop: 'goal' },
     { el: filterFormat, prop: 'format' },
     { el: filterPrice, prop: 'priceRange' },
@@ -611,6 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Hàm đặt lại toàn bộ bộ lọc và làm sạch URL (T020)
   function resetAllFilters() {
     state.keyword = '';
+    state.location = '';
     state.jlptLevel = 'all';
     state.goal = '';
     state.format = '';
@@ -626,7 +640,32 @@ document.addEventListener('DOMContentLoaded', () => {
   if (resetBtn) resetBtn.addEventListener('click', resetAllFilters);
   if (emptyResetBtn) emptyResetBtn.addEventListener('click', resetAllFilters);
 
+  // 12.1 Nạp danh sách các tỉnh/thành phố thực tế từ database của các gia sư (FE-04)
+  async function loadLocationOptions() {
+    try {
+      const locations = await API.tutors.getLocations();
+      if (!filterLocation) return;
+
+      filterLocation.innerHTML = '<option value="">Tất cả khu vực</option>';
+      if (Array.isArray(locations) && locations.length > 0) {
+        locations.forEach(loc => {
+          const opt = document.createElement('option');
+          opt.value = loc;
+          opt.textContent = loc;
+          filterLocation.appendChild(opt);
+        });
+      }
+
+      if (state.location) {
+        filterLocation.value = state.location;
+      }
+    } catch (err) {
+      console.warn('Lỗi khi nạp danh sách địa điểm gia sư:', err);
+    }
+  }
+
   // 13. Khởi tạo trang: Khôi phục State từ URL ngay khi vào trang và tải dữ liệu
   syncStateFromUrl();
+  loadLocationOptions();
   loadTutors();
 });

@@ -31,4 +31,9 @@ public interface TutorSearchService {
      * Lấy chi tiết hồ sơ công khai của một gia sư theo mã tự tăng (tutor_code).
      */
     TutorSummaryResponseDTO getTutorByCode(Long tutorCode);
+
+    /**
+     * Lấy danh sách các tỉnh/thành phố có gia sư thực tế trong hệ thống.
+     */
+    List<String> getAvailableLocations();
 }

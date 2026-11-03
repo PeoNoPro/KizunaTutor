@@ -17,6 +17,7 @@ export const API = {
       const queryParams = new URLSearchParams();
       
       if (params.keyword) queryParams.set('keyword', params.keyword.trim());
+      if (params.location && params.location.trim() && params.location !== 'all') queryParams.set('location', params.location.trim());
       if (params.jlptLevel && params.jlptLevel !== 'all') queryParams.set('jlptLevel', params.jlptLevel);
       if (params.minPrice) queryParams.set('minPrice', params.minPrice);
       if (params.maxPrice) queryParams.set('maxPrice', params.maxPrice);
@@ -46,6 +47,23 @@ export const API = {
     /**
      * Lấy danh sách gia sư tiêu biểu (Featured Tutors) có điểm đánh giá cao nhất
      */
+    /**
+     * Lấy danh sách các tỉnh/thành phố có gia sư thực tế trong cơ sở dữ liệu (FE-04)
+     */
+    async getLocations() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/tutors/locations`, {
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(8000)
+        });
+        if (!response.ok) return [];
+        return await response.json();
+      } catch (err) {
+        console.error('API.tutors.getLocations error:', err);
+        return [];
+      }
+    },
+
     async getFeatured() {
       try {
         const response = await fetch(`${API_BASE_URL}/tutors/featured`, {

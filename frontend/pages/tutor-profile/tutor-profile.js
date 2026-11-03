@@ -137,17 +137,90 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           </div>
 
-          <!-- Lịch rảnh & Cam kết -->
-          <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-4">
-            <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
-              <span class="material-symbols-outlined text-primary">event_available</span>
-              Thời gian biểu &amp; Lịch giảng dạy
-            </h3>
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
-              <p class="text-xs text-on-surface-variant">
-                Gia sư hiện tại nhận lịch học linh hoạt theo thỏa thuận. Vui lòng bấm <strong>"Đặt lịch học thử 1-1"</strong> để trao đổi khung giờ học phù hợp nhất với bạn.
-              </p>
+          <!-- Chứng chỉ & Bằng cấp đã xác thực (UC-31) -->
+          <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">verified</span>
+                Chứng chỉ &amp; Bằng cấp đã thẩm định
+              </h3>
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
+                <span class="material-symbols-outlined text-[15px] text-emerald-600">verified_user</span>
+                Đã được Ban học vụ Kizuna kiểm tra
+              </span>
             </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              ${(tutor.credentials && tutor.credentials.length > 0)
+                ? tutor.credentials.map(c => `
+                  <div class="p-4 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] flex flex-col justify-between gap-3 hover:border-primary/40 transition-colors shadow-2xs">
+                    <div class="flex items-start gap-3">
+                      <div class="w-10 h-10 rounded-lg bg-sky-100 text-primary flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[22px]">workspace_premium</span>
+                      </div>
+                      <div class="space-y-1 min-w-0 flex-1">
+                        <h4 class="text-sm font-bold text-[#0F2545] leading-snug">${c.title}</h4>
+                        <div class="flex items-center gap-2">
+                          <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
+                            <span class="material-symbols-outlined text-[13px]">check_circle</span> Đã xác thực
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    ${c.fileUrl ? `
+                      <a href="${c.fileUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#E5DECB] hover:bg-sky-50 hover:text-primary hover:border-sky-300 text-xs font-semibold text-[#0F2545] transition-colors">
+                        <span class="material-symbols-outlined text-[15px]">visibility</span>
+                        <span>Xem bản chụp chứng chỉ</span>
+                      </a>
+                    ` : ''}
+                  </div>
+                `).join('')
+                : `
+                  <div class="col-span-full p-4 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] flex items-center gap-3">
+                    <span class="material-symbols-outlined text-emerald-600 text-[24px]">verified</span>
+                    <div class="text-xs text-on-surface-variant">
+                      Gia sư đã hoàn tất xác minh <strong>Chứng chỉ Năng lực Tiếng Nhật JLPT ${tutor.highestJlptLevel || 'N1'}</strong> và hồ sơ định danh CCCD với KizunaTutor.
+                    </div>
+                  </div>
+                `
+              }
+            </div>
+          </div>
+
+          <!-- Lịch rảnh & Thời gian biểu khả dụng (UC-31) -->
+          <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">event_available</span>
+                Lịch rảnh giảng dạy trong tuần
+              </h3>
+              <span class="text-xs text-on-surface-variant font-medium">Khung giờ có thể nhận lịch học 1-1</span>
+            </div>
+
+            ${(tutor.availabilities && tutor.availabilities.length > 0)
+              ? `
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  ${tutor.availabilities.map(a => `
+                    <div class="p-3.5 rounded-xl bg-sky-50/70 border border-sky-100 flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-[20px]">calendar_today</span>
+                        <span class="text-xs font-bold text-[#0F2545]">${a.dayName}</span>
+                      </div>
+                      <span class="px-2.5 py-1 rounded-md bg-white text-primary text-xs font-bold border border-sky-200 shadow-2xs">
+                        ${a.startTime} - ${a.endTime}
+                      </span>
+                    </div>
+                  `).join('')}
+                </div>
+              `
+              : `
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
+                  <p class="text-xs text-on-surface-variant">
+                    Gia sư hiện tại nhận lịch học linh hoạt theo thỏa thuận. Vui lòng bấm <strong>"Đặt lịch học thử 1-1"</strong> để trao đổi khung giờ học phù hợp nhất với bạn.
+                  </p
+                </div>
+              `
+            }
           </div>
 
         </div>

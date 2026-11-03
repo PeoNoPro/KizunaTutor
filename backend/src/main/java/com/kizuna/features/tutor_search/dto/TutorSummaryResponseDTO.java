@@ -33,4 +33,6 @@ public class TutorSummaryResponseDTO {
     private boolean isVerified;
     private List<String> specialties;
     private String teachingFormat;
+    private List<TutorCredentialDTO> credentials;
+    private List<TutorAvailabilityDTO> availabilities;
 }

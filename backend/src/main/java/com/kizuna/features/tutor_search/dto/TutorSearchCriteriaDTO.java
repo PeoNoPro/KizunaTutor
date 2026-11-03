@@ -22,6 +22,7 @@ public class TutorSearchCriteriaDTO {
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
     private String schedule;
+    private String location;
     
     @Builder.Default
     private String sortBy = "rating";

@@ -120,3 +120,115 @@ if (typeof window !== 'undefined') {
   window.API = API;
 }
 
+// =========================================================================
+// FE-06: LỚP HỌC & TÀI LIỆU HỌC TẬP (Classroom & Learning Materials)
+// Bổ sung riêng cho FE-06, không thay đổi các nhóm API phía trên.
+// =========================================================================
+function classroomAuthHeaders() {
+  let token = null;
+  try {
+    token = localStorage.getItem('kizuna_token');
+  } catch (e) {
+    token = null;
+  }
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function classroomRequest(path, { method = 'GET', body, formData, timeout = 15000 } = {}) {
+  const headers = { ...classroomAuthHeaders() };
+  let payload;
+  if (formData) {
+    payload = formData;
+  } else if (body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    payload = JSON.stringify(body);
+  }
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}/classrooms${path}`, {
+      method,
+      headers,
+      body: payload,
+      signal: AbortSignal.timeout(timeout)
+    });
+  } catch (networkErr) {
+    console.debug('API.classrooms network error:', networkErr);
+    const err = new Error('network');
+    err.status = 0;
+    err.userMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối và thử lại.';
+    throw err;
+  }
+
+  let json = null;
+  try {
+    json = await response.json();
+  } catch (parseErr) {
+    json = null;
+  }
+
+  if (response.status === 401) {
+    window.location.href = '/login';
+  }
+  if (!response.ok || (json && json.success === false)) {
+    const err = new Error('request-failed');
+    err.status = response.status;
+    err.userMessage = json && typeof json.message === 'string' ? json.message : '';
+    err.fieldErrors = json && json.data && json.data.fieldErrors ? json.data.fieldErrors : null;
+    throw err;
+  }
+  return json ? json.data : null;
+}
+
+function materialFormData({ title, description, file }) {
+  const fd = new FormData();
+  fd.append('title', title ?? '');
+  fd.append('description', description ?? '');
+  if (file) fd.append('file', file);
+  return fd;
+}
+
+API.classrooms = {
+  /** Danh sách lớp của gia sư hoặc học viên hiện tại (UC-93, UC-58) */
+  list() {
+    return classroomRequest('');
+  },
+
+  /** Học viên đã kết nối, đủ điều kiện thêm vào lớp (UC-93) */
+  eligibleLearners() {
+    return classroomRequest('/eligible-learners');
+  },
+
+  /** Gia sư mở lớp cho học viên (UC-93) */
+  create({ learnerId, title }) {
+    return classroomRequest('', { method: 'POST', body: { learnerId, title } });
+  },
+
+  detail(spaceId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}`);
+  },
+
+  /** Danh sách tài liệu của lớp (UC-61) */
+  materials(spaceId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/materials`);
+  },
+
+  /** Liên kết tạm thời để mở tài liệu (UC-61) */
+  materialFileLink(spaceId, materialId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/materials/${encodeURIComponent(materialId)}/file`);
+  },
+
+  /** Tải lên tài liệu mới (UC-65) */
+  uploadMaterial(spaceId, data) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/materials`, {
+      method: 'POST', formData: materialFormData(data), timeout: 120000
+    });
+  },
+
+  /** Cập nhật hoặc thay tệp tài liệu (UC-94) */
+  updateMaterial(spaceId, materialId, data) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/materials/${encodeURIComponent(materialId)}`, {
+      method: 'PUT', formData: materialFormData(data), timeout: 120000
+    });
+  }
+};

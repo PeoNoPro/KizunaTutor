@@ -1,0 +1,23 @@
+package com.kizuna.features.classroom.service;
+
+import com.kizuna.features.classroom.dto.LearningMaterialResponse;
+import com.kizuna.features.classroom.dto.MaterialFileLinkResponse;
+import com.kizuna.features.classroom.util.CurrentActor;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.UUID;
+
+/** FE-06: tài liệu học tập (UC-61 View, UC-65 Upload, UC-94 Update). */
+public interface LearningMaterialService {
+
+    List<LearningMaterialResponse> list(CurrentActor actor, UUID spaceId);
+
+    MaterialFileLinkResponse getFileLink(CurrentActor actor, UUID spaceId, UUID materialId);
+
+    LearningMaterialResponse upload(CurrentActor actor, UUID spaceId, String title, String description, MultipartFile file);
+
+    /** file == null hoặc rỗng: chỉ sửa tiêu đề/mô tả. */
+    LearningMaterialResponse update(CurrentActor actor, UUID spaceId, UUID materialId,
+                                    String title, String description, MultipartFile file);
+}

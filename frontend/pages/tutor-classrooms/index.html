@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý lớp học - KizunaTutor</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Itim&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style id="classroom-retro-style">
+    :root {
+      --retro-ink: #000000;
+      --retro-tutor: #7A2CA8;
+      --retro-learner: #2A5A1A;
+      --retro-warn: #BF360C;
+      --retro-link: #1F6FB4;
+      --retro-done: #1E8B3F;
+      --retro-coral: #E76F51;
+      --retro-paper: #FFFFFF;
+    }
+    .font-heading { font-family: 'Itim', cursive; }
+    .font-body { font-family: 'Segoe UI', 'Noto Sans JP', system-ui, sans-serif; font-size: 14px; }
+    .font-meta { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; }
+    .retro-card {
+      background: var(--retro-paper);
+      border: 1px solid var(--retro-ink);
+      border-radius: 5px;
+      box-shadow: 4px 4px 0 0 var(--retro-ink);
+    }
+    .retro-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border: 1px solid var(--retro-ink); border-radius: 5px; padding: 8px 14px;
+      font-weight: 600; font-size: 14px; background: var(--retro-paper); color: var(--retro-ink);
+      box-shadow: 3px 3px 0 0 var(--retro-ink);
+      transition: transform .15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow .15s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    .retro-btn:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 0 var(--retro-ink); }
+    .retro-btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 0 var(--retro-ink); }
+    .retro-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .retro-btn-tutor { background: var(--retro-tutor); color: #fff; }
+    .retro-btn-learner { background: var(--retro-learner); color: #fff; }
+    .retro-input {
+      width: 100%; border: 1px solid var(--retro-ink); border-radius: 5px; padding: 8px 10px;
+      background: #fff; font-size: 14px;
+    }
+    .retro-input:focus { outline: 2px solid var(--retro-link); outline-offset: 1px; }
+    .retro-badge {
+      display: inline-flex; align-items: center; border: 1px solid var(--retro-ink); border-radius: 5px;
+      padding: 2px 8px; font-size: 11px; font-weight: 600; background: #fff;
+    }
+    .retro-badge[data-tone="active"] { background: #E5F4EA; color: var(--retro-done); }
+    .retro-badge[data-tone="paused"] { background: #FDEDE8; color: var(--retro-warn); }
+    .retro-badge[data-tone="done"] { background: #F1F1F1; color: #333; }
+    .field-error { color: var(--retro-warn); font-size: 12px; margin-top: 4px; }
+    .retro-modal-backdrop { background: rgba(0, 0, 0, .45); }
+  </style>
+</head>
+<body class="bg-[#FBF8F3] text-black font-body min-h-screen flex flex-col antialiased">
+
+  <!-- Header gia sư (trang độc lập, chưa có khung chung cho gia sư) -->
+  <header class="bg-white border-b border-black">
+    <div class="max-w-[1100px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      <a href="/tutor/classrooms" class="flex items-center gap-2 no-underline text-black">
+        <img src="/assets/logos/kizuna-logo.png" alt="Logo KizunaTutor" class="h-8 w-8 object-contain rounded-full">
+        <span class="font-heading text-[20px]">Kizuna<span class="text-[#7A2CA8]">Tutor</span></span>
+        <span class="retro-badge ml-1 hidden sm:inline-flex" style="background:#F3E8FA;color:#7A2CA8">Gia sư</span>
+      </a>
+      <div class="flex items-center gap-3">
+        <span id="tutorNameLabel" class="hidden sm:inline font-meta text-[13px]"></span>
+        <button type="button" id="logoutBtn" class="retro-btn">Đăng xuất</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full">
+    <div id="tutorClassroomsRoot" class="max-w-[1100px] mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+      <!-- ===== DANH SÁCH LỚP (UC-93) ===== -->
+      <section id="classroomListView" class="space-y-5">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 class="font-heading text-[30px] leading-tight">Quản lý lớp học</h1>
+            <p class="text-[#444]">Mở lớp cho học viên đã kết nối và chia sẻ tài liệu học tập.</p>
+          </div>
+          <button type="button" id="openAddLearnerBtn" class="retro-btn retro-btn-tutor">+ Thêm học viên vào lớp</button>
+        </div>
+
+        <div id="classroomListState" class="retro-card p-6 text-center hidden"></div>
+        <div id="classroomGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+      </section>
+
+      <!-- ===== CHI TIẾT LỚP + TÀI LIỆU (UC-61, UC-65, UC-94) ===== -->
+      <section id="classroomDetailView" class="space-y-5 hidden">
+        <button type="button" id="backToListBtn" class="text-[#1F6FB4] font-semibold hover:underline">← Danh sách lớp học</button>
+
+        <div id="classroomDetailState" class="retro-card p-6 text-center hidden"></div>
+
+        <div id="classroomDetailCard" class="retro-card p-5 space-y-2 hidden">
+          <div class="flex flex-wrap items-center gap-3">
+            <h1 id="detailTitle" class="font-heading text-[30px] leading-tight break-words"></h1>
+            <span id="detailStatus" class="retro-badge"></span>
+          </div>
+          <p class="text-[#333]">Học viên: <strong id="detailLearner"></strong> · Ngày mở lớp: <span id="detailCreated"></span></p>
+          <p id="detailReadOnlyNote" class="hidden border border-black rounded-[5px] bg-[#FDEDE8] text-[#BF360C] px-3 py-2"></p>
+        </div>
+
+        <div id="materialsSection" class="retro-card p-5 space-y-4 hidden">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-heading text-[20px]">Tài liệu học tập</h2>
+            <button type="button" id="openUploadBtn" class="retro-btn retro-btn-tutor hidden">Tải lên tài liệu</button>
+          </div>
+          <div id="materialsState" class="text-center text-[#444] py-6 hidden"></div>
+          <ul id="materialsList" class="space-y-3"></ul>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===== HỘP THOẠI THÊM HỌC VIÊN ===== -->
+  <div id="addLearnerModal" class="fixed inset-0 z-50 hidden retro-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="addLearnerTitle">
+    <form id="addLearnerForm" class="retro-card w-full max-w-[480px] p-5 space-y-4" novalidate>
+      <h2 id="addLearnerTitle" class="font-heading text-[20px]">Thêm học viên vào lớp</h2>
+      <div id="eligibleState" class="text-[#444] hidden"></div>
+      <div id="addLearnerFields" class="space-y-4">
+        <div>
+          <label for="learnerSelect" class="block font-semibold mb-1">Học viên đã kết nối</label>
+          <select id="learnerSelect" class="retro-input"></select>
+          <p id="learnerSelectError" class="field-error hidden"></p>
+        </div>
+        <div>
+          <label for="classroomTitleInput" class="block font-semibold mb-1">Tên lớp học</label>
+          <input id="classroomTitleInput" type="text" maxlength="150" class="retro-input" placeholder="Ví dụ: Luyện thi N4 cấp tốc">
+          <p id="classroomTitleError" class="field-error hidden"></p>
+        </div>
+      </div>
+      <p id="addLearnerFormError" class="field-error hidden"></p>
+      <div class="flex justify-end gap-3">
+        <button type="button" class="retro-btn" data-close-modal="addLearnerModal">Hủy</button>
+        <button type="submit" id="addLearnerSubmit" class="retro-btn retro-btn-tutor">Xác nhận thêm</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== HỘP THOẠI TẢI LÊN / CHỈNH SỬA TÀI LIỆU ===== -->
+  <div id="materialModal" class="fixed inset-0 z-50 hidden retro-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="materialModalTitle">
+    <form id="materialForm" class="retro-card w-full max-w-[520px] p-5 space-y-4 max-h-[90vh] overflow-y-auto" novalidate>
+      <h2 id="materialModalTitle" class="font-heading text-[20px]">Tải lên tài liệu</h2>
+      <div>
+        <label for="materialTitleInput" class="block font-semibold mb-1">Tiêu đề tài liệu</label>
+        <input id="materialTitleInput" type="text" maxlength="150" class="retro-input">
+        <p id="materialTitleError" class="field-error hidden"></p>
+      </div>
+      <div>
+        <label for="materialDescriptionInput" class="block font-semibold mb-1">Mô tả <span class="font-normal text-[#555]">(không bắt buộc)</span></label>
+        <textarea id="materialDescriptionInput" rows="3" maxlength="1000" class="retro-input"></textarea>
+        <p id="materialDescriptionError" class="field-error hidden"></p>
+      </div>
+      <div>
+        <label for="materialFileInput" class="block font-semibold mb-1">Tệp tài liệu</label>
+        <input id="materialFileInput" type="file" class="retro-input">
+        <p id="materialFileHint" class="font-meta text-[#555] mt-1">Định dạng PDF, PNG, JPG, MP3. Dung lượng tối đa 10 MB.</p>
+        <p id="materialFileError" class="field-error hidden"></p>
+      </div>
+      <p id="materialFormError" class="field-error hidden"></p>
+      <div class="flex justify-end gap-3">
+        <button type="button" class="retro-btn" data-close-modal="materialModal">Hủy</button>
+        <button type="submit" id="materialSubmit" class="retro-btn retro-btn-tutor">Tải lên</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Thông báo nổi -->
+  <div id="classroomToast" class="fixed bottom-5 right-5 z-[60] hidden retro-card px-4 py-3 font-semibold max-w-[90vw]" role="status" aria-live="polite"></div>
+
+  <script type="module" src="/pages/tutor-classrooms/tutor-classrooms.js"></script>
+</body>
+</html>

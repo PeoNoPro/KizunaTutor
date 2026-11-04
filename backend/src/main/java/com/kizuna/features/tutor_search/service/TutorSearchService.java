@@ -23,8 +23,17 @@ public interface TutorSearchService {
     List<TutorSummaryResponseDTO> getFeaturedTutors();
 
     /**
-     * Lấy chi tiết hồ sơ công khai của một gia sư theo ID.
+     * Lấy chi tiết hồ sơ công khai của một gia sư theo UUID (ID gốc).
      */
     TutorSummaryResponseDTO getTutorDetail(UUID tutorId);
-}
 
+    /**
+     * Lấy chi tiết hồ sơ công khai của một gia sư theo mã tự tăng (tutor_code).
+     */
+    TutorSummaryResponseDTO getTutorByCode(Long tutorCode);
+
+    /**
+     * Lấy danh sách các tỉnh/thành phố có gia sư thực tế trong hệ thống.
+     */
+    List<String> getAvailableLocations();
+}

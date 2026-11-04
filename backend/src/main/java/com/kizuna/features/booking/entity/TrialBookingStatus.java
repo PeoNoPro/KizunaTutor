@@ -1,12 +1,12 @@
 package com.kizuna.features.booking.entity;
 
-
-
-import com.kizuna.core.entity.*;
-import com.kizuna.core.entity.BaseEntity;
-import com.kizuna.core.entity.User;
-import com.kizuna.core.entity.Learner;
-import com.kizuna.core.entity.Tutor;
+/**
+ * Trạng thái buổi học thử (trial_booking_status_enum)
+ */
 public enum TrialBookingStatus {
-    PENDING, CONFIRMED, COMPLETED, CANCELLED, RESCHEDULED
+    PENDING,
+    CONFIRMED,
+    COMPLETED,
+    CANCELLED,
+    RESCHEDULED
 }

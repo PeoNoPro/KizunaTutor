@@ -144,5 +144,154 @@ export const API = {
         throw err;
       }
     }
+  },
+
+  trialBookings: {
+    /**
+     * Gửi yêu cầu đăng ký học thử 1-1 với gia sư (FE-05)
+     */
+    async create(requestData) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(requestData),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          err.data = resData;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error('API.trialBookings.create error:', err);
+        throw err;
+      }
+    },
+
+    /**
+     * Lấy danh sách yêu cầu học thử của tôi (FE-05)
+     */
+    async getMyRequests(status = 'ALL', page = 0, size = 10) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      const queryParams = new URLSearchParams({
+        status,
+        page,
+        size
+      });
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/my-requests?${queryParams.toString()}`, {
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error('API.trialBookings.getMyRequests error:', err);
+        throw err;
+      }
+    },
+
+    /**
+     * Xem chi tiết buổi học thử (FE-05)
+     */
+    async getDetail(bookingId) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}`, {
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.trialBookings.getDetail(${bookingId}) error:`, err);
+        throw err;
+      }
+    },
+
+    /**
+     * Gia sư phản hồi yêu cầu học thử: Chấp nhận hoặc Từ chối (FE-05)
+     */
+    async respond(bookingId, payload) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}/respond`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.trialBookings.respond(${bookingId}) error:`, err);
+        throw err;
+      }
+    },
+
+    /**
+     * Hủy yêu cầu học thử (FE-05)
+     */
+    async cancel(bookingId, payload) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}/cancel`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.trialBookings.cancel(${bookingId}) error:`, err);
+        throw err;
+      }
+    }
   }
 };

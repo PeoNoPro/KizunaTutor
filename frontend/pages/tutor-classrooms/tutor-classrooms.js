@@ -39,8 +39,8 @@ function showToast(message, tone = 'success') {
   const toast = $('classroomToast');
   if (!toast) return;
   toast.textContent = message;
-  toast.style.background = tone === 'success' ? '#E5F4EA' : '#FDEDE8';
-  toast.style.color = tone === 'success' ? '#1E8B3F' : '#BF360C';
+  toast.style.background = tone === 'success' ? '#cce5ff' : '#ffdad6';
+  toast.style.color = tone === 'success' ? '#004b73' : '#93000a';
   toast.classList.remove('hidden');
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(() => toast.classList.add('hidden'), 3500);
@@ -63,8 +63,8 @@ function closeModal(id) {
 
 function renderStateBox(el, message, { retry } = {}) {
   el.innerHTML = `
-    <p class="text-[#333]">${escapeHtml(message)}</p>
-    ${retry ? '<button type="button" class="retro-btn mt-4" data-retry>Thử lại</button>' : ''}
+    <p class="text-on-surface-variant">${escapeHtml(message)}</p>
+    ${retry ? '<button type="button" class="kz-btn mt-4" data-retry>Thử lại</button>' : ''}
   `;
   el.classList.remove('hidden');
   if (retry) el.querySelector('[data-retry]').addEventListener('click', retry);
@@ -89,7 +89,7 @@ async function loadClassrooms() {
   const grid = $('classroomGrid');
   const stateBox = $('classroomListState');
   stateBox.classList.add('hidden');
-  grid.innerHTML = '<p class="text-[#444]">Đang tải danh sách lớp học...</p>';
+  grid.innerHTML = '<p class="text-on-surface-variant">Đang tải danh sách lớp học...</p>';
   try {
     state.classrooms = await API.classrooms.list() || [];
     renderClassrooms();
@@ -109,18 +109,18 @@ function renderClassrooms() {
   }
   stateBox.classList.add('hidden');
   grid.innerHTML = state.classrooms.map((c) => `
-    <article class="retro-card p-4 flex flex-col gap-3">
+    <article class="kz-item flex flex-col gap-3">
       <div class="flex items-start justify-between gap-2">
-        <h3 class="font-heading text-[18px] leading-snug break-words">${escapeHtml(c.title)}</h3>
-        <span class="retro-badge shrink-0" data-tone="${classroomStatusTone(c.status)}">${escapeHtml(classroomStatusLabel(c.status))}</span>
+        <h3 class="font-title-sm text-title-sm text-on-surface break-words">${escapeHtml(c.title)}</h3>
+        <span class="kz-badge shrink-0" data-tone="${classroomStatusTone(c.status)}">${escapeHtml(classroomStatusLabel(c.status))}</span>
       </div>
-      <dl class="text-[#333] space-y-1">
+      <dl class="text-on-surface-variant space-y-1">
         <div>Học viên: <strong>${escapeHtml(c.learnerName || 'Học viên')}</strong></div>
         <div>Ngày mở lớp: ${escapeHtml(formatDateVi(c.createdAt))}</div>
         <div>Tài liệu: ${Number(c.materialCount) || 0}</div>
       </dl>
-      ${c.readOnly ? '<p class="font-meta text-[#BF360C]">Chế độ chỉ xem</p>' : ''}
-      <button type="button" class="retro-btn mt-auto" data-open-space="${escapeHtml(c.spaceId)}">Vào lớp học</button>
+      ${c.readOnly ? '<p class="font-caption text-caption text-tertiary">Chế độ chỉ xem</p>' : ''}
+      <button type="button" class="kz-btn kz-btn-primary mt-auto" data-open-space="${escapeHtml(c.spaceId)}">Vào lớp học</button>
     </article>
   `).join('');
   grid.querySelectorAll('[data-open-space]').forEach((btn) => {
@@ -251,7 +251,7 @@ async function loadMaterials() {
   const list = $('materialsList');
   const stateBox = $('materialsState');
   stateBox.classList.add('hidden');
-  list.innerHTML = '<li class="text-[#444]">Đang tải tài liệu...</li>';
+  list.innerHTML = '<li class="text-on-surface-variant">Đang tải tài liệu...</li>';
   try {
     state.materials = await API.classrooms.materials(state.currentSpace.spaceId) || [];
     renderMaterials();
@@ -272,15 +272,15 @@ function renderMaterials() {
   stateBox.classList.add('hidden');
   const canManage = !!state.currentSpace?.canManage;
   list.innerHTML = state.materials.map((m) => `
-    <li class="border border-black rounded-[5px] p-4 bg-white flex flex-col sm:flex-row sm:items-start gap-3">
+    <li class="kz-item flex flex-col sm:flex-row sm:items-start gap-3">
       <div class="flex-1 min-w-0 space-y-1">
-        <h3 class="font-semibold text-[16px] break-words">${escapeHtml(m.title)}</h3>
-        ${m.description ? `<p class="text-[#333] whitespace-pre-line break-words">${escapeHtml(m.description)}</p>` : ''}
-        <p class="font-meta text-[#555]">${escapeHtml(fileTypeLabel(m.fileType))} · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
+        <h3 class="font-title-sm text-title-sm text-on-surface break-words">${escapeHtml(m.title)}</h3>
+        ${m.description ? `<p class="text-on-surface-variant whitespace-pre-line break-words">${escapeHtml(m.description)}</p>` : ''}
+        <p class="font-caption text-caption text-on-surface-variant">${escapeHtml(fileTypeLabel(m.fileType))} · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button type="button" class="retro-btn" data-open-material="${escapeHtml(m.materialId)}">Mở tài liệu</button>
-        ${canManage ? `<button type="button" class="retro-btn" data-edit-material="${escapeHtml(m.materialId)}">Chỉnh sửa</button>` : ''}
+        <button type="button" class="kz-btn" data-open-material="${escapeHtml(m.materialId)}">Mở tài liệu</button>
+        ${canManage ? `<button type="button" class="kz-btn" data-edit-material="${escapeHtml(m.materialId)}">Chỉnh sửa</button>` : ''}
       </div>
     </li>
   `).join('');
@@ -399,7 +399,13 @@ function hasToken() {
 function renderTutorName() {
   try {
     const user = JSON.parse(localStorage.getItem('kizuna_user') || 'null');
-    if (user?.fullName) $('tutorNameLabel').textContent = user.fullName;
+    const name = (user?.fullName || '').trim();
+    if (!name) return;
+    $('tutorNameLabel').textContent = name;
+    $('tutorNameSidebar').textContent = name;
+    // Ảnh đại diện dạng chữ cái đầu (không dùng ảnh mẫu)
+    const initials = name.split(/\s+/).slice(-2).map((w) => w.charAt(0)).join('').toUpperCase();
+    if (initials) $('tutorAvatar').textContent = initials;
   } catch (e) {
     /* bỏ qua thông tin hiển thị không đọc được */
   }

@@ -51,7 +51,7 @@ function busy(button, isBusy, text) {
 
 function stateBox(message, retry) {
   const box = $('assignmentsState');
-  box.innerHTML = `<p>${escapeHtml(message)}</p>${retry ? '<button type="button" class="retro-btn mt-4" data-retry>Thử lại</button>' : ''}`;
+  box.innerHTML = `<p>${escapeHtml(message)}</p>${retry ? '<button type="button" class="kz-btn mt-4" data-retry>Thử lại</button>' : ''}`;
   box.classList.remove('hidden');
   if (retry) box.querySelector('[data-retry]').addEventListener('click', retry);
 }
@@ -67,7 +67,7 @@ export async function loadTutorAssignments(space) {
   section.classList.remove('hidden');
   $('openAssignmentFormBtn').classList.toggle('hidden', !space.canManage);
   $('assignmentsState').classList.add('hidden');
-  list.innerHTML = '<li class="text-[#444]">Đang tải bài tập...</li>';
+  list.innerHTML = '<li class="text-on-surface-variant">Đang tải bài tập...</li>';
   try {
     ctx.assignments = await API.assignments.list(space.spaceId) || [];
     render();
@@ -90,19 +90,19 @@ function render() {
   }
   $('assignmentsState').classList.add('hidden');
   list.innerHTML = ctx.assignments.map((a) => `
-    <li class="border border-black rounded-[5px] p-4 bg-white flex flex-col sm:flex-row sm:items-start gap-3">
+    <li class="kz-item flex flex-col sm:flex-row sm:items-start gap-3">
       <div class="flex-1 min-w-0 space-y-1">
         <div class="flex flex-wrap items-center gap-2">
-          <h3 class="font-semibold text-[16px] break-words">${escapeHtml(a.title)}</h3>
-          <span class="retro-badge" data-tone="${submissionStateTone(a.submissionState)}">${escapeHtml(submissionStateLabel(a.submissionState))}</span>
+          <h3 class="font-title-sm text-title-sm text-on-surface break-words">${escapeHtml(a.title)}</h3>
+          <span class="kz-badge" data-tone="${submissionStateTone(a.submissionState)}">${escapeHtml(submissionStateLabel(a.submissionState))}</span>
         </div>
-        ${a.description ? `<p class="text-[#333] whitespace-pre-line break-words">${escapeHtml(a.description)}</p>` : ''}
-        <p class="font-meta text-[#555]">Hạn nộp: ${escapeHtml(formatDueDate(a.dueDate))} · Điểm tối đa: ${escapeHtml(formatPoints(a.totalPoints))}
+        ${a.description ? `<p class="text-on-surface-variant whitespace-pre-line break-words">${escapeHtml(a.description)}</p>` : ''}
+        <p class="font-caption text-caption text-on-surface-variant">Hạn nộp: ${escapeHtml(formatDueDate(a.dueDate))} · Điểm tối đa: ${escapeHtml(formatPoints(a.totalPoints))}
           · Số lần nộp: ${Number(a.attemptCount) || 0}${a.grade !== null && a.grade !== undefined ? ` · Điểm: ${escapeHtml(formatPoints(a.grade))}` : ''}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button type="button" class="retro-btn" data-view-assignment="${escapeHtml(a.assignmentId)}">${a.canGrade ? 'Xem và chấm' : 'Xem bài nộp'}</button>
-        ${a.canEdit ? `<button type="button" class="retro-btn" data-edit-assignment="${escapeHtml(a.assignmentId)}">Chỉnh sửa</button>` : ''}
+        <button type="button" class="kz-btn" data-view-assignment="${escapeHtml(a.assignmentId)}">${a.canGrade ? 'Xem và chấm' : 'Xem bài nộp'}</button>
+        ${a.canEdit ? `<button type="button" class="kz-btn" data-edit-assignment="${escapeHtml(a.assignmentId)}">Chỉnh sửa</button>` : ''}
       </div>
     </li>
   `).join('');
@@ -219,16 +219,16 @@ function renderSubmissions() {
     box.classList.add('hidden');
   }
   $('submissionsList').innerHTML = subs.slice().reverse().map((s) => `
-    <li class="border border-black rounded-[5px] p-3 bg-white space-y-1">
+    <li class="kz-item p-3 space-y-1">
       <div class="flex flex-wrap items-center gap-2">
         <strong>Lần nộp ${Number(s.attemptNumber)}</strong>
-        <span class="retro-badge" data-tone="${s.onTime ? 'active' : 'paused'}">${s.onTime ? 'Đúng hạn' : 'Nộp muộn'}</span>
-        ${s.graded ? '<span class="retro-badge" data-tone="active">Đã chấm</span>' : ''}
-        <span class="font-meta text-[#555]">${escapeHtml(formatDueDate(s.submittedAt))}</span>
+        <span class="kz-badge" data-tone="${s.onTime ? 'active' : 'paused'}">${s.onTime ? 'Đúng hạn' : 'Nộp muộn'}</span>
+        ${s.graded ? '<span class="kz-badge" data-tone="active">Đã chấm</span>' : ''}
+        <span class="font-caption text-caption text-on-surface-variant">${escapeHtml(formatDueDate(s.submittedAt))}</span>
       </div>
-      ${s.content ? `<p class="text-[#333] whitespace-pre-line break-words">${escapeHtml(s.content)}</p>` : ''}
-      ${s.fileName ? `<button type="button" class="retro-btn" data-open-submission="${escapeHtml(s.submissionId)}">Mở tệp: ${escapeHtml(s.fileName)} (${escapeHtml(fileTypeLabel(s.fileType))})</button>` : ''}
-      ${s.graded ? `<p class="text-[#333]"><strong>Điểm: ${escapeHtml(formatPoints(s.grade))}/${escapeHtml(formatPoints(a.totalPoints))}</strong>${s.tutorFeedback ? ` · Nhận xét: ${escapeHtml(s.tutorFeedback)}` : ''}</p>` : ''}
+      ${s.content ? `<p class="text-on-surface-variant whitespace-pre-line break-words">${escapeHtml(s.content)}</p>` : ''}
+      ${s.fileName ? `<button type="button" class="kz-btn" data-open-submission="${escapeHtml(s.submissionId)}">Mở tệp: ${escapeHtml(s.fileName)} (${escapeHtml(fileTypeLabel(s.fileType))})</button>` : ''}
+      ${s.graded ? `<p class="text-on-surface-variant"><strong>Điểm: ${escapeHtml(formatPoints(s.grade))}/${escapeHtml(formatPoints(a.totalPoints))}</strong>${s.tutorFeedback ? ` · Nhận xét: ${escapeHtml(s.tutorFeedback)}` : ''}</p>` : ''}
     </li>
   `).join('');
   $('submissionsList').querySelectorAll('[data-open-submission]').forEach((btn) => {

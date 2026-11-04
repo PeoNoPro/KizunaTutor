@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gói hội viên - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <div id="tutorSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="tutorTopbar"></div>
+
+    <main class="flex-1 w-full pt-16">
+      <div class="px-4 md:px-8 py-6 max-w-6xl">
+
+        <div class="mb-6">
+          <h1 class="text-headline-md text-on-surface">Gói hội viên</h1>
+          <p class="text-body-md text-on-surface-variant mt-1">Đăng ký gói để mở khóa đầy đủ tính năng giảng dạy trên KizunaTutor.</p>
+        </div>
+
+        <section id="loadingState" class="space-y-4" aria-live="polite">
+          <div class="tv-skeleton h-36 rounded-2xl"></div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="tv-skeleton h-64 rounded-2xl"></div><div class="tv-skeleton h-64 rounded-2xl"></div><div class="tv-skeleton h-64 rounded-2xl"></div>
+          </div>
+        </section>
+
+        <section id="errorState" class="hidden tv-card p-8 text-center">
+          <span class="material-symbols-outlined text-5xl text-error">cloud_off</span>
+          <h2 class="text-headline-sm mt-2">Chưa tải được thông tin gói hội viên</h2>
+          <p id="errorMessage" class="text-on-surface-variant mt-1">Không thể kết nối đến máy chủ. Vui lòng thử lại sau.</p>
+          <button id="retryButton" type="button" class="tv-btn mt-4 inline-flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">refresh</span>Thử lại
+          </button>
+        </section>
+
+        <div id="contentState" class="hidden flex flex-col gap-6">
+
+          <div id="ineligibleBanner" class="hidden rounded-2xl bg-amber-50 text-amber-800 p-4 flex items-start gap-3">
+            <span class="material-symbols-outlined">info</span>
+            <div>
+              <p id="ineligibleText" class="text-body-md"></p>
+              <a href="/tutor/verification" class="text-label-md underline mt-1 inline-block">Đi tới hồ sơ xác minh</a>
+            </div>
+          </div>
+
+          <!-- Gói hiện tại -->
+          <section class="tv-card p-6" aria-labelledby="currentTitle">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <h2 id="currentTitle" class="text-title-lg">Gói của tôi</h2>
+              <span id="tutorStateBadge"></span>
+            </div>
+            <div id="currentBlock" class="mt-4"></div>
+            <div id="upcomingBlock" class="mt-4 hidden">
+              <h3 class="text-label-md text-on-surface-variant mb-2">Đã gia hạn nối tiếp</h3>
+              <ul id="upcomingList" class="flex flex-col gap-2"></ul>
+            </div>
+          </section>
+
+          <!-- Các gói đang mở bán -->
+          <section aria-labelledby="plansTitle">
+            <h2 id="plansTitle" class="text-title-lg mb-3">Chọn gói</h2>
+            <div id="plansGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            <p id="plansEmpty" class="hidden tv-card p-6 text-on-surface-variant">Hiện chưa có gói hội viên nào được mở bán. Vui lòng quay lại sau.</p>
+          </section>
+
+          <!-- Lịch sử -->
+          <section class="tv-card p-6" aria-labelledby="historyTitle">
+            <h2 id="historyTitle" class="text-title-lg">Lịch sử giao dịch</h2>
+            <div id="paymentsBlock" class="mt-4 overflow-x-auto"></div>
+            <div id="paymentsPager" class="mt-3 flex items-center justify-end gap-2"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Xác nhận mua gói -->
+  <div id="confirmModal" class="hidden fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="tv-card w-full max-w-md p-6">
+      <h2 id="confirmTitle" class="text-title-lg">Xác nhận đăng ký gói</h2>
+      <dl class="mt-4 grid grid-cols-[auto,1fr] gap-x-4 gap-y-2 text-body-md">
+        <dt class="text-on-surface-variant">Gói</dt><dd id="confirmPlan" class="font-semibold"></dd>
+        <dt class="text-on-surface-variant">Thời hạn</dt><dd id="confirmDuration"></dd>
+        <dt class="text-on-surface-variant">Số tiền</dt><dd id="confirmAmount" class="font-semibold text-primary"></dd>
+      </dl>
+      <p id="confirmStackNote" class="hidden mt-3 text-body-sm text-on-surface-variant"></p>
+      <p class="mt-3 text-body-sm text-on-surface-variant">Bạn sẽ được chuyển tới cổng thanh toán VNPay. Đường dẫn thanh toán có hiệu lực trong 15 phút.</p>
+      <p id="confirmError" class="hidden mt-3 text-body-sm text-error"></p>
+      <div class="mt-6 flex justify-end gap-2">
+        <button id="confirmCancel" type="button" class="tv-btn">Hủy</button>
+        <button id="confirmSubmit" type="button" class="tv-btn tv-btn-primary inline-flex items-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">payments</span>Thanh toán qua VNPay
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/pages/tutor-membership/tutor-membership.js"></script>
+</body>
+</html>

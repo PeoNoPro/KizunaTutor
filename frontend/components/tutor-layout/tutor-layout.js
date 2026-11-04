@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { key: 'progress', label: 'Báo cáo tiến độ', icon: 'insights' },
   { key: 'notifications', label: 'Thông báo', icon: 'notifications' },
   { key: 'verification', label: 'Hồ sơ gia sư', icon: 'badge', href: '/tutor/verification' },
+  { key: 'membership', label: 'Gói hội viên', icon: 'workspace_premium', href: '/tutor/membership' },
   { key: 'settings', label: 'Cài đặt', icon: 'settings' }
 ];
 

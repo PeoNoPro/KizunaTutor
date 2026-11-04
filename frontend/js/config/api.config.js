@@ -37,6 +37,24 @@ const API_CONFIG = {
       APPROVE: (tutorId) => `/academic/verifications/${tutorId}/approve`,
       REJECT: (tutorId) => `/academic/verifications/${tutorId}/reject`,
       REQUEST_INFO: (tutorId) => `/academic/verifications/${tutorId}/request-info`
+    },
+    TUTOR_MEMBERSHIP: {
+      PLANS: '/tutor/memberships/plans',
+      ME: '/tutor/memberships/me',
+      PAYMENTS: '/tutor/memberships/payments',
+      VNPAY_RETURN: '/tutor/memberships/payments/vnpay-return'
+    },
+    MANAGER_MEMBERSHIP: {
+      PLANS: '/manager/membership-plans',
+      PLAN: (planId) => `/manager/membership-plans/${planId}`,
+      TUTOR_MEMBERSHIPS: '/manager/tutor-memberships',
+      TUTOR_MEMBERSHIP: (tutorId) => `/manager/tutor-memberships/${tutorId}`
+    },
+    ADMIN_PAYMENTS: {
+      TRANSACTIONS: '/admin/payment-transactions',
+      TRANSACTION: (id) => `/admin/payment-transactions/${id}`,
+      GATEWAY_CHECK: (id) => `/admin/payment-transactions/${id}/gateway-check`,
+      NOTES: (id) => `/admin/payment-transactions/${id}/notes`
     }
   }
 };

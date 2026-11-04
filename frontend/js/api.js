@@ -85,7 +85,7 @@ export async function authRequest(path, { method = 'GET', body, responseType = '
       message: data.message || (response.status === 413
         ? 'Tệp không hợp lệ. Vui lòng chọn tệp PDF, PNG hoặc JPG có dung lượng tối đa 10MB.'
         : 'Hệ thống đang bận, bạn vui lòng thử lại sau.'),
-      fields: data.fields,
+      fields: data.fields || data.details,
       missingDocuments: data.missingDocuments
     });
   }
@@ -286,8 +286,105 @@ export const API = {
     requestInfo(tutorId, message) {
       return authRequest(`/academic/verifications/${tutorId}/request-info`, { method: 'POST', body: { message } });
     }
+  },
+
+  // ===== FE-09: Gói hội viên và thanh toán (phản hồi dạng { success, message, data }) =====
+
+  tutorMembership: {
+    /** Gói đang mở bán (UC-104) */
+    getPlans() {
+      return authRequest('/tutor/memberships/plans').then((res) => res.data);
+    },
+
+    /** Gói hiện tại, gói gia hạn nối tiếp, lịch sử đăng ký (UC-97) */
+    getMine() {
+      return authRequest('/tutor/memberships/me').then((res) => res.data);
+    },
+
+    /** Tạo giao dịch và nhận đường dẫn thanh toán VNPay */
+    createPayment(planId) {
+      return authRequest('/tutor/memberships/payments', { method: 'POST', body: { planId } }).then((res) => res.data);
+    },
+
+    /** Lịch sử giao dịch của gia sư */
+    getPayments(page = 0, size = 10) {
+      return authRequest(`/tutor/memberships/payments?page=${page}&size=${size}`).then((res) => res.data);
+    },
+
+    /** Kiểm tra lại với cổng một giao dịch đang chờ của chính gia sư (đã trả tiền nhưng chưa xác nhận) */
+    checkPayment(transactionId) {
+      return authRequest(`/tutor/memberships/payments/${transactionId}/check`, { method: 'POST', timeoutMs: 45000 }).then((res) => res.data);
+    },
+
+    /** Mở lại trang thanh toán của giao dịch đang chờ, còn trong hạn 15 phút */
+    resumePayment(transactionId) {
+      return authRequest(`/tutor/memberships/payments/${transactionId}/resume`, { method: 'POST' }).then((res) => res.data);
+    },
+
+    /** Xác nhận kết quả khi VNPay chuyển về; queryString là nguyên phần "?vnp_..." */
+    confirmReturn(queryString) {
+      const query = String(queryString || '').replace(/^\?/, '');
+      return authRequest(`/tutor/memberships/payments/vnpay-return?${query}`, { timeoutMs: 45000 }).then((res) => res.data);
+    }
+  },
+
+  managerMembership: {
+    getPlans() {
+      return authRequest('/manager/membership-plans').then((res) => res.data);
+    },
+
+    /** planName, durationMonths, price, benefits[] (UC-99, UC-100) */
+    createPlan(payload) {
+      return authRequest('/manager/membership-plans', { method: 'POST', body: payload });
+    },
+
+    /** planName, price, benefits[]; số tháng không đổi được */
+    updatePlan(planId, payload) {
+      return authRequest(`/manager/membership-plans/${planId}`, { method: 'PUT', body: payload });
+    },
+
+    setActive(planId, active) {
+      return authRequest(`/manager/membership-plans/${planId}/${active ? 'activate' : 'deactivate'}`, { method: 'POST' });
+    },
+
+    /** keyword, planId, status (ACTIVE | EXPIRED), page, size (UC-44) */
+    getTutorMemberships(params = {}) {
+      return authRequest(`/manager/tutor-memberships?${toQuery(params)}`).then((res) => res.data);
+    },
+
+    getTutorMembershipDetail(tutorId) {
+      return authRequest(`/manager/tutor-memberships/${tutorId}`).then((res) => res.data);
+    }
+  },
+
+  adminPayments: {
+    /** status, from, to (yyyy-MM-dd), keyword, page, size (UC-98) */
+    getTransactions(params = {}) {
+      return authRequest(`/admin/payment-transactions?${toQuery(params)}`).then((res) => res.data);
+    },
+
+    getDetail(transactionId) {
+      return authRequest(`/admin/payment-transactions/${transactionId}`).then((res) => res.data);
+    },
+
+    checkWithGateway(transactionId) {
+      return authRequest(`/admin/payment-transactions/${transactionId}/gateway-check`, { method: 'POST', timeoutMs: 45000 });
+    },
+
+    addNote(transactionId, note) {
+      return authRequest(`/admin/payment-transactions/${transactionId}/notes`, { method: 'POST', body: { note } });
+    }
   }
 };
+
+/** Chuỗi truy vấn bỏ qua giá trị rỗng. */
+function toQuery(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== '') query.append(key, value);
+  });
+  return query.toString();
+}
 
 // Gắn vào window để hỗ trợ cả import module lẫn script thông thường
 if (typeof window !== 'undefined') {

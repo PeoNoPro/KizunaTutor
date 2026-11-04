@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý thanh toán - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <div id="staffSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="staffTopbar"></div>
+
+    <main class="flex-1 w-full pt-16">
+      <div class="px-4 md:px-8 py-6">
+        <div class="mb-6">
+          <h1 class="text-headline-md">Quản lý thanh toán</h1>
+          <p class="text-body-md text-on-surface-variant mt-1">Theo dõi giao dịch gói hội viên, đối soát với cổng thanh toán và ghi lại kết quả xử lý sự cố.</p>
+        </div>
+
+        <form id="filterForm" class="tv-card p-4 mb-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1fr,170px,160px,160px,auto] gap-3 items-end">
+          <label class="flex flex-col gap-1">
+            <span class="text-label-md">Từ khóa</span>
+            <input id="keyword" type="search" maxlength="100" placeholder="Mã giao dịch, tên hoặc email gia sư" class="rounded-lg border border-outline-variant px-3 py-2 bg-surface-container-lowest">
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-label-md">Trạng thái</span>
+            <select id="statusFilter" class="rounded-lg border border-outline-variant px-3 py-2 bg-surface-container-lowest">
+              <option value="">Tất cả</option>
+              <option value="PENDING">Chờ thanh toán</option>
+              <option value="SUCCESS">Thành công</option>
+              <option value="FAILED">Thất bại</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-label-md">Từ ngày</span>
+            <input id="fromDate" type="date" class="rounded-lg border border-outline-variant px-3 py-2 bg-surface-container-lowest">
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-label-md">Đến ngày</span>
+            <input id="toDate" type="date" class="rounded-lg border border-outline-variant px-3 py-2 bg-surface-container-lowest">
+          </label>
+          <div class="flex gap-2">
+            <button type="submit" class="tv-btn tv-btn-primary">Tìm</button>
+            <button id="resetButton" type="button" class="tv-btn">Đặt lại</button>
+          </div>
+        </form>
+
+        <section id="loadingState" class="tv-skeleton h-64 rounded-2xl" aria-live="polite"></section>
+
+        <section id="errorState" class="hidden tv-card p-8 text-center">
+          <span class="material-symbols-outlined text-5xl text-error">cloud_off</span>
+          <h2 class="text-headline-sm mt-2">Chưa tải được danh sách giao dịch</h2>
+          <p id="errorMessage" class="text-on-surface-variant mt-1"></p>
+          <button id="retryButton" type="button" class="tv-btn mt-4">Thử lại</button>
+        </section>
+
+        <section id="contentState" class="hidden tv-card p-0 overflow-x-auto">
+          <table class="w-full text-left text-body-sm min-w-[860px]">
+            <thead class="text-on-surface-variant bg-surface-container-low">
+              <tr>
+                <th class="px-4 py-3 font-semibold">Thời gian</th>
+                <th class="px-4 py-3 font-semibold">Mã giao dịch</th>
+                <th class="px-4 py-3 font-semibold">Gia sư</th>
+                <th class="px-4 py-3 font-semibold">Gói</th>
+                <th class="px-4 py-3 font-semibold text-right">Số tiền</th>
+                <th class="px-4 py-3 font-semibold">Trạng thái</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="rowsBody"></tbody>
+          </table>
+          <p id="emptyState" class="hidden p-8 text-center text-on-surface-variant"></p>
+          <div id="pager" class="px-4 py-3 flex items-center justify-between gap-2 text-body-sm"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="detailDrawer" class="hidden fixed inset-0 z-[60] bg-black/40 flex justify-end" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <aside class="w-full max-w-xl h-full bg-surface-container-lowest overflow-y-auto p-6 shadow-xl">
+      <div class="flex items-center justify-between gap-3">
+        <h2 id="detailTitle" class="text-title-lg">Chi tiết giao dịch</h2>
+        <button id="closeDetail" type="button" class="p-2 rounded-lg hover:bg-surface-container" aria-label="Đóng"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div id="detailBody" class="mt-4"></div>
+    </aside>
+  </div>
+
+  <script type="module" src="/pages/admin-payments/admin-payments.js"></script>
+</body>
+</html>

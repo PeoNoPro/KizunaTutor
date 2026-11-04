@@ -6,6 +6,7 @@ import com.kizuna.features.learning_support.dto.AiWritingCheckRequest;
 import com.kizuna.features.learning_support.dto.AiWritingCheckResponse;
 import com.kizuna.features.learning_support.dto.AiWritingErrorItemDto;
 import com.kizuna.features.learning_support.dto.AiWritingVocabularyDto;
+import com.kizuna.features.learning_support.dto.AiWritingPromptDto;
 import com.kizuna.features.learning_support.service.AiWritingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -236,62 +237,76 @@ public class AiWritingServiceImpl implements AiWritingService {
     }
 
     @Override
-    public List<Map<String, Object>> getGrammarChallengePrompts(String jlptLevel) {
+    public List<AiWritingPromptDto> getGrammarChallengePrompts(String jlptLevel) {
         String level = (jlptLevel != null && !jlptLevel.isBlank()) ? jlptLevel.toUpperCase() : "N5";
-        List<Map<String, Object>> list = new ArrayList<>();
+        List<AiWritingPromptDto> list = new ArrayList<>();
 
         if ("N5".equals(level)) {
-            list.add(Map.of(
-                    "id", "N5_01",
-                    "pattern", "〜てください",
-                    "meaning", "Hãy / Xin vui lòng làm V (Yêu cầu lịch sự)",
-                    "hint", "Viết câu nhờ ai đó làm gì (ví dụ: Hãy đợi một chút, Hãy ăn thử món này).",
-                    "sampleKeywords", List.of("待つ (chờ)", "食べる (ăn)", "書く (viết)")
-            ));
-            list.add(Map.of(
-                    "id", "N5_02",
-                    "pattern", "〜てはいけません",
-                    "meaning", "Không được phép làm V (Cấm đoán)",
-                    "hint", "Viết câu nhắc nhở quy định (ví dụ: Không được chụp ảnh ở đây, Không được hút thuốc).",
-                    "sampleKeywords", List.of("写真を撮る (chụp ảnh)", "吸う (hút)", "入る (vào)")
-            ));
-            list.add(Map.of(
-                    "id", "N5_03",
-                    "pattern", "〜たことがあります",
-                    "meaning", "Đã từng làm V (Kinh nghiệm trong quá khứ)",
-                    "hint", "Chia sẻ trải nghiệm của bạn (ví dụ: Đã từng leo núi Phú Sĩ, Đã từng ăn sushi).",
-                    "sampleKeywords", List.of("富士山 (núi Phú Sĩ)", "寿司 (sushi)", "日本 (Nhật Bản)")
-            ));
+            list.add(AiWritingPromptDto.builder()
+                    .id("N5_01")
+                    .level("N5")
+                    .title("Yêu cầu lịch sự")
+                    .grammarPattern("〜てください")
+                    .meaning("Hãy / Xin vui lòng làm V (Yêu cầu lịch sự)")
+                    .promptHint("Viết câu nhờ ai đó làm gì (ví dụ: Hãy đợi một chút, Hãy ăn thử món này).")
+                    .sampleKeywords(List.of("待つ (chờ)", "食べる (ăn)", "書く (viết)"))
+                    .build());
+            list.add(AiWritingPromptDto.builder()
+                    .id("N5_02")
+                    .level("N5")
+                    .title("Cấm đoán")
+                    .grammarPattern("〜てはいけません")
+                    .meaning("Không được phép làm V (Cấm đoán)")
+                    .promptHint("Viết câu nhắc nhở quy định (ví dụ: Không được chụp ảnh ở đây, Không được hút thuốc).")
+                    .sampleKeywords(List.of("写真を撮る (chụp ảnh)", "吸う (hút)", "入る (vào)"))
+                    .build());
+            list.add(AiWritingPromptDto.builder()
+                    .id("N5_03")
+                    .level("N5")
+                    .title("Kinh nghiệm quá khứ")
+                    .grammarPattern("〜たことがあります")
+                    .meaning("Đã từng làm V (Kinh nghiệm trong quá khứ)")
+                    .promptHint("Chia sẻ trải nghiệm của bạn (ví dụ: Đã từng leo núi Phú Sĩ, Đã từng ăn sushi).")
+                    .sampleKeywords(List.of("富士山 (núi Phú Sĩ)", "寿司 (sushi)", "日本 (Nhật Bản)"))
+                    .build());
         } else if ("N4".equals(level)) {
-            list.add(Map.of(
-                    "id", "N4_01",
-                    "pattern", "〜たほうがいい / 〜ないほうがいい",
-                    "meaning", "Nên làm V / Không nên làm V (Lời khuyên)",
-                    "hint", "Đưa ra lời khuyên cho bạn bè khi họ bị ốm hoặc chuẩn bị đi du lịch.",
-                    "sampleKeywords", List.of("病院 (bệnh viện)", "薬 (thuốc)", "早く寝る (ngủ sớm)")
-            ));
-            list.add(Map.of(
-                    "id", "N4_02",
-                    "pattern", "〜かもしれません",
-                    "meaning", "Có lẽ, có thể là... (Dự đoán không chắc chắn)",
-                    "hint", "Dự đoán thời tiết hoặc khả năng xảy ra sự việc (ví dụ: Chiều nay trời có thể mưa).",
-                    "sampleKeywords", List.of("雨 (mưa)", "午後 (buổi chiều)", "遅れる (đến muộn)")
-            ));
+            list.add(AiWritingPromptDto.builder()
+                    .id("N4_01")
+                    .level("N4")
+                    .title("Lời khuyên")
+                    .grammarPattern("〜たほうがいい / 〜ないほうがいい")
+                    .meaning("Nên làm V / Không nên làm V (Lời khuyên)")
+                    .promptHint("Đưa ra lời khuyên cho bạn bè khi họ bị ốm hoặc chuẩn bị đi du lịch.")
+                    .sampleKeywords(List.of("病院 (bệnh viện)", "薬 (thuốc)", "早く寝る (ngủ sớm)"))
+                    .build());
+            list.add(AiWritingPromptDto.builder()
+                    .id("N4_02")
+                    .level("N4")
+                    .title("Dự đoán không chắc chắn")
+                    .grammarPattern("〜かもしれません")
+                    .meaning("Có lẽ, có thể là... (Dự đoán không chắc chắn)")
+                    .promptHint("Dự đoán thời tiết hoặc khả năng xảy ra sự việc (ví dụ: Chiều nay trời có thể mưa).")
+                    .sampleKeywords(List.of("雨 (mưa)", "午後 (buổi chiều)", "遅れる (đến muộn)"))
+                    .build());
         } else {
-            list.add(Map.of(
-                    "id", "N3_01",
-                    "pattern", "〜ようにしている",
-                    "meaning", "Cố gắng làm / Giữ thói quen làm V",
-                    "hint", "Viết về một thói quen tốt hàng ngày bạn đang cố duy trì.",
-                    "sampleKeywords", List.of("運動 (vận động)", "野菜 (rau củ)", "毎日 (mỗi ngày)")
-            ));
-            list.add(Map.of(
-                    "id", "N3_02",
-                    "pattern", "〜わけにはいかない",
-                    "meaning", "Không thể làm V (vì lý do đạo đức, tâm lý, xã hội)",
-                    "hint", "Viết về việc không thể bỏ dở hoặc không thể từ chối.",
-                    "sampleKeywords", List.of("約束 (lời hứa)", "諦める (từ bỏ)", "休む (nghỉ)")
-            ));
+            list.add(AiWritingPromptDto.builder()
+                    .id("N3_01")
+                    .level("N3")
+                    .title("Thói quen cố gắng")
+                    .grammarPattern("〜ようにしている")
+                    .meaning("Cố gắng làm / Giữ thói quen làm V")
+                    .promptHint("Viết về một thói quen tốt hàng ngày bạn đang cố duy trì.")
+                    .sampleKeywords(List.of("運動 (vận động)", "野菜 (rau củ)", "毎日 (mỗi ngày)"))
+                    .build());
+            list.add(AiWritingPromptDto.builder()
+                    .id("N3_02")
+                    .level("N3")
+                    .title("Không thể từ chối")
+                    .grammarPattern("〜わけにはいかない")
+                    .meaning("Không thể làm V (vì lý do đạo đức, tâm lý, xã hội)")
+                    .promptHint("Viết về việc không thể bỏ dở hoặc không thể từ chối.")
+                    .sampleKeywords(List.of("約束 (lời hứa)", "諦める (từ bỏ)", "休む (nghỉ)"))
+                    .build());
         }
 
         return list;

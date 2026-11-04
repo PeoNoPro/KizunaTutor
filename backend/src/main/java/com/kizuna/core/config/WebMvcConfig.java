@@ -65,5 +65,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addViewController("/academic/verifications").setViewName("forward:/pages/academic-verifications/index.html");
         registry.addViewController("/academic/verifications/").setViewName("forward:/pages/academic-verifications/index.html");
         registry.addViewController("/academic/verifications/detail").setViewName("forward:/pages/academic-verification-detail/index.html");
+        // FE-09: gói hội viên và thanh toán
+        registry.addViewController("/tutor/membership").setViewName("forward:/pages/tutor-membership/index.html");
+        registry.addViewController("/tutor/membership/").setViewName("forward:/pages/tutor-membership/index.html");
+        registry.addViewController("/tutor/membership/result").setViewName("forward:/pages/tutor-membership-result/index.html");
+        registry.addViewController("/manager/membership-plans").setViewName("forward:/pages/manager-membership-plans/index.html");
+        registry.addViewController("/manager/tutor-memberships").setViewName("forward:/pages/manager-tutor-memberships/index.html");
+        registry.addViewController("/admin/payments").setViewName("forward:/pages/admin-payments/index.html");
     }
 }

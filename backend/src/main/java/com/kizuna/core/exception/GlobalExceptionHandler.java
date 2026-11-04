@@ -91,6 +91,31 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    /**
+     * FE-09: xung đột trạng thái nghiệp vụ (409).
+     */
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleConflictException(ConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "success", false,
+                "error", "CONFLICT",
+                "message", ex.getMessage() != null ? ex.getMessage() : "Thao tác không phù hợp với trạng thái hiện tại"
+        ));
+    }
+
+    /**
+     * FE-09: dịch vụ bên ngoài (cổng thanh toán) chưa sẵn sàng (503).
+     */
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> handleServiceUnavailableException(ServiceUnavailableException ex) {
+        log.warn("Dịch vụ bên ngoài không khả dụng: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
+                "success", false,
+                "error", "SERVICE_UNAVAILABLE",
+                "message", ex.getMessage() != null ? ex.getMessage() : "Dịch vụ đang tạm thời không khả dụng. Vui lòng thử lại sau."
+        ));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneralException(Exception ex) {
         log.error("Internal Server Error: ", ex);

@@ -50,6 +50,11 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/tutor/verification/**").hasAuthority("ROLE_TUTOR")
                 .requestMatchers("/api/academic/verifications/**").hasAuthority("ROLE_ACADEMIC_OFFICER")
+                // FE-09: gói hội viên và thanh toán
+                .requestMatchers("/api/payments/vnpay/ipn").permitAll()
+                .requestMatchers("/api/tutor/memberships/**").hasAuthority("ROLE_TUTOR")
+                .requestMatchers("/api/manager/membership-plans/**", "/api/manager/tutor-memberships/**").hasAuthority("ROLE_MANAGER")
+                .requestMatchers("/api/admin/payment-transactions/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/tutors/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .anyRequest().permitAll()

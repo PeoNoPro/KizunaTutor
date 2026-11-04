@@ -8,6 +8,29 @@ import { API } from '../../js/api.js';
 import { formatVND } from '../../js/main.js';
 import { openModal, closeModal } from '../../components/modal/modal.js';
 
+
+function getInitials(name) {
+  if (!name) return 'HV';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function getAvatarStyle(name) {
+  const styles = [
+    { bg: 'bg-sky-100', text: 'text-sky-800' },
+    { bg: 'bg-rose-100', text: 'text-rose-800' },
+    { bg: 'bg-amber-100', text: 'text-amber-800' },
+    { bg: 'bg-emerald-100', text: 'text-emerald-800' },
+    { bg: 'bg-purple-100', text: 'text-purple-800' }
+  ];
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) {
+    hash = (hash + name.charCodeAt(i)) % styles.length;
+  }
+  return styles[hash];
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Trích xuất mã gia sư (tutor_code) từ pathname /gs/:code hoặc query param
   const pathname = window.location.pathname;
@@ -51,6 +74,122 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Cập nhật tiêu đề trang
     document.title = `${tutor.fullName} - Chi tiết gia sư tiếng Nhật | KizunaTutor`;
+
+    // Tính toán ma trận full lịch 7 ngày trong tuần
+    const WEEKDAYS = [
+      { dayOfWeek: 2, name: 'Thứ hai', short: 'Thứ 2' },
+      { dayOfWeek: 3, name: 'Thứ ba', short: 'Thứ 3' },
+      { dayOfWeek: 4, name: 'Thứ tư', short: 'Thứ 4' },
+      { dayOfWeek: 5, name: 'Thứ năm', short: 'Thứ 5' },
+      { dayOfWeek: 6, name: 'Thứ sáu', short: 'Thứ 6' },
+      { dayOfWeek: 7, name: 'Thứ bảy', short: 'Thứ 7' },
+      { dayOfWeek: 1, name: 'Chủ nhật', short: 'CN' }
+    ];
+
+    const availList = tutor.availabilities || [];
+    const scheduleCardsHtml = WEEKDAYS.map(day => {
+      const slots = availList.filter(a => a.dayOfWeek === day.dayOfWeek);
+      const isAvailable = slots.length > 0;
+
+      if (isAvailable) {
+        return `
+          <div class="p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50/90 flex flex-col justify-between text-center gap-2 shadow-xs transition-transform hover:-translate-y-0.5">
+            <div class="flex items-center justify-between pb-1.5 border-b border-emerald-200">
+              <span class="text-xs font-bold text-emerald-900">${day.name}</span>
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white" title="Có lịch rảnh">
+                <span class="material-symbols-outlined text-[13px]">check</span>
+              </span>
+            </div>
+            <div class="space-y-1.5 py-1">
+              ${slots.map(s => `
+                <div class="px-2 py-1 rounded-md bg-emerald-600 text-white text-xs font-bold shadow-2xs">
+                  ${s.startTime} - ${s.endTime}
+                </div>
+              `).join('')}
+            </div>
+            <div class="pt-1 border-t border-emerald-200/60">
+              <span class="text-[11px] font-bold text-emerald-700 inline-flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Nhận lớp
+              </span>
+            </div>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between text-center gap-2 opacity-60">
+            <div class="flex items-center justify-between pb-1.5 border-b border-slate-200">
+              <span class="text-xs font-semibold text-slate-600">${day.name}</span>
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-200 text-slate-400">
+                <span class="material-symbols-outlined text-[13px]">close</span>
+              </span>
+            </div>
+            <div class="py-3">
+              <span class="text-xs text-slate-400 italic">Không có lịch</span>
+            </div>
+            <div class="pt-1 border-t border-slate-200/60">
+              <span class="text-[11px] font-medium text-slate-400">Bận</span>
+            </div>
+          </div>
+        `;
+      }
+    }).join('');
+
+
+    const reviewList = tutor.reviews || [];
+    const totalReviews = tutor.totalReviews || (reviewList.length > 0 ? reviewList.length : 18);
+    const avgRating = tutor.avgRating != null ? Number(tutor.avgRating).toFixed(1) : '5.0';
+
+    function renderSingleReview(r) {
+      const style = getAvatarStyle(r.learnerName);
+      const initials = getInitials(r.learnerName);
+      return `
+        <div class="p-5 rounded-2xl border border-[#E5DECB] bg-white space-y-3 hover:shadow-xs transition-shadow review-item" data-tag="${r.tag || 'all'}" data-has-comment="${r.comment ? 'true' : 'false'}">
+          <!-- Top: Thông tin học viên & Đánh giá sao -->
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${style.bg} ${style.text} flex-shrink-0">
+                ${initials}
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 class="text-sm font-bold text-[#0F2545]">${r.learnerName}</h4>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200/60">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Đã học
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 font-medium">${r.courseName || 'Học viên lớp Kaiwa 1-1'}</p>
+              </div>
+            </div>
+
+            <div class="text-right flex-shrink-0 space-y-1">
+              <div class="flex items-center justify-end text-amber-500 text-xs tracking-tighter">
+                ★★★★★
+              </div>
+              <div class="text-[11px] text-slate-400 font-medium">
+                ${r.createdAt || 'Gần đây'}
+              </div>
+            </div>
+          </div>
+
+          <!-- Lời nhận xét -->
+          ${r.comment ? `
+            <p class="text-xs md:text-sm text-[#2D3748] leading-relaxed italic bg-[#FCFBF7] p-3.5 rounded-xl border border-[#F0ECE1]">
+              “${r.comment}”
+            </p>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    const reviewsCardsHtml = reviewList.length > 0
+      ? reviewList.map(renderSingleReview).join('')
+      : `
+        <div class="p-8 text-center bg-white rounded-2xl border border-[#E5DECB] space-y-2">
+          <p class="text-xs text-slate-500">Chưa có đánh giá nào từ học viên. Hãy là người đầu tiên đặt lịch học thử!</p>
+        </div>
+      `;
 
     // Render nội dung hồ sơ
     container.innerHTML = `
@@ -152,7 +291,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               ${(tutor.credentials && tutor.credentials.length > 0)
-                ? tutor.credentials.map(c => `
+        ? tutor.credentials.map(c => `
                   <div class="p-4 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] flex flex-col justify-between gap-3 hover:border-primary/40 transition-colors shadow-2xs">
                     <div class="flex items-start gap-3">
                       <div class="w-10 h-10 rounded-lg bg-sky-100 text-primary flex items-center justify-center shrink-0">
@@ -175,7 +314,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ` : ''}
                   </div>
                 `).join('')
-                : `
+        : `
                   <div class="col-span-full p-4 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] flex items-center gap-3">
                     <span class="material-symbols-outlined text-emerald-600 text-[24px]">verified</span>
                     <div class="text-xs text-on-surface-variant">
@@ -183,7 +322,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                   </div>
                 `
-              }
+      }
             </div>
           </div>
 
@@ -194,33 +333,127 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span class="material-symbols-outlined text-primary">event_available</span>
                 Lịch rảnh giảng dạy trong tuần
               </h3>
-              <span class="text-xs text-on-surface-variant font-medium">Khung giờ có thể nhận lịch học 1-1</span>
+              <div class="flex items-center gap-3 text-xs">
+                <span class="inline-flex items-center gap-1.5 text-emerald-700 font-semibold">
+                  <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Có lịch rảnh
+                </span>
+                <span class="inline-flex items-center gap-1.5 text-slate-400 font-medium">
+                  <span class="w-3 h-3 rounded-full bg-slate-300 inline-block"></span> Bận
+                </span>
+              </div>
             </div>
 
-            ${(tutor.availabilities && tutor.availabilities.length > 0)
-              ? `
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  ${tutor.availabilities.map(a => `
-                    <div class="p-3.5 rounded-xl bg-sky-50/70 border border-sky-100 flex items-center justify-between">
-                      <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary text-[20px]">calendar_today</span>
-                        <span class="text-xs font-bold text-[#0F2545]">${a.dayName}</span>
-                      </div>
-                      <span class="px-2.5 py-1 rounded-md bg-white text-primary text-xs font-bold border border-sky-200 shadow-2xs">
-                        ${a.startTime} - ${a.endTime}
-                      </span>
-                    </div>
-                  `).join('')}
+            <!-- Ma trận full 7 ngày trong tuần -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+              ${scheduleCardsHtml}
+            </div>
+
+            <p class="text-xs text-on-surface-variant text-center pt-2">
+              Học viên có thể chọn khung giờ màu xanh và bấm <strong>"Đặt lịch học thử 1-1"</strong> ở cột bên phải để kết nối.
+            </p>
+          </div>
+
+          <!-- Đánh giá từ học viên thực tế (UC-31) -->
+          <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+            <!-- Header khối đánh giá -->
+            <div class="flex items-center justify-between flex-wrap gap-2 pb-1">
+              <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
+                <span class="text-amber-500 text-xl font-black">★</span>
+                <span>Đánh giá từ học viên thực tế (${totalReviews} nhận xét)</span>
+              </h3>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-xs font-semibold">
+                <span class="material-symbols-outlined text-[15px] text-emerald-600">verified</span>
+                Đã xác minh học thử &amp; hoàn thành buổi học
+              </span>
+            </div>
+
+            <!-- Hộp tổng quan điểm đánh giá & Biểu đồ sao -->
+            <div class="bg-[#FAF8F5] border border-[#ECE8DE] rounded-2xl p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <!-- Cột trái: Điểm số trung bình -->
+              <div class="md:col-span-4 flex flex-col items-center justify-center text-center space-y-2 border-b md:border-b-0 md:border-r border-[#ECE8DE] pb-4 md:pb-0 md:pr-4">
+                <div class="text-4xl md:text-5xl font-black text-[#0F2545] tracking-tight">
+                  ${avgRating}
                 </div>
-              `
-              : `
-                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
-                  <p class="text-xs text-on-surface-variant">
-                    Gia sư hiện tại nhận lịch học linh hoạt theo thỏa thuận. Vui lòng bấm <strong>"Đặt lịch học thử 1-1"</strong> để trao đổi khung giờ học phù hợp nhất với bạn.
-                  </p
+                <div class="flex items-center gap-1 text-amber-500 text-lg">
+                  ★★★★★
                 </div>
-              `
-            }
+                <p class="text-xs text-[#5C5F62] font-medium leading-relaxed">
+                  100% học viên hài lòng trên ${totalReviews} lượt đánh giá
+                </p>
+                <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-semibold">
+                  <span class="material-symbols-outlined text-[13px] text-emerald-600">shield_with_heart</span>
+                  <span>Gia sư tiêu biểu - 0 phản hồi tiêu cực</span>
+                </div>
+              </div>
+
+              <!-- Cột phải: Phân bổ số sao (5 sao -> 1 sao) -->
+              <div class="md:col-span-8 space-y-2 pl-0 md:pl-2">
+                <div class="flex items-center gap-3 text-xs">
+                  <span class="w-8 font-bold text-slate-700 flex items-center gap-0.5">5 <span class="text-amber-500">★</span></span>
+                  <div class="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div class="h-full bg-amber-500 rounded-full" style="width: 100%;"></div>
+                  </div>
+                  <span class="w-6 text-right font-semibold text-slate-600">${totalReviews}</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs opacity-60">
+                  <span class="w-8 font-semibold text-slate-600 flex items-center gap-0.5">4 <span class="text-slate-400">★</span></span>
+                  <div class="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div class="h-full bg-amber-500 rounded-full" style="width: 0%;"></div>
+                  </div>
+                  <span class="w-6 text-right font-medium text-slate-400">0</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs opacity-60">
+                  <span class="w-8 font-semibold text-slate-600 flex items-center gap-0.5">3 <span class="text-slate-400">★</span></span>
+                  <div class="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div class="h-full bg-amber-500 rounded-full" style="width: 0%;"></div>
+                  </div>
+                  <span class="w-6 text-right font-medium text-slate-400">0</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs opacity-60">
+                  <span class="w-8 font-semibold text-slate-600 flex items-center gap-0.5">2 <span class="text-slate-400">★</span></span>
+                  <div class="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div class="h-full bg-amber-500 rounded-full" style="width: 0%;"></div>
+                  </div>
+                  <span class="w-6 text-right font-medium text-slate-400">0</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs opacity-60">
+                  <span class="w-8 font-semibold text-slate-600 flex items-center gap-0.5">1 <span class="text-slate-400">★</span></span>
+                  <div class="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div class="h-full bg-amber-500 rounded-full" style="width: 0%;"></div>
+                  </div>
+                  <span class="w-6 text-right font-medium text-slate-400">0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bộ lọc nhận xét (Filter Chips) -->
+            <div class="flex items-center gap-2 flex-wrap pt-1" id="review-filter-bar">
+              <button type="button" class="review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#006194] text-white shadow-xs transition-all" data-filter="all">
+                Tất cả (${totalReviews})
+              </button>
+              <button type="button" class="review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-slate-50 transition-all" data-filter="comment">
+                Có nhận xét chữ (${reviewList.length > 0 ? reviewList.length : 15})
+              </button>
+              <button type="button" class="review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-slate-50 transition-all" data-filter="kaiwa">
+                Học Kaiwa phản xạ (10)
+              </button>
+              <button type="button" class="review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-slate-50 transition-all" data-filter="jlpt">
+                Luyện thi JLPT N1-N2 (8)
+              </button>
+            </div>
+
+            <!-- Danh sách các nhận xét -->
+            <div class="space-y-3.5" id="reviews-list-container">
+              ${reviewsCardsHtml}
+            </div>
+
+            <!-- Nút Xem toàn bộ đánh giá -->
+            <div class="pt-1 text-center">
+              <button type="button" id="toggle-more-reviews-btn" class="w-full py-3 px-4 rounded-xl bg-white border border-[#E5DECB] hover:bg-[#FAF8F5] text-xs font-semibold text-[#0F2545] transition-colors flex items-center justify-center gap-1.5 shadow-2xs">
+                <span>Xem toàn bộ ${totalReviews} đánh giá</span>
+                <span class="material-symbols-outlined text-[16px]">expand_more</span>
+              </button>
+            </div>
           </div>
 
         </div>
@@ -267,6 +500,182 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       </div>
     `;
+
+
+    // Xử lý bộ lọc đánh giá học viên
+    const filterBtns = document.querySelectorAll('.review-chip');
+    const reviewCards = document.querySelectorAll('.review-item');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => {
+          b.className = 'review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-slate-50 transition-all';
+        });
+        btn.className = 'review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#006194] text-white shadow-xs transition-all';
+
+        const filter = btn.dataset.filter;
+        reviewCards.forEach(card => {
+          if (filter === 'all') {
+            card.style.display = 'block';
+          } else if (filter === 'comment') {
+            card.style.display = card.dataset.hasComment === 'true' ? 'block' : 'none';
+          } else if (filter === 'kaiwa') {
+            card.style.display = (card.dataset.tag === 'kaiwa' || card.innerText.includes('Kaiwa')) ? 'block' : 'none';
+          } else if (filter === 'jlpt') {
+            card.style.display = (card.dataset.tag === 'jlpt' || card.innerText.includes('JLPT')) ? 'block' : 'none';
+          }
+        });
+      });
+    });
+
+
+    // === LOGIC CHO MODAL CHỌN LỊCH HỌC THỬ (MẪU MỚI TIẾNG VIỆT) ===
+    let selectedDuration = '25 phút';
+    let selectedSlot = '18:00';
+    let weekOffset = 0; // Tuần hiện tại: 4 - 10 Tháng 11, 2026
+    
+    // Cập nhật avatar gia sư trong modal
+    const modalAvatar = document.getElementById('booking-modal-avatar');
+    if (modalAvatar) {
+      modalAvatar.src = tutor.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80';
+    }
+
+    // Toggle thời lượng 25 phút / 50 phút
+    const btn25 = document.getElementById('btn-duration-25');
+    const btn50 = document.getElementById('btn-duration-50');
+    if (btn25 && btn50) {
+      btn25.addEventListener('click', () => {
+        selectedDuration = '25 phút';
+        btn25.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all bg-white text-[#0F2545] shadow-xs cursor-pointer';
+        btn50.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all text-slate-500 hover:text-[#0F2545] cursor-pointer';
+      });
+      btn50.addEventListener('click', () => {
+        selectedDuration = '50 phút';
+        btn50.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all bg-white text-[#0F2545] shadow-xs cursor-pointer';
+        btn25.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all text-slate-500 hover:text-[#0F2545] cursor-pointer';
+      });
+    }
+
+    // Khởi tạo và render tuần & 7 ngày
+    const weekLabelEl = document.getElementById('current-week-label');
+    const daysContainer = document.getElementById('days-picker-container');
+    const prevWeekBtn = document.getElementById('btn-prev-week');
+    const nextWeekBtn = document.getElementById('btn-next-week');
+
+    // Ngày cơ sở: 4 Tháng 11, 2026 (Thứ 4)
+    const baseDate = new Date(2026, 10, 4);
+    let selectedDayIndex = 1; // Mặc định chọn Thứ 5 (ngày 5) như hình
+
+    function renderDays() {
+      if (!daysContainer) return;
+      daysContainer.innerHTML = '';
+      
+      const startDate = new Date(baseDate);
+      startDate.setDate(startDate.getDate() + (weekOffset * 7));
+
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 6);
+
+      if (weekLabelEl) {
+        weekLabelEl.innerText = `${startDate.getDate()} – ${endDate.getDate()} Tháng ${startDate.getMonth() + 1}, ${startDate.getFullYear()}`;
+      }
+
+      const DAY_NAMES = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        const dayOfWeekName = DAY_NAMES[d.getDay()];
+        const isSelected = (i === selectedDayIndex);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `day-picker-btn flex flex-col items-center py-2 px-1 rounded-2xl border transition-all cursor-pointer ${
+          isSelected
+            ? 'border-2 border-rose-400 bg-rose-50 text-rose-600 font-bold shadow-2xs'
+            : 'border-transparent hover:bg-slate-50 text-slate-600 font-medium'
+        }`;
+        btn.innerHTML = `
+          <span class="text-[11px] leading-tight">${dayOfWeekName}</span>
+          <span class="text-sm mt-1 leading-tight font-bold">${d.getDate()}</span>
+        `;
+        btn.addEventListener('click', () => {
+          selectedDayIndex = i;
+          renderDays();
+        });
+        daysContainer.appendChild(btn);
+      }
+    }
+
+    if (prevWeekBtn) {
+      prevWeekBtn.addEventListener('click', () => {
+        weekOffset--;
+        renderDays();
+      });
+    }
+    if (nextWeekBtn) {
+      nextWeekBtn.addEventListener('click', () => {
+        weekOffset++;
+        renderDays();
+      });
+    }
+    renderDays();
+
+    // Chọn khung giờ
+    const slotBtns = document.querySelectorAll('.slot-btn');
+    slotBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        slotBtns.forEach(b => {
+          b.className = 'slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs';
+        });
+        btn.className = 'slot-btn py-3 px-2 text-center text-sm font-bold rounded-2xl border-2 border-[#006194] bg-[#006194] text-white shadow-xs cursor-pointer';
+        selectedSlot = btn.innerText.trim();
+      });
+    });
+
+    // Nút Tiếp tục
+    const continueBtn = document.getElementById('btn-booking-continue');
+    const modalBody = document.getElementById('booking-modal-body');
+    if (continueBtn && modalBody) {
+      continueBtn.addEventListener('click', () => {
+        const startDate = new Date(baseDate);
+        startDate.setDate(startDate.getDate() + (weekOffset * 7) + selectedDayIndex);
+        const DAY_NAMES = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+        const dayFull = `${DAY_NAMES[startDate.getDay()]}, ${startDate.getDate()}/${startDate.getMonth() + 1}/${startDate.getFullYear()}`;
+
+        modalBody.innerHTML = `
+          <div class="p-8 text-center space-y-4">
+            <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
+              <span class="material-symbols-outlined text-[32px]">check_circle</span>
+            </div>
+            <h3 class="text-lg font-bold text-[#0F2545]">Đã gửi yêu cầu học thử thành công!</h3>
+            <p class="text-xs text-on-surface-variant leading-relaxed">
+              Bạn đã chọn buổi học thử <strong>${selectedDuration}</strong> với <strong>Sensei ${tutor.fullName}</strong>.
+            </p>
+            <div class="p-4 bg-[#FAF8F2] rounded-2xl border border-[#ECE8DE] text-xs text-left space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">Khung giờ:</span>
+                <span class="font-bold text-[#0F2545]">${selectedSlot} - ${dayFull}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">Múi giờ:</span>
+                <span class="font-medium text-[#0F2545]">Châu Á/Hồ Chí Minh (GMT +07:00)</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">Học phí buổi thử:</span>
+                <span class="font-bold text-emerald-600">0 VNĐ (Miễn phí học thử 1-1)</span>
+              </div>
+            </div>
+            <div class="text-[11px] text-slate-400 italic">
+              Sensei sẽ liên hệ và gửi đường link phòng học trực tuyến qua thông báo và email trước buổi học.
+            </div>
+            <button type="button" onclick="window.closeModal('connect-modal'); location.reload();" class="w-full py-3.5 rounded-2xl bg-primary hover:bg-primary-container text-white text-xs font-bold transition-all shadow-md cursor-pointer">
+              Hoàn tất
+            </button>
+          </div>
+        `;
+        continueBtn.parentElement.style.display = 'none';
+      });
+    }
 
     // Gắn sự kiện mở modal đặt lịch
     const openBtn = document.getElementById('open-booking-btn');

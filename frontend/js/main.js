@@ -169,6 +169,12 @@ export async function syncAuthState() {
   const dropdownDashboardLink = document.getElementById('dropdownDashboardLink');
   if (dropdownDashboardLink) dropdownDashboardLink.href = dashboardUrl;
 
+  const dropdownSettingsLink = document.getElementById('dropdownSettingsLink');
+  if (dropdownSettingsLink) dropdownSettingsLink.href = dashboardUrl;
+
+  const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
+  if (mobileSettingsBtn) mobileSettingsBtn.href = dashboardUrl;
+
   // Xử lý nút Chuông thông báo
   const headerNotificationBtn = document.getElementById('headerNotificationBtn');
   const notificationBadge = document.getElementById('notificationBadge');

@@ -44,11 +44,11 @@ class AiWritingServiceTest {
     @Test
     @DisplayName("Lấy danh sách mẫu câu gợi ý theo cấp độ JLPT")
     void testGetGrammarPrompts() {
-        List<Map<String, Object>> promptsN5 = aiWritingService.getGrammarChallengePrompts("N5");
+        var promptsN5 = aiWritingService.getGrammarChallengePrompts("N5");
         assertNotNull(promptsN5);
         assertFalse(promptsN5.isEmpty());
 
-        List<Map<String, Object>> promptsN4 = aiWritingService.getGrammarChallengePrompts("N4");
+        var promptsN4 = aiWritingService.getGrammarChallengePrompts("N4");
         assertNotNull(promptsN4);
         assertFalse(promptsN4.isEmpty());
     }

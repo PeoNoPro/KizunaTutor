@@ -18,9 +18,9 @@ const NAV_ITEMS = [
   { key: 'dashboard', label: 'Tổng quan', icon: 'grid_view', href: '/tutor/dashboard' },
   { key: 'connections', label: 'Yêu cầu kết nối', icon: 'group_add' },
   { key: 'schedule', label: 'Lịch giảng dạy', icon: 'calendar_month' },
-  { key: 'students', label: 'Học viên của tôi', icon: 'school' },
-  { key: 'materials', label: 'Tài liệu học tập', icon: 'menu_book' },
-  { key: 'assignments', label: 'Quản lý bài tập', icon: 'assignment' },
+  { key: 'students', label: 'Học viên của tôi', icon: 'school', href: '/tutor/classrooms' },
+  { key: 'materials', label: 'Tài liệu học tập', icon: 'menu_book', href: '/tutor/classrooms' },
+  { key: 'assignments', label: 'Quản lý bài tập', icon: 'assignment', href: '/tutor/classrooms' },
   { key: 'progress', label: 'Báo cáo tiến độ', icon: 'insights' },
   { key: 'notifications', label: 'Thông báo', icon: 'notifications' },
   { key: 'verification', label: 'Hồ sơ gia sư', icon: 'badge', href: '/tutor/verification' },
@@ -36,7 +36,7 @@ function navItemHtml(item, activeKey) {
   // Mục chưa có trang: giữ nguyên giao diện như thiết kế, bấm vào chỉ báo chức năng đang phát triển
   const attrs = item.href
     ? `href="${item.href}"`
-    : 'href="#" data-coming-soon="true" title="Chức năng đang được phát triển"';
+    : `href="#" data-coming-soon="${item.label}" title="Chức năng đang được phát triển"`;
   return `
     <a ${attrs} class="flex items-center gap-3 px-3 py-2.5 transition-colors ${cls}" ${active ? 'aria-current="page"' : ''}>
       <span class="material-symbols-outlined text-[20px]">${item.icon}</span>
@@ -118,7 +118,7 @@ export function mountTutorLayout(activeKey) {
   sidebar?.querySelectorAll('[data-coming-soon]').forEach((link) => {
     link.addEventListener('click', (event) => {
       event.preventDefault();
-      notifyComingSoon(link.textContent.trim());
+      notifyComingSoon(link.dataset.comingSoon);
     });
   });
   document.getElementById('tutorMenuButton')?.addEventListener('click', () => toggle(true));

@@ -38,6 +38,13 @@ export const LEARNER_MENU_GROUPS = [
         url: '/pages/connection-requests/',
         icon: '📅',
         matcher: ['/connection-requests', '/pages/connection-requests']
+      },
+      {
+        key: 'my-courses',
+        title: 'Lớp học của tôi',
+        url: '/pages/my-courses/',
+        icon: '🏫',
+        matcher: ['/my-courses', '/pages/my-courses']
       }
     ]
   },
@@ -123,6 +130,7 @@ export const PAGE_META_MAP = {
   'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
   'tutors': { title: 'Tìm gia sư Kizuna', badge: 'Gia sư & lớp học' },
   'requests': { title: 'Lịch học thử & ghép lớp', badge: 'Gia sư & lớp học' },
+  'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },
   'kanji-dictionary': { title: 'Tra cứu chữ Hán', badge: 'Học tập & rèn luyện' },
   'handwriting': { title: 'Tra cứu viết tay', badge: 'Học tập & rèn luyện' },
   'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Học tập & rèn luyện' },

@@ -114,7 +114,7 @@ public class SecurityConfig {
     private CorsConfigurationSource corsConfigurationSource(String origins) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(Arrays.stream(origins.split(",")).map(String::trim).toList());
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-CSRF-TOKEN"));
         config.setAllowCredentials(true);
         config.setMaxAge(600L);

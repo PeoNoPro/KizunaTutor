@@ -112,6 +112,11 @@ const URL_ALIASES = {
   '/learner/': '/pages/learner-dashboard/index.html',
   '/dashboard': '/pages/learner-dashboard/index.html',
   '/dashboard/': '/pages/learner-dashboard/index.html',
+  // FE-06 Lớp học & tài liệu học tập
+  '/my-courses': '/pages/my-courses/index.html',
+  '/learner/my-courses': '/pages/my-courses/index.html',
+  '/tutor/classrooms': '/pages/tutor-classrooms/index.html',
+  '/tutor/classrooms/': '/pages/tutor-classrooms/index.html',
   '/tutor/verification': '/pages/tutor-verification/index.html',
   '/tutor/verification/': '/pages/tutor-verification/index.html',
   '/tutor/dashboard': '/pages/tutor-dashboard/index.html',

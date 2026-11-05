@@ -14,6 +14,8 @@ import com.kizuna.features.progress.repository.AssignmentRepository;
 import com.kizuna.features.progress.repository.AssignmentSubmissionRepository;
 import com.kizuna.features.progress.service.AssignmentService;
 import com.kizuna.features.progress.util.AssignmentRules;
+import com.kizuna.features.progress.util.SubmissionFileSupport;
+import com.kizuna.features.classroom.util.MaterialFileValidator.MaterialFileType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -150,6 +152,8 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .description(a.getDescription())
                 .dueDate(a.getDueDate())
                 .totalPoints(a.getTotalPoints())
+                .attachmentName(a.getAttachmentUrl())
+                .attachmentType(attachmentType(a.getAttachmentUrl()))
                 .createdAt(a.getCreatedAt())
                 .dueOver(AssignmentRules.dueOver(a.getDueDate(), now))
                 .submissionState(AssignmentRules.state(a.getDueDate(), now, latest))
@@ -162,6 +166,11 @@ public class AssignmentServiceImpl implements AssignmentService {
                         && AssignmentRules.canGrade(a.getDueDate(), now, latest != null, graded, readOnly))
                 .canEdit(actor.isTutor() && !readOnly && !graded)
                 .build();
+    }
+
+    private static String attachmentType(String fileName) {
+        MaterialFileType type = SubmissionFileSupport.typeOf(fileName);
+        return type == null ? null : type.name();
     }
 
     private static void requireTutor(CurrentActor actor) {

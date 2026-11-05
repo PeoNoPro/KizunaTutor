@@ -20,6 +20,7 @@
       .kz-btn { @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high font-label-sm text-label-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed; }
       .kz-item .kz-btn:not(.kz-btn-primary) { @apply bg-surface-container-lowest shadow-sm; }
       .kz-btn-primary { @apply bg-primary text-on-primary hover:bg-primary-container shadow-sm; }
+      .kz-btn-danger { @apply bg-error text-on-error hover:opacity-90 shadow-sm; }
       .kz-input { @apply w-full rounded-lg bg-surface-container-low px-3 py-2.5 font-body-md text-body-md text-on-surface border border-transparent focus:outline-none focus:border-primary focus:bg-surface-container-lowest transition-colors; }
       .kz-label { @apply block font-label-md text-label-md text-on-surface mb-1.5; }
       .kz-badge { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm text-label-sm bg-surface-container-highest text-on-surface-variant; }
@@ -44,15 +45,15 @@
         <p class="font-caption text-caption text-on-surface-variant tracking-wider">Kết nối song ngữ Việt - Nhật</p>
       </div>
       <nav class="flex flex-col gap-1 px-4 mt-2" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-lg shadow-sm">
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tong-quan" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>Tổng quan</span></a>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tong-quan" href="/tutor/dashboard"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>Tổng quan</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="yeu-cau-ket-noi" href="#"><span class="material-symbols-outlined text-[20px]">group_add</span><span>Yêu cầu kết nối</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="lich-giang-day" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span>Lịch giảng dạy</span></a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="hoc-vien-cua-toi" href="#"><span class="material-symbols-outlined text-[20px]">school</span><span>Học viên của tôi</span></a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tai-lieu-hoc-tap" href="/pages/tutor-classrooms/index.html"><span class="material-symbols-outlined text-[20px]">menu_book</span><span>Tài liệu học tập</span></a>
-        <a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 transition-colors bg-primary-container text-on-primary-container font-semibold rounded-lg shadow-sm" data-path="quan-ly-bai-tap" href="/pages/tutor-classrooms/index.html"><span class="material-symbols-outlined text-[20px]">assignment</span><span>Quản lý bài tập</span></a>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="hoc-vien-cua-toi" href="/tutor/classrooms"><span class="material-symbols-outlined text-[20px]">school</span><span>Học viên của tôi</span></a>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tai-lieu-hoc-tap" href="/tutor/classrooms"><span class="material-symbols-outlined text-[20px]">menu_book</span><span>Tài liệu học tập</span></a>
+        <a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 transition-colors bg-primary-container text-on-primary-container font-semibold rounded-lg shadow-sm" data-path="quan-ly-bai-tap" href="/tutor/classrooms"><span class="material-symbols-outlined text-[20px]">assignment</span><span>Quản lý bài tập</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="bao-cao-tien-do" href="#"><span class="material-symbols-outlined text-[20px]">insights</span><span>Báo cáo tiến độ</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="thong-bao" href="#"><span class="material-symbols-outlined text-[20px]">notifications</span><span>Thông báo</span></a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="ho-so-gia-su" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span>Hồ sơ gia sư</span></a>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="ho-so-gia-su" href="/tutor/verification"><span class="material-symbols-outlined text-[20px]">badge</span><span>Hồ sơ gia sư</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="cai-dat" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span>Cài đặt</span></a>
       </nav>
     </div>
@@ -281,6 +282,19 @@
     </form>
   </div>
 
+  <!-- ===== HỘP THOẠI XÁC NHẬN XÓA TÀI LIỆU ===== -->
+  <div id="deleteMaterialModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="deleteMaterialTitle">
+    <div class="kz-card shadow-xl w-full max-w-[440px] p-6 space-y-4">
+      <h2 id="deleteMaterialTitle" class="font-title-md text-title-md text-on-surface">Xóa tài liệu</h2>
+      <p class="text-on-surface-variant">Bạn có chắc muốn xóa tài liệu <strong id="deleteMaterialName" class="text-on-surface break-words"></strong>? Học viên sẽ không xem được tài liệu này nữa và không thể khôi phục.</p>
+      <p id="deleteMaterialError" class="field-error hidden"></p>
+      <div class="flex justify-end gap-3 pt-1">
+        <button type="button" class="kz-btn" data-close-modal="deleteMaterialModal">Hủy</button>
+        <button type="button" id="deleteMaterialConfirm" class="kz-btn kz-btn-danger">Xóa tài liệu</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== FE-07: HỘP THOẠI GIAO / SỬA BÀI TẬP ===== -->
   <div id="assignmentModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
     <form id="assignmentForm" class="kz-card shadow-xl w-full max-w-[560px] p-6 space-y-4 max-h-[90vh] overflow-y-auto" novalidate>
@@ -306,6 +320,19 @@
           <input id="assignmentPointsInput" type="text" inputmode="decimal" class="kz-input" placeholder="100">
           <p id="assignmentPointsError" class="field-error hidden"></p>
         </div>
+      </div>
+      <div>
+        <label for="assignmentFileInput" class="kz-label">Tệp đề bài <span class="font-normal text-on-surface-variant">(không bắt buộc)</span></label>
+        <div id="assignmentCurrentFile" class="kz-item flex flex-wrap items-center gap-2 p-3 mb-2 hidden">
+          <span class="material-symbols-outlined text-[18px] text-primary">attach_file</span>
+          <span id="assignmentCurrentFileName" class="flex-1 min-w-0 break-words"></span>
+          <label class="inline-flex items-center gap-1.5 text-on-surface-variant cursor-pointer">
+            <input id="assignmentRemoveFile" type="checkbox"> Gỡ tệp này
+          </label>
+        </div>
+        <input id="assignmentFileInput" type="file" class="kz-input file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary file:text-on-primary file:font-semibold">
+        <p id="assignmentFileHint" class="font-caption text-caption text-on-surface-variant mt-1.5">Định dạng PDF, PNG, JPG, MP3. Dung lượng tối đa 10 MB.</p>
+        <p id="assignmentFileError" class="field-error hidden"></p>
       </div>
       <p class="font-caption text-caption text-on-surface-variant">Để trống hạn nộp nếu bài tập không có thời hạn. Sau khi đã chấm điểm, bài tập không thể chỉnh sửa.</p>
       <p id="assignmentFormError" class="field-error hidden"></p>

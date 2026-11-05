@@ -301,6 +301,8 @@ CREATE TABLE assignments (
     description TEXT,
     due_date TIMESTAMPTZ,
     total_points NUMERIC(5, 2) NOT NULL DEFAULT 100.00,
+    attachment_url VARCHAR(500),
+    file_data BYTEA,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

@@ -1,6 +1,6 @@
 /**
  * KizunaTutor - FE-06 Trang quản lý lớp học của gia sư.
- * UC-93 Access Classroom, UC-61 View / UC-65 Upload / UC-94 Update Learning Materials.
+ * UC-93 Access Classroom, UC-61 View / UC-65 Upload / UC-94 Update / Delete Learning Materials.
  * Dữ liệu lấy hoàn toàn từ API /api/classrooms; không có dữ liệu giả.
  */
 
@@ -29,7 +29,8 @@ const state = {
   classrooms: [],
   currentSpace: null,
   materials: [],
-  editingMaterial: null
+  editingMaterial: null,
+  deletingMaterial: null
 };
 
 // ----------------------------------------------------------------------------
@@ -281,6 +282,7 @@ function renderMaterials() {
       <div class="flex gap-2 shrink-0">
         <button type="button" class="kz-btn" data-open-material="${escapeHtml(m.materialId)}">Mở tài liệu</button>
         ${canManage ? `<button type="button" class="kz-btn" data-edit-material="${escapeHtml(m.materialId)}">Chỉnh sửa</button>` : ''}
+        ${canManage ? `<button type="button" class="kz-btn text-error" data-delete-material="${escapeHtml(m.materialId)}">Xóa</button>` : ''}
       </div>
     </li>
   `).join('');
@@ -290,6 +292,35 @@ function renderMaterials() {
   list.querySelectorAll('[data-edit-material]').forEach((btn) => {
     btn.addEventListener('click', () => openMaterialForm(state.materials.find((m) => m.materialId === btn.dataset.editMaterial)));
   });
+  list.querySelectorAll('[data-delete-material]').forEach((btn) => {
+    btn.addEventListener('click', () => openDeleteMaterial(state.materials.find((m) => m.materialId === btn.dataset.deleteMaterial)));
+  });
+}
+
+function openDeleteMaterial(material) {
+  if (!material) return;
+  state.deletingMaterial = material;
+  $('deleteMaterialName').textContent = material.title;
+  setFieldError('deleteMaterialError', '');
+  openModal('deleteMaterialModal');
+}
+
+async function confirmDeleteMaterial() {
+  const material = state.deletingMaterial;
+  if (!material) return;
+  const button = $('deleteMaterialConfirm');
+  setBusy(button, true, 'Đang xóa...');
+  try {
+    await API.classrooms.deleteMaterial(state.currentSpace.spaceId, material.materialId);
+    closeModal('deleteMaterialModal');
+    state.deletingMaterial = null;
+    showToast('Xóa tài liệu thành công.');
+    await loadMaterials();
+  } catch (err) {
+    setFieldError('deleteMaterialError', friendlyErrorMessage(err));
+  } finally {
+    setBusy(button, false);
+  }
 }
 
 async function openMaterial(materialId, button) {
@@ -447,6 +478,7 @@ function init() {
   $('backToListBtn').addEventListener('click', navigateToList);
   $('openUploadBtn').addEventListener('click', () => openMaterialForm(null));
   $('materialForm').addEventListener('submit', submitMaterial);
+  $('deleteMaterialConfirm').addEventListener('click', confirmDeleteMaterial);
   initTutorAssignments({ showToast });
   document.querySelectorAll('[data-close-modal]').forEach((btn) => {
     btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));

@@ -14,12 +14,17 @@ public final class SubmissionFileSupport {
 
     /** Bỏ đường dẫn, ký tự điều khiển và ký tự không hợp lệ; luôn kết thúc bằng phần mở rộng đã xác minh. */
     public static String cleanFileName(String original, MaterialFileType type) {
+        return cleanFileName(original, type, "bai-lam");
+    }
+
+    /** Như trên, với tên mặc định riêng khi tên gốc rỗng (vd. "de-bai" cho tệp đề bài). */
+    public static String cleanFileName(String original, MaterialFileType type, String fallbackBase) {
         String name = original == null ? "" : original;
         name = name.substring(Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\')) + 1);
         name = name.replaceAll("[\\p{Cntrl}<>:\"|?*]", "").strip();
         int dot = name.lastIndexOf('.');
         String base = (dot >= 0 ? name.substring(0, dot) : name).strip();
-        if (base.isEmpty()) base = "bai-lam";
+        if (base.isEmpty()) base = fallbackBase;
         if (base.length() > FILE_NAME_MAX) base = base.substring(0, FILE_NAME_MAX).strip();
         return base + "." + type.extension;
     }

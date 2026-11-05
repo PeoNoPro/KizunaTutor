@@ -8,7 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.UUID;
 
-/** FE-06: tài liệu học tập (UC-61 View, UC-65 Upload, UC-94 Update). */
+/** FE-06: tài liệu học tập (UC-61 View, UC-65 Upload, UC-94 Update, Delete Learning Material). */
 public interface LearningMaterialService {
 
     List<LearningMaterialResponse> list(CurrentActor actor, UUID spaceId);
@@ -20,4 +20,7 @@ public interface LearningMaterialService {
     /** file == null hoặc rỗng: chỉ sửa tiêu đề/mô tả. */
     LearningMaterialResponse update(CurrentActor actor, UUID spaceId, UUID materialId,
                                     String title, String description, MultipartFile file);
+
+    /** Xóa hẳn tài liệu (bản ghi và nội dung tệp). Chỉ gia sư của lớp, khi lớp không ở chế độ chỉ xem. */
+    void delete(CurrentActor actor, UUID spaceId, UUID materialId);
 }

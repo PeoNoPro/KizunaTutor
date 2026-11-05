@@ -252,4 +252,32 @@ class LearningMaterialServiceImplTest {
                 HttpStatus.FORBIDDEN);
         verifyNothingWritten();
     }
+
+    // ----- Delete Learning Material -----
+
+    @Test
+    void deleteRemovesMaterialOfClassroom() {
+        LearningMaterial m = existing();
+        service.delete(tutorActor, space.getSpaceId(), m.getMaterialId());
+        verify(materials).delete(m);
+    }
+
+    @Test
+    void deleteRejectsMaterialOfOtherClassroom() {
+        when(materials.findByMaterialIdAndSpace_SpaceId(any(), eq(space.getSpaceId()))).thenReturn(Optional.empty());
+        assertStatus(() -> service.delete(tutorActor, space.getSpaceId(), UUID.randomUUID()), HttpStatus.NOT_FOUND);
+        verify(materials, never()).delete(any());
+    }
+
+    @Test
+    void deleteBlockedForNonManagersAndReadOnlyClassroom() {
+        LearningMaterial m = existing();
+        CurrentActor learnerActor = asLearner(learner);
+        when(classrooms.loadManageableSpace(learnerActor, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
+        assertStatus(() -> service.delete(learnerActor, space.getSpaceId(), m.getMaterialId()), HttpStatus.FORBIDDEN);
+
+        when(classrooms.loadManageableSpace(tutorActor, space.getSpaceId())).thenThrow(ClassroomException.conflict("x"));
+        assertStatus(() -> service.delete(tutorActor, space.getSpaceId(), m.getMaterialId()), HttpStatus.CONFLICT);
+        verify(materials, never()).delete(any());
+    }
 }

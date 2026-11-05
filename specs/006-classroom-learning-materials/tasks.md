@@ -75,6 +75,13 @@
 - [X] T035 Rà soát UI: tiếng Việt, không ALL-CAPS, không enum/mã HTTP, không dữ liệu giả, trạng thái rỗng/lỗi, responsive 400px.
 - [X] T036 `git diff --stat` xác nhận chỉ chạm file trong danh sách plan; không commit/push. Viết báo cáo Giai đoạn 5.
 
+## Phase 9: US6 — Xóa tài liệu (P2, Delete Learning Material — bổ sung 2026-11-06)
+
+- [X] T037 [US6] Bổ sung test `LearningMaterialServiceImplTest`: xóa tài liệu của lớp; tài liệu không thuộc lớp → 404; không phải gia sư → 403; lớp chỉ xem → 409; các trường hợp từ chối không gọi `delete`.
+- [X] T038 [US6] Thêm `delete` vào `LearningMaterialService`/`Impl` và `DELETE /api/classrooms/{spaceId}/materials/{materialId}` vào controller; thêm `DELETE` vào CORS `allowedMethods` trong `core/security/SecurityConfig.java` (được người phụ trách cho phép). Chạy T037 đạt.
+- [X] T039 [US6] Trang gia sư: nút "Xóa" (chỉ khi `canManage`), hộp thoại xác nhận, thông báo "Xóa tài liệu thành công.", lỗi hiện trong hộp thoại; `API.classrooms.deleteMaterial` trong `frontend/js/api.js`.
+- [ ] T040 [US6] Kiểm thử thủ công trên web với backend thật: xóa tài liệu, học viên không còn thấy, gọi lại API tệp trả 404.
+
 ## Dependencies
 
 - Phase 1 → Phase 2 → US1 → (US2 → US3) ; US4 phụ thuộc US3 backend (T026); US5 phụ thuộc US2.
@@ -98,3 +105,4 @@
 | FR-013 | T021, T030 |
 | FR-014 | T028–T029 |
 | FR-015 | T007, T017, T035 |
+| FR-017 | T037–T040 |

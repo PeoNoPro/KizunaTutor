@@ -111,6 +111,8 @@ function renderDetail() {
       <button type="button" class="mc-btn shrink-0" data-close-detail>Đóng</button>
     </div>
     ${a.description ? `<p class="text-[#333] whitespace-pre-line break-words">${escapeHtml(a.description)}</p>` : ''}
+    ${a.attachmentName ? `<div class="flex flex-wrap items-center gap-2"><span class="font-semibold">Tệp đề bài:</span>
+        <button type="button" class="mc-btn" data-open-attachment>Mở tệp: ${escapeHtml(a.attachmentName)} (${escapeHtml(fileTypeLabel(a.attachmentType))})</button></div>` : ''}
     ${graded ? `<div class="border border-black rounded-[5px] bg-[#E5F4EA] px-3 py-2">
         <p><strong>Điểm: ${escapeHtml(formatPoints(graded.grade))}/${escapeHtml(formatPoints(a.totalPoints))}</strong></p>
         ${graded.tutorFeedback ? `<p class="whitespace-pre-line break-words">Nhận xét của gia sư: ${escapeHtml(graded.tutorFeedback)}</p>` : ''}
@@ -152,14 +154,23 @@ function renderDetail() {
   panel.querySelectorAll('[data-open-submission]').forEach((btn) => {
     btn.addEventListener('click', () => openFile(btn.dataset.openSubmission, btn));
   });
+  const attachmentBtn = panel.querySelector('[data-open-attachment]');
+  attachmentBtn?.addEventListener('click', () => openBlob(
+    () => API.assignments.attachmentFile(ctx.space.spaceId, a.assignmentId), attachmentBtn));
   $('mySubmissionForm')?.addEventListener('submit', submitWork);
 }
 
-async function openFile(submissionId, button) {
+function openFile(submissionId, button) {
+  return openBlob(() => API.assignments.submissionFile(
+    ctx.space.spaceId, ctx.detail.assignment.assignmentId, submissionId), button);
+}
+
+/** Mở tệp (Blob có kiểm quyền bằng token) trong tab mới. */
+async function openBlob(load, button) {
   const tab = window.open('', '_blank');
   button.disabled = true;
   try {
-    const blob = await API.assignments.submissionFile(ctx.space.spaceId, ctx.detail.assignment.assignmentId, submissionId);
+    const blob = await load();
     const url = URL.createObjectURL(blob);
     if (tab) tab.location.href = url;
     else window.location.href = url;

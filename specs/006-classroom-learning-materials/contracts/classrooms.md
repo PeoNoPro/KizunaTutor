@@ -57,3 +57,8 @@ Kiểm quyền → 200 với **nội dung tệp** (không bọc JSON): `Content-
 ## PUT /classrooms/{spaceId}/materials/{materialId}  *(gia sư của lớp)*
 
 `multipart/form-data`: `title` (bắt buộc), `description` (tùy chọn), `file` (tùy chọn — có thì thay tệp). → 200, `data` = Material, `message` = "Cập nhật tài liệu thành công."
+
+## DELETE /classrooms/{spaceId}/materials/{materialId}  *(gia sư của lớp — Delete Learning Material)*
+
+Không có body. → 200, `data` = `null`, `message` = "Xóa tài liệu thành công.".
+Lỗi: 403 không phải gia sư của lớp; 404 tài liệu không thuộc lớp; 409 lớp không hoạt động hoặc hội viên hết hạn (chỉ xem).

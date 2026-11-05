@@ -1,6 +1,7 @@
 package com.kizuna.features.classroom.controller;
 
 import com.kizuna.features.classroom.dto.*;
+import com.kizuna.features.classroom.exception.ClassroomExceptionHandler;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.service.LearningMaterialService;
 import com.kizuna.features.classroom.util.CurrentActor;
@@ -26,7 +27,7 @@ import java.util.UUID;
 @RequestMapping("/api/classrooms")
 @RequiredArgsConstructor
 @CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"})
-public class ClassroomController {
+public class ClassroomController extends ClassroomExceptionHandler {
 
     private final CurrentUserResolver currentUserResolver;
     private final ClassroomService classroomService;
@@ -66,7 +67,7 @@ public class ClassroomController {
         return ClassroomApiResponse.ok("Tải thông tin lớp học thành công.", classroomService.getDetail(actor, spaceId));
     }
 
-    // ===== Tài liệu học tập (UC-61, UC-65, UC-94) =====
+    // ===== Tài liệu học tập (UC-61, UC-65, UC-94, Delete Learning Material) =====
 
     @GetMapping("/{spaceId}/materials")
     public ClassroomApiResponse<List<LearningMaterialResponse>> materials(
@@ -117,5 +118,14 @@ public class ClassroomController {
         CurrentActor actor = currentUserResolver.resolve(auth);
         return ClassroomApiResponse.ok("Cập nhật tài liệu thành công.",
                 materialService.update(actor, spaceId, materialId, title, description, file));
+    }
+
+    @DeleteMapping("/{spaceId}/materials/{materialId}")
+    public ClassroomApiResponse<Void> delete(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID materialId) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        materialService.delete(actor, spaceId, materialId);
+        return ClassroomApiResponse.ok("Xóa tài liệu thành công.", null);
     }
 }

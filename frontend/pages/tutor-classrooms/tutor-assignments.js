@@ -1,10 +1,17 @@
 /**
  * KizunaTutor - FE-07 Khối "Bài tập" trong trang chi tiết lớp của gia sư.
  * UC-63 View, UC-66 Create & Assign, UC-95 Update, UC-67 Grade. Dữ liệu từ /api/classrooms/{id}/assignments.
+ * Tệp đề bài (tùy chọn) gửi riêng qua PUT/DELETE .../assignments/{id}/attachment sau khi lưu bài tập.
  */
 
 import { API } from '../../js/api.js';
-import { fileTypeLabel, friendlyErrorMessage, escapeHtml } from '../../js/classroom-helpers.js';
+import {
+  fileTypeLabel,
+  friendlyErrorMessage,
+  escapeHtml,
+  validateMaterialFile,
+  MATERIAL_ACCEPT_ATTR
+} from '../../js/classroom-helpers.js';
 import {
   submissionStateLabel,
   submissionStateTone,
@@ -97,6 +104,7 @@ function render() {
           <span class="kz-badge" data-tone="${submissionStateTone(a.submissionState)}">${escapeHtml(submissionStateLabel(a.submissionState))}</span>
         </div>
         ${a.description ? `<p class="text-on-surface-variant whitespace-pre-line break-words">${escapeHtml(a.description)}</p>` : ''}
+        ${a.attachmentName ? `<button type="button" class="inline-flex items-center gap-1 text-primary font-semibold hover:underline break-all text-left" data-open-attachment="${escapeHtml(a.assignmentId)}"><span class="material-symbols-outlined text-[18px]">attach_file</span>${escapeHtml(a.attachmentName)} (${escapeHtml(fileTypeLabel(a.attachmentType))})</button>` : ''}
         <p class="font-caption text-caption text-on-surface-variant">Hạn nộp: ${escapeHtml(formatDueDate(a.dueDate))} · Điểm tối đa: ${escapeHtml(formatPoints(a.totalPoints))}
           · Số lần nộp: ${Number(a.attemptCount) || 0}${a.grade !== null && a.grade !== undefined ? ` · Điểm: ${escapeHtml(formatPoints(a.grade))}` : ''}</p>
       </div>
@@ -112,6 +120,10 @@ function render() {
   list.querySelectorAll('[data-edit-assignment]').forEach((btn) => {
     btn.addEventListener('click', () => openForm(ctx.assignments.find((a) => a.assignmentId === btn.dataset.editAssignment)));
   });
+  list.querySelectorAll('[data-open-attachment]').forEach((btn) => {
+    btn.addEventListener('click', () => openBlob(
+      () => API.assignments.attachmentFile(ctx.space.spaceId, btn.dataset.openAttachment), btn));
+  });
 }
 
 // ----------------------------------------------------------------------------
@@ -126,8 +138,16 @@ function openForm(assignment = null) {
   $('assignmentDescriptionInput').value = assignment?.description || '';
   $('assignmentDueInput').value = toDateTimeLocalValue(assignment?.dueDate);
   $('assignmentPointsInput').value = assignment ? formatPoints(assignment.totalPoints) : '';
-  ['assignmentTitleError', 'assignmentDescriptionError', 'assignmentDueError', 'assignmentPointsError', 'assignmentFormError']
-    .forEach((id) => setFieldError(id, ''));
+  $('assignmentFileInput').value = '';
+  $('assignmentRemoveFile').checked = false;
+  $('assignmentCurrentFileName').textContent = assignment?.attachmentName
+    ? `Tệp hiện tại: ${assignment.attachmentName} (${fileTypeLabel(assignment.attachmentType)})` : '';
+  $('assignmentCurrentFile').classList.toggle('hidden', !assignment?.attachmentName);
+  $('assignmentFileHint').textContent = assignment?.attachmentName
+    ? 'Chọn tệp mới nếu muốn thay tệp hiện tại. Định dạng PDF, PNG, JPG, MP3. Dung lượng tối đa 10 MB.'
+    : 'Định dạng PDF, PNG, JPG, MP3. Dung lượng tối đa 10 MB.';
+  ['assignmentTitleError', 'assignmentDescriptionError', 'assignmentDueError', 'assignmentPointsError',
+    'assignmentFileError', 'assignmentFormError'].forEach((id) => setFieldError(id, ''));
   open('assignmentModal');
   $('assignmentTitleInput').focus();
 }
@@ -147,7 +167,11 @@ async function submitForm(event) {
   setFieldError('assignmentDueError', errors.dueDate);
   setFieldError('assignmentPointsError', errors.totalPoints);
   setFieldError('assignmentFormError', '');
-  if (Object.keys(errors).length) return;
+  const file = $('assignmentFileInput').files[0] || null;
+  const fileError = file ? validateMaterialFile(file, { required: false }) : '';
+  setFieldError('assignmentFileError', fileError);
+  if (Object.keys(errors).length || fileError) return;
+  const removeFile = isEdit && !file && !!ctx.editing.attachmentName && $('assignmentRemoveFile').checked;
 
   const unchangedDue = isEdit && ctx.editing.dueDate && toDateTimeLocalValue(ctx.editing.dueDate) === form.dueLocal;
   const payload = {
@@ -158,12 +182,11 @@ async function submitForm(event) {
   };
   const button = $('assignmentSubmit');
   busy(button, true, isEdit ? 'Đang lưu...' : 'Đang giao...');
+  let saved = null;
   try {
-    if (isEdit) await API.assignments.update(ctx.space.spaceId, ctx.editing.assignmentId, payload);
-    else await API.assignments.create(ctx.space.spaceId, payload);
-    close('assignmentModal');
-    ctx.toast(isEdit ? 'Cập nhật bài tập thành công.' : 'Giao bài tập thành công.');
-    await loadTutorAssignments(ctx.space);
+    saved = isEdit
+      ? await API.assignments.update(ctx.space.spaceId, ctx.editing.assignmentId, payload)
+      : await API.assignments.create(ctx.space.spaceId, payload);
   } catch (err) {
     const fe = err.fieldErrors || {};
     if (fe.title || fe.description || fe.dueDate || fe.totalPoints) {
@@ -174,9 +197,25 @@ async function submitForm(event) {
     } else {
       setFieldError('assignmentFormError', friendlyErrorMessage(err));
     }
-  } finally {
     busy(button, false);
+    return;
   }
+
+  // Bài tập đã lưu; tệp đề bài gửi riêng. Lỗi tệp không làm mất bài tập vừa lưu.
+  const assignmentId = saved?.assignmentId || ctx.editing?.assignmentId;
+  let fileMessage = '';
+  try {
+    if (file && assignmentId) await API.assignments.uploadAttachment(ctx.space.spaceId, assignmentId, file);
+    else if (removeFile) await API.assignments.removeAttachment(ctx.space.spaceId, assignmentId);
+  } catch (err) {
+    fileMessage = friendlyErrorMessage(err);
+  }
+  busy(button, false);
+  close('assignmentModal');
+  const doneMessage = isEdit ? 'Cập nhật bài tập thành công.' : 'Giao bài tập thành công.';
+  if (fileMessage) ctx.toast(`${doneMessage} Tuy nhiên chưa lưu được tệp đề bài: ${fileMessage}`, 'error');
+  else ctx.toast(doneMessage);
+  await loadTutorAssignments(ctx.space);
 }
 
 // ----------------------------------------------------------------------------
@@ -254,11 +293,17 @@ function renderSubmissions() {
   }
 }
 
-async function openFile(submissionId, button) {
+function openFile(submissionId, button) {
+  return openBlob(() => API.assignments.submissionFile(
+    ctx.space.spaceId, ctx.detail.assignment.assignmentId, submissionId), button);
+}
+
+/** Mở tệp (Blob có kiểm quyền bằng token) trong tab mới. */
+async function openBlob(load, button) {
   const tab = window.open('', '_blank');
   button.disabled = true;
   try {
-    const blob = await API.assignments.submissionFile(ctx.space.spaceId, ctx.detail.assignment.assignmentId, submissionId);
+    const blob = await load();
     const url = URL.createObjectURL(blob);
     if (tab) tab.location.href = url;
     else window.location.href = url;
@@ -311,6 +356,7 @@ async function submitGrade(event) {
 // ----------------------------------------------------------------------------
 export function initTutorAssignments({ showToast }) {
   ctx.toast = showToast || (() => {});
+  $('assignmentFileInput')?.setAttribute('accept', MATERIAL_ACCEPT_ATTR);
   $('openAssignmentFormBtn')?.addEventListener('click', () => openForm(null));
   $('assignmentForm')?.addEventListener('submit', submitForm);
   $('gradeForm')?.addEventListener('submit', submitGrade);

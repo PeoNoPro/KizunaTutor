@@ -109,6 +109,13 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
         return toResponse(saved);
     }
 
+    @Override
+    @Transactional
+    public void delete(CurrentActor actor, UUID spaceId, UUID materialId) {
+        classroomService.loadManageableSpace(actor, spaceId);
+        materialRepository.delete(findInSpace(materialId, spaceId));
+    }
+
     private LearningMaterial findInSpace(UUID materialId, UUID spaceId) {
         return materialRepository.findByMaterialIdAndSpace_SpaceId(materialId, spaceId)
                 .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy tài liệu trong lớp học này."));

@@ -1,9 +1,11 @@
 package com.kizuna.features.progress.controller;
 
 import com.kizuna.features.classroom.dto.ClassroomApiResponse;
+import com.kizuna.features.classroom.exception.ClassroomExceptionHandler;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.classroom.util.CurrentUserResolver;
 import com.kizuna.features.progress.dto.*;
+import com.kizuna.features.progress.service.AssignmentAttachmentService;
 import com.kizuna.features.progress.service.AssignmentService;
 import com.kizuna.features.progress.service.SubmissionService;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +29,12 @@ import java.util.UUID;
 @RequestMapping("/api/classrooms/{spaceId}/assignments")
 @RequiredArgsConstructor
 @CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"})
-public class AssignmentController {
+public class AssignmentController extends ClassroomExceptionHandler {
 
     private final CurrentUserResolver currentUserResolver;
     private final AssignmentService assignmentService;
     private final SubmissionService submissionService;
+    private final AssignmentAttachmentService attachmentService;
 
     @GetMapping
     public ClassroomApiResponse<List<AssignmentSummaryResponse>> list(
@@ -68,6 +71,33 @@ public class AssignmentController {
                 assignmentService.update(actor, spaceId, assignmentId, request));
     }
 
+    @PutMapping(value = "/{assignmentId}/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ClassroomApiResponse<AssignmentAttachmentResponse> uploadAttachment(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID assignmentId,
+            @RequestPart(value = "file", required = false) MultipartFile file) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Đính kèm tệp cho bài tập thành công.",
+                attachmentService.upload(actor, spaceId, assignmentId, file));
+    }
+
+    @DeleteMapping("/{assignmentId}/attachment")
+    public ClassroomApiResponse<AssignmentAttachmentResponse> removeAttachment(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID assignmentId) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Đã gỡ tệp đính kèm của bài tập.",
+                attachmentService.remove(actor, spaceId, assignmentId));
+    }
+
+    @GetMapping("/{assignmentId}/attachment")
+    public ResponseEntity<byte[]> attachment(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID assignmentId) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return fileResponse(attachmentService.getFile(actor, spaceId, assignmentId));
+    }
+
     @PostMapping(value = "/{assignmentId}/submissions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ClassroomApiResponse<SubmissionResponse>> submit(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
@@ -85,7 +115,11 @@ public class AssignmentController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
             @PathVariable UUID spaceId, @PathVariable UUID assignmentId, @PathVariable UUID submissionId) {
         CurrentActor actor = currentUserResolver.resolve(auth);
-        SubmissionFileContent content = submissionService.getFile(actor, spaceId, assignmentId, submissionId);
+        return fileResponse(submissionService.getFile(actor, spaceId, assignmentId, submissionId));
+    }
+
+    /** Trả nội dung tệp (không bọc JSON), mở trực tiếp trên trình duyệt, không lưu cache. */
+    private static ResponseEntity<byte[]> fileResponse(SubmissionFileContent content) {
         ContentDisposition disposition = ContentDisposition.inline()
                 .filename(content.fileName(), StandardCharsets.UTF_8)
                 .build();

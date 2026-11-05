@@ -6,7 +6,7 @@
 
 **Status**: Draft — đã làm rõ, chờ duyệt tasks
 
-**Input**: Mục 6 "Classroom & Learning Materials Management" trong `Report-3_Software Requirement Specification.docx.pdf`: UC-93 (6.1 Access Classroom), UC-94 (6.2 Update Learning Materials), UC-58 (6.3 View Course), UC-61 (6.4 View Learning Materials), UC-65 (6.7 Upload Learning Materials); quy trình 2.4 Class Management; dịch vụ lưu trữ 5.x (Supabase Storage).
+**Input**: Mục 6 "Classroom & Learning Materials Management" trong `Report-3_Software Requirement Specification.docx.pdf`: UC-93 (6.1 Access Classroom), UC-94 (6.2 Update Learning Materials), UC-58 (6.3 View Course), UC-61 (6.4 View Learning Materials), UC-65 (6.7 Upload Learning Materials); quy trình 2.4 Class Management; dịch vụ lưu trữ 5.x (Supabase Storage). Bổ sung theo yêu cầu người phụ trách (2026-11-06), chưa có trong SRS, cần nhóm cập nhật SRS: **Create Classroom** và **Delete Learning Material**.
 
 ## Clarifications
 
@@ -19,9 +19,16 @@
 - Q: Có được sửa file frontend dùng chung? → A: Được, chỉ **bổ sung** (append) vào `frontend/js/api.js`, `frontend/components/learner-layout/learner-layout.js`, `frontend/server.js`; không sửa/xóa phần sẵn có.
 - Q: Xác thực người dùng hiện tại thế nào khi `SecurityConfig` chưa có JWT filter? → A: Tách một lớp `CurrentUserResolver` riêng trong `features/classroom/util`, tự đọc header `Authorization: Bearer` và dùng `JwtTokenProvider` sẵn có; không sửa `core/`.
 
+### Session 2026-11-06
+
+- Q: "Create Classroom" có phải UC riêng không, và có tạo lớp trống trước rồi mới thêm học viên? → A: Tách thành UC riêng trong đặc tả nhưng **giữ nguyên cách làm hiện tại**: tạo lớp = mở lớp cho đúng một học viên đã kết nối (cột `learning_spaces.learner_id` NOT NULL). UC-93 là bước chọn học viên đủ điều kiện trong cùng thao tác. Không đổi DB, không đổi API `POST /classrooms`.
+- Q: Có thêm chức năng xóa tài liệu không? → A: Có — **Delete Learning Material**: gia sư của lớp xóa hẳn tài liệu (bản ghi và nội dung tệp), cùng điều kiện như cập nhật tài liệu (lớp `ACTIVE`, hội viên chưa hết hạn), phải xác nhận trước khi xóa. Không có bảng nào tham chiếu `learning_materials` nên xóa không ảnh hưởng dữ liệu khác.
+- Q: CORS dùng chung chặn phương thức `DELETE` → làm sao? → A: Người phụ trách cho phép thêm `DELETE` vào `allowedMethods` trong `core/security/SecurityConfig.java` (một dòng; cần báo nhóm vì là file dùng chung).
+- Q: Đổi trạng thái lớp, sửa tên lớp, xóa/đóng bài tập, cho phép nộp lại? → A: Không làm trong đợt này.
+
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 — Gia sư mở lớp cho học viên đã kết nối (Priority: P1) — UC-93
+### User Story 1 — Gia sư tạo lớp cho học viên đã kết nối (Priority: P1) — Create Classroom + UC-93
 
 Gia sư vào "Quản lý lớp học", xem các lớp hiện có, chọn thêm học viên đủ điều kiện, đặt tên lớp và xác nhận. Hệ thống tạo không gian học (`learning_spaces`) ở trạng thái đang hoạt động.
 
@@ -86,6 +93,19 @@ Gia sư vào "Quản lý lớp học", xem các lớp hiện có, chọn thêm h
 4. **Given** thay tệp thành công, **When** lưu xong, **Then** tệp cũ bị xóa khỏi kho; nếu lưu bản ghi thất bại, tệp mới bị xóa và tài liệu cũ giữ nguyên.
 5. **Given** tài liệu không thuộc lớp được chỉ định, hoặc người gọi không phải gia sư của lớp, hoặc lớp ở chế độ chỉ xem, **When** cập nhật, **Then** bị từ chối.
 
+### User Story 6 — Gia sư xóa tài liệu (Priority: P2) — Delete Learning Material *(bổ sung, chưa có trong SRS)*
+
+**Independent Test**: Gia sư bấm "Xóa" ở một tài liệu, xác nhận; danh sách tải lại không còn tài liệu đó, học viên mở lớp cũng không thấy, gọi API tệp của tài liệu đó trả 404.
+
+**Acceptance Scenarios**:
+
+1. **Given** gia sư của lớp đang hoạt động, **When** bấm "Xóa" ở một tài liệu, **Then** hiện hộp thoại xác nhận nêu tên tài liệu và cảnh báo không thể khôi phục.
+2. **Given** hộp thoại xác nhận, **When** bấm "Hủy", **Then** đóng hộp thoại, tài liệu giữ nguyên.
+3. **Given** hộp thoại xác nhận, **When** bấm "Xóa tài liệu", **Then** tài liệu bị xóa hẳn, hiển thị "Xóa tài liệu thành công." và danh sách cập nhật.
+4. **Given** tài liệu không thuộc lớp được chỉ định, **When** xóa, **Then** báo không tìm thấy (404), không xóa gì.
+5. **Given** người gọi không phải gia sư của lớp, hoặc lớp ở chế độ chỉ xem (lớp không `ACTIVE` hoặc hội viên hết hạn), **When** xóa (kể cả gọi API trực tiếp), **Then** bị từ chối (403/409) với thông báo tiếng Việt; nút "Xóa" không hiển thị trên giao diện.
+6. **Given** lỗi kỹ thuật khi xóa, **When** xác nhận, **Then** hiển thị lỗi thân thiện ngay trong hộp thoại, tài liệu giữ nguyên.
+
 ### Edge Cases
 
 - Học viên có kết nối `ACCEPTED` với nhiều gia sư: mỗi gia sư mở lớp riêng; danh sách "Lớp học của tôi" hiển thị tất cả.
@@ -114,13 +134,14 @@ Gia sư vào "Quản lý lớp học", xem các lớp hiện có, chọn thêm h
 - **FR-014**: Học viên PHẢI xem được danh sách và chi tiết lớp của mình, có nút thử lại khi lỗi (UC-58).
 - **FR-015**: Mọi nội dung hiển thị PHẢI bằng tiếng Việt, không lộ enum/mã lỗi/thông tin kỹ thuật; dữ liệu thật từ API, không dữ liệu giả.
 - **FR-016**: Lớp không `ACTIVE` hoặc hội viên gia sư hết hạn PHẢI hiển thị ở chế độ chỉ xem cho cả hai vai trò.
+- **FR-017**: Gia sư của lớp PHẢI xóa được tài liệu sau khi xác nhận; xóa hẳn bản ghi và nội dung tệp trong một giao dịch; áp dụng cùng điều kiện quản lý như FR-005, FR-006 (Delete Learning Material).
 
 ### Out of Scope (ghi nhận, không triển khai)
 
 - UC-63/64/66/67 bài tập → FE-07.
 - UC-93 bước 9 (thông báo cho học viên): feature `notification` chưa có service; ghi nhận là phụ thuộc, không tự tạo.
 - UC-58 "mô tả khóa học, lịch học, hoạt động liên quan": DB không có dữ liệu tương ứng; chỉ hiển thị dữ liệu sẵn có, không thêm cột.
-- Đổi trạng thái lớp (tạm dừng/kết thúc), xóa tài liệu: SRS FE-06 không mô tả.
+- Đổi trạng thái lớp (tạm dừng/kết thúc), sửa tên lớp: SRS FE-06 không mô tả; người phụ trách chốt không làm (2026-11-06).
 - Trang tổng quan/khung giao diện chung cho gia sư: không có trong FE-06; chỉ tạo một trang quản lý lớp độc lập.
 
 ### Key Entities

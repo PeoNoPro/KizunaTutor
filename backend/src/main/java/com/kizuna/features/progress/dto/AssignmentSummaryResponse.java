@@ -13,6 +13,8 @@ public record AssignmentSummaryResponse(
         String description,
         OffsetDateTime dueDate,
         BigDecimal totalPoints,
+        String attachmentName,
+        String attachmentType,
         OffsetDateTime createdAt,
         boolean dueOver,
         SubmissionState submissionState,

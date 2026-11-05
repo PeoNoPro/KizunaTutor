@@ -596,6 +596,13 @@ API.classrooms = {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/materials/${encodeURIComponent(materialId)}`, {
       method: 'PUT', formData: materialFormData(data), timeout: 120000
     });
+  },
+
+  /** Xóa tài liệu khỏi lớp (Delete Learning Material) */
+  deleteMaterial(spaceId, materialId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/materials/${encodeURIComponent(materialId)}`, {
+      method: 'DELETE'
+    });
   }
 };
 // =========================================================================
@@ -649,15 +656,42 @@ API.assignments = {
     });
   },
 
+  /** Gia sư đính kèm / thay tệp đề bài (PDF, PNG, JPG, MP3; tối đa 10 MB) */
+  uploadAttachment(spaceId, assignmentId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}/attachment`), {
+      method: 'PUT', formData: fd, timeout: 120000
+    });
+  },
+
+  /** Gia sư gỡ tệp đề bài */
+  removeAttachment(spaceId, assignmentId) {
+    return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}/attachment`), {
+      method: 'DELETE'
+    });
+  },
+
+  /** Tải tệp đề bài; trả về Blob */
+  attachmentFile(spaceId, assignmentId) {
+    return assignmentBlob(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}/attachment`));
+  },
+
   /** Tải tệp bài làm; trả về Blob */
-  async submissionFile(spaceId, assignmentId, submissionId) {
+  submissionFile(spaceId, assignmentId, submissionId) {
+    return assignmentBlob(assignmentPath(spaceId,
+      `/${encodeURIComponent(assignmentId)}/submissions/${encodeURIComponent(submissionId)}/file`));
+  }
+};
+
+/** Tải nội dung tệp của FE-07 (không bọc JSON); lỗi vẫn đọc thông điệp JSON chuẩn. */
+async function assignmentBlob(path) {
     let response;
     try {
-      response = await fetch(`${API_BASE_URL}/classrooms${assignmentPath(spaceId,
-        `/${encodeURIComponent(assignmentId)}/submissions/${encodeURIComponent(submissionId)}/file`)}`,
+      response = await fetch(`${API_BASE_URL}/classrooms${path}`,
         { headers: classroomAuthHeaders(), signal: AbortSignal.timeout(120000) });
     } catch (networkErr) {
-      console.debug('API.assignments.submissionFile network error:', networkErr);
+      console.debug('API.assignments file network error:', networkErr);
       const err = new Error('network');
       err.status = 0;
       err.userMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối và thử lại.';
@@ -679,5 +713,4 @@ API.assignments = {
       throw err;
     }
     return await response.blob();
-  }
-};
+}

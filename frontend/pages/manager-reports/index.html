@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Báo cáo tổng hợp - KizunaTutor</title>
+<link rel="icon" href="/assets/logos/kizuna-logo.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css">
+</head><body class="admin-dashboard operations-page">
+<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+<main id="dashboardMain" class="dashboard-main"><div id="operationsContent" class="operations-content" aria-busy="true">
+  <div class="operations-page-heading"><span class="role-badge">Báo cáo quản lý</span><h1>Báo cáo tổng hợp</h1><p>Tổng hợp người dùng, hoạt động học thử và hiệu quả kết nối gia sư – học viên.</p></div>
+  <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải báo cáo…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+  <form id="managementFilters" class="operations-card operations-filters"><label>Từ ngày<input type="date" name="startDate"></label><label>Đến ngày<input type="date" name="endDate"></label><button class="primary" type="submit">Xem báo cáo</button></form>
+  <p id="managementPeriod" class="staff-help"></p>
+  <section class="kpi-grid" aria-label="Chỉ số tổng hợp">
+    <article class="kpi-card"><div class="kpi-top"><div><h2>Tài khoản hiện tại</h2><strong class="kpi-value" id="totalAccounts">—</strong></div></div><p class="staff-help">Không gồm tài khoản đã xóa.</p></article>
+    <article class="kpi-card"><div class="kpi-top"><div><h2>Tài khoản mới trong kỳ</h2><strong class="kpi-value" id="newAccounts">—</strong></div></div><p class="staff-help">Theo ngày tạo, chưa bị xóa.</p></article>
+    <article class="kpi-card"><div class="kpi-top"><div><h2>Yêu cầu kết nối tạo trong kỳ</h2><strong class="kpi-value" id="connectionCount">—</strong></div></div><p class="staff-help">Gồm tất cả trạng thái.</p></article>
+    <article class="kpi-card"><div class="kpi-top"><div><h2>Học thử được tạo trong kỳ</h2><strong class="kpi-value" id="bookingCount">—</strong></div></div><p class="staff-help">Theo ngày tạo lịch học thử.</p></article>
+  </section>
+  <div class="management-report-grid">
+    <section class="operations-card"><h2>Người dùng theo vai trò</h2><div id="accountsByRole"></div></section>
+    <section class="operations-card"><h2>Trạng thái tài khoản</h2><div id="accountsByStatus"></div></section>
+    <section class="operations-card"><h2>Hiệu quả kết nối</h2><div id="connectionGroups"></div><p>Tỷ lệ chấp nhận: <strong id="acceptanceRate" class="report-rate">—</strong></p></section>
+    <section class="operations-card"><h2>Hoạt động học thử</h2><div id="bookingGroups"></div></section>
+  </div>
+  <p class="report-definition">Số liệu kết nối và học thử được lọc theo ngày tạo trong kỳ, rồi nhóm theo trạng thái hiện tại lúc tải báo cáo. Đây không phải trạng thái lịch sử tại ngày kết thúc kỳ. Tỷ lệ chấp nhận = yêu cầu trong kỳ hiện được chấp nhận / tổng yêu cầu tạo trong kỳ. Trạng thái tài khoản hoạt động không đồng nghĩa người dùng vừa truy cập. Mặc định 7 ngày, tối đa 366 ngày, theo giờ Việt Nam.</p>
+</div></main><script type="module" src="./manager-reports.js"></script></body></html>

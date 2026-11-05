@@ -1,0 +1,77 @@
+/* Bố cục chi tiết phiếu CS theo Figma: bối cảnh bên trái, phản hồi và thao tác bên phải. Màu và nút dùng chung từ support-tickets.css. */
+.cs-detail-columns{display:grid;grid-template-columns:minmax(0,1fr) 452px;gap:24px;align-items:start}
+.cs-detail-conversation,.cs-detail-sidebar{min-width:0}
+.cs-detail-sidebar{display:flex;flex-direction:column;gap:16px}
+.cs-ticket-detail #publicLayout,.cs-ticket-detail #internalLayout{display:block}
+.cs-ticket-detail #publicPanel .support-thread{background:var(--support-sand);border-color:var(--support-field)}
+.cs-ticket-detail .support-card{margin-bottom:0}
+.cs-ticket-detail #internalActions:empty,.cs-ticket-detail #ticketActions:empty{display:none}
+.cs-action-buttons{display:flex;flex-direction:column;gap:12px}
+.cs-action-buttons:not(:has(button:not([hidden]))){display:none}
+.cs-action-buttons button{width:100%}
+.cs-request-result .support-action-card{border:0;padding:0;margin:0;background:none}
+.cs-request-result .support-action-card h3{display:none}
+.cs-request-result button{width:100%}
+.cs-action-explanation{color:var(--support-text);font-size:13px;line-height:21px;margin:0!important}
+
+/* Thông tin yêu cầu */
+.cs-ticket-detail .cs-request-information h2{font-size:18px;line-height:27px;margin-bottom:8px}
+.cs-information-fields{margin:0}
+.cs-information-fields>div{display:flex;justify-content:space-between;align-items:start;gap:12px;padding:10px 0;border-bottom:1px solid var(--support-line)}
+.cs-information-fields>div:last-child{border:0}
+.cs-information-fields dt{font-size:13px;color:var(--support-text);flex:0 0 42%}
+.cs-information-fields dd{margin:0;font-size:13px;font-weight:600;text-align:right;overflow-wrap:anywhere;min-width:0}
+.cs-edit-information{margin-top:8px;border-top:1px solid var(--support-line);padding-top:12px}
+.cs-ticket-detail summary{cursor:pointer;font-size:13px;font-weight:600;line-height:22px;color:var(--support-primary)}
+.cs-edit-information[open]>summary{margin-bottom:14px}
+.cs-edit-information .support-action-card{border:0;padding:0;margin:0 0 16px}
+.cs-edit-information .support-action-card h3{font-size:14px;line-height:21px}
+
+/* Hộp thoại chuyển quản lý và ghi nhận kết quả */
+.support-page dialog.cs-action-dialog{width:min(680px,calc(100% - 28px))}
+.cs-action-dialog .support-action-card{border:0;padding:0;margin:0}
+.cs-action-dialog .support-action-card h3{display:none}
+.cs-action-dialog #internalActions{display:flex;flex-direction:column;gap:20px}
+.cs-action-dialog .support-dialog-actions{margin:4px -28px -24px}
+.cs-manager-result{margin:0}
+.support-page .cs-manager-result h3{font-size:18px;line-height:27px;font-weight:600;color:var(--support-primary);margin:0 0 8px}
+.support-page .cs-manager-result p{font-size:14px;line-height:21px;color:var(--support-text);margin:0}
+.support-dialog-error:empty{display:none}
+.support-page .support-dialog-error{margin:0}
+
+/* Hội thoại */
+.cs-thread-message{display:flex;gap:10px;margin:16px 0;align-items:start}
+.cs-message-avatar{display:flex;align-items:center;justify-content:center;flex:0 0 32px;height:32px;border-radius:50%;background:var(--support-primary);color:#fff;font-size:11px;font-weight:700}
+.cs-thread-participant .cs-message-avatar{background:var(--support-navy)}
+.cs-message-body{flex:1;min-width:0;border:1px solid var(--support-field);background:#fff;border-radius:8px;padding:12px 14px}
+.cs-message-header{display:flex;justify-content:space-between;align-items:start;gap:10px}
+.cs-message-header strong{display:block;font-size:14px;line-height:21px;overflow-wrap:anywhere}
+.cs-message-role{display:block;font-size:12px;line-height:18px;color:var(--support-text)}
+.cs-message-header time{font-size:12px;line-height:21px;color:var(--support-text);text-align:right;flex-shrink:0}
+.cs-message-attachments{display:grid;gap:8px;margin-top:12px}
+.cs-ticket-detail .cs-attachment-card{display:grid;grid-template-columns:30px minmax(0,1fr);gap:2px 9px;background:#fff;border:1px solid var(--support-line);border-radius:8px;padding:9px 10px;text-decoration:none;color:var(--support-navy)}
+.cs-attachment-symbol{grid-row:1/3;display:flex;align-items:center;justify-content:center;background:var(--support-sand);border-radius:6px;font-size:19px}
+.cs-attachment-card strong{font-size:12px;font-weight:600;overflow-wrap:anywhere;min-width:0}
+.cs-attachment-card>span:last-child{font-size:11px;color:var(--support-text)}
+.cs-attachment-card:hover{border-color:var(--support-primary)}
+
+/* Phản hồi cho người dùng */
+.cs-ticket-detail .cs-reply-form{gap:8px}
+.cs-reply-form label{font-size:14px;font-weight:600}
+.cs-ticket-detail .cs-reply-form textarea{min-height:104px}
+.support-page .cs-reply-help{font-size:12px;color:var(--support-text);line-height:18px;margin:0}
+.support-page .cs-reply-notice{font-size:12px;line-height:20px;color:#ba1a1a;margin:0}
+.cs-reply-notice:empty{display:none}
+.cs-reply-footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
+.cs-reply-footer .primary{flex:1 0 100%}
+.cs-file-limit{font-size:12px;color:var(--support-text);line-height:18px}
+.cs-selected-files{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.cs-selected-files:empty{display:none}
+.cs-selected-files li{display:flex;gap:10px;justify-content:space-between;align-items:center;background:var(--support-sand);border:1px solid var(--support-line);border-radius:8px;padding:8px 10px;min-width:0}
+.cs-selected-files li>span{min-width:0;flex:1}
+.cs-selected-files strong{display:block;font-size:12px;overflow-wrap:anywhere;font-weight:500}
+.cs-selected-files small{font-size:11px;color:var(--support-text)}
+.cs-ticket-detail .cs-selected-files button{min-height:30px;padding:4px 8px;font-size:12px;flex-shrink:0}
+
+@media(max-width:1200px){.cs-detail-columns{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:650px){.cs-message-header{flex-direction:column;gap:5px}.cs-message-header time{text-align:left}.cs-message-body{padding:10px}.cs-thread-message{gap:8px}.cs-file-limit{flex-basis:100%;order:3}.cs-ticket-detail .support-history>summary span{display:block;margin-left:0}.cs-action-dialog .support-dialog-actions{margin:4px -16px -18px}}

@@ -94,6 +94,25 @@ export const LEARNER_MENU_GROUPS = [
         matcher: ['/flashcards', '/decks']
       }
     ]
+  },
+  {
+    groupTitle: 'Hỗ trợ',
+    items: [
+      {
+        key: 'support',
+        title: 'Yêu cầu hỗ trợ',
+        url: '/learner/support/tickets',
+        icon: '💬',
+        matcher: ['/learner/support/tickets', '/pages/support-ticket']
+      },
+      {
+        key: 'policies',
+        title: 'Chính sách',
+        url: '/learner/policies',
+        icon: '📄',
+        matcher: ['/learner/policies', '/pages/polic']
+      }
+    ]
   }
 ];
 
@@ -302,7 +321,9 @@ export function bindLearnerLayoutEvents() {
   });
 
   // Xử lý Đăng xuất tập trung
-  btnLogout?.addEventListener('click', () => {
+  btnLogout?.addEventListener('click', async () => {
+    // Cookie phiên là HttpOnly nên phải nhờ backend xóa.
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (e) {}
     localStorage.removeItem('kizuna_token');
     localStorage.removeItem('kizuna_user');
     sessionStorage.clear();

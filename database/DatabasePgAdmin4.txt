@@ -185,10 +185,13 @@ CREATE TABLE tutor_verification_histories (
     officer_id UUID REFERENCES users(user_id) ON DELETE SET NULL ON UPDATE CASCADE,
     action tutor_verif_action_enum NOT NULL,
     notes TEXT,
+    feedback TEXT,
+    reason_code VARCHAR(50),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_verif_hist_tutor ON tutor_verification_histories(tutor_id);
 CREATE INDEX idx_verif_hist_officer ON tutor_verification_histories(officer_id);
+CREATE INDEX idx_verif_hist_action_created ON tutor_verification_histories(action, created_at DESC);
 
 -- 7. Bảng Lịch Rảnh Giảng Dạy Của Gia Sư (Tutor Availabilities)
 DROP TABLE IF EXISTS tutor_availabilities CASCADE;

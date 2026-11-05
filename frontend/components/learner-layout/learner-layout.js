@@ -80,6 +80,13 @@ export const LEARNER_MENU_GROUPS = [
         matcher: ['/grammar', '/openjlpt']
       },
       {
+        key: 'ai-writing',
+        title: 'Chữa câu & Viết AI',
+        url: '/ai-writing',
+        icon: '✍️',
+        matcher: ['/ai-writing', '/sakubun']
+      },
+      {
         key: 'flashcards',
         title: 'Bộ thẻ của tôi',
         url: '/flashcards',
@@ -122,6 +129,7 @@ export const PAGE_META_MAP = {
   'kana': { title: 'Đấu trường gõ Kana', badge: 'Học tập & rèn luyện' },
   'flashcards': { title: 'Bộ thẻ của tôi', badge: 'Học tập & rèn luyện' },
   'grammar': { title: 'Ngữ pháp & AI Sensei', badge: 'Học tập & rèn luyện' },
+  'ai-writing': { title: 'Luyện viết & Chữa câu AI', badge: 'Học tập & rèn luyện' },
   'learning-support': { title: 'Kho từ vựng & Hỗ trợ học tập', badge: 'Học tập & rèn luyện' },
   'kanji-game': { title: 'Game Mưa chữ Hán', badge: 'Học tập & rèn luyện' }
 };

@@ -5,6 +5,7 @@ import com.kizuna.core.entity.User;
 import com.kizuna.core.entity.UserAccountStatus;
 import com.kizuna.features.tutor_search.dto.TutorSearchCriteriaDTO;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -30,13 +31,23 @@ public class TutorSearchSpecification {
             predicates.add(cb.equal(userJoin.get("accountStatus"), UserAccountStatus.ACTIVE));
             predicates.add(cb.isNull(userJoin.get("deletedAt")));
 
-            // 3. Từ khóa tìm kiếm (Tên gia sư, Headline hoặc Cấp độ JLPT)
+            // 3. Biểu thức địa chỉ đồng bộ fallback
+            Expression<String> addressExpr = cb.coalesce(root.get("address"), "Hà Nội, Việt Nam");
+
+            // 3.1. Từ khóa tìm kiếm (Tên gia sư, Headline, Cấp độ JLPT hoặc Địa chỉ)
             if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
                 String keywordPattern = "%" + criteria.getKeyword().trim().toLowerCase() + "%";
                 Predicate nameMatch = cb.like(cb.lower(userJoin.get("fullName")), keywordPattern);
                 Predicate headlineMatch = cb.like(cb.lower(root.get("headline")), keywordPattern);
                 Predicate jlptMatch = cb.like(cb.lower(root.get("highestJlptLevel")), keywordPattern);
-                predicates.add(cb.or(nameMatch, headlineMatch, jlptMatch));
+                Predicate addressMatch = cb.like(cb.lower(addressExpr), keywordPattern);
+                predicates.add(cb.or(nameMatch, headlineMatch, jlptMatch, addressMatch));
+            }
+
+            // 3.2. Lọc theo địa chỉ / khu vực (FE-04)
+            if (criteria.getLocation() != null && !criteria.getLocation().trim().isEmpty() && !"all".equalsIgnoreCase(criteria.getLocation())) {
+                String locationPattern = "%" + criteria.getLocation().trim().toLowerCase() + "%";
+                predicates.add(cb.like(cb.lower(addressExpr), locationPattern));
             }
 
             // 4. Lọc theo trình độ JLPT

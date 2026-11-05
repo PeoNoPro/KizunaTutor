@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -18,5 +19,9 @@ public interface TutorSearchRepository extends JpaRepository<Tutor, UUID>, JpaSp
      * Lấy danh sách các gia sư tiêu biểu (Featured Tutors) có điểm đánh giá cao nhất.
      */
     List<Tutor> findTop6ByIsFeaturedTrueOrderByAvgRatingDesc();
-}
 
+    /**
+     * Tra cứu hồ sơ gia sư theo mã định danh tự tăng (tutor_code).
+     */
+    Optional<Tutor> findByTutorCode(Long tutorCode);
+}

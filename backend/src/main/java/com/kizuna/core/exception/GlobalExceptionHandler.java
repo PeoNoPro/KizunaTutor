@@ -47,6 +47,14 @@ public class GlobalExceptionHandler {
         log.error("Lỗi không xử lý được", e);
         return error(503,"Tạm thời chưa tải được dữ liệu. Vui lòng thử lại sau.");
     }
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<?> businessConflict(ConflictException e) {
+        return error(409,e.getMessage()!=null?e.getMessage():"Thao tác không phù hợp với trạng thái hiện tại.");
+    }
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<?> serviceUnavailable(ServiceUnavailableException e) {
+        return error(503,e.getMessage()!=null?e.getMessage():"Dịch vụ đang tạm thời không khả dụng. Vui lòng thử lại sau.");
+    }
     private ResponseEntity<?> error(int status,String message) {
         return ResponseEntity.status(status).body(Map.of("success",false,"message",message,"timestamp",OffsetDateTime.now()));
     }

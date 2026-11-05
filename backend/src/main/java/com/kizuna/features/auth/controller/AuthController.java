@@ -53,116 +53,29 @@ public class AuthController {
 
     @PostMapping("/register/send-otp")
     public ResponseEntity<Map<String, Object>> sendRegistrationOtp(@Valid @RequestBody RegisterRequest request) {
-        String cleanEmail = request.getEmail().trim().toLowerCase();
-
-        if (userRepository.findByEmail(cleanEmail).isPresent()) {
-            throw new BadRequestException("Địa chỉ email này đã được đăng ký trong hệ thống. Vui lòng đăng nhập.");
-        }
-
-        String passwordHash = passwordEncoder.encode(request.getPassword());
-        String otp = otpService.generateAndSaveOtp(
-                cleanEmail,
-                request.getFullName(),
-                passwordHash,
-                request.getRole(),
-                request.getTargetJlpt()
-        );
-
-        emailService.sendRegistrationOtpEmail(cleanEmail, request.getFullName(), otp);
-
+        authService.initiateRegistration(request);
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Mã xác thực OTP gồm 6 chữ số đã được gửi đến hộp thư Gmail của bạn.",
-                "email", cleanEmail,
+                "email", request.getEmail().trim().toLowerCase(),
                 "expiresInSeconds", 300
         ));
     }
 
     @PostMapping("/register/verify-otp")
-    @Transactional
     public ResponseEntity<LoginResponse> verifyRegistrationOtp(@Valid @RequestBody VerifyOtpRequest request,
                                                                HttpServletResponse response) {
-        String cleanEmail = request.getEmail().trim().toLowerCase();
+        LoginResponse loginResponse = authService.completeRegistration(request);
 
-        PendingRegistration pending = otpService.verifyOtp(cleanEmail, request.getOtp());
-
-        if (userRepository.findByEmail(cleanEmail).isPresent()) {
-            throw new BadRequestException("Tài khoản đã được đăng ký trước đó. Vui lòng đăng nhập.");
-        }
-
-        String targetRoleName = (pending.getRole() != null && !pending.getRole().isBlank())
-                ? pending.getRole()
-                : "ROLE_LEARNER";
-
-        Role role = roleRepository.findByRoleName(targetRoleName)
-                .orElseGet(() -> roleRepository.findByRoleName("ROLE_LEARNER")
-                        .orElseThrow(() -> new IllegalStateException("Không tìm thấy vai trò " + targetRoleName)));
-
-        User user = User.builder()
-                .email(cleanEmail)
-                .fullName(pending.getFullName())
-                .passwordHash(pending.getPasswordHash())
-                .role(role)
-                .accountStatus(UserAccountStatus.ACTIVE)
-                .build();
-
-        user = userRepository.save(user);
-
-        if (RoleEnum.ROLE_TUTOR.name().equals(role.getRoleName())) {
-            Tutor tutor = Tutor.builder()
-                    .user(user)
-                    .headline("Gia sư tiếng Nhật Kizuna")
-                    .bio("Gia sư tiếng Nhật đồng hành cùng học viên tại nền tảng KizunaTutor.")
-                    .experienceYears((short) 1)
-                    .hourlyRate(BigDecimal.valueOf(200000))
-                    .highestJlptLevel("N2")
-                    .avgRating(BigDecimal.valueOf(5.0))
-                    .totalReviews(0)
-                    .verificationStatus(TutorVerificationStatus.APPROVED)
-                    .membershipStatus(TutorMembershipStatus.PREMIUM)
-                    .isFeatured(false)
-                    .updatedAt(OffsetDateTime.now())
-                    .build();
-            tutorRepository.save(tutor);
-        } else {
-            Learner learner = Learner.builder()
-                    .user(user)
-                    .currentLevel("N5")
-                    .targetLevel(pending.getTargetJlpt() != null ? pending.getTargetJlpt() : "N3")
-                    .learningGoals("Chinh phục mục tiêu JLPT cùng KizunaTutor")
-                    .updatedAt(OffsetDateTime.now())
-                    .build();
-            learnerRepository.save(learner);
-        }
-
-        String token = jwtTokenProvider.generateToken(user);
-        RoleEnum roleEnum = RoleEnum.fromString(role.getRoleName());
-        String redirectUrl = roleEnum.getDashboardRoute();
-
-        if (response != null) {
-            Cookie cookie = new Cookie("access_token", token);
+        if (response != null && loginResponse.getToken() != null) {
+            Cookie cookie = new Cookie("access_token", loginResponse.getToken());
             cookie.setPath("/");
             cookie.setHttpOnly(true);
             cookie.setMaxAge(86400);
             response.addCookie(cookie);
         }
 
-        UserSummaryDto userSummary = UserSummaryDto.builder()
-                .id(user.getUserId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .role(roleEnum.getRoleName())
-                .roleBadge(roleEnum.getBadgeText())
-                .avatarUrl(user.getAvatarUrl())
-                .accountStatus(user.getAccountStatus().name())
-                .build();
-
-        return ResponseEntity.ok(LoginResponse.builder()
-                .token(token)
-                .user(userSummary)
-                .redirectUrl(redirectUrl)
-                .message("Xác thực OTP thành công! Chào mừng bạn gia nhập KizunaTutor.")
-                .build());
+        return ResponseEntity.ok(loginResponse);
     }
 
     @PostMapping("/register/resend-otp")
@@ -272,6 +185,23 @@ public class AuthController {
         String email = jwtTokenProvider.getEmailFromToken(token);
         Map<String, Object> result = authService.changePasswordFirstTime(request, email);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserSummaryDto> getCurrentUser(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String token = (authHeader != null && authHeader.startsWith("Bearer "))
+                ? authHeader.substring(7)
+                : cookieToken;
+
+        if (token == null || !jwtTokenProvider.validateToken(token)) {
+            throw new BadRequestException("Phiên làm việc không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.");
+        }
+
+        String email = jwtTokenProvider.getEmailFromToken(token);
+        UserSummaryDto userSummary = authService.getCurrentUser(email);
+        return ResponseEntity.ok(userSummary);
     }
 
     @PostMapping("/logout")

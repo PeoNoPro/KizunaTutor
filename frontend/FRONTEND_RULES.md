@@ -19,6 +19,9 @@ Toàn bộ thành viên lập trình Frontend BẮT BUỘC tuân thủ nghiêm n
 3. **KHÔNG BAO GIỜ DÙNG DỮ LIỆU ẢO ĐỂ ĐỐI PHÓ (NO MOCK / FAKE DATA INJECTION):**
    - Mọi dữ liệu hiển thị (danh sách gia sư, hồ sơ, ca rảnh, yêu cầu kết nối) **BẮT BUỘC lấy từ API Backend thực tế** nối với Supabase PostgreSQL.
    - Khi cơ sở dữ liệu chưa có dữ liệu, **BẮT BUỘC hiển thị Màn hình rỗng chuẩn (Empty State)** với thông điệp hướng dẫn lịch sự, tuyệt đối không bịa dummy JSON vào màn hình chính.
+4. **KHÔNG BAO GIỜ HARDCODE COMPONENT DÙNG CHUNG VÀO TRANG (STRICT COMPONENT REUSABILITY):**
+   - Tuyệt đối cấm viết mã `<header>` hay `<footer>` trực tiếp vào `pages/*/index.html`. Mọi trang chỉ được dùng placeholder `<div id="header-placeholder"></div>` và `<div id="footer-placeholder"></div>` để `main.js` nạp tự động.
+   - Sửa Header chỉ sửa tại `frontend/components/header/header.html`. Sửa Footer chỉ sửa tại `frontend/components/footer/footer.html`. Chi tiết xem tại [.agents/rules/components_rule.md](../.agents/rules/components_rule.md).
 
 ---
 

@@ -33,62 +33,8 @@
 </head>
 <body class="bg-[#FCFBF7] font-sans text-[#0F2545] min-h-screen flex flex-col antialiased">
 
-  <!-- Header -->
-  <header class="fixed top-0 inset-x-0 z-50 bg-[#FCFBF7]/95 backdrop-blur-md border-b border-[#ECE8DE] shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
-    <div class="h-20 max-w-[1240px] mx-auto px-4 md:px-8 flex items-center justify-between gap-4">
-      <!-- Logo + Slogan -->
-      <div class="flex items-center gap-6">
-        <a class="flex items-center gap-2 group" data-path="landing-page" href="/pages/home/">
-          <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
-          <div class="flex flex-col">
-            <div class="flex items-center gap-1.5">
-              <span class="font-bold text-xl tracking-tight text-[#0f2545]">Kizuna<span class="text-[#006194]">Tutor</span></span>
-            </div>
-            <span class="text-[10px] text-[#68737D] font-medium -mt-0.5 tracking-wider">Kết nối song ngữ Việt – Nhật</span>
-          </div>
-        </a>
-        <!-- Navigation items (Desktop) -->
-        <nav class="hidden lg:flex items-center gap-1">
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg bg-[#006194] text-white font-semibold shadow-sm transition-colors" data-path="tim-gia-su" href="/pages/tutor-discovery/">Tìm gia sư</a>
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-path="cach-hoat-dong" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-path="tro-thanh-gia-su" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
-          <a class="font-label-md text-label-md px-3.5 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-path="cong-cu-hoc" href="/pages/home/#cong-cu-hoc">Công cụ học</a>
-        </nav>
-      </div>
-
-      <!-- Actions (Chỉ có nút Vào Dashboard học tập và nút Đăng ký, không có nút Đăng nhập) -->
-      <div class="flex items-center gap-3">
-        <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-[#006194] hover:bg-[#006194]/10 transition-colors border border-[#006194]/20" data-path="dashboard" href="/login">
-          <span class="material-symbols-outlined text-[16px]">school</span>
-          <span>Vào Dashboard học tập</span>
-        </a>
-        <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-[#006194] text-white hover:bg-[#004b73] transition-all shadow-sm font-semibold flex items-center gap-1.5" data-path="dang-ky" href="/register">
-          <span>Đăng ký</span>
-          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-        </a>
-        <!-- Mobile Menu Toggle Button -->
-        <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#f2efe6] transition-colors">
-          <span class="material-symbols-outlined text-[24px]">menu</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Mobile Navigation Drawer -->
-    <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ece8de] bg-[#fcfbf7] px-6 py-4 space-y-2">
-      <a class="block font-semibold text-sm py-2 text-[#006194]" href="/pages/tutor-discovery/">Tìm gia sư</a>
-      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
-      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
-      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
-      <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cong-cu-hoc">Công cụ học</a>
-      <div class="pt-3 border-t border-[#ece8de]">
-        <a class="flex items-center gap-2 font-semibold text-xs py-2 text-[#006194]" href="/login">
-          <span class="material-symbols-outlined text-[16px]">school</span>
-          <span>Vào Dashboard học tập</span>
-        </a>
-      </div>
-    </div>
-  </header>
+  <!-- Header dùng chung (Nạp tự động từ /components/header/header.html) -->
+  <div id="header-placeholder"></div>
 
   <!-- Profile Content Container -->
   <main class="w-full pt-28 pb-16 flex-1">
@@ -100,53 +46,139 @@
     </div>
   </main>
 
-  <!-- Modal Đặt lịch học thử -->
-  <div id="connect-modal" class="modal-overlay fixed inset-0 z-50 hidden overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="relative w-full max-w-lg bg-white rounded-2xl border border-[#E5DECB] shadow-2xl p-6 md:p-8 space-y-6">
-      <div class="flex items-center justify-between pb-3 border-b border-[#ECE8DE]">
-        <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary text-[20px]">send</span>
-          Gửi yêu cầu học thử với Sensei
-        </h3>
-        <button type="button" onclick="window.closeModal('connect-modal')" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500">
+  <!-- Modal Đặt lịch học thử (Mẫu mới theo hình ảnh) -->
+  <div id="connect-modal" class="modal-overlay fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 md:p-4">
+    <div class="relative w-full max-w-[480px] bg-white rounded-3xl border border-[#E5DECB] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- 1. Header: Avatar + Tiêu đề + Nút đóng -->
+      <div class="flex items-center justify-between p-5 md:p-6 pb-3.5 border-b border-[#ECE8DE] bg-white flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <img id="booking-modal-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" alt="Avatar gia sư" class="w-12 h-12 rounded-2xl object-cover border border-[#E5DECB] shadow-xs">
+          <div>
+            <h3 class="text-base md:text-lg font-bold text-[#0F2545] leading-tight">Đặt lịch học thử</h3>
+            <p class="text-xs text-on-surface-variant font-medium mt-0.5">Trao đổi về trình độ và lộ trình học tập của bạn</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeModal('connect-modal')" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer" aria-label="Đóng">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
 
-      <form id="booking-form" class="space-y-4 text-xs md:text-sm">
-        <div>
-          <label class="block font-semibold text-[#0F2545] mb-1">Mục tiêu học tập của bạn:</label>
-          <select class="input-default">
-            <option value="kaiwa">Luyện giao tiếp phản xạ (Kaiwa)</option>
-            <option value="jlpt">Luyện thi chứng chỉ JLPT (N5 - N1)</option>
-            <option value="business">Tiếng Nhật thương mại &amp; phỏng vấn</option>
-            <option value="it">Tiếng Nhật chuyên ngành CNTT</option>
-          </select>
+      <!-- Khung chứa nội dung cuộn (Scrollable Body) -->
+      <div id="booking-modal-body" class="overflow-y-auto flex-1 divide-y divide-[#ECE8DE]">
+        
+        <!-- 2. Chọn thời lượng buổi học: 25 phút | 50 phút -->
+        <div class="p-5 md:p-6 pb-4">
+          <div class="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 border border-slate-200 text-xs font-semibold">
+            <button type="button" id="btn-duration-25" class="duration-tab-btn py-2.5 rounded-xl text-center transition-all bg-white text-[#0F2545] shadow-xs cursor-pointer">
+              25 phút
+            </button>
+            <button type="button" id="btn-duration-50" class="duration-tab-btn py-2.5 rounded-xl text-center transition-all text-slate-500 hover:text-[#0F2545] cursor-pointer">
+              50 phút
+            </button>
+          </div>
         </div>
 
-        <div>
-          <label class="block font-semibold text-[#0F2545] mb-1">Khung giờ bạn mong muốn học:</label>
-          <select class="input-default">
-            <option value="evening">Buổi tối các ngày trong tuần (19:00 - 21:00)</option>
-            <option value="weekend_morning">Sáng thứ 7 hoặc Chủ nhật (09:00 - 11:00)</option>
-            <option value="weekend_afternoon">Chiều thứ 7 hoặc Chủ nhật (14:30 - 16:30)</option>
-          </select>
+        <!-- 3. Thanh chọn ngày trong tuần (Date Navigation & 7 Days) -->
+        <div class="p-5 md:p-6 py-4 space-y-3.5">
+          <!-- Điều hướng tuần -->
+          <div class="flex items-center justify-between">
+            <button type="button" id="btn-prev-week" class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 transition-colors shadow-2xs cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            </button>
+            <span id="current-week-label" class="text-xs md:text-sm font-bold text-[#0F2545]">
+              4 – 10 Tháng 11, 2026
+            </span>
+            <button type="button" id="btn-next-week" class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 transition-colors shadow-2xs cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+            </button>
+          </div>
+
+          <!-- 7 ngày trong tuần -->
+          <div class="grid grid-cols-7 gap-1 text-center" id="days-picker-container">
+            <!-- Được render động qua JavaScript -->
+          </div>
         </div>
 
-        <div>
-          <label class="block font-semibold text-[#0F2545] mb-1">Lời nhắn gửi tới Sensei:</label>
-          <textarea rows="3" class="input-default" placeholder="Ví dụ: Em muốn ôn tập kỹ phần nghe hiểu Choukai N2..."></textarea>
+        <!-- 4. Ghi chú múi giờ & Các khung giờ khả dụng -->
+        <div class="p-5 md:p-6 py-4 space-y-6">
+          <!-- Múi giờ -->
+          <p class="text-xs text-slate-500 font-medium">
+            Theo múi giờ của bạn: Châu Á/Hồ Chí Minh (GMT +07:00)
+          </p>
+
+          <!-- Buổi sáng (Khung chuẩn theo mẫu) -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2 text-sm font-bold text-slate-900">
+              <svg class="w-5 h-5 text-slate-900 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v4M4.93 10.93l2.83-2.83M2 18h2M20 18h2M19.07 10.93l-2.83-2.83M16 18a4 4 0 0 0-8 0"/>
+                <path d="M2 22h20"/>
+              </svg>
+              <span>Buổi sáng</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3" id="morning-slots-grid">
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">06:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">06:30</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">07:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">10:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">10:30</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">11:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">11:30</button>
+            </div>
+          </div>
+
+          <!-- Buổi chiều (Khung chuẩn theo mẫu) -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2 text-sm font-bold text-slate-900">
+              <svg class="w-5 h-5 text-slate-900 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+              <span>Buổi chiều</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3" id="afternoon-slots-grid">
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">12:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">12:30</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">13:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">13:30</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">14:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">14:30</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">15:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">15:30</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">16:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">16:30</button>
+            </div>
+          </div>
+
+          <!-- Buổi tối (Khung chuẩn theo mẫu) -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2 text-sm font-bold text-slate-900">
+              <svg class="w-5 h-5 text-slate-900 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+              </svg>
+              <span>Buổi tối</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3" id="evening-slots-grid">
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">18:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">18:30</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">19:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">19:30</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">20:00</button>
+              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">20:30</button>
+            </div>
+          </div>
         </div>
 
-        <div class="pt-2 flex items-center justify-end gap-3">
-          <button type="button" onclick="window.closeModal('connect-modal')" class="btn-secondary">
-            Hủy bỏ
-          </button>
-          <button type="submit" class="btn-primary">
-            Xác nhận gửi yêu cầu
-          </button>
-        </div>
-      </form>
+      </div>
+
+      <!-- 5. Footer: Nút Tiếp tục -->
+      <div class="p-4 md:p-5 border-t border-[#ECE8DE] bg-white flex-shrink-0">
+        <button type="button" id="btn-booking-continue" class="w-full py-3.5 px-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-[#006194] text-white shadow-md hover:bg-[#004b73] active:scale-[0.99] cursor-pointer">
+          <span>Tiếp tục</span>
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
+      </div>
+
     </div>
   </div>
 
@@ -227,7 +259,7 @@
   </footer>
 
   <script type="module" src="/js/main.js"></script>
-  <script type="module" src="./tutor-profile.js"></script>
+  <script type="module" src="/pages/tutor-profile/tutor-profile.js"></script>
 </body>
 </html>
 

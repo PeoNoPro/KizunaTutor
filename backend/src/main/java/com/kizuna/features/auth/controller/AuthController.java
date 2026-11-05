@@ -274,6 +274,23 @@ public class AuthController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<UserSummaryDto> getCurrentUser(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String token = (authHeader != null && authHeader.startsWith("Bearer "))
+                ? authHeader.substring(7)
+                : cookieToken;
+
+        if (token == null || !jwtTokenProvider.validateToken(token)) {
+            throw new BadRequestException("Phiên làm việc không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.");
+        }
+
+        String email = jwtTokenProvider.getEmailFromToken(token);
+        UserSummaryDto userSummary = authService.getCurrentUser(email);
+        return ResponseEntity.ok(userSummary);
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Map<String, Object>> logout(HttpServletResponse response) {
         authService.logout(response);

@@ -1,56 +1,295 @@
-<!-- KizunaTutor Shared Header Component -->
-<header class="fixed top-0 left-0 right-0 z-50 bg-[#fcfbf7]/95 backdrop-blur-md border-b border-[#ece8de]">
-  <div class="h-20 max-w-[1240px] mx-auto px-4 md:px-8 flex items-center justify-between gap-4">
-    <!-- Logo + Slogan -->
-    <div class="flex items-center gap-6">
-      <a class="flex items-center gap-2 group" data-path="landing-page" href="/pages/home/">
-        <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm">
+<!-- KizunaTutor Shared Header Component (Figma Design Standard) -->
+<header
+  class="fixed top-0 inset-x-0 z-50 bg-[#FCFBF7] border-b border-[#ECE8DE] shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
+  <div
+    class="h-20 w-full max-w-[1360px] mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between gap-4 flex-nowrap whitespace-nowrap">
+    <!-- Logo + Slogan (Lệch về bên trái) -->
+    <div class="flex items-center gap-3 shrink-0">
+      <a class="flex items-center gap-2.5 group" data-path="landing-page" href="/pages/home/">
+        <img alt="Kizuna Logo" class="h-9 w-9 object-contain rounded-full shadow-sm border border-[#E5DECB] shrink-0"
+          src="/assets/logos/kizuna-logo.png">
         <div class="flex flex-col">
-          <div class="flex items-center gap-1.5">
-            <span class="font-bold text-xl tracking-tight text-[#0f2545]">Kizuna<span class="text-[#006194]">Tutor</span></span>
+          <div class="flex items-center gap-1.5 leading-none">
+            <span class="font-bold text-xl tracking-tight text-[#0F2545]">Kizuna<span
+                class="text-[#006194]">Tutor</span></span>
           </div>
-          <span class="text-[10px] text-[#68737D] font-medium -mt-0.5 tracking-wider">Kết nối song ngữ Việt – Nhật</span>
+          <span class="text-[10px] text-[#68737D] font-medium tracking-wider uppercase mt-1">Kết nối song ngữ Việt – Nhật</span>
         </div>
       </a>
-      <!-- Navigation items (Desktop) -->
-      <nav class="hidden lg:flex items-center gap-1" id="main-nav">
-        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-nav="discovery" href="/pages/tutor-discovery/">Tìm gia sư</a>
-        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-nav="cach-hoat-dong" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
-        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-nav="tro-thanh-gia-su" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
-        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-nav="requests" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
-        <a class="font-label-md text-label-md px-3 py-2 rounded-lg text-[#3F4850] hover:text-[#006194] hover:bg-[#f2efe6] transition-colors" data-nav="cong-cu-hoc" href="/pages/shodo-practice/">Công cụ học</a>
-      </nav>
     </div>
 
-    <!-- Actions (Chỉ có nút Vào Dashboard và nút Đăng ký, không có nút Đăng nhập) -->
-    <div class="flex items-center gap-3">
-      <a class="hidden sm:inline-flex items-center gap-1.5 font-semibold text-xs px-3.5 py-2 rounded-lg text-[#006194] hover:bg-[#006194]/10 transition-colors border border-[#006194]/20" data-path="dashboard" href="/login">
-        <span class="material-symbols-outlined text-[16px]">school</span>
-        <span>Vào Dashboard học tập</span>
+    <!-- Navigation items (Desktop) -->
+    <nav class="hidden lg:flex items-center justify-center gap-2 xl:gap-3 flex-1 mx-4" id="main-nav">
+      <a href="/tutors" data-nav="discovery"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors bg-[#E0EFF7] text-[#006194]">
+        <span class="material-symbols-outlined text-[18px]">search</span>
+        <span>Tìm gia sư</span>
       </a>
-      <a class="font-label-md text-label-md px-4 py-2 rounded-lg bg-[#006194] text-white hover:bg-[#004b73] transition-all shadow-sm font-semibold flex items-center gap-1.5" data-path="dang-ky" href="/register">
-        <span>Đăng ký</span>
-        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+      <a href="/pages/home/#cach-hoat-dong" data-nav="cach-hoat-dong"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
+        <span class="material-symbols-outlined text-[18px]">help_outline</span>
+        <span>Cách hoạt động</span>
       </a>
+      <a href="/pages/home/#tro-thanh-gia-su" data-nav="tro-thanh-gia-su"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
+        <span class="material-symbols-outlined text-[18px]">school</span>
+        <span>Trở thành gia sư</span>
+      </a>
+      <a href="/pages/home/#cong-cu-hoc" data-nav="cong-cu-hoc"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
+        <span class="material-symbols-outlined text-[18px]">menu_book</span>
+        <span>Công cụ học</span>
+      </a>
+    </nav>
+
+    <!-- Right Action CTA -->
+    <div class="flex items-center gap-3 shrink-0">
+      <!-- 1. Trạng thái chưa đăng nhập (Guest) -->
+      <div id="headerGuestActions" class="flex items-center gap-3">
+        <a href="/register"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white font-semibold text-sm shadow-sm transition-all active:scale-[0.98] cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]">person_add</span>
+          <span>Đăng ký</span>
+        </a>
+      </div>
+
+      <!-- 2. Trạng thái đã đăng nhập (Learner hoặc Tutor) -->
+      <div id="headerUserActions" class="hidden flex items-center gap-2.5 sm:gap-3">
+        <!-- Nút Vào Dashboard -->
+        <a id="headerDashboardBtn" href="/learner/dashboard"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#006194] hover:bg-[#004B73] text-white font-semibold text-sm shadow-sm transition-all active:scale-[0.98] cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]">grid_view</span>
+          <span>Vào Dashboard</span>
+        </a>
+
+        <!-- Biểu tượng Chuông thông báo -->
+        <button id="headerNotificationBtn" type="button" title="Thông báo"
+          class="relative p-2 rounded-full text-[#3F4850] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors cursor-pointer">
+          <span class="material-symbols-outlined text-[22px]">notifications</span>
+          <!-- Chấm đỏ: Chỉ xuất hiện khi có thông báo chưa đọc từ API thật -->
+          <span id="notificationBadge"
+            class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-[#DC2626] rounded-full ring-2 ring-[#FCFBF7]"></span>
+        </button>
+
+        <!-- Khu vực Avatar + Thông tin tài khoản -->
+        <div class="relative" id="userMenuWrapper">
+          <button id="userProfilePill" type="button" aria-expanded="false" aria-haspopup="true"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-full border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] transition-colors cursor-pointer select-none">
+            <!-- Avatar tròn có chấm xanh online -->
+            <div class="relative w-8 h-8 rounded-full shrink-0 flex items-center justify-center bg-[#E0EFF7] text-[#006194] font-bold text-xs border border-[#E5DECB]">
+              <img id="headerUserAvatar" class="w-full h-full object-cover rounded-full hidden" src="" alt="Avatar">
+              <span id="headerUserInitials" class="font-bold text-xs text-[#006194]">MC</span>
+              <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></span>
+            </div>
+
+            <!-- Họ tên & Vai trò (Tự động thu gọn chỉ còn avatar trên màn hình hẹp để không làm tràn Header) -->
+            <div class="hidden sm:flex flex-col text-left pr-1.5 max-w-[160px]">
+              <span id="headerUserName" class="text-xs font-bold text-[#0F2545] leading-tight truncate">Người dùng</span>
+              <span id="headerUserSubtitle" class="text-[11px] font-medium text-[#68737D] leading-tight truncate">Thành viên Kizuna</span>
+            </div>
+          </button>
+
+          <!-- Dropdown menu khi nhấn vào Avatar -->
+          <div id="userDropdownMenu"
+            class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-white shadow-xl border border-[#ECE8DE] py-2 z-50 text-xs">
+            <div class="px-4 py-2.5 border-b border-[#ECE8DE]">
+              <p id="dropdownFullName" class="font-bold text-sm text-[#0F2545] truncate">Người dùng</p>
+              <p id="dropdownEmail" class="text-[#68737D] text-[11px] truncate">user@kizuna.vn</p>
+            </div>
+
+            <div class="py-1">
+              <a id="dropdownDashboardLink" href="/learner/dashboard"
+                class="flex items-center gap-2.5 px-4 py-2 font-medium text-[#3F4850] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors">
+                <span class="material-symbols-outlined text-[18px]">grid_view</span>
+                <span>Bảng điều khiển</span>
+              </a>
+              <a href="/tutors"
+                class="flex items-center gap-2.5 px-4 py-2 font-medium text-[#3F4850] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors">
+                <span class="material-symbols-outlined text-[18px]">search</span>
+                <span>Tìm gia sư</span>
+              </a>
+              <a id="dropdownSettingsLink" href="/learner/dashboard"
+                class="flex items-center gap-2.5 px-4 py-2 font-medium text-[#3F4850] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors">
+                <span class="material-symbols-outlined text-[18px]">settings</span>
+                <span>Cài đặt</span>
+              </a>
+              <a id="dropdownSupportLink" href="/pages/home/#ho-tro"
+                class="flex items-center gap-2.5 px-4 py-2 font-medium text-[#3F4850] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors">
+                <span class="material-symbols-outlined text-[18px]">help</span>
+                <span>Trung tâm hỗ trợ</span>
+              </a>
+            </div>
+
+            <div class="pt-1 border-t border-[#ECE8DE]">
+              <button id="headerLogoutBtn" type="button"
+                class="w-full flex items-center gap-2.5 px-4 py-2 font-semibold text-[#BA1A1A] hover:bg-rose-50 transition-colors text-left cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+                <span>Đăng xuất</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Mobile Menu Toggle Button -->
-      <button id="mobileMenuBtn" aria-label="Mở menu điều hướng" class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#f2efe6] transition-colors">
+      <button id="mobileMenuBtn" aria-label="Mở menu điều hướng"
+        class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#FAF8F2] transition-colors cursor-pointer">
         <span class="material-symbols-outlined text-[24px]">menu</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Mobile Navigation Drawer -->
+  <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ECE8DE] bg-[#FCFBF7] px-6 py-4 space-y-2">
+    <a class="flex items-center gap-2 font-semibold text-sm py-2 text-[#006194]" href="/tutors">
+      <span class="material-symbols-outlined text-[18px]">search</span>
+      <span>Tìm gia sư</span>
+    </a>
+    <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]"
+      href="/pages/home/#cach-hoat-dong">
+      <span class="material-symbols-outlined text-[18px]">help_outline</span>
+      <span>Cách hoạt động</span>
+    </a>
+    <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]"
+      href="/pages/home/#tro-thanh-gia-su">
+      <span class="material-symbols-outlined text-[18px]">school</span>
+      <span>Trở thành gia sư</span>
+    </a>
+    <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]"
+      href="/pages/home/#cong-cu-hoc">
+      <span class="material-symbols-outlined text-[18px]">menu_book</span>
+      <span>Công cụ học</span>
+    </a>
+
+    <!-- Mobile Guest Actions -->
+    <div id="mobileGuestActions" class="pt-3 border-t border-[#ECE8DE] space-y-2">
+      <a href="/register"
+        class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#006194] text-white font-semibold text-sm shadow-sm hover:bg-[#004B73] transition-colors">
+        <span class="material-symbols-outlined text-[18px]">person_add</span>
+        <span>Đăng ký</span>
+      </a>
+    </div>
+
+    <!-- Mobile Logged-in State -->
+    <div id="mobileUserActions" class="hidden pt-3 border-t border-[#ECE8DE] space-y-2">
+      <div class="flex items-center gap-3 p-3 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE]">
+        <div class="relative w-10 h-10 rounded-full shrink-0 flex items-center justify-center bg-[#E0EFF7] text-[#006194] font-bold text-sm border border-[#E5DECB]">
+          <img id="mobileUserAvatar" class="w-full h-full object-cover rounded-full hidden" src="" alt="Avatar">
+          <span id="mobileUserInitials" class="font-bold text-sm text-[#006194]">MC</span>
+          <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></span>
+        </div>
+        <div class="flex flex-col min-w-0">
+          <span id="mobileUserName" class="text-sm font-bold text-[#0F2545] truncate">Người dùng</span>
+          <span id="mobileUserSubtitle" class="text-xs text-[#68737D] truncate">Thành viên Kizuna</span>
+        </div>
+      </div>
+      <a id="mobileDashboardBtn" href="/learner/dashboard"
+        class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#006194] text-white font-semibold text-sm shadow-sm hover:bg-[#004B73] transition-colors">
+        <span class="material-symbols-outlined text-[18px]">grid_view</span>
+        <span>Vào Bảng điều khiển</span>
+      </a>
+      <div class="grid grid-cols-2 gap-2">
+        <a id="mobileSettingsBtn" href="/learner/dashboard"
+          class="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white border border-[#ECE8DE] font-semibold text-xs text-[#3F4850] hover:bg-[#FAF8F2] transition-colors">
+          <span class="material-symbols-outlined text-[16px]">settings</span>
+          <span>Cài đặt</span>
+        </a>
+        <a id="mobileSupportBtn" href="/pages/home/#ho-tro"
+          class="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white border border-[#ECE8DE] font-semibold text-xs text-[#3F4850] hover:bg-[#FAF8F2] transition-colors">
+          <span class="material-symbols-outlined text-[16px]">help</span>
+          <span>Hỗ trợ</span>
+        </a>
+      </div>
+      <button id="mobileLogoutBtn" type="button"
+        class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-rose-50 text-[#BA1A1A] border border-rose-200 font-semibold text-sm hover:bg-rose-100 transition-colors cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">logout</span>
+        <span>Đăng xuất</span>
       </button>
     </div>
   </div>
 
-  <!-- Mobile Navigation Drawer -->
-  <div id="mobileMenu" class="hidden lg:hidden border-t border-[#ece8de] bg-[#fcfbf7] px-6 py-4 space-y-2">
-    <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/tutor-discovery/">Tìm gia sư</a>
-    <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#cach-hoat-dong">Cách hoạt động</a>
-    <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/home/#tro-thanh-gia-su">Trở thành gia sư</a>
-    <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/connection-requests/">Yêu cầu đã gửi</a>
-    <a class="block font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]" href="/pages/shodo-practice/">Công cụ học</a>
-    <div class="pt-3 border-t border-[#ece8de]">
-      <a class="flex items-center gap-2 font-semibold text-xs py-2 text-[#006194]" href="/login">
-        <span class="material-symbols-outlined text-[16px]">school</span>
-        <span>Vào Dashboard học tập</span>
-      </a>
+  <!-- Modal Đăng nhập nhanh (Popup nền mờ hiển thị trực tiếp khi chưa có tài khoản) -->
+  <div id="authModal" class="fixed inset-0 z-[100] hidden overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md bg-white rounded-2xl border border-[#ECE8DE] shadow-2xl p-6 sm:p-7 space-y-4">
+      
+      <!-- Nút đóng (X) -->
+      <button id="closeAuthModalBtn" type="button" aria-label="Đóng hộp thoại"
+        class="absolute top-4 right-4 p-1.5 rounded-lg text-[#68737D] hover:bg-[#FAF8F2] hover:text-[#0F2545] transition-colors cursor-pointer">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+
+      <!-- Tiêu đề & Lời nhắn thân thiện -->
+      <div class="text-left space-y-1 pr-6">
+        <h3 class="text-xl font-bold text-[#0F2545]">Đăng nhập</h3>
+        <p id="authModalSubtitle" class="text-xs text-[#68737D] leading-relaxed">
+          Đăng nhập để kết nối với <span id="authModalTutorName" class="font-bold text-[#006194]">gia sư</span> — hoàn toàn miễn phí, thông tin của bạn được giữ kín.
+        </p>
+      </div>
+
+      <!-- Đăng nhập bằng Google -->
+      <div class="pt-1">
+        <a href="/oauth2/authorization/google"
+          class="w-full py-2.5 px-4 rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] text-xs font-semibold transition flex items-center justify-center gap-2.5 no-underline">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+          <span>Tiếp tục với Google</span>
+        </a>
+      </div>
+
+      <!-- Phân cách -->
+      <div class="flex items-center gap-3">
+        <div class="h-px bg-[#ECE8DE] flex-1"></div>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#68737D]">hoặc bằng email</span>
+        <div class="h-px bg-[#ECE8DE] flex-1"></div>
+      </div>
+
+      <!-- Alert thông báo lỗi trong Modal -->
+      <div id="authModalAlert" class="hidden p-3 rounded-xl text-xs font-medium border bg-rose-50 text-rose-800 border-rose-200"></div>
+
+      <!-- Form đăng nhập nhanh -->
+      <form id="authModalForm" class="space-y-3.5">
+        <div>
+          <label for="authModalEmail" class="block text-xs font-bold text-[#0F2545] mb-1">
+            Email hoặc tài khoản
+          </label>
+          <input type="email" id="authModalEmail" required autocomplete="username" placeholder="vidu@kizuna.vn"
+            class="w-full px-3.5 py-2.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl text-xs text-[#0F2545] focus:bg-white focus:outline-none focus:border-[#006194] transition">
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="authModalPassword" class="block text-xs font-bold text-[#0F2545]">
+              Mật khẩu
+            </label>
+            <a href="/login" class="text-[11px] font-semibold text-[#006194] hover:underline">Quên mật khẩu?</a>
+          </div>
+          <div class="relative">
+            <input type="password" id="authModalPassword" required autocomplete="current-password" placeholder="••••••••"
+              class="w-full px-3.5 py-2.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl text-xs text-[#0F2545] focus:bg-white focus:outline-none focus:border-[#006194] transition pr-10">
+            <button id="toggleAuthModalPass" type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#68737D] hover:text-[#0F2545] p-1 cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" id="authModalSubmitBtn"
+          class="w-full py-2.5 px-4 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer mt-1">
+          <span>Đăng nhập</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </button>
+      </form>
+
+      <!-- Footer đăng ký -->
+      <div class="pt-3 border-t border-[#ECE8DE] text-center text-xs text-[#68737D]">
+        <span>Chưa có tài khoản? </span>
+        <a href="/register" class="font-bold text-[#006194] hover:underline">Đăng ký miễn phí</a>
+      </div>
+
     </div>
   </div>
 </header>

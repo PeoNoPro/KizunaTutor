@@ -36,6 +36,7 @@ public class TutorSearchController {
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) String schedule,
+            @RequestParam(required = false) String location,
             @RequestParam(defaultValue = "rating") String sortBy,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -48,6 +49,7 @@ public class TutorSearchController {
                 .minPrice(minPrice)
                 .maxPrice(maxPrice)
                 .schedule(schedule)
+                .location(location)
                 .sortBy(sortBy)
                 .page(page)
                 .size(size)
@@ -61,6 +63,16 @@ public class TutorSearchController {
      * Lấy danh sách gia sư tiêu biểu (Featured Tutors) có đánh giá cao nhất.
      * GET /api/tutors/featured
      */
+    /**
+     * Lấy danh sách các tỉnh/thành phố có gia sư thực tế trong hệ thống (FE-04).
+     * GET /api/tutors/locations
+     */
+    @GetMapping("/locations")
+    public ResponseEntity<List<String>> getAvailableLocations() {
+        List<String> list = tutorSearchService.getAvailableLocations();
+        return ResponseEntity.ok(list);
+    }
+
     @GetMapping("/featured")
     public ResponseEntity<List<TutorSummaryResponseDTO>> getFeaturedTutors() {
         List<TutorSummaryResponseDTO> list = tutorSearchService.getFeaturedTutors();
@@ -68,7 +80,21 @@ public class TutorSearchController {
     }
 
     /**
-     * Xem thông tin chi tiết một gia sư theo ID.
+     * Xem thông tin chi tiết một gia sư theo mã tự tăng tutor_code (ví dụ: 10001).
+     * Trả về HTTP 404 khi mã gia sư không tồn tại.
+     * GET /api/tutors/code/{code}
+     */
+    @GetMapping("/code/{code}")
+    public ResponseEntity<TutorSummaryResponseDTO> getTutorByCode(@PathVariable Long code) {
+        TutorSummaryResponseDTO detail = tutorSearchService.getTutorByCode(code);
+        if (detail == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(detail);
+    }
+
+    /**
+     * Xem thông tin chi tiết một gia sư theo UUID (tương thích ngược).
      * GET /api/tutors/{id}
      */
     @GetMapping("/{id}")
@@ -77,4 +103,3 @@ public class TutorSearchController {
         return ResponseEntity.ok(detail);
     }
 }
-

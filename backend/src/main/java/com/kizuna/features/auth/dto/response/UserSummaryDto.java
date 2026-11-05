@@ -17,6 +17,8 @@ public class UserSummaryDto {
     private String email;
     private String role;
     private String roleBadge;
+    private String subtitle;
+    private String initialLetters;
     private String avatarUrl;
     private String accountStatus;
     private boolean mustChangePassword;

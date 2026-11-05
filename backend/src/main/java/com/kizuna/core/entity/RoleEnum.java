@@ -50,7 +50,7 @@ public enum RoleEnum {
     ),
     ROLE_LEARNER(
             "ROLE_LEARNER",
-            "/learner/dashboard",
+            "/pages/home/",
             "Học Viên",
             "bg-emerald-600 text-white border-emerald-500",
             "#059669",

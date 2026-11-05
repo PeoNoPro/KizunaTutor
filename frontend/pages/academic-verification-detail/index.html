@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thẩm định hồ sơ gia sư - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <div id="academicSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="academicTopbar"></div>
+
+    <main class="flex-1 pt-16 w-full">
+      <div class="px-4 md:px-8 py-8 flex flex-col gap-6">
+        <a href="/academic/verifications#queue" class="inline-flex items-center gap-1 text-label-md text-primary hover:underline self-start">
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span>Quay lại danh sách hồ sơ
+        </a>
+
+        <!-- Đang tải -->
+        <section id="loadingState" class="space-y-4">
+          <div class="tv-skeleton h-32"></div>
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-8 tv-skeleton h-96"></div>
+            <div class="lg:col-span-4 tv-skeleton h-96"></div>
+          </div>
+        </section>
+
+        <!-- Lỗi -->
+        <section id="errorState" class="hidden bg-surface-container-lowest rounded-xl p-8 shadow-sm text-center">
+          <span class="material-symbols-outlined text-5xl text-error">cloud_off</span>
+          <h2 class="text-headline-sm mt-2">Chưa tải được hồ sơ</h2>
+          <p id="errorMessage" class="text-on-surface-variant mt-1"></p>
+          <button id="retryButton" type="button" class="mt-4 px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-label-md inline-flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">refresh</span>Thử lại
+          </button>
+        </section>
+
+        <div id="contentState" class="hidden flex flex-col gap-6">
+          <!-- Đầu hồ sơ + hành động -->
+          <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+            <div class="flex items-center gap-4 min-w-0">
+              <div id="avatar" class="w-16 h-16 rounded-2xl bg-primary-fixed text-on-primary-fixed-variant flex items-center justify-center text-headline-md shrink-0">GS</div>
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h1 id="tutorName" class="text-headline-md text-on-surface font-bold tracking-tight truncate"></h1>
+                  <span id="statusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-caption font-semibold"></span>
+                </div>
+                <p id="contactText" class="text-body-sm text-outline mt-0.5 truncate"></p>
+                <p class="text-body-sm text-on-surface-variant mt-0.5">Ngày nộp: <strong id="submittedText" class="text-on-surface"></strong></p>
+              </div>
+            </div>
+            <div id="actionBar" class="flex flex-wrap items-center gap-2.5">
+              <button id="requestInfoButton" type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md transition-colors">
+                <span class="material-symbols-outlined text-[18px]">contact_support</span>Yêu cầu bổ sung
+              </button>
+              <button id="rejectButton" type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-error-container text-on-error-container hover:opacity-90 text-label-md transition-all">
+                <span class="material-symbols-outlined text-[18px]">block</span>Từ chối
+              </button>
+              <button id="approveButton" type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary text-label-md shadow-sm hover:bg-primary-container transition-all">
+                <span class="material-symbols-outlined text-[18px]">task_alt</span>Phê duyệt
+              </button>
+            </div>
+            <p id="processedNote" class="hidden text-body-sm text-on-surface-variant max-w-sm"></p>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-8 flex flex-col gap-6">
+              <!-- Thông tin -->
+              <section class="bg-surface-container-lowest rounded-xl p-6 shadow-sm">
+                <div class="flex items-center gap-2.5 mb-4">
+                  <div class="w-2.5 h-6 rounded-full bg-primary"></div>
+                  <h2 class="text-title-md font-bold text-on-surface">Thông tin cá nhân &amp; chuyên môn</h2>
+                </div>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div class="p-3 rounded-lg bg-surface-container-low"><dt class="text-caption text-outline">Họ và tên</dt><dd id="fFullName" class="text-label-md text-on-surface mt-0.5"></dd></div>
+                  <div class="p-3 rounded-lg bg-surface-container-low"><dt class="text-caption text-outline">Số điện thoại</dt><dd id="fPhone" class="text-label-md text-on-surface mt-0.5"></dd></div>
+                  <div class="p-3 rounded-lg bg-surface-container-low"><dt class="text-caption text-outline">Ngày sinh</dt><dd id="fDob" class="text-label-md text-on-surface mt-0.5"></dd></div>
+                  <div class="p-3 rounded-lg bg-surface-container-low"><dt class="text-caption text-outline">Địa chỉ</dt><dd id="fAddress" class="text-label-md text-on-surface mt-0.5"></dd></div>
+                  <div class="p-3 rounded-lg bg-surface-container-low"><dt class="text-caption text-outline">Trình độ JLPT cao nhất</dt><dd id="fJlpt" class="text-label-md text-on-surface mt-0.5"></dd></div>
+                  <div class="p-3 rounded-lg bg-surface-container-low"><dt class="text-caption text-outline">Kinh nghiệm giảng dạy</dt><dd id="fExperience" class="text-label-md text-on-surface mt-0.5"></dd></div>
+                </dl>
+                <div class="mt-4">
+                  <p class="text-caption text-outline mb-1">Giới thiệu</p>
+                  <p id="fBio" class="text-body-md text-on-surface whitespace-pre-line p-3 rounded-lg bg-surface-container-low"></p>
+                </div>
+              </section>
+
+              <!-- Giấy tờ -->
+              <section class="bg-surface-container-lowest rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-2.5 h-6 rounded-full bg-tertiary"></div>
+                    <h2 class="text-title-md font-bold text-on-surface">Giấy tờ xác minh</h2>
+                  </div>
+                  <span id="documentCount" class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant text-label-sm"></span>
+                </div>
+                <ul id="documentList" class="flex flex-col gap-3"></ul>
+                <p id="documentEmpty" class="hidden text-body-sm text-on-surface-variant">Gia sư chưa tải lên giấy tờ nào.</p>
+                <div id="previewPanel" class="hidden mt-4">
+                  <div class="flex items-center justify-between mb-2">
+                    <p id="previewTitle" class="text-label-md text-on-surface truncate"></p>
+                    <button id="previewCloseButton" type="button" class="p-1.5 rounded-lg hover:bg-surface-container" aria-label="Đóng xem trước">
+                      <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+                  <div id="previewBody" class="min-h-[320px] rounded-lg bg-surface-container-low flex items-center justify-center overflow-auto"></div>
+                </div>
+              </section>
+            </div>
+
+            <!-- Lịch sử -->
+            <section id="history" class="lg:col-span-4 bg-surface-container-lowest rounded-xl p-6 shadow-sm scroll-mt-20">
+              <div class="flex items-center gap-2.5 mb-4">
+                <div class="w-2.5 h-6 rounded-full bg-outline"></div>
+                <div>
+                  <h2 class="text-title-md font-bold text-on-surface">Lịch sử thẩm định</h2>
+                  <p class="text-body-sm text-on-surface-variant">Theo thứ tự thời gian</p>
+                </div>
+              </div>
+              <div id="historyList" class="relative pl-6 space-y-5"></div>
+              <p id="historyEmpty" class="hidden text-body-sm text-on-surface-variant">Chưa có lịch sử thẩm định.</p>
+              <p id="historyError" class="hidden text-body-sm text-error">Không thể tải lịch sử thẩm định.</p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Hộp thoại phê duyệt -->
+  <div id="approveModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 tv-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="approveTitle">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-lg w-full max-w-md p-6">
+      <h2 id="approveTitle" class="text-headline-sm text-on-surface">Phê duyệt hồ sơ</h2>
+      <p class="text-body-md text-on-surface-variant mt-2">Gia sư sẽ được mở quyền giảng dạy và nhận email thông báo. Bạn có chắc chắn muốn phê duyệt hồ sơ này?</p>
+      <div class="flex justify-end gap-2.5 mt-6">
+        <button type="button" data-close-modal class="px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-label-md">Hủy</button>
+        <button id="approveConfirmButton" type="button" class="px-4 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container text-label-md">Phê duyệt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hộp thoại từ chối -->
+  <div id="rejectModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 tv-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="rejectTitle">
+    <form id="rejectForm" class="bg-surface-container-lowest rounded-2xl shadow-lg w-full max-w-lg p-6 flex flex-col gap-4" novalidate>
+      <h2 id="rejectTitle" class="text-headline-sm text-on-surface">Từ chối hồ sơ</h2>
+      <p class="flex items-start gap-2 p-3 rounded-lg bg-error-container text-on-error-container text-body-sm">
+        <span class="material-symbols-outlined text-[18px]">warning</span>
+        <span>Từ chối là quyết định cuối cùng: gia sư sẽ không thể chỉnh sửa hoặc nộp lại hồ sơ. Nếu hồ sơ chỉ thiếu hoặc sai thông tin, hãy dùng "Yêu cầu bổ sung".</span>
+      </p>
+      <div>
+        <label for="reasonSelect" class="tv-label">Lý do từ chối</label>
+        <select id="reasonSelect" class="tv-input">
+          <option value="">Chọn lý do</option>
+          <option value="INSUFFICIENT_QUALIFICATION">Chưa đủ trình độ chuyên môn</option>
+          <option value="INVALID_OR_FORGED_DOCUMENT">Giấy tờ không hợp lệ hoặc có dấu hiệu giả mạo</option>
+          <option value="INFORMATION_MISMATCH">Thông tin không trùng khớp với giấy tờ</option>
+          <option value="OTHER">Lý do khác</option>
+        </select>
+        <p class="tv-field-error" data-error-for="reasonCode"></p>
+      </div>
+      <div>
+        <label for="feedbackInput" class="tv-label">Phản hồi gửi gia sư <span class="text-outline font-normal">(không bắt buộc)</span></label>
+        <textarea id="feedbackInput" rows="3" maxlength="2000" class="tv-input" placeholder="Gia sư sẽ thấy nội dung này trong email và trang hồ sơ"></textarea>
+        <p class="tv-field-error" data-error-for="feedback"></p>
+      </div>
+      <div>
+        <label for="internalNoteInput" class="tv-label">Ghi chú nội bộ</label>
+        <textarea id="internalNoteInput" rows="3" maxlength="2000" class="tv-input" placeholder="Chỉ cán bộ học vụ xem được"></textarea>
+        <p class="tv-field-error" data-error-for="internalNote"></p>
+      </div>
+      <p id="rejectFormError" class="hidden text-body-sm text-error"></p>
+      <div class="flex justify-end gap-2.5">
+        <button type="button" data-close-modal class="px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-label-md">Hủy</button>
+        <button id="rejectConfirmButton" type="submit" class="px-4 py-2 rounded-lg bg-error text-on-error hover:opacity-90 text-label-md">Xác nhận từ chối</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Hộp thoại yêu cầu bổ sung -->
+  <div id="requestInfoModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 tv-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="requestInfoTitle">
+    <form id="requestInfoForm" class="bg-surface-container-lowest rounded-2xl shadow-lg w-full max-w-lg p-6 flex flex-col gap-4" novalidate>
+      <h2 id="requestInfoTitle" class="text-headline-sm text-on-surface">Yêu cầu bổ sung thông tin</h2>
+      <div>
+        <label for="requestInfoInput" class="tv-label">Nội dung cần bổ sung</label>
+        <textarea id="requestInfoInput" rows="5" maxlength="2000" class="tv-input" placeholder="Ví dụ: Ảnh căn cước công dân bị mờ, vui lòng tải lên ảnh rõ nét cả hai mặt."></textarea>
+        <p class="text-caption text-outline text-right mt-1"><span id="requestInfoCounter">0</span>/2.000</p>
+        <p class="tv-field-error" data-error-for="message"></p>
+      </div>
+      <div class="flex justify-end gap-2.5">
+        <button type="button" data-close-modal class="px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-label-md">Hủy</button>
+        <button id="requestInfoConfirmButton" type="submit" class="px-4 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container text-label-md">Gửi yêu cầu</button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/pages/academic-verification-detail/academic-verification-detail.js"></script>
+</body>
+</html>

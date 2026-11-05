@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kết quả thanh toán - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <div id="tutorSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="tutorTopbar"></div>
+
+    <main class="flex-1 w-full pt-16">
+      <div class="px-4 md:px-8 py-10 flex justify-center">
+        <section class="tv-card w-full max-w-lg p-8 text-center" aria-live="polite">
+
+          <div id="loadingState">
+            <div class="mx-auto w-14 h-14 rounded-full border-4 border-surface-container border-t-primary animate-spin"></div>
+            <h1 class="text-title-lg mt-4">Đang xác nhận kết quả thanh toán</h1>
+            <p class="text-body-sm text-on-surface-variant mt-1">Vui lòng không đóng trang trong giây lát.</p>
+          </div>
+
+          <div id="resultState" class="hidden">
+            <span id="resultIcon" class="material-symbols-outlined text-6xl"></span>
+            <h1 id="resultTitle" class="text-headline-sm mt-2"></h1>
+            <p id="resultMessage" class="text-body-md text-on-surface-variant mt-2"></p>
+            <dl id="resultDetails" class="mt-6 grid grid-cols-[auto,1fr] gap-x-4 gap-y-2 text-left text-body-md bg-surface-container-low rounded-xl p-4"></dl>
+            <div class="mt-6 flex flex-col sm:flex-row justify-center gap-2">
+              <button id="checkAgainButton" type="button" class="hidden tv-btn inline-flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">refresh</span>Kiểm tra lại
+              </button>
+              <a id="retryPayLink" href="/tutor/membership" class="hidden tv-btn tv-btn-primary">Thanh toán lại</a>
+              <a href="/tutor/membership" class="tv-btn">Xem gói của tôi</a>
+            </div>
+          </div>
+
+          <div id="errorState" class="hidden">
+            <span class="material-symbols-outlined text-6xl text-error">error</span>
+            <h1 class="text-headline-sm mt-2">Chưa xác nhận được kết quả</h1>
+            <p id="errorMessage" class="text-body-md text-on-surface-variant mt-2"></p>
+            <div class="mt-6 flex flex-col sm:flex-row justify-center gap-2">
+              <button id="retryButton" type="button" class="tv-btn inline-flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">refresh</span>Thử lại
+              </button>
+              <a href="/tutor/membership" class="tv-btn">Về trang gói hội viên</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/pages/tutor-membership-result/tutor-membership-result.js"></script>
+</body>
+</html>

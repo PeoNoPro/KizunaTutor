@@ -1,0 +1,144 @@
+/* Khung Quản trị viên và Quản lý theo Figma "KizunaTutor · Dashboard" (bộ MỚI). Chỉ áp dụng khi body có .admin-portal, không ảnh hưởng khung CS. */
+.admin-dashboard.admin-portal{--admin-bg:#fcfbf7;--admin-surface:#f7f4ec;--admin-accent:#f7f4ec;--portal-primary:var(--color-primary,#006194);--portal-navy:#0f2545;--portal-text:#3f4850;--portal-line:#d5ccb6;--portal-field:#d2e2ee;background:#fcfbf7;color:var(--portal-navy);font-family:'Plus Jakarta Sans',sans-serif}
+.admin-portal p{color:var(--portal-text)}
+
+html{scrollbar-gutter:stable}
+
+/* Header */
+.admin-portal .admin-topbar{position:fixed;top:0;left:0;right:0;margin-left:0;height:88px;padding:12px 40px;background:#fff;backdrop-filter:none;border-bottom:1px solid var(--portal-line);justify-content:flex-start;gap:24px;z-index:30}
+.admin-portal .admin-brand{min-height:0;padding:0;gap:8px;flex-shrink:0}
+.admin-portal .admin-brand strong{font-size:20px;line-height:28px;font-weight:700;color:var(--portal-navy)}
+.admin-portal .admin-brand small{color:var(--portal-text);font-size:10px;font-weight:400;letter-spacing:0;line-height:15px}
+.admin-portal .topbar-breadcrumb>span,.admin-portal .topbar-breadcrumb>strong,.admin-portal .security-status{display:none}
+.admin-portal .topbar-actions{gap:24px;margin-left:auto}
+.admin-portal .notification-button{display:flex;align-items:center;gap:8px;padding:0;min-height:44px;font-size:13px;color:var(--portal-navy);background:none;border:0;box-shadow:none}
+.admin-portal .admin-identity{text-align:left;max-width:200px}
+.admin-portal .admin-identity strong{font-size:14px;font-weight:700;line-height:1.45;white-space:normal}
+.admin-portal .admin-identity small{font-size:12px;line-height:1.45;color:var(--portal-text)}
+.admin-portal .admin-avatar{background:var(--admin-surface);color:var(--portal-navy);font-size:13px}
+
+/* Điều hướng theo vai trò */
+.admin-portal .admin-sidebar{position:fixed;inset:112px auto auto 24px;width:208px;max-height:calc(100vh - 136px);background:var(--admin-surface);border-radius:12px;padding:16px 8px;box-shadow:none;gap:8px;z-index:20}
+.admin-portal .sidebar-menu{padding:0}
+.admin-portal .nav-caption{padding:0 8px 8px;font-size:12px;font-weight:700;letter-spacing:0;color:var(--portal-text)}
+.admin-portal .sidebar-menu nav{gap:8px}
+.admin-portal .sidebar-menu a,.admin-portal .sidebar-menu button,.admin-portal .sidebar-bottom a,.admin-portal .sidebar-bottom button{min-height:44px;padding:0 12px;font-size:13px;font-weight:400;color:var(--portal-text);background:none;border:0;gap:8px}
+.admin-portal .sidebar-menu img,.admin-portal .sidebar-bottom img{display:none}
+.admin-portal .sidebar-menu a:hover,.admin-portal .sidebar-bottom a:hover{background:#fff}
+.admin-portal .sidebar-menu a[aria-current=page],.admin-portal .sidebar-bottom a[aria-current=page]{background:var(--portal-primary);color:#fff;font-weight:700}
+.admin-portal .sidebar-bottom{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--portal-line)}
+.admin-portal .sidebar-bottom .logout-button{color:var(--color-error,#ba1a1a);justify-content:flex-start;box-shadow:none}
+
+/* Nội dung */
+.admin-portal .dashboard-main{margin-left:256px;padding:112px 32px 32px;max-width:1500px}
+.admin-dashboard.admin-portal.support-page .support-main{margin-left:256px;padding-top:112px}
+.admin-dashboard.admin-portal .operations-page-heading{padding:0 0 24px;max-width:none;display:flex;flex-direction:column;gap:10px}
+.admin-dashboard.admin-portal .operations-page-heading .role-badge{display:none}
+.admin-dashboard.admin-portal .operations-page-heading h1{font-size:30px;line-height:1.25;font-weight:700;letter-spacing:0;color:var(--portal-navy);margin:0}
+.admin-dashboard.admin-portal .operations-page-heading p{font-size:15px;line-height:24px;color:var(--portal-text);margin:0}
+.admin-portal .intro-copy h1{font-weight:700;letter-spacing:0;color:var(--portal-navy)}
+.admin-dashboard.admin-portal .operations-content h2{font-size:24px;line-height:32px;font-weight:700;letter-spacing:0;color:var(--portal-navy);margin:0 0 18px}
+.admin-dashboard.admin-portal .operations-content .kpi-top h2{font-size:13px;line-height:20px;font-weight:600;margin:0 0 8px;color:var(--portal-text)}
+.admin-dashboard.admin-portal .operations-content p{font-size:14px;color:var(--portal-text)}
+.admin-dashboard.admin-portal #operationsNotice{font-size:13px;margin:0 0 16px}
+.admin-dashboard.admin-portal #operationsNotice[data-error=true]{color:#ba1a1a;background:#fff0ee}
+
+/* Tab */
+.portal-tabs{display:flex;gap:6px;padding:6px;margin:0 0 24px;background:var(--admin-surface);border-radius:12px;flex-wrap:wrap}
+.admin-dashboard.admin-portal .operations-content .portal-tabs a{flex:1 1 0;min-width:120px;display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:1px solid var(--portal-primary);border-radius:8px;background:#fff;color:var(--portal-primary);font-size:13px;font-weight:500;text-align:center;text-decoration:none}
+.admin-dashboard.admin-portal .operations-content .portal-tabs a[aria-current=page]{background:var(--portal-primary);color:#fff;font-weight:700}
+
+/* Thẻ, bảng, nút và trường nhập */
+.admin-dashboard.admin-portal .operations-card,.admin-portal .panel,.admin-portal .kpi-card{background:#fff;border:1px solid var(--portal-line);border-radius:8px;box-shadow:none}
+.admin-dashboard.admin-portal .operations-card{padding:24px;margin:0 0 20px}
+.admin-portal th{background:var(--admin-surface);color:var(--portal-text);font-size:12px;font-weight:700;padding:10px 12px}
+.admin-portal td{font-size:13px;line-height:22px;padding:16px 12px;color:var(--portal-text)}
+.admin-portal tbody tr{border-bottom:1px solid var(--portal-line)}
+.admin-portal tbody tr+tr{border-top:0}
+.admin-portal td a{font-size:13px;white-space:normal}
+.admin-dashboard.admin-portal .operations-content button,.admin-portal .portal-dialog button{min-height:44px;padding:10px 20px;border:1px solid var(--portal-primary);border-radius:8px;background:#fff;color:var(--portal-primary);font-size:14px;line-height:22px;font-weight:700}
+.admin-dashboard.admin-portal .operations-content button:not(:disabled):hover,.admin-portal .portal-dialog button:not(:disabled):hover{background:#eef5fa}
+.admin-dashboard.admin-portal .operations-content button.primary,.admin-portal .portal-dialog button.primary{background:var(--portal-primary);color:#fff}
+.admin-dashboard.admin-portal .operations-content button.primary:not(:disabled):hover,.admin-portal .portal-dialog button.primary:not(:disabled):hover{background:var(--color-primary-dark,#004b73)}
+.admin-dashboard.admin-portal .operations-content label,.admin-portal .portal-dialog label{font-size:13px;line-height:21px;font-weight:600;color:var(--portal-primary);margin:0 0 8px}
+.admin-dashboard.admin-portal .operations-content input:not([type=checkbox]),.admin-dashboard.admin-portal .operations-content select,.admin-dashboard.admin-portal .operations-content textarea,.admin-portal .portal-dialog input:not([type=checkbox]),.admin-portal .portal-dialog select,.admin-portal .portal-dialog textarea{width:100%;max-width:none;margin:8px 0 0;padding:12px 14px;border:1px solid var(--portal-line);border-radius:8px;background:#fff;color:var(--portal-navy);font:400 14px/1.45 'Plus Jakarta Sans',sans-serif}
+.admin-dashboard.admin-portal .operations-content textarea,.admin-portal .portal-dialog textarea{border-color:var(--portal-field);min-height:96px;padding:16px;font-size:15px;line-height:24px;resize:vertical}
+.admin-dashboard.admin-portal .operations-content fieldset,.admin-portal .portal-dialog fieldset{max-width:none;background:#fff;border:1px solid var(--portal-line);border-radius:8px;padding:14px;margin:0}
+.admin-portal .portal-dialog legend{padding:0 6px;font-size:13px;font-weight:600;color:var(--portal-primary)}
+.admin-dashboard.admin-portal .operations-filters{background:none;border:0;padding:0;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:0 0 20px}
+.admin-dashboard.admin-portal .operations-filters label{margin:0}
+.admin-dashboard.admin-portal .operations-event{background:var(--admin-surface);border-radius:8px}
+.admin-portal .soft-link,.admin-portal .quick-actions a,.admin-portal .quick-actions button{background:#fff;border:1px solid var(--portal-primary);color:var(--portal-primary)}
+.admin-portal .button{background:#fff;border:1px solid var(--portal-primary);color:var(--portal-primary);box-shadow:none}
+.admin-portal .button-warning{background:#fff;border-color:#d97706;color:#b45f06}
+.admin-portal .period-picker{border:1px solid var(--portal-line);box-shadow:none}
+.admin-portal .role-badge{background:var(--admin-surface);color:var(--portal-primary)}
+.admin-portal .icon-tile,.admin-portal .icon-tile-blue,.admin-portal .icon-tile-sky{background:var(--admin-surface)}
+.admin-portal .health-footnote{background:var(--admin-surface)}
+.admin-portal .report-rate{font-size:20px}
+.admin-portal .report-definition{background:var(--admin-surface);font-size:13px!important}
+
+/* Dòng danh sách theo Figma */
+.portal-row-head,.portal-row{display:grid;grid-template-columns:minmax(0,1fr) 160px 144px;gap:16px;align-items:start}
+.portal-row-head{background:var(--admin-surface);padding:10px 12px;font-size:12px;line-height:1.45;font-weight:700;color:var(--portal-text)}
+.portal-row{padding:16px 0;border-bottom:1px solid var(--portal-line)}
+.portal-row-info{min-width:0;display:flex;flex-direction:column;gap:6px}
+.admin-dashboard.admin-portal .operations-content .portal-row-title{font-size:16px;line-height:24px;font-weight:600;color:var(--portal-primary);overflow-wrap:anywhere}
+.admin-dashboard.admin-portal .operations-content .portal-row-info p{margin:0;font-size:13px;line-height:22px}
+.portal-row-status{font-size:13px;line-height:20px;font-weight:600;color:var(--portal-primary)}
+.admin-dashboard.admin-portal .operations-content a.portal-link-button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:1px solid var(--portal-primary);border-radius:8px;background:#fff;color:var(--portal-primary);font-size:14px;font-weight:700;text-align:center;text-decoration:none}
+.admin-dashboard.admin-portal .operations-content a.portal-link-button:hover{background:#eef5fa}
+.portal-list-action{margin-top:16px}
+.admin-dashboard.admin-portal .operations-content .staff-identity-name{display:block;font-size:16px;line-height:24px;font-weight:600;color:var(--portal-primary)}
+.admin-portal .staff-table td{max-width:none}
+.admin-dashboard.admin-portal .operations-content details>summary{font-size:16px;font-weight:600;color:var(--portal-primary);cursor:pointer}
+.admin-dashboard.admin-portal .staff-toolbar{align-items:flex-end;margin:0 0 16px}
+.admin-dashboard.admin-portal .operations-content .staff-toolbar label{margin:0}
+.admin-dashboard.admin-portal .staff-toolbar input{max-width:none!important}
+.portal-create-action{width:300px;max-width:100%;margin:0 0 24px}
+.admin-dashboard.admin-portal .operations-content .staff-toolbar h2{margin:0}
+
+/* Hộp thoại */
+.admin-portal dialog.portal-dialog{padding:0;margin:auto;border:1px solid var(--portal-line);border-radius:16px;background:#fff;box-shadow:0 16px 24px rgba(15,37,69,.12);color:var(--portal-navy);width:min(680px,calc(100% - 28px));max-width:none;max-height:90vh;overflow:auto}
+.admin-portal dialog.portal-dialog::backdrop{background:rgba(15,37,69,.26)}
+.portal-dialog-head{display:flex;justify-content:space-between;align-items:start;gap:16px;padding:24px 28px;background:var(--admin-surface)}
+.admin-portal .portal-dialog-head h2{margin:0;font-size:24px;line-height:32px;font-weight:700}
+.admin-portal .portal-dialog button.portal-dialog-close{border:0;background:none;min-height:0;padding:0;font-size:14px;line-height:32px;font-weight:600;color:var(--portal-primary)}
+.admin-portal .portal-dialog button.portal-dialog-close:not(:disabled):hover{background:none;text-decoration:underline}
+.portal-dialog-body{display:flex;flex-direction:column;gap:20px;padding:24px 28px}
+.portal-dialog-body>p,.portal-dialog-body .staff-help{margin:0!important;font-size:14px!important;line-height:21px!important;color:var(--portal-text)!important}
+.portal-dialog-body>p:empty{display:none}
+.admin-portal .portal-dialog label{display:block}
+.portal-dialog-body [hidden]{display:none!important}
+.portal-dialog-actions{display:flex;gap:16px;padding:20px 28px;background:var(--admin-surface);flex-wrap:wrap}
+.portal-dialog-actions button{flex:1 1 0;min-width:140px}
+.portal-dialog-extra{display:flex;flex-direction:column;gap:10px}
+.portal-dialog-error{color:#ba1a1a!important;background:#fff0ee;padding:12px;border-radius:8px}
+.portal-dialog-error:empty{display:none}
+.staff-create-actions{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 24px}
+.staff-create-actions .portal-create-action{margin:0}
+.staff-import-file{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.staff-import-file>div{flex:1 1 220px;min-width:0}
+.revenue-panel{padding:24px;margin-bottom:24px}
+.revenue-plans{margin-top:20px}
+.overview-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:20px}
+.overview-chart{min-width:0;padding:18px;border:1px solid var(--portal-line);border-radius:8px}
+.overview-chart-wide{grid-column:1/-1}
+.overview-chart h3{margin:0 0 4px;font-size:15px;line-height:22px;font-weight:700;color:var(--portal-navy)}
+.overview-chart>p{margin:0 0 14px;font-size:13px;line-height:20px}
+@media(max-width:900px){.overview-charts{grid-template-columns:minmax(0,1fr)}}
+.admin-portal .export-actions button{min-height:36px;padding:6px 14px;border:1px solid var(--portal-primary);border-radius:8px;background:#fff;color:var(--portal-primary);font-size:13px;font-weight:600;cursor:pointer}
+.admin-portal .export-actions button:not(:disabled):hover{background:#eef5fa}
+.admin-portal .export-actions button:disabled{opacity:.6;cursor:wait}
+.portal-dialog-actions:not(:has(button:not([hidden]))){display:none}
+.admin-portal #importPreview table{min-width:560px}
+.admin-portal #importPreview td{padding:8px 10px}
+.admin-portal #importPreview td.staff-import-error{color:#ba1a1a}
+.admin-portal #importPreview{max-height:260px;overflow:auto}
+.admin-portal #createComponents label{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-weight:400;color:var(--portal-navy)}
+
+@media(max-width:1250px){.admin-portal .admin-sidebar{width:208px}.admin-portal .admin-topbar{margin-left:0;padding:12px 24px;gap:12px}.admin-portal .dashboard-main{margin-left:256px}}
+@media(max-width:1000px){.admin-portal .admin-brand small,.admin-portal .notification-button{display:none}.admin-portal .dashboard-main{padding:112px 20px 24px}}
+.admin-dashboard.admin-portal .operations-card>input+label,.admin-dashboard.admin-portal .operations-card>textarea+label,.admin-dashboard.admin-portal .operations-card>select+label,.admin-dashboard.admin-portal .operations-card>p+label{margin-top:16px}
+.admin-dashboard.admin-portal .operations-card>input+p,.admin-dashboard.admin-portal .operations-card>textarea+button{margin-top:16px}
+@media(max-width:760px){.admin-dashboard.admin-portal .operations-filters{padding:0}.admin-portal .admin-sidebar{inset:0 auto 0 0;width:288px;max-height:none;border-radius:0;transform:translateX(-100%);padding:20px 12px;z-index:40}.admin-portal .admin-sidebar.is-open{transform:translateX(0)}.admin-portal .admin-topbar{height:64px;padding:8px 14px;gap:8px}.admin-portal .admin-brand strong{font-size:16px}.admin-portal .admin-brand img{width:28px;height:28px}.admin-portal .topbar-breadcrumb{order:-1}.admin-portal .topbar-actions{margin-left:auto}.admin-portal .admin-identity{display:none}.admin-portal .dashboard-main{margin-left:0;padding:84px 14px 24px}.admin-portal.support-page .support-main{margin-left:0;padding-top:84px}.admin-dashboard.admin-portal .operations-card{padding:18px 14px}.admin-dashboard.admin-portal .operations-page-heading h1{font-size:26px}.admin-dashboard.admin-portal .operations-content h2{font-size:20px;line-height:28px}.revenue-panel{padding:18px}.table-scroll .role-change-table{min-width:0}.role-change-table thead{display:none}.role-change-table,.role-change-table tbody,.role-change-table tr,.role-change-table td{display:block;width:100%}.role-change-table td{padding:8px 0}.role-change-table td button{width:100%;margin:0 0 8px}.portal-row-head{display:none}.portal-row{grid-template-columns:minmax(0,1fr);gap:10px}.admin-dashboard.admin-portal .operations-content .portal-tabs a{flex:1 1 40%}.portal-create-action{width:100%}.portal-dialog-head{padding:18px 16px}.portal-dialog-body{padding:18px 16px}.portal-dialog-actions{flex-direction:column;padding:16px;gap:10px}.portal-dialog-actions button{flex:none}}

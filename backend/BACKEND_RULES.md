@@ -139,7 +139,7 @@ Giữ mỗi lớp, mỗi phương thức một trách nhiệm (phương thức d
 
 ### 5.3 Migration
 
-- Mọi thay đổi schema đi qua script SQL tăng dần trong `database/migrations/`, đặt tên `fe<NN>_<nnn>_<ten>.sql` (mẫu: `fe11_001_operations_schema.sql`), kèm README hướng dẫn chạy nếu cần backup hoặc preflight.
+- Bảng của feature mới đặt trong một file SQL riêng ở `database/seeds/` (mẫu: `fe11_operations_schema.sql`), dùng `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` để chạy lại không mất dữ liệu; test của feature đọc schema từ chính file đó. Hướng dẫn chạy (backup, preflight) đặt ở `database/migrations/README-<feature>.md`.
 - Không sửa migration đã áp dụng; sửa bằng migration mới.
 - Không chạy `DROP ... CASCADE`, `TRUNCATE` hay lệnh phá dữ liệu trên cơ sở dữ liệu thật. Không chạy `DatabasePgAdmin4.txt` (có `DROP CASCADE`).
 - Không tự seed giá trị cấu hình nghiệp vụ để migration chạy qua; thiếu giá trị thì dừng và hỏi người phụ trách.
@@ -198,6 +198,7 @@ Endpoint, trường phải đúng `specs/NNN-*/contracts/` của feature; không
 4. Lệnh ghi (POST, PUT, PATCH, DELETE) yêu cầu CSRF token (header mặc định `X-CSRF-TOKEN`); frontend lấy token và tên header từ endpoint `/csrf` của backend, không tự đặt cứng.
 5. Bí mật (mật khẩu DB, JWT secret, khóa Gemini/OpenAI, Google client secret, VNPay hash secret, mật khẩu Gmail) chỉ đọc từ biến môi trường dạng `${TEN_BIEN}` trong `application.properties`; không ghi giá trị thật vào kho mã, log hay chat.
 6. Giữ `server.servlet.encoding.charset=UTF-8` và `server.servlet.encoding.force=true`.
+7. **Đăng nhập tạm khi chưa có feature `auth`** (mặc định tắt): đặt biến môi trường `DEV_LOGIN_EMAIL` hoặc tham số `--app.dev-login.email=<email>` thì mọi request vào `/api/admin/operations/**` và `/api/policies/**` không có token hợp lệ được coi là tài khoản có email đó. Email phải là tài khoản thật, đang hoạt động trong DB; quyền vẫn kiểm tra theo vai trò trong DB (trang quản trị cần tài khoản quản trị viên, trang chính sách cần tài khoản học viên hoặc gia sư). Chỉ dùng trên máy phát triển, không bật trên môi trường thật. Khi `auth` xong: xóa tham số `devLoginEmail` trong `core/security/JwtAuthenticationAdapter` và `SecurityConfig`, rồi xóa mục này.
 
 ## 8. Tích hợp AI
 

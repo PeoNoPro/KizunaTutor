@@ -89,3 +89,6 @@ ai-service/__pycache__/
 ai-service/*.pyc
 ai-service/.venv/
 ai-service/venv/
+
+# FE-03: thu muc luu giay to xac minh gia su (khong dua len git)
+kizuna-data/

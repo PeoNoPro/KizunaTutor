@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý gói hội viên - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <div id="staffSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="staffTopbar"></div>
+
+    <main class="flex-1 w-full pt-16">
+      <div class="px-4 md:px-8 py-6">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-headline-md">Quản lý gói hội viên</h1>
+            <p class="text-body-md text-on-surface-variant mt-1">Cấu hình giá và quyền lợi của các gói dành cho gia sư. Giá mới chỉ áp dụng cho lần mua sau.</p>
+          </div>
+          <button id="createButton" type="button" class="tv-btn tv-btn-primary inline-flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">add</span>Tạo gói mới
+          </button>
+        </div>
+
+        <section id="loadingState" class="tv-skeleton h-64 rounded-2xl" aria-live="polite"></section>
+
+        <section id="errorState" class="hidden tv-card p-8 text-center">
+          <span class="material-symbols-outlined text-5xl text-error">cloud_off</span>
+          <h2 class="text-headline-sm mt-2">Chưa tải được danh sách gói</h2>
+          <p id="errorMessage" class="text-on-surface-variant mt-1"></p>
+          <button id="retryButton" type="button" class="tv-btn mt-4">Thử lại</button>
+        </section>
+
+        <section id="contentState" class="hidden tv-card p-0 overflow-x-auto">
+          <table class="w-full text-left text-body-sm min-w-[760px]">
+            <thead class="text-on-surface-variant bg-surface-container-low">
+              <tr>
+                <th class="px-4 py-3 font-semibold">Tên gói</th>
+                <th class="px-4 py-3 font-semibold">Thời hạn</th>
+                <th class="px-4 py-3 font-semibold text-right">Giá</th>
+                <th class="px-4 py-3 font-semibold">Quyền lợi</th>
+                <th class="px-4 py-3 font-semibold">Trạng thái</th>
+                <th class="px-4 py-3 font-semibold text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="plansBody"></tbody>
+          </table>
+          <p id="emptyState" class="hidden p-8 text-center text-on-surface-variant">Chưa có gói hội viên nào. Bấm "Tạo gói mới" để bắt đầu.</p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Tạo / sửa gói -->
+  <div id="planModal" class="hidden fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
+    <form id="planForm" class="tv-card w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" novalidate>
+      <h2 id="planModalTitle" class="text-title-lg">Tạo gói mới</h2>
+      <div class="mt-4 flex flex-col gap-4">
+        <label class="flex flex-col gap-1">
+          <span class="text-label-md">Tên gói *</span>
+          <input id="planName" name="planName" type="text" maxlength="100" class="rounded-lg border border-outline-variant px-3 py-2 bg-surface-container-lowest" required>
+          <span class="text-body-sm text-error hidden" data-error-for="planName"></span>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-label-md">Số tháng *</span>
+          <input id="durationMonths" name="durationMonths" type="number" min="1" max="36" step="1" class="rounded-lg border border-outline-variant px-3 py-2 bg-surface-container-lowest" required>
+          <span id="durationHint" class="text-body-sm text-on-surface-variant">Từ 1 đến 36 tháng. Không đổi được sau khi tạo.</span>
+          <span class="text-body-sm text-error hidden" data-error-for="durationMonths"></span>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-label-md">Giá (đồng) *</span>
+          <input id="price" name="price" type="number" min="10000" max="100000000" step="1000" class="rounded-lg border border-outline-variant px-3 py-2 bg-surface-container-lowest" required>
+          <span class="text-body-sm text-on-surface-variant">Từ 10.000 đ đến 100.000.000 đ.</span>
+          <span class="text-body-sm text-error hidden" data-error-for="price"></span>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-label-md">Quyền lợi</span>
+          <textarea id="benefits" name="benefits" rows="5" class="rounded-lg border border-outline-variant px-3 py-2 bg-surface-container-lowest" placeholder="Mỗi dòng một quyền lợi"></textarea>
+          <span class="text-body-sm text-on-surface-variant">Tối đa 20 dòng, mỗi dòng tối đa 200 ký tự.</span>
+          <span class="text-body-sm text-error hidden" data-error-for="benefits"></span>
+        </label>
+      </div>
+      <p id="formError" class="hidden mt-4 text-body-sm text-error"></p>
+      <div class="mt-6 flex justify-end gap-2">
+        <button id="cancelButton" type="button" class="tv-btn">Hủy</button>
+        <button id="saveButton" type="submit" class="tv-btn tv-btn-primary">Lưu</button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module" src="/pages/manager-membership-plans/manager-membership-plans.js"></script>
+</body>
+</html>

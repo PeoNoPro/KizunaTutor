@@ -1,5 +1,11 @@
 # Research: FE-10
 
+## Implementation verification — 2026-11-02
+
+- PDFBox pinned to 3.0.8 after checking the [official download page](https://pdfbox.apache.org/download.cgi); Java compatibility and strict parser use checked against the [official migration guide](https://pdfbox.apache.org/3.0/migration.html). No stack upgrade.
+- Windows isolation follows Microsoft's [Job Objects documentation](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects). The launcher applies PROCESS_MEMORY and KILL_ON_JOB_CLOSE before resuming the worker. `-Xmx` is supplemental; a native direct-memory probe verifies OS enforcement.
+- Existing membership transaction_ref and payment gateway_transaction_id have no verified FK or shared identifier semantics. Validate owner and matching plan_id; do not assume those differently defined strings identify the same transaction. Context projections are read-only and exclude gateway payloads.
+
 Ngày: 2026-10-29. Căn cứ: spec với 5 câu trả lời, constitution 1.0.0 và mã nguồn tại thời điểm lập kế hoạch. Đây là quyết định thiết kế, chưa phải kết quả chạy hệ thống.
 
 ## 1. Kiến trúc và phạm vi
@@ -48,3 +54,15 @@ Ngày: 2026-10-29. Căn cứ: spec với 5 câu trả lời, constitution 1.0.0 
 ## Kết luận
 
 Không còn câu hỏi nghiệp vụ chặn thiết kế. Phiên bản thư viện PDF parser và khả năng schema triển khai thực tế là kiểm tra phụ thuộc tại bước triển khai, không thay đổi hợp đồng chức năng. Không chạy migration, test ứng dụng hoặc đổi cấu hình trong bước lập kế hoạch.
+
+## Cập nhật thiết kế và nghiệm thu FE-10
+
+US1 chỉ nghiệm thu tạo phiếu kèm tệp, list/detail, GET hội thoại và tải tệp có phân quyền. POST bổ sung của owner, phản hồi CS và tệp trong hội thoại thuộc US2; chỉ kết luận toàn bộ FR-020 hoàn tất khi checkpoint US1 và US2 đều đạt.
+
+Hội thoại trả sequenceNo và sắp xếp tăng dần theo trường này; sentAt chỉ hiển thị. sequence_no được cấp dưới khóa ticket, UNIQUE(ticket_id, sequence_no). Hai lệnh cùng expectedVersion chỉ một thành công; lệnh stale tải version mới trước khi gửi lại. Kiểm hai message cạnh tranh không trùng số và hiển thị đúng thứ tự ngay khi timestamp trùng.
+
+Ảnh tối đa 20.000.000 pixel; PDF tối đa 100 trang, từ chối bản mã hóa không đọc được. Kiểm tra cấu trúc bằng ImageIO/PDFBox trong tiến trình con riêng: giới hạn cứng 256 MB RAM (256.000.000 byte) bằng cơ chế hệ điều hành, 10 giây/tệp và tổng 30 giây/lần gửi. -Xmx không thay thế giới hạn RAM toàn tiến trình. Hết hạn/vượt bộ nhớ phải dừng tiến trình, dọn tệp tạm và từ chối toàn bộ lần gửi, không lưu phiếu/message/tệp/audit một phần. Không kiểm tra trong JVM ứng dụng; nếu môi trường chưa áp được cách ly và giới hạn thì từ chối tiếp nhận tệp. Thực hiện kiểm tra tệp trước transaction ghi ngắn, rồi kiểm lại quyền/version/trạng thái dưới khóa trước commit.
+
+SC-005: 100 người dùng đồng thời trong 10 phút, 1.000 phiếu có trao đổi; đo riêng p95 danh sách và chi tiết từ thao tác mở trang trên trình duyệt thật đến khi render hoàn tất, mỗi loại ≤2 giây. Báo cáo HTTP timing riêng để chẩn đoán; không dùng HTTP thay phép đo render.
+
+Menu learner và tutor có mục “Yêu cầu hỗ trợ”, dẫn lần lượt tới /learner/support/tickets và /tutor/support/tickets; danh sách cá nhân có nút tạo phiếu. Kiểm thử điều hướng và quyền cả hai vai trò, kể cả truy cập trực tiếp/đổi route.

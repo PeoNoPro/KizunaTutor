@@ -1,12 +1,5 @@
 package com.kizuna.features.admin.entity;
 
-
-
-import com.kizuna.core.entity.*;
-import com.kizuna.core.entity.BaseEntity;
-import com.kizuna.core.entity.User;
-import com.kizuna.core.entity.Learner;
-import com.kizuna.core.entity.Tutor;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.UUID;
@@ -18,9 +11,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SystemConfiguration extends BaseEntity {
+public class SystemConfiguration {
 
     @Id
-    @Column(name = "configKey")
+    @Column(name = "config_key", length = 100)
     private String configKey;
+    @Column(name = "config_value", nullable = false) private String configValue;
+    @Column(name = "data_type", nullable = false) private String dataType;
+    @Column(name = "description") private String description;
+    @Column(name = "updated_at", nullable = false) private java.time.OffsetDateTime updatedAt;
 }

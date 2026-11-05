@@ -43,10 +43,11 @@ public class DatabaseConnectionTest {
     public void testSelectAllTutors() throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             System.out.println("========== ALL TUTORS IN DATABASE ==========");
-            String sql = "SELECT t.tutor_id, u.full_name, u.email, t.verification_status, " +
+            String sql = "SELECT t.tutor_id, t.tutor_code, u.full_name, u.email, t.verification_status, " +
                          "t.highest_jlpt_level, t.hourly_rate, t.avg_rating, t.total_reviews, " +
                          "t.headline, t.is_featured, u.account_status " +
-                         "FROM tutors t LEFT JOIN users u ON t.user_id = u.user_id";
+                         "FROM tutors t LEFT JOIN users u ON t.user_id = u.user_id " +
+                         "ORDER BY t.tutor_code ASC NULLS LAST";
 
             try (Statement stmt = connection.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
@@ -54,7 +55,8 @@ public class DatabaseConnectionTest {
                 while (rs.next()) {
                     count++;
                     System.out.println("--- GIA SU #" + count + " ---");
-                    System.out.println("ID: " + rs.getString("tutor_id"));
+                    System.out.println("ID (UUID): " + rs.getString("tutor_id"));
+                    System.out.println("Ma gia su (tutor_code): " + rs.getObject("tutor_code"));
                     System.out.println("Ho va Ten: " + rs.getString("full_name"));
                     System.out.println("Email: " + rs.getString("email"));
                     System.out.println("Trang thai xet duyet: " + rs.getString("verification_status"));
@@ -71,4 +73,3 @@ public class DatabaseConnectionTest {
         }
     }
 }
-

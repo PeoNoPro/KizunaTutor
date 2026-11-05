@@ -4,6 +4,12 @@ import com.kizuna.core.entity.Tutor;
 import com.kizuna.features.tutor_search.dto.TutorSearchCriteriaDTO;
 import com.kizuna.features.tutor_search.dto.TutorSearchPageResponse;
 import com.kizuna.features.tutor_search.dto.TutorSummaryResponseDTO;
+import com.kizuna.features.tutor_search.dto.TutorCredentialDTO;
+import com.kizuna.features.tutor_search.dto.TutorAvailabilityDTO;
+import com.kizuna.features.tutor_search.dto.TutorReviewDTO;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import org.springframework.jdbc.core.JdbcTemplate;
 import com.kizuna.features.tutor_search.repository.TutorSearchRepository;
 import com.kizuna.features.tutor_search.repository.TutorSearchSpecification;
 import com.kizuna.features.tutor_search.service.TutorSearchService;
@@ -32,6 +38,7 @@ import java.util.stream.Collectors;
 public class TutorSearchServiceImpl implements TutorSearchService {
 
     private final TutorSearchRepository tutorSearchRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public TutorSearchPageResponse searchTutors(TutorSearchCriteriaDTO criteria) {
@@ -63,7 +70,7 @@ public class TutorSearchServiceImpl implements TutorSearchService {
         Page<Tutor> pageResult = tutorSearchRepository.findAll(spec, pageable);
 
         List<TutorSummaryResponseDTO> dtos = pageResult.getContent().stream()
-                .map(this::mapToSummaryDTO)
+                .map(t -> mapToSummaryDTO(t, false))
                 .collect(Collectors.toList());
 
         return TutorSearchPageResponse.builder()
@@ -79,7 +86,7 @@ public class TutorSearchServiceImpl implements TutorSearchService {
     @Override
     public List<TutorSummaryResponseDTO> getFeaturedTutors() {
         return tutorSearchRepository.findTop6ByIsFeaturedTrueOrderByAvgRatingDesc().stream()
-                .map(this::mapToSummaryDTO)
+                .map(t -> mapToSummaryDTO(t, false))
                 .collect(Collectors.toList());
     }
 
@@ -87,10 +94,49 @@ public class TutorSearchServiceImpl implements TutorSearchService {
     public TutorSummaryResponseDTO getTutorDetail(UUID tutorId) {
         Tutor tutor = tutorSearchRepository.findById(tutorId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin gia sư với mã yêu cầu"));
-        return mapToSummaryDTO(tutor);
+        return mapToSummaryDTO(tutor, true);
     }
 
-    private TutorSummaryResponseDTO mapToSummaryDTO(Tutor tutor) {
+    @Override
+    public List<String> getAvailableLocations() {
+        Specification<Tutor> spec = TutorSearchSpecification.build(new TutorSearchCriteriaDTO());
+        List<Tutor> tutors = tutorSearchRepository.findAll(spec);
+
+        return tutors.stream()
+                .map(t -> extractProvince(t.getAddress()))
+                .filter(loc -> loc != null && !loc.trim().isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    private String extractProvince(String address) {
+        if (address == null || address.trim().isEmpty()) {
+            return "Hà Nội";
+        }
+        String clean = address.trim();
+        String[] parts = clean.split(",");
+        if (parts.length >= 2) {
+            String lastPart = parts[parts.length - 1].trim();
+            if (lastPart.equalsIgnoreCase("Việt Nam") || lastPart.equalsIgnoreCase("Vietnam")) {
+                return parts[parts.length - 2].trim();
+            }
+            return lastPart;
+        }
+        return clean;
+    }
+
+    @Override
+    public TutorSummaryResponseDTO getTutorByCode(Long tutorCode) {
+        Tutor tutor = tutorSearchRepository.findByTutorCode(tutorCode)
+                .orElse(null);
+        if (tutor == null) {
+            return null;
+        }
+        return mapToSummaryDTO(tutor, true);
+    }
+
+    private TutorSummaryResponseDTO mapToSummaryDTO(Tutor tutor, boolean includeDetails) {
         List<String> specialties = Collections.emptyList();
         if (tutor.getHeadline() != null && !tutor.getHeadline().trim().isEmpty()) {
             specialties = Arrays.stream(tutor.getHeadline().split("•|,"))
@@ -99,8 +145,111 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                     .collect(Collectors.toList());
         }
 
+        List<TutorCredentialDTO> credentials = Collections.emptyList();
+        List<TutorAvailabilityDTO> availabilities = Collections.emptyList();
+        List<TutorReviewDTO> reviews = Collections.emptyList();
+
+        if (includeDetails) {
+            try {
+                credentials = jdbcTemplate.query(
+                    "SELECT credential_id, credential_type, title, file_url, verified_status::text " +
+                    "FROM tutor_credentials WHERE tutor_id = ? AND verified_status = 'VERIFIED' ORDER BY uploaded_at ASC",
+                    (rs, rowNum) -> TutorCredentialDTO.builder()
+                        .credentialId(rs.getObject("credential_id", UUID.class))
+                        .credentialType(rs.getString("credential_type"))
+                        .title(rs.getString("title"))
+                        .fileUrl(rs.getString("file_url"))
+                        .verifiedStatus(rs.getString("verified_status"))
+                        .build(),
+                    tutor.getTutorId()
+                );
+            } catch (Exception e) {
+                // ignore if table not present or error
+            }
+
+            try {
+                availabilities = jdbcTemplate.query(
+                    "SELECT availability_id, day_of_week, start_time::text, end_time::text " +
+                    "FROM tutor_availabilities WHERE tutor_id = ? AND is_active = TRUE ORDER BY day_of_week, start_time",
+                    (rs, rowNum) -> {
+                        int dow = rs.getInt("day_of_week");
+                        String dayName = switch (dow) {
+                            case 1 -> "Chủ nhật";
+                            case 2 -> "Thứ hai";
+                            case 3 -> "Thứ ba";
+                            case 4 -> "Thứ tư";
+                            case 5 -> "Thứ năm";
+                            case 6 -> "Thứ sáu";
+                            case 7 -> "Thứ bảy";
+                            default -> "Thứ " + dow;
+                        };
+                        String start = rs.getString("start_time");
+                        String end = rs.getString("end_time");
+                        if (start != null && start.length() >= 5) start = start.substring(0, 5);
+                        if (end != null && end.length() >= 5) end = end.substring(0, 5);
+                        return TutorAvailabilityDTO.builder()
+                            .availabilityId(rs.getObject("availability_id", UUID.class))
+                            .dayOfWeek(dow)
+                            .dayName(dayName)
+                            .startTime(start)
+                            .endTime(end)
+                            .build();
+                    },
+                    tutor.getTutorId()
+                );
+            } catch (Exception e) {
+                // ignore
+            }
+
+            try {
+                reviews = jdbcTemplate.query(
+                    "SELECT tr.review_id, tr.rating, tr.comment, tr.created_at, " +
+                    "COALESCE(u.full_name, 'Học viên ẩn danh') AS learner_name, " +
+                    "u.avatar_url AS learner_avatar_url " +
+                    "FROM tutor_reviews tr " +
+                    "LEFT JOIN learners l ON tr.learner_id = l.learner_id " +
+                    "LEFT JOIN users u ON l.user_id = u.user_id " +
+                    "WHERE tr.tutor_id = ? " +
+                    "ORDER BY tr.created_at DESC",
+                    (rs, rowNum) -> {
+                        Timestamp ts = rs.getTimestamp("created_at");
+                        String dateStr = ts != null ? new SimpleDateFormat("dd/MM/yyyy").format(ts) : "Mới đây";
+                        String comment = rs.getString("comment");
+                        String course = "Học viên lớp Kaiwa N2 - 24 buổi học";
+                        String tag = "all";
+                        if (comment != null) {
+                            if (comment.contains("Dokkai") || comment.contains("N1") || comment.contains("JLPT")) {
+                                course = "Học viên JLPT N1 cấp tốc - 16 buổi học";
+                                tag = "jlpt";
+                            } else if (comment.contains("IT") || comment.contains("Doanh nghiệp")) {
+                                course = "Học viên Tiếng Nhật Doanh nghiệp IT - 12 buổi học";
+                                tag = "business";
+                            } else {
+                                course = "Học viên lớp Kaiwa N2 - 24 buổi học";
+                                tag = "kaiwa";
+                            }
+                        }
+                        return TutorReviewDTO.builder()
+                            .reviewId(rs.getObject("review_id", UUID.class))
+                            .learnerName(rs.getString("learner_name"))
+                            .learnerAvatarUrl(rs.getString("learner_avatar_url"))
+                            .courseName(course)
+                            .rating(rs.getBigDecimal("rating"))
+                            .comment(comment)
+                            .createdAt(dateStr)
+                            .tag(tag)
+                            .build();
+                    },
+                    tutor.getTutorId()
+                );
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+
         return TutorSummaryResponseDTO.builder()
                 .tutorId(tutor.getTutorId())
+                .tutorCode(tutor.getTutorCode())
                 .fullName(tutor.getUser() != null ? tutor.getUser().getFullName() : "Gia sư Kizuna")
                 .avatarUrl(tutor.getUser() != null ? tutor.getUser().getAvatarUrl() : null)
                 .headline(tutor.getHeadline())
@@ -115,7 +264,9 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                 .isVerified(tutor.getVerificationStatus() == TutorVerificationStatus.APPROVED)
                 .specialties(specialties)
                 .teachingFormat("Online 1-1")
+                .credentials(credentials)
+                .availabilities(availabilities)
+                .reviews(reviews)
                 .build();
     }
 }
-

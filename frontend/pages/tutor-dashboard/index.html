@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tổng quan gia sư - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <!-- Thanh bên + thanh trên (components/tutor-layout/tutor-layout.js) -->
+  <div id="tutorSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="tutorTopbar"></div>
+
+    <main class="flex-1 w-full pt-16">
+      <div class="px-4 md:px-8 py-6">
+
+        <!-- Trạng thái đang tải -->
+        <section id="loadingState" class="space-y-6" aria-live="polite">
+          <div class="tv-skeleton h-32 rounded-2xl"></div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div class="tv-skeleton h-32 rounded-2xl"></div><div class="tv-skeleton h-32 rounded-2xl"></div>
+            <div class="tv-skeleton h-32 rounded-2xl"></div><div class="tv-skeleton h-32 rounded-2xl"></div>
+          </div>
+          <div class="tv-skeleton h-64 rounded-2xl"></div>
+        </section>
+
+        <!-- Trạng thái lỗi -->
+        <section id="errorState" class="hidden bg-surface-container-lowest rounded-2xl p-8 shadow-sm text-center">
+          <span class="material-symbols-outlined text-5xl text-error">cloud_off</span>
+          <h2 class="text-headline-sm mt-2">Chưa tải được trang tổng quan</h2>
+          <p id="errorMessage" class="text-on-surface-variant mt-1">Không thể kết nối đến máy chủ. Vui lòng thử lại sau.</p>
+          <button id="retryButton" type="button" class="mt-4 px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md inline-flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">refresh</span>Thử lại
+          </button>
+        </section>
+
+        <div id="contentState" class="hidden flex flex-col w-full">
+
+          <!-- 1. Lời chào và danh tính -->
+          <div class="w-full bg-surface-container-lowest rounded-2xl p-6 sm:p-8 shadow-sm mb-6 relative overflow-hidden">
+            <div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-primary/5 pointer-events-none"></div>
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+              <div class="flex items-start sm:items-center gap-4">
+                <div class="relative shrink-0">
+                  <div id="heroAvatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary-fixed text-on-primary-fixed-variant flex items-center justify-center text-headline-md shadow-sm ring-4 ring-surface-container-high">GS</div>
+                  <span id="heroVerifiedMark" class="hidden absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary items-center justify-center text-on-primary shadow-sm">
+                    <span class="material-symbols-outlined text-[14px]">check</span>
+                  </span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <div class="flex flex-wrap items-center gap-2 mb-1">
+                    <span class="px-2.5 py-0.5 rounded-full bg-surface-container text-primary text-caption tracking-wide">Gia sư tiếng Nhật</span>
+                    <span id="heroLevelBadge" class="hidden px-2.5 py-0.5 rounded-full bg-tertiary/10 text-tertiary text-caption items-center gap-1">
+                      <span class="material-symbols-outlined text-[13px]">military_tech</span><span id="heroLevelText"></span>
+                    </span>
+                  </div>
+                  <h1 class="text-headline-md text-on-surface tracking-tight truncate">Xin chào, <span id="tutorName"></span>!</h1>
+                  <div class="flex flex-wrap items-center gap-3 text-on-surface-variant text-body-sm mt-0.5">
+                    <span class="flex items-center gap-1">
+                      <span class="material-symbols-outlined text-[16px] text-primary">calendar_today</span><span id="todayText"></span>
+                    </span>
+                    <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+                    <span class="flex items-center gap-1 text-primary">
+                      <span class="material-symbols-outlined text-[16px]">schedule</span><span id="clockText"></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <a id="heroAction" href="/tutor/verification" class="self-start lg:self-center px-4 py-2.5 rounded-xl bg-primary text-on-primary text-label-md flex items-center gap-2 shadow-sm hover:bg-primary-container transition-all">
+                <span class="material-symbols-outlined text-[18px]">verified_user</span>
+                <span id="heroActionText">Xác minh hồ sơ</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- 2. Bốn thẻ số liệu (dữ liệu thật từ hồ sơ xác minh) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+            <div class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow group">
+              <div class="flex items-start justify-between">
+                <div class="min-w-0">
+                  <p class="text-caption text-on-surface-variant tracking-wider">Trạng thái xác minh</p>
+                  <h2 id="metricStatus" class="text-title-md mt-2 truncate">—</h2>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                  <span id="metricStatusIcon" class="material-symbols-outlined text-[24px]">verified_user</span>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 flex items-center gap-1.5 text-label-sm text-primary">
+                <span class="material-symbols-outlined text-[16px]">info</span><span id="metricStatusNote"></span>
+              </div>
+            </div>
+
+            <div class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow group">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-caption text-on-surface-variant tracking-wider">Trình độ JLPT cao nhất</p>
+                  <h2 id="metricJlpt" class="text-headline-lg text-on-surface mt-1">—</h2>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-secondary-fixed flex items-center justify-center text-secondary group-hover:scale-105 transition-transform">
+                  <span class="material-symbols-outlined text-[24px]">translate</span>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 text-caption text-on-surface-variant">Theo thông tin xác minh đã khai báo</div>
+            </div>
+
+            <div class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow group">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-caption text-on-surface-variant tracking-wider">Kinh nghiệm giảng dạy</p>
+                  <h2 class="text-headline-lg text-tertiary mt-1"><span id="metricExperience">—</span> <span class="text-title-sm text-on-surface-variant">năm</span></h2>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-tertiary-fixed flex items-center justify-center text-tertiary group-hover:scale-105 transition-transform">
+                  <span class="material-symbols-outlined text-[24px]">workspace_premium</span>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 text-caption text-on-surface-variant">Theo thông tin xác minh đã khai báo</div>
+            </div>
+
+            <div class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow group">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-caption text-on-surface-variant tracking-wider">Giấy tờ xác minh</p>
+                  <h2 class="text-headline-lg text-primary mt-1"><span id="metricDocuments">0</span> <span class="text-title-sm text-on-surface-variant">tệp</span></h2>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                  <span class="material-symbols-outlined text-[24px]">folder_open</span>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 flex items-center justify-between text-caption text-on-surface-variant">
+                <span>Ngày nộp gần nhất</span><span id="metricSubmitted" class="text-primary text-label-sm">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Tiến trình xác minh + hoạt động gần đây (dữ liệu thật) -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6 items-stretch">
+            <section class="lg:col-span-7 bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col">
+              <div class="flex items-center justify-between gap-3 mb-5">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-2.5 h-6 rounded-full bg-primary"></div>
+                  <div>
+                    <h3 class="text-title-md text-on-surface">Tiến trình xác minh hồ sơ</h3>
+                    <p class="text-body-sm text-on-surface-variant">Các bước để được nhận học viên trên Kizuna</p>
+                  </div>
+                </div>
+                <a href="/tutor/verification" class="text-label-sm text-primary hover:text-primary-container flex items-center gap-1 shrink-0">
+                  Mở hồ sơ <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </a>
+              </div>
+              <ol id="progressSteps" class="grid grid-cols-1 sm:grid-cols-4 gap-3"></ol>
+              <div id="progressDetail" class="mt-5 p-4 rounded-xl bg-surface-container-low flex-1"></div>
+            </section>
+
+            <section class="lg:col-span-5 bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+              <div class="flex items-center gap-2.5 mb-4">
+                <div class="w-2.5 h-6 rounded-full bg-outline"></div>
+                <div>
+                  <h3 class="text-title-md text-on-surface">Hoạt động gần đây</h3>
+                  <p class="text-body-sm text-on-surface-variant">Các mốc trong hồ sơ xác minh của bạn</p>
+                </div>
+              </div>
+              <div id="activityList" class="relative pl-6 space-y-4"></div>
+              <p id="activityEmpty" class="hidden text-body-sm text-on-surface-variant">Chưa có hoạt động nào.</p>
+            </section>
+          </div>
+
+          <!-- 4. Chức năng sắp ra mắt (chưa có API — không hiển thị số liệu) -->
+          <section>
+            <div class="flex items-center gap-2 mb-3">
+              <span class="material-symbols-outlined text-outline text-[20px]">schedule</span>
+              <h3 class="text-title-sm text-on-surface">Sắp ra mắt</h3>
+              <span class="text-body-sm text-on-surface-variant">— các chức năng giảng dạy đang được phát triển</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary-fixed text-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[20px]">calendar_month</span></div>
+                <div><p class="text-label-md font-semibold text-on-surface">Lịch giảng dạy</p><p class="text-body-sm text-on-surface-variant">Quản lý ca dạy theo ngày, tuần.</p></div>
+              </div>
+              <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-secondary-fixed text-secondary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[20px]">group_add</span></div>
+                <div><p class="text-label-md font-semibold text-on-surface">Yêu cầu kết nối</p><p class="text-body-sm text-on-surface-variant">Nhận và phản hồi học viên mới.</p></div>
+              </div>
+              <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-tertiary-fixed text-tertiary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[20px]">school</span></div>
+                <div><p class="text-label-md font-semibold text-on-surface">Học viên của tôi</p><p class="text-body-sm text-on-surface-variant">Theo dõi tiến độ từng học viên.</p></div>
+              </div>
+              <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[20px]">assignment</span></div>
+                <div><p class="text-label-md font-semibold text-on-surface">Bài tập</p><p class="text-body-sm text-on-surface-variant">Giao bài, chấm và nhận xét.</p></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="w-full bg-[#131D2E] text-outline-variant py-6 mt-8">
+      <div class="px-4 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-caption">
+        <div class="flex items-center gap-2">
+          <span class="text-headline-sm text-white">Kizuna</span><span class="text-headline-sm text-[#38BDF8]">Tutor</span>
+        </div>
+        <p>© 2026 KizunaTutor. Nền tảng gắn kết học viên Việt Nam và gia sư tiếng Nhật.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/pages/tutor-dashboard/tutor-dashboard.js"></script>
+</body>
+</html>

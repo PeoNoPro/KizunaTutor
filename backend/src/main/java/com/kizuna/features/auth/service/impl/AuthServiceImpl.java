@@ -14,6 +14,10 @@ import com.kizuna.features.auth.dto.request.RegisterRequest;
 import com.kizuna.features.auth.dto.response.LoginResponse;
 import com.kizuna.features.auth.dto.response.UserSummaryDto;
 import com.kizuna.features.auth.service.AuthService;
+import com.kizuna.features.auth.service.OtpService;
+import com.kizuna.features.auth.service.EmailService;
+import com.kizuna.features.auth.dto.request.VerifyOtpRequest;
+import com.kizuna.features.auth.dto.response.PendingRegistration;
 import com.kizuna.features.payment.entity.TutorMembershipStatus;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import jakarta.servlet.http.Cookie;
@@ -39,7 +43,106 @@ public class AuthServiceImpl implements AuthService {
     private final TutorRepository tutorRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final OtpService otpService;
+    private final EmailService emailService;
 
+    @Override
+    public void initiateRegistration(RegisterRequest request) {
+        String cleanEmail = request.getEmail().trim().toLowerCase();
+
+        if (userRepository.findByEmail(cleanEmail).isPresent()) {
+            throw new BadRequestException("Địa chỉ email này đã được đăng ký trong hệ thống. Vui lòng đăng nhập.");
+        }
+
+        String passwordHash = passwordEncoder.encode(request.getPassword());
+        String otp = otpService.generateAndSaveOtp(
+                cleanEmail,
+                request.getFullName(),
+                passwordHash,
+                request.getRole(),
+                request.getTargetJlpt()
+        );
+
+        emailService.sendRegistrationOtpEmail(cleanEmail, request.getFullName(), otp);
+    }
+
+    @Override
+    @Transactional
+    public LoginResponse completeRegistration(VerifyOtpRequest request) {
+        String cleanEmail = request.getEmail().trim().toLowerCase();
+
+        PendingRegistration pending = otpService.verifyOtp(cleanEmail, request.getOtp());
+
+        if (userRepository.findByEmail(cleanEmail).isPresent()) {
+            throw new BadRequestException("Tài khoản đã được đăng ký trước đó. Vui lòng đăng nhập.");
+        }
+
+        String targetRoleName = (pending.getRole() != null && !pending.getRole().isBlank())
+                ? pending.getRole()
+                : "ROLE_LEARNER";
+
+        Role role = roleRepository.findByRoleName(targetRoleName)
+                .orElseGet(() -> roleRepository.findByRoleName("ROLE_LEARNER")
+                        .orElseThrow(() -> new IllegalStateException("Không tìm thấy vai trò " + targetRoleName)));
+
+        User user = User.builder()
+                .email(cleanEmail)
+                .fullName(pending.getFullName())
+                .passwordHash(pending.getPasswordHash())
+                .role(role)
+                .accountStatus(UserAccountStatus.ACTIVE)
+                .build();
+
+        user = userRepository.save(user);
+
+        if (RoleEnum.ROLE_TUTOR.name().equals(role.getRoleName())) {
+            Tutor tutor = Tutor.builder()
+                    .user(user)
+                    .headline("Gia sư tiếng Nhật Kizuna")
+                    .bio("Gia sư tiếng Nhật đồng hành cùng học viên tại nền tảng KizunaTutor.")
+                    .experienceYears((short) 1)
+                    .hourlyRate(BigDecimal.valueOf(200000))
+                    .highestJlptLevel("N2")
+                    .avgRating(BigDecimal.valueOf(5.0))
+                    .totalReviews(0)
+                    .verificationStatus(TutorVerificationStatus.APPROVED)
+                    .membershipStatus(TutorMembershipStatus.PREMIUM)
+                    .isFeatured(false)
+                    .updatedAt(OffsetDateTime.now())
+                    .build();
+            tutorRepository.save(tutor);
+        } else {
+            Learner learner = Learner.builder()
+                    .user(user)
+                    .currentLevel("N5")
+                    .targetLevel(pending.getTargetJlpt() != null ? pending.getTargetJlpt() : "N3")
+                    .learningGoals("Chinh phục mục tiêu JLPT cùng KizunaTutor")
+                    .updatedAt(OffsetDateTime.now())
+                    .build();
+            learnerRepository.save(learner);
+        }
+
+        String token = tokenProvider.generateToken(user);
+        RoleEnum roleEnum = RoleEnum.fromString(role.getRoleName());
+        String redirectUrl = roleEnum.getDashboardRoute();
+
+        UserSummaryDto userSummary = UserSummaryDto.builder()
+                .id(user.getUserId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .role(roleEnum.getRoleName())
+                .roleBadge(roleEnum.getBadgeText())
+                .avatarUrl(user.getAvatarUrl())
+                .accountStatus(user.getAccountStatus().name())
+                .build();
+
+        return LoginResponse.builder()
+                .token(token)
+                .user(userSummary)
+                .redirectUrl(redirectUrl)
+                .message("Xác thực OTP thành công! Chào mừng bạn gia nhập KizunaTutor.")
+                .build();
+    }
     @Override
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request, HttpServletResponse response) {
@@ -53,14 +156,13 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (user.getAccountStatus() != UserAccountStatus.ACTIVE) {
-            throw new BadRequestException("Tài khoản chưa được kích hoạt hoặc đang bị tạm khóa. Vui lòng liên hệ hỗ trợ.");
+            throw new BadRequestException("Tài khoản đã bị tạm khóa hoặc ngừng hoạt động. Vui lòng liên hệ ban quản trị.");
         }
 
         String token = tokenProvider.generateToken(user);
-        String roleName = (user.getRole() != null) ? user.getRole().getRoleName() : "ROLE_LEARNER";
-        RoleEnum roleEnum = RoleEnum.fromString(roleName);
+        RoleEnum roleEnum = RoleEnum.fromString(user.getRole().getRoleName());
+        String redirectUrl = roleEnum.getDashboardRoute();
         boolean mustChange = user.isMustChangePassword();
-        String redirectUrl = mustChange ? "/change-password-first-time" : roleEnum.getDashboardRoute();
 
         if (response != null) {
             Cookie jwtCookie = new Cookie("access_token", token);
@@ -70,16 +172,7 @@ public class AuthServiceImpl implements AuthService {
             response.addCookie(jwtCookie);
         }
 
-        UserSummaryDto userSummary = UserSummaryDto.builder()
-                .id(user.getUserId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .role(roleEnum.getRoleName())
-                .roleBadge(roleEnum.getBadgeText())
-                .avatarUrl(user.getAvatarUrl())
-                .accountStatus(user.getAccountStatus().name())
-                .mustChangePassword(mustChange)
-                .build();
+        UserSummaryDto userSummary = buildUserSummaryDto(user, roleEnum, mustChange);
 
         return LoginResponse.builder()
                 .token(token)
@@ -99,17 +192,13 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Địa chỉ email này đã được sử dụng. Vui lòng đăng nhập.");
         }
 
-        String targetRoleName = (request.getRole() != null && !request.getRole().isBlank())
-                ? request.getRole()
-                : "ROLE_LEARNER";
-
-        Role role = roleRepository.findByRoleName(targetRoleName)
+        Role role = roleRepository.findByRoleName(request.getRole())
                 .orElseGet(() -> roleRepository.findByRoleName("ROLE_LEARNER")
-                        .orElseThrow(() -> new IllegalStateException("Không tìm thấy vai trò mặc định")));
+                        .orElseThrow(() -> new IllegalStateException("Không tìm thấy vai trò")));
 
         User user = User.builder()
                 .email(email)
-                .fullName(request.getFullName().trim())
+                .fullName(request.getFullName())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(role)
                 .accountStatus(UserAccountStatus.ACTIVE)
@@ -156,15 +245,7 @@ public class AuthServiceImpl implements AuthService {
             response.addCookie(jwtCookie);
         }
 
-        UserSummaryDto userSummary = UserSummaryDto.builder()
-                .id(user.getUserId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .role(roleEnum.getRoleName())
-                .roleBadge(roleEnum.getBadgeText())
-                .avatarUrl(user.getAvatarUrl())
-                .accountStatus(user.getAccountStatus().name())
-                .build();
+        UserSummaryDto userSummary = buildUserSummaryDto(user, roleEnum, false);
 
         return LoginResponse.builder()
                 .token(token)
@@ -181,16 +262,59 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản"));
 
         RoleEnum roleEnum = RoleEnum.fromString(user.getRole().getRoleName());
+        return buildUserSummaryDto(user, roleEnum, user.isMustChangePassword());
+    }
+
+    private UserSummaryDto buildUserSummaryDto(User user, RoleEnum roleEnum, boolean mustChangePassword) {
+        String subtitle = resolveSubtitle(user, roleEnum);
+        String initialLetters = calculateInitialLetters(user.getFullName());
+
         return UserSummaryDto.builder()
                 .id(user.getUserId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .role(roleEnum.getRoleName())
                 .roleBadge(roleEnum.getBadgeText())
+                .subtitle(subtitle)
+                .initialLetters(initialLetters)
                 .avatarUrl(user.getAvatarUrl())
                 .accountStatus(user.getAccountStatus().name())
-                .mustChangePassword(user.isMustChangePassword())
+                .mustChangePassword(mustChangePassword)
                 .build();
+    }
+
+    private String resolveSubtitle(User user, RoleEnum roleEnum) {
+        if (roleEnum == RoleEnum.ROLE_TUTOR) {
+            return tutorRepository.findByUser_UserId(user.getUserId())
+                    .map(t -> {
+                        String level = (t.getHighestJlptLevel() != null && !t.getHighestJlptLevel().isBlank())
+                                ? " • JLPT " + t.getHighestJlptLevel()
+                                : "";
+                        return "Gia sư" + level;
+                    })
+                    .orElse("Gia sư Kizuna");
+        } else if (roleEnum == RoleEnum.ROLE_LEARNER) {
+            return learnerRepository.findByUser_UserId(user.getUserId())
+                    .map(l -> {
+                        String target = (l.getTargetLevel() != null && !l.getTargetLevel().isBlank())
+                                ? " • Mục tiêu " + l.getTargetLevel()
+                                : "";
+                        return "Học viên" + target;
+                    })
+                    .orElse("Học viên Kizuna");
+        }
+        return roleEnum.getBadgeText();
+    }
+
+    private String calculateInitialLetters(String fullName) {
+        if (fullName == null || fullName.isBlank()) return "KZ";
+        String[] parts = fullName.trim().split("\\s+");
+        if (parts.length == 1) {
+            return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
+        }
+        String first = parts[0].substring(0, 1);
+        String last = parts[parts.length - 1].substring(0, 1);
+        return (first + last).toUpperCase();
     }
 
     @Override

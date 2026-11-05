@@ -1,0 +1,73 @@
+/*
+ * KizunaTutor - Phân hệ Gia sư
+ * Phong cách theo thiết kế Google Stitch "Tutor Dashboard" (người phụ trách chọn ngày 2026-11-03,
+ * thay cho DESIGN.md mục 7 trong khu vực gia sư — xem specs/003-tutor-verification/plan.md).
+ * Màu và chữ khớp components/tutor-layout/tailwind-theme.js.
+ */
+:root {
+  --tv-ink: #131b2e;
+  --tv-tutor: #006194;
+  --tv-tutor-hover: #007bb9;
+  --tv-warn: #ba1a1a;
+  --tv-link: #4059aa;
+  --tv-done: #1E8B3F;
+  --tv-progress: #8d4b00;
+  --tv-card: #ffffff;
+  --tv-page: #faf8ff;
+  --tv-muted: #3f4850;
+  --tv-line: #bfc7d2;
+  --tv-soft: #eaedff;
+  --tv-soft-2: #f2f3ff;
+}
+
+.tv-body { background: var(--tv-page); color: var(--tv-ink); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 14px; }
+.tv-heading { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600; letter-spacing: -0.01em; }
+.tv-h1 { font-size: 24px; line-height: 32px; }
+.tv-h2 { font-size: 18px; line-height: 26px; }
+.tv-h3 { font-size: 16px; line-height: 24px; }
+.tv-meta { font-size: 11px; line-height: 14px; font-weight: 500; }
+.tv-card { background: var(--tv-card); border-radius: 16px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
+
+.tv-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 0; border-radius: 12px; padding: 10px 16px; font-size: 14px; font-weight: 500;
+  background: var(--tv-soft); color: var(--tv-ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+  cursor: pointer; white-space: nowrap; text-decoration: none;
+}
+.tv-btn:hover:not(:disabled) { background: #e2e7ff; }
+.tv-btn:disabled { opacity: .55; cursor: not-allowed; }
+.tv-btn-primary { background: var(--tv-tutor); color: #ffffff; }
+.tv-btn-primary:hover:not(:disabled) { background: var(--tv-tutor-hover); }
+.tv-btn-small { padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 8px; background: var(--tv-card); }
+.tv-btn-small:hover:not(:disabled) { background: var(--tv-soft); }
+.tv-btn-danger { color: #93000a; background: #ffdad6; }
+.tv-btn-danger:hover:not(:disabled) { background: #ffc9c3; }
+
+.tv-input {
+  width: 100%; border: 1px solid var(--tv-line); border-radius: 10px; padding: 9px 12px;
+  background: #ffffff; font-size: 14px; color: var(--tv-ink);
+}
+.tv-input:focus { outline: 2px solid var(--tv-tutor); outline-offset: 0; border-color: transparent; }
+.tv-input:disabled { background: var(--tv-soft-2); color: var(--tv-muted); }
+.tv-input.has-error { border-color: var(--tv-warn); outline-color: var(--tv-warn); }
+.tv-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--tv-ink); }
+.tv-field-error { color: var(--tv-warn); font-size: 12px; margin-top: 4px; }
+
+.tv-badge {
+  display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px;
+  padding: 2px 10px; font-size: 12px; font-weight: 600; background: var(--tv-soft);
+}
+.tv-status-unverified { color: var(--tv-ink); }
+.tv-status-pending { color: var(--tv-link); background: #dce1ff; }
+.tv-status-needs-info { color: var(--tv-progress); background: #ffdcc3; }
+.tv-status-approved { color: var(--tv-done); background: #d7f5df; }
+.tv-status-rejected { color: var(--tv-warn); background: #ffdad6; }
+
+.tv-skeleton { background: linear-gradient(90deg, #eaedff 25%, #f2f3ff 37%, #eaedff 63%); background-size: 400% 100%; animation: tv-shimmer 1.4s ease infinite; border-radius: 16px; }
+@keyframes tv-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+.tv-modal-backdrop { background: rgba(19, 27, 46, .45); }
+
+/* Đường viền phân tách nhạt trong thẻ (thay cho viền đen của phong cách cũ) */
+.tv-card .border-black { border-color: var(--tv-line) !important; }
+.tv-card .rounded-\[5px\] { border-radius: 12px !important; }

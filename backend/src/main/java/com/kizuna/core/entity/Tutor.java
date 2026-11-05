@@ -1,6 +1,5 @@
 package com.kizuna.core.entity;
 
-
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import com.kizuna.features.payment.entity.TutorMembershipStatus;
 import jakarta.persistence.*;
@@ -30,6 +29,12 @@ public class Tutor {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "tutor_id", updatable = false, nullable = false)
     private UUID tutorId;
+
+    /**
+     * Mã gia sư tự động tăng (bắt đầu từ 10001) phục vụ URL rút gọn /gs/:tutorCode
+     */
+    @Column(name = "tutor_code", unique = true, insertable = false, updatable = false)
+    private Long tutorCode;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)

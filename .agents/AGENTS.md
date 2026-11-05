@@ -32,7 +32,7 @@ Nếu công cụ của bạn không tự đọc file này, hãy dán câu sau v�
 
 ## 1. Đọc gì, theo thứ tự nào
 
-1. File này, rồi luật của phần sẽ sửa: [backend/BACKEND_RULES.md](../backend/BACKEND_RULES.md) (Spring Boot, cơ sở dữ liệu, API, bảo mật, AI) hoặc [frontend/FRONTEND_RULES.md](../frontend/FRONTEND_RULES.md) (HTML/CSS/JS, cấu trúc trang, gọi API).
+1. File này, rồi luật của phần sẽ sửa: [backend/BACKEND_RULES.md](../backend/BACKEND_RULES.md) (Spring Boot, cơ sở dữ liệu, API, bảo mật, AI) hoặc [frontend/FRONTEND_RULES.md](../frontend/FRONTEND_RULES.md) (HTML/CSS/JS, cấu trúc trang, gọi API). Khi làm việc với giao diện web (HTML/CSS/JS), bắt buộc đọc thêm quy chuẩn component dùng chung tại [.agents/rules/components_rule.md](rules/components_rule.md) và khuôn mẫu thiết kế chuẩn từ trang Home tại [.agents/rules/design.md](rules/design.md).
 2. Khi làm một task theo Spec Kit: `specs/NNN-*/tasks.md` → `plan.md` → `data-model.md` → `contracts/` → `research.md` → `spec.md` → `quickstart.md`. Nguồn nghiệp vụ gốc là tài liệu SRS `Report-3_Software Requirement Specification.docx` mà `spec.md` trích dẫn.
 3. Giao diện và chữ trên màn: [docs/guidelines/DESIGN.md](../docs/guidelines/DESIGN.md), [docs/guidelines/UI_LOCALIZATION_RULES.md](../docs/guidelines/UI_LOCALIZATION_RULES.md), bảng chuyển ngữ ở [.agents/rules/README.md](rules/README.md).
 4. Đặt tên: [docs/guidelines/CONVENTIONS.md](../docs/guidelines/CONVENTIONS.md); cấu trúc gói backend: [docs/guidelines/BACKEND_FEATURE_ARCHITECTURE.md](../docs/guidelines/BACKEND_FEATURE_ARCHITECTURE.md).
@@ -54,7 +54,7 @@ Nếu công cụ của bạn không tự đọc file này, hãy dán câu sau v�
 
 - [ ] Test của phần vừa làm đã viết và chạy xanh (nếu không chạy được thì đã ghi lý do)
 - [ ] `backend`: `.\mvnw.cmd test-compile` qua; chạy test liên quan `.\mvnw.cmd test -Dtest=<TenTest>` (Linux/macOS: `./mvnw`)
-- [ ] `frontend`: `node --test frontend/tests/` qua; đã mở trang qua `node frontend/server.js` và kiểm tra ngôn ngữ, viết hoa, trạng thái rỗng, trạng thái lỗi
+- [ ] `frontend`: `node --test "frontend/tests/*.test.mjs"` qua; đã mở trang qua `node frontend/server.js` và kiểm tra ngôn ngữ, viết hoa, trạng thái rỗng, trạng thái lỗi
 - [ ] Đánh `[x]` task trong `tasks.md`; ghi chú triển khai, lệch kỹ thuật ở `plan.md`
 - [ ] Thuật ngữ mới hoặc trạng thái mới có bản chuyển ngữ tiếng Việt cho giao diện
 - [ ] Báo cáo cho người dùng: file đã tạo hoặc sửa, kết quả lệnh kiểm tra, quyết định kỹ thuật cần nhóm xác nhận

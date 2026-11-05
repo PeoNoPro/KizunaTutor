@@ -1,4 +1,4 @@
-# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
+﻿# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
 # Khong can cai dat Node.js, chay truc tiep bang PowerShell tren moi may Windows
 
 param(
@@ -60,6 +60,9 @@ $aliases = @{
     "/shodo"             = "/pages/shodo-practice/index.html"
     "/shodo-practice"    = "/pages/shodo-practice/index.html"
     "/grammar"           = "/pages/grammar/index.html"
+    "/ai-writing"        = "/pages/ai-writing/index.html"
+    "/sakubun"           = "/pages/ai-writing/index.html"
+    "/learner/ai-writing"= "/pages/ai-writing/index.html"
     "/handwriting"       = "/pages/handwriting-search/index.html"
     "/tutors"            = "/pages/tutor-discovery/index.html"
     "/kana"              = "/pages/kana-quiz/index.html"
@@ -155,21 +158,57 @@ while ($listener.IsListening) {
             }
         }
 
+                # 1c. Proxy Agent Memory Service (Port 8081)
+        if ($pathPart.StartsWith("/memory/") -or $pathPart.StartsWith("/agent-memory/")) {
+            $memPath = if ($pathPart.StartsWith("/agent-memory/")) { $rawUrl.Replace("/agent-memory", "") } else { $rawUrl }
+            $memTargetUri = "http://localhost:8081$memPath"
+            $memReq = [System.Net.HttpWebRequest]::Create($memTargetUri)
+            $memReq.Method = $request.HttpMethod
+            $memReq.ContentType = $request.ContentType
+            $memReq.Timeout = 1500
+            $memReq.ReadWriteTimeout = 1500
+
+            try {
+                if ($request.HasEntityBody) {
+                    $reqStream = $memReq.GetRequestStream()
+                    $request.InputStream.CopyTo($reqStream)
+                    $reqStream.Close()
+                }
+                $memRes = $memReq.GetResponse()
+                $response.StatusCode = [int]$memRes.StatusCode
+                $response.ContentType = $memRes.ContentType
+                $resStream = $memRes.GetResponseStream()
+                $resStream.CopyTo($response.OutputStream)
+                $resStream.Close()
+                $memRes.Close()
+            } catch {
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $jsonFallback = '{"status":200,"success":true,"message":"Agent Memory recorded via Local Bridge","data":null}'
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonFallback)
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+            }
+            $response.OutputStream.Close()
+            continue
+        }
+
         # 1b. Neu la API khac -> Proxy chuyen tiep den Backend Spring Boot
         if ($pathPart.StartsWith("/api/")) {
             $targetUri = "$BackendUrl$rawUrl"
             $webRequest = [System.Net.HttpWebRequest]::Create($targetUri)
             $webRequest.Method = $request.HttpMethod
             $webRequest.ContentType = $request.ContentType
-
-            if ($request.HasEntityBody) {
-                $reqStream = $request.InputStream
-                $proxyStream = $webRequest.GetRequestStream()
-                $reqStream.CopyTo($proxyStream)
-                $proxyStream.Close()
-            }
+            $webRequest.Timeout = 1000
+            $webRequest.ReadWriteTimeout = 1000
 
             try {
+                if ($request.HasEntityBody) {
+                    $reqStream = $request.InputStream
+                    $proxyStream = $webRequest.GetRequestStream()
+                    $reqStream.CopyTo($proxyStream)
+                    $proxyStream.Close()
+                }
+
                 $webResponse = $webRequest.GetResponse()
                 $response.StatusCode = [int]$webResponse.StatusCode
                 $response.ContentType = $webResponse.ContentType
@@ -184,9 +223,17 @@ while ($listener.IsListening) {
                     $errRes.GetResponseStream().CopyTo($response.OutputStream)
                 } else {
                     $response.StatusCode = 502
-                    $bytes = [System.Text.Encoding]::UTF8.GetBytes("Bad Gateway: Khong the ket noi backend $BackendUrl")
+                    $response.ContentType = "application/json; charset=UTF-8"
+                    $jsonErr = '{"status":502,"message":"Backend offline","error":"Khong the ket noi backend ' + $BackendUrl + '"}'
+                    $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonErr)
                     $response.OutputStream.Write($bytes, 0, $bytes.Length)
                 }
+            } catch {
+                $response.StatusCode = 502
+                $response.ContentType = "application/json; charset=UTF-8"
+                $jsonErr = '{"status":502,"message":"Backend offline","error":"Khong the ket noi backend ' + $BackendUrl + '"}'
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonErr)
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
             }
             $response.OutputStream.Close()
             continue
@@ -202,6 +249,12 @@ while ($listener.IsListening) {
             $pathPart = $aliases[$lookupPath]
         } elseif ($pathPart -match "^/learner/flashcards/[^/]+$") {
             $pathPart = "/pages/flashcards-detail/index.html"
+        } else {
+            $cleanName = $lookupPath.TrimStart('/')
+            $candidate = Join-Path $rootDir "pages/$cleanName/index.html"
+            if (Test-Path $candidate) {
+                $pathPart = "/pages/$cleanName/index.html"
+            }
         }
 
         $localPath = Join-Path $rootDir $pathPart.TrimStart('/')

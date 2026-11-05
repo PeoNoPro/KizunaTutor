@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Quản lý & Luyện tập Bộ thẻ ghi nhớ Flashcards
  * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * TUYỆT ĐỐI KHÔNG DÙNG DỮ LIỆU MẪU (NO MOCK DATA INJECTION)
@@ -177,30 +177,30 @@ function renderDecks(filterQuery = '') {
           </div>
         </div>
 
-        <!-- Cụm nút hành động chính ở chân thẻ -->
-        <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-200">
-          <!-- Nút Xem Chi Tiết -->
+        <!-- Cụm nút hành động chính ở chân thẻ (Theo quy chuẩn Ponytail & Impeccable) -->
+        <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-[#0F172A]/15">
+          <!-- Nút Chỉnh Sửa -->
           <button type="button" 
-                  data-action="view-detail" data-id="${deck.id}" 
-                  class="py-1.5 px-2 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate"
-                  title="Mở trang chi tiết bộ thẻ độc lập">
-            <span>🔍</span> Chi Tiết
-          </button>
-
-          <!-- Nút Học Thẻ -->
-          <button type="button" 
-                  data-action="prompt-study" data-id="${deck.id}" 
-                  class="py-1.5 px-2 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate"
-                  title="Chọn cách học bộ thẻ (Lật thẻ 3D hoặc Minigame bắn chữ)">
-            <span>🎮</span> Học Thẻ
+                  data-action="edit-deck" data-id="${deck.id}" 
+                  class="py-1.5 px-2 bg-white hover:bg-slate-100 text-[#0F172A] text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
+                  title="Chỉnh sửa bộ thẻ & nạp dữ liệu từ Excel">
+            <span>✏️</span> Chỉnh Sửa
           </button>
 
           <!-- Nút Xóa -->
           <button type="button" 
                   data-action="delete-deck" data-id="${deck.id}" 
-                  class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate"
+                  class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
                   title="Xóa bộ thẻ này">
             <span>🗑️</span> Xóa
+          </button>
+
+          <!-- Nút Chi Tiết Độc Lập -->
+          <button type="button" 
+                  data-action="view-detail" data-id="${deck.id}" 
+                  class="py-1.5 px-2 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
+                  title="Mở trang chi tiết bộ thẻ độc lập (/learner/deck-detail)">
+            <span>📖</span> Chi Tiết
           </button>
         </div>
       </div>

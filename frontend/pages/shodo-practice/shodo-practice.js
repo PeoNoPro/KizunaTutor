@@ -1,10 +1,12 @@
-/**
+﻿/**
  * KizunaTutor - Phòng Luyện Viết Shodo Canvas AI
  * Module độc lập theo kiến trúc Feature-Based, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * TUYỆT ĐỐI KHÔNG DÙNG DỮ LIỆU MẪU (NO MOCK DATA INJECTION)
  */
 
 import { showToast } from '/js/main.js';
+import { KizunaDialog } from '/js/common/dialog.js';
+import { AgentMemoryService } from '/js/api/agentMemory.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
@@ -593,6 +595,32 @@ function gradeShodoWriting() {
   } else {
     commentEl.textContent = `Số nét bạn vẽ (${userStrokes} nét) hơi chênh so với mẫu (${expectedStrokes} nét). Hãy bật tính năng "Nét mờ" để đồ theo vài lượt trước khi tự viết nhé!`;
   }
+
+    const commentText = commentEl.textContent;
+
+  // Ghi nhận ngữ cảnh vào TencentDB Agent Memory (Port 8081)
+  AgentMemoryService.recordLearningProgress({
+    feature: 'shodo',
+    targetChar: currentChar,
+    score: totalScore,
+    mistakes: userStrokes !== expectedStrokes ? [`Lệch nét: bạn vẽ ${userStrokes} nét so với mẫu ${expectedStrokes} nét`] : [],
+    feedback: commentText,
+    context: { userStrokes, expectedStrokes, balanceScore, smoothnessScore }
+  });
+
+  const adviceFromMemory = AgentMemoryService.getPersonalizedSenseiAdvice('shodo', currentChar);
+
+  // Hiển thị nhận xét gợi mở từ Sensei AI qua component KizunaDialog
+  KizunaDialog.showSenseiAdvice({
+    char: currentChar,
+    score: totalScore,
+    comment: commentText,
+    historyAdvice: adviceFromMemory,
+    actionText: 'Tiếp tục rèn luyện',
+    onAction: () => {
+      clearCanvasOnly();
+    }
+  });
 
   showToast(`Sensei AI đã chấm xong: ${totalScore} điểm.`, 'success');
 }

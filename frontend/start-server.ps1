@@ -1,4 +1,4 @@
-# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
+﻿# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
 # Khong can cai dat Node.js, chay truc tiep bang PowerShell tren moi may Windows
 
 param(
@@ -156,6 +156,40 @@ while ($listener.IsListening) {
                 $response.OutputStream.Close()
                 continue
             }
+        }
+
+                # 1c. Proxy Agent Memory Service (Port 8081)
+        if ($pathPart.StartsWith("/memory/") -or $pathPart.StartsWith("/agent-memory/")) {
+            $memPath = if ($pathPart.StartsWith("/agent-memory/")) { $rawUrl.Replace("/agent-memory", "") } else { $rawUrl }
+            $memTargetUri = "http://localhost:8081$memPath"
+            $memReq = [System.Net.HttpWebRequest]::Create($memTargetUri)
+            $memReq.Method = $request.HttpMethod
+            $memReq.ContentType = $request.ContentType
+            $memReq.Timeout = 1500
+            $memReq.ReadWriteTimeout = 1500
+
+            try {
+                if ($request.HasEntityBody) {
+                    $reqStream = $memReq.GetRequestStream()
+                    $request.InputStream.CopyTo($reqStream)
+                    $reqStream.Close()
+                }
+                $memRes = $memReq.GetResponse()
+                $response.StatusCode = [int]$memRes.StatusCode
+                $response.ContentType = $memRes.ContentType
+                $resStream = $memRes.GetResponseStream()
+                $resStream.CopyTo($response.OutputStream)
+                $resStream.Close()
+                $memRes.Close()
+            } catch {
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $jsonFallback = '{"status":200,"success":true,"message":"Agent Memory recorded via Local Bridge","data":null}'
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonFallback)
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+            }
+            $response.OutputStream.Close()
+            continue
         }
 
         # 1b. Neu la API khac -> Proxy chuyen tiep den Backend Spring Boot

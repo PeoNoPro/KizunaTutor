@@ -1,4 +1,4 @@
-﻿/**
+/**
  * KizunaTutor - Cẩm Nang Ngữ Pháp OpenJLPT
  * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * Hỗ trợ Bộ lọc kép: Cấp độ JLPT (N5 - N1) & Khối Ứng dụng Thực tế (Đời thường, Nhà hàng, Du lịch, Công việc, Sức khỏe, Học thuật)
@@ -195,6 +195,13 @@ async function loadGrammarData() {
         });
 
         renderGrammarCards();
+
+        // Tự động mở chi tiết nếu URL có param detail hoặc id
+        const urlParams = new URLSearchParams(window.location.search);
+        const detailId = urlParams.get('detail') || urlParams.get('id');
+        if (detailId) {
+          openGrammarDetail(detailId, false);
+        }
         return;
       }
     }
@@ -342,7 +349,9 @@ function renderGrammarCards() {
 
   // Gắn sự kiện click
   grid.querySelectorAll('[data-action="view-detail"]').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       openGrammarDetail(card.dataset.id);
     });
   });
@@ -351,17 +360,35 @@ function renderGrammarCards() {
 // =========================================================================
 // 5. GIAO DIỆN CHI TIẾT MẪU NGỮ PHÁP (DETAIL VIEW)
 // =========================================================================
-function openGrammarDetail(ruleId) {
-  const rule = masterGrammarList.find(r => r.id === ruleId);
+let lastScrollTop = 0;
+
+function openGrammarDetail(ruleId, pushHistory = true) {
+  const rule = masterGrammarList.find(r => String(r.id) === String(ruleId));
   if (!rule) return;
 
-  document.getElementById('grammarListView').classList.add('hidden');
+  const mainEl = document.querySelector('main');
+  if (mainEl) {
+    lastScrollTop = mainEl.scrollTop;
+  } else {
+    lastScrollTop = window.scrollY || 0;
+  }
+
+  const listView = document.getElementById('grammarListView');
   const detailView = document.getElementById('grammarDetailView');
-  detailView.classList.remove('hidden');
+  if (listView) listView.classList.add('hidden');
+  if (detailView) detailView.classList.remove('hidden');
+
+  if (pushHistory) {
+    const u = new URL(window.location);
+    u.searchParams.set('detail', rule.id);
+    window.history.pushState({ grammarDetailId: rule.id }, '', u);
+  }
 
   // Breadcrumb
-  document.getElementById('detailBreadcrumbLevel').textContent = `JLPT ${rule.level}`;
-  document.getElementById('detailBreadcrumbPattern').textContent = rule.pattern;
+  const bcLevel = document.getElementById('detailBreadcrumbLevel');
+  const bcPattern = document.getElementById('detailBreadcrumbPattern');
+  if (bcLevel) bcLevel.textContent = `JLPT ${rule.level}`;
+  if (bcPattern) bcPattern.textContent = rule.pattern;
 
   const container = document.getElementById('grammarDetailContainer');
   let examplesHtml = '';
@@ -486,7 +513,9 @@ function openGrammarDetail(ruleId) {
   `;
   container.appendChild(practiceBox);
 
-  document.getElementById('btnGoToAiWritingPractice')?.addEventListener('click', () => {
+  document.getElementById('btnGoToAiWritingPractice')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     try {
       sessionStorage.setItem('kizuna_selected_grammar_for_writing', JSON.stringify({
         id: rule.id,
@@ -504,13 +533,61 @@ function openGrammarDetail(ruleId) {
     window.location.href = `/ai-writing?pattern=${encodeURIComponent(rule.pattern)}&level=${encodeURIComponent(rule.level)}`;
   });
 
+  if (mainEl) {
+    mainEl.scrollTop = 0;
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function closeGrammarDetail() {
-  document.getElementById('grammarDetailView').classList.add('hidden');
-  document.getElementById('grammarListView').classList.remove('hidden');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+function closeGrammarDetail(fromPopState = false) {
+  const detailView = document.getElementById('grammarDetailView');
+  const listView = document.getElementById('grammarListView');
+  if (!detailView || !listView) return;
+
+  detailView.classList.add('hidden');
+  listView.classList.remove('hidden');
+
+  if (!fromPopState) {
+    const u = new URL(window.location);
+    const hadDetailInUrl = u.searchParams.has('detail') || u.searchParams.has('id');
+    u.searchParams.delete('detail');
+    u.searchParams.delete('id');
+
+    if (hadDetailInUrl && window.history.state?.grammarDetailId) {
+      window.history.back();
+      return;
+    } else {
+      window.history.replaceState({}, '', u);
+    }
+  }
+
+  const mainEl = document.querySelector('main');
+  if (mainEl && lastScrollTop > 0) {
+    mainEl.scrollTop = lastScrollTop;
+  } else if (lastScrollTop > 0) {
+    window.scrollTo({ top: lastScrollTop, behavior: 'smooth' });
+  }
+}
+
+function handleGrammarPopState(e) {
+  const detailView = document.getElementById('grammarDetailView');
+  if (!detailView) return; // Không còn ở trang grammar
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const detailId = urlParams.get('detail') || urlParams.get('id') || e.state?.grammarDetailId;
+
+  if (detailId) {
+    if (masterGrammarList.length > 0) {
+      openGrammarDetail(detailId, false);
+    }
+  } else {
+    closeGrammarDetail(true);
+  }
+}
+
+if (!window.__grammarPopstateBound) {
+  window.__grammarPopstateBound = true;
+  window.addEventListener('popstate', handleGrammarPopState);
 }
 // =========================================================================
 // 6. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
@@ -598,7 +675,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 1. Chuyển đổi giữa 2 Chế độ Lọc: JLPT Level <-> Khối Ứng dụng
   modeSwitcherBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const selectedMode = btn.dataset.mode;
       if (selectedMode === currentFilterMode) return;
 
@@ -632,7 +711,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 2. Chuyển tab cấp độ N5 -> N1
   document.querySelectorAll('#jlptLevelTabs button').forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       currentLevel = tab.dataset.level;
 
       document.querySelectorAll('#jlptLevelTabs button').forEach(t => {
@@ -650,7 +731,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 3. Chuyển tab Khối Ứng dụng (Đời thường, Nhà hàng, Du lịch, Công việc, Sức khỏe, Học thuật)
   document.querySelectorAll('#domainTabs button').forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       currentDomain = tab.dataset.domain;
 
       document.querySelectorAll('#domainTabs button').forEach(t => {
@@ -668,7 +751,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 3b. Lọc cấp độ JLPT cho Khối Ứng Dụng đã chọn (Tất cả, N5, N4, N3, N2, N1)
   document.querySelectorAll('#domainJlptTabs button').forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       currentDomainLevel = tab.dataset.domainLevel;
 
       document.querySelectorAll('#domainJlptTabs button').forEach(t => {
@@ -694,5 +779,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 5. Nút quay lại danh sách
-  document.getElementById('btnBackToList')?.addEventListener('click', closeGrammarDetail);
+  document.getElementById('btnBackToList')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeGrammarDetail(false);
+  });
 });

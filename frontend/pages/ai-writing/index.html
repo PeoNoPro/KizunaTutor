@@ -148,73 +148,19 @@
             <div class="lg:col-span-6 space-y-4">
               <div class="bg-white border border-black rounded-[5px] p-5 shadow-[4px_4px_0px_0px_#000000] space-y-4">
 
-                <!-- Tùy chọn 1: Cấp độ JLPT -->
-                <div>
-                  <label class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-2">
-                    1. Cấp độ JLPT mục tiêu
-                  </label>
-                  <div class="grid grid-cols-5 gap-2" id="jlptLevelSelector">
-                    <button type="button" data-level="N5" class="jlpt-btn py-1.5 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-[#006194] text-white shadow-[2px_2px_0px_0px_#000000]">N5</button>
-                    <button type="button" data-level="N4" class="jlpt-btn py-1.5 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-white text-[#475569] hover:bg-[#F8FAFC]">N4</button>
-                    <button type="button" data-level="N3" class="jlpt-btn py-1.5 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-white text-[#475569] hover:bg-[#F8FAFC]">N3</button>
-                    <button type="button" data-level="N2" class="jlpt-btn py-1.5 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-white text-[#475569] hover:bg-[#F8FAFC]">N2</button>
-                    <button type="button" data-level="N1" class="jlpt-btn py-1.5 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-white text-[#475569] hover:bg-[#F8FAFC]">N1</button>
-                  </div>
-                </div>
-
-                <!-- Tùy chọn 2: Phong cách hành văn (Formality) -->
-                <div>
-                  <label class="block text-xs font-bold text-[#0F2545] uppercase tracking-wider mb-2">
-                    2. Phong cách hành văn
-                  </label>
-                  <div class="grid grid-cols-3 gap-2" id="formalitySelector">
-                    <button type="button" data-formality="POLITE" class="formality-btn py-2 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-[#006194] text-white shadow-[2px_2px_0px_0px_#000000] text-center">
-                      <div>Lịch sự</div>
-                      <div class="text-[10px] font-normal opacity-90">です / ます</div>
-                    </button>
-                    <button type="button" data-formality="PLAIN" class="formality-btn py-2 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-white text-[#475569] hover:bg-[#F8FAFC] text-center">
-                      <div>Thân mật</div>
-                      <div class="text-[10px] font-normal text-[#64748B]">Thể ngắn (普通形)</div>
-                    </button>
-                    <button type="button" data-formality="KEIGO" class="formality-btn py-2 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-white text-[#475569] hover:bg-[#F8FAFC] text-center">
-                      <div>Kính ngữ</div>
-                      <div class="text-[10px] font-normal text-[#64748B]">Công sở / 敬語</div>
-                    </button>
-                  </div>
-                </div>
-
                 <!-- Khung Soạn Thảo Văn Bản Của Bản Thân -->
                 <div>
-                  <div class="flex items-center justify-between mb-1.5">
+                  <div class="flex items-center justify-between mb-2">
                     <label for="writingInput" class="text-xs font-bold text-[#0F2545] uppercase tracking-wider flex items-center gap-1.5">
                       <span class="material-symbols-outlined text-[16px] text-[#006194]">edit</span>
-                      <span id="writingInputLabel">3. Viết câu của bạn để nhờ AI đánh giá</span>
+                      <span id="writingInputLabel">Viết câu tiếng Nhật của bạn để nhờ AI đánh giá</span>
                     </label>
                     <span id="charCounter" class="text-[11px] text-[#64748B] font-mono">0 / 2000 ký tự</span>
                   </div>
 
-                  <textarea id="writingInput" rows="6" maxlength="2000"
-                            placeholder="Nhập câu tiếng Nhật của bạn vào đây để nhờ AI Sensei thẩm định...&#10;Ví dụ: 私わ昨日友達と映画を見ました。とても面白かったです。"
+                  <textarea id="writingInput" rows="8" maxlength="2000"
+                            placeholder="Nhập câu tiếng Nhật của bạn vào đây để nhờ AI Sensei thẩm định...&#10;Bấm &quot;AI Thẩm định &amp; Chữa câu&quot; để nhận phân tích ngữ pháp, trợ từ và câu chuẩn người bản xứ."
                             class="w-full p-3.5 border border-black rounded-[5px] text-sm font-['Noto_Sans_JP'] focus:outline-none focus:ring-2 focus:ring-[#006194] resize-none leading-relaxed shadow-inner"></textarea>
-                </div>
-
-                <!-- Mẫu Câu Gợi Ý Thử Nghiệm Nhanh -->
-                <div>
-                  <div class="text-[11px] font-bold text-[#64748B] mb-1.5 flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[14px]">bolt</span>
-                    Mẫu câu thử nghiệm nhanh:
-                  </div>
-                  <div class="flex flex-wrap gap-1.5" id="sampleChipsContainer">
-                    <button type="button" data-sample="私わ昨日友達と寿司を食べました。" class="sample-chip px-2.5 py-1 bg-[#F1F5F9] border border-[#CBD5E1] rounded-[4px] text-[11px] hover:border-black transition text-[#1E293B]">
-                      Lỗi trợ từ: 私わ...
-                    </button>
-                    <button type="button" data-sample="明日雨が降るでしたから、傘を持って行きます。" class="sample-chip px-2.5 py-1 bg-[#F1F5F9] border border-[#CBD5E1] rounded-[4px] text-[11px] hover:border-black transition text-[#1E293B]">
-                      Lỗi chia thì: 降るでした
-                    </button>
-                    <button type="button" data-sample="先生、この本を読んでもいいですか。" class="sample-chip px-2.5 py-1 bg-[#F1F5F9] border border-[#CBD5E1] rounded-[4px] text-[11px] hover:border-black transition text-[#1E293B]">
-                      Lịch sự: 読んでもいいですか
-                    </button>
-                  </div>
                 </div>
 
                 <!-- Hàng Nút Bấm Thao Tác -->

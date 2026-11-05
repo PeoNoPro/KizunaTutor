@@ -5,6 +5,8 @@
  */
 
 import { showToast } from '/js/main.js';
+import { KizunaDialog } from '/js/common/dialog.js';
+import { AgentMemoryService } from '/js/api/agentMemory.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 
 // =========================================================================
@@ -46,32 +48,40 @@ function checkForTransferredGrammar() {
   const patternFromUrl = urlParams.get('pattern');
   const levelFromUrl = urlParams.get('level');
 
-  let transferred = null;
-  try {
-    const raw = sessionStorage.getItem(GRAMMAR_TRANSFER_KEY);
-    if (raw) {
-      transferred = JSON.parse(raw);
+  if (patternFromUrl) {
+    let transferred = null;
+    try {
+      const raw = sessionStorage.getItem(GRAMMAR_TRANSFER_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.pattern === patternFromUrl) {
+          transferred = parsed;
+        }
+      }
+    } catch (e) {
+      console.debug('SessionStorage parse error:', e);
     }
-  } catch (e) {
-    console.debug('SessionStorage parse error:', e);
-  }
 
-  // Nếu có thông tin từ sessionStorage hoặc URL
-  if (transferred && (!patternFromUrl || transferred.pattern === patternFromUrl)) {
-    applySelectedGrammar(transferred);
-  } else if (patternFromUrl) {
-    applySelectedGrammar({
-      pattern: patternFromUrl,
-      level: levelFromUrl || 'N5',
-      romaji: '',
-      meaning: `Mẫu ngữ pháp ${patternFromUrl}`,
-      formation: `Áp dụng công thức của mẫu ${patternFromUrl}`,
-      notes: 'Thực hành đặt câu tiếng Nhật của riêng bạn với mẫu ngữ pháp này.',
-      examples: []
-    });
+    if (transferred) {
+      applySelectedGrammar(transferred);
+    } else {
+      applySelectedGrammar({
+        pattern: patternFromUrl,
+        level: levelFromUrl || 'N5',
+        romaji: '',
+        meaning: `Mẫu ngữ pháp ${patternFromUrl}`,
+        formation: `Áp dụng công thức của mẫu ${patternFromUrl}`,
+        notes: 'Thực hành đặt câu tiếng Nhật của riêng bạn với mẫu ngữ pháp này.',
+        examples: []
+      });
+    }
   } else {
-    // Mặc định nạp gợi ý
-    loadGrammarPrompts();
+    // Vào trực tiếp http://localhost:3000/ai-writing mà không qua grammar -> Chế độ Đặt câu tự do
+    try {
+      sessionStorage.removeItem(GRAMMAR_TRANSFER_KEY);
+    } catch (e) {}
+    activeGrammarRule = null;
+    switchMode('free');
   }
 }
 
@@ -81,7 +91,6 @@ function applySelectedGrammar(rule) {
   currentJlpt = rule.level ? rule.level.toUpperCase() : 'N5';
 
   switchMode('grammar');
-  updateJlptButtons();
 
   // Hiển thị Banner Cẩm Nang Ngữ Pháp Đồng Hành (Vừa học vừa nhìn ngữ pháp)
   const banner = document.getElementById('activeGrammarCompanionBanner');
@@ -119,7 +128,7 @@ function applySelectedGrammar(rule) {
   // Tùy biến nhãn và gợi ý của ô nhập câu
   const labelEl = document.getElementById('writingInputLabel');
   if (labelEl) {
-    labelEl.innerHTML = `3. Viết câu của bạn sử dụng mẫu <span class="text-[#006194] font-bold">"${escapeHtml(rule.pattern)}"</span>`;
+    labelEl.innerHTML = `Viết câu của bạn sử dụng mẫu <span class="text-[#006194] font-bold">"${escapeHtml(rule.pattern)}"</span>`;
   }
 
   const inputEl = document.getElementById('writingInput');
@@ -141,25 +150,6 @@ function initEventListeners() {
   // Nút xem chi tiết / thu gọn cẩm nang ngữ pháp đồng hành
   document.getElementById('btnToggleGrammarDetails')?.addEventListener('click', toggleCompanionGrammarDetails);
 
-  // Cấp độ JLPT
-  document.querySelectorAll('#jlptLevelSelector .jlpt-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentJlpt = btn.dataset.level;
-      updateJlptButtons();
-      if (currentMode === 'grammar' && !activeGrammarRule) {
-        loadGrammarPrompts();
-      }
-    });
-  });
-
-  // Phong cách Formality
-  document.querySelectorAll('#formalitySelector .formality-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentFormality = btn.dataset.formality;
-      updateFormalityButtons();
-    });
-  });
-
   // Bộ đếm ký tự
   const inputEl = document.getElementById('writingInput');
   const counterEl = document.getElementById('charCounter');
@@ -168,18 +158,6 @@ function initEventListeners() {
       counterEl.textContent = `${inputEl.value.length} / 2000 ký tự`;
     });
   }
-
-  // Mẫu câu nhanh
-  document.querySelectorAll('.sample-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const sample = chip.dataset.sample;
-      if (inputEl && sample) {
-        inputEl.value = sample;
-        if (counterEl) counterEl.textContent = `${sample.length} / 2000 ký tự`;
-        inputEl.focus();
-      }
-    });
-  });
 
   // Xóa trắng
   document.getElementById('btnClearWriting')?.addEventListener('click', () => {
@@ -230,21 +208,43 @@ function switchMode(mode) {
   const btnFree = document.getElementById('btnModeFree');
   const btnGrammar = document.getElementById('btnModeGrammar');
   const banner = document.getElementById('activeGrammarCompanionBanner');
+  const labelEl = document.getElementById('writingInputLabel');
+  const inputEl = document.getElementById('writingInput');
 
   if (mode === 'free') {
-    btnFree.className = 'px-4 py-2 rounded-[5px] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] text-white shadow-[2px_2px_0px_0px_#000000]';
-    btnGrammar.className = 'px-4 py-2 rounded-[5px] text-xs font-bold text-[#475569] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer';
+    if (btnFree) btnFree.className = 'px-4 py-2 rounded-[5px] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] text-white shadow-[2px_2px_0px_0px_#000000]';
+    if (btnGrammar) btnGrammar.className = 'px-4 py-2 rounded-[5px] text-xs font-bold text-[#475569] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer';
     banner?.classList.add('hidden');
 
-    const labelEl = document.getElementById('writingInputLabel');
-    if (labelEl) labelEl.textContent = '3. Viết câu của bạn để nhờ AI đánh giá';
+    if (labelEl) labelEl.textContent = 'Viết câu tiếng Nhật của bạn để nhờ AI đánh giá';
+    if (inputEl && !inputEl.value) {
+      inputEl.placeholder = 'Nhập câu tiếng Nhật của bạn vào đây để nhờ AI Sensei thẩm định...\nBấm "AI Thẩm định & Chữa câu" để nhận phân tích ngữ pháp, trợ từ và câu chuẩn người bản xứ.';
+    }
   } else {
-    btnGrammar.className = 'px-4 py-2 rounded-[5px] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] text-white shadow-[2px_2px_0px_0px_#000000]';
-    btnFree.className = 'px-4 py-2 rounded-[5px] text-xs font-bold text-[#475569] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer';
     if (activeGrammarRule) {
+      if (btnGrammar) btnGrammar.className = 'px-4 py-2 rounded-[5px] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] text-white shadow-[2px_2px_0px_0px_#000000]';
+      if (btnFree) btnFree.className = 'px-4 py-2 rounded-[5px] text-xs font-bold text-[#475569] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer';
       banner?.classList.remove('hidden');
+
+      if (labelEl) {
+        labelEl.innerHTML = `Viết câu của bạn sử dụng mẫu <span class="text-[#006194] font-bold">"${escapeHtml(activeGrammarRule.pattern)}"</span>`;
+      }
+      if (inputEl && !inputEl.value) {
+        inputEl.placeholder = `Hãy viết một câu tiếng Nhật của bạn có sử dụng mẫu ${activeGrammarRule.pattern}... Nhấn "AI Thẩm định & Chữa câu" để Sensei kiểm tra nhé!`;
+      }
     } else {
-      loadGrammarPrompts();
+      KizunaDialog.confirm({
+        title: 'Chưa chọn mẫu ngữ pháp',
+        message: 'Bạn hiện chưa chọn mẫu ngữ pháp nào để luyện tập. Bạn có muốn chuyển sang "Cẩm nang ngữ pháp" để chọn mẫu câu không?',
+        confirmText: 'Đến Cẩm nang ngữ pháp',
+        cancelText: 'Tiếp tục đặt câu tự do',
+        onConfirm: () => {
+          window.location.href = '/grammar';
+        },
+        onCancel: () => {
+          switchMode('free');
+        }
+      });
     }
   }
 }
@@ -265,57 +265,6 @@ function toggleCompanionGrammarDetails() {
       if (icon) icon.textContent = 'unfold_more';
       if (text) text.textContent = 'Xem chi tiết';
     }
-  }
-}
-
-function updateJlptButtons() {
-  document.querySelectorAll('#jlptLevelSelector .jlpt-btn').forEach(btn => {
-    const isAct = btn.dataset.level === currentJlpt;
-    if (isAct) {
-      btn.className = 'jlpt-btn py-1.5 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-[#006194] text-white shadow-[2px_2px_0px_0px_#000000]';
-    } else {
-      btn.className = 'jlpt-btn py-1.5 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-white text-[#475569] hover:bg-[#F8FAFC]';
-    }
-  });
-}
-
-function updateFormalityButtons() {
-  document.querySelectorAll('#formalitySelector .formality-btn').forEach(btn => {
-    const isAct = btn.dataset.formality === currentFormality;
-    if (isAct) {
-      btn.className = 'formality-btn py-2 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-[#006194] text-white shadow-[2px_2px_0px_0px_#000000] text-center';
-      btn.querySelector('div:last-child').className = 'text-[10px] font-normal opacity-90';
-    } else {
-      btn.className = 'formality-btn py-2 px-2 rounded-[5px] border border-black text-xs font-bold transition cursor-pointer bg-white text-[#475569] hover:bg-[#F8FAFC] text-center';
-      btn.querySelector('div:last-child').className = 'text-[10px] font-normal text-[#64748B]';
-    }
-  });
-}
-
-const DEFAULT_GRAMMAR_PROMPTS = {
-  N5: [
-    { pattern: '〜てください', meaning: 'Hãy / Xin vui lòng làm V (Yêu cầu lịch sự)', formation: 'V-て + ください', notes: 'Dùng khi đưa ra yêu cầu lịch sự với người nghe.', examples: [{ ja: 'ちょっと待ってください。', reading: 'ちょっとまってください。', vi: 'Xin vui lòng đợi một chút.' }] },
-    { pattern: '〜てはいけません', meaning: 'Không được phép làm V (Cấm đoán)', formation: 'V-て + はいけません', notes: 'Dùng khi nhắc nhở quy định cấm làm gì đó.', examples: [{ ja: 'ここで写真を撮ってはいけません。', reading: 'ここでしゃしんをとってはいけません。', vi: 'Không được chụp ảnh ở đây.' }] },
-    { pattern: '〜たことがあります', meaning: 'Đã từng làm V (Kinh nghiệm trong quá khứ)', formation: 'V-た + ことがある / あります', notes: 'Dùng khi kể về trải nghiệm đã từng làm trong quá khứ.', examples: [{ ja: '富士山に登ったことがあります。', reading: 'ふじさんにのぼったことがあります。', vi: 'Tôi đã từng leo núi Phú Sĩ.' }] }
-  ],
-  N4: [
-    { pattern: '〜たほうがいい / 〜ないほうがいい', meaning: 'Nên làm V / Không nên làm V (Lời khuyên)', formation: 'V-た / V-ない + ほうがいい', notes: 'Dùng khi khuyên nhủ người nghe làm hoặc không làm việc gì.', examples: [{ ja: '病院に行ったほうがいいですよ。', reading: 'びょういんにいったほうがいいですよ。', vi: 'Bạn nên đi bệnh viện khám thì hơn đấy.' }] }
-  ],
-  N3: [
-    { pattern: '〜ようにしている', meaning: 'Cố gắng làm / Giữ thói quen làm V', formation: 'V-る / V-ない + ようにしている', notes: 'Biểu thị sự cố gắng duy trì một thói quen tốt hàng ngày.', examples: [{ ja: '毎日野菜を食べるようにしています。', reading: 'まいにちやさいをたべるようにしています。', vi: 'Tôi luôn cố gắng ăn rau củ mỗi ngày.' }] }
-  ],
-  N2: [
-    { pattern: '〜に違いない', meaning: 'Chắc chắn là... (Suy đoán có căn cứ)', formation: 'Thể thông thường + に違いない', notes: 'Dùng khi người nói khẳng định chắc chắn 1 điều gì dựa trên căn cứ.', examples: [{ ja: '彼は必ず合格するに違いない。', reading: 'かれはかならずごうかくするにちがいない。', vi: 'Anh ấy chắc chắn sẽ thi đỗ.' }] }
-  ],
-  N1: [
-    { pattern: '〜を余儀なくされる', meaning: 'Buộc phải / Bị ép phải làm gì (Bất khả kháng)', formation: 'N + を余儀なくされる', notes: 'Dùng trong thời sự, văn viết biểu thị tình huống không thể tránh khỏi.', examples: [{ ja: '計画の変更を余儀なくされた。', reading: 'けいかくのへんこうをよぎなくされた。', vi: 'Buộc lòng phải thay đổi kế hoạch.' }] }
-  ]
-};
-
-async function loadGrammarPrompts() {
-  const prompts = DEFAULT_GRAMMAR_PROMPTS[currentJlpt] || DEFAULT_GRAMMAR_PROMPTS.N5;
-  if (prompts && prompts.length > 0) {
-    applySelectedGrammar(prompts[0]);
   }
 }
 
@@ -341,6 +290,7 @@ async function handleCheckWriting() {
   loadingState?.classList.remove('hidden');
 
   const targetGrammar = activeGrammarRule ? activeGrammarRule.pattern : null;
+  const targetLevel = activeGrammarRule?.level ? activeGrammarRule.level.toUpperCase() : 'N5';
 
   let data = null;
   try {
@@ -351,8 +301,8 @@ async function handleCheckWriting() {
       },
       body: JSON.stringify({
         text: text,
-        jlptLevel: currentJlpt,
-        formality: currentFormality,
+        jlptLevel: targetLevel,
+        formality: 'POLITE',
         grammarPattern: targetGrammar
       })
     });
@@ -364,12 +314,27 @@ async function handleCheckWriting() {
     }
   } catch (err) {
     console.debug('Dùng bộ thẩm định AI thông minh tại chỗ:', err);
-    data = clientSideSmartEvaluation(text, currentJlpt, currentFormality, targetGrammar);
+    data = clientSideSmartEvaluation(text, targetLevel, 'POLITE', targetGrammar);
   }
 
   if (data) {
     lastCheckResult = data;
     renderEvaluationResult(data);
+
+    // Ghi nhận ngữ cảnh vào TencentDB Agent Memory (Port 8081)
+    AgentMemoryService.recordLearningProgress({
+      feature: 'ai-writing',
+      score: data.score || 80,
+      feedback: data.overallComment || '',
+      mistakes: (data.errors || []).map(e => `${e.errorType || 'Lỗi'}: ${e.originalFragment || ''} -> ${e.correctedFragment || ''}`),
+      context: {
+        originalText: text,
+        correctedText: data.correctedText,
+        jlptLevel: targetLevel,
+        formality: 'POLITE',
+        grammarPattern: targetGrammar
+      }
+    });
     showToast('AI Sensei đã thẩm định xong câu văn của bạn.', 'success');
   } else {
     showToast('Không thể thẩm định câu văn. Vui lòng thử lại.', 'error');

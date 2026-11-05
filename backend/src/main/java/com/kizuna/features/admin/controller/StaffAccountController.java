@@ -17,6 +17,6 @@ public class StaffAccountController {
     @GetMapping("/staff/history") public ApiResponse<?> history(@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="20")int size){return ApiResponse.ok(staff.history(page,size));}
     @PostMapping("/staff") public ResponseEntity<?> create(@Valid @RequestBody Create request){var data=staff.create(request);return ResponseEntity.created(URI.create("/api/admin/operations/staff?created="+data.get("userId"))).body(ApiResponse.ok(data));}
     @PutMapping("/staff/{id}") public ApiResponse<?> update(@PathVariable UUID id,@Valid @RequestBody Update request){return ApiResponse.ok(staff.update(id,request));}
-    @PutMapping("/staff/{id}/role") public ApiResponse<?> role(@PathVariable UUID id,@Valid @RequestBody Command request){return ApiResponse.ok(staff.role(id,request));}
+    @PostMapping("/staff/{id}/resend-credentials") public ApiResponse<?> resend(@PathVariable UUID id,@Valid @RequestBody Resend request){return ApiResponse.ok(staff.resendCredentials(id,request));}
     @PutMapping("/staff/{id}/status") public ApiResponse<?> status(@PathVariable UUID id,@Valid @RequestBody Command request){return ApiResponse.ok(staff.status(id,request));}
 }

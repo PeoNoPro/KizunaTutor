@@ -50,12 +50,12 @@ class OperationsDevLoginTest {
     @Test void onlyLocalTokenlessOperationsRequestsReceiveDevelopmentIdentity() throws Exception {
         var verifier = mock(JwtTokenVerifier.class);
         var filter = new JwtAuthenticationAdapter(verifier, "test@test.invalid");
-        var request = new MockHttpServletRequest("GET", "/api/admin/operations/health");
+        var request = new MockHttpServletRequest("GET", "/api/admin/operations/dashboard/accounts");
         request.setRemoteAddr("127.0.0.1");
         filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
         assertEquals("test@test.invalid", SecurityContextHolder.getContext().getAuthentication().getName());
         SecurityContextHolder.clearContext();
-        request = new MockHttpServletRequest("GET", "/api/admin/operations/health");
+        request = new MockHttpServletRequest("GET", "/api/admin/operations/dashboard/accounts");
         request.setRemoteAddr("192.0.2.1");
         filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
         assertNull(SecurityContextHolder.getContext().getAuthentication());
@@ -63,7 +63,7 @@ class OperationsDevLoginTest {
 
     @Test void developmentIdentityDoesNotReplaceInvalidTokensOrOtherFeatures() throws Exception {
         var filter = new JwtAuthenticationAdapter(mock(JwtTokenVerifier.class), "test@test.invalid");
-        var request = new MockHttpServletRequest("GET", "/api/admin/operations/health");
+        var request = new MockHttpServletRequest("GET", "/api/admin/operations/dashboard/accounts");
         request.addHeader("Authorization", "Bearer invalid-test-token");
         filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
         assertNull(SecurityContextHolder.getContext().getAuthentication());

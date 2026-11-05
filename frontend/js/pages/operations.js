@@ -5,6 +5,7 @@ mountAdminShell();
  * Mỗi trang giữ logic riêng trong pages/<ten-trang>/<ten-trang>.js; file này chỉ chứa phần lặp lại.
  */
 import { fetchAPI } from '../api.js';
+import { API_CONFIG } from '../config/api.config.js';
 import { showToast } from '../main.js';
 
 export const OPERATIONS_BASE = '/admin/operations';
@@ -13,6 +14,52 @@ export const byId = id => document.getElementById(id);
 
 export function api(path, method = 'GET', payload) {
     return fetchAPI(path, {method, body: payload});
+}
+
+/** Tải tệp từ API; trả false khi máy chủ báo không có dữ liệu (204) để không báo tải thành công giả. */
+export async function downloadFile(path, filename) {
+    let response;
+    try {
+        response = await fetch(API_CONFIG.BASE_URL + path, {credentials: 'include', signal: AbortSignal.timeout(30000)});
+    } catch {
+        throw new Error('Chưa kết nối được hệ thống. Vui lòng thử lại sau.');
+    }
+    if (response.status === 204) return false;
+    if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        const error = new Error(result.message || 'Chưa tạo được tệp. Vui lòng thử lại.');
+        error.status = response.status; throw error;
+    }
+    const url = URL.createObjectURL(await response.blob()), link = document.createElement('a');
+    link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+}
+
+/** Hiển thị ô báo cáo: số có phân cách, thời gian ISO theo định dạng Việt Nam, trống giữ trống. */
+export function formatReportCell(value) {
+    if (value == null) return '';
+    if (typeof value === 'number') return new Intl.NumberFormat('vi-VN').format(value);
+    if (Array.isArray(value)) { const [y, m, d, h = 0, min = 0] = value; return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}, ${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`; }
+    if (/^\d{4}-\d{2}-\d{2}T/.test(value)) { const [d, t] = value.split('T'); return `${d.split('-').reverse().join('/')}, ${t.slice(0, 5)}`; }
+    return String(value);
+}
+
+/** Mở hộp thoại in của trình duyệt để lưu PDF; dùng phông của trình duyệt nên tiếng Việt giữ đúng dấu. */
+export function printTable(title, subtitle, headers, rows) {
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true'); frame.style.cssText = 'position:fixed;width:0;height:0;border:0';
+    document.body.append(frame);
+    const doc = frame.contentDocument, style = doc.createElement('style'), table = doc.createElement('table'), head = doc.createElement('tr'), body = doc.createElement('tbody'), thead = doc.createElement('thead');
+    doc.documentElement.lang = 'vi'; doc.title = title;
+    style.textContent = '@page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;font-size:11px;color:#0f2545}h1{font-size:18px;margin:0 0 4px}p{margin:0 0 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d5ccb6;padding:4px 6px;text-align:left;overflow-wrap:anywhere}th{background:#f7f4ec}thead{display:table-header-group}tr{break-inside:avoid}';
+    doc.head.append(style);
+    const heading = doc.createElement('h1'), note = doc.createElement('p'); heading.textContent = title; note.textContent = subtitle + ' · ' + rows.length + ' dòng';
+    headers.forEach(label => { const th = doc.createElement('th'); th.textContent = label; head.append(th); });
+    rows.forEach(row => { const line = doc.createElement('tr'); row.forEach(value => { const td = doc.createElement('td'); td.textContent = formatReportCell(value); line.append(td); }); body.append(line); });
+    thead.append(head); table.append(thead, body); doc.body.append(heading, note, table);
+    frame.contentWindow.addEventListener('afterprint', () => frame.remove(), {once: true});
+    frame.contentWindow.focus(); frame.contentWindow.print();
 }
 
 export function text(tag, value, className) {
@@ -109,6 +156,7 @@ export function createOperationsPage(load) {
             performance.mark('operations-rendered');
             window.dispatchEvent(new Event('operations-rendered'));
         } catch (error) {
+            if (error.status === 401) { location.assign('/login'); return; }
             body.dataset.error = 'true';
             notice(error.status ? error.message : 'Chưa kết nối được hệ thống. Vui lòng thử lại sau.', true);
             if (error.status === 409) notice(error.message + ' Nội dung đang nhập được giữ lại; chọn Thử tải lại để đối chiếu dữ liệu mới.', true);

@@ -1,33 +1,33 @@
 import { OPERATIONS_BASE as base, api, byId, text, date, notice, paging, emptyState, createOperationsPage } from '../../js/pages/operations.js';
 
-const state = {historyPage: 0, configDirty: false, version: null, currentConfig: null};
+const state = {historyPage: 0, dirty: false, version: null, current: null};
+const PATH = base + '/settings/attachment-limit';
 
-async function loadConfig() {
-    const data = await api(base + '/booking-policy'); state.version = data.version; state.currentConfig = data;
-    byId('configForm').hidden = !data.editable;
-    if (!data.editable) { notice(data.message); return; }
-    if (!state.configDirty) {
-        byId('durationMinutes').value = data.durationMinutes; byId('minAdvanceHours').value = data.minAdvanceHours;
-    }
-    byId('configEffective').textContent = 'Hiện hành: ' + data.durationMinutes + ' phút; đặt trước ' + data.minAdvanceHours + ' giờ. Hiệu lực: ' + date(data.effectiveAt);
-    notice(state.configDirty ? 'Đã tải giá trị hiện hành. Hãy đối chiếu với nội dung đang nhập trước khi lưu.' : 'Đã tải cấu hình hiện hành.');
-    const history = await api(base + '/booking-policy/history?page=' + state.historyPage);
+async function load() {
+    const data = await api(PATH); state.version = data.version; state.current = data.maxMegabytes;
+    byId('attachmentLimit').max = data.ceilingMegabytes;
+    byId('attachmentCeiling').textContent = 'Từ 1 đến ' + data.ceilingMegabytes + ' MB, đây là mức server đang tiếp nhận được.';
+    if (!state.dirty) byId('attachmentLimit').value = data.maxMegabytes;
+    byId('attachmentCurrent').textContent = 'Hiện hành: ' + data.maxMegabytes + ' MB mỗi tệp.';
+    const history = await api(base + '/settings/history?page=' + state.historyPage);
     byId('configHistory').replaceChildren();
-    if (!history.items.length) byId('configHistory').append(emptyState('Chưa có thay đổi cấu hình', 'Lịch sử sẽ hiện ở đây sau lần lưu cấu hình đầu tiên.'));
-    history.items.forEach(row => byId('configHistory').append(text('p', row.actorDisplayName + ' · ' + date(row.occurredAt) + '\n' + row.before.durationMinutes + ' → ' + row.after.durationMinutes + ' phút; ' + row.before.minAdvanceHours + ' → ' + row.after.minAdvanceHours + ' giờ\nLý do: ' + row.reason)));
+    if (!history.items.length) byId('configHistory').append(emptyState('Chưa có thay đổi cấu hình', 'Lịch sử sẽ hiện ở đây sau lần lưu đầu tiên.'));
+    history.items.forEach(row => byId('configHistory').append(text('p', row.actorDisplayName + ' · ' + date(row.occurredAt) + '\n' + row.before + ' MB → ' + row.after + ' MB\nLý do: ' + row.reason)));
     paging('configHistory', history, state.historyPage);
+    notice(state.dirty ? 'Đã tải giá trị hiện hành. Hãy đối chiếu với nội dung đang nhập trước khi lưu.' : 'Đã tải cấu hình hiện hành.');
 }
 
-async function saveConfig() {
-    const payload = {expectedVersion: state.version, durationMinutes: Number(byId('durationMinutes').value), minAdvanceHours: Number(byId('minAdvanceHours').value), reason: byId('configReason').value};
-    if (!confirm('Thời lượng: ' + state.currentConfig.durationMinutes + ' → ' + payload.durationMinutes + ' phút. Đặt trước: ' + state.currentConfig.minAdvanceHours + ' → ' + payload.minAdvanceHours + ' giờ. Áp dụng cho lượt đặt mới?')) return;
-    await api(base + '/booking-policy', 'PUT', payload); state.configDirty = false; byId('configReason').value = '';
-    await loadConfig(); notice('Đã lưu cấu hình. Các lịch đã tạo được giữ nguyên.');
+async function save() {
+    const maxMegabytes = Number(byId('attachmentLimit').value);
+    if (!confirm('Đổi giới hạn tệp đính kèm hỗ trợ từ ' + state.current + ' MB thành ' + maxMegabytes + ' MB? Chỉ áp dụng cho lần tải mới, tệp đã lưu giữ nguyên.')) return;
+    await api(PATH, 'PUT', {maxMegabytes, expectedVersion: state.version, reason: byId('configReason').value});
+    state.dirty = false; byId('configReason').value = '';
+    await load(); notice('Đã lưu cấu hình, có hiệu lực ngay với lần tải tệp tiếp theo.');
 }
 
-const page = createOperationsPage(loadConfig);
-page.bind('configForm', 'submit', saveConfig);
-byId('configForm').addEventListener('input', () => { state.configDirty = true; });
-page.bind('configHistoryPrev', 'click', async () => { state.historyPage = Math.max(0, state.historyPage - 1); await loadConfig(); });
-page.bind('configHistoryNext', 'click', async () => { state.historyPage++; await loadConfig(); });
+const page = createOperationsPage(load);
+page.bind('configForm', 'submit', save);
+byId('configForm').addEventListener('input', () => { state.dirty = true; });
+page.bind('configHistoryPrev', 'click', async () => { state.historyPage = Math.max(0, state.historyPage - 1); await load(); });
+page.bind('configHistoryNext', 'click', async () => { state.historyPage++; await load(); });
 page.start();

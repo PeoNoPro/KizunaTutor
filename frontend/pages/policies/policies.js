@@ -1,4 +1,5 @@
 import { api, byId, text, date, notice, emptyState, createOperationsPage } from '../../js/pages/operations.js';
+import { reloadIfInsideLearnerShell, mountLearnerFrameIfLearner } from '../../js/pages/learner-frame.js';
 
 async function loadPolicies() {
     const rows = await api('/policies'); byId('policyList').replaceChildren();
@@ -14,4 +15,7 @@ async function loadPolicies() {
     }); notice('Chọn chính sách bạn muốn đọc.');
 }
 
-createOperationsPage(loadPolicies).start();
+if (!reloadIfInsideLearnerShell()) {
+    mountLearnerFrameIfLearner('policies');
+    createOperationsPage(loadPolicies).start();
+}

@@ -14,6 +14,8 @@ import java.nio.charset.StandardCharsets;
 @RestController @RequestMapping("/api/v1/tickets") @RequiredArgsConstructor
 public class SupportTicketController {
  private final SupportTicketService service;
+ @org.springframework.beans.factory.annotation.Autowired private com.kizuna.features.ticket.service.TicketAttachmentValidator attachments;
+ @GetMapping("/attachment-limit") public ApiResponse<?> attachmentLimit(){service.me();return ApiResponse.ok(Map.of("maxBytes",attachments.maxBytes()));}
  @GetMapping("/me") public ApiResponse<?> me(){return ApiResponse.ok(service.me());}
  @GetMapping("/dashboard") public ApiResponse<?> dashboard(@RequestParam(required=false) String category){return ApiResponse.ok(service.dashboard(category));}
  @GetMapping("/csrf") public ApiResponse<?> csrf(CsrfToken token){service.me();return ApiResponse.ok(Map.of("headerName",token.getHeaderName(),"token",token.getToken()));}

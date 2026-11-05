@@ -11,12 +11,12 @@ import java.util.*;
 public class StaffAccountRepository {
     private final EntityManager em;
     private static final String INTERNAL = "r.role_name IN ('ROLE_ADMIN','ROLE_MANAGER','ROLE_ACADEMIC_OFFICER','ROLE_CS_STAFF')";
-    private static final String SELECT = "SELECT u.user_id,u.full_name,u.email,u.phone,u.account_status::text,u.updated_at,r.role_id,r.role_name,r.is_active FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.deleted_at IS NULL AND " + INTERNAL;
+    private static final String SELECT = "SELECT u.user_id,u.full_name,u.email,u.phone,u.account_status::text,u.updated_at,r.role_id,r.role_name,r.is_active,u.must_change_password,e.status,e.sent_at FROM users u JOIN roles r ON r.role_id=u.role_id LEFT JOIN staff_credential_emails e ON e.user_id=u.user_id WHERE u.deleted_at IS NULL AND " + INTERNAL;
 
-    public record Account(UUID id,String name,String email,String phone,String status,OffsetDateTime updatedAt,int roleId,String role,boolean roleActive) { }
+    public record Account(UUID id,String name,String email,String phone,String status,OffsetDateTime updatedAt,int roleId,String role,boolean roleActive,boolean mustChangePassword,String emailStatus,Object emailSentAt) { }
     private Account account(Object[] r) {
         var time = r[5] instanceof OffsetDateTime t ? t : r[5] instanceof Instant i ? i.atOffset(ZoneOffset.UTC) : ((java.sql.Timestamp)r[5]).toInstant().atOffset(ZoneOffset.UTC);
-        return new Account((UUID)r[0],(String)r[1],(String)r[2],(String)r[3],(String)r[4],time,((Number)r[6]).intValue(),(String)r[7],Boolean.TRUE.equals(r[8]));
+        return new Account((UUID)r[0],(String)r[1],(String)r[2],(String)r[3],(String)r[4],time,((Number)r[6]).intValue(),(String)r[7],Boolean.TRUE.equals(r[8]),Boolean.TRUE.equals(r[9]),(String)r[10],r[11]);
     }
     public List<Account> list(String query,int offset,int size) {
         String pattern="%"+query.toLowerCase(Locale.ROOT).replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%";
@@ -29,6 +29,21 @@ public class StaffAccountRepository {
         return ((Number)em.createNativeQuery("SELECT count(*) FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.deleted_at IS NULL AND "+INTERNAL+" AND (lower(u.full_name) LIKE :q OR lower(u.email) LIKE :q)")
             .setParameter("q",pattern).getSingleResult()).longValue();
     }
+    private static final String MOVABLE=" AND r.role_name IN ('ROLE_ACADEMIC_OFFICER','ROLE_CS_STAFF') AND r.is_active=true AND u.account_status::text='ACTIVE' AND (lower(u.full_name) LIKE :q OR lower(u.email) LIKE :q)";
+    public List<Account> listMovable(String query,int offset,int size) {
+        String pattern="%"+query.toLowerCase(Locale.ROOT).replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%";
+        var rows=em.createNativeQuery(SELECT+MOVABLE+" ORDER BY u.full_name,u.user_id").setParameter("q",pattern).setFirstResult(offset).setMaxResults(size).getResultList();
+        return ((List<Object[]>)rows).stream().map(this::account).toList();
+    }
+    public long countMovable(String query) {
+        String pattern="%"+query.toLowerCase(Locale.ROOT).replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%";
+        return ((Number)em.createNativeQuery("SELECT count(*) FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.deleted_at IS NULL"+MOVABLE).setParameter("q",pattern).getSingleResult()).longValue();
+    }
+    public int activeRoleId(String name) {
+        var rows=em.createNativeQuery("SELECT r.role_id FROM roles r WHERE r.role_name=:name AND r.is_active=true FOR SHARE OF r").setParameter("name",name).getResultList();
+        if(rows.isEmpty()) throw new BusinessException(400,"Vai trò đích đang ngừng sử dụng.");
+        return ((Number)rows.get(0)).intValue();
+    }
     public Account get(UUID id,boolean lock) {
         var rows=em.createNativeQuery(SELECT+" AND u.user_id=:id"+(lock?" FOR UPDATE OF u":"")).setParameter("id",id).getResultList();
         if(rows.isEmpty()) throw new BusinessException(404,"Không tìm thấy tài khoản nhân viên.");
@@ -38,6 +53,17 @@ public class StaffAccountRepository {
     public boolean emailExists(String email,UUID except) {
         return ((Number)em.createNativeQuery("SELECT count(*) FROM users WHERE lower(email)=:email AND user_id<>:except")
             .setParameter("email",email).setParameter("except",except).getSingleResult()).longValue()>0;
+    }
+    @SuppressWarnings("unchecked")
+    public Set<String> existingEmails(Collection<String> emails) {
+        if(emails.isEmpty()) return Set.of();
+        return new HashSet<>(em.createNativeQuery("SELECT lower(email) FROM users WHERE lower(email) IN (:emails)").setParameter("emails",emails).getResultList());
+    }
+    /** Email thuộc nhân viên đang bị khóa, để Admin biết nên mở lại thay vì tạo mới. */
+    @SuppressWarnings("unchecked")
+    public Set<String> lockedStaffEmails(Collection<String> emails) {
+        if(emails.isEmpty()) return Set.of();
+        return new HashSet<>(em.createNativeQuery("SELECT lower(u.email) FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.deleted_at IS NULL AND "+INTERNAL+" AND u.account_status::text IN ('SUSPENDED','BANNED') AND lower(u.email) IN (:emails)").setParameter("emails",emails).getResultList());
     }
     public String activeRole(int id) {
         var rows=em.createNativeQuery("SELECT r.role_name FROM roles r WHERE r.role_id=:id AND r.is_active=true AND "+INTERNAL+" FOR SHARE OF r").setParameter("id",id).getResultList();
@@ -54,6 +80,9 @@ public class StaffAccountRepository {
     public void update(UUID id,String name,String email,String phone,OffsetDateTime now) {
         em.createNativeQuery("UPDATE users SET full_name=:name,email=:email,phone=:phone,updated_at=:now WHERE user_id=:id")
             .setParameter("id",id).setParameter("name",name).setParameter("email",email).setParameter("phone",phone).setParameter("now",now).executeUpdate();
+    }
+    public void resetPassword(UUID id,String hash,OffsetDateTime now) {
+        em.createNativeQuery("UPDATE users SET password_hash=:hash,must_change_password=true,updated_at=:now WHERE user_id=:id").setParameter("id",id).setParameter("hash",hash).setParameter("now",now).executeUpdate();
     }
     public void changeRole(UUID id,int roleId,OffsetDateTime now) {
         em.createNativeQuery("UPDATE users SET role_id=:role,updated_at=:now WHERE user_id=:id").setParameter("role",roleId).setParameter("id",id).setParameter("now",now).executeUpdate();

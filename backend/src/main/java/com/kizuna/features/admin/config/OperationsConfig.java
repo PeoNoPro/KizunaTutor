@@ -12,14 +12,15 @@ public class OperationsConfig {
         HikariConfig c = new HikariConfig();
         c.setJdbcUrl(properties.determineUrl()); c.setUsername(properties.determineUsername());
         c.setPassword(properties.determinePassword()); c.setPoolName("operations-probes");
-        c.setMaximumPoolSize(3); c.setMinimumIdle(0); c.setConnectionTimeout(1000);
+        // Giữ sẵn một kết nối và nới thời gian: mở kết nối mới tới Supabase có thể lâu hơn 1 giây.
+        c.setMaximumPoolSize(3); c.setMinimumIdle(1); c.setConnectionTimeout(2500);
         c.setValidationTimeout(1000); c.setInitializationFailTimeout(-1); c.setReadOnly(true);
-        c.addDataSourceProperty("connectTimeout","2"); c.addDataSourceProperty("socketTimeout","2");
+        c.addDataSourceProperty("connectTimeout","5"); c.addDataSourceProperty("socketTimeout","5");
         return new ProbePool(new HikariDataSource(c));
     }
     @Bean(name="operationsIdentityJdbc")
     public JdbcTemplate operationsIdentityJdbc(ProbePool pool) {
-        JdbcTemplate jdbc = new JdbcTemplate(pool.dataSource()); jdbc.setQueryTimeout(2); return jdbc;
+        JdbcTemplate jdbc = new JdbcTemplate(pool.dataSource()); jdbc.setQueryTimeout(3); return jdbc;
     }
     public record ProbePool(HikariDataSource dataSource) implements AutoCloseable {
         public void close() { dataSource.close(); }

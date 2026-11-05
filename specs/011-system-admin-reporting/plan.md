@@ -6,6 +6,31 @@
 
 ## Summary
 
+### Kế hoạch hiện hành — đồng bộ 2026-11-05
+
+Ưu tiên FR-023–029/SC-012–014 trong spec.md và hợp đồng hiện hành. Phần kế hoạch cũ bên dưới là lịch sử khi xung đột. Đây là cập nhật tài liệu, không chứng nhận code đã hoàn thành.
+
+1. Rà consumer cấu hình và schema hiện tại; giữ thay đổi chưa commit của người dùng, không chạy migration/DB trong lượt chỉnh tài liệu.
+2. Bổ sung thông tin nền tảng: tên hiển thị/email/số hỗ trợ; API Admin, API công khai chỉ chứa trường được phép, form xác nhận/lý do/version, lịch sử nguyên tử. Tích hợp các vị trí thông tin chung/footer hiện có; không tạo trang mới chỉ để dùng cấu hình. Dữ liệu ban đầu do nhóm cung cấp, không seed liên hệ giả.
+3. Giữ giới hạn đính kèm hỗ trợ 1–10 MB (1 MB = 1.048.576 byte); cùng nguồn cho UI/backend. Chưa mở ảnh đại diện/tài liệu hồ sơ khi thiếu upload API. Không làm mất tệp cũ.
+4. **Hoãn banner bảo trì cho tới khi người dùng tải code mới**, sau đó rà tích hợp trước khi làm; chưa thêm API/schema/banner trong đợt này.
+5. Bỏ phân công/phân công lại sự cố, giữ tự nhận và trả lại danh sách chờ theo FR-027; event cũ giữ nguyên. Kiểm tranh chấp nhận phiếu và quyền người phụ trách.
+6. Đồng bộ email bền vững, chặn mật khẩu lần đầu trong API FE-11 và căn cứ bổ nhiệm Manager; chưa đổi API feature khác thay FE-01.
+7. Báo cáo học thử offline theo dữ liệu thật, mua gói không có chỉ số hoàn tiền; chỉnh gói thuộc feature khác. Kiểm bàn giao công việc chờ hợp đồng liên feature.
+8. Kiểm theo T077–T084, ghi bằng chứng mới tách khỏi nghiệm thu lịch sử. Khi chưa chạy giữ trạng thái chưa kiểm chứng. Không xóa cấu hình học thử cũ hoặc bộ đo sức khỏe trước khi rà phụ thuộc.
+
+### Điều chỉnh phạm vi theo người dùng — 2026-11-03
+
+Áp dụng Clarifications 2026-11-03 trong spec.md trước mô tả lịch sử bên dưới. Lượt này chỉ chỉnh tài liệu, không sửa ứng dụng/schema hoặc chạy database.
+
+1. Bỏ đúng mục/khối sức khỏe khỏi menu/dashboard Admin, không chuyển sang màn khác. Giữ sự cố và thống kê độc lập nguồn đo; rà dependency trước khi chạm code dùng chung, không xóa dữ liệu chỉ để bỏ một mục UI.
+2. Cập nhật hợp đồng quyền nhân viên trước code: Admin tạo/sửa thông tin/khóa/mở, gán vai trò lúc tạo; Manager đổi vai trò sau tạo theo allowlist được duyệt. Chặn tự nâng quyền/cấp Admin và bổ nhiệm Manager chưa chốt. Kiểm từng lệnh, không mở toàn bộ operations cho Manager. Giữ version, CSRF, audit nguyên tử và bảo vệ tài khoản hiện tại/quản trị cuối.
+3. Thiết kế hợp đồng import tài khoản Excel: mẫu/cột, cấp mật khẩu, loại/kích thước/số dòng, chính sách lô và kết quả từng dòng. Xem trước không ghi DB; xác nhận kiểm lại quyền/trùng email/dữ liệu; dùng cơ chế tạo hiện có, không ghi đè tài khoản trùng.
+4. Thiết kế export sự cố Excel theo FR-021: tái sử dụng quyền/bộ lọc, toàn bộ kết quả phù hợp, giới hạn tài nguyên rõ ràng, dữ liệu nhất quán tại thời điểm xuất, ô văn bản không thực thi công thức. Không thêm schema chỉ để xuất; xem dependency trước khi chọn thư viện Excel.
+5. Tổng quan/biểu đồ lấy nguồn thật theo FR-022; nhật ký giữ tác giả đổi vai trò Manager. Thông báo dùng FE-12, sửa hồ sơ/đổi mật khẩu dùng feature sở hữu. AI/chính sách tiếp tục hoãn.
+
+Các đoạn health/probe/policy và sơ đồ phụ thuộc cũ bên dưới là lịch sử, không yêu cầu triển khai/nghiệm thu tiếp. Cập nhật data-model/hợp đồng khi cần và kiểm nhất quán trước code. Ma trận thăng chức và chi tiết import chưa chốt không được tự suy diễn thành quyền hoạt động. Task mới trong tasks.md chưa hoàn tất.
+
 ### Báo cáo Manager và hồ sơ; AI để sau theo người dùng — 2026-11-01
 
 - Thêm báo cáo tổng hợp theo cohort ngày tạo, trạng thái hiện tại, timezone Việt Nam, kỳ tối đa366ngày. Service công khai mới của FE-04/05 cung cấp tổng hợp chỉ đọc; FE-11 gọi service, không gọi repository xuyên feature. Tổng hợp trong transaction repeatable-read trên datasource nghiệp vụ. Không tái dựng lịch sử trạng thái không có nguồn.

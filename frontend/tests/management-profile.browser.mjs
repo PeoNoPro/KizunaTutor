@@ -31,7 +31,7 @@ try{
       assert.equal(await evaluate('document.getElementById("bookingCount").textContent'),new Intl.NumberFormat('vi-VN').format(report.data.bookingCount));
       if(role==='manager'){
         await until('document.querySelector(".admin-identity small").textContent === "Quản lý vận hành"');
-        assert.equal(await evaluate("Array.from(document.querySelectorAll('.sidebar-menu a')).filter(link=>!link.hidden).every(link=>['/pages/manager-reports/','/manager/support/tickets'].includes(new URL(link.href).pathname))"),true);
+        assert.equal(await evaluate("Array.from(document.querySelectorAll('.sidebar-menu a')).filter(link=>!link.hidden).every(link=>['/pages/manager-reports/','/pages/manager-staff-roles/','/pages/operations-revenue/','/manager/support/tickets'].includes(new URL(link.href).pathname))"),true);
       }
       await screenshot(role+'-management-report-'+width);
       await visit('admin-profile');

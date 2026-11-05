@@ -59,21 +59,20 @@ try {
   await screenshot('dashboard-admin-entry');
   const roles = (await (await fetch(backend + '/api/admin/operations/roles')).json()).data;
   const serviceRole = roles.find(role => role.label === 'Chăm sóc khách hàng');
-  const academicRole = roles.find(role => role.label === 'Cán bộ học vụ');
   await visit('admin-staff'); await screenshot('staff-1280');
   await evaluate('document.getElementById("createStaff").click()');
-  assert.equal(await evaluate('document.querySelectorAll("#staffRole option").length'), 5);
+  assert.equal(await evaluate('document.querySelectorAll("#staffRole option").length'), 4);
+  assert.equal(await evaluate("Array.from(document.querySelectorAll('#staffRole option')).some(option=>option.textContent==='Quản trị viên hệ thống')"), false);
   assert.equal(await evaluate("Array.from(document.querySelectorAll('#staffRole option')).some(option=>['Học viên','Gia sư'].includes(option.textContent))"), false);
   const name = 'Nhân viên kiểm tra QA ' + Date.now();
   await fill('staffFullName', name); await fill('staffEmail', 'staff-qa-' + Date.now() + '@test.invalid');
-  await fill('staffPhone', '0901234567'); await fill('staffRole', serviceRole.roleId); await fill('staffPassword', 'Test-only-staff-password-2026');
-  await save();
+  await fill('staffPhone', '0901234567'); await fill('staffRole', serviceRole.roleId);  await save();
   await until(`document.getElementById('staffRows').textContent.includes(${JSON.stringify(name)})`);
   await rowAction(name, 'Xem chi tiết');
   const edited = name + ' đã sửa'; await fill('staffFullName', edited); await fill('staffReason', 'Kiểm chứng cập nhật thông tin trên DB QA riêng.'); await save();
   await visit('admin-roles'); assert.equal(await evaluate('document.querySelector(".portal-tabs [aria-current=page]").textContent'), 'Vai trò và quyền'); assert.equal(await evaluate('document.querySelectorAll("#roleCards article").length'), 6);
-  await rowAction(edited, 'Đổi vai trò'); await fill('staffRole', academicRole.roleId); await fill('staffReason', 'Kiểm chứng gán vai trò thực tế.'); await save();
-  assert.equal(await evaluate(`Array.from(document.querySelectorAll('#staffRows tr')).find(row=>row.textContent.includes(${JSON.stringify(edited)})).textContent.includes('Cán bộ học vụ')`), true);
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('#staffRows button')).some(button=>button.textContent==='Đổi vai trò')`), false);
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('#staffRows tr')).find(row=>row.textContent.includes(${JSON.stringify(edited)})).textContent.includes('Đổi vai trò do Quản lý thực hiện')`), true);
   await screenshot('roles-1280');
   await visit('admin-staff'); await rowAction(edited, 'Xem chi tiết'); await evaluate('document.getElementById("staffOpenStatus").click()'); await fill('staffReason', 'Kiểm chứng tạm khóa tài khoản trên DB QA.'); await save();
   assert.equal(await evaluate(`Array.from(document.querySelectorAll('#staffRows tr')).find(row=>row.textContent.includes(${JSON.stringify(edited)})).textContent.includes('Tạm khóa')`), true);
@@ -86,6 +85,6 @@ try {
     for (const page of ['admin-staff', 'admin-roles']) { await visit(page); await screenshot(page + '-' + width); }
   }
   assert.deepEqual(errors, []);
-  await writeFile(new URL('staff-results.json', output), JSON.stringify({passed: true, backend, checks: ['root opens dashboard', 'database admin identity/avatar', 'staff/role links enabled', 'create/edit/search', 'assign role', 'suspend/reactivate', 'audit history', 'desktop/mobile layout']}, null, 2));
+  await writeFile(new URL('staff-results.json', output), JSON.stringify({passed: true, backend, checks: ['root opens dashboard', 'database admin identity/avatar', 'staff/role links enabled', 'create/edit/search', 'no direct role change', 'suspend/reactivate', 'audit history', 'desktop/mobile layout']}, null, 2));
   console.log('Admin entry and staff browser checks passed.');
 } finally { await command('Page.close'); socket.close(); }

@@ -1,6 +1,12 @@
 /* Trình bày chi tiết phiếu CS theo Figma, chỉ dùng dữ liệu và quyền do API hiện có trả về. */
 import {API_CONFIG} from '../config/api.config.js';
 
+/** Giới hạn do Admin cấu hình; server vẫn kiểm tra lại nên lỗi tải ở đây chỉ làm giao diện dùng mức mặc định. */
+let attachmentMaxBytes=10000000;
+export const attachmentBytes=()=>attachmentMaxBytes;
+export const attachmentMegabytes=()=>Math.round(attachmentMaxBytes/1000000);
+fetch(API_CONFIG.BASE_URL+'/v1/tickets/attachment-limit',{credentials:'include'}).then(response=>response.ok?response.json():null).then(result=>{if(result?.data?.maxBytes){attachmentMaxBytes=result.data.maxBytes;document.querySelectorAll('[data-attachment-limit]').forEach(item=>{item.textContent=attachmentMegabytes();});}}).catch(()=>{});
+
 const $=id=>document.getElementById(id);
 function node(tag,text,cls){const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;}
 function entry(list,label,value){const row=node('div'),term=node('dt',label),description=node('dd',value);row.append(term,description);list.append(row);return description;}
@@ -67,10 +73,10 @@ export function createCsReplyForm(submit){
   const input=node('input');input.type='file';input.name='files';input.multiple=true;input.accept='.jpg,.jpeg,.png,.pdf';input.hidden=true;input.tabIndex=-1;
   const files=node('ul',undefined,'cs-selected-files');files.setAttribute('aria-label','Tệp đã chọn');
   const notice=node('p',undefined,'cs-reply-notice');notice.id='csReplyNotice';notice.setAttribute('role','alert');notice.tabIndex=-1;
-  const footer=node('div',undefined,'cs-reply-footer'),attach=node('button','Đính kèm','cs-attach-button'),send=node('button','Gửi hướng dẫn','primary');attach.type='button';send.type='submit';attach.onclick=()=>input.click();footer.append(attach,node('span','Tối đa 5 tệp · 10 MB mỗi tệp','cs-file-limit'),send);
+  const footer=node('div',undefined,'cs-reply-footer'),attach=node('button','Đính kèm','cs-attach-button'),send=node('button','Gửi hướng dẫn','primary');attach.type='button';send.type='submit';attach.onclick=()=>input.click();footer.append(attach,node('span',`Tối đa 5 tệp · ${attachmentMegabytes()} MB mỗi tệp`,'cs-file-limit'),send);
   let selected=[];
   function showFiles(){files.replaceChildren();selected.forEach((file,index)=>{const row=node('li'),details=node('span');details.append(node('strong',file.name),node('small',fileSize(file.size)));const remove=node('button','Bỏ');remove.type='button';remove.setAttribute('aria-label','Bỏ tệp '+file.name);remove.onclick=()=>{selected.splice(index,1);showFiles();attach.focus();};row.append(details,remove);files.append(row);});}
-  input.onchange=()=>{const incoming=[...input.files],combined=[...selected,...incoming];input.value='';let error='';if(combined.length>5)error='Mỗi lần gửi chỉ được đính kèm tối đa 5 tệp.';else if(incoming.some(file=>file.size<1||file.size>10000000))error='Mỗi tệp phải có dung lượng từ 1 byte đến 10 MB.';else if(incoming.some(file=>!(/\.(jpe?g|png|pdf)$/i.test(file.name))))error='Chỉ hỗ trợ tệp JPG, PNG và PDF.';
+  input.onchange=()=>{const incoming=[...input.files],combined=[...selected,...incoming];input.value='';let error='';if(combined.length>5)error='Mỗi lần gửi chỉ được đính kèm tối đa 5 tệp.';else if(incoming.some(file=>file.size<1||file.size>attachmentBytes()))error=`Mỗi tệp phải có dung lượng từ 1 byte đến ${attachmentMegabytes()} MB.`;else if(incoming.some(file=>!(/\.(jpe?g|png|pdf)$/i.test(file.name))))error='Chỉ hỗ trợ tệp JPG, PNG và PDF.';
     notice.textContent=error;if(error){notice.focus();return;}selected=combined;showFiles();};
   form.onsubmit=event=>{event.preventDefault();submit(form,[...selected]);};form.append(label,help,input,files,notice,footer);return form;
 }

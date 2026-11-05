@@ -25,12 +25,10 @@ function command(method, params = {}) {
 function fixture(path) {
   if (path.endsWith('/me')) return {displayName: 'Quản trị kiểm thử', roleLabel: 'Quản trị viên hệ thống'};
   if (path.endsWith('/dashboard/accounts')) return {totalAccounts: 6, activeAccounts: 5, tutorAccounts: 1, activeTutorAccounts: 1, learnerAccounts: 1, activeLearnerAccounts: 0, staffAccounts: 4, activeStaffAccounts: 4, otherAccounts: 0, generatedAt: new Date().toISOString()};
-  if (path.endsWith('/health')) return {generatedAt: new Date().toISOString(), components: [
-    {label: 'Thành phần kiểm thử', statusLabel: 'Hoạt động', observedAt: new Date().toISOString(), responseTimeMs: 12, reasonLabel: 'Kết quả kiểm thử cách ly.', stale: false},
-    {label: 'Kết quả cũ kiểm thử', statusLabel: 'Hoạt động', observedAt: new Date(Date.now() - 65000).toISOString(), responseTimeMs: 5, reasonLabel: 'Kết quả đã cũ.', stale: false}
-  ]};
   if (path.endsWith('/reports/incidents')) return {startDate: '2026-10-03', endDate: '2026-11-01', cutoff: '2026-11-01T10:00:00Z', createdCount: 2, resolvedCount: 1, openAtCutoff: 1, breakdowns: {open: {status: {'Đang xử lý': 1}}}};
-  if (path.endsWith('/booking-policy/history')) return {items: [{actorDisplayName: 'Người kiểm thử', reason: '<script>window.fixtureExecuted=true</script>', occurredAt: '2026-11-01T10:00:00Z'}]};
+  if (path.endsWith('/dashboard/account-statistics')) return {newAccounts: [{date: '2026-10-31', count: 2}, {date: '2026-11-01', count: 4}], roles: [{label: 'Học viên', count: 3}, {label: 'Gia sư', count: 1}], statuses: [{label: 'Đang hoạt động', count: 5}, {label: 'Tạm khóa', count: 1}]};
+  if (path.endsWith('/reports/business/revenue')) return {daily: [{date: '2026-10-31', count: 200000}, {date: '2026-11-01', count: 300000}], revenue: 500000, successCount: 3, refunded: 0, refundedCount: 0, pendingCount: 0, failedCount: 0, byPlan: [{label: 'Gói kiểm thử', count: 3, amount: 500000}]};
+  if (path.endsWith('/audit-log')) return {items: [{actorDisplayName: 'Người kiểm thử', actionLabel: 'Cập nhật cấu hình', reason: '<script>window.fixtureExecuted=true</script>', occurredAt: '2026-11-01T10:00:00Z'}]};
   return {items: [{incidentId: 'test-only', subject: '<img src=x onerror="window.fixtureExecuted=true">', components: ['Thành phần kiểm thử'], createdAt: '2026-11-01T10:00:00Z', severityLabel: 'Cao', statusLabel: 'Đang xử lý'}]};
 }
 
@@ -52,7 +50,7 @@ socket.addEventListener('message', async event => {
   let data = fixture(url.pathname);
   if (scenario === 'empty') {
     if (url.pathname.endsWith('/dashboard/accounts')) Object.keys(data).filter(key => key !== 'generatedAt').forEach(key => { data[key] = 0; });
-    else if (url.pathname.endsWith('/health')) data.components = [];
+    else if (url.pathname.endsWith('/reports/business/revenue')) data = {...data, revenue: 0, successCount: 0, byPlan: [], daily: data.daily.map(row => ({...row, count: 0}))};
     else if (url.pathname.endsWith('/reports/incidents')) data = {...data, createdCount: 0, resolvedCount: 0, openAtCutoff: 0, breakdowns: {open: {status: {}}}};
     else data.items = [];
   }
@@ -98,9 +96,16 @@ try {
   await visit();
   await evaluate('document.fonts.ready');
   assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'), true);
-  assert.equal(await evaluate('document.querySelectorAll(".health-card").length'), 2);
   assert.equal(await evaluate('document.querySelector("[data-account-count=totalAccounts]").textContent'), '6');
-  assert.equal(await evaluate('document.querySelectorAll(".health-card")[1].textContent.includes("Dữ liệu quá hạn")'), true);
+  assert.equal(await evaluate('/sức khỏe|giám sát|giờ cao điểm|thiết bị truy cập/i.test(document.body.textContent)'), false);
+  assert.equal(requests.some(url => url.includes('/health')), false);
+  assert.equal(await evaluate('document.querySelector("#revenueMetrics strong").textContent.includes("500.000")'), true);
+  assert.equal(await evaluate('document.querySelectorAll("#overviewNewAccounts .chart-column").length'), 2);
+  assert.equal(await evaluate('document.querySelectorAll("#overviewRevenue .chart-column").length'), 2);
+  assert.equal(await evaluate('document.querySelectorAll("#overviewRoles .chart-bar-row").length'), 2);
+  assert.equal(await evaluate('document.querySelector("#overviewRevenue .chart-headline").textContent.includes("500.000")'), true);
+  assert.equal(await evaluate('document.querySelectorAll(".export-actions button:disabled").length'), 0);
+  assert.equal(await evaluate('document.querySelector("#auditRows").textContent.includes("Cập nhật cấu hình")'), true);
   assert.equal(await evaluate('window.fixtureExecuted === undefined'), true);
   assert.equal(await evaluate('document.querySelectorAll("#incidentRows img, #auditRows script").length'), 0);
   assert.equal(await evaluate('document.querySelector("#auditRows").textContent.includes("17:00")'), true);
@@ -128,17 +133,13 @@ try {
   assert.equal(await evaluate('document.querySelector("#incidentMetrics strong").textContent'), '0');
   assert.equal(await evaluate('document.querySelector("[data-account-count=totalAccounts]").textContent'), '0');
   assert.equal(await evaluate('document.querySelector("#incidentRows").textContent.includes("Chưa có sự cố")'), true);
-  assert.equal(await evaluate('document.querySelector("#healthSummary").textContent'), 'Chưa có kết quả');
   scenario = 'partial';
   await visit();
   assert.equal(await evaluate('document.querySelector("#incidentMetrics strong").textContent'), '—');
-  assert.equal(await evaluate('document.querySelectorAll(".health-card").length'), 2);
+  assert.equal(await evaluate('document.querySelector("[data-account-count=totalAccounts]").textContent'), '6');
   scenario = 'unauthorized';
-  await visit();
-  assert.equal(await evaluate('document.querySelector("#dashboardNotice").textContent.includes("đăng nhập")'), true);
-  assert.equal(await evaluate('document.querySelectorAll(".health-card").length'), 0);
-  assert.equal(await evaluate('document.querySelector("[data-account-count=totalAccounts]").textContent'), '—');
-  await screenshot('unauthorized-mobile.png');
+  await command('Page.navigate', {url: 'http://localhost:3000/pages/admin-dashboard/'});
+  await until('location.pathname === "/pages/login/"');
   scenario = 'timeout';
   const start = Date.now();
   await visit();
@@ -146,7 +147,7 @@ try {
   assert.equal(await evaluate('document.querySelector("#dashboardNotice").dataset.error'), 'true');
   assert.equal(await evaluate('document.querySelector("#refreshDashboard").disabled'), false);
   assert.deepEqual(errors, []);
-  await writeFile(new URL('results.json', output), JSON.stringify({passed: true, checks: ['desktop/mobile layout', 'local assets', 'empty', 'partial failure', 'unauthorized', 'timeout', 'stale observations', 'escaping', 'timezone', 'filter', 'sidebar keyboard'], requests}, null, 2));
+  await writeFile(new URL('results.json', output), JSON.stringify({passed: true, checks: ['desktop/mobile layout', 'local assets', 'empty', 'partial failure', 'unauthorized', 'timeout', 'no health block', 'escaping', 'timezone', 'filter', 'sidebar keyboard'], requests}, null, 2));
   console.log('Dashboard browser checks passed. Screenshots: ' + output.pathname);
 } finally {
   await command('Page.close');

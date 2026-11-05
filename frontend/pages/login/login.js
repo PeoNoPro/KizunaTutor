@@ -141,6 +141,16 @@ async function handleLoginSubmit(event) {
       return;
     }
 
+    // Phản hồi không có token nghĩa là chưa tới được backend: báo lỗi, không coi là đã đăng nhập.
+    if (!data.token) {
+      showLoginAlert('Chưa kết nối được máy chủ đăng nhập. Vui lòng thử lại sau.', 'danger');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
+      }
+      return;
+    }
+
     // 1. Lưu phiên đăng nhập
     setAuthSession(data.token, data.user);
 

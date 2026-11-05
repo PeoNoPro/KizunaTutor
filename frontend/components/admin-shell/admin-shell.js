@@ -2,19 +2,25 @@
 import { fetchAPI } from '../../js/api.js';
 // Theo Figma, các màn cùng nhóm hiển thị như tab của một trang; mỗi tab giữ đường dẫn riêng để mở trực tiếp.
 const PORTAL_GROUPS = [
-  {title: 'Tài khoản nội bộ và phân quyền', lead: 'Tạo tài khoản nhân viên, cập nhật quyền và quản lý truy cập.', tabs: [['Danh sách nhân viên', '/pages/admin-staff/'], ['Vai trò và quyền', '/pages/admin-roles/']]},
-  {title: 'Vận hành hệ thống', lead: 'Theo dõi sự cố, sức khỏe, báo cáo, nhật ký và cấu hình theo quyền Quản trị viên.', tabs: [['Vận hành', '/pages/operations-incidents/'], ['Sức khỏe', '/pages/operations-health/'], ['Báo cáo', '/pages/operations-reports/'], ['Nhật ký', '/pages/operations-logs/'], ['Cấu hình', '/pages/operations-config/']]}
+  {title: 'Tài khoản nội bộ và phân quyền', lead: 'Tạo tài khoản nhân viên, quản lý truy cập và duyệt đề xuất thăng chức.', tabs: [['Danh sách nhân viên', '/pages/admin-staff/'], ['Vai trò và quyền', '/pages/admin-roles/']]},
+  {title: 'Vận hành hệ thống', lead: 'Theo dõi sự cố, thống kê, báo cáo, nhật ký và cấu hình theo quyền Quản trị viên.', tabs: [['Vận hành', '/pages/operations-incidents/'], ['Thống kê', '/pages/operations-statistics/'], ['Báo cáo', '/pages/operations-reports/'], ['Nhật ký', '/pages/operations-logs/'], ['Cấu hình', '/pages/operations-config/']]}
 ];
 function decoratePortalPage(path) {
   const heading = document.querySelector('.operations-page-heading');
   if (!heading) return;
-  const back = document.createElement('a'); back.className = 'portal-back'; back.dataset.portalHome = ''; back.href = '/pages/admin-dashboard/'; back.textContent = '← Về tổng quan'; heading.prepend(back);
   const group = PORTAL_GROUPS.find(item => item.tabs.some(([, href]) => href === path));
   if (!group) return;
   heading.querySelector('h1').textContent = group.title; heading.querySelector('p').textContent = group.lead;
   const tabs = document.createElement('nav'); tabs.className = 'portal-tabs'; tabs.setAttribute('aria-label', group.title);
   group.tabs.forEach(([label, href]) => { const tab = document.createElement('a'); tab.href = href; tab.textContent = label; if (href === path) tab.setAttribute('aria-current', 'page'); tabs.append(tab); });
   heading.after(tabs);
+}
+/** Xóa cookie phiên ở backend và dữ liệu phiên trên trình duyệt rồi về trang đăng nhập. */
+export async function logout() {
+  try { await fetch('/api/auth/logout', {method: 'POST', credentials: 'include'}); } catch { /* Vẫn xóa phiên phía trình duyệt khi mất kết nối. */ }
+  ['kizuna_token', 'kizuna_user'].forEach(key => localStorage.removeItem(key));
+  sessionStorage.clear();
+  location.assign('/login');
 }
 export function mountAdminShell() {
   if (!document.body.classList.contains('admin-dashboard') || document.getElementById('adminSidebar')) return;
@@ -34,51 +40,49 @@ export function mountAdminShell() {
         <a href="/pages/admin-roles/"><img src="/assets/icons/admin-dashboard/nav-roles.svg" alt="">Quản lý vai trò và quyền hạn</a>
         <a href="/pages/operations-logs/"><img src="/assets/icons/admin-dashboard/nav-logs.svg" alt="">Nhật ký hệ thống</a>
         <a href="/pages/operations-config/"><img src="/assets/icons/admin-dashboard/nav-settings.svg" alt="">Cấu hình hệ thống</a>
-        <a href="/pages/admin-dashboard/#statisticsSection"><img src="/assets/icons/admin-dashboard/nav-statistics.svg" alt="">Thống kê hệ thống</a>
+        <a href="/pages/operations-statistics/"><img src="/assets/icons/admin-dashboard/nav-statistics.svg" alt="">Thống kê hệ thống</a>
         <a href="/pages/operations-reports/"><img src="/assets/icons/admin-dashboard/nav-reports.svg" alt="">Báo cáo và xuất dữ liệu</a>
         <a href="/pages/manager-reports/"><img src="/assets/icons/admin-dashboard/nav-statistics.svg" alt="">Báo cáo tổng hợp</a>
         <a href="/pages/support-tickets/" data-support-link hidden><img src="/assets/icons/admin-dashboard/nav-incidents.svg" alt="">Yêu cầu hỗ trợ</a>
         <button type="button" disabled title="Chức năng chưa được tích hợp"><img src="/assets/icons/admin-dashboard/nav-notifications.svg" alt="">Quản lý thông báo</button>
-        <a href="/pages/operations-health/"><img src="/assets/icons/admin-dashboard/nav-health.svg" alt="">Giám sát tình trạng hệ thống</a>
         <a href="/pages/operations-incidents/"><img src="/assets/icons/admin-dashboard/nav-incidents.svg" alt="">Quản lý sự cố kỹ thuật</a>
         <button type="button" disabled title="Nội dung chính sách dành cho học viên và gia sư"><img src="/assets/icons/admin-dashboard/nav-policies.svg" alt="">Điều khoản và chính sách</button>
       </nav>
     </div>
     <div class="sidebar-bottom">
       <a href="/pages/admin-profile/"><img src="/assets/icons/admin-dashboard/nav-profile.svg" alt="">Hồ sơ cá nhân</a>
-      <button type="button" disabled title="Chức năng chưa được tích hợp" class="logout-button"><img src="/assets/icons/admin-dashboard/nav-logout.svg" alt="">Đăng xuất</button>
+      <button type="button" class="logout-button"><img src="/assets/icons/admin-dashboard/nav-logout.svg" alt="">Đăng xuất</button>
     </div>
   </aside>
   <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Đóng điều hướng" hidden></button>
   <header class="admin-topbar">
     <div class="topbar-breadcrumb"><button type="button" id="sidebarToggle" class="menu-toggle" aria-label="Mở điều hướng" aria-controls="adminSidebar" aria-expanded="false">☰</button><span>Quản trị hệ thống</span><span aria-hidden="true">›</span><strong>Cổng quản trị KizunaTutor</strong></div>
-    <div class="topbar-actions"><span class="security-status"><span class="status-dot"></span><span id="headerStatus">Chưa có kết quả giám sát</span></span><button class="notification-button" type="button" disabled aria-label="Thông báo chưa được tích hợp"><img src="/assets/icons/admin-dashboard/bell.svg" alt=""></button><div class="admin-identity"><strong>Không gian quản trị</strong><small>Quản trị viên hệ thống</small></div></div>
+    <div class="topbar-actions"><span class="security-status"><span class="status-dot"></span><span id="headerStatus">Không gian quản trị</span></span><button class="notification-button" type="button" disabled aria-label="Thông báo chưa được tích hợp"><img src="/assets/icons/admin-dashboard/bell.svg" alt=""></button><div class="admin-identity"><strong>Không gian quản trị</strong><small>Quản trị viên hệ thống</small></div></div>
   </header>`;
   if(csWorkspace){
-    const root=shell.content,brand=root.querySelector('.admin-brand'),logo=brand.querySelector('img');logo.src='/assets/cs-dashboard/logo.png';logo.width=64;logo.height=64;brand.querySelector('small').remove();
+    const root=shell.content,brand=root.querySelector('.admin-brand'),logo=brand.querySelector('img');logo.src='/assets/cs-dashboard/logo.png';logo.width=40;logo.height=40;brand.querySelector('small').remove();
     root.querySelector('.nav-caption').textContent='Nhân viên hỗ trợ';
     root.querySelector('.sidebar-menu nav').innerHTML=`
       <a href="/cs/dashboard" data-cs-navigation><img src="/assets/cs-dashboard/grid.svg" alt="" width="20" height="20">Tổng quan</a>
-      <a href="/cs/support/tickets" data-cs-navigation data-support-link><img src="/assets/cs-dashboard/chat.svg" alt="" width="20" height="20">Yêu cầu hỗ trợ</a>
-      <a href="/cs/support/tickets?status=ESCALATED" data-cs-navigation><img src="/assets/cs-dashboard/chat.svg" alt="" width="20" height="20">Đã chuyển quản lý</a>`;
-    root.querySelector('.sidebar-bottom').innerHTML='<p>Kết nối để cùng tiến bộ</p><small>Không gian hỗ trợ người dùng</small>';
+      <a href="/cs/support/tickets" data-cs-navigation data-support-link><img src="/assets/cs-dashboard/chat.svg" alt="" width="20" height="20">Yêu cầu hỗ trợ</a>`;
+    root.querySelector('.sidebar-bottom').innerHTML='<p>Kết nối để cùng tiến bộ</p><small>Không gian hỗ trợ người dùng</small><button type="button" class="logout-button">Đăng xuất</button>';
     root.querySelector('.topbar-breadcrumb>span').textContent='Không gian làm việc';
     const notifications=root.querySelector('.notification-button');notifications.textContent='Thông báo';notifications.title='Thông báo tạm thời chưa khả dụng';notifications.setAttribute('aria-label','Thông báo tạm thời chưa khả dụng');
   }
   if(!csWorkspace){
     document.body.classList.add('admin-portal');
-    const root=shell.content,topbar=root.querySelector('.admin-topbar'),brand=root.querySelector('.admin-brand'),links=document.createElement('nav'),notifications=root.querySelector('.notification-button');
+    const root=shell.content,topbar=root.querySelector('.admin-topbar'),brand=root.querySelector('.admin-brand'),notifications=root.querySelector('.notification-button');
     root.querySelector('.nav-caption').textContent='Quản trị viên';
     root.querySelector('.sidebar-menu nav').innerHTML=`
       <a href="/pages/admin-dashboard/">Tổng quan</a>
       <a href="/pages/admin-staff/">Tài khoản nội bộ</a>
       <a href="/pages/operations-incidents/">Vận hành hệ thống</a>
       <a href="/pages/manager-reports/">Báo cáo tổng hợp</a>
-      <a href="/pages/support-tickets/" data-support-link hidden><img src="/assets/icons/admin-dashboard/nav-incidents.svg" alt="">Yêu cầu hỗ trợ</a>
-      <button type="button" disabled title="Thông báo sẽ khả dụng khi FE-12 được kết nối">Thông báo</button>`;
+      <a href="/pages/operations-revenue/">Doanh thu</a>
+      <a href="/pages/manager-staff-roles/" hidden>Điều chuyển nhân sự</a>
+      <a href="/pages/support-tickets/" data-support-link hidden><img src="/assets/icons/admin-dashboard/nav-incidents.svg" alt="">Yêu cầu hỗ trợ</a>`;
     brand.querySelector('small').textContent='Kết nối song ngữ Việt – Nhật';
-    links.className='portal-links';links.setAttribute('aria-label','Lối tắt');links.innerHTML='<a href="/pages/home/">Trang chủ</a><a href="/pages/admin-dashboard/" data-portal-home>Tổng quan</a>';
-    topbar.prepend(brand);topbar.querySelector('.topbar-breadcrumb').after(links);
+    topbar.prepend(brand);
     const bell=document.createElement('span');bell.textContent='Thông báo';notifications.append(bell);notifications.title='Thông báo sẽ khả dụng khi FE-12 được kết nối';
     decoratePortalPage(location.pathname);
   }
@@ -95,7 +99,7 @@ export function mountAdminShell() {
     if (target.pathname === activePath && !target.hash) link.setAttribute('aria-current', 'page');
   });
   if(csWorkspace){
-    const params=new URLSearchParams(location.search);const selected=path==='/pages/cs-dashboard/'?'/cs/dashboard':params.get('status')==='ESCALATED'?'/cs/support/tickets?status=ESCALATED':'/cs/support/tickets';
+    const selected=path==='/pages/cs-dashboard/'?'/cs/dashboard':'/cs/support/tickets';
     document.querySelectorAll('[data-cs-navigation]').forEach(link=>{const url=new URL(link.href);if(url.pathname+url.search===selected)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   }
   const title = document.querySelector('h1')?.textContent;
@@ -114,10 +118,9 @@ export function mountAdminShell() {
     if (account.canAdmin === false) {
       document.querySelectorAll('.sidebar-menu a,.sidebar-menu button').forEach(link => {
         const target = link.getAttribute('href');
-        link.hidden = !((target === '/pages/manager-reports/' && account.canReport) || (link.hasAttribute('data-support-link') && account.canSupport) || (csWorkspace&&link.hasAttribute('data-cs-navigation')&&account.canSupport&&!account.canReport));
+        link.hidden = !((['/pages/manager-reports/', '/pages/manager-staff-roles/', '/pages/operations-revenue/'].includes(target) && account.canReport) || (link.hasAttribute('data-support-link') && account.canSupport) || (csWorkspace&&link.hasAttribute('data-cs-navigation')&&account.canSupport&&!account.canReport));
       });
       document.querySelector('.nav-caption').textContent = csWorkspace?'Nhân viên hỗ trợ':account.canReport?'Quản lý':'Không gian nội bộ';
-      document.querySelectorAll('[data-portal-home]').forEach(link => { link.href = account.canReport ? '/pages/manager-reports/' : '/pages/admin-profile/'; });
       document.getElementById('headerStatus').textContent = account.roleLabel;
       if (location.pathname === '/pages/admin-dashboard/') location.replace(account.canReport ? '/pages/manager-reports/' : account.canSupport?'/cs/dashboard':'/pages/admin-profile/');
     }
@@ -139,10 +142,12 @@ export function mountAdminShell() {
       } catch { /* Dùng chữ viết tắt nếu địa chỉ ảnh không hợp lệ. */ }
     }
     identity.before(avatar);
-  }).catch(() => {
+  }).catch(error => {
+    if (error.status === 401) { location.assign('/login'); return; }
     identity.querySelector('strong').textContent = 'Chưa xác minh tài khoản';
     identity.querySelector('small').textContent = 'Vui lòng kiểm tra kết nối hoặc phiên truy cập';
   });
+  document.querySelector('.logout-button')?.addEventListener('click', logout);
   const sidebar = document.getElementById('adminSidebar');
   const toggle = document.getElementById('sidebarToggle');
   const backdrop = document.getElementById('sidebarBackdrop');

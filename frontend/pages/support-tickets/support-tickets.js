@@ -1,2 +1,3 @@
 import {startSupportPage} from '/js/pages/support-tickets.js';
-startSupportPage(false);
+import {reloadIfInsideLearnerShell} from '/js/pages/learner-frame.js';
+if(!reloadIfInsideLearnerShell())startSupportPage(false);

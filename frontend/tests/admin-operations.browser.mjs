@@ -70,7 +70,7 @@ try {
   await command('Fetch.enable', {patterns: [{urlPattern: 'http://localhost:3000/js/config/api.config.js', requestStage: 'Request'}]});
   for (const width of [1280, 390]) {
     await command('Emulation.setDeviceMetricsOverride', {width, height: 900, deviceScaleFactor: 1, mobile: width < 760});
-    for (const page of ['operations-config', 'operations-health', 'operations-incidents', 'operations-reports']) {
+    for (const page of ['operations-config', 'operations-statistics', 'operations-incidents', 'operations-reports']) {
       await visit(page);
       await evaluate('document.fonts.ready');
       await screenshot(page + '-' + width);
@@ -99,7 +99,7 @@ try {
   await command('Page.navigate', {url: 'http://localhost:3000/pages/admin-dashboard/'});
   await until('document.getElementById("dashboardNotice")?.dataset.loading === "false"');
   assert.equal(await evaluate('document.getElementById("dashboardNotice").dataset.error'), 'false');
-  assert.equal(await evaluate('document.querySelectorAll(".health-card").length > 0'), true);
+  assert.equal(await evaluate('document.getElementById("healthSection")'), null);
   const accountResponse = await (await fetch(backend + '/api/admin/operations/dashboard/accounts')).json();
   assert.equal(accountResponse.success, true);
   assert.equal(await evaluate('document.querySelector("[data-account-count=totalAccounts]").textContent'), new Intl.NumberFormat('vi-VN').format(accountResponse.data.totalAccounts));
@@ -107,7 +107,7 @@ try {
   await command('Emulation.setDeviceMetricsOverride', {width: 1280, height: 900, deviceScaleFactor: 1, mobile: false});
   await screenshot('dashboard-local-accounts-1280');
   assert.deepEqual(errors, []);
-  await writeFile(new URL('operations-live-results.json', output), JSON.stringify({passed: true, backend, checks: ['shared shell desktop/mobile', 'active menu', 'configuration read', 'health read', 'reports read', 'create/claim/progress/resolve/close via UI', 'dashboard real data'], subject}, null, 2));
+  await writeFile(new URL('operations-live-results.json', output), JSON.stringify({passed: true, backend, checks: ['shared shell desktop/mobile', 'active menu', 'configuration read', 'statistics read', 'reports read', 'create/claim/progress/resolve/close via UI', 'dashboard real data'], subject}, null, 2));
   console.log('Live admin operations browser checks passed.');
 } finally {
   await command('Page.close');

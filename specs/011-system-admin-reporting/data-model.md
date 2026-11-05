@@ -1,5 +1,18 @@
 # Data Model: FE-11
 
+## Mô hình hiện hành — đồng bộ 2026-11-05
+
+Thiết kế cần đối chiếu schema/code trước migration; không khẳng định các bảng sau đã tồn tại. FR-023–029 trong spec.md ưu tiên hơn mô hình cũ bên dưới. Cấu hình học thử/snapshot và health giữ để truy vết/phụ thuộc, không mở lại trên giao diện.
+
+- **Thông tin nền tảng:** một nhóm cấu hình định danh UUID, tên hiển thị tối đa100, email hỗ trợ tối đa254, số hỗ trợ tối đa20; version tăng khi sửa, updated_at và changed_by. Không seed liên hệ giả; thiếu dữ liệu biểu diễn chưa cấu hình. Nếu schema hiện hữu hỗ trợ nhóm/version thì tái sử dụng, không tạo nguồn thứ hai. Định dạng theo FR-023.
+- **Giới hạn đính kèm hỗ trợ:** số nguyên 1–10 MB, quy đổi maxBytes bằng 1.048.576 byte/MB; version và thời điểm/tác giả. Cùng nguồn cho upload validator và UI. Không tác động tệp cũ. Chưa thêm cấu hình ảnh đại diện/tài liệu hồ sơ.
+- **Lịch sử cấu hình:** UUID, nhóm, trước/sau chỉ gồm trường được phép, actor FK users, occurred_at, reason 1–2.000 ký tự; append-only, ghi cùng transaction với cấu hình và version; không chứa bí mật.
+- **Sự cố:** bỏ write assignment, giữ event cũ. CLAIM kiểm chưa có assignee; RELEASE xóa assignee, đưa NEW, lưu trước/sau/lý do/tác giả. Chỉ người phụ trách hoặc Admin khi người phụ trách không còn hoạt động; CLOSED không nhận RELEASE. Khóa/version bảo đảm chỉ một người nhận thành công.
+- **Email cấp tài khoản:** hàng đợi DB có ID, user ID, trạng thái chờ/đã gửi/thất bại, số lần thử, thời điểm thử/gửi và lỗi đã lọc; không lưu mật khẩu rõ hoặc payload thư chứa mật khẩu. Sinh mật khẩu lúc gửi theo thiết kế hiện có; phải kiểm retry/crash và đồng bộ hash với thư, không coi SMTP là transaction DB. Tạo Manager lưu căn cứ bổ nhiệm; must_change_password dùng chung với xác thực.
+- **Hoãn:** không thêm mô hình banner bảo trì đến khi có code mới; không thêm bảng quản lý gói hoặc hoàn tiền trong FE-11.
+
+## Mô hình lịch sử trước đồng bộ
+
 Ngày 2026-10-30. UUID cho bảng mới, TIMESTAMPTZ/OffsetDateTime cho timestamp; thời gian tính kỳ theo Asia/Ho_Chi_Minh. Mapping explicit snake_case. Dữ liệu cấu hình nguồn không phải bằng chứng DB live.
 
 ## SystemConfiguration (hiện hữu)

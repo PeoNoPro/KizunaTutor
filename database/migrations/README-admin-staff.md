@@ -10,4 +10,6 @@ Trước khi áp dụng lên môi trường dùng chung, người phụ trách D
 psql -X --set ON_ERROR_STOP=on --file database/seeds/admin_staff_schema.sql
 ```
 
+Đề xuất thăng chức dùng thêm `database/seeds/staff_role_change_schema.sql`: chỉ tạo bảng `staff_role_change_requests` và index, không sửa dữ liệu có sẵn, có thể chạy lại. Chạy trên môi trường dùng chung theo cùng quy trình trên, sau khi nhóm đồng ý. Khi chưa có bảng này, phần đề xuất thăng chức báo lỗi nhưng các màn khác vẫn hoạt động.
+
 Lệnh dùng thông tin kết nối được quản lý riêng, không lưu mật khẩu vào Git. Kiểm tra bảng `staff_account_audit_events` và index, thử tạo/sửa tài khoản trên DB kiểm thử. Lỗi ghi audit phải rollback thay đổi tài khoản. Không xóa bảng/lịch sử để rollback tùy ý; phục hồi bằng bản backup đã kiểm chứng nếu cần.

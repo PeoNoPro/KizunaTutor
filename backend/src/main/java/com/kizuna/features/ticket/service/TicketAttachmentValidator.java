@@ -9,13 +9,17 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class TicketAttachmentValidator {
  @org.springframework.beans.factory.annotation.Value("${app.ticket.parser.classpath:}") private String configuredClasspath="";
+ public static final long DEFAULT_MAX_BYTES=10_000_000L;
+ @org.springframework.beans.factory.annotation.Autowired(required=false) private com.kizuna.features.admin.service.SystemSettingService settings;
+ /** Admin chỉnh ở Cấu hình hệ thống; không đọc được thì giữ mức mặc định thay vì chặn hỗ trợ. */
+ public long maxBytes(){if(settings==null)return DEFAULT_MAX_BYTES;try{return settings.attachmentMaxBytes();}catch(RuntimeException e){return DEFAULT_MAX_BYTES;}}
  public record ValidatedFile(String name,String mime,byte[] bytes){}
  public List<ValidatedFile> validate(List<MultipartFile> files){
    if(files==null||files.isEmpty())return List.of();
    if(files.size()>5)throw new BusinessException(400,"Mỗi lần gửi chỉ được đính kèm tối đa 5 tệp.");
-   long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(30);var result=new ArrayList<ValidatedFile>();
+   long limit=maxBytes();long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(30);var result=new ArrayList<ValidatedFile>();
    for(var file:files){
-     if(file.getSize()<1||file.getSize()>10000000)throw new BusinessException(400,"Mỗi tệp phải có dung lượng từ 1 byte đến 10 MB.");
+     if(file.getSize()<1||file.getSize()>limit)throw new BusinessException(400,"Mỗi tệp phải có dung lượng từ 1 byte đến "+limit/1_000_000+" MB.");
      String name=Objects.toString(file.getOriginalFilename(),"").replace('\\','/');name=name.substring(name.lastIndexOf('/')+1).replaceAll("[\\p{Cc}\\p{Cf}]","");
      if(name.isBlank())throw new BusinessException(400,"Tên tệp chưa hợp lệ.");
      if(name.codePointCount(0,name.length())>255)name=name.substring(0,name.offsetByCodePoints(0,255));

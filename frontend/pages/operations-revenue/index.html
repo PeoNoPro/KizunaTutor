@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Doanh thu - KizunaTutor</title><link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/variables.css"><link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/components.css"><link rel="stylesheet" href="/styles/utilities.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css"><link rel="stylesheet" href="/pages/operations-statistics/operations-statistics.css">
+</head>
+<body class="admin-dashboard operations-page">
+<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+<main id="dashboardMain" class="dashboard-main">
+<div id="operationsContent" class="operations-content" aria-busy="true"><div class="operations-page-heading"><span class="role-badge">Kinh doanh</span><h1>Doanh thu</h1><p>Doanh thu từ giao dịch gói hội viên gia sư đã thanh toán thành công.</p></div>
+<p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+
+<form id="revenueFilters" class="operations-card operations-filters"><label>Từ ngày<input type="date" name="startDate"></label><label>Đến ngày<input type="date" name="endDate"></label><button class="primary" type="submit">Xem doanh thu</button><button id="revenueExcel" type="button">Xuất Excel</button><button id="revenuePdf" type="button">Xuất PDF</button></form>
+<p id="revenuePeriod">Mặc định 7 ngày, tối đa 366 ngày theo giờ Việt Nam.</p>
+<div class="statistics-layout">
+<section class="operations-card statistics-wide" aria-labelledby="revenueTitle"><h2 id="revenueTitle">Tổng quan doanh thu</h2><p>Chỉ tính giao dịch mua gói đã thanh toán thành công. Giao dịch đang chờ hoặc thất bại không được cộng vào tổng tiền.</p><div id="revenueTiles" class="statistics-tiles"></div></section>
+<section class="operations-card statistics-wide" aria-labelledby="planTitle"><h2 id="planTitle">Doanh thu theo gói</h2><div id="revenuePlans"></div></section>
+<section class="operations-card statistics-wide" aria-labelledby="transactionTitle"><h2 id="transactionTitle">Giao dịch trong kỳ</h2><div id="revenueRows" class="table-scroll"></div></section>
+</div>
+</div>
+</main>
+<script type="module" src="./operations-revenue.js"></script>
+</body></html>

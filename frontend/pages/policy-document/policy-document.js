@@ -1,4 +1,5 @@
 import { api, byId, text, date, notice, createOperationsPage } from '../../js/pages/operations.js';
+import { mountLearnerFrameIfLearner } from '../../js/pages/learner-frame.js';
 
 const policyType = new URLSearchParams(location.search).get('type') || '';
 
@@ -8,4 +9,5 @@ async function loadPolicy() {
     notice('Đang hiển thị bản đã công bố và có hiệu lực.');
 }
 
+mountLearnerFrameIfLearner('policies');
 createOperationsPage(loadPolicy).start();

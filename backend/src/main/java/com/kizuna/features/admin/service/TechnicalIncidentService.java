@@ -20,7 +20,7 @@ public class TechnicalIncidentService {
     public static final Set<String> SEVERITIES=Set.of("LOW","NORMAL","HIGH","CRITICAL");
     public static final Map<String,String> STATUS_LABELS=Map.of("NEW","Mới ghi nhận","IN_PROGRESS","Đang xử lý","RESOLVED","Đã giải quyết","CLOSED","Đã đóng");
     public static final Map<String,String> SEVERITY_LABELS=Map.of("LOW","Thấp","NORMAL","Bình thường","HIGH","Cao","CRITICAL","Nghiêm trọng");
-    public static final Map<String,String> ACTION_LABELS=Map.of("CREATE","Ghi nhận sự cố","CLAIM","Nhận xử lý","REASSIGN","Phân công lại","PROGRESS","Ghi diễn biến","RESOLVE","Giải quyết","RESUME","Tiếp tục xử lý","CLOSE","Đóng sự cố");
+    public static final Map<String,String> ACTION_LABELS=Map.of("CREATE","Ghi nhận sự cố","CLAIM","Nhận xử lý","REASSIGN","Phân công lại","PROGRESS","Ghi diễn biến","RESOLVE","Giải quyết","RESUME","Tiếp tục xử lý","CLOSE","Đóng sự cố","RELEASE","Trả lại danh sách chờ");
     private final TechnicalIncidentRepository incidents;
     private final TechnicalIncidentEventRepository events;
     private final OperationsActorResolver actors;
@@ -46,6 +46,8 @@ public class TechnicalIncidentService {
         var actor=actors.requireAdmin();
         var i=incidents.lock(id).orElseThrow(BusinessException::missing);
         commands.lockAdmin(actor.userId());
+        // Hai người cùng nhận: người chậm chân cần biết lý do thay vì lỗi phiên bản chung.
+        if("CLAIM".equals(action)&&i.getAssigneeId()!=null)throw new BusinessException(409,"Sự cố đã có người nhận xử lý.");
         OperationsValidation.version(r.expectedVersion(),i.getVersion());
         if("CLOSED".equals(i.getStatus())) throw BusinessException.conflict();
         Map<String,Object> before=snapshot(i);
@@ -57,7 +59,7 @@ public class TechnicalIncidentService {
         return projection(i,actor.userId());
     }
 
-    private static final Map<String,Set<String>> COMMAND_FIELDS=Map.of("CLAIM",Set.of(),"REASSIGN",Set.of("assigneeId","reason"),"PROGRESS",Set.of("detail"),"RESOLVE",Set.of("result","verification"),"RESUME",Set.of("reason"),"CLOSE",Set.of());
+    private static final Map<String,Set<String>> COMMAND_FIELDS=Map.of("CLAIM",Set.of(),"RELEASE",Set.of("reason"),"PROGRESS",Set.of("detail"),"RESOLVE",Set.of("result","verification"),"RESUME",Set.of("reason"),"CLOSE",Set.of());
     // Lịch sử không sửa được nên từ chối trường không thuộc thao tác thay vì ghi kèm.
     private void onlyCommandFields(String action,IncidentCommandRequest r) {
         var allowed=COMMAND_FIELDS.getOrDefault(action,Set.of());var given=new HashMap<String,Object>();
@@ -68,9 +70,11 @@ public class TechnicalIncidentService {
         onlyCommandFields(action,r);
         switch(action) {
             case "CLAIM" -> { state(i,"NEW"); if(i.getAssigneeId()!=null) throw BusinessException.conflict(); i.setAssigneeId(actor); i.setStatus("IN_PROGRESS"); }
-            case "REASSIGN" -> {
-                if(i.getAssigneeId()==null || r.assigneeId()==null || r.assigneeId().equals(i.getAssigneeId())) throw BusinessException.invalid();
-                OperationsValidation.text(r.reason(),2000); commands.lockAdmin(r.assigneeId()); i.setAssigneeId(r.assigneeId());
+            case "RELEASE" -> {
+                state(i,"IN_PROGRESS"); OperationsValidation.text(r.reason(),2000);
+                // Không chọn người thay thế; Admin khác chỉ gỡ được khi người phụ trách không còn hoạt động để tránh phiếu kẹt.
+                if(!actor.equals(i.getAssigneeId())&&assigneeActive(i.getAssigneeId()))throw new BusinessException(403,"Chỉ người đang phụ trách được trả lại sự cố này.");
+                i.setAssigneeId(null); i.setStatus("NEW");
             }
             case "PROGRESS" -> { owner(i,actor); state(i,"IN_PROGRESS"); OperationsValidation.text(r.detail(),10000); }
             case "RESOLVE" -> { owner(i,actor); state(i,"IN_PROGRESS"); OperationsValidation.text(r.result(),10000); OperationsValidation.text(r.verification(),10000); i.setStatus("RESOLVED"); }
@@ -89,11 +93,21 @@ public class TechnicalIncidentService {
     @Transactional(readOnly=true, timeout=3)
     public PageResponse<Map<String,Object>> list(String status,String severity,String component,UUID assignee,LocalDate from,LocalDate to,int page,int size) {
         var actor=actors.requireAdmin(); OperationsValidation.page(page,size);
+        var spec=filter(status,severity,component,assignee,from,to);
+        var result=incidents.findAll(spec,PageRequest.of(page,size,LIST_ORDER));
+        var ids=new HashSet<UUID>(); result.forEach(i->{ids.add(i.getReporterId()); if(i.getAssigneeId()!=null)ids.add(i.getAssigneeId());});
+        var names=actors.names(ids);
+        return PageResponse.of(result.map(i->projection(i,actor.userId(),names)));
+    }
+
+    static final Sort LIST_ORDER=Sort.by(Sort.Order.desc("createdAt"),Sort.Order.desc("incidentId"));
+    /** Danh sách và tệp xuất dùng chung một bộ lọc để tệp luôn khớp màn hình. */
+    static Specification<TechnicalIncident> filter(String status,String severity,String component,UUID assignee,LocalDate from,LocalDate to) {
         if(status!=null) OperationsValidation.member(status,STATES);
         if(severity!=null) OperationsValidation.member(severity,SEVERITIES);
         if(component!=null) OperationsValidation.member(component,OperationsComponentCatalog.CODES);
         if(from!=null && to!=null && from.isAfter(to)) throw BusinessException.invalid();
-        Specification<TechnicalIncident> spec=(root,q,cb)-> {
+        return (root,q,cb)-> {
             var predicates=new ArrayList<Predicate>();
             if(status!=null) predicates.add(cb.equal(root.get("status"),status));
             if(severity!=null) predicates.add(cb.equal(root.get("severity"),severity));
@@ -103,10 +117,6 @@ public class TechnicalIncidentService {
             if(to!=null) predicates.add(cb.lessThan(root.get("createdAt"),to.plusDays(1).atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toOffsetDateTime()));
             return cb.and(predicates.toArray(Predicate[]::new));
         };
-        var result=incidents.findAll(spec,PageRequest.of(page,size,Sort.by(Sort.Order.desc("createdAt"),Sort.Order.desc("incidentId"))));
-        var ids=new HashSet<UUID>(); result.forEach(i->{ids.add(i.getReporterId()); if(i.getAssigneeId()!=null)ids.add(i.getAssigneeId());});
-        var names=actors.names(ids);
-        return PageResponse.of(result.map(i->projection(i,actor.userId(),names)));
     }
 
     @Transactional(readOnly=true, timeout=3)
@@ -143,9 +153,15 @@ public class TechnicalIncidentService {
         var m=new LinkedHashMap<String,Object>(); m.put("statusLabel",STATUS_LABELS.get(s.get("status"))); m.put("severityLabel",SEVERITY_LABELS.get(s.get("severity")));
         Object id=s.get("assigneeId"); m.put("assigneeLabel",id==null?"Chưa phân công":names.get(UUID.fromString(id.toString()))); return m;
     }
+    private boolean assigneeActive(UUID assignee) {
+        try { actors.activeAdmin(assignee); return true; } catch(BusinessException exception) { return exception.status()>=500; }
+    }
+    @SuppressWarnings("unchecked")
     private Map<String,Object> projection(TechnicalIncident i,UUID actor) {
         var ids=new HashSet<UUID>(); ids.add(i.getReporterId()); if(i.getAssigneeId()!=null) ids.add(i.getAssigneeId());
-        return projection(i,actor,actors.names(ids));
+        var result=projection(i,actor,actors.names(ids));
+        if("IN_PROGRESS".equals(i.getStatus())&&!actor.equals(i.getAssigneeId())&&!assigneeActive(i.getAssigneeId()))((List<String>)result.get("allowedActions")).add("release");
+        return result;
     }
     private Map<String,Object> projection(TechnicalIncident i,UUID actor,Map<UUID,String> names) {
         var m=new LinkedHashMap<String,Object>(); m.put("incidentId",i.getIncidentId()); m.put("subject",i.getSubject()); m.put("description",i.getDescription());
@@ -155,8 +171,8 @@ public class TechnicalIncidentService {
         m.put("createdAt",i.getCreatedAt()); m.put("updatedAt",i.getUpdatedAt()); m.put("version",i.getVersion()); m.put("recurrenceOf",i.getRecurrenceOf());
         var actions=new ArrayList<String>();
         if(!"CLOSED".equals(i.getStatus())) {
-            if(i.getAssigneeId()==null) actions.add("claim"); else actions.add("assignment");
-            if(actor.equals(i.getAssigneeId())) { if("IN_PROGRESS".equals(i.getStatus())) actions.addAll(List.of("progress","resolve")); if("RESOLVED".equals(i.getStatus())) actions.addAll(List.of("resume","close")); }
+            if(i.getAssigneeId()==null) actions.add("claim");
+            if(actor.equals(i.getAssigneeId())) { if("IN_PROGRESS".equals(i.getStatus())) actions.addAll(List.of("progress","resolve","release")); if("RESOLVED".equals(i.getStatus())) actions.addAll(List.of("resume","close")); }
         }
         m.put("allowedActions",actions); return m;
     }

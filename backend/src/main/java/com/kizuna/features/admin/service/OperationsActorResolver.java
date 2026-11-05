@@ -11,7 +11,17 @@ import java.util.UUID;
 @Service @RequiredArgsConstructor
 public class OperationsActorResolver {
     private final OperationsIdentityRepository identities;
+    private static final String REQUEST_ACTOR=OperationsActorResolver.class.getName()+".actor";
+    /** Mỗi request chỉ tra DB một lần: bộ lọc quyền và service cùng hỏi, mà pool kiểm tra quyền rất nhỏ. Sang request sau vẫn đọc lại trạng thái mới nhất. */
     public OperationsActor current() {
+        var request=org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        int scope=org.springframework.web.context.request.RequestAttributes.SCOPE_REQUEST;
+        if(request!=null&&request.getAttribute(REQUEST_ACTOR,scope) instanceof OperationsActor cached) return cached;
+        var actor=lookup();
+        if(request!=null) request.setAttribute(REQUEST_ACTOR,actor,scope);
+        return actor;
+    }
+    private OperationsActor lookup() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
             throw new BusinessException(401,"Vui lòng đăng nhập để tiếp tục.");
@@ -24,6 +34,15 @@ public class OperationsActorResolver {
         var actor = current();
         if (!"ROLE_ADMIN".equals(actor.role())) throw new BusinessException(403,"Bạn không có quyền sử dụng chức năng này.");
         return actor;
+    }
+    public OperationsActor requireManager() {
+        var actor = current();
+        if (!"ROLE_MANAGER".equals(actor.role())) throw new BusinessException(403,"Bạn không có quyền sử dụng chức năng này.");
+        return actor;
+    }
+    /** Áp dụng cho API FE-11; các feature khác cần chặn ở filter chung của FE-01. */
+    public void rejectPendingPasswordChange() {
+        if(current().mustChangePassword()) throw new BusinessException(403,"Vui lòng đổi mật khẩu lần đầu trước khi sử dụng chức năng này.");
     }
     public OperationsActor requireReader() {
         var actor = current();

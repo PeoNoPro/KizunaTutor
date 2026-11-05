@@ -6,17 +6,17 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import org.springframework.http.MediaType;
 class OperationsAuthorizationTest extends OperationsIntegrationBase {
     @Test void rolesAndCurrentAccountAreEnforced() throws Exception {
-        mvc.perform(get("/api/admin/operations/health")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/admin/operations/dashboard/accounts")).andExpect(status().isUnauthorized());
         for(String role:new String[]{"LEARNER","TUTOR","MANAGER","CS_STAFF","ACADEMIC_OFFICER"}) {
-            mvc.perform(get("/api/admin/operations/health").with(user("ROLE_"+role+"@test.invalid").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_"+role)))).andExpect(status().isForbidden());
+            mvc.perform(get("/api/admin/operations/dashboard/accounts").with(user("ROLE_"+role+"@test.invalid").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_"+role)))).andExpect(status().isForbidden());
         }
-        mvc.perform(get("/api/admin/operations/health").with(admin())).andExpect(status().isOk());
+        mvc.perform(get("/api/admin/operations/dashboard/accounts").with(admin())).andExpect(status().isOk());
         jdbc.update("UPDATE users SET role_id=2 WHERE user_id=?",ADMIN);
-        mvc.perform(get("/api/admin/operations/health").with(admin())).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/operations/dashboard/accounts").with(admin())).andExpect(status().isForbidden());
         jdbc.update("UPDATE users SET role_id=1,deleted_at=now() WHERE user_id=?",ADMIN);
-        mvc.perform(get("/api/admin/operations/health").with(admin())).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/operations/dashboard/accounts").with(admin())).andExpect(status().isForbidden());
         jdbc.update("UPDATE users SET deleted_at=NULL,account_status='SUSPENDED' WHERE user_id=?",ADMIN);
-        mvc.perform(get("/api/admin/operations/health").with(admin())).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/operations/dashboard/accounts").with(admin())).andExpect(status().isForbidden());
     }
     @Test void writesRequireCsrfAndOtherFeaturesRetainTheirPolicy() throws Exception {
         String body="{\"subject\":\"Lỗi kiểm thử\",\"description\":\"Mô tả\",\"severity\":\"NORMAL\",\"components\":[\"DATABASE\"]}";

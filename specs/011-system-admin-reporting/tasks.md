@@ -8,7 +8,41 @@
 
 **Organization**: Setup → foundation → bốn story → nghiệm thu. Báo cáo US2 phụ thuộc event US3, không tuyên bố tất cả story độc lập về mã nguồn.
 
+## Công việc hiện hành — đồng bộ 2026-11-05
+
+Các dấu [x] cũ là bằng chứng phạm vi trước, không chứng nhận FR-023–029. Rà code hiện tại trước khi làm; chỉ đóng task sau kiểm chứng. Cấu hình học thử, sức khỏe, phân công sự cố trong các phase cũ là lịch sử, không triển khai mới.
+
+- [ ] T077 [FR-023–026] Rà schema/consumer cấu hình; thiết kế mapping theo data-model và contracts; xác định vị trí thông tin chung/footer hiện có, dữ liệu liên hệ do nhóm cung cấp. Không chạy migration trên DB chung khi chỉ rà tài liệu.
+- [ ] T078 [FR-023/026] Triển khai API đọc/sửa thông tin nền tảng và API công khai tối thiểu; Admin ACTIVE, kiểm mật khẩu lần đầu/CSRF/version/validation; audit và cấu hình nguyên tử, không dữ liệu giả.
+- [ ] T079 [FR-024/026] Form cấu hình và xác nhận trước/sau/lý do; tích hợp các vị trí thông tin chung thực tế, phân biệt thiếu dữ liệu/lỗi; kiểm desktop/mobile. Phụ thuộc T078.
+- [ ] T080 [FR-025] Rà/hoàn thiện giới hạn đính kèm hỗ trợ 1–10 MB; frontend và backend cùng nguồn; kiểm dưới/đúng/vượt giới hạn và giữ tệp cũ. Không mở ô chỉnh upload chưa có API.
+- [ ] T081 [FR-027] Rà/gỡ nút và API phân công/phân công lại; tự nhận và trả lại đúng quyền/trạng thái/version, giao dịch và event nguyên tử; giữ lịch sử cũ; kiểm hai Admin nhận đồng thời.
+- [ ] T082 [FR-028] Rà/hoàn thiện hàng đợi email DB không lưu mật khẩu rõ, retry/trạng thái, căn cứ bổ nhiệm Manager; kiểm chặn API FE-11 trước đổi mật khẩu. API feature khác ghi phụ thuộc FE-01.
+- [ ] T083 [FR-029] Rà báo cáo học thử offline và mua gói, bỏ chỉ số/bộ lọc/biểu đồ hoàn tiền; không sửa gói; kiểm phân biệt rỗng/chưa tích hợp/lỗi và nguồn trạng thái hoàn thành học thử.
+- [ ] T084 [SC-012–014] Sau T078–T083, nghiệm thu bằng đăng nhập thật và dữ liệu kiểm chứng trên môi trường demo được phép; cập nhật validation, không suy kết quả từ mock hay dấu kiểm cũ.
+- [ ] T085 [HOÃN] Banner bảo trì: chờ người dùng tải code mới, rà lại rồi cập nhật hợp đồng/task trước triển khai; không chặn nghiệm thu phạm vi hiện tại.
+- [ ] T086 [PHỤ THUỘC] Kiểm điều kiện bàn giao khi điều chuyển/thăng chức sau khi nhóm có hợp đồng dữ liệu công việc đang giữ; không tự sửa repository feature khác hoặc tuyên bố đã hoàn thành.
+
+Các task cũ đang mở: T011/T016/T019 thuộc booking cũ cần rà phụ thuộc, không dùng để chặn cấu hình mới; T042/chính sách và T059/AI hoãn; T048 nghiệm thu cũ chưa hoàn tất; T060 phụ thuộc FE-12. Thứ tự mới: T077 → T078 → T079; T080–T083 theo hợp đồng hiện hành → T084. T085/T086 không tự đánh dấu hoàn thành.
+
 ## Format: `[ID] [P?] [Story] Description`
+
+### Ưu tiên phạm vi mới ngày 2026-11-03
+
+Đọc Clarifications 2026-11-03 trong spec.md trước danh sách lịch sử. Task [x] giữ bằng chứng bản cũ, không chứng minh đáp ứng quyền mới. T020/T022–T024 và phần health của T001/T027/T043/T051 không còn yêu cầu phát triển mới. T037–T042 và nghiệm thu chính sách trong T048 tiếp tục hoãn; T059 vẫn hoãn. T060 chỉ còn phụ thuộc FE-12, không chặn Excel sự cố đã được người dùng xác nhận. T055/T056/T058 cần kiểm lại quyền qua T068–T069.
+
+- [x] T067 [FR-019] Đã chốt 2026-11-04: Manager đổi trực tiếp Cán bộ học vụ ↔ Chăm sóc khách hàng; thăng lên Manager do Manager đề xuất, Admin duyệt; Admin gán Manager khi tạo; không cấp Admin; hạ chức Manager để sau. Xem Clarifications 2026-11-04 và contracts/operations.md.
+- [x] T068 [FR-019] Kiểm thử quyền hiện tại/CSRF/version/audit: Admin không đổi vai trò sau tạo qua mọi đường, Manager không tạo/khóa/mở và chỉ đổi vai trò được duyệt; kiểm tài khoản hiện tại/quản trị cuối, thu hồi quyền. Không mở chung operations cho Manager.
+- [x] T069 [FR-019] Sau T067–T068, sửa service/controller/menu/form nhân viên, chuyển thao tác đổi vai trò sang khu vực Manager theo ma trận; chạy kiểm thử và ghi bằng chứng.
+- [x] T070 [FR-020] Chốt hợp đồng nhập Excel: mẫu/cột, loại/giới hạn tệp/số dòng, vai trò khởi tạo, cấp mật khẩu, chính sách lô khi có lỗi, xem trước/xác nhận/kết quả. Không ghi đè tài khoản trùng.
+- [x] T071 [FR-020] Sau T070, kiểm thử/triển khai tải mẫu, kiểm tra/xem trước/xác nhận tạo; email trùng tệp/DB, thay đổi sau xem trước, quyền/CSRF, giới hạn, lỗi từng dòng và không lộ mật khẩu; kết quả khớp số tạo thực.
+- [x] T072 [FR-021] Thiết kế hợp đồng xuất Excel sự cố: Admin, bộ lọc, toàn bộ kết quả qua nhiều trang, cột/ngày/thời điểm chốt, giới hạn tài nguyên, tải tệp/rỗng/lỗi. Không nhập sự cố từ Excel.
+- [x] T073 [FR-021] Sau T072, kiểm thử/triển khai xuất Excel sự cố; đối chiếu cột/bộ lọc/quyền/rỗng/lỗi/nội dung giống công thức, không sửa sự cố. Ghi bằng chứng tệp mở bằng Excel hoặc công cụ đọc tương thích.
+- [x] T074 [FR-022] Bỏ đúng mục/khối sức khỏe khỏi menu/dashboard Admin; rà liên kết/nguồn gọi trực tiếp, không chuyển khối hoặc xóa dữ liệu/dịch vụ dùng chung ngoài phạm vi. Giữ sự cố/thống kê.
+- [x] T075 [FR-022] Đối chiếu nguồn/hợp đồng, triển khai biểu đồ vai trò, tài khoản mới, trạng thái tài khoản và sự cố; phân biệt kỳ/trạng thái hiện tại, thiếu/lỗi/0. Không số online/truy cập giả.
+- [x] T076 [SC-008–011] Sau T069/T071/T073–T075, kiểm API/quyền/UI desktop–mobile/nhật ký/import/export trên môi trường được phép; cập nhật validation/ma trận FR/SC. Không đánh dấu xong từ fixture UI hoặc tài liệu. Ghi riêng phụ thuộc FE-12/hồ sơ/booking.
+
+Thứ tự: T067 → T068 → T069; T070 → T071; T072 → T073; T074/T075 theo nguồn/hợp đồng được kiểm tra; tất cả → T076. Task mới chưa triển khai. Lượt chỉnh Speckit không chạy database, sửa schema, commit hoặc push.
 
 - `[P]`: khác file, làm đồng thời sau đủ tiền đề. Không dùng để bỏ dependency.
 - Mọi đường dẫn tương đối từ repo KizunaTutor; mọi file văn bản UTF-8 không BOM. Task chung controller/service/JS phải tuần tự.
@@ -83,7 +117,7 @@
 
 ## Phase 5: User Story 3 — Xử lý sự cố kỹ thuật (Priority: P2)
 
-**Goal**: Admin tạo thủ công, nhận/phân công, ghi diễn biến, giải quyết/đóng và giữ lịch sử.
+**Goal hiện hành**: Admin tạo thủ công, tự nhận/trả lại, ghi diễn biến, giải quyết/đóng và giữ lịch sử; thực hiện theo T081. Các task phân công cũ phía dưới chỉ là lịch sử.
 
 **Independent Test**: Create→claim→progress→resolve→resume→resolve→close, reassign thu hồi quyền ghi cũ và event đúng thứ tự. Không cần collector/report hoặc policy documents.
 

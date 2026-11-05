@@ -10,6 +10,82 @@
 
 ## Clarifications
 
+### Mật khẩu tạm qua email, người dùng duyệt ngày 2026-11-05
+
+Theo SRS mục 1.6: Admin không nhập mật khẩu. Khi tạo từng tài khoản hoặc nhập Excel, hệ thống sinh mật khẩu ngẫu nhiên riêng cho từng người và gửi vào email sau khi lưu thành công; tài khoản phải đổi mật khẩu lần đầu. Mật khẩu không xuất hiện trong API, tệp, nhật ký hay log. Admin được cấp lại mật khẩu tạm khi nhân viên chưa đổi mật khẩu lần đầu; mật khẩu cũ mất hiệu lực.
+
+**Sai khác đã biết với SRS:** mục 1.7 ghi Admin đổi vai trò, trong khi phạm vi đã chốt là Manager đề xuất, Admin duyệt.
+
+### Phạm vi hiện hành, người dùng chốt ngày 2026-11-05 — ưu tiên hơn mọi mục bên dưới
+
+Nguồn: người dùng duyệt trong hội thoại; SRS sẽ được cập nhật sau theo mục này. Học thử diễn ra offline. Không có nghiệp vụ hoàn tiền trong FE-11. Quản lý và chỉnh sửa gói hội viên thuộc feature khác. AI tiếp tục để sau.
+
+- **Cấu hình hệ thống:** phạm vi cần triển khai gồm thông tin nền tảng (tên hiển thị, email hỗ trợ, số điện thoại hỗ trợ) và giới hạn dung lượng tệp đính kèm yêu cầu hỗ trợ trong mức trần server 10 MB. Các vị trí thông tin chung/footer được tích hợp phải dùng cùng nguồn. Có lý do, kiểm tra phiên bản và lịch sử trước/sau. **Banner thông báo bảo trì tạm hoãn, chờ người dùng tải code mới về rồi rà lại; không triển khai hoặc nghiệm thu trong đợt này.** Ảnh đại diện, tài liệu hồ sơ chưa có API tải lên nên chưa có ô cấu hình. Không coi việc cập nhật đặc tả là đã triển khai thông tin nền tảng. Màn cấu hình học thử gỡ khỏi giao diện; API và dữ liệu cũ chưa xóa, phải kiểm tra phụ thuộc trước khi thay đổi.
+- **Sự cố:** bỏ phân công và phân công lại. Admin tự nhận; hai người cùng nhận thì chỉ một người thành công. Người phụ trách được trả lại danh sách chờ với lý do; Admin khác chỉ trả lại được khi người phụ trách không còn hoạt động. Lịch sử phân công cũ giữ để tra cứu.
+- **Tài khoản nhân viên:** mật khẩu tạm sinh ngay lúc gửi thư và không lưu trong hàng đợi. Trạng thái email gồm chờ gửi, đã gửi, gửi thất bại; "đã gửi" không khẳng định nhân viên đã đọc. Hàng đợi lưu trong DB để tiếp tục sau khi khởi động lại. Tạo tài khoản Quản lý phải có căn cứ bổ nhiệm.
+- **Bắt đổi mật khẩu:** API FE-11 từ chối tài khoản chưa đổi mật khẩu lần đầu. API của feature khác là phụ thuộc FE-01.
+- **Doanh thu:** chỉ tổng giao dịch mua gói thành công, theo gói và theo ngày; không có chỉ số, bộ lọc hay biểu đồ hoàn tiền; phân biệt không có dữ liệu, chưa tích hợp nguồn và lỗi tải. Cách nhận diện giao dịch mua gói cần thống nhất với feature thanh toán.
+- **Nhật ký:** có thêm đề xuất, từ chối, hủy thăng chức và cấu hình mới.
+- **Sức khỏe:** ngừng cung cấp API và trang. Bộ đo chưa xóa vì đang giữ `@EnableScheduling` cho cả ứng dụng.
+- **Chưa làm, chờ nhóm:** kiểm tra bàn giao công việc khi điều chuyển. Hồ sơ của Cán bộ học vụ chưa có dữ liệu người đang giữ.
+
+### Doanh thu và xuất báo cáo, người dùng yêu cầu ngày 2026-11-05
+
+Nguồn: người dùng yêu cầu trong hội thoại. Bổ sung khối thống kê doanh thu trên tổng quan, trang Doanh thu, xuất Excel/PDF cho báo cáo doanh thu và báo cáo đăng ký gia sư/JLPT. Doanh thu là tổng giao dịch `SUCCESS` không gắn lịch học thử (`booking_id` rỗng), thời gian theo Asia/Ho_Chi_Minh. Admin và Manager được xem theo mô tả vai trò trong `RoleEnum`; vai trò khác bị từ chối. Chỉ đọc số liệu thật, chưa có giao dịch thì báo trống; không lộ mã hoặc payload cổng thanh toán. Luồng thanh toán chưa được xây dựng nên hiện chưa có nguồn ghi giao dịch. PDF dùng hộp thoại in của trình duyệt.
+
+### Chốt quyền đổi vai trò ngày 2026-11-04 — ưu tiên hơn mục 2026-11-03 nếu xung đột
+
+Nguồn: người dùng chọn phương án "quản lý đề xuất, Admin duyệt" trong hội thoại.
+
+| Thao tác | Người thực hiện | Quy tắc |
+| --- | --- | --- |
+| Đổi qua lại Cán bộ học vụ ↔ Chăm sóc khách hàng | Manager, không cần duyệt | Tài khoản đang hoạt động, không có đề xuất đang chờ; bắt buộc lý do |
+| Thăng Cán bộ học vụ/Chăm sóc khách hàng lên Manager | Manager đề xuất, Admin duyệt/từ chối | Tài khoản đang hoạt động; mỗi nhân viên một đề xuất đang chờ; người đề xuất được hủy khi còn chờ; từ chối bắt buộc lý do; lúc duyệt kiểm tra lại trạng thái và vai trò |
+| Gán vai trò khi tạo tài khoản | Admin | Cán bộ học vụ, Chăm sóc khách hàng hoặc Manager; không gán Admin |
+| Đổi vai trò trực tiếp sau tạo | Admin không được | Thay đổi vai trò khi duyệt đề xuất là ngoại lệ duy nhất |
+| Cấp quyền Admin | Không có trong các luồng này | |
+| Hạ chức Manager | Chưa làm | Để sau; có thể dùng lại luồng đề xuất |
+
+Đề xuất đã duyệt/từ chối/hủy không sửa được. Duyệt là một transaction gồm đổi vai trò, chốt đề xuất và ghi nhật ký với vai trò trước/sau, người đề xuất, người duyệt. Khi xung đột, bảng này thay thế dòng "Thăng chức/đổi vai trò", FR-019 và SC-008 ở mục 2026-11-03.
+
+**Nhập tài khoản Excel (FR-020), người dùng duyệt ngày 2026-11-04:** tệp `.xlsx` tối đa 2 MB và 100 dòng; cột Họ và tên, Email, Vai trò, Số điện thoại (không bắt buộc). Chỉ tạo Cán bộ học vụ và Chăm sóc khách hàng. Còn dòng lỗi thì không tạo tài khoản nào. Email trùng trong tệp hoặc với tài khoản đã có (kể cả đã xóa) là lỗi, không ghi đè. (Mật khẩu: xem mục 2026-11-05.) Xác nhận kiểm tra lại quyền và toàn bộ dữ liệu; dữ liệu đổi sau xem trước thì không tạo gì.
+
+### Phạm vi Admin cập nhật ngày 2026-11-03 — ưu tiên cho công việc tiếp theo
+
+Nguồn: yêu cầu trực tiếp của người dùng trong hội thoại. Phần này thay thế mô tả cũ bên dưới nếu xung đột; không khẳng định chức năng mới đã được triển khai. Giữ yêu cầu và bằng chứng cũ để truy vết, không dùng quyền Admin đổi vai trò hoặc yêu cầu sức khỏe cũ để triển khai tiếp.
+
+| Mục | Phạm vi hiện hành |
+| --- | --- |
+| Tổng quan hệ thống | Tóm tắt tài khoản người dùng, nhân viên, sự cố cần xử lý và hoạt động quản trị gần đây; liên kết đến màn chi tiết. Không còn khối giám sát sức khỏe. |
+| Quản lý tài khoản nhân viên | Admin xem, tìm kiếm, tạo từng tài khoản hoặc nhập Excel, cập nhật thông tin và khóa/mở khóa. Gán vai trò ban đầu theo phân công được duyệt; không dùng sửa thông tin để đổi vai trò sau tạo. |
+| Thăng chức/đổi vai trò | Manager thực hiện trong phạm vi được phép. Không tự nâng quyền hoặc cấp quyền Admin. Người bổ nhiệm Manager khác chưa chốt nên chưa mở luồng này. Admin không còn thao tác đổi vai trò sau tạo trong phạm vi đang chốt. |
+| Cấu hình hệ thống | Giữ danh mục, giới hạn, lý do và lịch sử đã duyệt; không tự thêm tham số. |
+| Quản lý sự cố kỹ thuật | Ghi nhận thủ công, nhận/phân công, diễn biến, kết quả, xác minh và đóng theo vòng đời hiện có; bổ sung xuất danh sách sự cố Excel để lưu/báo cáo. |
+| Nhật ký hệ thống | Chỉ đọc, lọc người thực hiện/thời gian/nhóm thao tác; bao gồm tài khoản, đổi vai trò, cấu hình và sự cố; không lộ bí mật/log thô. |
+| Thống kê hệ thống | Biểu đồ tài khoản theo vai trò, tài khoản mới, trạng thái tài khoản và số liệu sự cố; có kỳ, định nghĩa và nguồn thật. Không diễn giải tài khoản hoạt động thành đang online. |
+| Thông báo toàn hệ thống | Admin soạn/gửi qua FE-12, không xây cơ chế gửi song song. |
+| Hồ sơ cá nhân | Xem chính mình; cập nhật thông tin/đổi mật khẩu dùng chức năng chung của feature sở hữu khi được tích hợp. Trang chỉ đọc hiện tại chưa có chức năng sửa. |
+
+**Loại khỏi phạm vi:** Giám sát tình trạng hệ thống, kiểm tra backend/cơ sở dữ liệu/dịch vụ, thời gian phản hồi, lần đo, tự làm mới/cảnh báo sức khỏe. User Story 2.1–2.2, FR-007–008 và SC-002 cũ không còn là tiêu chí hiện hành. Phần tổng hợp sự cố của Story 2/FR-009–010 vẫn giữ nhưng không kèm sức khỏe. Lượt chỉnh tài liệu chưa xóa code/dữ liệu.
+
+**Tiếp tục để sau:** AI/tích hợp, điều khoản/chính sách (Story 4/FR-015/SC-007 phần tìm đọc chính sách), lượt truy cập/người online/thiết bị, quản lý tài khoản học viên/gia sư. Báo cáo hiệu quả kết nối/học thử và hoạt động kinh doanh thuộc Manager. Quy định tiếng Việt/an toàn thông tin của SC-007 vẫn áp dụng cho màn đang làm.
+
+#### Yêu cầu bổ sung
+
+- **FR-019 — Quyền nhân viên:** Admin còn hoạt động được tạo/nhập Excel/sửa thông tin/khóa/mở; Manager đổi vai trò sau tạo theo ma trận được chốt. Kiểm quyền hiện tại trên máy chủ từng thao tác, kể cả sửa thông tin và nhập tệp; không chỉ ẩn nút. Ghi trước/sau, tác giả, thời điểm và lý do theo cơ chế lịch sử hiện có. Không mở mọi quyền quản trị cho Manager. Chặn tự nâng quyền/cấp Admin và bổ nhiệm Manager khi chưa chốt thẩm quyền.
+- **FR-020 — Nhập tài khoản Excel:** tải mẫu → chọn tệp → kiểm tra → xem trước → xác nhận tạo. Báo lỗi theo dòng/trường, email trùng trong tệp/đã tồn tại; không ghi đè tài khoản hoặc đổi vai trò người đã có. Xác nhận phải kiểm lại quyền/dữ liệu; kết quả phản ánh số tạo thực tế và dòng không tạo. Không ghi mật khẩu/bí mật vào nhật ký/báo cáo. Cột, cách cấp mật khẩu, giới hạn tệp và chính sách xử lý lô cần chốt trong hợp đồng trước code.
+- **FR-021 — Xuất sự cố Excel:** Admin xuất toàn bộ kết quả phù hợp bộ lọc danh sách, không chỉ trang đang xem. Cột: mã sự cố, tiêu đề, mức độ, trạng thái, người phụ trách, ngày ghi nhận, kết quả xử lý. Trường chưa có để trống có ý nghĩa; thời gian Asia/Ho_Chi_Minh, nhãn tiếng Việt. File mở được bằng Excel và khớp nguồn tại thời điểm xuất, không sửa hồ sơ/lịch sử sự cố. Rỗng/lỗi phải thông báo đúng, không giả báo tải thành công. Nội dung người dùng nhập được xử lý như văn bản, không thành công thức. Đây là **xuất** hồ sơ đã ghi nhận trên hệ thống, không nhập sự cố từ Excel hoặc thay luồng ghi nhận bằng tệp.
+- **FR-022 — Tổng quan/thống kê:** dashboard tóm tắt, trang thống kê có biểu đồ; tài khoản mới theo ngày tạo, cơ cấu vai trò/trạng thái theo thời điểm truy vấn và ghi rõ. Sự cố dùng FR-009–010 còn hiệu lực. Thiếu/lỗi không thay bằng 0; không tạo số liệu truy cập giả.
+
+#### Nghiệm thu bổ sung
+
+- **SC-008:** Admin tạo/nhập/khóa/mở nhưng không đổi vai trò sau tạo; Manager chỉ đổi vai trò được duyệt, không tạo/khóa/mở tài khoản, tự nâng quyền/cấp Admin. Luồng bổ nhiệm Manager chưa chốt bị chặn.
+- **SC-009:** tệp nhân viên hợp lệ/sai trường/trùng email và dữ liệu đổi sau xem trước đều xử lý theo chính sách lô đã chốt; kết quả khớp số tạo thực, không lộ mật khẩu.
+- **SC-010:** Excel sự cố khớp cột/bộ lọc qua nhiều trang; không sửa sự cố hoặc thực thi công thức; sai quyền/rỗng/lỗi xử lý đúng.
+- **SC-011:** tổng quan/biểu đồ khớp số tính độc lập từ dữ liệu có mốc ngày/vai trò/trạng thái đã biết; không còn mục sức khỏe trong UI Admin sau triển khai.
+
+**Trạng thái:** cập nhật đặc tả, chưa triển khai. Hợp đồng/task hoàn tất cũ mô tả bản cũ; phải thực hiện task chuyển đổi mới, cập nhật hợp đồng và kiểm chứng. Ma trận Manager và chi tiết lô import còn cần chốt trước phần phụ thuộc.
+
 ### Phạm vi được duyệt ngày 2026-11-01 — áp dụng cho phần việc tiếp theo
 
 **Bổ sung trong lượt triển khai tiếp theo:** Người dùng yêu cầu làm báo cáo Manager và mở Hồ sơ cá nhân, sau đó nói “cái AI hãng từ từ đi”. Vì vậy phần tích hợp/giới hạn AI được để sau, không thêm cấu hình/quota hoặc schema AI. Báo cáo hiện tại lọc kết nối/học thử theo ngày tạo trong kỳ và nhóm theo trạng thái tại thời điểm truy vấn; không tái dựng trạng thái ở cuối kỳ lịch sử. Trang hồ sơ chỉ đọc thông tin tài khoản nội bộ đang sử dụng, không mở quyền xem hồ sơ người khác. Admin cũng được xem báo cáo tổng hợp; Manager không có quyền vận hành/quản lý nhân sự.
@@ -47,7 +123,29 @@ Nguồn cập nhật là bảng phân công FE-01..FE-12 do người dùng cung 
 - Q: FE-11 có cần màn hình để quản trị viên soạn và công bố điều khoản/chính sách không? → A: Không; chỉ xây màn hình đọc, nội dung được cung cấp từ tài liệu đã duyệt qua quy trình quản lý tài liệu hiện có, không có trình biên tập hoặc công bố trong FE-11.
 - Q: Khi hệ thống phát hiện một thành phần bị gián đoạn, có tự tạo hồ sơ sự cố không? → A: Không; hệ thống chỉ hiển thị trạng thái bất thường để quản trị viên kiểm tra và chủ động tạo hồ sơ sự cố.
 
-## User Scenarios & Testing *(mandatory)*
+## Yêu cầu và nghiệm thu hiện hành — đồng bộ 2026-11-05
+
+Mục này và phạm vi hiện hành ở trên là nguồn triển khai. Các story, FR/SC cũ bên dưới được giữ để truy vết; yêu cầu cấu hình học thử, sức khỏe và phân công sự cố trong phần lịch sử không còn là tiêu chí triển khai mới. Kết quả nghiệm thu cũ không chứng nhận phạm vi mới.
+
+### Cấu hình hệ thống
+
+- **FR-023:** Admin còn hoạt động được đọc/sửa tên hiển thị (1–100 ký tự), email hỗ trợ (đúng định dạng, tối đa 254 ký tự) và số điện thoại hỗ trợ (tối đa 20 ký tự, cho phép dấu + đầu chuỗi, chữ số, khoảng trắng, dấu ngoặc và dấu gạch). Các trường bắt buộc, không chỉ khoảng trắng; chuẩn hóa khoảng trắng đầu/cuối. Tên hiển thị không thay tên miền, địa chỉ API hoặc nội dung pháp lý đã duyệt. Không tự tạo thông tin liên hệ minh họa khi chưa có dữ liệu được nhóm cung cấp.
+- **FR-024:** Các vị trí hiển thị thông tin chung được tích hợp, gồm footer/trang liên hệ nếu có trong code hiện tại, lấy từ cùng nguồn cấu hình. Thay đổi thành công có hiệu lực ở lần tải dữ liệu tiếp theo, không cần khởi động lại ứng dụng. Thiếu cấu hình và lỗi tải phải phân biệt; không báo thành công nếu nơi sử dụng chưa tích hợp. Không yêu cầu tạo trang liên hệ mới chỉ để dùng cấu hình.
+- **FR-025:** Admin chỉnh giới hạn tệp đính kèm hỗ trợ bằng số nguyên 1–10 MB; MB ở đây là 1.048.576 byte. Backend kiểm tra khi tải lên, giao diện đọc cùng giới hạn. Thay đổi chỉ tác động lần tải mới, không xóa/vô hiệu tệp đã lưu; không thay định dạng tệp được phép hoặc trần hạ tầng. Loại tệp chưa tích hợp không có ô chỉnh.
+- **FR-026:** Mọi cập nhật cấu hình kiểm quyền hiện tại ở server, yêu cầu phiên bản và lý do 1–2.000 ký tự không trắng; giao diện xác nhận giá trị trước/sau. Lưu dữ liệu và lịch sử nguyên tử. Dữ liệu lỗi bị từ chối; phiên bản cũ không ghi đè; lịch sử chỉ đọc gồm tác giả, thời điểm, lý do, trước/sau. Không có mật khẩu/token/khóa API trong cấu hình công khai.
+- **SC-012:** Đổi thông tin nền tảng bằng tài khoản thật rồi đối chiếu các vị trí đã tích hợp; kiểm thiếu/lỗi nguồn, sai định dạng, sai quyền, dữ liệu cũ và rollback khi ghi lịch sử thất bại.
+- **SC-013:** Đổi giới hạn tệp rồi tải dưới/đúng/vượt giới hạn; gọi trực tiếp API vẫn bị kiểm tra; frontend/backend cùng giá trị; tệp cũ còn truy cập theo quyền hiện có.
+
+### Sự cố, tài khoản và báo cáo
+
+- **FR-027:** Bỏ phân công/phân công lại; chỉ tự nhận sự cố chưa có người phụ trách. Hai Admin nhận cùng lúc chỉ một người thành công. Người phụ trách trả lại danh sách chờ với lý do; Admin khác chỉ làm được khi người phụ trách không còn hoạt động. Trả lại bỏ người phụ trách, đưa về Mới ghi nhận và ghi lịch sử, giữ nguyên diễn biến/kết quả cũ. Phiếu đã đóng không được trả lại. Lịch sử phân công cũ chỉ dùng tra cứu.
+- **FR-028:** Tạo tài khoản không nhận mật khẩu từ Admin. Có trạng thái gửi email chờ/đã gửi/thất bại và hàng đợi bền vững; không lưu mật khẩu rõ trong hàng đợi. API FE-11 chặn người chưa đổi mật khẩu lần đầu; việc chặn API feature khác thuộc FE-01. Tạo Manager cần căn cứ bổ nhiệm. Ghi rõ tạo tài khoản và gửi thư là hai kết quả riêng.
+- **FR-029:** Báo cáo học thử offline chỉ dùng trạng thái có nguồn ghi nhận; không tự suy ra hoàn thành từ giờ hẹn đã qua. Báo cáo tiền mua gói chỉ cộng giao dịch mua gói thành công; không có chỉ số/bộ lọc/biểu đồ hoàn tiền. FE-11 không chỉnh gói. Phân biệt kỳ rỗng, chưa tích hợp và lỗi nguồn.
+- **SC-014:** Kiểm API/UI không còn phân công, nhận đồng thời, trả lại đúng quyền, phiếu đóng và lịch sử cũ. Kiểm đăng nhập thật bằng mật khẩu tạm, retry email và thay đổi quyền trong phiên đang dùng.
+
+**Hoãn/phụ thuộc:** bảo trì chờ code mới; AI/chính sách tiếp tục hoãn; kiểm tra bàn giao công việc chờ hợp đồng feature sở hữu. Không đánh dấu các phần này hoàn thành. Giới hạn 100/254/20 ký tự là ràng buộc triển khai của bản đặc tả này, không khẳng định trích nguyên văn SRS.
+
+## User Scenarios & Testing *(mandatory)* — lịch sử trước lần đồng bộ 2026-11-05
 
 ### User Story 1 - Quản lý cấu hình chính sách đặt học thử (Priority: P1)
 

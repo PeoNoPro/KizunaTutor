@@ -1,5 +1,23 @@
 # FE-11 — Báo cáo triển khai và kiểm chứng
 
+## Đồng bộ yêu cầu 2026-11-05 — chưa nghiệm thu phạm vi mới
+
+Đã cập nhật tài liệu theo FR-023–029/SC-012–014. Trong lượt chỉnh tài liệu này chưa chạy kiểm thử ứng dụng, DB hoặc migration; không xác nhận code đã thực hiện đủ yêu cầu. Các kết quả bên dưới là bằng chứng lịch sử theo phạm vi và môi trường tương ứng.
+
+| Hạng mục cần kiểm | Trạng thái |
+| --- | --- |
+| Thông tin nền tảng, consumer chung, version/audit | Chưa kiểm chứng SC-012 |
+| Giới hạn đính kèm hỗ trợ, UI/backend và tệp cũ | Chưa kiểm chứng SC-013 |
+| Tự nhận/trả lại, bỏ phân công, nhận đồng thời | Chưa kiểm chứng SC-014 |
+| Email DB/retry, đổi mật khẩu lần đầu, bổ nhiệm Manager | Chưa kiểm chứng phạm vi FR-028 |
+| Học thử offline, nguồn mua gói, bỏ chỉ số hoàn tiền | Chưa kiểm chứng FR-029 |
+| Banner bảo trì | Hoãn chờ code mới, không phải tiêu chí đợt này |
+| Bàn giao khi đổi vai trò | Chờ hợp đồng liên feature |
+
+## Cập nhật 2026-11-04
+
+Nghiệm thu phạm vi mới (SC-008–011, T076) nằm ở [validation-acceptance-2026-11-04.md](validation-acceptance-2026-11-04.md). Các mục về sức khỏe và Admin đổi vai trò bên dưới là lịch sử.
+
 ## Cập nhật 2026-11-03
 
 Mã giao diện đã chuyển sang `frontend/pages/*`; các đường dẫn `templates/...` và số 24 test bên dưới là lịch sử lượt đầu. Lệnh `-Dtest=com.kizuna.operations.*Test` với `OPERATIONS_TEST_DB_URL` trỏ `kizuna_admin_shell_operations_test` là bộ test hiện hành; kết quả lần chạy cuối ghi ở mục này khi đã xác nhận. Bổ sung T062–T065 (menu chính sách, nhật ký chung, địa chỉ gốc, kiểm trường lệnh sự cố). FR-004 vẫn **blocked** vì chưa có luồng đặt học thử gọi `BookingPolicyEvaluator`; T042/T048 vẫn mở.

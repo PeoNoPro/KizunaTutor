@@ -20,13 +20,13 @@
 <label>Thành phần<select id="filterComponent" name="component"><option value="">Tất cả</option></select></label>
 <label>Người phụ trách<select id="filterAssignee" name="assignee"><option value="">Tất cả</option></select></label>
 <label>Từ ngày<input name="fromDate" type="date"></label><label>Đến ngày<input name="toDate" type="date"></label>
-<button type="submit">Lọc danh sách</button></form>
+<button type="submit">Lọc danh sách</button><button id="exportIncidents" type="button">Xuất Excel</button></form>
 <section class="operations-card"><h2>Sự cố đang theo dõi</h2><div id="incidentList"></div><div class="operations-pagination"><button id="incidentPrev" type="button">Trang trước</button><span id="incidentPage"></span><button id="incidentNext" type="button">Trang sau</button></div><button id="openCreateIncident" class="portal-list-action" type="button">Ghi nhận xử lý kỹ thuật</button></section>
 </div>
 </main>
 <dialog id="createIncidentPanel" class="portal-dialog" aria-labelledby="createIncidentTitle">
 <form id="incidentCreateForm"><div class="portal-dialog-head"><h2 id="createIncidentTitle">Sự cố kỹ thuật</h2><button id="closeCreateIncident" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div>
-<div class="portal-dialog-body"><p>Ghi nhận thủ công sự cố sau khi đã kiểm tra. Hệ thống không tự tạo hồ sơ từ kết quả giám sát.</p>
+<div class="portal-dialog-body"><p>Ghi nhận thủ công sự cố sau khi đã kiểm tra.</p>
 <div><label for="incidentSubject">Tiêu đề</label><input id="incidentSubject" required maxlength="200"></div>
 <div><label for="incidentDescription">Mô tả</label><textarea id="incidentDescription" required maxlength="10000"></textarea></div>
 <div><label for="incidentSeverity">Mức độ</label><select id="incidentSeverity"><option value="LOW">Thấp</option><option value="NORMAL" selected>Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Nghiêm trọng</option></select></div>

@@ -1,3 +1,7 @@
+# Chạy khu quản trị trên máy cá nhân
+
+**Đăng nhập thật (khuyến nghị):** chạy `powershell -ExecutionPolicy Bypass -File .\scripts\start-admin-dev.ps1 -RealLogin`, rồi mở <http://localhost:3000/login>. Không có phiên phát triển: chưa đăng nhập thì mọi trang nội bộ chuyển về `/login`. Phần dưới mô tả chế độ phiên phát triển, chỉ dùng khi cần duyệt nhanh giao diện.
+
 # Duyệt giao diện quản trị khi chưa có đăng nhập
 
 Môi trường này chỉ dành cho phát triển trên máy cá nhân. Nó dùng tài khoản quản trị đang hoạt động trong PostgreSQL cục bộ và vẫn kiểm tra quyền/trạng thái tài khoản trong DB ở mỗi yêu cầu. Không phát hành token và không thay đổi đăng nhập của bản chạy thật.
@@ -11,7 +15,7 @@ cd "D:\do an 2\KizunaTutor"
 powershell -ExecutionPolicy Bypass -File .\scripts\start-admin-dev.ps1
 ```
 
-Đợi backend báo `Started ...` tại cổng 8085. Script khởi động PostgreSQL cục bộ cổng 5433 nếu cần, tạo DB `kizuna_admin_dev` từ DB mẫu **cục bộ** `kizuna_db` nếu DB đích chưa tồn tại. Không ghi đè DB đã có, không lấy dữ liệu Supabase. Sau preflight, chỉ chuẩn bị bảng lịch sử nhân sự từ `database/seeds/admin_staff_schema.sql` trên DB phát triển riêng; không tự chạy migration toàn hệ thống. Dữ liệu có sẵn trong bản sao là dữ liệu phát triển; các thay đổi tạo trong giao diện chỉ lưu ở bản sao đó.
+Đợi backend báo `Started ...` tại cổng 8085. Script khởi động PostgreSQL cục bộ cổng 5433 nếu cần, tạo DB `kizuna_admin_dev` từ DB mẫu **cục bộ** `kizuna_db` nếu DB đích chưa tồn tại. Không ghi đè DB đã có, không lấy dữ liệu Supabase. Sau preflight, chỉ chuẩn bị bảng lịch sử nhân sự từ `database/seeds/admin_staff_schema.sql` và bảng đề xuất thăng chức từ `database/seeds/staff_role_change_schema.sql` trên DB phát triển riêng; không tự chạy migration toàn hệ thống. Dữ liệu có sẵn trong bản sao là dữ liệu phát triển; các thay đổi tạo trong giao diện chỉ lưu ở bản sao đó.
 
 Cửa sổ PowerShell thứ hai:
 

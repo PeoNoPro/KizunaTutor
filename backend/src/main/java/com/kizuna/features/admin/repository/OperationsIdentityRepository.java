@@ -10,8 +10,8 @@ public class OperationsIdentityRepository {
     private final JdbcTemplate jdbc;
     public OperationsIdentityRepository(@Qualifier("operationsIdentityJdbc") JdbcTemplate jdbc) { this.jdbc = jdbc; }
     public OperationsActor find(String email, UUID id) {
-        var rows = jdbc.query("SELECT u.user_id,u.full_name,u.email,r.role_name FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.deleted_at IS NULL AND u.account_status::text='ACTIVE' AND r.is_active=true AND " + (id == null ? "u.email=?" : "u.user_id=?"),
-            (rs,n) -> new OperationsActor(rs.getObject(1,UUID.class), rs.getString(4), rs.getString(2), rs.getString(3)), id == null ? email : id);
+        var rows = jdbc.query("SELECT u.user_id,u.full_name,u.email,r.role_name,u.must_change_password FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.deleted_at IS NULL AND u.account_status::text='ACTIVE' AND r.is_active=true AND " + (id == null ? "u.email=?" : "u.user_id=?"),
+            (rs,n) -> new OperationsActor(rs.getObject(1,UUID.class), rs.getString(4), rs.getString(2), rs.getString(3), rs.getBoolean(5)), id == null ? email : id);
         if (rows.isEmpty()) throw new BusinessException(403,"Tài khoản hiện không có quyền sử dụng chức năng này.");
         return rows.get(0);
     }

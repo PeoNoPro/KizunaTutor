@@ -1,8 +1,9 @@
 import {fetchAPI, fetchMultipartAPI} from '../api.js';
 import {API_CONFIG} from '../config/api.config.js';
-import {mountAdminShell} from '../../components/admin-shell/admin-shell.js';
+import {mountAdminShell,logout} from '../../components/admin-shell/admin-shell.js';
+import {mountLearnerFrame} from './learner-frame.js';
 import {showToast} from '../main.js';
-import {arrangeCsDetail,renderCsHeader,renderCsInformation,renderCsThread,createCsReplyForm,finishCsActions,timestamp} from './cs-ticket-detail.js';
+import {attachmentBytes,attachmentMegabytes,arrangeCsDetail,renderCsHeader,renderCsInformation,renderCsThread,createCsReplyForm,finishCsActions,timestamp} from './cs-ticket-detail.js';
 
 const base = '/v1/tickets';
 const statuses = {OPEN:'Mới tiếp nhận', IN_PROGRESS:'Đang xử lý', ESCALATED:'Đã chuyển quản lý', RESOLVED:'Đã giải quyết', CLOSED:'Đã đóng'};
@@ -16,9 +17,9 @@ const tabGroups = {
   manager:[{label:'Chờ xem xét',statuses:['ESCALATED']},{label:'Đã phản hồi',statuses:['IN_PROGRESS','RESOLVED','CLOSED']}]
 };
 const pageCopy = {
-  requester:{title:'Hỗ trợ của tôi',lead:'Theo dõi trao đổi và kết quả hỗ trợ về việc sử dụng nền tảng.',list:'Các yêu cầu liên quan',back:['/pages/home/','← Về trang chủ'],empty:'Chưa có yêu cầu hỗ trợ phù hợp',hint:'Chọn “Gửi yêu cầu hỗ trợ” khi bạn cần được giúp đỡ.'},
-  cs:{title:'Yêu cầu hỗ trợ',lead:'Tiếp nhận, trao đổi với người dùng và chuyển Quản lý khi cần.',list:'Các yêu cầu liên quan',back:['/cs/dashboard','← Về tổng quan'],empty:'Chưa có yêu cầu phù hợp',hint:'Hãy thử chọn nhóm khác hoặc điều chỉnh bộ lọc.'},
-  manager:{title:'Yêu cầu hỗ trợ chuyển lên',lead:'Xem lịch sử xử lý và gửi phương án trở lại Nhân viên hỗ trợ.',list:'Yêu cầu từ Nhân viên hỗ trợ',back:['/manager/reports','← Về tổng quan'],empty:'Chưa có yêu cầu phù hợp',hint:'Yêu cầu được chuyển cho bạn sẽ hiển thị tại đây.'}
+  requester:{title:'Hỗ trợ của tôi',lead:'Theo dõi trao đổi và kết quả hỗ trợ về việc sử dụng nền tảng.',list:'Các yêu cầu liên quan',empty:'Chưa có yêu cầu hỗ trợ phù hợp',back:['/pages/home/','← Về trang chủ'],hint:'Chọn “Gửi yêu cầu hỗ trợ” khi bạn cần được giúp đỡ.'},
+  cs:{title:'Yêu cầu hỗ trợ',lead:'Tiếp nhận, trao đổi với người dùng và chuyển Quản lý khi cần.',list:'Các yêu cầu liên quan',empty:'Chưa có yêu cầu phù hợp',hint:'Hãy thử chọn nhóm khác hoặc điều chỉnh bộ lọc.'},
+  manager:{title:'Yêu cầu hỗ trợ chuyển lên',lead:'Xem lịch sử xử lý và gửi phương án trở lại Nhân viên hỗ trợ.',list:'Yêu cầu từ Nhân viên hỗ trợ',empty:'Chưa có yêu cầu phù hợp',hint:'Yêu cầu được chuyển cho bạn sẽ hiển thị tại đây.'}
 };
 const $ = id => document.getElementById(id);
 function element(tag, text, cls) {const el=document.createElement(tag); if(text!==undefined)el.textContent=text; if(cls)el.className=cls; return el;}
@@ -30,7 +31,7 @@ function empty(target,message,title) {const box=element('div',undefined,'support
 function badge(text,state) {const el=element('span',text,'support-badge');if(state)el.dataset.state=state;return el;}
 function paging(target,data,load) {target.replaceChildren();if(data.totalPages<=1)return;const prev=element('button','Trang trước'),next=element('button','Trang sau');prev.type=next.type='button';prev.disabled=data.page===0;next.disabled=data.page+1>=data.totalPages;prev.onclick=()=>load(data.page-1);next.onclick=()=>load(data.page+1);target.append(prev,element('span',`Trang ${data.page+1} / ${data.totalPages}`),next);}
 function validText(value,max) {if(!value?.replace(/[\s\p{Z}\p{Cf}]/gu,'') || [...value].length>max)throw new Error(`Vui lòng nhập nội dung không bỏ trống, tối đa ${max.toLocaleString('vi-VN')} ký tự.`);return value.trim();}
-function validFiles(input) {const files=[...input.files];if(files.length>5 || files.some(f=>f.size<1||f.size>10000000))throw new Error('Chọn tối đa 5 tệp, mỗi tệp từ 1 byte đến 10 MB.');return files;}
+function validFiles(input) {const files=[...input.files];if(files.length>5 || files.some(f=>f.size<1||f.size>attachmentBytes()))throw new Error(`Chọn tối đa 5 tệp, mỗi tệp từ 1 byte đến ${attachmentMegabytes()} MB.`);return files;}
 function field(form,labelText,name,tag='input',choices) {const label=element('label',labelText),input=element(tag);input.name=name;input.required=true;if(tag==='textarea')input.rows=4;if(choices)options(input,choices);label.append(input);form.append(label);return input;}
 
 // admin.css/operations.css có rule toàn cục (như "td a") nên chỉ nạp cho giao diện nội bộ, không áp vào trang học viên/gia sư.
@@ -48,15 +49,15 @@ export async function startSupportPage(isDetail) {
   const content=$('supportContent');
   const route=(ticketId='')=>`/${role}/support/tickets${ticketId?'/'+ticketId:''}`;
   const api=(path='',opts={})=>fetchAPI(base+path,{csrfPath:base+'/csrf',...opts});
-  function fail(error) {const message=error.message||'Chưa tải được yêu cầu hỗ trợ. Vui lòng thử lại.';notice(message,true);showToast(message,'error');$('reloadSupport').hidden=false;}
+  function fail(error) {if(error.status===401){location.assign('/login');return;}const message=error.message||'Chưa tải được yêu cầu hỗ trợ. Vui lòng thử lại.';notice(message,true);showToast(message,'error');$('reloadSupport').hidden=false;}
   async function init() {
     try {
       account=await api('/me');role=account.viewRole;
       if(query.has('role')&&query.get('role')!==role)throw new Error('Trang này dành cho vai trò khác. Hãy mở mục Yêu cầu hỗ trợ từ menu tài khoản của bạn.');
       if(isDetail&&!/^[0-9a-f-]{36}$/i.test(id||''))throw new Error('Đường dẫn yêu cầu chưa hợp lệ. Vui lòng trở lại danh sách.');
       document.body.dataset.role=role;
-      if(!isDetail){const copy=pageCopy[audience()];$('supportTitle').textContent=copy.title;$('supportLead').textContent=copy.lead;$('supportBack').href=copy.back[0];$('supportBack').textContent=copy.back[1];$('supportBack').hidden=false;document.title=`${copy.title} - KizunaTutor`;}
-      if(account.canCreate)await publicShell();else {await loadStaffStyles();document.body.classList.add('admin-dashboard','operations-page');if(account.canHandle)document.body.dataset.workspace='cs';$('supportMain').classList.add('dashboard-main');mountAdminShell();}
+      if(!isDetail){const copy=pageCopy[audience()];$('supportTitle').textContent=copy.title;$('supportLead').textContent=copy.lead;if(copy.back&&role!=='learner'){$('supportBack').href=copy.back[0];$('supportBack').textContent=copy.back[1];$('supportBack').hidden=false;}document.title=`${copy.title} - KizunaTutor`;}
+      if(role==='learner')mountLearnerFrame('support',account.displayName);else if(account.canCreate)await publicShell();else {await loadStaffStyles();document.body.classList.add('admin-dashboard','operations-page');if(account.canHandle)document.body.dataset.workspace='cs';$('supportMain').classList.add('dashboard-main');mountAdminShell();}
       initialized=true;
       content.hidden=false;
       if(isDetail){$('backToTickets').href=route();if(csDetail())arrangeCsDetail();initDetailTabs();if(!account.canCreate&&query.get('tab')==='internal')selectDetailTab('internal');await loadDetail();}else await initList();
@@ -72,8 +73,8 @@ export async function startSupportPage(isDetail) {
     const foot=document.createElement('template');foot.innerHTML=await footer.text();document.body.append(foot.content);
     // Chỉ liệt kê mục đã có trang thật; các mục khác của Figma sẽ thêm khi trang tương ứng hoàn thành.
     const bar=element('div',undefined,'support-role-bar'),nav=element('nav',undefined,'support-role-nav');nav.setAttribute('aria-label',role==='learner'?'Điều hướng học viên':'Điều hướng gia sư');
-    [['Khám phá gia sư','/pages/tutor-discovery/'],...(role==='learner'?[['Kết nối','/pages/connection-requests/']]:[]),['Hỗ trợ',route()],['Chính sách',`/${role}/policies`]].forEach(([label,href])=>{const link=element('a',label);link.href=href;if(href===route())link.setAttribute('aria-current','page');nav.append(link);});
-    const who=element('div',undefined,'support-account'),avatar=element('span',account.displayName.replace(/\(.*?\)/g,'').trim().split(/\s+/).slice(-2).map(word=>word[0]).join('').toLocaleUpperCase('vi-VN'),'support-account-avatar'),identity=element('div');avatar.setAttribute('aria-hidden','true');identity.append(element('strong',account.displayName),element('small',role==='learner'?'Học viên':'Gia sư tiếng Nhật'));who.append(avatar,identity);bar.append(nav,who);$('supportMain').before(bar);
+    [...(role==='learner'?[['Tổng quan','/learner/dashboard']]:[]),['Khám phá gia sư','/pages/tutor-discovery/'],...(role==='learner'?[['Kết nối','/pages/connection-requests/']]:[]),['Hỗ trợ',route()],['Chính sách',`/${role}/policies`]].forEach(([label,href])=>{const link=element('a',label);link.href=href;if(href===route())link.setAttribute('aria-current','page');nav.append(link);});
+    const who=element('div',undefined,'support-account'),avatar=element('span',account.displayName.replace(/\(.*?\)/g,'').trim().split(/\s+/).slice(-2).map(word=>word[0]).join('').toLocaleUpperCase('vi-VN'),'support-account-avatar'),identity=element('div');avatar.setAttribute('aria-hidden','true');identity.append(element('strong',account.displayName),element('small',role==='learner'?'Học viên':'Gia sư tiếng Nhật'));const signOut=element('button','Đăng xuất');signOut.type='button';signOut.onclick=logout;who.append(avatar,identity,signOut);bar.append(nav,who);$('supportMain').before(bar);
     const mobile=$('mobileMenuBtn');if(mobile){mobile.setAttribute('aria-controls','mobileMenu');mobile.setAttribute('aria-expanded','false');mobile.onclick=()=>{const menu=$('mobileMenu');menu?.classList.toggle('hidden');mobile.setAttribute('aria-expanded',String(!menu?.classList.contains('hidden')));};document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('mobileMenu')?.classList.contains('hidden')){$('mobileMenu')?.classList.add('hidden');mobile.setAttribute('aria-expanded','false');mobile.focus();}});}
   }
   async function initList() {
@@ -81,7 +82,6 @@ export async function startSupportPage(isDetail) {
     for(const [key,choices] of [['category',categories],['priority',priorities]]){const value=query.get(key);if(value&&Object.hasOwn(choices,value))$('ticketFilters').elements[key].value=value;}
     const requestedStatus=query.get('status');activeListTab=Math.max(0,tabGroups[audience()].findIndex(group=>group.statuses.includes(requestedStatus)));
     renderListTabs();renderStatusFilter(requestedStatus);
-    $('ticketListLayout').dataset.orientation=account.canHandle?'vertical':'horizontal';
     $('ticketFilters').onsubmit=event=>{event.preventDefault();loadList(0);};
     $('ticketListTitle').textContent=pageCopy[audience()].list;
     if(account.canCreate){$('createTicket').hidden=false;initCreate();}
@@ -189,7 +189,7 @@ export async function startSupportPage(isDetail) {
     $('replyArea').replaceChildren();$('ticketActions').replaceChildren();$('internalActions').replaceChildren();const actions=ticket.allowedActions;
     if(csDetail()){$('csInformationControls').replaceChildren();$('csResolveBody').replaceChildren();}
     if(actions.includes('message')&&csDetail()){$('replyArea').append(createCsReplyForm((form,files)=>{try{perform('messages',{message:validText(form.elements.message.value,10000)},form,true,files);}catch(error){$('csReplyNotice').textContent=error.message;$('csReplyNotice').focus();}}));}
-    else if(actions.includes('message')){const form=element('form',undefined,'support-form support-reply');form.dataset.action='message';field(form,'Bổ sung thông tin','message','textarea');const input=field(form,'Tệp minh họa (nếu có, tối đa 5 tệp, mỗi tệp tối đa 10 MB)','files');input.type='file';input.required=false;input.multiple=true;input.accept='.jpg,.jpeg,.png,.pdf';const send=element('button','Gửi thông tin bổ sung','primary');send.type='submit';form.append(send);form.onsubmit=event=>{event.preventDefault();try{perform('messages',{message:validText(form.elements.message.value,10000)},form,true);}catch(error){fail(error);}};$('replyArea').append(form);}
+    else if(actions.includes('message')){const form=element('form',undefined,'support-form support-reply');form.dataset.action='message';field(form,'Bổ sung thông tin','message','textarea');const input=field(form,`Tệp minh họa (nếu có, tối đa 5 tệp, mỗi tệp tối đa ${attachmentMegabytes()} MB)`,'files');input.type='file';input.required=false;input.multiple=true;input.accept='.jpg,.jpeg,.png,.pdf';const send=element('button','Gửi thông tin bổ sung','primary');send.type='submit';form.append(send);form.onsubmit=event=>{event.preventDefault();try{perform('messages',{message:validText(form.elements.message.value,10000)},form,true);}catch(error){fail(error);}};$('replyArea').append(form);}
     else $('replyArea').append(element('p',ticket.status==='CLOSED'?(account.canCreate?'Yêu cầu đã đóng, không thể thêm trao đổi. Nếu vẫn còn vấn đề, vui lòng tạo yêu cầu mới.':'Yêu cầu đã đóng, không thể thêm trao đổi.'):account.canDecide?'Mở tab “Xử lý nội bộ” để ghi quyết định và trả kết quả cho nhân viên.':actions.includes('claim')?'Tiếp nhận yêu cầu để bắt đầu phản hồi người gửi.':'Chỉ người phụ trách hiện tại được gửi phản hồi.'));
     const target=$('internalActions'),publicActions=$('ticketActions');
     const informationActions=csDetail()?$('csInformationControls'):target;

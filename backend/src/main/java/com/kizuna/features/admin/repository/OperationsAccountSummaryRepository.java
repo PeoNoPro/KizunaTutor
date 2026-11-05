@@ -34,4 +34,19 @@ public class OperationsAccountSummaryRepository {
                 rs.getLong("tutors"), rs.getLong("active_tutors"), rs.getLong("learners"), rs.getLong("active_learners"),
                 rs.getLong("staff"), rs.getLong("active_staff"), rs.getLong("other"), generatedAt));
     }
+
+    public record Group(String kind, String key, long total) { }
+
+    /** Một câu lệnh để ba nhóm số liệu cùng một ảnh chụp dữ liệu. */
+    public java.util.List<Group> statistics(OffsetDateTime start, OffsetDateTime endExclusive) {
+        return jdbc.query("""
+            SELECT 'role' AS kind, r.role_name AS key, count(*) AS total
+            FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.deleted_at IS NULL GROUP BY r.role_name
+            UNION ALL
+            SELECT 'status', u.account_status::text, count(*) FROM users u WHERE u.deleted_at IS NULL GROUP BY u.account_status
+            UNION ALL
+            SELECT 'created', to_char(u.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh','YYYY-MM-DD'), count(*)
+            FROM users u WHERE u.deleted_at IS NULL AND u.created_at>=? AND u.created_at<? GROUP BY 2
+            """, (rs, row) -> new Group(rs.getString("kind"), rs.getString("key"), rs.getLong("total")), start, endExclusive);
+    }
 }

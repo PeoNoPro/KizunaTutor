@@ -12,6 +12,7 @@
   <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
   <button id="createStaff" type="button" class="primary portal-create-action">Tạo tài khoản nhân viên</button>
   <div id="roleCards" class="staff-role-grid" hidden></div>
+  <section id="promotionSection" class="operations-card" aria-labelledby="promotionTitle" hidden><h2 id="promotionTitle">Đề xuất thăng chức chờ duyệt</h2><div id="promotionList"></div></section>
   <section class="operations-card">
     <h2>Nhân sự nội bộ</h2>
     <form id="staffSearch" class="staff-toolbar"><label for="staffQuery">Tìm theo tên hoặc email<input id="staffQuery" maxlength="200" placeholder="Nhập tên hoặc email nhân viên"></label><button type="submit">Tìm kiếm</button><button id="clearStaffSearch" type="button">Xóa bộ lọc</button></form>
@@ -27,11 +28,17 @@
     <div data-staff-field="email"><label for="staffEmail">Email</label><input id="staffEmail" type="email" maxlength="254" autocomplete="email"></div>
     <div data-staff-field="phone"><label for="staffPhone">Số điện thoại</label><input id="staffPhone" type="tel" maxlength="20" autocomplete="tel"></div>
     <div data-staff-field="role"><label for="staffRole">Vai trò</label><select id="staffRole"></select></div>
-    <div data-staff-field="password"><label for="staffPassword">Mật khẩu khởi tạo</label><input id="staffPassword" type="password" minlength="12" maxlength="72" autocomplete="new-password"><p class="staff-help">Từ 12 đến 72 ký tự, tối đa 72 byte. Tài khoản được yêu cầu đổi mật khẩu ở lần đăng nhập thật đầu tiên. Hệ thống không tự gửi email.</p></div>
     <div data-staff-field="reason"><label for="staffReason">Lý do</label><textarea id="staffReason" maxlength="2000"></textarea></div>
-    <div id="staffExtraActions" class="portal-dialog-extra" hidden><button id="staffOpenRole" type="button">Cập nhật vai trò và quyền</button><button id="staffOpenStatus" type="button"></button></div>
+    <div id="staffExtraActions" class="portal-dialog-extra" hidden><button id="staffOpenStatus" type="button"></button></div>
     <p id="staffDialogNotice" class="staff-dialog-notice" role="alert"></p></div>
     <div class="portal-dialog-actions"><button id="saveStaff" class="primary" type="submit">Lưu thay đổi</button><button id="reloadStaffItem" type="button" hidden>Tải lại và đối chiếu</button><button id="cancelStaff" type="button">Hủy</button></div>
+  </form>
+</dialog>
+<dialog id="promotionDialog" class="staff-dialog portal-dialog" aria-labelledby="promotionDialogTitle">
+  <form id="promotionForm"><div class="portal-dialog-head"><h2 id="promotionDialogTitle">Duyệt đề xuất thăng chức</h2><button id="closePromotion" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div><div class="portal-dialog-body"><p id="promotionSummary" class="staff-help"></p><p id="promotionReason" class="staff-help"></p>
+    <div><label for="promotionNote">Ghi chú (bắt buộc khi từ chối)</label><textarea id="promotionNote" maxlength="300"></textarea></div>
+    <p id="promotionNotice" class="staff-dialog-notice" role="alert"></p></div>
+    <div class="portal-dialog-actions"><button class="primary" type="submit">Duyệt thăng chức</button><button id="rejectPromotion" type="button">Từ chối</button></div>
   </form>
 </dialog>
 <script type="module" src="../admin-staff/admin-staff.js"></script>

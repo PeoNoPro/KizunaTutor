@@ -1,5 +1,18 @@
 # Quickstart Validation: FE-11
 
+## Nghiệm thu phạm vi hiện hành — 2026-11-05
+
+Sau khi triển khai T077–T083, dùng đăng nhập thật và dữ liệu thử cách ly trên môi trường được phép. Không tự chạy seed/migration vào DB chung. Theo hợp đồng hiện hành trong contracts/operations.md:
+
+1. Admin đọc/sửa tên, email, số hỗ trợ; xác nhận thay đổi ở consumer chung/footer. Kiểm sai dữ liệu, sai quyền, phiên bản cũ, thiếu/lỗi nguồn và audit rollback (SC-012).
+2. Đổi giới hạn đính kèm hỗ trợ; tải dưới/đúng/vượt giới hạn cả UI và API; kiểm tệp cũ và giới hạn 1–10 MB (SC-013).
+3. Hai Admin tự nhận cùng phiếu; chỉ một thành công. Không còn nút/API assignment. Kiểm trả lại đúng quyền, lý do, trạng thái và lịch sử cũ (SC-014).
+4. Tạo/nhập nhân viên: kiểm trạng thái gửi, retry sau lỗi/khởi động lại, không lộ mật khẩu; trước đổi mật khẩu không dùng API FE-11. Kiểm căn cứ tạo Manager.
+5. Đối chiếu báo cáo học thử offline với trạng thái có nguồn; không tự hoàn thành theo giờ hẹn. Báo cáo mua gói không có chỉ số hoàn tiền; phân biệt rỗng/chưa tích hợp/lỗi.
+6. Ghi môi trường, ngày, ca thử và kết quả vào validation.md; chưa chạy thì để mở T084. Banner bảo trì hoãn chờ code mới; không thử/bật trong đợt này.
+
+Các ca cấu hình học thử, health và assignment bên dưới là lịch sử, không yêu cầu triển khai mới.
+
 Hướng dẫn dùng sau khi code được triển khai; không chứng minh các endpoint/test đã tồn tại hoặc đã chạy ở bước plan.
 
 ## Prerequisites

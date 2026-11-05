@@ -1,5 +1,9 @@
 # Research: FE-11
 
+## Quyết định thay thế — 2026-11-05
+
+Áp dụng spec.md FR-023–029 và hợp đồng hiện hành. Cấu hình dùng chung gồm thông tin nền tảng và giới hạn đính kèm hỗ trợ; không chỉnh gói hoặc thêm loại upload chưa có consumer. Bảo trì chờ code mới. Sự cố bỏ phân công/phân công lại, giữ tự nhận/trả lại và event cũ. Học thử offline; không làm hoàn tiền. Các quyết định booking/health/assignment bên dưới được giữ làm lịch sử, không dùng để triển khai trái phạm vi hiện hành. Chưa có bằng chứng triển khai mới trong lượt đồng bộ tài liệu.
+
 Ngày 2026-10-30. Căn cứ: spec với năm quyết định được chốt, constitution 1.0.0 và repo hiện tại. Chưa chạy kiểm thử ứng dụng hoặc kết nối dịch vụ trong lượt này.
 
 ## 1. Giữ kiến trúc và sửa khoảng trống mapping

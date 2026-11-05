@@ -8,17 +8,4 @@
 
 <link rel="stylesheet" href="/styles/variables.css"><link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/components.css"><link rel="stylesheet" href="/styles/utilities.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css">
 </head>
-<body class="admin-dashboard operations-page">
-<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
-<main id="dashboardMain" class="dashboard-main">
-<div id="operationsContent" class="operations-content" aria-busy="true"><div class="operations-page-heading"><span class="role-badge">Quản trị vận hành</span><h1>Sức khỏe hệ thống</h1><p>Theo dõi các thành phần vận hành và kết quả quan sát gần nhất.</p></div>
-<p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
-
-<p>Quan sát trong phạm vi từng thành phần, không thay thế kiểm tra khả dụng từ bên ngoài. Tự làm mới mỗi 30 giây; dữ liệu quá 60 giây được đánh dấu quá hạn.</p>
-<button id="refreshHealth" type="button">Làm mới kết quả</button><div id="healthComponents" class="operations-stack"></div>
-<a href="/pages/operations-incidents/">Xem và ghi nhận sự cố kỹ thuật</a>
-</div>
-</main>
-<script type="module" src="/js/main.js"></script>
-<script type="module" src="./operations-health.js"></script>
-</body></html>
+<body><script>location.replace('/pages/admin-dashboard/');</script></body></html>

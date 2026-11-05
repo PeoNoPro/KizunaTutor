@@ -7,3 +7,66 @@
 @media(min-width:1101px){.cs-category-filters [data-category=""]{min-width:132px}.cs-category-filters [data-category=BOOKING],.cs-category-filters [data-category=TUTOR]{min-width:140px}.cs-category-filters [data-category=MEMBERSHIP]{min-width:180px}}
 @media(max-width:1100px){.cs-dashboard-grid{grid-template-columns:minmax(0,1fr)}.cs-dashboard-side{display:grid;grid-template-columns:1fr 1fr;align-items:start}.cs-workspace .admin-identity{width:180px}.cs-category-filters button{min-width:100px}}
 @media(max-width:760px){.cs-workspace .admin-sidebar{width:232px}.cs-workspace .admin-topbar{margin-left:0;padding:12px 16px;height:73px}.cs-workspace .dashboard-main,.cs-workspace.support-page .support-main{margin-left:0;padding:24px 16px}.cs-workspace .admin-identity{width:110px}.cs-workspace .topbar-actions{gap:10px}.cs-workspace .notification-button{display:none}.cs-workspace .topbar-breadcrumb>span{display:none}.cs-workspace .menu-toggle{display:inline-flex}.cs-dashboard-main h1{font-size:26px;line-height:35px}.cs-dashboard-side{display:flex}.cs-card{padding:20px 16px}.cs-ticket{flex-direction:column;gap:10px}.cs-ticket-status{flex-basis:auto;max-width:100%}.cs-category-filters{gap:8px}.cs-category-filters button{min-width:0;flex:1 1 calc(50% - 8px)}.cs-card-heading{align-items:start}.cs-card-heading>a{white-space:nowrap}}
+html{scrollbar-gutter:stable}
+.cs-workspace .sidebar-bottom .logout-button{display:flex;align-items:center;justify-content:flex-start;width:100%;min-height:44px;margin-top:8px;padding:0 16px;border:0;border-radius:8px;background:none;box-shadow:none;color:var(--color-error,#ba1a1a);font-size:14px;font-weight:500}
+.cs-workspace .sidebar-bottom .logout-button:hover{background:#fff0ee}
+
+/* Làm mới không gian CS: sidebar gọn, một màu nhấn navy, tab ngang gạch chân, thẻ và nhãn mềm hơn. */
+.cs-workspace{--cs-soft:#ece8de;--cs-shadow:0 1px 3px rgba(15,37,69,.06)}
+.cs-workspace .admin-sidebar{border-right:1px solid var(--cs-soft);padding:20px 16px}
+.cs-workspace .admin-brand{min-height:44px;gap:10px}
+.cs-workspace .admin-brand img{width:40px;height:40px;border-radius:10px}
+.cs-workspace .admin-brand strong{font-size:17px;line-height:24px}
+.cs-workspace .nav-caption{margin:0 0 12px;color:#68737d;font-weight:600}
+.cs-workspace .sidebar-menu nav{gap:4px}
+.cs-workspace .sidebar-menu a{border-radius:10px;transition:background .15s}
+.cs-workspace .sidebar-bottom{border-top-color:var(--cs-soft);color:#68737d}
+.cs-workspace .sidebar-bottom p{color:#3f4850}
+.cs-workspace .admin-topbar{border-bottom-color:var(--cs-soft)}
+.cs-workspace .admin-avatar{border-radius:50%;background:#e8eef4}
+.cs-workspace .dashboard-main,.cs-workspace.support-page .support-main{padding:36px 40px 48px}
+
+/* Bảng tổng quan */
+.cs-dashboard-main .cs-intro{margin-bottom:28px}
+.cs-dashboard-main h1,.cs-workspace.support-page h1{font-size:28px;line-height:36px;font-weight:700}
+.cs-workspace .cs-card,.cs-workspace .support-card{border:1px solid var(--cs-soft);border-radius:14px;box-shadow:var(--cs-shadow)}
+.cs-card-heading>a{color:var(--color-primary,#006194)!important}
+.cs-category-filters{gap:8px}
+.cs-category-filters button,.cs-category-filters [data-category]{min-width:0!important;padding:7px 14px;min-height:36px;border-radius:999px;background:#f7f4ec;text-align:center;white-space:nowrap}
+.cs-ticket{align-items:center;padding:16px 12px;margin:0 -12px;border-top:1px solid var(--cs-soft);border-radius:0;transition:background .15s}
+.cs-ticket:hover{background:#fcfbf7}
+.cs-ticket h3{margin-bottom:4px}
+.cs-ticket-meta{margin-bottom:4px}
+.cs-ticket-link{color:var(--color-primary,#006194)!important}
+.cs-ticket-status{flex:0 0 auto;min-height:0;padding:3px 12px;border-radius:999px;white-space:nowrap}
+.cs-queue-footnote{border-top-color:var(--cs-soft)}
+.cs-feedback{background:#fffaf0;border-left:4px solid #e0b64a!important}
+.cs-process li{position:relative;border-bottom:0;padding:0 0 18px 18px;border-left:2px solid var(--cs-soft)}
+.cs-process li:first-child{padding-top:0}
+.cs-process li:last-child{padding-bottom:0;border-left-color:transparent}
+.cs-process li::before{content:"";position:absolute;left:-6px;top:6px;width:10px;height:10px;border-radius:50%;background:#0f2545}
+.cs-process h3{margin-bottom:4px}
+
+/* Danh sách yêu cầu: tab ngang gạch chân để không còn giống một sidebar thứ hai */
+.cs-workspace.support-page .support-tabs{display:flex;gap:24px;padding:0;margin:0 0 20px;background:none;border-radius:0;border-bottom:1px solid var(--cs-soft)}
+.cs-workspace.support-page .support-tabs [role=tab]{flex:none;min-height:44px;padding:8px 2px;margin-bottom:-1px;background:none;border:0;border-bottom:2px solid transparent;border-radius:0;color:#3f4850;font-size:14px;font-weight:500}
+.cs-workspace.support-page .support-tabs [role=tab]:hover:not([aria-selected=true]){background:none;color:#0f2545;border-bottom-color:var(--cs-border)}
+.cs-workspace.support-page .support-tabs [aria-selected=true]{background:none;color:#0f2545;font-weight:700;border-bottom-color:#0f2545}
+.cs-workspace .support-filters{padding:16px 20px;margin-bottom:16px;background:#fff;border:1px solid var(--cs-soft);border-radius:14px;box-shadow:var(--cs-shadow)}
+.cs-workspace.support-page .support-filters label{color:#3f4850}
+.cs-workspace.support-page .support-filters select{border-color:var(--cs-soft)}
+.cs-workspace.support-page .support-filters button{background:#0f2545;border-color:#0f2545;color:#fff}
+.cs-workspace.support-page .support-filters button:hover:not(:disabled){background:#1b3a66}
+.cs-workspace.support-page .support-card h2{font-size:18px;line-height:26px;margin-bottom:8px}
+.cs-workspace.support-page .support-row-title{color:#0f2545}
+.cs-workspace.support-page .support-row{align-items:center}
+.cs-workspace.support-page .support-link{min-height:36px;padding:6px 14px;font-size:13px;border-color:var(--cs-soft);color:#0f2545}
+.cs-workspace.support-page .support-link:hover{background:#f7f4ec}
+.cs-workspace .support-active-count{color:#68737d}
+@media(max-width:760px){
+  .cs-workspace .dashboard-main,.cs-workspace.support-page .support-main{padding:24px 16px}
+  .cs-workspace.support-page .support-tabs{gap:16px;overflow-x:auto;flex-wrap:nowrap}
+  .cs-ticket{align-items:start;margin:0;padding:16px 0}
+  .cs-ticket-status{align-self:flex-start}
+}
+.cs-workspace.support-page .support-tabs{scrollbar-width:none}

@@ -18,6 +18,15 @@ public class OperationsAuditLogRepository {
         UNION ALL
         SELECT 'INCIDENT',e.event_id,e.occurred_at,e.actor_id,a.full_name,e.action,i.subject,e.reason,NULL,e.new_state->>'status',i.incident_id
         FROM technical_incident_events e JOIN users a ON a.user_id=e.actor_id JOIN technical_incidents i ON i.incident_id=e.incident_id
+        UNION ALL
+        SELECT 'CONFIG',e.event_id,e.occurred_at,e.actor_user_id,a.full_name,'UPDATE','Giới hạn tệp đính kèm hỗ trợ',e.reason,e.before_value||' → '||e.after_value||' MB',NULL,NULL
+        FROM system_setting_audit_events e JOIN users a ON a.user_id=e.actor_user_id
+        UNION ALL
+        SELECT 'STAFF',q.request_id,q.created_at,q.requester_user_id,a.full_name,'PROPOSE',t.full_name,q.reason,NULL,NULL,NULL
+        FROM staff_role_change_requests q JOIN users a ON a.user_id=q.requester_user_id JOIN users t ON t.user_id=q.target_user_id
+        UNION ALL
+        SELECT 'STAFF',q.request_id,q.decided_at,q.decided_by,a.full_name,CASE q.status WHEN 'REJECTED' THEN 'REJECT' ELSE 'CANCEL' END,t.full_name,coalesce(q.decision_note,q.reason),NULL,NULL,NULL
+        FROM staff_role_change_requests q JOIN users a ON a.user_id=q.decided_by JOIN users t ON t.user_id=q.target_user_id WHERE q.status IN ('REJECTED','CANCELLED')
         """;
     private final EntityManager em;
     public record Filter(String source,UUID actor,OffsetDateTime from,OffsetDateTime toExclusive) {

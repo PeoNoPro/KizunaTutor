@@ -24,6 +24,8 @@ const URL_ALIASES = {
   '/cs/dashboard': '/pages/cs-dashboard/index.html',
   '/manager/reports': '/pages/manager-reports/index.html',
   '/manager/dashboard': '/pages/manager-reports/index.html',
+  // Tạm trỏ về Hỗ trợ cho đến khi có dashboard gia sư.
+  '/tutor/dashboard': '/pages/support-tickets/?role=tutor',
   '/admin/profile': '/pages/admin-profile/index.html',
   '/': '/pages/home/index.html',
   '/admin/operations/logs': '/pages/operations-logs/index.html',
@@ -45,7 +47,6 @@ const URL_ALIASES = {
   '/tutor-profile': '/pages/tutor-profile/index.html',
   '/connection-requests': '/pages/connection-requests/index.html',
   '/admin/operations/booking-policy': '/pages/operations-config/index.html',
-  '/admin/operations/health': '/pages/operations-health/index.html',
   '/admin/operations/incidents': '/pages/operations-incidents/index.html',
   '/admin/operations/reports': '/pages/operations-reports/index.html',
   '/learner/policies': '/pages/policies/index.html',

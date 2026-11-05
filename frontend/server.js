@@ -75,7 +75,25 @@ const URL_ALIASES = {
   '/learner': '/pages/learner-dashboard/index.html',
   '/learner/': '/pages/learner-dashboard/index.html',
   '/dashboard': '/pages/learner-dashboard/index.html',
-  '/dashboard/': '/pages/learner-dashboard/index.html'
+  '/dashboard/': '/pages/learner-dashboard/index.html',
+  '/tutor/verification': '/pages/tutor-verification/index.html',
+  '/tutor/verification/': '/pages/tutor-verification/index.html',
+  '/tutor/dashboard': '/pages/tutor-dashboard/index.html',
+  '/tutor/dashboard/': '/pages/tutor-dashboard/index.html',
+  '/tutor': '/pages/tutor-dashboard/index.html',
+  '/academic': '/pages/academic-verifications/index.html',
+  '/academic/dashboard': '/pages/academic-verifications/index.html',
+  '/academic/dashboard/': '/pages/academic-verifications/index.html',
+  '/academic/verifications': '/pages/academic-verifications/index.html',
+  '/academic/verifications/': '/pages/academic-verifications/index.html',
+  '/academic/verifications/detail': '/pages/academic-verification-detail/index.html',
+  // FE-09: gói hội viên và thanh toán
+  '/tutor/membership': '/pages/tutor-membership/index.html',
+  '/tutor/membership/': '/pages/tutor-membership/index.html',
+  '/tutor/membership/result': '/pages/tutor-membership-result/index.html',
+  '/manager/membership-plans': '/pages/manager-membership-plans/index.html',
+  '/manager/tutor-memberships': '/pages/manager-tutor-memberships/index.html',
+  '/admin/payments': '/pages/admin-payments/index.html'
 };
 
 const server = http.createServer((req, res) => {

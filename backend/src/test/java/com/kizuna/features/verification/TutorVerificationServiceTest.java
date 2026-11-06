@@ -14,6 +14,7 @@ import com.kizuna.features.verification.repository.TutorCredentialRepository;
 import com.kizuna.features.verification.repository.TutorVerificationHistoryRepository;
 import com.kizuna.features.verification.repository.VerificationTutorRepository;
 import com.kizuna.features.verification.service.CurrentUserProvider;
+import com.kizuna.features.verification.service.DocumentFile;
 import com.kizuna.features.verification.service.VerificationDocumentStorage;
 import com.kizuna.features.verification.service.VerificationException;
 import com.kizuna.features.verification.service.VerificationStateMachine;
@@ -25,10 +26,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 
+import org.springframework.mock.web.MockMultipartFile;
+
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,6 +53,8 @@ class TutorVerificationServiceTest {
     private final UUID userId = UUID.randomUUID();
     private Tutor tutor;
     private final List<TutorCredential> credentials = new ArrayList<>();
+    /** Giấy tờ không còn tệp (không có trong DB lẫn thư mục cũ). */
+    private final Set<UUID> missingFiles = new HashSet<>();
 
     @BeforeEach
     void setUp() {
@@ -68,7 +77,12 @@ class TutorVerificationServiceTest {
         when(tutorRepository.findWithUserByUserId(userId)).thenReturn(Optional.of(tutor));
         when(credentialRepository.findByTutor_TutorIdOrderByUploadedAtAsc(any())).thenReturn(credentials);
         when(historyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(storage.exists(any())).thenReturn(true);
+        when(storage.availableIds(any())).thenAnswer(inv -> {
+            Collection<TutorCredential> list = inv.getArgument(0);
+            Set<UUID> ids = new HashSet<>();
+            list.stream().map(TutorCredential::getCredentialId).filter(id -> !missingFiles.contains(id)).forEach(ids::add);
+            return ids;
+        });
         when(storage.contentType(any())).thenReturn("application/pdf");
 
         VerificationStateMachine stateMachine = new VerificationStateMachine(historyRepository, credentialRepository);
@@ -158,7 +172,7 @@ class TutorVerificationServiceTest {
         fillCompleteProfile();
         addDocument(CredentialType.IDENTITY_DOCUMENT);
         addDocument(CredentialType.OTHER_JAPANESE_CERTIFICATE);
-        when(storage.exists(credentials.get(0).getStorageKey())).thenReturn(false);
+        missingFiles.add(credentials.get(0).getCredentialId());
 
         VerificationException ex = assertThrows(VerificationException.class,
                 () -> service.submit(new SubmitVerificationRequest(true)));
@@ -230,7 +244,71 @@ class TutorVerificationServiceTest {
         VerificationException noTitle = assertThrows(VerificationException.class,
                 () -> service.addDocument("IDENTITY_DOCUMENT", "  ", null));
         assertTrue(noTitle.getFields().containsKey("title"));
-        verify(storage, never()).store(any());
+        verify(storage, never()).validate(any());
+        verify(storage, never()).saveContent(any(), any());
+    }
+
+    @Test
+    void addDocumentSavesFileContentToDatabaseInSameTransaction() {
+        byte[] content = "%PDF-1.4 %%EOF".getBytes(StandardCharsets.US_ASCII);
+        String key = UUID.randomUUID() + ".pdf";
+        UUID savedId = UUID.randomUUID();
+        when(storage.validate(any())).thenReturn(new VerificationDocumentStorage.ValidatedDocument(key, content));
+        when(credentialRepository.save(any())).thenAnswer(inv -> {
+            TutorCredential c = inv.getArgument(0);
+            c.setCredentialId(savedId);
+            return c;
+        });
+
+        var response = service.addDocument("IDENTITY_DOCUMENT", "CCCD",
+                new MockMultipartFile("file", "cccd.pdf", "application/pdf", content));
+
+        verify(storage).saveContent(savedId, content);
+        assertTrue(response.isFileAvailable());
+        assertEquals("CCCD.pdf", response.getFileName());
+    }
+
+    @Test
+    void updateDocumentWithoutNewFileKeepsStoredContent() {
+        addDocument(CredentialType.JLPT_CERTIFICATE);
+        TutorCredential existing = credentials.get(0);
+        when(credentialRepository.findByCredentialIdAndTutor_TutorId(existing.getCredentialId(), tutor.getTutorId()))
+                .thenReturn(Optional.of(existing));
+        when(credentialRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.updateDocument(existing.getCredentialId(), null, "JLPT N2", null);
+
+        assertEquals("JLPT N2", existing.getTitle());
+        verify(storage, never()).validate(any());
+        verify(storage, never()).saveContent(any(), any());
+    }
+
+    @Test
+    void documentFileIsServedFromStoredContent() {
+        addDocument(CredentialType.JLPT_CERTIFICATE);
+        TutorCredential existing = credentials.get(0);
+        byte[] content = "%PDF-1.4 %%EOF".getBytes(StandardCharsets.US_ASCII);
+        when(credentialRepository.findByCredentialIdAndTutor_TutorId(existing.getCredentialId(), tutor.getTutorId()))
+                .thenReturn(Optional.of(existing));
+        when(storage.load(existing)).thenReturn(Optional.of(content));
+
+        DocumentFile file = service.loadMyDocumentFile(existing.getCredentialId());
+
+        assertArrayEquals(content, file.content());
+        assertEquals("application/pdf", file.contentType());
+        assertEquals("JLPT_CERTIFICATE.pdf", file.fileName());
+    }
+
+    @Test
+    void documentWithoutStoredContentIsNotFound() {
+        addDocument(CredentialType.JLPT_CERTIFICATE);
+        TutorCredential existing = credentials.get(0);
+        when(credentialRepository.findByCredentialIdAndTutor_TutorId(existing.getCredentialId(), tutor.getTutorId()))
+                .thenReturn(Optional.of(existing));
+        when(storage.load(existing)).thenReturn(Optional.empty());
+
+        assertEquals("NOT_FOUND", assertThrows(VerificationException.class,
+                () -> service.loadMyDocumentFile(existing.getCredentialId())).getCode());
     }
 
     @Test

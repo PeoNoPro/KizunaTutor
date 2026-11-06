@@ -165,8 +165,8 @@ while ($listener.IsListening) {
             $memReq = [System.Net.HttpWebRequest]::Create($memTargetUri)
             $memReq.Method = $request.HttpMethod
             $memReq.ContentType = $request.ContentType
-            $memReq.Timeout = 1500
-            $memReq.ReadWriteTimeout = 1500
+            $memReq.Timeout = 10000
+            $memReq.ReadWriteTimeout = 10000
 
             try {
                 if ($request.HasEntityBody) {
@@ -198,8 +198,8 @@ while ($listener.IsListening) {
             $webRequest = [System.Net.HttpWebRequest]::Create($targetUri)
             $webRequest.Method = $request.HttpMethod
             $webRequest.ContentType = $request.ContentType
-            $webRequest.Timeout = 1000
-            $webRequest.ReadWriteTimeout = 1000
+            $webRequest.Timeout = 30000
+            $webRequest.ReadWriteTimeout = 30000
 
             try {
                 if ($request.HasEntityBody) {

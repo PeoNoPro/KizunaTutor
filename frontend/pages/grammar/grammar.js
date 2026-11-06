@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Cẩm Nang Ngữ Pháp OpenJLPT
  * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * Hỗ trợ Bộ lọc kép: Cấp độ JLPT (N5 - N1) & Khối Ứng dụng Thực tế (Đời thường, Nhà hàng, Du lịch, Công việc, Sức khỏe, Học thuật)
@@ -357,6 +357,24 @@ function renderGrammarCards() {
   });
 }
 
+function speakJapanese(text) {
+  if (!text || typeof window === 'undefined') return;
+  try {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const cleanText = text.replace(/[（）()]/g, '').trim();
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = 'ja-JP';
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      showToast('Trình duyệt không hỗ trợ tổng hợp giọng nói Web Speech.', 'info');
+    }
+  } catch (e) {
+    console.debug('Lỗi phát âm tiếng Nhật:', e);
+  }
+}
+
 // =========================================================================
 // 5. GIAO DIỆN CHI TIẾT MẪU NGỮ PHÁP (DETAIL VIEW)
 // =========================================================================
@@ -397,9 +415,16 @@ function openGrammarDetail(ruleId, pushHistory = true) {
     examplesHtml = rule.examples.map(ex => `
       <div class="p-4 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl space-y-1.5 hover:bg-white transition break-words overflow-hidden">
         <div class="flex items-center justify-between gap-2">
-          <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545] break-words whitespace-normal min-w-0">
+          <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545] break-words whitespace-normal min-w-0 flex-1">
             ${ex.ja}
           </div>
+          <button type="button" 
+                  data-action="speak-sentence" 
+                  data-text="${escapeHtml(ex.ja)}"
+                  class="p-1.5 rounded-lg border border-[#ECE8DE] bg-white hover:bg-slate-100 text-[#006194] text-xs font-semibold flex items-center gap-1 transition cursor-pointer shrink-0 shadow-2xs active:scale-95"
+                  title="Nghe phát âm chuẩn">
+            <span>🔊</span>
+          </button>
         </div>
         <div class="text-xs text-[#68737D] font-mono break-words">
           Furigana: ${ex.reading}
@@ -428,10 +453,17 @@ function openGrammarDetail(ruleId, pushHistory = true) {
     <!-- Header Thẻ Mẫu Câu -->
     <div class="bg-white border border-[#ECE8DE] rounded-2xl p-6 shadow-sm space-y-3 break-words overflow-hidden">
       <div class="flex items-center justify-between flex-wrap gap-2">
-        <div class="flex items-center gap-3 min-w-0">
+        <div class="flex items-center gap-2.5 min-w-0 flex-wrap">
           <span class="font-japanese text-3xl md:text-4xl font-bold text-[#0F2545] break-words">
             ${rule.pattern}
           </span>
+          <button type="button" 
+                  data-action="speak-sentence" 
+                  data-text="${escapeHtml(rule.pattern)}"
+                  class="p-1.5 px-2 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-white text-[#006194] text-xs font-semibold flex items-center gap-1 transition cursor-pointer shrink-0 shadow-2xs active:scale-95"
+                  title="Nghe phát âm mẫu câu">
+            <span>🔊</span>
+          </button>
           <span class="text-sm text-[#68737D] font-mono italic break-words">
             (${rule.romaji})
           </span>

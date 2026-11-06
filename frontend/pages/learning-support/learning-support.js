@@ -1,8 +1,9 @@
-/**
+﻿/**
  * KizunaTutor - Trang Học Từ Vựng Theo Chủ Đề (Learning Support)
  * Chuẩn hóa layout: Topic Pills cuộn ngang, Grid 3 cột auto-fill, không giật màn hình
  */
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+import { showToast } from '/js/main.js';
 
 let currentTopics = [
   { id: 'JLPT_N5', code: 'JLPT_N5', titleVn: 'JLPT N5 Căn bản', icon: '🌱', count: '650' },
@@ -118,6 +119,70 @@ async function loadVocabularies() {
   renderVocabGrid(vocabList);
 }
 
+function speakJapanese(text) {
+  if (!text || typeof window === 'undefined') return;
+  try {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ja-JP';
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      showToast('Trình duyệt không hỗ trợ tổng hợp giọng nói Web Speech.', 'info');
+    }
+  } catch (e) {
+    console.debug('Lỗi phát âm:', e);
+  }
+}
+
+function saveVocabToFlashcardDeck(v) {
+  if (!v) return;
+  const word = v.word || v.kanji || '';
+  const meaning = v.meaning || v.meaningVn || '';
+  const reading = v.furigana || v.reading || '';
+  const hanViet = v.hanViet || '';
+
+  try {
+    const raw = localStorage.getItem('kizuna_flashcard_decks');
+    let decks = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(decks)) decks = [];
+
+    const defaultTitle = 'Từ Vựng Chủ Đề';
+    let deck = decks.find(d => d.title === defaultTitle);
+    if (!deck) {
+      deck = {
+        id: 'deck_vocab_' + Date.now(),
+        title: defaultTitle,
+        description: 'Bộ thẻ từ vựng lưu từ góc học tập chủ đề',
+        cards: [],
+        color: 'blue'
+      };
+      decks.push(deck);
+    }
+
+    deck.cards = deck.cards || [];
+    const exists = deck.cards.some(c => (c.char || c.kanjiChar) === word);
+    if (!exists) {
+      deck.cards.push({
+        char: word,
+        kanjiChar: word,
+        hanViet: hanViet,
+        meaning: meaning + (reading ? ` (${reading})` : ''),
+        onyomi: reading || '—',
+        kunyomi: '—',
+        jlpt: v.level || 'JLPT'
+      });
+      localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+      showToast(`Đã lưu "${word}" vào bộ thẻ "${defaultTitle}"!`, 'success');
+    } else {
+      showToast(`Từ "${word}" đã có trong bộ thẻ "${defaultTitle}".`, 'info');
+    }
+  } catch (err) {
+    showToast('Lỗi lưu thẻ: ' + err.message, 'error');
+  }
+}
+
 function renderVocabGrid(items) {
   const grid = document.getElementById('vocabGrid');
   const emptyState = document.getElementById('vocabEmptyState');
@@ -131,7 +196,7 @@ function renderVocabGrid(items) {
 
   emptyState?.classList.add('hidden');
 
-  grid.innerHTML = items.map(v => {
+  grid.innerHTML = items.map((v, idx) => {
     return `
       <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full min-w-0 group">
         <div class="space-y-2.5 flex-1 min-w-0">

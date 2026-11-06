@@ -17,19 +17,22 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:kizunatutor@gmail.com}")
+    @Value("${app.mail.sender-email:${spring.mail.username:kizunatutor@gmail.com}}")
     private String senderEmail;
+
+    @Value("${app.mail.sender-name:KizunaTutor - Nền Tảng Gia Sư & Học Tiếng Nhật}")
+    private String senderName;
 
     @Override
     @Async
     public void sendRegistrationOtpEmail(String toEmail, String fullName, String otp) {
-        log.info("[OTP DISPATCH] Mã OTP [{}] gửi tới: [{}] ({})", otp, toEmail, fullName);
+        log.info("[OTP DISPATCH] Mã OTP [{}] gửi tới: [{}] ({}) qua Sender: [{}]", otp, toEmail, fullName, senderEmail);
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(senderEmail, "KizunaTutor - Nền Tảng Gia Sư & Học Tiếng Nhật");
+            helper.setFrom(senderEmail, senderName);
             helper.setTo(toEmail);
             helper.setSubject("[KizunaTutor] Mã xác thực đăng ký tài khoản của bạn: " + otp);
 
@@ -46,7 +49,7 @@ public class EmailServiceImpl implements EmailService {
             log.info("Email OTP đã gửi thành công tới: {}", toEmail);
 
         } catch (Exception e) {
-            log.warn("Không thể gửi email OTP qua SMTP (vui lòng kiểm tra cấu hình Mail): {}", e.getMessage());
+            log.error("Không thể gửi email OTP qua SMTP (vui lòng kiểm tra thông tin Brevo / SMTP): {}", e.getMessage(), e);
             log.info("[DEV FALLBACK] Trong môi trường phát triển (Offline/Sandbox), mã OTP có thể dùng trực tiếp là: {}", otp);
         }
     }

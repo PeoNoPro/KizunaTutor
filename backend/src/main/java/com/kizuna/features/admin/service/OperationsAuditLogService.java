@@ -1,0 +1,31 @@
+package com.kizuna.features.admin.service;
+import com.kizuna.core.exception.BusinessException;
+import com.kizuna.features.admin.repository.OperationsAuditLogRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.*;
+import java.util.*;
+@Service @RequiredArgsConstructor
+public class OperationsAuditLogService {
+    private static final ZoneId ZONE=ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final Map<String,String> SOURCES=Map.of("CONFIG","Cấu hình","STAFF","Nhân sự","INCIDENT","Sự cố");
+    private final OperationsAuditLogRepository logs;
+    private final OperationsActorResolver actors;
+    @Transactional(readOnly=true,timeout=3)
+    public Map<String,Object> list(String source,UUID actor,LocalDate from,LocalDate to,int page,int size) {
+        actors.requireAdmin();int offset=OperationsValidation.page(page,size);
+        if(source!=null)OperationsValidation.member(source,SOURCES.keySet());
+        if(from!=null&&to!=null&&from.isAfter(to))throw BusinessException.invalid();
+        var filter=new OperationsAuditLogRepository.Filter(source,actor,from==null?null:from.atStartOfDay(ZONE).toOffsetDateTime(),to==null?null:to.plusDays(1).atStartOfDay(ZONE).toOffsetDateTime());
+        return Map.of("items",logs.list(filter,offset,size).stream().map(this::view).toList(),"page",page,"size",size,"totalElements",logs.count(filter));
+    }
+    private Map<String,Object> view(Object[] r) {
+        String source=(String)r[0],action=(String)r[4];var item=new LinkedHashMap<String,Object>();
+        item.put("eventId",r[1]);item.put("occurredAt",r[2]);item.put("actorDisplayName",r[3]);item.put("sourceLabel",SOURCES.get(source));
+        item.put("actionLabel",switch(source){case "CONFIG"->"Cập nhật cấu hình";case "STAFF"->StaffAccountService.ACTION_LABELS.get(action);default->TechnicalIncidentService.ACTION_LABELS.get(action);});
+        item.put("targetLabel",r[5]);item.put("reason",r[6]);
+        item.put("resultLabel",switch(source){case "CONFIG"->(String)r[7];case "STAFF"->"Đã lưu";default->TechnicalIncidentService.STATUS_LABELS.get((String)r[8]);});
+        item.put("incidentId",r[9]);return item;
+    }
+}

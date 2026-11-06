@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Cẩm Nang Ngữ Pháp OpenJLPT
  * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * Hỗ trợ Bộ lọc kép: Cấp độ JLPT (N5 - N1) & Khối Ứng dụng Thực tế (Đời thường, Nhà hàng, Du lịch, Công việc, Sức khỏe, Học thuật)
@@ -195,6 +195,13 @@ async function loadGrammarData() {
         });
 
         renderGrammarCards();
+
+        // Tự động mở chi tiết nếu URL có param detail hoặc id
+        const urlParams = new URLSearchParams(window.location.search);
+        const detailId = urlParams.get('detail') || urlParams.get('id');
+        if (detailId) {
+          openGrammarDetail(detailId, false);
+        }
         return;
       }
     }
@@ -342,26 +349,64 @@ function renderGrammarCards() {
 
   // Gắn sự kiện click
   grid.querySelectorAll('[data-action="view-detail"]').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       openGrammarDetail(card.dataset.id);
     });
   });
 }
 
+function speakJapanese(text) {
+  if (!text || typeof window === 'undefined') return;
+  try {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const cleanText = text.replace(/[（）()]/g, '').trim();
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = 'ja-JP';
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      showToast('Trình duyệt không hỗ trợ tổng hợp giọng nói Web Speech.', 'info');
+    }
+  } catch (e) {
+    console.debug('Lỗi phát âm tiếng Nhật:', e);
+  }
+}
+
 // =========================================================================
 // 5. GIAO DIỆN CHI TIẾT MẪU NGỮ PHÁP (DETAIL VIEW)
 // =========================================================================
-function openGrammarDetail(ruleId) {
-  const rule = masterGrammarList.find(r => r.id === ruleId);
+let lastScrollTop = 0;
+
+function openGrammarDetail(ruleId, pushHistory = true) {
+  const rule = masterGrammarList.find(r => String(r.id) === String(ruleId));
   if (!rule) return;
 
-  document.getElementById('grammarListView').classList.add('hidden');
+  const mainEl = document.querySelector('main');
+  if (mainEl) {
+    lastScrollTop = mainEl.scrollTop;
+  } else {
+    lastScrollTop = window.scrollY || 0;
+  }
+
+  const listView = document.getElementById('grammarListView');
   const detailView = document.getElementById('grammarDetailView');
-  detailView.classList.remove('hidden');
+  if (listView) listView.classList.add('hidden');
+  if (detailView) detailView.classList.remove('hidden');
+
+  if (pushHistory) {
+    const u = new URL(window.location);
+    u.searchParams.set('detail', rule.id);
+    window.history.pushState({ grammarDetailId: rule.id }, '', u);
+  }
 
   // Breadcrumb
-  document.getElementById('detailBreadcrumbLevel').textContent = `JLPT ${rule.level}`;
-  document.getElementById('detailBreadcrumbPattern').textContent = rule.pattern;
+  const bcLevel = document.getElementById('detailBreadcrumbLevel');
+  const bcPattern = document.getElementById('detailBreadcrumbPattern');
+  if (bcLevel) bcLevel.textContent = `JLPT ${rule.level}`;
+  if (bcPattern) bcPattern.textContent = rule.pattern;
 
   const container = document.getElementById('grammarDetailContainer');
   let examplesHtml = '';
@@ -370,9 +415,16 @@ function openGrammarDetail(ruleId) {
     examplesHtml = rule.examples.map(ex => `
       <div class="p-4 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl space-y-1.5 hover:bg-white transition break-words overflow-hidden">
         <div class="flex items-center justify-between gap-2">
-          <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545] break-words whitespace-normal min-w-0">
+          <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545] break-words whitespace-normal min-w-0 flex-1">
             ${ex.ja}
           </div>
+          <button type="button" 
+                  data-action="speak-sentence" 
+                  data-text="${escapeHtml(ex.ja)}"
+                  class="p-1.5 rounded-lg border border-[#ECE8DE] bg-white hover:bg-slate-100 text-[#006194] text-xs font-semibold flex items-center gap-1 transition cursor-pointer shrink-0 shadow-2xs active:scale-95"
+                  title="Nghe phát âm chuẩn">
+            <span>🔊</span>
+          </button>
         </div>
         <div class="text-xs text-[#68737D] font-mono break-words">
           Furigana: ${ex.reading}
@@ -401,10 +453,17 @@ function openGrammarDetail(ruleId) {
     <!-- Header Thẻ Mẫu Câu -->
     <div class="bg-white border border-[#ECE8DE] rounded-2xl p-6 shadow-sm space-y-3 break-words overflow-hidden">
       <div class="flex items-center justify-between flex-wrap gap-2">
-        <div class="flex items-center gap-3 min-w-0">
+        <div class="flex items-center gap-2.5 min-w-0 flex-wrap">
           <span class="font-japanese text-3xl md:text-4xl font-bold text-[#0F2545] break-words">
             ${rule.pattern}
           </span>
+          <button type="button" 
+                  data-action="speak-sentence" 
+                  data-text="${escapeHtml(rule.pattern)}"
+                  class="p-1.5 px-2 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-white text-[#006194] text-xs font-semibold flex items-center gap-1 transition cursor-pointer shrink-0 shadow-2xs active:scale-95"
+                  title="Nghe phát âm mẫu câu">
+            <span>🔊</span>
+          </button>
           <span class="text-sm text-[#68737D] font-mono italic break-words">
             (${rule.romaji})
           </span>
@@ -459,15 +518,109 @@ function openGrammarDetail(ruleId) {
     </div>
   `;
 
+  // Khối Đặt Câu Hỏi Kiểm Tra Với Sensei AI
+  const practiceBox = document.createElement('div');
+  practiceBox.className = 'bg-gradient-to-r from-[#EFF6FF] to-[#FAF8F2] border-2 border-[#006194] rounded-2xl p-5 shadow-sm space-y-3 mt-4';
+  practiceBox.innerHTML = `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="space-y-1">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#006194] text-white text-[11px] font-bold">
+          <span class="material-symbols-outlined text-[14px]">psychology</span>
+          <span>Luyện tập &amp; Kiểm tra ngữ pháp với AI</span>
+        </div>
+        <h4 class="text-base font-bold text-[#0F2545]">
+          Tập đặt câu &amp; Kiểm tra với mẫu "${rule.pattern}"
+        </h4>
+        <p class="text-xs text-[#475569] leading-relaxed max-w-xl">
+          Tự viết câu tiếng Nhật của bạn với mẫu ngữ pháp này. AI Sensei sẽ chấm điểm, bắt mạch cấu trúc câu và phân tích chi tiết bằng tiếng Việt.
+        </p>
+      </div>
+
+      <button type="button" id="btnGoToAiWritingPractice"
+              class="px-4 py-2.5 bg-[#006194] hover:bg-[#004e77] text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">edit_note</span>
+        <span>Đặt câu hỏi kiểm tra</span>
+      </button>
+    </div>
+  `;
+  container.appendChild(practiceBox);
+
+  document.getElementById('btnGoToAiWritingPractice')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      sessionStorage.setItem('kizuna_selected_grammar_for_writing', JSON.stringify({
+        id: rule.id,
+        pattern: rule.pattern,
+        level: rule.level,
+        romaji: rule.romaji,
+        meaning: rule.meaning,
+        formation: rule.formation,
+        notes: rule.notes,
+        examples: rule.examples
+      }));
+    } catch (e) {
+      console.debug('SessionStorage save error:', e);
+    }
+    window.location.href = `/ai-writing?pattern=${encodeURIComponent(rule.pattern)}&level=${encodeURIComponent(rule.level)}`;
+  });
+
+  if (mainEl) {
+    mainEl.scrollTop = 0;
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function closeGrammarDetail() {
-  document.getElementById('grammarDetailView').classList.add('hidden');
-  document.getElementById('grammarListView').classList.remove('hidden');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+function closeGrammarDetail(fromPopState = false) {
+  const detailView = document.getElementById('grammarDetailView');
+  const listView = document.getElementById('grammarListView');
+  if (!detailView || !listView) return;
+
+  detailView.classList.add('hidden');
+  listView.classList.remove('hidden');
+
+  if (!fromPopState) {
+    const u = new URL(window.location);
+    const hadDetailInUrl = u.searchParams.has('detail') || u.searchParams.has('id');
+    u.searchParams.delete('detail');
+    u.searchParams.delete('id');
+
+    if (hadDetailInUrl && window.history.state?.grammarDetailId) {
+      window.history.back();
+      return;
+    } else {
+      window.history.replaceState({}, '', u);
+    }
+  }
+
+  const mainEl = document.querySelector('main');
+  if (mainEl && lastScrollTop > 0) {
+    mainEl.scrollTop = lastScrollTop;
+  } else if (lastScrollTop > 0) {
+    window.scrollTo({ top: lastScrollTop, behavior: 'smooth' });
+  }
 }
 
+function handleGrammarPopState(e) {
+  const detailView = document.getElementById('grammarDetailView');
+  if (!detailView) return; // Không còn ở trang grammar
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const detailId = urlParams.get('detail') || urlParams.get('id') || e.state?.grammarDetailId;
+
+  if (detailId) {
+    if (masterGrammarList.length > 0) {
+      openGrammarDetail(detailId, false);
+    }
+  } else {
+    closeGrammarDetail(true);
+  }
+}
+
+if (!window.__grammarPopstateBound) {
+  window.__grammarPopstateBound = true;
+  window.addEventListener('popstate', handleGrammarPopState);
+}
 // =========================================================================
 // 6. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================
@@ -554,7 +707,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 1. Chuyển đổi giữa 2 Chế độ Lọc: JLPT Level <-> Khối Ứng dụng
   modeSwitcherBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const selectedMode = btn.dataset.mode;
       if (selectedMode === currentFilterMode) return;
 
@@ -588,7 +743,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 2. Chuyển tab cấp độ N5 -> N1
   document.querySelectorAll('#jlptLevelTabs button').forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       currentLevel = tab.dataset.level;
 
       document.querySelectorAll('#jlptLevelTabs button').forEach(t => {
@@ -606,7 +763,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 3. Chuyển tab Khối Ứng dụng (Đời thường, Nhà hàng, Du lịch, Công việc, Sức khỏe, Học thuật)
   document.querySelectorAll('#domainTabs button').forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       currentDomain = tab.dataset.domain;
 
       document.querySelectorAll('#domainTabs button').forEach(t => {
@@ -624,7 +783,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 3b. Lọc cấp độ JLPT cho Khối Ứng Dụng đã chọn (Tất cả, N5, N4, N3, N2, N1)
   document.querySelectorAll('#domainJlptTabs button').forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       currentDomainLevel = tab.dataset.domainLevel;
 
       document.querySelectorAll('#domainJlptTabs button').forEach(t => {
@@ -650,5 +811,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 5. Nút quay lại danh sách
-  document.getElementById('btnBackToList')?.addEventListener('click', closeGrammarDetail);
+  document.getElementById('btnBackToList')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeGrammarDetail(false);
+  });
 });

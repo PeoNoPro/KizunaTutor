@@ -1,27 +1,14 @@
 package com.kizuna.features.ticket.entity;
-
-
-
-import com.kizuna.core.entity.*;
-import com.kizuna.core.entity.BaseEntity;
-import com.kizuna.core.entity.User;
-import com.kizuna.core.entity.Learner;
-import com.kizuna.core.entity.Tutor;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.UUID;
-
-@Entity
-@Table(name = "ticket_messages")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class TicketMessage extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "messageId")
-    private UUID messageId;
+import java.time.OffsetDateTime;
+@Entity @Table(name="ticket_messages") @Getter @Setter @NoArgsConstructor
+public class TicketMessage {
+ @Id @Column(name="message_id") private UUID messageId;
+  @Column(name="ticket_id") private UUID ticketId;
+  @Column(name="sender_id") private UUID senderId;
+  @Column(name="message_text") private String messageText;
+  @Column(name="sent_at") private OffsetDateTime sentAt;
+  @Column(name="sequence_no") private long sequenceNo;
 }

@@ -66,4 +66,13 @@ public class TrialBooking extends BaseEntity {
     @Column(name = "official_arrangement_agreed", nullable = false)
     @Builder.Default
     private Boolean officialArrangementAgreed = false;
+
+    @Column(name = "policy_revision_id")
+    private UUID policyRevisionId;
+
+    @Column(name = "policy_duration_minutes")
+    private Integer policyDurationMinutes;
+
+    @Column(name = "policy_min_advance_hours")
+    private Integer policyMinAdvanceHours;
 }

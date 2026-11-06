@@ -119,6 +119,13 @@
             <version>${poi.version}</version>
         </dependency>
 
+        <!-- FE-10: pinned parser, Java 17 compatible; invoked only in an isolated worker. -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.8</version>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -1,8 +1,9 @@
-/**
+﻿/**
  * KizunaTutor - Main Application Bootstrap & Utilities
  * Dùng chung cho toàn bộ các trang trong hệ thống.
  * Cung cấp cơ chế nạp Header / Footer từ components/ để đồng bộ toàn dự án.
  */
+import {fetchAPI} from './api.js';
 
 // 1. Định dạng tiền tệ VND
 export function formatVND(amount) {
@@ -39,8 +40,9 @@ export function showToast(message, type = 'info') {
   toast.className = `${bgClass} px-4 py-3 rounded-xl shadow-lg text-xs md:text-sm font-medium flex items-center gap-2 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto max-w-md`;
   toast.innerHTML = `
     <span class="material-symbols-outlined text-[18px]">${type === 'success' ? 'check_circle' : (type === 'error' ? 'error' : 'info')}</span>
-    <span>${message}</span>
+    <span data-toast-message></span>
   `;
+  toast.querySelector('[data-toast-message]').textContent = message;
 
   toastContainer.appendChild(toast);
 
@@ -54,6 +56,22 @@ export function showToast(message, type = 'info') {
     toast.classList.add('translate-y-2', 'opacity-0');
     setTimeout(() => toast.remove(), 300);
   }, 3500);
+}
+
+async function initSupportNavigation() {
+  if (document.querySelector('header nav') && !document.body.classList.contains('support-page')) {
+    return fetchAPI('/v1/tickets/me').then(account => {
+      if (!account.canCreate) return;
+      document.querySelectorAll('header nav,#mobileMenu').forEach(nav => {
+        if (nav.querySelector('[data-support-nav]')) return;
+        [[`/${account.viewRole}/support/tickets`, 'Yêu cầu hỗ trợ'], [`/${account.viewRole}/policies`, 'Chính sách']].forEach(([href, label]) => {
+          const link = document.createElement('a'); link.href = href;
+          link.textContent = label; link.dataset.supportNav = ''; link.className = 'px-3 py-2 text-sm font-medium'; nav.append(link);
+        });
+      });
+      initNavigation();
+    }).catch(() => { /* Phiên khách không có menu yêu cầu cá nhân. */ });
+  }
 }
 
 // 4. Khởi tạo trạng thái thanh điều hướng (Active Navigation)
@@ -455,6 +473,7 @@ export async function loadSharedComponents() {
         const html = await res.text();
         headerPlaceholder.outerHTML = html;
         initNavigation();
+        await initSupportNavigation();
         initAuthModalEvents();
         await syncAuthState();
       } else {
@@ -465,6 +484,7 @@ export async function loadSharedComponents() {
     }
   } else {
     initNavigation();
+    await initSupportNavigation();
     initAuthModalEvents();
     await syncAuthState();
   }

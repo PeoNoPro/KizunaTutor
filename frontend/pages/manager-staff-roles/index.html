@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Điều chuyển nhân sự - KizunaTutor</title>
+<link rel="icon" href="/assets/logos/kizuna-logo.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css">
+</head><body class="admin-dashboard operations-page">
+<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+<main id="dashboardMain" class="dashboard-main"><div id="operationsContent" class="operations-content" aria-busy="true">
+  <div class="operations-page-heading"><span class="role-badge">Quản lý</span><h1>Điều chuyển nhân sự</h1><p>Đổi vai trò giữa Cán bộ học vụ và Chăm sóc khách hàng, hoặc đề xuất thăng chức để Quản trị viên duyệt.</p></div>
+  <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+  <section class="operations-card">
+    <h2>Nhân viên có thể điều chuyển</h2>
+    <form id="roleSearch" class="staff-toolbar"><label for="roleQuery">Tìm theo tên hoặc email<input id="roleQuery" maxlength="200" placeholder="Nhập tên hoặc email nhân viên"></label><button type="submit">Tìm kiếm</button></form>
+    <p class="staff-help">Chỉ gồm Cán bộ học vụ và Chăm sóc khách hàng đang hoạt động.</p>
+    <div class="table-scroll"><table class="staff-table role-change-table"><caption class="sr-only">Nhân viên có thể điều chuyển</caption><thead><tr><th scope="col">Thông tin</th><th scope="col">Thao tác</th></tr></thead><tbody id="roleRows"></tbody></table></div>
+    <div class="operations-pagination"><button id="rolePrev" type="button">Trang trước</button><span id="rolePage"></span><button id="roleNext" type="button">Trang sau</button></div>
+  </section>
+  <section class="operations-card"><h2>Đề xuất thăng chức của bạn</h2><div id="myPromotions"></div><div class="operations-pagination"><button id="promotionPrev" type="button">Trang trước</button><span id="promotionPage"></span><button id="promotionNext" type="button">Trang sau</button></div></section>
+</div></main>
+<dialog id="roleDialog" class="staff-dialog portal-dialog" aria-labelledby="roleDialogTitle">
+  <form id="roleForm"><div class="portal-dialog-head"><h2 id="roleDialogTitle"></h2><button id="closeRole" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div><div class="portal-dialog-body"><p id="roleDialogSummary" class="staff-help"></p>
+    <div><label for="roleReason">Lý do</label><textarea id="roleReason" required maxlength="1500"></textarea></div>
+    <p id="roleNotice" class="staff-dialog-notice" role="alert"></p></div>
+    <div class="portal-dialog-actions"><button id="saveRole" class="primary" type="submit"></button><button id="cancelRole" type="button">Hủy</button></div>
+  </form>
+</dialog>
+<script type="module" src="./manager-staff-roles.js"></script>
+</body></html>

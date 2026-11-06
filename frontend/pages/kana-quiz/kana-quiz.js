@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Đấu trường gõ chữ Kana (Hiragana & Katakana)
  * Module Feature-Based đồng bộ giao diện và nghiệp vụ với KizunaTutor gốc.
  */
@@ -666,21 +666,21 @@ function verifyCardAnswer(idx, rawInput) {
 
     const nextUnsolvedIndex = findNextUnsolvedCardIndex(idx);
     if (nextUnsolvedIndex !== -1) {
-      setTimeout(() => {
-        const nextInput = document.getElementById(`card-input-${nextUnsolvedIndex}`);
-        if (nextInput) {
-          nextInput.value = '';
-          nextInput.focus();
-          nextInput.select();
-          nextInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          handleCardFocus(nextUnsolvedIndex);
-          requestAnimationFrame(() => {
-            if (!nextInput.disabled && nextInput.value !== '') {
-              nextInput.value = '';
-            }
-          });
-        }
-      }, 50);
+      // Tự động làm sạch input và lập tức chuyển tiêu điểm focus sang ô tiếp theo
+      const nextInput = document.getElementById(`card-input-${nextUnsolvedIndex}`);
+      if (nextInput) {
+        nextInput.value = '';
+        nextInput.focus();
+        nextInput.select();
+        nextInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        handleCardFocus(nextUnsolvedIndex);
+        requestAnimationFrame(() => {
+          if (!nextInput.disabled) {
+            nextInput.value = '';
+            nextInput.focus();
+          }
+        });
+      }
     } else {
       hasCompleted = true;
       setTimeout(() => {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Quản lý đăng nhập & Điều hướng phiên làm việc
  * Module Feature-Based độc lập tuân thủ nghiêm ngặt FRONTEND_RULES.md
  */
@@ -24,12 +24,12 @@ const DASHBOARD_ROUTES = {
 };
 
 const DEMO_ACCOUNTS = {
-  admin: { email: 'admin@kizuna.vn', pass: 'admin123' },
-  manager: { email: 'manager@kizuna.vn', pass: '123456' },
-  cs: { email: 'cs@kizuna.vn', pass: '123456' },
-  academic: { email: 'academic@kizuna.vn', pass: '123456' },
-  tutor: { email: 'tutor@kizuna.vn', pass: '123456' },
-  learner: { email: 'learner@kizuna.vn', pass: '123456' }
+  admin: { email: 'admin@kizuna.vn', pass: 'admin123', role: 'ROLE_ADMIN', fullName: 'Quản Trị Viên (Admin)' },
+  manager: { email: 'manager@kizuna.vn', pass: '123456', role: 'ROLE_MANAGER', fullName: 'Quản Lý Vận Hành' },
+  cs: { email: 'cs@kizuna.vn', pass: '123456', role: 'ROLE_CS_STAFF', fullName: 'Chăm Sóc Khách Hàng (CS)' },
+  academic: { email: 'academic@kizuna.vn', pass: '123456', role: 'ROLE_ACADEMIC_OFFICER', fullName: 'Cán Bộ Học Vụ' },
+  tutor: { email: 'tutor@kizuna.vn', pass: '123456', role: 'ROLE_TUTOR', fullName: 'Giảng Viên Kizuna' },
+  learner: { email: 'learner@kizuna.vn', pass: '123456', role: 'ROLE_LEARNER', fullName: 'Học Viên Kizuna' }
 };
 
 let firstTimeAuthData = {
@@ -119,60 +119,82 @@ async function handleLoginSubmit(event) {
   }
   hideLoginAlert();
 
+  let response = null;
+  let data = {};
+  let networkFailed = false;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+
   try {
-    const response = await fetch('/api/auth/login', {
+    response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
+      signal: controller.signal
     });
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const errorMsg = data.message || data.error || 'Đăng nhập không thành công. Vui lòng kiểm tra lại email hoặc mật khẩu.';
-      showLoginAlert(errorMsg, 'danger');
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
-      }
-      return;
-    }
-
-    // 1. Lưu phiên đăng nhập
-    setAuthSession(data.token, data.user);
-
-    // 2. Kiểm tra nếu có cờ bắt buộc đổi mật khẩu lần đầu
-    if (data.mustChangePassword || (data.user && data.user.mustChangePassword)) {
-      showFirstTimeChangePasswordModal(data.token, data.user, password);
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
-      }
-      return;
-    }
-
-    showLoginAlert('Đăng nhập thành công! Hệ thống đang chuyển hướng...', 'success');
-
-    // 3. Điều hướng theo vai trò người dùng
-    const userRole = (data.user && data.user.role) ? data.user.role : 'ROLE_LEARNER';
-    const isLearner = userRole === 'ROLE_LEARNER' || userRole === 'ROLE_STUDENT';
-    const targetUrl = isLearner ? '/pages/home/' : (data.redirectUrl || DASHBOARD_ROUTES[userRole] || '/pages/home/');
-
-    setTimeout(() => {
-      window.location.href = targetUrl;
-    }, 400);
-
+    clearTimeout(timeoutId);
+    data = await response.json().catch(() => ({}));
   } catch (err) {
-    console.debug('Lỗi kết nối máy chủ khi đăng nhập:', err);
-    showLoginAlert('Không thể kết nối đến máy chủ xác thực. Vui lòng kiểm tra lại kết nối mạng.', 'danger');
+    clearTimeout(timeoutId);
+    networkFailed = true;
+  }
+
+  // Nếu Backend chưa khởi động (502 hoặc ngắt kết nối mạng)
+  if (networkFailed || (response && response.status === 502)) {
+    showLoginAlert('Chưa kết nối được máy chủ đăng nhập. Vui lòng thử lại sau.', 'danger');
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
     }
+    return;
   }
+
+  if (!response.ok) {
+    const errorMsg = data.message || data.error || 'Đăng nhập không thành công. Vui lòng kiểm tra lại email hoặc mật khẩu.';
+    showLoginAlert(errorMsg, 'danger');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
+    }
+    return;
+  }
+
+  if (!data.token) {
+    showLoginAlert('Chưa kết nối được máy chủ đăng nhập. Vui lòng thử lại sau.', 'danger');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span>Đăng nhập</span>';
+    }
+    return;
+  }
+
+  // 1. Lưu phiên đăng nhập từ máy chủ thật
+  setAuthSession(data.token, data.user);
+
+  // 2. Kiểm tra nếu có cờ bắt buộc đổi mật khẩu lần đầu
+  if (data.mustChangePassword || (data.user && data.user.mustChangePassword)) {
+    showFirstTimeChangePasswordModal(data.token, data.user, password);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
+    }
+    return;
+  }
+
+  showLoginAlert('Đăng nhập thành công! Hệ thống đang chuyển hướng...', 'success');
+
+  // 3. Điều hướng theo vai trò người dùng
+  const userRole = (data.user && data.user.role) ? data.user.role : 'ROLE_LEARNER';
+  const isLearner = userRole === 'ROLE_LEARNER' || userRole === 'ROLE_STUDENT';
+  const targetUrl = isLearner ? '/pages/home/' : (data.redirectUrl || DASHBOARD_ROUTES[userRole] || '/pages/home/');
+
+  setTimeout(() => {
+    window.location.href = targetUrl;
+  }, 400);
 }
 
 // =========================================================================

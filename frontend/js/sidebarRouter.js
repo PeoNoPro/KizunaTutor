@@ -4,6 +4,7 @@
  */
 
 let isNavigating = false;
+let currentPathname = typeof window !== 'undefined' ? window.location.pathname : '';
 
 /**
  * Khởi tạo trình lắng nghe điều hướng mượt mà cho thanh Sidebar học viên
@@ -12,6 +13,7 @@ export function initSidebarRouter() {
   if (typeof window === 'undefined') return;
   if (window.__kizunaSidebarRouterInitialized) return;
   window.__kizunaSidebarRouterInitialized = true;
+  currentPathname = window.location.pathname;
 
   // Lắng nghe sự kiện click trên toàn bộ link của Sidebar
   document.addEventListener('click', handleSidebarLinkClick);
@@ -56,13 +58,13 @@ async function handleSidebarLinkClick(e) {
   }
 
   e.preventDefault();
-  navigateTo(targetUrl, link);
+  navigateTo(targetUrl, link, true);
 }
 
 /**
  * Điều hướng mượt đến trang đích không làm giật khung Sidebar
  */
-export async function navigateTo(targetUrl, activeLink = null) {
+export async function navigateTo(targetUrl, activeLink = null, pushHistory = true) {
   if (isNavigating) return;
   isNavigating = true;
 
@@ -145,8 +147,11 @@ export async function navigateTo(targetUrl, activeLink = null) {
       }
     });
 
-    // 6. Cập nhật URL trong History
-    window.history.pushState({ targetUrl }, '', targetUrl);
+    // 6. Cập nhật URL trong History (chỉ khi do người dùng click điều hướng, không phải popstate)
+    if (pushHistory) {
+      window.history.pushState({ targetUrl }, '', targetUrl);
+    }
+    currentPathname = new URL(targetUrl, window.location.origin).pathname;
 
     // 7. Thay thế phần ruột <main>
     currentMain.innerHTML = newMain.innerHTML;
@@ -194,6 +199,13 @@ export async function navigateTo(targetUrl, activeLink = null) {
 }
 
 function handlePopState(e) {
+  const newPathname = window.location.pathname;
+  // Nếu chỉ thay đổi query param, hash hoặc trạng thái nội bộ trong cùng một trang (pathname không đổi)
+  // thì để cho module của trang hiện tại tự xử lý điều hướng nội bộ
+  if (newPathname === currentPathname) {
+    return;
+  }
+  currentPathname = newPathname;
   const targetUrl = window.location.pathname + window.location.search;
-  navigateTo(targetUrl);
+  navigateTo(targetUrl, null, false);
 }

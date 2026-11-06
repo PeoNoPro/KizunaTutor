@@ -28,7 +28,7 @@ Không thêm description trùng: message đầu tiên là mô tả, không sửa
 
 message_id UUID PK; ticket_id FK bắt buộc; sender_id FK bắt buộc; message_text text (1–10.000 ký tự, không trắng); sent_at TIMESTAMPTZ bất biến. Chỉ chứa trao đổi công khai. Không kế thừa BaseEntity nếu schema không có created_at/updated_at; map sent_at riêng. `attachment_url` legacy không trả nguyên trạng ra client; kiểm kê/migrate thủ công vào kho riêng nếu có tệp thật, không mở tải URL tùy ý và không tự fetch URL legacy.
 
-Thứ tự ổn định: sent_at rồi message_id. Message create + attachment + transition + audit cùng transaction. Với RESOLVED, message của owner mở lại IN_PROGRESS; message của CS không tự mở lại. CLOSED cấm tất cả trao đổi.
+Thứ tự nghiệp vụ: `sequence_no bigint NOT NULL`, UNIQUE(ticket_id, sequence_no), tăng dần trong từng phiếu và cấp dưới khóa ticket trong transaction; message đầu là 1. Đọc theo sequence_no tăng dần, sent_at chỉ hiển thị. Message create + attachment + transition + audit cùng transaction. Với RESOLVED, message của owner mở lại IN_PROGRESS; message của CS không tự mở lại. CLOSED cấm tất cả trao đổi.
 
 ## TicketEscalation — ticket_escalations (mới)
 
@@ -68,6 +68,11 @@ Reassign CS: mọi CS, có assignee, chưa CLOSED; giữ trạng thái. Reassign
 - Mọi mutation nhận expectedVersion; khóa ticket, kiểm version/quyền/trạng thái, ghi dữ liệu và audit rồi commit. Stale → 409, không retry âm thầm lệnh nghiệp vụ.
 - Khóa theo cùng thứ tự: ticket → escalation → message/attachment. Kiểm trạng thái người nhận trong transaction; đổi role/account ngoài FE-10 phải dùng chiến lược khóa tương thích hoặc kiểm lại trước commit.
 - Index ticket trên (user_id, updated_at, ticket_id), (assigned_to, status, updated_at), (escalated_to, updated_at), (status, category, priority, updated_at); kiểm EXPLAIN trên tập nghiệm thu trước thêm index dư thừa.
-- Index message (ticket_id, sent_at, message_id), audit (ticket_id, occurred_at, event_id), attachment (message_id), escalation (ticket_id, created_at).
+- Index message UNIQUE (ticket_id, sequence_no), audit (ticket_id, occurred_at, event_id), attachment (message_id), escalation (ticket_id, created_at).
+- Migration thêm sequence_no; backfill message cũ theo (sent_at, message_id) để có thứ tự chuyển đổi xác định, không tuyên bố khôi phục được thứ tự gửi lịch sử khi timestamp trùng. Message mới luôn cấp số dưới khóa ticket.
 - SQL migration thêm version/tables/index, kiểm số dòng trước/sau và FK; không sửa/xóa ticket cũ để hợp thức hóa schema. Preflight kiểm orphan/legacy escalation không đủ thông tin, dừng kèm báo cáo nếu không thể chuyển đổi trung thực. Tạo bản ghi legacy với dữ liệu thật hiện hữu, không bịa tác giả/quyết định thiếu.
 - Không dùng script dựng lại DatabasePgAdmin4.txt để migrate. Đối chiếu live schema vì entity membership hiện có đã lệch một số chi tiết của bản schema nguồn.
+
+## Ràng buộc xử lý tệp
+
+Ảnh tối đa 20.000.000 pixel; PDF tối đa 100 trang, từ chối bản mã hóa không đọc được. Kiểm tra cấu trúc bằng ImageIO/PDFBox trong tiến trình con riêng: giới hạn cứng 256 MB RAM (256.000.000 byte) bằng cơ chế hệ điều hành, 10 giây/tệp và tổng 30 giây/lần gửi. -Xmx không thay thế giới hạn RAM toàn tiến trình. Hết hạn/vượt bộ nhớ phải dừng tiến trình, dọn tệp tạm và từ chối toàn bộ lần gửi, không lưu phiếu/message/tệp/audit một phần. Không kiểm tra trong JVM ứng dụng; nếu môi trường chưa áp được cách ly và giới hạn thì từ chối tiếp nhận tệp. Thực hiện kiểm tra tệp trước transaction ghi ngắn, rồi kiểm lại quyền/version/trạng thái dưới khóa trước commit.

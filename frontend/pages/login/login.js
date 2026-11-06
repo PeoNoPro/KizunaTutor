@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Quản lý đăng nhập & Điều hướng phiên làm việc
  * Module Feature-Based độc lập tuân thủ nghiêm ngặt FRONTEND_RULES.md
  */
@@ -124,7 +124,7 @@ async function handleLoginSubmit(event) {
   let networkFailed = false;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 1200);
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
 
   try {
     response = await fetch('/api/auth/login', {

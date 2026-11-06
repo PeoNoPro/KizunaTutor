@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Main Application Bootstrap & Utilities
  * Dùng chung cho toàn bộ các trang trong hệ thống.
  * Cung cấp cơ chế nạp Header / Footer từ components/ để đồng bộ toàn dự án.

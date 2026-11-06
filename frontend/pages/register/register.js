@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Quản lý đăng ký tài khoản & Xác thực mã OTP 6 số
  * Module Feature-Based độc lập tuân thủ nghiêm ngặt FRONTEND_RULES.md
  */

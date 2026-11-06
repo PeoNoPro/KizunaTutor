@@ -59,5 +59,5 @@ export const API_CONFIG = {
   }
 };
 
-window.API_CONFIG = API_CONFIG;
+if (typeof window !== 'undefined') window.API_CONFIG = API_CONFIG;
 

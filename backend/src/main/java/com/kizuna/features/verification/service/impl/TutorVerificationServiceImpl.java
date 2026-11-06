@@ -85,16 +85,18 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
         Tutor tutor = lockEditableTutor();
         CredentialType credentialType = parseType(type, true);
         String cleanTitle = validTitle(title, true);
-        String key = storage.store(file);
+        VerificationDocumentStorage.ValidatedDocument document = storage.validate(file);
         TutorCredential credential = TutorCredential.builder()
                 .tutor(tutor)
                 .credentialType(credentialType)
                 .title(cleanTitle)
-                .storageKey(key)
+                .storageKey(document.key())
                 .verifiedStatus(TutorCredentialStatus.PENDING)
                 .uploadedAt(OffsetDateTime.now())
                 .build();
-        return assembler.document(credentialRepository.save(credential));
+        TutorCredential saved = credentialRepository.save(credential);
+        storage.saveContent(saved.getCredentialId(), document.content());
+        return assembler.document(saved);
     }
 
     @Override
@@ -111,15 +113,20 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
         if (cleanTitle != null) {
             credential.setTitle(cleanTitle);
         }
+        VerificationDocumentStorage.ValidatedDocument document = null;
         if (file != null && !file.isEmpty()) {
-            String oldKey = credential.getStorageKey();
-            credential.setStorageKey(storage.store(file));
+            document = storage.validate(file);
+            storage.deleteLegacyAfterCommit(credential.getStorageKey());
+            credential.setStorageKey(document.key());
             credential.setVerifiedStatus(TutorCredentialStatus.PENDING);
             credential.setRejectionReason(null);
             credential.setUploadedAt(OffsetDateTime.now());
-            storage.deleteAfterCommit(oldKey);
         }
-        return assembler.document(credentialRepository.save(credential));
+        TutorCredential saved = credentialRepository.save(credential);
+        if (document != null) {
+            storage.saveContent(saved.getCredentialId(), document.content());
+        }
+        return assembler.document(saved);
     }
 
     @Override
@@ -129,7 +136,7 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
         TutorCredential credential = credentialRepository.findByCredentialIdAndTutor_TutorId(documentId, tutor.getTutorId())
                 .orElseThrow(VerificationException::notFound);
         credentialRepository.delete(credential);
-        storage.deleteAfterCommit(credential.getStorageKey());
+        storage.deleteLegacyAfterCommit(credential.getStorageKey());
     }
 
     @Override
@@ -161,8 +168,8 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
     }
 
     static DocumentFile toDocumentFile(TutorCredential credential, VerificationDocumentStorage storage) {
-        return storage.resolveExisting(credential.getStorageKey())
-                .map(path -> new DocumentFile(path, storage.contentType(credential.getStorageKey()),
+        return storage.load(credential)
+                .map(content -> new DocumentFile(content, storage.contentType(credential.getStorageKey()),
                         VerificationViewAssembler.displayFileName(credential)))
                 .orElseThrow(VerificationException::notFound);
     }

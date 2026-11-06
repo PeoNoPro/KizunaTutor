@@ -54,7 +54,7 @@ Nếu công cụ của bạn không tự đọc file này, hãy dán câu sau v�
 
 - [ ] Test của phần vừa làm đã viết và chạy xanh (nếu không chạy được thì đã ghi lý do)
 - [ ] `backend`: `.\mvnw.cmd test-compile` qua; chạy test liên quan `.\mvnw.cmd test -Dtest=<TenTest>` (Linux/macOS: `./mvnw`)
-- [ ] `frontend`: `node --test frontend/tests/` qua; đã mở trang qua `node frontend/server.js` và kiểm tra ngôn ngữ, viết hoa, trạng thái rỗng, trạng thái lỗi
+- [ ] `frontend`: `node --test "frontend/tests/*.test.mjs"` qua; đã mở trang qua `node frontend/server.js` và kiểm tra ngôn ngữ, viết hoa, trạng thái rỗng, trạng thái lỗi
 - [ ] Đánh `[x]` task trong `tasks.md`; ghi chú triển khai, lệch kỹ thuật ở `plan.md`
 - [ ] Thuật ngữ mới hoặc trạng thái mới có bản chuyển ngữ tiếng Việt cho giao diện
 - [ ] Báo cáo cho người dùng: file đã tạo hoặc sửa, kết quả lệnh kiểm tra, quyết định kỹ thuật cần nhóm xác nhận

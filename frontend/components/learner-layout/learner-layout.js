@@ -38,6 +38,13 @@ export const LEARNER_MENU_GROUPS = [
         url: '/pages/connection-requests/',
         icon: '📅',
         matcher: ['/connection-requests', '/pages/connection-requests']
+      },
+      {
+        key: 'my-courses',
+        title: 'Lớp học của tôi',
+        url: '/pages/my-courses/',
+        icon: '🏫',
+        matcher: ['/my-courses', '/pages/my-courses']
       }
     ]
   },
@@ -94,6 +101,25 @@ export const LEARNER_MENU_GROUPS = [
         matcher: ['/flashcards', '/decks']
       }
     ]
+  },
+  {
+    groupTitle: 'Hỗ trợ',
+    items: [
+      {
+        key: 'support',
+        title: 'Yêu cầu hỗ trợ',
+        url: '/learner/support/tickets',
+        icon: '💬',
+        matcher: ['/learner/support/tickets', '/pages/support-ticket']
+      },
+      {
+        key: 'policies',
+        title: 'Chính sách',
+        url: '/learner/policies',
+        icon: '📄',
+        matcher: ['/learner/policies', '/pages/polic']
+      }
+    ]
   }
 ];
 
@@ -104,6 +130,7 @@ export const PAGE_META_MAP = {
   'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
   'tutors': { title: 'Tìm gia sư Kizuna', badge: 'Gia sư & lớp học' },
   'requests': { title: 'Lịch học thử & ghép lớp', badge: 'Gia sư & lớp học' },
+  'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },
   'kanji-dictionary': { title: 'Tra cứu chữ Hán', badge: 'Học tập & rèn luyện' },
   'handwriting': { title: 'Tra cứu viết tay', badge: 'Học tập & rèn luyện' },
   'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Học tập & rèn luyện' },
@@ -302,7 +329,9 @@ export function bindLearnerLayoutEvents() {
   });
 
   // Xử lý Đăng xuất tập trung
-  btnLogout?.addEventListener('click', () => {
+  btnLogout?.addEventListener('click', async () => {
+    // Cookie phiên là HttpOnly nên phải nhờ backend xóa.
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (e) {}
     localStorage.removeItem('kizuna_token');
     localStorage.removeItem('kizuna_user');
     sessionStorage.clear();

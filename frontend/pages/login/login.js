@@ -145,38 +145,7 @@ async function handleLoginSubmit(event) {
 
   // Nếu Backend chưa khởi động (502 hoặc ngắt kết nối mạng)
   if (networkFailed || (response && response.status === 502)) {
-    const matchedDemo = Object.values(DEMO_ACCOUNTS).find(
-      acc => acc.email.toLowerCase() === email.toLowerCase()
-    );
-
-    if (matchedDemo) {
-      if (matchedDemo.pass === password) {
-        const demoUser = {
-          id: 9999,
-          email: matchedDemo.email,
-          fullName: matchedDemo.fullName,
-          role: matchedDemo.role,
-          roles: [matchedDemo.role],
-          isDemo: true
-        };
-        setAuthSession('demo-jwt-token-' + Date.now(), demoUser);
-        showLoginAlert('Đăng nhập thành công (Chế độ Thử nghiệm)! Hệ thống đang chuyển hướng...', 'success');
-        const targetUrl = DASHBOARD_ROUTES[matchedDemo.role] || '/learner/dashboard';
-        setTimeout(() => {
-          window.location.href = targetUrl;
-        }, 300);
-        return;
-      } else {
-        showLoginAlert('Mật khẩu không chính xác cho tài khoản demo: ' + matchedDemo.email, 'danger');
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
-        }
-        return;
-      }
-    }
-
-    showLoginAlert('Không thể kết nối Backend (cổng 8085 chưa bật). Hãy click 1 trong 6 nút "Đăng nhập nhanh 1-Click" bên dưới để vào ngay giao diện!', 'danger');
+    showLoginAlert('Chưa kết nối được máy chủ đăng nhập. Vui lòng thử lại sau.', 'danger');
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
@@ -190,6 +159,15 @@ async function handleLoginSubmit(event) {
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
+    }
+    return;
+  }
+
+  if (!data.token) {
+    showLoginAlert('Chưa kết nối được máy chủ đăng nhập. Vui lòng thử lại sau.', 'danger');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span>Đăng nhập</span>';
     }
     return;
   }

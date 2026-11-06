@@ -1,7 +1,7 @@
 package com.kizuna.features.verification.controller;
 
 import com.kizuna.features.verification.service.DocumentFile;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
@@ -28,6 +28,7 @@ final class DocumentFileResponses {
                         .toString())
                 .header("X-Content-Type-Options", "nosniff")
                 .cacheControl(CacheControl.noStore())
-                .body(new FileSystemResource(file.path()));
+                .contentLength(file.content().length)
+                .body(new ByteArrayResource(file.content()));
     }
 }

@@ -1,5 +1,7 @@
 package com.kizuna.features.verification;
 
+import com.kizuna.features.verification.entity.TutorCredential;
+import com.kizuna.features.verification.repository.TutorCredentialRepository;
 import com.kizuna.features.verification.service.VerificationDocumentStorage;
 import com.kizuna.features.verification.service.VerificationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,19 +16,26 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class VerificationDocumentStorageTest {
 
     @TempDir
     Path tempDir;
 
+    private TutorCredentialRepository repository;
     private VerificationDocumentStorage storage;
 
     @BeforeEach
     void setUp() {
-        storage = new VerificationDocumentStorage(tempDir.toString());
+        repository = mock(TutorCredentialRepository.class);
+        storage = new VerificationDocumentStorage(tempDir.toString(), repository);
     }
 
     private static byte[] validPdf() {
@@ -40,24 +49,32 @@ class VerificationDocumentStorageTest {
         return out.toByteArray();
     }
 
+    private static TutorCredential credential(String key) {
+        return TutorCredential.builder().credentialId(UUID.randomUUID()).title("Giấy tờ").storageKey(key).build();
+    }
+
     private void assertInvalid(MockMultipartFile file) {
-        VerificationException ex = assertThrows(VerificationException.class, () -> storage.store(file));
+        VerificationException ex = assertThrows(VerificationException.class, () -> storage.validate(file));
         assertEquals("INVALID_FILE", ex.getCode());
     }
 
     @Test
-    void storesValidPdfPngAndJpegWithRandomKeys() throws IOException {
-        String pdfKey = storage.store(new MockMultipartFile("file", "bang.pdf", "application/pdf", validPdf()));
-        String pngKey = storage.store(new MockMultipartFile("file", "anh.PNG", "image/png", image("png")));
-        String jpgKey = storage.store(new MockMultipartFile("file", "cccd.jpeg", "image/jpeg", image("jpg")));
+    void validatesPdfPngAndJpegWithRandomKeysAndWritesNothingToDisk() throws IOException {
+        var pdf = storage.validate(new MockMultipartFile("file", "bang.pdf", "application/pdf", validPdf()));
+        var png = storage.validate(new MockMultipartFile("file", "anh.PNG", "image/png", image("png")));
+        var jpg = storage.validate(new MockMultipartFile("file", "cccd.jpeg", "image/jpeg", image("jpg")));
 
-        assertTrue(pdfKey.endsWith(".pdf"));
-        assertTrue(pngKey.endsWith(".png"));
-        assertTrue(jpgKey.endsWith(".jpg"));
-        assertFalse(pdfKey.contains("bang"));
-        assertTrue(storage.exists(pdfKey));
-        assertEquals("application/pdf", storage.contentType(pdfKey));
-        assertEquals("image/jpeg", storage.contentType(jpgKey));
+        assertTrue(pdf.key().endsWith(".pdf"));
+        assertTrue(png.key().endsWith(".png"));
+        assertTrue(jpg.key().endsWith(".jpg"));
+        assertFalse(pdf.key().contains("bang"));
+        assertTrue(VerificationDocumentStorage.isManagedKey(pdf.key()));
+        assertArrayEquals(validPdf(), pdf.content());
+        assertEquals("application/pdf", storage.contentType(pdf.key()));
+        assertEquals("image/jpeg", storage.contentType(jpg.key()));
+        try (var files = Files.list(tempDir)) {
+            assertEquals(0, files.count());
+        }
     }
 
     @Test
@@ -93,6 +110,63 @@ class VerificationDocumentStorageTest {
     }
 
     @Test
+    void saveContentWritesToDatabaseColumn() {
+        UUID id = UUID.randomUUID();
+        when(repository.updateFileData(id, validPdf())).thenReturn(1);
+        storage.saveContent(id, validPdf());
+        verify(repository).updateFileData(id, validPdf());
+    }
+
+    @Test
+    void saveContentFailsWhenRecordWasNotUpdated() {
+        when(repository.updateFileData(any(), any())).thenReturn(0);
+        assertThrows(IllegalStateException.class, () -> storage.saveContent(UUID.randomUUID(), validPdf()));
+    }
+
+    @Test
+    void loadPrefersDatabaseContentSoAnyMachineCanServeTheFile() {
+        TutorCredential c = credential(UUID.randomUUID() + ".pdf");
+        when(repository.findFileData(c.getCredentialId())).thenReturn(validPdf());
+
+        assertArrayEquals(validPdf(), storage.load(c).orElseThrow());
+    }
+
+    @Test
+    void loadFallsBackToLegacyDiskFileWhenDatabaseHasNoContent() throws IOException {
+        String key = UUID.randomUUID() + ".pdf";
+        Files.write(tempDir.resolve(key), validPdf());
+        TutorCredential c = credential(key);
+        when(repository.findFileData(c.getCredentialId())).thenReturn(null);
+
+        assertArrayEquals(validPdf(), storage.load(c).orElseThrow());
+    }
+
+    @Test
+    void loadIsEmptyWhenNeitherDatabaseNorDiskHasTheFile() {
+        TutorCredential c = credential(UUID.randomUUID() + ".pdf");
+        assertTrue(storage.load(c).isEmpty());
+    }
+
+    @Test
+    void availableIdsCombinesDatabaseContentAndLegacyDiskFiles() throws IOException {
+        TutorCredential inDb = credential(UUID.randomUUID() + ".pdf");
+        TutorCredential onDisk = credential(UUID.randomUUID() + ".png");
+        TutorCredential missing = credential(UUID.randomUUID() + ".jpg");
+        Files.write(tempDir.resolve(onDisk.getStorageKey()), new byte[]{1});
+        when(repository.findIdsWithFileData(any())).thenReturn(List.of(inDb.getCredentialId().toString()));
+
+        Set<UUID> available = storage.availableIds(List.of(inDb, onDisk, missing));
+
+        assertEquals(Set.of(inDb.getCredentialId(), onDisk.getCredentialId()), available);
+    }
+
+    @Test
+    void availableIdsOfEmptyListSkipsQuery() {
+        assertTrue(storage.availableIds(List.of()).isEmpty());
+        verify(repository, never()).findIdsWithFileData(any());
+    }
+
+    @Test
     void rejectsKeysThatEscapeStorageDirectory() throws IOException {
         Files.writeString(tempDir.getParent().resolve("secret.pdf"), "x");
         assertTrue(storage.resolveExisting("../secret.pdf").isEmpty());
@@ -102,9 +176,10 @@ class VerificationDocumentStorageTest {
     }
 
     @Test
-    void deleteWithoutTransactionRemovesFileImmediately() {
-        String key = storage.store(new MockMultipartFile("file", "a.pdf", "application/pdf", validPdf()));
-        storage.deleteAfterCommit(key);
-        assertFalse(storage.exists(key));
+    void deleteLegacyWithoutTransactionRemovesDiskFileImmediately() throws IOException {
+        String key = UUID.randomUUID() + ".pdf";
+        Files.write(tempDir.resolve(key), validPdf());
+        storage.deleteLegacyAfterCommit(key);
+        assertTrue(storage.resolveExisting(key).isEmpty());
     }
 }

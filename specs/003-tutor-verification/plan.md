@@ -138,7 +138,15 @@ frontend/
 | --- | --- | --- |
 | Filter JWT + siết route trong `SecurityConfig` (core) | FR-019/020, GB-05: hiện mọi route `permitAll`, không xác định được người dùng | Nhận `userId` qua query như vài controller hiện có cho phép giả mạo người khác |
 | 2 cột nullable ở `tutor_verification_histories` | FR-018 cần phản hồi và ghi chú nội bộ riêng cho từng mục; GB-02 | Trộn vào `notes` dễ rò rỉ ghi chú nội bộ; phương án dự phòng ghi ở research §2 nếu nhóm không duyệt đổi schema |
-| Lưu tệp trên đĩa + đồng bộ theo transaction | Theo câu trả lời làm rõ Q2 | — (quyết định của nhóm) |
+| Lưu tệp trên đĩa + đồng bộ theo transaction | Theo câu trả lời làm rõ Q2 | — (quyết định của nhóm) — **đã thay, xem mục dưới** |
+
+## Thay đổi sau nghiệm thu (2026-11-06): lưu giấy tờ trong DB
+
+- **Vấn đề**: tệp nằm trên ổ cứng của máy đã chạy backend lúc tải lên; cả nhóm dùng chung DB Supabase nhưng mỗi người chạy backend riêng, nên máy khác thấy bản ghi mà không có tệp ("Không thể hiển thị tệp này") và gia sư còn bị chặn nộp hồ sơ vì giấy tờ bị coi là thiếu tệp.
+- **Giải pháp** (cùng cách FE-06 `learning_materials.file_data`, FE-07): nội dung tệp lưu ở cột mới `tutor_credentials.file_data BYTEA` — migration `database/migrations/010_fe03_tutor_credentials_file_data.sql`, người phụ trách FE-03 tự chạy trên Supabase. `file_url` vẫn giữ khóa `<uuid>.<pdf|png|jpg>` để xác định loại tệp.
+- `file_data` không ánh xạ vào entity; đọc/ghi qua truy vấn riêng ở `TutorCredentialRepository` (danh sách không tải dữ liệu nhị phân; kiểm tra "có tệp" bằng một truy vấn `file_data IS NOT NULL` cho cả danh sách). Bản ghi và nội dung ghi trong cùng transaction.
+- **Chuyển tiếp**: bản ghi cũ có `file_data = NULL` vẫn đọc từ `app.verification.storage-dir` nếu máy hiện tại còn tệp; thay hoặc xóa giấy tờ thì xóa tệp cũ trên đĩa sau commit.
+- API và frontend không đổi. Kiểm tra định dạng/dung lượng (FR-024) giữ nguyên.
 
 ## Phase Outputs and Readiness
 

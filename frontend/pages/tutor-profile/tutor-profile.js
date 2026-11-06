@@ -770,8 +770,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             showError('Khung giờ này vừa có người đăng ký. Vui lòng chọn khung giờ khác.');
           } else if (err.status === 401 || err.status === 403) {
             showError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          } else if (err.name === 'TypeError' || err.message?.toLowerCase().includes('fetch') || err.name === 'TimeoutError') {
+            showError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.');
           } else {
-            showError(err.message || 'Không thể gửi yêu cầu lúc này. Vui lòng thử lại sau.');
+            showError(err.message && !err.message.includes('fetch') ? err.message : 'Không thể gửi yêu cầu lúc này. Vui lòng thử lại sau.');
           }
           continueBtn.disabled = false;
           continueBtn.innerHTML = origBtnHtml;

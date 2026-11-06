@@ -7,6 +7,7 @@
 
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { showToast } from '/js/main.js';
+import { API } from '/js/api.js';
 
 // Khởi tạo khung Layout dùng chung cho Học Viên
 initLearnerShell({
@@ -22,6 +23,8 @@ const statKanjiSubtext = document.getElementById('statKanjiSubtext');
 const statAccuracy = document.getElementById('statAccuracy');
 const statAccuracySubtext = document.getElementById('statAccuracySubtext');
 const recentActivityList = document.getElementById('recentActivityList');
+const statTutorStatus = document.getElementById('statTutorStatus');
+const dashboardBookingsList = document.getElementById('dashboardBookingsList');
 
 // =========================================================================
 // 1. NẠP THÔNG TIN HỌC VIÊN TỪ LOCALSTORAGE / SESSION
@@ -176,6 +179,7 @@ function initDashboard() {
   loadLearnerProfile();
   loadRealFlashcardStats();
   loadRecentSessions();
+  loadTrialBookings();
 }
 
 if (document.readyState === 'loading') {

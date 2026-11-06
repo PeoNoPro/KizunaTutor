@@ -35,6 +35,18 @@ async function handleSidebarLinkClick(e) {
     if (!href.startsWith(currentOrigin)) return;
   }
 
+    // Bỏ qua các trang độc lập (Full-page / Đầy đủ giao diện): Tìm gia sư, Yêu cầu kết nối, Trang chủ
+  if (
+    link.hasAttribute('data-no-spa') ||
+    href.includes('/pages/tutor-discovery') ||
+    href.includes('/tutors') ||
+    href.includes('/pages/connection-requests') ||
+    href.includes('/connection-requests') ||
+    href.includes('/pages/home')
+  ) {
+    return;
+  }
+
   const currentPath = window.location.pathname + window.location.search;
   const targetUrl = new URL(href, window.location.origin).pathname + new URL(href, window.location.origin).search;
 

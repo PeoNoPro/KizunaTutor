@@ -34,7 +34,7 @@ export const LEARNER_MENU_GROUPS = [
       },
       {
         key: 'requests',
-        title: 'Lịch học thử & ghép lớp',
+        title: 'Lịch học thử & kết nối',
         url: '/pages/connection-requests/',
         icon: '📅',
         matcher: ['/connection-requests', '/pages/connection-requests']
@@ -160,7 +160,7 @@ export function getLearnerSidebarHtml(activeKey) {
       return `
         <a href="${item.url}"
            data-menu-key="${item.key}"
-           data-spa-link
+           ${(item.key === 'tutors' || item.key === 'requests') ? 'data-no-spa' : 'data-spa-link'}
            class="nav-item flex items-center space-x-2.5 px-3 py-2 text-[14px] rounded-[6px] transition-all mb-1 no-underline ${activeClass}">
           <span class="text-sm shrink-0">${item.icon}</span>
           <span class="text-inherit truncate">${item.title}</span>

@@ -64,8 +64,8 @@ function renderTopicPills() {
               data-topic="${topicKey}"
               class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition flex items-center gap-1.5 cursor-pointer ${
                 isActive
-                  ? 'bg-[#1E293B] text-white shadow-xs border border-[#1E293B]'
-                  : 'bg-[#FAF8F2] border border-[#ECE8DE] text-[#0F2545] hover:bg-white hover:border-[#CBD5E1]'
+                  ? 'bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]'
+                  : 'bg-white border border-[#CBD5E1] text-[#1E293B] hover:bg-white hover:border-[#CBD5E1]'
               }">
         <span>${t.icon || '📚'}</span>
         <span>${t.titleVn}</span>
@@ -198,9 +198,9 @@ function renderVocabGrid(items) {
 
   grid.innerHTML = items.map((v, idx) => {
     return `
-      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full min-w-0 group">
+      <div class="bg-white border border-[#ECE8DE] rounded-xl p-3.5 hover:border-[#CBD5E1] transition-all flex flex-col justify-between h-full min-w-0 group">
         <div class="space-y-2.5 flex-1 min-w-0">
-          <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#ECE8DE]">
+          <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#E2E8F0]">
             <div class="min-w-0">
               <div class="text-xl md:text-2xl font-bold font-japanese text-[#0F2545] leading-snug truncate">
                 ${v.word || v.kanji}
@@ -228,7 +228,7 @@ function renderVocabGrid(items) {
         </div>
 
         <!-- Cụm nút hành động bám sát đáy (mt-auto) -->
-        <div class="pt-3 mt-auto border-t border-[#ECE8DE] flex items-center justify-between gap-2">
+        <div class="pt-3 mt-auto border-t border-[#E2E8F0] flex items-center justify-between gap-2">
           <a href="/shodo?char=${encodeURIComponent(v.kanji || v.word || '')}"
              class="flex-1 py-1.5 px-2 rounded-xl bg-[#FAF8F2] hover:bg-[#FFE5EC] text-[#0F2545] hover:text-[#831843] border border-[#ECE8DE] hover:border-[#FBCFE8] text-xs font-bold flex items-center justify-center gap-1 transition no-underline text-center truncate">
             <span>🖌️</span>

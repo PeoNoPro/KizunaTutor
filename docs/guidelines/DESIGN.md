@@ -1,4 +1,4 @@
-# KizunaTutor Design System (DESIGN.md)
+﻿# KizunaTutor Design System (DESIGN.md)
 
 <!-- ===================================================================== -->
 <!-- [IMMUTABLE CORE GUARDRAILS] DO NOT MODIFY, OVERWRITE OR DELETE BELOW  -->
@@ -169,3 +169,15 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
 - **Nhãn, Badge, Meta:** `ui-sans-serif`, system-ui (11px, 7px).
 - **Nguyên tắc hành động (UX Rule):** Chỉ có DUY NHẤT 1 nút bấm Primary CTA trên mỗi màn hình/khối nhìn. Các nút khác dùng dạng Outlined (nền trắng viền đen) hoặc Secondary.
 
+### 4. NGUYÃŠN Táº®C Báº®T BUá»˜C KHI THÃŠM Má»šI TÃNH NÄ‚NG / MÃ€N HÃŒNH (MANDATORY INHERITANCE RULE)
+> âš ï¸ **Äáº¶C QUYá»€N ÃP Dá»¤NG RIÃŠNG CHO KHá»I "Há»ŒC Táº¬P & RÃˆN LUYá»†N":**  
+> Má»—i khi phÃ¡t triá»ƒn hoáº·c thÃªm má»›i báº¥t ká»³ mÃ n hÃ¬nh, thÃ nh pháº§n (component), popup/modal hay tÃ­nh nÄƒng nÃ o thuá»™c khá»‘i **Há»c Táº­p & RÃ¨n Luyá»‡n (Learning & Practice)** cá»§a Há»c viÃªn:
+> 
+> 1. **Báº¯t buá»™c Ä‘á»c láº¡i vÃ  tuÃ¢n thá»§ tuyá»‡t Ä‘á»‘i cÃ¡c quy táº¯c á»Ÿ trÃªn:**
+>    - NhÃºng file CSS dÃ¹ng chung: `<link rel="stylesheet" href="/assets/css/learning-support-common.css">` á»Ÿ Ä‘áº§u tháº» `<head>`.
+>    - Sá»­ dá»¥ng Ä‘Ãºng há»‡ thá»‘ng Design Tokens, tháº» bÃ i há»c `.ls-card`, cá»¥m nÃºt báº¥m `.ls-btn` (`.ls-btn-primary`, `.ls-btn-outline`, `.ls-btn-shodo`, `.ls-btn-active`), thanh tÃ¡c vá»¥ `.ls-toolbar`, bá»™ lá»c `.ls-pill`, Ã´ nháº­p `.ls-input` vÃ  huy hiá»‡u `.ls-badge`.
+>    - Tuyá»‡t Ä‘á»‘i tuÃ¢n thá»§ nguyÃªn táº¯c WCAG AAA chá»‘ng chá»¯ tÃ ng hÃ¬nh (`--color-text-primary: #0F2545`, `--color-text-secondary: #3F4850`), khÃ´ng bao giá» Ä‘á»ƒ chá»¯ tráº¯ng trÃªn ná»n sÃ¡ng.
+>    - ToÃ n bá»™ luá»“ng dá»¯ liá»‡u pháº£i lÃ  Zero-Reload: truyá»n ngáº§m JSON qua `apiClient.js` vÃ  cáº­p nháº­t DOM Ä‘á»™ng, kÃ¨m thÃ´ng bÃ¡o ná»•i Toast/Dialog.
+> 
+> 2. **Giá»›i háº¡n pháº¡m vi nghiÃªm ngáº·t:**  
+>    Quy Ä‘á»‹nh nÃ y **chá»‰ Ã¡p dá»¥ng duy nháº¥t cho cÃ¡c pháº§n trong khá»‘i Há»c Táº­p & RÃ¨n Luyá»‡n** (bao gá»“m: Kana Quiz, Bá»™ tháº» Flashcards, Chi tiáº¿t Flashcard, Luyá»‡n láº­t tháº», PhÃ²ng luyá»‡n viáº¿t Shodo, Tra cá»©u Tá»« Ä‘iá»ƒn chá»¯ HÃ¡n, Tra cá»©u viáº¿t tay AI, Game MÆ°a chá»¯ HÃ¡n, Ngá»¯ phÃ¡p & AI Sensei, Trá»£ lÃ½ há»c táº­p vÃ  cÃ¡c module há»c táº­p má»›i phÃ¡t triá»ƒn thÃªm sau nÃ y). Tuyá»‡t Ä‘á»‘i **khÃ´ng Ã¡p dá»¥ng** sang cÃ¡c phÃ¢n há»‡ ngoÃ i khá»‘i nÃ y (nhÆ° Admin, Manager, Gia sÆ°, CSKH hay cÃ¡c trang Portal cÃ´ng khai).

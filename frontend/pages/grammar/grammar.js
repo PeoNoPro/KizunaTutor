@@ -308,7 +308,7 @@ function renderGrammarCards() {
     }).join('');
 
     html += `
-      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm hover:border-[#006194] hover:shadow-md transition flex flex-col justify-between group cursor-pointer"
+      <div class="bg-white border border-[#ECE8DE] rounded-xl p-3.5 hover:border-[#CBD5E1] transition flex flex-col justify-between group cursor-pointer"
            data-action="view-detail" data-id="${rule.id}">
         
         <div class="space-y-3">
@@ -331,13 +331,13 @@ function renderGrammarCards() {
           </div>
 
           <!-- Ý nghĩa ngắn -->
-          <p class="text-xs font-semibold text-[#3F4850] line-clamp-2 leading-relaxed bg-[#FAF8F2] p-2.5 rounded-xl border border-[#ECE8DE]">
+          <p class="text-xs font-semibold text-[#3F4850] line-clamp-2 leading-relaxed bg-[#F8FAFC] p-2 rounded-lg border border-[#E2E8F0]">
             ${rule.meaning}
           </p>
         </div>
 
         <!-- Footer Thẻ -->
-        <div class="pt-4 border-t border-[#ECE8DE] flex items-center justify-between text-xs text-[#006194] font-semibold mt-4">
+        <div class="pt-4 border-t border-[#E2E8F0] flex items-center justify-between text-xs text-[#831843] font-semibold mt-4">
           <span>Xem chi tiết công thức &amp; ví dụ</span>
           <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
         </div>

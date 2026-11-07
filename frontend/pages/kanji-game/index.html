@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game Mưa Chữ Hán (Kanji Rain Typing) | KizunaTutor</title>
+  <title>Game MÆ°a Chá»¯ HÃ¡n (Kanji Rain Typing) - KizunaTutor</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/assets/css/learning-support-common.css">
   <link rel="stylesheet" href="/styles/variables.css">
   <link rel="stylesheet" href="/styles/global.css">
   <link rel="stylesheet" href="/styles/components.css">
@@ -32,7 +33,7 @@
       background: radial-gradient(ellipse at top, #1E293B 0%, #0F172A 100%);
       touch-action: none;
     }
-    /* Hiệu ứng nhịp đập khi cận deadline */
+    /* Hiá»‡u á»©ng nhá»‹p Ä‘áº­p khi cáº­n deadline */
     @keyframes pulse-danger {
       0%, 100% { border-color: rgba(239, 68, 68, 0.4); }
       50% { border-color: rgba(239, 68, 68, 1); }
@@ -42,280 +43,280 @@
     }
   </style>
 </head>
-<body class="bg-[#F8FAFC] text-[#1E293B] font-sans antialiased select-none">
+<body class="bg-[#F8FAFC] text-[#334155] font-sans antialiased select-none">
   <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
 
-    <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
+    <!-- 1. SIDEBAR DÃ™NG CHUNG CHO Há»ŒC VIÃŠN -->
     <div id="learnerSidebarContainer"></div>
 
     <!-- 2. MAIN CONTENT AREA -->
     <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
       
-      <!-- HEADER DÙNG CHUNG CHO HỌC VIÊN -->
+      <!-- HEADER DÃ™NG CHUNG CHO Há»ŒC VIÃŠN -->
       <div id="learnerHeaderContainer"></div>
 
       <!-- Scrollable Main Container -->
-      <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] flex flex-col min-w-0">
-        <div class="max-w-[1240px] w-full mx-auto flex-1 space-y-6">
+      <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#F8FAFC] flex flex-col min-w-0">
+        <div class="max-w-6xl w-full mx-auto flex-1 space-y-3">
 
-      <!-- Hero Header Banner & Fast Tool Switcher -->
-      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold text-xl">
-            🌧️
-          </span>
-          <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-xl md:text-2xl font-bold text-[#0F2545]">
-                Game Mưa Chữ Hán (Kanji Rain Typing)
-              </h1>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Luyện phản xạ
-              </span>
-            </div>
-            <p class="text-xs md:text-sm text-[#68737D] mt-0.5">
-              Chữ Hán rơi từ trên cao xuống. Gõ nhanh Hiragana, Romaji hoặc Hán Việt để bắn trúng chữ trước khi chạm vạch!
-            </p>
-          </div>
-        </div>
-
-        <!-- Cụm chuyển đổi nhanh sang các công cụ học khác -->
-        <div class="flex items-center gap-2 flex-wrap shrink-0">
-          <a href="/kanji-dictionary" 
-             class="px-3 py-1.5 rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] text-xs font-semibold flex items-center gap-1.5 transition no-underline">
-            <span>📚</span>
-            <span>Từ điển Hán tự</span>
-          </a>
-          <a href="/shodo" 
-             class="px-3 py-1.5 rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] text-xs font-semibold flex items-center gap-1.5 transition no-underline">
-            <span>🖌️</span>
-            <span>Luyện viết Shodo</span>
-          </a>
-          <a href="/flashcards" 
-             class="px-3 py-1.5 rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] text-xs font-semibold flex items-center gap-1.5 transition no-underline">
-            <span>🗂️</span>
-            <span>Flashcards</span>
-          </a>
-          <a href="/kana" 
-             class="px-3 py-1.5 rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] text-xs font-semibold flex items-center gap-1.5 transition no-underline">
-            <span>⚡</span>
-            <span>Đấu trường Kana</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- ==================== KHU VỰC ĐIỀU HÀNH TRÒ CHƠI (GAME WORKSPACE) ==================== -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-        <!-- Cột Trái: Đấu Trường Canvas (8/12) -->
-        <div class="lg:col-span-8 flex flex-col space-y-4">
-
-          <!-- Thanh HUD Trạng Thái Trực Quan Trong Ván -->
-          <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3 flex-wrap">
-            
-            <!-- Điểm số & Combo -->
+          <!-- Hero Header Banner & Fast Tool Switcher -->
+          <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 sm:p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-[#006194]">
-                <span class="material-symbols-outlined text-[22px]">sports_score</span>
-              </div>
+              <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] font-bold text-lg">
+                ðŸŒ§ï¸
+              </span>
               <div>
-                <span class="text-[10px] font-bold text-[#68737D] uppercase tracking-wider block">Điểm số</span>
-                <div class="flex items-baseline gap-1.5">
-                  <span id="hudScoreText" class="text-xl font-extrabold text-[#0F2545]">0</span>
-                  <span id="hudComboBadge" class="hidden text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
-                    Combo x1
+                <div class="flex items-center gap-2">
+                  <h1 class="text-base sm:text-lg font-bold text-[#0F172A]">
+                    Game MÆ°a Chá»¯ HÃ¡n (Kanji Rain Typing)
+                  </h1>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Luyá»‡n pháº£n xáº¡
                   </span>
                 </div>
-              </div>
-            </div>
-
-            <!-- Đồng Hồ Thời Gian Còn Lại -->
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
-                <span class="material-symbols-outlined text-[22px]">timer</span>
-              </div>
-              <div>
-                <span class="text-[10px] font-bold text-[#68737D] uppercase tracking-wider block">Thời gian</span>
-                <span id="hudTimeText" class="text-xl font-extrabold text-rose-600 font-mono">01:00</span>
-              </div>
-            </div>
-
-            <!-- Từ gõ đúng & Độ chính xác -->
-            <div class="flex items-center gap-6">
-              <div>
-                <span class="text-[10px] font-bold text-[#68737D] uppercase tracking-wider block">Đã bắn trúng</span>
-                <span id="hudWordsCount" class="text-base font-bold text-[#0F2545]">0 chữ</span>
-              </div>
-              <div>
-                <span class="text-[10px] font-bold text-[#68737D] uppercase tracking-wider block">Độ chính xác</span>
-                <span id="hudAccuracy" class="text-base font-bold text-emerald-600">100%</span>
-              </div>
-            </div>
-
-            <!-- Nút bật/tắt âm thanh -->
-            <button type="button" id="btnToggleSound" 
-                    class="p-2 rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] transition cursor-pointer"
-                    title="Bật/Tắt âm thanh tổng hợp">
-              <span id="iconSoundState" class="material-symbols-outlined text-[20px]">volume_up</span>
-            </button>
-          </div>
-
-          <!-- Màn Hình Game Canvas Ô Chữ Rơi -->
-          <div class="relative bg-slate-900 rounded-2xl overflow-hidden shadow-md border-2 border-slate-700 aspect-[4/3] md:aspect-[16/10] flex flex-col justify-end">
-            
-            <canvas id="kanjiRainCanvas" class="w-full h-full block cursor-crosshair"></canvas>
-
-            <!-- Lớp phủ bắt đầu (Pre-Game Overlay) -->
-            <div id="gameStartOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center space-y-4">
-              <div class="w-16 h-16 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-3xl">
-                🌧️
-              </div>
-              <div class="space-y-1 max-w-md">
-                <h3 class="text-xl font-extrabold text-white">Sẵn Sàng Bắn Rơi Chữ Hán?</h3>
-                <p class="text-xs text-slate-300 leading-relaxed">
-                  Các chữ Hán sẽ rơi từ trên trời xuống. Hãy gõ cách đọc Hiragana, Romaji hoặc âm Hán Việt để bắn hạ chữ trước khi chữ chạm vạch đỏ!
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Chá»¯ HÃ¡n rÆ¡i tá»« trÃªn cao xuá»‘ng. GÃµ nhanh Hiragana, Romaji hoáº·c HÃ¡n Viá»‡t Ä‘á»ƒ báº¯n trÃºng chá»¯ trÆ°á»›c khi cháº¡m váº¡ch!
                 </p>
               </div>
-              <button type="button" id="btnStartGameTrigger" 
-                      class="px-6 py-3 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white font-bold text-sm shadow-lg hover:shadow-sky-500/25 transition-all transform hover:-translate-y-0.5 cursor-pointer flex items-center gap-2">
-                <span class="material-symbols-outlined text-[20px]">play_arrow</span>
-                <span>Bắt đầu chơi ngay</span>
-              </button>
             </div>
 
-            <!-- Thanh Hiển Thị Ký Tự Gõ Trực Tiếp (Live Typing Echo) -->
-            <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between pointer-events-none">
-              <div class="px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 text-white text-xs font-mono flex items-center gap-1.5">
-                <span class="text-slate-400">Đang gõ:</span>
-                <span id="liveTypingEcho" class="font-bold text-sky-400">...</span>
-              </div>
-              <div class="text-[11px] text-slate-400 px-2 py-1 rounded bg-black/40">
-                Gõ <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-white">Enter</kbd> hoặc gõ đúng tự nổ
-              </div>
-            </div>
-          </div>
-
-          <!-- Khung Ô Nhập Liệu Gõ Phím (Typing Input Box) -->
-          <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 shadow-sm space-y-2">
-            <div class="relative">
-              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#006194] text-[22px]">keyboard</span>
-              <input type="text" 
-                     id="kanjiGameInput" 
-                     placeholder="Bấm vào đây và gõ nhanh (Ví dụ: nichi, hi, tsuki, nhat...)" 
-                     autocomplete="off" 
-                     autocorrect="off" 
-                     autocapitalize="off" 
-                     spellcheck="false"
-                     class="w-full pl-12 pr-28 py-3.5 text-base md:text-lg font-semibold border-2 border-[#ECE8DE] focus:border-[#006194] rounded-xl bg-[#FAF8F2] focus:bg-white focus:outline-none transition shadow-inner">
-              <button type="button" id="btnRestartGame" 
-                      class="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-[#FAF8F2] hover:bg-[#F2EFE6] text-[#0F2545] border border-[#ECE8DE] text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                      title="Chơi lại ván mới">
-                <span class="material-symbols-outlined text-[16px]">restart_alt</span>
-                <span>Làm lại</span>
-              </button>
-            </div>
-            <div class="flex items-center justify-between text-xs text-[#68737D] px-1">
-              <span>💡 Mẹo: Hỗ trợ cả <strong>Hiragana</strong> (ひ), <strong>Romaji</strong> (hi, nichi) và <strong>Âm Hán Việt</strong> (nhat).</span>
-              <span class="font-medium text-[#0F2545]">Không cần chuyển đổi IME</span>
+            <!-- Cá»¥m chuyá»ƒn Ä‘á»•i nhanh sang cÃ¡c cÃ´ng cá»¥ há»c khÃ¡c -->
+            <div class="flex items-center gap-1.5 flex-wrap shrink-0">
+              <a href="/kanji-dictionary" 
+                 class="px-2.5 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#1E293B] text-xs font-semibold flex items-center gap-1.5 transition no-underline cursor-pointer">
+                <span>ðŸ“š</span>
+                <span>Tá»« Ä‘iá»ƒn HÃ¡n tá»±</span>
+              </a>
+              <a href="/shodo" 
+                 class="px-2.5 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#1E293B] text-xs font-semibold flex items-center gap-1.5 transition no-underline cursor-pointer">
+                <span>ðŸ–Œï¸</span>
+                <span>Luyá»‡n viáº¿t Shodo</span>
+              </a>
+              <a href="/flashcards" 
+                 class="px-2.5 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#1E293B] text-xs font-semibold flex items-center gap-1.5 transition no-underline cursor-pointer">
+                <span>ðŸ—‚ï¸</span>
+                <span>Flashcards</span>
+              </a>
+              <a href="/kana" 
+                 class="px-2.5 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#1E293B] text-xs font-semibold flex items-center gap-1.5 transition no-underline cursor-pointer">
+                <span>âš¡</span>
+                <span>Äáº¥u trÆ°á»ng Kana</span>
+              </a>
             </div>
           </div>
 
-        </div>
+          <!-- ==================== KHU Vá»°C ÄIá»€U HÃ€NH TRÃ’ CHÆ I (GAME WORKSPACE) ==================== -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
 
-        <!-- Cột Phải: Bảng Cấu Hình Trận Đấu & Lịch Sử Thống Kê (4/12) -->
-        <div class="lg:col-span-4 flex flex-col space-y-5">
-          
-          <!-- Hộp 1: Tùy Chọn Ván Chơi -->
-          <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm space-y-4">
-            <div class="flex items-center gap-2 border-b border-[#ECE8DE] pb-3">
-              <span class="material-symbols-outlined text-[20px] text-[#006194]">tune</span>
-              <h3 class="font-bold text-sm text-[#0F2545]">Cài đặt trận đấu</h3>
-            </div>
+            <!-- Cá»™t TrÃ¡i: Äáº¥u TrÆ°á»ng Canvas (8/12) -->
+            <div class="lg:col-span-8 flex flex-col space-y-3">
 
-            <!-- Chọn Cấp độ JLPT hoặc Bộ thẻ cá nhân -->
-            <div class="space-y-1.5">
-              <label for="selectGameSource" class="block text-xs font-bold text-[#68737D] uppercase tracking-wider">
-                Nguồn chữ Hán:
-              </label>
-              <select id="selectGameSource" 
-                      class="w-full px-3 py-2.5 text-xs font-bold text-[#0F2545] bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl focus:bg-white focus:border-[#006194] focus:outline-none transition cursor-pointer">
-                <option value="ALL">Toàn bộ kho từ điển Joyo (Ngẫu nhiên)</option>
-                <option value="N5" selected>Kho chữ JLPT N5 (Căn bản)</option>
-                <option value="N4">Kho chữ JLPT N4 (Sơ cấp)</option>
-                <option value="N3">Kho chữ JLPT N3 (Trung cấp)</option>
-                <option value="N2">Kho chữ JLPT N2 (Thượng cấp)</option>
-                <option value="N1">Kho chữ JLPT N1 (Chuyên sâu)</option>
-                <optgroup id="optgroupFlashcardDecks" label="Bộ thẻ Flashcards cá nhân">
-                  <!-- Render động từ kizuna_flashcard_decks nếu có -->
-                </optgroup>
-              </select>
-            </div>
+              <!-- Thanh HUD Tráº¡ng ThÃ¡i Trá»±c Quan Trong VÃ¡n -->
+              <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap">
+                
+                <!-- Äiá»ƒm sá»‘ & Combo -->
+                <div class="flex items-center gap-2.5">
+                  <div class="w-9 h-9 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-700">
+                    <span class="material-symbols-outlined text-[20px]">sports_score</span>
+                  </div>
+                  <div>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Äiá»ƒm sá»‘</span>
+                    <div class="flex items-baseline gap-1.5">
+                      <span id="hudScoreText" class="text-lg font-extrabold text-[#0F172A]">0</span>
+                      <span id="hudComboBadge" class="hidden text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                        Combo x1
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-            <!-- Chọn Thời lượng ván -->
-            <div class="space-y-1.5">
-              <span class="block text-xs font-bold text-[#68737D] uppercase tracking-wider">
-                Thời lượng thử thách:
-              </span>
-              <div class="grid grid-cols-3 gap-2">
-                <button type="button" data-duration="60" 
-                        class="duration-btn active py-2 text-xs font-bold rounded-xl border border-[#006194] bg-[#006194] text-white transition text-center cursor-pointer">
-                  60s
-                </button>
-                <button type="button" data-duration="180" 
-                        class="duration-btn py-2 text-xs font-semibold rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] transition text-center cursor-pointer">
-                  180s
-                </button>
-                <button type="button" data-duration="300" 
-                        class="duration-btn py-2 text-xs font-semibold rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] transition text-center cursor-pointer">
-                  300s
+                <!-- Äá»“ng Há»“ Thá»i Gian CÃ²n Láº¡i -->
+                <div class="flex items-center gap-2.5">
+                  <div class="w-9 h-9 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600">
+                    <span class="material-symbols-outlined text-[20px]">timer</span>
+                  </div>
+                  <div>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Thá»i gian</span>
+                    <span id="hudTimeText" class="text-lg font-extrabold text-rose-600 font-mono">01:00</span>
+                  </div>
+                </div>
+
+                <!-- Tá»« gÃµ Ä‘Ãºng & Äá»™ chÃ­nh xÃ¡c -->
+                <div class="flex items-center gap-5">
+                  <div>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">ÄÃ£ báº¯n trÃºng</span>
+                    <span id="hudWordsCount" class="text-sm font-bold text-[#0F172A]">0 chá»¯</span>
+                  </div>
+                  <div>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Äá»™ chÃ­nh xÃ¡c</span>
+                    <span id="hudAccuracy" class="text-sm font-bold text-emerald-600">100%</span>
+                  </div>
+                </div>
+
+                <!-- NÃºt báº­t/táº¯t Ã¢m thanh -->
+                <button type="button" id="btnToggleSound" 
+                        class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#1E293B] transition cursor-pointer"
+                        title="Báº­t/Táº¯t Ã¢m thanh">
+                  <span id="iconSoundState" class="material-symbols-outlined text-[18px]">volume_up</span>
                 </button>
               </div>
+
+              <!-- MÃ n HÃ¬nh Game Canvas Ã” Chá»¯ RÆ¡i -->
+              <div class="relative bg-slate-900 rounded-xl overflow-hidden border border-slate-800 aspect-[4/3] md:aspect-[16/10] flex flex-col justify-end">
+                
+                <canvas id="kanjiRainCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+                <!-- Lá»›p phá»§ báº¯t Ä‘áº§u (Pre-Game Overlay) -->
+                <div id="gameStartOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center space-y-3">
+                  <div class="w-14 h-14 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-2xl">
+                    ðŸŒ§ï¸
+                  </div>
+                  <div class="space-y-1 max-w-md">
+                    <h3 class="text-lg font-extrabold text-white">Sáºµn SÃ ng Báº¯n RÆ¡i Chá»¯ HÃ¡n?</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                      CÃ¡c chá»¯ HÃ¡n sáº½ rÆ¡i tá»« trÃªn trá»i xuá»‘ng. HÃ£y gÃµ cÃ¡ch Ä‘á»c Hiragana, Romaji hoáº·c Ã¢m HÃ¡n Viá»‡t Ä‘á»ƒ báº¯n háº¡ chá»¯ trÆ°á»›c khi chá»¯ cháº¡m váº¡ch Ä‘á»!
+                    </p>
+                  </div>
+                  <button type="button" id="btnStartGameTrigger" 
+                          class="px-5 py-2.5 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white font-bold text-xs sm:text-sm border border-[#334155] transition active:scale-95 cursor-pointer flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                    <span>Báº¯t Ä‘áº§u chÆ¡i ngay</span>
+                  </button>
+                </div>
+
+                <!-- Thanh Hiá»ƒn Thá»‹ KÃ½ Tá»± GÃµ Trá»±c Tiáº¿p (Live Typing Echo) -->
+                <div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between pointer-events-none">
+                  <div class="px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 text-white text-xs font-mono flex items-center gap-1.5">
+                    <span class="text-slate-400">Äang gÃµ:</span>
+                    <span id="liveTypingEcho" class="font-bold text-sky-400">...</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 px-2 py-0.5 rounded bg-black/40">
+                    GÃµ <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-white">Enter</kbd> hoáº·c gÃµ Ä‘Ãºng tá»± ná»•
+                  </div>
+                </div>
+              </div>
+
+              <!-- Khung Ã” Nháº­p Liá»‡u GÃµ PhÃ­m (Typing Input Box) -->
+              <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 space-y-2">
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">keyboard</span>
+                  <input type="text" 
+                         id="kanjiGameInput" 
+                         placeholder="Báº¥m vÃ o Ä‘Ã¢y vÃ  gÃµ nhanh (VÃ­ dá»¥: nichi, hi, tsuki, nhat...)" 
+                         autocomplete="off" 
+                         autocorrect="off" 
+                         autocapitalize="off" 
+                         spellcheck="false"
+                         class="w-full pl-10 pr-24 py-2.5 text-xs sm:text-sm font-semibold border border-[#CBD5E1] focus:border-[#831843] focus:ring-1 focus:ring-[#831843] rounded-lg bg-white text-[#0F172A] focus:outline-none transition">
+                  <button type="button" id="btnRestartGame" 
+                          class="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-[#1E293B] border border-[#CBD5E1] text-xs font-semibold transition flex items-center gap-1 cursor-pointer"
+                          title="ChÆ¡i láº¡i vÃ¡n má»›i">
+                    <span class="material-symbols-outlined text-[15px]">restart_alt</span>
+                    <span>LÃ m láº¡i</span>
+                  </button>
+                </div>
+                <div class="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                  <span>ðŸ’¡ Máº¹o: Há»— trá»£ cáº£ <strong>Hiragana</strong> (ã²), <strong>Romaji</strong> (hi, nichi) vÃ  <strong>Ã‚m HÃ¡n Viá»‡t</strong> (nhat).</span>
+                  <span class="font-medium text-[#0F172A]">KhÃ´ng cáº§n chuyá»ƒn Ä‘á»•i IME</span>
+                </div>
+              </div>
+
             </div>
 
-            <!-- Tốc độ rơi -->
-            <div class="space-y-1.5">
-              <span class="block text-xs font-bold text-[#68737D] uppercase tracking-wider">
-                Tốc độ rơi chữ:
-              </span>
-              <div class="grid grid-cols-3 gap-2">
-                <button type="button" data-speed="1" 
-                        class="speed-btn active py-2 text-xs font-bold rounded-xl border border-[#006194] bg-[#006194] text-white transition text-center cursor-pointer">
-                  Thư thái
-                </button>
-                <button type="button" data-speed="1.5" 
-                        class="speed-btn py-2 text-xs font-semibold rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] transition text-center cursor-pointer">
-                  Tiêu chuẩn
-                </button>
-                <button type="button" data-speed="2.2" 
-                        class="speed-btn py-2 text-xs font-semibold rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] transition text-center cursor-pointer">
-                  Siêu tốc
-                </button>
+            <!-- Cá»™t Pháº£i: Báº£ng Cáº¥u HÃ¬nh Tráº­n Äáº¥u & Lá»‹ch Sá»­ Thá»‘ng KÃª (4/12) -->
+            <div class="lg:col-span-4 flex flex-col space-y-3">
+              
+              <!-- Há»™p 1: TÃ¹y Chá»n VÃ¡n ChÆ¡i -->
+              <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 sm:p-4 space-y-3">
+                <div class="flex items-center gap-2 border-b border-[#E2E8F0] pb-2.5">
+                  <span class="material-symbols-outlined text-[18px] text-[#831843]">tune</span>
+                  <h3 class="font-bold text-xs sm:text-sm text-[#0F172A]">CÃ i Ä‘áº·t tráº­n Ä‘áº¥u</h3>
+                </div>
+
+                <!-- Chá»n Cáº¥p Ä‘á»™ JLPT hoáº·c Bá»™ tháº» cÃ¡ nhÃ¢n -->
+                <div class="space-y-1">
+                  <label for="selectGameSource" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Nguá»“n chá»¯ HÃ¡n:
+                  </label>
+                  <select id="selectGameSource" 
+                          class="w-full px-3 py-2 text-xs font-semibold text-[#0F172A] bg-white border border-[#CBD5E1] rounded-lg focus:border-[#831843] focus:ring-1 focus:ring-[#831843] focus:outline-none transition cursor-pointer">
+                    <option value="ALL">ToÃ n bá»™ kho tá»« Ä‘iá»ƒn Joyo (Ngáº«u nhiÃªn)</option>
+                    <option value="N5" selected>Kho chá»¯ JLPT N5 (CÄƒn báº£n)</option>
+                    <option value="N4">Kho chá»¯ JLPT N4 (SÆ¡ cáº¥p)</option>
+                    <option value="N3">Kho chá»¯ JLPT N3 (Trung cáº¥p)</option>
+                    <option value="N2">Kho chá»¯ JLPT N2 (ThÆ°á»£ng cáº¥p)</option>
+                    <option value="N1">Kho chá»¯ JLPT N1 (ChuyÃªn sÃ¢u)</option>
+                    <optgroup id="optgroupFlashcardDecks" label="Bá»™ tháº» Flashcards cÃ¡ nhÃ¢n">
+                      <!-- Render Ä‘á»™ng tá»« kizuna_flashcard_decks náº¿u cÃ³ -->
+                    </optgroup>
+                  </select>
+                </div>
+
+                <!-- Chá»n Thá»i lÆ°á»£ng vÃ¡n -->
+                <div class="space-y-1">
+                  <span class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Thá»i lÆ°á»£ng thá»­ thÃ¡ch:
+                  </span>
+                  <div class="grid grid-cols-3 gap-2">
+                    <button type="button" data-duration="60" 
+                            class="duration-btn active py-1.5 text-xs font-bold rounded-lg border border-[#1E293B] bg-[#1E293B] text-white transition text-center cursor-pointer">
+                      60s
+                    </button>
+                    <button type="button" data-duration="180" 
+                            class="duration-btn py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 transition text-center cursor-pointer">
+                      180s
+                    </button>
+                    <button type="button" data-duration="300" 
+                            class="duration-btn py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 transition text-center cursor-pointer">
+                      300s
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Tá»‘c Ä‘á»™ rÆ¡i -->
+                <div class="space-y-1">
+                  <span class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Tá»‘c Ä‘á»™ rÆ¡i chá»¯:
+                  </span>
+                  <div class="grid grid-cols-3 gap-2">
+                    <button type="button" data-speed="1" 
+                            class="speed-btn active py-1.5 text-xs font-bold rounded-lg border border-[#1E293B] bg-[#1E293B] text-white transition text-center cursor-pointer">
+                      ThÆ° thÃ¡i
+                    </button>
+                    <button type="button" data-speed="1.5" 
+                            class="speed-btn py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 transition text-center cursor-pointer">
+                      TiÃªu chuáº©n
+                    </button>
+                    <button type="button" data-speed="2.2" 
+                            class="speed-btn py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 transition text-center cursor-pointer">
+                      SiÃªu tá»‘c
+                    </button>
+                  </div>
+                </div>
               </div>
+
+              <!-- Há»™p 2: Báº£ng Xáº¿p Háº¡ng & Lá»‹ch Sá»­ Gáº§n ÄÃ¢y -->
+              <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 sm:p-4 space-y-3">
+                <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2.5">
+                  <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[18px] text-amber-600">military_tech</span>
+                    <h3 class="font-bold text-xs sm:text-sm text-[#0F172A]">Báº£ng thÃ nh tÃ­ch</h3>
+                  </div>
+                  <span class="text-[11px] font-semibold text-slate-500">Äiá»ƒm cao</span>
+                </div>
+
+                <!-- Danh sÃ¡ch Top Äiá»ƒm Cao -->
+                <div id="leaderboardList" class="space-y-2">
+                  <div class="py-6 text-center text-xs text-slate-400 space-y-1.5">
+                    <span class="material-symbols-outlined text-2xl text-slate-300">hourglass_empty</span>
+                    <p>ChÆ°a cÃ³ phiÃªn chÆ¡i nÃ o Ä‘Æ°á»£c lÆ°u.</p>
+                  </div>
+                </div>
+              </div>
+
             </div>
+
           </div>
-
-          <!-- Hộp 2: Bảng Xếp Hạng & Lịch Sử Gần Đây -->
-          <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm space-y-4">
-            <div class="flex items-center justify-between border-b border-[#ECE8DE] pb-3">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-[20px] text-amber-600">military_tech</span>
-                <h3 class="font-bold text-sm text-[#0F2545]">Bảng thành tích</h3>
-              </div>
-              <span class="text-[11px] font-semibold text-[#68737D]">Điểm cao</span>
-            </div>
-
-            <!-- Danh sách Top Điểm Cao -->
-            <div id="leaderboardList" class="space-y-2">
-              <div class="py-6 text-center text-xs text-[#68737D] space-y-2">
-                <span class="material-symbols-outlined text-3xl text-slate-300">hourglass_empty</span>
-                <p>Chưa có phiên chơi nào được lưu.</p>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
 
         </div>
         <div id="learnerFooterContainer"></div>
@@ -323,69 +324,69 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL KẾT THÚC TRẬN ĐẤU (GAME OVER & VICTORY) ==================== -->
-  <div id="gameResultModal" class="fixed inset-0 z-50 bg-[#0F2545]/75 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="w-full max-w-md bg-white rounded-2xl border border-[#ECE8DE] shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200 space-y-5">
+  <!-- ==================== MODAL Káº¾T THÃšC TRáº¬N Äáº¤U (GAME OVER & VICTORY) ==================== -->
+  <div id="gameResultModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-xl border border-[#E2E8F0] shadow-xl p-5 relative animate-in fade-in zoom-in-95 duration-200 space-y-4">
       
-      <!-- Nút đóng -->
+      <!-- NÃºt Ä‘Ã³ng -->
       <button type="button" id="btnCloseResultModal" 
-              class="absolute top-4 right-4 text-[#68737D] hover:text-[#0F2545] w-8 h-8 rounded-full flex items-center justify-center hover:bg-[#FAF8F2] transition cursor-pointer">
-        <span class="material-symbols-outlined text-[20px]">close</span>
+              class="absolute top-3.5 right-3.5 text-slate-400 hover:text-[#0F172A] w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">close</span>
       </button>
 
-      <!-- Banner Đầu Modal: Thắng / Thua -->
-      <div id="modalResultBanner" class="text-center space-y-1.5 pt-2">
-        <div id="modalResultIcon" class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-sm">
-          🏆
+      <!-- Banner Äáº§u Modal: Tháº¯ng / Thua -->
+      <div id="modalResultBanner" class="text-center space-y-1 pt-1">
+        <div id="modalResultIcon" class="w-14 h-14 rounded-xl mx-auto flex items-center justify-center text-3xl bg-amber-50 border border-amber-200">
+          ðŸ†
         </div>
-        <h3 id="modalResultTitle" class="text-xl font-extrabold text-[#0F2545]">Hoàn Thành Thử Thách!</h3>
-        <p id="modalResultSubtitle" class="text-xs text-[#68737D]">Bạn đã bảo vệ thành công ranh giới an toàn</p>
+        <h3 id="modalResultTitle" class="text-lg font-extrabold text-[#0F172A]">HoÃ n ThÃ nh Thá»­ ThÃ¡ch!</h3>
+        <p id="modalResultSubtitle" class="text-xs text-slate-500">Báº¡n Ä‘Ã£ báº£o vá»‡ thÃ nh cÃ´ng ranh giá»›i an toÃ n</p>
       </div>
 
-      <!-- Thẻ Danh Hiệu Đạt Được -->
-      <div class="bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl p-3.5 text-center space-y-1">
-        <span class="text-[10px] font-bold text-[#68737D] uppercase tracking-wider block">Danh hiệu đạt được:</span>
-        <h4 id="modalRankTitle" class="font-extrabold text-base text-[#006194]">Bậc Thầy Chữ Hán 👑</h4>
+      <!-- Tháº» Danh Hiá»‡u Äáº¡t ÄÆ°á»£c -->
+      <div class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-2.5 text-center space-y-0.5">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Danh hiá»‡u Ä‘áº¡t Ä‘Æ°á»£c:</span>
+        <h4 id="modalRankTitle" class="font-extrabold text-sm text-[#831843]">Báº­c Tháº§y Chá»¯ HÃ¡n ðŸ‘‘</h4>
       </div>
 
-      <!-- Lưới Thống Kê Chi Tiết 4 Chỉ Số -->
-      <div class="grid grid-cols-2 gap-2.5">
-        <div class="p-3 rounded-xl bg-sky-50/60 border border-sky-100 text-center">
-          <span class="text-[10px] font-bold text-sky-800 uppercase block">Tổng điểm</span>
-          <span id="modalFinalScore" class="text-xl font-extrabold text-[#006194]">0</span>
+      <!-- LÆ°á»›i Thá»‘ng KÃª Chi Tiáº¿t 4 Chá»‰ Sá»‘ -->
+      <div class="grid grid-cols-2 gap-2">
+        <div class="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-center">
+          <span class="text-[10px] font-bold text-slate-500 uppercase block">Tá»•ng Ä‘iá»ƒm</span>
+          <span id="modalFinalScore" class="text-lg font-extrabold text-[#0F172A]">0</span>
         </div>
-        <div class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100 text-center">
-          <span class="text-[10px] font-bold text-emerald-800 uppercase block">Chữ bắn trúng</span>
-          <span id="modalFinalWords" class="text-xl font-extrabold text-emerald-700">0</span>
+        <div class="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-center">
+          <span class="text-[10px] font-bold text-slate-500 uppercase block">Chá»¯ báº¯n trÃºng</span>
+          <span id="modalFinalWords" class="text-lg font-extrabold text-emerald-700">0</span>
         </div>
-        <div class="p-3 rounded-xl bg-amber-50/60 border border-amber-100 text-center">
-          <span class="text-[10px] font-bold text-amber-800 uppercase block">Độ chính xác</span>
-          <span id="modalFinalAccuracy" class="text-xl font-extrabold text-amber-700">100%</span>
+        <div class="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-center">
+          <span class="text-[10px] font-bold text-slate-500 uppercase block">Äá»™ chÃ­nh xÃ¡c</span>
+          <span id="modalFinalAccuracy" class="text-lg font-extrabold text-amber-700">100%</span>
         </div>
-        <div class="p-3 rounded-xl bg-rose-50/60 border border-rose-100 text-center">
-          <span class="text-[10px] font-bold text-rose-800 uppercase block">Số lần gõ sai</span>
-          <span id="modalFinalMistakes" class="text-xl font-extrabold text-rose-700">0</span>
-        </div>
-      </div>
-
-      <!-- Danh Sách Từ Bị Chạm Đáy Hoặc Bị Sai (Cần Ôn Tập) -->
-      <div id="modalMistakesSection" class="hidden space-y-2">
-        <span class="text-xs font-bold text-[#0F2545] block">Các chữ cần luyện thêm:</span>
-        <div id="modalMistakesList" class="max-h-36 overflow-y-auto space-y-1.5 pr-1">
-          <!-- Render động các chữ sai -->
+        <div class="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-center">
+          <span class="text-[10px] font-bold text-slate-500 uppercase block">Sá»‘ láº§n gÃµ sai</span>
+          <span id="modalFinalMistakes" class="text-lg font-extrabold text-rose-700">0</span>
         </div>
       </div>
 
-      <!-- Các Nút Hành Động -->
-      <div class="pt-2 flex items-center gap-3">
+      <!-- Danh SÃ¡ch Tá»« Bá»‹ Cháº¡m ÄÃ¡y Hoáº·c Bá»‹ Sai (Cáº§n Ã”n Táº­p) -->
+      <div id="modalMistakesSection" class="hidden space-y-1.5">
+        <span class="text-xs font-bold text-[#0F172A] block">CÃ¡c chá»¯ cáº§n luyá»‡n thÃªm:</span>
+        <div id="modalMistakesList" class="max-h-32 overflow-y-auto space-y-1 pr-1">
+          <!-- Render Ä‘á»™ng cÃ¡c chá»¯ sai -->
+        </div>
+      </div>
+
+      <!-- CÃ¡c NÃºt HÃ nh Äá»™ng -->
+      <div class="pt-2 flex items-center gap-2.5">
         <button type="button" id="btnPlayAgain" 
-                class="flex-1 py-2.5 px-4 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs md:text-sm font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
-          <span class="material-symbols-outlined text-[18px]">replay</span>
-          <span>Chơi ván mới</span>
+                class="flex-1 py-2 px-3 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <span class="material-symbols-outlined text-[16px]">replay</span>
+          <span>ChÆ¡i vÃ¡n má»›i</span>
         </button>
         <a href="/kanji-dictionary" 
-           class="py-2.5 px-4 rounded-xl border border-[#ECE8DE] hover:bg-[#FAF8F2] text-[#0F2545] text-xs md:text-sm font-semibold transition text-center no-underline">
-          Tra từ điển →
+           class="py-2 px-3 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#1E293B] text-xs font-semibold transition text-center no-underline cursor-pointer">
+          Tra tá»« Ä‘iá»ƒn â†’
         </a>
       </div>
 

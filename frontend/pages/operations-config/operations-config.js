@@ -46,7 +46,11 @@ function renderPlans(plans) {
         box.append(actionButton('Sửa', () => openPlan(plan)), actionButton(plan.active ? 'Ngừng bán' : 'Mở bán', () => togglePlan(plan), plan.active ? 'danger' : 'primary'));
         actions.append(box);
         const name = text('td'); name.append(text('strong', plan.planName));
-        if (plan.benefits.length) name.append(text('p', plan.benefits.length + ' quyền lợi', 'portal-muted'));
+        if (plan.benefits.length) {
+            const list = text('ul', '', 'plan-benefits');
+            plan.benefits.forEach(benefit => list.append(text('li', benefit)));
+            name.append(list);
+        }
         const status = text('td'); status.append(badge(plan.active ? 'Đang bán' : 'Ngừng bán'));
         row.append(name, text('td', plan.durationMonths + ' tháng'), text('td', money(plan.price)), status, actions);
         rows.append(row);

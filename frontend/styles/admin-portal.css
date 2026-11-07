@@ -304,3 +304,8 @@ html{scrollbar-gutter:stable}
 .admin-portal .sidebar-menu .support-nav-items a[aria-current=page]{background:var(--portal-primary);color:#fff;font-weight:700}
 /* Ô chọn vai trò mới ở trang Đề xuất đổi vai trò. */
 .admin-dashboard.admin-portal .operations-content select.role-change-select{min-width:260px;min-height:38px;padding:4px 12px;border-radius:10px;border:1px solid #c9d6e2;background:#fff;color:var(--portal-navy);font-size:13px;font-weight:600}
+
+/* Danh sách quyền lợi của gói hội viên trong bảng cấu hình. */
+.admin-dashboard ul.plan-benefits{margin:6px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.45;color:#3f4850}
+.admin-dashboard ul.plan-benefits li{display:block;position:relative;margin:2px 0;padding:0 0 0 14px;overflow-wrap:anywhere}
+.admin-dashboard ul.plan-benefits li::before{content:'';position:absolute;left:3px;top:.6em;width:5px;height:5px;border-radius:50%;background:#006194}

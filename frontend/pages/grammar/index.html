@@ -12,16 +12,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
-  <!-- Tailwind & Project CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Single Source of Truth CSS -->
   <link rel="stylesheet" href="/assets/css/learning-support-common.css">
   <link rel="stylesheet" href="/styles/variables.css">
   <link rel="stylesheet" href="/styles/global.css">
   <link rel="stylesheet" href="/styles/components.css">
   <link rel="stylesheet" href="/styles/utilities.css">
 </head>
-<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
-  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
+<body class="learning-support-body antialiased selection:bg-[#E0399A] selection:text-white">
+  <div class="flex h-screen overflow-hidden">
 
     <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
     <div id="learnerSidebarContainer"></div>
@@ -34,24 +33,24 @@
 
       <!-- Scrollable Main Container -->
       <main class="flex-1 overflow-y-auto p-3 sm:p-4 w-full max-w-6xl mx-auto">
-        <div class="space-y-3">
+        <div class="space-y-4">
 
           <!-- ==================== GIAO DIỆN 1: DANH SÁCH NGỮ PHÁP (LIST VIEW) ==================== -->
-          <div id="grammarListView" class="space-y-3">
+          <div id="grammarListView" class="space-y-4">
 
             <!-- Thanh Chuyển Chế Độ & Bộ Lọc Nâng Cao -->
-            <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 sm:p-4 space-y-3">
+            <div class="ls-card space-y-3">
               <!-- Hàng 1: Chế độ Lọc + Ô Tìm Kiếm Nhanh -->
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                 <!-- Segmented Control Chọn Chế Độ Lọc -->
-                <div class="inline-flex p-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg self-start sm:self-auto" id="filterModeSwitcher">
+                <div class="inline-flex p-1 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px] self-start sm:self-auto" id="filterModeSwitcher">
                   <button type="button" data-mode="jlpt" 
-                          class="px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer border border-[#FBCFE8] bg-[#FFE5EC] text-[#831843] shadow-xs">
+                          class="ls-pill is-active flex items-center gap-1.5 cursor-pointer">
                     <span class="material-symbols-outlined text-[16px]">school</span>
                     <span>Theo Cấp Độ JLPT</span>
                   </button>
                   <button type="button" data-mode="domain" 
-                          class="px-3 py-1.5 rounded-md text-xs font-semibold text-slate-500 hover:text-[#0F172A] transition flex items-center gap-1.5 cursor-pointer">
+                          class="ls-pill flex items-center gap-1.5 cursor-pointer">
                     <span class="material-symbols-outlined text-[16px]">category</span>
                     <span>Theo Khối Ứng dụng</span>
                   </button>
@@ -59,97 +58,97 @@
 
                 <!-- Ô Tìm Kiếm Mẫu Câu -->
                 <div class="relative w-full sm:w-80">
-                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#707881] text-[18px]">search</span>
                   <input type="text" id="searchGrammarInput" 
                          placeholder="Tìm mẫu câu, romaji, ý nghĩa..." 
-                         class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
+                         class="ls-input w-full pl-9 py-1.5 text-xs">
                 </div>
               </div>
 
               <!-- Hàng 2: Thanh Tab Lọc Con (Sub-tabs) -->
               <!-- Tab 1: Cấp độ JLPT (N5 - N1) -->
-              <div id="jlptLevelTabs" class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              <div id="jlptLevelTabs" class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
                 <button type="button" data-level="N5" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] shadow-xs transition cursor-pointer">
+                        class="ls-pill is-active">
                   JLPT N5
                 </button>
                 <button type="button" data-level="N4" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-[#1E293B] hover:bg-slate-50 border border-[#CBD5E1] transition cursor-pointer">
+                        class="ls-pill">
                   JLPT N4
                 </button>
                 <button type="button" data-level="N3" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-[#1E293B] hover:bg-slate-50 border border-[#CBD5E1] transition cursor-pointer">
+                        class="ls-pill">
                   JLPT N3
                 </button>
                 <button type="button" data-level="N2" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-[#1E293B] hover:bg-slate-50 border border-[#CBD5E1] transition cursor-pointer">
+                        class="ls-pill">
                   JLPT N2
                 </button>
                 <button type="button" data-level="N1" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-[#1E293B] hover:bg-slate-50 border border-[#CBD5E1] transition cursor-pointer">
+                        class="ls-pill">
                   JLPT N1
                 </button>
               </div>
 
               <!-- Tab 2: Khối Ứng Dụng (Đời sống, Công việc, IT, Kaiwa...) -->
-              <div id="domainTabs" class="hidden flex-col gap-2 pt-2 border-t border-[#E2E8F0]">
+              <div id="domainTabs" class="hidden flex-col gap-2 pt-2 border-t border-[#0F172A]/15">
                 <!-- Dòng 1: Danh sách Chủ đề thực tế -->
-                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" id="domainListContainer">
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0" id="domainListContainer">
                   <!-- Sẽ render động qua JS -->
                 </div>
 
                 <!-- Dòng 2: Bộ lọc Cấp độ JLPT bổ trợ cho Khối ứng dụng -->
-                <div class="flex items-center gap-1.5 pt-2 border-t border-dashed border-[#E2E8F0]">
-                  <span class="text-[11px] font-semibold text-slate-400">Lọc cấp độ:</span>
+                <div class="flex items-center gap-2 pt-2 border-t border-dashed border-[#0F172A]/15">
+                  <span class="text-[11px] font-bold text-[#707881]">Lọc cấp độ:</span>
                   <button type="button" data-domain-level="all" 
-                          class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] transition cursor-pointer">
+                          class="ls-pill is-active">
                     Tất cả
                   </button>
                   <button type="button" data-domain-level="N5" 
-                          class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white text-[#1E293B] hover:bg-slate-50 border border-[#CBD5E1] transition cursor-pointer">
+                          class="ls-pill">
                     N5
                   </button>
                   <button type="button" data-domain-level="N4" 
-                          class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white text-[#1E293B] hover:bg-slate-50 border border-[#CBD5E1] transition cursor-pointer">
+                          class="ls-pill">
                     N4
                   </button>
                   <button type="button" data-domain-level="N3" 
-                          class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white text-[#1E293B] hover:bg-slate-50 border border-[#CBD5E1] transition cursor-pointer">
+                          class="ls-pill">
                     N3
                   </button>
                   <button type="button" data-domain-level="N2" 
-                          class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white text-[#1E293B] hover:bg-slate-50 border border-[#CBD5E1] transition cursor-pointer">
+                          class="ls-pill">
                     N2
                   </button>
                   <button type="button" data-domain-level="N1" 
-                          class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white text-[#1E293B] hover:bg-slate-50 border border-[#CBD5E1] transition cursor-pointer">
+                          class="ls-pill">
                     N1
                   </button>
                 </div>
               </div>
 
               <!-- Hàng 3: Thống kê số lượng kết quả -->
-              <div class="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-[#E2E8F0]">
+              <div class="flex items-center justify-between text-xs text-[#707881] pt-2 border-t border-[#0F172A]/15">
                 <div id="filterResultSummary" class="flex items-center gap-2">
-                  <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span class="inline-block w-2 h-2 rounded-full bg-[#059669] animate-pulse"></span>
                   <span>Đang hiển thị: <strong id="filterActiveLabel" class="text-[#0F172A]">JLPT N5</strong> (<span id="filterActiveCount" class="font-bold text-[#831843]">0</span> mẫu câu)</span>
                 </div>
-                <div id="filterDescription" class="text-xs italic text-slate-400 hidden sm:block">
+                <div id="filterDescription" class="text-xs italic text-[#707881] hidden sm:block">
                   Kiến thức sơ cấp N5 căn bản trong giao tiếp tiếng Nhật
                 </div>
               </div>
             </div>
 
             <!-- Lưới Thẻ Ngữ Pháp (Grammar Grid) -->
-            <div id="grammarGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div id="grammarGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <!-- Render tự động bởi grammar.js -->
             </div>
 
             <!-- Trạng Thái Rỗng (Empty State) -->
-            <div id="grammarEmptyState" class="hidden p-8 text-center rounded-xl border border-dashed border-[#CBD5E1] bg-white space-y-2">
-              <span class="material-symbols-outlined text-3xl text-slate-400">search_off</span>
+            <div id="grammarEmptyState" class="hidden p-8 text-center ls-card border-dashed space-y-2">
+              <span class="material-symbols-outlined text-3xl text-[#707881]">search_off</span>
               <h3 class="text-sm font-bold text-[#0F172A]">Không tìm thấy mẫu câu phù hợp</h3>
-              <p class="text-xs text-slate-500">
+              <p class="text-xs text-[#707881]">
                 Hãy thử tìm bằng từ khóa khác hoặc chuyển sang cấp độ JLPT khác nhé.
               </p>
             </div>
@@ -157,12 +156,12 @@
           </div>
 
           <!-- ==================== GIAO DIỆN 2: CHI TIẾT NGỮ PHÁP (DETAIL VIEW) ==================== -->
-          <div id="grammarDetailView" class="hidden space-y-3">
+          <div id="grammarDetailView" class="hidden space-y-4">
             
             <!-- Thanh Điều Hướng Quay Lại -->
-            <div class="flex items-center justify-between bg-white border border-[#E2E8F0] rounded-xl p-3">
+            <div class="ls-toolbar">
               <button type="button" id="btnBackToList" 
-                      class="text-xs py-1.5 px-3 bg-white hover:bg-slate-50 text-[#1E293B] border border-[#CBD5E1] rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer">
+                      class="ls-btn ls-btn-default py-1.5 px-3">
                 <span class="material-symbols-outlined text-[16px]">arrow_back</span>
                 <span>Quay lại danh sách</span>
               </button>
@@ -171,7 +170,7 @@
             </div>
 
             <!-- Nội Dung Chi Tiết Mẫu Ngữ Pháp -->
-            <div id="grammarDetailContainer" class="space-y-3">
+            <div id="grammarDetailContainer" class="space-y-4">
               <!-- Render tự động bởi grammar.js -->
             </div>
 

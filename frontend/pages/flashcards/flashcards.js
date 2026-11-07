@@ -130,11 +130,11 @@ function renderDecks(filterQuery = '') {
     const cardCount = deck.cards ? deck.cards.length : 0;
 
     html += `
-      <div class="deck-card relative flex flex-col justify-between p-4 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] hover:-translate-y-0.5 transition-transform group" data-deck-id="${deck.id}">
+      <div class="ls-card relative flex flex-col justify-between p-4 hover:-translate-y-0.5 transition-transform group" data-deck-id="${deck.id}">
         <!-- Phần thông tin thư mục -->
         <div>
           <div class="flex items-start justify-between gap-2">
-            <h3 class="font-['Itim'] text-base font-bold text-slate-900 truncate flex-1 cursor-pointer hover:text-[#006194] transition" 
+            <h3 class="font-bold text-sm text-[#0F172A] truncate flex-1 cursor-pointer hover:text-[#006194] transition" 
                 title="Xem chi tiết bộ thẻ: ${escapeHtml(deck.title)}"
                 data-action="view-detail" data-id="${deck.id}">
               🌸 ${escapeHtml(deck.title)}
@@ -144,17 +144,17 @@ function renderDecks(filterQuery = '') {
             <div class="relative dropdown-container shrink-0">
               <button type="button" 
                       data-action="toggle-menu" data-id="${deck.id}"
-                      class="w-7 h-7 flex items-center justify-center border border-[#0F172A] rounded-[4px] bg-slate-100 hover:bg-slate-200 text-xs shadow-[1px_1px_0px_0px_#0F172A] cursor-pointer transition font-bold"
+                      class="ls-btn ls-btn-default w-7 h-7 p-0"
                       title="Tùy chọn khác">
                 ⋮
               </button>
 
               <!-- Dropdown Menu Nội dung: Chứa Ghép Thẻ, Mưa Kanji, In, Nhân bản, Gộp -->
-              <div id="menu-${deck.id}" class="deck-dropdown-menu hidden absolute right-0 top-8 w-48 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] z-30 py-1 text-xs">
-                <button type="button" data-action="match-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-[#4255FF] font-semibold">
+              <div id="menu-${deck.id}" class="deck-dropdown-menu hidden absolute right-0 top-8 w-48 bg-white border border-[#0F172A] rounded-[6px] shadow-[3px_3px_0px_0px_#0F172A] z-30 py-1 text-xs">
+                <button type="button" data-action="match-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-[#4059AA] font-semibold">
                   <span>🧩</span> <span>Ghép thẻ (Match)</span>
                 </button>
-                <button type="button" data-action="rain-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-teal-700 font-semibold border-t border-slate-100">
+                <button type="button" data-action="rain-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-[#2A5A1A] font-semibold border-t border-slate-100">
                   <span>🌧️</span> <span>Mưa chữ Hán (Rain)</span>
                 </button>
                 <button type="button" data-action="print-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800 border-t border-slate-100">
@@ -171,34 +171,34 @@ function renderDecks(filterQuery = '') {
           </div>
 
           <!-- Mô tả thư mục -->
-          <p class="text-xs text-slate-600 mt-1 line-clamp-2" title="${escapeHtml(deck.description || '')}">
+          <p class="text-xs text-[#707881] mt-1 line-clamp-2" title="${escapeHtml(deck.description || '')}">
             ${escapeHtml(deck.description || 'Chưa có ghi chú mô tả cho bộ thẻ này.')}
           </p>
-          <div class="mt-2 text-[11px] font-semibold text-pink-600 flex items-center gap-1.5">
+          <div class="mt-2 text-[11px] font-bold text-[#E0399A] flex items-center gap-1.5">
             <span>🏷️</span>
             <span>${cardCount} thẻ học</span>
           </div>
         </div>
 
         <!-- Cụm nút hành động chính ở chân thẻ: [ 🎮 Học Thẻ ], [ 🧩 Ghép Thẻ ], [ 🗑️ ] -->
-        <div class="flex items-center gap-1.5 mt-4 pt-3 border-t border-[#0F172A]/15">
+        <div class="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-[#0F172A]/15">
           <button type="button" 
                   data-action="study-deck" data-id="${deck.id}" 
-                  class="flex-1 py-1.5 px-2 bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
+                  class="ls-btn ls-btn-primary flex-1 py-1.5 text-xs truncate"
                   title="Bắt đầu học lật thẻ ghi nhớ">
             <span>🎮</span> <span>Học Thẻ</span>
           </button>
 
           <button type="button" 
                   data-action="match-deck" data-id="${deck.id}" 
-                  class="flex-1 py-1.5 px-2 bg-[#4255FF] hover:bg-[#3344DD] text-white text-xs font-semibold rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
-                  title="Chơi trò chơi ghép thẻ (Quizlet Match)">
+                  class="ls-btn ls-btn-default flex-1 py-1.5 text-xs truncate text-[#4059AA]!"
+                  title="Chơi trò chơi ghép thẻ (Match)">
             <span>🧩</span> <span>Ghép Thẻ</span>
           </button>
 
           <button type="button" 
                   data-action="delete-deck" data-id="${deck.id}" 
-                  class="w-8 h-8 shrink-0 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center justify-center cursor-pointer transition active:scale-95"
+                  class="ls-btn ls-btn-danger w-8 h-8 p-0"
                   title="Xóa bộ thẻ này">
             <span>🗑️</span>
           </button>

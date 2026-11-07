@@ -12,16 +12,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
-  <!-- Tailwind & Project CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Single Source of Truth CSS -->
   <link rel="stylesheet" href="/assets/css/learning-support-common.css">
   <link rel="stylesheet" href="/styles/variables.css">
   <link rel="stylesheet" href="/styles/global.css">
   <link rel="stylesheet" href="/styles/components.css">
   <link rel="stylesheet" href="/styles/utilities.css">
 </head>
-<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
-  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
+<body class="learning-support-body antialiased selection:bg-[#E0399A] selection:text-white">
+  <div class="flex h-screen overflow-hidden">
 
     <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
     <div id="learnerSidebarContainer"></div>
@@ -34,46 +33,48 @@
 
       <!-- Scrollable Main Container -->
       <main class="flex-1 overflow-y-auto p-3 sm:p-4 w-full max-w-6xl mx-auto">
-        <div class="space-y-3">
+        <div class="space-y-4">
 
           <!-- Thanh chọn chủ đề & Tìm kiếm nhanh -->
-          <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 sm:p-4 space-y-3">
+          <div class="ls-card space-y-3">
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
               <!-- Danh sách Pills chủ đề thực tế -->
-              <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 flex-1" id="topicTabsContainer">
+              <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 flex-1" id="topicTabsContainer">
                 <!-- Sẽ render tự động bởi learning-support.js -->
               </div>
 
               <!-- Ô Tìm kiếm nhanh -->
               <div class="relative w-full sm:w-72 shrink-0">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#707881] text-[18px]">search</span>
                 <input type="text" id="inputSearchVocab" 
                        placeholder="Tìm từ vựng, kanji, nghĩa..." 
-                       class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
+                       class="ls-input w-full pl-9 py-1.5 text-xs">
               </div>
             </div>
 
             <!-- Tóm tắt chủ đề hiện tại -->
-            <div class="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-[#E2E8F0]">
+            <div class="flex items-center justify-between text-xs text-[#707881] pt-2 border-t border-[#0F172A]/15">
               <div class="flex items-center gap-2">
-                <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span id="activeTopicLabel" class="font-semibold text-[#0F172A]">Đang nạp dữ liệu...</span>
+                <span class="inline-block w-2 h-2 rounded-full bg-[#059669] animate-pulse"></span>
+                <span id="activeTopicLabel" class="font-bold text-[#0F172A]">Đang nạp dữ liệu...</span>
               </div>
-              <span id="vocabCountBadge" class="text-xs text-slate-400">0 mục</span>
+              <span id="activeTopicCountBadge" class="ls-badge ls-badge-jlpt">
+                0 từ
+              </span>
             </div>
           </div>
 
-          <!-- Lưới Thẻ Từ Vựng -->
-          <div id="vocabGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <!-- Sẽ render động qua learning-support.js -->
+          <!-- Lưới Thẻ Từ Vựng Học Tập -->
+          <div id="vocabGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Sẽ render tự động bởi learning-support.js -->
           </div>
 
-          <!-- Trạng Thái Rỗng -->
-          <div id="vocabEmptyState" class="hidden p-8 text-center rounded-xl border border-dashed border-[#CBD5E1] bg-white space-y-2">
-            <span class="material-symbols-outlined text-3xl text-slate-400">search_off</span>
+          <!-- Trạng Thái Rỗng (Empty State) -->
+          <div id="vocabEmptyState" class="hidden p-8 text-center ls-card border-dashed space-y-2">
+            <span class="material-symbols-outlined text-3xl text-[#707881]">search_off</span>
             <h3 class="text-sm font-bold text-[#0F172A]">Không tìm thấy từ vựng phù hợp</h3>
-            <p class="text-xs text-slate-500">
-              Hãy thử tìm kiếm với từ khóa khác hoặc chuyển sang chủ đề khác nhé.
+            <p class="text-xs text-[#707881]">
+              Hãy thử tìm bằng từ khóa khác hoặc chuyển sang chủ đề khác nhé.
             </p>
           </div>
 

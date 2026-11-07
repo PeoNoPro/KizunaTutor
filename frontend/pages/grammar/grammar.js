@@ -413,7 +413,7 @@ function openGrammarDetail(ruleId, pushHistory = true) {
 
   if (rule.examples && rule.examples.length > 0) {
     examplesHtml = rule.examples.map(ex => `
-      <div class="p-4 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl space-y-1.5 hover:bg-white transition break-words overflow-hidden">
+      <div class="p-3 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px] space-y-1.5 hover:bg-white transition break-words overflow-hidden">
         <div class="flex items-center justify-between gap-2">
           <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545] break-words whitespace-normal min-w-0 flex-1">
             ${ex.ja}
@@ -451,7 +451,7 @@ function openGrammarDetail(ruleId, pushHistory = true) {
 
   container.innerHTML = `
     <!-- Header Thẻ Mẫu Câu -->
-    <div class="bg-white border border-[#ECE8DE] rounded-2xl p-6 shadow-sm space-y-3 break-words overflow-hidden">
+    <div class="ls-card space-y-3 break-words overflow-hidden">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-2.5 min-w-0 flex-wrap">
           <span class="font-japanese text-3xl md:text-4xl font-bold text-[#0F2545] break-words">
@@ -476,7 +476,7 @@ function openGrammarDetail(ruleId, pushHistory = true) {
         </div>
       </div>
 
-      <div class="p-3.5 bg-emerald-50/60 border border-emerald-100 rounded-xl break-words overflow-hidden">
+      <div class="p-3 bg-[#E0F2FE] border border-[#0F172A] rounded-[6px] break-words overflow-hidden">
         <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-0.5">Ý nghĩa ngữ pháp:</span>
         <p class="text-sm md:text-base font-bold text-[#0F2545] leading-relaxed break-words">
           ${rule.meaning}
@@ -485,29 +485,29 @@ function openGrammarDetail(ruleId, pushHistory = true) {
     </div>
 
     <!-- Công Thức Kết Hợp (Formation) -->
-    <div class="bg-white border border-[#ECE8DE] rounded-2xl p-6 shadow-sm space-y-2 break-words overflow-hidden">
+    <div class="ls-card space-y-2 break-words overflow-hidden">
       <h4 class="font-bold text-sm md:text-base text-[#0F2545] flex items-center gap-2">
         <span class="material-symbols-outlined text-[18px] text-[#006194]">account_tree</span>
         <span>Công thức kết hợp (Formation)</span>
       </h4>
-      <div class="p-3.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl font-mono text-xs md:text-sm font-bold text-[#006194] break-words overflow-hidden whitespace-normal">
+      <div class="p-3 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px] font-mono text-xs md:text-sm font-bold text-[#006194] break-words overflow-hidden whitespace-normal">
         ${rule.formation}
       </div>
     </div>
 
     <!-- Giải Thích & Lưu Ý (Notes) -->
-    <div class="bg-white border border-[#ECE8DE] rounded-2xl p-6 shadow-sm space-y-2">
+    <div class="ls-card space-y-2">
       <h4 class="font-bold text-sm md:text-base text-[#0F2545] flex items-center gap-2">
         <span class="material-symbols-outlined text-[18px] text-amber-600">info</span>
         <span>Giải thích chi tiết &amp; Lưu ý khi sử dụng</span>
       </h4>
-      <p class="text-xs md:text-sm text-[#3F4850] leading-relaxed p-3.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl">
+      <p class="text-xs md:text-sm text-[#3F4850] leading-relaxed p-3 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px]">
         ${rule.notes}
       </p>
     </div>
 
     <!-- Các Câu Ví Dụ Đàm Thoại Thực Tế -->
-    <div class="bg-white border border-[#ECE8DE] rounded-2xl p-6 shadow-sm space-y-3">
+    <div class="ls-card space-y-3">
       <h4 class="font-bold text-sm md:text-base text-[#0F2545] flex items-center gap-2">
         <span class="material-symbols-outlined text-[18px] text-[#059669]">forum</span>
         <span>Câu ví dụ đàm thoại thực tế</span>

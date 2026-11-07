@@ -50,7 +50,7 @@
     }
   </style>
 </head>
-<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
+<body class="learning-support-body antialiased selection:bg-[#E0399A] selection:text-white">
   <div class="flex h-screen overflow-hidden">
     <!-- Learner Sidebar -->
     <div id="learnerSidebarContainer"></div>
@@ -62,16 +62,15 @@
       <!-- Main Shell trò chơi ghép thẻ -->
       <main class="flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col max-w-6xl mx-auto w-full">
         <!-- Vùng thông báo nếu chưa đủ thẻ -->
-        <div id="matchNotEnoughState" class="hidden flex-1 flex flex-col items-center justify-center p-10 bg-white border border-[#E2E8F0] rounded-xl text-center space-y-3">
+        <div id="matchNotEnoughState" class="hidden flex-1 flex flex-col items-center justify-center p-10 ls-card border-dashed text-center space-y-3">
           <div class="w-14 h-14 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-2xl">
             ⚠️
           </div>
-          <h3 class="text-base font-bold text-[#1E293B]">Chưa đủ thẻ để chơi ghép thẻ</h3>
-          <p class="text-xs text-[#586380] max-w-md">
+          <h3 class="text-base font-bold text-[#0F172A]">Chưa đủ thẻ để chơi ghép thẻ</h3>
+          <p class="text-xs text-[#707881] max-w-md">
             Trò chơi ghép thẻ cần tối thiểu 2 thẻ học trong bộ. Bạn hãy thêm thẻ vào bộ trước nhé!
           </p>
-          <button type="button" id="btnBackToDeckFromEmpty"
-                  class="py-2 px-4 bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold rounded-lg cursor-pointer transition">
+          <button type="button" id="btnBackToDeckFromEmpty" class="ls-btn ls-btn-primary">
             Quay lại bộ thẻ
           </button>
         </div>
@@ -83,31 +82,29 @@
           </div>
 
           <!-- Dòng hướng dẫn gạch chân thanh lịch -->
-          <div class="mt-4 pt-3 border-t border-[#E2E8F0] text-center text-xs text-[#586380] flex items-center justify-center gap-2">
+          <div class="mt-4 pt-3 border-t border-[#0F172A]/15 text-center text-xs text-[#707881] flex items-center justify-center gap-2">
             <span>💡 Nhấp vào một cặp gồm <strong>Câu hỏi</strong> và <strong>Đáp án</strong> tương ứng để xóa chúng khỏi bảng. Ghép sai sẽ bị phạt thêm 1 giây!</span>
           </div>
         </div>
 
         <!-- Chân trang -->
-        <footer class="mt-auto py-3 text-center text-[11px] text-slate-400">
-          KizunaTutor &copy; 2026 &bull; Trò chơi ghép thẻ rèn phản xạ siêu tốc 🧩
-        </footer>
+        <div id="learnerFooterContainer"></div>
       </main>
     </div>
   </div>
 
   <!-- MODAL CHIẾN THẮNG / HOÀN THÀNH (Victory Modal) -->
-  <div id="matchVictoryModal" class="hidden fixed inset-0 bg-[#282E3E]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-xl border border-[#D9DDE8] transform transition-all">
+  <div id="matchVictoryModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="ls-card max-w-sm w-full p-6 text-center transform transition-all">
       <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto text-3xl mb-3">
         🎉
       </div>
-      <h3 class="text-xl font-extrabold text-[#282E3E]">Tuyệt vời!</h3>
-      <p class="text-xs text-[#586380] mt-1">Bạn đã ghép đúng tất cả các thẻ trong:</p>
+      <h3 class="text-xl font-extrabold text-[#0F172A]">Tuyệt vời!</h3>
+      <p class="text-xs text-[#707881] mt-1">Bạn đã ghép đúng tất cả các thẻ trong:</p>
       
-      <div class="my-4 p-4 bg-[#F6F7FB] rounded-xl border border-[#D9DDE8]">
-        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Thời gian hoàn thành</span>
-        <div id="finalRecordTime" class="text-3xl font-mono font-extrabold text-[#4255FF]">
+      <div class="my-4 p-4 bg-[#FEF3C7] rounded-[6px] border border-[#0F172A]">
+        <span class="text-[11px] font-bold text-[#707881] uppercase tracking-wider block">Thời gian hoàn thành</span>
+        <div id="finalRecordTime" class="text-3xl font-mono font-extrabold text-[#006194]">
           0.0s
         </div>
         <div id="victoryRecordLabel" class="text-[11px] font-semibold text-emerald-600 mt-1 hidden">
@@ -116,12 +113,10 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <button type="button" id="btnRestartMatch" 
-                class="flex-1 py-2 px-3 bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold rounded-lg cursor-pointer transition">
+        <button type="button" id="btnRestartMatch" class="ls-btn ls-btn-primary flex-1">
           🔄 Chơi lại
         </button>
-        <button type="button" id="btnBackToDeck" 
-                class="flex-1 py-2 px-3 bg-white hover:bg-slate-50 text-[#1E293B] text-xs font-semibold border border-[#CBD5E1] rounded-lg cursor-pointer transition">
+        <button type="button" id="btnBackToDeck" class="ls-btn ls-btn-default flex-1">
           Quay lại bộ thẻ
         </button>
       </div>

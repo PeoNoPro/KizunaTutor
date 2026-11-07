@@ -170,28 +170,28 @@ function renderStandbyState() {
 
   if (grid) {
     grid.innerHTML = `
-      <div class="col-span-full p-8 sm:p-12 text-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white space-y-3">
+      <div class="col-span-full p-8 sm:p-12 text-center ls-card space-y-3">
         <img src="/assets/images/stickers/tea-meditation-capi.png" 
              alt="Capybara Thiền Trà Shodo" 
              class="w-16 h-16 mx-auto mb-2 object-contain pointer-events-none select-none" />
-        <h3 class="text-lg sm:text-xl font-bold text-[#0F172A]">
+        <h3 class="text-base sm:text-lg font-bold text-[#0F172A]">
           Sẵn sàng tra cứu Hán tự &amp; Bút thuận 📖
         </h3>
-        <p class="text-xs text-[#64748B] font-sans max-w-lg mx-auto leading-relaxed">
+        <p class="text-xs text-[#707881] font-sans max-w-lg mx-auto leading-relaxed">
           Hãy nhập chữ Hán, âm Hán Việt, âm On/Kun, chọn cấp độ JLPT hoặc vẽ nét bằng chuột để bắt đầu tra cứu hơn 6.600 chữ Hán nhé! ☕
         </p>
-        <div class="pt-2 flex items-center justify-center gap-2 flex-wrap text-xs font-meta">
-          <span class="text-[#64748B] font-semibold">Gợi ý thử nhanh:</span>
-          <button type="button" data-term="日" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-[#FFE5EC] hover:text-[#831843] hover:border-[#FBCFE8] border border-[#CBD5E1] font-bold text-[#1E293B] transition cursor-pointer">
+        <div class="pt-2 flex items-center justify-center gap-2 flex-wrap text-xs">
+          <span class="text-[#707881] font-semibold">Gợi ý thử nhanh:</span>
+          <button type="button" data-term="日" class="btn-quick-prompt ls-pill ls-btn-active">
             日 (NHẬT)
           </button>
-          <button type="button" data-term="月" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-[#FFE5EC] hover:text-[#831843] hover:border-[#FBCFE8] border border-[#CBD5E1] font-bold text-[#1E293B] transition cursor-pointer">
+          <button type="button" data-term="月" class="btn-quick-prompt ls-pill">
             月 (NGUYỆT)
           </button>
-          <button type="button" data-term="N5" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-bold text-emerald-800 transition cursor-pointer">
+          <button type="button" data-term="N5" class="btn-quick-prompt ls-pill">
             Cấp độ N5
           </button>
-          <button type="button" data-term="N4" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 font-bold text-sky-800 transition cursor-pointer">
+          <button type="button" data-term="N4" class="btn-quick-prompt ls-pill">
             Cấp độ N4
           </button>
         </div>
@@ -272,12 +272,12 @@ function renderLearnerGrid(items) {
 
   if (!items || items.length === 0) {
     grid.innerHTML = `
-      <div class="col-span-full p-10 text-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white space-y-2">
+      <div class="col-span-full p-8 text-center ls-card space-y-2">
         <img src="/assets/images/stickers/confused-capi.png" 
              alt="Capybara Bối Rối" 
              class="w-16 h-16 mx-auto mb-2 object-contain pointer-events-none select-none" />
-        <h3 class="text-lg font-bold text-[#0F172A]">Không tìm thấy chữ Kanji nào phù hợp</h3>
-        <p class="text-xs text-[#64748B] font-sans">Bạn thử tìm từ khóa, đổi số nét hoặc cấp độ JLPT khác xem sao nha! 🧐</p>
+        <h3 class="text-base font-bold text-[#0F172A]">Không tìm thấy chữ Kanji nào phù hợp</h3>
+        <p class="text-xs text-[#707881] font-sans">Bạn thử tìm từ khóa, đổi số nét hoặc cấp độ JLPT khác xem sao nha! 🧐</p>
       </div>
     `;
     return;
@@ -286,42 +286,42 @@ function renderLearnerGrid(items) {
   window.lastRenderedDictionaryItems = items;
 
   grid.innerHTML = items.map((k, idx) => `
-    <div class="bg-white rounded-xl border border-[#E2E8F0] hover:border-slate-300 p-4 flex flex-col justify-between transition-all relative">
+    <div class="ls-card flex flex-col justify-between transition-all relative">
       <div class="space-y-3">
         <!-- Header thông tin: Cấp độ JLPT, số nét, bộ thủ -->
-        <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
-          <span class="badge-nhai bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold px-2 py-0.5 rounded-full">${escapeHtml(k.jlpt || 'N5')}</span>
+        <div class="flex items-center justify-between border-b border-[#0F172A]/15 pb-2">
+          <span class="ls-badge ls-badge-jlpt">${escapeHtml(k.jlpt || 'N5')}</span>
           <div class="flex items-center gap-1.5">
-            <span class="badge-nhai bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold font-meta px-2 py-0.5 rounded-full">${k.strokeCount || 1} nét</span>
-            ${k.radical ? `<span class="text-[10px] text-[#64748B] font-meta">Bộ: ${escapeHtml(k.radical)}</span>` : ''}
+            <span class="ls-badge bg-[#FEF3C7] text-[#0F172A]">${k.strokeCount || 1} nét</span>
+            ${k.radical ? `<span class="text-[10px] text-[#707881] font-semibold">Bộ: ${escapeHtml(k.radical)}</span>` : ''}
           </div>
         </div>
 
-        <!-- Nội dung chính của chữ Hán: Nằm liền mạch ngay dưới Header, không bị khoảng trống -->
+        <!-- Nội dung chính của chữ Hán -->
         <div class="space-y-2.5">
-          <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] flex items-center justify-center font-serif text-4xl font-extrabold text-[#0F172A] shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="w-14 h-14 rounded-[6px] bg-[#FEF3C7] border border-[#0F172A] flex items-center justify-center font-serif text-3xl font-extrabold text-[#0F172A] shrink-0 shadow-[2px_2px_0px_0px_#0F172A]">
               ${escapeHtml(k.kanjiChar)}
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-extrabold text-[#831843] uppercase tracking-wide truncate">${escapeHtml(k.hanViet || 'HÁN TỰ')}</div>
-              <div class="text-[11px] text-[#64748B] font-mono mt-1 truncate">On: ${escapeHtml(k.onyomi || '-')}</div>
-              <div class="text-[11px] text-[#64748B] font-mono truncate">Kun: ${escapeHtml(k.kunyomi || '-')}</div>
+              <div class="text-[11px] text-[#707881] font-mono mt-0.5 truncate">On: ${escapeHtml(k.onyomi || '-')}</div>
+              <div class="text-[11px] text-[#707881] font-mono truncate">Kun: ${escapeHtml(k.kunyomi || '-')}</div>
             </div>
           </div>
 
-          <div class="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-slate-700 text-[11px] font-sans leading-relaxed line-clamp-2" title="${escapeHtml(k.meaning)}">
+          <div class="p-2 rounded-[6px] bg-[#FEF3C7] border border-[#0F172A] text-[#0F172A] text-xs leading-relaxed line-clamp-2" title="${escapeHtml(k.meaning)}">
             ${escapeHtml(k.meaning || 'Chưa có chú giải nghĩa')}
           </div>
         </div>
       </div>
 
-      <!-- CỤM NÚT HÀNH ĐỘNG: PHÁT ÂM + LƯU THẺ + LUYỆN NÉT -->
-      <div class="pt-3 mt-4 border-t border-[#E2E8F0] flex items-center gap-2 shrink-0">
+      <!-- Cụm nút hành động: Phát âm + Lưu thẻ + Luyện nét -->
+      <div class="pt-2.5 mt-3 border-t border-[#0F172A]/15 flex items-center gap-1.5 shrink-0">
         <button type="button" 
                 data-action="speak-kanji"
                 data-char="${escapeHtml(k.kanjiChar)}"
-                class="w-8 h-8 rounded-lg border border-[#CBD5E1] bg-slate-50 hover:bg-slate-100 text-[#1E293B] flex items-center justify-center transition active:scale-95 cursor-pointer shrink-0"
+                class="ls-btn ls-btn-default w-8 h-8 p-0"
                 title="Nghe phát âm chuẩn trọng âm (VOICEVOX AI TTS)">
           🔊
         </button>
@@ -331,11 +331,11 @@ function renderLearnerGrid(items) {
                 data-id="${k.id || ''}"
                 data-char="${escapeHtml(k.kanjiChar)}"
                 data-hanviet="${escapeHtml(k.hanViet || '')}"
-                class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer">
+                class="ls-btn ls-btn-default flex-1 py-1.5 text-xs">
           <span>📁</span> Lưu Thẻ
         </button>
         <a href="/shodo?char=${encodeURIComponent(k.kanjiChar)}" 
-           class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer">
+           class="ls-btn ls-btn-primary flex-1 py-1.5 text-xs no-underline">
           <span>✍️</span> Luyện Nét
         </a>
       </div>
@@ -387,9 +387,9 @@ function renderLearnerPagination(page, totalPages, totalElements) {
   if (!btns) return;
 
   let html = '';
-  html += `<button type="button" id="btnPagePrev" ${page === 0 ? 'disabled' : ''} class="px-3 py-1.5 text-xs rounded-lg font-bold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 disabled:opacity-40 transition active:scale-95 cursor-pointer">◀</button>`;
-  html += `<span class="w-8 h-8 rounded-lg bg-[#1E293B] text-white flex items-center justify-center font-bold text-xs">${page + 1}</span>`;
-  html += `<button type="button" id="btnPageNext" ${page >= totalPages - 1 ? 'disabled' : ''} class="px-3 py-1.5 text-xs rounded-lg font-bold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 disabled:opacity-40 transition active:scale-95 cursor-pointer">▶</button>`;
+  html += `<button type="button" id="btnPagePrev" ${page === 0 ? 'disabled' : ''} class="ls-btn ls-btn-default py-1 px-2.5 text-xs disabled:opacity-40">◀</button>`;
+  html += `<span class="ls-badge bg-[#E0399A] text-white py-1 px-2.5 text-xs">${page + 1}</span>`;
+  html += `<button type="button" id="btnPageNext" ${page >= totalPages - 1 ? 'disabled' : ''} class="ls-btn ls-btn-default py-1 px-2.5 text-xs disabled:opacity-40">▶</button>`;
   btns.innerHTML = html;
 
   const btnPrev = document.getElementById('btnPagePrev');

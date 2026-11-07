@@ -181,3 +181,9 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
 > 
 > 2. **Giá»›i háº¡n pháº¡m vi nghiÃªm ngáº·t:**  
 >    Quy Ä‘á»‹nh nÃ y **chá»‰ Ã¡p dá»¥ng duy nháº¥t cho cÃ¡c pháº§n trong khá»‘i Há»c Táº­p & RÃ¨n Luyá»‡n** (bao gá»“m: Kana Quiz, Bá»™ tháº» Flashcards, Chi tiáº¿t Flashcard, Luyá»‡n láº­t tháº», PhÃ²ng luyá»‡n viáº¿t Shodo, Tra cá»©u Tá»« Ä‘iá»ƒn chá»¯ HÃ¡n, Tra cá»©u viáº¿t tay AI, Game MÆ°a chá»¯ HÃ¡n, Ngá»¯ phÃ¡p & AI Sensei, Trá»£ lÃ½ há»c táº­p vÃ  cÃ¡c module há»c táº­p má»›i phÃ¡t triá»ƒn thÃªm sau nÃ y). Tuyá»‡t Ä‘á»‘i **khÃ´ng Ã¡p dá»¥ng** sang cÃ¡c phÃ¢n há»‡ ngoÃ i khá»‘i nÃ y (nhÆ° Admin, Manager, Gia sÆ°, CSKH hay cÃ¡c trang Portal cÃ´ng khai).
+## Äá»’NG Bá»˜ TOÃ€N DIá»†N KHá»I Há»ŒC Táº¬P & RÃˆN LUYá»†N
+- **Chuáº©n tham chiáº¿u gá»‘c (Benchmark):** Giao diá»‡n trang Äáº¥u TrÆ°á»ng GÃµ Kana (/kana).
+- **Typography báº¯t buá»™c:** Chá»‰ sá»­ dá»¥ng 2 font: ui-sans-serif (vÄƒn báº£n) vÃ  ui-monospace (input, code, Furigana, badges). Thang Ä‘o: 10px / 12px / 14px / 16px / 18px.
+- **Bo gÃ³c chuáº©n:** Cá»‘ Ä‘á»‹nh adius-sm: 6px cho card/button/input vÃ  adius-full: 9999px cho filter pills.
+- **MÃ u ná»n bao phá»§:** --color-bg-pink-tint: #FFE5EC káº¿t há»£p tháº» tráº¯ng #FFFFFF vÃ  viá»n #0F172A.
+- **NghiÃªm cáº¥m:** KhÃ´ng tá»± viáº¿t class CSS riÃªng láº» trÃªn tá»«ng trang lÃ m phÃ¡ vá»¡ tÃ­nh Ä‘á»“ng nháº¥t.

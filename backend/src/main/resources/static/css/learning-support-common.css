@@ -1,0 +1,310 @@
+/**
+ * ==============================================================================
+ * KIZUNA TUTOR - LEARNING SUPPORT COMMON DESIGN TOKENS & SYSTEM
+ * Source of Truth: Inspector DESIGN.md (Cẩm Nang Ngữ Pháp & AI Sensei)
+ * Applicable to: Grammar, Shodo Canvas, Flashcards, Kana Arena, Learning Support
+ * ==============================================================================
+ */
+
+/* ==============================================================================
+   1. DESIGN TOKENS
+   ============================================================================== */
+:root {
+  /* --- PALETTE MÀU: NỀN & BỀ MẶT (SURFACE & BACKGROUND) --- */
+  --color-bg-surface: #FAF8F2;          /* Nền chính ấm áp, dịu mắt (Editorial) */
+  --color-bg-white: #FFFFFF;            /* Nền thẻ / Khối tương tác */
+  --color-bg-sky: #E0F2FE;              /* Nền nhạt thông tin / JLPT */
+  --color-bg-orange: #FFEDD5;           /* Nền nhạt chú ý / Note */
+  --color-bg-amber: #FEF3C7;            /* Nền nhạt mẹo học / Tips */
+  --color-bg-pink-tint: #FFE5EC;        /* Nền phớt hồng Hiragana / Trợ lý AI */
+
+  /* --- PALETTE MÀU: CHỮ (TEXT & CONTRAST SAFETY) --- */
+  --color-text-primary: #0F2545;        /* Chữ chính: Độ tương phản cao, chống tàng hình */
+  --color-text-secondary: #3F4850;      /* Chữ phụ / Giải nghĩa câu */
+  --color-text-muted: #707881;          /* Ghi chú nhỏ, metadata, Furigana mờ */
+  --color-text-white: #FFFFFF;          /* Chữ sáng cho nút active / solid */
+
+  /* --- PALETTE MÀU: THƯƠNG HIỆU & ĐIỀU HƯỚNG (BRAND & ACCENTS) --- */
+  --color-primary: #006194;             /* Xanh Sensei chủ đạo */
+  --color-primary-container: #007BB9;   /* Xanh tương tác hover */
+  --color-secondary: #4059AA;           /* Xanh tím thứ cấp */
+  --color-tertiary: #831843;            /* Hồng tím mận nhấn mạnh */
+  --color-accent-pink: #E0399A;         /* Hồng Hiragana cho trạng thái Active */
+  --color-accent-green: #2A5A1A;        /* Xanh thư pháp Shodo */
+
+  /* --- PALETTE MÀU: TRẠNG THÁI (FEEDBACK & STATUS) --- */
+  --color-success: #059669;             /* Thành công, điểm đúng */
+  --color-info: #0284C7;                /* Thông tin, hướng dẫn */
+  --color-warning: #D97706;             /* Cảnh báo, lưu ý ngoại lệ */
+  --color-error: #BA1A1A;               /* Báo lỗi, sai nét */
+  --color-red: #B91C1C;                 /* Trọng tâm ngữ pháp */
+
+  /* --- PALETTE MÀU: VIỀN (BORDERS) --- */
+  --color-border-strong: #DED7C5;       /* Viền thẻ chính, khung bài học */
+  --color-border-input: #E2D9C6;        /* Viền ô nhập Romaji / Search */
+  --color-border-default: #E5DECB;      /* Viền phân tách nội dung */
+  --color-border-light: #ECE8DE;        /* Đường kẻ mờ dòng ví dụ */
+  --color-border-solid: #0F172A;        /* Viền than cho Retro-Brutalist elements */
+
+  /* --- TYPOGRAPHY SCALE --- */
+  --font-family-sans: ui-sans-serif, -apple-system, Segoe UI, system-ui, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-family-serif: "Times New Roman", Times, serif;
+
+  --font-size-xs: 11px;                 /* Captions, metadata, Furigana */
+  --font-size-sm: 13px;                 /* Labels, phụ đề, nút nhỏ */
+  --font-size-base: 16px;               /* Văn bản đọc chính (Default) */
+  --font-size-lg: 18px;                 /* Tiêu đề mục con, điểm nhấn */
+  --font-size-xl: 20px;                 /* Tiêu đề ngữ pháp, tiêu đề module */
+
+  /* --- SPACING SCALE (BASE 4PX) --- */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-7: 16px;
+  --space-8: 20px;
+  --space-9: 36px;
+
+  /* --- SHAPES & RADII --- */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* --- ELEVATION & SHADOWS --- */
+  --shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0px 4px 6px -1px rgba(0, 0, 0, 0.08);
+  --shadow-retro: 3px 3px 0px 0px #0F172A;
+  --shadow-btn: 2px 2px 0px 0px #0F172A;
+
+  /* --- MOTION --- */
+  --motion-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-base: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==============================================================================
+   2. KHÓA ỔN ĐỊNH BỐ CỤC TOÀN CỤC (LAYOUT & SCROLL STABILITY)
+   ============================================================================== */
+html {
+  scrollbar-gutter: stable both-edges;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+body.learning-support-body {
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* ==============================================================================
+   3. COMPONENT NỀN TẢNG (COMMON COMPONENTS)
+   ============================================================================== */
+
+/* --- THẺ BỀ MẶT (CARDS & CONTAINERS) --- */
+.ls-card {
+  background-color: var(--color-bg-white);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-primary);
+  padding: var(--space-7);
+  transition: var(--motion-fast);
+}
+
+.ls-card-interactive:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Biến thể thẻ Retro-Brutalist nếu cần viền đậm */
+.ls-card-retro {
+  background-color: var(--color-bg-white);
+  border: 1px solid var(--color-border-solid);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-retro);
+  color: var(--color-text-primary);
+  padding: var(--space-7);
+}
+
+/* --- HỆ THỐNG NÚT BẤM (BUTTON SCALE) --- */
+.ls-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: var(--motion-fast);
+  line-height: 1.2;
+}
+
+/* Nút chính (Sensei Primary) */
+.ls-btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-text-white) !important;
+}
+.ls-btn-primary:hover {
+  background-color: var(--color-primary-container);
+}
+
+/* Nút Shodo (Xanh nét bút) */
+.ls-btn-shodo {
+  background-color: var(--color-accent-green);
+  color: var(--color-text-white) !important;
+  border: 1px solid var(--color-border-solid);
+  box-shadow: var(--shadow-btn);
+}
+
+/* Nút Active / Tab đang chọn (Hồng Hiragana) */
+.ls-btn-active,
+.ls-pill.is-active {
+  background-color: var(--color-accent-pink) !important;
+  color: var(--color-text-white) !important;
+  border-color: var(--color-accent-pink) !important;
+  box-shadow: var(--shadow-btn);
+}
+
+/* Nút Phụ / Mặc định (Outline / Secondary) */
+.ls-btn-outline {
+  background-color: var(--color-bg-white);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary) !important;
+}
+.ls-btn-outline:hover {
+  background-color: var(--color-bg-surface);
+  border-color: var(--color-primary);
+}
+
+/* Nút Xóa / Nguy hiểm */
+.ls-btn-danger {
+  background-color: #FFF1F2;
+  border-color: #FECDD3;
+  color: var(--color-error) !important;
+}
+.ls-btn-danger:hover {
+  background-color: var(--color-error);
+  color: var(--color-text-white) !important;
+}
+
+/* --- THANH TÁC VỤ (TOOLBAR & FILTER PILLS) --- */
+.ls-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  background-color: var(--color-bg-white);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-7);
+}
+
+.ls-pill-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}
+
+.ls-pill {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border-default);
+  background-color: var(--color-bg-white);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--motion-fast);
+}
+.ls-pill:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* --- Ô NHẬP LIỆU (INPUT FIELDS) --- */
+.ls-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-white);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-6);
+  outline: none;
+  transition: var(--motion-fast);
+}
+.ls-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(0, 97, 148, 0.2);
+}
+
+/* --- BADGES & HUY HIỆU CẤP ĐỘ JLPT --- */
+.ls-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  line-height: 1.2;
+}
+
+.ls-badge-jlpt {
+  background-color: var(--color-bg-sky);
+  color: var(--color-primary);
+  border: 1px solid #BAE6FD;
+}
+
+.ls-badge-tips {
+  background-color: var(--color-bg-amber);
+  color: var(--color-warning);
+  border: 1px solid #FDE68A;
+}
+
+/* ==============================================================================
+   4. TIỆN ÍCH CHỐNG LỖI HIỂN THỊ (ANTI-BUG UTILITIES)
+   ============================================================================== */
+/* Tuyệt đối chống chữ tàng hình trên mọi màn hình */
+.ls-text-contrast-safe {
+  color: var(--color-text-primary) !important;
+}
+
+.ls-text-secondary {
+  color: var(--color-text-secondary) !important;
+}
+
+.ls-text-muted {
+  color: var(--color-text-muted) !important;
+}
+
+/* Ngăn tràn khung ngang cho khối ví dụ tiếng Nhật */
+.ls-wrap-text {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}

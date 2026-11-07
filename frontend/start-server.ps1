@@ -57,6 +57,10 @@ $aliases = @{
     "/flashcards-practice" = "/pages/flashcards-study/index.html"
     "/flashcards-detail" = "/pages/flashcards-detail/index.html"
     "/deck-detail"       = "/pages/flashcards-detail/index.html"
+    "/flashcards-match"  = "/pages/flashcards-match/index.html"
+    "/learner/flashcards-match" = "/pages/flashcards-match/index.html"
+    "/learner/match"     = "/pages/flashcards-match/index.html"
+    "/match"             = "/pages/flashcards-match/index.html"
     "/shodo"             = "/pages/shodo-practice/index.html"
     "/shodo-practice"    = "/pages/shodo-practice/index.html"
     "/grammar"           = "/pages/grammar/index.html"
@@ -158,6 +162,47 @@ while ($listener.IsListening) {
             }
         }
 
+        # 1a-2. Neu la VOICEVOX API -> Proxy chuyen tiep den VOICEVOX Engine cong 50021
+        if ($pathPart.StartsWith("/api/voicevox")) {
+            $vvSubPath = $rawUrl.Substring("/api/voicevox".Length)
+            if ([string]::IsNullOrEmpty($vvSubPath)) { $vvSubPath = "/" }
+            $targetUri = "http://127.0.0.1:50021$vvSubPath"
+            try {
+                $webRequest = [System.Net.HttpWebRequest]::Create($targetUri)
+                $webRequest.Method = $request.HttpMethod
+                $webRequest.ContentType = $request.ContentType
+                $webRequest.Timeout = 10000
+
+                if ($request.HasEntityBody) {
+                    $reqStream = $request.InputStream
+                    $proxyStream = $webRequest.GetRequestStream()
+                    $reqStream.CopyTo($proxyStream)
+                    $proxyStream.Close()
+                }
+
+                $webResponse = $webRequest.GetResponse()
+                $response.StatusCode = [int]$webResponse.StatusCode
+                $response.ContentType = $webResponse.ContentType
+                $resStream = $webResponse.GetResponseStream()
+                $resStream.CopyTo($response.OutputStream)
+                $webResponse.Close()
+            } catch [System.Net.WebException] {
+                if ($_.Exception.Response) {
+                    $errRes = $_.Exception.Response
+                    $response.StatusCode = [int]$errRes.StatusCode
+                    $response.ContentType = $errRes.ContentType
+                    $errRes.GetResponseStream().CopyTo($response.OutputStream)
+                } else {
+                    $response.StatusCode = 503
+                    $response.ContentType = "application/json; charset=UTF-8"
+                    $bytes = [System.Text.Encoding]::UTF8.GetBytes('{"error":"VOICEVOX Engine not running on 127.0.0.1:50021","status":"offline"}')
+                    $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                }
+            }
+            $response.OutputStream.Close()
+            continue
+        }
+
                 # 1c. Proxy Agent Memory Service (Port 8081)
         if ($pathPart.StartsWith("/memory/") -or $pathPart.StartsWith("/agent-memory/")) {
             $memPath = if ($pathPart.StartsWith("/agent-memory/")) { $rawUrl.Replace("/agent-memory", "") } else { $rawUrl }
@@ -165,8 +210,8 @@ while ($listener.IsListening) {
             $memReq = [System.Net.HttpWebRequest]::Create($memTargetUri)
             $memReq.Method = $request.HttpMethod
             $memReq.ContentType = $request.ContentType
-            $memReq.Timeout = 10000
-            $memReq.ReadWriteTimeout = 10000
+            $memReq.Timeout = 1500
+            $memReq.ReadWriteTimeout = 1500
 
             try {
                 if ($request.HasEntityBody) {
@@ -198,8 +243,8 @@ while ($listener.IsListening) {
             $webRequest = [System.Net.HttpWebRequest]::Create($targetUri)
             $webRequest.Method = $request.HttpMethod
             $webRequest.ContentType = $request.ContentType
-            $webRequest.Timeout = 30000
-            $webRequest.ReadWriteTimeout = 30000
+            $webRequest.Timeout = 1000
+            $webRequest.ReadWriteTimeout = 1000
 
             try {
                 if ($request.HasEntityBody) {
@@ -247,6 +292,8 @@ while ($listener.IsListening) {
             $pathPart = $aliases[$pathPart]
         } elseif ($aliases.ContainsKey($lookupPath)) {
             $pathPart = $aliases[$lookupPath]
+        } elseif ($pathPart -match "^/learner/flashcards/[^/]+/match$") {
+            $pathPart = "/pages/flashcards-match/index.html"
         } elseif ($pathPart -match "^/learner/flashcards/[^/]+$") {
             $pathPart = "/pages/flashcards-detail/index.html"
         } else {

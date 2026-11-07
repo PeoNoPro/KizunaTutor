@@ -16,8 +16,8 @@ import { userMenuHtml, bindUserMenu, setUserMenuName } from '/components/user-me
 // Đúng thứ tự và biểu tượng của thiết kế Stitch. "Hồ sơ gia sư" mở trang xác minh hồ sơ (FE-03).
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Tổng quan', icon: 'grid_view', href: '/tutor/dashboard' },
-  { key: 'connections', label: 'Yêu cầu kết nối', icon: 'group_add' },
-  { key: 'schedule', label: 'Lịch giảng dạy', icon: 'calendar_month' },
+  { key: 'connections', label: 'Yêu cầu kết nối', icon: 'group_add', href: '/tutor/connections' },
+  { key: 'schedule', label: 'Lịch giảng dạy', icon: 'calendar_month', href: '/tutor/schedule' },
   { key: 'students', label: 'Học viên của tôi', icon: 'school', href: '/tutor/classrooms' },
   { key: 'materials', label: 'Tài liệu học tập', icon: 'menu_book', href: '/tutor/classrooms' },
   { key: 'assignments', label: 'Quản lý bài tập', icon: 'assignment', href: '/tutor/classrooms' },

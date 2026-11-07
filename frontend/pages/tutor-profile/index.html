@@ -107,8 +107,14 @@
             Theo múi giờ của bạn: Châu Á/Hồ Chí Minh (GMT +07:00)
           </p>
 
-          <!-- Buổi sáng (Khung chuẩn theo mẫu) -->
-          <div class="space-y-3">
+          <!-- Thông báo toàn ngày nếu không có lịch -->
+          <div id="booking-day-alert" class="hidden p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+            <span class="material-symbols-outlined text-base flex-shrink-0">event_busy</span>
+            <span id="booking-day-alert-text">Gia sư không có lịch dạy vào ngày này. Vui lòng chọn một ngày khác có chấm xanh.</span>
+          </div>
+
+          <!-- Buổi sáng -->
+          <div class="space-y-3" id="morning-slots-section">
             <div class="flex items-center gap-2 text-sm font-bold text-slate-900">
               <svg class="w-5 h-5 text-slate-900 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 2v4M4.93 10.93l2.83-2.83M2 18h2M20 18h2M19.07 10.93l-2.83-2.83M16 18a4 4 0 0 0-8 0"/>
@@ -117,18 +123,12 @@
               <span>Buổi sáng</span>
             </div>
             <div class="grid grid-cols-3 gap-3" id="morning-slots-grid">
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">06:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">06:30</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">07:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">10:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">10:30</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">11:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">11:30</button>
+              <!-- Render động theo lịch rảnh thực tế của gia sư -->
             </div>
           </div>
 
-          <!-- Buổi chiều (Khung chuẩn theo mẫu) -->
-          <div class="space-y-3">
+          <!-- Buổi chiều -->
+          <div class="space-y-3" id="afternoon-slots-section">
             <div class="flex items-center gap-2 text-sm font-bold text-slate-900">
               <svg class="w-5 h-5 text-slate-900 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="4"/>
@@ -137,21 +137,12 @@
               <span>Buổi chiều</span>
             </div>
             <div class="grid grid-cols-3 gap-3" id="afternoon-slots-grid">
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">12:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">12:30</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">13:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">13:30</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">14:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">14:30</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">15:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">15:30</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">16:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">16:30</button>
+              <!-- Render động theo lịch rảnh thực tế của gia sư -->
             </div>
           </div>
 
-          <!-- Buổi tối (Khung chuẩn theo mẫu) -->
-          <div class="space-y-3">
+          <!-- Buổi tối -->
+          <div class="space-y-3" id="evening-slots-section">
             <div class="flex items-center gap-2 text-sm font-bold text-slate-900">
               <svg class="w-5 h-5 text-slate-900 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
@@ -159,13 +150,16 @@
               <span>Buổi tối</span>
             </div>
             <div class="grid grid-cols-3 gap-3" id="evening-slots-grid">
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">18:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">18:30</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">19:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">19:30</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">20:00</button>
-              <button type="button" class="slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs">20:30</button>
+              <!-- Render động theo lịch rảnh thực tế của gia sư -->
             </div>
+          </div>
+        </div>
+
+        <!-- Alert thông báo lỗi (nếu có) -->
+        <div class="px-5 md:px-6 pb-2">
+          <div id="booking-error-alert" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+            <span class="material-symbols-outlined text-base flex-shrink-0">error</span>
+            <span id="booking-error-message"></span>
           </div>
         </div>
 

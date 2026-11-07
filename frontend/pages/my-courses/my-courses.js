@@ -1,6 +1,6 @@
 /**
  * KizunaTutor - FE-06 Trang "Lớp học của tôi" của học viên.
- * UC-58 View Course, UC-61 View Learning Materials. Dữ liệu lấy từ API /api/classrooms.
+ * UC-58 View Course (kèm lịch học hằng tuần), UC-61 View Learning Materials. Dữ liệu lấy từ API /api/classrooms.
  */
 
 import { API } from '../../js/api.js';
@@ -9,6 +9,11 @@ import {
   classroomStatusTone,
   fileTypeLabel,
   formatDateVi,
+  sortSchedules,
+  summarizeSchedules,
+  dayOfWeekLabel,
+  shortTime,
+  durationLabel,
   friendlyErrorMessage,
   escapeHtml,
   ROLE_LEARNER,
@@ -63,6 +68,7 @@ async function loadCourses() {
         <div class="text-[#333] space-y-1">
           <div>Gia sư: <strong>${escapeHtml(c.tutorName || 'Gia sư')}</strong></div>
           <div>Ngày bắt đầu: ${escapeHtml(formatDateVi(c.createdAt))}</div>
+          <div>Lịch học: ${c.schedules?.length ? escapeHtml(summarizeSchedules(c.schedules)) : 'Chưa có lịch học'}</div>
           <div>Tài liệu: ${Number(c.materialCount) || 0}</div>
         </div>
         <button type="button" class="mc-btn mt-auto" data-open-course="${escapeHtml(c.spaceId)}">Xem lớp học</button>
@@ -110,6 +116,7 @@ async function loadCourse(spaceId) {
   stateBox.classList.add('hidden');
   card.classList.add('hidden');
   materialsCard.classList.add('hidden');
+  $('myCourseSchedule').classList.add('hidden');
   hideLearnerAssignments();
   try {
     currentSpace = await API.classrooms.detail(spaceId);
@@ -121,12 +128,33 @@ async function loadCourse(spaceId) {
     $('myCourseCreated').textContent = formatDateVi(currentSpace.createdAt);
     $('myCourseReadOnlyNote').classList.toggle('hidden', !currentSpace.readOnly);
     card.classList.remove('hidden');
+    renderSchedule(currentSpace.schedules);
     materialsCard.classList.remove('hidden');
     loadLearnerAssignments(currentSpace, { notify: showError });
     await loadMaterials();
   } catch (err) {
     renderStateBox(stateBox, friendlyErrorMessage(err), () => loadCourse(spaceId));
   }
+}
+
+function renderSchedule(list) {
+  const schedules = sortSchedules(list);
+  const ul = $('myCourseScheduleList');
+  const stateBox = $('myCourseScheduleState');
+  if (!schedules.length) {
+    ul.innerHTML = '';
+    renderStateBox(stateBox, 'Gia sư chưa xếp lịch học cho lớp này.');
+  } else {
+    stateBox.classList.add('hidden');
+    ul.innerHTML = schedules.map((s) => `
+      <li class="border border-black rounded-[5px] p-3 bg-[#E5F4EA] flex flex-col gap-0.5">
+        <span class="font-semibold text-[16px]">${escapeHtml(dayOfWeekLabel(s.dayOfWeek))}</span>
+        <span>${escapeHtml(shortTime(s.startTime))} – ${escapeHtml(shortTime(s.endTime))}</span>
+        <span class="mc-meta text-[#555]">${escapeHtml(durationLabel(s.startTime, s.endTime))}</span>
+      </li>
+    `).join('');
+  }
+  $('myCourseSchedule').classList.remove('hidden');
 }
 
 async function loadMaterials() {

@@ -79,6 +79,16 @@
               <p id="myCourseReadOnlyNote" class="hidden border border-black rounded-[5px] bg-[#FDEDE8] text-[#BF360C] px-3 py-2">Lớp học đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại các tài liệu đã được chia sẻ.</p>
             </div>
 
+            <!-- Lịch học hằng tuần (học viên chỉ xem) -->
+            <div id="myCourseSchedule" class="mc-card p-5 space-y-4 hidden">
+              <div>
+                <h2 class="mc-heading text-[20px]">Lịch học hằng tuần</h2>
+                <p class="text-[#444]">Các buổi học cố định mỗi tuần do gia sư xếp cho lớp.</p>
+              </div>
+              <div id="myCourseScheduleState" class="text-center text-[#444] py-4 hidden"></div>
+              <ul id="myCourseScheduleList" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></ul>
+            </div>
+
             <div id="myCourseMaterials" class="mc-card p-5 space-y-4 hidden">
               <h2 class="mc-heading text-[20px]">Tài liệu học tập</h2>
               <div id="myCourseMaterialsState" class="text-center text-[#444] py-6 hidden"></div>

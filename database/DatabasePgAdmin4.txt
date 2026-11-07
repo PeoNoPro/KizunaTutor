@@ -277,6 +277,21 @@ CREATE TABLE learning_spaces (
 CREATE INDEX idx_spaces_tutor_learner ON learning_spaces(tutor_id, learner_id);
 CREATE TRIGGER trg_spaces_updated_at BEFORE UPDATE ON learning_spaces FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 11b. Bảng Lịch Học Hằng Tuần Của Lớp (Class Schedules) — FE-06, migration 010
+DROP TABLE IF EXISTS class_schedules CASCADE;
+CREATE TABLE class_schedules (
+    schedule_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    space_id UUID NOT NULL REFERENCES learning_spaces(space_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_class_schedule_time CHECK (start_time < end_time)
+);
+CREATE INDEX idx_class_schedules_space ON class_schedules(space_id);
+CREATE TRIGGER trg_class_schedules_updated_at BEFORE UPDATE ON class_schedules FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+
 -- 12. Bảng Tài Liệu Học Tập (Learning Materials)
 DROP TABLE IF EXISTS learning_materials CASCADE;
 CREATE TABLE learning_materials (

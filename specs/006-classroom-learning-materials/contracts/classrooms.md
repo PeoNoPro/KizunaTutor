@@ -9,7 +9,7 @@ Response bọc theo chuẩn dự án: `{ "success": bool, "message": string, "da
 | 401 | Thiếu/sai/hết hạn token |
 | 403 | Sai vai trò hoặc không thuộc lớp |
 | 404 | Lớp/tài liệu không tồn tại (hoặc không thuộc lớp) |
-| 409 | Trùng lớp đang hoạt động; lớp ở chế độ chỉ xem |
+| 409 | Trùng lớp đang hoạt động; trùng lịch học; lớp ở chế độ chỉ xem |
 | 413 | Tệp vượt 10 MB |
 | 503 | Kho lưu trữ chưa cấu hình/không phản hồi |
 
@@ -20,8 +20,10 @@ Gia sư → lớp của mình; học viên → lớp mình tham gia. Sắp xếp
 ```json
 { "data": [ { "spaceId": "uuid", "title": "N4 cấp tốc", "status": "ACTIVE",
   "tutorId": "uuid", "tutorName": "…", "learnerId": "uuid", "learnerName": "…",
-  "createdAt": "2026-11-03T10:00:00Z", "readOnly": false, "materialCount": 3 } ] }
+  "createdAt": "2026-11-03T10:00:00Z", "readOnly": false, "materialCount": 3,
+  "schedules": [ { "scheduleId": "uuid", "dayOfWeek": 1, "startTime": "19:00", "endTime": "20:30" } ] } ] }
 ```
+`dayOfWeek`: 1 = Thứ Hai … 7 = Chủ nhật. `schedules` sắp theo thứ rồi giờ bắt đầu.
 
 ## GET /classrooms/eligible-learners  *(chỉ gia sư)*
 
@@ -31,8 +33,22 @@ Gia sư → lớp của mình; học viên → lớp mình tham gia. Sắp xếp
 
 ## POST /classrooms  *(chỉ gia sư)*
 
-Body `{ "learnerId": "uuid", "title": "string 1–150" }` → 201, `data` = ClassroomSummary.
-Lỗi: 400 tên lớp; 403 học viên chưa kết nối; 409 đã có lớp đang hoạt động; 409 hội viên hết hạn.
+Tạo lớp = chọn học viên đã kết nối + tên lớp + lịch học hằng tuần. Chấp nhận kết nối KHÔNG tự tạo lớp.
+Body `{ "learnerId": "uuid", "title": "string 1–150", "schedules": [ { "dayOfWeek": 1, "startTime": "19:00", "endTime": "20:30" } ] }` → 201, message "Tạo lớp học thành công.", `data` = ClassroomSummary.
+Quy tắc lịch: 1–14 buổi/tuần; mỗi buổi 30 phút – 4 giờ, giờ bắt đầu < giờ kết thúc; không trùng giờ nhau, không trùng lịch các lớp ACTIVE/PAUSED của gia sư hoặc của học viên (không lộ tên lớp của gia sư khác).
+Lỗi: 400 tên lớp / lịch không hợp lệ (`fieldErrors.schedules`); 403 học viên chưa kết nối; 409 đã có lớp đang hoạt động; 409 trùng lịch; 409 hội viên hết hạn.
+
+## GET /classrooms/{spaceId}/schedules
+Gia sư/học viên của lớp → danh sách buổi học.
+
+## POST /classrooms/{spaceId}/schedules  *(gia sư của lớp)*
+Body `{ "dayOfWeek": 3, "startTime": "18:00", "endTime": "19:30" }` → 201, message "Thêm buổi học thành công.". Quy tắc như trên; 409 nếu đủ 14 buổi, trùng lịch, lớp chỉ xem.
+
+## PUT /classrooms/{spaceId}/schedules/{scheduleId}  *(gia sư của lớp)*
+Body như POST → 200, message "Cập nhật lịch học thành công.". 404 nếu buổi học không thuộc lớp; 403 nếu không phải gia sư của lớp; 409 trùng lịch / lớp chỉ xem.
+
+Không có endpoint xóa buổi học (nghiệp vụ: lịch học sửa được, không xóa được).
+Lưu trữ: bảng `class_schedules` — migration `database/migrations/010_fe06_class_schedules.sql`.
 
 ## GET /classrooms/{spaceId}
 

@@ -113,3 +113,54 @@ test('thông báo sai vai trò có nút về đúng trang, không lộ mã vai t
   assert.ok(!adminHtml.includes('/pages/'));
   assert.ok(adminHtml.includes('Đăng nhập bằng tài khoản khác'));
 });
+
+import {
+  dayOfWeekLabel,
+  shortTime,
+  durationLabel,
+  sortSchedules,
+  summarizeSchedules,
+  validateScheduleSlot,
+  validateScheduleList
+} from '../js/classroom-helpers.js';
+
+test('nhãn thứ và giờ của lịch học', () => {
+  assert.equal(dayOfWeekLabel(1), 'Thứ Hai');
+  assert.equal(dayOfWeekLabel(7), 'Chủ nhật');
+  assert.equal(dayOfWeekLabel(9), '');
+  assert.equal(shortTime('19:00:00'), '19:00');
+  assert.equal(shortTime('7:05'), '07:05');
+  assert.equal(durationLabel('19:00', '20:30'), '1 giờ 30 phút');
+  assert.equal(durationLabel('19:00', '19:45'), '45 phút');
+});
+
+test('sắp xếp và tóm tắt lịch học theo thứ rồi giờ', () => {
+  const list = [
+    { dayOfWeek: 5, startTime: '18:00', endTime: '19:00' },
+    { dayOfWeek: 1, startTime: '19:00', endTime: '20:30' }
+  ];
+  assert.deepEqual(sortSchedules(list).map((s) => s.dayOfWeek), [1, 5]);
+  assert.equal(summarizeSchedules(list), 'T2 19:00–20:30 · T6 18:00–19:00');
+  assert.equal(summarizeSchedules([]), '');
+});
+
+test('kiểm tra một buổi học khớp quy tắc máy chủ', () => {
+  assert.equal(validateScheduleSlot({ dayOfWeek: 1, startTime: '19:00', endTime: '20:30' }), null);
+  assert.match(validateScheduleSlot({ dayOfWeek: null, startTime: '19:00', endTime: '20:00' }), /chọn thứ/);
+  assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '', endTime: '20:00' }), /giờ bắt đầu/);
+  assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '20:00', endTime: '19:00' }), /sau giờ bắt đầu/);
+  assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '19:00', endTime: '19:20' }), /30 phút/);
+  assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '08:00', endTime: '12:30' }), /4 giờ/);
+});
+
+test('danh sách buổi học: bắt buộc có, không trùng giờ', () => {
+  assert.match(validateScheduleList([]), /ít nhất một buổi/);
+  assert.equal(validateScheduleList([
+    { dayOfWeek: 3, startTime: '09:00', endTime: '10:00' },
+    { dayOfWeek: 3, startTime: '10:00', endTime: '11:00' }
+  ]), null);
+  assert.match(validateScheduleList([
+    { dayOfWeek: 3, startTime: '09:00', endTime: '10:00' },
+    { dayOfWeek: 3, startTime: '09:30', endTime: '11:00' }
+  ]), /trùng giờ/);
+});

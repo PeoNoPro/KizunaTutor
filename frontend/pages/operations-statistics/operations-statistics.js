@@ -30,11 +30,11 @@ const labelled = groups => Object.entries(groups).map(([label, count]) => ({labe
 async function loadIncidents(params) {
     try {
         const data = await api(base + '/reports/incidents?' + params);
-        byId('incidentTiles').replaceChildren(...[['Mới ghi nhận', data.createdCount], ['Đã giải quyết', data.resolvedCount], ['Còn mở cuối kỳ', data.openAtCutoff]].map(([label, count]) => {
+        byId('incidentTiles').replaceChildren(...[['Phát sinh trong kỳ', data.createdCount], ['Khắc phục trong kỳ', data.resolvedCount], ['Còn mở cuối kỳ', data.openAtCutoff]].map(([label, count]) => {
             const tile = text('div', '', 'statistics-tile'); tile.append(text('span', label), text('strong', number(count))); return tile;
         }));
-        barChart(byId('incidentStatusChart'), 'Sự cố còn mở theo trạng thái', labelled(data.breakdowns.open.status), 'Không có sự cố còn mở cuối kỳ.');
-        barChart(byId('incidentSeverityChart'), 'Sự cố còn mở theo mức độ', labelled(data.breakdowns.open.severity), 'Không có sự cố còn mở cuối kỳ.');
+        barChart(byId('incidentStatusChart'), 'Sự cố chưa đóng theo bước xử lý', labelled(data.breakdowns.open.status), 'Không có sự cố còn mở cuối kỳ.');
+        barChart(byId('incidentSeverityChart'), 'Sự cố chưa đóng theo mức độ', labelled(data.breakdowns.open.severity), 'Không có sự cố còn mở cuối kỳ.');
     } catch (error) {
         if (error.status === 401) throw error;
         byId('incidentTiles').replaceChildren();

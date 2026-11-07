@@ -21,8 +21,8 @@ class OperationsIncidentReportTest extends OperationsIntegrationBase {
         if(response.getResolvedException()!=null) throw response.getResolvedException();
         assertEquals(200,response.getResponse().getStatus()); var report=data(response);
         assertEquals(0,report.get("createdCount").asInt()); assertEquals(1,report.get("resolvedCount").asInt()); assertEquals(1,report.get("openAtCutoff").asInt());
-        assertEquals(1,report.get("breakdowns").get("open").get("status").get("Đã giải quyết").asInt());
-        assertEquals("Đã giải quyết",report.get("items").get(0).get("statusLabel").asText());
+        assertEquals(1,report.get("breakdowns").get("open").get("status").get("Đã khắc phục, chờ đóng").asInt());
+        assertEquals("Đã khắc phục, chờ đóng",report.get("items").get(0).get("statusLabel").asText());
         var later=data(mvc.perform(get("/api/admin/operations/reports/incidents?startDate=2026-01-10&endDate=2026-01-10").with(admin())).andReturn()); assertEquals(0,later.get("openAtCutoff").asInt());
     }
     @Test void validatesVietnameseDateBoundaries() {

@@ -1,4 +1,8 @@
+-- FE-10: schema yêu cầu hỗ trợ, chuyển cấp, đính kèm và lịch ca.
+-- Chạy trên DB đã có bảng nghiệp vụ gốc users, support_tickets, ticket_messages.
+-- Chạy lại không xóa dữ liệu; không chứa dữ liệu mẫu.
 BEGIN;
+
 SELECT pg_advisory_xact_lock(101001026);
 CREATE TABLE IF NOT EXISTS fe10_schema_versions(version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());
 DO $$ BEGIN
@@ -49,4 +53,52 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_assignee_status ON support_ticket
 CREATE INDEX IF NOT EXISTS idx_support_tickets_recipient_time ON support_tickets(escalated_to,updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_queue ON support_tickets(status,category,priority,updated_at DESC);
 INSERT INTO fe10_schema_versions(version) VALUES(1) ON CONFLICT DO NOTHING;
+
+-- PHÂN CA NHÂN VIÊN HỖ TRỢ
+-- FE-10: Phân ca nhân viên hỗ trợ (CS). Quản lý xếp nhân viên vào ca; hệ thống tự giao yêu cầu
+-- cho nhân viên đang trong ca và không còn yêu cầu đang xử lý. Chạy lại nhiều lần không lỗi.
+-- Giờ ca (giờ Việt Nam): MORNING 08:00-12:00, AFTERNOON 13:00-17:00, EVENING 18:00-22:00.
+
+CREATE TABLE IF NOT EXISTS support_shifts (
+    shift_id    uuid PRIMARY KEY,
+    staff_id    uuid NOT NULL REFERENCES users(user_id),
+    shift_date  date NOT NULL,
+    shift_code  varchar(10) NOT NULL CHECK (shift_code IN ('MORNING', 'AFTERNOON', 'EVENING')),
+    created_by  uuid NOT NULL REFERENCES users(user_id),
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (staff_id, shift_date, shift_code)
+);
+CREATE INDEX IF NOT EXISTS idx_support_shifts_date ON support_shifts (shift_date, shift_code);
+CREATE INDEX IF NOT EXISTS idx_support_shifts_staff_date ON support_shifts (staff_id, shift_date);
+
+-- LỊCH SỬ XẾP/GỠ CA (chỉ thêm, không sửa, không xóa)
+-- Mỗi lần Quản lý xếp hoặc gỡ một ca được ghi một dòng, hiện ở "Nhật ký thao tác" của Quản trị viên.
+-- Gỡ ca vẫn xóa dòng trong support_shifts, nhưng dấu vết còn ở đây.
+CREATE TABLE IF NOT EXISTS support_shift_events (
+    event_id    uuid PRIMARY KEY,
+    shift_id    uuid NOT NULL,
+    staff_id    uuid NOT NULL REFERENCES users(user_id),
+    shift_date  date NOT NULL,
+    shift_code  varchar(10) NOT NULL CHECK (shift_code IN ('MORNING', 'AFTERNOON', 'EVENING')),
+    action      varchar(10) NOT NULL CHECK (action IN ('ASSIGN', 'REMOVE')),
+    actor_id    uuid NOT NULL REFERENCES users(user_id),
+    occurred_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_support_shift_events_time ON support_shift_events (occurred_at DESC);
+
+CREATE OR REPLACE FUNCTION support_shift_events_append_only() RETURNS trigger AS $$
+BEGIN
+    RAISE EXCEPTION 'Lịch sử xếp ca chỉ được thêm, không được sửa hoặc xóa.';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_support_shift_events_append_only ON support_shift_events;
+CREATE TRIGGER trg_support_shift_events_append_only BEFORE UPDATE OR DELETE ON support_shift_events
+    FOR EACH ROW EXECUTE FUNCTION support_shift_events_append_only();
+
+-- Ca đã xếp trước khi có bảng lịch sử: ghi bù một dòng "xếp ca" theo người tạo và thời điểm tạo.
+INSERT INTO support_shift_events(event_id, shift_id, staff_id, shift_date, shift_code, action, actor_id, occurred_at)
+SELECT gen_random_uuid(), s.shift_id, s.staff_id, s.shift_date, s.shift_code, 'ASSIGN', s.created_by, s.created_at
+FROM support_shifts s
+WHERE NOT EXISTS (SELECT 1 FROM support_shift_events e WHERE e.shift_id = s.shift_id AND e.action = 'ASSIGN');
+
 COMMIT;

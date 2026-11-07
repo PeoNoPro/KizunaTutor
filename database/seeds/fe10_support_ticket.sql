@@ -1,4 +1,8 @@
+-- FE-10: schema yêu cầu hỗ trợ, chuyển cấp, đính kèm và lịch ca.
+-- Chạy trên DB đã có bảng nghiệp vụ gốc users, support_tickets, ticket_messages.
+-- Chạy lại không xóa dữ liệu; không chứa dữ liệu mẫu.
 BEGIN;
+
 SELECT pg_advisory_xact_lock(101001026);
 CREATE TABLE IF NOT EXISTS fe10_schema_versions(version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());
 DO $$ BEGIN
@@ -49,4 +53,22 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_assignee_status ON support_ticket
 CREATE INDEX IF NOT EXISTS idx_support_tickets_recipient_time ON support_tickets(escalated_to,updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_queue ON support_tickets(status,category,priority,updated_at DESC);
 INSERT INTO fe10_schema_versions(version) VALUES(1) ON CONFLICT DO NOTHING;
+
+-- PHÂN CA NHÂN VIÊN HỖ TRỢ
+-- FE-10: Phân ca nhân viên hỗ trợ (CS). Quản lý xếp nhân viên vào ca; hệ thống tự giao yêu cầu
+-- cho nhân viên đang trong ca và không còn yêu cầu đang xử lý. Chạy lại nhiều lần không lỗi.
+-- Giờ ca (giờ Việt Nam): MORNING 08:00-12:00, AFTERNOON 13:00-17:00, EVENING 18:00-22:00.
+
+CREATE TABLE IF NOT EXISTS support_shifts (
+    shift_id    uuid PRIMARY KEY,
+    staff_id    uuid NOT NULL REFERENCES users(user_id),
+    shift_date  date NOT NULL,
+    shift_code  varchar(10) NOT NULL CHECK (shift_code IN ('MORNING', 'AFTERNOON', 'EVENING')),
+    created_by  uuid NOT NULL REFERENCES users(user_id),
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (staff_id, shift_date, shift_code)
+);
+CREATE INDEX IF NOT EXISTS idx_support_shifts_date ON support_shifts (shift_date, shift_code);
+CREATE INDEX IF NOT EXISTS idx_support_shifts_staff_date ON support_shifts (staff_id, shift_date);
+
 COMMIT;

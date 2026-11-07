@@ -12,15 +12,15 @@
   <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
   <button id="createStaff" type="button" class="primary portal-create-action">Tạo tài khoản nhân viên</button>
   <div id="roleCards" class="staff-role-grid" hidden></div>
-  <section id="promotionSection" class="operations-card" aria-labelledby="promotionTitle" hidden><h2 id="promotionTitle">Đề xuất thăng chức chờ duyệt</h2><div id="promotionList"></div></section>
-  <section class="operations-card">
+  <section id="promotionSection" class="operations-card" aria-labelledby="promotionTitle" hidden><div class="staff-section-head"><h2 id="promotionTitle">Đề xuất do Quản lý gửi</h2><label>Trạng thái<select id="promotionStatus"><option value="PENDING">Chờ duyệt</option><option value="APPROVED">Đã duyệt</option><option value="REJECTED">Đã từ chối</option><option value="">Tất cả</option></select></label></div><div id="promotionList"></div></section>
+  <section id="staffSection" class="operations-card">
     <h2>Nhân sự nội bộ</h2>
     <form id="staffSearch" class="staff-toolbar"><label for="staffQuery">Tìm theo tên hoặc email<input id="staffQuery" maxlength="200" placeholder="Nhập tên hoặc email nhân viên"></label><button type="submit">Tìm kiếm</button><button id="clearStaffSearch" type="button">Xóa bộ lọc</button></form>
     <p id="staffTotal" class="staff-help"></p>
-    <div class="table-scroll"><table class="staff-table"><caption class="sr-only">Tài khoản nhân sự nội bộ</caption><thead><tr><th scope="col">Thông tin</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="staffRows"></tbody></table></div>
+    <div class="table-scroll"><table class="staff-table"><caption class="sr-only">Tài khoản nhân sự nội bộ</caption><thead><tr><th scope="col">Nhân viên</th><th scope="col">Vai trò</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="staffRows"></tbody></table></div>
     <div class="operations-pagination"><button id="staffPrev" type="button">Trang trước</button><span id="staffPage"></span><button id="staffNext" type="button">Trang sau</button></div>
   </section>
-  <details class="operations-card"><summary>Lịch sử quản lý nhân sự</summary><div id="staffHistory"></div><div class="operations-pagination"><button id="staffHistoryPrev" type="button">Trang trước</button><span id="staffHistoryPage"></span><button id="staffHistoryNext" type="button">Trang sau</button></div></details>
+  <details id="staffHistorySection" class="operations-card"><summary>Lịch sử quản lý nhân sự</summary><div id="staffHistory"></div><div class="operations-pagination"><button id="staffHistoryPrev" type="button">Trang trước</button><span id="staffHistoryPage"></span><button id="staffHistoryNext" type="button">Trang sau</button></div></details>
 </div></main>
 <dialog id="staffDialog" class="staff-dialog portal-dialog" aria-labelledby="staffDialogTitle">
   <form id="staffForm"><div class="portal-dialog-head"><h2 id="staffDialogTitle"></h2><button id="closeStaff" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div><div class="portal-dialog-body"><p id="staffDialogDescription" class="staff-help"></p><p id="staffCurrentState" class="staff-help"></p>
@@ -38,7 +38,7 @@
   <form id="promotionForm"><div class="portal-dialog-head"><h2 id="promotionDialogTitle">Duyệt đề xuất thăng chức</h2><button id="closePromotion" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div><div class="portal-dialog-body"><p id="promotionSummary" class="staff-help"></p><p id="promotionReason" class="staff-help"></p>
     <div><label for="promotionNote">Ghi chú (bắt buộc khi từ chối)</label><textarea id="promotionNote" maxlength="300"></textarea></div>
     <p id="promotionNotice" class="staff-dialog-notice" role="alert"></p></div>
-    <div class="portal-dialog-actions"><button class="primary" type="submit">Duyệt thăng chức</button><button id="rejectPromotion" type="button">Từ chối</button></div>
+    <div class="portal-dialog-actions"><button id="promotionSubmit" class="primary" type="submit">Xác nhận duyệt</button><button id="cancelPromotion" type="button">Hủy</button></div>
   </form>
 </dialog>
 <script type="module" src="../admin-staff/admin-staff.js"></script>

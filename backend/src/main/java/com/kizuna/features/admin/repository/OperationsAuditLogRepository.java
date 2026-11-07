@@ -19,7 +19,7 @@ public class OperationsAuditLogRepository {
         SELECT 'INCIDENT',e.event_id,e.occurred_at,e.actor_id,a.full_name,e.action,i.subject,e.reason,NULL,e.new_state->>'status',i.incident_id
         FROM technical_incident_events e JOIN users a ON a.user_id=e.actor_id JOIN technical_incidents i ON i.incident_id=e.incident_id
         UNION ALL
-        SELECT 'CONFIG',e.event_id,e.occurred_at,e.actor_user_id,a.full_name,'UPDATE','Giới hạn tệp đính kèm hỗ trợ',e.reason,e.before_value||' → '||e.after_value||' MB',NULL,NULL
+        SELECT 'CONFIG',e.event_id,e.occurred_at,e.actor_user_id,a.full_name,'UPDATE',CASE e.setting_key WHEN 'STAFF_MAIL_SENDER_EMAIL' THEN 'Tài khoản email gửi thư hệ thống' WHEN 'AI_PROVIDER_MODEL' THEN 'AI hỗ trợ học tập' ELSE 'Giới hạn tệp đính kèm hỗ trợ' END,e.reason,e.before_value||' → '||e.after_value||CASE WHEN e.setting_key IN ('STAFF_MAIL_SENDER_EMAIL','AI_PROVIDER_MODEL') THEN '' ELSE ' MB' END,NULL,NULL
         FROM system_setting_audit_events e JOIN users a ON a.user_id=e.actor_user_id
         UNION ALL
         SELECT 'STAFF',q.request_id,q.created_at,q.requester_user_id,a.full_name,'PROPOSE',t.full_name,q.reason,NULL,NULL,NULL

@@ -101,7 +101,10 @@ public class SecurityConfig {
                 // FE-09: gói hội viên và thanh toán
                 .requestMatchers("/api/payments/vnpay/ipn").permitAll()
                 .requestMatchers("/api/tutor/memberships/**").hasAuthority("ROLE_TUTOR")
-                .requestMatchers("/api/manager/membership-plans/**", "/api/manager/tutor-memberships/**").hasAuthority("ROLE_MANAGER")
+                // Nhóm thống nhất: Quản trị viên tạo/sửa/mở/đóng gói, Quản lý chỉ xem danh sách gói.
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/manager/membership-plans/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers("/api/manager/membership-plans/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/api/manager/tutor-memberships/**").hasAuthority("ROLE_MANAGER")
                 .requestMatchers("/api/admin/payment-transactions/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/tutors/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()

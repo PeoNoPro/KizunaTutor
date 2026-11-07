@@ -1,12 +1,13 @@
-import {api, byId, text, date, notice, paging, emptyState, createOperationsPage} from '../../js/pages/operations.js';
+import {api, byId, text, date, notice, paging, emptyState, badge, avatar, actionButton, createOperationsPage} from '../../js/pages/operations.js';
+import {showToast} from '../../js/main.js';
 
 const base = '/admin/operations';
+// Trang admin-roles dùng chung file này ở chế độ "Đề xuất thăng chức": chỉ hiện danh sách đề xuất.
 const roleMode = document.body.dataset.staffMode === 'roles';
-const state = {page: 0, historyPage: 0, roles: [], rows: [], action: '', selected: null, saving: false, promotion: null};
+const state = {page: 0, historyPage: 0, roles: [], rows: [], action: '', selected: null, saving: false, promotion: null, decision: 'approve'};
 const dialog = byId('staffDialog');
 if (roleMode) {
-  byId('createStaff').hidden = true;
-  byId('roleCards').hidden = false;
+  ['createStaff', 'staffSection', 'staffHistorySection', 'staffImportSection'].forEach(id => { if (byId(id)) byId(id).hidden = true; });
 }
 
 function cell(value) { return text('td', value); }
@@ -14,38 +15,78 @@ function button(label, action) {
   const node = text('button', label); node.type = 'button'; node.addEventListener('click', action); return node;
 }
 
-function renderRoles() {
-  byId('roleCards').replaceChildren();
-  state.roles.forEach(role => {
-    const card = text('article', '', 'operations-card');
-    card.append(text('h2', role.label), text('p', role.accountCount + ' tài khoản · ' + (role.active ? 'Đang sử dụng' : 'Ngừng sử dụng')));
-    card.append(text('p', role.staffAssignable ? 'Vai trò nội bộ · Có thể gán khi tạo tài khoản' : role.internal ? 'Vai trò nội bộ · Không gán khi tạo tài khoản' : 'Vai trò người dùng · Quản lý hồ sơ tại phân hệ tương ứng', 'staff-help'));
-    const list = text('ul'); role.capabilities.forEach(capability => list.append(text('li', capability)));
-    card.append(list); byId('roleCards').append(card);
-  });
+/** Các nút thao tác nằm ngay trên dòng nhân viên, không phải mở "Xem chi tiết" mới thấy. */
+function rowActions(account) {
+  const box = text('div', '', 'portal-actions');
+  box.append(actionButton('Sửa', () => open('edit', account)));
+  if (account.self) return box;
+  if (['ACTIVE', 'SUSPENDED'].includes(account.status))
+    box.append(actionButton(account.status === 'ACTIVE' ? 'Khóa' : 'Mở khóa', () => open('status', account), account.status === 'ACTIVE' ? 'danger' : 'primary'));
+  if (account.mustChangePassword && account.status === 'ACTIVE')
+    box.append(actionButton(account.emailStatus === 'FAILED' ? 'Gửi lại email' : 'Cấp lại mật khẩu', () => resendCredentials(account)));
+  return box;
+}
+
+/**
+ * Email gửi mật khẩu chạy nền sau khi tạo tài khoản hoặc cấp lại mật khẩu.
+ * Hệ thống ghi nhớ đúng những người vừa thao tác và hỏi kết quả của từng người cho tới khi có kết quả,
+ * nên dù email gửi rất nhanh hay gặp lỗi thì Admin vẫn nhận được thông báo.
+ */
+const mailTrack = {items: new Map(), timer: null, tries: 0};
+function trackEmail(userId, email) {
+  if (!userId || !email) return;
+  mailTrack.items.set(String(userId), email); mailTrack.tries = 0;
+  clearTimeout(mailTrack.timer); mailTrack.timer = setTimeout(checkEmails, 1500);
+}
+async function checkEmails() {
+  const finished = [];
+  for (const [userId, email] of mailTrack.items) {
+    try {
+      const data = await api(base + '/staff?' + new URLSearchParams({q: email, page: 0, size: 5}));
+      const account = data.items.find(item => String(item.userId) === userId);
+      if (!account || account.emailStatus === 'PENDING') continue;
+      finished.push(account);
+      mailTrack.items.delete(userId);
+      if (account.emailStatus === 'SENT') showToast('Đã gửi email mật khẩu tới ' + email + '.', 'success');
+      else showToast('Chưa gửi được email mật khẩu tới ' + email + '. Kiểm tra mục "Tài khoản email gửi thư hệ thống" ở Cấu hình hệ thống, sau đó bấm "Gửi lại email".', 'error');
+    } catch { /* Lỗi mạng tạm thời: lần kiểm tra sau thử lại. */ }
+  }
+  // Có kết quả mới thì vẽ lại danh sách để nhãn email đổi theo.
+  if (finished.length && !roleMode) page.run(load);
+  if (mailTrack.items.size && ++mailTrack.tries < 30) mailTrack.timer = setTimeout(checkEmails, 3000);
+  else if (mailTrack.items.size) {
+    mailTrack.items.forEach(email => showToast('Email tới ' + email + ' vẫn đang chờ gửi. Bạn có thể tải lại trang sau ít phút để xem kết quả.', 'info'));
+    mailTrack.items.clear();
+  }
 }
 
 async function load() {
+  if (roleMode) { await loadPromotions(); return; }
   const params = new URLSearchParams({q: byId('staffQuery').value.trim(), page: state.page, size: 20});
   const [roles, data, history] = await Promise.all([api(base + '/roles'), api(base + '/staff?' + params), api(base + '/staff/history?page=' + state.historyPage + '&size=10')]);
-  state.roles = roles; state.rows = data.items; renderRoles();
+  state.roles = roles; state.rows = data.items;
   const rows = byId('staffRows'); rows.replaceChildren();
   if (!data.items.length) {
     const row = text('tr'); const message = cell('Chưa có nhân viên phù hợp. Thử đổi từ khóa tìm kiếm.');
-    message.colSpan = 3; message.className = 'table-empty'; row.append(message); rows.append(row);
+    message.colSpan = 4; message.className = 'table-empty'; row.append(message); rows.append(row);
   }
   data.items.forEach(account => {
-    const row = text('tr'); const identity = cell('');
-    identity.append(text('strong', account.fullName, 'staff-identity-name'), text('p', account.email + ' · ' + account.roleLabel, 'staff-email'));
-    if (account.emailStatusLabel) identity.append(text('p', account.emailStatusLabel + (account.emailStatus === 'SENT' && account.emailSentAt ? ' lúc ' + date(account.emailSentAt) : ''), 'staff-help'));
-    if (account.self) identity.append(text('small', 'Tài khoản bạn đang sử dụng', 'staff-help'));
-    const actions = cell('');
-    if (!roleMode) actions.append(button('Xem chi tiết', () => open('edit', account)));
-    else if (['Cán bộ học vụ', 'Chăm sóc khách hàng'].includes(account.roleLabel)) actions.append(text('span', 'Đổi vai trò do Quản lý thực hiện', 'staff-help'));
-    else actions.append(text('span', 'Không đổi vai trò tại đây', 'staff-help'));
-    row.append(identity, cell(account.statusLabel), actions); rows.append(row);
+    const row = text('tr'); const identity = cell(''), person = text('div', '', 'portal-person'), who = text('div');
+    who.append(text('strong', account.fullName + (account.self ? ' (bạn)' : ''), 'staff-identity-name'), text('p', account.email, 'staff-email'));
+    person.append(avatar(account.fullName), who); identity.append(person);
+    const role = cell(''); role.append(text('span', account.roleLabel, 'portal-chip'));
+    const status = cell(''); status.append(badge(account.statusLabel));
+    // Chỉ báo email khi chưa gửi được, để Admin biết cần gửi lại.
+    // Nhãn email: chỉ hiện khi tài khoản chưa đăng nhập lần đầu (còn dùng mật khẩu tạm).
+    if (account.emailStatus === 'FAILED') status.append(badge('Gửi email lỗi', 'danger'));
+    else if (account.emailStatus === 'PENDING') status.append(badge('Đang gửi email', 'warning'));
+    else if (account.emailStatus === 'SENT' && account.mustChangePassword) status.append(badge('Đã gửi email', 'success'));
+    const actions = cell(''); actions.append(rowActions(account));
+    row.append(identity, role, status, actions); rows.append(row);
   });
-  byId('staffTotal').textContent = data.totalElements + ' nhân viên phù hợp · Không gồm tài khoản học viên, gia sư hoặc đã xóa. Email cấp tài khoản: ' + data.emailCounts.PENDING + ' chờ gửi, ' + data.emailCounts.SENT + ' đã gửi, ' + data.emailCounts.FAILED + ' thất bại.';
+  // Dòng nào còn "Đang gửi email" (ví dụ vừa nhập từ Excel) thì cũng theo dõi để báo kết quả.
+  data.items.filter(account => account.emailStatus === 'PENDING' && !mailTrack.items.has(String(account.userId))).forEach(account => trackEmail(account.userId, account.email));
+  byId('staffTotal').textContent = data.totalElements + ' nhân viên' + (data.emailCounts.FAILED ? ' · ' + data.emailCounts.FAILED + ' email cấp tài khoản chưa gửi được' : '');
   byId('staffPage').textContent = 'Trang ' + (state.page + 1); paging('staff', data, state.page);
   const historyBox = byId('staffHistory'); historyBox.replaceChildren();
   if (!history.items.length) historyBox.append(emptyState('Chưa có thay đổi nhân sự', 'Các thao tác tạo, sửa, khóa/mở hoặc đổi vai trò sẽ được ghi lại tại đây.'));
@@ -55,31 +96,43 @@ async function load() {
     historyBox.append(item);
   });
   byId('staffHistoryPage').textContent = 'Trang ' + (state.historyPage + 1); paging('staffHistory', history, state.historyPage);
-  if (roleMode) await loadPromotions();
-  notice('Đã tải nhân viên, vai trò và lịch sử thay đổi.');
 }
 
 /** Lỗi riêng phần đề xuất (ví dụ DB chưa có bảng) không làm hỏng danh sách nhân viên. */
 async function loadPromotions() {
   const box = byId('promotionList');
   try {
-    const data = await api(base + '/role-changes/promotions?status=PENDING&size=50');
+    const status = byId('promotionStatus')?.value ?? 'PENDING';
+    const data = await api(base + '/role-changes/promotions?size=50' + (status ? '&status=' + status : ''));
     box.replaceChildren();
-    if (!data.items.length) { box.append(emptyState('Chưa có đề xuất chờ duyệt', 'Đề xuất thăng chức do Quản lý gửi sẽ xuất hiện tại đây.')); return; }
+    if (!data.items.length) { box.append(emptyState(status === 'PENDING' ? 'Chưa có đề xuất chờ duyệt' : 'Chưa có đề xuất phù hợp', 'Đề xuất thăng chức do Quản lý gửi sẽ xuất hiện tại đây.')); return; }
+    const list = text('div', '', 'promotion-list');
     data.items.forEach(request => {
-      const item = text('article', '', 'portal-row'), info = text('div', '', 'portal-row-info'), actions = text('div', '', 'staff-promotion-actions');
-      info.append(text('strong', request.targetName, 'staff-identity-name'), text('p', request.targetEmail + ' · ' + request.fromRoleLabel + ' → ' + request.toRoleLabel), text('p', 'Đề xuất bởi ' + request.requesterName + ' · ' + date(request.createdAt)), text('p', 'Lý do: ' + request.reason));
-      actions.append(button('Xem và quyết định', () => openPromotion(request)));
-      item.append(info, text('span', request.statusLabel, 'portal-row-status'), actions); box.append(item);
+      const card = text('article', '', 'promotion-card'), top = text('div', '', 'promotion-top'), person = text('div', '', 'portal-person'), who = text('div');
+      who.append(text('strong', request.targetName, 'staff-identity-name'), text('p', request.targetEmail, 'staff-email'));
+      person.append(avatar(request.targetName), who); top.append(person, badge(request.statusLabel));
+      const move = text('div', '', 'promotion-move');
+      move.append(text('span', request.fromRoleLabel, 'portal-chip'), text('span', '→', 'promotion-arrow'), text('span', request.toRoleLabel, 'portal-chip portal-chip-strong'));
+      const reason = text('p', request.reason, 'promotion-reason');
+      const foot = text('div', '', 'promotion-foot'), actions = text('div', '', 'portal-actions');
+      foot.append(text('span', request.requesterName + ' · ' + date(request.createdAt), 'portal-muted'));
+      if (request.status === 'PENDING') actions.append(actionButton('Duyệt', () => openPromotion(request, 'approve'), 'primary'), actionButton('Từ chối', () => openPromotion(request, 'reject'), 'danger'));
+      else if (request.decisionNote) actions.append(text('span', 'Ghi chú: ' + request.decisionNote, 'portal-muted'));
+      foot.append(actions);
+      card.append(top, move, reason, foot); list.append(card);
     });
+    box.append(list);
   } catch (error) {
     if (error.status === 401) throw error;
     box.replaceChildren(emptyState('Chưa tải được đề xuất thăng chức', error.message));
   }
 }
 
-function openPromotion(request) {
-  state.promotion = request; byId('promotionForm').reset(); byId('promotionNotice').textContent = '';
+function openPromotion(request, decision = 'approve') {
+  state.promotion = request; state.decision = decision; byId('promotionForm').reset(); byId('promotionNotice').textContent = '';
+  byId('promotionDialogTitle').textContent = decision === 'approve' ? 'Duyệt đề xuất thăng chức' : 'Từ chối đề xuất thăng chức';
+  byId('promotionSubmit').textContent = decision === 'approve' ? 'Xác nhận duyệt' : 'Xác nhận từ chối';
+  byId('promotionNote').required = decision === 'reject';
   byId('promotionSummary').textContent = request.targetName + ' · ' + request.fromRoleLabel + ' → ' + request.toRoleLabel;
   byId('promotionReason').textContent = 'Lý do của ' + request.requesterName + ': ' + request.reason;
   byId('promotionDialog').showModal();
@@ -113,12 +166,8 @@ function open(action, selected = null) {
   byId('saveStaff').textContent = {create: 'Tạo tài khoản', edit: 'Lưu thông tin', status: locking ? 'Xác nhận khóa' : 'Xác nhận mở lại'}[action];
   byId('staffDialogDescription').textContent = action === 'create' ? 'Hệ thống tự tạo mật khẩu tạm và gửi vào email của nhân viên; họ phải đổi mật khẩu khi đăng nhập lần đầu.' : action === 'status' ? (locking ? 'Tài khoản này sẽ không được truy cập hệ thống khi bị khóa.' : 'Tài khoản này sẽ được truy cập hệ thống trở lại.') : selected.fullName + ' · ' + selected.email;
   byId('staffCurrentState').textContent = selected ? 'Hiện tại: ' + selected.roleLabel + ' · ' + selected.statusLabel : '';
-  const canManage = action === 'edit' && !selected.self;
-  byId('staffExtraActions').hidden = !canManage;
-  byId('staffOpenStatus').hidden = !canManage || !['ACTIVE', 'SUSPENDED'].includes(selected.status);
-  const resend = byId('staffResend'); if (resend) resend.hidden = !canManage || !selected.mustChangePassword || selected.status !== 'ACTIVE';
-  if (resend) resend.textContent = selected?.emailStatus === 'FAILED' ? 'Gửi lại email (email trước chưa gửi được)' : 'Cấp lại mật khẩu tạm qua email';
-  byId('staffOpenStatus').textContent = locking ? 'Khóa tài khoản nhân viên' : 'Mở lại tài khoản nhân viên';
+  // Khóa/mở và cấp lại mật khẩu đã có nút riêng trên từng dòng.
+  byId('staffExtraActions').hidden = true;
   const fields = {create: ['name', 'email', 'phone', 'role', 'appointment'], edit: ['name', 'email', 'phone', 'reason'], status: ['reason']}[action];
   document.querySelectorAll('[data-staff-field]').forEach(wrapper => {
     wrapper.hidden = !fields.includes(wrapper.dataset.staffField);
@@ -150,8 +199,9 @@ async function save(event) {
       if (action === 'edit') Object.assign(payload, {fullName: byId('staffFullName').value.trim(), email: byId('staffEmail').value.trim(), phone: byId('staffPhone').value.trim()});
       if (action === 'status') { path += '/status'; payload.status = account.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'; }
     }
-    await api(path, method, payload); dialog.close();
-    await page.run(load); notice(action === 'create' ? 'Đã tạo tài khoản. Email đang chờ gửi; xem trạng thái trong danh sách, bấm Tìm kiếm để cập nhật.' : 'Đã lưu thay đổi và ghi nhận lịch sử.');
+    const result = await api(path, method, payload); dialog.close();
+    await page.run(load); notice(action === 'create' ? 'Đã tạo tài khoản. Đang gửi email mật khẩu tạm tới ' + payload.email + '…' : 'Đã lưu thay đổi và ghi nhận lịch sử.');
+    if (action === 'create') trackEmail(result?.userId, payload.email);
     // Khi sửa tên của chính mình, header cũng lấy lại tên từ DB.
     if (account?.self) {
       const profile = await api(base + '/me'); document.querySelector('.admin-identity strong').textContent = profile.displayName;
@@ -168,26 +218,30 @@ const page = createOperationsPage(load);
 byId('createStaff').addEventListener('click', () => open('create'));
 byId('cancelStaff').addEventListener('click', () => dialog.close());
 byId('closeStaff').addEventListener('click', () => { if (!state.saving) dialog.close(); });
-byId('staffOpenStatus').addEventListener('click', () => open('status', state.selected));
-byId('staffResend')?.addEventListener('click', async () => {
+async function resendCredentials(account) {
   if (state.saving) return;
-  state.saving = true; byId('staffDialogNotice').textContent = 'Đang cấp lại mật khẩu tạm…';
+  if (!confirm('Cấp lại mật khẩu tạm cho ' + account.fullName + '? Mật khẩu cũ sẽ không dùng được nữa, mật khẩu mới được gửi qua email.')) return;
+  state.saving = true;
   try {
-    await api(base + '/staff/' + encodeURIComponent(state.selected.userId) + '/resend-credentials', 'POST', {expectedUpdatedAt: state.selected.updatedAt});
-    dialog.close(); await page.run(load); notice('Đã cấp lại; mật khẩu cũ không còn dùng được. Email đang chờ gửi, xem trạng thái trong danh sách.');
-  } catch (error) { byId('staffDialogNotice').textContent = error.message || 'Chưa cấp lại được. Vui lòng thử lại.'; byId('reloadStaffItem').hidden = error.status !== 409; }
-  finally { state.saving = false; }
-});
+    await page.run(async () => {
+      await api(base + '/staff/' + encodeURIComponent(account.userId) + '/resend-credentials', 'POST', {expectedUpdatedAt: account.updatedAt});
+      await load(); notice('Đã cấp lại mật khẩu tạm. Đang gửi email tới ' + account.email + '…');
+      trackEmail(account.userId, account.email);
+    });
+  } finally { state.saving = false; }
+}
 dialog.addEventListener('cancel', event => { if (state.saving) event.preventDefault(); });
 byId('staffForm').addEventListener('submit', save);
 byId('staffRole').addEventListener('change', syncAppointment);
 if (roleMode) {
   byId('promotionSection').hidden = false;
-  byId('promotionForm').addEventListener('submit', event => { event.preventDefault(); decidePromotion('approve'); });
-  byId('rejectPromotion').addEventListener('click', () => {
-    if (!byId('promotionNote').value.trim()) { byId('promotionNotice').textContent = 'Vui lòng nhập lý do từ chối.'; byId('promotionNote').focus(); return; }
-    decidePromotion('reject');
+  byId('promotionForm').addEventListener('submit', event => {
+    event.preventDefault();
+    if (state.decision === 'reject' && !byId('promotionNote').value.trim()) { byId('promotionNotice').textContent = 'Vui lòng nhập lý do từ chối.'; byId('promotionNote').focus(); return; }
+    decidePromotion(state.decision);
   });
+  byId('cancelPromotion').addEventListener('click', () => { if (!state.saving) byId('promotionDialog').close(); });
+  page.bind('promotionStatus', 'change', loadPromotions);
   byId('closePromotion').addEventListener('click', () => { if (!state.saving) byId('promotionDialog').close(); });
 }
 byId('reloadStaffItem').addEventListener('click', async () => {

@@ -43,12 +43,8 @@ try {
     $email = & $psql -h 127.0.0.1 -p 5433 -U postgres -d $Database -w -Atc "SELECT u.email FROM users u JOIN roles r ON r.role_id=u.role_id WHERE r.role_name='$desiredRole' AND r.is_active=true AND u.account_status::text='ACTIVE' AND u.deleted_at IS NULL ORDER BY u.created_at LIMIT 1"
     if (!$RealLogin -and ($LASTEXITCODE -ne 0 -or !$email)) { throw 'DB phat trien can tai khoan dang hoat dong voi vai tro da chon. Xem docs/ADMIN_DEV.md.' }
     $version = & $psql -h 127.0.0.1 -p 5433 -U postgres -d $Database -w -Atc "SELECT version FROM operations_schema_versions WHERE version='fe11_001'"
-    if ($LASTEXITCODE -ne 0 -or !$version) { throw 'DB cuc bo chua co schema FE-11. Xem database/migrations/README-fe11.md.' }
-    & $psql -h 127.0.0.1 -p 5433 -U postgres -d $Database -w -X -v ON_ERROR_STOP=1 -f (Join-Path $projectRoot 'database/seeds/admin_staff_schema.sql') | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Chua chuan bi duoc bang lich su nhan su trong DB phat trien rieng.' }
-    & $psql -h 127.0.0.1 -p 5433 -U postgres -d $Database -w -X -v ON_ERROR_STOP=1 -f (Join-Path $projectRoot 'database/seeds/staff_role_change_schema.sql') | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Chua chuan bi duoc bang de xuat thang chuc trong DB phat trien rieng.' }
-    & $psql -h 127.0.0.1 -p 5433 -U postgres -d $Database -w -X -v ON_ERROR_STOP=1 -f (Join-Path $projectRoot 'database/seeds/fe11_admin_update.sql') | Out-Null
+    if ($LASTEXITCODE -ne 0 -or !$version) { throw 'DB cuc bo chua co schema FE-11. Can chuan bi database/seeds/fe11_operations_schema.sql truoc.' }
+    & $psql -h 127.0.0.1 -p 5433 -U postgres -d $Database -w -X -v ON_ERROR_STOP=1 -f (Join-Path $projectRoot 'database/seeds/fe11_operations_schema.sql') | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Chua cap nhat duoc bang FE-11 trong DB phat trien rieng.' }
     & $psql -h 127.0.0.1 -p 5433 -U postgres -d $Database -w -X -v ON_ERROR_STOP=1 -f (Join-Path $projectRoot 'database/seeds/fe10_support_ticket.sql') | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Migration FE-10 chua dat. Xem thong bao preflight; khong tu sua du lieu cu.' }

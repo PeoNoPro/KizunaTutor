@@ -5,6 +5,9 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 @Service
 public class SupportTicketAccessPolicy {
+ /** Ca làm của CS: chỉ người đang trong ca và đã xong yêu cầu trước mới thấy/được bấm "Nhận xử lý". */
+ @org.springframework.beans.factory.annotation.Autowired @org.springframework.context.annotation.Lazy
+ private SupportShiftService shifts;
  public boolean canRead(SupportTicketActor a,Map<String,Object> t){
    return a.cs() || (a.requester() && a.userId().equals(t.get("user_id"))) || (a.manager() && a.userId().equals(t.get("escalated_to")));
  }
@@ -16,7 +19,7 @@ public class SupportTicketAccessPolicy {
    boolean assigned=a.cs()&&a.userId().equals(t.get("assigned_to"));
    if(owner||assigned)actions.add("message");
    if(owner&&status.equals("RESOLVED"))actions.add("close");
-   if(a.cs()&&status.equals("OPEN")&&t.get("assigned_to")==null)actions.add("claim");
+   if(a.cs()&&status.equals("OPEN")&&t.get("assigned_to")==null&&(shifts==null||shifts.canClaim(a.userId())))actions.add("claim");
    if(a.cs()&&t.get("assigned_to")!=null)actions.add("assignment");
    if(assigned){actions.add("priority");if(status.equals("IN_PROGRESS")){actions.add("resolve");actions.add("escalate");}if(status.equals("ESCALATED"))actions.add("recipient");}
    if(a.manager()&&status.equals("ESCALATED")){actions.add("decision");actions.add("return");}

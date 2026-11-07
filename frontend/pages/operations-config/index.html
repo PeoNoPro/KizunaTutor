@@ -11,9 +11,29 @@
 <body class="admin-dashboard operations-page">
 <a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
 <main id="dashboardMain" class="dashboard-main">
-<div id="operationsContent" class="operations-content" aria-busy="true"><div class="operations-page-heading"><span class="role-badge">Quản trị vận hành</span><h1>Cấu hình hệ thống</h1><p>Các tham số dùng chung đã được nối vào chức năng thực tế.</p></div>
-<p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+<div id="operationsContent" class="operations-content" aria-busy="true"><div class="operations-page-heading"><span class="role-badge">Quản trị vận hành</span><h1>Cấu hình hệ thống</h1><p></p></div>
+<p id="operationsNotice" role="alert" tabindex="-1" hidden></p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
 
+<form id="aiForm" class="operations-card">
+    <h2>AI hỗ trợ học tập</h2>
+    
+    <p id="aiCurrent"></p>
+    <div class="config-grid">
+      <div><label for="aiProvider">Nhà cung cấp AI</label><select id="aiProvider" required></select></div>
+      <div><label for="aiModel">Model</label><input id="aiModel" maxlength="80" required placeholder="Ví dụ: gemini-2.5-flash"></div>
+      <div id="aiBaseUrlField" hidden><label for="aiBaseUrl">Địa chỉ máy chủ AI (Base URL)</label><input id="aiBaseUrl" type="url" maxlength="200" placeholder="https://api.groq.com/openai/v1"></div>
+      <div><label for="aiApiKey">API key</label><input id="aiApiKey" type="password" maxlength="400" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <p id="aiKeyNote" class="staff-help"></p>
+    <label for="aiReason">Lý do thay đổi</label><textarea id="aiReason" required maxlength="2000"></textarea>
+    <div class="portal-actions ai-buttons"><button id="testAi" type="button">Thử kết nối</button><button class="primary" type="submit">Lưu cấu hình AI</button></div>
+    <div id="aiTestResult" class="ai-test-result" role="status" hidden></div>
+</form>
+<section class="operations-card" aria-labelledby="plansTitle">
+    <div class="staff-section-head"><h2 id="plansTitle">Gói hội viên gia sư</h2><button id="createPlan" type="button" class="primary">Thêm gói</button></div>
+    
+    <div class="table-scroll"><table class="staff-table"><caption class="sr-only">Gói hội viên gia sư</caption><thead><tr><th scope="col">Tên gói</th><th scope="col">Thời hạn</th><th scope="col">Giá</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="planRows"></tbody></table></div>
+</section>
 <form id="configForm" class="operations-card">
     <h2>Giới hạn tệp đính kèm yêu cầu hỗ trợ</h2>
     <p id="attachmentCurrent"></p>
@@ -23,9 +43,48 @@
     <button class="primary" type="submit">Xem lại và lưu thay đổi</button>
     <p>Chỉ áp dụng cho lần tải mới, tệp đã lưu giữ nguyên. Khi có xung đột, nội dung bạn nhập được giữ lại để đối chiếu.</p>
 </form>
-<div class="operations-card"><h2>Lịch sử cấu hình</h2><div id="configHistory"></div><button id="configHistoryPrev" type="button">Trang trước</button><button id="configHistoryNext" type="button">Trang sau</button></div>
+<form id="senderForm" class="operations-card">
+    <div class="staff-section-head"><h2>Tài khoản email gửi thư hệ thống</h2><a id="openMailGuide" class="guide-button" href="/assets/docs/huong-dan-email-gui-thu.pdf" target="_blank" rel="noopener"><span aria-hidden="true">?</span> Hướng dẫn (PDF)</a></div>
+    <p id="senderCurrent"></p>
+    <div class="config-grid">
+      <div><label for="senderEmail">Email gửi thư</label><input id="senderEmail" type="email" maxlength="100" autocomplete="off" required></div>
+      <div><label for="senderPassword">Mật khẩu ứng dụng</label><input id="senderPassword" type="password" maxlength="200" autocomplete="new-password" spellcheck="false"></div>
+      <div data-smtp-field hidden><label for="smtpHost">Máy chủ SMTP</label><input id="smtpHost" maxlength="100" placeholder="smtp.example.com" spellcheck="false"></div>
+      <div data-smtp-field hidden><label for="smtpPort">Cổng</label><input id="smtpPort" type="number" min="1" max="65535" step="1" value="587"></div>
+    </div>
+    <button id="toggleSmtp" type="button" class="link-button">Email không phải Gmail/Outlook? Nhập máy chủ thư</button>
+    <label for="senderReason">Lý do thay đổi</label><textarea id="senderReason" required maxlength="2000"></textarea>
+    <div class="portal-actions ai-buttons"><button id="testMail" type="button">Gửi thư thử</button><button class="primary" type="submit">Lưu email gửi thư</button></div>
+    <div id="mailTestResult" class="ai-test-result" role="status" hidden></div>
+</form>
+<details class="operations-card"><summary>Lịch sử thay đổi cấu hình</summary><div id="configHistory"></div><div class="operations-pagination"><button id="configHistoryPrev" type="button">Trang trước</button><button id="configHistoryNext" type="button">Trang sau</button></div></details>
 </div>
 </main>
+<dialog id="planDialog" class="staff-dialog portal-dialog plan-dialog" aria-labelledby="planDialogTitle">
+  <form id="planForm" novalidate><div class="portal-dialog-head"><h2 id="planDialogTitle">Thêm gói hội viên</h2><button id="closePlan" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div>
+    <div class="portal-dialog-body">
+      <div class="plan-field"><label for="planName">Tên gói</label><input id="planName" maxlength="100" placeholder="Ví dụ: Gói 3 tháng" autocomplete="off"><p class="plan-error" data-error="planName"></p></div>
+      <div class="plan-field"><span class="plan-label" id="planMonthsLabel">Thời hạn</span>
+        <div class="plan-chips" role="radiogroup" aria-labelledby="planMonthsLabel" id="planMonthChips">
+          <button type="button" data-months="1">1 tháng</button><button type="button" data-months="3">3 tháng</button><button type="button" data-months="6">6 tháng</button><button type="button" data-months="12">12 tháng</button><button type="button" data-months="other">Khác</button>
+        </div>
+        <div id="planMonthsOther" class="plan-inline" hidden><input id="planMonths" type="number" min="1" max="36" step="1" inputmode="numeric" aria-label="Số tháng"><span>tháng (1–36)</span></div>
+        <p class="plan-hint" id="planMonthsLocked" hidden>Thời hạn không đổi được sau khi tạo, để không ảnh hưởng gia sư đã mua gói.</p>
+        <p class="plan-error" data-error="durationMonths"></p></div>
+      <div class="plan-field"><label for="planPrice">Giá bán</label>
+        <div class="plan-money"><input id="planPrice" inputmode="numeric" autocomplete="off" placeholder="199.000"><span>đ</span></div>
+        <div class="plan-chips plan-chips-small"><button type="button" data-price="99000">99.000 đ</button><button type="button" data-price="199000">199.000 đ</button><button type="button" data-price="499000">499.000 đ</button><button type="button" data-price="1490000">1.490.000 đ</button></div>
+        <p class="plan-hint" id="planPerMonth"></p>
+        <p class="plan-error" data-error="price"></p></div>
+      <div class="plan-field"><span class="plan-label">Quyền lợi của gia sư</span>
+        <ul id="planBenefitList" class="plan-benefits"></ul>
+        <button id="addBenefit" type="button" class="link-button">+ Thêm quyền lợi</button>
+        <p class="plan-error" data-error="benefits"></p></div>
+      <p id="planNotice" class="staff-dialog-notice" role="alert"></p>
+    </div>
+    <div class="portal-dialog-actions"><button id="savePlan" class="primary" type="submit">Lưu gói</button><button id="cancelPlan" type="button">Hủy</button></div>
+  </form>
+</dialog>
 <script type="module" src="/js/main.js"></script>
 <script type="module" src="./operations-config.js"></script>
 </body></html>

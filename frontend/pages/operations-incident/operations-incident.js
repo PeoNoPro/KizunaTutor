@@ -16,7 +16,7 @@ function commandFields() {
 async function loadIncident() {
     const data = await api(base + '/incidents/' + encodeURIComponent(incidentId)); state.version = data.version;
     const card = byId('incidentDetail'); card.replaceChildren(text('h2', data.subject), text('p', data.description), text('p', data.statusLabel + ' · ' + data.severityLabel),
-        text('p', 'Thành phần: ' + data.components.join(', ')), text('p', 'Phụ trách: ' + data.assigneeLabel), text('p', 'Ghi nhận: ' + data.reporterLabel + ' · ' + date(data.createdAt)));
+        text('p', 'Chức năng bị ảnh hưởng: ' + data.components.join(', ')), text('p', 'Phụ trách: ' + data.assigneeLabel), text('p', 'Ghi nhận: ' + data.reporterLabel + ' · ' + date(data.createdAt)));
     const previous = byId('commandAction').value; byId('commandAction').replaceChildren();
     data.allowedActions.forEach(a => option(byId('commandAction'), a, actionLabels[a]));
     if (data.allowedActions.includes(previous)) byId('commandAction').value = previous;

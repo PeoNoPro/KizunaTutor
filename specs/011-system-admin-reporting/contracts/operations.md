@@ -40,7 +40,7 @@ Chỉ Admin còn hoạt động; kiểm quyền DB trên mọi request; không �
 
 ### Thay đổi phạm vi — 2026-11-05
 
-Cần chạy `database/seeds/fe11_admin_update.sql` trước khi dùng bản này, nếu không danh sách nhân viên và nhật ký sẽ lỗi.
+Cần chạy `database/seeds/fe11_operations_schema.sql` trước khi dùng bản này, nếu không danh sách nhân viên và nhật ký sẽ lỗi.
 
 - Bỏ `POST /incidents/{id}/assignment`, `GET /health`. Thêm `POST /incidents/{id}/release` với `expectedVersion, reason`; nhận khi đã có người phụ trách trả 409 "Sự cố đã có người nhận xử lý."
 - Mọi API `/api/admin/operations/**` trả 403 nếu tài khoản chưa đổi mật khẩu lần đầu.
@@ -72,7 +72,7 @@ Mọi dòng được tạo trong một transaction, mỗi tài khoản một dò
 
 ### Đổi vai trò và thăng chức — 2026-11-04
 
-Tiền tố `/api/admin/operations/role-changes`. Cần bảng `staff_role_change_requests` (`database/seeds/staff_role_change_schema.sql`). Mọi lệnh ghi cần CSRF và kiểm vai trò hiện tại trong DB.
+Tiền tố `/api/admin/operations/role-changes`. Cần bảng `staff_role_change_requests` (`database/seeds/fe11_operations_schema.sql`). Mọi lệnh ghi cần CSRF và kiểm vai trò hiện tại trong DB.
 
 | Endpoint | Quyền | Ghi chú |
 | --- | --- | --- |
@@ -110,7 +110,7 @@ Mọi endpoint quản lý nhân sự dưới `/api/admin/operations` yêu cầu 
 - `PUT /staff/{id}/status`: `{status:ACTIVE|SUSPENDED,expectedUpdatedAt,reason}`. Khóa/mở tài khoản, không khóa chính mình hoặc quản trị viên cuối; trạng thái khác bị từ chối.
 - `GET /staff/history?page&size`: lịch sử thao tác với nhãn Việt, tên người thực hiện, tên đối tượng, lý do, thời gian. Không trả JSON audit thô, mật khẩu hoặc hash.
 
-Ghi account và audit cùng transaction; khóa tuần tự thao tác nhân sự và kiểm quyền hiện tại trong transaction. Email trùng400; phiên dữ liệu cũ409; sai quyền403; ngoài nhân sự/không tồn tại404. Không xóa tài khoản hay lịch sử. Migration riêng `database/seeds/admin_staff_schema.sql`, chỉ áp dụng DB phát triển hiện tại và DB test sau kiểm tra; production theo quy trình migration của nhóm.
+Ghi account và audit cùng transaction; khóa tuần tự thao tác nhân sự và kiểm quyền hiện tại trong transaction. Email trùng400; phiên dữ liệu cũ409; sai quyền403; ngoài nhân sự/không tồn tại404. Không xóa tài khoản hay lịch sử. Migration riêng `database/seeds/fe11_operations_schema.sql`, chỉ áp dụng DB phát triển hiện tại và DB test sau kiểm tra; production theo quy trình migration của nhóm.
 
 - `GET /api/admin/operations/me`: tài khoản nội bộ đang hoạt động, trả `{displayName,roleLabel,avatarUrl,canAdmin,canReport}` trong `ApiResponse.data`; tên/ảnh/vai trò lấy từ DB hiện tại. Phiên `admin-dev` dùng chính tài khoản DB đã chọn. Ảnh trống dùng chữ viết tắt tên. Không trả mã vai trò, email hoặc token; email bản thân nằm trong `/profile`.
 

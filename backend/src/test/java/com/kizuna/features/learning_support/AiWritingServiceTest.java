@@ -1,6 +1,8 @@
 package com.kizuna.features.learning_support;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kizuna.features.admin.service.SystemSettingService;
+import org.mockito.Mockito;
 import com.kizuna.features.learning_support.dto.AiWritingCheckRequest;
 import com.kizuna.features.learning_support.dto.AiWritingCheckResponse;
 import com.kizuna.features.learning_support.dto.AiWritingPromptDto;
@@ -19,7 +21,10 @@ class AiWritingServiceTest {
 
     @BeforeEach
     void setUp() {
-        aiWritingService = new AiWritingServiceImpl(new ObjectMapper());
+        // Cấu hình AI giờ đọc từ trang Cấu hình (FE-11); test không có API key nên luôn chạy bộ chấm dự phòng.
+        SystemSettingService settings = Mockito.mock(SystemSettingService.class);
+        Mockito.when(settings.aiChoice()).thenReturn(new SystemSettingService.AiChoice("GEMINI", "gemini-2.5-flash", "", ""));
+        aiWritingService = new AiWritingServiceImpl(new ObjectMapper(), settings);
     }
 
     @Test

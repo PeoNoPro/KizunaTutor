@@ -1,0 +1,4 @@
+/* Rebuild with Tailwind 3.4.17 and frontend/support-tailwind.config.cjs. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

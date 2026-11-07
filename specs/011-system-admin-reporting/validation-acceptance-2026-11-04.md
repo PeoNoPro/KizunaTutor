@@ -49,7 +49,7 @@ Manager với cookie thật: gửi đề xuất thiếu CSRF 403; có CSRF 201; 
 
 | Mục | Tình trạng |
 | --- | --- |
-| Supabase | Chưa chạy `staff_role_change_schema.sql`, cần nhóm đồng ý; chưa kiểm luồng mới trên DB chung |
+| Supabase | Chưa chạy `fe11_operations_schema.sql`, cần nhóm đồng ý; chưa kiểm luồng mới trên DB chung |
 | Thông báo toàn hệ thống | Phụ thuộc FE-12, chưa nối |
 | Sửa hồ sơ, đổi mật khẩu trong hồ sơ | Thuộc feature sở hữu; trang hồ sơ FE-11 vẫn chỉ đọc |
 | FR-004 áp dụng cấu hình vào đặt học thử | Vẫn **blocked**, xem `validation.md` |

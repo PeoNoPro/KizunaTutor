@@ -26,10 +26,6 @@ function render() {
       <td class="px-4 py-3 text-right">${formatMoney(plan.price)}</td>
       <td class="px-4 py-3 text-on-surface-variant">${plan.benefits.length ? escapeHtml(plan.benefits.slice(0, 2).join('; ')) + (plan.benefits.length > 2 ? ` (+${plan.benefits.length - 2})` : '') : '—'}</td>
       <td class="px-4 py-3">${badge(plan.activeLabel, plan.active ? 'success' : 'neutral')}</td>
-      <td class="px-4 py-3 text-right whitespace-nowrap">
-        <button type="button" class="tv-btn-small" data-edit="${plan.planId}">Sửa</button>
-        <button type="button" class="tv-btn-small" data-toggle="${plan.planId}">${plan.active ? 'Ngừng bán' : 'Mở bán'}</button>
-      </td>
     </tr>`).join('');
 
   $('plansBody').querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openForm(b.dataset.edit)));
@@ -145,7 +141,9 @@ async function toggleActive(planId, button) {
 }
 
 if (mountStaffLayout('manager', 'membershipPlans', 'Gói hội viên')) {
-$('createButton').addEventListener('click', () => openForm(null));
+// Nhóm thống nhất: Quản lý chỉ xem gói; tạo/sửa/mở/ngừng bán do Quản trị viên làm ở trang Cấu hình hệ thống.
+$('createButton').classList.add('hidden');
+document.querySelector('[data-plan-actions-head]')?.remove();
 $('cancelButton').addEventListener('click', closeForm);
 $('planForm').addEventListener('submit', save);
 $('planModal').addEventListener('click', (event) => { if (event.target.id === 'planModal') closeForm(); });

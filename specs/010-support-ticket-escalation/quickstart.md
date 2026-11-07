@@ -20,7 +20,7 @@ FE-10 is for requesters, CS and the manager receiving escalation. Admin and acad
 
 Java 17, Maven wrapper, Node 24, PostgreSQL and a separate database ending `_ticket_test` are required. Verified here on PostgreSQL 18.6; PostgreSQL 16 has not been independently verified. Follow [migration/backup instructions](../../database/migrations/README-fe10.md). Never execute the destructive baseline script to upgrade a database.
 
-Set `TICKET_TEST_DB_URL`, `TICKET_TEST_DB_USERNAME`, `TICKET_TEST_DB_PASSWORD` explicitly; the test datasource refuses missing variables or a non-test DB. Apply `database/seeds/fe10_support_ticket.sql` with psql `-v ON_ERROR_STOP=1` before the integration suite. No email/payment execution is part of ticket handling.
+Set `TICKET_TEST_DB_URL`, `TICKET_TEST_DB_USERNAME`, `TICKET_TEST_DB_PASSWORD` explicitly; the test datasource refuses missing variables or a non-test DB. Apply the single consolidated `database/seeds/fe10_support_ticket.sql` with psql `-v ON_ERROR_STOP=1` before the integration suite; it includes shift scheduling. The integration context also applies this idempotent schema. No email/payment execution is part of ticket handling.
 
 ```powershell
 Set-Location backend

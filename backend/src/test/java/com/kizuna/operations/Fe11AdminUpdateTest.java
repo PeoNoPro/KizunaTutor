@@ -21,7 +21,7 @@ class Fe11AdminUpdateTest extends OperationsIntegrationBase {
     @Autowired JavaMailSender mail;
     private final List<UUID> created=new ArrayList<>();
     @BeforeEach void schema() throws Exception {
-        jdbc.execute(Files.readString(Path.of("../database/seeds/admin_staff_schema.sql")));
+        jdbc.execute(Files.readString(Path.of("../database/seeds/fe11_operations_schema.sql")));
         jdbc.update("DELETE FROM system_setting_audit_events");
         jdbc.update("DELETE FROM system_configurations WHERE config_key='SUPPORT_ATTACHMENT_MAX_MB'");
     }
@@ -88,7 +88,7 @@ class Fe11AdminUpdateTest extends OperationsIntegrationBase {
         act(claimed,"release",",\"reason\":\"Không rảnh\"",second).andExpect(status().isForbidden());
         act(claimed,"release","",admin()).andExpect(status().isBadRequest());
         var released=data(act(claimed,"release",",\"reason\":\"Bận việc khác\"",admin()).andExpect(status().isOk()).andReturn());
-        assertEquals("Mới ghi nhận",released.get("statusLabel").asText());assertEquals("Chưa phân công",released.get("assigneeLabel").asText());
+        assertEquals("Chưa xử lý",released.get("statusLabel").asText());assertEquals("Chưa phân công",released.get("assigneeLabel").asText());
         var next=data(act(released,"claim","",second).andExpect(status().isOk()).andReturn());
         // Người chậm chân dù gửi đúng phiên bản cũ vẫn nhận thông báo đã có người xử lý.
         act(released,"claim","",admin()).andExpect(status().isConflict()).andExpect(jsonPath("$.message").value("Sự cố đã có người nhận xử lý."));

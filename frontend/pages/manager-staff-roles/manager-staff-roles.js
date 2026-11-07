@@ -1,4 +1,4 @@
-import {byId, text, date, notice, paging, emptyState, createOperationsPage} from '../../js/pages/operations.js';
+import {byId, text, date, notice, paging, emptyState, badge, avatar, actionButton, createOperationsPage} from '../../js/pages/operations.js';
 import {fetchAPI} from '../../js/api.js';
 
 const base = '/admin/operations/role-changes';
@@ -17,14 +17,21 @@ async function loadStaff() {
   rows.replaceChildren();
   if (!data.items.length) {
     const row = text('tr'), message = text('td', 'Chưa có nhân viên phù hợp. Thử đổi từ khóa tìm kiếm.', 'table-empty');
-    message.colSpan = 2; row.append(message); rows.append(row);
+    message.colSpan = 3; row.append(message); rows.append(row);
   }
   data.items.forEach(account => {
-    const row = text('tr'), identity = text('td', ''), actions = text('td', '');
-    identity.append(text('strong', account.fullName, 'staff-identity-name'), text('p', account.email + ' · ' + account.roleLabel, 'staff-email'));
-    if (account.pendingPromotion) actions.append(text('span', 'Đang chờ duyệt thăng chức', 'staff-help'));
-    else actions.append(button('Đổi sang ' + account.moveToLabel, () => open('move', account)), button('Đề xuất thăng chức', () => open('propose', account)));
-    row.append(identity, actions); rows.append(row);
+    const row = text('tr'), identity = text('td', ''), role = text('td', ''), actions = text('td', ''), person = text('div', '', 'portal-person'), who = text('div'), box = text('div', '', 'portal-actions');
+    who.append(text('strong', account.fullName, 'staff-identity-name'), text('p', account.email, 'staff-email'));
+    person.append(avatar(account.fullName), who); identity.append(person); role.append(text('span', account.roleLabel, 'portal-chip'));
+    if (account.pendingPromotion) box.append(badge('Chờ duyệt'));
+    else {
+      // Một ô chọn "vai trò mới": chuyển ngang sang vai trò còn lại, hoặc đề xuất lên Quản lý vận hành (cần Admin duyệt).
+      const select = text('select', '', 'role-change-select'); select.setAttribute('aria-label', 'Chọn vai trò mới cho ' + account.fullName);
+      [['', 'Đổi vai trò…'], ['move', account.moveToLabel], ['propose', 'Quản lý vận hành (đề xuất, chờ Admin duyệt)']].forEach(([value, label]) => { const o = text('option', label); o.value = value; select.append(o); });
+      select.addEventListener('change', () => { const mode = select.value; select.value = ''; if (mode) open(mode, account); });
+      box.append(select);
+    }
+    actions.append(box); row.append(identity, role, actions); rows.append(row);
   });
   byId('rolePage').textContent = 'Trang ' + (state.page + 1); paging('role', data, state.page);
 }
@@ -34,18 +41,22 @@ async function loadPromotions() {
   box.replaceChildren();
   if (!data.items.length) box.append(emptyState('Chưa có đề xuất nào', 'Đề xuất bạn gửi và kết quả duyệt sẽ hiển thị tại đây.'));
   data.items.forEach(request => {
-    const item = text('article', '', 'portal-row'), info = text('div', '', 'portal-row-info'), actions = text('div', '');
-    info.append(text('strong', request.targetName, 'staff-identity-name'), text('p', request.fromRoleLabel + ' → ' + request.toRoleLabel + ' · ' + date(request.createdAt)), text('p', 'Lý do: ' + request.reason));
-    if (request.decisionNote) info.append(text('p', 'Ghi chú của ' + request.decidedByName + ': ' + request.decisionNote));
-    if (request.status === 'PENDING') actions.append(button('Hủy đề xuất', () => page.run(() => cancel(request))));
-    item.append(info, text('span', request.statusLabel, 'portal-row-status'), actions); box.append(item);
+    const card = text('article', '', 'promotion-card'), top = text('div', '', 'promotion-top'), person = text('div', '', 'portal-person'), who = text('div');
+    who.append(text('strong', request.targetName, 'staff-identity-name'), text('p', date(request.createdAt), 'portal-muted'));
+    person.append(avatar(request.targetName), who); top.append(person, badge(request.statusLabel));
+    const move = text('div', '', 'promotion-move');
+    move.append(text('span', request.fromRoleLabel, 'portal-chip'), text('span', '→', 'promotion-arrow'), text('span', request.toRoleLabel, 'portal-chip portal-chip-strong'));
+    const foot = text('div', '', 'promotion-foot'), actions = text('div', '', 'portal-actions');
+    foot.append(text('span', request.decisionNote ? 'Ghi chú của ' + request.decidedByName + ': ' + request.decisionNote : '', 'portal-muted'));
+    if (request.status === 'PENDING') actions.append(actionButton('Hủy đề xuất', () => page.run(() => cancel(request)), 'danger'));
+    foot.append(actions);
+    card.append(top, move, text('p', request.reason, 'promotion-reason'), foot); box.append(card);
   });
   byId('promotionPage').textContent = 'Trang ' + (state.promotionPage + 1); paging('promotion', data, state.promotionPage);
 }
 
 async function load() {
   await Promise.all([loadStaff(), loadPromotions()]);
-  notice('Đã tải danh sách nhân viên và đề xuất của bạn.');
 }
 
 async function cancel(request) {

@@ -1,3 +1,7 @@
+-- FE-11: schema quản trị, nhân sự, đổi vai trò, email và audit cấu hình.
+-- Một transaction cho toàn bộ thay đổi; không chứa tài khoản hoặc giao dịch mẫu.
+BEGIN;
+
 -- ====================================================================================================
 -- FE-11: QUẢN TRỊ HỆ THỐNG & BÁO CÁO VẬN HÀNH
 -- (Cấu hình học thử, sự cố kỹ thuật, điều khoản & chính sách)
@@ -6,7 +10,7 @@
 -- BOOKING_MIN_HOURS_IN_ADVANCE là số nguyên hợp lệ), trial_bookings.
 -- Đây là nguồn schema FE-11 duy nhất; test FE-11 chạy toàn bộ file này.
 -- ====================================================================================================
-BEGIN;
+
 SELECT pg_advisory_xact_lock(11001001);
 
 -- 1. BẢNG ĐÁNH DẤU PHIÊN BẢN SCHEMA FE-11
@@ -148,4 +152,66 @@ CREATE TABLE IF NOT EXISTS policy_document_versions (
 CREATE INDEX IF NOT EXISTS idx_policy_effective ON policy_document_versions(document_type, publication_state, effective_from);
 
 INSERT INTO operations_schema_versions (version) VALUES ('fe11_001') ON CONFLICT DO NOTHING;
+
+-- LỊCH SỬ QUẢN LÝ NHÂN SỰ
+CREATE TABLE IF NOT EXISTS staff_account_audit_events (
+    event_id UUID PRIMARY KEY,
+    actor_user_id UUID NOT NULL REFERENCES users(user_id),
+    target_user_id UUID NOT NULL REFERENCES users(user_id),
+    action VARCHAR(30) NOT NULL CHECK (action IN ('CREATE','UPDATE','ROLE','STATUS')),
+    reason VARCHAR(2000) NOT NULL,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_staff_account_audit_time ON staff_account_audit_events(occurred_at DESC,event_id DESC);
+
+-- ĐỀ XUẤT / PHÊ DUYỆT ĐỔI VAI TRÒ
+CREATE TABLE IF NOT EXISTS staff_role_change_requests (
+    request_id UUID PRIMARY KEY,
+    target_user_id UUID NOT NULL REFERENCES users(user_id),
+    requester_user_id UUID NOT NULL REFERENCES users(user_id),
+    from_role_id SMALLINT NOT NULL REFERENCES roles(role_id),
+    to_role_id SMALLINT NOT NULL REFERENCES roles(role_id),
+    reason VARCHAR(2000) NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING','APPROVED','REJECTED','CANCELLED')),
+    decided_by UUID REFERENCES users(user_id),
+    decision_note VARCHAR(2000),
+    created_at TIMESTAMPTZ NOT NULL,
+    decided_at TIMESTAMPTZ,
+    CONSTRAINT staff_role_change_not_self CHECK (target_user_id <> requester_user_id),
+    CONSTRAINT staff_role_change_decided CHECK ((status = 'PENDING') = (decided_by IS NULL AND decided_at IS NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_staff_role_change_pending ON staff_role_change_requests(target_user_id) WHERE status = 'PENDING';
+CREATE INDEX IF NOT EXISTS idx_staff_role_change_list ON staff_role_change_requests(status, created_at DESC, request_id);
+CREATE INDEX IF NOT EXISTS idx_staff_role_change_requester ON staff_role_change_requests(requester_user_id, created_at DESC, request_id);
+
+-- HÀNG ĐỢI EMAIL, LỊCH SỬ CẤU HÌNH VÀ CẬP NHẬT SỰ CỐ
+-- Cập nhật FE-11: trả lại sự cố về danh sách chờ, hàng đợi email cấp tài khoản, lịch sử cấu hình dùng chung.
+-- Chỉ thêm bảng và nới một ràng buộc, không sửa dữ liệu có sẵn; chạy lại không sao.
+
+ALTER TABLE technical_incident_events DROP CONSTRAINT IF EXISTS technical_incident_events_action_check;
+ALTER TABLE technical_incident_events ADD CONSTRAINT technical_incident_events_action_check
+    CHECK (action IN ('CREATE','CLAIM','REASSIGN','PROGRESS','RESOLVE','RESUME','CLOSE','RELEASE'));
+
+-- Không có cột mật khẩu: mật khẩu tạm chỉ được sinh ngay lúc gửi thư.
+CREATE TABLE IF NOT EXISTS staff_credential_emails (
+    user_id UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING','SENT','FAILED')),
+    requested_by UUID NOT NULL REFERENCES users(user_id),
+    attempts INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ NOT NULL,
+    sent_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_staff_credential_emails_status ON staff_credential_emails(status, updated_at);
+
+CREATE TABLE IF NOT EXISTS system_setting_audit_events (
+    event_id UUID PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL,
+    actor_user_id UUID NOT NULL REFERENCES users(user_id),
+    before_value VARCHAR(100) NOT NULL,
+    after_value VARCHAR(100) NOT NULL,
+    reason VARCHAR(2000) NOT NULL,
+    occurred_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_system_setting_audit_time ON system_setting_audit_events(setting_key, occurred_at DESC, event_id);
+
 COMMIT;

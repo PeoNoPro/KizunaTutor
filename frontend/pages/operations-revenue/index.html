@@ -13,11 +13,11 @@
 <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
 
 <form id="revenueFilters" class="operations-card operations-filters"><label>Từ ngày<input type="date" name="startDate"></label><label>Đến ngày<input type="date" name="endDate"></label><button class="primary" type="submit">Xem doanh thu</button><button id="revenueExcel" type="button">Xuất Excel</button><button id="revenuePdf" type="button">Xuất PDF</button></form>
-<p id="revenuePeriod">Mặc định 7 ngày, tối đa 366 ngày theo giờ Việt Nam.</p>
+<p id="revenuePeriod" hidden>Mặc định 7 ngày, tối đa 366 ngày theo giờ Việt Nam.</p>
 <div class="statistics-layout">
-<section class="operations-card statistics-wide" aria-labelledby="revenueTitle"><h2 id="revenueTitle">Tổng quan doanh thu</h2><p>Chỉ tính giao dịch mua gói đã thanh toán thành công. Giao dịch đang chờ hoặc thất bại không được cộng vào tổng tiền.</p><div id="revenueTiles" class="statistics-tiles"></div></section>
+<section class="operations-card statistics-wide" aria-labelledby="revenueTitle"><h2 id="revenueTitle">Tổng quan doanh thu</h2><div id="revenueTiles" class="statistics-tiles"></div></section>
 <section class="operations-card statistics-wide" aria-labelledby="planTitle"><h2 id="planTitle">Doanh thu theo gói</h2><div id="revenuePlans"></div></section>
-<section class="operations-card statistics-wide" aria-labelledby="transactionTitle"><h2 id="transactionTitle">Giao dịch trong kỳ</h2><div id="revenueRows" class="table-scroll"></div></section>
+<section class="operations-card statistics-wide" aria-labelledby="transactionTitle"><div class="staff-section-head"><h2 id="transactionTitle">Giao dịch trong kỳ <span id="revenueCount" class="portal-muted"></span></h2><label>Trạng thái<select id="revenueStatus"><option value="">Tất cả</option><option>Thành công</option><option>Đang chờ</option><option>Thất bại</option></select></label></div><div id="revenueRows" class="table-scroll"></div><div class="operations-pagination"><button id="revenuePrev" type="button">Trang trước</button><span id="revenuePageInfo"></span><button id="revenueNext" type="button">Trang sau</button></div></section>
 </div>
 </div>
 </main>

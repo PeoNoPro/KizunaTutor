@@ -1,4 +1,4 @@
-/** Biểu đồ dùng chung cho Tổng quan và Thống kê: một đại lượng một màu, số liệu giữ màu chữ, luôn có dạng bảng. */
+/** Biểu đồ dùng chung cho các trang FE-11: một đại lượng một màu, số liệu ghi ngay cạnh cột/thanh nên không cần dạng bảng. */
 const number = value => new Intl.NumberFormat('vi-VN').format(value);
 const day = value => value.split('-').reverse().join('/');
 
@@ -9,22 +9,11 @@ function node(tag, value, className) {
   return item;
 }
 
-function dataTable(caption, heading, rows, format) {
-  const box = node('details', null, 'chart-table'), scroll = node('div', null, 'chart-table-scroll'), table = document.createElement('table');
-  box.append(node('summary', 'Xem dạng bảng'));
-  const head = document.createElement('tr'); [heading, 'Số lượng'].forEach(label => { const th = node('th', label); th.scope = 'col'; head.append(th); });
-  const thead = document.createElement('thead'); thead.append(head);
-  const body = document.createElement('tbody');
-  rows.forEach(row => { const line = document.createElement('tr'); line.append(node('td', row.label), node('td', format(row.count))); body.append(line); });
-  table.append(node('caption', caption, 'sr-only'), thead, body); scroll.append(table); box.append(scroll);
-  return box;
-}
-
 function markTip(item, tip) {
   item.tabIndex = 0; item.setAttribute('aria-label', tip); item.dataset.tip = tip;
 }
 
-export function barChart(container, caption, rows, emptyMessage) {
+export function barChart(container, caption, rows, emptyMessage, {table = true} = {}) {
   container.replaceChildren();
   const total = rows.reduce((sum, row) => sum + row.count, 0);
   if (!total) { container.append(node('div', emptyMessage, 'chart-empty')); return; }
@@ -37,7 +26,7 @@ export function barChart(container, caption, rows, emptyMessage) {
     markTip(line, row.label + ': ' + number(row.count) + ' (' + percent + '%)');
     list.append(line);
   });
-  container.append(list, dataTable(caption, 'Nhóm', rows, number));
+  container.append(list);
 }
 
 /** Kỳ dài gộp theo tuần/tháng để cột vẫn đủ rộng để đọc và rê chuột. */
@@ -51,7 +40,7 @@ function buckets(days) {
 }
 
 /** `days` gồm {date, count}; `format` đổi số sang chữ, ví dụ thêm đơn vị tiền. */
-export function columnChart(container, days, {headline, empty, caption, format = number}) {
+export function columnChart(container, days, {headline, empty, caption, format = number, table = true}) {
   container.replaceChildren();
   const total = days.reduce((sum, row) => sum + Number(row.count), 0), head = node('p', null, 'chart-headline');
   head.append(node('strong', format(total)), node('span', headline));
@@ -66,7 +55,7 @@ export function columnChart(container, days, {headline, empty, caption, format =
   });
   const axis = node('div', null, 'chart-axis');
   axis.append(node('span', day(days[0].date)), node('span', 'Cao nhất: ' + format(max)), node('span', day(days.at(-1).date)));
-  container.append(chart, axis, dataTable(caption, 'Thời gian', rows, format));
+  container.append(chart, axis);
 }
 
 export function chartError(container, message) {

@@ -11,9 +11,10 @@ import lombok.RequiredArgsConstructor;
 import java.util.*;
 @Service @RequiredArgsConstructor
 public class SupportTicketServiceImpl implements SupportTicketService {
+ @org.springframework.beans.factory.annotation.Autowired private com.kizuna.features.ticket.service.SupportShiftService shifts;
  private final SupportTicketRepository tickets;private final TicketMessageRepository messages;private final TicketAttachmentRepository attachments;private final TicketAuditEventRepository audit;
  private final SupportTicketActorResolver actors;private final SupportTicketAccessPolicy policy;private final SupportTicketProjection projection;private final SupportTicketRelatedContextService related;private final SupportTicketCommandExecutor commands;private final TicketAttachmentValidator validator;
- @Override @Transactional(readOnly=true) public Map<String,Object> me(){var a=actors.current(false);return Map.of("displayName",a.displayName(),"viewRole",a.viewRole(),"canCreate",a.requester(),"canHandle",a.cs(),"canDecide",a.manager());}
+ @Override @Transactional(readOnly=true) public Map<String,Object> me(){var a=actors.current(false);return Map.of("userId",a.userId(),"displayName",a.displayName(),"viewRole",a.viewRole(),"canCreate",a.requester(),"canHandle",a.cs(),"canDecide",a.manager());}
  @Override @Transactional(readOnly=true,isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
  public Map<String,Object> dashboard(String category){
    var actor=actors.current(false);if(!actor.cs())throw new BusinessException(403,"Chỉ nhân viên hỗ trợ được xem tổng quan này.");
@@ -24,17 +25,28 @@ public class SupportTicketServiceImpl implements SupportTicketService {
    if(category!=null){where+=" AND t.category::text=?";args=List.of(category);}
    var result=new LinkedHashMap<String,Object>();result.put("totalActive",counts.values().stream().mapToLong(Long::longValue).sum());result.put("countsByCategory",counts);result.put("selectedCategory",category);
    result.put("queue",tickets.list(where,args,0,4).stream().map(row->projection.summary(actor,row)).toList());
-   result.put("managerFeedback",tickets.latestManagerFeedback(actor.userId()));return result;
+   result.put("managerFeedback",tickets.latestManagerFeedback(actor.userId()));
+   result.put("shift",shifts.myShift(actor.userId()));return result;
  }
  @Override @Transactional(readOnly=true) public Map<String,Object> list(List<String> status,String category,String priority,UUID assignedTo,int page,int size){
-   SupportTicketValidation.page(page,size);var a=actors.current(false);StringBuilder where=new StringBuilder("true");var args=new ArrayList<Object>();
+   SupportTicketValidation.page(page,size);var a=actors.current(false);var filter=filter(a,status,category,priority,assignedTo);
+   var rows=tickets.list(filter.where(),filter.args(),page,size);Map<UUID,String> previews=a.requester()?messages.previews(rows.stream().map(t->(UUID)t.get("ticket_id")).toList()):Map.of();
+   return SupportTicketValidation.page(rows.stream().map(t->{var item=projection.summary(a,t);if(a.requester())item.put("descriptionPreview",previews.get(t.get("ticket_id")));return item;}).toList(),page,size,tickets.count(filter.where(),filter.args()));
+ }
+ @Override @Transactional(readOnly=true) public Map<String,Long> counts(String category,String priority,UUID assignedTo){
+   var filter=filter(actors.current(false),null,category,priority,assignedTo);
+   var result=new LinkedHashMap<String,Long>();SupportTicketProjection.STATUS.keySet().forEach(s->result.put(s,0L));
+   result.putAll(tickets.counts(filter.where(),filter.args()));return result;
+ }
+ private record TicketFilter(String where,List<Object> args){}
+ private TicketFilter filter(SupportTicketActor a,List<String> status,String category,String priority,UUID assignedTo){
+   StringBuilder where=new StringBuilder("true");var args=new ArrayList<Object>();
    if(a.requester()){where.append(" AND t.user_id=?");args.add(a.userId());}else if(a.manager()){where.append(" AND t.escalated_to=?");args.add(a.userId());}
    if(status!=null&&!status.isEmpty()){status.forEach(s->SupportTicketValidation.choice(s,SupportTicketProjection.STATUS.keySet()));where.append(" AND t.status::text IN (").append(String.join(",",Collections.nCopies(status.size(),"?"))).append(")");args.addAll(status);}
    String[] values={category,priority};String[] cols={"category","priority"};List<Set<String>> sets=List.of(SupportTicketProjection.CATEGORY.keySet(),SupportTicketProjection.PRIORITY.keySet());
    for(int i=0;i<2;i++)if(values[i]!=null){SupportTicketValidation.choice(values[i],sets.get(i));where.append(" AND t.").append(cols[i]).append("::text=?");args.add(values[i]);}
    if(assignedTo!=null){if(!a.cs())throw new BusinessException(403,"Bạn không có quyền lọc theo nhân viên.");where.append(" AND t.assigned_to=?");args.add(assignedTo);}
-   var rows=tickets.list(where.toString(),args,page,size);Map<UUID,String> previews=a.requester()?messages.previews(rows.stream().map(t->(UUID)t.get("ticket_id")).toList()):Map.of();
-   return SupportTicketValidation.page(rows.stream().map(t->{var item=projection.summary(a,t);if(a.requester())item.put("descriptionPreview",previews.get(t.get("ticket_id")));return item;}).toList(),page,size,tickets.count(where.toString(),args));
+   return new TicketFilter(where.toString(),args);
  }
  @Override @Transactional(readOnly=true) public Map<String,Object> detail(UUID id){var a=actors.current(false);var t=tickets.find(id,false);policy.read(a,t);var result=projection.summary(a,t);result.put("description",messages.description(id));result.put("relatedContext",related.detail(t));
    if(!a.requester()){result.put("requesterRoleLabel",SupportTicketProjection.ROLE.get(t.get("requester_role")));var rows=tickets.escalation(id,false);if(!rows.isEmpty()){var e=new LinkedHashMap<String,Object>();SupportTicketProjection.copy(e,rows.get(0),"reason","reason","handlingSummary","handling_summary","decisionText","decision_text","recipientRevision","recipient_revision","pending","pending","decidedAt","decided_at");result.put("escalation",e);}}

@@ -26,6 +26,16 @@ html{scrollbar-gutter:stable}
 .admin-portal .sidebar-menu img,.admin-portal .sidebar-bottom img{display:none}
 .admin-portal .sidebar-menu a:hover,.admin-portal .sidebar-bottom a:hover{background:#fff}
 .admin-portal .sidebar-menu a[aria-current=page],.admin-portal .sidebar-bottom a[aria-current=page]{background:var(--portal-primary);color:#fff;font-weight:700}
+.admin-portal .admin-sidebar{overflow-y:auto}
+.admin-portal .nav-group>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--portal-navy);cursor:pointer;list-style:none}
+.admin-portal .nav-group>summary::-webkit-details-marker{display:none}
+.admin-portal .nav-group>summary::after{content:'';width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+.admin-portal .nav-group[open]>summary::after{transform:rotate(-135deg) translateY(-2px)}
+.admin-portal .nav-group>summary:hover{background:#fff}
+.admin-portal .nav-group>summary:focus-visible{outline:2px solid var(--portal-primary);outline-offset:2px}
+.admin-portal .nav-group:has(a[aria-current=page])>summary{color:var(--portal-primary)}
+.admin-portal .nav-group-items{display:flex;flex-direction:column;gap:2px;margin:2px 0 6px 12px;padding-left:8px;border-left:1px solid var(--portal-line)}
+.admin-portal .sidebar-menu .nav-group-items a{min-height:38px}
 .admin-portal .sidebar-bottom{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--portal-line)}
 .admin-portal .sidebar-bottom .logout-button{color:var(--color-error,#ba1a1a);justify-content:flex-start;box-shadow:none}
 
@@ -142,3 +152,160 @@ html{scrollbar-gutter:stable}
 .admin-dashboard.admin-portal .operations-card>input+label,.admin-dashboard.admin-portal .operations-card>textarea+label,.admin-dashboard.admin-portal .operations-card>select+label,.admin-dashboard.admin-portal .operations-card>p+label{margin-top:16px}
 .admin-dashboard.admin-portal .operations-card>input+p,.admin-dashboard.admin-portal .operations-card>textarea+button{margin-top:16px}
 @media(max-width:760px){.admin-dashboard.admin-portal .operations-filters{padding:0}.admin-portal .admin-sidebar{inset:0 auto 0 0;width:288px;max-height:none;border-radius:0;transform:translateX(-100%);padding:20px 12px;z-index:40}.admin-portal .admin-sidebar.is-open{transform:translateX(0)}.admin-portal .admin-topbar{height:64px;padding:8px 14px;gap:8px}.admin-portal .admin-brand strong{font-size:16px}.admin-portal .admin-brand img{width:28px;height:28px}.admin-portal .topbar-breadcrumb{order:-1}.admin-portal .topbar-actions{margin-left:auto}.admin-portal .admin-identity{display:none}.admin-portal .dashboard-main{margin-left:0;padding:84px 14px 24px}.admin-portal.support-page .support-main{margin-left:0;padding-top:84px}.admin-dashboard.admin-portal .operations-card{padding:18px 14px}.admin-dashboard.admin-portal .operations-page-heading h1{font-size:26px}.admin-dashboard.admin-portal .operations-content h2{font-size:20px;line-height:28px}.revenue-panel{padding:18px}.table-scroll .role-change-table{min-width:0}.role-change-table thead{display:none}.role-change-table,.role-change-table tbody,.role-change-table tr,.role-change-table td{display:block;width:100%}.role-change-table td{padding:8px 0}.role-change-table td button{width:100%;margin:0 0 8px}.portal-row-head{display:none}.portal-row{grid-template-columns:minmax(0,1fr);gap:10px}.admin-dashboard.admin-portal .operations-content .portal-tabs a{flex:1 1 40%}.portal-create-action{width:100%}.portal-dialog-head{padding:18px 16px}.portal-dialog-body{padding:18px 16px}.portal-dialog-actions{flex-direction:column;padding:16px;gap:10px}.portal-dialog-actions button{flex:none}}
+
+/* Dòng trạng thái và các khối ẩn bằng thuộc tính hidden không bị class hiển thị ghi đè. */
+.admin-portal [hidden]:not(dialog){display:none!important}
+/* Thao tác nằm ngay trên dòng danh sách (nhân viên, đề xuất, gói hội viên, sự cố). */
+.admin-portal .staff-row-actions,.admin-portal .staff-promotion-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.admin-dashboard.admin-portal .operations-content .staff-row-actions button,.admin-dashboard.admin-portal .operations-content .staff-promotion-actions button{min-height:36px;padding:6px 14px;margin:0;font-size:13px;border-radius:8px}
+.admin-dashboard.admin-portal .operations-content button.staff-danger{border-color:#ba1a1a;color:#ba1a1a;background:#fff}
+.admin-portal .staff-section-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+.admin-portal .staff-section-head h2{margin:0}
+.admin-portal .staff-section-head label{display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap}
+.admin-portal .config-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.admin-portal .report-count{font-size:18px;margin:8px 0 12px}
+@media(max-width:760px){.admin-portal .config-grid{grid-template-columns:minmax(0,1fr)}}
+/* Hồ sơ cá nhân: nút sửa nằm cạnh tên, thông tin tách khỏi phần đầu. */
+.admin-portal .profile-card .profile-overview{align-items:center}
+.admin-portal .profile-card .profile-actions{margin-left:auto}
+.admin-portal .profile-status{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:999px;background:#e6f4ea;color:#1e6b35;font-size:12px;font-weight:600}
+.admin-portal .profile-card .profile-details{margin-top:24px;padding-top:20px;border-top:1px solid var(--portal-line)}
+@media(max-width:760px){.admin-portal .profile-card .profile-actions{margin-left:0;width:100%}}
+
+/* ===== FE-11: giao diện gọn cho các trang có thao tác ===== */
+/* Bỏ dòng mô tả nhỏ dưới tiêu đề trang. */
+.admin-dashboard.admin-portal .operations-page-heading p,.admin-portal .dashboard-intro .intro-copy>p{display:none}
+/* Thanh lọc: ô nhập và nút xếp liền nhau, không giãn cách xa. */
+.admin-dashboard.admin-portal .operations-content .operations-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+.admin-dashboard.admin-portal .operations-content .operations-filters>label{flex:0 1 220px;min-width:160px}
+.admin-dashboard.admin-portal .operations-content .operations-filters>button{flex:0 0 auto;margin:0;min-height:48px}
+/* Nhãn trạng thái có màu. */
+.portal-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;line-height:18px;font-weight:600;white-space:nowrap;background:#eef1f4;color:#3f4850}
+.portal-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.portal-badge[data-tone=success]{background:#e6f4ea;color:#1e6b35}
+.portal-badge[data-tone=warning]{background:#fff4dc;color:#8a5a00}
+.portal-badge[data-tone=danger]{background:#fdecec;color:#b42318}
+.portal-badge[data-tone=info]{background:#e5f1fa;color:#00578a}
+.portal-badge+.portal-badge{margin-left:6px}
+/* Chip vai trò, ảnh đại diện chữ viết tắt. */
+.portal-chip{display:inline-block;padding:3px 10px;border-radius:6px;background:var(--admin-surface);font-size:12px;font-weight:600;color:var(--portal-text);white-space:nowrap}
+.portal-chip-strong{background:#e5f1fa;color:var(--portal-primary)}
+.portal-avatar{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#e5f1fa;color:var(--portal-primary);font-size:14px;font-weight:700}
+.portal-person{display:flex;align-items:center;gap:12px;min-width:0}
+.admin-dashboard.admin-portal .operations-content .portal-person p{margin:2px 0 0}
+.portal-muted{font-size:13px;color:#6b7580}
+/* Nút thao tác: nhỏ, cùng một hàng. */
+.portal-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.admin-dashboard.admin-portal .operations-content button.portal-action,.admin-dashboard.admin-portal button.portal-action{min-height:34px;padding:6px 12px;margin:0;border-radius:8px;border:1px solid #c9d6e2;background:#fff;color:var(--portal-navy);font-size:13px;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer}
+.admin-dashboard.admin-portal .operations-content button.portal-action:hover{background:#f3f7fb}
+.admin-dashboard.admin-portal .operations-content button.portal-action-primary{background:var(--portal-primary);border-color:var(--portal-primary);color:#fff}
+.admin-dashboard.admin-portal .operations-content button.portal-action-primary:hover{background:#004c75}
+.admin-dashboard.admin-portal .operations-content button.portal-action-danger{border-color:#f1b8b4;color:#b42318}
+.admin-dashboard.admin-portal .operations-content button.portal-action-danger:hover{background:#fdecec}
+/* Dòng sự cố: cột thao tác rộng hơn, nút nằm ngang. */
+.admin-portal .portal-row-head,.admin-portal .portal-row{grid-template-columns:minmax(0,1fr) 190px 300px;align-items:center}
+.admin-portal .portal-row{padding:14px 12px}
+.admin-portal .portal-row:hover{background:#fbfaf6}
+.admin-portal .portal-row-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:#6b7580}
+/* Bảng nhân viên, gói hội viên, giao dịch. */
+.admin-portal .staff-table td,.admin-portal .operations-content table td{vertical-align:middle}
+.admin-portal .staff-table tbody tr:hover{background:#fbfaf6}
+.admin-dashboard.admin-portal .operations-content .staff-table td p{margin:2px 0 0}
+/* Thẻ đề xuất thăng chức. */
+.promotion-list{display:grid;gap:12px}
+.promotion-card{border:1px solid var(--portal-line);border-radius:12px;padding:16px 18px;background:#fff;display:grid;gap:12px}
+.promotion-top,.promotion-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.promotion-move{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.promotion-arrow{color:#6b7580;font-weight:700}
+.admin-dashboard.admin-portal .operations-content .promotion-reason{margin:0;padding:10px 12px;border-left:3px solid var(--portal-primary);background:var(--admin-surface);border-radius:0 8px 8px 0;font-size:14px;color:var(--portal-navy)}
+@media(max-width:1100px){.admin-portal .portal-row-head,.admin-portal .portal-row{grid-template-columns:minmax(0,1fr) 160px 220px}}
+@media(max-width:760px){.admin-portal .portal-row-head{display:none}.admin-portal .portal-row{grid-template-columns:minmax(0,1fr)}.admin-dashboard.admin-portal .operations-content .operations-filters>label{flex:1 1 100%}}
+/* Nhật ký thao tác dạng dòng hoạt động. */
+.admin-portal .log-feed{list-style:none;margin:0;padding:0}
+.admin-portal .log-item{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:14px;align-items:start;padding:14px 8px;border-bottom:1px solid var(--portal-line)}
+.admin-portal .log-item:last-child{border-bottom:0}
+.admin-portal .log-item:hover{background:#fbfaf6}
+.admin-portal .log-body{display:grid;gap:6px;min-width:0}
+.admin-dashboard.admin-portal .operations-content .log-sentence{margin:0;font-size:14px;line-height:22px;color:var(--portal-navy)}
+.admin-portal .log-sentence a{color:var(--portal-primary);font-weight:600}
+.admin-portal .log-tags{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.admin-portal .log-change{font-size:12px;color:#3f4850;background:var(--admin-surface);padding:3px 8px;border-radius:6px}
+.admin-dashboard.admin-portal .operations-content .log-reason{margin:0;font-size:13px;color:#6b7580;overflow-wrap:anywhere}
+.admin-portal .log-time{font-size:12px;color:#6b7580;white-space:nowrap;padding-top:2px}
+@media(max-width:760px){.admin-portal .log-item{grid-template-columns:32px minmax(0,1fr)}.admin-portal .log-time{grid-column:2}}
+/* Lời chào ở trang Tổng quan. */
+.admin-portal .dashboard-intro h1 .greeting-name{color:var(--portal-primary)}
+.admin-portal .greeting-date{margin-top:6px;font-size:14px;color:#6b7580}
+.admin-portal .greeting-date::first-letter{text-transform:uppercase}
+.admin-dashboard.admin-portal .dashboard-intro h1{font-size:30px;line-height:1.3}
+/* Bỏ các dòng ghi chú nhỏ dưới tiêu đề khối ở Tổng quan và trang Cấu hình. */
+.admin-portal .overview-chart>p,.admin-portal .section-heading p,.admin-portal .report-card>p,.admin-portal .availability-note,.admin-portal .distribution-card>p,.admin-portal #aiKeyNote{display:none}
+/* Kết quả thử kết nối AI. */
+.admin-portal .ai-buttons{margin-top:8px}
+.admin-dashboard.admin-portal .operations-content .ai-buttons button{margin:0}
+.admin-portal .ai-test-result{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--admin-surface);font-size:14px}
+.admin-portal .ai-test-result[data-tone=success]{background:#e6f4ea;color:#1e6b35}
+.admin-portal .ai-test-result[data-tone=danger]{background:#fdecec;color:#b42318}
+.admin-dashboard.admin-portal .operations-content .ai-test-result p{margin:6px 0 0;color:inherit}
+/* Hướng dẫn lấy mật khẩu ứng dụng (thu gọn, mở khi cần). */
+.admin-portal .mail-guide{margin:14px 0;padding:12px 16px;border:1px solid var(--portal-line);border-radius:10px;background:#fbfaf6}
+.admin-portal .mail-guide>summary{cursor:pointer;font-weight:600;color:var(--portal-primary);font-size:14px}
+.admin-portal .mail-guide ol{margin:12px 0 8px;padding-left:22px;display:grid;gap:8px;font-size:14px;color:var(--portal-navy)}
+.admin-portal .mail-guide a{color:var(--portal-primary);font-weight:600;text-decoration:underline}
+.admin-portal .mail-guide code{background:#eef1f4;padding:1px 6px;border-radius:4px}
+.admin-dashboard.admin-portal .operations-content .mail-guide>p{margin:0;font-size:13px;color:#6b7580}
+
+/* Nút "Hướng dẫn" ở góc thẻ và bảng hướng dẫn trượt từ cạnh phải. */
+.admin-dashboard.admin-portal .operations-content .guide-button{text-decoration:none;display:inline-flex;align-items:center;gap:8px;min-height:36px;margin:0;padding:6px 14px;border-radius:999px;border:1px solid #c9d6e2;background:#fff;color:var(--portal-primary);font-size:13px;font-weight:600}
+.admin-portal .guide-button span{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--portal-primary);color:#fff;font-size:12px}
+.admin-dashboard.admin-portal .operations-content button.link-button{margin:4px 0 8px;padding:0;min-height:0;border:0;background:none;color:var(--portal-primary);font-size:13px;font-weight:600;text-decoration:underline}
+.admin-portal dialog.guide-panel{position:fixed;inset:0 0 0 auto;margin:0;height:100vh;max-height:100vh;width:min(420px,100vw);max-width:100vw;border:0;border-radius:16px 0 0 16px;padding:24px;background:#fff;box-shadow:-12px 0 32px #0f254526;overflow-y:auto}
+.admin-portal dialog.guide-panel::backdrop{background:#0f254540}
+.admin-portal .guide-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.admin-portal .guide-head h2{margin:0;font-size:20px;color:var(--portal-navy)}
+.admin-portal .guide-lead{margin:8px 0 20px;font-size:14px;color:#6b7580}
+.admin-portal .guide-steps{list-style:none;counter-reset:step;margin:0;padding:0;display:grid;gap:14px}
+.admin-portal .guide-steps li{counter-increment:step;position:relative;padding:14px 14px 14px 52px;border:1px solid var(--portal-line);border-radius:12px;background:#fbfaf6;display:grid;gap:6px;font-size:14px;color:var(--portal-navy)}
+.admin-portal .guide-steps li::before{content:counter(step);position:absolute;left:14px;top:14px;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--portal-primary);color:#fff;font-size:13px;font-weight:700}
+.admin-portal .guide-steps span{color:#3f4850;line-height:1.5}
+.admin-portal .guide-steps a{justify-self:start;color:var(--portal-primary);font-weight:600;text-decoration:underline}
+.admin-portal .guide-steps code{background:#eef1f4;padding:1px 6px;border-radius:4px}
+.admin-portal .guide-note{margin:20px 0 0;padding:12px 14px;border-radius:10px;background:#fff4dc;color:#8a5a00;font-size:13px}
+
+/* Hộp thoại gói hội viên. */
+.admin-portal .plan-dialog{width:min(560px,calc(100vw - 32px))}
+.admin-portal .plan-field{display:grid;gap:8px}
+.admin-portal .plan-label{font-size:13px;font-weight:700;color:var(--portal-primary)}
+.admin-portal .plan-chips{display:flex;flex-wrap:wrap;gap:8px}
+.admin-dashboard.admin-portal .plan-chips button{min-height:38px;margin:0;padding:6px 14px;border-radius:999px;border:1px solid #c9d6e2;background:#fff;color:var(--portal-navy);font-size:13px;font-weight:600}
+.admin-dashboard.admin-portal .plan-chips button[aria-pressed=true]{background:var(--portal-primary);border-color:var(--portal-primary);color:#fff}
+.admin-dashboard.admin-portal .plan-chips button:disabled{opacity:.55;cursor:not-allowed}
+.admin-dashboard.admin-portal .plan-chips-small button{min-height:30px;padding:4px 10px;font-size:12px;font-weight:500}
+.admin-portal .plan-inline{display:flex;align-items:center;gap:10px}
+.admin-portal .plan-inline input{max-width:120px}
+.admin-portal .plan-money{position:relative}
+.admin-portal .plan-money input{padding-right:40px;font-size:18px;font-weight:600}
+.admin-portal .plan-money span{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#6b7580;font-weight:600}
+.admin-dashboard.admin-portal .plan-hint{margin:0;font-size:13px;color:#6b7580}
+.admin-dashboard.admin-portal .plan-error{margin:0;font-size:13px;color:#b42318}
+.admin-dashboard.admin-portal .plan-error:empty,.admin-dashboard.admin-portal .plan-hint:empty{display:none}
+.admin-portal .plan-benefits{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.admin-portal .plan-benefits li{display:flex;gap:8px;align-items:center}
+.admin-portal .plan-benefits input{flex:1}
+.admin-dashboard.admin-portal .plan-benefits button.plan-remove{flex:none;width:38px;height:38px;min-height:0;margin:0;padding:0;border-radius:8px;border:1px solid #f1b8b4;background:#fff;color:#b42318;font-size:20px;line-height:1}
+
+/* Mục con "Yêu cầu hỗ trợ" ở sidebar khu nội bộ: bấm để mở/đóng danh sách nhóm. */
+.support-nav-group.is-collapsible>a{position:relative;padding-right:30px}
+.support-nav-group.is-collapsible>a::after{content:'';position:absolute;right:14px;top:50%;width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-70%) rotate(45deg);transition:transform .15s}
+.support-nav-group.is-collapsible.is-open>a::after{transform:translateY(-30%) rotate(-135deg)}
+.support-nav-group.is-collapsible:not(.is-open)>.support-nav-items{display:none}
+.support-nav-items{display:flex;flex-direction:column;gap:2px;margin:4px 0 6px 18px;padding-left:10px;border-left:1px solid #d5ccb6}
+.sidebar-menu .support-nav-items a{height:auto;min-height:36px;padding:7px 12px;font-size:13px;border-radius:8px}
+.admin-portal .sidebar-menu .support-nav-items a[aria-current=page]{background:var(--portal-primary);color:#fff;font-weight:700}
+/* Ô chọn vai trò mới ở trang Đề xuất đổi vai trò. */
+.admin-dashboard.admin-portal .operations-content select.role-change-select{min-width:260px;min-height:38px;padding:4px 12px;border-radius:10px;border:1px solid #c9d6e2;background:#fff;color:var(--portal-navy);font-size:13px;font-weight:600}
+
+/* Danh sách quyền lợi của gói hội viên trong bảng cấu hình. */
+.admin-dashboard ul.plan-benefits{margin:6px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.45;color:#3f4850}
+.admin-dashboard ul.plan-benefits li{display:block;position:relative;margin:2px 0;padding:0 0 0 14px;overflow-wrap:anywhere}
+.admin-dashboard ul.plan-benefits li::before{content:'';position:absolute;left:3px;top:.6em;width:5px;height:5px;border-radius:50%;background:#006194}

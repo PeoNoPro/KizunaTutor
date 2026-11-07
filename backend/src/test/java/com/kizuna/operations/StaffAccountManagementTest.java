@@ -29,7 +29,7 @@ class StaffAccountManagementTest extends OperationsIntegrationBase {
         throw new AssertionError("Không có thư gửi tới "+to);
     }
     @BeforeEach void schema() throws Exception {
-        jdbc.execute(Files.readString(Path.of("../database/seeds/admin_staff_schema.sql")));
+        jdbc.execute(Files.readString(Path.of("../database/seeds/fe11_operations_schema.sql")));
     }
     @AfterEach void cleanup() {
         jdbc.execute("ALTER TABLE staff_account_audit_events DROP CONSTRAINT IF EXISTS staff_test_audit_failure");

@@ -63,7 +63,6 @@
     .ksp-anim-path {
       stroke-linecap: round;
       stroke-linejoin: round;
-      transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .shodo-grid-line {
@@ -157,18 +156,18 @@
 
             <!-- Thanh Công Cụ Điều Khiển Nét Vẽ (Toolbar) -->
             <div class="w-full grid grid-cols-4 gap-2 pt-1">
-              <button type="button" id="btnPlayStroke" 
+              <button type="button" id="btnPlayStroke" data-action="play-stroke"
                       class="ls-btn ls-btn-primary p-2"
                       title="Phát hoạt ảnh mô phỏng thứ tự từng nét chuẩn">
                 <span class="material-symbols-outlined text-[16px]">play_arrow</span>
                 <span>Phát</span>
               </button>
 
-              <button type="button" id="btnToggleGuide" 
-                      class="ls-btn ls-btn-default p-2"
-                      title="Bật / tắt nét mờ để viết đè lên luyện tập">
+              <button type="button" id="btnToggleGuide" data-action="toggle-ghost"
+                      class="ls-btn ls-btn-active p-2 is-active"
+                      title="Nhấn để ẩn nét mờ hướng dẫn">
                 <span class="material-symbols-outlined text-[16px]">visibility</span>
-                <span>Mẫu</span>
+                <span>Ẩn nét mờ</span>
               </button>
 
               <button type="button" id="btnUndoStroke" 

@@ -62,7 +62,6 @@
     .ksp-anim-path {
       stroke-linecap: round;
       stroke-linejoin: round;
-      transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .shodo-grid-line {
@@ -161,18 +160,18 @@
 
               <!-- Thanh Công Cụ Điều Khiển Nét Vẽ (Toolbar) -->
               <div class="w-full grid grid-cols-4 gap-2 pt-0.5">
-                <button type="button" id="btnPlayStroke" 
+                <button type="button" id="btnPlayStroke" data-action="play-stroke"
                         class="py-1.5 px-2 text-xs font-semibold rounded-lg bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] border border-[#FBCFE8] flex items-center justify-center gap-1 transition cursor-pointer"
                         title="Phát hoạt ảnh mô phỏng thứ tự từng nét chuẩn">
-                  <span class="text-xs">▶</span>
+                  <span class="text-xs">▷</span>
                   <span>Phát nét</span>
                 </button>
 
-                <button type="button" id="btnToggleGuide" 
-                        class="py-1.5 px-2 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#1E293B] flex items-center justify-center gap-1 transition cursor-pointer"
-                        title="Bật / tắt nét mờ để viết đè lên luyện tập">
+                <button type="button" id="btnToggleGuide" data-action="toggle-ghost"
+                        class="is-active py-1.5 px-2 text-xs font-bold rounded-lg bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] flex items-center justify-center gap-1 transition cursor-pointer shadow-xs"
+                        title="Nhấn để ẩn nét mờ hướng dẫn (tự nhớ mặt chữ để vẽ)">
                   <span class="text-xs">👁️</span>
-                  <span>Nét mờ</span>
+                  <span>Ẩn nét mờ</span>
                 </button>
 
                 <button type="button" id="btnUndoStroke" 

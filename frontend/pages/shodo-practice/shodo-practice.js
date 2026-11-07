@@ -117,28 +117,35 @@ let isGhostStrokeVisible = true;
 
 function updateGhostToggleButton(btn, ghostLayer) {
   if (!btn) return;
+  const labelEl = btn.querySelector('.label') || btn.querySelector('span:last-child');
+  const iconEl = btn.querySelector('.icon') || btn.querySelector('span:first-child');
+
   if (isGhostStrokeVisible) {
-    btn.className = 'py-1.5 px-2 text-xs font-bold rounded-lg bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] flex items-center justify-center gap-1 transition cursor-pointer shadow-xs is-active';
-    btn.innerHTML = '<span class="text-xs">👁️</span><span>Ẩn nét mờ</span>';
+    btn.classList.add('is-active', 'bg-[#FFE5EC]', 'text-[#831843]');
+    btn.classList.remove('bg-white', 'text-[#0F172A]');
+    if (iconEl) iconEl.textContent = '👁️';
+    if (labelEl) labelEl.textContent = 'Ẩn nét mờ';
     btn.title = 'Nhấn để ẩn nét mờ hướng dẫn (tự nhớ mặt chữ để vẽ)';
     if (ghostLayer) {
-      ghostLayer.style.display = 'block';
       ghostLayer.style.opacity = '0.35';
+      ghostLayer.style.visibility = 'visible';
     }
   } else {
-    btn.className = 'py-1.5 px-2 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#1E293B] flex items-center justify-center gap-1 transition cursor-pointer opacity-90';
-    btn.innerHTML = '<span class="text-xs">👁️</span><span>Hiện nét mờ</span>';
+    btn.classList.remove('is-active', 'bg-[#FFE5EC]', 'text-[#831843]');
+    btn.classList.add('bg-white', 'text-[#0F172A]');
+    if (iconEl) iconEl.textContent = '👁️';
+    if (labelEl) labelEl.textContent = 'Hiện nét mờ';
     btn.title = 'Nhấn để hiện nét mờ hướng dẫn (tô theo nét)';
     if (ghostLayer) {
-      ghostLayer.style.display = 'none';
       ghostLayer.style.opacity = '0';
+      ghostLayer.style.visibility = 'hidden';
     }
   }
 }
 
 function setupGhostStrokeToggle() {
-  const toggleBtn = document.getElementById('btnToggleGhostStroke') || document.getElementById('btnToggleGuide') || document.querySelector('[data-action="toggle-ghost"]');
-  const ghostLayer = document.getElementById('kanjiGhostLayer') || document.getElementById('ghostGuidelineGroup') || document.querySelector('.ghost-stroke-layer');
+  const toggleBtn = document.getElementById('btnToggleGuide') || document.getElementById('btnToggleGhost') || document.getElementById('btnToggleGhostStroke') || document.querySelector('[data-action="toggle-ghost"]');
+  const ghostLayer = document.getElementById('kanjiGhostLayer') || document.getElementById('ghostStrokeLayer') || document.getElementById('ghostGuidelineGroup');
 
   if (!toggleBtn) return;
 
@@ -148,14 +155,14 @@ function setupGhostStrokeToggle() {
     e.preventDefault();
     isGhostStrokeVisible = !isGhostStrokeVisible;
 
-    const layer = document.getElementById('kanjiGhostLayer') || document.getElementById('ghostGuidelineGroup') || document.querySelector('.ghost-stroke-layer');
+    const layer = document.getElementById('kanjiGhostLayer') || document.getElementById('ghostStrokeLayer') || document.getElementById('ghostGuidelineGroup');
     if (layer) {
       if (isGhostStrokeVisible) {
-        layer.style.display = 'block';
         layer.style.opacity = '0.35';
+        layer.style.visibility = 'visible';
       } else {
-        layer.style.display = 'none';
         layer.style.opacity = '0';
+        layer.style.visibility = 'hidden';
       }
     }
 
@@ -175,8 +182,9 @@ function renderGuidelineSvg() {
   ghostGroup.id = 'kanjiGhostLayer';
   ghostGroup.setAttribute('id', 'kanjiGhostLayer');
   ghostGroup.classList.add('ghost-stroke-layer', 'kanji-ghost-layer');
-  ghostGroup.style.display = isGhostStrokeVisible ? 'block' : 'none';
   ghostGroup.style.opacity = isGhostStrokeVisible ? '0.35' : '0';
+  ghostGroup.style.visibility = isGhostStrokeVisible ? 'visible' : 'hidden';
+  ghostGroup.style.transition = 'opacity 0.15s ease-out';
 
   // Lớp 2: Lớp hoạt ảnh bút mực khi phát nét (Anim Strokes Layer)
   const animGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -223,7 +231,7 @@ function renderGuidelineSvg() {
   svg.appendChild(ghostGroup);
   svg.appendChild(animGroup);
 
-  const toggleBtn = document.getElementById('btnToggleGhostStroke') || document.getElementById('btnToggleGuide') || document.querySelector('[data-action="toggle-ghost"]');
+  const toggleBtn = document.getElementById('btnToggleGuide') || document.getElementById('btnToggleGhost') || document.getElementById('btnToggleGhostStroke') || document.querySelector('[data-action="toggle-ghost"]');
   if (toggleBtn) {
     updateGhostToggleButton(toggleBtn, ghostGroup);
   }
@@ -243,8 +251,12 @@ function playStrokeAnimation() {
   isPlayingAnimation = true;
   const playBtn = document.getElementById('btnPlayStroke') || document.querySelector('[data-action="play-stroke"]');
   if (playBtn) {
-    playBtn.innerHTML = '<span class="text-xs">⏸️</span><span>Dừng lại</span>';
-    playBtn.className = 'py-1.5 px-2 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center gap-1 transition cursor-pointer shadow-xs';
+    const iconEl = playBtn.querySelector('.icon') || playBtn.querySelector('span:first-child');
+    const labelEl = playBtn.querySelector('.label') || playBtn.querySelector('span:last-child');
+    if (iconEl) iconEl.textContent = '⏸️';
+    if (labelEl) labelEl.textContent = 'Tạm dừng';
+    playBtn.classList.add('bg-amber-500', 'text-white');
+    playBtn.classList.remove('bg-white', 'bg-[#FFE5EC]', 'text-[#831843]', 'text-[#0F172A]');
   }
 
   // Đặt lại toàn bộ nét về trạng thái ẩn (transition = none để không có hiệu ứng giật ngược)
@@ -285,8 +297,12 @@ function stopStrokeAnimation() {
 
   const playBtn = document.getElementById('btnPlayStroke') || document.querySelector('[data-action="play-stroke"]');
   if (playBtn) {
-    playBtn.innerHTML = '<span class="text-xs">▷</span><span>Phát nét</span>';
-    playBtn.className = 'py-1.5 px-2 text-xs font-semibold rounded-lg bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] border border-[#FBCFE8] flex items-center justify-center gap-1 transition cursor-pointer';
+    const iconEl = playBtn.querySelector('.icon') || playBtn.querySelector('span:first-child');
+    const labelEl = playBtn.querySelector('.label') || playBtn.querySelector('span:last-child');
+    if (iconEl) iconEl.textContent = '▷';
+    if (labelEl) labelEl.textContent = 'Phát nét';
+    playBtn.classList.remove('bg-amber-500', 'text-white');
+    playBtn.classList.add('bg-white', 'text-[#0F172A]');
   }
 }
 
@@ -734,15 +750,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupCanvas();
   renderStrokeStepBadges();
 
-  // Nút Play hoạt ảnh
-  document.getElementById('btnPlayStroke')?.addEventListener('click', playStrokeAnimation);
+  // Nút Play hoạt ảnh (hỗ trợ cả các ID và data-action)
+  const playBtn = document.getElementById('btnPlayStroke') || document.querySelector('[data-action="play-stroke"]');
+  playBtn?.addEventListener('click', playStrokeAnimation);
 
-  // Thiết lập bật / tắt nét mờ hướng dẫn
+  // Thiết lập bật / tắt nét mờ hướng dẫn (Zero Layout Shift)
   setupGhostStrokeToggle();
 
   // Nút Undo & Clear
-  document.getElementById('btnUndoStroke')?.addEventListener('click', undoLastStroke);
-  document.getElementById('btnClearBoard')?.addEventListener('click', () => clearCanvas(true));
+  const undoBtn = document.getElementById('btnUndoStroke') || document.querySelector('[data-action="undo-stroke"]');
+  undoBtn?.addEventListener('click', undoLastStroke);
+
+  const clearBtn = document.getElementById('btnClearBoard') || document.getElementById('btnClearCanvas') || document.querySelector('[data-action="clear-canvas"]');
+  clearBtn?.addEventListener('click', () => clearCanvas(true));
 
   // Nút Chấm điểm
   document.getElementById('btnGradeWriting')?.addEventListener('click', gradeShodoWriting);

@@ -137,8 +137,8 @@
               </div>
             </div>
 
-            <!-- Khung Canvas Ô Mễ Tỷ Lệ 1:1 -->
-            <div class="canvas-board-wrapper" id="canvasWrapper">
+            <!-- Khung Canvas Ô Mễ Tỷ Lệ 1:1 Cố Định Chống Reflow -->
+            <div class="shodo-canvas-box canvas-board-wrapper relative w-full max-w-[420px] aspect-square mx-auto bg-[#FAF8F2] border-2 border-[#0F172A] rounded-[8px] shadow-[3px_3px_0px_0px_#0F172A] overflow-hidden select-none" id="canvasWrapper">
               <!-- Lưới Ô Mễ SVG tĩnh (Background) -->
               <svg class="absolute inset-0 w-full h-full pointer-events-none select-none z-0" viewBox="0 0 300 300">
                 <line x1="0" y1="0" x2="300" y2="300" class="shodo-grid-line" />
@@ -148,40 +148,40 @@
               </svg>
 
               <!-- Lớp SVG Nét Hoạt Ảnh Bút Thuận & Guideline (Layer 2) -->
-              <svg id="canvasGuidelineSvg" viewBox="0 0 109 109"></svg>
+              <svg id="canvasGuidelineSvg" class="absolute inset-0 w-full h-full pointer-events-none z-10 transition-opacity duration-150" viewBox="0 0 109 109"></svg>
 
               <!-- Lớp Canvas 2D Học Viên Vẽ Tay (Layer 3) -->
-              <canvas id="practiceBoard"></canvas>
+              <canvas id="practiceBoard" class="absolute inset-0 w-full h-full z-20 cursor-crosshair touch-none"></canvas>
             </div>
 
-            <!-- Thanh Công Cụ Điều Khiển Nét Vẽ (Toolbar) -->
-            <div class="w-full grid grid-cols-4 gap-2 pt-1">
+            <!-- Thanh Công Cụ Điều Khiển Nét Vẽ (Toolbar Cố Định Kích Thước) -->
+            <div class="shodo-toolbar w-full flex flex-wrap items-center justify-center gap-2 p-2.5 bg-white border border-[#0F172A] rounded-[6px] shadow-[2px_2px_0px_0px_#0F172A] min-h-[52px]">
               <button type="button" id="btnPlayStroke" data-action="play-stroke"
-                      class="ls-btn ls-btn-primary p-2"
+                      class="ls-btn ls-btn-default min-w-[96px] h-[36px] flex items-center justify-center gap-1.5 text-xs font-bold shrink-0"
                       title="Phát hoạt ảnh mô phỏng thứ tự từng nét chuẩn">
-                <span class="material-symbols-outlined text-[16px]">play_arrow</span>
-                <span>Phát</span>
+                <span class="icon shrink-0">▷</span>
+                <span class="label">Phát nét</span>
               </button>
 
               <button type="button" id="btnToggleGuide" data-action="toggle-ghost"
-                      class="ls-btn ls-btn-active p-2 is-active"
+                      class="ls-btn ls-btn-default is-active bg-[#FFE5EC] text-[#831843] min-w-[110px] h-[36px] flex items-center justify-center gap-1.5 text-xs font-bold shrink-0"
                       title="Nhấn để ẩn nét mờ hướng dẫn">
-                <span class="material-symbols-outlined text-[16px]">visibility</span>
-                <span>Ẩn nét mờ</span>
+                <span class="icon shrink-0">👁️</span>
+                <span class="label">Ẩn nét mờ</span>
               </button>
 
               <button type="button" id="btnUndoStroke" 
-                      class="ls-btn ls-btn-default p-2"
+                      class="ls-btn ls-btn-default min-w-[90px] h-[36px] flex items-center justify-center gap-1.5 text-xs font-bold shrink-0"
                       title="Quay lại một nét vừa vẽ">
-                <span class="material-symbols-outlined text-[16px]">undo</span>
-                <span>Lùi</span>
+                <span class="icon shrink-0">↩️</span>
+                <span class="label">Hoàn tác</span>
               </button>
 
               <button type="button" id="btnClearBoard" 
-                      class="ls-btn ls-btn-danger p-2"
+                      class="ls-btn ls-btn-danger min-w-[90px] h-[36px] flex items-center justify-center gap-1.5 text-xs font-bold shrink-0"
                       title="Xóa trắng bảng vẽ để luyện lại từ đầu">
-                <span class="material-symbols-outlined text-[16px]">delete</span>
-                <span>Xóa</span>
+                <span class="icon shrink-0">🗑️</span>
+                <span class="label">Xóa hết</span>
               </button>
             </div>
 

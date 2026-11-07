@@ -308,3 +308,22 @@ body.learning-support-body {
   word-break: break-word;
   overflow-wrap: break-word;
 }
+
+/* ==============================================================================
+   5. KHOA CHONG XE DICH KHUNG SHODO (ZERO LAYOUT SHIFT)
+   ============================================================================== */
+.shodo-canvas-box,
+.canvas-board-wrapper {
+  contain: layout paint;
+  will-change: transform;
+}
+
+.shodo-toolbar {
+  contain: layout;
+}
+
+.shodo-toolbar button {
+  box-sizing: border-box;
+  text-align: center;
+  user-select: none;
+}

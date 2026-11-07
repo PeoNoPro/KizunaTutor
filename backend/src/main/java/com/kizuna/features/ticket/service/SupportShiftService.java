@@ -90,6 +90,7 @@ public class SupportShiftService {
 
     @Transactional
     public Map<String, Object> assign(UUID staffId, LocalDate date, String code) {
+        requireManager();
         lockAssignments();
         var actor = actors.current(true);
         if (!actor.manager()) throw new BusinessException(403, "Chỉ quản lý được xếp ca.");
@@ -103,14 +104,23 @@ public class SupportShiftService {
 
     @Transactional
     public Map<String, Object> unassign(UUID shiftId, LocalDate weekStart) {
+        requireManager();
         lockAssignments();
         var actor = actors.current(true);
         if (!actor.manager()) throw new BusinessException(403, "Chỉ quản lý được xếp ca.");
         var date=shifts.dateOf(shiftId);
         if(date.isEmpty()) throw new BusinessException(404, "Không tìm thấy ca này, có thể đã được gỡ.");
         if(date.get().isBefore(now().toLocalDate())) throw new BusinessException(400,"Không gỡ lịch ca của ngày đã qua.");
-        shifts.remove(shiftId);
+        shifts.remove(shiftId, actor.userId());
         return week(weekStart);
+    }
+
+    /**
+     * Chặn sớm người không phải Quản lý (403) trước khi lấy khóa phân việc, để họ không giữ khóa chung.
+     * Sau khi lấy khóa vẫn kiểm tra lại với danh tính đã khóa (giữ thứ tự khóa giống bộ phân việc).
+     */
+    private void requireManager() {
+        if (!actors.current(false).manager()) throw new BusinessException(403, "Chỉ quản lý được xếp ca.");
     }
 
     // ---------------- Thông tin ca cho nhân viên hỗ trợ ----------------

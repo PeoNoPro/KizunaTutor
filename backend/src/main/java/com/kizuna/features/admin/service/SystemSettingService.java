@@ -59,12 +59,6 @@ public class SystemSettingService {
         @Override public String toString() {return "MailAccount[host="+host+", port="+port+", username="+username+"]";}
     }
 
-    public record MailTest(
-        @NotBlank(message="Vui lòng nhập email người gửi.") @Email(message="Email người gửi chưa đúng định dạng.") @Size(max=SENDER_MAX_LENGTH) String senderEmail,
-        @Size(max=200,message="Mật khẩu ứng dụng tối đa 200 ký tự.") String appPassword,
-        @Size(max=100) @Pattern(regexp="^$|^[A-Za-z0-9.-]+$",message="Máy chủ SMTP chưa đúng định dạng.") String smtpHost,
-        @Min(value=1,message="Cổng SMTP không hợp lệ.") @Max(value=65535,message="Cổng SMTP không hợp lệ.") Integer smtpPort) { }
-
     public record MailSenderUpdate(
         @NotBlank(message="Vui lòng nhập email người gửi.") @Email(message="Email người gửi chưa đúng định dạng.") @Size(max=SENDER_MAX_LENGTH,message="Email người gửi tối đa 100 ký tự.") String senderEmail,
         /** Để trống thì giữ mật khẩu đang có (nếu cùng email). */
@@ -209,15 +203,24 @@ public class SystemSettingService {
         return result;
     }
 
-    @Transactional(timeout=5)
+    /** Thời gian chờ đủ cho bước đăng nhập thử máy chủ SMTP (tối đa khoảng 10 giây) trước khi lưu. */
+    @Transactional(timeout=30)
     public Map<String,Object> updateMailSender(MailSenderUpdate r) {
-        var actor=lockFor(SENDER_KEY,r.expectedVersion());
+        actors.requireAdmin();
         var after=r.senderEmail().trim().toLowerCase(Locale.ROOT);
-        var before=value(SENDER_KEY).orElse("");
-        var current=before.isEmpty()?fallbackSender().toLowerCase(Locale.ROOT):before;
         var newPassword=r.appPassword()==null?"":r.appPassword().replace(" ","");
         var host=r.smtpHost()==null||r.smtpHost().isBlank()?guessSmtpHost(after):r.smtpHost().trim().toLowerCase(Locale.ROOT);
         int port=r.smtpPort()==null?587:r.smtpPort();
+        // Đăng nhập thử trước khi khóa và lưu: cấu hình sai sẽ làm mọi thư của hệ thống (OTP, xác minh, thanh toán) không gửi được.
+        // Báo trùng ngay, không bắt Admin chờ bước đăng nhập thử (vẫn kiểm tra lại sau khi khóa).
+        var stored=value(SENDER_KEY).orElse(fallbackSender()).toLowerCase(Locale.ROOT);
+        if(after.equals(stored)&&newPassword.isEmpty()&&host.equals(value(SMTP_HOST_KEY).orElse(guessSmtpHost(stored)))&&port==storedPort())
+            throw new BusinessException(400,"Thông tin mới trùng với cấu hình hiện hành.");
+        var plannedPassword=!newPassword.isEmpty()?newPassword:after.equals(currentSender().toLowerCase(Locale.ROOT))?storedSmtpPassword().orElse(""):"";
+        if(!plannedPassword.isEmpty()&&!host.isBlank())verifyLogin(new MailAccount(host,port,after,plannedPassword));
+        var actor=lockFor(SENDER_KEY,r.expectedVersion());
+        var before=value(SENDER_KEY).orElse("");
+        var current=before.isEmpty()?fallbackSender().toLowerCase(Locale.ROOT):before;
         boolean emailChanged=!after.equals(current);
         boolean serverChanged=!host.equals(value(SMTP_HOST_KEY).orElse(guessSmtpHost(current)))||port!=storedPort();
         if(!emailChanged&&newPassword.isEmpty()&&!serverChanged)throw new BusinessException(400,"Thông tin mới trùng với cấu hình hiện hành.");
@@ -231,37 +234,13 @@ public class SystemSettingService {
         return mailSender();
     }
 
-    /**
-     * Gửi một thư thử tới email của Admin đang đăng nhập bằng thông tin đang nhập trên form (chưa lưu).
-     * Thông báo lỗi chỉ nói nguyên nhân, không chứa mật khẩu.
-     */
-    @Transactional(readOnly=true,timeout=40)
-    public Map<String,Object> testMail(MailTest r) {
-        var actor=actors.requireAdmin();
-        var email=r.senderEmail().trim().toLowerCase(Locale.ROOT);
-        var typed=r.appPassword()==null?"":r.appPassword().replace(" ","");
-        var sameEmail=email.equals(currentSender().toLowerCase(Locale.ROOT));
-        var password=!typed.isEmpty()?typed:sameEmail?storedSmtpPassword().orElse(""):"";
-        if(password.isEmpty())throw new BusinessException(400,"Vui lòng nhập mật khẩu ứng dụng của "+email+" để gửi thử.");
-        var host=r.smtpHost()==null||r.smtpHost().isBlank()?guessSmtpHost(email):r.smtpHost().trim();
-        if(host.isBlank())throw new BusinessException(400,"Vui lòng nhập máy chủ SMTP của email này.");
-        int port=r.smtpPort()==null?587:r.smtpPort();
-        long started=System.nanoTime();
-        try {
-            var sender=buildMailSender(new MailAccount(host,port,email,password));
-            var message=sender.createMimeMessage();
-            var helper=new org.springframework.mail.javamail.MimeMessageHelper(message,"UTF-8");
-            helper.setFrom(email,"KizunaTutor");helper.setTo(actor.email());
-            helper.setSubject("[KizunaTutor] Thư thử cấu hình email gửi");
-            helper.setText("Đây là thư thử từ trang Cấu hình hệ thống KizunaTutor. Nếu bạn nhận được thư này, email gửi đã hoạt động.");
-            sender.send(message);
-            return Map.of("ok",true,"message","Đã gửi thư thử tới "+actor.email()+". Hãy kiểm tra hộp thư (cả mục Spam).","latencyMs",(System.nanoTime()-started)/1_000_000);
-        } catch(org.springframework.mail.MailAuthenticationException exception) {
-            return Map.of("ok",false,"message","Sai email hoặc mật khẩu ứng dụng. Với Gmail phải dùng mật khẩu ứng dụng 16 ký tự, không dùng mật khẩu đăng nhập.","latencyMs",(System.nanoTime()-started)/1_000_000);
-        } catch(org.springframework.mail.MailSendException exception) {
-            return Map.of("ok",false,"message","Không gửi được thư: không kết nối được máy chủ SMTP hoặc thư bị từ chối. Kiểm tra máy chủ và cổng.","latencyMs",(System.nanoTime()-started)/1_000_000);
-        } catch(Exception exception) {
-            return Map.of("ok",false,"message","Chưa gửi được thư thử. Kiểm tra lại email, máy chủ và cổng SMTP.","latencyMs",(System.nanoTime()-started)/1_000_000);
+    /** Chỉ đăng nhập máy chủ SMTP, không gửi thư. Lỗi thì không lưu; thông báo không chứa mật khẩu. */
+    static void verifyLogin(MailAccount account) {
+        try {buildMailSender(account).testConnection();}
+        catch(jakarta.mail.AuthenticationFailedException exception) {
+            throw new BusinessException(400,"Chưa lưu: sai email hoặc mật khẩu ứng dụng. Với Gmail phải dùng mật khẩu ứng dụng 16 ký tự, không dùng mật khẩu đăng nhập.");
+        } catch(jakarta.mail.MessagingException|RuntimeException exception) {
+            throw new BusinessException(400,"Chưa lưu: không đăng nhập được máy chủ SMTP "+account.host()+":"+account.port()+". Kiểm tra máy chủ và cổng.");
         }
     }
 

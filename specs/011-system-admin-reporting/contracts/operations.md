@@ -15,6 +15,35 @@ Tiền tố quản trị `/api/admin/operations`, Admin ACTIVE, đã đổi mậ
 | `PUT /settings/attachment-limit` | `maxMegabytes` số nguyên 1–10, `expectedVersion,reason`; 1 MB = 1.048.576 byte |
 | `GET /settings/history?page&size` | Lịch sử hai nhóm cấu hình; mặc định 20, tối đa 50; tác giả, thời điểm, lý do, trước/sau; chỉ đọc |
 
+### Email gửi thư và AI — bổ sung 2026-11-07
+
+Nhóm đã thống nhất bổ sung sau cuộc họp. Chỉ Admin còn hoạt động; lệnh ghi cần CSRF, `expectedVersion` và `reason` (1–2.000 ký tự), ghi audit cùng transaction như các cấu hình khác. Mật khẩu ứng dụng và API key lưu mã hóa AES-GCM trong `system_configurations`, **không bao giờ** trả lại giao diện (chỉ 4 ký tự cuối dạng `maskedPassword`/`maskedKey`), không ghi vào log hay lịch sử.
+
+| Endpoint | Hợp đồng |
+| --- | --- |
+| `GET /settings/mail-sender` | Trả `senderEmail,defaultEmail,configured,ownAccount,maskedPassword,smtpHost,smtpPort,version`. `ownAccount=false` nghĩa là đang gửi bằng tài khoản SMTP của server (`spring.mail.*`) |
+| `PUT /settings/mail-sender` | Body `senderEmail,appPassword?,smtpHost?,smtpPort?(1–65535, mặc định 587),expectedVersion,reason`. `appPassword` trống thì giữ mật khẩu cũ khi cùng email; đổi email mà đã có mật khẩu cũ thì bắt buộc nhập mật khẩu mới (400). Trước khi lưu, server **đăng nhập thử** máy chủ SMTP (không gửi thư, tối đa khoảng 10 giây): sai mật khẩu hoặc không kết nối được trả 400 và không lưu gì. Trùng cấu hình hiện hành 400, phiên bản cũ 409. Không có API gửi thư thử riêng: bước đăng nhập thử khi lưu thay cho việc này |
+| `GET /settings/ai` | Trả `provider,providerLabel,model,keyConfigured,version,providers:[{code,label,defaultModel,keyConfigured,keySource,maskedKey,baseUrl}]`. `provider` thuộc `GEMINI,OPENAI,CUSTOM` (CUSTOM = máy chủ tương thích OpenAI); `keySource` là `admin`, `server` hoặc rỗng |
+| `PUT /settings/ai` | Body `provider,model([A-Za-z0-9._:/-]{1,80}),apiKey?,baseUrl?(chỉ dùng khi CUSTOM, tối đa 200; trống thì giữ địa chỉ đã lưu),expectedVersion,reason`. `apiKey` trống thì giữ key đang có của nhà cung cấp đó. Áp dụng ngay cho lần gọi AI tiếp theo của FE-08 qua `SystemSettingService.aiChoice()` |
+| `POST /settings/ai/test` | Body `provider,model,apiKey?,baseUrl?`, chưa lưu. Gửi một câu hỏi ngắn tới AI; trả `{ok,message,latencyMs,reply?}` |
+| `GET /settings/history` | Bổ sung các khóa email gửi thư và AI; giá trị bí mật chỉ ghi "đổi mật khẩu ứng dụng"/"đổi API key" |
+| `GET /audit-log?source=SHIFT` | Nhật ký thao tác thêm nhóm `SHIFT` ("Lịch ca CS") đọc từ `support_shift_events` của FE-10: hành động "Xếp ca"/"Gỡ ca", đối tượng "Ca sáng 07/11/2026 · tên nhân viên", kết quả "Đã lưu". Chỉ đọc |
+
+Bộ gửi thư dùng chung (`AdminMailConfiguration`, bean `@Primary JavaMailSender`): mọi thư của hệ thống (mật khẩu nhân viên, OTP, xác minh gia sư, thanh toán) gửi bằng tài khoản Admin đã cấu hình; chưa cấu hình thì dùng `spring.mail.*`. Nếu tài khoản Admin không đăng nhập hoặc không kết nối được lúc gửi, thư được gửi lại bằng `spring.mail.*` và ghi cảnh báo vào log máy chủ, để thư của các phân hệ khác không bị chặn.
+
+### Quản lý báo sự cố cho Admin — bổ sung 2026-11-08
+
+Lý do: lỗi do người dùng báo đi theo yêu cầu hỗ trợ (FE-10) tới CS rồi Quản lý, nhưng không có đường nào tới Admin, trong khi hệ thống không tự tạo sự cố. Quản lý được **báo** sự cố; nhận và xử lý vẫn chỉ Admin. Không thêm bảng/cột: dùng `technical_incidents.reporter_id` và event `CREATE` hiện có.
+
+| Endpoint | Hợp đồng |
+| --- | --- |
+| `GET /reported-incidents/components` | Chỉ Manager. Danh mục phần bị ảnh hưởng, giống `GET /components` của Admin |
+| `GET /reported-incidents/csrf` | Chỉ Manager. Mã CSRF cho lệnh báo sự cố (`/csrf` chung chỉ dành cho Admin) |
+| `POST /reported-incidents` | Chỉ Manager, cần CSRF. Body như `POST /incidents` nhưng không nhận `recurrenceOf` (gửi kèm → 400). Tạo sự cố NEW, chưa người phụ trách, `reporter_id` = Quản lý, ghi event `CREATE`; trả 201 với `allowedActions` rỗng. Mô tả do giao diện điền sẵn từ yêu cầu hỗ trợ (tiêu đề, mô tả, lý do chuyển lên, mã yêu cầu) và Quản lý sửa được |
+| `GET /reported-incidents?page,size` | Chỉ Manager. Sự cố có `reporter_id` là Quản lý đang đăng nhập, mới nhất trước; trả trạng thái, mức độ, người phụ trách, mô tả, phần bị ảnh hưởng; `allowedActions` luôn rỗng |
+
+Admin thấy sự cố này trong `GET /incidents` như mọi sự cố khác (người ghi nhận là tên Quản lý) và tự nhận theo FR-027. Quản lý vẫn bị 403 ở mọi endpoint `/incidents/**`. Giao diện: nút "Báo sự cố kỹ thuật cho Admin" ở tab "Xử lý nội bộ" của yêu cầu được chuyển lên; trang `/pages/manager-incidents/` ("Sự cố đã báo") chỉ xem.
+
 Quy ước: ghi thành công trả dữ liệu và phiên bản mới trong envelope hiện có; sai trường 400, chưa đăng nhập 401, sai quyền/chưa đổi mật khẩu 403, phiên bản cũ 409, lỗi nguồn 503. UI ánh xạ thông báo tiếng Việt. Không bật ô chỉnh loại tệp chưa có consumer. API tải tệp phải kiểm giới hạn thực tế phía server.
 
 Sự cố chỉ có tự nhận và trả lại: `POST /incidents/{id}/release` nhận `expectedVersion,reason` (1–2.000 ký tự không trắng), phiếu chưa đóng và đã có người phụ trách. Chỉ người phụ trách hoặc Admin khác khi người phụ trách không còn hoạt động; sai quyền 403, dữ liệu cũ/không còn phù hợp 409. Xóa người phụ trách, chuyển NEW, ghi event trước/sau nguyên tử; giữ diễn biến cũ. API assignment bị bỏ; giữ event assignment cũ chỉ để đọc.

@@ -12,11 +12,8 @@ const ADMIN_NAV = [
   {label: 'Vận hành hệ thống', items: [
     ['Sự cố kỹ thuật', '/pages/operations-incidents/', 'Ghi nhận, nhận xử lý và theo dõi các sự cố kỹ thuật.'],
     ['Nhật ký thao tác', '/pages/operations-logs/', 'Ai đã thay đổi gì trong khu quản trị và vào lúc nào.'],
-    ['Cấu hình hệ thống', '/pages/operations-config/', 'AI hỗ trợ học tập, gói hội viên, email gửi thư cho nhân viên và giới hạn tệp đính kèm.']]},
-  {label: 'Thống kê và báo cáo', items: [
-    ['Báo cáo sự cố', '/pages/operations-reports/', 'Danh sách sự cố phát sinh, đã khắc phục hoặc chưa đóng trong kỳ.'],
-    ['Báo cáo tổng hợp', '/pages/manager-reports/', 'Tài khoản, kết nối gia sư và học thử trong kỳ.', true],
-    ['Doanh thu', '/pages/operations-revenue/', 'Tiền gia sư trả khi mua gói hội viên: tổng doanh thu, từng giao dịch và tải báo cáo.']]}
+    ['Cấu hình hệ thống', '/pages/operations-config/', 'AI hỗ trợ học tập, gói hội viên, email gửi thư cho nhân viên và giới hạn tệp đính kèm.'],
+    ['Sự cố đã báo', '/pages/manager-incidents/', 'Sự cố kỹ thuật bạn đã báo cho Admin và trạng thái xử lý.', true]]}
 ];
 const PAGE_ALIASES = {'/pages/operations-incident/': '/pages/operations-incidents/', '/pages/support-ticket/': '/pages/support-tickets/'};
 const escapeHtml = value => value.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[c]);
@@ -39,20 +36,33 @@ function decoratePortalPage(path) {
 const SUPPORT_GROUPS = {cs: ['Cần xử lý', 'Chờ người dùng xác nhận', 'Đã chuyển Quản lý', 'Đã đóng'], manager: ['Chờ xem xét', 'Đã phản hồi']};
 /** Bọc link "Yêu cầu hỗ trợ" cùng danh sách nhóm; đóng sẵn, bấm mới mở, nhớ trạng thái mở khi chuyển trang. */
 function attachSupportGroups(link, labels, base) {
-  if (!link || link.closest('.support-nav-group')) return;
   const params = new URLSearchParams(location.search);
   const onList = location.pathname === '/pages/support-tickets/', current = Math.max(0, Number(params.get('group')) || 0);
+  attachNavGroup(link, labels.map((label, index) => ({label, href: base + '?group=' + index, current: onList && index === current})), 'supportNavItems', 'kizuna-support-nav-open');
+}
+/** Các phần của trang Cấu hình hệ thống, mỗi phần là một mục con trên sidebar (tham số ?section=, mặc định phần đầu). */
+export const CONFIG_SECTIONS = [['ai', 'AI hỗ trợ học tập'], ['plans', 'Gói hội viên gia sư'], ['mail', 'Email gửi thư'], ['attachment', 'Giới hạn tệp đính kèm']];
+export function currentConfigSection() {
+  const requested = new URLSearchParams(location.search).get('section');
+  return CONFIG_SECTIONS.some(([key]) => key === requested) ? requested : CONFIG_SECTIONS[0][0];
+}
+function attachConfigGroups(link) {
+  const onConfig = location.pathname === '/pages/operations-config/', current = currentConfigSection();
+  attachNavGroup(link, CONFIG_SECTIONS.map(([key, label]) => ({label, href: '/pages/operations-config/?section=' + key, current: onConfig && key === current})), 'configNavItems', 'kizuna-config-nav-open', onConfig);
+}
+/** Mục có danh sách con: bấm mục cha để mở/đóng, nhớ trạng thái mở khi chuyển trang. */
+function attachNavGroup(link, items, listId, key, forceOpen = false) {
+  if (!link || link.closest('.support-nav-group')) return;
   const wrap = document.createElement('div'), list = document.createElement('div');
-  wrap.className = 'support-nav-group is-collapsible'; list.className = 'support-nav-items'; list.id = 'supportNavItems';
-  labels.forEach((label, index) => {
-    const sub = document.createElement('a'); sub.href = base + '?group=' + index; sub.textContent = label;
-    if (onList && index === current) sub.setAttribute('aria-current', 'page');
+  wrap.className = 'support-nav-group is-collapsible'; list.className = 'support-nav-items'; list.id = listId;
+  items.forEach(({label, href, current}) => {
+    const sub = document.createElement('a'); sub.href = href; sub.textContent = label;
+    if (current) sub.setAttribute('aria-current', 'page');
     list.append(sub);
   });
   link.replaceWith(wrap); wrap.append(link, list);
-  const key = 'kizuna-support-nav-open';
   const setOpen = open => { wrap.classList.toggle('is-open', open); link.setAttribute('aria-expanded', String(open)); try { sessionStorage.setItem(key, open ? '1' : '0'); } catch { /* Không lưu được thì chỉ không nhớ trạng thái. */ } };
-  let remembered = false; try { remembered = sessionStorage.getItem(key) === '1'; } catch { /* Bỏ qua. */ }
+  let remembered = forceOpen; try { remembered = remembered || sessionStorage.getItem(key) === '1'; } catch { /* Bỏ qua. */ }
   link.setAttribute('aria-controls', list.id); setOpen(remembered);
   link.addEventListener('click', event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.button) return; event.preventDefault(); setOpen(!wrap.classList.contains('is-open')); });
 }
@@ -133,6 +143,8 @@ export function mountAdminShell() {
     const target = new URL(link.href);
     if (target.pathname === activePath && !target.hash) { link.setAttribute('aria-current', 'page'); link.closest('details')?.setAttribute('open', ''); }
   });
+  // Cấu hình hệ thống chỉ dành cho Quản trị viên: chia từng phần ngay trên sidebar.
+  if (!csWorkspace) attachConfigGroups(document.querySelector('.sidebar-menu a[href="/pages/operations-config/"]'));
   if(csWorkspace){
     const selected=path==='/pages/cs-dashboard/'?'/cs/dashboard':path==='/pages/support-shifts/'?'/pages/support-shifts/?view=cs':'/cs/support/tickets';
     document.querySelectorAll('[data-cs-navigation]').forEach(link=>{const url=new URL(link.href);if(url.pathname+url.search===selected)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
@@ -153,7 +165,7 @@ export function mountAdminShell() {
     if (account.canAdmin === false) {
       document.querySelectorAll('.sidebar-menu a,.sidebar-menu button').forEach(link => {
         const target = link.getAttribute('href');
-        link.hidden = !((['/pages/manager-reports/', '/pages/manager-staff-roles/', '/pages/operations-revenue/', '/pages/support-shifts/'].includes(target) && account.canReport) || (link.hasAttribute('data-support-link') && account.canSupport) || (csWorkspace&&link.hasAttribute('data-cs-navigation')&&account.canSupport&&!account.canReport));
+        link.hidden = !((['/pages/manager-reports/', '/pages/manager-staff-roles/', '/pages/operations-revenue/', '/pages/support-shifts/', '/pages/manager-incidents/'].includes(target) && account.canReport) || (link.hasAttribute('data-support-link') && account.canSupport) || (csWorkspace&&link.hasAttribute('data-cs-navigation')&&account.canSupport&&!account.canReport));
       });
       document.querySelector('.nav-caption').textContent = csWorkspace?'Nhân viên hỗ trợ':account.canReport?'Quản lý':'Không gian nội bộ';
       document.querySelectorAll('.nav-group').forEach(group => { group.hidden = ![...group.querySelectorAll('a')].some(link => !link.hidden); if (!group.hidden) group.open = true; });

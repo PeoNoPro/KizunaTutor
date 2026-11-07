@@ -10,7 +10,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.MailException;
+import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -99,11 +101,47 @@ public class AdminMailConfiguration {
         @Override public MimeMessage createMimeMessage() { return server.createMimeMessage(); }
         @Override public MimeMessage createMimeMessage(InputStream contentStream) throws MailException { return server.createMimeMessage(contentStream); }
 
+        /**
+         * Gửi bằng tài khoản Admin; nếu tài khoản đó không đăng nhập hoặc không kết nối được (mật khẩu ứng dụng
+         * bị thu hồi, đổi máy chủ...) thì gửi lại bằng tài khoản SMTP của server để OTP, xác minh, thanh toán
+         * vẫn đi được.
+         */
         @Override
         public void send(MimeMessage... mimeMessages) throws MailException {
             var account = account();
-            for (var message : mimeMessages) prepareSender(message, account);
-            current(account).send(mimeMessages);
+            if (account == null) {
+                for (var message : mimeMessages) prepareSender(message, null);
+                server.send(mimeMessages);
+                return;
+            }
+            var originalFrom = new jakarta.mail.Address[mimeMessages.length][];
+            for (int i = 0; i < mimeMessages.length; i++) {
+                originalFrom[i] = fromOf(mimeMessages[i]);
+                prepareSender(mimeMessages[i], account);
+            }
+            try {
+                current(account).send(mimeMessages);
+            } catch (MailAuthenticationException | MailSendException exception) {
+                log.warn("[MAIL] Tài khoản gửi thư do Admin cấu hình lỗi ({}), chuyển sang tài khoản SMTP của server.", exception.getClass().getSimpleName());
+                for (int i = 0; i < mimeMessages.length; i++) {
+                    restoreFrom(mimeMessages[i], originalFrom[i]);
+                    prepareSender(mimeMessages[i], null);
+                }
+                server.send(mimeMessages);
+            }
+        }
+
+        private static jakarta.mail.Address[] fromOf(MimeMessage message) {
+            try { return message.getFrom(); } catch (MessagingException exception) { return null; }
+        }
+
+        private static void restoreFrom(MimeMessage message, jakarta.mail.Address[] from) {
+            try {
+                if (from == null || from.length == 0) message.removeHeader("From");
+                else message.setFrom(from[0]);
+            } catch (MessagingException exception) {
+                log.warn("[MAIL] Chưa đặt lại được người gửi: {}", exception.getClass().getSimpleName());
+            }
         }
 
         @Override
@@ -120,8 +158,19 @@ public class AdminMailConfiguration {
         @Override
         public void send(SimpleMailMessage... simpleMessages) throws MailException {
             var account = account();
-            if (account != null) for (var message : simpleMessages) message.setFrom(account.username());
-            current(account).send(simpleMessages);
+            if (account == null) { server.send(simpleMessages); return; }
+            var originalFrom = new String[simpleMessages.length];
+            for (int i = 0; i < simpleMessages.length; i++) {
+                originalFrom[i] = simpleMessages[i].getFrom();
+                simpleMessages[i].setFrom(account.username());
+            }
+            try {
+                current(account).send(simpleMessages);
+            } catch (MailAuthenticationException | MailSendException exception) {
+                log.warn("[MAIL] Tài khoản gửi thư do Admin cấu hình lỗi ({}), chuyển sang tài khoản SMTP của server.", exception.getClass().getSimpleName());
+                for (int i = 0; i < simpleMessages.length; i++) simpleMessages[i].setFrom(originalFrom[i]);
+                server.send(simpleMessages);
+            }
         }
     }
 }

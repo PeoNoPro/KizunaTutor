@@ -166,4 +166,34 @@ class SupportShiftWorkflowTest {
   time("2026-11-10T03:00:00Z");as(manager);
   assertEquals(400,assertThrows(BusinessException.class,()->shifts.unassign(id,day)).status());
  }
+ @Test void onlyManagerCanAssignOrRemoveShifts(){
+  // CS and learners get 403 from the service even when they call the API directly; nothing is written.
+  for(UUID caller:List.of(cs,owner)){
+   as(caller);
+   assertEquals(403,assertThrows(BusinessException.class,()->shifts.assign(cs,day,"MORNING")).status());
+  }
+  assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM support_shifts",Integer.class));
+  as(manager);shifts.assign(cs,day,"MORNING");
+  UUID id=jdbc.queryForObject("SELECT shift_id FROM support_shifts WHERE staff_id=?",UUID.class,cs);
+  for(UUID caller:List.of(cs,owner)){
+   as(caller);
+   assertEquals(403,assertThrows(BusinessException.class,()->shifts.unassign(id,day)).status());
+  }
+  assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM support_shifts",Integer.class));
+  // Learners cannot even read the schedule; CS can read but not edit.
+  as(owner);assertEquals(403,assertThrows(BusinessException.class,()->shifts.week(day)).status());
+  as(cs);assertEquals(false,shifts.week(day).get("canEdit"));
+ }
+ @Test void assignAndRemoveLeaveAnAppendOnlyHistory(){
+  as(manager);shifts.assign(cs,day,"AFTERNOON");
+  UUID id=jdbc.queryForObject("SELECT shift_id FROM support_shifts WHERE staff_id=? AND shift_code='AFTERNOON'",UUID.class,cs);
+  shifts.unassign(id,day);
+  assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM support_shifts WHERE shift_id=?",Integer.class,id));
+  var events=jdbc.queryForList("SELECT action,staff_id,actor_id,shift_code,shift_date FROM support_shift_events WHERE shift_id=? ORDER BY occurred_at,action",id);
+  assertEquals(List.of("ASSIGN","REMOVE"),events.stream().map(e->e.get("action")).toList());
+  events.forEach(e->{assertEquals(cs,e.get("staff_id"));assertEquals(manager,e.get("actor_id"));assertEquals("AFTERNOON",e.get("shift_code"));});
+  // Lịch sử chỉ được thêm: sửa hoặc xóa đều bị chặn ở DB.
+  assertThrows(Exception.class,()->jdbc.update("UPDATE support_shift_events SET actor_id=? WHERE shift_id=?",cs,id));
+  assertThrows(Exception.class,()->jdbc.update("DELETE FROM support_shift_events WHERE shift_id=?",id));
+ }
 }

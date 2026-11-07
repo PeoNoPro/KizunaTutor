@@ -19,12 +19,27 @@ public class SupportShiftRepository {
             WHERE s.shift_date BETWEEN ? AND ? ORDER BY s.shift_date, s.shift_code, u.full_name""", from, to);
     }
 
+    /** Xếp ca và ghi lịch sử trong cùng giao dịch; trùng ca thì không ghi gì. */
     public boolean add(UUID id, UUID staff, LocalDate date, String code, UUID actor) {
-        return jdbc.update("INSERT INTO support_shifts(shift_id,staff_id,shift_date,shift_code,created_by) VALUES(?,?,?,?,?) ON CONFLICT (staff_id,shift_date,shift_code) DO NOTHING",
+        boolean added = jdbc.update("INSERT INTO support_shifts(shift_id,staff_id,shift_date,shift_code,created_by) VALUES(?,?,?,?,?) ON CONFLICT (staff_id,shift_date,shift_code) DO NOTHING",
             id, staff, date, code, actor) > 0;
+        if (added) event(id, staff, date, code, "ASSIGN", actor);
+        return added;
     }
 
-    public boolean remove(UUID id) { return jdbc.update("DELETE FROM support_shifts WHERE shift_id=?", id) > 0; }
+    private void event(UUID shift, UUID staff, LocalDate date, String code, String action, UUID actor) {
+        jdbc.update("INSERT INTO support_shift_events(event_id,shift_id,staff_id,shift_date,shift_code,action,actor_id) VALUES(?,?,?,?,?,?,?)",
+            UUID.randomUUID(), shift, staff, date, code, action, actor);
+    }
+
+    /** Gỡ ca; dòng ca bị xóa nhưng lịch sử "gỡ ca" (ai gỡ, ca nào của ai) được giữ lại. */
+    public boolean remove(UUID id, UUID actor) {
+        var rows = jdbc.queryForList("DELETE FROM support_shifts WHERE shift_id=? RETURNING staff_id, shift_date, shift_code", id);
+        if (rows.isEmpty()) return false;
+        var row = rows.get(0);
+        event(id, (UUID) row.get("staff_id"), ((java.sql.Date) row.get("shift_date")).toLocalDate(), row.get("shift_code").toString(), "REMOVE", actor);
+        return true;
+    }
 
     public Optional<LocalDate> dateOf(UUID id) {
         return jdbc.query("SELECT shift_date FROM support_shifts WHERE shift_id=? FOR UPDATE",(rs,n)->rs.getDate(1).toLocalDate(),id).stream().findFirst();

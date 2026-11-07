@@ -14,7 +14,7 @@
 <div id="operationsContent" class="operations-content" aria-busy="true"><div class="operations-page-heading"><span class="role-badge">Quản trị vận hành</span><h1>Cấu hình hệ thống</h1><p></p></div>
 <p id="operationsNotice" role="alert" tabindex="-1" hidden></p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
 
-<form id="aiForm" class="operations-card">
+<form id="aiForm" class="operations-card" data-config-section="ai">
     <h2>AI hỗ trợ học tập</h2>
     
     <p id="aiCurrent"></p>
@@ -29,12 +29,12 @@
     <div class="portal-actions ai-buttons"><button id="testAi" type="button">Thử kết nối</button><button class="primary" type="submit">Lưu cấu hình AI</button></div>
     <div id="aiTestResult" class="ai-test-result" role="status" hidden></div>
 </form>
-<section class="operations-card" aria-labelledby="plansTitle">
+<section class="operations-card" aria-labelledby="plansTitle" data-config-section="plans">
     <div class="staff-section-head"><h2 id="plansTitle">Gói hội viên gia sư</h2><button id="createPlan" type="button" class="primary">Thêm gói</button></div>
     
     <div class="table-scroll"><table class="staff-table"><caption class="sr-only">Gói hội viên gia sư</caption><thead><tr><th scope="col">Tên gói</th><th scope="col">Thời hạn</th><th scope="col">Giá</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="planRows"></tbody></table></div>
 </section>
-<form id="configForm" class="operations-card">
+<form id="configForm" class="operations-card" data-config-section="attachment">
     <h2>Giới hạn tệp đính kèm yêu cầu hỗ trợ</h2>
     <p id="attachmentCurrent"></p>
     <label for="attachmentLimit">Dung lượng tối đa mỗi tệp (MB)</label><input id="attachmentLimit" type="number" min="1" max="10" step="1" required>
@@ -43,7 +43,7 @@
     <button class="primary" type="submit">Xem lại và lưu thay đổi</button>
     <p>Chỉ áp dụng cho lần tải mới, tệp đã lưu giữ nguyên. Khi có xung đột, nội dung bạn nhập được giữ lại để đối chiếu.</p>
 </form>
-<form id="senderForm" class="operations-card">
+<form id="senderForm" class="operations-card" data-config-section="mail">
     <div class="staff-section-head"><h2>Tài khoản email gửi thư hệ thống</h2><a id="openMailGuide" class="guide-button" href="/assets/docs/huong-dan-email-gui-thu.pdf" target="_blank" rel="noopener"><span aria-hidden="true">?</span> Hướng dẫn (PDF)</a></div>
     <p id="senderCurrent"></p>
     <div class="config-grid">
@@ -54,8 +54,8 @@
     </div>
     <button id="toggleSmtp" type="button" class="link-button">Email không phải Gmail/Outlook? Nhập máy chủ thư</button>
     <label for="senderReason">Lý do thay đổi</label><textarea id="senderReason" required maxlength="2000"></textarea>
-    <div class="portal-actions ai-buttons"><button id="testMail" type="button">Gửi thư thử</button><button class="primary" type="submit">Lưu email gửi thư</button></div>
-    <div id="mailTestResult" class="ai-test-result" role="status" hidden></div>
+    <div class="portal-actions ai-buttons"><button class="primary" type="submit">Lưu email gửi thư</button></div>
+    <div id="senderResult" class="ai-test-result" role="status" hidden></div>
 </form>
 <details class="operations-card"><summary>Lịch sử thay đổi cấu hình</summary><div id="configHistory"></div><div class="operations-pagination"><button id="configHistoryPrev" type="button">Trang trước</button><button id="configHistoryNext" type="button">Trang sau</button></div></details>
 </div>

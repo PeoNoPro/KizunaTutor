@@ -5,6 +5,7 @@ import {mountLearnerFrame} from './learner-frame.js';
 import {mountTutorFrame} from './tutor-frame.js';
 import {showToast} from '../main.js';
 import {createTicketCountsLoader,countTicketStatuses} from './support-counts.js';
+import {incidentReportCard} from './incident-report.js';
 import {loadAttachmentLimit,attachmentBytes,attachmentMegabytes,arrangeCsDetail,renderCsHeader,renderCsInformation,renderCsThread,createCsReplyForm,finishCsActions,timestamp} from './cs-ticket-detail.js';
 
 const base = '/v1/tickets';
@@ -336,6 +337,8 @@ export async function startSupportPage(isDetail) {
       if(actions.includes('recipient'))target.append(commandForm('recipient','Đổi quản lý tiếp nhận','Đổi quản lý',[['managerId','Quản lý mới','select'],['reason','Lý do đổi người nhận (nội bộ)','textarea']],choices));}
     if(actions.includes('decision')){const card=commandForm('decision','Quyết định nội bộ','Lưu quyết định',[['decisionText','Kết quả gửi cho Nhân viên hỗ trợ','textarea']]);card.querySelector('textarea').value=ticket.escalation?.decisionText||'';target.append(card);}
     if(actions.includes('return')&&ticket.escalation?.decisionText)target.append(commandForm('return','Trả kết quả cho nhân viên','Gửi kết quả cho Nhân viên hỗ trợ'));
+    // Quản lý thấy yêu cầu là lỗi hệ thống thì báo sự cố kỹ thuật cho Admin (FE-11).
+    if(account.canDecide&&isDetail)target.append(incidentReportCard(ticket));
     $('publicLayout').classList.toggle('support-detail-single',!publicActions.childElementCount);
     $('internalLayout').classList.toggle('support-detail-single',!target.childElementCount);
     if(csDetail())finishCsActions(ticket);

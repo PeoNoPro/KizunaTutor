@@ -1,13 +1,32 @@
 // Real Chromium rendering with isolated, deliberately delayed API fixtures. No application DB or real sessions.
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import {readFile,mkdtemp,writeFile} from 'node:fs/promises';
+import {readFile,mkdtemp,writeFile,access} from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 const root=fileURLToPath(new URL('../',import.meta.url));
-const qa=fileURLToPath(new URL('../../../.fe10-qa/',import.meta.url));
+// Hồ sơ trình duyệt và kết quả ghi vào thư mục tạm của hệ điều hành, không ghi ra ngoài repo.
+// Đặt QA_OUTPUT_DIR nếu muốn giữ kết quả ở chỗ khác.
+const qa=process.env.QA_OUTPUT_DIR||os.tmpdir();
 const profile=await mkdtemp(path.join(qa,'support-navigation-'));
+/**
+ * Tìm Chrome/Chromium/Edge: ưu tiên biến môi trường CHROME_PATH, sau đó các vị trí cài đặt phổ biến
+ * trên Windows, macOS và Linux. Không tìm thấy thì báo rõ cách đặt CHROME_PATH.
+ */
+async function findBrowser(){
+ if(process.env.CHROME_PATH)return process.env.CHROME_PATH;
+ const programFiles=[process.env.PROGRAMFILES,process.env['PROGRAMFILES(X86)'],process.env.LOCALAPPDATA].filter(Boolean);
+ const candidates={
+  win32:programFiles.flatMap(dir=>[path.join(dir,'Google/Chrome/Application/chrome.exe'),path.join(dir,'Microsoft/Edge/Application/msedge.exe')]),
+  darwin:['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome','/Applications/Chromium.app/Contents/MacOS/Chromium','/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'],
+  linux:['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium','/usr/bin/chromium-browser','/usr/bin/microsoft-edge']
+ }[process.platform]||[];
+ for(const file of candidates){try{await access(file);return file;}catch{}}
+ throw new Error('Không tìm thấy Chrome/Chromium/Edge. Đặt biến môi trường CHROME_PATH trỏ tới tệp chạy trình duyệt rồi chạy lại.');
+}
+const browserPath=await findBrowser();
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let role='learner',requests=[];
 const server=http.createServer(async(req,res)=>{
@@ -39,7 +58,7 @@ const server=http.createServer(async(req,res)=>{
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const origin=`http://127.0.0.1:${server.address().port}`;
-const browser=spawn('C:/Program Files/Google/Chrome/Application/chrome.exe',['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],{windowsHide:true,stdio:'ignore'});
+const browser=spawn(browserPath,['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],{windowsHide:true,stdio:'ignore'});
 browser.on('error',error=>{console.error(error);process.exitCode=1;});
 let socket;const results=[];
 try{
@@ -83,7 +102,9 @@ try{
  await until('!!document.getElementById("supportLoading")');
  const blocked=await evaluate('performance.now()');assert.ok(blocked>=1500,'Baseline must reproduce parser-blocking compiler delay');
  results.push({scenario:'parser-blocking Tailwind simulation',bodyAvailableMs:blocked});
- await writeFile(path.join(qa,'support-navigation-results.json'),JSON.stringify(results,null,2));
+ const resultFile=path.join(profile,'support-navigation-results.json');
+ await writeFile(resultFile,JSON.stringify(results,null,2));
+ console.log('Kết quả lưu tại: '+resultFile);
  console.log(JSON.stringify(results,null,2));
  console.log('PASS: four roles, local CSS, early paint, one row request, one count aggregate, lazy attachments and mobile layout.');
 }finally{socket?.close();browser.kill();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}

@@ -1,6 +1,18 @@
 import { OPERATIONS_BASE as base, api, byId, text, date, notice, paging, emptyState, badge, actionButton, createOperationsPage } from '../../js/pages/operations.js';
 import { API, fetchAPI } from '../../js/api.js';
 import { API_CONFIG } from '../../js/config/api.config.js';
+import { showToast } from '../../js/main.js';
+import { CONFIG_SECTIONS, currentConfigSection } from '../../components/admin-shell/admin-shell.js';
+
+/** Chỉ hiện phần cấu hình đang chọn trên sidebar (?section=); tiêu đề trang ghi thêm tên phần. */
+function showSection() {
+    const key = currentConfigSection(), label = CONFIG_SECTIONS.find(([item]) => item === key)[1];
+    if (new URLSearchParams(location.search).get('section') !== key) history.replaceState(null, '', location.pathname + '?section=' + key);
+    document.querySelectorAll('[data-config-section]').forEach(card => { card.hidden = card.dataset.configSection !== key; });
+    const heading = document.querySelector('.operations-page-heading h1');
+    if (heading) heading.textContent = 'Cấu hình hệ thống · ' + label;
+    document.title = label + ' - KizunaTutor';
+}
 
 const state = {historyPage: 0, dirty: false, senderDirty: false, aiDirty: false, version: null, current: null, senderVersion: null, sender: null, ai: null, plans: [], plan: null, savingPlan: false};
 const PATH = base + '/settings/attachment-limit';
@@ -67,6 +79,7 @@ async function loadPlans() {
 }
 
 async function load() {
+    showSection();
     const [data, sender, ai, history] = await Promise.all([api(PATH), api(SENDER_PATH), api(AI_PATH), api(base + '/settings/history?page=' + state.historyPage)]);
     state.version = data.version; state.current = data.maxMegabytes;
     byId('attachmentLimit').max = data.ceilingMegabytes;
@@ -116,12 +129,17 @@ function mailPayload() {
 }
 
 /** Gọi API có thể chờ máy chủ bên ngoài (SMTP, AI) quá 4,5 giây nên không dùng fetchAPI. */
-async function slowPost(path, payload) {
+async function slowPost(path, payload, method = 'POST') {
     const csrf = await fetchAPI(base + '/csrf');
-    const response = await fetch(API_CONFIG.BASE_URL + path, {method: 'POST', credentials: 'include', signal: AbortSignal.timeout(45000),
+    const response = await fetch(API_CONFIG.BASE_URL + path, {method, credentials: 'include', signal: AbortSignal.timeout(45000),
         headers: {'Content-Type': 'application/json', [csrf.headerName]: csrf.token}, body: JSON.stringify(payload)});
-    const result = await response.json();
-    if (!response.ok || result.success === false) throw new Error(result.fieldErrors?.length ? result.fieldErrors.map(f => f.message).join(' ') : result.message || 'Chưa thực hiện được.');
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.success === false) {
+        // Gắn mã lỗi để trang hiện đúng câu backend trả về (ví dụ "Chưa lưu: sai mật khẩu ứng dụng…").
+        const error = new Error(result.fieldErrors?.length ? result.fieldErrors.map(f => f.message).join(' ') : result.message || 'Chưa thực hiện được.');
+        error.status = response.status || 400;
+        throw error;
+    }
     return result.data;
 }
 
@@ -132,33 +150,35 @@ function showResult(box, data) {
     if (data.reply) box.append(text('p', 'AI trả lời: ' + data.reply));
 }
 
-async function testMail() {
-    const box = byId('mailTestResult'), button = byId('testMail');
-    box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang gửi thư thử tới email của bạn…'; button.disabled = true;
-    try { showResult(box, await slowPost(SENDER_PATH + '/test', mailPayload())); }
-    catch (error) { box.dataset.tone = 'danger'; box.textContent = '✗ ' + (error.name === 'TimeoutError' ? 'Máy chủ thư không phản hồi sau 45 giây.' : error.message); }
-    finally { button.disabled = false; }
-}
-
+/**
+ * Lưu email gửi thư. Máy chủ đăng nhập thử SMTP trước khi lưu (có thể mất vài giây), nên dùng thời gian chờ dài.
+ * Kết quả (đã lưu hoặc lý do chưa lưu) hiện ngay dưới nút, không đẩy lên đầu trang.
+ */
 async function saveSender() {
-    const payload = mailPayload();
+    const payload = mailPayload(), box = byId('senderResult');
     if (!confirm('Lưu email gửi thư ' + payload.senderEmail + (payload.appPassword ? ' (kèm mật khẩu ứng dụng mới)' : '') + '? Các thư gửi sau sẽ dùng email này.')) return;
-    await api(SENDER_PATH, 'PUT', {...payload, expectedVersion: state.senderVersion, reason: byId('senderReason').value});
+    const button = document.querySelector('#senderForm [type="submit"]'); if (button) button.disabled = true;
+    box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang kiểm tra đăng nhập email và lưu…';
+    try {
+        await slowPost(SENDER_PATH, {...payload, expectedVersion: state.senderVersion, reason: byId('senderReason').value}, 'PUT');
+    } catch (error) {
+        if (error.status === 401) throw error;
+        box.dataset.tone = 'danger';
+        box.textContent = '✗ ' + (error.name === 'TimeoutError' ? 'Máy chủ thư không phản hồi sau 45 giây. Chưa lưu cấu hình.' : error.message);
+        return;
+    } finally { if (button) button.disabled = false; }
     state.senderDirty = false; byId('senderReason').value = ''; byId('senderPassword').value = '';
-    await load(); notice('Đã lưu email người gửi.');
+    box.dataset.tone = 'success'; box.textContent = '✓ Đã lưu. Các thư gửi sau sẽ dùng ' + payload.senderEmail + '.';
+    showToast('Đã lưu email gửi thư hệ thống.', 'success');
+    refreshAfterSave();
 }
 
-/** Gọi AI thật có thể mất tới vài chục giây nên không dùng fetchAPI (giới hạn 4,5 giây). */
-async function testAi() {
-    const box = byId('aiTestResult'), button = byId('testAi');
-    const provider = byId('aiProvider').value;
-    const payload = {provider, model: byId('aiModel').value.trim(), apiKey: byId('aiApiKey').value.trim(), baseUrl: provider === 'CUSTOM' ? byId('aiBaseUrl').value.trim() : ''};
-    box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang gửi câu hỏi thử tới AI…'; button.disabled = true;
-    try {
-        showResult(box, await slowPost(AI_PATH + '/test', payload));
-    } catch (error) {
-        box.dataset.tone = 'danger'; box.textContent = '✗ ' + (error.name === 'TimeoutError' ? 'AI không phản hồi sau 45 giây.' : error.message);
-    } finally { button.disabled = false; }
+/**
+ * Báo thành công ngay khi lưu xong, rồi mới tải lại dữ liệu trang ở nền. Tải lại chậm hoặc lỗi
+ * không được che mất kết quả lưu; khi đó chỉ nhắc tải lại trang để xem dữ liệu mới.
+ */
+function refreshAfterSave() {
+    load().catch(() => showToast('Đã lưu, nhưng chưa tải lại được dữ liệu mới. Hãy tải lại trang để xem.', 'info'));
 }
 
 async function saveAi() {
@@ -167,7 +187,8 @@ async function saveAi() {
     if (!confirm('Lưu cấu hình AI: ' + label + ' · ' + model + (apiKey ? ' (kèm API key mới)' : '') + '? Áp dụng ngay cho lần chấm bài tiếp theo.')) return;
     await api(AI_PATH, 'PUT', {provider, model, apiKey, baseUrl: provider === 'CUSTOM' ? byId('aiBaseUrl').value.trim() : '', expectedVersion: state.ai.version, reason: byId('aiReason').value});
     state.aiDirty = false; byId('aiReason').value = ''; byId('aiApiKey').value = '';
-    await load(); notice('Đã lưu cấu hình AI.');
+    notice('Đã lưu cấu hình AI. Áp dụng cho lần chấm bài tiếp theo.');
+    refreshAfterSave();
 }
 
 // ----- Hộp thoại gói hội viên: chọn nhanh thời hạn/giá, giá có dấu chấm ngăn cách, quyền lợi thêm từng dòng. -----
@@ -253,8 +274,7 @@ page.bind('senderForm', 'submit', saveSender);
 page.bind('aiForm', 'submit', saveAi);
 byId('testAi').addEventListener('click', testAi);
 byId('configForm').addEventListener('input', () => { state.dirty = true; });
-byId('senderForm').addEventListener('input', () => { state.senderDirty = true; });
-byId('testMail').addEventListener('click', testMail);
+byId('senderForm').addEventListener('input', () => { state.senderDirty = true; byId('senderResult').hidden = true; });
 // Gõ email Gmail/Outlook thì tự điền máy chủ SMTP tương ứng.
 byId('senderEmail').addEventListener('change', () => {
     const domain = byId('senderEmail').value.split('@')[1]?.toLowerCase() || '';

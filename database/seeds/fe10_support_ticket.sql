@@ -71,4 +71,34 @@ CREATE TABLE IF NOT EXISTS support_shifts (
 CREATE INDEX IF NOT EXISTS idx_support_shifts_date ON support_shifts (shift_date, shift_code);
 CREATE INDEX IF NOT EXISTS idx_support_shifts_staff_date ON support_shifts (staff_id, shift_date);
 
+-- LỊCH SỬ XẾP/GỠ CA (chỉ thêm, không sửa, không xóa)
+-- Mỗi lần Quản lý xếp hoặc gỡ một ca được ghi một dòng, hiện ở "Nhật ký thao tác" của Quản trị viên.
+-- Gỡ ca vẫn xóa dòng trong support_shifts, nhưng dấu vết còn ở đây.
+CREATE TABLE IF NOT EXISTS support_shift_events (
+    event_id    uuid PRIMARY KEY,
+    shift_id    uuid NOT NULL,
+    staff_id    uuid NOT NULL REFERENCES users(user_id),
+    shift_date  date NOT NULL,
+    shift_code  varchar(10) NOT NULL CHECK (shift_code IN ('MORNING', 'AFTERNOON', 'EVENING')),
+    action      varchar(10) NOT NULL CHECK (action IN ('ASSIGN', 'REMOVE')),
+    actor_id    uuid NOT NULL REFERENCES users(user_id),
+    occurred_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_support_shift_events_time ON support_shift_events (occurred_at DESC);
+
+CREATE OR REPLACE FUNCTION support_shift_events_append_only() RETURNS trigger AS $$
+BEGIN
+    RAISE EXCEPTION 'Lịch sử xếp ca chỉ được thêm, không được sửa hoặc xóa.';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_support_shift_events_append_only ON support_shift_events;
+CREATE TRIGGER trg_support_shift_events_append_only BEFORE UPDATE OR DELETE ON support_shift_events
+    FOR EACH ROW EXECUTE FUNCTION support_shift_events_append_only();
+
+-- Ca đã xếp trước khi có bảng lịch sử: ghi bù một dòng "xếp ca" theo người tạo và thời điểm tạo.
+INSERT INTO support_shift_events(event_id, shift_id, staff_id, shift_date, shift_code, action, actor_id, occurred_at)
+SELECT gen_random_uuid(), s.shift_id, s.staff_id, s.shift_date, s.shift_code, 'ASSIGN', s.created_by, s.created_at
+FROM support_shifts s
+WHERE NOT EXISTS (SELECT 1 FROM support_shift_events e WHERE e.shift_id = s.shift_id AND e.action = 'ASSIGN');
+
 COMMIT;

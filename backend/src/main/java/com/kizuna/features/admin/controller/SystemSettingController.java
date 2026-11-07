@@ -12,7 +12,6 @@ public class SystemSettingController {
     @PutMapping("/attachment-limit") public ApiResponse<?> update(@Valid @RequestBody SystemSettingService.AttachmentLimitUpdate request){return ApiResponse.ok(settings.updateAttachmentLimit(request));}
     @GetMapping("/mail-sender") public ApiResponse<?> mailSender(){return ApiResponse.ok(settings.mailSender());}
     @PutMapping("/mail-sender") public ApiResponse<?> updateMailSender(@Valid @RequestBody SystemSettingService.MailSenderUpdate request){return ApiResponse.ok(settings.updateMailSender(request));}
-    @PostMapping("/mail-sender/test") public ApiResponse<?> testMail(@Valid @RequestBody SystemSettingService.MailTest request){return ApiResponse.ok(settings.testMail(request));}
     @GetMapping("/ai") public ApiResponse<?> ai(){return ApiResponse.ok(settings.ai());}
     @PutMapping("/ai") public ApiResponse<?> updateAi(@Valid @RequestBody SystemSettingService.AiUpdate request){return ApiResponse.ok(settings.updateAi(request));}
     @PostMapping("/ai/test") public ApiResponse<?> testAi(@Valid @RequestBody SystemSettingService.AiTest request){return ApiResponse.ok(settings.testAi(request));}

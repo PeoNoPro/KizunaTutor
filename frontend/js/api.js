@@ -537,9 +537,20 @@ API.classrooms = {
     return classroomRequest('/eligible-learners');
   },
 
-  /** Gia sư mở lớp cho học viên (UC-93) */
-  create({ learnerId, title }) {
-    return classroomRequest('', { method: 'POST', body: { learnerId, title } });
+  /** Gia sư tạo lớp cho học viên đã kết nối, kèm lịch học hằng tuần (UC-93) */
+  create({ learnerId, title, schedules }) {
+    return classroomRequest('', { method: 'POST', body: { learnerId, title, schedules } });
+  },
+
+  /** Gia sư thêm một buổi học hằng tuần ({dayOfWeek, startTime, endTime}) */
+  addSchedule(spaceId, slot) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules`, { method: 'POST', body: slot });
+  },
+
+  /** Gia sư sửa thứ/giờ của một buổi học (lịch học không có thao tác xóa) */
+  updateSchedule(spaceId, scheduleId, slot) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}`,
+      { method: 'PUT', body: slot });
   },
 
   detail(spaceId) {

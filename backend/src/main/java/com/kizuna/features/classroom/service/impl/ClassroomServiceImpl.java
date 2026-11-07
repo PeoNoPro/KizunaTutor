@@ -4,15 +4,20 @@ import com.kizuna.core.entity.Learner;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.core.entity.User;
 import com.kizuna.core.repository.LearnerRepository;
+import com.kizuna.features.classroom.dto.ClassScheduleRequest;
+import com.kizuna.features.classroom.dto.ClassScheduleResponse;
 import com.kizuna.features.classroom.dto.ClassroomCreateRequest;
 import com.kizuna.features.classroom.dto.ClassroomSummaryResponse;
 import com.kizuna.features.classroom.dto.EligibleLearnerResponse;
+import com.kizuna.features.classroom.entity.ClassSchedule;
 import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import com.kizuna.features.classroom.exception.ClassroomException;
+import com.kizuna.features.classroom.repository.ClassScheduleRepository;
 import com.kizuna.features.classroom.repository.LearningMaterialRepository;
 import com.kizuna.features.classroom.repository.LearningSpaceRepository;
 import com.kizuna.features.classroom.service.ClassroomService;
+import com.kizuna.features.classroom.util.ClassScheduleRules;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.payment.entity.TutorMembershipStatus;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +39,8 @@ public class ClassroomServiceImpl implements ClassroomService {
     private final LearningSpaceRepository spaceRepository;
     private final LearningMaterialRepository materialRepository;
     private final LearnerRepository learnerRepository;
+    private final ClassScheduleRepository scheduleRepository;
+    private final ClassScheduleRules scheduleRules;
 
     @Override
     @Transactional(readOnly = true)
@@ -67,6 +74,8 @@ public class ClassroomServiceImpl implements ClassroomService {
             throw ClassroomException.field("learnerId", "Vui lòng chọn học viên.");
         }
         String title = normalizeTitle(request.title());
+        List<ClassScheduleRequest> slots = request.schedules();
+        ClassScheduleRules.validateNewList(slots);
 
         if (tutor.getMembershipStatus() == TutorMembershipStatus.EXPIRED) {
             throw ClassroomException.conflict("Gói hội viên của bạn đã hết hạn. Vui lòng gia hạn để mở lớp học mới.");
@@ -80,6 +89,7 @@ public class ClassroomServiceImpl implements ClassroomService {
                 tutor.getTutorId(), learner.getLearnerId(), OPEN_STATUSES)) {
             throw ClassroomException.conflict("Học viên này đã có lớp học đang hoạt động với bạn.");
         }
+        scheduleRules.ensureNoConflict(tutor.getTutorId(), learner.getLearnerId(), null, null, slots);
 
         LearningSpace saved = spaceRepository.save(LearningSpace.builder()
                 .tutor(tutor)
@@ -87,6 +97,12 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .title(title)
                 .status(LearningSpaceStatus.ACTIVE)
                 .build());
+        scheduleRepository.saveAll(slots.stream().map(slot -> ClassSchedule.builder()
+                .space(saved)
+                .dayOfWeek(slot.dayOfWeek())
+                .startTime(slot.startTime())
+                .endTime(slot.endTime())
+                .build()).toList());
         return toSummary(saved, actor);
     }
 
@@ -145,6 +161,9 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .readOnly(readOnly)
                 .canManage(!readOnly && isTutorOf(actor, space))
                 .materialCount(space.getSpaceId() == null ? 0 : materialRepository.countBySpace_SpaceId(space.getSpaceId()))
+                .schedules(space.getSpaceId() == null ? List.of()
+                        : scheduleRepository.findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(space.getSpaceId())
+                                .stream().map(ClassScheduleResponse::of).toList())
                 .build();
     }
 

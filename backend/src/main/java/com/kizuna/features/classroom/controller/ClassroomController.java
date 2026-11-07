@@ -2,6 +2,7 @@ package com.kizuna.features.classroom.controller;
 
 import com.kizuna.features.classroom.dto.*;
 import com.kizuna.features.classroom.exception.ClassroomExceptionHandler;
+import com.kizuna.features.classroom.service.ClassScheduleService;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.service.LearningMaterialService;
 import com.kizuna.features.classroom.util.CurrentActor;
@@ -32,6 +33,7 @@ public class ClassroomController extends ClassroomExceptionHandler {
     private final CurrentUserResolver currentUserResolver;
     private final ClassroomService classroomService;
     private final LearningMaterialService materialService;
+    private final ClassScheduleService scheduleService;
 
     // ===== Lớp học (UC-93, UC-58) =====
 
@@ -56,7 +58,7 @@ public class ClassroomController extends ClassroomExceptionHandler {
             @RequestBody ClassroomCreateRequest request) {
         CurrentActor actor = currentUserResolver.resolve(auth);
         return ResponseEntity.status(HttpStatus.CREATED).body(ClassroomApiResponse.ok(
-                "Đã thêm học viên vào lớp học và kích hoạt quyền truy cập.", classroomService.create(actor, request)));
+                "Tạo lớp học thành công.", classroomService.create(actor, request)));
     }
 
     @GetMapping("/{spaceId}")
@@ -65,6 +67,36 @@ public class ClassroomController extends ClassroomExceptionHandler {
             @PathVariable UUID spaceId) {
         CurrentActor actor = currentUserResolver.resolve(auth);
         return ClassroomApiResponse.ok("Tải thông tin lớp học thành công.", classroomService.getDetail(actor, spaceId));
+    }
+
+    // ===== Lịch học hằng tuần (thêm / sửa; không có xóa theo nghiệp vụ) =====
+
+    @GetMapping("/{spaceId}/schedules")
+    public ClassroomApiResponse<List<ClassScheduleResponse>> schedules(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Tải lịch học thành công.", scheduleService.list(actor, spaceId));
+    }
+
+    @PostMapping("/{spaceId}/schedules")
+    public ResponseEntity<ClassroomApiResponse<ClassScheduleResponse>> addSchedule(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId,
+            @RequestBody ClassScheduleRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ClassroomApiResponse.ok(
+                "Thêm buổi học thành công.", scheduleService.add(actor, spaceId, request)));
+    }
+
+    @PutMapping("/{spaceId}/schedules/{scheduleId}")
+    public ClassroomApiResponse<ClassScheduleResponse> updateSchedule(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID scheduleId,
+            @RequestBody ClassScheduleRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Cập nhật lịch học thành công.",
+                scheduleService.update(actor, spaceId, scheduleId, request));
     }
 
     // ===== Tài liệu học tập (UC-61, UC-65, UC-94, Delete Learning Material) =====

@@ -1,6 +1,6 @@
 /**
  * KizunaTutor - FE-06 Trang quản lý lớp học của gia sư.
- * UC-93 Access Classroom, UC-61 View / UC-65 Upload / UC-94 Update / Delete Learning Materials.
+ * UC-93 Access Classroom (tạo lớp + lịch học hằng tuần), UC-61 View / UC-65 Upload / UC-94 Update / Delete Learning Materials.
  * Dữ liệu lấy hoàn toàn từ API /api/classrooms; không có dữ liệu giả.
  */
 
@@ -13,6 +13,15 @@ import {
   validateMaterialFile,
   validateMaterialFields,
   validateClassroomTitle,
+  validateScheduleList,
+  validateScheduleSlot,
+  sortSchedules,
+  summarizeSchedules,
+  dayOfWeekLabel,
+  shortTime,
+  durationLabel,
+  DAYS_OF_WEEK,
+  MAX_SCHEDULE_SLOTS,
   friendlyErrorMessage,
   escapeHtml,
   MATERIAL_ACCEPT_ATTR,
@@ -30,8 +39,15 @@ const state = {
   currentSpace: null,
   materials: [],
   editingMaterial: null,
-  deletingMaterial: null
+  deletingMaterial: null,
+  editingSchedule: null
 };
+
+function dayOptionsHtml(selected, { placeholder = false } = {}) {
+  return (placeholder ? '<option value="">Chọn thứ</option>' : '') + DAYS_OF_WEEK.map((d) =>
+    `<option value="${d.value}" ${Number(selected) === d.value ? 'selected' : ''}>${d.label}</option>`
+  ).join('');
+}
 
 // ----------------------------------------------------------------------------
 // Tiện ích giao diện
@@ -105,7 +121,7 @@ function renderClassrooms() {
   const stateBox = $('classroomListState');
   if (!state.classrooms.length) {
     grid.innerHTML = '';
-    renderStateBox(stateBox, 'Bạn chưa có lớp học nào. Hãy thêm học viên đã kết nối để mở lớp đầu tiên.');
+    renderStateBox(stateBox, 'Bạn chưa có lớp học nào. Hãy bấm "Tạo lớp học" để mở lớp và xếp lịch cho học viên đã kết nối.');
     return;
   }
   stateBox.classList.add('hidden');
@@ -118,6 +134,7 @@ function renderClassrooms() {
       <dl class="text-on-surface-variant space-y-1">
         <div>Học viên: <strong>${escapeHtml(c.learnerName || 'Học viên')}</strong></div>
         <div>Ngày mở lớp: ${escapeHtml(formatDateVi(c.createdAt))}</div>
+        <div>Lịch học: ${c.schedules?.length ? escapeHtml(summarizeSchedules(c.schedules)) : '<span class="text-tertiary">Chưa có lịch học</span>'}</div>
         <div>Tài liệu: ${Number(c.materialCount) || 0}</div>
       </dl>
       ${c.readOnly ? '<p class="font-caption text-caption text-tertiary">Chế độ chỉ xem</p>' : ''}
@@ -130,8 +147,46 @@ function renderClassrooms() {
 }
 
 // ----------------------------------------------------------------------------
-// Thêm học viên vào lớp (UC-93 bước 4–10)
+// Tạo lớp: chọn học viên đã kết nối + tên lớp + lịch học hằng tuần (UC-93 bước 4–10)
 // ----------------------------------------------------------------------------
+function scheduleRowHtml() {
+  return `
+    <div class="kz-item p-3 grid grid-cols-[1fr_1fr_auto] sm:grid-cols-[1.3fr_1fr_1fr_auto] gap-2 items-center" data-schedule-row>
+      <select class="kz-input bg-surface-container-lowest col-span-3 sm:col-span-1" data-field="dayOfWeek" aria-label="Thứ trong tuần">${dayOptionsHtml(null, { placeholder: true })}</select>
+      <input type="time" step="300" class="kz-input bg-surface-container-lowest" data-field="startTime" aria-label="Giờ bắt đầu" title="Giờ bắt đầu">
+      <input type="time" step="300" class="kz-input bg-surface-container-lowest" data-field="endTime" aria-label="Giờ kết thúc" title="Giờ kết thúc">
+      <button type="button" class="kz-btn px-2" data-remove-row title="Bỏ buổi này" aria-label="Bỏ buổi này"><span class="material-symbols-outlined text-[18px]">close</span></button>
+    </div>`;
+}
+
+function refreshScheduleRows() {
+  const rows = $('scheduleRows').querySelectorAll('[data-schedule-row]');
+  rows.forEach((row) => {
+    row.querySelector('[data-remove-row]').classList.toggle('invisible', rows.length <= 1);
+  });
+  $('addScheduleRowBtn').disabled = rows.length >= MAX_SCHEDULE_SLOTS;
+}
+
+function addScheduleRow() {
+  const container = $('scheduleRows');
+  if (container.querySelectorAll('[data-schedule-row]').length >= MAX_SCHEDULE_SLOTS) return;
+  container.insertAdjacentHTML('beforeend', scheduleRowHtml());
+  const row = container.lastElementChild;
+  row.querySelector('[data-remove-row]').addEventListener('click', () => {
+    row.remove();
+    refreshScheduleRows();
+  });
+  refreshScheduleRows();
+}
+
+function collectScheduleRows() {
+  return [...$('scheduleRows').querySelectorAll('[data-schedule-row]')].map((row) => ({
+    dayOfWeek: Number(row.querySelector('[data-field="dayOfWeek"]').value) || null,
+    startTime: row.querySelector('[data-field="startTime"]').value,
+    endTime: row.querySelector('[data-field="endTime"]').value
+  }));
+}
+
 async function openAddLearner() {
   const select = $('learnerSelect');
   const fields = $('addLearnerFields');
@@ -140,7 +195,10 @@ async function openAddLearner() {
   setFieldError('learnerSelectError', '');
   setFieldError('classroomTitleError', '');
   setFieldError('addLearnerFormError', '');
+  setFieldError('scheduleRowsError', '');
   $('classroomTitleInput').value = '';
+  $('scheduleRows').innerHTML = '';
+  addScheduleRow();
   select.innerHTML = '';
   eligibleState.textContent = 'Đang tải danh sách học viên...';
   eligibleState.classList.remove('hidden');
@@ -169,21 +227,26 @@ async function submitAddLearner(event) {
   event.preventDefault();
   const learnerId = $('learnerSelect').value;
   const title = $('classroomTitleInput').value;
+  const schedules = collectScheduleRows();
   const titleError = validateClassroomTitle(title);
+  const scheduleError = validateScheduleList(schedules);
   setFieldError('learnerSelectError', learnerId ? '' : 'Vui lòng chọn học viên.');
   setFieldError('classroomTitleError', titleError);
+  setFieldError('scheduleRowsError', scheduleError);
   setFieldError('addLearnerFormError', '');
-  if (!learnerId || titleError) return;
+  if (!learnerId || titleError || scheduleError) return;
 
   const submit = $('addLearnerSubmit');
-  setBusy(submit, true, 'Đang thêm...');
+  setBusy(submit, true, 'Đang tạo lớp...');
   try {
-    await API.classrooms.create({ learnerId, title: title.trim() });
+    await API.classrooms.create({ learnerId, title: title.trim(), schedules });
     closeModal('addLearnerModal');
-    showToast('Đã thêm học viên vào lớp học và kích hoạt quyền truy cập.');
+    showToast('Tạo lớp học thành công.');
     await loadClassrooms();
   } catch (err) {
     if (err.fieldErrors?.title) setFieldError('classroomTitleError', err.fieldErrors.title);
+    else if (err.fieldErrors?.schedules) setFieldError('scheduleRowsError', err.fieldErrors.schedules);
+    else if (err.status === 409 && /giờ|lịch/i.test(err.userMessage || '')) setFieldError('scheduleRowsError', friendlyErrorMessage(err));
     else setFieldError('addLearnerFormError', friendlyErrorMessage(err));
   } finally {
     setBusy(submit, false);
@@ -214,6 +277,7 @@ async function loadSpace(spaceId) {
   stateBox.classList.add('hidden');
   card.classList.add('hidden');
   section.classList.add('hidden');
+  $('scheduleSection').classList.add('hidden');
   hideTutorAssignments();
   try {
     state.currentSpace = await API.classrooms.detail(spaceId);
@@ -246,6 +310,88 @@ function renderSpace() {
   }
   $('openUploadBtn').classList.toggle('hidden', !c.canManage);
   $('classroomDetailCard').classList.remove('hidden');
+  renderSchedules();
+}
+
+// ----------------------------------------------------------------------------
+// Lịch học hằng tuần: xem, sửa, thêm buổi (không có xóa theo nghiệp vụ)
+// ----------------------------------------------------------------------------
+function renderSchedules() {
+  const c = state.currentSpace;
+  const list = $('scheduleList');
+  const stateBox = $('scheduleState');
+  const schedules = sortSchedules(c.schedules);
+  $('openAddScheduleBtn').classList.toggle('hidden', !c.canManage);
+  $('scheduleSubtitle').textContent = c.canManage
+    ? 'Các buổi học cố định mỗi tuần. Bạn có thể sửa giờ hoặc thêm buổi, lịch học không thể xóa.'
+    : 'Các buổi học cố định mỗi tuần của lớp.';
+  if (!schedules.length) {
+    list.innerHTML = '';
+    renderStateBox(stateBox, c.canManage
+      ? 'Lớp học chưa có lịch học. Bấm "Thêm buổi học" để xếp lịch cho học viên.'
+      : 'Lớp học chưa có lịch học.');
+  } else {
+    stateBox.classList.add('hidden');
+    list.innerHTML = schedules.map((s) => `
+      <li class="kz-item flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-primary-fixed text-on-primary-fixed-variant flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-[22px]">event_repeat</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-title-sm text-title-sm text-on-surface">${escapeHtml(dayOfWeekLabel(s.dayOfWeek))}</p>
+          <p class="text-on-surface-variant">${escapeHtml(shortTime(s.startTime))} – ${escapeHtml(shortTime(s.endTime))} <span class="font-caption text-caption">· ${escapeHtml(durationLabel(s.startTime, s.endTime))}</span></p>
+        </div>
+        ${c.canManage ? `<button type="button" class="kz-btn shrink-0" data-edit-schedule="${escapeHtml(s.scheduleId)}"><span class="material-symbols-outlined text-[16px]">edit</span>Sửa</button>` : ''}
+      </li>
+    `).join('');
+    list.querySelectorAll('[data-edit-schedule]').forEach((btn) => {
+      btn.addEventListener('click', () => openScheduleForm(schedules.find((s) => s.scheduleId === btn.dataset.editSchedule)));
+    });
+  }
+  $('scheduleSection').classList.remove('hidden');
+}
+
+function openScheduleForm(schedule = null) {
+  state.editingSchedule = schedule;
+  const isEdit = !!schedule;
+  $('scheduleModalTitle').textContent = isEdit ? 'Sửa buổi học' : 'Thêm buổi học';
+  $('scheduleSubmit').textContent = isEdit ? 'Lưu thay đổi' : 'Thêm buổi học';
+  $('scheduleDayInput').innerHTML = dayOptionsHtml(schedule?.dayOfWeek, { placeholder: !isEdit });
+  $('scheduleStartInput').value = isEdit ? shortTime(schedule.startTime) : '';
+  $('scheduleEndInput').value = isEdit ? shortTime(schedule.endTime) : '';
+  setFieldError('scheduleFormError', '');
+  openModal('scheduleModal');
+  $('scheduleDayInput').focus();
+}
+
+async function submitSchedule(event) {
+  event.preventDefault();
+  const slot = {
+    dayOfWeek: Number($('scheduleDayInput').value) || null,
+    startTime: $('scheduleStartInput').value,
+    endTime: $('scheduleEndInput').value
+  };
+  const error = validateScheduleSlot(slot);
+  setFieldError('scheduleFormError', error);
+  if (error) return;
+
+  const isEdit = !!state.editingSchedule;
+  const submit = $('scheduleSubmit');
+  setBusy(submit, true, 'Đang lưu...');
+  try {
+    const spaceId = state.currentSpace.spaceId;
+    if (isEdit) await API.classrooms.updateSchedule(spaceId, state.editingSchedule.scheduleId, slot);
+    else await API.classrooms.addSchedule(spaceId, slot);
+    closeModal('scheduleModal');
+    state.editingSchedule = null;
+    showToast(isEdit ? 'Cập nhật lịch học thành công.' : 'Thêm buổi học thành công.');
+    state.currentSpace = await API.classrooms.detail(spaceId);
+    renderSchedules();
+  } catch (err) {
+    setFieldError('scheduleFormError', err.fieldErrors?.schedules || friendlyErrorMessage(err));
+  } finally {
+    setBusy(submit, false);
+  }
 }
 
 async function loadMaterials() {
@@ -475,6 +621,9 @@ function init() {
 
   $('openAddLearnerBtn').addEventListener('click', openAddLearner);
   $('addLearnerForm').addEventListener('submit', submitAddLearner);
+  $('addScheduleRowBtn').addEventListener('click', addScheduleRow);
+  $('openAddScheduleBtn').addEventListener('click', () => openScheduleForm(null));
+  $('scheduleForm').addEventListener('submit', submitSchedule);
   $('backToListBtn').addEventListener('click', navigateToList);
   $('openUploadBtn').addEventListener('click', () => openMaterialForm(null));
   $('materialForm').addEventListener('submit', submitMaterial);
@@ -487,6 +636,7 @@ function init() {
     if (e.key === 'Escape') {
       closeModal('addLearnerModal');
       closeModal('materialModal');
+      closeModal('scheduleModal');
     }
   });
   window.addEventListener('popstate', renderRoute);

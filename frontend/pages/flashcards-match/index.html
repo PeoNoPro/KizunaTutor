@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8">
@@ -9,19 +9,19 @@
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols-Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
 
-  <!-- Tailwind CSS v4 -->
+  <!-- Tailwind CSS v4 & Common Tokens -->
   <link rel="stylesheet" href="/assets/css/learning-support-common.css">
   <link rel="stylesheet" href="/css/output.css">
 
   <style>
     body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
     }
     .font-japanese {
-      font-family: 'Noto Sans JP', sans-serif;
+      font-family: 'Noto Sans JP', 'Noto Serif JP', sans-serif;
     }
     @keyframes tileShake {
       0%, 100% { transform: translateX(0); }
@@ -50,7 +50,7 @@
     }
   </style>
 </head>
-<body class="bg-[#F6F7FB] text-[#282E3E] antialiased">
+<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
   <div class="flex h-screen overflow-hidden">
     <!-- Learner Sidebar -->
     <div id="learnerSidebarContainer"></div>
@@ -60,9 +60,9 @@
       <div id="learnerHeaderContainer"></div>
 
       <!-- Main Shell trò chơi ghép thẻ -->
-      <main class="flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col max-w-5xl mx-auto w-full">
+      <main class="flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col max-w-6xl mx-auto w-full">
         <!-- Vùng thông báo nếu chưa đủ thẻ -->
-        <div id="matchNotEnoughState" class="hidden flex-1 flex flex-col items-center justify-center p-10 bg-white border border-[#D9DDE8] rounded-xl text-center space-y-3">
+        <div id="matchNotEnoughState" class="hidden flex-1 flex flex-col items-center justify-center p-10 bg-white border border-[#E2E8F0] rounded-xl text-center space-y-3">
           <div class="w-14 h-14 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-2xl">
             ⚠️
           </div>

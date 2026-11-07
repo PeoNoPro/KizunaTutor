@@ -9,7 +9,7 @@
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Itim&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
   <!-- SheetJS Client-side Parser for Excel (.xlsx, .xls) -->
@@ -57,7 +57,7 @@
     }
   </style>
 </head>
-<body class="bg-[#F8FAFC] text-[#1E293B] font-sans antialiased">
+<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
   <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
 
     <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
@@ -70,20 +70,20 @@
       <div id="learnerHeaderContainer"></div>
 
       <!-- Scrollable Main Container -->
-      <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] flex flex-col min-w-0">
-        <div class="max-w-[1240px] w-full mx-auto flex-1 space-y-6">
+      <main class="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#F8FAFC] flex flex-col min-w-0">
+        <div class="w-full max-w-6xl mx-auto flex-1 space-y-3">
 
           <!-- Thanh công cụ tìm kiếm và lọc bộ thẻ -->
-          <div class="bg-white border border-[#ECE8DE] rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+          <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 sm:p-4 space-y-2.5">
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div class="relative flex-1">
                 <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#68737D] text-[18px]">search</span>
                 <input type="text" id="inputSearchDecks" 
                        placeholder="Tìm kiếm bộ thẻ theo tên hoặc ghi chú..." 
-                       class="w-full pl-10 pr-4 py-2 text-xs md:text-sm rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] focus:bg-white focus:border-[#006194] focus:outline-none transition">
+                       class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
               </div>
               <button type="button" id="btnOpenCreateDeck" 
-                      class="px-4 py-2 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer shrink-0">
+                      class="px-4 py-2 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0">
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 <span>Tạo bộ thẻ mới</span>
               </button>
@@ -104,7 +104,7 @@
           </div>
 
           <!-- ==================== EMPTY STATE (KHI CHƯA CÓ BỘ THẺ) ==================== -->
-          <div id="deckEmptyState" class="hidden p-10 md:p-14 text-center rounded-2xl border-2 border-dashed border-[#ECE8DE] bg-white space-y-3">
+          <div id="deckEmptyState" class="hidden p-8 text-center rounded-xl border border-dashed border-[#CBD5E1] bg-white space-y-2.5">
             <img src="/assets/images/stickers/sleepy-capi.png" 
                  alt="Capybara Kizuna" 
                  class="w-16 h-16 mx-auto object-contain pointer-events-none select-none opacity-85">
@@ -113,7 +113,7 @@
               Tạo ngay một bộ thẻ mới để cất giữ những chữ Hán khó nhớ và luyện tập lật thẻ mỗi ngày nhé!
             </p>
             <button type="button" id="btnEmptyCreateDeck" 
-                    class="mt-2 px-5 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white text-xs md:text-sm font-bold inline-flex items-center gap-1.5 transition cursor-pointer">
+                    class="mt-2 px-4 py-2 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer">
               <span class="material-symbols-outlined text-[18px]">add</span>
               <span>Tạo bộ thẻ đầu tiên</span>
             </button>

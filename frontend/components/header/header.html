@@ -2,7 +2,7 @@
 <header
   class="fixed top-0 inset-x-0 z-50 bg-[#FCFBF7] border-b border-[#ECE8DE] shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
   <div
-    class="h-20 w-full max-w-[1360px] mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between gap-4 flex-nowrap whitespace-nowrap">
+    class="h-20 w-full px-4 md:px-8 lg:px-12 flex items-center justify-between gap-4 flex-nowrap whitespace-nowrap">
     <!-- Logo + Slogan (Lệch về bên trái) -->
     <div class="flex items-center gap-3 shrink-0">
       <a class="flex items-center gap-2.5 group" data-path="landing-page" href="/pages/home/">
@@ -13,7 +13,7 @@
             <span class="font-bold text-xl tracking-tight text-[#0F2545]">Kizuna<span
                 class="text-[#006194]">Tutor</span></span>
           </div>
-          <span class="text-[10px] text-[#68737D] font-medium tracking-wider uppercase mt-1">Kết nối song ngữ Việt – Nhật</span>
+          <span class="hidden sm:block text-[10px] text-[#68737D] font-medium tracking-wider uppercase mt-1">Kết nối song ngữ Việt – Nhật</span>
         </div>
       </a>
     </div>
@@ -24,11 +24,6 @@
         class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors bg-[#E0EFF7] text-[#006194]">
         <span class="material-symbols-outlined text-[18px]">search</span>
         <span>Tìm gia sư</span>
-      </a>
-      <a href="/pages/home/#cach-hoat-dong" data-nav="cach-hoat-dong"
-        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
-        <span class="material-symbols-outlined text-[18px]">help_outline</span>
-        <span>Cách hoạt động</span>
       </a>
       <a href="/pages/home/#tro-thanh-gia-su" data-nav="tro-thanh-gia-su"
         class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors">
@@ -43,21 +38,21 @@
     </nav>
 
     <!-- Right Action CTA -->
-    <div class="flex items-center gap-3 shrink-0">
+    <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
       <!-- 1. Trạng thái chưa đăng nhập (Guest) -->
-      <div id="headerGuestActions" class="flex items-center gap-3">
-        <a href="/register"
-          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white font-semibold text-sm shadow-sm transition-all active:scale-[0.98] cursor-pointer">
-          <span class="material-symbols-outlined text-[18px]">person_add</span>
-          <span>Đăng ký</span>
+      <div id="headerGuestActions" class="flex items-center gap-2 sm:gap-3">
+        <a href="/login"
+          class="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-[#006194] hover:bg-[#004B73] text-white font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-[0.98] cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]">login</span>
+          <span>Đăng nhập</span>
         </a>
       </div>
 
       <!-- 2. Trạng thái đã đăng nhập (Learner hoặc Tutor) -->
-      <div id="headerUserActions" class="hidden flex items-center gap-2.5 sm:gap-3">
-        <!-- Nút Vào Dashboard -->
+      <div id="headerUserActions" class="hidden flex items-center gap-1.5 sm:gap-3">
+        <!-- Nút Vào Dashboard: Ẩn trên mobile, chỉ hiện từ sm trở lên -->
         <a id="headerDashboardBtn" href="/learner/dashboard"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#006194] hover:bg-[#004B73] text-white font-semibold text-sm shadow-sm transition-all active:scale-[0.98] cursor-pointer">
+          class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#006194] hover:bg-[#004B73] text-white font-semibold text-sm shadow-sm transition-all active:scale-[0.98] cursor-pointer">
           <span class="material-symbols-outlined text-[18px]">grid_view</span>
           <span>Vào Dashboard</span>
         </a>
@@ -116,7 +111,7 @@
               <a id="dropdownSupportLink" href="/pages/home/#ho-tro"
                 class="flex items-center gap-2.5 px-4 py-2 font-medium text-[#3F4850] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors">
                 <span class="material-symbols-outlined text-[18px]">help</span>
-                <span>Trung tâm hỗ trợ</span>
+                <span>Hỗ trợ</span>
               </a>
             </div>
 
@@ -133,7 +128,7 @@
 
       <!-- Mobile Menu Toggle Button -->
       <button id="mobileMenuBtn" aria-label="Mở menu điều hướng"
-        class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#FAF8F2] transition-colors cursor-pointer">
+        class="lg:hidden p-2 rounded-lg text-[#3F4850] hover:bg-[#FAF8F2] transition-colors cursor-pointer shrink-0">
         <span class="material-symbols-outlined text-[24px]">menu</span>
       </button>
     </div>
@@ -145,11 +140,6 @@
     <a class="flex items-center gap-2 font-semibold text-sm py-2 text-[#006194]" href="/tutors">
       <span class="material-symbols-outlined text-[18px]">search</span>
       <span>Tìm gia sư</span>
-    </a>
-    <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]"
-      href="/pages/home/#cach-hoat-dong">
-      <span class="material-symbols-outlined text-[18px]">help_outline</span>
-      <span>Cách hoạt động</span>
     </a>
     <a class="flex items-center gap-2 font-medium text-sm py-2 text-[#3F4850] hover:text-[#006194]"
       href="/pages/home/#tro-thanh-gia-su">
@@ -164,10 +154,10 @@
 
     <!-- Mobile Guest Actions -->
     <div id="mobileGuestActions" class="pt-3 border-t border-[#ECE8DE] space-y-2">
-      <a href="/register"
+      <a href="/login"
         class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#006194] text-white font-semibold text-sm shadow-sm hover:bg-[#004B73] transition-colors">
-        <span class="material-symbols-outlined text-[18px]">person_add</span>
-        <span>Đăng ký</span>
+        <span class="material-symbols-outlined text-[18px]">login</span>
+        <span>Đăng nhập</span>
       </a>
     </div>
 

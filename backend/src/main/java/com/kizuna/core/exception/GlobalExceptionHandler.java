@@ -16,6 +16,10 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice @Order(Ordered.HIGHEST_PRECEDENCE)
 public class GlobalExceptionHandler {
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<?> conflictException(ConflictException e) {
+        return error(409, e.getMessage() != null ? e.getMessage() : "Xung đột dữ liệu hoặc trùng lặp yêu cầu");
+    }
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
     public ResponseEntity<?> uploadLimit(Exception e) { return error(413,"Tệp đính kèm vượt dung lượng cho phép. Mỗi tệp tối đa 10 MB, tối đa 5 tệp mỗi lần gửi."); }
     @ExceptionHandler(BusinessException.class) public ResponseEntity<?> business(BusinessException e) { return error(e.status(),e.getMessage()); }
@@ -46,10 +50,6 @@ public class GlobalExceptionHandler {
         }
         log.error("Lỗi không xử lý được", e);
         return error(503,"Tạm thời chưa tải được dữ liệu. Vui lòng thử lại sau.");
-    }
-    @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<?> businessConflict(ConflictException e) {
-        return error(409,e.getMessage()!=null?e.getMessage():"Thao tác không phù hợp với trạng thái hiện tại.");
     }
     @ExceptionHandler(ServiceUnavailableException.class)
     public ResponseEntity<?> serviceUnavailable(ServiceUnavailableException e) {

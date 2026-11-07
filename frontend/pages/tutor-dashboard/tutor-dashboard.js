@@ -202,6 +202,88 @@ function render(data) {
 
 }
 
+async function loadTrialBookings() {
+  const container = $('trialBookingsContainer');
+  const emptyEl = $('trialBookingsEmpty');
+  const badgeEl = $('trialPendingBadge');
+  const countEl = $('trialPendingCount');
+
+  try {
+    const res = await API.trialBookings.getMyRequests('PENDING', 0, 6);
+    const items = res?.items || res?.content || res?.data?.items || res?.data?.content || (Array.isArray(res) ? res : []);
+    const pendingCount = items.length;
+
+    if (countEl) countEl.textContent = pendingCount;
+    if (badgeEl) {
+      badgeEl.classList.toggle('hidden', pendingCount === 0);
+      badgeEl.classList.toggle('inline-flex', pendingCount > 0);
+    }
+
+    if (!container) return;
+
+    if (pendingCount === 0) {
+      if (emptyEl) emptyEl.classList.remove('hidden');
+      container.innerHTML = '';
+      return;
+    }
+
+    if (emptyEl) emptyEl.classList.add('hidden');
+    container.innerHTML = items.map(item => {
+      const isOnline = item.learningMode === 'ONLINE';
+      const avatarSrc = item.partnerAvatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
+      
+      let timeStr = 'Chưa định dạng';
+      if (item.scheduledStartTime) {
+        const d = new Date(item.scheduledStartTime);
+        const pad = n => String(n).padStart(2, '0');
+        const DAY_NAMES = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+        timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())} • ${DAY_NAMES[d.getDay()]}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+      }
+
+      return `
+        <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant hover:border-primary/40 transition-all flex flex-col justify-between space-y-3">
+          <div class="flex items-start gap-3">
+            <img src="${avatarSrc}" alt="${escapeHtml(item.partnerName)}" class="w-10 h-10 rounded-xl object-cover ring-1 ring-outline-variant shrink-0">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5">
+                <h4 class="text-label-md font-bold text-on-surface truncate">${escapeHtml(item.partnerName || 'Học viên')}</h4>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary-fixed text-primary shrink-0">Học viên</span>
+              </div>
+              <p class="text-caption text-on-surface-variant mt-0.5">${item.durationMinutes || 50} phút • Học thử 0đ</p>
+            </div>
+          </div>
+
+          <div class="text-caption text-on-surface-variant space-y-1 bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/60">
+            <div class="flex items-center gap-1.5 text-on-surface font-medium">
+              <span class="material-symbols-outlined text-[15px] text-primary">schedule</span>
+              <span>${timeStr}</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-on-surface-variant">
+              <span class="material-symbols-outlined text-[15px]">${isOnline ? 'laptop_chromebook' : 'pin_drop'}</span>
+              <span>${isOnline ? 'Trực tuyến (Google Meet)' : 'Trực tiếp tại địa chỉ hẹn'}</span>
+            </div>
+            ${item.currentLevel ? `
+              <div class="flex items-center gap-1.5 text-tertiary">
+                <span class="material-symbols-outlined text-[15px]">psychology</span>
+                <span>Trình độ: ${escapeHtml(item.currentLevel)}</span>
+              </div>
+            ` : ''}
+          </div>
+
+          <a href="/tutor/connections" class="w-full py-2 px-3 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-label-sm font-semibold transition-all flex items-center justify-center gap-1 shadow-xs">
+            <span>Phản hồi yêu cầu</span>
+            <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+          </a>
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.warn('Lỗi tải danh sách yêu cầu học thử trên dashboard:', err);
+    if (emptyEl) emptyEl.classList.remove('hidden');
+  }
+}
+
 async function load() {
   setVisible($('loadingState'), true);
   setVisible($('errorState'), false);
@@ -209,6 +291,7 @@ async function load() {
   try {
     const data = await API.tutorVerification.getMine();
     render(data);
+    await loadTrialBookings();
     setVisible($('contentState'), true);
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) return;

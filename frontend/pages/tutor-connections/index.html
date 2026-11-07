@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yêu cầu kết nối - Gia sư KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <!-- Thanh bên + thanh trên (components/tutor-layout/tutor-layout.js) -->
+  <div id="tutorSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="tutorTopbar"></div>
+
+    <main class="flex-1 w-full pt-16">
+      <div class="px-4 md:px-8 py-6 max-w-6xl">
+
+        <!-- Tiêu đề trang -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-caption font-semibold">Học thử & Kết nối</span>
+              <span class="text-caption text-on-surface-variant">• Buổi học 1-1 (0đ)</span>
+            </div>
+            <h1 class="text-headline-md font-bold text-on-surface tracking-tight">Yêu cầu kết nối</h1>
+            <p class="text-body-sm text-on-surface-variant mt-1">Xem xét, duyệt hoặc từ chối các yêu cầu hẹn lịch học thử từ học viên. Sau khi chấp nhận, link Google Meet sẽ được gửi trực tiếp cho học viên.</p>
+          </div>
+
+          <!-- Nút làm mới dữ liệu -->
+          <button id="btnRefresh" type="button" class="self-start md:self-center px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md flex items-center gap-2 transition-all">
+            <span class="material-symbols-outlined text-[18px]">refresh</span>
+            <span>Làm mới</span>
+          </button>
+        </div>
+
+        <!-- Thống kê nhanh 3 thẻ -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-outline-variant/40 flex items-center justify-between">
+            <div>
+              <p class="text-caption text-on-surface-variant font-medium">Chờ phản hồi</p>
+              <h3 id="statPending" class="text-headline-sm font-bold text-amber-700 mt-1">0</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+              <span class="material-symbols-outlined text-[22px]">hourglass_top</span>
+            </div>
+          </div>
+
+          <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-outline-variant/40 flex items-center justify-between">
+            <div>
+              <p class="text-caption text-on-surface-variant font-medium">Đã xác nhận</p>
+              <h3 id="statConfirmed" class="text-headline-sm font-bold text-primary mt-1">0</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-primary-fixed text-primary flex items-center justify-center">
+              <span class="material-symbols-outlined text-[22px]">check_circle</span>
+            </div>
+          </div>
+
+          <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-outline-variant/40 flex items-center justify-between">
+            <div>
+              <p class="text-caption text-on-surface-variant font-medium">Tổng số yêu cầu</p>
+              <h3 id="statTotal" class="text-headline-sm font-bold text-on-surface mt-1">0</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-surface-container text-on-surface flex items-center justify-center">
+              <span class="material-symbols-outlined text-[22px]">list_alt</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs chuyển trạng thái -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-outline-variant/50 text-label-md font-semibold mb-6" id="statusTabs">
+          <button type="button" class="tab-btn px-4 py-2 rounded-xl bg-primary text-on-primary shadow-xs transition-all flex items-center gap-1.5" data-status="ALL">
+            <span>Tất cả</span>
+            <span id="tabCountAll" class="px-1.5 py-0.2 rounded-full text-caption bg-white/20">0</span>
+          </button>
+          <button type="button" class="tab-btn px-4 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all flex items-center gap-1.5" data-status="PENDING">
+            <span>Chờ phản hồi</span>
+            <span id="tabCountPending" class="px-1.5 py-0.2 rounded-full text-caption bg-amber-100 text-amber-800">0</span>
+          </button>
+          <button type="button" class="tab-btn px-4 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all flex items-center gap-1.5" data-status="CONFIRMED">
+            <span>Đã xác nhận</span>
+            <span id="tabCountConfirmed" class="px-1.5 py-0.2 rounded-full text-caption bg-surface-container text-primary">0</span>
+          </button>
+          <button type="button" class="tab-btn px-4 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all flex items-center gap-1.5" data-status="HISTORY">
+            <span>Lịch sử</span>
+            <span id="tabCountHistory" class="px-1.5 py-0.2 rounded-full text-caption bg-surface-container text-on-surface-variant">0</span>
+          </button>
+        </div>
+
+        <!-- Khu vực hiển thị: Đang tải -->
+        <div id="loadingState" class="space-y-4">
+          <div class="tv-skeleton h-44 rounded-2xl"></div>
+          <div class="tv-skeleton h-44 rounded-2xl"></div>
+        </div>
+
+        <!-- Khu vực hiển thị: Lỗi tải -->
+        <div id="errorState" class="hidden bg-surface-container-lowest rounded-2xl p-8 text-center shadow-sm">
+          <span class="material-symbols-outlined text-5xl text-error">cloud_off</span>
+          <h2 class="text-headline-sm mt-2 font-bold">Chưa tải được yêu cầu kết nối</h2>
+          <p id="errorMessage" class="text-on-surface-variant text-body-sm mt-1">Không thể kết nối đến máy chủ. Vui lòng thử lại sau.</p>
+          <button id="btnRetry" type="button" class="mt-4 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md inline-flex items-center gap-2 shadow-sm transition-all">
+            <span class="material-symbols-outlined text-[18px]">refresh</span>
+            <span>Thử lại</span>
+          </button>
+        </div>
+
+        <!-- Khu vực hiển thị: Trạng thái rỗng -->
+        <div id="emptyState" class="hidden bg-surface-container-lowest rounded-2xl p-10 text-center shadow-sm border border-outline-variant/30 space-y-3">
+          <div class="w-16 h-16 rounded-2xl bg-surface-container-low text-primary mx-auto flex items-center justify-center">
+            <span class="material-symbols-outlined text-[36px]">event_available</span>
+          </div>
+          <h3 class="text-title-md font-bold text-on-surface">Không có yêu cầu kết nối nào</h3>
+          <p id="emptyMessage" class="text-body-sm text-on-surface-variant max-w-md mx-auto">Hiện tại bạn chưa có yêu cầu học thử nào trong mục này. Khi học viên đăng ký ca rảnh của bạn, thông tin sẽ hiển thị tại đây.</p>
+        </div>
+
+        <!-- Danh sách thẻ yêu cầu -->
+        <div id="bookingsList" class="space-y-4 hidden">
+          <!-- Render động từ tutor-connections.js -->
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Footer đồng bộ hệ thống -->
+    <footer class="w-full bg-[#131D2E] text-outline-variant py-6 mt-8">
+      <div class="px-4 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-caption">
+        <div class="flex items-center gap-2">
+          <span class="text-headline-sm text-white">Kizuna</span><span class="text-headline-sm text-[#38BDF8]">Tutor</span>
+        </div>
+        <p>© 2026 KizunaTutor. Nền tảng gắn kết học viên Việt Nam và gia sư tiếng Nhật.</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ===== MODAL CHẤP NHẬN YÊU CẦU HỌC THỬ ===== -->
+  <div id="modalAcceptBooking" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalAcceptTitle">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-5 animate-in fade-in duration-150">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-primary-fixed text-primary flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[22px]">check_circle</span>
+          </div>
+          <div>
+            <h2 id="modalAcceptTitle" class="text-title-md font-bold text-on-surface">Chấp nhận yêu cầu học thử</h2>
+            <p class="text-caption text-on-surface-variant">Xác nhận buổi gặp mặt 1-1 và gửi link phòng học cho học viên</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close text-on-surface-variant hover:text-on-surface p-1 rounded-lg">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Tóm tắt buổi học -->
+      <div class="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/50 space-y-2 text-body-sm">
+        <div class="flex items-center gap-2 text-on-surface">
+          <span class="material-symbols-outlined text-[18px] text-primary">person</span>
+          <span>Học viên: <strong id="acceptStudentName" class="font-bold">—</strong></span>
+        </div>
+        <div class="flex items-center gap-2 text-on-surface">
+          <span class="material-symbols-outlined text-[18px] text-primary">schedule</span>
+          <span>Thời gian: <span id="acceptTimeStr" class="font-medium">—</span></span>
+        </div>
+      </div>
+
+      <!-- Nhập Link Google Meet -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label for="acceptMeetingLink" class="text-label-md font-semibold text-on-surface flex items-center gap-1">
+            <span>Link Google Meet</span>
+            <span class="text-error">*</span>
+          </label>
+          <button type="button" id="btnQuickSampleMeet" class="text-caption text-primary hover:underline font-medium flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+            <span>Tạo link mẫu</span>
+          </button>
+        </div>
+        <div class="relative">
+          <input type="url" id="acceptMeetingLink" class="tv-input pr-10" placeholder="https://meet.google.com/xxx-yyyy-zzz" required>
+          <span class="material-symbols-outlined absolute right-3 top-2.5 text-on-surface-variant text-[20px]">video_camera_front</span>
+        </div>
+        <p class="text-caption text-on-surface-variant">Link phòng học trực tuyến để bạn và học viên tham gia đúng giờ hẹn.</p>
+        <p id="acceptMeetingLinkError" class="text-caption text-error hidden"></p>
+      </div>
+
+      <!-- Lời nhắn gửi học viên -->
+      <div class="space-y-1.5">
+        <label for="acceptNote" class="text-label-md font-semibold text-on-surface">Lời nhắn gửi học viên (tùy chọn)</label>
+        <textarea id="acceptNote" rows="3" class="tv-input text-body-sm resize-none" placeholder="Ví dụ: Chào bạn, mình đã nhận lịch học thử. Bạn hãy chuẩn bị mic và webcam nhé!"></textarea>
+      </div>
+
+      <!-- Nút hành động -->
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/30">
+        <button type="button" class="modal-close px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md transition-all font-medium">
+          Hủy bỏ
+        </button>
+        <button type="button" id="btnSubmitAccept" class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all">
+          <span class="material-symbols-outlined text-[18px]">send</span>
+          <span id="btnSubmitAcceptText">Xác nhận chấp nhận</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL TỪ CHỐI YÊU CẦU HỌC THỬ ===== -->
+  <div id="modalDeclineBooking" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalDeclineTitle">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-5 animate-in fade-in duration-150">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-error-container text-error flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[22px]">cancel</span>
+          </div>
+          <div>
+            <h2 id="modalDeclineTitle" class="text-title-md font-bold text-on-surface">Từ chối yêu cầu học thử</h2>
+            <p class="text-caption text-on-surface-variant">Gửi thông báo lịch bận hoặc chưa phù hợp tới học viên</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close text-on-surface-variant hover:text-on-surface p-1 rounded-lg">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Tóm tắt buổi học -->
+      <div class="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/50 space-y-2 text-body-sm">
+        <div class="flex items-center gap-2 text-on-surface">
+          <span class="material-symbols-outlined text-[18px] text-error">person</span>
+          <span>Học viên: <strong id="declineStudentName" class="font-bold">—</strong></span>
+        </div>
+        <div class="flex items-center gap-2 text-on-surface">
+          <span class="material-symbols-outlined text-[18px] text-error">schedule</span>
+          <span>Thời gian: <span id="declineTimeStr" class="font-medium">—</span></span>
+        </div>
+      </div>
+
+      <!-- Chọn lý do từ chối -->
+      <div class="space-y-2">
+        <label for="declineReasonSelect" class="text-label-md font-semibold text-on-surface">Lý do từ chối</label>
+        <select id="declineReasonSelect" class="tv-input">
+          <option value="Trùng lịch với ca dạy hoặc công việc khác">Trùng lịch với ca dạy hoặc công việc khác</option>
+          <option value="Trình độ học viên hiện tại chưa phù hợp với lộ trình giảng dạy">Trình độ học viên hiện tại chưa phù hợp với lộ trình giảng dạy</option>
+          <option value="Gia sư tạm thời ngưng nhận thêm học viên mới">Gia sư tạm thời ngưng nhận thêm học viên mới</option>
+          <option value="Bận việc đột xuất không thể sắp xếp ca học">Bận việc đột xuất không thể sắp xếp ca học</option>
+          <option value="Khác">Lý do khác...</option>
+        </select>
+        <textarea id="declineCustomReason" rows="2" class="tv-input text-body-sm resize-none hidden" placeholder="Nhập lý do cụ thể..."></textarea>
+      </div>
+
+      <!-- Nút hành động -->
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/30">
+        <button type="button" class="modal-close px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md transition-all font-medium">
+          Đóng
+        </button>
+        <button type="button" id="btnSubmitDecline" class="px-5 py-2.5 rounded-xl bg-error hover:opacity-90 text-on-error text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+          <span id="btnSubmitDeclineText">Xác nhận từ chối</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast thông báo nhanh góc màn hình -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 hidden max-w-sm px-4 py-3 rounded-xl shadow-lg text-body-sm font-semibold flex items-center gap-2 transition-all">
+    <span id="toastIcon" class="material-symbols-outlined text-[20px]">check_circle</span>
+    <span id="toastMsg">Thao tác thành công</span>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/pages/tutor-connections/tutor-connections.js"></script>
+</body>
+</html>
+

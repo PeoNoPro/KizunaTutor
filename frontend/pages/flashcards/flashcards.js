@@ -17,71 +17,22 @@ initLearnerShell({
 // =========================================================================
 // 1. TRẠNG THÁI TOÀN CỤC CỦA TRANG
 // =========================================================================
-const STORAGE_KEY = 'kizuna_flashcard_decks';
 let userDecks = [];
-let activeDeck = null;
-let currentCardIndex = 0;
-let isFlipped = false;
+let sourceMergeDeckId = null;
+let activeEditingDeck = null;
+let editingCards = [];
 
 // =========================================================================
-// 2. QUẢN LÝ LƯU TRỮ THỰC TẾ (LOCAL STORAGE & BACKEND API)
+// 2. TẢI DỮ LIỆU BỘ THẺ QUA APICLIENT
 // =========================================================================
 async function loadDecks() {
   try {
-    // 1. Thử lấy từ REST API Backend nếu có kết nối
-    const res = await fetch('/api/user/kanji-folders').catch(() => null);
-    if (res && res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        userDecks = data.map(d => ({
-          id: String(d.id || d.folderId),
-          title: d.folderName || d.title,
-          description: d.description || '',
-          color: d.color || 'blue',
-          cards: (d.items || d.cards || []).map(c => ({
-            char: c.character || c.kanjiChar || c.char,
-            hanViet: c.hanViet || 'HÁN TỰ',
-            meaning: c.meaning || '',
-            onyomi: c.onyomi || '—',
-            kunyomi: c.kunyomi || '—',
-            jlpt: c.jlptLevel || c.jlpt || 'JLPT'
-          }))
-        }));
-        saveLocalDecks();
-        renderDecks();
-        return;
-      }
-    }
+    userDecks = await apiClient.getDecks();
   } catch (e) {
-    console.debug('Không kết nối được API Backend, kiểm tra bộ nhớ cục bộ:', e);
-  }
-
-  // 2. Lấy dữ liệu thực tế do người dùng tự tạo từ LocalStorage (Tuyệt đối không chèn fake data)
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      // Lọc bỏ bất kỳ bộ thẻ mẫu cũ nào nếu từng tồn tại
-      userDecks = Array.isArray(parsed) 
-        ? parsed.filter(d => !String(d.id).startsWith('deck-n5-') && !String(d.id).startsWith('deck-n4-') && !String(d.id).startsWith('deck-kizuna-'))
-        : [];
-    } else {
-      userDecks = [];
-    }
-  } catch (e) {
+    console.debug('Lỗi nạp bộ thẻ:', e);
     userDecks = [];
   }
-
-  saveLocalDecks();
   renderDecks();
-}
-
-function saveLocalDecks() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(userDecks));
-  } catch (e) {
-    console.debug('Không thể lưu localStorage:', e);
-  }
 }
 
 function escapeHtml(text) {
@@ -95,7 +46,7 @@ function escapeHtml(text) {
 }
 
 // =========================================================================
-// 3. RENDER DANH SÁCH BỘ THẺ (HIỂN THỊ EMPTY STATE NẾU CHƯA CÓ DỮ LIỆU)
+// 3. RENDER DANH SÁCH BỘ THẺ (DECK CARD COMPONENT)
 // =========================================================================
 function renderDecks(filterQuery = '') {
   const grid = document.getElementById('deckGrid');
@@ -104,16 +55,16 @@ function renderDecks(filterQuery = '') {
 
   if (!grid || !emptyState) return;
 
-  const q = filterQuery.trim().toLowerCase();
+  const q = (filterQuery || '').trim().toLowerCase();
   const filtered = userDecks.filter(d => 
-    d.title.toLowerCase().includes(q) || (d.description && d.description.toLowerCase().includes(q))
+    (d.title || '').toLowerCase().includes(q) || ((d.description || '').toLowerCase().includes(q))
   );
 
   if (countBadge) {
     countBadge.textContent = `${filtered.length} bộ thẻ`;
   }
 
-  // Khi chưa có dữ liệu thực tế hoặc tìm kiếm không khớp -> Hiển thị Empty State chuẩn
+  // Khi chưa có dữ liệu hoặc tìm kiếm không khớp -> Hiển thị Empty State
   if (filtered.length === 0) {
     grid.innerHTML = '';
     grid.classList.add('hidden');
@@ -130,11 +81,11 @@ function renderDecks(filterQuery = '') {
     const cardCount = deck.cards ? deck.cards.length : 0;
 
     html += `
-      <div class="ls-card relative flex flex-col justify-between p-4 hover:-translate-y-0.5 transition-transform group" data-deck-id="${deck.id}">
+      <div class="deck-card relative flex flex-col justify-between p-4 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] hover:-translate-y-0.5 transition-transform group" data-deck-id="${deck.id}">
         <!-- Phần thông tin thư mục -->
         <div>
           <div class="flex items-start justify-between gap-2">
-            <h3 class="font-bold text-sm text-[#0F172A] truncate flex-1 cursor-pointer hover:text-[#006194] transition" 
+            <h3 class="font-['Itim'] text-base font-bold text-slate-900 truncate flex-1 cursor-pointer hover:text-[#006194] transition" 
                 title="Xem chi tiết bộ thẻ: ${escapeHtml(deck.title)}"
                 data-action="view-detail" data-id="${deck.id}">
               🌸 ${escapeHtml(deck.title)}
@@ -144,63 +95,63 @@ function renderDecks(filterQuery = '') {
             <div class="relative dropdown-container shrink-0">
               <button type="button" 
                       data-action="toggle-menu" data-id="${deck.id}"
-                      class="ls-btn ls-btn-default w-7 h-7 p-0"
+                      class="w-7 h-7 flex items-center justify-center border border-[#0F172A] rounded-[4px] bg-slate-100 hover:bg-slate-200 text-xs shadow-[1px_1px_0px_0px_#0F172A] cursor-pointer transition font-bold"
                       title="Tùy chọn khác">
                 ⋮
               </button>
 
-              <!-- Dropdown Menu Nội dung: Chứa Ghép Thẻ, Mưa Kanji, In, Nhân bản, Gộp -->
-              <div id="menu-${deck.id}" class="deck-dropdown-menu hidden absolute right-0 top-8 w-48 bg-white border border-[#0F172A] rounded-[6px] shadow-[3px_3px_0px_0px_#0F172A] z-30 py-1 text-xs">
-                <button type="button" data-action="match-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-[#4059AA] font-semibold">
-                  <span>🧩</span> <span>Ghép thẻ (Match)</span>
-                </button>
-                <button type="button" data-action="rain-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-[#2A5A1A] font-semibold border-t border-slate-100">
-                  <span>🌧️</span> <span>Mưa chữ Hán (Rain)</span>
+              <!-- Dropdown Menu Nội dung -->
+              <div id="menu-${deck.id}" class="deck-dropdown-menu hidden absolute right-0 top-8 w-48 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] z-30 py-1 text-xs">
+                <button type="button" data-action="view-detail" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800">
+                  <span>🔍</span> Xem trang chi tiết
                 </button>
                 <button type="button" data-action="print-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800 border-t border-slate-100">
-                  <span>🖨️</span> <span>In bộ thẻ (PDF)</span>
+                  <span>🖨️</span> In bộ thẻ (PDF)
                 </button>
                 <button type="button" data-action="duplicate-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800">
-                  <span>📋</span> <span>Nhân bản bộ thẻ</span>
+                  <span>📋</span> Nhân bản bộ thẻ
                 </button>
                 <button type="button" data-action="merge-deck" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 border-t border-slate-100 cursor-pointer text-slate-800">
-                  <span>🔗</span> <span>Gộp với bộ thẻ khác</span>
+                  <span>🔗</span> Gộp với bộ thẻ khác
                 </button>
               </div>
             </div>
           </div>
 
           <!-- Mô tả thư mục -->
-          <p class="text-xs text-[#707881] mt-1 line-clamp-2" title="${escapeHtml(deck.description || '')}">
+          <p class="text-xs text-slate-600 mt-1 line-clamp-2" title="${escapeHtml(deck.description || '')}">
             ${escapeHtml(deck.description || 'Chưa có ghi chú mô tả cho bộ thẻ này.')}
           </p>
-          <div class="mt-2 text-[11px] font-bold text-[#E0399A] flex items-center gap-1.5">
+          <div class="mt-2 text-[11px] font-semibold text-pink-600 flex items-center gap-1.5">
             <span>🏷️</span>
             <span>${cardCount} thẻ học</span>
           </div>
         </div>
 
-        <!-- Cụm nút hành động chính ở chân thẻ: [ 🎮 Học Thẻ ], [ 🧩 Ghép Thẻ ], [ 🗑️ ] -->
-        <div class="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-[#0F172A]/15">
+        <!-- Cụm nút hành động chính ở chân thẻ (Theo quy chuẩn Ponytail & Impeccable) -->
+        <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-[#0F172A]/15">
+          <!-- Nút Chỉnh Sửa -->
           <button type="button" 
-                  data-action="study-deck" data-id="${deck.id}" 
-                  class="ls-btn ls-btn-primary flex-1 py-1.5 text-xs truncate"
-                  title="Bắt đầu học lật thẻ ghi nhớ">
-            <span>🎮</span> <span>Học Thẻ</span>
+                  data-action="edit-deck" data-id="${deck.id}" 
+                  class="py-1.5 px-2 bg-white hover:bg-slate-100 text-[#0F172A] text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
+                  title="Chỉnh sửa bộ thẻ & nạp dữ liệu từ Excel">
+            <span>✏️</span> Chỉnh Sửa
           </button>
 
-          <button type="button" 
-                  data-action="match-deck" data-id="${deck.id}" 
-                  class="ls-btn ls-btn-default flex-1 py-1.5 text-xs truncate text-[#4059AA]!"
-                  title="Chơi trò chơi ghép thẻ (Match)">
-            <span>🧩</span> <span>Ghép Thẻ</span>
-          </button>
-
+          <!-- Nút Xóa -->
           <button type="button" 
                   data-action="delete-deck" data-id="${deck.id}" 
-                  class="ls-btn ls-btn-danger w-8 h-8 p-0"
+                  class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
                   title="Xóa bộ thẻ này">
-            <span>🗑️</span>
+            <span>🗑️</span> Xóa
+          </button>
+
+          <!-- Nút Chi Tiết Độc Lập -->
+          <button type="button" 
+                  data-action="view-detail" data-id="${deck.id}" 
+                  class="py-1.5 px-2 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
+                  title="Mở trang chi tiết bộ thẻ độc lập (/learner/deck-detail)">
+            <span>📖</span> Chi Tiết
           </button>
         </div>
       </div>
@@ -208,6 +159,15 @@ function renderDecks(filterQuery = '') {
   });
 
   grid.innerHTML = html;
+
+  // Click vào card để điều hướng sang trang độc lập (Master-Detail Route)
+  grid.querySelectorAll('.deck-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('.dropdown-container')) return;
+      const deckId = card.dataset.deckId;
+      window.location.href = `/learner/deck-detail?id=${encodeURIComponent(deckId)}`;
+    });
+  });
 
   grid.querySelectorAll('[data-action="view-detail"]').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -239,15 +199,11 @@ function renderDecks(filterQuery = '') {
     });
   });
 
-  grid.querySelectorAll('[data-action="prompt-study"]').forEach(btn => {
+  grid.querySelectorAll('[data-action="edit-deck"]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      promptStudyDeck(btn.dataset.id);
+      openEditDeckModal(btn.dataset.id);
     });
-  });
-
-  grid.querySelectorAll('[data-action="edit-deck"]').forEach(btn => {
-    btn.addEventListener('click', () => openEditDeckModal(btn.dataset.id));
   });
 
   grid.querySelectorAll('[data-action="delete-deck"]').forEach(btn => {
@@ -305,177 +261,7 @@ function closeAllMenus() {
 }
 
 // =========================================================================
-// 4. CHỌN CHẾ ĐỘ HỌC & CHẾ ĐỘ LẬT THẺ FLASHCARD 3D
-// =========================================================================
-let selectedStudyDeckId = null;
-
-function promptStudyDeck(deckId) {
-  const deck = userDecks.find(d => d.id === deckId);
-  if (!deck) return;
-  selectedStudyDeckId = deckId;
-
-  document.getElementById('chooseStudyDeckTitle').textContent = deck.title;
-  document.getElementById('chooseStudyDeckCount').textContent = `${(deck.cards || []).length} thẻ học`;
-  document.getElementById('modalChooseStudyMode').classList.remove('hidden');
-}
-
-function closeChooseStudyModeModal() {
-  document.getElementById('modalChooseStudyMode').classList.add('hidden');
-  selectedStudyDeckId = null;
-}
-
-function openStudyModal(deckId) {
-  const deck = userDecks.find(d => d.id === deckId);
-  if (!deck) return;
-
-  activeDeck = deck;
-  currentCardIndex = 0;
-  isFlipped = false;
-
-  const modal = document.getElementById('modalStudyDeck');
-  document.getElementById('studyDeckTitle').textContent = deck.title;
-  document.getElementById('studyDeckSubtitle').textContent = `${(deck.cards || []).length} chữ Hán trong bộ thẻ`;
-
-  modal.classList.remove('hidden');
-  renderCurrentCard();
-  renderMiniGrid();
-}
-
-function closeStudyModal() {
-  document.getElementById('modalStudyDeck').classList.add('hidden');
-  activeDeck = null;
-  renderDecks();
-}
-
-function renderCurrentCard() {
-  const cardEl = document.getElementById('flashcardElement');
-  cardEl.classList.remove('is-flipped');
-  isFlipped = false;
-
-  if (!activeDeck || !activeDeck.cards || activeDeck.cards.length === 0) {
-    document.getElementById('studyCardChar').textContent = '📭';
-    document.getElementById('studyCardProgressText').textContent = '0 / 0';
-    document.getElementById('studyCardHanViet').textContent = 'CHƯA CÓ CHỮ HÁN';
-    document.getElementById('studyCardMeaning').textContent = 'Bộ thẻ này hiện chưa có chữ Hán nào. Vui lòng bấm "Thêm chữ" ở góc trên để bổ sung.';
-    document.getElementById('studyCardOnyomi').textContent = '—';
-    document.getElementById('studyCardKunyomi').textContent = '—';
-    document.getElementById('btnStudyPracticeShodo').classList.add('hidden');
-    return;
-  }
-
-  document.getElementById('btnStudyPracticeShodo').classList.remove('hidden');
-
-  const card = activeDeck.cards[currentCardIndex];
-  const total = activeDeck.cards.length;
-
-  document.getElementById('studyCardProgressText').textContent = `Thẻ ${currentCardIndex + 1} / ${total}`;
-  document.getElementById('studyCardLevel').textContent = card.jlpt || 'JLPT';
-  document.getElementById('studyCardChar').textContent = card.char;
-  document.getElementById('studyCardCharBack').textContent = card.char;
-  document.getElementById('studyCardHanViet').textContent = card.hanViet || 'HÁN VIỆT';
-  document.getElementById('studyCardMeaning').textContent = card.meaning || 'Chưa cập nhật nghĩa';
-  document.getElementById('studyCardOnyomi').textContent = card.onyomi || '—';
-  document.getElementById('studyCardKunyomi').textContent = card.kunyomi || '—';
-
-  const shodoBtn = document.getElementById('btnStudyPracticeShodo');
-  shodoBtn.href = `/shodo?kanji=${encodeURIComponent(card.char)}`;
-}
-
-function flipCurrentCard() {
-  const cardEl = document.getElementById('flashcardElement');
-  isFlipped = !isFlipped;
-  cardEl.classList.toggle('is-flipped', isFlipped);
-}
-
-function nextCard() {
-  if (!activeDeck || !activeDeck.cards || activeDeck.cards.length === 0) return;
-  if (currentCardIndex < activeDeck.cards.length - 1) {
-    currentCardIndex++;
-  } else {
-    currentCardIndex = 0;
-    showToast('Đã xem hết bộ thẻ! Quay lại từ thẻ đầu tiên.', 'info');
-  }
-  renderCurrentCard();
-}
-
-function prevCard() {
-  if (!activeDeck || !activeDeck.cards || activeDeck.cards.length === 0) return;
-  if (currentCardIndex > 0) {
-    currentCardIndex--;
-  } else {
-    currentCardIndex = activeDeck.cards.length - 1;
-  }
-  renderCurrentCard();
-}
-
-function renderMiniGrid() {
-  const container = document.getElementById('deckCardsMiniGrid');
-  const countEl = document.getElementById('miniGridCount');
-  if (!container || !activeDeck) return;
-
-  const cards = activeDeck.cards || [];
-  if (countEl) countEl.textContent = `${cards.length} chữ`;
-
-  if (cards.length === 0) {
-    container.innerHTML = '<span class="text-xs text-[#68737D] italic">Chưa có chữ Hán nào trong bộ thẻ này.</span>';
-    return;
-  }
-
-  let html = '';
-  cards.forEach((c, idx) => {
-    const isCurrent = idx === currentCardIndex;
-    html += `
-      <div class="relative group/mini">
-        <button type="button" data-index="${idx}"
-                class="w-10 h-10 rounded-xl border font-japanese font-bold text-sm transition flex items-center justify-center cursor-pointer ${
-                  isCurrent 
-                    ? 'bg-[#FFE5EC] border-[#FBCFE8] text-[#831843] shadow-xs' 
-                    : 'bg-[#FAF8F2] border-[#ECE8DE] text-[#0F2545] hover:bg-white'
-                }">
-          ${c.char}
-        </button>
-        <button type="button" data-action="remove-card" data-index="${idx}"
-                class="hidden group-hover/mini:flex absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] items-center justify-center cursor-pointer shadow-xs"
-                title="Xóa chữ này khỏi bộ thẻ">
-          &times;
-        </button>
-      </div>
-    `;
-  });
-
-  container.innerHTML = html;
-
-  container.querySelectorAll('button[data-index]').forEach(b => {
-    b.addEventListener('click', () => {
-      currentCardIndex = parseInt(b.dataset.index, 10);
-      renderCurrentCard();
-      renderMiniGrid();
-    });
-  });
-
-  container.querySelectorAll('[data-action="remove-card"]').forEach(b => {
-    b.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const idx = parseInt(b.dataset.index, 10);
-      removeCardFromDeck(idx);
-    });
-  });
-}
-
-function removeCardFromDeck(index) {
-  if (!activeDeck || !activeDeck.cards) return;
-  const removed = activeDeck.cards.splice(index, 1);
-  if (currentCardIndex >= activeDeck.cards.length) {
-    currentCardIndex = Math.max(0, activeDeck.cards.length - 1);
-  }
-  saveLocalDecks();
-  renderCurrentCard();
-  renderMiniGrid();
-  showToast(`Đã xóa chữ [${removed[0]?.char}] khỏi bộ thẻ.`, 'info');
-}
-
-// =========================================================================
-// 5. TẠO & XÓA BỘ THẺ (CRUD LOGIC)
+// 4. TẠO & XÓA BỘ THẺ (CRUD LOGIC QUA APICLIENT)
 // =========================================================================
 function openCreateDeckModal() {
   document.getElementById('modalCreateDeck').classList.remove('hidden');
@@ -487,124 +273,71 @@ function closeCreateDeckModal() {
   document.getElementById('modalCreateDeck').classList.add('hidden');
 }
 
-function saveNewDeck() {
+async function saveNewDeck() {
   const nameInput = document.getElementById('deckNameInput');
   const descInput = document.getElementById('deckDescInput');
   const title = (nameInput.value || '').trim();
   const desc = (descInput.value || '').trim();
 
   if (!title) {
-    showToast('Vui lòng nhập tên cho bộ thẻ nhé.', 'error');
+    KizunaToast.warning('Vui lòng nhập tên cho bộ thẻ nhé.');
     nameInput.focus();
     return;
   }
 
-  const newDeck = {
-    id: `deck-${Date.now()}`,
-    title: title,
-    description: desc,
-    color: 'blue',
-    cards: []
-  };
-
-  userDecks.unshift(newDeck);
-  saveLocalDecks();
-  closeCreateDeckModal();
-  renderDecks();
-  showToast(`Đã tạo thành công bộ thẻ "${title}".`, 'success');
+  try {
+    const created = await apiClient.createDeck({
+      title: title,
+      description: desc,
+      color: 'blue',
+      cards: []
+    });
+    userDecks.unshift(created);
+    closeCreateDeckModal();
+    renderDecks();
+    KizunaToast.success(`Đã tạo thành công bộ thẻ "${title}".`);
+  } catch (err) {
+    console.error(err);
+    KizunaToast.error('Không thể tạo bộ thẻ mới. Vui lòng thử lại!');
+  }
 }
 
 async function handleDeleteDeck(deckId) {
-  const target = userDecks.find(d => d.id === deckId);
+  const target = userDecks.find(d => String(d.id) === String(deckId));
   if (!target) return;
 
-  if (!confirm(`Bạn có chắc chắn muốn xóa bộ thẻ "${target.title}" không?`)) {
+  if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn bộ thẻ "${target.title}" kèm tất cả thẻ con không?`)) {
     return;
   }
 
-  // Cố gắng xóa trên backend API nếu có kết nối
   try {
-    await fetch(`/api/user/kanji-folders/${encodeURIComponent(deckId)}`, {
-      method: 'DELETE'
-    }).catch(() => null);
-  } catch (e) {
-    console.debug('Lỗi khi gọi API xóa folder:', e);
+    await apiClient.deleteDeck(deckId);
+    userDecks = userDecks.filter(d => String(d.id) !== String(deckId));
+    renderDecks();
+    KizunaToast.info(`Đã xóa bộ thẻ "${target.title}".`);
+  } catch (err) {
+    console.error(err);
+    KizunaToast.error('Không thể xóa bộ thẻ. Vui lòng thử lại!');
   }
-
-  userDecks = userDecks.filter(d => d.id !== deckId);
-  saveLocalDecks();
-  renderDecks();
-  showToast(`Đã xóa bộ thẻ "${target.title}".`, 'info');
-}
-
-const deleteDeck = handleDeleteDeck;
-
-// =========================================================================
-// 6. THÊM CHỮ MỚI VÀO BỘ THẺ
-// =========================================================================
-function openAddCardModal() {
-  document.getElementById('modalAddCard').classList.remove('hidden');
-  document.getElementById('inputNewKanjiChar').value = '';
-  document.getElementById('inputNewHanViet').value = '';
-  document.getElementById('inputNewMeaning').value = '';
-}
-
-function closeAddCardModal() {
-  document.getElementById('modalAddCard').classList.add('hidden');
-}
-
-function submitNewCard() {
-  if (!activeDeck) return;
-
-  const charInput = document.getElementById('inputNewKanjiChar');
-  const hanVietInput = document.getElementById('inputNewHanViet');
-  const meaningInput = document.getElementById('inputNewMeaning');
-
-  const char = (charInput.value || '').trim().charAt(0);
-  const hanViet = (hanVietInput.value || '').trim().toUpperCase();
-  const meaning = (meaningInput.value || '').trim();
-
-  if (!char) {
-    showToast('Vui lòng nhập ký tự chữ Hán.', 'error');
-    charInput.focus();
-    return;
-  }
-
-  activeDeck.cards = activeDeck.cards || [];
-  activeDeck.cards.push({
-    char: char,
-    hanViet: hanViet || 'HÁN TỰ',
-    meaning: meaning || 'Chưa cập nhật nghĩa',
-    onyomi: '—',
-    kunyomi: '—',
-    jlpt: 'Tự do'
-  });
-
-  saveLocalDecks();
-  closeAddCardModal();
-  currentCardIndex = activeDeck.cards.length - 1;
-  renderCurrentCard();
-  renderMiniGrid();
-  showToast(`Đã thêm chữ [${char}] vào bộ thẻ thành công.`, 'success');
 }
 
 // =========================================================================
-// 7. CHỨC NĂNG MỞ RỘNG (IN THẺ, NHÂN BẢN, GỘP BỘ THẺ)
+// 5. CÁC TÙY CHỌN NÂNG CAO: IN BỘ THẺ, NHÂN BẢN, GỘP BỘ THẺ
 // =========================================================================
 
-// 1. In bộ thẻ (Print Mode A4 / Xuất PDF)
+// 1. In bộ thẻ (Print Mode A4 / Xuất PDF 2 mặt)
 function handlePrintDeck(deckId) {
-  const deck = userDecks.find(d => d.id === deckId);
+  const deck = userDecks.find(d => String(d.id) === String(deckId));
   if (!deck) return;
   const cards = deck.cards || [];
   if (cards.length === 0) {
-    showToast('Bộ thẻ này chưa có thẻ học nào để in!', 'warning');
+    KizunaToast.warning('Bộ thẻ này chưa có thẻ học nào để in!');
     return;
   }
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    showToast('Vui lòng cho phép popup trên trình duyệt để mở giao diện in ấn.', 'error');
+    KizunaToast.error('Vui lòng cho phép popup trên trình duyệt để mở giao diện in ấn.');
     return;
   }
 
@@ -742,43 +475,38 @@ function handlePrintDeck(deckId) {
   printWindow.focus();
 }
 
-// 2. Nhân bản bộ thẻ (Duplicate Deck)
-function handleDuplicateDeck(deckId) {
-  const target = userDecks.find(d => d.id === deckId);
+// 2. Nhân bản bộ thẻ (Instant Duplicate API)
+async function handleDuplicateDeck(deckId) {
+  const target = userDecks.find(d => String(d.id) === String(deckId));
   if (!target) return;
 
   if (!confirm(`Bạn có muốn nhân bản bộ thẻ "${target.title}" kèm toàn bộ thẻ con không?`)) return;
 
-  const duplicatedDeck = {
-    id: `deck-${Date.now()}`,
-    title: `${target.title} (Bản sao)`,
-    description: target.description || '',
-    color: target.color || 'blue',
-    cards: (target.cards || []).map(c => ({ ...c }))
-  };
-
-  userDecks.unshift(duplicatedDeck);
-  saveLocalDecks();
-  renderDecks();
-  showToast(`Đã nhân bản bộ thẻ "${duplicatedDeck.title}" thành công!`, 'success');
+  try {
+    const duplicated = await apiClient.duplicateDeck(deckId);
+    userDecks.unshift(duplicated);
+    renderDecks();
+    KizunaToast.success(`Đã nhân bản bộ thẻ "${duplicated.title}" thành công!`);
+  } catch (err) {
+    console.error(err);
+    KizunaToast.error('Lỗi khi nhân bản bộ thẻ!');
+  }
 }
 
-// 3. Gộp bộ thẻ (Merge Decks)
-let sourceMergeDeckId = null;
-
+// 3. Gộp bộ thẻ (Merge Modal & API)
 function openMergeModal(deckId) {
-  const sourceDeck = userDecks.find(d => d.id === deckId);
+  const sourceDeck = userDecks.find(d => String(d.id) === String(deckId));
   if (!sourceDeck) return;
 
-  const otherDecks = userDecks.filter(d => d.id !== deckId);
+  const otherDecks = userDecks.filter(d => String(d.id) !== String(deckId));
   if (otherDecks.length === 0) {
-    showToast('Bạn cần có ít nhất 2 bộ thẻ để có thể thực hiện gộp thẻ!', 'warning');
+    KizunaToast.warning('Bạn cần có ít nhất 2 bộ thẻ để có thể thực hiện gộp thẻ!');
     return;
   }
 
   sourceMergeDeckId = deckId;
   document.getElementById('mergeSourceDeckTitle').textContent = sourceDeck.title;
-  document.getElementById('mergeSourceDeckCount').textContent = `${(sourceDeck.cards || []).length} thẻ học`;
+  document.getElementById('mergeSourceDeckCount').textContent = `${(sourceDeck.cards || []).length} thẻ`;
 
   const select = document.getElementById('mergeTargetDeckSelect');
   select.innerHTML = otherDecks.map(d => `
@@ -794,45 +522,29 @@ function closeMergeModal() {
   sourceMergeDeckId = null;
 }
 
-function executeMergeDecks() {
+async function executeMergeDecks() {
   if (!sourceMergeDeckId) return;
   const select = document.getElementById('mergeTargetDeckSelect');
   const targetDeckId = select.value;
-  const sourceDeck = userDecks.find(d => d.id === sourceMergeDeckId);
-  const targetDeck = userDecks.find(d => d.id === targetDeckId);
-
-  if (!sourceDeck || !targetDeck) return;
-
   const shouldDeleteSource = document.getElementById('checkDeleteSourceAfterMerge').checked;
-  const sourceCards = sourceDeck.cards || [];
 
-  if (sourceCards.length === 0) {
-    showToast('Bộ thẻ nguồn không có thẻ nào để gộp!', 'warning');
+  try {
+    const merged = await apiClient.mergeDecks(sourceMergeDeckId, targetDeckId, shouldDeleteSource);
+    userDecks = await apiClient.getDecks();
+    renderDecks();
     closeMergeModal();
-    return;
+    KizunaToast.success(`Đã gộp thành công vào bộ thẻ "${merged.title}"!`);
+  } catch (err) {
+    console.error(err);
+    KizunaToast.error('Lỗi khi gộp bộ thẻ!');
   }
-
-  // Chuyển thẻ sang bộ đích
-  targetDeck.cards = (targetDeck.cards || []).concat(sourceCards.map(c => ({ ...c })));
-
-  if (shouldDeleteSource) {
-    userDecks = userDecks.filter(d => d.id !== sourceMergeDeckId);
-  }
-
-  saveLocalDecks();
-  renderDecks();
-  closeMergeModal();
-  showToast(`Đã gộp ${sourceCards.length} thẻ sang bộ "${targetDeck.title}" thành công!`, 'success');
 }
 
 // =========================================================================
-// 8. MODAL CHỈNH SỬA BỘ THẺ & IMPORT EXCEL 2 CỘT
+// 6. MODAL CHỈNH SỬA BỘ THẺ & TÍCH HỢP IMPORT EXCEL 2 CỘT
 // =========================================================================
-let activeEditingDeck = null;
-let editingCards = [];
-
 function openEditDeckModal(deckId) {
-  const deck = userDecks.find(d => d.id === deckId);
+  const deck = userDecks.find(d => String(d.id) === String(deckId));
   if (!deck) return;
 
   activeEditingDeck = deck;
@@ -865,7 +577,7 @@ function renderEditingCardsList() {
   if (editingCards.length === 0) {
     container.innerHTML = `
       <div class="p-6 text-center text-slate-400 text-xs border border-dashed border-slate-300 rounded-[4px] bg-slate-50">
-        Chưa có thẻ nào trong bộ. Hãy thêm từ file Excel hoặc nhập nhanh ở trên nhé!
+        Chưa có thẻ nào trong bộ. Hãy thêm từ file Excel 2 cột hoặc nhập nhanh ở trên nhé!
       </div>
     `;
     return;
@@ -874,10 +586,10 @@ function renderEditingCardsList() {
   container.innerHTML = editingCards.map((c, idx) => `
     <div class="flex items-center justify-between gap-2 p-2 bg-white border border-slate-200 rounded-[4px] text-xs hover:border-[#0F172A] transition">
       <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-        <div class="font-bold text-slate-900 truncate font-japanese" title="${escapeHtml(c.char)}">
+        <div class="font-bold text-[#0F172A] truncate font-japanese" title="${escapeHtml(c.char)}">
           ${escapeHtml(c.char)}
         </div>
-        <div class="text-slate-600 truncate" title="${escapeHtml(c.meaning || c.hanViet || '')}">
+        <div class="text-[#334155] truncate" title="${escapeHtml(c.meaning || c.hanViet || '')}">
           ${escapeHtml(c.meaning || c.hanViet || '—')}
         </div>
       </div>
@@ -905,7 +617,7 @@ function quickAddCardToEditList() {
   const back = (backInput.value || '').trim();
 
   if (!front) {
-    showToast('Vui lòng nhập nội dung mặt trước (câu hỏi/thuật ngữ).', 'error');
+    KizunaToast.warning('Vui lòng nhập nội dung mặt trước (câu hỏi/từ vựng).');
     frontInput.focus();
     return;
   }
@@ -922,18 +634,18 @@ function quickAddCardToEditList() {
   frontInput.value = '';
   backInput.value = '';
   renderEditingCardsList();
-  showToast(`Đã thêm thẻ [${front}] vào danh sách.`, 'success');
+  KizunaToast.success(`Đã thêm thẻ [${front}] vào danh sách.`);
 }
 
 /**
- * Đọc file Excel 2 cột (Cột 1: Câu hỏi, Cột 2: Đáp án)
+ * Đọc file Excel 2 cột (Cột 1: Câu hỏi / Từ vựng, Cột 2: Đáp án / Nghĩa)
  */
 function handleExcelUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
   if (typeof XLSX === 'undefined') {
-    showToast('Thư viện Excel đang được tải, vui lòng kiểm tra kết nối mạng và thử lại!', 'error');
+    KizunaToast.error('Thư viện Excel chưa tải xong, vui lòng thử lại sau giây lát!');
     event.target.value = '';
     return;
   }
@@ -955,7 +667,7 @@ function handleExcelUpload(event) {
         const col1 = String(row[0] || '').trim();
         const col2 = String(row[1] || '').trim();
 
-        // Bỏ qua dòng tiêu đề nếu chứa chữ câu hỏi, mặt trước, question, front, thuật ngữ
+        // Bỏ qua dòng tiêu đề nếu chứa từ khóa thông dụng
         const lowerCol1 = col1.toLowerCase();
         if (index === 0 && (
           lowerCol1.includes('câu hỏi') || 
@@ -968,11 +680,11 @@ function handleExcelUpload(event) {
           return;
         }
 
-        if (col1 && col2) {
+        if (col1) {
           newCards.push({
             char: col1,
             hanViet: '',
-            meaning: col2,
+            meaning: col2 || '—',
             onyomi: '—',
             kunyomi: '—',
             jlpt: 'Excel'
@@ -981,16 +693,16 @@ function handleExcelUpload(event) {
       });
 
       if (newCards.length === 0) {
-        showToast('Không tìm thấy dữ liệu hợp lệ! Đảm bảo Cột 1 là Câu hỏi, Cột 2 là Đáp án.', 'warning');
+        KizunaToast.warning('Không tìm thấy dữ liệu hợp lệ! Đảm bảo Cột 1 là Câu hỏi, Cột 2 là Đáp án.');
         return;
       }
 
       editingCards = editingCards.concat(newCards);
       renderEditingCardsList();
-      showToast(`Đã đọc thành công ${newCards.length} thẻ từ file Excel!`, 'success');
+      KizunaToast.success(`Đã đọc thành công ${newCards.length} thẻ từ file Excel!`);
     } catch (err) {
       console.error(err);
-      showToast('Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng file!', 'error');
+      KizunaToast.error('Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng file!');
     } finally {
       event.target.value = '';
     }
@@ -1000,14 +712,14 @@ function handleExcelUpload(event) {
 
 function downloadSampleExcel() {
   if (typeof XLSX === 'undefined') {
-    showToast('Thư viện Excel chưa sẵn sàng, vui lòng thử lại sau giây lát!', 'warning');
+    KizunaToast.error('Thư viện Excel chưa sẵn sàng, vui lòng thử lại sau giây lát!');
     return;
   }
   const sampleData = [
-    ["Câu hỏi (Mặt trước)", "Đáp án (Mặt sau)"],
+    ["Câu hỏi / Từ vựng (Mặt trước)", "Đáp án / Nghĩa (Mặt sau)"],
     ["桜 (さくら)", "Hoa anh đào - Biểu tượng của mùa xuân Nhật Bản"],
     ["勉強 (べんきょう)", "Học tập, rèn luyện kiến thức"],
-    ["先生 (せんせい)", "Thầy cô giáo, giáo viên, bác sĩ"],
+    ["先生 (せんせい)", "Thầy cô giáo, giáo viên"],
     ["愛 (あい)", "Tình yêu thương, ái tình, trân quý"],
     ["ありがとうございます", "Cảm ơn bạn rất nhiều (lịch sự)"],
     ["こんにちは", "Xin chào (lời chào ban ngày)"]
@@ -1015,11 +727,11 @@ function downloadSampleExcel() {
   const ws = XLSX.utils.aoa_to_sheet(sampleData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Flashcards");
-  XLSX.writeFile(wb, "Kizuna_Flashcard_Mau.xlsx");
-  showToast('Đã tải xuống file Excel mẫu 2 cột thành công!', 'success');
+  XLSX.writeFile(wb, "mau-the-kizuna-2cot.xlsx");
+  KizunaToast.success('Đã tải xuống file Excel mẫu 2 cột!');
 }
 
-function saveDeckChanges() {
+async function saveDeckChanges() {
   if (!activeEditingDeck) return;
   const nameInput = document.getElementById('editDeckNameInput');
   const descInput = document.getElementById('editDeckDescInput');
@@ -1027,23 +739,34 @@ function saveDeckChanges() {
   const desc = (descInput.value || '').trim();
 
   if (!title) {
-    showToast('Vui lòng nhập tên bộ thẻ nhé.', 'error');
+    KizunaToast.warning('Vui lòng nhập tên bộ thẻ nhé.');
     nameInput.focus();
     return;
   }
 
-  activeEditingDeck.title = title;
-  activeEditingDeck.description = desc;
-  activeEditingDeck.cards = [...editingCards];
+  try {
+    const updated = await apiClient.updateDeck(activeEditingDeck.id, {
+      title: title,
+      description: desc,
+      cards: editingCards
+    });
 
-  saveLocalDecks();
-  renderDecks();
-  closeEditDeckModal();
-  showToast(`Đã lưu thay đổi bộ thẻ "${title}" thành công!`, 'success');
+    const idx = userDecks.findIndex(d => String(d.id) === String(activeEditingDeck.id));
+    if (idx !== -1) {
+      userDecks[idx] = updated;
+    }
+
+    renderDecks();
+    closeEditDeckModal();
+    KizunaToast.success(`Đã lưu thay đổi bộ thẻ "${title}" thành công!`);
+  } catch (err) {
+    console.error(err);
+    KizunaToast.error('Lỗi khi lưu thay đổi bộ thẻ!');
+  }
 }
 
 // =========================================================================
-// 9. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
+// 7. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
   loadDecks();
@@ -1055,42 +778,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 250));
   }
 
+  // Nút tạo bộ thẻ mới
   document.getElementById('btnOpenCreateDeck')?.addEventListener('click', openCreateDeckModal);
   document.getElementById('btnEmptyCreateDeck')?.addEventListener('click', openCreateDeckModal);
   document.getElementById('btnCloseCreateDeckModal')?.addEventListener('click', closeCreateDeckModal);
   document.getElementById('btnCancelDeck')?.addEventListener('click', closeCreateDeckModal);
   document.getElementById('btnSaveDeck')?.addEventListener('click', saveNewDeck);
 
-  document.getElementById('flashcardElement')?.addEventListener('click', flipCurrentCard);
-  document.getElementById('btnFlipCard')?.addEventListener('click', flipCurrentCard);
-  document.getElementById('btnNextCard')?.addEventListener('click', nextCard);
-  document.getElementById('btnPrevCard')?.addEventListener('click', prevCard);
-  document.getElementById('btnCloseStudyModal')?.addEventListener('click', closeStudyModal);
-
-  document.getElementById('btnOpenAddCardModal')?.addEventListener('click', openAddCardModal);
-  document.getElementById('btnCloseAddCardModal')?.addEventListener('click', closeAddCardModal);
-  document.getElementById('btnCancelAddCard')?.addEventListener('click', closeAddCardModal);
-  document.getElementById('btnSubmitAddCard')?.addEventListener('click', submitNewCard);
-
-  // Choose Study Mode Modal Events
-  document.getElementById('btnCloseChooseStudyModeModal')?.addEventListener('click', closeChooseStudyModeModal);
-  document.getElementById('btnCancelChooseStudyMode')?.addEventListener('click', closeChooseStudyModeModal);
-  document.getElementById('btnSelectModeFlashcard')?.addEventListener('click', () => {
-    const deckId = selectedStudyDeckId;
-    closeChooseStudyModeModal();
-    if (deckId) {
-      window.location.href = `/flashcards-study?id=${encodeURIComponent(deckId)}`;
-    }
-  });
-  document.getElementById('btnSelectModeKanjiGame')?.addEventListener('click', () => {
-    const deckId = selectedStudyDeckId;
-    closeChooseStudyModeModal();
-    if (deckId) {
-      window.location.href = `/kanji-game?deckId=${encodeURIComponent(deckId)}`;
-    }
-  });
-
-  // Edit Deck Modal Events
+  // Modal Chỉnh Sửa Bộ Thẻ & Excel
   document.getElementById('btnCloseEditDeckModal')?.addEventListener('click', closeEditDeckModal);
   document.getElementById('btnCancelEditDeck')?.addEventListener('click', closeEditDeckModal);
   document.getElementById('btnSaveDeckChanges')?.addEventListener('click', saveDeckChanges);
@@ -1101,12 +796,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnDownloadSampleExcel')?.addEventListener('click', downloadSampleExcel);
   document.getElementById('btnQuickAddCard')?.addEventListener('click', quickAddCardToEditList);
 
-  // Merge Modal Events
+  // Modal Gộp Bộ Thẻ
   document.getElementById('btnCloseMergeModal')?.addEventListener('click', closeMergeModal);
   document.getElementById('btnCancelMerge')?.addEventListener('click', closeMergeModal);
   document.getElementById('btnConfirmMerge')?.addEventListener('click', executeMergeDecks);
 
-  // Global click to close dropdown menus
+  // Đóng dropdown menus khi click bên ngoài
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.dropdown-container')) {
       closeAllMenus();

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * KizunaTutor - Cẩm Nang Ngữ Pháp OpenJLPT
  * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * Hỗ trợ Bộ lọc kép: Cấp độ JLPT (N5 - N1) & Khối Ứng dụng Thực tế (Đời thường, Nhà hàng, Du lịch, Công việc, Sức khỏe, Học thuật)
@@ -231,9 +231,9 @@ function updateDomainSubLevelCounts() {
     }
 
     if (lvl === currentDomainLevel) {
-      btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1';
+      btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer flex items-center gap-1';
     } else {
-      btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1';
+      btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1';
     }
   });
 }
@@ -308,7 +308,7 @@ function renderGrammarCards() {
     }).join('');
 
     html += `
-      <div class="bg-white border border-[#ECE8DE] rounded-xl p-3.5 hover:border-[#CBD5E1] transition flex flex-col justify-between group cursor-pointer"
+      <div class="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm hover:border-[#831843] hover:shadow-md transition flex flex-col justify-between group cursor-pointer"
            data-action="view-detail" data-id="${rule.id}">
         
         <div class="space-y-3">
@@ -324,14 +324,14 @@ function renderGrammarCards() {
 
           <!-- Mẫu câu & Romaji -->
           <div>
-            <h3 class="font-japanese text-xl font-bold text-[#0F2545] group-hover:text-[#006194] transition">
+            <h3 class="font-japanese text-xl font-bold text-[#0F2545] group-hover:text-[#831843] transition">
               ${rule.pattern}
             </h3>
             <p class="text-xs text-[#68737D] font-mono mt-0.5">${rule.romaji}</p>
           </div>
 
           <!-- Ý nghĩa ngắn -->
-          <p class="text-xs font-semibold text-[#3F4850] line-clamp-2 leading-relaxed bg-[#F8FAFC] p-2 rounded-lg border border-[#E2E8F0]">
+          <p class="text-xs font-semibold text-[#3F4850] line-clamp-2 leading-relaxed bg-[#F8FAFC] p-2.5 rounded-xl border border-[#E2E8F0]">
             ${rule.meaning}
           </p>
         </div>
@@ -355,24 +355,6 @@ function renderGrammarCards() {
       openGrammarDetail(card.dataset.id);
     });
   });
-}
-
-function speakJapanese(text) {
-  if (!text || typeof window === 'undefined') return;
-  try {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const cleanText = text.replace(/[（）()]/g, '').trim();
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = 'ja-JP';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    } else {
-      showToast('Trình duyệt không hỗ trợ tổng hợp giọng nói Web Speech.', 'info');
-    }
-  } catch (e) {
-    console.debug('Lỗi phát âm tiếng Nhật:', e);
-  }
 }
 
 // =========================================================================
@@ -413,18 +395,11 @@ function openGrammarDetail(ruleId, pushHistory = true) {
 
   if (rule.examples && rule.examples.length > 0) {
     examplesHtml = rule.examples.map(ex => `
-      <div class="p-3 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px] space-y-1.5 hover:bg-white transition break-words overflow-hidden">
+      <div class="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl space-y-1.5 hover:bg-white transition break-words overflow-hidden">
         <div class="flex items-center justify-between gap-2">
-          <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545] break-words whitespace-normal min-w-0 flex-1">
+          <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545] break-words whitespace-normal min-w-0">
             ${ex.ja}
           </div>
-          <button type="button" 
-                  data-action="speak-sentence" 
-                  data-text="${escapeHtml(ex.ja)}"
-                  class="p-1.5 rounded-lg border border-[#ECE8DE] bg-white hover:bg-slate-100 text-[#006194] text-xs font-semibold flex items-center gap-1 transition cursor-pointer shrink-0 shadow-2xs active:scale-95"
-                  title="Nghe phát âm chuẩn">
-            <span>🔊</span>
-          </button>
         </div>
         <div class="text-xs text-[#68737D] font-mono break-words">
           Furigana: ${ex.reading}
@@ -436,7 +411,7 @@ function openGrammarDetail(ruleId, pushHistory = true) {
     `).join('');
   } else {
     examplesHtml = `
-      <div class="p-4 bg-[#FAF8F2] border border-dashed border-[#ECE8DE] rounded-xl text-center text-xs text-[#68737D] break-words overflow-hidden">
+      <div class="p-4 bg-[#F8FAFC] border border-dashed border-[#E2E8F0] rounded-xl text-center text-xs text-[#68737D] break-words overflow-hidden">
         Đang cập nhật thêm các câu ví dụ đàm thoại thực tế cho mẫu câu này.
       </div>
     `;
@@ -451,19 +426,12 @@ function openGrammarDetail(ruleId, pushHistory = true) {
 
   container.innerHTML = `
     <!-- Header Thẻ Mẫu Câu -->
-    <div class="ls-card space-y-3 break-words overflow-hidden">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm space-y-3 break-words overflow-hidden">
       <div class="flex items-center justify-between flex-wrap gap-2">
-        <div class="flex items-center gap-2.5 min-w-0 flex-wrap">
+        <div class="flex items-center gap-3 min-w-0">
           <span class="font-japanese text-3xl md:text-4xl font-bold text-[#0F2545] break-words">
             ${rule.pattern}
           </span>
-          <button type="button" 
-                  data-action="speak-sentence" 
-                  data-text="${escapeHtml(rule.pattern)}"
-                  class="p-1.5 px-2 rounded-lg border border-[#ECE8DE] bg-[#FAF8F2] hover:bg-white text-[#006194] text-xs font-semibold flex items-center gap-1 transition cursor-pointer shrink-0 shadow-2xs active:scale-95"
-                  title="Nghe phát âm mẫu câu">
-            <span>🔊</span>
-          </button>
           <span class="text-sm text-[#68737D] font-mono italic break-words">
             (${rule.romaji})
           </span>
@@ -476,7 +444,7 @@ function openGrammarDetail(ruleId, pushHistory = true) {
         </div>
       </div>
 
-      <div class="p-3 bg-[#E0F2FE] border border-[#0F172A] rounded-[6px] break-words overflow-hidden">
+      <div class="p-3.5 bg-emerald-50/60 border border-emerald-100 rounded-xl break-words overflow-hidden">
         <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-0.5">Ý nghĩa ngữ pháp:</span>
         <p class="text-sm md:text-base font-bold text-[#0F2545] leading-relaxed break-words">
           ${rule.meaning}
@@ -485,29 +453,29 @@ function openGrammarDetail(ruleId, pushHistory = true) {
     </div>
 
     <!-- Công Thức Kết Hợp (Formation) -->
-    <div class="ls-card space-y-2 break-words overflow-hidden">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm space-y-2 break-words overflow-hidden">
       <h4 class="font-bold text-sm md:text-base text-[#0F2545] flex items-center gap-2">
-        <span class="material-symbols-outlined text-[18px] text-[#006194]">account_tree</span>
+        <span class="material-symbols-outlined text-[18px] text-[#831843]">account_tree</span>
         <span>Công thức kết hợp (Formation)</span>
       </h4>
-      <div class="p-3 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px] font-mono text-xs md:text-sm font-bold text-[#006194] break-words overflow-hidden whitespace-normal">
+      <div class="p-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl font-mono text-xs md:text-sm font-bold text-[#831843] break-words overflow-hidden whitespace-normal">
         ${rule.formation}
       </div>
     </div>
 
     <!-- Giải Thích & Lưu Ý (Notes) -->
-    <div class="ls-card space-y-2">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm space-y-2">
       <h4 class="font-bold text-sm md:text-base text-[#0F2545] flex items-center gap-2">
         <span class="material-symbols-outlined text-[18px] text-amber-600">info</span>
         <span>Giải thích chi tiết &amp; Lưu ý khi sử dụng</span>
       </h4>
-      <p class="text-xs md:text-sm text-[#3F4850] leading-relaxed p-3 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px]">
+      <p class="text-xs md:text-sm text-[#3F4850] leading-relaxed p-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
         ${rule.notes}
       </p>
     </div>
 
     <!-- Các Câu Ví Dụ Đàm Thoại Thực Tế -->
-    <div class="ls-card space-y-3">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm space-y-3">
       <h4 class="font-bold text-sm md:text-base text-[#0F2545] flex items-center gap-2">
         <span class="material-symbols-outlined text-[18px] text-[#059669]">forum</span>
         <span>Câu ví dụ đàm thoại thực tế</span>
@@ -651,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Cập nhật giao diện Segmented Control ban đầu
   modeSwitcherBtns.forEach(b => {
     if (b.dataset.mode === currentFilterMode) {
-      b.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] text-white shadow-xs';
+      b.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#831843] text-white shadow-xs';
     } else {
       b.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold text-[#68737D] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer';
     }
@@ -670,18 +638,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Cập nhật trạng thái active cho tab JLPT
   document.querySelectorAll('#jlptLevelTabs button').forEach(t => {
     if (t.dataset.level === currentLevel) {
-      t.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer';
+      t.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer';
     } else {
-      t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer';
+      t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer';
     }
   });
 
   // Cập nhật trạng thái active cho tab Domain
   document.querySelectorAll('#domainTabs button').forEach(t => {
     if (t.dataset.domain === currentDomain) {
-      t.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0';
+      t.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0';
     } else {
-      t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1.5 shrink-0';
+      t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1.5 shrink-0';
     }
   });
 
@@ -718,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Cập nhật giao diện Segmented Control
       modeSwitcherBtns.forEach(b => {
         if (b.dataset.mode === currentFilterMode) {
-          b.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] text-white shadow-xs';
+          b.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#831843] text-white shadow-xs';
         } else {
           b.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold text-[#68737D] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer';
         }
@@ -750,9 +718,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       document.querySelectorAll('#jlptLevelTabs button').forEach(t => {
         if (t.dataset.level === currentLevel) {
-          t.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer';
+          t.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer';
         } else {
-          t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer';
+          t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer';
         }
       });
 
@@ -770,9 +738,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       document.querySelectorAll('#domainTabs button').forEach(t => {
         if (t.dataset.domain === currentDomain) {
-          t.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0';
+          t.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0';
         } else {
-          t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1.5 shrink-0';
+          t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1.5 shrink-0';
         }
       });
 
@@ -790,9 +758,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       document.querySelectorAll('#domainJlptTabs button').forEach(t => {
         if (t.dataset.domainLevel === currentDomainLevel) {
-          t.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1';
+          t.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer flex items-center gap-1';
         } else {
-          t.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#FAF8F2] text-[#3F4850] hover:bg-[#F2EFE6] border border-[#ECE8DE] transition cursor-pointer flex items-center gap-1';
+          t.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1';
         }
       });
 

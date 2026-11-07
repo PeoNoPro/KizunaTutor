@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kho Từ Vựng & Hỗ Trợ Học Tập Đời Sống - KizunaTutor</title>
+  <title>Kho Từ Vựng &amp; Hỗ Trợ Học Tập Đời Sống - KizunaTutor</title>
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
 
   <!-- Fonts & Icons -->
@@ -12,80 +12,86 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
-  <!-- Single Source of Truth CSS -->
-  <link rel="stylesheet" href="/assets/css/learning-support-common.css">
+  <!-- Tailwind & Project CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/styles/variables.css">
   <link rel="stylesheet" href="/styles/global.css">
   <link rel="stylesheet" href="/styles/components.css">
   <link rel="stylesheet" href="/styles/utilities.css">
 </head>
-<body class="learning-support-body antialiased selection:bg-[#E0399A] selection:text-white">
-  <div class="flex h-screen overflow-hidden">
+<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
+  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
 
     <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
     <div id="learnerSidebarContainer"></div>
 
     <!-- 2. MAIN CONTENT AREA -->
     <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-
+      
       <!-- HEADER DÙNG CHUNG CHO HỌC VIÊN -->
       <div id="learnerHeaderContainer"></div>
 
       <!-- Scrollable Main Container -->
       <main class="flex-1 overflow-y-auto p-3 sm:p-4 w-full max-w-6xl mx-auto">
-        <div class="space-y-4">
+        <div class="space-y-3">
 
-          <!-- Thanh chọn chủ đề & Tìm kiếm nhanh -->
-          <div class="ls-card space-y-3">
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-              <!-- Danh sách Pills chủ đề thực tế -->
-              <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 flex-1" id="topicTabsContainer">
-                <!-- Sẽ render tự động bởi learning-support.js -->
+          <!-- Bảng Chọn Cấp Độ, Ô Tìm Kiếm & Dải Topic Pills -->
+          <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 sm:p-4 space-y-2.5">
+            <div class="flex items-center justify-between gap-2.5 flex-wrap pb-2 border-b border-[#E2E8F0]">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-[#0F172A] uppercase tracking-wider">Chủ đề từ vựng:</span>
+                <span id="activeTopicBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
+                  Tất cả JLPT
+                </span>
               </div>
 
-              <!-- Ô Tìm kiếm nhanh -->
-              <div class="relative w-full sm:w-72 shrink-0">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#707881] text-[18px]">search</span>
-                <input type="text" id="inputSearchVocab" 
-                       placeholder="Tìm từ vựng, kanji, nghĩa..." 
-                       class="ls-input w-full pl-9 py-1.5 text-xs">
+              <!-- Ô Tìm Kiếm Nhanh Từ Vựng -->
+              <div class="w-full sm:w-80 shrink-0">
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <span class="material-symbols-outlined text-[18px]">search</span>
+                  </span>
+                  <input type="text" id="searchVocabInput"
+                         placeholder="Tìm từ vựng, Hiragana, Hán Việt, nghĩa..."
+                         class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
+                </div>
               </div>
             </div>
 
-            <!-- Tóm tắt chủ đề hiện tại -->
-            <div class="flex items-center justify-between text-xs text-[#707881] pt-2 border-t border-[#0F172A]/15">
-              <div class="flex items-center gap-2">
-                <span class="inline-block w-2 h-2 rounded-full bg-[#059669] animate-pulse"></span>
-                <span id="activeTopicLabel" class="font-bold text-[#0F172A]">Đang nạp dữ liệu...</span>
-              </div>
-              <span id="activeTopicCountBadge" class="ls-badge ls-badge-jlpt">
-                0 từ
+            <div class="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+              <span id="topicCountSummary" class="font-medium">
+                Đang nạp danh mục...
               </span>
             </div>
+
+            <!-- Dải nút chọn chủ đề (Topic Pills) -->
+            <div id="topicPillsContainer" class="flex gap-2 overflow-x-auto pb-1 scrollbar-none items-center min-w-0">
+              <!-- Render tự động bởi learning-support.js -->
+            </div>
           </div>
 
-          <!-- Lưới Thẻ Từ Vựng Học Tập -->
-          <div id="vocabGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Sẽ render tự động bởi learning-support.js -->
+          <!-- Lưới Thẻ Từ Vựng -->
+          <div id="vocabGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch pb-2 min-w-0">
+            <!-- Nạp động qua JS -->
           </div>
 
-          <!-- Trạng Thái Rỗng (Empty State) -->
-          <div id="vocabEmptyState" class="hidden p-8 text-center ls-card border-dashed space-y-2">
-            <span class="material-symbols-outlined text-3xl text-[#707881]">search_off</span>
-            <h3 class="text-sm font-bold text-[#0F172A]">Không tìm thấy từ vựng phù hợp</h3>
-            <p class="text-xs text-[#707881]">
-              Hãy thử tìm bằng từ khóa khác hoặc chuyển sang chủ đề khác nhé.
-            </p>
+          <!-- Empty State -->
+          <div id="vocabEmptyState" class="hidden p-8 sm:p-12 text-center rounded-xl border border-dashed border-[#CBD5E1] bg-white space-y-2">
+            <div class="text-3xl">🔍</div>
+            <h3 class="text-sm sm:text-base font-bold text-[#0F172A]">Không tìm thấy từ vựng phù hợp</h3>
+            <p class="text-xs text-slate-500">Hãy thử tìm bằng từ khóa khác hoặc chuyển sang cấp độ khác nhé.</p>
           </div>
 
+          <!-- FOOTER DÙNG CHUNG -->
+          <footer class="mt-6 pt-3 pb-3 border-t border-[#0F172A]/10 text-center text-xs text-slate-500">
+            KizunaTutor &copy; 2026 &bull; Đồng hành cùng bạn trên từng từ vựng tiếng Nhật 🌸
+          </footer>
         </div>
-        <div id="learnerFooterContainer"></div>
       </main>
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script type="module" src="/js/main.js"></script>
+  <!-- Shared Layout & Component Scripts -->
   <script type="module" src="/components/learner-layout/learner-layout.js"></script>
   <script type="module" src="/pages/learning-support/learning-support.js"></script>
 </body>

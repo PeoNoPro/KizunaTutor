@@ -1,4 +1,4 @@
-﻿# KizunaTutor Design System (DESIGN.md)
+# KizunaTutor Design System (DESIGN.md)
 
 <!-- ===================================================================== -->
 <!-- [IMMUTABLE CORE GUARDRAILS] DO NOT MODIFY, OVERWRITE OR DELETE BELOW  -->
@@ -169,21 +169,56 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
 - **Nhãn, Badge, Meta:** `ui-sans-serif`, system-ui (11px, 7px).
 - **Nguyên tắc hành động (UX Rule):** Chỉ có DUY NHẤT 1 nút bấm Primary CTA trên mỗi màn hình/khối nhìn. Các nút khác dùng dạng Outlined (nền trắng viền đen) hoặc Secondary.
 
-### 4. NGUYÃŠN Táº®C Báº®T BUá»˜C KHI THÃŠM Má»šI TÃNH NÄ‚NG / MÃ€N HÃŒNH (MANDATORY INHERITANCE RULE)
-> âš ï¸ **Äáº¶C QUYá»€N ÃP Dá»¤NG RIÃŠNG CHO KHá»I "Há»ŒC Táº¬P & RÃˆN LUYá»†N":**  
-> Má»—i khi phÃ¡t triá»ƒn hoáº·c thÃªm má»›i báº¥t ká»³ mÃ n hÃ¬nh, thÃ nh pháº§n (component), popup/modal hay tÃ­nh nÄƒng nÃ o thuá»™c khá»‘i **Há»c Táº­p & RÃ¨n Luyá»‡n (Learning & Practice)** cá»§a Há»c viÃªn:
+
+
+---
+
+## 📦 QUY CHUẨN THỰC THI CHO KHỐI "HỖ TRỢ HỌC TẬP" (LEARNING SUPPORT ARCHITECTURE)
+
+### 1. BẮT BUỘC NHÚNG CSS DÙNG CHUNG (MANDATORY INCLUSION)
+Tất cả các màn hình thuộc phân hệ Học Tập & Rèn Luyện của Học viên:
+- **Ngữ pháp & AI Sensei:** `/learner/grammar` & `/learner/grammar-detail`
+- **Phòng luyện viết Shodo:** `/learner/practice-canvas` (hoặc `/shodo`)
+- **Bộ thẻ Flashcard:** `/learner/flashcards` & `/learner/deck-detail`
+- **Tra cứu Từ Điển Chữ Hán:** `/learner/dictionary` (hoặc `/kanji-dictionary`)
+- **Đấu trường gõ Kana:** `/learner/kana`
+
+**BẮT BUỘC** phải import file CSS dùng chung ở thẻ `<head>` trước các CSS riêng lẻ:
+```html
+<link rel="stylesheet" href="/assets/css/learning-support-common.css">
+```
+
+### 2. ÁNH XẠ NGUYÊN TẮC THIẾT KẾ (DESIGN RULE MAPPING)
+
+| Thành phần UI | Class chuẩn sử dụng | Mô tả & Quy tắc bắt buộc |
+| :--- | :--- | :--- |
+| **Nền trang chính** | `<body class="learning-support-body">` | Sử dụng màu `--color-bg-surface` (`#FAF8F2`) dịu mắt, ổn định thanh cuộn `scrollbar-gutter: stable`. |
+| **Khối nội dung / Thẻ bài học** | `.ls-card` / `.ls-card-interactive` | Viền `--color-border-strong` (`#DED7C5`), bo góc `radius-md` (8px), bóng đổ `shadow-sm`. |
+| **Thẻ mang phong cách Retro** | `.ls-card-retro` | Viền đen `#0F172A`, bóng đổ cứng `3px 3px 0px 0px #0F172A`. |
+| **Nút bấm chính (Action)** | `.ls-btn.ls-btn-primary` | Nền xanh Sensei `#006194`, chữ trắng rõ nét. |
+| **Nút Shodo nét bút** | `.ls-btn.ls-btn-shodo` | Nền xanh lá `#2A5A1A`, chữ trắng. |
+| **Tab / Nút đang chọn** | `.ls-btn-active` / `.ls-pill.is-active` | Nền hồng Hiragana `--color-accent-pink` (`#E0399A`), chữ trắng. |
+| **Nút phụ / Viền mảnh** | `.ls-btn.ls-btn-outline` | Nền trắng, viền `#DED7C5`, chữ `--color-text-primary` (`#0F2545`). |
+| **Thanh điều hướng / Tác vụ** | `.ls-toolbar` | Đặt ở đầu trang chi tiết hoặc thanh tìm kiếm, bọc cụm nút bấm và bộ lọc. |
+| **Bộ lọc dạng Pill** | `.ls-pill` | Bo tròn viên thuốc `radius-full`, chuyển `active` khi chọn tab JLPT. |
+| **Ô nhập liệu** | `.ls-input` | Viền `#E2D9C6`, bắt focus highlight xanh Sensei `#006194`. |
+| **Huy hiệu cấp độ** | `.ls-badge.ls-badge-jlpt` | Nền xanh nhạt `#E0F2FE`, chữ `#006194`, font monospace. |
+
+### 3. QUY TẮC ĐỘ TƯƠNG PHẢN & NỘI DUNG (WCAG AAA SAFETY)
+- **Tuyệt đối chống chữ tàng hình:** Tất cả văn bản (giải nghĩa tiếng Việt, câu ví dụ, âm Hán Việt) bắt buộc nhận token `--color-text-primary` (`#0F2545`) hoặc `--color-text-secondary` (`#3F4850`). Không bao giờ áp dụng màu chữ trắng (`#FFFFFF`) lên các vùng thẻ có nền sáng.
+- **Xóa bỏ thành phần dư thừa:** Tuyệt đối không để dải breadcrumb lặp lại (`school Không gian học viên...`) hoặc banner từ điển tĩnh xuất hiện làm choán diện tích trên các trang học tập.
+- **Luồng dữ liệu (Zero-Reload):** Toàn bộ thao tác chuyển tab bài học, lật thẻ Flashcard, nộp nét vẽ Shodo phải truyền ngầm bằng gói tin JSON qua `apiClient.js` và cập nhật DOM động, không reload trang.
+
+
+### 4. NGUYÊN TẮC BẮT BUỘC KHI THÊM MỚI TÍNH NĂNG / MÀN HÌNH (MANDATORY INHERITANCE RULE)
+> ⚠️ **ĐẶC QUYỀN ÁP DỤNG RIÊNG CHO KHỐI "HỌC TẬP & RÈN LUYỆN":**  
+> Mỗi khi phát triển hoặc thêm mới bất kỳ màn hình, thành phần (component), popup/modal hay tính năng nào thuộc khối **Học Tập & Rèn Luyện (Learning & Practice)** của Học viên:
 > 
-> 1. **Báº¯t buá»™c Ä‘á»c láº¡i vÃ  tuÃ¢n thá»§ tuyá»‡t Ä‘á»‘i cÃ¡c quy táº¯c á»Ÿ trÃªn:**
->    - NhÃºng file CSS dÃ¹ng chung: `<link rel="stylesheet" href="/assets/css/learning-support-common.css">` á»Ÿ Ä‘áº§u tháº» `<head>`.
->    - Sá»­ dá»¥ng Ä‘Ãºng há»‡ thá»‘ng Design Tokens, tháº» bÃ i há»c `.ls-card`, cá»¥m nÃºt báº¥m `.ls-btn` (`.ls-btn-primary`, `.ls-btn-outline`, `.ls-btn-shodo`, `.ls-btn-active`), thanh tÃ¡c vá»¥ `.ls-toolbar`, bá»™ lá»c `.ls-pill`, Ã´ nháº­p `.ls-input` vÃ  huy hiá»‡u `.ls-badge`.
->    - Tuyá»‡t Ä‘á»‘i tuÃ¢n thá»§ nguyÃªn táº¯c WCAG AAA chá»‘ng chá»¯ tÃ ng hÃ¬nh (`--color-text-primary: #0F2545`, `--color-text-secondary: #3F4850`), khÃ´ng bao giá» Ä‘á»ƒ chá»¯ tráº¯ng trÃªn ná»n sÃ¡ng.
->    - ToÃ n bá»™ luá»“ng dá»¯ liá»‡u pháº£i lÃ  Zero-Reload: truyá»n ngáº§m JSON qua `apiClient.js` vÃ  cáº­p nháº­t DOM Ä‘á»™ng, kÃ¨m thÃ´ng bÃ¡o ná»•i Toast/Dialog.
+> 1. **Bắt buộc đọc lại và tuân thủ tuyệt đối các quy tắc ở trên:**
+>    - Nhúng file CSS dùng chung: `<link rel="stylesheet" href="/assets/css/learning-support-common.css">` ở đầu thẻ `<head>`.
+>    - Sử dụng đúng hệ thống Design Tokens, thẻ bài học `.ls-card`, cụm nút bấm `.ls-btn` (`.ls-btn-primary`, `.ls-btn-outline`, `.ls-btn-shodo`, `.ls-btn-active`), thanh tác vụ `.ls-toolbar`, bộ lọc `.ls-pill`, ô nhập `.ls-input` và huy hiệu `.ls-badge`.
+>    - Tuyệt đối tuân thủ nguyên tắc WCAG AAA chống chữ tàng hình (`--color-text-primary: #0F2545`, `--color-text-secondary: #3F4850`), không bao giờ để chữ trắng trên nền sáng.
+>    - Toàn bộ luồng dữ liệu phải là Zero-Reload: truyền ngầm JSON qua `apiClient.js` và cập nhật DOM động, kèm thông báo nổi Toast/Dialog.
 > 
-> 2. **Giá»›i háº¡n pháº¡m vi nghiÃªm ngáº·t:**  
->    Quy Ä‘á»‹nh nÃ y **chá»‰ Ã¡p dá»¥ng duy nháº¥t cho cÃ¡c pháº§n trong khá»‘i Há»c Táº­p & RÃ¨n Luyá»‡n** (bao gá»“m: Kana Quiz, Bá»™ tháº» Flashcards, Chi tiáº¿t Flashcard, Luyá»‡n láº­t tháº», PhÃ²ng luyá»‡n viáº¿t Shodo, Tra cá»©u Tá»« Ä‘iá»ƒn chá»¯ HÃ¡n, Tra cá»©u viáº¿t tay AI, Game MÆ°a chá»¯ HÃ¡n, Ngá»¯ phÃ¡p & AI Sensei, Trá»£ lÃ½ há»c táº­p vÃ  cÃ¡c module há»c táº­p má»›i phÃ¡t triá»ƒn thÃªm sau nÃ y). Tuyá»‡t Ä‘á»‘i **khÃ´ng Ã¡p dá»¥ng** sang cÃ¡c phÃ¢n há»‡ ngoÃ i khá»‘i nÃ y (nhÆ° Admin, Manager, Gia sÆ°, CSKH hay cÃ¡c trang Portal cÃ´ng khai).
-## Äá»’NG Bá»˜ TOÃ€N DIá»†N KHá»I Há»ŒC Táº¬P & RÃˆN LUYá»†N
-- **Chuáº©n tham chiáº¿u gá»‘c (Benchmark):** Giao diá»‡n trang Äáº¥u TrÆ°á»ng GÃµ Kana (/kana).
-- **Typography báº¯t buá»™c:** Chá»‰ sá»­ dá»¥ng 2 font: ui-sans-serif (vÄƒn báº£n) vÃ  ui-monospace (input, code, Furigana, badges). Thang Ä‘o: 10px / 12px / 14px / 16px / 18px.
-- **Bo gÃ³c chuáº©n:** Cá»‘ Ä‘á»‹nh adius-sm: 6px cho card/button/input vÃ  adius-full: 9999px cho filter pills.
-- **MÃ u ná»n bao phá»§:** --color-bg-pink-tint: #FFE5EC káº¿t há»£p tháº» tráº¯ng #FFFFFF vÃ  viá»n #0F172A.
-- **NghiÃªm cáº¥m:** KhÃ´ng tá»± viáº¿t class CSS riÃªng láº» trÃªn tá»«ng trang lÃ m phÃ¡ vá»¡ tÃ­nh Ä‘á»“ng nháº¥t.
+> 2. **Giới hạn phạm vi nghiêm ngặt:**  
+>    Quy định này **chỉ áp dụng duy nhất cho các phần trong khối Học Tập & Rèn Luyện** (bao gồm: Kana Quiz, Bộ thẻ Flashcards, Chi tiết Flashcard, Luyện lật thẻ, Phòng luyện viết Shodo, Tra cứu Từ điển chữ Hán, Tra cứu viết tay AI, Game Mưa chữ Hán, Ngữ pháp & AI Sensei, Trợ lý học tập và các module học tập mới phát triển thêm sau này). Tuyệt đối **không áp dụng** sang các phân hệ ngoài khối này (như Admin, Manager, Gia sư, CSKH hay các trang Portal công khai).

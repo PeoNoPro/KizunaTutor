@@ -1,4 +1,4 @@
-﻿# KizunaTutor AI System Prompt & Operational Directives (SYSTEM_PROMPT.md)
+# KizunaTutor AI System Prompt & Operational Directives (SYSTEM_PROMPT.md)
 
 <!-- ===================================================================== -->
 <!-- [IMMUTABLE CORE GUARDRAILS] DO NOT MODIFY, OVERWRITE OR DELETE BELOW  -->
@@ -37,7 +37,6 @@
 5. **Kỷ luật phạm vi yêu cầu (Strict Scope Discipline):**
    - Chỉ thực hiện chính xác những gì người dùng yêu cầu, không tự ý sửa các phần khác khi chưa được phép.
    - Khi nhận yêu cầu xóa một khối giao diện hoặc nút bấm, chỉ xóa tại đúng vị trí đó; tuyệt đối không tự ý di dời sang container khác hoặc tự ý thêm bớt các thành phần ngoài phạm vi chỉ định.
-
-6. **Quy táº¯c báº¯t buá»™c riÃªng cho khá»‘i "Há»c Táº­p & RÃ¨n Luyá»‡n" (Learning & Practice Scope):**
-   - Khi thÃªm má»›i hoáº·c chá»‰nh sá»­a báº¥t ká»³ mÃ n hÃ¬nh, thÃ nh pháº§n, modal hay tÃ­nh nÄƒng nÃ o thuá»™c khá»‘i **Há»c Táº­p & RÃ¨n Luyá»‡n** (Kana Quiz, Flashcards, Chi tiáº¿t Flashcard, Shodo, Tá»« Ä‘iá»ƒn chá»¯ HÃ¡n, Tra cá»©u viáº¿t tay AI, Game MÆ°a chá»¯ HÃ¡n, Ngá»¯ phÃ¡p & AI Sensei, Trá»£ lÃ½ há»c táº­p), Báº®T BUá»˜C pháº£i Ä‘á»c láº¡i vÃ  Ã¡p dá»¥ng Ä‘Ãºng toÃ n bá»™ cÃ¡c quy chuáº©n táº¡i má»¥c `QUY CHUáº¨N THá»°C THI CHO KHá»I Há»– TRá»¢ Há»ŒC Táº¬P` trong `docs/guidelines/DESIGN.md`: nhÃºng file CSS dÃ¹ng chung `/assets/css/learning-support-common.css`, dÃ¹ng Ä‘Ãºng token vÃ  class chuáº©n (`.ls-card`, `.ls-btn`, `.ls-toolbar`, `.ls-pill`, `.ls-input`, `.ls-badge`), tuyá»‡t Ä‘á»‘i chá»‘ng chá»¯ tÃ ng hÃ¬nh, khÃ´ng breadcrumb dÆ° thá»«a, luá»“ng dá»¯ liá»‡u Zero-Reload báº±ng JSON qua `apiClient.js`.
-   - **Pháº¡m vi Ã¡p dá»¥ng:** Quy Ä‘á»‹nh nÃ y CHá»ˆ Ã¡p dá»¥ng duy nháº¥t cho cÃ¡c pháº§n trong khá»‘i Há»c Táº­p & RÃ¨n Luyá»‡n cá»§a Há»c viÃªn, khÃ´ng Ã¡p dá»¥ng cho cÃ¡c phÃ¢n há»‡ khÃ¡c (Admin, Manager, Gia sÆ°, CSKH hay trang Portal cÃ´ng khai).
+6. **Quy tắc bắt buộc riêng cho khối "Học Tập & Rèn Luyện" (Learning & Practice Scope):**
+   - Khi thêm mới hoặc chỉnh sửa bất kỳ màn hình, thành phần, modal hay tính năng nào thuộc khối **Học Tập & Rèn Luyện** (Kana Quiz, Flashcards, Chi tiết Flashcard, Shodo, Từ điển chữ Hán, Tra cứu viết tay AI, Game Mưa chữ Hán, Ngữ pháp & AI Sensei, Trợ lý học tập), BẮT BUỘC phải đọc lại và áp dụng đúng toàn bộ các quy chuẩn tại mục `QUY CHUẨN THỰC THI CHO KHỐI HỖ TRỢ HỌC TẬP` trong `docs/guidelines/DESIGN.md`: nhúng file CSS dùng chung `/assets/css/learning-support-common.css`, dùng đúng token và class chuẩn (`.ls-card`, `.ls-btn`, `.ls-toolbar`, `.ls-pill`, `.ls-input`, `.ls-badge`), tuyệt đối chống chữ tàng hình, không breadcrumb dư thừa, luồng dữ liệu Zero-Reload bằng JSON qua `apiClient.js`.
+   - **Phạm vi áp dụng:** Quy định này CHỈ áp dụng duy nhất cho các phần trong khối Học Tập & Rèn Luyện của Học viên, không áp dụng cho các phân hệ khác (Admin, Manager, Gia sư, CSKH hay trang Portal công khai).

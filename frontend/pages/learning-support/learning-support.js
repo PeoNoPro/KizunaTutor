@@ -1,9 +1,8 @@
-﻿/**
+/**
  * KizunaTutor - Trang Học Từ Vựng Theo Chủ Đề (Learning Support)
  * Chuẩn hóa layout: Topic Pills cuộn ngang, Grid 3 cột auto-fill, không giật màn hình
  */
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
-import { showToast } from '/js/main.js';
 
 let currentTopics = [
   { id: 'JLPT_N5', code: 'JLPT_N5', titleVn: 'JLPT N5 Căn bản', icon: '🌱', count: '650' },
@@ -62,10 +61,10 @@ function renderTopicPills() {
     return `
       <button type="button"
               data-topic="${topicKey}"
-              class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition flex items-center gap-1.5 cursor-pointer ${
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition flex items-center gap-1.5 cursor-pointer ${
                 isActive
                   ? 'bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]'
-                  : 'bg-white border border-[#CBD5E1] text-[#1E293B] hover:bg-white hover:border-[#CBD5E1]'
+                  : 'bg-white border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-50'
               }">
         <span>${t.icon || '📚'}</span>
         <span>${t.titleVn}</span>
@@ -119,70 +118,6 @@ async function loadVocabularies() {
   renderVocabGrid(vocabList);
 }
 
-function speakJapanese(text) {
-  if (!text || typeof window === 'undefined') return;
-  try {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ja-JP';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    } else {
-      showToast('Trình duyệt không hỗ trợ tổng hợp giọng nói Web Speech.', 'info');
-    }
-  } catch (e) {
-    console.debug('Lỗi phát âm:', e);
-  }
-}
-
-function saveVocabToFlashcardDeck(v) {
-  if (!v) return;
-  const word = v.word || v.kanji || '';
-  const meaning = v.meaning || v.meaningVn || '';
-  const reading = v.furigana || v.reading || '';
-  const hanViet = v.hanViet || '';
-
-  try {
-    const raw = localStorage.getItem('kizuna_flashcard_decks');
-    let decks = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(decks)) decks = [];
-
-    const defaultTitle = 'Từ Vựng Chủ Đề';
-    let deck = decks.find(d => d.title === defaultTitle);
-    if (!deck) {
-      deck = {
-        id: 'deck_vocab_' + Date.now(),
-        title: defaultTitle,
-        description: 'Bộ thẻ từ vựng lưu từ góc học tập chủ đề',
-        cards: [],
-        color: 'blue'
-      };
-      decks.push(deck);
-    }
-
-    deck.cards = deck.cards || [];
-    const exists = deck.cards.some(c => (c.char || c.kanjiChar) === word);
-    if (!exists) {
-      deck.cards.push({
-        char: word,
-        kanjiChar: word,
-        hanViet: hanViet,
-        meaning: meaning + (reading ? ` (${reading})` : ''),
-        onyomi: reading || '—',
-        kunyomi: '—',
-        jlpt: v.level || 'JLPT'
-      });
-      localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
-      showToast(`Đã lưu "${word}" vào bộ thẻ "${defaultTitle}"!`, 'success');
-    } else {
-      showToast(`Từ "${word}" đã có trong bộ thẻ "${defaultTitle}".`, 'info');
-    }
-  } catch (err) {
-    showToast('Lỗi lưu thẻ: ' + err.message, 'error');
-  }
-}
-
 function renderVocabGrid(items) {
   const grid = document.getElementById('vocabGrid');
   const emptyState = document.getElementById('vocabEmptyState');
@@ -196,13 +131,13 @@ function renderVocabGrid(items) {
 
   emptyState?.classList.add('hidden');
 
-  grid.innerHTML = items.map((v, idx) => {
+  grid.innerHTML = items.map(v => {
     return `
-      <div class="bg-white border border-[#ECE8DE] rounded-xl p-3.5 hover:border-[#CBD5E1] transition-all flex flex-col justify-between h-full min-w-0 group">
+      <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 hover:border-[#CBD5E1] transition-all flex flex-col justify-between h-full min-w-0 group">
         <div class="space-y-2.5 flex-1 min-w-0">
           <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#E2E8F0]">
             <div class="min-w-0">
-              <div class="text-xl md:text-2xl font-bold font-japanese text-[#0F2545] leading-snug truncate">
+              <div class="text-xl md:text-2xl font-bold font-japanese text-[#0F172A] leading-snug truncate">
                 ${v.word || v.kanji}
               </div>
               <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#68737D] font-mono truncate">
@@ -215,13 +150,13 @@ function renderVocabGrid(items) {
             </span>
           </div>
 
-          <div class="text-xs md:text-sm font-semibold text-[#0F2545] leading-relaxed break-words">
+          <div class="text-xs md:text-sm font-semibold text-[#0F172A] leading-relaxed break-words">
             ${v.meaning || v.meaningVn || 'Đang cập nhật'}
           </div>
 
           ${v.example ? `
-            <div class="p-2.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl text-xs space-y-1 break-words">
-              <div class="font-japanese font-medium text-[#0F2545]">${v.example}</div>
+            <div class="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs space-y-1 break-words">
+              <div class="font-japanese font-medium text-[#0F172A]">${v.example}</div>
               <div class="text-[#68737D] italic">${v.exampleMeaning || ''}</div>
             </div>
           ` : ''}
@@ -230,13 +165,13 @@ function renderVocabGrid(items) {
         <!-- Cụm nút hành động bám sát đáy (mt-auto) -->
         <div class="pt-3 mt-auto border-t border-[#E2E8F0] flex items-center justify-between gap-2">
           <a href="/shodo?char=${encodeURIComponent(v.kanji || v.word || '')}"
-             class="flex-1 py-1.5 px-2 rounded-xl bg-[#FAF8F2] hover:bg-[#FFE5EC] text-[#0F2545] hover:text-[#831843] border border-[#ECE8DE] hover:border-[#FBCFE8] text-xs font-bold flex items-center justify-center gap-1 transition no-underline text-center truncate">
+             class="flex-1 py-1.5 px-2 rounded-lg bg-white hover:bg-[#FFE5EC] text-[#0F172A] hover:text-[#831843] border border-[#E2E8F0] hover:border-[#FBCFE8] text-xs font-bold flex items-center justify-center gap-1 transition no-underline text-center truncate">
             <span>🖌️</span>
             <span>Luyện viết</span>
           </a>
           <button type="button"
                   onclick="navigator.clipboard?.writeText('${v.word || v.kanji}');"
-                  class="p-1.5 rounded-xl border border-[#ECE8DE] bg-white hover:bg-slate-50 text-[#68737D] hover:text-[#0F2545] transition cursor-pointer"
+                  class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#68737D] hover:text-[#0F172A] transition cursor-pointer"
                   title="Sao chép từ vựng">
             <span class="material-symbols-outlined text-[16px]">content_copy</span>
           </button>

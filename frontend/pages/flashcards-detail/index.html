@@ -23,8 +23,8 @@
   <link rel="stylesheet" href="/styles/components.css">
   <link rel="stylesheet" href="/styles/utilities.css">
 </head>
-<body class="learning-support-body antialiased selection:bg-[#E0399A] selection:text-white">
-  <div class="flex h-screen overflow-hidden">
+<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
+  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
 
     <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
     <div id="learnerSidebarContainer"></div>
@@ -36,72 +36,70 @@
 
       <!-- Main Shell cuộn mượt mà -->
       <main class="flex-1 overflow-y-auto p-3 sm:p-4 w-full max-w-6xl mx-auto">
-        <div class="space-y-4">
+        <div class="space-y-3">
           
           <!-- NỘI DUNG CHI TIẾT (BỐ CỤC 2 CỘT RESPONSIVE) -->
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
             
             <!-- Cột Trái (Thông tin tổng quan & Metadata - 4 cột) -->
-            <div class="lg:col-span-4 space-y-4">
-              <div class="ls-card space-y-3">
-                <div class="flex items-center justify-between border-b border-[#0F172A]/15 pb-2">
-                  <h3 class="text-xs font-bold text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
-                    <span>📋</span>
-                    <span>Thông Tin Tổng Quan</span>
-                  </h3>
-                  <span id="badgeCardCount" class="ls-badge ls-badge-jlpt">0 thẻ</span>
-                </div>
+            <div class="lg:col-span-4 space-y-3">
+              <div class="p-4 bg-white border border-[#E2E8F0] rounded-xl space-y-3">
+                <h3 class="text-xs font-bold text-[#0F172A] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 flex items-center justify-between">
+                  <span>📋 Thông Tin Tổng Quan</span>
+                  <span id="badgeCardCount" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">0 thẻ</span>
+                </h3>
 
-                <div id="overviewDataContainer" class="space-y-2 text-xs">
+                <div id="overviewDataContainer" class="space-y-2.5 text-xs text-slate-700">
                   <div>
-                    <label class="block font-bold text-[#0F172A] mb-0.5">Tên bộ thẻ:</label>
+                    <label class="block font-semibold text-[#1E293B] mb-0.5">Tên bộ thẻ:</label>
                     <div id="overviewTitle" class="font-bold text-sm text-[#0F172A]">Đang tải...</div>
                   </div>
 
                   <div>
-                    <label class="block font-bold text-[#0F172A] mb-0.5">Mô tả / Ghi chú:</label>
-                    <p id="overviewDesc" class="text-[#3F4850] leading-relaxed italic bg-[#FEF3C7] p-2.5 rounded-[6px] border border-[#0F172A]">
+                    <label class="block font-semibold text-[#1E293B] mb-0.5">Mô tả / Ghi chú:</label>
+                    <p id="overviewDesc" class="text-[#334155] leading-relaxed italic bg-[#F8FAFC] p-2.5 rounded-lg border border-[#E2E8F0]">
                       Chưa có ghi chú mô tả.
                     </p>
                   </div>
                 </div>
 
                 <!-- 3 CHẾ ĐỘ RÈN LUYỆN: LẬT THẺ 3D, GHÉP THẺ MATCH, MƯA CHỮ HÁN -->
-                <div class="pt-2.5 border-t border-[#0F172A]/15 space-y-2">
-                  <label class="block text-[11px] font-bold text-[#707881] uppercase tracking-wider">
+                <div class="pt-2.5 border-t border-[#E2E8F0] space-y-2">
+                  <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     🎯 Chế độ rèn luyện bộ thẻ
                   </label>
 
                   <button type="button" id="btnStartStudyFromDetail"
-                          class="ls-btn ls-btn-primary w-full py-2">
+                          class="w-full py-2 px-3 bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition shadow-xs">
                     <span>🎮</span>
                     <span>Lật Thẻ 3D</span>
                   </button>
 
                   <button type="button" id="btnPlayMatchGame"
-                          class="ls-btn ls-btn-default w-full py-2 text-[#4059AA]!">
+                          class="w-full py-2 px-3 bg-[#4255FF] hover:bg-[#3344DD] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition shadow-xs">
                     <span>🧩</span>
                     <span>Trò Chơi Ghép Thẻ (Match)</span>
                   </button>
 
                   <button type="button" id="btnPlayRainGame"
-                          class="ls-btn ls-btn-default w-full py-2 text-[#2A5A1A]!">
+                          class="w-full py-2 px-3 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition shadow-xs">
                     <span>🌧️</span>
                     <span>Game Mưa Chữ Hán (Typing Rain)</span>
                   </button>
                 </div>
 
                 <!-- Cụm tác vụ nhanh thêm thẻ & nạp Excel -->
-                <div class="pt-2.5 border-t border-[#0F172A]/15 space-y-2">
+                <div class="pt-2.5 border-t border-[#E2E8F0] space-y-2">
+
                   <button type="button" id="btnOpenAddCardModal"
-                          class="ls-btn ls-btn-default w-full py-2">
+                          class="w-full py-2 px-3 bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition">
                     <span class="material-symbols-outlined text-[16px]">add_card</span>
                     <span>Thêm thẻ học mới</span>
                   </button>
 
                   <input type="file" id="inputDetailExcel" accept=".xlsx, .xls" class="hidden">
                   <button type="button" id="btnTriggerDetailExcel"
-                          class="ls-btn ls-btn-default w-full py-2 bg-[#FEF3C7]!">
+                          class="w-full py-2 px-3 bg-amber-400 hover:bg-amber-500 text-black text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition">
                     <span>📥</span>
                     <span>Nạp thẻ từ Excel 2 cột</span>
                   </button>
@@ -110,20 +108,20 @@
             </div>
 
             <!-- Cột Phải (Danh sách thẻ con - 8 cột) -->
-            <div class="lg:col-span-8 space-y-4">
-              <div class="ls-card space-y-3">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#0F172A]/15 pb-2.5">
-                  <h3 class="text-xs font-bold text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
-                    <span>📝</span>
-                    <span>Danh Sách Thẻ Học Trong Bộ</span>
-                    <span id="filteredCountBadge" class="text-[#707881] font-normal lowercase">(0 thẻ)</span>
+            <div class="lg:col-span-8 space-y-3">
+              <div class="p-4 bg-white border border-[#E2E8F0] rounded-xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 border-b border-[#E2E8F0] pb-2.5">
+                  <h3 class="text-xs font-bold text-[#0F172A] uppercase tracking-wider flex items-center gap-2">
+                    <span>📝 Danh Sách Thẻ Học Trong Bộ</span>
+                    <span id="filteredCountBadge" class="text-slate-500 font-normal lowercase">(0 thẻ)</span>
                   </h3>
                   <div class="flex items-center gap-2">
+                    <!-- Ô tìm kiếm nội bộ -->
                     <div class="relative w-full sm:w-60">
-                      <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[#707881] text-[16px]">search</span>
+                      <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">search</span>
                       <input type="text" id="internalSearchInput" 
                              placeholder="Lọc từ vựng, câu hỏi, đáp án..." 
-                             class="ls-input w-full pl-8 py-1.5 text-xs">
+                             class="w-full pl-8 pr-3 py-1.5 text-xs border border-[#CBD5E1] rounded-lg bg-white focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] text-[#0F172A]">
                     </div>
                   </div>
                 </div>
@@ -134,14 +132,15 @@
                 </div>
 
                 <!-- Empty State khi không có thẻ -->
-                <div id="emptyCardsState" class="hidden p-8 text-center ls-card border-dashed space-y-2">
+                <div id="emptyCardsState" class="hidden p-8 text-center rounded-xl border border-dashed border-[#CBD5E1] bg-slate-50/50 space-y-2.5">
                   <div class="text-3xl">📭</div>
                   <h4 class="font-bold text-sm text-[#0F172A]">Bộ thẻ này hiện chưa có thẻ nào</h4>
-                  <p class="text-xs text-[#707881] max-w-sm mx-auto">
+                  <p class="text-xs text-[#334155] max-w-sm mx-auto">
                     Bạn có thể nạp nhanh hàng chục từ vựng từ file Excel 2 cột hoặc bấm nút "Thêm thẻ học mới" để bắt đầu nhé!
                   </p>
-                  <button type="button" id="btnEmptyAddCard" class="ls-btn ls-btn-primary">
-                    + Thêm Thẻ Đầu Tiên
+                  <button type="button" id="btnEmptyAddCard" 
+                          class="py-1.5 px-4 bg-[#1E293B] text-white text-xs font-semibold rounded-lg hover:bg-[#334155] cursor-pointer transition">
+                    + Thêm thẻ đầu tiên
                   </button>
                 </div>
               </div>
@@ -149,69 +148,72 @@
 
           </div>
 
-          <div id="learnerFooterContainer"></div>
+          <!-- FOOTER DÙNG CHUNG -->
+          <footer class="mt-6 pt-3 pb-3 border-t border-[#0F172A]/10 text-center text-xs text-slate-500">
+            KizunaTutor &copy; 2026 &bull; Đồng hành cùng bạn trên từng thẻ ghi nhớ 🌸
+          </footer>
         </div>
       </main>
     </div>
   </div>
 
   <!-- ==================== MODAL THÊM THẺ MỚI ==================== -->
-  <div id="modalAddCard" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="ls-card max-w-md w-full p-5 space-y-3.5">
-      <div class="flex items-center justify-between border-b border-[#0F172A]/15 pb-2">
+  <div id="modalAddCard" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl shadow-xl max-w-md w-full p-5 space-y-3.5">
+      <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
         <h4 class="font-bold text-sm text-[#0F172A] flex items-center gap-1.5">
           <span>➕</span>
           <span>Thêm Thẻ Học Mới</span>
         </h4>
-        <button type="button" id="btnCloseAddCardModal" class="text-[#707881] hover:text-[#0F172A] text-sm font-bold cursor-pointer">✕</button>
+        <button type="button" id="btnCloseAddCardModal" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer">✕</button>
       </div>
 
       <!-- Khu vực Nạp Dữ Liệu từ File Excel 2 Cột -->
-      <div class="p-3 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px] space-y-1.5">
+      <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-lg space-y-1.5">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-[#0F172A] flex items-center gap-1">
+          <span class="text-xs font-bold text-amber-900 flex items-center gap-1">
             <span>📥</span> Nạp từ file Excel (.xlsx, .xls)
           </span>
           <button type="button" id="btnDownloadSample"
-                  class="ls-btn ls-btn-default py-0.5 px-2 text-[11px]"
+                  class="text-[11px] py-0.5 px-2 bg-white hover:bg-amber-100 text-amber-900 font-semibold border border-amber-300 rounded cursor-pointer"
                   title="Tải file Excel mẫu chuẩn 2 cột">
             📄 Mẫu Excel
           </button>
         </div>
-        <p class="text-[11px] text-[#3F4850] leading-normal">
+        <p class="text-[11px] text-amber-800 leading-normal">
           Chuẩn 2 cột: <strong>Cột 1 (A) = Mặt trước</strong> | <strong>Cột 2 (B) = Mặt sau</strong>
         </p>
         <button type="button" id="btnQuickExcelImport"
-                class="ls-btn ls-btn-primary w-full py-1.5">
+                class="w-full py-1.5 px-3 bg-amber-400 hover:bg-amber-500 text-black text-xs font-semibold rounded-lg cursor-pointer flex items-center justify-center gap-1.5">
           <span>📂</span>
-          <span>Chọn File Excel Để Nạp Thẻ</span>
+          <span>Chọn File Excel để nạp thẻ</span>
         </button>
       </div>
 
-      <!-- Thêm thủ công -->
+      <!-- Hoặc thêm thủ công -->
       <div class="space-y-2.5 pt-1">
         <div>
-          <label for="inputNewChar" class="block text-xs font-bold text-[#0F172A] mb-1">
+          <label for="inputNewChar" class="block text-xs font-semibold text-[#1E293B] mb-1">
             Mặt trước: Câu hỏi / Từ vựng *
           </label>
           <input type="text" id="inputNewChar" placeholder="Ví dụ: 桜 (さくら)" 
-                 class="ls-input w-full font-serif text-[#0F172A]">
+                 class="w-full px-3 py-1.5 text-xs border border-[#CBD5E1] rounded-lg bg-white focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] font-japanese text-[#0F172A]">
         </div>
 
         <div>
-          <label for="inputNewMeaning" class="block text-xs font-bold text-[#0F172A] mb-1">
+          <label for="inputNewMeaning" class="block text-xs font-semibold text-[#1E293B] mb-1">
             Mặt sau: Đáp án / Nghĩa *
           </label>
           <textarea id="inputNewMeaning" rows="2" placeholder="Ví dụ: Hoa anh đào - Biểu tượng mùa xuân" 
-                    class="ls-input w-full"></textarea>
+                    class="w-full px-3 py-1.5 text-xs border border-[#CBD5E1] rounded-lg bg-white focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] text-[#334155]"></textarea>
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#0F172A]/15">
-        <button type="button" id="btnCancelAddCard" class="ls-btn ls-btn-default">
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+        <button type="button" id="btnCancelAddCard" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-100 cursor-pointer">
           Hủy
         </button>
-        <button type="button" id="btnSubmitAddCard" class="ls-btn ls-btn-primary">
+        <button type="button" id="btnSubmitAddCard" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white cursor-pointer transition">
           Thêm Thẻ
         </button>
       </div>
@@ -219,37 +221,37 @@
   </div>
 
   <!-- ==================== MODAL SỬA THẺ HỌC LẺ ==================== -->
-  <div id="modalEditCard" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="ls-card max-w-md w-full p-5 space-y-3">
-      <div class="flex items-center justify-between border-b border-[#0F172A]/15 pb-2">
+  <div id="modalEditCard" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl shadow-xl max-w-md w-full p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
         <h4 class="font-bold text-sm text-[#0F172A] flex items-center gap-1.5">
           <span>✏️</span>
           <span>Chỉnh Sửa Thẻ Học</span>
         </h4>
-        <button type="button" id="btnCloseEditCardModal" class="text-[#707881] hover:text-[#0F172A] text-sm font-bold cursor-pointer">✕</button>
+        <button type="button" id="btnCloseEditCardModal" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer">✕</button>
       </div>
 
       <div class="space-y-2.5">
         <div>
-          <label for="inputEditChar" class="block text-xs font-bold text-[#0F172A] mb-1">
+          <label for="inputEditChar" class="block text-xs font-semibold text-[#1E293B] mb-1">
             Mặt trước: Câu hỏi / Từ vựng *
           </label>
-          <input type="text" id="inputEditChar" class="ls-input w-full font-serif text-[#0F172A]">
+          <input type="text" id="inputEditChar" class="w-full px-3 py-1.5 text-xs border border-[#CBD5E1] rounded-lg bg-white focus:outline-none focus:border-[#831843] font-japanese text-[#0F172A]">
         </div>
 
         <div>
-          <label for="inputEditMeaning" class="block text-xs font-bold text-[#0F172A] mb-1">
+          <label for="inputEditMeaning" class="block text-xs font-semibold text-[#1E293B] mb-1">
             Mặt sau: Đáp án / Nghĩa
           </label>
-          <textarea id="inputEditMeaning" rows="2" class="ls-input w-full"></textarea>
+          <textarea id="inputEditMeaning" rows="2" class="w-full px-3 py-1.5 text-xs border border-[#CBD5E1] rounded-lg bg-white focus:outline-none focus:border-[#831843] text-[#334155]"></textarea>
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#0F172A]/15">
-        <button type="button" id="btnCancelEditCard" class="ls-btn ls-btn-default">
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+        <button type="button" id="btnCancelEditCard" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-100 cursor-pointer">
           Hủy
         </button>
-        <button type="button" id="btnSaveEditCard" class="ls-btn ls-btn-primary">
+        <button type="button" id="btnSaveEditCard" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white cursor-pointer transition">
           Lưu Thay Đổi
         </button>
       </div>
@@ -257,37 +259,37 @@
   </div>
 
   <!-- ==================== MODAL SỬA THÔNG TIN BỘ THẺ ==================== -->
-  <div id="modalEditDeckInfo" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="ls-card max-w-md w-full p-5 space-y-3">
-      <div class="flex items-center justify-between border-b border-[#0F172A]/15 pb-2">
+  <div id="modalEditDeckInfo" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl shadow-xl max-w-md w-full p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
         <h4 class="font-bold text-sm text-[#0F172A] flex items-center gap-1.5">
           <span>✏️</span>
           <span>Chỉnh Sửa Bộ Thẻ</span>
         </h4>
-        <button type="button" id="btnCloseEditDeckModal" class="text-[#707881] hover:text-[#0F172A] text-sm font-bold cursor-pointer">✕</button>
+        <button type="button" id="btnCloseEditDeckModal" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer">✕</button>
       </div>
 
       <div class="space-y-2.5">
         <div>
-          <label for="inputEditDeckName" class="block text-xs font-bold text-[#0F172A] mb-1">
+          <label for="inputEditDeckName" class="block text-xs font-semibold text-[#1E293B] mb-1">
             Tên bộ thẻ *
           </label>
-          <input type="text" id="inputEditDeckName" class="ls-input w-full">
+          <input type="text" id="inputEditDeckName" class="w-full px-3 py-1.5 text-xs border border-[#CBD5E1] rounded-lg bg-white focus:outline-none focus:border-[#831843] text-[#0F172A]">
         </div>
 
         <div>
-          <label for="inputEditDeckDesc" class="block text-xs font-bold text-[#0F172A] mb-1">
+          <label for="inputEditDeckDesc" class="block text-xs font-semibold text-[#1E293B] mb-1">
             Mô tả / Ghi chú
           </label>
-          <textarea id="inputEditDeckDesc" rows="3" class="ls-input w-full"></textarea>
+          <textarea id="inputEditDeckDesc" rows="3" class="w-full px-3 py-1.5 text-xs border border-[#CBD5E1] rounded-lg bg-white focus:outline-none focus:border-[#831843] text-[#334155]"></textarea>
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#0F172A]/15">
-        <button type="button" id="btnCancelEditDeck" class="ls-btn ls-btn-default">
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+        <button type="button" id="btnCancelEditDeck" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-100 cursor-pointer">
           Hủy
         </button>
-        <button type="button" id="btnSaveEditDeck" class="ls-btn ls-btn-primary">
+        <button type="button" id="btnSaveEditDeck" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition">
           Lưu Thay Đổi
         </button>
       </div>

@@ -330,18 +330,16 @@ async function speakCurrentCard() {
   const text = card.char || card.front || card.kanjiChar || card.question || '';
   if (!text) return;
 
-  const btnSpeaker = document.getElementById('btnStudyAudio') || document.getElementById('btnSpeakerStudy');
+  const btnSpeaker = document.getElementById('btnSpeakerStudy');
   if (btnSpeaker) {
-    btnSpeaker.classList.add('scale-110', 'text-[#831843]', 'ring-2', 'ring-[#831843]');
+    btnSpeaker.classList.add('scale-110', 'text-[#831843]');
   }
 
   try {
     await voicevoxClient.speak(text);
   } finally {
     if (btnSpeaker) {
-      setTimeout(() => {
-        btnSpeaker.classList.remove('scale-110', 'text-[#831843]', 'ring-2', 'ring-[#831843]');
-      }, 400);
+      setTimeout(() => btnSpeaker.classList.remove('scale-110', 'text-[#831843]'), 400);
     }
   }
 }
@@ -370,8 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnPrevCard')?.addEventListener('click', prevCard);
 
   // Phát âm
-  const audioBtn = document.getElementById('btnStudyAudio') || document.getElementById('btnSpeakerStudy');
-  audioBtn?.addEventListener('click', (e) => {
+  document.getElementById('btnStudyAudio')?.addEventListener('click', (e) => {
     e.stopPropagation();
     speakCurrentCard();
   });

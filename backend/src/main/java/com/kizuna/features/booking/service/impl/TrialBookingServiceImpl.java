@@ -20,6 +20,7 @@ import com.kizuna.features.booking.repository.TrialBookingRepository;
 import com.kizuna.features.booking.service.TrialBookingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +44,7 @@ public class TrialBookingServiceImpl implements TrialBookingService {
     private final ConnectionRequestRepository connectionRequestRepository;
     private final TrialBookingRepository trialBookingRepository;
     private final TrialBookingHistoryRepository trialBookingHistoryRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional
@@ -80,6 +82,33 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         boolean hasOverlap = trialBookingRepository.existsOverlappingBooking(tutor.getTutorId(), startTime, endTime);
         if (hasOverlap) {
             throw new ConflictException("Khung giờ này vừa có người đăng ký. Vui lòng chọn khung giờ khác.");
+        }
+
+        // Kiểm tra khung giờ có nằm trong lịch rảnh của gia sư không (UC-31)
+        if (jdbcTemplate != null) {
+            try {
+                Integer totalAvail = jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM tutor_availabilities WHERE tutor_id = ? AND is_active = TRUE",
+                        Integer.class, tutor.getTutorId()
+                );
+                if (totalAvail != null && totalAvail > 0) {
+                    int dbDow = (startTime.getDayOfWeek().getValue() % 7) + 1;
+                    String startStr = startTime.toLocalTime().toString();
+                    String endStr = endTime.toLocalTime().toString();
+                    Integer matchCount = jdbcTemplate.queryForObject(
+                            "SELECT count(*) FROM tutor_availabilities WHERE tutor_id = ? AND is_active = TRUE " +
+                            "AND day_of_week = ? AND start_time <= ?::time AND end_time >= ?::time",
+                            Integer.class, tutor.getTutorId(), dbDow, startStr, endStr
+                    );
+                    if (matchCount == null || matchCount == 0) {
+                        throw new BadRequestException("Gia sư không có lịch rảnh vào khung giờ này. Vui lòng chọn khung giờ khác.");
+                    }
+                }
+            } catch (BadRequestException bre) {
+                throw bre;
+            } catch (Exception e) {
+                log.warn("Không thể xác thực lịch rảnh qua JdbcTemplate: {}", e.getMessage());
+            }
         }
 
         // Tạo yêu cầu kết nối (ConnectionRequest)

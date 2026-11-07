@@ -142,6 +142,39 @@
             </div>
           </div>
 
+          <!-- 2.5. Yêu cầu kết nối (FE-05) -->
+          <section id="trialBookingsSection" class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-6">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div class="flex items-center gap-2.5">
+                <div class="w-2.5 h-6 rounded-full bg-secondary"></div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-title-md text-on-surface">Yêu cầu kết nối</h3>
+                    <span id="trialPendingBadge" class="hidden px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                      <span id="trialPendingCount">0</span> yêu cầu mới
+                    </span>
+                  </div>
+                  <p class="text-body-sm text-on-surface-variant">Học viên gửi yêu cầu học thử 1-1 đang chờ bạn xác nhận</p>
+                </div>
+              </div>
+              <a href="/tutor/connections" class="text-label-sm text-primary hover:text-primary-container flex items-center gap-1 shrink-0 font-semibold">
+                Xem tất cả <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </a>
+            </div>
+
+            <!-- Danh sách các yêu cầu đang chờ -->
+            <div id="trialBookingsContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <!-- Render động bằng JS -->
+            </div>
+
+            <!-- Trạng thái không có yêu cầu nào đang chờ -->
+            <div id="trialBookingsEmpty" class="hidden p-6 rounded-xl bg-surface-container-low text-center space-y-2">
+              <span class="material-symbols-outlined text-outline text-[32px]">event_available</span>
+              <p class="text-body-sm text-on-surface-variant font-medium">Hiện tại không có yêu cầu học thử nào đang chờ phản hồi.</p>
+              <p class="text-caption text-on-surface-variant">Khi học viên đăng ký ca rảnh của bạn, yêu cầu sẽ xuất hiện tại đây.</p>
+            </div>
+          </section>
+
           <!-- 3. Tiến trình xác minh + hoạt động gần đây (dữ liệu thật) -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6 items-stretch">
             <section class="lg:col-span-7 bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col">
@@ -187,8 +220,8 @@
                 <div><p class="text-label-md font-semibold text-on-surface">Lịch giảng dạy</p><p class="text-body-sm text-on-surface-variant">Quản lý ca dạy theo ngày, tuần.</p></div>
               </div>
               <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex items-start gap-3">
-                <div class="w-10 h-10 rounded-xl bg-secondary-fixed text-secondary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[20px]">group_add</span></div>
-                <div><p class="text-label-md font-semibold text-on-surface">Yêu cầu kết nối</p><p class="text-body-sm text-on-surface-variant">Nhận và phản hồi học viên mới.</p></div>
+                <div class="w-10 h-10 rounded-xl bg-secondary-fixed text-secondary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[20px]">insights</span></div>
+                <div><p class="text-label-md font-semibold text-on-surface">Báo cáo tiến độ</p><p class="text-body-sm text-on-surface-variant">Phân tích kết quả học tập.</p></div>
               </div>
               <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex items-start gap-3">
                 <div class="w-10 h-10 rounded-xl bg-tertiary-fixed text-tertiary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[20px]">school</span></div>

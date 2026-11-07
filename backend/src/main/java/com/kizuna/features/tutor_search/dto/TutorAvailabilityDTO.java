@@ -20,5 +20,6 @@ public class TutorAvailabilityDTO {
     private String dayName;
     private String startTime;
     private String endTime;
+    @Builder.Default
+    private Boolean isActive = true;
 }
-

@@ -48,6 +48,9 @@ class TrialBookingRespondTest {
     @Mock
     private TrialBookingHistoryRepository trialBookingHistoryRepository;
 
+    @Mock
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @InjectMocks
     private TrialBookingServiceImpl trialBookingService;
 

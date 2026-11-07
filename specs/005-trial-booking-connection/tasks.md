@@ -127,6 +127,17 @@ description: "Task list for FE-05 Trial Lesson Booking & Connection implementati
 
 ---
 
+## Phase 8: Tutor Dashboard Integration & End-to-End Loop (Tích hợp Bảng điều khiển Gia sư)
+
+**Purpose**: Nối liền luồng nghiệp vụ khi Gia sư đăng nhập: hiển thị số lượng yêu cầu học thử chờ duyệt ngay trên Dashboard, kích hoạt điều hướng từ Sidebar và bảo đảm luồng hai chiều thông suốt.
+
+- [x] T035 [P] [US2] Kích hoạt điều hướng cho mục "Yêu cầu kết nối" trong `frontend/components/tutor-layout/tutor-layout.js` (gán `href: '/connection-requests'`)
+- [x] T036 [P] [US2] Tích hợp thẻ số liệu và danh sách "Yêu cầu học thử chờ duyệt" trên giao diện `frontend/pages/tutor-dashboard/index.html`
+- [x] T037 [FRONTEND] [US2] Cài đặt hàm tải dữ liệu yêu cầu kết nối `loadTrialBookingStats()` trong `frontend/pages/tutor-dashboard/tutor-dashboard.js` gọi `API.trialBookings.getMyRequests('PENDING', 0, 6)`
+- [x] T038 [E2E] Kiểm chứng toàn bộ luồng hai chiều: Học viên đặt lịch thử -> Gia sư nhận và thấy số lượng yêu cầu chờ trên Dashboard -> Gia sư click vào duyệt (nhập link Meet) -> Học viên xem danh sách thấy trạng thái `CONFIRMED` và có nút "Vào phòng học"
+
+---
+
 ## Dependencies & Execution Order
 
 ### Thứ tự thực hiện các Phase (Việc làm trước xếp lên trước):
@@ -137,6 +148,7 @@ description: "Task list for FE-05 Trial Lesson Booking & Connection implementati
 5. **Phase 5: User Story 3 (P2)** (Danh sách quản lý lịch tập trung trên `/connection-requests`).
 6. **Phase 6: User Story 4 (P3)** (Hủy lịch hẹn trước giờ học).
 7. **Phase 7: Polish & Kiểm chứng** (Chạy test xanh và nghiệm thu theo `quickstart.md`).
+8. **Phase 8: Tutor Dashboard Integration** (Tích hợp số liệu và điều hướng trên Bảng điều khiển gia sư).
 
 ---
 

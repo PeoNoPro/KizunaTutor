@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="w-16 h-16 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mx-auto">
             <span class="material-symbols-outlined text-[32px]">lock</span>
           </div>
-          <h3 class="text-lg font-bold text-[#0F2545]">Vui lòng đăng nhập để xem lịch hẹn</h3>
+          <h3 class="text-lg font-bold text-[#0F2545]">Vui lòng đăng nhập để xem yêu cầu kết nối</h3>
           <p class="text-xs text-slate-500 max-w-sm mx-auto">
             Bạn cần đăng nhập tài khoản Học viên hoặc Gia sư để quản lý toàn bộ các yêu cầu học thử kết nối.
           </p>
@@ -119,6 +119,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     return;
   }
+
+  // Tự động chuyển hướng vào không gian làm việc phù hợp với vai trò
+  const storedUserRaw = localStorage.getItem('kizuna_user');
+  try {
+    const u = JSON.parse(storedUserRaw || '{}');
+    const isTutor = (u.role === 'ROLE_TUTOR' || (u.roles && u.roles.includes('ROLE_TUTOR')));
+    if (isTutor) {
+      window.location.replace('/tutor/connections');
+      return;
+    }
+    const isLearner = (u.role === 'ROLE_LEARNER' || (u.roles && u.roles.includes('ROLE_LEARNER')));
+    if (isLearner) {
+      window.location.replace('/learner/connections');
+      return;
+    }
+  } catch (e) {}
+
 
   // Khởi tạo toggle custom decline reason
   const declineSelect = document.getElementById('decline-reason-select');
@@ -188,12 +205,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (filtered.length === 0) {
       if (emptyState) emptyState.classList.remove('hidden');
       if (emptyDesc) {
-        if (currentStatusFilter === 'PENDING') {
-          emptyDesc.innerText = 'Bạn không có buổi học nào đang chờ phản hồi.';
-        } else if (currentStatusFilter === 'CONFIRMED') {
-          emptyDesc.innerText = 'Chưa có lịch hẹn nào được xác nhận.';
+        if (isTutor) {
+          if (currentStatusFilter === 'PENDING') {
+            emptyDesc.innerText = 'Bạn không có yêu cầu kết nối nào đang chờ phản hồi.';
+          } else if (currentStatusFilter === 'CONFIRMED') {
+            emptyDesc.innerText = 'Chưa có buổi học thử nào được xác nhận.';
+          } else {
+            emptyDesc.innerText = 'Bạn chưa có yêu cầu kết nối nào ở danh mục này.';
+          }
         } else {
-          emptyDesc.innerText = 'Bạn chưa có buổi học thử nào ở danh mục này.';
+          if (currentStatusFilter === 'PENDING') {
+            emptyDesc.innerText = 'Bạn không có yêu cầu nào đang chờ gia sư phản hồi.';
+          } else if (currentStatusFilter === 'CONFIRMED') {
+            emptyDesc.innerText = 'Chưa có lịch hẹn nào được xác nhận.';
+          } else {
+            emptyDesc.innerText = 'Bạn chưa có yêu cầu kết nối nào ở danh mục này.';
+          }
         }
       }
       container.innerHTML = '';

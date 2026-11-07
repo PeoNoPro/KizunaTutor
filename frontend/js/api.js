@@ -425,6 +425,108 @@ export const API = {
       }
     }
   },
+  tutorSchedule: {
+    /** Lấy danh sách ca rảnh giảng dạy của gia sư */
+    async getMySchedule() {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/tutor/availability`, {
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error('API.tutorSchedule.getMySchedule error:', err);
+        throw err;
+      }
+    },
+
+    /** Thêm ca rảnh mới */
+    async addSlot(payload) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/tutor/availability`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error('API.tutorSchedule.addSlot error:', err);
+        throw err;
+      }
+    },
+
+    /** Xóa ca rảnh */
+    async removeSlot(availabilityId) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/tutor/availability/${availabilityId}`, {
+          method: 'DELETE',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.tutorSchedule.removeSlot(${availabilityId}) error:`, err);
+        throw err;
+      }
+    },
+
+    /** Bật/tắt ca rảnh */
+    async toggleSlot(availabilityId, active) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/tutor/availability/${availabilityId}/toggle?active=${active}`, {
+          method: 'PATCH',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.tutorSchedule.toggleSlot(${availabilityId}) error:`, err);
+        throw err;
+      }
+    }
+  },
   tutorVerification: {
     /** Trạng thái và hồ sơ xác minh của gia sư đang đăng nhập (UC-22, UC-82, UC-83) */
     getMine() {

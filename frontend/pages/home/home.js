@@ -7,7 +7,7 @@
 import { API } from '../../js/api.js';
 import { formatVND } from '../../js/main.js';
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function initHome() {
   const featuredContainer = document.getElementById('featured-tutors-grid');
   if (!featuredContainer) return;
 
@@ -101,4 +101,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.href = qs ? `/tutors?${qs}` : '/tutors';
     });
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initHome);
+} else {
+  initHome();
+}

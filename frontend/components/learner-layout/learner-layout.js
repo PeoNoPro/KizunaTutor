@@ -26,18 +26,11 @@ export const LEARNER_MENU_GROUPS = [
     groupTitle: 'Gia sư & lớp học',
     items: [
       {
-        key: 'tutors',
-        title: 'Tìm gia sư Kizuna',
-        url: '/pages/tutor-discovery/',
-        icon: '🔍',
-        matcher: ['/tutors', '/pages/tutor-discovery']
-      },
-      {
         key: 'requests',
-        title: 'Lịch học thử & kết nối',
-        url: '/pages/connection-requests/',
+        title: 'Yêu cầu kết nối',
+        url: '/learner/connections',
         icon: '📅',
-        matcher: ['/connection-requests', '/pages/connection-requests']
+        matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests']
       },
       {
         key: 'my-courses',
@@ -129,7 +122,7 @@ export const LEARNER_MENU_GROUPS = [
 export const PAGE_META_MAP = {
   'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
   'tutors': { title: 'Tìm gia sư Kizuna', badge: 'Gia sư & lớp học' },
-  'requests': { title: 'Lịch học thử & ghép lớp', badge: 'Gia sư & lớp học' },
+  'requests': { title: 'Yêu cầu kết nối', badge: 'Gia sư & lớp học' },
   'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },
   'kanji-dictionary': { title: 'Tra cứu chữ Hán', badge: 'Học tập & rèn luyện' },
   'handwriting': { title: 'Tra cứu viết tay', badge: 'Học tập & rèn luyện' },

@@ -276,56 +276,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           </div>
 
-          <!-- Chứng chỉ & Bằng cấp đã xác thực (UC-31) -->
-          <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5">
-            <div class="flex items-center justify-between flex-wrap gap-2">
-              <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">verified</span>
-                Chứng chỉ &amp; Bằng cấp đã thẩm định
-              </h3>
-              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
-                <span class="material-symbols-outlined text-[15px] text-emerald-600">verified_user</span>
-                Đã được Ban học vụ Kizuna kiểm tra
-              </span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              ${(tutor.credentials && tutor.credentials.length > 0)
-        ? tutor.credentials.map(c => `
-                  <div class="p-4 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] flex flex-col justify-between gap-3 hover:border-primary/40 transition-colors shadow-2xs">
-                    <div class="flex items-start gap-3">
-                      <div class="w-10 h-10 rounded-lg bg-sky-100 text-primary flex items-center justify-center shrink-0">
-                        <span class="material-symbols-outlined text-[22px]">workspace_premium</span>
-                      </div>
-                      <div class="space-y-1 min-w-0 flex-1">
-                        <h4 class="text-sm font-bold text-[#0F2545] leading-snug">${c.title}</h4>
-                        <div class="flex items-center gap-2">
-                          <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
-                            <span class="material-symbols-outlined text-[13px]">check_circle</span> Đã xác thực
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    ${c.fileUrl ? `
-                      <a href="${c.fileUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#E5DECB] hover:bg-sky-50 hover:text-primary hover:border-sky-300 text-xs font-semibold text-[#0F2545] transition-colors">
-                        <span class="material-symbols-outlined text-[15px]">visibility</span>
-                        <span>Xem bản chụp chứng chỉ</span>
-                      </a>
-                    ` : ''}
-                  </div>
-                `).join('')
-        : `
-                  <div class="col-span-full p-4 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] flex items-center gap-3">
-                    <span class="material-symbols-outlined text-emerald-600 text-[24px]">verified</span>
-                    <div class="text-xs text-on-surface-variant">
-                      Gia sư đã hoàn tất xác minh <strong>Chứng chỉ Năng lực Tiếng Nhật JLPT ${tutor.highestJlptLevel || 'N1'}</strong> và hồ sơ định danh CCCD với KizunaTutor.
-                    </div>
-                  </div>
-                `
-      }
-            </div>
-          </div>
-
           <!-- Lịch rảnh & Thời gian biểu khả dụng (UC-31) -->
           <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5">
             <div class="flex items-center justify-between flex-wrap gap-2">
@@ -530,13 +480,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // === LOGIC CHO MODAL CHỌN LỊCH HỌC THỬ (MẪU MỚI TIẾNG VIỆT - FE-05) ===
     let selectedDurationMinutes = 25;
-    let selectedSlot = '18:00';
+    let selectedSlot = null; // Khởi tạo rỗng, chỉ gán khi học viên chọn mốc giờ khả dụng
     let weekOffset = 0; // Tuần hiện tại
     
     // Cập nhật avatar gia sư trong modal
     const modalAvatar = document.getElementById('booking-modal-avatar');
     if (modalAvatar) {
       modalAvatar.src = tutor.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80';
+    }
+
+    // Nút Gửi yêu cầu đặt lịch
+    const continueBtn = document.getElementById('btn-booking-continue');
+    const modalBody = document.getElementById('booking-modal-body');
+
+    function updateContinueButtonState() {
+      if (!continueBtn) return;
+      if (!selectedSlot) {
+        continueBtn.disabled = true;
+        continueBtn.className = 'w-full py-3.5 px-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-slate-200 text-slate-400 cursor-not-allowed shadow-none';
+      } else {
+        continueBtn.disabled = false;
+        continueBtn.className = 'w-full py-3.5 px-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-[#006194] text-white shadow-md hover:bg-[#004b73] active:scale-[0.99] cursor-pointer';
+      }
     }
 
     // Toggle thời lượng 25 phút / 50 phút
@@ -547,11 +512,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectedDurationMinutes = 25;
         btn25.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all bg-white text-[#0F2545] shadow-xs cursor-pointer';
         btn50.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all text-slate-500 hover:text-[#0F2545] cursor-pointer';
+        renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
       });
       btn50.addEventListener('click', () => {
         selectedDurationMinutes = 50;
         btn50.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all bg-white text-[#0F2545] shadow-xs cursor-pointer';
         btn25.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all text-slate-500 hover:text-[#0F2545] cursor-pointer';
+        renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
       });
     }
 
@@ -563,7 +530,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Ngày cơ sở: Hôm nay
     const today = new Date();
-    let selectedDayOffset = 1; // Mặc định chọn ngày mai
+    
+    // Tự động tìm ngày đầu tiên có lịch rảnh trong tuần này
+    let initialDayOffset = 1;
+    for (let offset = 0; offset < 7; offset++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + offset);
+      const jsDay = d.getDay();
+      const dow = jsDay === 0 ? 1 : jsDay + 1;
+      const hasSched = (tutor.availabilities || []).some(a => Number(a.dayOfWeek) === dow);
+      if (hasSched) {
+        initialDayOffset = offset;
+        break;
+      }
+    }
+    let selectedDayOffset = initialDayOffset;
 
     function getSelectedDate() {
       const d = new Date(today);
@@ -590,23 +571,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       for (let i = 0; i < 7; i++) {
         const d = new Date(startDate);
         d.setDate(d.getDate() + i);
-        const dayOfWeekName = DAY_NAMES[d.getDay()];
+        const jsDay = d.getDay();
+        const dayOfWeekName = DAY_NAMES[jsDay];
+        const backendDow = jsDay === 0 ? 1 : jsDay + 1;
         const isSelected = (i === selectedDayOffset);
+
+        // Kiểm tra xem gia sư có lịch rảnh vào thứ này không
+        const hasTutorSchedule = (tutor.availabilities || []).some(a => Number(a.dayOfWeek) === backendDow);
 
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = `day-picker-btn flex flex-col items-center py-2 px-1 rounded-2xl border transition-all cursor-pointer ${
           isSelected
             ? 'border-2 border-rose-400 bg-rose-50 text-rose-600 font-bold shadow-2xs'
-            : 'border-transparent hover:bg-slate-50 text-slate-600 font-medium'
+            : hasTutorSchedule
+              ? 'border-transparent hover:bg-slate-50 text-slate-800 font-medium'
+              : 'border-transparent hover:bg-slate-50 text-slate-400 font-normal'
         }`;
         btn.innerHTML = `
           <span class="text-[11px] leading-tight">${dayOfWeekName}</span>
           <span class="text-sm mt-1 leading-tight font-bold">${d.getDate()}</span>
+          <span class="w-1.5 h-1.5 rounded-full mt-1 ${hasTutorSchedule ? 'bg-emerald-500' : 'bg-transparent'}"></span>
         `;
         btn.addEventListener('click', () => {
           selectedDayOffset = i;
           renderDays();
+          renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
         });
         daysContainer.appendChild(btn);
       }
@@ -617,6 +607,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (weekOffset > 0) {
           weekOffset--;
           renderDays();
+          renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
         }
       });
     }
@@ -624,25 +615,112 @@ document.addEventListener('DOMContentLoaded', async () => {
       nextWeekBtn.addEventListener('click', () => {
         weekOffset++;
         renderDays();
+        renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
       });
     }
-    renderDays();
 
-    // Chọn khung giờ
-    const slotBtns = document.querySelectorAll('.slot-btn');
-    slotBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        slotBtns.forEach(b => {
-          b.className = 'slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs';
-        });
-        btn.className = 'slot-btn py-3 px-2 text-center text-sm font-bold rounded-2xl border-2 border-[#006194] bg-[#006194] text-white shadow-xs cursor-pointer';
-        selectedSlot = btn.innerText.trim();
+    // Render động các khung giờ theo lịch rảnh thực tế của gia sư
+    function renderAvailableSlots(targetDate, durationMinutes) {
+      selectedSlot = null;
+      updateContinueButtonState();
+
+      const morningGrid = document.getElementById('morning-slots-grid');
+      const afternoonGrid = document.getElementById('afternoon-slots-grid');
+      const eveningGrid = document.getElementById('evening-slots-grid');
+      const dayAlertEl = document.getElementById('booking-day-alert');
+      const dayAlertText = document.getElementById('booking-day-alert-text');
+
+      const jsDay = targetDate.getDay();
+      const backendDow = jsDay === 0 ? 1 : jsDay + 1;
+
+      // Lọc các khoảng thời gian rảnh của gia sư trong ngày
+      const dayAvails = (tutor.availabilities || []).filter(a => Number(a.dayOfWeek) === backendDow);
+
+      const isToday = (
+        targetDate.getFullYear() === today.getFullYear() &&
+        targetDate.getMonth() === today.getMonth() &&
+        targetDate.getDate() === today.getDate()
+      );
+      const nowMinutes = today.getHours() * 60 + today.getMinutes();
+
+      const slotsSet = new Set();
+
+      dayAvails.forEach(avail => {
+        if (!avail.startTime || !avail.endTime) return;
+        const [startH, startM] = avail.startTime.split(':').map(Number);
+        const [endH, endM] = avail.endTime.split(':').map(Number);
+        const startTotal = startH * 60 + startM;
+        const endTotal = endH * 60 + endM;
+
+        for (let time = startTotal; time + durationMinutes <= endTotal; time += 30) {
+          // Nếu là hôm nay, chỉ cho phép đặt trước ít nhất 15 phút
+          if (isToday && time <= nowMinutes + 15) {
+            continue;
+          }
+          const h = Math.floor(time / 60);
+          const m = time % 60;
+          const slotStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          slotsSet.add(slotStr);
+        }
       });
-    });
 
-    // Nút Gửi yêu cầu đặt lịch
-    const continueBtn = document.getElementById('btn-booking-continue');
-    const modalBody = document.getElementById('booking-modal-body');
+      const allSlots = Array.from(slotsSet).sort();
+
+      // Hiển thị alert nếu ngày này gia sư không có ca rảnh nào
+      if (dayAlertEl) {
+        if (allSlots.length === 0) {
+          dayAlertEl.classList.remove('hidden');
+          if (dayAlertText) {
+            if (dayAvails.length === 0) {
+              dayAlertText.innerText = 'Gia sư không có lịch dạy vào ngày này. Vui lòng chọn ngày có chấm xanh phía trên.';
+            } else {
+              dayAlertText.innerText = 'Các khung giờ rảnh hôm nay đã qua thời gian đăng ký. Vui lòng chọn ngày tiếp theo.';
+            }
+          }
+        } else {
+          dayAlertEl.classList.add('hidden');
+        }
+      }
+
+      // Phân nhóm theo 3 buổi
+      const morningSlots = allSlots.filter(s => parseInt(s.split(':')[0], 10) < 12);
+      const afternoonSlots = allSlots.filter(s => {
+        const h = parseInt(s.split(':')[0], 10);
+        return h >= 12 && h < 18;
+      });
+      const eveningSlots = allSlots.filter(s => parseInt(s.split(':')[0], 10) >= 18);
+
+      function renderGrid(container, slots) {
+        if (!container) return;
+        container.innerHTML = '';
+        if (!slots || slots.length === 0) {
+          container.innerHTML = '<p class="col-span-3 text-xs text-slate-400 italic py-2">Không có lịch trống trong buổi này</p>';
+          return;
+        }
+        slots.forEach(slot => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs';
+          btn.innerText = slot;
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.slot-btn').forEach(b => {
+              b.className = 'slot-btn py-3 px-2 text-center text-sm font-semibold rounded-2xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-900 bg-white cursor-pointer shadow-2xs';
+            });
+            btn.className = 'slot-btn py-3 px-2 text-center text-sm font-bold rounded-2xl border-2 border-[#006194] bg-[#006194] text-white shadow-xs cursor-pointer';
+            selectedSlot = slot;
+            updateContinueButtonState();
+          });
+          container.appendChild(btn);
+        });
+      }
+
+      renderGrid(morningGrid, morningSlots);
+      renderGrid(afternoonGrid, afternoonSlots);
+      renderGrid(eveningGrid, eveningSlots);
+    }
+
+    renderDays();
+    renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
     const errorAlert = document.getElementById('booking-error-alert');
     const errorMsgEl = document.getElementById('booking-error-message');
 
@@ -685,6 +763,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 2. Tính toán ngày giờ bắt đầu
+        if (!selectedSlot) {
+          showError('Vui lòng chọn một khung giờ học khả dụng');
+          return;
+        }
         const targetDate = getSelectedDate();
         const [hours, minutes] = selectedSlot.split(':').map(Number);
         targetDate.setHours(hours, minutes, 0, 0);

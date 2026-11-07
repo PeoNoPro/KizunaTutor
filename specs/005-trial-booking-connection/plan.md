@@ -103,9 +103,12 @@ frontend/pages/
 ├── tutor-profile/
 │   ├── index.html                          # Modal đặt lịch 1-1 (Preply-style date/slot picker)
 │   └── tutor-profile.js                    # Gọi POST /api/v1/trial-bookings
-└── connection-requests/
-    ├── index.html                          # Danh sách quản lý yêu cầu kết nối & lịch học thử
-    └── connection-requests.js              # Gọi GET/PUT /api/v1/trial-bookings (tabs & duyệt lịch)
+├── connection-requests/
+│   ├── index.html                          # Danh sách quản lý yêu cầu kết nối & lịch học thử
+│   └── connection-requests.js              # Gọi GET/PUT /api/v1/trial-bookings (tabs & duyệt lịch)
+└── tutor-dashboard/
+    ├── index.html                          # Bảng điều khiển gia sư tích hợp số liệu yêu cầu kết nối
+    └── tutor-dashboard.js                  # Gọi GET /api/v1/trial-bookings/my-requests?status=PENDING
 ```
 
 ---
@@ -121,5 +124,10 @@ frontend/pages/
 - Hoàn thành Hợp đồng REST API trong `contracts/trial-booking-api.md`.
 - Hoàn thành Kịch bản kiểm thử End-to-End trong `quickstart.md`.
 
-### Phase 2: Implementation Planning (Sẵn sàng cho `$speckit-tasks`)
-- Tiếp tục phân rã thành danh sách các công việc thực thi độc lập (Backend Entities, Repositories, Services, Controller, Unit Tests, Frontend integration) trong `tasks.md`.
+### Phase 2: Implementation Planning (Hoàn thành)
+- Phân rã thành danh sách các công việc thực thi độc lập trong `tasks.md`.
+
+### Phase 3: Tutor Dashboard Integration (Mới bổ sung theo yêu cầu)
+- Kích hoạt liên kết "Yêu cầu kết nối" trong `tutor-layout.js` dẫn tới `/connection-requests`.
+- Nâng cấp khối "Yêu cầu kết nối" trên Bảng điều khiển gia sư (`tutor-dashboard`) từ trạng thái tĩnh/sắp ra mắt thành widget hoạt động thực tế với số lượng yêu cầu chờ duyệt thời gian thực.
+- Đảm bảo luồng khép kín: Học viên đặt lịch -> Gia sư nhận và duyệt trên Dashboard -> Học viên vào học thành công.

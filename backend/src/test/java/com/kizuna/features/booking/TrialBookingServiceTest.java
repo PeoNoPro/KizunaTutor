@@ -54,6 +54,9 @@ class TrialBookingServiceTest {
     @Mock
     private TrialBookingHistoryRepository trialBookingHistoryRepository;
 
+    @Mock
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @InjectMocks
     private TrialBookingServiceImpl trialBookingService;
 
@@ -157,5 +160,36 @@ class TrialBookingServiceTest {
         assertTrue(ex.getMessage().contains("Khung giờ này vừa có người đăng ký"));
         verify(trialBookingRepository, never()).save(any());
         verify(connectionRequestRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Đặt lịch học thử thất bại - Khung giờ ngoài ca rảnh ném BadRequestException (400)")
+    void testCreateTrialBooking_OutsideAvailability_ThrowsBadRequestException() {
+        OffsetDateTime startTime = OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0);
+        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
+                .tutorId(tutorId)
+                .scheduledStartTime(startTime)
+                .durationMinutes(50)
+                .learningMode("ONLINE")
+                .build();
+
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
+        when(learnerRepository.findByUser(mockLearnerUser)).thenReturn(Optional.of(mockLearner));
+        when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.existsOverlappingBooking(eq(tutorId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
+                .thenReturn(false);
+
+        // Giả lập gia sư có cấu hình lịch rảnh nhưng khung giờ này không khớp
+        when(jdbcTemplate.queryForObject(contains("WHERE tutor_id = ? AND is_active = TRUE"), eq(Integer.class), eq(tutorId)))
+                .thenReturn(1);
+        when(jdbcTemplate.queryForObject(contains("AND day_of_week = ?"), eq(Integer.class), eq(tutorId), anyInt(), anyString(), anyString()))
+                .thenReturn(0);
+
+        com.kizuna.core.exception.BadRequestException ex = assertThrows(com.kizuna.core.exception.BadRequestException.class, () ->
+                trialBookingService.createTrialBooking("learner@test.com", request)
+        );
+
+        assertTrue(ex.getMessage().contains("Gia sư không có lịch rảnh vào khung giờ này"));
+        verify(trialBookingRepository, never()).save(any());
     }
 }

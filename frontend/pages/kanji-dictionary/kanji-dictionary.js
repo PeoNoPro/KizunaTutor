@@ -7,6 +7,7 @@
 
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { showToast } from '/js/main.js';
+import { voicevoxClient } from '/js/voicevoxClient.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
@@ -315,8 +316,15 @@ function renderLearnerGrid(items) {
         </div>
       </div>
 
-      <!-- 2 NÚT HÀNH ĐỘNG DƯỚI CARD -->
+      <!-- CỤM NÚT HÀNH ĐỘNG: PHÁT ÂM + LƯU THẺ + LUYỆN NÉT -->
       <div class="pt-3 mt-4 border-t border-[#E2E8F0] flex items-center gap-2 shrink-0">
+        <button type="button" 
+                data-action="speak-kanji"
+                data-char="${escapeHtml(k.kanjiChar)}"
+                class="w-8 h-8 rounded-lg border border-[#CBD5E1] bg-slate-50 hover:bg-slate-100 text-[#1E293B] flex items-center justify-center transition active:scale-95 cursor-pointer shrink-0"
+                title="Nghe phát âm chuẩn trọng âm (VOICEVOX AI TTS)">
+          🔊
+        </button>
         <button type="button" 
                 data-action="save-deck"
                 data-idx="${idx}"
@@ -333,6 +341,18 @@ function renderLearnerGrid(items) {
       </div>
     </div>
   `).join('');
+
+  // Gắn sự kiện click phát âm bằng VOICEVOX
+  grid.querySelectorAll('[data-action="speak-kanji"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const char = btn.getAttribute('data-char');
+      btn.classList.add('scale-110');
+      voicevoxClient.speak(char).finally(() => {
+        setTimeout(() => btn.classList.remove('scale-110'), 300);
+      });
+    });
+  });
 
   // Gắn sự kiện click lưu thẻ
   grid.querySelectorAll('[data-action="save-deck"]').forEach(el => {

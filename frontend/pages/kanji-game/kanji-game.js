@@ -844,6 +844,17 @@ document.addEventListener('DOMContentLoaded', () => {
   populatePersonalDecksDropdown();
   loadLeaderboard();
 
+  // Tự động chọn bộ thẻ từ URL param (?deckId=... hoặc ?id=...)
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetDeckId = urlParams.get('deckId') || urlParams.get('id');
+  if (targetDeckId && selectGameSource) {
+    const deckVal = `deck:${targetDeckId}`;
+    const exists = Array.from(selectGameSource.options).some(o => o.value === deckVal);
+    if (exists) {
+      selectGameSource.value = deckVal;
+    }
+  }
+
   // Bắt đầu game khi nhấn nút lớp phủ
   btnStartTrigger?.addEventListener('click', startGame);
 

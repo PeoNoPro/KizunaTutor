@@ -322,8 +322,10 @@ body.learning-support-body {
   contain: layout;
 }
 
-.shodo-toolbar button {
+.shodo-toolbar button,
+.shodo-toolbar .ls-btn {
   box-sizing: border-box;
   text-align: center;
   user-select: none;
+  padding: 0 !important;
 }

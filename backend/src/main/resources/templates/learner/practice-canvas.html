@@ -154,34 +154,34 @@
               <canvas id="practiceBoard" class="absolute inset-0 w-full h-full z-20 cursor-crosshair touch-none"></canvas>
             </div>
 
-            <!-- Thanh Công Cụ Điều Khiển Nét Vẽ (Toolbar Cố Định Kích Thước) -->
-            <div class="shodo-toolbar w-full flex flex-wrap items-center justify-center gap-2 p-2.5 bg-white border border-[#0F172A] rounded-[6px] shadow-[2px_2px_0px_0px_#0F172A] min-h-[52px]">
+            <!-- Thanh Công Cụ Điều Khiển Nét Vẽ (Toolbar Cùng 1 Hàng Gọn Gàng) -->
+            <div class="shodo-toolbar w-full grid grid-cols-4 gap-1.5 p-1.5 bg-white border border-[#0F172A] rounded-[6px] shadow-[2px_2px_0px_0px_#0F172A]">
               <button type="button" id="btnPlayStroke" data-action="play-stroke"
-                      class="ls-btn ls-btn-default min-w-[96px] h-[36px] flex items-center justify-center gap-1.5 text-xs font-bold shrink-0"
+                      class="ls-btn ls-btn-default w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
                       title="Phát hoạt ảnh mô phỏng thứ tự từng nét chuẩn">
-                <span class="icon shrink-0">▷</span>
-                <span class="label">Phát nét</span>
+                <span class="icon text-[11px] shrink-0">▷</span>
+                <span class="label whitespace-nowrap">Phát nét</span>
               </button>
 
               <button type="button" id="btnToggleGuide" data-action="toggle-ghost"
-                      class="ls-btn ls-btn-default is-active bg-[#FFE5EC] text-[#831843] min-w-[110px] h-[36px] flex items-center justify-center gap-1.5 text-xs font-bold shrink-0"
+                      class="ls-btn ls-btn-default is-active bg-[#FFE5EC] text-[#831843] w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
                       title="Nhấn để ẩn nét mờ hướng dẫn">
-                <span class="icon shrink-0">👁️</span>
-                <span class="label">Ẩn nét mờ</span>
+                <span class="icon text-[11px] shrink-0">👁️</span>
+                <span class="label whitespace-nowrap">Ẩn nét mờ</span>
               </button>
 
               <button type="button" id="btnUndoStroke" 
-                      class="ls-btn ls-btn-default min-w-[90px] h-[36px] flex items-center justify-center gap-1.5 text-xs font-bold shrink-0"
+                      class="ls-btn ls-btn-default w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
                       title="Quay lại một nét vừa vẽ">
-                <span class="icon shrink-0">↩️</span>
-                <span class="label">Hoàn tác</span>
+                <span class="icon text-[11px] shrink-0">↩️</span>
+                <span class="label whitespace-nowrap">Hoàn tác</span>
               </button>
 
               <button type="button" id="btnClearBoard" 
-                      class="ls-btn ls-btn-danger min-w-[90px] h-[36px] flex items-center justify-center gap-1.5 text-xs font-bold shrink-0"
+                      class="ls-btn ls-btn-danger w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
                       title="Xóa trắng bảng vẽ để luyện lại từ đầu">
-                <span class="icon shrink-0">🗑️</span>
-                <span class="label">Xóa hết</span>
+                <span class="icon text-[11px] shrink-0">🗑️</span>
+                <span class="label whitespace-nowrap">Xóa hết</span>
               </button>
             </div>
 

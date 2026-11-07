@@ -1,4 +1,4 @@
-﻿/**
+/**
  * KizunaTutor - Phòng Luyện Viết Shodo Canvas AI
  * Module độc lập theo kiến trúc Feature-Based, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * TUYỆT ĐỐI KHÔNG DÙNG DỮ LIỆU MẪU (NO MOCK DATA INJECTION)

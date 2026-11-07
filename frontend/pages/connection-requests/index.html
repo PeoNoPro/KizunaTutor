@@ -68,7 +68,7 @@
           <span class="material-symbols-outlined text-[20px]" id="action-toast-icon">check_circle</span>
           <span id="action-toast-msg"></span>
         </div>
-        <button type="button" onclick="document.getElementById('action-toast-alert').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+        <button type="button" id="btn-close-toast" class="text-slate-400 hover:text-slate-600">
           <span class="material-symbols-outlined text-[16px]">close</span>
         </button>
       </div>
@@ -111,7 +111,7 @@
           <span class="material-symbols-outlined text-[24px]">verified</span>
           <h3 class="text-base font-bold text-[#0F2545]">Xác nhận đồng ý buổi học</h3>
         </div>
-        <button type="button" onclick="window.closeAcceptModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
+        <button type="button" data-action="close-accept-modal" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
@@ -132,7 +132,7 @@
       </div>
 
       <div class="grid grid-cols-2 gap-2 pt-2">
-        <button type="button" onclick="window.closeAcceptModal()" class="py-2.5 px-4 rounded-xl border border-slate-300 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">
+        <button type="button" data-action="close-accept-modal" class="py-2.5 px-4 rounded-xl border border-slate-300 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">
           Quay lại
         </button>
         <button type="button" id="btn-submit-accept" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm">
@@ -150,7 +150,7 @@
           <span class="material-symbols-outlined text-[24px]">cancel</span>
           <h3 class="text-base font-bold text-[#0F2545]">Từ chối lịch học thử</h3>
         </div>
-        <button type="button" onclick="window.closeDeclineModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
+        <button type="button" data-action="close-decline-modal" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
@@ -171,7 +171,7 @@
       </div>
 
       <div class="grid grid-cols-2 gap-2 pt-2">
-        <button type="button" onclick="window.closeDeclineModal()" class="py-2.5 px-4 rounded-xl border border-slate-300 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">
+        <button type="button" data-action="close-decline-modal" class="py-2.5 px-4 rounded-xl border border-slate-300 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">
           Quay lại
         </button>
         <button type="button" id="btn-submit-decline" class="py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-sm">
@@ -189,7 +189,7 @@
           <span class="material-symbols-outlined text-[24px]">event_busy</span>
           <h3 class="text-base font-bold text-[#0F2545]">Hủy lịch hẹn học thử</h3>
         </div>
-        <button type="button" onclick="window.closeCancelModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
+        <button type="button" data-action="close-cancel-modal" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
@@ -204,7 +204,7 @@
       </div>
 
       <div class="grid grid-cols-2 gap-2 pt-2">
-        <button type="button" onclick="window.closeCancelModal()" class="py-2.5 px-4 rounded-xl border border-slate-300 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">
+        <button type="button" data-action="close-cancel-modal" class="py-2.5 px-4 rounded-xl border border-slate-300 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">
           Quay lại
         </button>
         <button type="button" id="btn-submit-cancel" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-black text-white text-xs font-bold transition-all shadow-sm">

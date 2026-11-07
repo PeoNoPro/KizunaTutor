@@ -1,21 +1,25 @@
 package com.kizuna.features.booking.controller;
 
-import com.kizuna.core.security.JwtTokenProvider;
+import com.kizuna.core.dto.ApiResponse;
+import com.kizuna.core.entity.User;
 import com.kizuna.features.booking.dto.request.CancelTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.request.CreateTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.request.RespondTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.response.TrialBookingResponseDTO;
 import com.kizuna.features.booking.service.TrialBookingService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -28,48 +32,37 @@ import java.util.UUID;
 public class TrialBookingController {
 
     private final TrialBookingService trialBookingService;
-    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createTrialBooking(
+    @PreAuthorize("hasAuthority('ROLE_LEARNER')")
+    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> createTrialBooking(
             @Valid @RequestBody CreateTrialBookingRequestDTO requestDto,
-            HttpServletRequest request) {
-        String userEmail = extractEmail(request);
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
         TrialBookingResponseDTO response = trialBookingService.createTrialBooking(userEmail, requestDto);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
-        body.put("code", 201);
-        body.put("message", "Đã gửi yêu cầu đăng ký học thử thành công. Vui lòng chờ gia sư phản hồi.");
-        body.put("data", response);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Đã gửi yêu cầu đăng ký học thử thành công. Vui lòng chờ gia sư phản hồi.", response));
     }
 
     @PutMapping("/{bookingId}/respond")
-    public ResponseEntity<Map<String, Object>> respondTrialBooking(
+    @PreAuthorize("hasAuthority('ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> respondTrialBooking(
             @PathVariable UUID bookingId,
             @Valid @RequestBody RespondTrialBookingRequestDTO requestDto,
-            HttpServletRequest request) {
-        String userEmail = extractEmail(request);
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
         TrialBookingResponseDTO response = trialBookingService.respondTrialBooking(userEmail, bookingId, requestDto);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
-        body.put("code", 200);
-        body.put("message", "Đã xử lý yêu cầu học thử thành công");
-        body.put("data", response);
-
-        return ResponseEntity.ok(body);
+        return ResponseEntity.ok(ApiResponse.ok("Đã xử lý yêu cầu học thử thành công", response));
     }
 
     @GetMapping("/my-requests")
-    public ResponseEntity<Map<String, Object>> getMyTrialBookings(
+    @PreAuthorize("hasAnyAuthority('ROLE_LEARNER', 'ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getMyTrialBookings(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            HttpServletRequest request) {
-        String userEmail = extractEmail(request);
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
         Page<TrialBookingResponseDTO> pageResult = trialBookingService.getMyTrialBookings(userEmail, status, page, size);
 
         Map<String, Object> pageData = new HashMap<>();
@@ -80,59 +73,53 @@ public class TrialBookingController {
         pageData.put("totalPages", pageResult.getTotalPages());
         pageData.put("currentPage", pageResult.getNumber());
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
-        body.put("code", 200);
-        body.put("message", "Lấy danh sách yêu cầu học thử thành công");
-        body.put("data", pageData);
-
-        return ResponseEntity.ok(body);
+        return ResponseEntity.ok(ApiResponse.ok("Lấy danh sách yêu cầu học thử thành công", pageData));
     }
 
     @GetMapping("/{bookingId}")
-    public ResponseEntity<Map<String, Object>> getTrialBookingDetail(
+    @PreAuthorize("hasAnyAuthority('ROLE_LEARNER', 'ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> getTrialBookingDetail(
             @PathVariable UUID bookingId,
-            HttpServletRequest request) {
-        String userEmail = extractEmail(request);
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
         TrialBookingResponseDTO response = trialBookingService.getTrialBookingDetail(userEmail, bookingId);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
-        body.put("code", 200);
-        body.put("message", "Lấy chi tiết yêu cầu học thử thành công");
-        body.put("data", response);
-
-        return ResponseEntity.ok(body);
+        return ResponseEntity.ok(ApiResponse.ok("Lấy chi tiết yêu cầu học thử thành công", response));
     }
 
     @PutMapping("/{bookingId}/cancel")
-    public ResponseEntity<Map<String, Object>> cancelTrialBooking(
+    @PreAuthorize("hasAnyAuthority('ROLE_LEARNER', 'ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> cancelTrialBooking(
             @PathVariable UUID bookingId,
             @Valid @RequestBody CancelTrialBookingRequestDTO requestDto,
-            HttpServletRequest request) {
-        String userEmail = extractEmail(request);
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
         TrialBookingResponseDTO response = trialBookingService.cancelTrialBooking(userEmail, bookingId, requestDto);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
-        body.put("code", 200);
-        body.put("message", "Đã hủy lịch học thử thành công");
-        body.put("data", response);
-
-        return ResponseEntity.ok(body);
+        return ResponseEntity.ok(ApiResponse.ok("Đã hủy lịch học thử thành công", response));
     }
 
-    private String extractEmail(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new AccessDeniedException("Vui lòng đăng nhập để thực hiện chức năng này");
+    private String getAuthenticatedEmail(Principal principal) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            Object p = auth.getPrincipal();
+            if (p instanceof User user && user.getEmail() != null) {
+                return user.getEmail();
+            }
+            if (p instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
+                return userDetails.getUsername();
+            }
+            if (p instanceof String email && !email.isBlank()) {
+                return email;
+            }
         }
-        String token = authHeader.substring(7).trim();
-        try {
-            return jwtTokenProvider.getEmailFromToken(token);
-        } catch (Exception e) {
-            log.error("Failed to extract email from token: {}", e.getMessage());
-            throw new AccessDeniedException("Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.");
+        if (principal != null) {
+            if (principal instanceof Authentication authentication && authentication.getPrincipal() instanceof User user && user.getEmail() != null) {
+                return user.getEmail();
+            }
+            String name = principal.getName();
+            if (name != null && !name.isBlank()) {
+                return name;
+            }
         }
+        throw new InsufficientAuthenticationException("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
     }
 }

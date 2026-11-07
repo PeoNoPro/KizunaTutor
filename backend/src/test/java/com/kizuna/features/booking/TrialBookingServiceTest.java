@@ -1,6 +1,7 @@
 package com.kizuna.features.booking;
 
 import com.kizuna.core.entity.Learner;
+import com.kizuna.core.entity.Role;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.core.entity.User;
 import com.kizuna.core.exception.ConflictException;
@@ -17,6 +18,8 @@ import com.kizuna.features.booking.repository.ConnectionRequestRepository;
 import com.kizuna.features.booking.repository.TrialBookingHistoryRepository;
 import com.kizuna.features.booking.repository.TrialBookingRepository;
 import com.kizuna.features.booking.service.impl.TrialBookingServiceImpl;
+import com.kizuna.features.tutor_search.service.TutorScheduleService;
+import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,12 +28,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,6 +59,9 @@ class TrialBookingServiceTest {
     private TrialBookingHistoryRepository trialBookingHistoryRepository;
 
     @Mock
+    private TutorScheduleService tutorScheduleService;
+
+    @Mock
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @InjectMocks
@@ -69,10 +76,12 @@ class TrialBookingServiceTest {
     void setUp() {
         tutorId = UUID.randomUUID();
 
+        Role learnerRole = Role.builder().roleName("ROLE_LEARNER").build();
         mockLearnerUser = User.builder()
                 .userId(UUID.randomUUID())
                 .email("learner@test.com")
                 .fullName("Nguyen Van Hoc Vien")
+                .role(learnerRole)
                 .build();
 
         mockLearner = Learner.builder()
@@ -80,16 +89,19 @@ class TrialBookingServiceTest {
                 .user(mockLearnerUser)
                 .build();
 
+        Role tutorRole = Role.builder().roleName("ROLE_TUTOR").build();
         User mockTutorUser = User.builder()
                 .userId(UUID.randomUUID())
                 .email("tutor@test.com")
                 .fullName("Yamada Sensei")
+                .role(tutorRole)
                 .build();
 
         mockTutor = Tutor.builder()
                 .tutorId(tutorId)
                 .tutorCode(10001L)
                 .user(mockTutorUser)
+                .verificationStatus(TutorVerificationStatus.APPROVED)
                 .build();
     }
 
@@ -112,6 +124,9 @@ class TrialBookingServiceTest {
         when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(mockTutor));
         when(trialBookingRepository.existsOverlappingBooking(eq(tutorId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                 .thenReturn(false);
+        when(trialBookingRepository.existsOverlappingLearnerBooking(eq(mockLearner.getLearnerId()), any(OffsetDateTime.class), any(OffsetDateTime.class)))
+                .thenReturn(false);
+        when(tutorScheduleService.hasActiveAvailabilities(tutorId)).thenReturn(false);
 
         when(connectionRequestRepository.save(any(ConnectionRequest.class)))
                 .thenAnswer(inv -> {
@@ -178,18 +193,69 @@ class TrialBookingServiceTest {
         when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(mockTutor));
         when(trialBookingRepository.existsOverlappingBooking(eq(tutorId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
                 .thenReturn(false);
+        when(trialBookingRepository.existsOverlappingLearnerBooking(eq(mockLearner.getLearnerId()), any(OffsetDateTime.class), any(OffsetDateTime.class)))
+                .thenReturn(false);
 
-        // Giả lập gia sư có cấu hình lịch rảnh nhưng khung giờ này không khớp
-        when(jdbcTemplate.queryForObject(contains("WHERE tutor_id = ? AND is_active = TRUE"), eq(Integer.class), eq(tutorId)))
-                .thenReturn(1);
-        when(jdbcTemplate.queryForObject(contains("AND day_of_week = ?"), eq(Integer.class), eq(tutorId), anyInt(), anyString(), anyString()))
-                .thenReturn(0);
+        when(tutorScheduleService.hasActiveAvailabilities(tutorId)).thenReturn(true);
+        when(tutorScheduleService.isSlotAvailable(eq(tutorId), anyInt(), any(LocalTime.class), any(LocalTime.class)))
+                .thenReturn(false);
 
         com.kizuna.core.exception.BadRequestException ex = assertThrows(com.kizuna.core.exception.BadRequestException.class, () ->
                 trialBookingService.createTrialBooking("learner@test.com", request)
         );
 
         assertTrue(ex.getMessage().contains("Gia sư không có lịch rảnh vào khung giờ này"));
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Đặt lịch học thử thất bại - Gia sư chưa được phê duyệt ném BadRequestException")
+    void testCreateTrialBooking_UnapprovedTutor_ThrowsBadRequest() {
+        mockTutor.setVerificationStatus(TutorVerificationStatus.PENDING);
+        OffsetDateTime startTime = OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0);
+        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
+                .tutorId(tutorId)
+                .scheduledStartTime(startTime)
+                .durationMinutes(50)
+                .build();
+
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
+        when(learnerRepository.findByUser(mockLearnerUser)).thenReturn(Optional.of(mockLearner));
+        when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(mockTutor));
+
+        com.kizuna.core.exception.BadRequestException ex = assertThrows(com.kizuna.core.exception.BadRequestException.class, () ->
+                trialBookingService.createTrialBooking("learner@test.com", request)
+        );
+
+        assertTrue(ex.getMessage().contains("Gia sư hiện chưa sẵn sàng nhận học viên mới"));
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Hủy lịch học thử thất bại - Hủy lịch đã CONFIRMED dưới 24h ném BadRequestException")
+    void testCancelTrialBooking_ConfirmedUnder24h_ThrowsBadRequest() {
+        UUID bookingId = UUID.randomUUID();
+        TrialBooking confirmedBooking = TrialBooking.builder()
+                .bookingId(bookingId)
+                .learner(mockLearner)
+                .tutor(mockTutor)
+                .scheduledStartTime(OffsetDateTime.now().plusHours(12)) // Chỉ còn 12 tiếng nữa là học
+                .bookingStatus(TrialBookingStatus.CONFIRMED)
+                .build();
+
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
+        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(confirmedBooking));
+
+        com.kizuna.features.booking.dto.request.CancelTrialBookingRequestDTO cancelDto =
+                com.kizuna.features.booking.dto.request.CancelTrialBookingRequestDTO.builder()
+                        .cancelReason("Bận việc đột xuất")
+                        .build();
+
+        com.kizuna.core.exception.BadRequestException ex = assertThrows(com.kizuna.core.exception.BadRequestException.class, () ->
+                trialBookingService.cancelTrialBooking("learner@test.com", bookingId, cancelDto)
+        );
+
+        assertTrue(ex.getMessage().contains("ít nhất 24 giờ"));
         verify(trialBookingRepository, never()).save(any());
     }
 }

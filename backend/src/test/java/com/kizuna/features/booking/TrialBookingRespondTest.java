@@ -1,18 +1,14 @@
 package com.kizuna.features.booking;
 
 import com.kizuna.core.entity.Learner;
+import com.kizuna.core.entity.Role;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.core.entity.User;
-import com.kizuna.core.exception.BadRequestException;
 import com.kizuna.core.repository.TutorRepository;
 import com.kizuna.core.repository.UserRepository;
 import com.kizuna.features.booking.dto.request.RespondTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.response.TrialBookingResponseDTO;
-import com.kizuna.features.booking.entity.ConnectionRequest;
-import com.kizuna.features.booking.entity.ConnectionRequestStatus;
-import com.kizuna.features.booking.entity.TrialBooking;
-import com.kizuna.features.booking.entity.TrialBookingHistory;
-import com.kizuna.features.booking.entity.TrialBookingStatus;
+import com.kizuna.features.booking.entity.*;
 import com.kizuna.features.booking.repository.TrialBookingHistoryRepository;
 import com.kizuna.features.booking.repository.TrialBookingRepository;
 import com.kizuna.features.booking.service.impl.TrialBookingServiceImpl;
@@ -65,10 +61,12 @@ class TrialBookingRespondTest {
         UUID tutorId = UUID.randomUUID();
         bookingId = UUID.randomUUID();
 
+        Role tutorRole = Role.builder().roleName("ROLE_TUTOR").build();
         mockTutorUser = User.builder()
                 .userId(UUID.randomUUID())
                 .email("tutor@test.com")
                 .fullName("Yamada Sensei")
+                .role(tutorRole)
                 .build();
 
         mockTutor = Tutor.builder()
@@ -77,10 +75,12 @@ class TrialBookingRespondTest {
                 .user(mockTutorUser)
                 .build();
 
+        Role learnerRole = Role.builder().roleName("ROLE_LEARNER").build();
         User mockLearnerUser = User.builder()
                 .userId(UUID.randomUUID())
                 .email("learner@test.com")
                 .fullName("Nguyen Van Hoc Vien")
+                .role(learnerRole)
                 .build();
 
         Learner mockLearner = Learner.builder()
@@ -100,6 +100,7 @@ class TrialBookingRespondTest {
                 .connectionRequest(mockRequest)
                 .learner(mockLearner)
                 .tutor(mockTutor)
+                .learningMode("ONLINE")
                 .scheduledStartTime(OffsetDateTime.now().plusDays(2))
                 .scheduledEndTime(OffsetDateTime.now().plusDays(2).plusMinutes(50))
                 .bookingStatus(TrialBookingStatus.PENDING)
@@ -131,7 +132,7 @@ class TrialBookingRespondTest {
     }
 
     @Test
-    @DisplayName("Gia sư từ chối (DECLINE) - Chuyển sang CANCELLED và cập nhật lý do từ chối")
+    @DisplayName("Gia sư từ chối (DECLINE) - Chuyển sang DECLINED và cập nhật lý do từ chối")
     void testRespondTrialBooking_Decline_Success() {
         RespondTrialBookingRequestDTO dto = RespondTrialBookingRequestDTO.builder()
                 .action("DECLINE")
@@ -146,8 +147,8 @@ class TrialBookingRespondTest {
         TrialBookingResponseDTO response = trialBookingService.respondTrialBooking("tutor@test.com", bookingId, dto);
 
         assertNotNull(response);
-        assertEquals("CANCELLED", response.getBookingStatus());
-        assertEquals("Đã hủy", response.getStatusLabel());
+        assertEquals("DECLINED", response.getBookingStatus());
+        assertEquals("Đã từ chối", response.getStatusLabel());
         assertEquals(ConnectionRequestStatus.DECLINED, mockRequest.getStatus());
         verify(trialBookingHistoryRepository, times(1)).save(any(TrialBookingHistory.class));
     }

@@ -15,5 +15,9 @@ public interface TutorScheduleService {
     void removeAvailability(String userEmail, UUID availabilityId);
 
     TutorAvailabilityDTO toggleAvailability(String userEmail, UUID availabilityId, boolean active);
+
+    boolean isSlotAvailable(UUID tutorId, Integer dayOfWeek, java.time.LocalTime startTime, java.time.LocalTime endTime);
+
+    boolean hasActiveAvailabilities(UUID tutorId);
 }
 

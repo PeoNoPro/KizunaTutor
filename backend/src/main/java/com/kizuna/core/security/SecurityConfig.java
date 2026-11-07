@@ -37,6 +37,7 @@ import java.util.Map;
 @Slf4j
 @Configuration
 @EnableWebSecurity
+@org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -99,6 +100,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/tutor/verification/**").hasAuthority("ROLE_TUTOR")
                 .requestMatchers("/api/academic/verifications/**").hasAuthority("ROLE_ACADEMIC_OFFICER")
+                // FE-05: Đặt lịch học thử & Quản lý lịch rảnh gia sư
+                .requestMatchers(HttpMethod.POST, "/api/v1/trial-bookings", "/api/trial-bookings").hasAuthority("ROLE_LEARNER")
+                .requestMatchers("/api/v1/trial-bookings/*/respond", "/api/trial-bookings/*/respond").hasAuthority("ROLE_TUTOR")
+                .requestMatchers("/api/v1/tutor/availability/**", "/api/tutor/availability/**").hasAuthority("ROLE_TUTOR")
                 // FE-09: gói hội viên và thanh toán
                 .requestMatchers("/api/payments/vnpay/ipn").permitAll()
                 .requestMatchers("/api/tutor/memberships/**").hasAuthority("ROLE_TUTOR")

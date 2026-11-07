@@ -50,6 +50,13 @@ public class TrialBooking extends BaseEntity {
     @Column(name = "meeting_link", length = 500)
     private String meetingLink;
 
+    @Column(name = "learning_mode", length = 20)
+    @Builder.Default
+    private String learningMode = "ONLINE";
+
+    @Column(name = "location_details", columnDefinition = "TEXT")
+    private String locationDetails;
+
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "booking_status", nullable = false)

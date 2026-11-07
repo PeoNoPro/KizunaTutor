@@ -28,6 +28,16 @@ public interface TutorAvailabilityRepository extends JpaRepository<TutorAvailabi
                                @Param("startTime") LocalTime startTime,
                                @Param("endTime") LocalTime endTime);
 
+    long countByTutor_TutorIdAndIsActiveTrue(UUID tutorId);
+
+    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN TRUE ELSE FALSE END FROM TutorAvailability a " +
+           "WHERE a.tutor.tutorId = :tutorId AND a.dayOfWeek = :dayOfWeek AND a.isActive = true " +
+           "AND a.startTime <= :startTime AND a.endTime >= :endTime")
+    boolean isWithinActiveAvailability(@Param("tutorId") UUID tutorId,
+                                       @Param("dayOfWeek") Integer dayOfWeek,
+                                       @Param("startTime") LocalTime startTime,
+                                       @Param("endTime") LocalTime endTime);
+
     void deleteByAvailabilityIdAndTutor_TutorId(UUID availabilityId, UUID tutorId);
 }
 

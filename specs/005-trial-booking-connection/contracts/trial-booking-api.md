@@ -14,7 +14,11 @@
 | `GET` | `/api/v1/trial-bookings/my-requests` | `ROLE_LEARNER`, `ROLE_TUTOR` | Lấy danh sách lịch học thử của người dùng hiện tại |
 | `GET` | `/api/v1/trial-bookings/{bookingId}` | `ROLE_LEARNER`, `ROLE_TUTOR` | Lấy chi tiết thông tin buổi học thử |
 | `PUT` | `/api/v1/trial-bookings/{bookingId}/respond` | `ROLE_TUTOR` | Gia sư duyệt yêu cầu: Chấp nhận hoặc Từ chối |
-| `PUT` | `/api/v1/trial-bookings/{bookingId}/cancel` | `ROLE_LEARNER`, `ROLE_TUTOR` | Hủy buổi học thử kèm lý do |
+| `PUT` | `/api/v1/trial-bookings/{bookingId}/cancel` | `ROLE_LEARNER`, `ROLE_TUTOR` | Hủy buổi học thử kèm lý do (trước 24h đối với buổi đã xác nhận) |
+| `GET` | `/api/v1/tutor/availability` | `ROLE_TUTOR` | Lấy danh sách các ca rảnh giảng dạy của gia sư đang đăng nhập |
+| `POST` | `/api/v1/tutor/availability` | `ROLE_TUTOR` | Thêm mới một ca rảnh hàng tuần |
+| `DELETE` | `/api/v1/tutor/availability/{id}` | `ROLE_TUTOR` | Xóa ca rảnh (chặn xóa nếu đang có lịch PENDING hoặc CONFIRMED) |
+| `PATCH` | `/api/v1/tutor/availability/{id}/toggle` | `ROLE_TUTOR` | Bật hoặc tạm ẩn ca rảnh hàng tuần |
 
 ---
 
@@ -181,6 +185,81 @@
     "statusLabel": "Đã hủy",
     "updatedAt": "2026-11-04T20:48:00+07:00"
   }
+}
+```
+
+---
+
+### 2.5. Quản lý ca rảnh giảng dạy của gia sư
+
+#### 2.5.1. Lấy danh sách ca rảnh
+- **Endpoint**: `GET /api/v1/tutor/availability`
+- **Quyền**: `ROLE_TUTOR`
+- **Response 200 OK**:
+```json
+{
+  "success": true,
+  "message": "Lấy danh sách ca rảnh giảng dạy thành công",
+  "data": [
+    {
+      "availabilityId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "dayOfWeek": 2,
+      "dayName": "Thứ hai",
+      "startTime": "18:00",
+      "endTime": "20:00",
+      "isActive": true
+    }
+  ],
+  "timestamp": "2026-11-07T17:00:00+07:00"
+}
+```
+
+#### 2.5.2. Thêm mới ca rảnh
+- **Endpoint**: `POST /api/v1/tutor/availability`
+- **Quyền**: `ROLE_TUTOR`
+- **Request Body**:
+```json
+{
+  "dayOfWeek": 2,
+  "startTime": "18:00",
+  "endTime": "20:00",
+  "isActive": true
+}
+```
+- **Response 201 Created**:
+```json
+{
+  "success": true,
+  "message": "Đã thêm ca rảnh thành công",
+  "data": {
+    "availabilityId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "dayOfWeek": 2,
+    "dayName": "Thứ hai",
+    "startTime": "18:00",
+    "endTime": "20:00",
+    "isActive": true
+  },
+  "timestamp": "2026-11-07T17:00:00+07:00"
+}
+```
+
+#### 2.5.3. Xóa ca rảnh
+- **Endpoint**: `DELETE /api/v1/tutor/availability/{availabilityId}`
+- **Quyền**: `ROLE_TUTOR`
+- **Response 200 OK**:
+```json
+{
+  "success": true,
+  "message": "Đã xóa ca rảnh thành công",
+  "data": null,
+  "timestamp": "2026-11-07T17:00:00+07:00"
+}
+```
+- **Response 409 Conflict** (Khi ca rảnh đang có lịch học thử PENDING hoặc CONFIRMED):
+```json
+{
+  "success": false,
+  "message": "Không thể xóa ca rảnh này vì đang có lịch học thử của học viên đang chờ hoặc đã xác nhận. Vui lòng xử lý lịch học trước."
 }
 ```
 

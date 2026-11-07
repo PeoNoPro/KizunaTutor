@@ -18,25 +18,33 @@ import com.kizuna.features.booking.repository.ConnectionRequestRepository;
 import com.kizuna.features.booking.repository.TrialBookingHistoryRepository;
 import com.kizuna.features.booking.repository.TrialBookingRepository;
 import com.kizuna.features.booking.service.TrialBookingService;
-import lombok.RequiredArgsConstructor;
+import com.kizuna.features.tutor_search.service.TutorScheduleService;
+import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TrialBookingServiceImpl implements TrialBookingService {
+
+    private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final UserRepository userRepository;
     private final LearnerRepository learnerRepository;
@@ -44,7 +52,27 @@ public class TrialBookingServiceImpl implements TrialBookingService {
     private final ConnectionRequestRepository connectionRequestRepository;
     private final TrialBookingRepository trialBookingRepository;
     private final TrialBookingHistoryRepository trialBookingHistoryRepository;
+    private final TutorScheduleService tutorScheduleService;
     private final JdbcTemplate jdbcTemplate;
+
+    public TrialBookingServiceImpl(
+            UserRepository userRepository,
+            LearnerRepository learnerRepository,
+            TutorRepository tutorRepository,
+            ConnectionRequestRepository connectionRequestRepository,
+            TrialBookingRepository trialBookingRepository,
+            TrialBookingHistoryRepository trialBookingHistoryRepository,
+            @Lazy TutorScheduleService tutorScheduleService,
+            JdbcTemplate jdbcTemplate) {
+        this.userRepository = userRepository;
+        this.learnerRepository = learnerRepository;
+        this.tutorRepository = tutorRepository;
+        this.connectionRequestRepository = connectionRequestRepository;
+        this.trialBookingRepository = trialBookingRepository;
+        this.trialBookingHistoryRepository = trialBookingHistoryRepository;
+        this.tutorScheduleService = tutorScheduleService;
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @Override
     @Transactional
@@ -52,9 +80,13 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         User learnerUser = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản người dùng"));
 
+        // Kiểm tra phân quyền: chỉ học viên mới được đặt lịch
+        if (learnerUser.getRole() == null || !"ROLE_LEARNER".equalsIgnoreCase(learnerUser.getRole().getRoleName())) {
+            throw new AccessDeniedException("Chỉ tài khoản học viên mới có thể đặt lịch học thử");
+        }
+
         Learner learner = learnerRepository.findByUser(learnerUser)
                 .orElseGet(() -> {
-                    // Tự động tạo hồ sơ learner nếu chưa tồn tại
                     Learner newLearner = Learner.builder()
                             .user(learnerUser)
                             .currentLevel(request.getCurrentLevel())
@@ -66,6 +98,11 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         Tutor tutor = tutorRepository.findById(request.getTutorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy gia sư với mã yêu cầu"));
 
+        // Kiểm tra gia sư đã được phê duyệt (Active tutor requirement)
+        if (tutor.getVerificationStatus() != TutorVerificationStatus.APPROVED) {
+            throw new BadRequestException("Gia sư hiện chưa sẵn sàng nhận học viên mới. Vui lòng chọn gia sư đã được phê duyệt.");
+        }
+
         OffsetDateTime startTime = request.getScheduledStartTime();
         if (startTime == null) {
             throw new BadRequestException("Thời gian bắt đầu học không được để trống");
@@ -74,51 +111,65 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             throw new BadRequestException("Thời gian bắt đầu học phải ở tương lai");
         }
 
+        // Validate thời lượng (chỉ hỗ trợ 25 hoặc 50 phút)
         int duration = (request.getDurationMinutes() != null && request.getDurationMinutes() > 0)
                 ? request.getDurationMinutes() : 50;
+        if (duration != 25 && duration != 50) {
+            throw new BadRequestException("Thời lượng buổi học thử chỉ hỗ trợ 25 phút hoặc 50 phút");
+        }
         OffsetDateTime endTime = startTime.plusMinutes(duration);
 
-        // Chống đặt trùng lịch (Race condition / Overlap check)
+        // Khóa giao dịch cấp cơ sở dữ liệu theo mã gia sư (Chống Race Condition khi 2 học viên đặt cùng lúc)
+        if (jdbcTemplate != null) {
+            try {
+                long tutorLockKey = Math.abs(tutor.getTutorId().getMostSignificantBits());
+                jdbcTemplate.execute("SELECT pg_advisory_xact_lock(" + tutorLockKey + ")");
+            } catch (Exception e) {
+                log.warn("Không thể kích hoạt pg_advisory_xact_lock: {}", e.getMessage());
+            }
+        }
+
+        // Kiểm tra trùng lịch gia sư
         boolean hasOverlap = trialBookingRepository.existsOverlappingBooking(tutor.getTutorId(), startTime, endTime);
         if (hasOverlap) {
             throw new ConflictException("Khung giờ này vừa có người đăng ký. Vui lòng chọn khung giờ khác.");
         }
 
-        // Kiểm tra khung giờ có nằm trong lịch rảnh của gia sư không (UC-31)
-        if (jdbcTemplate != null) {
-            try {
-                Integer totalAvail = jdbcTemplate.queryForObject(
-                        "SELECT count(*) FROM tutor_availabilities WHERE tutor_id = ? AND is_active = TRUE",
-                        Integer.class, tutor.getTutorId()
-                );
-                if (totalAvail != null && totalAvail > 0) {
-                    int dbDow = (startTime.getDayOfWeek().getValue() % 7) + 1;
-                    String startStr = startTime.toLocalTime().toString();
-                    String endStr = endTime.toLocalTime().toString();
-                    Integer matchCount = jdbcTemplate.queryForObject(
-                            "SELECT count(*) FROM tutor_availabilities WHERE tutor_id = ? AND is_active = TRUE " +
-                            "AND day_of_week = ? AND start_time <= ?::time AND end_time >= ?::time",
-                            Integer.class, tutor.getTutorId(), dbDow, startStr, endStr
-                    );
-                    if (matchCount == null || matchCount == 0) {
-                        throw new BadRequestException("Gia sư không có lịch rảnh vào khung giờ này. Vui lòng chọn khung giờ khác.");
-                    }
-                }
-            } catch (BadRequestException bre) {
-                throw bre;
-            } catch (Exception e) {
-                log.warn("Không thể xác thực lịch rảnh qua JdbcTemplate: {}", e.getMessage());
+        // Kiểm tra học viên không được đặt 2 lịch trùng giờ
+        boolean hasLearnerOverlap = trialBookingRepository.existsOverlappingLearnerBooking(learner.getLearnerId(), startTime, endTime);
+        if (hasLearnerOverlap) {
+            throw new ConflictException("Bạn đã có một lịch hẹn học thử khác vào khung giờ này. Vui lòng chọn khung giờ khác.");
+        }
+
+        // Đổi sang múi giờ Việt Nam (+07:00) trước khi so sánh với lịch rảnh của gia sư
+        ZonedDateTime vnStartTime = startTime.atZoneSameInstant(VN_ZONE);
+        ZonedDateTime vnEndTime = endTime.atZoneSameInstant(VN_ZONE);
+        int dayOfWeek = (vnStartTime.getDayOfWeek().getValue() % 7) + 1; // 1 = Chủ nhật, 2 = Thứ hai...
+        LocalTime localStartTime = vnStartTime.toLocalTime();
+        LocalTime localEndTime = vnEndTime.toLocalTime();
+
+        // Kiểm tra ca rảnh của gia sư qua Service interface công khai (Tuân thủ AGENTS Luật 3)
+        if (tutorScheduleService != null && tutorScheduleService.hasActiveAvailabilities(tutor.getTutorId())) {
+            boolean isSlotAvailable = tutorScheduleService.isSlotAvailable(
+                    tutor.getTutorId(), dayOfWeek, localStartTime, localEndTime);
+            if (!isSlotAvailable) {
+                throw new BadRequestException("Gia sư không có lịch rảnh vào khung giờ này. Vui lòng chọn khung giờ khác.");
             }
         }
 
+        // Buổi học thử bắt buộc là học trực tuyến (ONLINE) theo quy định nền tảng
+        String mode = "ONLINE";
+        String location = null;
+
         // Tạo yêu cầu kết nối (ConnectionRequest)
-        String modeText = "ONLINE".equalsIgnoreCase(request.getLearningMode()) ? "[Hình thức: Học trực tuyến]" :
-                "[Hình thức: Học trực tiếp tại " + (request.getLocationDetails() != null ? request.getLocationDetails() : "địa chỉ hẹn") + "]";
+        String modeText = "[Hình thức: Học trực tuyến 1-1]";
+        String levelText = (request.getCurrentLevel() != null && !request.getCurrentLevel().isBlank())
+                ? "\n[Trình độ: " + request.getCurrentLevel() + "]" : "";
         String goalsText = (request.getLearningGoals() != null && !request.getLearningGoals().isBlank())
                 ? "\n[Mục tiêu: " + request.getLearningGoals() + "]" : "";
         String msgText = (request.getInitialMessage() != null && !request.getInitialMessage().isBlank())
                 ? "\n" + request.getInitialMessage() : "";
-        String fullInitialMessage = modeText + goalsText + msgText;
+        String fullInitialMessage = modeText + levelText + goalsText + msgText;
 
         ConnectionRequest connectionRequest = ConnectionRequest.builder()
                 .learner(learner)
@@ -129,16 +180,15 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         connectionRequest = connectionRequestRepository.save(connectionRequest);
 
         // Tạo buổi học thử (TrialBooking)
-        String meetingLink = "ONLINE".equalsIgnoreCase(request.getLearningMode()) ? null :
-                (request.getLocationDetails() != null ? request.getLocationDetails() : "Địa điểm học thỏa thuận");
-
         TrialBooking trialBooking = TrialBooking.builder()
                 .connectionRequest(connectionRequest)
                 .learner(learner)
                 .tutor(tutor)
                 .scheduledStartTime(startTime)
                 .scheduledEndTime(endTime)
-                .meetingLink(meetingLink)
+                .learningMode(mode)
+                .locationDetails(location)
+                .meetingLink(null) // Chưa có link khi ở trạng thái PENDING
                 .bookingStatus(TrialBookingStatus.PENDING)
                 .learnerConfirmed(true)
                 .tutorConfirmed(false)
@@ -164,10 +214,14 @@ public class TrialBookingServiceImpl implements TrialBookingService {
     @Transactional
     public TrialBookingResponseDTO respondTrialBooking(String userEmail, UUID bookingId, RespondTrialBookingRequestDTO request) {
         User tutorUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản gia sư"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản"));
+
+        if (tutorUser.getRole() == null || !"ROLE_TUTOR".equalsIgnoreCase(tutorUser.getRole().getRoleName())) {
+            throw new AccessDeniedException("Chỉ tài khoản gia sư mới có quyền phê duyệt yêu cầu học thử");
+        }
 
         Tutor tutor = tutorRepository.findByUser(tutorUser)
-                .orElseThrow(() -> new AccessDeniedException("Chỉ tài khoản gia sư mới có quyền phê duyệt yêu cầu học thử"));
+                .orElseThrow(() -> new AccessDeniedException("Tài khoản của bạn chưa được liên kết với hồ sơ gia sư"));
 
         TrialBooking trialBooking = trialBookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin buổi học thử"));
@@ -189,7 +243,12 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             trialBooking.setBookingStatus(newStatus);
             trialBooking.setTutorConfirmed(true);
 
-            if (request.getMeetingLink() != null && !request.getMeetingLink().isBlank()) {
+            // Bắt buộc link phòng học nếu là ONLINE
+            String mode = trialBooking.getLearningMode() != null ? trialBooking.getLearningMode() : "ONLINE";
+            if ("ONLINE".equalsIgnoreCase(mode)) {
+                if (request.getMeetingLink() == null || request.getMeetingLink().isBlank() || !request.getMeetingLink().trim().startsWith("http")) {
+                    throw new BadRequestException("Vui lòng cung cấp đường dẫn phòng học trực tuyến hợp lệ (ví dụ: Google Meet https://meet.google.com/...) để xác nhận");
+                }
                 trialBooking.setMeetingLink(request.getMeetingLink().trim());
             }
 
@@ -199,7 +258,8 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             }
             reason = request.getNote() != null ? request.getNote() : "Gia sư đã chấp nhận lịch học thử";
         } else if ("DECLINE".equalsIgnoreCase(request.getAction())) {
-            newStatus = TrialBookingStatus.CANCELLED;
+            // Chuyển sang DECLINED (theo SRS 5.8 và spec)
+            newStatus = TrialBookingStatus.DECLINED;
             trialBooking.setBookingStatus(newStatus);
 
             if (trialBooking.getConnectionRequest() != null) {
@@ -295,7 +355,6 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         TrialBooking trialBooking = trialBookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học thử"));
 
-        // Kiểm tra quyền: phải là học viên hoặc gia sư của buổi học
         boolean isLearner = trialBooking.getLearner().getUser().getUserId().equals(user.getUserId());
         boolean isTutor = trialBooking.getTutor().getUser().getUserId().equals(user.getUserId());
 
@@ -323,8 +382,18 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         }
 
         if (trialBooking.getBookingStatus() == TrialBookingStatus.CANCELLED ||
+            trialBooking.getBookingStatus() == TrialBookingStatus.DECLINED ||
+            trialBooking.getBookingStatus() == TrialBookingStatus.EXPIRED ||
             trialBooking.getBookingStatus() == TrialBookingStatus.COMPLETED) {
             throw new BadRequestException("Buổi học thử không thể hủy ở trạng thái hiện tại");
+        }
+
+        // Quy định hủy lịch: Học viên hủy buổi học CONFIRMED phải trước giờ học ít nhất 24 giờ
+        if (isLearner && trialBooking.getBookingStatus() == TrialBookingStatus.CONFIRMED) {
+            OffsetDateTime now = OffsetDateTime.now();
+            if (now.plusHours(24).isAfter(trialBooking.getScheduledStartTime())) {
+                throw new BadRequestException("Theo quy định, bạn chỉ có thể hủy buổi học thử đã xác nhận trước giờ học ít nhất 24 giờ.");
+            }
         }
 
         TrialBookingStatus prevStatus = trialBooking.getBookingStatus();
@@ -351,6 +420,29 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         return mapToDTO(trialBooking, user);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasActiveBookingsInSlot(UUID tutorId, Integer dayOfWeek, LocalTime startTime, LocalTime endTime) {
+        List<TrialBooking> activeBookings = trialBookingRepository.findByTutorTutorIdAndBookingStatusIn(
+                tutorId, List.of(TrialBookingStatus.PENDING, TrialBookingStatus.CONFIRMED));
+
+        for (TrialBooking tb : activeBookings) {
+            if (tb.getScheduledStartTime() == null || tb.getScheduledEndTime() == null) continue;
+            ZonedDateTime st = tb.getScheduledStartTime().atZoneSameInstant(VN_ZONE);
+            ZonedDateTime et = tb.getScheduledEndTime().atZoneSameInstant(VN_ZONE);
+            int dow = (st.getDayOfWeek().getValue() % 7) + 1;
+            if (dayOfWeek != null && dayOfWeek == dow) {
+                LocalTime bStart = st.toLocalTime();
+                LocalTime bEnd = et.toLocalTime();
+                // Overlap: bStart < endTime && bEnd > startTime
+                if (bStart.isBefore(endTime) && bEnd.isAfter(startTime)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private TrialBookingResponseDTO mapToDTO(TrialBooking tb, User currentUser) {
         boolean isCurrentUserLearner = tb.getLearner().getUser().getUserId().equals(currentUser.getUserId());
         User partnerUser = isCurrentUserLearner ? tb.getTutor().getUser() : tb.getLearner().getUser();
@@ -362,15 +454,17 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             case COMPLETED -> "Đã hoàn thành";
             case CANCELLED -> "Đã hủy";
             case RESCHEDULED -> "Đã dời lịch";
+            case DECLINED -> "Đã từ chối";
+            case EXPIRED -> "Đã hết hạn";
         };
 
         int duration = 50;
         if (tb.getScheduledStartTime() != null && tb.getScheduledEndTime() != null) {
-            duration = (int) java.time.Duration.between(tb.getScheduledStartTime(), tb.getScheduledEndTime()).toMinutes();
+            duration = (int) Duration.between(tb.getScheduledStartTime(), tb.getScheduledEndTime()).toMinutes();
         }
 
-        String mode = (tb.getMeetingLink() != null && tb.getMeetingLink().startsWith("http")) ? "ONLINE" : "OFFLINE";
-        String location = "OFFLINE".equals(mode) ? tb.getMeetingLink() : null;
+        String mode = tb.getLearningMode() != null ? tb.getLearningMode() : "ONLINE";
+        String location = tb.getLocationDetails();
 
         String goals = tb.getLearner().getLearningGoals();
         String initialMsg = tb.getConnectionRequest() != null ? tb.getConnectionRequest().getInitialMessage() : null;
@@ -378,6 +472,8 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         return TrialBookingResponseDTO.builder()
                 .bookingId(tb.getBookingId())
                 .requestId(tb.getConnectionRequest() != null ? tb.getConnectionRequest().getRequestId() : null)
+                .tutorId(tb.getTutor().getTutorId())
+                .tutorName(tb.getTutor().getUser().getFullName())
                 .partnerId(partnerUser.getUserId())
                 .partnerName(partnerUser.getFullName() != null ? partnerUser.getFullName() : partnerUser.getEmail())
                 .partnerAvatarUrl(partnerUser.getAvatarUrl())
@@ -398,4 +494,3 @@ public class TrialBookingServiceImpl implements TrialBookingService {
                 .build();
     }
 }
-

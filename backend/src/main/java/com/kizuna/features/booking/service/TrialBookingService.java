@@ -34,5 +34,10 @@ public interface TrialBookingService {
      * Hủy buổi học thử trước giờ học (User Story 4 - P3)
      */
     TrialBookingResponseDTO cancelTrialBooking(String userEmail, UUID bookingId, CancelTrialBookingRequestDTO request);
+
+    /**
+     * Kiểm tra xem gia sư có lịch học thử nào đang PENDING hoặc CONFIRMED trong ca này không
+     */
+    boolean hasActiveBookingsInSlot(UUID tutorId, Integer dayOfWeek, java.time.LocalTime startTime, java.time.LocalTime endTime);
 }
 

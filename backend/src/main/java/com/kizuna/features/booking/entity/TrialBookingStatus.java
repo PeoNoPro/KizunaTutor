@@ -8,5 +8,7 @@ public enum TrialBookingStatus {
     CONFIRMED,
     COMPLETED,
     CANCELLED,
-    RESCHEDULED
+    RESCHEDULED,
+    DECLINED,
+    EXPIRED
 }

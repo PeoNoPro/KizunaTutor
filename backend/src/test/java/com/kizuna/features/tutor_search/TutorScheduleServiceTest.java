@@ -40,6 +40,9 @@ class TutorScheduleServiceTest {
     @Mock
     private TutorAvailabilityRepository availabilityRepository;
 
+    @Mock
+    private com.kizuna.features.booking.service.TrialBookingService trialBookingService;
+
     @InjectMocks
     private TutorScheduleServiceImpl scheduleService;
 
@@ -152,6 +155,29 @@ class TutorScheduleServiceTest {
         scheduleService.removeAvailability(tutorEmail, slotId);
 
         verify(availabilityRepository, times(1)).delete(slot);
+    }
+
+    @Test
+    @DisplayName("Xóa ca rảnh thất bại khi đang có lịch học thử PENDING hoặc CONFIRMED - Ném ConflictException")
+    void removeAvailability_hasActiveBookings_throwsConflict() {
+        UUID slotId = UUID.randomUUID();
+        when(userRepository.findByEmail(tutorEmail)).thenReturn(Optional.of(mockUser));
+        when(tutorRepository.findByUser(mockUser)).thenReturn(Optional.of(mockTutor));
+
+        TutorAvailability slot = TutorAvailability.builder()
+                .availabilityId(slotId)
+                .tutor(mockTutor)
+                .dayOfWeek(3)
+                .startTime(LocalTime.of(18, 0))
+                .endTime(LocalTime.of(20, 0))
+                .build();
+        when(availabilityRepository.findByAvailabilityIdAndTutor_TutorId(slotId, tutorId)).thenReturn(Optional.of(slot));
+        when(trialBookingService.hasActiveBookingsInSlot(eq(tutorId), eq(3), eq(LocalTime.of(18, 0)), eq(LocalTime.of(20, 0))))
+                .thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> scheduleService.removeAvailability(tutorEmail, slotId));
+        assertTrue(ex.getMessage().contains("Không thể xóa ca rảnh này vì đang có lịch học thử"));
+        verify(availabilityRepository, never()).delete(any());
     }
 }
 

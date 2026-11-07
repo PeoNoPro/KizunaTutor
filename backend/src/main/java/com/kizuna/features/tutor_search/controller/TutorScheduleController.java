@@ -1,21 +1,23 @@
 package com.kizuna.features.tutor_search.controller;
 
-import com.kizuna.core.security.JwtTokenProvider;
+import com.kizuna.core.dto.ApiResponse;
+import com.kizuna.core.entity.User;
 import com.kizuna.features.tutor_search.dto.CreateAvailabilityRequestDTO;
 import com.kizuna.features.tutor_search.dto.TutorAvailabilityDTO;
 import com.kizuna.features.tutor_search.service.TutorScheduleService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
+import java.security.Principal;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -26,82 +28,71 @@ import java.util.UUID;
 public class TutorScheduleController {
 
     private final TutorScheduleService tutorScheduleService;
-    private final JwtTokenProvider jwtTokenProvider;
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getMyAvailabilities(HttpServletRequest request) {
-        String userEmail = extractEmail(request);
+    @PreAuthorize("hasAuthority('ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<List<TutorAvailabilityDTO>>> getMyAvailabilities(Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
         List<TutorAvailabilityDTO> list = tutorScheduleService.getMyAvailabilities(userEmail);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
-        body.put("code", 200);
-        body.put("message", "Lấy danh sách ca rảnh giảng dạy thành công");
-        body.put("data", list);
-
-        return ResponseEntity.ok(body);
+        return ResponseEntity.ok(ApiResponse.ok("Lấy danh sách ca rảnh giảng dạy thành công", list));
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> addAvailability(
+    @PreAuthorize("hasAuthority('ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<TutorAvailabilityDTO>> addAvailability(
             @Valid @RequestBody CreateAvailabilityRequestDTO requestDto,
-            HttpServletRequest request) {
-        String userEmail = extractEmail(request);
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
         TutorAvailabilityDTO response = tutorScheduleService.addAvailability(userEmail, requestDto);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
-        body.put("code", 201);
-        body.put("message", "Đã thêm ca rảnh thành công");
-        body.put("data", response);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Đã thêm ca rảnh thành công", response));
     }
 
     @DeleteMapping("/{availabilityId}")
-    public ResponseEntity<Map<String, Object>> removeAvailability(
+    @PreAuthorize("hasAuthority('ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<Void>> removeAvailability(
             @PathVariable UUID availabilityId,
-            HttpServletRequest request) {
-        String userEmail = extractEmail(request);
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
         tutorScheduleService.removeAvailability(userEmail, availabilityId);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
-        body.put("code", 200);
-        body.put("message", "Đã xóa ca rảnh thành công");
-
-        return ResponseEntity.ok(body);
+        return ResponseEntity.ok(ApiResponse.ok("Đã xóa ca rảnh thành công", null));
     }
 
     @PatchMapping("/{availabilityId}/toggle")
-    public ResponseEntity<Map<String, Object>> toggleAvailability(
+    @PreAuthorize("hasAuthority('ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<TutorAvailabilityDTO>> toggleAvailability(
             @PathVariable UUID availabilityId,
             @RequestParam boolean active,
-            HttpServletRequest request) {
-        String userEmail = extractEmail(request);
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
         TutorAvailabilityDTO response = tutorScheduleService.toggleAvailability(userEmail, availabilityId, active);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
-        body.put("code", 200);
-        body.put("message", active ? "Đã bật ca rảnh" : "Đã tạm ẩn ca rảnh");
-        body.put("data", response);
-
-        return ResponseEntity.ok(body);
+        String msg = active ? "Đã mở lại ca rảnh" : "Đã tạm ẩn ca rảnh";
+        return ResponseEntity.ok(ApiResponse.ok(msg, response));
     }
 
-    private String extractEmail(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new AccessDeniedException("Vui lòng đăng nhập tài khoản gia sư để quản lý lịch giảng dạy");
+    private String getAuthenticatedEmail(Principal principal) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            Object p = auth.getPrincipal();
+            if (p instanceof User user && user.getEmail() != null) {
+                return user.getEmail();
+            }
+            if (p instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
+                return userDetails.getUsername();
+            }
+            if (p instanceof String email && !email.isBlank()) {
+                return email;
+            }
         }
-        String token = authHeader.substring(7).trim();
-        try {
-            return jwtTokenProvider.getEmailFromToken(token);
-        } catch (Exception e) {
-            log.error("Failed to extract email from token in TutorScheduleController: {}", e.getMessage());
-            throw new AccessDeniedException("Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.");
+        if (principal != null) {
+            if (principal instanceof Authentication authentication && authentication.getPrincipal() instanceof User user && user.getEmail() != null) {
+                return user.getEmail();
+            }
+            String name = principal.getName();
+            if (name != null && !name.isBlank()) {
+                return name;
+            }
         }
+        throw new InsufficientAuthenticationException("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
     }
 }
-

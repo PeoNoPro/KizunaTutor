@@ -776,6 +776,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
 
+        // 3. Chuẩn bị payload đăng ký học thử trực tuyến 1-1
         // Định dạng ISO 8601 kèm múi giờ +07:00
         const pad = (n) => String(n).padStart(2, '0');
         const scheduledStartTime = `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())}T${pad(hours)}:${pad(minutes)}:00+07:00`;
@@ -785,11 +786,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           scheduledStartTime: scheduledStartTime,
           durationMinutes: selectedDurationMinutes,
           learningMode: 'ONLINE',
+          locationDetails: null,
           currentLevel: 'N5',
-          initialMessage: 'Đăng ký học thử 1-1'
+          learningGoals: null,
+          initialMessage: 'Đăng ký học thử trực tuyến 1-1'
         };
 
-        // 3. Gọi API gửi yêu cầu
+        // 4. Gọi API gửi yêu cầu
         continueBtn.disabled = true;
         const origBtnHtml = continueBtn.innerHTML;
         continueBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span><span>Đang xử lý...</span>';

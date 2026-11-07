@@ -7,13 +7,14 @@ import com.kizuna.core.exception.ConflictException;
 import com.kizuna.core.exception.ResourceNotFoundException;
 import com.kizuna.core.repository.TutorRepository;
 import com.kizuna.core.repository.UserRepository;
+import com.kizuna.features.booking.service.TrialBookingService;
 import com.kizuna.features.tutor_search.dto.CreateAvailabilityRequestDTO;
 import com.kizuna.features.tutor_search.dto.TutorAvailabilityDTO;
 import com.kizuna.features.tutor_search.entity.TutorAvailability;
 import com.kizuna.features.tutor_search.repository.TutorAvailabilityRepository;
 import com.kizuna.features.tutor_search.service.TutorScheduleService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,12 +27,23 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TutorScheduleServiceImpl implements TutorScheduleService {
 
     private final UserRepository userRepository;
     private final TutorRepository tutorRepository;
     private final TutorAvailabilityRepository availabilityRepository;
+    private final TrialBookingService trialBookingService;
+
+    public TutorScheduleServiceImpl(
+            UserRepository userRepository,
+            TutorRepository tutorRepository,
+            TutorAvailabilityRepository availabilityRepository,
+            @Lazy TrialBookingService trialBookingService) {
+        this.userRepository = userRepository;
+        this.tutorRepository = tutorRepository;
+        this.availabilityRepository = availabilityRepository;
+        this.trialBookingService = trialBookingService;
+    }
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -89,8 +101,26 @@ public class TutorScheduleServiceImpl implements TutorScheduleService {
         TutorAvailability slot = availabilityRepository.findByAvailabilityIdAndTutor_TutorId(availabilityId, tutor.getTutorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ca rảnh cần xóa hoặc ca này không thuộc quyền sở hữu của bạn"));
 
+        boolean hasActiveBookings = trialBookingService != null && trialBookingService.hasActiveBookingsInSlot(
+                tutor.getTutorId(), slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime());
+        if (hasActiveBookings) {
+            throw new ConflictException("Không thể xóa ca rảnh này vì đang có lịch học thử của học viên đang chờ hoặc đã xác nhận. Vui lòng xử lý lịch học trước.");
+        }
+
         availabilityRepository.delete(slot);
         log.info("Tutor {} deleted availability slot {}", tutor.getTutorId(), availabilityId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isSlotAvailable(UUID tutorId, Integer dayOfWeek, LocalTime startTime, LocalTime endTime) {
+        return availabilityRepository.isWithinActiveAvailability(tutorId, dayOfWeek, startTime, endTime);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasActiveAvailabilities(UUID tutorId) {
+        return availabilityRepository.countByTutor_TutorIdAndIsActiveTrue(tutorId) > 0;
     }
 
     @Override

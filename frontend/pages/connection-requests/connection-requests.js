@@ -380,6 +380,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('modal-cancel-booking')?.classList.remove('hidden');
       });
     });
+
+    // Nút đóng các modal & toast (FRONTEND_RULES: thay thế inline onclick)
+    document.querySelectorAll('[data-action="close-accept-modal"]').forEach(btn => {
+      btn.addEventListener('click', window.closeAcceptModal);
+    });
+    document.querySelectorAll('[data-action="close-decline-modal"]').forEach(btn => {
+      btn.addEventListener('click', window.closeDeclineModal);
+    });
+    document.querySelectorAll('[data-action="close-cancel-modal"]').forEach(btn => {
+      btn.addEventListener('click', window.closeCancelModal);
+    });
+    document.getElementById('btn-close-toast')?.addEventListener('click', () => {
+      document.getElementById('action-toast-alert')?.classList.add('hidden');
+    });
   }
 
   // Chuyển tab

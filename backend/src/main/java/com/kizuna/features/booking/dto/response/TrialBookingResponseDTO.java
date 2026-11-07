@@ -15,6 +15,10 @@ public class TrialBookingResponseDTO {
     private UUID bookingId;
     private UUID requestId;
 
+    // Tương thích hợp đồng API
+    private UUID tutorId;
+    private String tutorName;
+
     // Thông tin đối tác (Nếu người xem là Học viên -> đối tác là Gia sư; Nếu người xem là Gia sư -> đối tác là Học viên)
     private UUID partnerId;
     private String partnerName;

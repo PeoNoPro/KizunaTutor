@@ -109,6 +109,16 @@ public class TrialBookingController {
         return ResponseEntity.ok(ApiResponse.ok("Đã dời lịch học thử thành công", response));
     }
 
+    @PutMapping("/{bookingId}/complete")
+    @PreAuthorize("hasAnyAuthority('ROLE_LEARNER', 'ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> completeTrialBooking(
+            @PathVariable UUID bookingId,
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
+        TrialBookingResponseDTO response = trialBookingService.completeTrialBooking(userEmail, bookingId);
+        return ResponseEntity.ok(ApiResponse.ok("Đã xác nhận hoàn thành buổi học thử thành công", response));
+    }
+
     private String getAuthenticatedEmail(Principal principal) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {

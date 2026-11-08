@@ -204,6 +204,10 @@ function renderBookings() {
                 <span>Vào lớp học ngay</span>
               </a>
             ` : ''}
+            <button type="button" class="btn-complete-booking px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold inline-flex items-center gap-1 shadow-xs transition-all cursor-pointer" data-id="${item.bookingId}" title="Xác nhận buổi học thử đã hoàn thành">
+              <span class="material-symbols-outlined text-[15px]">task_alt</span>
+              <span>Hoàn thành</span>
+            </button>
             <button type="button" class="btn-open-reschedule px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1 transition-all cursor-pointer" data-id="${item.bookingId}" title="Đổi sang lịch khác trước ít nhất 24 giờ">
               <span class="material-symbols-outlined text-[15px]">edit_calendar</span>
               <span>Đổi lịch</span>
@@ -220,12 +224,16 @@ function renderBookings() {
         <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 bg-sky-50/60 p-3.5 rounded-xl border border-sky-200">
           <div class="flex items-center gap-2 text-xs text-sky-800 font-medium">
             <span class="material-symbols-outlined text-[18px] text-sky-600">verified</span>
-            <span>Buổi học thử 1-1 đã hoàn thành! Hãy để lại đánh giá và nhận xét cho gia sư.</span>
+            <span>Buổi học thử 1-1 đã hoàn tất! Hai bên có thể tiếp tục trao đổi để sắp xếp lịch học chính thức.</span>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <a href="/pages/tutor-profile/?id=${item.tutorId || ''}" class="px-4 py-1.5 rounded-lg bg-[#006194] hover:bg-[#004b73] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-all no-underline">
-              <span class="material-symbols-outlined text-[15px]">rate_review</span>
-              <span>Đánh giá gia sư</span>
+            <a href="/pages/my-courses/" class="px-4 py-1.5 rounded-lg bg-[#006194] hover:bg-[#004b73] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-all no-underline">
+              <span class="material-symbols-outlined text-[15px]">school</span>
+              <span>Vào lớp học của tôi</span>
+            </a>
+            <a href="/pages/tutor-discovery/" class="px-3.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-all no-underline">
+              <span class="material-symbols-outlined text-[15px]">person_search</span>
+              <span>Tìm gia sư khác</span>
             </a>
           </div>
         </div>
@@ -340,6 +348,24 @@ function bindCardActionEvents() {
         showToast('Đã sao chép link Google Meet vào bộ nhớ tạm!');
       } catch (e) {
         showToast('Không thể sao chép link', 'error');
+      }
+    });
+  });
+
+  // Nút xác nhận hoàn thành buổi học thử
+  document.querySelectorAll('.btn-complete-booking').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (!id) return;
+      if (!confirm('Xác nhận bạn và gia sư đã hoàn thành buổi học thử 1-1 này?')) return;
+      btn.disabled = true;
+      try {
+        await API.trialBookings.complete(id);
+        showToast('Đã xác nhận hoàn thành buổi học thử!');
+        await loadBookings();
+      } catch (err) {
+        showToast(err.message || 'Không thể hoàn thành buổi học', 'error');
+        btn.disabled = false;
       }
     });
   });

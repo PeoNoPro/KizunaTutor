@@ -69,5 +69,7 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
     Page<TrialBooking> findByTutorTutorId(UUID tutorId, Pageable pageable);
 
     List<TrialBooking> findByTutorTutorIdAndBookingStatusIn(UUID tutorId, List<TrialBookingStatus> statuses);
+
+    List<TrialBooking> findByBookingStatusInAndScheduledEndTimeBefore(List<TrialBookingStatus> statuses, OffsetDateTime time);
 }
 

@@ -158,26 +158,54 @@ function renderBookings() {
           </button>
         </div>
       `;
-    } else if (isConfirmed && item.meetingLink) {
+    } else if (isConfirmed) {
       actionsHtml = `
         <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">video_camera_front</span>
-            <div class="min-w-0">
-              <p class="text-caption text-emerald-800 font-bold">Phòng học Google Meet đã sẵn sàng:</p>
-              <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="text-body-sm text-emerald-700 hover:text-emerald-900 font-medium underline truncate block">
-                ${escapeHtml(item.meetingLink)}
-              </a>
+          ${item.meetingLink ? `
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">video_camera_front</span>
+              <div class="min-w-0">
+                <p class="text-caption text-emerald-800 font-bold">Phòng học Google Meet đã sẵn sàng:</p>
+                <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="text-body-sm text-emerald-700 hover:text-emerald-900 font-medium underline truncate block">
+                  ${escapeHtml(item.meetingLink)}
+                </a>
+              </div>
             </div>
+          ` : `
+            <div class="flex items-center gap-2 text-body-sm text-emerald-800 font-medium">
+              <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">verified</span>
+              <span>Buổi học thử đã được xác nhận.</span>
+            </div>
+          `}
+          <div class="flex items-center gap-2 shrink-0">
+            ${item.meetingLink ? `
+              <button type="button" class="btn-copy-link px-3 py-1.5 rounded-lg bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-label-sm font-semibold inline-flex items-center gap-1 transition-all" data-link="${escapeHtml(item.meetingLink)}">
+                <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                <span>Sao chép</span>
+              </button>
+              <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="px-4 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-label-sm font-semibold inline-flex items-center gap-1 shadow-xs transition-all no-underline">
+                <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                <span>Vào lớp</span>
+              </a>
+            ` : ''}
+            <button type="button" class="btn-complete-booking px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-label-sm font-semibold inline-flex items-center gap-1 transition-all cursor-pointer" data-id="${item.bookingId}" title="Xác nhận hoàn thành buổi học thử">
+              <span class="material-symbols-outlined text-[16px]">task_alt</span>
+              <span>Hoàn thành</span>
+            </button>
+          </div>
+        </div>
+      `;
+    } else if (isCompleted) {
+      actionsHtml = `
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-sky-50/50 p-3 rounded-xl border border-sky-200/60">
+          <div class="flex items-center gap-2 text-body-sm text-sky-900 font-medium">
+            <span class="material-symbols-outlined text-sky-700 text-[20px] shrink-0">task_alt</span>
+            <span>Buổi học thử đã hoàn thành! Bạn có thể trao đổi và tạo lớp học 1-1 chính thức cho học viên này.</span>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <button type="button" class="btn-copy-link px-3 py-1.5 rounded-lg bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-label-sm font-semibold inline-flex items-center gap-1 transition-all" data-link="${escapeHtml(item.meetingLink)}">
-              <span class="material-symbols-outlined text-[16px]">content_copy</span>
-              <span>Sao chép</span>
-            </button>
-            <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="px-4 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-label-sm font-semibold inline-flex items-center gap-1 shadow-xs transition-all">
-              <span class="material-symbols-outlined text-[16px]">open_in_new</span>
-              <span>Vào lớp</span>
+            <a href="/pages/tutor-classrooms/" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all no-underline">
+              <span class="material-symbols-outlined text-[18px]">add_circle</span>
+              <span>Mở lớp học 1-1</span>
             </a>
           </div>
         </div>
@@ -286,6 +314,24 @@ function bindCardActionEvents() {
         showToast('Đã sao chép link Google Meet vào bộ nhớ tạm!');
       } catch (e) {
         showToast('Không thể sao chép link', 'error');
+      }
+    });
+  });
+
+  // Nút xác nhận hoàn thành buổi học
+  document.querySelectorAll('.btn-complete-booking').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (!id) return;
+      if (!confirm('Xác nhận buổi học thử này đã hoàn thành?')) return;
+      btn.disabled = true;
+      try {
+        await API.trialBookings.complete(id);
+        showToast('Đã xác nhận hoàn thành buổi học thử!');
+        await loadBookings();
+      } catch (err) {
+        showToast(err.message || 'Không thể hoàn thành buổi học', 'error');
+        btn.disabled = false;
       }
     });
   });

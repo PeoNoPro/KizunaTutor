@@ -290,10 +290,17 @@ public class TrialBookingServiceImpl implements TrialBookingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<TrialBookingResponseDTO> getMyTrialBookings(String userEmail, String status, int page, int size) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản"));
+
+        // Tự động chuyển các buổi học đã quá giờ kết thúc sang COMPLETED
+        try {
+            autoCompleteEndedBookings();
+        } catch (Exception e) {
+            log.warn("Lỗi khi tự động hoàn thành buổi học quá giờ: {}", e.getMessage());
+        }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "scheduledStartTime"));
 
@@ -543,6 +550,78 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             }
         }
         return false;
+    }
+
+    @Override
+    @Transactional
+    public TrialBookingResponseDTO completeTrialBooking(String userEmail, UUID bookingId) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản"));
+
+        TrialBooking trialBooking = trialBookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học thử"));
+
+        boolean isLearner = trialBooking.getLearner().getUser().getUserId().equals(user.getUserId());
+        boolean isTutor = trialBooking.getTutor().getUser().getUserId().equals(user.getUserId());
+
+        if (!isLearner && !isTutor) {
+            throw new AccessDeniedException("Bạn không có quyền thao tác trên buổi học thử này");
+        }
+
+        if (trialBooking.getBookingStatus() == TrialBookingStatus.COMPLETED) {
+            return mapToDTO(trialBooking, user);
+        }
+
+        if (trialBooking.getBookingStatus() != TrialBookingStatus.CONFIRMED &&
+            trialBooking.getBookingStatus() != TrialBookingStatus.RESCHEDULED) {
+            throw new BadRequestException("Chỉ có thể hoàn thành buổi học thử đã được xác nhận");
+        }
+
+        TrialBookingStatus prevStatus = trialBooking.getBookingStatus();
+        trialBooking.setBookingStatus(TrialBookingStatus.COMPLETED);
+        if (isLearner) {
+            trialBooking.setLearnerConfirmed(true);
+        }
+        if (isTutor) {
+            trialBooking.setTutorConfirmed(true);
+        }
+
+        trialBooking = trialBookingRepository.save(trialBooking);
+
+        TrialBookingHistory history = TrialBookingHistory.builder()
+                .trialBooking(trialBooking)
+                .changedByUser(user)
+                .previousStatus(prevStatus)
+                .newStatus(TrialBookingStatus.COMPLETED)
+                .changeReason(isTutor ? "Gia sư đã xác nhận hoàn thành buổi học" : "Học viên đã xác nhận hoàn thành buổi học")
+                .build();
+        trialBookingHistoryRepository.save(history);
+
+        log.info("User {} completed booking {}", user.getEmail(), bookingId);
+        return mapToDTO(trialBooking, user);
+    }
+
+    private void autoCompleteEndedBookings() {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<TrialBooking> endedBookings = trialBookingRepository.findByBookingStatusInAndScheduledEndTimeBefore(
+                List.of(TrialBookingStatus.CONFIRMED, TrialBookingStatus.RESCHEDULED), now);
+        if (!endedBookings.isEmpty()) {
+            for (TrialBooking tb : endedBookings) {
+                TrialBookingStatus prevStatus = tb.getBookingStatus();
+                tb.setBookingStatus(TrialBookingStatus.COMPLETED);
+                trialBookingRepository.save(tb);
+
+                TrialBookingHistory history = TrialBookingHistory.builder()
+                        .trialBooking(tb)
+                        .changedByUser(tb.getTutor() != null ? tb.getTutor().getUser() : null)
+                        .previousStatus(prevStatus)
+                        .newStatus(TrialBookingStatus.COMPLETED)
+                        .changeReason("Hệ thống tự động cập nhật hoàn thành khi hết giờ học thử")
+                        .build();
+                trialBookingHistoryRepository.save(history);
+            }
+            log.info("Auto-completed {} trial bookings that reached end time", endedBookings.size());
+        }
     }
 
     private TrialBookingResponseDTO mapToDTO(TrialBooking tb, User currentUser) {

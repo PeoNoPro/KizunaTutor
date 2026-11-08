@@ -449,6 +449,30 @@ export const API = {
         console.error(`API.trialBookings.reschedule(${bookingId}) error:`, err);
         throw err;
       }
+    },
+    /** Xác nhận hoàn thành buổi học thử */
+    async complete(bookingId) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}/complete`, {
+          method: 'PUT',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.trialBookings.complete(${bookingId}) error:`, err);
+        throw err;
+      }
     }
   },
   tutorSchedule: {

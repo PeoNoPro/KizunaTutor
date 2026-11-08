@@ -42,6 +42,11 @@ public interface TrialBookingService {
     TrialBookingResponseDTO rescheduleTrialBooking(String userEmail, UUID bookingId, RescheduleTrialBookingRequestDTO request);
 
     /**
+     * Xác nhận hoàn thành buổi học thử (chuyển sang COMPLETED)
+     */
+    TrialBookingResponseDTO completeTrialBooking(String userEmail, UUID bookingId);
+
+    /**
      * Kiểm tra xem gia sư có lịch học thử nào đang PENDING hoặc CONFIRMED trong ca này không
      */
     boolean hasActiveBookingsInSlot(UUID tutorId, Integer dayOfWeek, java.time.LocalTime startTime, java.time.LocalTime endTime);

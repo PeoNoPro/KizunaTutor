@@ -423,6 +423,82 @@ export const API = {
         console.error(`API.trialBookings.cancel(${bookingId}) error:`, err);
         throw err;
       }
+    },
+    /** Đổi lịch / dời lịch học thử sang khung giờ mới (SRS 5.3) */
+    async reschedule(bookingId, payload) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}/reschedule`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.trialBookings.reschedule(${bookingId}) error:`, err);
+        throw err;
+      }
+    },
+    /** Xác nhận hoàn thành buổi học thử */
+    async complete(bookingId) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}/complete`, {
+          method: 'PUT',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.trialBookings.complete(${bookingId}) error:`, err);
+        throw err;
+      }
+    },
+    /** Gia sư chủ động chốt lịch / lên lịch buổi học cho học viên */
+    async scheduleLesson(payload) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/schedule-lesson`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error('API.trialBookings.scheduleLesson error:', err);
+        throw err;
+      }
     }
   },
   tutorSchedule: {

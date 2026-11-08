@@ -3,14 +3,20 @@
  */
 
 export function openModal(modalId) {
-  const modal = document.getElementById(modalId);
+  let modal = document.getElementById(modalId);
+  if (!modal && modalId === 'connect-modal') {
+    modal = document.getElementById('modalTrialBookingConfirm');
+  }
   if (!modal) return;
   modal.classList.remove('hidden');
   document.body.classList.add('overflow-hidden');
 }
 
 export function closeModal(modalId) {
-  const modal = document.getElementById(modalId);
+  let modal = document.getElementById(modalId);
+  if (!modal && modalId === 'connect-modal') {
+    modal = document.getElementById('modalTrialBookingConfirm');
+  }
   if (!modal) return;
   modal.classList.add('hidden');
   document.body.classList.remove('overflow-hidden');

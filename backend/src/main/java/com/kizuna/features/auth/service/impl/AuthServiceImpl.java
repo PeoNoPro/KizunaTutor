@@ -294,14 +294,7 @@ public class AuthServiceImpl implements AuthService {
                     })
                     .orElse("Gia sư Kizuna");
         } else if (roleEnum == RoleEnum.ROLE_LEARNER) {
-            return learnerRepository.findByUser_UserId(user.getUserId())
-                    .map(l -> {
-                        String target = (l.getTargetLevel() != null && !l.getTargetLevel().isBlank())
-                                ? " • Mục tiêu " + l.getTargetLevel()
-                                : "";
-                        return "Học viên" + target;
-                    })
-                    .orElse("Học viên Kizuna");
+            return "Học viên";
         }
         return roleEnum.getBadgeText();
     }

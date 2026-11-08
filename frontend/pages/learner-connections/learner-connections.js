@@ -9,15 +9,80 @@ import { API, ApiError } from '/js/api.js';
 // 1. Khởi tạo khung giao diện học viên
 initLearnerShell({
   activeMenu: 'requests',
-  pageTitle: 'Yêu cầu kết nối',
+  pageTitle: 'Thời khóa biểu & Lịch học',
   badge: 'Gia sư & lớp học'
 });
 
 const $ = (id) => document.getElementById(id);
 
+const WEEKDAYS_DEF = [
+  { dayIndex: 0, dow: 2, name: 'Thứ hai', short: 'Thứ 2', colName: 'MON' },
+  { dayIndex: 1, dow: 3, name: 'Thứ ba', short: 'Thứ 3', colName: 'TUE' },
+  { dayIndex: 2, dow: 4, name: 'Thứ tư', short: 'Thứ 4', colName: 'WED' },
+  { dayIndex: 3, dow: 5, name: 'Thứ năm', short: 'Thứ 5', colName: 'THU' },
+  { dayIndex: 4, dow: 6, name: 'Thứ sáu', short: 'Thứ 6', colName: 'FRI' },
+  { dayIndex: 5, dow: 7, name: 'Thứ bảy', short: 'Thứ 7', colName: 'SAT' },
+  { dayIndex: 6, dow: 1, name: 'Chủ nhật', short: 'CN', colName: 'SUN' }
+];
+
+const HOURS_GRID = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+
 let bookingsList = [];
 let currentFilter = 'ALL';
 let activeBooking = null;
+let activeCompleteBooking = null;
+let currentViewMode = 'CALENDAR'; // 'CALENDAR' hoặc 'LIST'
+let learnerCurrentWeekMonday = getMondayOf(new Date());
+
+function getMondayOf(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function pad(num) {
+  return String(num).padStart(2, '0');
+}
+
+function formatDateYMD(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function formatDateDMY(d) {
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+function formatHour(h) {
+  return `${pad(h)}:00`;
+}
+
+function switchViewMode(mode) {
+  currentViewMode = mode;
+  const isCal = mode === 'CALENDAR';
+
+  if ($('btnViewCalendar')) {
+    $('btnViewCalendar').className = isCal
+      ? 'px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer'
+      : 'px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer';
+  }
+  if ($('btnViewList')) {
+    $('btnViewList').className = !isCal
+      ? 'px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer'
+      : 'px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer';
+  }
+
+  setVisible($('viewCalendarContainer'), isCal);
+  setVisible($('viewListContainer'), !isCal);
+
+  if (isCal) {
+    renderLearnerWeeklyCalendar();
+  } else {
+    renderBookings();
+  }
+}
 
 function setVisible(el, visible) {
   if (!el) return;
@@ -86,6 +151,124 @@ function updateCounts() {
   if ($('tabCountPending')) $('tabCountPending').textContent = pending;
   if ($('tabCountConfirmed')) $('tabCountConfirmed').textContent = confirmed;
   if ($('tabCountHistory')) $('tabCountHistory').textContent = history;
+}
+
+/**
+ * Hiển thị thời khóa biểu tuần của Học viên (Weekly Time Grid)
+ */
+function renderLearnerWeeklyCalendar() {
+  const headerRow = $('learnerGridHeaderRow');
+  const bodyRows = $('learnerGridBodyRows');
+  if (!headerRow || !bodyRows) return;
+
+  const sunday = new Date(learnerCurrentWeekMonday.getTime() + 6 * 86400000);
+  if ($('learnerCurrentWeekText')) {
+    $('learnerCurrentWeekText').textContent = `Tuần: ${formatDateDMY(learnerCurrentWeekMonday)} - ${formatDateDMY(sunday)}`;
+  }
+
+  const todayStr = formatDateYMD(new Date());
+
+  // 1. Header Row
+  headerRow.innerHTML = `
+    <div class="p-3 text-[11px] font-bold text-[#64748B] text-center border-r border-[#E2E8F0] flex items-center justify-center">
+      Giờ
+    </div>
+    ${WEEKDAYS_DEF.map((day, idx) => {
+      const dayDate = new Date(learnerCurrentWeekMonday.getTime() + idx * 86400000);
+      const isToday = formatDateYMD(dayDate) === todayStr;
+      return `
+        <div class="p-2.5 text-center border-r last:border-r-0 border-[#E2E8F0] ${isToday ? 'bg-[#006194]/10' : ''}">
+          <p class="text-[11px] font-bold ${isToday ? 'text-[#006194]' : 'text-[#64748B]'} uppercase">${day.colName}</p>
+          <div class="mt-0.5 inline-flex items-center justify-center ${isToday ? 'w-7 h-7 rounded-full bg-[#006194] text-white font-bold' : 'text-sm font-bold text-[#0F172A]'}">
+            ${dayDate.getDate()}
+          </div>
+          <p class="text-[10px] text-[#64748B] mt-0.5">${day.name}</p>
+        </div>
+      `;
+    }).join('')}
+  `;
+
+  // Lọc các buổi học trong tuần này của học viên
+  const weekStartTs = learnerCurrentWeekMonday.getTime();
+  const weekEndTs = learnerCurrentWeekMonday.getTime() + 7 * 86400000;
+
+  const weekLessons = bookingsList.filter(b => {
+    if (!b.scheduledStartTime) return false;
+    const start = new Date(b.scheduledStartTime);
+    const ts = start.getTime();
+    return ts >= weekStartTs && ts < weekEndTs && !['CANCELLED', 'DECLINED'].includes(b.bookingStatus);
+  });
+
+  // 2. Body Rows (07:00 đến 21:00)
+  bodyRows.innerHTML = HOURS_GRID.map(hour => {
+    const timeLabel = formatHour(hour);
+
+    const cellsHtml = WEEKDAYS_DEF.map((day, idx) => {
+      const cellDate = new Date(learnerCurrentWeekMonday.getTime() + idx * 86400000);
+      const dateYmd = formatDateYMD(cellDate);
+
+      // Tìm buổi học rơi vào ô ngày & giờ này
+      const matchedLessons = weekLessons.filter(b => {
+        const d = new Date(b.scheduledStartTime);
+        return formatDateYMD(d) === dateYmd && d.getHours() === hour;
+      });
+
+      let contentHtml = '';
+      if (matchedLessons.length > 0) {
+        contentHtml = matchedLessons.map(lesson => {
+          const isCompleted = lesson.bookingStatus === 'COMPLETED';
+          const themeClass = isCompleted
+            ? 'bg-blue-50 border-blue-200 text-blue-950'
+            : 'bg-emerald-50 border-emerald-200 text-emerald-950';
+          const barClass = isCompleted ? 'bg-[#006194]' : 'bg-emerald-600';
+          const badgeClass = isCompleted ? 'bg-blue-100 text-[#006194]' : 'bg-emerald-100 text-emerald-800';
+          const badgeText = isCompleted ? 'Đã hoàn thành' : 'Đã xếp lịch';
+
+          const sTime = new Date(lesson.scheduledStartTime);
+          const eTime = lesson.scheduledEndTime ? new Date(lesson.scheduledEndTime) : new Date(sTime.getTime() + (lesson.durationMinutes || 50) * 60000);
+          const timeSpan = `${pad(sTime.getHours())}:${pad(sTime.getMinutes())} - ${pad(eTime.getHours())}:${pad(eTime.getMinutes())}`;
+          const tutorName = escapeHtml(lesson.partnerName || 'Gia sư Kizuna');
+          const title = escapeHtml(lesson.locationDetails || 'Tiếng Nhật 1-1');
+
+          return `
+            <div class="relative p-2 rounded-xl border ${themeClass} shadow-2xs space-y-1 hover:shadow-md transition-all text-left">
+              <div class="absolute left-0 top-0 bottom-0 w-1 ${barClass} rounded-l-xl"></div>
+              <div class="flex items-center justify-between pl-1 gap-1">
+                <span class="font-bold text-[12px] truncate flex items-center gap-1">
+                  ${tutorName}
+                  <span class="material-symbols-outlined text-[13px] ${isCompleted ? 'text-[#006194]' : 'text-emerald-600'}">check_circle</span>
+                </span>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${badgeClass} shrink-0">${badgeText}</span>
+              </div>
+              <div class="text-[10px] font-semibold pl-1 opacity-80">
+                ${timeSpan}
+              </div>
+              <div class="pl-1 text-[11px] font-medium truncate text-[#0F172A]">
+                ${title}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        contentHtml = '';
+      }
+
+      return `
+        <div class="p-1.5 min-h-[64px] border-r last:border-r-0 border-[#E2E8F0]/60 overflow-hidden relative" data-date="${dateYmd}" data-hour="${hour}">
+          ${contentHtml}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="grid grid-cols-8 items-stretch border-b border-[#E2E8F0]/40 hover:bg-[#F8FAFC]/60 transition-colors">
+        <div class="p-2 border-r border-[#E2E8F0] text-[11px] font-bold text-[#64748B] flex items-start justify-center pt-1.5 bg-[#F8FAFC]/40 min-h-[64px]">
+          ${timeLabel}
+        </div>
+        ${cellsHtml}
+      </div>
+    `;
+  }).join('');
 }
 
 /**
@@ -175,6 +358,14 @@ function renderBookings() {
         </div>
       `;
     } else if (isConfirmed || isRescheduled) {
+      const sTime = item.scheduledStartTime ? new Date(item.scheduledStartTime) : null;
+      const eTime = item.scheduledEndTime
+        ? new Date(item.scheduledEndTime)
+        : (sTime ? new Date(sTime.getTime() + (item.durationMinutes || 50) * 60000) : null);
+      const isEnded = eTime ? (Date.now() >= eTime.getTime()) : true;
+      const padNum = (n) => String(n).padStart(2, '0');
+      const endTimeStr = eTime ? `${padNum(eTime.getHours())}:${padNum(eTime.getMinutes())}` : '';
+
       actionsHtml = `
         <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 bg-emerald-50/60 p-3 rounded-xl border border-emerald-200">
           ${item.meetingLink ? `
@@ -204,10 +395,17 @@ function renderBookings() {
                 <span>Vào lớp học ngay</span>
               </a>
             ` : ''}
-            <button type="button" class="btn-complete-booking px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold inline-flex items-center gap-1 shadow-xs transition-all cursor-pointer" data-id="${item.bookingId}" title="Xác nhận buổi học thử đã hoàn thành">
-              <span class="material-symbols-outlined text-[15px]">task_alt</span>
-              <span>Hoàn thành</span>
-            </button>
+            ${isEnded ? `
+              <button type="button" class="btn-complete-booking px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold inline-flex items-center gap-1 shadow-xs transition-all cursor-pointer" data-id="${item.bookingId}" data-ended="true" title="Xác nhận buổi học đã hoàn thành">
+                <span class="material-symbols-outlined text-[15px]">task_alt</span>
+                <span>Hoàn thành</span>
+              </button>
+            ` : `
+              <button type="button" class="btn-complete-booking px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-400 text-xs font-semibold inline-flex items-center gap-1 transition-all cursor-not-allowed opacity-80" data-id="${item.bookingId}" data-ended="false" data-endtime="${endTimeStr}" title="Chỉ có thể xác nhận sau khi kết thúc buổi học lúc ${endTimeStr}">
+                <span class="material-symbols-outlined text-[15px]">schedule</span>
+                <span>Chưa kết thúc (${endTimeStr})</span>
+              </button>
+            `}
             <button type="button" class="btn-open-reschedule px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1 transition-all cursor-pointer" data-id="${item.bookingId}" title="Đổi sang lịch khác trước ít nhất 24 giờ">
               <span class="material-symbols-outlined text-[15px]">edit_calendar</span>
               <span>Đổi lịch</span>
@@ -354,19 +552,17 @@ function bindCardActionEvents() {
 
   // Nút xác nhận hoàn thành buổi học thử
   document.querySelectorAll('.btn-complete-booking').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       const id = btn.dataset.id;
       if (!id) return;
-      if (!confirm('Xác nhận bạn và gia sư đã hoàn thành buổi học thử 1-1 này?')) return;
-      btn.disabled = true;
-      try {
-        await API.trialBookings.complete(id);
-        showToast('Đã xác nhận hoàn thành buổi học thử!');
-        await loadBookings();
-      } catch (err) {
-        showToast(err.message || 'Không thể hoàn thành buổi học', 'error');
-        btn.disabled = false;
+      if (btn.dataset.ended === 'false') {
+        const endTimeStr = btn.dataset.endtime || 'kết thúc';
+        showToast(`Buổi học chưa kết thúc. Bạn chỉ có thể xác nhận hoàn thành sau ${endTimeStr}.`, 'error');
+        return;
       }
+      const booking = bookingsList.find(b => String(b.bookingId) === String(id));
+      if (!booking) return;
+      openCompleteModal(booking);
     });
   });
 }
@@ -414,12 +610,28 @@ function openCancelModal(booking) {
 }
 
 /**
+ * Mở modal Xác nhận hoàn thành buổi học
+ */
+function openCompleteModal(booking) {
+  activeCompleteBooking = booking;
+  if ($('completeTutorName')) {
+    $('completeTutorName').textContent = booking.partnerName || 'Gia sư';
+  }
+  if ($('completeTimeStr')) {
+    $('completeTimeStr').textContent = formatBookingTime(booking.scheduledStartTime, booking.durationMinutes);
+  }
+  $('modalConfirmComplete')?.classList.remove('hidden');
+}
+
+/**
  * Đóng modal
  */
 function closeModals() {
   $('modalCancelBooking')?.classList.add('hidden');
   $('modalRescheduleBooking')?.classList.add('hidden');
+  $('modalConfirmComplete')?.classList.add('hidden');
   activeBooking = null;
+  activeCompleteBooking = null;
 }
 
 /**
@@ -436,7 +648,7 @@ async function loadBookings() {
     bookingsList = res?.items || res?.content || res?.data?.items || res?.data?.content || (Array.isArray(res) ? res : []);
 
     updateCounts();
-    renderBookings();
+    switchViewMode(currentViewMode);
   } catch (err) {
     console.error('Lỗi tải danh sách yêu cầu học viên:', err);
     $('errorMessage').textContent = err instanceof ApiError ? err.message : 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
@@ -450,6 +662,24 @@ async function loadBookings() {
  * Khởi tạo sự kiện trên trang
  */
 function initEvents() {
+  // Chuyển đổi chế độ xem: Thời khóa biểu tuần vs Danh sách chi tiết
+  $('btnViewCalendar')?.addEventListener('click', () => switchViewMode('CALENDAR'));
+  $('btnViewList')?.addEventListener('click', () => switchViewMode('LIST'));
+
+  // Điều hướng tuần trên Thời khóa biểu học viên
+  $('btnLearnerPrevWeek')?.addEventListener('click', () => {
+    learnerCurrentWeekMonday = new Date(learnerCurrentWeekMonday.getTime() - 7 * 86400000);
+    renderLearnerWeeklyCalendar();
+  });
+  $('btnLearnerNextWeek')?.addEventListener('click', () => {
+    learnerCurrentWeekMonday = new Date(learnerCurrentWeekMonday.getTime() + 7 * 86400000);
+    renderLearnerWeeklyCalendar();
+  });
+  $('btnLearnerToday')?.addEventListener('click', () => {
+    learnerCurrentWeekMonday = getMondayOf(new Date());
+    renderLearnerWeeklyCalendar();
+  });
+
   // Tabs lọc trạng thái
   const tabBtns = document.querySelectorAll('#statusTabs .tab-btn');
   tabBtns.forEach(btn => {
@@ -555,6 +785,27 @@ function initEvents() {
     } finally {
       btn.disabled = false;
       if (btnText) btnText.textContent = 'Xác nhận đổi lịch';
+    }
+  });
+
+  // Gửi xác nhận Hoàn thành buổi học (COMPLETE)
+  $('btnSubmitComplete')?.addEventListener('click', async () => {
+    if (!activeCompleteBooking) return;
+    const btn = $('btnSubmitComplete');
+    const btnText = $('btnSubmitCompleteText');
+    btn.disabled = true;
+    if (btnText) btnText.textContent = 'Đang xử lý...';
+
+    try {
+      await API.trialBookings.complete(activeCompleteBooking.bookingId);
+      closeModals();
+      showToast('Đã xác nhận hoàn thành buổi học thành công!');
+      await loadBookings();
+    } catch (err) {
+      showToast(err.message || 'Không thể hoàn thành buổi học lúc này', 'error');
+    } finally {
+      btn.disabled = false;
+      if (btnText) btnText.textContent = 'Xác nhận hoàn thành';
     }
   });
 }

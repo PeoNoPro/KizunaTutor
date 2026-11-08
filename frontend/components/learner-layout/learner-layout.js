@@ -27,10 +27,10 @@ export const LEARNER_MENU_GROUPS = [
     items: [
       {
         key: 'requests',
-        title: 'Yêu cầu kết nối',
+        title: 'Thời khóa biểu & Lịch học',
         url: '/learner/connections',
         icon: '📅',
-        matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests']
+        matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests', '/pages/learner-connections']
       },
       {
         key: 'my-courses',

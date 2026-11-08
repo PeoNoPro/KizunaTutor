@@ -47,6 +47,11 @@ public interface TrialBookingService {
     TrialBookingResponseDTO completeTrialBooking(String userEmail, UUID bookingId);
 
     /**
+     * Gia sư chủ động chốt lịch / lên lịch buổi học cho học viên
+     */
+    TrialBookingResponseDTO scheduleLessonByTutor(String userEmail, com.kizuna.features.booking.dto.request.TutorScheduleLessonRequestDTO request);
+
+    /**
      * Kiểm tra xem gia sư có lịch học thử nào đang PENDING hoặc CONFIRMED trong ca này không
      */
     boolean hasActiveBookingsInSlot(UUID tutorId, Integer dayOfWeek, java.time.LocalTime startTime, java.time.LocalTime endTime);

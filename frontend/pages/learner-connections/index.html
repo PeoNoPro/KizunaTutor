@@ -57,15 +57,15 @@
               <div class="flex items-center flex-wrap gap-2 mb-2">
                 <span class="bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] text-[12px] font-bold px-3 py-0.5 rounded-full inline-flex items-center gap-1">
                   <span>🌸</span>
-                  <span>Học thử & Kết nối</span>
+                  <span>Thời khóa biểu & Lịch học</span>
                 </span>
-                <span class="text-xs text-slate-500">• Buổi học 1-1 (0đ)</span>
+                <span class="text-xs text-slate-500">• Buổi học với Gia sư 1-1</span>
               </div>
               <h1 class="text-[22px] sm:text-[26px] font-bold text-[#0F172A] leading-tight">
-                Yêu cầu kết nối
+                Thời khóa biểu & Lịch học của tôi
               </h1>
               <p class="text-[14px] text-[#64748B] mt-1 leading-relaxed">
-                Theo dõi tiến độ, nhận link phòng học Google Meet và quản lý các lịch hẹn học thử 0đ với gia sư tiếng Nhật.
+                Theo dõi thời khóa biểu học tập 1-1, các buổi học đã được gia sư xếp lịch và lịch hẹn học thử.
               </p>
             </div>
 
@@ -95,7 +95,7 @@
 
             <div class="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-xs flex items-center justify-between">
               <div>
-                <p class="text-xs font-medium text-[#64748B]">Đã xác nhận</p>
+                <p class="text-xs font-medium text-[#64748B]">Buổi học đã xác nhận</p>
                 <h3 id="statConfirmed" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
               </div>
               <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -105,33 +105,95 @@
 
             <div class="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-xs flex items-center justify-between">
               <div>
-                <p class="text-xs font-medium text-[#64748B]">Tổng số yêu cầu</p>
+                <p class="text-xs font-medium text-[#64748B]">Tổng số buổi học</p>
                 <h3 id="statTotal" class="text-2xl font-bold text-[#0F172A] mt-1">0</h3>
               </div>
               <div class="w-10 h-10 rounded-xl bg-[#F1F5F9] text-[#0F172A] flex items-center justify-center">
-                <span class="material-symbols-outlined text-[22px]">list_alt</span>
+                <span class="material-symbols-outlined text-[22px]">calendar_month</span>
               </div>
             </div>
           </div>
 
-          <!-- TABS LỌC TRẠNG THÁI -->
-          <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#E2E8F0] text-xs font-semibold" id="statusTabs">
-            <button type="button" class="tab-btn px-4 py-2 rounded-xl bg-[#006194] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer" data-status="ALL">
-              <span>Tất cả</span>
-              <span id="tabCountAll" class="px-1.5 py-0.2 rounded-full text-[11px] bg-white/20">0</span>
-            </button>
-            <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="PENDING">
-              <span>Chờ phản hồi</span>
-              <span id="tabCountPending" class="px-1.5 py-0.2 rounded-full text-[11px] bg-amber-100 text-amber-800">0</span>
-            </button>
-            <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="CONFIRMED">
-              <span>Đã xác nhận</span>
-              <span id="tabCountConfirmed" class="px-1.5 py-0.2 rounded-full text-[11px] bg-emerald-100 text-emerald-800">0</span>
-            </button>
-            <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="HISTORY">
-              <span>Lịch sử</span>
-              <span id="tabCountHistory" class="px-1.5 py-0.2 rounded-full text-[11px] bg-[#F1F5F9] text-[#64748B]">0</span>
-            </button>
+          <!-- CHUYỂN CHẾ ĐỘ XEM: THỜI KHÓA BIỂU TUẦN vs DANH SÁCH CHI TIẾT -->
+          <div class="flex items-center justify-between gap-3 flex-wrap border-b border-[#E2E8F0] pb-2">
+            <div class="flex items-center gap-2">
+              <button type="button" id="btnViewCalendar" class="px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">calendar_view_week</span>
+                <span>Thời khóa biểu tuần</span>
+              </button>
+              <button type="button" id="btnViewList" class="px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">view_list</span>
+                <span>Danh sách chi tiết</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- CHẾ ĐỘ 1: THỜI KHÓA BIỂU TUẦN CỦA HỌC VIÊN (WEEKLY TIME GRID) -->
+          <div id="viewCalendarContainer" class="space-y-4">
+            <!-- Thanh chuyển tuần -->
+            <div class="bg-white rounded-2xl p-4 shadow-xs border border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <button type="button" id="btnLearnerPrevWeek" class="w-8 h-8 rounded-xl bg-[#F8FAFC] hover:bg-[#E2E8F0] flex items-center justify-center text-[#0F172A] transition-all cursor-pointer">
+                  <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                </button>
+                <button type="button" id="btnLearnerNextWeek" class="w-8 h-8 rounded-xl bg-[#F8FAFC] hover:bg-[#E2E8F0] flex items-center justify-center text-[#0F172A] transition-all cursor-pointer">
+                  <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                </button>
+                <div class="h-5 w-px bg-slate-200 mx-1"></div>
+                <button type="button" id="btnLearnerToday" class="px-2.5 py-1 rounded-lg bg-[#F8FAFC] hover:bg-[#E2E8F0] text-[11px] font-bold text-[#0F172A] transition-all cursor-pointer">
+                  Hôm nay
+                </button>
+                <span id="learnerCurrentWeekText" class="text-xs font-bold text-[#0F172A] ml-2">Đang tải tuần...</span>
+              </div>
+              <div class="flex items-center gap-3 text-[11px] text-[#64748B]">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded bg-emerald-600 inline-block"></span>
+                  <span class="font-medium text-emerald-900">Buổi học gia sư đã xếp</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Khung lưới thời gian tuần -->
+            <div class="bg-white rounded-2xl shadow-xs border border-[#E2E8F0] overflow-hidden">
+              <div class="overflow-x-auto">
+                <div class="min-w-[800px]">
+                  <div id="learnerGridHeaderRow" class="grid grid-cols-8 border-b border-[#E2E8F0] bg-[#F8FAFC]">
+                    <!-- Render động 7 ngày -->
+                  </div>
+                  <div id="learnerGridBodyRows" class="relative divide-y divide-[#E2E8F0]/60">
+                    <!-- Render động các giờ 07:00 -> 21:00 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHẾ ĐỘ 2: DANH SÁCH CHI TIẾT (LIST VIEW) -->
+          <div id="viewListContainer" class="space-y-4 hidden">
+            <!-- TABS LỌC TRẠNG THÁI -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#E2E8F0] text-xs font-semibold" id="statusTabs">
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl bg-[#006194] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer" data-status="ALL">
+                <span>Tất cả</span>
+                <span id="tabCountAll" class="px-1.5 py-0.2 rounded-full text-[11px] bg-white/20">0</span>
+              </button>
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="PENDING">
+                <span>Chờ phản hồi</span>
+                <span id="tabCountPending" class="px-1.5 py-0.2 rounded-full text-[11px] bg-amber-100 text-amber-800">0</span>
+              </button>
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="CONFIRMED">
+                <span>Đã xác nhận</span>
+                <span id="tabCountConfirmed" class="px-1.5 py-0.2 rounded-full text-[11px] bg-emerald-100 text-emerald-800">0</span>
+              </button>
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="HISTORY">
+                <span>Lịch sử</span>
+                <span id="tabCountHistory" class="px-1.5 py-0.2 rounded-full text-[11px] bg-[#F1F5F9] text-[#64748B]">0</span>
+              </button>
+            </div>
+
+            <!-- DANH SÁCH THẺ YÊU CẦU -->
+            <div id="bookingsList" class="space-y-4">
+              <!-- Render động bằng JS -->
+            </div>
           </div>
 
           <!-- TRẠNG THÁI: ĐANG TẢI -->
@@ -297,6 +359,53 @@
         <button type="button" id="btnSubmitReschedule" class="px-5 py-2 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all cursor-pointer">
           <span class="material-symbols-outlined text-[16px]">schedule_send</span>
           <span id="btnSubmitRescheduleText">Xác nhận đổi lịch</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL XÁC NHẬN HOÀN THÀNH BUỔI HỌC ===== -->
+  <div id="modalConfirmComplete" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalCompleteTitle">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-in fade-in duration-150 border border-slate-200">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200">
+            <span class="material-symbols-outlined text-[24px]">task_alt</span>
+          </div>
+          <div>
+            <h2 id="modalCompleteTitle" class="text-base font-bold text-[#0F172A]">Xác nhận hoàn thành buổi học</h2>
+            <p class="text-xs text-[#64748B]">Ghi nhận buổi học với gia sư đã hoàn tất</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Tóm tắt buổi học -->
+      <div class="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs">
+        <div class="flex items-center gap-2 text-[#0F172A]">
+          <span class="material-symbols-outlined text-[18px] text-[#006194]">person</span>
+          <span>Gia sư: <strong id="completeTutorName" class="font-bold">—</strong></span>
+        </div>
+        <div class="flex items-center gap-2 text-[#0F172A]">
+          <span class="material-symbols-outlined text-[18px] text-[#006194]">schedule</span>
+          <span>Thời gian: <span id="completeTimeStr" class="font-medium">—</span></span>
+        </div>
+      </div>
+
+      <p class="text-xs text-[#64748B] leading-relaxed">
+        Xác nhận bạn và gia sư đã hoàn thành buổi học này. Trạng thái sẽ được lưu vào lịch sử học tập của bạn.
+      </p>
+
+      <!-- Nút hành động -->
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+        <button type="button" class="modal-close px-4 py-2 rounded-xl bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F172A] text-xs font-semibold transition-all cursor-pointer">
+          Hủy bỏ
+        </button>
+        <button type="button" id="btnSubmitComplete" class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all cursor-pointer">
+          <span class="material-symbols-outlined text-[16px]">check_circle</span>
+          <span id="btnSubmitCompleteText">Xác nhận hoàn thành</span>
         </button>
       </div>
     </div>

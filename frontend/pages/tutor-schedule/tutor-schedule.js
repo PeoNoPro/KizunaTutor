@@ -1,6 +1,7 @@
 /**
- * KizunaTutor - Quản lý Lịch giảng dạy & Ca rảnh của Gia sư (tutor-schedule.js)
- * Phân hệ Gia sư - Sử dụng layout Stitch Tutor Dashboard
+ * KizunaTutor - Quản lý Lịch giảng dạy & Thời khóa biểu của Gia sư (tutor-schedule.js)
+ * Phân hệ Gia sư - Thiết kế theo mẫu Thời khóa biểu lưới tuần (Weekly Time Grid)
+ * và phân tách 2 mục đích: (1) Lịch dạy thực tế & chốt lịch, (2) Cài đặt ca rảnh
  */
 
 import { API, ApiError } from '/js/api.js';
@@ -8,17 +9,23 @@ import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tut
 
 const $ = (id) => document.getElementById(id);
 
-const WEEKDAYS = [
-  { dow: 2, name: 'Thứ hai', short: 'Thứ 2' },
-  { dow: 3, name: 'Thứ ba', short: 'Thứ 3' },
-  { dow: 4, name: 'Thứ tư', short: 'Thứ 4' },
-  { dow: 5, name: 'Thứ năm', short: 'Thứ 5' },
-  { dow: 6, name: 'Thứ sáu', short: 'Thứ 6' },
-  { dow: 7, name: 'Thứ bảy', short: 'Thứ 7' },
-  { dow: 1, name: 'Chủ nhật', short: 'Chủ nhật' }
+const WEEKDAYS_DEF = [
+  { dayIndex: 0, dow: 2, name: 'Thứ hai', short: 'Thứ 2', colName: 'MON' },
+  { dayIndex: 1, dow: 3, name: 'Thứ ba', short: 'Thứ 3', colName: 'TUE' },
+  { dayIndex: 2, dow: 4, name: 'Thứ tư', short: 'Thứ 4', colName: 'WED' },
+  { dayIndex: 3, dow: 5, name: 'Thứ năm', short: 'Thứ 5', colName: 'THU' },
+  { dayIndex: 4, dow: 6, name: 'Thứ sáu', short: 'Thứ 6', colName: 'FRI' },
+  { dayIndex: 5, dow: 7, name: 'Thứ bảy', short: 'Thứ 7', colName: 'SAT' },
+  { dayIndex: 6, dow: 1, name: 'Chủ nhật', short: 'CN', colName: 'SUN' }
 ];
 
+const HOURS_GRID = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+
+let currentTab = 'LESSONS'; // 'LESSONS' hoặc 'AVAILABILITY'
+let currentWeekMonday = getMondayOf(new Date());
+let bookingsList = [];
 let availabilitiesList = [];
+let eligibleLearnersList = [];
 
 function setVisible(el, visible) {
   if (!el) return;
@@ -53,6 +60,243 @@ function showToast(message, type = 'success') {
   }, 3500);
 }
 
+/**
+ * Lấy ngày Thứ Hai của tuần chứa một ngày bất kỳ (00:00:00)
+ */
+function getMondayOf(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); // 0 is Sunday, 1 is Monday
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function pad(num) {
+  return String(num).padStart(2, '0');
+}
+
+function formatDateYMD(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function formatDateDMY(d) {
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+function formatHour(h) {
+  return `${pad(h)}:00`;
+}
+
+// ---------------------------------------------------------------------------
+// CHUYỂN TABS (LỊCH DẠY vs CÀI ĐẶT CA RẢNH)
+// ---------------------------------------------------------------------------
+function switchTab(tab) {
+  currentTab = tab;
+  const isLessons = tab === 'LESSONS';
+
+  $('tabBtnLessons').className = isLessons
+    ? 'px-4 py-3 text-label-md font-bold border-b-2 border-primary text-primary flex items-center gap-2 transition-all cursor-pointer'
+    : 'px-4 py-3 text-label-md font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface flex items-center gap-2 transition-all cursor-pointer';
+
+  $('tabBtnAvailability').className = !isLessons
+    ? 'px-4 py-3 text-label-md font-bold border-b-2 border-primary text-primary flex items-center gap-2 transition-all cursor-pointer'
+    : 'px-4 py-3 text-label-md font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface flex items-center gap-2 transition-all cursor-pointer';
+
+  setVisible($('tabContentLessons'), isLessons);
+  setVisible($('tabContentAvailability'), !isLessons);
+}
+
+// ---------------------------------------------------------------------------
+// PHÂN HỆ 1: LỊCH DẠY THỰC TẾ (WEEKLY TIME GRID)
+// ---------------------------------------------------------------------------
+function renderWeeklyCalendar() {
+  const sunday = new Date(currentWeekMonday.getTime() + 6 * 86400000);
+  $('currentWeekRangeText').textContent = `Tuần: ${formatDateDMY(currentWeekMonday)} - ${formatDateDMY(sunday)}`;
+
+  const todayStr = formatDateYMD(new Date());
+
+  // 1. Render Header Row (Thứ 2 -> Chủ nhật)
+  const headerHtml = `
+    <div class="p-3 text-caption font-bold text-on-surface-variant text-center border-r border-outline-variant/30 flex items-center justify-center">
+      Giờ
+    </div>
+    ${WEEKDAYS_DEF.map((day, idx) => {
+      const dayDate = new Date(currentWeekMonday.getTime() + idx * 86400000);
+      const isToday = formatDateYMD(dayDate) === todayStr;
+      return `
+        <div class="p-2.5 text-center border-r last:border-r-0 border-outline-variant/30 ${isToday ? 'bg-primary-fixed/20' : ''}">
+          <p class="text-[11px] font-bold ${isToday ? 'text-primary' : 'text-on-surface-variant'} uppercase">${day.colName}</p>
+          <div class="mt-0.5 inline-flex items-center justify-center ${isToday ? 'w-7 h-7 rounded-full bg-primary text-white font-bold' : 'text-title-sm font-bold text-on-surface'}">
+            ${dayDate.getDate()}
+          </div>
+          <p class="text-[10px] text-on-surface-variant mt-0.5">${day.name}</p>
+        </div>
+      `;
+    }).join('')}
+  `;
+  $('gridHeaderRow').innerHTML = headerHtml;
+
+  // Lọc các buổi học trong tuần này
+  const weekStartTs = currentWeekMonday.getTime();
+  const weekEndTs = currentWeekMonday.getTime() + 7 * 86400000;
+
+  const weekLessons = bookingsList.filter(b => {
+    if (!b.scheduledStartTime) return false;
+    const start = new Date(b.scheduledStartTime);
+    const ts = start.getTime();
+    return ts >= weekStartTs && ts < weekEndTs && !['CANCELLED', 'DECLINED'].includes(b.bookingStatus);
+  });
+
+  $('badgeLessonsCount').textContent = weekLessons.length;
+
+  // 2. Render Time Rows (07:00 đến 21:00)
+  const bodyHtml = HOURS_GRID.map(hour => {
+    const timeLabel = formatHour(hour);
+
+    const cellsHtml = WEEKDAYS_DEF.map((day, idx) => {
+      const cellDate = new Date(currentWeekMonday.getTime() + idx * 86400000);
+      const dateYmd = formatDateYMD(cellDate);
+
+      // Tìm buổi học rơi vào ô ngày & giờ này
+      const matchedLessons = weekLessons.filter(b => {
+        const d = new Date(b.scheduledStartTime);
+        return formatDateYMD(d) === dateYmd && d.getHours() === hour;
+      });
+
+      let contentHtml = '';
+      if (matchedLessons.length > 0) {
+        contentHtml = matchedLessons.map(lesson => {
+          const isTrial = (lesson.durationMinutes || 50) <= 50 && (!lesson.locationDetails || !lesson.locationDetails.includes('Lớp'));
+          const themeClass = isTrial
+            ? 'bg-sky-50/90 border-sky-300 text-sky-950'
+            : 'bg-emerald-50/90 border-emerald-300 text-emerald-950';
+          const barClass = isTrial ? 'bg-[#006194]' : 'bg-emerald-600';
+          const badgeClass = isTrial ? 'bg-sky-100 text-[#006194]' : 'bg-emerald-100 text-emerald-800';
+          const badgeText = isTrial ? 'Học thử 0đ' : 'Lớp 1-1';
+
+          const sTime = new Date(lesson.scheduledStartTime);
+          const eTime = lesson.scheduledEndTime ? new Date(lesson.scheduledEndTime) : new Date(sTime.getTime() + (lesson.durationMinutes || 50) * 60000);
+          const timeSpan = `${pad(sTime.getHours())}:${pad(sTime.getMinutes())} - ${pad(eTime.getHours())}:${pad(eTime.getMinutes())}`;
+          const partner = escapeHtml(lesson.partnerName || 'Học viên');
+          const title = escapeHtml(lesson.locationDetails || (isTrial ? 'Học thử 1-1' : 'Tiếng Nhật 1-1'));
+          const meetLink = lesson.meetingLink;
+
+          return `
+            <div class="relative p-2 rounded-xl border ${themeClass} shadow-2xs space-y-1 hover:shadow-md transition-all text-left">
+              <div class="absolute left-0 top-0 bottom-0 w-1 ${barClass} rounded-l-xl"></div>
+              <div class="flex items-center justify-between pl-1 gap-1">
+                <span class="font-bold text-[12px] truncate flex items-center gap-1">
+                  ${partner}
+                  <span class="material-symbols-outlined text-[13px] ${isTrial ? 'text-[#006194]' : 'text-emerald-600'}">check_circle</span>
+                </span>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${badgeClass} shrink-0">${badgeText}</span>
+              </div>
+              <div class="text-[10px] font-semibold pl-1 opacity-80">
+                ${timeSpan}
+              </div>
+              <div class="pl-1 text-[11px] font-medium truncate text-on-surface">
+                ${title}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        // Ô trống: click vào để lên lịch nhanh
+        contentHtml = `
+          <div class="w-full h-full min-h-[50px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+            <span class="text-[11px] font-semibold text-primary inline-flex items-center gap-0.5 bg-primary/10 px-2 py-1 rounded-lg pointer-events-none">
+              <span class="material-symbols-outlined text-[14px]">add</span> Xếp lịch
+            </span>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="calendar-slot-cell p-1.5 border-r last:border-r-0 border-outline-variant/20 cursor-pointer overflow-hidden relative group" data-date="${dateYmd}" data-hour="${hour}" title="Bấm để lên lịch cho ngày ${dateYmd} lúc ${timeLabel}">
+          ${contentHtml}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="grid grid-cols-8 items-stretch border-b border-outline-variant/20 hover:bg-surface-container-low/20 transition-colors">
+        <div class="calendar-time-cell p-2 border-r border-outline-variant/30 text-[11px] font-bold text-on-surface-variant flex items-start justify-center pt-1.5 bg-surface-container-low/20">
+          ${timeLabel}
+        </div>
+        ${cellsHtml}
+      </div>
+    `;
+  }).join('');
+
+  $('gridBodyRows').innerHTML = bodyHtml;
+
+  // Gắn sự kiện click vào ô trống trên lưới để lên lịch
+  document.querySelectorAll('.calendar-slot-cell').forEach(cell => {
+    cell.addEventListener('click', (e) => {
+      // Nếu click vào thẻ buổi học có link Meet thì không mở modal
+      if (e.target.closest('a')) return;
+      const dateStr = cell.dataset.date;
+      const hourNum = Number(cell.dataset.hour);
+      openScheduleModal(dateStr, `${pad(hourNum)}:00`);
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// MODAL LÊN LỊCH & CHỐT LỊCH BUỔI HỌC CHO HỌC VIÊN
+// ---------------------------------------------------------------------------
+function openScheduleModal(preselectedDate = null, preselectedTime = null) {
+  const modal = $('modalScheduleLesson');
+  if (!modal) return;
+
+  $('scheduleLessonError').classList.add('hidden');
+
+  // Điền ngày & giờ
+  const todayStr = formatDateYMD(new Date());
+  $('scheduleDateInput').value = preselectedDate || todayStr;
+  $('scheduleStartTimeInput').value = preselectedTime || '18:00';
+  $('scheduleDurationSelect').value = '60';
+  $('scheduleTitleInput').value = 'Tiếng Nhật giao tiếp 1-1';
+
+  // Cập nhật danh sách học viên
+  const select = $('scheduleLearnerSelect');
+  select.innerHTML = '';
+
+  const uniqueLearners = new Map();
+  // 1. Từ eligibleLearnersList
+  eligibleLearnersList.forEach(l => {
+    uniqueLearners.set(String(l.learnerId), l.fullName || l.email || 'Học viên');
+  });
+  // 2. Từ bookingsList
+  bookingsList.forEach(b => {
+    if (b.partnerRole === 'Học viên') {
+      const learnerKey = b.learnerId || b.partnerId;
+      if (learnerKey) {
+        uniqueLearners.set(String(learnerKey), b.partnerName || 'Học viên');
+      }
+    }
+  });
+
+  if (uniqueLearners.size === 0) {
+    select.innerHTML = '<option value="">Chưa có học viên kết nối. Vui lòng kết nối với học viên trước.</option>';
+  } else {
+    select.innerHTML = '<option value="">-- Chọn học viên --</option>' +
+      Array.from(uniqueLearners.entries()).map(([id, name]) => `
+        <option value="${id}">${escapeHtml(name)}</option>
+      `).join('');
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeScheduleModal() {
+  $('modalScheduleLesson')?.classList.add('hidden');
+}
+
+// ---------------------------------------------------------------------------
+// PHÂN HỆ 2: CÀI ĐẶT CA RẢNH (AVAILABILITY CHO HỌC VIÊN TÌM KIẾM)
+// ---------------------------------------------------------------------------
 function computeDurationText(startStr, endStr) {
   if (!startStr || !endStr) return '';
   const [sh, sm] = startStr.split(':').map(Number);
@@ -80,14 +324,13 @@ function updateDurationPreview() {
   }
 }
 
-/**
- * Hiển thị lưới lịch rảnh 7 ngày trong tuần
- */
-function renderScheduleGrid() {
-  const grid = $('scheduleGrid');
+function renderAvailabilityGrid() {
+  const grid = $('availabilityGrid');
   if (!grid) return;
 
-  grid.innerHTML = WEEKDAYS.map(day => {
+  $('badgeAvailabilityCount').textContent = availabilitiesList.length;
+
+  grid.innerHTML = WEEKDAYS_DEF.map(day => {
     const daySlots = availabilitiesList.filter(a => Number(a.dayOfWeek) === day.dow);
     const hasSlots = daySlots.length > 0;
 
@@ -147,22 +390,17 @@ function renderScheduleGrid() {
     `;
   }).join('');
 
-  bindGridEvents();
+  bindAvailabilityEvents();
 }
 
-/**
- * Gắn sự kiện xóa và bật/tắt ca rảnh
- */
-function bindGridEvents() {
-  // Nút thêm ca nhanh từ ngày
+function bindAvailabilityEvents() {
   document.querySelectorAll('.btn-quick-add').forEach(btn => {
     btn.addEventListener('click', () => {
       const dow = btn.dataset.dow;
-      openAddModal(dow);
+      openAddSlotModal(dow);
     });
   });
 
-  // Nút xóa ca rảnh
   document.querySelectorAll('.btn-delete-slot').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.id;
@@ -173,14 +411,13 @@ function bindGridEvents() {
       try {
         await API.tutorSchedule.removeSlot(id);
         showToast('Đã xóa ca rảnh thành công');
-        await loadSchedule();
+        await loadAllData();
       } catch (err) {
         showToast(err.message || 'Không thể xóa ca rảnh lúc này', 'error');
       }
     });
   });
 
-  // Nút bật/tắt ca rảnh
   document.querySelectorAll('.btn-toggle-slot').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.id;
@@ -188,7 +425,7 @@ function bindGridEvents() {
       try {
         await API.tutorSchedule.toggleSlot(id, !currentActive);
         showToast(!currentActive ? 'Đã bật nhận lịch cho ca này' : 'Đã tạm ẩn ca rảnh này');
-        await loadSchedule();
+        await loadAllData();
       } catch (err) {
         showToast(err.message || 'Không thể cập nhật trạng thái ca rảnh', 'error');
       }
@@ -196,75 +433,166 @@ function bindGridEvents() {
   });
 }
 
-function openAddModal(preselectedDow = null, start = null, end = null) {
-  if (preselectedDow) {
-    $('selectDayOfWeek').value = String(preselectedDow);
-  }
-  if (start) {
-    $('inputStartTime').value = start;
-  }
-  if (end) {
-    $('inputEndTime').value = end;
-  }
+function openAddSlotModal(preselectedDow = null, start = null, end = null) {
+  if (preselectedDow) $('selectDayOfWeek').value = String(preselectedDow);
+  if (start) $('inputStartTime').value = start;
+  if (end) $('inputEndTime').value = end;
 
   $('formAddSlotError').classList.add('hidden');
   updateDurationPreview();
   $('modalAddSlot').classList.remove('hidden');
 }
 
-function closeAddModal() {
+function closeAddSlotModal() {
   $('modalAddSlot').classList.add('hidden');
 }
 
-/**
- * Tải danh sách lịch rảnh từ máy chủ
- */
-async function loadSchedule() {
-  setVisible($('loadingState'), true);
-  setVisible($('scheduleGrid'), false);
-
+// ---------------------------------------------------------------------------
+// TẢI DỮ LIỆU TỔNG THỂ TỪ MÁY CHỦ
+// ---------------------------------------------------------------------------
+async function loadAllData() {
   try {
-    const data = await API.tutorSchedule.getMySchedule();
-    availabilitiesList = Array.isArray(data) ? data : (data?.items || data?.data || []);
-    renderScheduleGrid();
+    const [availData, bookingsData, eligibleData] = await Promise.allSettled([
+      API.tutorSchedule.getMySchedule(),
+      API.trialBookings.getMyRequests('ALL', 0, 100),
+      API.classrooms.eligibleLearners().catch(() => [])
+    ]);
+
+    // 1. Ca rảnh
+    if (availData.status === 'fulfilled' && availData.value) {
+      availabilitiesList = Array.isArray(availData.value) ? availData.value : (availData.value.items || availData.value.data || []);
+    }
+
+    // 2. Buổi học thực tế
+    if (bookingsData.status === 'fulfilled' && bookingsData.value) {
+      const bRes = bookingsData.value;
+      bookingsList = Array.isArray(bRes) ? bRes : (bRes.content || bRes.items || bRes.data || []);
+    }
+
+    // 3. Học viên đủ điều kiện
+    if (eligibleData.status === 'fulfilled' && eligibleData.value) {
+      eligibleLearnersList = Array.isArray(eligibleData.value) ? eligibleData.value : (eligibleData.value.data || []);
+    }
+
+    renderWeeklyCalendar();
+    renderAvailabilityGrid();
   } catch (err) {
-    console.error('Lỗi tải lịch giảng dạy:', err);
-    showToast(err.message || 'Không thể tải lịch rảnh từ máy chủ', 'error');
-  } finally {
-    setVisible($('loadingState'), false);
-    setVisible($('scheduleGrid'), true);
+    console.error('Lỗi tải dữ liệu lịch:', err);
+    showToast(err.message || 'Không thể tải toàn bộ dữ liệu lịch', 'error');
   }
 }
 
+// ---------------------------------------------------------------------------
+// SỰ KIỆN TƯƠNG TÁC
+// ---------------------------------------------------------------------------
 function initEvents() {
-  // Nút mở modal thêm ca rảnh
+  // Tabs switching
+  $('tabBtnLessons')?.addEventListener('click', () => switchTab('LESSONS'));
+  $('tabBtnAvailability')?.addEventListener('click', () => switchTab('AVAILABILITY'));
+
+  // Nút mở modal Lên lịch buổi học (+ Schedule a lesson dạng viên thuốc)
+  $('btnOpenScheduleLesson')?.addEventListener('click', () => {
+    openScheduleModal();
+  });
+
+  // Nút mở modal Thêm ca rảnh
   $('btnOpenAddModal')?.addEventListener('click', () => {
-    openAddModal();
+    openAddSlotModal();
   });
 
-  // Đóng modal
-  document.querySelectorAll('.modal-close').forEach(btn => {
-    btn.addEventListener('click', closeAddModal);
+  // Điều hướng tuần
+  $('btnPrevWeek')?.addEventListener('click', () => {
+    currentWeekMonday = new Date(currentWeekMonday.getTime() - 7 * 86400000);
+    renderWeeklyCalendar();
   });
 
-  // Cập nhật xem trước thời lượng khi đổi giờ
-  $('inputStartTime')?.addEventListener('input', updateDurationPreview);
-  $('inputEndTime')?.addEventListener('input', updateDurationPreview);
+  $('btnNextWeek')?.addEventListener('click', () => {
+    currentWeekMonday = new Date(currentWeekMonday.getTime() + 7 * 86400000);
+    renderWeeklyCalendar();
+  });
 
-  // Mẫu ca rảnh phổ biến
+  $('btnToday')?.addEventListener('click', () => {
+    currentWeekMonday = getMondayOf(new Date());
+    renderWeeklyCalendar();
+  });
+
+  // Đóng modals
+  document.querySelectorAll('.modal-schedule-close').forEach(btn => {
+    btn.addEventListener('click', closeScheduleModal);
+  });
+  document.querySelectorAll('.modal-add-close').forEach(btn => {
+    btn.addEventListener('click', closeAddSlotModal);
+  });
+
+  // Presets ca rảnh
   document.querySelectorAll('.btn-preset').forEach(btn => {
     btn.addEventListener('click', () => {
       const start = btn.dataset.start;
       const end = btn.dataset.end;
       const dow = btn.dataset.dow || '2';
-      openAddModal(dow, start, end);
+      openAddSlotModal(dow, start, end);
     });
   });
 
-  // Gửi form thêm ca rảnh
+  $('inputStartTime')?.addEventListener('input', updateDurationPreview);
+  $('inputEndTime')?.addEventListener('input', updateDurationPreview);
+
+  // Gửi form Lên lịch buổi học cho học viên
+  $('formScheduleLesson')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const learnerId = $('scheduleLearnerSelect').value;
+    const dateStr = $('scheduleDateInput').value;
+    const startTimeStr = $('scheduleStartTimeInput').value;
+    const duration = Number($('scheduleDurationSelect').value) || 60;
+    const title = $('scheduleTitleInput').value.trim();
+    const note = $('scheduleNoteInput').value.trim();
+    const errEl = $('scheduleLessonError');
+    const submitBtn = $('btnSubmitScheduleLesson');
+
+    errEl.classList.add('hidden');
+
+    if (!learnerId) {
+      errEl.textContent = 'Vui lòng chọn học viên để xếp lịch.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    if (!dateStr || !startTimeStr) {
+      errEl.textContent = 'Vui lòng chọn đầy đủ ngày và giờ bắt đầu.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    const scheduledStartTime = `${dateStr}T${startTimeStr}:00+07:00`;
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>Đang xử lý...</span>';
+
+    try {
+      await API.trialBookings.scheduleLesson({
+        learnerId: learnerId,
+        scheduledStartTime: scheduledStartTime,
+        durationMinutes: duration,
+        lessonTitle: title,
+        meetingLink: null,
+        note: note,
+        learningMode: 'ONLINE'
+      });
+
+      closeScheduleModal();
+      showToast('Đã lên lịch buổi học thành công và gửi thông báo tới học sinh!');
+      await loadAllData();
+    } catch (err) {
+      errEl.textContent = err instanceof ApiError ? err.message : (err.message || 'Lỗi khi lên lịch buổi học');
+      errEl.classList.remove('hidden');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">send</span><span>Xác nhận & Gửi lịch cho học viên</span>';
+    }
+  });
+
+  // Gửi form Thêm ca rảnh
   $('formAddSlot')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const dow = Number($('selectDayOfWeek').value);
     const startTime = $('inputStartTime').value.trim();
     const endTime = $('inputEndTime').value.trim();
@@ -291,9 +619,9 @@ function initEvents() {
         isActive: true
       });
 
-      closeAddModal();
-      showToast('Đã lưu ca rảnh thành công! Ca này đã hiển thị trên trang tìm kiếm gia sư.');
-      await loadSchedule();
+      closeAddSlotModal();
+      showToast('Đã lưu ca rảnh thành công! Ca này đã hiển thị trên hồ sơ tìm kiếm gia sư.');
+      await loadAllData();
     } catch (err) {
       errEl.textContent = err instanceof ApiError ? err.message : (err.message || 'Lỗi khi lưu ca rảnh');
       errEl.classList.remove('hidden');
@@ -304,10 +632,10 @@ function initEvents() {
   });
 }
 
-// Khởi tạo layout Gia sư với mục 'schedule'
+// Khởi tạo layout Gia sư
 mountTutorLayout('schedule');
 
-// Tải danh tính gia sư cho Sidebar & Topbar
+// Tải danh tính gia sư
 API.tutorVerification.getMine()
   .then(data => {
     if (data?.profile) {
@@ -322,6 +650,5 @@ API.tutorVerification.getMine()
 
 document.addEventListener('DOMContentLoaded', () => {
   initEvents();
-  loadSchedule();
+  loadAllData();
 });
-

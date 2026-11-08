@@ -11,6 +11,7 @@ const $ = (id) => document.getElementById(id);
 let bookingsList = [];
 let currentFilter = 'ALL';
 let activeBooking = null;
+let activeCompleteBooking = null;
 
 function setVisible(el, visible) {
   if (!el) return;
@@ -159,6 +160,14 @@ function renderBookings() {
         </div>
       `;
     } else if (isConfirmed) {
+      const sTime = item.scheduledStartTime ? new Date(item.scheduledStartTime) : null;
+      const eTime = item.scheduledEndTime
+        ? new Date(item.scheduledEndTime)
+        : (sTime ? new Date(sTime.getTime() + (item.durationMinutes || 60) * 60000) : null);
+      const isEnded = eTime ? (Date.now() >= eTime.getTime()) : true;
+      const padNum = (n) => String(n).padStart(2, '0');
+      const endTimeStr = eTime ? `${padNum(eTime.getHours())}:${padNum(eTime.getMinutes())}` : '';
+
       actionsHtml = `
         <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
           ${item.meetingLink ? `
@@ -188,10 +197,17 @@ function renderBookings() {
                 <span>Vào lớp</span>
               </a>
             ` : ''}
-            <button type="button" class="btn-complete-booking px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-label-sm font-semibold inline-flex items-center gap-1 transition-all cursor-pointer" data-id="${item.bookingId}" title="Xác nhận hoàn thành buổi học thử">
-              <span class="material-symbols-outlined text-[16px]">task_alt</span>
-              <span>Hoàn thành</span>
-            </button>
+            ${isEnded ? `
+              <button type="button" class="btn-complete-booking px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-label-sm font-semibold inline-flex items-center gap-1 transition-all cursor-pointer" data-id="${item.bookingId}" data-ended="true" title="Xác nhận hoàn thành buổi học thử">
+                <span class="material-symbols-outlined text-[16px]">task_alt</span>
+                <span>Hoàn thành</span>
+              </button>
+            ` : `
+              <button type="button" class="btn-complete-booking px-3.5 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-400 text-label-sm font-semibold inline-flex items-center gap-1 transition-all cursor-not-allowed opacity-80" data-id="${item.bookingId}" data-ended="false" data-endtime="${endTimeStr}" title="Chỉ có thể xác nhận sau khi kết thúc buổi học lúc ${endTimeStr}">
+                <span class="material-symbols-outlined text-[16px]">schedule</span>
+                <span>Chưa kết thúc (${endTimeStr})</span>
+              </button>
+            `}
           </div>
         </div>
       `;
@@ -320,19 +336,17 @@ function bindCardActionEvents() {
 
   // Nút xác nhận hoàn thành buổi học
   document.querySelectorAll('.btn-complete-booking').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       const id = btn.dataset.id;
       if (!id) return;
-      if (!confirm('Xác nhận buổi học thử này đã hoàn thành?')) return;
-      btn.disabled = true;
-      try {
-        await API.trialBookings.complete(id);
-        showToast('Đã xác nhận hoàn thành buổi học thử!');
-        await loadBookings();
-      } catch (err) {
-        showToast(err.message || 'Không thể hoàn thành buổi học', 'error');
-        btn.disabled = false;
+      if (btn.dataset.ended === 'false') {
+        const endTimeStr = btn.dataset.endtime || 'kết thúc';
+        showToast(`Buổi học chưa kết thúc. Bạn chỉ có thể xác nhận hoàn thành sau ${endTimeStr}.`, 'error');
+        return;
       }
+      const booking = bookingsList.find(b => String(b.bookingId) === String(id));
+      if (!booking) return;
+      openCompleteModal(booking);
     });
   });
 }
@@ -371,12 +385,28 @@ function openDeclineModal(booking) {
 }
 
 /**
+ * Mở modal Xác nhận hoàn thành
+ */
+function openCompleteModal(booking) {
+  activeCompleteBooking = booking;
+  if ($('completeStudentName')) {
+    $('completeStudentName').textContent = booking.partnerName || 'Học viên';
+  }
+  if ($('completeTimeStr')) {
+    $('completeTimeStr').textContent = formatBookingTime(booking.scheduledStartTime, booking.durationMinutes);
+  }
+  $('modalConfirmComplete')?.classList.remove('hidden');
+}
+
+/**
  * Đóng tất cả modal
  */
 function closeModals() {
-  $('modalAcceptBooking').classList.add('hidden');
-  $('modalDeclineBooking').classList.add('hidden');
+  $('modalAcceptBooking')?.classList.add('hidden');
+  $('modalDeclineBooking')?.classList.add('hidden');
+  $('modalConfirmComplete')?.classList.add('hidden');
   activeBooking = null;
+  activeCompleteBooking = null;
 }
 
 /**
@@ -516,6 +546,27 @@ function initEvents() {
     } finally {
       btn.disabled = false;
       btnText.textContent = 'Xác nhận từ chối';
+    }
+  });
+
+  // Gửi xác nhận Hoàn thành buổi học (COMPLETE)
+  $('btnSubmitComplete')?.addEventListener('click', async () => {
+    if (!activeCompleteBooking) return;
+    const btn = $('btnSubmitComplete');
+    const btnText = $('btnSubmitCompleteText');
+    btn.disabled = true;
+    if (btnText) btnText.textContent = 'Đang xử lý...';
+
+    try {
+      await API.trialBookings.complete(activeCompleteBooking.bookingId);
+      closeModals();
+      showToast('Đã xác nhận hoàn thành buổi học thành công!');
+      await loadBookings();
+    } catch (err) {
+      showToast(err.message || 'Không thể hoàn thành buổi học lúc này', 'error');
+    } finally {
+      btn.disabled = false;
+      if (btnText) btnText.textContent = 'Xác nhận hoàn thành';
     }
   });
 }

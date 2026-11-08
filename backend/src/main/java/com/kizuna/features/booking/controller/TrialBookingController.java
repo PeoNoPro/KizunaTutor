@@ -119,6 +119,17 @@ public class TrialBookingController {
         return ResponseEntity.ok(ApiResponse.ok("Đã xác nhận hoàn thành buổi học thử thành công", response));
     }
 
+    @PostMapping("/schedule-lesson")
+    @PreAuthorize("hasAuthority('ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> scheduleLessonByTutor(
+            @Valid @RequestBody com.kizuna.features.booking.dto.request.TutorScheduleLessonRequestDTO requestDto,
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
+        TrialBookingResponseDTO response = trialBookingService.scheduleLessonByTutor(userEmail, requestDto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Đã lên lịch buổi học cho học viên thành công", response));
+    }
+
     private String getAuthenticatedEmail(Principal principal) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {

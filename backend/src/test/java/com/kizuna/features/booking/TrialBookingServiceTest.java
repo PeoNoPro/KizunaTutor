@@ -103,6 +103,8 @@ class TrialBookingServiceTest {
                 .user(mockTutorUser)
                 .verificationStatus(TutorVerificationStatus.APPROVED)
                 .build();
+
+        lenient().when(learnerRepository.save(any(Learner.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test
@@ -267,8 +269,8 @@ class TrialBookingServiceTest {
                 .bookingId(bookingId)
                 .learner(mockLearner)
                 .tutor(mockTutor)
-                .scheduledStartTime(OffsetDateTime.now().minusHours(1))
-                .scheduledEndTime(OffsetDateTime.now())
+                .scheduledStartTime(OffsetDateTime.now().minusHours(2))
+                .scheduledEndTime(OffsetDateTime.now().minusHours(1))
                 .bookingStatus(TrialBookingStatus.CONFIRMED)
                 .build();
 
@@ -306,5 +308,102 @@ class TrialBookingServiceTest {
 
         assertTrue(ex.getMessage().contains("Chỉ có thể hoàn thành buổi học thử đã được xác nhận"));
         verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Hoàn thành buổi học thử thất bại - Chưa đến giờ kết thúc ném BadRequestException")
+    void testCompleteTrialBooking_BeforeEndTime_ThrowsBadRequest() {
+        UUID bookingId = UUID.randomUUID();
+        TrialBooking futureBooking = TrialBooking.builder()
+                .bookingId(bookingId)
+                .learner(mockLearner)
+                .tutor(mockTutor)
+                .scheduledStartTime(OffsetDateTime.now().plusHours(1))
+                .scheduledEndTime(OffsetDateTime.now().plusHours(2))
+                .bookingStatus(TrialBookingStatus.CONFIRMED)
+                .build();
+
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
+        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(futureBooking));
+
+        com.kizuna.core.exception.BadRequestException ex = assertThrows(
+                com.kizuna.core.exception.BadRequestException.class,
+                () -> trialBookingService.completeTrialBooking("learner@test.com", bookingId)
+        );
+
+        assertTrue(ex.getMessage().contains("Buổi học chưa kết thúc"));
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Gia sư chốt lịch buổi học cho học viên thành công")
+    void testScheduleLessonByTutor_Success() {
+        UUID learnerId = mockLearner.getLearnerId();
+        User mockTutorUser = mockTutor.getUser();
+
+        com.kizuna.features.booking.dto.request.TutorScheduleLessonRequestDTO request =
+                com.kizuna.features.booking.dto.request.TutorScheduleLessonRequestDTO.builder()
+                        .learnerId(learnerId)
+                        .scheduledStartTime(OffsetDateTime.now().plusDays(2))
+                        .durationMinutes(60)
+                        .lessonTitle("Lớp hội thoại Kaiwa N4")
+                        .meetingLink("https://meet.google.com/abc-xyz")
+                        .build();
+
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(learnerRepository.findById(learnerId)).thenReturn(Optional.of(mockLearner));
+        when(trialBookingRepository.existsOverlappingBooking(eq(tutorId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
+                .thenReturn(false);
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(invocation -> {
+            TrialBooking tb = invocation.getArgument(0);
+            tb.setBookingId(UUID.randomUUID());
+            return tb;
+        });
+
+        TrialBookingResponseDTO response = trialBookingService.scheduleLessonByTutor("tutor@test.com", request);
+
+        assertNotNull(response);
+        assertEquals(TrialBookingStatus.CONFIRMED.name(), response.getBookingStatus());
+        assertEquals("Đã xác nhận", response.getStatusLabel());
+        assertEquals("https://meet.google.com/abc-xyz", response.getMeetingLink());
+        verify(trialBookingRepository, times(1)).save(any(TrialBooking.class));
+        verify(trialBookingHistoryRepository, times(1)).save(any(TrialBookingHistory.class));
+    }
+
+    @Test
+    @DisplayName("Gia sư chốt lịch thành công khi truyền userId của học viên thay vì learnerId")
+    void testScheduleLessonByTutor_WithUserId_Success() {
+        UUID userId = mockLearnerUser.getUserId();
+        User mockTutorUser = mockTutor.getUser();
+
+        com.kizuna.features.booking.dto.request.TutorScheduleLessonRequestDTO request =
+                com.kizuna.features.booking.dto.request.TutorScheduleLessonRequestDTO.builder()
+                        .learnerId(userId)
+                        .scheduledStartTime(OffsetDateTime.now().plusDays(2))
+                        .durationMinutes(60)
+                        .lessonTitle("Lớp hội thoại Kaiwa N4")
+                        .build();
+
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        // learnerRepository.findById(userId) trả về rỗng vì đây là user_id
+        when(learnerRepository.findById(userId)).thenReturn(Optional.empty());
+        // findByUser_UserId(userId) tìm thấy học viên
+        when(learnerRepository.findByUser_UserId(userId)).thenReturn(Optional.of(mockLearner));
+        when(trialBookingRepository.existsOverlappingBooking(eq(tutorId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
+                .thenReturn(false);
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(invocation -> {
+            TrialBooking tb = invocation.getArgument(0);
+            tb.setBookingId(UUID.randomUUID());
+            return tb;
+        });
+
+        TrialBookingResponseDTO response = trialBookingService.scheduleLessonByTutor("tutor@test.com", request);
+
+        assertNotNull(response);
+        assertEquals(TrialBookingStatus.CONFIRMED.name(), response.getBookingStatus());
+        assertEquals(mockLearner.getLearnerId(), response.getLearnerId());
+        verify(learnerRepository, times(1)).findByUser_UserId(userId);
     }
 }

@@ -42,7 +42,7 @@ Gia sư vào "Quản lý lớp học", xem các lớp hiện có, chọn thêm h
 2. **Given** gia sư có học viên đã chấp nhận kết nối và chưa có lớp đang hoạt động/tạm dừng với nhau, **When** chọn "Thêm học viên vào lớp", **Then** hệ thống chỉ liệt kê những học viên đó.
 3. **Given** gia sư chọn học viên và nhập tên lớp hợp lệ (1–150 ký tự, không toàn khoảng trắng), **When** xác nhận, **Then** lớp được tạo với trạng thái "Đang hoạt động" và hiển thị thông báo thành công.
 4. **Given** học viên không có kết nối `ACCEPTED` với gia sư, hoặc đã có lớp `ACTIVE`/`PAUSED` với gia sư này, **When** gửi yêu cầu tạo lớp (kể cả gọi API trực tiếp), **Then** bị từ chối với thông báo tiếng Việt, không tạo bản ghi.
-5. **Given** gói hội viên của gia sư ở trạng thái hết hạn, **When** tạo lớp, **Then** bị từ chối và giải thích cần gia hạn hội viên.
+5. **Given** gia sư chưa có gói hội viên (`FREE`) hoặc gói đã hết hạn (`EXPIRED`), **When** mở hộp thoại hoặc gửi yêu cầu tạo lớp, **Then** bị từ chối và giải thích cần đăng ký/gia hạn gói hội viên.
 6. **Given** lỗi kỹ thuật khi lưu (AF-1), **When** tạo lớp, **Then** hiển thị lỗi thân thiện và cho phép thử lại; không có lớp được tạo một phần.
 
 ### User Story 2 — Gia sư tải lên tài liệu học tập (Priority: P1) — UC-65
@@ -122,7 +122,7 @@ Gia sư vào "Quản lý lớp học", xem các lớp hiện có, chọn thêm h
 - **FR-002**: Gia sư PHẢI xem được danh sách lớp của chính mình; học viên PHẢI xem được danh sách lớp mình tham gia (UC-93 bước 2, UC-58 bước 3).
 - **FR-003**: Hệ thống PHẢI liệt kê học viên đủ điều kiện = có yêu cầu kết nối `ACCEPTED` với gia sư và chưa có lớp `ACTIVE`/`PAUSED` với gia sư đó (UC-93 bước 5).
 - **FR-004**: Gia sư PHẢI tạo được lớp cho học viên đủ điều kiện với tên lớp 1–150 ký tự; hệ thống kiểm tra lại điều kiện phía máy chủ và chặn trùng (UC-93 bước 7–8).
-- **FR-005**: Hệ thống PHẢI chặn tạo lớp, tải lên và cập nhật tài liệu khi gói hội viên của gia sư `EXPIRED` (quy trình 2.4).
+- **FR-005**: Hệ thống PHẢI chặn tạo lớp (kể cả xem danh sách học viên đủ điều kiện), tải lên/cập nhật/xóa tài liệu, giao/sửa bài tập và thêm/sửa lịch học khi gia sư không có gói hội viên còn hiệu lực — tức `membership_status` là `FREE` (chưa từng mua gói) hoặc `EXPIRED` (hết hạn); chỉ `PREMIUM`/`STANDARD` được phép (BF I.2.4 "membership still active"; FE-09 srs-gaps G-06).
 - **FR-006**: Hệ thống PHẢI chặn tải lên/cập nhật tài liệu khi lớp không ở trạng thái `ACTIVE` (UC-65 PRE-3, AF-1).
 - **FR-007**: Chỉ gia sư và học viên của lớp được xem chi tiết lớp, danh sách tài liệu và liên kết tệp (UC-61 bước 2).
 - **FR-008**: Gia sư của lớp PHẢI tải lên được tài liệu gồm tiêu đề (bắt buộc, ≤ 150), mô tả (tùy chọn, ≤ 1000), một tệp (UC-65).
@@ -133,7 +133,7 @@ Gia sư vào "Quản lý lớp học", xem các lớp hiện có, chọn thêm h
 - **FR-013**: Lỗi trong quá trình lưu PHẢI không để lại bản ghi hoặc tệp một phần (UC-93 AF-1, UC-65 bước 8).
 - **FR-014**: Học viên PHẢI xem được danh sách và chi tiết lớp của mình, có nút thử lại khi lỗi (UC-58).
 - **FR-015**: Mọi nội dung hiển thị PHẢI bằng tiếng Việt, không lộ enum/mã lỗi/thông tin kỹ thuật; dữ liệu thật từ API, không dữ liệu giả.
-- **FR-016**: Lớp không `ACTIVE` hoặc hội viên gia sư hết hạn PHẢI hiển thị ở chế độ chỉ xem cho cả hai vai trò.
+- **FR-016**: Lớp không `ACTIVE` hoặc gia sư không có gói hội viên còn hiệu lực (`FREE`/`EXPIRED`) PHẢI hiển thị ở chế độ chỉ xem cho cả hai vai trò.
 - **FR-017**: Gia sư của lớp PHẢI xóa được tài liệu sau khi xác nhận; xóa hẳn bản ghi và nội dung tệp trong một giao dịch; áp dụng cùng điều kiện quản lý như FR-005, FR-006 (Delete Learning Material).
 
 ### Out of Scope (ghi nhận, không triển khai)

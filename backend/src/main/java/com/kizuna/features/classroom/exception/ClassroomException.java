@@ -48,6 +48,11 @@ public class ClassroomException extends RuntimeException {
         return new ClassroomException(HttpStatus.CONFLICT, message);
     }
 
+    /** 409 kèm lỗi trường (vd: trùng lịch học) để giao diện hiển thị đúng ô nhập, không phải đoán theo câu chữ. */
+    public static ClassroomException fieldConflict(String field, String message) {
+        return new ClassroomException(HttpStatus.CONFLICT, message, Map.of(field, message));
+    }
+
     public static ClassroomException storageUnavailable() {
         return new ClassroomException(HttpStatus.SERVICE_UNAVAILABLE,
                 "Dịch vụ lưu trữ tài liệu tạm thời không khả dụng. Vui lòng thử lại sau.");

@@ -47,9 +47,10 @@ public interface TrialBookingService {
     TrialBookingResponseDTO completeTrialBooking(String userEmail, UUID bookingId);
 
     /**
-     * Gia sư chủ động chốt lịch / lên lịch buổi học cho học viên
+     * Gia sư đồng ý kết nối với học viên sau khi buổi học thử đã hoàn thành (COMPLETED):
+     * đặt yêu cầu kết nối ACCEPTED và official_arrangement_agreed = true. Sau đó gia sư tạo lớp + lịch học ở FE-06.
      */
-    TrialBookingResponseDTO scheduleLessonByTutor(String userEmail, com.kizuna.features.booking.dto.request.TutorScheduleLessonRequestDTO request);
+    TrialBookingResponseDTO agreeConnectionAfterTrial(String userEmail, UUID bookingId);
 
     /**
      * Kiểm tra xem gia sư có lịch học thử nào đang PENDING hoặc CONFIRMED trong ca này không

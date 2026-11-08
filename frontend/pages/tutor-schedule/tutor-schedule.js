@@ -5,6 +5,7 @@
  */
 
 import { API, ApiError } from '/js/api.js';
+import { renderWeekTimeGrid, trialEvent, officialEvent } from '/js/week-time-grid.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
 
 const $ = (id) => document.getElementById(id);
@@ -19,13 +20,12 @@ const WEEKDAYS_DEF = [
   { dayIndex: 6, dow: 1, name: 'Chủ nhật', short: 'CN', colName: 'SUN' }
 ];
 
-const HOURS_GRID = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
 
 let currentTab = 'LESSONS'; // 'LESSONS' hoặc 'AVAILABILITY'
 let currentWeekMonday = getMondayOf(new Date());
 let bookingsList = [];
 let availabilitiesList = [];
-let eligibleLearnersList = [];
+let classTimetable = []; // Lịch học chính thức hằng tuần từ FE-06 (GET /api/classrooms/schedules/me)
 
 function setVisible(el, visible) {
   if (!el) return;
@@ -105,6 +105,8 @@ function switchTab(tab) {
 
   setVisible($('tabContentLessons'), isLessons);
   setVisible($('tabContentAvailability'), !isLessons);
+  // Vẽ lại khi quay về tab lịch dạy để lưới tự cuộn tới buổi học (khung bị ẩn thì không cuộn được)
+  if (isLessons) renderWeeklyCalendar();
 }
 
 // ---------------------------------------------------------------------------
@@ -118,7 +120,7 @@ function renderWeeklyCalendar() {
 
   // 1. Render Header Row (Thứ 2 -> Chủ nhật)
   const headerHtml = `
-    <div class="p-3 text-caption font-bold text-on-surface-variant text-center border-r border-outline-variant/30 flex items-center justify-center">
+    <div class="p-3 text-caption font-bold text-on-surface-variant text-center border-r border-outline-variant/30 flex items-center justify-center sticky left-0 z-10 bg-surface-container-lowest">
       Giờ
     </div>
     ${WEEKDAYS_DEF.map((day, idx) => {
@@ -148,150 +150,31 @@ function renderWeeklyCalendar() {
     return ts >= weekStartTs && ts < weekEndTs && !['CANCELLED', 'DECLINED'].includes(b.bookingStatus);
   });
 
-  $('badgeLessonsCount').textContent = weekLessons.length;
+  // Buổi học chính thức: lặp hằng tuần theo lịch lớp (FE-06), chỉ vẽ từ tuần mở lớp trở đi
+  const weekOfficial = classTimetable.map(entry => {
+    const dayIdx = Number(entry.dayOfWeek) - 1; // 1 = Thứ Hai
+    const date = new Date(currentWeekMonday.getTime() + dayIdx * 86400000);
+    const [sh, sm] = String(entry.startTime || '').split(':').map(Number);
+    const [eh, em] = String(entry.endTime || '').split(':').map(Number);
+    const started = entry.classStartedAt ? new Date(entry.classStartedAt) : null;
+    const endOfDay = new Date(date.getTime() + 86400000);
+    if (dayIdx < 0 || dayIdx > 6 || Number.isNaN(sh) || (started && started >= endOfDay)) return null;
+    return { ...entry, dateYmd: formatDateYMD(date), startHour: sh, timeSpan: `${pad(sh)}:${pad(sm || 0)} - ${pad(eh)}:${pad(em || 0)}` };
+  }).filter(Boolean);
 
-  // 2. Render Time Rows (07:00 đến 21:00)
-  const bodyHtml = HOURS_GRID.map(hour => {
-    const timeLabel = formatHour(hour);
+  $('badgeLessonsCount').textContent = weekLessons.length + weekOfficial.length;
 
-    const cellsHtml = WEEKDAYS_DEF.map((day, idx) => {
-      const cellDate = new Date(currentWeekMonday.getTime() + idx * 86400000);
-      const dateYmd = formatDateYMD(cellDate);
-
-      // Tìm buổi học rơi vào ô ngày & giờ này
-      const matchedLessons = weekLessons.filter(b => {
-        const d = new Date(b.scheduledStartTime);
-        return formatDateYMD(d) === dateYmd && d.getHours() === hour;
-      });
-
-      let contentHtml = '';
-      if (matchedLessons.length > 0) {
-        contentHtml = matchedLessons.map(lesson => {
-          const isTrial = (lesson.durationMinutes || 50) <= 50 && (!lesson.locationDetails || !lesson.locationDetails.includes('Lớp'));
-          const themeClass = isTrial
-            ? 'bg-sky-50/90 border-sky-300 text-sky-950'
-            : 'bg-emerald-50/90 border-emerald-300 text-emerald-950';
-          const barClass = isTrial ? 'bg-[#006194]' : 'bg-emerald-600';
-          const badgeClass = isTrial ? 'bg-sky-100 text-[#006194]' : 'bg-emerald-100 text-emerald-800';
-          const badgeText = isTrial ? 'Học thử 0đ' : 'Lớp 1-1';
-
-          const sTime = new Date(lesson.scheduledStartTime);
-          const eTime = lesson.scheduledEndTime ? new Date(lesson.scheduledEndTime) : new Date(sTime.getTime() + (lesson.durationMinutes || 50) * 60000);
-          const timeSpan = `${pad(sTime.getHours())}:${pad(sTime.getMinutes())} - ${pad(eTime.getHours())}:${pad(eTime.getMinutes())}`;
-          const partner = escapeHtml(lesson.partnerName || 'Học viên');
-          const title = escapeHtml(lesson.locationDetails || (isTrial ? 'Học thử 1-1' : 'Tiếng Nhật 1-1'));
-          const meetLink = lesson.meetingLink;
-
-          return `
-            <div class="relative p-2 rounded-xl border ${themeClass} shadow-2xs space-y-1 hover:shadow-md transition-all text-left">
-              <div class="absolute left-0 top-0 bottom-0 w-1 ${barClass} rounded-l-xl"></div>
-              <div class="flex items-center justify-between pl-1 gap-1">
-                <span class="font-bold text-[12px] truncate flex items-center gap-1">
-                  ${partner}
-                  <span class="material-symbols-outlined text-[13px] ${isTrial ? 'text-[#006194]' : 'text-emerald-600'}">check_circle</span>
-                </span>
-                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${badgeClass} shrink-0">${badgeText}</span>
-              </div>
-              <div class="text-[10px] font-semibold pl-1 opacity-80">
-                ${timeSpan}
-              </div>
-              <div class="pl-1 text-[11px] font-medium truncate text-on-surface">
-                ${title}
-              </div>
-            </div>
-          `;
-        }).join('');
-      } else {
-        // Ô trống: click vào để lên lịch nhanh
-        contentHtml = `
-          <div class="w-full h-full min-h-[50px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-            <span class="text-[11px] font-semibold text-primary inline-flex items-center gap-0.5 bg-primary/10 px-2 py-1 rounded-lg pointer-events-none">
-              <span class="material-symbols-outlined text-[14px]">add</span> Xếp lịch
-            </span>
-          </div>
-        `;
-      }
-
-      return `
-        <div class="calendar-slot-cell p-1.5 border-r last:border-r-0 border-outline-variant/20 cursor-pointer overflow-hidden relative group" data-date="${dateYmd}" data-hour="${hour}" title="Bấm để lên lịch cho ngày ${dateYmd} lúc ${timeLabel}">
-          ${contentHtml}
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div class="grid grid-cols-8 items-stretch border-b border-outline-variant/20 hover:bg-surface-container-low/20 transition-colors">
-        <div class="calendar-time-cell p-2 border-r border-outline-variant/30 text-[11px] font-bold text-on-surface-variant flex items-start justify-center pt-1.5 bg-surface-container-low/20">
-          ${timeLabel}
-        </div>
-        ${cellsHtml}
-      </div>
-    `;
-  }).join('');
-
-  $('gridBodyRows').innerHTML = bodyHtml;
-
-  // Gắn sự kiện click vào ô trống trên lưới để lên lịch
-  document.querySelectorAll('.calendar-slot-cell').forEach(cell => {
-    cell.addEventListener('click', (e) => {
-      // Nếu click vào thẻ buổi học có link Meet thì không mở modal
-      if (e.target.closest('a')) return;
-      const dateStr = cell.dataset.date;
-      const hourNum = Number(cell.dataset.hour);
-      openScheduleModal(dateStr, `${pad(hourNum)}:00`);
-    });
+  // 2. Thân lưới 24 giờ
+  // Thân lưới: lịch theo phút (thẻ đặt đúng giờ bắt đầu, cao theo thời lượng) — js/week-time-grid.js
+  renderWeekTimeGrid({
+    bodyEl: $('gridBodyRows'),
+    scrollEl: $('gridScroll'),
+    monday: currentWeekMonday,
+    events: [
+      ...weekOfficial.map(o => officialEvent(o, `/tutor/classrooms?space=${encodeURIComponent(o.spaceId)}`)),
+      ...weekLessons.map(b => trialEvent(b, '/tutor/connections'))
+    ]
   });
-}
-
-// ---------------------------------------------------------------------------
-// MODAL LÊN LỊCH & CHỐT LỊCH BUỔI HỌC CHO HỌC VIÊN
-// ---------------------------------------------------------------------------
-function openScheduleModal(preselectedDate = null, preselectedTime = null) {
-  const modal = $('modalScheduleLesson');
-  if (!modal) return;
-
-  $('scheduleLessonError').classList.add('hidden');
-
-  // Điền ngày & giờ
-  const todayStr = formatDateYMD(new Date());
-  $('scheduleDateInput').value = preselectedDate || todayStr;
-  $('scheduleStartTimeInput').value = preselectedTime || '18:00';
-  $('scheduleDurationSelect').value = '60';
-  $('scheduleTitleInput').value = 'Tiếng Nhật giao tiếp 1-1';
-
-  // Cập nhật danh sách học viên
-  const select = $('scheduleLearnerSelect');
-  select.innerHTML = '';
-
-  const uniqueLearners = new Map();
-  // 1. Từ eligibleLearnersList
-  eligibleLearnersList.forEach(l => {
-    uniqueLearners.set(String(l.learnerId), l.fullName || l.email || 'Học viên');
-  });
-  // 2. Từ bookingsList
-  bookingsList.forEach(b => {
-    if (b.partnerRole === 'Học viên') {
-      const learnerKey = b.learnerId || b.partnerId;
-      if (learnerKey) {
-        uniqueLearners.set(String(learnerKey), b.partnerName || 'Học viên');
-      }
-    }
-  });
-
-  if (uniqueLearners.size === 0) {
-    select.innerHTML = '<option value="">Chưa có học viên kết nối. Vui lòng kết nối với học viên trước.</option>';
-  } else {
-    select.innerHTML = '<option value="">-- Chọn học viên --</option>' +
-      Array.from(uniqueLearners.entries()).map(([id, name]) => `
-        <option value="${id}">${escapeHtml(name)}</option>
-      `).join('');
-  }
-
-  modal.classList.remove('hidden');
-}
-
-function closeScheduleModal() {
-  $('modalScheduleLesson')?.classList.add('hidden');
 }
 
 // ---------------------------------------------------------------------------
@@ -452,10 +335,10 @@ function closeAddSlotModal() {
 // ---------------------------------------------------------------------------
 async function loadAllData() {
   try {
-    const [availData, bookingsData, eligibleData] = await Promise.allSettled([
+    const [availData, bookingsData, timetableData] = await Promise.allSettled([
       API.tutorSchedule.getMySchedule(),
       API.trialBookings.getMyRequests('ALL', 0, 100),
-      API.classrooms.eligibleLearners().catch(() => [])
+      API.classrooms.timetable().catch(() => [])
     ]);
 
     // 1. Ca rảnh
@@ -469,9 +352,9 @@ async function loadAllData() {
       bookingsList = Array.isArray(bRes) ? bRes : (bRes.content || bRes.items || bRes.data || []);
     }
 
-    // 3. Học viên đủ điều kiện
-    if (eligibleData.status === 'fulfilled' && eligibleData.value) {
-      eligibleLearnersList = Array.isArray(eligibleData.value) ? eligibleData.value : (eligibleData.value.data || []);
+    // 3. Lịch học chính thức hằng tuần của các lớp (FE-06)
+    if (timetableData.status === 'fulfilled' && Array.isArray(timetableData.value)) {
+      classTimetable = timetableData.value;
     }
 
     renderWeeklyCalendar();
@@ -489,11 +372,6 @@ function initEvents() {
   // Tabs switching
   $('tabBtnLessons')?.addEventListener('click', () => switchTab('LESSONS'));
   $('tabBtnAvailability')?.addEventListener('click', () => switchTab('AVAILABILITY'));
-
-  // Nút mở modal Lên lịch buổi học (+ Schedule a lesson dạng viên thuốc)
-  $('btnOpenScheduleLesson')?.addEventListener('click', () => {
-    openScheduleModal();
-  });
 
   // Nút mở modal Thêm ca rảnh
   $('btnOpenAddModal')?.addEventListener('click', () => {
@@ -517,9 +395,6 @@ function initEvents() {
   });
 
   // Đóng modals
-  document.querySelectorAll('.modal-schedule-close').forEach(btn => {
-    btn.addEventListener('click', closeScheduleModal);
-  });
   document.querySelectorAll('.modal-add-close').forEach(btn => {
     btn.addEventListener('click', closeAddSlotModal);
   });
@@ -536,59 +411,6 @@ function initEvents() {
 
   $('inputStartTime')?.addEventListener('input', updateDurationPreview);
   $('inputEndTime')?.addEventListener('input', updateDurationPreview);
-
-  // Gửi form Lên lịch buổi học cho học viên
-  $('formScheduleLesson')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const learnerId = $('scheduleLearnerSelect').value;
-    const dateStr = $('scheduleDateInput').value;
-    const startTimeStr = $('scheduleStartTimeInput').value;
-    const duration = Number($('scheduleDurationSelect').value) || 60;
-    const title = $('scheduleTitleInput').value.trim();
-    const note = $('scheduleNoteInput').value.trim();
-    const errEl = $('scheduleLessonError');
-    const submitBtn = $('btnSubmitScheduleLesson');
-
-    errEl.classList.add('hidden');
-
-    if (!learnerId) {
-      errEl.textContent = 'Vui lòng chọn học viên để xếp lịch.';
-      errEl.classList.remove('hidden');
-      return;
-    }
-    if (!dateStr || !startTimeStr) {
-      errEl.textContent = 'Vui lòng chọn đầy đủ ngày và giờ bắt đầu.';
-      errEl.classList.remove('hidden');
-      return;
-    }
-
-    const scheduledStartTime = `${dateStr}T${startTimeStr}:00+07:00`;
-
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>Đang xử lý...</span>';
-
-    try {
-      await API.trialBookings.scheduleLesson({
-        learnerId: learnerId,
-        scheduledStartTime: scheduledStartTime,
-        durationMinutes: duration,
-        lessonTitle: title,
-        meetingLink: null,
-        note: note,
-        learningMode: 'ONLINE'
-      });
-
-      closeScheduleModal();
-      showToast('Đã lên lịch buổi học thành công và gửi thông báo tới học sinh!');
-      await loadAllData();
-    } catch (err) {
-      errEl.textContent = err instanceof ApiError ? err.message : (err.message || 'Lỗi khi lên lịch buổi học');
-      errEl.classList.remove('hidden');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">send</span><span>Xác nhận & Gửi lịch cho học viên</span>';
-    }
-  });
 
   // Gửi form Thêm ca rảnh
   $('formAddSlot')?.addEventListener('submit', async (e) => {

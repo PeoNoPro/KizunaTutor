@@ -20,6 +20,9 @@ public interface ClassroomService {
 
     ClassroomSummaryResponse getDetail(CurrentActor actor, UUID spaceId);
 
+    /** Gia sư của lớp đổi tên lớp (lớp đang hoạt động, gói hội viên còn hiệu lực). */
+    ClassroomSummaryResponse rename(CurrentActor actor, UUID spaceId, String title);
+
     /** Lớp mà người dùng là gia sư hoặc học viên; 404 nếu không tồn tại, 403 nếu không thuộc lớp. */
     LearningSpace loadAccessibleSpace(CurrentActor actor, UUID spaceId);
 

@@ -70,6 +70,33 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
 
     List<TrialBooking> findByTutorTutorIdAndBookingStatusIn(UUID tutorId, List<TrialBookingStatus> statuses);
 
+    /** Các buổi học thử của một cặp gia sư – học viên theo trạng thái (dùng khi đã đồng ý kết nối). */
+    List<TrialBooking> findByTutorTutorIdAndLearnerLearnerIdAndBookingStatusIn(UUID tutorId, UUID learnerId,
+                                                                               List<TrialBookingStatus> statuses);
+
+    /**
+     * Truy vấn CHỈ ĐỌC lịch học chính thức hằng tuần (FE-06: class_schedules + learning_spaces, lớp ACTIVE/PAUSED)
+     * của gia sư HOẶC học viên trùng khung giờ (theo giờ Việt Nam). dayOfWeek: 1 = Thứ Hai ... 7 = Chủ nhật.
+     * @return 'TUTOR' nếu trùng lịch dạy của gia sư, 'LEARNER' nếu trùng lịch học của học viên; rỗng nếu không trùng
+     */
+    @Query(value = """
+            SELECT CASE WHEN ls.tutor_id = :tutorId THEN 'TUTOR' ELSE 'LEARNER' END
+            FROM class_schedules cs
+            JOIN learning_spaces ls ON ls.space_id = cs.space_id
+            WHERE ls.status IN ('ACTIVE', 'PAUSED')
+              AND (ls.tutor_id = :tutorId OR ls.learner_id = :learnerId)
+              AND cs.day_of_week = :dayOfWeek
+              AND cs.start_time < :endTime
+              AND cs.end_time > :startTime
+            ORDER BY CASE WHEN ls.tutor_id = :tutorId THEN 0 ELSE 1 END
+            LIMIT 1
+            """, nativeQuery = true)
+    java.util.Optional<String> findClassScheduleClash(@Param("tutorId") UUID tutorId,
+                                                      @Param("learnerId") UUID learnerId,
+                                                      @Param("dayOfWeek") int dayOfWeek,
+                                                      @Param("startTime") java.time.LocalTime startTime,
+                                                      @Param("endTime") java.time.LocalTime endTime);
+
     List<TrialBooking> findByBookingStatusInAndScheduledEndTimeBefore(List<TrialBookingStatus> statuses, OffsetDateTime time);
 }
 

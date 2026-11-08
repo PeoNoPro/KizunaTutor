@@ -27,7 +27,7 @@
       .kz-badge[data-tone="active"] { @apply bg-primary-fixed text-on-primary-fixed-variant; }
       .kz-badge[data-tone="paused"] { @apply bg-tertiary-fixed text-on-tertiary-fixed; }
       .kz-badge[data-tone="done"] { @apply bg-surface-container-highest text-on-surface-variant; }
-      .field-error { @apply text-error font-body-sm text-body-sm mt-1; }
+      .field-error { @apply text-error font-body-sm text-body-sm mt-1 whitespace-pre-line [overflow-wrap:anywhere]; }
       .kz-modal-backdrop { background: rgba(19, 27, 46, .45); }
     }
   </style>
@@ -47,10 +47,10 @@
       <nav class="flex flex-col gap-1 px-4 mt-2" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-lg shadow-sm">
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tong-quan" href="/tutor/dashboard"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>Tổng quan</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="yeu-cau-ket-noi" href="/tutor/connections"><span class="material-symbols-outlined text-[20px]">group_add</span><span>Yêu cầu kết nối</span></a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="lich-giang-day" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span>Lịch giảng dạy</span></a>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="lich-giang-day" href="/tutor/schedule"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span>Lịch giảng dạy</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="hoc-vien-cua-toi" href="/tutor/classrooms"><span class="material-symbols-outlined text-[20px]">school</span><span>Học viên của tôi</span></a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tai-lieu-hoc-tap" href="/tutor/classrooms"><span class="material-symbols-outlined text-[20px]">menu_book</span><span>Tài liệu học tập</span></a>
-        <a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 transition-colors bg-primary-container text-on-primary-container font-semibold rounded-lg shadow-sm" data-path="quan-ly-bai-tap" href="/tutor/classrooms"><span class="material-symbols-outlined text-[20px]">assignment</span><span>Quản lý bài tập</span></a>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tai-lieu-hoc-tap" href="/tutor/classrooms?muc=tai-lieu"><span class="material-symbols-outlined text-[20px]">menu_book</span><span>Tài liệu học tập</span></a>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="quan-ly-bai-tap" href="/tutor/classrooms?muc=bai-tap"><span class="material-symbols-outlined text-[20px]">assignment</span><span>Quản lý bài tập</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="bao-cao-tien-do" href="#"><span class="material-symbols-outlined text-[20px]">insights</span><span>Báo cáo tiến độ</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="thong-bao" href="#"><span class="material-symbols-outlined text-[20px]">notifications</span><span>Thông báo</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="ho-so-gia-su" href="/tutor/verification"><span class="material-symbols-outlined text-[20px]">badge</span><span>Hồ sơ gia sư</span></a>
@@ -106,11 +106,11 @@
                 </div>
                 <div>
                   <h1 class="font-headline-md text-headline-md text-on-surface tracking-tight">Quản lý lớp học</h1>
-                  <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Mở lớp cho học viên đã kết nối, chia sẻ tài liệu và giao bài tập.</p>
+                  <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Tạo lớp và xếp lịch học cho học viên đã kết nối, chia sẻ tài liệu và giao bài tập.</p>
                 </div>
               </div>
               <button type="button" id="openAddLearnerBtn" class="px-4 py-2.5 rounded-xl bg-primary text-on-primary font-label-md text-label-md flex items-center gap-2 shadow-sm hover:bg-primary-container transition-all self-start lg:self-center">
-                <span class="material-symbols-outlined text-[18px]">person_add</span><span>Thêm học viên vào lớp</span>
+                <span class="material-symbols-outlined text-[18px]">add_circle</span><span>Tạo lớp học</span>
               </button>
             </div>
           </div>
@@ -120,7 +120,7 @@
               <div class="w-2.5 h-6 rounded-full bg-primary"></div>
               <div>
                 <h2 class="font-title-md text-title-md text-on-surface">Lớp học của bạn</h2>
-                <p class="font-body-sm text-body-sm text-on-surface-variant">Chọn một lớp để xem tài liệu và bài tập</p>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">Chọn một lớp để xem lịch học, tài liệu và bài tập</p>
               </div>
             </div>
             <div id="classroomListState" class="kz-item text-center py-8 hidden"></div>
@@ -140,8 +140,9 @@
             <div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-primary/5 pointer-events-none"></div>
             <div class="relative z-10 space-y-2">
               <div class="flex flex-wrap items-center gap-3">
-                <h1 id="detailTitle" class="font-headline-md text-headline-md text-on-surface tracking-tight break-words"></h1>
+                <h1 id="detailTitle" class="font-headline-md text-headline-md text-on-surface tracking-tight min-w-0 [overflow-wrap:anywhere]"></h1>
                 <span id="detailStatus" class="kz-badge"></span>
+                <button type="button" id="openRenameBtn" class="kz-btn hidden"><span class="material-symbols-outlined text-[16px]">edit</span>Đổi tên lớp</button>
               </div>
               <div class="flex flex-wrap items-center gap-3 text-on-surface-variant font-body-sm text-body-sm">
                 <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">person</span>Học viên: <strong id="detailLearner" class="text-on-surface"></strong></span>
@@ -150,6 +151,22 @@
               </div>
               <p id="detailReadOnlyNote" class="hidden rounded-xl bg-tertiary-fixed text-on-tertiary-fixed px-4 py-3 font-body-sm text-body-sm"></p>
             </div>
+          </div>
+
+          <!-- ===== LỊCH HỌC HẰNG TUẦN (sửa được, không xóa) ===== -->
+          <div id="scheduleSection" class="kz-card p-6 hidden">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div class="flex items-center gap-2.5">
+                <div class="w-2.5 h-6 rounded-full bg-primary"></div>
+                <div>
+                  <h2 class="font-title-md text-title-md text-on-surface">Lịch học hằng tuần</h2>
+                  <p id="scheduleSubtitle" class="font-body-sm text-body-sm text-on-surface-variant">Các buổi học cố định mỗi tuần của lớp</p>
+                </div>
+              </div>
+              <button type="button" id="openAddScheduleBtn" class="kz-btn kz-btn-primary shrink-0 hidden"><span class="material-symbols-outlined text-[16px]">more_time</span>Thêm buổi học</button>
+            </div>
+            <div id="scheduleState" class="kz-item text-center text-on-surface-variant py-6 hidden"></div>
+            <ul id="scheduleList" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></ul>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -231,8 +248,8 @@
 
   <!-- ===== HỘP THOẠI THÊM HỌC VIÊN ===== -->
   <div id="addLearnerModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="addLearnerTitle">
-    <form id="addLearnerForm" class="kz-card shadow-xl w-full max-w-[480px] p-6 space-y-4" novalidate>
-      <h2 id="addLearnerTitle" class="font-title-md text-title-md text-on-surface">Thêm học viên vào lớp</h2>
+    <form id="addLearnerForm" class="kz-card shadow-xl w-full max-w-[600px] p-6 space-y-4 max-h-[90vh] overflow-y-auto" novalidate>
+      <h2 id="addLearnerTitle" class="font-title-md text-title-md text-on-surface">Tạo lớp học</h2>
       <div id="eligibleState" class="kz-item text-on-surface-variant hidden"></div>
       <div id="addLearnerFields" class="space-y-4">
         <div>
@@ -245,11 +262,63 @@
           <input id="classroomTitleInput" type="text" maxlength="150" class="kz-input" placeholder="Ví dụ: Luyện thi N4 cấp tốc">
           <p id="classroomTitleError" class="field-error hidden"></p>
         </div>
+        <div>
+          <div class="flex items-center justify-between gap-3 mb-1.5">
+            <span class="kz-label mb-0">Lịch học hằng tuần</span>
+            <button type="button" id="addScheduleRowBtn" class="kz-btn"><span class="material-symbols-outlined text-[16px]">add</span>Thêm buổi</button>
+          </div>
+          <div id="scheduleRows" class="flex flex-col gap-2"></div>
+          <p class="font-caption text-caption text-on-surface-variant mt-1.5">Mỗi buổi dài từ 30 phút đến 4 giờ. Sau khi tạo lớp, lịch học có thể chỉnh sửa nhưng không thể xóa.</p>
+          <p id="scheduleRowsError" class="field-error hidden"></p>
+        </div>
       </div>
       <p id="addLearnerFormError" class="field-error hidden"></p>
       <div class="flex justify-end gap-3 pt-1">
         <button type="button" class="kz-btn" data-close-modal="addLearnerModal">Hủy</button>
-        <button type="submit" id="addLearnerSubmit" class="kz-btn kz-btn-primary">Xác nhận thêm</button>
+        <button type="submit" id="addLearnerSubmit" class="kz-btn kz-btn-primary">Tạo lớp học</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== HỘP THOẠI ĐỔI TÊN LỚP ===== -->
+  <div id="renameModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="renameModalTitle">
+    <form id="renameForm" class="kz-card shadow-xl w-full max-w-[480px] p-6 space-y-4" novalidate>
+      <h2 id="renameModalTitle" class="font-title-md text-title-md text-on-surface">Đổi tên lớp học</h2>
+      <div>
+        <label for="renameInput" class="kz-label">Tên lớp học</label>
+        <input id="renameInput" type="text" maxlength="150" class="kz-input">
+        <p id="renameError" class="field-error hidden"></p>
+      </div>
+      <div class="flex justify-end gap-3 pt-1">
+        <button type="button" class="kz-btn" data-close-modal="renameModal">Hủy</button>
+        <button type="submit" id="renameSubmit" class="kz-btn kz-btn-primary">Lưu tên lớp</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== HỘP THOẠI THÊM / SỬA BUỔI HỌC ===== -->
+  <div id="scheduleModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="scheduleModalTitle">
+    <form id="scheduleForm" class="kz-card shadow-xl w-full max-w-[480px] p-6 space-y-4" novalidate>
+      <h2 id="scheduleModalTitle" class="font-title-md text-title-md text-on-surface">Sửa buổi học</h2>
+      <div>
+        <label for="scheduleDayInput" class="kz-label">Thứ trong tuần</label>
+        <select id="scheduleDayInput" class="kz-input"></select>
+      </div>
+      <div class="grid gap-4 grid-cols-2">
+        <div>
+          <label for="scheduleStartInput" class="kz-label">Giờ bắt đầu</label>
+          <input id="scheduleStartInput" type="time" step="300" class="kz-input">
+        </div>
+        <div>
+          <label for="scheduleEndInput" class="kz-label">Giờ kết thúc</label>
+          <input id="scheduleEndInput" type="time" step="300" class="kz-input">
+        </div>
+      </div>
+      <p class="font-caption text-caption text-on-surface-variant">Mỗi buổi dài từ 30 phút đến 4 giờ và không trùng với lịch các lớp khác của bạn hoặc của học viên.</p>
+      <p id="scheduleFormError" class="field-error hidden"></p>
+      <div class="flex justify-end gap-3 pt-1">
+        <button type="button" class="kz-btn" data-close-modal="scheduleModal">Hủy</button>
+        <button type="submit" id="scheduleSubmit" class="kz-btn kz-btn-primary">Lưu thay đổi</button>
       </div>
     </form>
   </div>
@@ -269,9 +338,9 @@
         <p id="materialDescriptionError" class="field-error hidden"></p>
       </div>
       <div>
-        <label for="materialFileInput" class="kz-label">Tệp tài liệu</label>
-        <input id="materialFileInput" type="file" class="kz-input file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary file:text-on-primary file:font-semibold">
-        <p id="materialFileHint" class="font-caption text-caption text-on-surface-variant mt-1.5">Định dạng PDF, PNG, JPG, MP3. Dung lượng tối đa 10 MB.</p>
+        <p class="kz-label">Tệp tài liệu</p>
+        <div id="materialFileList"></div>
+        <p id="materialFileHint" class="font-caption text-caption text-on-surface-variant mt-1.5"></p>
         <p id="materialFileError" class="field-error hidden"></p>
       </div>
       <p id="materialFormError" class="field-error hidden"></p>
@@ -280,6 +349,19 @@
         <button type="submit" id="materialSubmit" class="kz-btn kz-btn-primary">Tải lên</button>
       </div>
     </form>
+  </div>
+
+  <!-- ===== HỘP THOẠI XÁC NHẬN XÓA BUỔI HỌC ===== -->
+  <div id="deleteScheduleModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="deleteScheduleTitle">
+    <div class="kz-card shadow-xl w-full max-w-[440px] p-6 space-y-4">
+      <h2 id="deleteScheduleTitle" class="font-title-md text-title-md text-on-surface">Xóa buổi học</h2>
+      <p class="text-on-surface-variant">Bạn có chắc muốn xóa buổi <strong id="deleteScheduleName" class="text-on-surface"></strong> khỏi lịch học hằng tuần? Học viên sẽ không còn thấy buổi này trên thời khóa biểu.</p>
+      <p id="deleteScheduleError" class="field-error hidden"></p>
+      <div class="flex justify-end gap-3 pt-1">
+        <button type="button" class="kz-btn" data-close-modal="deleteScheduleModal">Hủy</button>
+        <button type="button" id="deleteScheduleConfirm" class="kz-btn kz-btn-danger">Xóa buổi học</button>
+      </div>
+    </div>
   </div>
 
   <!-- ===== HỘP THOẠI XÁC NHẬN XÓA TÀI LIỆU ===== -->
@@ -305,7 +387,7 @@
         <p id="assignmentTitleError" class="field-error hidden"></p>
       </div>
       <div>
-        <label for="assignmentDescriptionInput" class="kz-label">Yêu cầu / mô tả <span class="font-normal text-on-surface-variant">(không bắt buộc)</span></label>
+        <label for="assignmentDescriptionInput" class="kz-label">Nội dung bài tập <span class="font-normal text-on-surface-variant">(nhập nội dung hoặc tải tệp đề bài, ít nhất một trong hai)</span></label>
         <textarea id="assignmentDescriptionInput" rows="4" maxlength="5000" class="kz-input" placeholder="Ví dụ: Viết 10 câu dùng ～ている. Xem tài liệu Ngữ pháp bài 5 trong mục Tài liệu học tập."></textarea>
         <p id="assignmentDescriptionError" class="field-error hidden"></p>
       </div>
@@ -322,16 +404,9 @@
         </div>
       </div>
       <div>
-        <label for="assignmentFileInput" class="kz-label">Tệp đề bài <span class="font-normal text-on-surface-variant">(không bắt buộc)</span></label>
-        <div id="assignmentCurrentFile" class="kz-item flex flex-wrap items-center gap-2 p-3 mb-2 hidden">
-          <span class="material-symbols-outlined text-[18px] text-primary">attach_file</span>
-          <span id="assignmentCurrentFileName" class="flex-1 min-w-0 break-words"></span>
-          <label class="inline-flex items-center gap-1.5 text-on-surface-variant cursor-pointer">
-            <input id="assignmentRemoveFile" type="checkbox"> Gỡ tệp này
-          </label>
-        </div>
-        <input id="assignmentFileInput" type="file" class="kz-input file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary file:text-on-primary file:font-semibold">
-        <p id="assignmentFileHint" class="font-caption text-caption text-on-surface-variant mt-1.5">Định dạng PDF, PNG, JPG, MP3. Dung lượng tối đa 10 MB.</p>
+        <p class="kz-label">Tệp đề bài <span class="font-normal text-on-surface-variant">(không bắt buộc, tối đa 5 tệp)</span></p>
+        <div id="assignmentFileList"></div>
+        <p id="assignmentFileHint" class="font-caption text-caption text-on-surface-variant mt-1.5"></p>
         <p id="assignmentFileError" class="field-error hidden"></p>
       </div>
       <p class="font-caption text-caption text-on-surface-variant">Để trống hạn nộp nếu bài tập không có thời hạn. Sau khi đã chấm điểm, bài tập không thể chỉnh sửa.</p>

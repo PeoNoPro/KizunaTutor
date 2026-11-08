@@ -1,6 +1,6 @@
 /**
  * KizunaTutor - FE-06 Trang "Lớp học của tôi" của học viên.
- * UC-58 View Course, UC-61 View Learning Materials. Dữ liệu lấy từ API /api/classrooms.
+ * UC-58 View Course (kèm lịch học hằng tuần), UC-61 View Learning Materials. Dữ liệu lấy từ API /api/classrooms.
  */
 
 import { API } from '../../js/api.js';
@@ -9,6 +9,11 @@ import {
   classroomStatusTone,
   fileTypeLabel,
   formatDateVi,
+  sortSchedules,
+  summarizeSchedules,
+  dayOfWeekLabel,
+  shortTime,
+  durationLabel,
   friendlyErrorMessage,
   escapeHtml,
   ROLE_LEARNER,
@@ -57,12 +62,13 @@ async function loadCourses() {
     grid.innerHTML = courses.map((c) => `
       <article class="mc-card p-4 flex flex-col gap-3">
         <div class="flex items-start justify-between gap-2">
-          <h3 class="mc-heading text-[18px] leading-snug break-words">${escapeHtml(c.title)}</h3>
+          <h3 class="mc-heading text-[18px] leading-snug min-w-0 [overflow-wrap:anywhere]">${escapeHtml(c.title)}</h3>
           <span class="mc-badge shrink-0" data-tone="${classroomStatusTone(c.status)}">${escapeHtml(classroomStatusLabel(c.status))}</span>
         </div>
         <div class="text-[#333] space-y-1">
           <div>Gia sư: <strong>${escapeHtml(c.tutorName || 'Gia sư')}</strong></div>
           <div>Ngày bắt đầu: ${escapeHtml(formatDateVi(c.createdAt))}</div>
+          <div>Lịch học: ${c.schedules?.length ? escapeHtml(summarizeSchedules(c.schedules)) : 'Chưa có lịch học'}</div>
           <div>Tài liệu: ${Number(c.materialCount) || 0}</div>
         </div>
         <button type="button" class="mc-btn mt-auto" data-open-course="${escapeHtml(c.spaceId)}">Xem lớp học</button>
@@ -110,6 +116,7 @@ async function loadCourse(spaceId) {
   stateBox.classList.add('hidden');
   card.classList.add('hidden');
   materialsCard.classList.add('hidden');
+  $('myCourseSchedule').classList.add('hidden');
   hideLearnerAssignments();
   try {
     currentSpace = await API.classrooms.detail(spaceId);
@@ -121,12 +128,33 @@ async function loadCourse(spaceId) {
     $('myCourseCreated').textContent = formatDateVi(currentSpace.createdAt);
     $('myCourseReadOnlyNote').classList.toggle('hidden', !currentSpace.readOnly);
     card.classList.remove('hidden');
+    renderSchedule(currentSpace.schedules);
     materialsCard.classList.remove('hidden');
     loadLearnerAssignments(currentSpace, { notify: showError });
     await loadMaterials();
   } catch (err) {
     renderStateBox(stateBox, friendlyErrorMessage(err), () => loadCourse(spaceId));
   }
+}
+
+function renderSchedule(list) {
+  const schedules = sortSchedules(list);
+  const ul = $('myCourseScheduleList');
+  const stateBox = $('myCourseScheduleState');
+  if (!schedules.length) {
+    ul.innerHTML = '';
+    renderStateBox(stateBox, 'Gia sư chưa xếp lịch học cho lớp này.');
+  } else {
+    stateBox.classList.add('hidden');
+    ul.innerHTML = schedules.map((s) => `
+      <li class="border border-black rounded-[5px] p-3 bg-[#E5F4EA] flex flex-col gap-0.5">
+        <span class="font-semibold text-[16px]">${escapeHtml(dayOfWeekLabel(s.dayOfWeek))}</span>
+        <span>${escapeHtml(shortTime(s.startTime))} – ${escapeHtml(shortTime(s.endTime))}</span>
+        <span class="mc-meta text-[#555]">${escapeHtml(durationLabel(s.startTime, s.endTime))}</span>
+      </li>
+    `).join('');
+  }
+  $('myCourseSchedule').classList.remove('hidden');
 }
 
 async function loadMaterials() {
@@ -144,15 +172,17 @@ async function loadMaterials() {
     list.innerHTML = materials.map((m) => `
       <li class="border border-black rounded-[5px] p-4 bg-white flex flex-col sm:flex-row sm:items-start gap-3">
         <div class="flex-1 min-w-0 space-y-1">
-          <h3 class="font-semibold text-[16px] break-words">${escapeHtml(m.title)}</h3>
-          ${m.description ? `<p class="text-[#333] whitespace-pre-line break-words">${escapeHtml(m.description)}</p>` : ''}
-          <p class="mc-meta text-[#555]">${escapeHtml(fileTypeLabel(m.fileType))} · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
+          <h3 class="font-semibold text-[16px] [overflow-wrap:anywhere]">${escapeHtml(m.title)}</h3>
+          ${m.description ? `<p class="text-[#333] whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(m.description)}</p>` : ''}
+          <div class="flex flex-wrap gap-2 pt-1">${(m.files || []).map((f) => `
+            <button type="button" class="mc-btn max-w-full" data-open-material="${escapeHtml(m.materialId)}" data-file="${escapeHtml(f.fileId)}"
+              title="${escapeHtml(fileTypeLabel(f.fileType))}"><span class="min-w-0 [overflow-wrap:anywhere]">📎 ${escapeHtml(f.fileName)}</span></button>`).join('')}</div>
+          <p class="mc-meta text-[#555]">${(m.files || []).length} tệp · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
         </div>
-        <button type="button" class="mc-btn mc-btn-primary shrink-0" data-open-material="${escapeHtml(m.materialId)}">Mở tài liệu</button>
       </li>
     `).join('');
     list.querySelectorAll('[data-open-material]').forEach((btn) => {
-      btn.addEventListener('click', () => openMaterial(btn.dataset.openMaterial, btn));
+      btn.addEventListener('click', () => openMaterial(btn.dataset.openMaterial, btn.dataset.file, btn));
     });
   } catch (err) {
     list.innerHTML = '';
@@ -160,11 +190,11 @@ async function loadMaterials() {
   }
 }
 
-async function openMaterial(materialId, button) {
+async function openMaterial(materialId, fileId, button) {
   const tab = window.open('', '_blank');
   button.disabled = true;
   try {
-    const blob = await API.classrooms.materialFile(currentSpace.spaceId, materialId);
+    const blob = await API.classrooms.materialFile(currentSpace.spaceId, materialId, fileId);
     const url = URL.createObjectURL(blob);
     if (tab) tab.location.href = url;
     else window.location.href = url;

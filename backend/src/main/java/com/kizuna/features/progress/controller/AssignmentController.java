@@ -44,13 +44,25 @@ public class AssignmentController extends ClassroomExceptionHandler {
         return ClassroomApiResponse.ok("Tải danh sách bài tập thành công.", assignmentService.list(actor, spaceId));
     }
 
-    @PostMapping
+    /**
+     * Giao bài tập (multipart): title, description, dueDate (ISO, tùy chọn), totalPoints (tùy chọn), nhiều phần "file".
+     * Mọi thứ gửi trong một lần, kiểm tra hết; lỗi bất kỳ (kể cả một tệp) → không lưu gì.
+     */
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ClassroomApiResponse<AssignmentSummaryResponse>> create(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
-            @PathVariable UUID spaceId, @RequestBody AssignmentRequest request) {
+            @PathVariable UUID spaceId,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "dueDate", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+            java.time.OffsetDateTime dueDate,
+            @RequestParam(value = "totalPoints", required = false) java.math.BigDecimal totalPoints,
+            @RequestPart(value = "file", required = false) List<MultipartFile> files) {
         CurrentActor actor = currentUserResolver.resolve(auth);
+        AssignmentRequest request = new AssignmentRequest(title, description, dueDate, totalPoints);
         return ResponseEntity.status(HttpStatus.CREATED).body(ClassroomApiResponse.ok(
-                "Giao bài tập thành công.", assignmentService.create(actor, spaceId, request)));
+                "Giao bài tập thành công.", assignmentService.create(actor, spaceId, request, files)));
     }
 
     @GetMapping("/{assignmentId}")
@@ -62,60 +74,68 @@ public class AssignmentController extends ClassroomExceptionHandler {
                 assignmentService.detail(actor, spaceId, assignmentId));
     }
 
-    @PutMapping("/{assignmentId}")
+    /** Sửa bài tập (multipart) như POST, kèm "removeFileIds" (tệp gỡ) và nhiều phần "file" (tệp thêm), trong một lần. */
+    @PutMapping(value = "/{assignmentId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ClassroomApiResponse<AssignmentSummaryResponse> update(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
-            @PathVariable UUID spaceId, @PathVariable UUID assignmentId, @RequestBody AssignmentRequest request) {
-        CurrentActor actor = currentUserResolver.resolve(auth);
-        return ClassroomApiResponse.ok("Cập nhật bài tập thành công.",
-                assignmentService.update(actor, spaceId, assignmentId, request));
-    }
-
-    @PutMapping(value = "/{assignmentId}/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ClassroomApiResponse<AssignmentAttachmentResponse> uploadAttachment(
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
             @PathVariable UUID spaceId, @PathVariable UUID assignmentId,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "dueDate", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+            java.time.OffsetDateTime dueDate,
+            @RequestParam(value = "totalPoints", required = false) java.math.BigDecimal totalPoints,
+            @RequestParam(value = "removeFileIds", required = false) List<UUID> removeFileIds,
+            @RequestPart(value = "file", required = false) List<MultipartFile> files) {
         CurrentActor actor = currentUserResolver.resolve(auth);
-        return ClassroomApiResponse.ok("Đính kèm tệp cho bài tập thành công.",
-                attachmentService.upload(actor, spaceId, assignmentId, file));
+        AssignmentRequest request = new AssignmentRequest(title, description, dueDate, totalPoints);
+        return ClassroomApiResponse.ok("Cập nhật bài tập thành công.",
+                assignmentService.update(actor, spaceId, assignmentId, request, files, removeFileIds));
     }
 
-    @DeleteMapping("/{assignmentId}/attachment")
-    public ClassroomApiResponse<AssignmentAttachmentResponse> removeAttachment(
+    // ===== Tệp đề bài: lưu cùng lúc với giao/sửa bài tập; ở đây chỉ còn API mở tệp =====
+
+    @GetMapping("/{assignmentId}/files/{fileId}")
+    public ResponseEntity<byte[]> assignmentFile(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
-            @PathVariable UUID spaceId, @PathVariable UUID assignmentId) {
+            @PathVariable UUID spaceId, @PathVariable UUID assignmentId, @PathVariable UUID fileId) {
         CurrentActor actor = currentUserResolver.resolve(auth);
-        return ClassroomApiResponse.ok("Đã gỡ tệp đính kèm của bài tập.",
-                attachmentService.remove(actor, spaceId, assignmentId));
+        return fileResponse(attachmentService.getFile(actor, spaceId, assignmentId, fileId));
     }
 
-    @GetMapping("/{assignmentId}/attachment")
-    public ResponseEntity<byte[]> attachment(
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
-            @PathVariable UUID spaceId, @PathVariable UUID assignmentId) {
-        CurrentActor actor = currentUserResolver.resolve(auth);
-        return fileResponse(attachmentService.getFile(actor, spaceId, assignmentId));
-    }
+    // ===== Bài nộp: mỗi học viên một bài nộp, sửa thay vì nộp lại =====
 
     @PostMapping(value = "/{assignmentId}/submissions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ClassroomApiResponse<SubmissionResponse>> submit(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
             @PathVariable UUID spaceId, @PathVariable UUID assignmentId,
             @RequestParam(value = "content", required = false) String content,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
+            @RequestPart(value = "file", required = false) List<MultipartFile> files) {
         CurrentActor actor = currentUserResolver.resolve(auth);
-        SubmissionResponse result = submissionService.submit(actor, spaceId, assignmentId, content, file);
-        String message = result.attemptNumber() > 1 ? "Nộp lại bài tập thành công." : "Nộp bài tập thành công.";
-        return ResponseEntity.status(HttpStatus.CREATED).body(ClassroomApiResponse.ok(message, result));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ClassroomApiResponse.ok("Nộp bài tập thành công.",
+                submissionService.submit(actor, spaceId, assignmentId, content, files)));
     }
 
-    @GetMapping("/{assignmentId}/submissions/{submissionId}/file")
-    public ResponseEntity<byte[]> file(
+    /** Sửa bài đã nộp: nội dung mới, các tệp thêm ("file"), id các tệp cần gỡ ("removeFileIds"). */
+    @PutMapping(value = "/{assignmentId}/submissions/{submissionId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ClassroomApiResponse<SubmissionResponse> updateSubmission(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
-            @PathVariable UUID spaceId, @PathVariable UUID assignmentId, @PathVariable UUID submissionId) {
+            @PathVariable UUID spaceId, @PathVariable UUID assignmentId, @PathVariable UUID submissionId,
+            @RequestParam(value = "content", required = false) String content,
+            @RequestParam(value = "removeFileIds", required = false) List<UUID> removeFileIds,
+            @RequestPart(value = "file", required = false) List<MultipartFile> files) {
         CurrentActor actor = currentUserResolver.resolve(auth);
-        return fileResponse(submissionService.getFile(actor, spaceId, assignmentId, submissionId));
+        return ClassroomApiResponse.ok("Cập nhật bài nộp thành công.",
+                submissionService.update(actor, spaceId, assignmentId, submissionId, content, files, removeFileIds));
+    }
+
+    @GetMapping("/{assignmentId}/submissions/{submissionId}/files/{fileId}")
+    public ResponseEntity<byte[]> submissionFile(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID assignmentId, @PathVariable UUID submissionId,
+            @PathVariable UUID fileId) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return fileResponse(submissionService.getFile(actor, spaceId, assignmentId, submissionId, fileId));
     }
 
     /** Trả nội dung tệp (không bọc JSON), mở trực tiếp trên trình duyệt, không lưu cache. */

@@ -3,20 +3,24 @@ package com.kizuna.features.classroom;
 import com.kizuna.core.entity.Learner;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.core.repository.LearnerRepository;
+import com.kizuna.features.classroom.dto.ClassScheduleRequest;
 import com.kizuna.features.classroom.dto.ClassroomCreateRequest;
 import com.kizuna.features.classroom.dto.ClassroomSummaryResponse;
 import com.kizuna.features.classroom.dto.EligibleLearnerResponse;
 import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import com.kizuna.features.classroom.exception.ClassroomException;
+import com.kizuna.features.classroom.repository.ClassScheduleRepository;
 import com.kizuna.features.classroom.repository.LearningMaterialRepository;
 import com.kizuna.features.classroom.repository.LearningSpaceRepository;
 import com.kizuna.features.classroom.service.impl.ClassroomServiceImpl;
+import com.kizuna.features.classroom.util.ClassScheduleRules;
 import com.kizuna.features.payment.entity.TutorMembershipStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +36,7 @@ class ClassroomServiceImplTest {
     private LearningSpaceRepository spaces;
     private LearningMaterialRepository materials;
     private LearnerRepository learners;
+    private ClassScheduleRepository schedules;
     private ClassroomServiceImpl service;
 
     private Tutor tutor;
@@ -42,7 +47,8 @@ class ClassroomServiceImplTest {
         spaces = mock(LearningSpaceRepository.class);
         materials = mock(LearningMaterialRepository.class);
         learners = mock(LearnerRepository.class);
-        service = new ClassroomServiceImpl(spaces, materials, learners);
+        schedules = mock(ClassScheduleRepository.class);
+        service = new ClassroomServiceImpl(spaces, materials, learners, schedules, new ClassScheduleRules(schedules));
         tutor = tutor(TutorMembershipStatus.PREMIUM);
         learner = learner();
         when(spaces.save(any(LearningSpace.class))).thenAnswer(inv -> {
@@ -50,6 +56,13 @@ class ClassroomServiceImplTest {
             s.setSpaceId(UUID.randomUUID());
             return s;
         });
+    }
+
+    private static final List<ClassScheduleRequest> SLOTS =
+            List.of(new ClassScheduleRequest(1, LocalTime.of(19, 0), LocalTime.of(20, 30)));
+
+    private static ClassroomCreateRequest req(UUID learnerId, String title) {
+        return new ClassroomCreateRequest(learnerId, title, SLOTS);
     }
 
     private static void assertStatus(Runnable call, HttpStatus status) {
@@ -132,7 +145,7 @@ class ClassroomServiceImplTest {
     void createsActiveClassroomForConnectedLearner() {
         allowConnection();
 
-        ClassroomSummaryResponse r = service.create(asTutor(tutor), new ClassroomCreateRequest(learner.getLearnerId(), "  Lớp N4 cấp tốc  "));
+        ClassroomSummaryResponse r = service.create(asTutor(tutor), req(learner.getLearnerId(), "  Lớp N4 cấp tốc  "));
 
         assertThat(r.title()).isEqualTo("Lớp N4 cấp tốc");
         assertThat(r.status()).isEqualTo(LearningSpaceStatus.ACTIVE);
@@ -142,18 +155,18 @@ class ClassroomServiceImplTest {
 
     @Test
     void rejectsBlankOrTooLongTitle() {
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(learner.getLearnerId(), "   ")),
+        assertStatus(() -> service.create(asTutor(tutor), req(learner.getLearnerId(), "   ")),
                 HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(learner.getLearnerId(), "a".repeat(151))),
+        assertStatus(() -> service.create(asTutor(tutor), req(learner.getLearnerId(), "a".repeat(151))),
                 HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(null, "Lớp")), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), req(null, "Lớp")), HttpStatus.BAD_REQUEST);
         verify(spaces, never()).save(any());
     }
 
     @Test
     void acceptsTitleOfExactly150Chars() {
         allowConnection();
-        ClassroomSummaryResponse r = service.create(asTutor(tutor), new ClassroomCreateRequest(learner.getLearnerId(), "a".repeat(150)));
+        ClassroomSummaryResponse r = service.create(asTutor(tutor), req(learner.getLearnerId(), "a".repeat(150)));
         assertThat(r.title()).hasSize(150);
     }
 
@@ -162,7 +175,7 @@ class ClassroomServiceImplTest {
         when(learners.findById(learner.getLearnerId())).thenReturn(Optional.of(learner));
         when(spaces.hasAcceptedConnection(tutor.getTutorId(), learner.getLearnerId())).thenReturn(false);
 
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(learner.getLearnerId(), "Lớp")),
+        assertStatus(() -> service.create(asTutor(tutor), req(learner.getLearnerId(), "Lớp")),
                 HttpStatus.FORBIDDEN);
         verify(spaces, never()).save(any());
     }
@@ -174,7 +187,7 @@ class ClassroomServiceImplTest {
                 argThat(st -> st.contains(LearningSpaceStatus.ACTIVE) && st.contains(LearningSpaceStatus.PAUSED))))
                 .thenReturn(true);
 
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(learner.getLearnerId(), "Lớp")),
+        assertStatus(() -> service.create(asTutor(tutor), req(learner.getLearnerId(), "Lớp")),
                 HttpStatus.CONFLICT);
         verify(spaces, never()).save(any());
     }
@@ -182,22 +195,131 @@ class ClassroomServiceImplTest {
     @Test
     void rejectsCreationWhenMembershipExpired() {
         Tutor expired = tutor(TutorMembershipStatus.EXPIRED);
-        assertStatus(() -> service.create(asTutor(expired), new ClassroomCreateRequest(learner.getLearnerId(), "Lớp")),
+        assertStatus(() -> service.create(asTutor(expired), req(learner.getLearnerId(), "Lớp")),
                 HttpStatus.CONFLICT);
         verify(spaces, never()).save(any());
     }
 
     @Test
+    void freeTutorWithoutMembershipCannotCreateClassOrListLearners() {
+        Tutor free = tutor(TutorMembershipStatus.FREE);
+        assertThatThrownBy(() -> service.create(asTutor(free), req(learner.getLearnerId(), "Lớp")))
+                .isInstanceOf(ClassroomException.class)
+                .hasMessageContaining("chưa có gói hội viên");
+        assertStatus(() -> service.listEligibleLearners(asTutor(free)), HttpStatus.CONFLICT);
+        verify(spaces, never()).save(any());
+        verify(spaces, never()).findEligibleLearnerIds(any());
+    }
+
+    @Test
+    void standardMembershipCanCreateClass() {
+        Tutor standard = tutor(TutorMembershipStatus.STANDARD);
+        when(learners.findById(learner.getLearnerId())).thenReturn(Optional.of(learner));
+        when(spaces.hasAcceptedConnection(standard.getTutorId(), learner.getLearnerId())).thenReturn(true);
+        assertThat(service.create(asTutor(standard), req(learner.getLearnerId(), "Lớp")).canManage()).isTrue();
+    }
+
+    @Test
+    void freeTutorsClassroomIsReadOnly() {
+        Tutor free = tutor(TutorMembershipStatus.FREE);
+        LearningSpace s = space(free, learner, LearningSpaceStatus.ACTIVE);
+        when(spaces.findWithParticipantsBySpaceId(s.getSpaceId())).thenReturn(Optional.of(s));
+
+        ClassroomSummaryResponse r = service.getDetail(asTutor(free), s.getSpaceId());
+        assertThat(r.readOnly()).isTrue();
+        assertThat(r.canManage()).isFalse();
+        assertStatus(() -> service.loadManageableSpace(asTutor(free), s.getSpaceId()), HttpStatus.CONFLICT);
+    }
+
+    @Test
     void rejectsUnknownLearner() {
         when(learners.findById(any())).thenReturn(Optional.empty());
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(UUID.randomUUID(), "Lớp")),
+        assertStatus(() -> service.create(asTutor(tutor), req(UUID.randomUUID(), "Lớp")),
                 HttpStatus.NOT_FOUND);
     }
 
     @Test
     void learnerCannotCreateClassroom() {
-        assertStatus(() -> service.create(asLearner(learner), new ClassroomCreateRequest(learner.getLearnerId(), "Lớp")),
+        assertStatus(() -> service.create(asLearner(learner), req(learner.getLearnerId(), "Lớp")),
                 HttpStatus.FORBIDDEN);
+    }
+
+    // ----- Lịch học khi tạo lớp -----
+
+    @Test
+    void createSavesWeeklySchedules() {
+        allowConnection();
+        service.create(asTutor(tutor), req(learner.getLearnerId(), "Lớp"));
+        verify(schedules).saveAll(argThat(list -> {
+            var it = list.iterator();
+            var s = it.next();
+            return !it.hasNext() && s.getDayOfWeek() == 1 && s.getStartTime().equals(LocalTime.of(19, 0));
+        }));
+    }
+
+    @Test
+    void createRequiresAtLeastOneValidSlot() {
+        allowConnection();
+        UUID id = learner.getLearnerId();
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", List.of())), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", null)), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp",
+                List.of(new ClassScheduleRequest(8, LocalTime.of(9, 0), LocalTime.of(10, 0))))), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp",
+                List.of(new ClassScheduleRequest(2, LocalTime.of(10, 0), LocalTime.of(9, 0))))), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp",
+                List.of(new ClassScheduleRequest(2, LocalTime.of(9, 0), LocalTime.of(9, 15))))), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", List.of(
+                new ClassScheduleRequest(3, LocalTime.of(9, 0), LocalTime.of(10, 0)),
+                new ClassScheduleRequest(3, LocalTime.of(9, 30), LocalTime.of(11, 0))))), HttpStatus.BAD_REQUEST);
+        verify(spaces, never()).save(any());
+    }
+
+    @Test
+    void createRejectsSlotOverlappingTutorsOtherClass() {
+        allowConnection();
+        LearningSpace other = space(tutor, learner(), LearningSpaceStatus.ACTIVE);
+        when(schedules.findOpenSchedulesOfParticipants(eq(tutor.getTutorId()), eq(learner.getLearnerId()), any()))
+                .thenReturn(List.of(com.kizuna.features.classroom.entity.ClassSchedule.builder()
+                        .scheduleId(UUID.randomUUID()).space(other).dayOfWeek(1)
+                        .startTime(LocalTime.of(20, 0)).endTime(LocalTime.of(21, 0)).build()));
+
+        assertStatus(() -> service.create(asTutor(tutor), req(learner.getLearnerId(), "Lớp")), HttpStatus.CONFLICT);
+        verify(spaces, never()).save(any());
+    }
+
+    @Test
+    void adjacentSlotsDoNotConflict() {
+        allowConnection();
+        LearningSpace other = space(tutor, learner(), LearningSpaceStatus.ACTIVE);
+        when(schedules.findOpenSchedulesOfParticipants(any(), any(), any()))
+                .thenReturn(List.of(com.kizuna.features.classroom.entity.ClassSchedule.builder()
+                        .scheduleId(UUID.randomUUID()).space(other).dayOfWeek(1)
+                        .startTime(LocalTime.of(20, 30)).endTime(LocalTime.of(21, 30)).build()));
+
+        assertThat(service.create(asTutor(tutor), req(learner.getLearnerId(), "Lớp")).title()).isEqualTo("Lớp");
+    }
+
+    // ----- Đổi tên lớp -----
+
+    @Test
+    void tutorRenamesActiveClassroom() {
+        LearningSpace s = space(tutor, learner, LearningSpaceStatus.ACTIVE);
+        when(spaces.findWithParticipantsBySpaceId(s.getSpaceId())).thenReturn(Optional.of(s));
+        assertThat(service.rename(asTutor(tutor), s.getSpaceId(), "  Lớp N3  ").title()).isEqualTo("Lớp N3");
+    }
+
+    @Test
+    void renameRejectsBlankTitleLearnerAndReadOnlyClass() {
+        LearningSpace s = space(tutor, learner, LearningSpaceStatus.ACTIVE);
+        LearningSpace closed = space(tutor, learner, LearningSpaceStatus.COMPLETED);
+        when(spaces.findWithParticipantsBySpaceId(s.getSpaceId())).thenReturn(Optional.of(s));
+        when(spaces.findWithParticipantsBySpaceId(closed.getSpaceId())).thenReturn(Optional.of(closed));
+
+        assertStatus(() -> service.rename(asTutor(tutor), s.getSpaceId(), "  "), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.rename(asLearner(learner), s.getSpaceId(), "Lớp"), HttpStatus.FORBIDDEN);
+        assertStatus(() -> service.rename(asTutor(tutor), closed.getSpaceId(), "Lớp"), HttpStatus.CONFLICT);
+        assertThat(s.getTitle()).isEqualTo("Lớp N4");
     }
 
     // ----- Quyền truy cập lớp -----

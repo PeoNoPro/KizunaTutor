@@ -15,6 +15,7 @@
 | `GET` | `/api/v1/trial-bookings/{bookingId}` | `ROLE_LEARNER`, `ROLE_TUTOR` | Lấy chi tiết thông tin buổi học thử |
 | `PUT` | `/api/v1/trial-bookings/{bookingId}/respond` | `ROLE_TUTOR` | Gia sư duyệt yêu cầu: Chấp nhận hoặc Từ chối |
 | `PUT` | `/api/v1/trial-bookings/{bookingId}/cancel` | `ROLE_LEARNER`, `ROLE_TUTOR` | Hủy buổi học thử kèm lý do (trước 24h đối với buổi đã xác nhận) |
+| `PUT` | `/api/v1/trial-bookings/{bookingId}/agree-connection` | `ROLE_TUTOR` | Sau khi buổi học thử `COMPLETED`, gia sư đồng ý kết nối với học viên (xem 2.4b) |
 | `GET` | `/api/v1/tutor/availability` | `ROLE_TUTOR` | Lấy danh sách các ca rảnh giảng dạy của gia sư đang đăng nhập |
 | `POST` | `/api/v1/tutor/availability` | `ROLE_TUTOR` | Thêm mới một ca rảnh hàng tuần |
 | `DELETE` | `/api/v1/tutor/availability/{id}` | `ROLE_TUTOR` | Xóa ca rảnh (chặn xóa nếu đang có lịch PENDING hoặc CONFIRMED) |
@@ -158,6 +159,21 @@
   }
 }
 ```
+
+---
+
+### 2.4b. Đồng ý kết nối sau khi học thử (nối sang lớp học FE-06)
+
+Luồng: đặt học thử → gia sư **chấp nhận lịch** (`respond` ACCEPT: buổi học thử `CONFIRMED`, yêu cầu kết nối **vẫn `PENDING`**) → học thử xong (`COMPLETED`) → gia sư **đồng ý kết nối** → gia sư tạo lớp + lịch học hằng tuần ở FE-06.
+
+- **Endpoint**: `PUT /api/v1/trial-bookings/{bookingId}/agree-connection` — không có body.
+- **Quyền**: `ROLE_TUTOR`, đúng gia sư của buổi học thử.
+- **Điều kiện**: buổi học thử ở trạng thái `COMPLETED`; gọi lại khi đã đồng ý thì trả kết quả cũ.
+- **Kết quả**: yêu cầu kết nối của buổi học thử → `ACCEPTED` (nếu buổi học thử không gắn yêu cầu kết nối thì dùng/tạo yêu cầu `ACCEPTED` cho cặp gia sư–học viên); `trial_bookings.official_arrangement_agreed = true`. Response 200 có thêm trường `officialArrangementAgreed: true`.
+- **Lỗi**: 400 buổi học thử chưa hoàn thành; 403 không phải gia sư của buổi học thử; 404 không tìm thấy.
+- **Giao diện**: sau khi thành công chuyển sang `/tutor/classrooms?taoLop=1&learnerId={learnerId}` (FE-06 mở sẵn hộp thoại Tạo lớp).
+
+Buổi học **chính thức** không lưu trong `trial_bookings`: lịch hằng tuần của lớp thuộc FE-06 (bảng `class_schedules`). Lưới tuần "Lịch giảng dạy" đọc qua `GET /api/classrooms/schedules/me`.
 
 ---
 

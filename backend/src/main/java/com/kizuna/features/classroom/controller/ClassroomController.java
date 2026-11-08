@@ -69,6 +69,16 @@ public class ClassroomController extends ClassroomExceptionHandler {
         return ClassroomApiResponse.ok("Tải thông tin lớp học thành công.", classroomService.getDetail(actor, spaceId));
     }
 
+    @PutMapping("/{spaceId}")
+    public ClassroomApiResponse<ClassroomSummaryResponse> rename(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId,
+            @RequestBody ClassroomRenameRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Đổi tên lớp học thành công.",
+                classroomService.rename(actor, spaceId, request == null ? null : request.title()));
+    }
+
     // ===== Lịch học hằng tuần (thêm / sửa; không có xóa theo nghiệp vụ) =====
 
     @GetMapping("/{spaceId}/schedules")

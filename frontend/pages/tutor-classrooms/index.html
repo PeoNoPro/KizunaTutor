@@ -140,8 +140,9 @@
             <div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-primary/5 pointer-events-none"></div>
             <div class="relative z-10 space-y-2">
               <div class="flex flex-wrap items-center gap-3">
-                <h1 id="detailTitle" class="font-headline-md text-headline-md text-on-surface tracking-tight break-words"></h1>
+                <h1 id="detailTitle" class="font-headline-md text-headline-md text-on-surface tracking-tight min-w-0 [overflow-wrap:anywhere]"></h1>
                 <span id="detailStatus" class="kz-badge"></span>
+                <button type="button" id="openRenameBtn" class="kz-btn hidden"><span class="material-symbols-outlined text-[16px]">edit</span>Đổi tên lớp</button>
               </div>
               <div class="flex flex-wrap items-center gap-3 text-on-surface-variant font-body-sm text-body-sm">
                 <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">person</span>Học viên: <strong id="detailLearner" class="text-on-surface"></strong></span>
@@ -279,6 +280,22 @@
     </form>
   </div>
 
+  <!-- ===== HỘP THOẠI ĐỔI TÊN LỚP ===== -->
+  <div id="renameModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="renameModalTitle">
+    <form id="renameForm" class="kz-card shadow-xl w-full max-w-[480px] p-6 space-y-4" novalidate>
+      <h2 id="renameModalTitle" class="font-title-md text-title-md text-on-surface">Đổi tên lớp học</h2>
+      <div>
+        <label for="renameInput" class="kz-label">Tên lớp học</label>
+        <input id="renameInput" type="text" maxlength="150" class="kz-input">
+        <p id="renameError" class="field-error hidden"></p>
+      </div>
+      <div class="flex justify-end gap-3 pt-1">
+        <button type="button" class="kz-btn" data-close-modal="renameModal">Hủy</button>
+        <button type="submit" id="renameSubmit" class="kz-btn kz-btn-primary">Lưu tên lớp</button>
+      </div>
+    </form>
+  </div>
+
   <!-- ===== HỘP THOẠI THÊM / SỬA BUỔI HỌC ===== -->
   <div id="scheduleModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="scheduleModalTitle">
     <form id="scheduleForm" class="kz-card shadow-xl w-full max-w-[480px] p-6 space-y-4" novalidate>
@@ -357,7 +374,7 @@
         <p id="assignmentTitleError" class="field-error hidden"></p>
       </div>
       <div>
-        <label for="assignmentDescriptionInput" class="kz-label">Yêu cầu / mô tả <span class="font-normal text-on-surface-variant">(không bắt buộc)</span></label>
+        <label for="assignmentDescriptionInput" class="kz-label">Nội dung bài tập <span class="font-normal text-on-surface-variant">(nhập nội dung hoặc tải tệp đề bài, ít nhất một trong hai)</span></label>
         <textarea id="assignmentDescriptionInput" rows="4" maxlength="5000" class="kz-input" placeholder="Ví dụ: Viết 10 câu dùng ～ている. Xem tài liệu Ngữ pháp bài 5 trong mục Tài liệu học tập."></textarea>
         <p id="assignmentDescriptionError" class="field-error hidden"></p>
       </div>

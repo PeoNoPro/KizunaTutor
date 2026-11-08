@@ -62,7 +62,7 @@ async function loadCourses() {
     grid.innerHTML = courses.map((c) => `
       <article class="mc-card p-4 flex flex-col gap-3">
         <div class="flex items-start justify-between gap-2">
-          <h3 class="mc-heading text-[18px] leading-snug break-words">${escapeHtml(c.title)}</h3>
+          <h3 class="mc-heading text-[18px] leading-snug min-w-0 [overflow-wrap:anywhere]">${escapeHtml(c.title)}</h3>
           <span class="mc-badge shrink-0" data-tone="${classroomStatusTone(c.status)}">${escapeHtml(classroomStatusLabel(c.status))}</span>
         </div>
         <div class="text-[#333] space-y-1">

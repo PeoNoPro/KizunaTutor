@@ -128,7 +128,7 @@ function renderClassrooms() {
   grid.innerHTML = state.classrooms.map((c) => `
     <article class="kz-item flex flex-col gap-3">
       <div class="flex items-start justify-between gap-2">
-        <h3 class="font-title-sm text-title-sm text-on-surface break-words">${escapeHtml(c.title)}</h3>
+        <h3 class="font-title-sm text-title-sm text-on-surface min-w-0 [overflow-wrap:anywhere]">${escapeHtml(c.title)}</h3>
         <span class="kz-badge shrink-0" data-tone="${classroomStatusTone(c.status)}">${escapeHtml(classroomStatusLabel(c.status))}</span>
       </div>
       <dl class="text-on-surface-variant space-y-1">
@@ -246,7 +246,6 @@ async function submitAddLearner(event) {
   } catch (err) {
     if (err.fieldErrors?.title) setFieldError('classroomTitleError', err.fieldErrors.title);
     else if (err.fieldErrors?.schedules) setFieldError('scheduleRowsError', err.fieldErrors.schedules);
-    else if (err.status === 409 && /giờ|lịch/i.test(err.userMessage || '')) setFieldError('scheduleRowsError', friendlyErrorMessage(err));
     else setFieldError('addLearnerFormError', friendlyErrorMessage(err));
   } finally {
     setBusy(submit, false);
@@ -302,13 +301,14 @@ function renderSpace() {
   const note = $('detailReadOnlyNote');
   if (c.readOnly) {
     note.textContent = c.status === 'ACTIVE'
-      ? 'Gói hội viên của bạn đã hết hạn nên lớp học đang ở chế độ chỉ xem. Vui lòng gia hạn để tiếp tục tải lên hoặc cập nhật tài liệu.'
+      ? 'Bạn chưa có gói hội viên hoặc gói đã hết hạn nên lớp học đang ở chế độ chỉ xem. Vui lòng đăng ký hoặc gia hạn gói để tiếp tục quản lý lớp học.'
       : 'Lớp học không còn hoạt động nên đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại tài liệu đã chia sẻ.';
     note.classList.remove('hidden');
   } else {
     note.classList.add('hidden');
   }
   $('openUploadBtn').classList.toggle('hidden', !c.canManage);
+  $('openRenameBtn').classList.toggle('hidden', !c.canManage);
   $('classroomDetailCard').classList.remove('hidden');
   renderSchedules();
 }
@@ -339,7 +339,8 @@ function renderSchedules() {
         </div>
         <div class="flex-1 min-w-0">
           <p class="font-title-sm text-title-sm text-on-surface">${escapeHtml(dayOfWeekLabel(s.dayOfWeek))}</p>
-          <p class="text-on-surface-variant">${escapeHtml(shortTime(s.startTime))} – ${escapeHtml(shortTime(s.endTime))} <span class="font-caption text-caption">· ${escapeHtml(durationLabel(s.startTime, s.endTime))}</span></p>
+          <p class="text-on-surface whitespace-nowrap">${escapeHtml(shortTime(s.startTime))} – ${escapeHtml(shortTime(s.endTime))}</p>
+          <p class="font-caption text-caption text-on-surface-variant">${escapeHtml(durationLabel(s.startTime, s.endTime))}</p>
         </div>
         ${c.canManage ? `<button type="button" class="kz-btn shrink-0" data-edit-schedule="${escapeHtml(s.scheduleId)}"><span class="material-symbols-outlined text-[16px]">edit</span>Sửa</button>` : ''}
       </li>
@@ -349,6 +350,33 @@ function renderSchedules() {
     });
   }
   $('scheduleSection').classList.remove('hidden');
+}
+
+function openRename() {
+  $('renameInput').value = state.currentSpace?.title || '';
+  setFieldError('renameError', '');
+  openModal('renameModal');
+  $('renameInput').focus();
+}
+
+async function submitRename(event) {
+  event.preventDefault();
+  const title = $('renameInput').value;
+  const error = validateClassroomTitle(title);
+  setFieldError('renameError', error);
+  if (error) return;
+  const submit = $('renameSubmit');
+  setBusy(submit, true, 'Đang lưu...');
+  try {
+    state.currentSpace = await API.classrooms.rename(state.currentSpace.spaceId, title.trim());
+    closeModal('renameModal');
+    showToast('Đổi tên lớp học thành công.');
+    renderSpace();
+  } catch (err) {
+    setFieldError('renameError', err.fieldErrors?.title || friendlyErrorMessage(err));
+  } finally {
+    setBusy(submit, false);
+  }
 }
 
 function openScheduleForm(schedule = null) {
@@ -624,6 +652,8 @@ function init() {
   $('addScheduleRowBtn').addEventListener('click', addScheduleRow);
   $('openAddScheduleBtn').addEventListener('click', () => openScheduleForm(null));
   $('scheduleForm').addEventListener('submit', submitSchedule);
+  $('openRenameBtn').addEventListener('click', openRename);
+  $('renameForm').addEventListener('submit', submitRename);
   $('backToListBtn').addEventListener('click', navigateToList);
   $('openUploadBtn').addEventListener('click', () => openMaterialForm(null));
   $('materialForm').addEventListener('submit', submitMaterial);
@@ -637,6 +667,7 @@ function init() {
       closeModal('addLearnerModal');
       closeModal('materialModal');
       closeModal('scheduleModal');
+      closeModal('renameModal');
     }
   });
   window.addEventListener('popstate', renderRoute);

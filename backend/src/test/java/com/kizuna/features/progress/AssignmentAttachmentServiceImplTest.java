@@ -107,11 +107,21 @@ class AssignmentAttachmentServiceImplTest {
     @Test
     void tutorRemovesAttachment() {
         assignment.setAttachmentUrl("Bai-1.pdf");
+        assignment.setDescription("Viết 10 câu dùng ～ている.");
         AssignmentAttachmentResponse r = service.remove(tutorActor, space.getSpaceId(), assignment.getAssignmentId());
 
         assertThat(r.attachmentName()).isNull();
         assertThat(assignment.getAttachmentUrl()).isNull();
         verify(assignments).updateFileData(assignment.getAssignmentId(), null);
+    }
+
+    @Test
+    void cannotRemoveOnlyAttachmentWhenAssignmentHasNoContent() {
+        assignment.setAttachmentUrl("Bai-1.pdf");
+        assignment.setDescription("   ");
+        assertStatus(() -> service.remove(tutorActor, space.getSpaceId(), assignment.getAssignmentId()),
+                HttpStatus.BAD_REQUEST);
+        verify(assignments, never()).updateFileData(any(), any());
     }
 
     @Test

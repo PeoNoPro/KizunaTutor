@@ -170,8 +170,13 @@ async function submitForm(event) {
   const file = $('assignmentFileInput').files[0] || null;
   const fileError = file ? validateMaterialFile(file, { required: false }) : '';
   setFieldError('assignmentFileError', fileError);
-  if (Object.keys(errors).length || fileError) return;
   const removeFile = isEdit && !file && !!ctx.editing.attachmentName && $('assignmentRemoveFile').checked;
+  const willHaveFile = !!file || (isEdit && !!ctx.editing.attachmentName && !removeFile);
+  if (!errors.description && !form.description.trim() && !willHaveFile) {
+    errors.description = 'Vui lòng nhập nội dung bài tập hoặc tải lên tệp đề bài.';
+    setFieldError('assignmentDescriptionError', errors.description);
+  }
+  if (Object.keys(errors).length || fileError) return;
 
   const unchangedDue = isEdit && ctx.editing.dueDate && toDateTimeLocalValue(ctx.editing.dueDate) === form.dueLocal;
   const payload = {

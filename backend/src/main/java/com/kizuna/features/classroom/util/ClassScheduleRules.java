@@ -82,14 +82,14 @@ public class ClassScheduleRules {
                 if (Objects.equals(other.getScheduleId(), excludeScheduleId) || !overlaps(candidate, other)) continue;
                 UUID otherSpaceId = other.getSpace().getSpaceId();
                 if (currentSpaceId != null && currentSpaceId.equals(otherSpaceId)) {
-                    throw ClassroomException.conflict("Khung giờ " + describe(candidate) + " trùng với một buổi học khác của lớp này.");
+                    throw ClassroomException.fieldConflict(FIELD, "Khung giờ " + describe(candidate) + " trùng với một buổi học khác của lớp này.");
                 }
                 if (Objects.equals(other.getSpace().getTutor().getTutorId(), tutorId)) {
-                    throw ClassroomException.conflict("Khung giờ " + describe(candidate) + " trùng với lịch lớp “"
+                    throw ClassroomException.fieldConflict(FIELD, "Khung giờ " + describe(candidate) + " trùng với lịch lớp “"
                             + other.getSpace().getTitle() + "” của bạn.");
                 }
                 // Lớp của học viên với gia sư khác: không lộ tên lớp/gia sư khác.
-                throw ClassroomException.conflict("Học viên đã có lớp học khác vào khung giờ " + describe(candidate) + ".");
+                throw ClassroomException.fieldConflict(FIELD, "Học viên đã có lớp học khác vào khung giờ " + describe(candidate) + ".");
             }
         }
     }

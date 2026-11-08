@@ -7,11 +7,12 @@ import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import com.kizuna.features.classroom.exception.ClassroomException;
 import com.kizuna.features.classroom.repository.ClassScheduleRepository;
+import com.kizuna.features.classroom.repository.LearningSpaceRepository;
 import com.kizuna.features.classroom.service.ClassScheduleService;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.util.ClassScheduleRules;
 import com.kizuna.features.classroom.util.CurrentActor;
-import com.kizuna.features.payment.entity.TutorMembershipStatus;
+import com.kizuna.features.classroom.util.MembershipRules;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
     private final ClassroomService classroomService;
     private final ClassScheduleRepository scheduleRepository;
     private final ClassScheduleRules rules;
+    private final LearningSpaceRepository spaceRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -42,7 +44,7 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         LearningSpace space = loadEditableSpace(actor, spaceId);
         ClassScheduleRules.validateSlot(request);
         if (scheduleRepository.countBySpace_SpaceId(space.getSpaceId()) >= ClassScheduleRules.MAX_SLOTS) {
-            throw ClassroomException.conflict("Mỗi lớp có tối đa " + ClassScheduleRules.MAX_SLOTS + " buổi học mỗi tuần.");
+            throw ClassroomException.fieldConflict(ClassScheduleRules.FIELD, "Mỗi lớp có tối đa " + ClassScheduleRules.MAX_SLOTS + " buổi học mỗi tuần.");
         }
         rules.ensureNoConflict(space.getTutor().getTutorId(), space.getLearner().getLearnerId(),
                 space.getSpaceId(), null, List.of(request));
@@ -78,12 +80,14 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         if (!isTutorOfSpace) {
             throw ClassroomException.forbidden("Chỉ gia sư của lớp mới được thay đổi lịch học.");
         }
-        if (space.getTutor().getMembershipStatus() == TutorMembershipStatus.EXPIRED) {
-            throw ClassroomException.conflict("Gói hội viên của bạn đã hết hạn nên lớp học đang ở chế độ chỉ xem.");
+        if (!MembershipRules.isActive(space.getTutor())) {
+            throw ClassroomException.conflict(MembershipRules.readOnlyMessage(space.getTutor()));
         }
         if (space.getStatus() != LearningSpaceStatus.ACTIVE) {
             throw ClassroomException.conflict("Lớp học không còn hoạt động nên không thể thay đổi lịch học.");
         }
+        // Khóa lớp trước khi kiểm tra số buổi / trùng giờ để hai yêu cầu đồng thời không cùng lọt qua.
+        spaceRepository.lockById(space.getSpaceId());
         return space;
     }
 }

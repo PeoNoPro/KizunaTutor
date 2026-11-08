@@ -48,7 +48,7 @@ Body `{ "dayOfWeek": 3, "startTime": "18:00", "endTime": "19:30" }` → 201, mes
 Body như POST → 200, message "Cập nhật lịch học thành công.". 404 nếu buổi học không thuộc lớp; 403 nếu không phải gia sư của lớp; 409 trùng lịch / lớp chỉ xem.
 
 Không có endpoint xóa buổi học (nghiệp vụ: lịch học sửa được, không xóa được).
-Lưu trữ: bảng `class_schedules` — migration `database/migrations/010_fe06_class_schedules.sql`.
+Lưu trữ: bảng `class_schedules` — migration `database/migrations/012_fe06_class_schedules.sql`.
 
 ## GET /classrooms/{spaceId}
 

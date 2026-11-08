@@ -53,6 +53,10 @@ public class AssignmentAttachmentServiceImpl implements AssignmentAttachmentServ
         if (assignment.getAttachmentUrl() == null) {
             throw ClassroomException.notFound("Bài tập này chưa có tệp đính kèm.");
         }
+        if (assignment.getDescription() == null || assignment.getDescription().isBlank()) {
+            throw ClassroomException.field("description",
+                    "Bài tập cần có nội dung hoặc tệp đề bài. Vui lòng nhập nội dung trước khi gỡ tệp.");
+        }
         assignment.setAttachmentUrl(null);
         assignmentRepository.save(assignment);
         assignmentRepository.updateFileData(assignmentId, null);

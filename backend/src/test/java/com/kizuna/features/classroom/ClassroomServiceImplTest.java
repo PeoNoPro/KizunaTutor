@@ -201,6 +201,37 @@ class ClassroomServiceImplTest {
     }
 
     @Test
+    void freeTutorWithoutMembershipCannotCreateClassOrListLearners() {
+        Tutor free = tutor(TutorMembershipStatus.FREE);
+        assertThatThrownBy(() -> service.create(asTutor(free), req(learner.getLearnerId(), "Lớp")))
+                .isInstanceOf(ClassroomException.class)
+                .hasMessageContaining("chưa có gói hội viên");
+        assertStatus(() -> service.listEligibleLearners(asTutor(free)), HttpStatus.CONFLICT);
+        verify(spaces, never()).save(any());
+        verify(spaces, never()).findEligibleLearnerIds(any());
+    }
+
+    @Test
+    void standardMembershipCanCreateClass() {
+        Tutor standard = tutor(TutorMembershipStatus.STANDARD);
+        when(learners.findById(learner.getLearnerId())).thenReturn(Optional.of(learner));
+        when(spaces.hasAcceptedConnection(standard.getTutorId(), learner.getLearnerId())).thenReturn(true);
+        assertThat(service.create(asTutor(standard), req(learner.getLearnerId(), "Lớp")).canManage()).isTrue();
+    }
+
+    @Test
+    void freeTutorsClassroomIsReadOnly() {
+        Tutor free = tutor(TutorMembershipStatus.FREE);
+        LearningSpace s = space(free, learner, LearningSpaceStatus.ACTIVE);
+        when(spaces.findWithParticipantsBySpaceId(s.getSpaceId())).thenReturn(Optional.of(s));
+
+        ClassroomSummaryResponse r = service.getDetail(asTutor(free), s.getSpaceId());
+        assertThat(r.readOnly()).isTrue();
+        assertThat(r.canManage()).isFalse();
+        assertStatus(() -> service.loadManageableSpace(asTutor(free), s.getSpaceId()), HttpStatus.CONFLICT);
+    }
+
+    @Test
     void rejectsUnknownLearner() {
         when(learners.findById(any())).thenReturn(Optional.empty());
         assertStatus(() -> service.create(asTutor(tutor), req(UUID.randomUUID(), "Lớp")),
@@ -267,6 +298,28 @@ class ClassroomServiceImplTest {
                         .startTime(LocalTime.of(20, 30)).endTime(LocalTime.of(21, 30)).build()));
 
         assertThat(service.create(asTutor(tutor), req(learner.getLearnerId(), "Lớp")).title()).isEqualTo("Lớp");
+    }
+
+    // ----- Đổi tên lớp -----
+
+    @Test
+    void tutorRenamesActiveClassroom() {
+        LearningSpace s = space(tutor, learner, LearningSpaceStatus.ACTIVE);
+        when(spaces.findWithParticipantsBySpaceId(s.getSpaceId())).thenReturn(Optional.of(s));
+        assertThat(service.rename(asTutor(tutor), s.getSpaceId(), "  Lớp N3  ").title()).isEqualTo("Lớp N3");
+    }
+
+    @Test
+    void renameRejectsBlankTitleLearnerAndReadOnlyClass() {
+        LearningSpace s = space(tutor, learner, LearningSpaceStatus.ACTIVE);
+        LearningSpace closed = space(tutor, learner, LearningSpaceStatus.COMPLETED);
+        when(spaces.findWithParticipantsBySpaceId(s.getSpaceId())).thenReturn(Optional.of(s));
+        when(spaces.findWithParticipantsBySpaceId(closed.getSpaceId())).thenReturn(Optional.of(closed));
+
+        assertStatus(() -> service.rename(asTutor(tutor), s.getSpaceId(), "  "), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.rename(asLearner(learner), s.getSpaceId(), "Lớp"), HttpStatus.FORBIDDEN);
+        assertStatus(() -> service.rename(asTutor(tutor), closed.getSpaceId(), "Lớp"), HttpStatus.CONFLICT);
+        assertThat(s.getTitle()).isEqualTo("Lớp N4");
     }
 
     // ----- Quyền truy cập lớp -----

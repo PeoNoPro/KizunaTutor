@@ -8,7 +8,7 @@ import java.time.LocalTime;
 import java.util.UUID;
 
 /**
- * Một buổi học cố định hằng tuần của lớp (bảng class_schedules, migration 010).
+ * Một buổi học cố định hằng tuần của lớp (bảng class_schedules, migration 012).
  * dayOfWeek: 1 = Thứ Hai ... 7 = Chủ nhật. Lịch chỉ được thêm/sửa, không xóa.
  */
 @Entity

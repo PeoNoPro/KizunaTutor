@@ -557,6 +557,11 @@ API.classrooms = {
     return classroomRequest(`/${encodeURIComponent(spaceId)}`);
   },
 
+  /** Gia sư đổi tên lớp học */
+  rename(spaceId, title) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}`, { method: 'PUT', body: { title } });
+  },
+
   /** Danh sách tài liệu của lớp (UC-61) */
   materials(spaceId) {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/materials`);

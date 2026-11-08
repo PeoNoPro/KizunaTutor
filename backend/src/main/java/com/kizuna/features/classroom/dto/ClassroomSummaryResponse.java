@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/** Thông tin một lớp học. readOnly = lớp không còn hoạt động hoặc hội viên gia sư đã hết hạn. */
+/** Thông tin một lớp học. readOnly = lớp không còn hoạt động hoặc gia sư không có gói hội viên còn hiệu lực (FREE/EXPIRED). */
 @Builder
 public record ClassroomSummaryResponse(
         UUID spaceId,

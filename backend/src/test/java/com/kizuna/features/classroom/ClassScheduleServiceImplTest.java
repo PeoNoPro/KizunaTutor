@@ -9,6 +9,7 @@ import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import com.kizuna.features.classroom.exception.ClassroomException;
 import com.kizuna.features.classroom.repository.ClassScheduleRepository;
+import com.kizuna.features.classroom.repository.LearningSpaceRepository;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.service.impl.ClassScheduleServiceImpl;
 import com.kizuna.features.classroom.util.ClassScheduleRules;
@@ -33,6 +34,7 @@ class ClassScheduleServiceImplTest {
 
     private ClassroomService classroomService;
     private ClassScheduleRepository schedules;
+    private LearningSpaceRepository spaces;
     private ClassScheduleServiceImpl service;
 
     private Tutor tutor;
@@ -44,7 +46,8 @@ class ClassScheduleServiceImplTest {
     void setUp() {
         classroomService = mock(ClassroomService.class);
         schedules = mock(ClassScheduleRepository.class);
-        service = new ClassScheduleServiceImpl(classroomService, schedules, new ClassScheduleRules(schedules));
+        spaces = mock(LearningSpaceRepository.class);
+        service = new ClassScheduleServiceImpl(classroomService, schedules, new ClassScheduleRules(schedules), spaces);
         tutor = tutor(TutorMembershipStatus.PREMIUM);
         learner = learner();
         space = space(tutor, learner, LearningSpaceStatus.ACTIVE);
@@ -120,6 +123,21 @@ class ClassScheduleServiceImplTest {
     }
 
     @Test
+    void conflictIsReportedAsScheduleFieldErrorAndClassIsLockedFirst() {
+        ClassSchedule wednesday = slot(space, 3, 19, 0, 20, 0);
+        when(schedules.findOpenSchedulesOfParticipants(any(), any(), any())).thenReturn(List.of(monday, wednesday));
+
+        assertThatThrownBy(() -> service.add(asTutor(tutor), space.getSpaceId(), req(3, 19, 30, 20, 30)))
+                .isInstanceOfSatisfying(ClassroomException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(e.getFieldErrors()).containsKey(ClassScheduleRules.FIELD);
+                });
+        var order = inOrder(spaces, schedules);
+        order.verify(spaces).lockById(space.getSpaceId());
+        order.verify(schedules).findOpenSchedulesOfParticipants(any(), any(), any());
+    }
+
+    @Test
     void tutorAddsSlot() {
         when(schedules.findOpenSchedulesOfParticipants(any(), any(), any())).thenReturn(List.of(monday));
         ClassScheduleResponse r = service.add(asTutor(tutor), space.getSpaceId(), req(6, 9, 0, 10, 30));
@@ -142,6 +160,9 @@ class ClassScheduleServiceImplTest {
         assertStatus(() -> service.add(asTutor(tutor), space.getSpaceId(), req(2, 9, 0, 10, 0)), HttpStatus.CONFLICT);
 
         space.setStatus(LearningSpaceStatus.ACTIVE);
+        tutor.setMembershipStatus(TutorMembershipStatus.FREE);
+        assertStatus(() -> service.add(asTutor(tutor), space.getSpaceId(), req(2, 9, 0, 10, 0)), HttpStatus.CONFLICT);
+
         tutor.setMembershipStatus(TutorMembershipStatus.EXPIRED);
         assertStatus(() -> service.update(asTutor(tutor), space.getSpaceId(), monday.getScheduleId(), req(2, 9, 0, 10, 0)),
                 HttpStatus.CONFLICT);

@@ -119,15 +119,15 @@ public class TrialBookingController {
         return ResponseEntity.ok(ApiResponse.ok("Đã xác nhận hoàn thành buổi học thử thành công", response));
     }
 
-    @PostMapping("/schedule-lesson")
+    /** Gia sư đồng ý kết nối sau khi học thử xong; buổi học chính thức được xếp ở trang lớp học (FE-06). */
+    @PutMapping("/{bookingId}/agree-connection")
     @PreAuthorize("hasAuthority('ROLE_TUTOR')")
-    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> scheduleLessonByTutor(
-            @Valid @RequestBody com.kizuna.features.booking.dto.request.TutorScheduleLessonRequestDTO requestDto,
+    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> agreeConnectionAfterTrial(
+            @PathVariable UUID bookingId,
             Principal principal) {
         String userEmail = getAuthenticatedEmail(principal);
-        TrialBookingResponseDTO response = trialBookingService.scheduleLessonByTutor(userEmail, requestDto);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Đã lên lịch buổi học cho học viên thành công", response));
+        TrialBookingResponseDTO response = trialBookingService.agreeConnectionAfterTrial(userEmail, bookingId);
+        return ResponseEntity.ok(ApiResponse.ok("Đã đồng ý kết nối với học viên. Bạn có thể tạo lớp học chính thức.", response));
     }
 
     private String getAuthenticatedEmail(Principal principal) {

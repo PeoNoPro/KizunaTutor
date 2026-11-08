@@ -1,7 +1,9 @@
 package com.kizuna.features.classroom.service.impl;
 
 import com.kizuna.features.classroom.dto.ClassScheduleRequest;
+import com.kizuna.core.entity.User;
 import com.kizuna.features.classroom.dto.ClassScheduleResponse;
+import com.kizuna.features.classroom.dto.TimetableEntryResponse;
 import com.kizuna.features.classroom.entity.ClassSchedule;
 import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
@@ -29,6 +31,27 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
     private final ClassScheduleRepository scheduleRepository;
     private final ClassScheduleRules rules;
     private final LearningSpaceRepository spaceRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TimetableEntryResponse> timetable(CurrentActor actor) {
+        UUID tutorId = actor.isTutor() ? actor.tutor().getTutorId() : null;
+        UUID learnerId = actor.isLearner() ? actor.learner().getLearnerId() : null;
+        if (tutorId == null && learnerId == null) {
+            throw ClassroomException.forbidden("Chức năng này chỉ dành cho gia sư và học viên.");
+        }
+        return scheduleRepository.findTimetable(tutorId, learnerId,
+                        List.of(LearningSpaceStatus.ACTIVE, LearningSpaceStatus.PAUSED))
+                .stream()
+                .map(s -> {
+                    LearningSpace sp = s.getSpace();
+                    User partner = actor.isTutor() ? sp.getLearner().getUser() : sp.getTutor().getUser();
+                    return new TimetableEntryResponse(s.getScheduleId(), sp.getSpaceId(), sp.getTitle(),
+                            partner == null ? null : partner.getFullName(), sp.getStatus(),
+                            s.getDayOfWeek(), s.getStartTime(), s.getEndTime(), sp.getCreatedAt());
+                })
+                .toList();
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -70,6 +93,19 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         schedule.setStartTime(request.startTime());
         schedule.setEndTime(request.endTime());
         return ClassScheduleResponse.of(scheduleRepository.save(schedule));
+    }
+
+    @Override
+    @Transactional
+    public void delete(CurrentActor actor, UUID spaceId, UUID scheduleId) {
+        LearningSpace space = loadEditableSpace(actor, spaceId);
+        ClassSchedule schedule = scheduleRepository.findByScheduleIdAndSpace_SpaceId(scheduleId, space.getSpaceId())
+                .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy buổi học trong lớp này."));
+        if (scheduleRepository.countBySpace_SpaceId(space.getSpaceId()) <= 1) {
+            throw ClassroomException.fieldConflict(ClassScheduleRules.FIELD,
+                    "Lớp học cần ít nhất một buổi học mỗi tuần nên không thể xóa buổi cuối cùng. Bạn có thể sửa giờ của buổi này.");
+        }
+        scheduleRepository.delete(schedule);
     }
 
     /** Chỉ gia sư của lớp, lớp đang hoạt động và gói hội viên còn hiệu lực mới được thay đổi lịch. */

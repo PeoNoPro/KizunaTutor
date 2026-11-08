@@ -3,11 +3,14 @@
  * Hàm thuần, không phụ thuộc DOM để kiểm thử được bằng `node --test`.
  */
 
-export const MAX_MATERIAL_SIZE_BYTES = 10 * 1024 * 1024;
-export const ALLOWED_MATERIAL_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'mp3'];
-export const INVALID_FILE_MESSAGE = 'Dung lượng tệp vượt quá giới hạn 10 MB. Định dạng cho phép: PDF, PNG, JPG, MP3.';
-export const UNSUPPORTED_FORMAT_MESSAGE = 'Định dạng tệp không được hỗ trợ. Định dạng cho phép: PDF, PNG, JPG, MP3.';
-export const MATERIAL_ACCEPT_ATTR = '.pdf,.png,.jpg,.jpeg,.mp3,application/pdf,image/png,image/jpeg,audio/mpeg';
+export const MAX_MATERIAL_SIZE_BYTES = 25 * 1024 * 1024;
+export const MAX_FILES_PER_UPLOAD = 5;
+export const ALLOWED_MATERIAL_EXTENSIONS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'mp3'];
+export const FILE_RULES_TEXT = 'Định dạng PDF, DOC, DOCX, PNG, JPG, MP3. Mỗi tệp tối đa 25 MB, tối đa 5 tệp.';
+export const INVALID_FILE_MESSAGE = 'Dung lượng tệp vượt quá giới hạn 25 MB. Định dạng cho phép: PDF, DOC, DOCX, PNG, JPG, MP3.';
+export const UNSUPPORTED_FORMAT_MESSAGE = 'Định dạng tệp không được hỗ trợ. Định dạng cho phép: PDF, DOC, DOCX, PNG, JPG, MP3.';
+export const MATERIAL_ACCEPT_ATTR = '.pdf,.doc,.docx,.png,.jpg,.jpeg,.mp3,application/pdf,application/msword,'
+  + 'application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg,audio/mpeg';
 
 const STATUS_LABELS = {
   ACTIVE: 'Đang hoạt động',
@@ -25,6 +28,8 @@ const STATUS_TONES = {
 
 const FILE_TYPE_LABELS = {
   PDF: 'Tài liệu PDF',
+  DOC: 'Tài liệu Word',
+  DOCX: 'Tài liệu Word',
   PNG: 'Hình ảnh PNG',
   JPG: 'Hình ảnh JPG',
   MP3: 'Âm thanh MP3'
@@ -66,6 +71,34 @@ export function validateMaterialFile(file, { required = true } = {}) {
   if (typeof file.size !== 'number' || file.size <= 0) return 'Tệp đã chọn không có nội dung. Vui lòng chọn tệp khác.';
   if (file.size > MAX_MATERIAL_SIZE_BYTES) return INVALID_FILE_MESSAGE;
   return null;
+}
+
+/**
+ * Kiểm tra nhiều tệp chọn cùng lúc.
+ * @param {FileList|File[]} files tệp mới chọn
+ * @param {{required?: boolean, existing?: number}} opts existing = số tệp đang có (khi thêm vào bài đã có tệp)
+ * @returns {string|null} lỗi đầu tiên (kèm tên tệp) hoặc null
+ */
+export function validateMaterialFiles(files, { required = false, existing = 0 } = {}) {
+  const list = Array.from(files || []);
+  if (!list.length) return required ? 'Vui lòng chọn ít nhất một tệp.' : null;
+  const errors = [];
+  if (list.length + existing > MAX_FILES_PER_UPLOAD) {
+    errors.push(`Tối đa ${MAX_FILES_PER_UPLOAD} tệp (đang chọn ${list.length + existing} tệp).`);
+  }
+  // Liệt kê MỌI tệp lỗi (mỗi tệp một dòng) để sửa một lần; có lỗi thì không tệp nào được gửi
+  for (const f of list) {
+    const err = validateMaterialFile(f, { required: true });
+    if (err) errors.push(`Tệp "${f.name}": ${err}`);
+  }
+  return errors.length ? errors.join('\n') : null;
+}
+
+/** "1,2 MB" / "350 KB" */
+export function formatFileSize(bytes) {
+  const n = Number(bytes) || 0;
+  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`;
+  return `${Math.max(1, Math.round(n / 1024))} KB`;
 }
 
 /** @returns {{title?: string, description?: string}} lỗi theo trường, rỗng nếu hợp lệ */

@@ -7,17 +7,20 @@ import com.kizuna.features.classroom.exception.ClassroomException;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.classroom.util.MaterialFileValidator;
-import com.kizuna.features.progress.dto.AssignmentAttachmentResponse;
+import com.kizuna.features.progress.dto.FileAttachmentResponse;
 import com.kizuna.features.progress.dto.SubmissionFileContent;
 import com.kizuna.features.progress.entity.Assignment;
+import com.kizuna.features.progress.entity.AssignmentFile;
+import com.kizuna.features.progress.repository.AssignmentFileRepository;
 import com.kizuna.features.progress.repository.AssignmentRepository;
-import com.kizuna.features.progress.repository.AssignmentSubmissionRepository;
 import com.kizuna.features.progress.service.impl.AssignmentAttachmentServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,40 +33,57 @@ import static org.mockito.Mockito.*;
 class AssignmentAttachmentServiceImplTest {
 
     private static final byte[] PDF = {0x25, 0x50, 0x44, 0x46, 0x2D, 0x31};
+    private static final byte[] DOC = {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0, (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1};
 
-    private ClassroomService classrooms;
-    private AssignmentRepository assignments;
-    private AssignmentSubmissionRepository submissions;
+    private AssignmentFileRepository fileRepo;
     private AssignmentAttachmentServiceImpl service;
 
     private LearningSpace space;
-    private CurrentActor tutorActor;
     private CurrentActor learnerActor;
     private Assignment assignment;
+    private List<AssignmentFile> stored;
 
     @BeforeEach
     void setUp() {
-        classrooms = mock(ClassroomService.class);
-        assignments = mock(AssignmentRepository.class);
-        submissions = mock(AssignmentSubmissionRepository.class);
-        service = new AssignmentAttachmentServiceImpl(classrooms, assignments, submissions, new MaterialFileValidator());
+        ClassroomService classrooms = mock(ClassroomService.class);
+        AssignmentRepository assignments = mock(AssignmentRepository.class);
+        fileRepo = mock(AssignmentFileRepository.class);
+        service = new AssignmentAttachmentServiceImpl(classrooms, assignments, fileRepo, new MaterialFileValidator());
 
         Tutor tutor = tutor();
         Learner learner = learner();
         space = space(tutor, learner);
-        tutorActor = asTutor(tutor);
         learnerActor = asLearner(learner);
         assignment = assignment(space, NOW.plusDays(2));
+        stored = new ArrayList<>();
 
         when(classrooms.loadAccessibleSpace(any(), eq(space.getSpaceId()))).thenReturn(space);
-        when(classrooms.loadManageableSpace(tutorActor, space.getSpaceId())).thenReturn(space);
         when(assignments.findByAssignmentIdAndSpace_SpaceId(assignment.getAssignmentId(), space.getSpaceId()))
                 .thenReturn(Optional.of(assignment));
-        when(assignments.save(any(Assignment.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(fileRepo.insertFile(any(), any(), anyString(), anyLong(), any())).thenAnswer(inv -> {
+            stored.add(AssignmentFile.builder().fileId(inv.getArgument(0)).assignmentId(inv.getArgument(1))
+                    .fileName(inv.getArgument(2)).fileSize(inv.getArgument(3)).build());
+            return 1;
+        });
+        when(fileRepo.findByAssignmentIdOrderByCreatedAtAscFileNameAsc(assignment.getAssignmentId()))
+                .thenAnswer(inv -> List.copyOf(stored));
+        doAnswer(inv -> {
+            Iterable<AssignmentFile> gone = inv.getArgument(0);
+            gone.forEach(stored::remove);
+            return null;
+        }).when(fileRepo).deleteAll(anyIterable());
     }
 
-    private static MockMultipartFile pdf() {
-        return new MockMultipartFile("file", "C:\\de bai/Bai-1.PDF", "application/pdf", PDF);
+    private AssignmentFile existing(String name) {
+        AssignmentFile f = AssignmentFile.builder().fileId(UUID.randomUUID()).assignmentId(assignment.getAssignmentId())
+                .fileName(name).fileSize(6L).build();
+        stored.add(f);
+        when(fileRepo.findByFileIdAndAssignmentId(f.getFileId(), assignment.getAssignmentId())).thenReturn(Optional.of(f));
+        return f;
+    }
+
+    private static MockMultipartFile pdf(String name) {
+        return new MockMultipartFile("file", name, "application/pdf", PDF);
     }
 
     private static void assertStatus(Runnable call, HttpStatus status) {
@@ -71,80 +91,72 @@ class AssignmentAttachmentServiceImplTest {
                 .extracting(e -> ((ClassroomException) e).getStatus()).isEqualTo(status);
     }
 
-    @Test
-    void tutorUploadsAttachmentWithCleanName() {
-        AssignmentAttachmentResponse r = service.upload(tutorActor, space.getSpaceId(), assignment.getAssignmentId(), pdf());
-
-        assertThat(r.attachmentName()).isEqualTo("Bai-1.pdf");
-        assertThat(r.attachmentType()).isEqualTo("PDF");
-        assertThat(assignment.getAttachmentUrl()).isEqualTo("Bai-1.pdf");
-        verify(assignments).updateFileData(assignment.getAssignmentId(), PDF);
+    private void verifyNothingWritten() {
+        verify(fileRepo, never()).insertFile(any(), any(), anyString(), anyLong(), any());
+        verify(fileRepo, never()).deleteAll(anyIterable());
     }
 
     @Test
-    void uploadRejectsLearnerInvalidFileAndGradedAssignment() {
-        UUID s = space.getSpaceId();
-        UUID a = assignment.getAssignmentId();
-        assertStatus(() -> service.upload(learnerActor, s, a, pdf()), HttpStatus.FORBIDDEN);
-        assertStatus(() -> service.upload(tutorActor, s, a, null), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.upload(tutorActor, s, a,
-                new MockMultipartFile("file", "virus.pdf", "application/pdf", new byte[]{0x4D, 0x5A})), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.upload(tutorActor, s, UUID.randomUUID(), pdf()), HttpStatus.NOT_FOUND);
+    void addsSeveralFilesWithCleanNames() {
+        List<FileAttachmentResponse> r = service.applyChanges(assignment,
+                List.of(pdf("C:\\de bai/Bai-1.PDF"), new MockMultipartFile("file", "Tu vung.doc", "application/msword", DOC)), null);
 
-        when(submissions.existsByAssignment_AssignmentIdAndFinalizedTrue(a)).thenReturn(true);
-        assertStatus(() -> service.upload(tutorActor, s, a, pdf()), HttpStatus.CONFLICT);
-        verify(assignments, never()).updateFileData(any(), any());
+        assertThat(r).extracting(FileAttachmentResponse::fileName).containsExactly("Bai-1.pdf", "Tu vung.doc");
+        assertThat(r).extracting(FileAttachmentResponse::fileType).containsExactly("PDF", "DOC");
     }
 
     @Test
-    void uploadBlockedWhenClassroomReadOnly() {
-        when(classrooms.loadManageableSpace(tutorActor, space.getSpaceId()))
-                .thenThrow(ClassroomException.conflict("Lớp học đang ở chế độ chỉ xem."));
-        assertStatus(() -> service.upload(tutorActor, space.getSpaceId(), assignment.getAssignmentId(), pdf()),
-                HttpStatus.CONFLICT);
+    void oneBadFileRejectsAllAndNamesTheFile() {
+        MockMultipartFile fake = new MockMultipartFile("file", "gia mao.doc", "application/msword", PDF);
+        assertThatThrownBy(() -> service.applyChanges(assignment, List.of(pdf("ok-1.pdf"), fake, pdf("ok-2.pdf")), null))
+                .isInstanceOfSatisfying(ClassroomException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(e.getMessage()).startsWith("Tệp \"gia mao.doc\": ");
+                    assertThat(e.getFieldErrors()).containsKey("file");
+                });
+        verifyNothingWritten();
     }
 
     @Test
-    void tutorRemovesAttachment() {
-        assignment.setAttachmentUrl("Bai-1.pdf");
-        assignment.setDescription("Viết 10 câu dùng ～ている.");
-        AssignmentAttachmentResponse r = service.remove(tutorActor, space.getSpaceId(), assignment.getAssignmentId());
+    void replaceAllFiveWithoutContentIsValidBecauseOnlyFinalResultCounts() {
+        assignment.setDescription(null);
+        List<UUID> all = new ArrayList<>();
+        for (int i = 0; i < 5; i++) all.add(existing("cu" + i + ".pdf").getFileId());
 
-        assertThat(r.attachmentName()).isNull();
-        assertThat(assignment.getAttachmentUrl()).isNull();
-        verify(assignments).updateFileData(assignment.getAssignmentId(), null);
+        List<FileAttachmentResponse> r = service.applyChanges(assignment,
+                List.of(pdf("m0.pdf"), pdf("m1.pdf"), pdf("m2.pdf"), pdf("m3.pdf"), pdf("m4.pdf")), all);
+
+        assertThat(r).extracting(FileAttachmentResponse::fileName).containsExactly("m0.pdf", "m1.pdf", "m2.pdf", "m3.pdf", "m4.pdf");
     }
 
     @Test
-    void cannotRemoveOnlyAttachmentWhenAssignmentHasNoContent() {
-        assignment.setAttachmentUrl("Bai-1.pdf");
-        assignment.setDescription("   ");
-        assertStatus(() -> service.remove(tutorActor, space.getSpaceId(), assignment.getAssignmentId()),
-                HttpStatus.BAD_REQUEST);
-        verify(assignments, never()).updateFileData(any(), any());
+    void rejectsEmptyResultWithoutContentMoreThanFiveAndUnknownFile() {
+        assignment.setDescription("  ");
+        assertStatus(() -> service.applyChanges(assignment, List.of(), null), HttpStatus.BAD_REQUEST);
+        UUID only = existing("de.pdf").getFileId();
+        assertStatus(() -> service.applyChanges(assignment, null, List.of(only)), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.applyChanges(assignment,
+                List.of(pdf("a.pdf"), pdf("b.pdf"), pdf("c.pdf"), pdf("d.pdf"), pdf("e.pdf")), null), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.applyChanges(assignment, null, List.of(UUID.randomUUID())), HttpStatus.NOT_FOUND);
+        assertThat(stored).hasSize(1);
+        verifyNothingWritten();
     }
 
     @Test
-    void removeWithoutAttachmentIsNotFound() {
-        assertStatus(() -> service.remove(tutorActor, space.getSpaceId(), assignment.getAssignmentId()),
-                HttpStatus.NOT_FOUND);
+    void contentOnlyWithoutFilesIsValid() {
+        assignment.setDescription("Viết 10 câu.");
+        assertThat(service.applyChanges(assignment, null, null)).isEmpty();
     }
 
     @Test
-    void learnerOfClassroomReadsAttachment() {
-        assignment.setAttachmentUrl("Bai-1.pdf");
-        when(assignments.findFileData(assignment.getAssignmentId())).thenReturn(PDF);
-
-        SubmissionFileContent file = service.getFile(learnerActor, space.getSpaceId(), assignment.getAssignmentId());
-
-        assertThat(file.data()).isEqualTo(PDF);
-        assertThat(file.contentType()).isEqualTo("application/pdf");
-        assertThat(file.fileName()).isEqualTo("Bai-1.pdf");
-    }
-
-    @Test
-    void readingMissingAttachmentIsNotFound() {
-        assertStatus(() -> service.getFile(learnerActor, space.getSpaceId(), assignment.getAssignmentId()),
+    void learnerReadsAttachment() {
+        AssignmentFile f = existing("Tu vung.doc");
+        when(fileRepo.findFileData(f.getFileId())).thenReturn(DOC);
+        SubmissionFileContent c = service.getFile(learnerActor, space.getSpaceId(), assignment.getAssignmentId(), f.getFileId());
+        assertThat(c.fileName()).isEqualTo("Tu vung.doc");
+        assertThat(c.contentType()).isEqualTo("application/msword");
+        assertThat(c.data()).isEqualTo(DOC);
+        assertStatus(() -> service.getFile(learnerActor, space.getSpaceId(), assignment.getAssignmentId(), UUID.randomUUID()),
                 HttpStatus.NOT_FOUND);
     }
 }

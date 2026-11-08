@@ -172,15 +172,17 @@ async function loadMaterials() {
     list.innerHTML = materials.map((m) => `
       <li class="border border-black rounded-[5px] p-4 bg-white flex flex-col sm:flex-row sm:items-start gap-3">
         <div class="flex-1 min-w-0 space-y-1">
-          <h3 class="font-semibold text-[16px] break-words">${escapeHtml(m.title)}</h3>
-          ${m.description ? `<p class="text-[#333] whitespace-pre-line break-words">${escapeHtml(m.description)}</p>` : ''}
-          <p class="mc-meta text-[#555]">${escapeHtml(fileTypeLabel(m.fileType))} · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
+          <h3 class="font-semibold text-[16px] [overflow-wrap:anywhere]">${escapeHtml(m.title)}</h3>
+          ${m.description ? `<p class="text-[#333] whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(m.description)}</p>` : ''}
+          <div class="flex flex-wrap gap-2 pt-1">${(m.files || []).map((f) => `
+            <button type="button" class="mc-btn max-w-full" data-open-material="${escapeHtml(m.materialId)}" data-file="${escapeHtml(f.fileId)}"
+              title="${escapeHtml(fileTypeLabel(f.fileType))}"><span class="min-w-0 [overflow-wrap:anywhere]">📎 ${escapeHtml(f.fileName)}</span></button>`).join('')}</div>
+          <p class="mc-meta text-[#555]">${(m.files || []).length} tệp · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
         </div>
-        <button type="button" class="mc-btn mc-btn-primary shrink-0" data-open-material="${escapeHtml(m.materialId)}">Mở tài liệu</button>
       </li>
     `).join('');
     list.querySelectorAll('[data-open-material]').forEach((btn) => {
-      btn.addEventListener('click', () => openMaterial(btn.dataset.openMaterial, btn));
+      btn.addEventListener('click', () => openMaterial(btn.dataset.openMaterial, btn.dataset.file, btn));
     });
   } catch (err) {
     list.innerHTML = '';
@@ -188,11 +190,11 @@ async function loadMaterials() {
   }
 }
 
-async function openMaterial(materialId, button) {
+async function openMaterial(materialId, fileId, button) {
   const tab = window.open('', '_blank');
   button.disabled = true;
   try {
-    const blob = await API.classrooms.materialFile(currentSpace.spaceId, materialId);
+    const blob = await API.classrooms.materialFile(currentSpace.spaceId, materialId, fileId);
     const url = URL.createObjectURL(blob);
     if (tab) tab.location.href = url;
     else window.location.href = url;

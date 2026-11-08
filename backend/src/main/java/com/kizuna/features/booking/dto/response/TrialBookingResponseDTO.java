@@ -13,6 +13,8 @@ import java.util.UUID;
 public class TrialBookingResponseDTO {
 
     private UUID bookingId;
+    /** Gia sư đã bấm "Đồng ý kết nối" sau buổi học thử (kết nối ACCEPTED, có thể tạo lớp FE-06). */
+    private boolean officialArrangementAgreed;
     private UUID requestId;
 
     // Tương thích hợp đồng API

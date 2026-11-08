@@ -9,9 +9,13 @@ import {
   classroomStatusLabel,
   classroomStatusTone,
   fileTypeLabel,
+  formatFileSize,
   formatDateVi,
   validateMaterialFile,
+  validateMaterialFiles,
   validateMaterialFields,
+  FILE_RULES_TEXT,
+  MAX_FILES_PER_UPLOAD,
   validateClassroomTitle,
   validateScheduleList,
   validateScheduleSlot,
@@ -31,6 +35,18 @@ import {
   clearSessionAndGoToLogin
 } from '../../js/classroom-helpers.js';
 import { initTutorAssignments, loadTutorAssignments, hideTutorAssignments } from './tutor-assignments.js';
+import { createFileList } from '../../js/file-picker.js';
+
+let materialPicker = null;
+
+/** Thay một tài liệu trong danh sách đang hiển thị (không tải lại cả danh sách). */
+function upsertMaterialLocally(material, { prepend = false } = {}) {
+  const i = state.materials.findIndex((m) => m.materialId === material.materialId);
+  if (i >= 0) state.materials[i] = material;
+  else if (prepend) state.materials.unshift(material);
+  else state.materials.push(material);
+  renderMaterials();
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -40,8 +56,47 @@ const state = {
   materials: [],
   editingMaterial: null,
   deletingMaterial: null,
-  editingSchedule: null
+  editingSchedule: null,
+  deletingSchedule: null
 };
+
+// ----------------------------------------------------------------------------
+// Sidebar: "Học viên của tôi" / "Tài liệu học tập" / "Quản lý bài tập" cùng mở trang lớp học,
+// phân biệt bằng ?muc= để tô sáng đúng mục và cuộn tới đúng phần khi vào một lớp.
+// ----------------------------------------------------------------------------
+const SIDEBAR_ACTIVE = 'flex items-center gap-3 px-3 py-2.5 transition-colors bg-primary-container text-on-primary-container font-semibold rounded-lg shadow-sm';
+const SIDEBAR_IDLE = 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors';
+const SECTION_BY_MUC = {
+  'tai-lieu': { path: 'tai-lieu-hoc-tap', sectionId: 'materialsSection' },
+  'bai-tap': { path: 'quan-ly-bai-tap', sectionId: 'assignmentsSection' }
+};
+
+function currentMuc() {
+  const muc = new URLSearchParams(window.location.search).get('muc');
+  return SECTION_BY_MUC[muc] ? muc : null;
+}
+
+function highlightSidebar() {
+  const activePath = SECTION_BY_MUC[currentMuc()]?.path || 'hoc-vien-cua-toi';
+  document.querySelectorAll('aside nav a[data-path]').forEach((a) => {
+    const active = a.dataset.path === activePath;
+    a.className = active ? SIDEBAR_ACTIVE : SIDEBAR_IDLE;
+    if (active) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+}
+
+/** Khi vào một lớp từ mục "Tài liệu học tập" / "Quản lý bài tập": cuộn tới đúng phần (chờ phần đó tải xong). */
+function focusSectionFromMuc(attempt = 0) {
+  const target = SECTION_BY_MUC[currentMuc()];
+  if (!target) return;
+  const el = $(target.sectionId);
+  if (el && !el.classList.contains('hidden')) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else if (attempt < 20) {
+    setTimeout(() => focusSectionFromMuc(attempt + 1), 150);
+  }
+}
 
 function dayOptionsHtml(selected, { placeholder = false } = {}) {
   return (placeholder ? '<option value="">Chọn thứ</option>' : '') + DAYS_OF_WEEK.map((d) =>
@@ -187,7 +242,8 @@ function collectScheduleRows() {
   }));
 }
 
-async function openAddLearner() {
+/** @param {string|null} preselectLearnerId học viên chọn sẵn (khi mở từ trang Yêu cầu kết nối / Lịch giảng dạy) */
+async function openAddLearner(preselectLearnerId = null) {
   const select = $('learnerSelect');
   const fields = $('addLearnerFields');
   const eligibleState = $('eligibleState');
@@ -218,6 +274,14 @@ async function openAddLearner() {
     eligibleState.classList.add('hidden');
     fields.classList.remove('hidden');
     submit.disabled = false;
+    if (preselectLearnerId) {
+      if (learners.some((l) => String(l.learnerId) === String(preselectLearnerId))) {
+        select.value = preselectLearnerId;
+        $('classroomTitleInput').focus();
+      } else {
+        setFieldError('learnerSelectError', 'Học viên bạn chọn chưa đủ điều kiện tạo lớp (chưa đồng ý kết nối hoặc đã có lớp đang hoạt động với bạn).');
+      }
+    }
   } catch (err) {
     eligibleState.textContent = friendlyErrorMessage(err);
   }
@@ -284,6 +348,7 @@ async function loadSpace(spaceId) {
     section.classList.remove('hidden');
     loadTutorAssignments(state.currentSpace);
     await loadMaterials();
+    focusSectionFromMuc();
   } catch (err) {
     renderStateBox(stateBox, friendlyErrorMessage(err), { retry: () => loadSpace(spaceId) });
   }
@@ -323,7 +388,7 @@ function renderSchedules() {
   const schedules = sortSchedules(c.schedules);
   $('openAddScheduleBtn').classList.toggle('hidden', !c.canManage);
   $('scheduleSubtitle').textContent = c.canManage
-    ? 'Các buổi học cố định mỗi tuần. Bạn có thể sửa giờ hoặc thêm buổi, lịch học không thể xóa.'
+    ? 'Các buổi học cố định mỗi tuần. Bạn có thể thêm, sửa hoặc xóa buổi; lớp luôn cần ít nhất một buổi học.'
     : 'Các buổi học cố định mỗi tuần của lớp.';
   if (!schedules.length) {
     list.innerHTML = '';
@@ -342,11 +407,18 @@ function renderSchedules() {
           <p class="text-on-surface whitespace-nowrap">${escapeHtml(shortTime(s.startTime))} – ${escapeHtml(shortTime(s.endTime))}</p>
           <p class="font-caption text-caption text-on-surface-variant">${escapeHtml(durationLabel(s.startTime, s.endTime))}</p>
         </div>
-        ${c.canManage ? `<button type="button" class="kz-btn shrink-0" data-edit-schedule="${escapeHtml(s.scheduleId)}"><span class="material-symbols-outlined text-[16px]">edit</span>Sửa</button>` : ''}
+        ${c.canManage ? `
+          <div class="flex flex-col gap-1.5 shrink-0">
+            <button type="button" class="kz-btn" data-edit-schedule="${escapeHtml(s.scheduleId)}"><span class="material-symbols-outlined text-[16px]">edit</span>Sửa</button>
+            ${schedules.length > 1 ? `<button type="button" class="kz-btn text-error" data-delete-schedule="${escapeHtml(s.scheduleId)}"><span class="material-symbols-outlined text-[16px]">delete</span>Xóa</button>` : ''}
+          </div>` : ''}
       </li>
     `).join('');
     list.querySelectorAll('[data-edit-schedule]').forEach((btn) => {
       btn.addEventListener('click', () => openScheduleForm(schedules.find((s) => s.scheduleId === btn.dataset.editSchedule)));
+    });
+    list.querySelectorAll('[data-delete-schedule]').forEach((btn) => {
+      btn.addEventListener('click', () => openDeleteSchedule(schedules.find((s) => s.scheduleId === btn.dataset.deleteSchedule)));
     });
   }
   $('scheduleSection').classList.remove('hidden');
@@ -376,6 +448,34 @@ async function submitRename(event) {
     setFieldError('renameError', err.fieldErrors?.title || friendlyErrorMessage(err));
   } finally {
     setBusy(submit, false);
+  }
+}
+
+function openDeleteSchedule(schedule) {
+  if (!schedule) return;
+  state.deletingSchedule = schedule;
+  $('deleteScheduleName').textContent = `${dayOfWeekLabel(schedule.dayOfWeek)} ${shortTime(schedule.startTime)} – ${shortTime(schedule.endTime)}`;
+  setFieldError('deleteScheduleError', '');
+  openModal('deleteScheduleModal');
+}
+
+async function confirmDeleteSchedule() {
+  const schedule = state.deletingSchedule;
+  if (!schedule) return;
+  const button = $('deleteScheduleConfirm');
+  setBusy(button, true, 'Đang xóa...');
+  try {
+    const spaceId = state.currentSpace.spaceId;
+    await API.classrooms.deleteSchedule(spaceId, schedule.scheduleId);
+    closeModal('deleteScheduleModal');
+    state.deletingSchedule = null;
+    showToast('Xóa buổi học thành công.');
+    state.currentSpace = await API.classrooms.detail(spaceId);
+    renderSchedules();
+  } catch (err) {
+    setFieldError('deleteScheduleError', err.fieldErrors?.schedules || friendlyErrorMessage(err));
+  } finally {
+    setBusy(button, false);
   }
 }
 
@@ -449,19 +549,23 @@ function renderMaterials() {
   list.innerHTML = state.materials.map((m) => `
     <li class="kz-item flex flex-col sm:flex-row sm:items-start gap-3">
       <div class="flex-1 min-w-0 space-y-1">
-        <h3 class="font-title-sm text-title-sm text-on-surface break-words">${escapeHtml(m.title)}</h3>
-        ${m.description ? `<p class="text-on-surface-variant whitespace-pre-line break-words">${escapeHtml(m.description)}</p>` : ''}
-        <p class="font-caption text-caption text-on-surface-variant">${escapeHtml(fileTypeLabel(m.fileType))} · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
+        <h3 class="font-title-sm text-title-sm text-on-surface [overflow-wrap:anywhere]">${escapeHtml(m.title)}</h3>
+        ${m.description ? `<p class="text-on-surface-variant whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(m.description)}</p>` : ''}
+        <div class="flex flex-wrap gap-1.5 pt-0.5">${(m.files || []).map((f) => `
+          <button type="button" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-container-lowest text-primary font-semibold hover:underline text-left max-w-full"
+            data-open-material="${escapeHtml(m.materialId)}" data-file="${escapeHtml(f.fileId)}" title="${escapeHtml(fileTypeLabel(f.fileType))} · ${escapeHtml(formatFileSize(f.fileSize))}">
+            <span class="material-symbols-outlined text-[16px] shrink-0">attach_file</span><span class="min-w-0 [overflow-wrap:anywhere]">${escapeHtml(f.fileName)}</span>
+          </button>`).join('')}</div>
+        <p class="font-caption text-caption text-on-surface-variant">${(m.files || []).length} tệp · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button type="button" class="kz-btn" data-open-material="${escapeHtml(m.materialId)}">Mở tài liệu</button>
         ${canManage ? `<button type="button" class="kz-btn" data-edit-material="${escapeHtml(m.materialId)}">Chỉnh sửa</button>` : ''}
         ${canManage ? `<button type="button" class="kz-btn text-error" data-delete-material="${escapeHtml(m.materialId)}">Xóa</button>` : ''}
       </div>
     </li>
   `).join('');
   list.querySelectorAll('[data-open-material]').forEach((btn) => {
-    btn.addEventListener('click', () => openMaterial(btn.dataset.openMaterial, btn));
+    btn.addEventListener('click', () => openMaterial(btn.dataset.openMaterial, btn.dataset.file, btn));
   });
   list.querySelectorAll('[data-edit-material]').forEach((btn) => {
     btn.addEventListener('click', () => openMaterialForm(state.materials.find((m) => m.materialId === btn.dataset.editMaterial)));
@@ -489,7 +593,8 @@ async function confirmDeleteMaterial() {
     closeModal('deleteMaterialModal');
     state.deletingMaterial = null;
     showToast('Xóa tài liệu thành công.');
-    await loadMaterials();
+    state.materials = state.materials.filter((m) => m.materialId !== material.materialId);
+    renderMaterials();
   } catch (err) {
     setFieldError('deleteMaterialError', friendlyErrorMessage(err));
   } finally {
@@ -497,12 +602,12 @@ async function confirmDeleteMaterial() {
   }
 }
 
-async function openMaterial(materialId, button) {
+async function openMaterial(materialId, fileId, button) {
   // Mở tab trước (đồng bộ với thao tác bấm) để trình duyệt không chặn cửa sổ bật lên.
   const tab = window.open('', '_blank');
-  setBusy(button, true, 'Đang mở...');
+  button.disabled = true;
   try {
-    const blob = await API.classrooms.materialFile(state.currentSpace.spaceId, materialId);
+    const blob = await API.classrooms.materialFile(state.currentSpace.spaceId, materialId, fileId);
     const url = URL.createObjectURL(blob);
     if (tab) tab.location.href = url;
     else window.location.href = url;
@@ -525,12 +630,11 @@ function openMaterialForm(material = null) {
   $('materialSubmit').textContent = isEdit ? 'Lưu thay đổi' : 'Tải lên';
   $('materialTitleInput').value = material?.title || '';
   $('materialDescriptionInput').value = material?.description || '';
-  const fileInput = $('materialFileInput');
-  fileInput.value = '';
-  fileInput.accept = MATERIAL_ACCEPT_ATTR;
+  // Một tài liệu = tiêu đề + mô tả + 1–5 tệp. Sửa: "Thay" / "Xóa" đúng tệp muốn đổi, "＋ Thêm tệp" để bổ sung.
+  materialPicker.reset(isEdit ? (material.files || []) : [], { max: MAX_FILES_PER_UPLOAD, addLabel: 'Thêm tệp' });
   $('materialFileHint').textContent = isEdit
-    ? 'Chọn tệp mới nếu muốn thay thế (để trống sẽ giữ tệp hiện tại). Định dạng PDF, PNG, JPG, MP3, tối đa 10 MB.'
-    : 'Định dạng PDF, PNG, JPG, MP3. Dung lượng tối đa 10 MB.';
+    ? `Bấm "Thay" để đổi đúng tệp đó, "Xóa" để bỏ tệp, "＋ Thêm tệp" để bổ sung. ${FILE_RULES_TEXT}`
+    : FILE_RULES_TEXT;
   ['materialTitleError', 'materialDescriptionError', 'materialFileError', 'materialFormError'].forEach((id) => setFieldError(id, ''));
   openModal('materialModal');
   $('materialTitleInput').focus();
@@ -541,10 +645,11 @@ async function submitMaterial(event) {
   const isEdit = !!state.editingMaterial;
   const title = $('materialTitleInput').value;
   const description = $('materialDescriptionInput').value;
-  const file = $('materialFileInput').files[0] || null;
+  const { newFiles, removeIds, keptCount } = materialPicker.getChanges();
 
   const fieldErrors = validateMaterialFields({ title, description });
-  const fileError = validateMaterialFile(file, { required: !isEdit });
+  let fileError = validateMaterialFiles(newFiles, { required: false, existing: keptCount });
+  if (!fileError && keptCount + newFiles.length === 0) fileError = 'Tài liệu cần có ít nhất một tệp.';
   setFieldError('materialTitleError', fieldErrors.title);
   setFieldError('materialDescriptionError', fieldErrors.description);
   setFieldError('materialFileError', fileError);
@@ -553,17 +658,17 @@ async function submitMaterial(event) {
 
   const submit = $('materialSubmit');
   setBusy(submit, true, isEdit ? 'Đang lưu...' : 'Đang tải lên...');
-  const payload = { title: title.trim(), description: description.trim(), file };
+  const payload = { title: title.trim(), description: description.trim(), files: newFiles, removeFileIds: removeIds };
   try {
     const spaceId = state.currentSpace.spaceId;
-    if (isEdit) {
-      await API.classrooms.updateMaterial(spaceId, state.editingMaterial.materialId, payload);
-    } else {
-      await API.classrooms.uploadMaterial(spaceId, payload);
-    }
+    const saved = isEdit
+      ? await API.classrooms.updateMaterial(spaceId, state.editingMaterial.materialId, payload)
+      : await API.classrooms.uploadMaterial(spaceId, payload);
     closeModal('materialModal');
     showToast(isEdit ? 'Cập nhật tài liệu thành công.' : 'Tải lên tài liệu thành công.');
-    await loadMaterials();
+    // Chỉ cập nhật đúng tài liệu vừa lưu, không tải lại cả danh sách
+    if (saved && saved.materialId) upsertMaterialLocally(saved, { prepend: !isEdit });
+    else await loadMaterials();
   } catch (err) {
     const fe = err.fieldErrors || {};
     if (fe.title || fe.description || fe.file) {
@@ -582,6 +687,7 @@ async function submitMaterial(event) {
 // Điều hướng & khởi tạo
 // ----------------------------------------------------------------------------
 function renderRoute() {
+  highlightSidebar();
   const spaceId = new URLSearchParams(window.location.search).get('space');
   $('classroomListView').classList.toggle('hidden', !!spaceId);
   $('classroomDetailView').classList.toggle('hidden', !spaceId);
@@ -647,16 +753,18 @@ function init() {
   }
   renderTutorName();
 
-  $('openAddLearnerBtn').addEventListener('click', openAddLearner);
+  $('openAddLearnerBtn').addEventListener('click', () => openAddLearner());
   $('addLearnerForm').addEventListener('submit', submitAddLearner);
   $('addScheduleRowBtn').addEventListener('click', addScheduleRow);
   $('openAddScheduleBtn').addEventListener('click', () => openScheduleForm(null));
   $('scheduleForm').addEventListener('submit', submitSchedule);
   $('openRenameBtn').addEventListener('click', openRename);
+  $('deleteScheduleConfirm').addEventListener('click', confirmDeleteSchedule);
   $('renameForm').addEventListener('submit', submitRename);
   $('backToListBtn').addEventListener('click', navigateToList);
   $('openUploadBtn').addEventListener('click', () => openMaterialForm(null));
   $('materialForm').addEventListener('submit', submitMaterial);
+  materialPicker = createFileList($('materialFileList'), { accept: MATERIAL_ACCEPT_ATTR });
   $('deleteMaterialConfirm').addEventListener('click', confirmDeleteMaterial);
   initTutorAssignments({ showToast });
   document.querySelectorAll('[data-close-modal]').forEach((btn) => {
@@ -668,10 +776,26 @@ function init() {
       closeModal('materialModal');
       closeModal('scheduleModal');
       closeModal('renameModal');
+      closeModal('deleteScheduleModal');
     }
   });
   window.addEventListener('popstate', renderRoute);
   renderRoute();
+  openCreateFromLink();
+}
+
+/**
+ * Mở sẵn hộp thoại Tạo lớp khi trang được mở bằng /tutor/classrooms?taoLop=1[&learnerId=...]
+ * (nút "Tạo lớp học" của trang Yêu cầu kết nối / Lịch giảng dạy). Xóa tham số khỏi địa chỉ để tải lại không mở lần nữa.
+ */
+function openCreateFromLink() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get('taoLop') !== '1') return;
+  const learnerId = url.searchParams.get('learnerId');
+  url.searchParams.delete('taoLop');
+  url.searchParams.delete('learnerId');
+  window.history.replaceState(window.history.state, '', url);
+  openAddLearner(learnerId);
 }
 
 if (document.readyState === 'loading') {

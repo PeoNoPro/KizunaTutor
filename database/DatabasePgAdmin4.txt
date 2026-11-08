@@ -345,6 +345,41 @@ CREATE TABLE assignment_submissions (
 );
 CREATE INDEX idx_submissions_assign_learner ON assignment_submissions(assignment_id, learner_id);
 
+-- 16a. Tệp của tài liệu học tập (FE-06, migration 014): một tài liệu gồm 1–10 tệp
+DROP TABLE IF EXISTS learning_material_files CASCADE;
+CREATE TABLE learning_material_files (
+    file_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    material_id UUID NOT NULL REFERENCES learning_materials(material_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    file_data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_learning_material_files_material ON learning_material_files(material_id);
+
+-- 16b. Tệp đề bài & tệp bài làm (FE-07, migration 013): nhiều tệp, mỗi tệp ≤ 25 MB, tối đa 10 tệp
+DROP TABLE IF EXISTS assignment_files CASCADE;
+CREATE TABLE assignment_files (
+    file_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assignment_id UUID NOT NULL REFERENCES assignments(assignment_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    file_data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_assignment_files_assignment ON assignment_files(assignment_id);
+
+DROP TABLE IF EXISTS submission_files CASCADE;
+CREATE TABLE submission_files (
+    file_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    submission_id UUID NOT NULL REFERENCES assignment_submissions(submission_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    file_data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_submission_files_submission ON submission_files(submission_id);
+
 -- ====================================================================================================
 -- PHÂN HỆ 4: KHO TỪ ĐIỂN KANJI, BỘ THẺ & MINIGAME LUYỆN VIẾT
 -- ====================================================================================================

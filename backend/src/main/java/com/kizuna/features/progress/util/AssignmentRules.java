@@ -7,9 +7,11 @@ import java.time.OffsetDateTime;
 
 /**
  * Quy tắc nộp bài / chấm điểm FE-07 (hàm thuần, đã thống nhất với người phụ trách):
- * - Còn hạn (hoặc không có hạn): nộp và nộp lại nhiều lần cho tới khi được chấm.
- * - Quá hạn: chỉ được nộp 1 lần nếu chưa nộp lần nào; không nộp lại.
- * - Gia sư chấm lần nộp mới nhất, 1 lần duy nhất, sau khi hết hạn (bài không có hạn: chấm lúc nào cũng được).
+ * - Mỗi học viên có MỘT bài nộp cho mỗi bài tập (nội dung + nhiều tệp).
+ * - Chưa nộp: được nộp khi còn hạn; quá hạn mà chưa nộp lần nào thì được nộp muộn 1 lần.
+ * - Đã nộp: được SỬA bài nộp (thêm/xóa/thay tệp, sửa nội dung) khi còn hạn và chưa được chấm;
+ *   bài không có hạn: sửa được tới khi được chấm. Quá hạn hoặc đã chấm thì khóa.
+ * - Gia sư chấm bài nộp 1 lần duy nhất, sau khi hết hạn (bài không có hạn: chấm lúc nào cũng được).
  */
 public final class AssignmentRules {
 
@@ -24,10 +26,16 @@ public final class AssignmentRules {
         return dueDate == null || submittedAt == null || !submittedAt.isAfter(dueDate);
     }
 
+    /** Nộp lần đầu: chưa có bài nộp (còn hạn hoặc nộp muộn 1 lần khi quá hạn). */
     public static boolean canSubmit(OffsetDateTime dueDate, OffsetDateTime now, int attempts, boolean graded,
                                     boolean readOnly) {
-        if (graded || readOnly) return false;
-        return !dueOver(dueDate, now) || attempts == 0;
+        return !graded && !readOnly && attempts == 0;
+    }
+
+    /** Sửa bài đã nộp: còn hạn (hoặc không có hạn) và chưa được chấm. */
+    public static boolean canEditSubmission(OffsetDateTime dueDate, OffsetDateTime now, boolean hasSubmission,
+                                            boolean graded, boolean readOnly) {
+        return hasSubmission && !graded && !readOnly && !dueOver(dueDate, now);
     }
 
     public static boolean canGrade(OffsetDateTime dueDate, OffsetDateTime now, boolean hasSubmission, boolean graded,

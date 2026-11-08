@@ -21,6 +21,39 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, UU
 
     long countBySpace_SpaceId(UUID spaceId);
 
+    /** Thời khóa biểu: lịch các lớp đang mở của gia sư (tutorId) hoặc học viên (learnerId); tham số còn lại để null. */
+    @Query("""
+            SELECT s FROM ClassSchedule s
+            JOIN FETCH s.space sp
+            JOIN FETCH sp.tutor t JOIN FETCH t.user
+            JOIN FETCH sp.learner l JOIN FETCH l.user
+            WHERE sp.status IN :statuses
+              AND (t.tutorId = :tutorId OR l.learnerId = :learnerId)
+            ORDER BY s.dayOfWeek, s.startTime
+            """)
+    List<ClassSchedule> findTimetable(@Param("tutorId") UUID tutorId,
+                                      @Param("learnerId") UUID learnerId,
+                                      @Param("statuses") Collection<LearningSpaceStatus> statuses);
+
+    /**
+     * Truy vấn CHỈ ĐỌC bảng trial_bookings (thuộc FE-05, không import entity của feature đó):
+     * các buổi học thử đã xác nhận / đã dời, chưa kết thúc, của gia sư HOẶC học viên.
+     * Mỗi dòng: [0] tutor_id, [1] thứ ISO (1 = Thứ Hai), [2] giờ bắt đầu "HH:mm", [3] giờ kết thúc "HH:mm",
+     * [4] ngày "dd/MM/yyyy" — đã quy đổi sang giờ Việt Nam.
+     */
+    @Query(value = """
+            SELECT CAST(tb.tutor_id AS VARCHAR),
+                   CAST(EXTRACT(ISODOW FROM tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh') AS INTEGER),
+                   to_char(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI'),
+                   to_char(tb.scheduled_end_time AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI'),
+                   to_char(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh', 'DD/MM/YYYY')
+            FROM trial_bookings tb
+            WHERE tb.booking_status IN ('CONFIRMED', 'RESCHEDULED')
+              AND tb.scheduled_end_time > CURRENT_TIMESTAMP
+              AND (tb.tutor_id = :tutorId OR tb.learner_id = :learnerId)
+            """, nativeQuery = true)
+    List<Object[]> findUpcomingTrialSlots(@Param("tutorId") UUID tutorId, @Param("learnerId") UUID learnerId);
+
     /** Lịch của các lớp đang mở mà gia sư HOẶC học viên này tham gia — dùng để kiểm tra trùng giờ. */
     @Query("""
             SELECT s FROM ClassSchedule s JOIN FETCH s.space sp

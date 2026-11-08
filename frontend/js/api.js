@@ -474,29 +474,27 @@ export const API = {
         throw err;
       }
     },
-    /** Gia sư chủ động chốt lịch / lên lịch buổi học cho học viên */
-    async scheduleLesson(payload) {
+    /** Gia sư đồng ý kết nối sau khi buổi học thử đã hoàn thành (sau đó tạo lớp ở trang Lớp học FE-06) */
+    async agreeConnection(bookingId) {
       const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
       try {
-        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/schedule-lesson`, {
-          method: 'POST',
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}/agree-connection`, {
+          method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
             'Accept': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
-          body: JSON.stringify(payload),
           signal: AbortSignal.timeout(10000)
         });
         const resData = await response.json().catch(() => ({}));
         if (!response.ok) {
-          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          const err = new Error(resData.message || 'Không thể đồng ý kết nối lúc này. Vui lòng thử lại.');
           err.status = response.status;
           throw err;
         }
         return resData.data || resData;
       } catch (err) {
-        console.error('API.trialBookings.scheduleLesson error:', err);
+        console.error(`API.trialBookings.agreeConnection(${bookingId}) error:`, err);
         throw err;
       }
     }
@@ -846,11 +844,12 @@ async function classroomRequest(path, { method = 'GET', body, formData, timeout 
   return json ? json.data : null;
 }
 
-function materialFormData({ title, description, file }) {
+function materialFormData({ title, description, file, files, removeFileIds }) {
   const fd = new FormData();
   fd.append('title', title ?? '');
   fd.append('description', description ?? '');
-  if (file) fd.append('file', file);
+  (files ? Array.from(files) : (file ? [file] : [])).forEach((f) => fd.append('file', f));
+  (removeFileIds || []).forEach((id) => fd.append('removeFileIds', id));
   return fd;
 }
 
@@ -870,12 +869,25 @@ API.classrooms = {
     return classroomRequest('', { method: 'POST', body: { learnerId, title, schedules } });
   },
 
+  /**
+   * Thời khóa biểu của người đang đăng nhập: lịch hằng tuần của mọi lớp đang mở.
+   * Mỗi phần tử: {scheduleId, spaceId, classTitle, partnerName, classStatus, dayOfWeek (1 = Thứ Hai), startTime, endTime, classStartedAt}
+   */
+  timetable() {
+    return classroomRequest('/schedules/me');
+  },
+
   /** Gia sư thêm một buổi học hằng tuần ({dayOfWeek, startTime, endTime}) */
   addSchedule(spaceId, slot) {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules`, { method: 'POST', body: slot });
   },
 
-  /** Gia sư sửa thứ/giờ của một buổi học (lịch học không có thao tác xóa) */
+  /** Gia sư xóa một buổi học (chỉ khi lớp còn từ 2 buổi trở lên) */
+  deleteSchedule(spaceId, scheduleId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}`, { method: 'DELETE' });
+  },
+
+  /** Gia sư sửa thứ/giờ của một buổi học */
   updateSchedule(spaceId, scheduleId, slot) {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}`,
       { method: 'PUT', body: slot });
@@ -895,12 +907,12 @@ API.classrooms = {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/materials`);
   },
 
-  /** Tải nội dung tệp tài liệu (UC-61); trả về Blob để mở bằng URL.createObjectURL */
-  async materialFile(spaceId, materialId) {
+  /** Tải nội dung một tệp của tài liệu (UC-61); trả về Blob để mở bằng URL.createObjectURL */
+  async materialFile(spaceId, materialId, fileId) {
     let response;
     try {
       response = await fetch(
-        `${API_BASE_URL}/classrooms/${encodeURIComponent(spaceId)}/materials/${encodeURIComponent(materialId)}/file`,
+        `${API_BASE_URL}/classrooms/${encodeURIComponent(spaceId)}/materials/${encodeURIComponent(materialId)}/files/${encodeURIComponent(fileId)}`,
         { headers: classroomAuthHeaders(), signal: AbortSignal.timeout(120000) }
       );
     } catch (networkErr) {
@@ -928,14 +940,14 @@ API.classrooms = {
     return await response.blob();
   },
 
-  /** Tải lên tài liệu mới (UC-65) */
+  /** Tạo tài liệu mới (UC-65): {title, description, files} — một tài liệu gồm 1–5 tệp */
   uploadMaterial(spaceId, data) {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/materials`, {
       method: 'POST', formData: materialFormData(data), timeout: 120000
     });
   },
 
-  /** Cập nhật hoặc thay tệp tài liệu (UC-94) */
+  /** Cập nhật tài liệu (UC-94): {title, description, files (tệp thêm), removeFileIds (tệp gỡ)} */
   updateMaterial(spaceId, materialId, data) {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/materials/${encodeURIComponent(materialId)}`, {
       method: 'PUT', formData: materialFormData(data), timeout: 120000
@@ -953,6 +965,17 @@ API.classrooms = {
 // FE-07: BÀI TẬP, NỘP BÀI & CHẤM ĐIỂM (Homework, Assessment & Progress Tracking)
 // Bổ sung riêng cho FE-07, dùng lại classroomRequest/classroomAuthHeaders của FE-06.
 // =========================================================================
+function assignmentFormData({ title, description, dueDate, totalPoints, files, removeFileIds }) {
+  const fd = new FormData();
+  fd.append('title', title ?? '');
+  fd.append('description', description ?? '');
+  if (dueDate) fd.append('dueDate', dueDate);
+  if (totalPoints !== null && totalPoints !== undefined && totalPoints !== '') fd.append('totalPoints', String(totalPoints));
+  Array.from(files || []).forEach((f) => fd.append('file', f));
+  (removeFileIds || []).forEach((id) => fd.append('removeFileIds', id));
+  return fd;
+}
+
 function assignmentPath(spaceId, rest = '') {
   return `/${encodeURIComponent(spaceId)}/assignments${rest}`;
 }
@@ -968,27 +991,44 @@ API.assignments = {
     return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}`));
   },
 
-  /** Gia sư giao bài tập (UC-66) */
-  create(spaceId, { title, description, dueDate, totalPoints }) {
+  /**
+   * Gia sư giao bài tập (UC-66) — MỘT lần gửi: thông tin bài tập + tệp đề bài (tối đa 5).
+   * Máy chủ kiểm tra tất cả; lỗi bất kỳ (kể cả một tệp) thì không lưu gì.
+   */
+  create(spaceId, { title, description, dueDate, totalPoints, files }) {
     return classroomRequest(assignmentPath(spaceId), {
-      method: 'POST', body: { title, description, dueDate, totalPoints }
+      method: 'POST', formData: assignmentFormData({ title, description, dueDate, totalPoints, files }), timeout: 300000
     });
   },
 
-  /** Gia sư sửa bài tập (UC-95) */
-  update(spaceId, assignmentId, { title, description, dueDate, totalPoints }) {
+  /** Gia sư sửa bài tập (UC-95) — MỘT lần gửi: thông tin + tệp thêm (`files`) + tệp gỡ (`removeFileIds`). */
+  update(spaceId, assignmentId, { title, description, dueDate, totalPoints, files, removeFileIds }) {
     return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}`), {
-      method: 'PUT', body: { title, description, dueDate, totalPoints }
+      method: 'PUT',
+      formData: assignmentFormData({ title, description, dueDate, totalPoints, files, removeFileIds }),
+      timeout: 300000
     });
   },
 
-  /** Học viên nộp / nộp lại bài (UC-64, UC-96) */
-  submit(spaceId, assignmentId, { content, file }) {
+  /** Học viên nộp bài lần đầu (UC-64): nội dung + nhiều tệp */
+  submit(spaceId, assignmentId, { content, files }) {
     const fd = new FormData();
     fd.append('content', content ?? '');
-    if (file) fd.append('file', file);
+    Array.from(files || []).forEach((f) => fd.append('file', f));
     return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}/submissions`), {
-      method: 'POST', formData: fd, timeout: 120000
+      method: 'POST', formData: fd, timeout: 300000
+    });
+  },
+
+  /** Học viên sửa bài đã nộp (UC-96): nội dung mới, thêm tệp, gỡ tệp theo id */
+  updateSubmission(spaceId, assignmentId, submissionId, { content, files, removeFileIds }) {
+    const fd = new FormData();
+    fd.append('content', content ?? '');
+    Array.from(files || []).forEach((f) => fd.append('file', f));
+    (removeFileIds || []).forEach((id) => fd.append('removeFileIds', id));
+    return classroomRequest(assignmentPath(spaceId,
+      `/${encodeURIComponent(assignmentId)}/submissions/${encodeURIComponent(submissionId)}`), {
+      method: 'PUT', formData: fd, timeout: 300000
     });
   },
 
@@ -1000,31 +1040,16 @@ API.assignments = {
     });
   },
 
-  /** Gia sư đính kèm / thay tệp đề bài (PDF, PNG, JPG, MP3; tối đa 10 MB) */
-  uploadAttachment(spaceId, assignmentId, file) {
-    const fd = new FormData();
-    fd.append('file', file);
-    return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}/attachment`), {
-      method: 'PUT', formData: fd, timeout: 120000
-    });
-  },
-
-  /** Gia sư gỡ tệp đề bài */
-  removeAttachment(spaceId, assignmentId) {
-    return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}/attachment`), {
-      method: 'DELETE'
-    });
-  },
-
-  /** Tải tệp đề bài; trả về Blob */
-  attachmentFile(spaceId, assignmentId) {
-    return assignmentBlob(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}/attachment`));
-  },
-
-  /** Tải tệp bài làm; trả về Blob */
-  submissionFile(spaceId, assignmentId, submissionId) {
+  /** Tải một tệp đề bài; trả về Blob */
+  attachmentFile(spaceId, assignmentId, fileId) {
     return assignmentBlob(assignmentPath(spaceId,
-      `/${encodeURIComponent(assignmentId)}/submissions/${encodeURIComponent(submissionId)}/file`));
+      `/${encodeURIComponent(assignmentId)}/files/${encodeURIComponent(fileId)}`));
+  },
+
+  /** Tải một tệp bài làm; trả về Blob */
+  submissionFile(spaceId, assignmentId, submissionId, fileId) {
+    return assignmentBlob(assignmentPath(spaceId,
+      `/${encodeURIComponent(assignmentId)}/submissions/${encodeURIComponent(submissionId)}/files/${encodeURIComponent(fileId)}`));
   }
 };
 

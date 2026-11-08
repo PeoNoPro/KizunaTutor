@@ -76,6 +76,7 @@ public class ClassScheduleRules {
      */
     public void ensureNoConflict(UUID tutorId, UUID learnerId, UUID currentSpaceId,
                                  UUID excludeScheduleId, List<ClassScheduleRequest> candidates) {
+        ensureNoTrialConflict(tutorId, learnerId, candidates);
         List<ClassSchedule> existing = scheduleRepository.findOpenSchedulesOfParticipants(tutorId, learnerId, OPEN_STATUSES);
         for (ClassScheduleRequest candidate : candidates) {
             for (ClassSchedule other : existing) {
@@ -91,6 +92,33 @@ public class ClassScheduleRules {
                 // Lớp của học viên với gia sư khác: không lộ tên lớp/gia sư khác.
                 throw ClassroomException.fieldConflict(FIELD, "Học viên đã có lớp học khác vào khung giờ " + describe(candidate) + ".");
             }
+        }
+    }
+
+    /** Lịch lớp hằng tuần không được đè lên buổi học thử đã xác nhận (chưa diễn ra) của gia sư hoặc học viên. */
+    private void ensureNoTrialConflict(UUID tutorId, UUID learnerId, List<ClassScheduleRequest> candidates) {
+        List<Object[]> trials = scheduleRepository.findUpcomingTrialSlots(tutorId, learnerId);
+        if (trials == null || trials.isEmpty()) return;
+        for (Object[] row : trials) {
+            Integer day = row[1] == null ? null : ((Number) row[1]).intValue();
+            LocalTime start = parseTime(row[2]);
+            LocalTime end = parseTime(row[3]);
+            if (day == null || start == null || end == null || !start.isBefore(end)) continue;
+            for (ClassScheduleRequest candidate : candidates) {
+                if (!overlaps(candidate.dayOfWeek(), candidate.startTime(), candidate.endTime(), day, start, end)) continue;
+                boolean ofTutor = tutorId != null && tutorId.toString().equalsIgnoreCase(String.valueOf(row[0]));
+                String when = " ngày " + row[4] + " (" + start.format(HH_MM) + "–" + end.format(HH_MM) + ")";
+                throw ClassroomException.fieldConflict(FIELD, "Khung giờ " + describe(candidate)
+                        + " trùng với buổi học thử" + (ofTutor ? " của bạn" : " của học viên") + when + ".");
+            }
+        }
+    }
+
+    private static LocalTime parseTime(Object value) {
+        try {
+            return value == null ? null : LocalTime.parse(value.toString());
+        } catch (java.time.format.DateTimeParseException e) {
+            return null;
         }
     }
 

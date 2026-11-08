@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 class ClassScheduleServiceImplTest {
@@ -135,6 +136,60 @@ class ClassScheduleServiceImplTest {
         var order = inOrder(spaces, schedules);
         order.verify(spaces).lockById(space.getSpaceId());
         order.verify(schedules).findOpenSchedulesOfParticipants(any(), any(), any());
+    }
+
+    @Test
+    void slotOverlappingConfirmedTrialIsRejected() {
+        when(schedules.findOpenSchedulesOfParticipants(any(), any(), any())).thenReturn(List.of(monday));
+        // Buổi học thử của chính gia sư: Thứ Bảy 09:00–09:50
+        when(schedules.findUpcomingTrialSlots(tutor.getTutorId(), learner.getLearnerId())).thenReturn(List.<Object[]>of(
+                new Object[]{tutor.getTutorId().toString(), 6, "09:00", "09:50", "14/11/2026"}));
+
+        assertThatThrownBy(() -> service.add(asTutor(tutor), space.getSpaceId(), req(6, 9, 30, 10, 30)))
+                .isInstanceOfSatisfying(ClassroomException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(e.getMessage()).contains("buổi học thử của bạn").contains("14/11/2026");
+                    assertThat(e.getFieldErrors()).containsKey(ClassScheduleRules.FIELD);
+                });
+        // Sát giờ (bắt đầu đúng lúc học thử kết thúc) thì không tính là trùng
+        assertThat(service.add(asTutor(tutor), space.getSpaceId(), req(6, 9, 50, 10, 50)).dayOfWeek()).isEqualTo(6);
+    }
+
+    @Test
+    void timetableShowsLearnerNameForTutorAndTutorNameForLearner() {
+        when(schedules.findTimetable(eq(tutor.getTutorId()), isNull(), any())).thenReturn(List.of(monday));
+        when(schedules.findTimetable(isNull(), eq(learner.getLearnerId()), any())).thenReturn(List.of(monday));
+
+        var forTutor = service.timetable(asTutor(tutor));
+        var forLearner = service.timetable(asLearner(learner));
+
+        assertThat(forTutor).singleElement().satisfies(e -> {
+            assertThat(e.partnerName()).isEqualTo("Học viên B");
+            assertThat(e.classTitle()).isEqualTo("Lớp N4");
+            assertThat(e.dayOfWeek()).isEqualTo(1);
+        });
+        assertThat(forLearner).singleElement().satisfies(e -> assertThat(e.partnerName()).isEqualTo("Gia sư A"));
+    }
+
+    @Test
+    void tutorDeletesSlotWhenClassKeepsAtLeastOne() {
+        when(schedules.countBySpace_SpaceId(space.getSpaceId())).thenReturn(2L);
+        service.delete(asTutor(tutor), space.getSpaceId(), monday.getScheduleId());
+        verify(schedules).delete(monday);
+        verify(spaces).lockById(space.getSpaceId());
+    }
+
+    @Test
+    void cannotDeleteLastSlotOrAsLearner() {
+        when(schedules.countBySpace_SpaceId(space.getSpaceId())).thenReturn(1L);
+        assertThatThrownBy(() -> service.delete(asTutor(tutor), space.getSpaceId(), monday.getScheduleId()))
+                .isInstanceOfSatisfying(ClassroomException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(e.getFieldErrors()).containsKey(ClassScheduleRules.FIELD);
+                });
+        assertStatus(() -> service.delete(asLearner(learner), space.getSpaceId(), monday.getScheduleId()), HttpStatus.FORBIDDEN);
+        assertStatus(() -> service.delete(asTutor(tutor), space.getSpaceId(), UUID.randomUUID()), HttpStatus.NOT_FOUND);
+        verify(schedules, never()).delete(any(ClassSchedule.class));
     }
 
     @Test

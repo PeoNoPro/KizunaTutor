@@ -50,10 +50,10 @@
 
           <!-- Nút chốt lịch / lên lịch cho học sinh dạng viên thuốc gradient tím theo mẫu -->
           <div class="flex items-center gap-3 shrink-0">
-            <button type="button" id="btnOpenScheduleLesson" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:opacity-95 text-white font-semibold text-sm shadow-md hover:shadow-lg inline-flex items-center gap-2 transition-all cursor-pointer transform active:scale-95">
+            <a href="/tutor/classrooms?taoLop=1" id="btnOpenScheduleLesson" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:opacity-95 text-white font-semibold text-sm shadow-md hover:shadow-lg inline-flex items-center gap-2 transition-all cursor-pointer transform active:scale-95 no-underline" title="Buổi học chính thức được xếp theo lịch hằng tuần của lớp học">
               <span class="material-symbols-outlined text-[20px]">add</span>
-              <span>Lên lịch buổi học</span>
-            </button>
+              <span>Tạo lớp học</span>
+            </a>
           </div>
         </div>
 
@@ -108,10 +108,10 @@
 
           <!-- Lưới Thời Khóa Biểu Tuần (Weekly Time Grid Container) -->
           <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/40 overflow-hidden">
-            <div class="overflow-x-auto">
+            <div id="gridScroll" class="overflow-auto max-h-[68vh] relative">
               <div class="min-w-[840px]">
-                <!-- Hàng tiêu đề 7 ngày trong tuần -->
-                <div id="gridHeaderRow" class="grid grid-cols-8 border-b border-outline-variant/40 bg-surface-container-low/40">
+                <!-- Hàng tiêu đề 7 ngày trong tuần (dính khi cuộn dọc) -->
+                <div id="gridHeaderRow" class="grid grid-cols-8 border-b border-outline-variant/40 bg-surface-container-lowest sticky top-0 z-20 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
                   <div class="p-3 text-caption font-bold text-on-surface-variant text-center border-r border-outline-variant/30 flex items-center justify-center">
                     Giờ
                   </div>
@@ -125,7 +125,7 @@
                   <div class="grid-day-header p-3 text-center">...</div>
                 </div>
 
-                <!-- Thân lưới các mốc giờ (07:00 đến 22:00) -->
+                <!-- Thân lưới 24 mốc giờ (00:00 đến 23:00) -->
                 <div id="gridBodyRows" class="relative divide-y divide-outline-variant/20">
                   <!-- Render động các hàng thời gian -->
                 </div>
@@ -202,82 +202,6 @@
         <p>© 2026 KizunaTutor. Nền tảng gắn kết học viên Việt Nam và gia sư tiếng Nhật.</p>
       </div>
     </footer>
-  </div>
-
-  <!-- ===== MODAL LÊN LỊCH & CHỐT LỊCH BUỔI HỌC CHO HỌC VIÊN ===== -->
-  <div id="modalScheduleLesson" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalScheduleTitle">
-    <div class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-5 animate-in fade-in duration-150">
-      <div class="flex items-start justify-between">
-        <div class="flex items-center gap-2.5">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-            <span class="material-symbols-outlined text-[22px]">calendar_add_on</span>
-          </div>
-          <div>
-            <h2 id="modalScheduleTitle" class="text-title-md font-bold text-on-surface">Lên lịch buổi học cho học viên</h2>
-            <p class="text-caption text-on-surface-variant">Buổi học sẽ được ghi nhận và gửi đến thời khóa biểu của học sinh</p>
-          </div>
-        </div>
-        <button type="button" class="modal-schedule-close text-on-surface-variant hover:text-on-surface p-1 rounded-lg cursor-pointer">
-          <span class="material-symbols-outlined text-[20px]">close</span>
-        </button>
-      </div>
-
-      <form id="formScheduleLesson" class="space-y-4">
-        <!-- Chọn học viên -->
-        <div class="space-y-1.5">
-          <label for="scheduleLearnerSelect" class="text-label-md font-semibold text-on-surface">Chọn học viên (*)</label>
-          <select id="scheduleLearnerSelect" class="tv-input" required>
-            <option value="">Đang tải danh sách học viên...</option>
-          </select>
-        </div>
-
-        <!-- Chọn Ngày & Giờ -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div class="space-y-1.5 sm:col-span-1">
-            <label for="scheduleDateInput" class="text-label-md font-semibold text-on-surface">Ngày học (*)</label>
-            <input type="date" id="scheduleDateInput" class="tv-input" required>
-          </div>
-          <div class="space-y-1.5 sm:col-span-1">
-            <label for="scheduleStartTimeInput" class="text-label-md font-semibold text-on-surface">Giờ bắt đầu (*)</label>
-            <input type="time" id="scheduleStartTimeInput" class="tv-input" value="18:00" required>
-          </div>
-          <div class="space-y-1.5 sm:col-span-1">
-            <label for="scheduleDurationSelect" class="text-label-md font-semibold text-on-surface">Thời lượng</label>
-            <select id="scheduleDurationSelect" class="tv-input">
-              <option value="25">25 phút</option>
-              <option value="50">50 phút</option>
-              <option value="60" selected>60 phút (1 giờ)</option>
-              <option value="90">90 phút</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Tên buổi học / Chủ đề -->
-        <div class="space-y-1.5">
-          <label for="scheduleTitleInput" class="text-label-md font-semibold text-on-surface">Tiêu đề / Môn học</label>
-          <input type="text" id="scheduleTitleInput" class="tv-input" placeholder="Ví dụ: Tiếng Nhật giao tiếp N4 - Hội thoại Kaiwa" value="Tiếng Nhật giao tiếp 1-1">
-        </div>
-
-        <!-- Lời nhắn / Ghi chú -->
-        <div class="space-y-1.5">
-          <label for="scheduleNoteInput" class="text-label-md font-semibold text-on-surface">Ghi chú dặn dò (tùy chọn)</label>
-          <textarea id="scheduleNoteInput" rows="2" class="tv-input" placeholder="Nội dung cần chuẩn bị trước buổi học..."></textarea>
-        </div>
-
-        <p id="scheduleLessonError" class="text-caption text-error hidden"></p>
-
-        <!-- Nút hành động -->
-        <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/30">
-          <button type="button" class="modal-schedule-close px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md transition-all font-medium cursor-pointer">
-            Hủy bỏ
-          </button>
-          <button type="submit" id="btnSubmitScheduleLesson" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:opacity-95 text-white text-label-md font-semibold inline-flex items-center gap-2 shadow-md transition-all cursor-pointer">
-            <span class="material-symbols-outlined text-[18px]">send</span>
-            <span>Xác nhận & Gửi lịch cho học viên</span>
-          </button>
-        </div>
-      </form>
-    </div>
   </div>
 
   <!-- ===== MODAL THÊM CA RẢNH MỚI ===== -->

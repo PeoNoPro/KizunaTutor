@@ -27,7 +27,7 @@
       .kz-badge[data-tone="active"] { @apply bg-primary-fixed text-on-primary-fixed-variant; }
       .kz-badge[data-tone="paused"] { @apply bg-tertiary-fixed text-on-tertiary-fixed; }
       .kz-badge[data-tone="done"] { @apply bg-surface-container-highest text-on-surface-variant; }
-      .field-error { @apply text-error font-body-sm text-body-sm mt-1; }
+      .field-error { @apply text-error font-body-sm text-body-sm mt-1 whitespace-pre-line [overflow-wrap:anywhere]; }
       .kz-modal-backdrop { background: rgba(19, 27, 46, .45); }
     }
   </style>
@@ -47,10 +47,10 @@
       <nav class="flex flex-col gap-1 px-4 mt-2" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-lg shadow-sm">
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tong-quan" href="/tutor/dashboard"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>Tổng quan</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="yeu-cau-ket-noi" href="/tutor/connections"><span class="material-symbols-outlined text-[20px]">group_add</span><span>Yêu cầu kết nối</span></a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="lich-giang-day" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span>Lịch giảng dạy</span></a>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="lich-giang-day" href="/tutor/schedule"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span>Lịch giảng dạy</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="hoc-vien-cua-toi" href="/tutor/classrooms"><span class="material-symbols-outlined text-[20px]">school</span><span>Học viên của tôi</span></a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tai-lieu-hoc-tap" href="/tutor/classrooms"><span class="material-symbols-outlined text-[20px]">menu_book</span><span>Tài liệu học tập</span></a>
-        <a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 transition-colors bg-primary-container text-on-primary-container font-semibold rounded-lg shadow-sm" data-path="quan-ly-bai-tap" href="/tutor/classrooms"><span class="material-symbols-outlined text-[20px]">assignment</span><span>Quản lý bài tập</span></a>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tai-lieu-hoc-tap" href="/tutor/classrooms?muc=tai-lieu"><span class="material-symbols-outlined text-[20px]">menu_book</span><span>Tài liệu học tập</span></a>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="quan-ly-bai-tap" href="/tutor/classrooms?muc=bai-tap"><span class="material-symbols-outlined text-[20px]">assignment</span><span>Quản lý bài tập</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="bao-cao-tien-do" href="#"><span class="material-symbols-outlined text-[20px]">insights</span><span>Báo cáo tiến độ</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="thong-bao" href="#"><span class="material-symbols-outlined text-[20px]">notifications</span><span>Thông báo</span></a>
         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="ho-so-gia-su" href="/tutor/verification"><span class="material-symbols-outlined text-[20px]">badge</span><span>Hồ sơ gia sư</span></a>
@@ -338,9 +338,9 @@
         <p id="materialDescriptionError" class="field-error hidden"></p>
       </div>
       <div>
-        <label for="materialFileInput" class="kz-label">Tệp tài liệu</label>
-        <input id="materialFileInput" type="file" class="kz-input file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary file:text-on-primary file:font-semibold">
-        <p id="materialFileHint" class="font-caption text-caption text-on-surface-variant mt-1.5">Định dạng PDF, PNG, JPG, MP3. Dung lượng tối đa 10 MB.</p>
+        <p class="kz-label">Tệp tài liệu</p>
+        <div id="materialFileList"></div>
+        <p id="materialFileHint" class="font-caption text-caption text-on-surface-variant mt-1.5"></p>
         <p id="materialFileError" class="field-error hidden"></p>
       </div>
       <p id="materialFormError" class="field-error hidden"></p>
@@ -349,6 +349,19 @@
         <button type="submit" id="materialSubmit" class="kz-btn kz-btn-primary">Tải lên</button>
       </div>
     </form>
+  </div>
+
+  <!-- ===== HỘP THOẠI XÁC NHẬN XÓA BUỔI HỌC ===== -->
+  <div id="deleteScheduleModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="deleteScheduleTitle">
+    <div class="kz-card shadow-xl w-full max-w-[440px] p-6 space-y-4">
+      <h2 id="deleteScheduleTitle" class="font-title-md text-title-md text-on-surface">Xóa buổi học</h2>
+      <p class="text-on-surface-variant">Bạn có chắc muốn xóa buổi <strong id="deleteScheduleName" class="text-on-surface"></strong> khỏi lịch học hằng tuần? Học viên sẽ không còn thấy buổi này trên thời khóa biểu.</p>
+      <p id="deleteScheduleError" class="field-error hidden"></p>
+      <div class="flex justify-end gap-3 pt-1">
+        <button type="button" class="kz-btn" data-close-modal="deleteScheduleModal">Hủy</button>
+        <button type="button" id="deleteScheduleConfirm" class="kz-btn kz-btn-danger">Xóa buổi học</button>
+      </div>
+    </div>
   </div>
 
   <!-- ===== HỘP THOẠI XÁC NHẬN XÓA TÀI LIỆU ===== -->
@@ -391,16 +404,9 @@
         </div>
       </div>
       <div>
-        <label for="assignmentFileInput" class="kz-label">Tệp đề bài <span class="font-normal text-on-surface-variant">(không bắt buộc)</span></label>
-        <div id="assignmentCurrentFile" class="kz-item flex flex-wrap items-center gap-2 p-3 mb-2 hidden">
-          <span class="material-symbols-outlined text-[18px] text-primary">attach_file</span>
-          <span id="assignmentCurrentFileName" class="flex-1 min-w-0 break-words"></span>
-          <label class="inline-flex items-center gap-1.5 text-on-surface-variant cursor-pointer">
-            <input id="assignmentRemoveFile" type="checkbox"> Gỡ tệp này
-          </label>
-        </div>
-        <input id="assignmentFileInput" type="file" class="kz-input file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary file:text-on-primary file:font-semibold">
-        <p id="assignmentFileHint" class="font-caption text-caption text-on-surface-variant mt-1.5">Định dạng PDF, PNG, JPG, MP3. Dung lượng tối đa 10 MB.</p>
+        <p class="kz-label">Tệp đề bài <span class="font-normal text-on-surface-variant">(không bắt buộc, tối đa 5 tệp)</span></p>
+        <div id="assignmentFileList"></div>
+        <p id="assignmentFileHint" class="font-caption text-caption text-on-surface-variant mt-1.5"></p>
         <p id="assignmentFileError" class="field-error hidden"></p>
       </div>
       <p class="font-caption text-caption text-on-surface-variant">Để trống hạn nộp nếu bài tập không có thời hạn. Sau khi đã chấm điểm, bài tập không thể chỉnh sửa.</p>

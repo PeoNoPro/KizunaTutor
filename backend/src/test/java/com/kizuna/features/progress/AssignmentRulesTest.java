@@ -33,7 +33,9 @@ class AssignmentRulesTest {
     @Test
     void beforeDeadlineCanSubmitManyTimesUntilGraded() {
         assertThat(AssignmentRules.canSubmit(FUTURE, NOW, 0, false, false)).isTrue();
-        assertThat(AssignmentRules.canSubmit(FUTURE, NOW, 3, false, false)).isTrue();
+        assertThat(AssignmentRules.canSubmit(FUTURE, NOW, 3, false, false)).isFalse(); // đã nộp → sửa, không nộp lại
+        assertThat(AssignmentRules.canEditSubmission(FUTURE, NOW, true, false, false)).isTrue();
+        assertThat(AssignmentRules.canEditSubmission(FUTURE, NOW, false, false, false)).isFalse();
         assertThat(AssignmentRules.canSubmit(FUTURE, NOW, 1, true, false)).isFalse();
     }
 
@@ -41,18 +43,22 @@ class AssignmentRulesTest {
     void afterDeadlineOnlyOneSubmissionIfNoneBefore() {
         assertThat(AssignmentRules.canSubmit(PAST, NOW, 0, false, false)).isTrue();
         assertThat(AssignmentRules.canSubmit(PAST, NOW, 1, false, false)).isFalse();
+        assertThat(AssignmentRules.canEditSubmission(PAST, NOW, true, false, false)).isFalse(); // quá hạn khóa sửa
         assertThat(AssignmentRules.canSubmit(PAST, NOW, 0, true, false)).isFalse();
     }
 
     @Test
     void noDeadlineAllowsResubmissionUntilGraded() {
-        assertThat(AssignmentRules.canSubmit(null, NOW, 5, false, false)).isTrue();
+        assertThat(AssignmentRules.canSubmit(null, NOW, 0, false, false)).isTrue();
+        assertThat(AssignmentRules.canEditSubmission(null, NOW, true, false, false)).isTrue();  // không hạn: sửa tới khi chấm
+        assertThat(AssignmentRules.canEditSubmission(null, NOW, true, true, false)).isFalse();
         assertThat(AssignmentRules.canSubmit(null, NOW, 5, true, false)).isFalse();
     }
 
     @Test
     void readOnlyBlocksEverything() {
         assertThat(AssignmentRules.canSubmit(FUTURE, NOW, 0, false, true)).isFalse();
+        assertThat(AssignmentRules.canEditSubmission(FUTURE, NOW, true, false, true)).isFalse();
         assertThat(AssignmentRules.canGrade(PAST, NOW, true, false, true)).isFalse();
     }
 

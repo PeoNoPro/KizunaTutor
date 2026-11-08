@@ -164,3 +164,25 @@ test('danh sách buổi học: bắt buộc có, không trùng giờ', () => {
     { dayOfWeek: 3, startTime: '09:30', endTime: '11:00' }
   ]), /trùng giờ/);
 });
+
+import { validateMaterialFiles, formatFileSize, MAX_FILES_PER_UPLOAD } from '../js/classroom-helpers.js';
+
+test('nhiều tệp: tối đa 5, có DOC/DOCX, báo lỗi kèm tên tệp', () => {
+  assert.equal(validateMaterialFiles([], { required: false }), null);
+  assert.match(validateMaterialFiles([], { required: true }), /ít nhất một tệp/);
+  assert.equal(validateMaterialFiles([{ name: 'a.docx', size: 100 }, { name: 'b.doc', size: 100 }, { name: 'c.pdf', size: 100 }]), null);
+  const many = Array.from({ length: MAX_FILES_PER_UPLOAD + 1 }, (_, i) => ({ name: `f${i}.pdf`, size: 10 }));
+  assert.match(validateMaterialFiles(many), /Tối đa 5 tệp/);
+  assert.match(validateMaterialFiles([{ name: 'a.pdf', size: 10 }], { existing: 5 }), /Tối đa 5 tệp/);
+  assert.match(validateMaterialFiles([{ name: 'virus.exe', size: 10 }]), /^Tệp "virus\.exe": /);
+  // Báo MỌI tệp lỗi, mỗi tệp một dòng
+  const many2 = validateMaterialFiles([{ name: 'ok.pdf', size: 10 }, { name: 'a.exe', size: 10 }, { name: 'to.docx', size: 26 * 1024 * 1024 }]);
+  assert.deepEqual(many2.split('\n').map((l) => l.slice(0, 14)), ['Tệp "a.exe": Đ', 'Tệp "to.docx":']);
+  assert.match(validateMaterialFiles([{ name: 'to.pdf', size: 26 * 1024 * 1024 }]), /25 MB/);
+});
+
+test('định dạng dung lượng tệp', () => {
+  assert.equal(formatFileSize(512), '1 KB');
+  assert.equal(formatFileSize(350 * 1024), '350 KB');
+  assert.equal(formatFileSize(1.5 * 1024 * 1024), '1,5 MB');
+});

@@ -15,9 +15,9 @@
 <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
 
 <form id="incidentFilters" class="operations-card operations-filters">
-<label>Trạng thái<select name="status"><option value="">Tất cả</option><option value="NEW">Mới ghi nhận</option><option value="IN_PROGRESS">Đang xử lý</option><option value="RESOLVED">Đã giải quyết</option><option value="CLOSED">Đã đóng</option></select></label>
+<label>Trạng thái<select name="status"><option value="">Tất cả</option><option value="NEW">Chưa xử lý</option><option value="IN_PROGRESS">Đang xử lý</option><option value="RESOLVED">Đã khắc phục, chờ đóng</option><option value="CLOSED">Đã đóng</option></select></label>
 <label>Mức độ<select name="severity"><option value="">Tất cả</option><option value="LOW">Thấp</option><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Nghiêm trọng</option></select></label>
-<label>Thành phần<select id="filterComponent" name="component"><option value="">Tất cả</option></select></label>
+<label>Chức năng bị ảnh hưởng<select id="filterComponent" name="component"><option value="">Tất cả</option></select></label>
 <label>Người phụ trách<select id="filterAssignee" name="assignee"><option value="">Tất cả</option></select></label>
 <label>Từ ngày<input name="fromDate" type="date"></label><label>Đến ngày<input name="toDate" type="date"></label>
 <button type="submit">Lọc danh sách</button><button id="exportIncidents" type="button">Xuất Excel</button></form>
@@ -30,7 +30,7 @@
 <div><label for="incidentSubject">Tiêu đề</label><input id="incidentSubject" required maxlength="200"></div>
 <div><label for="incidentDescription">Mô tả</label><textarea id="incidentDescription" required maxlength="10000"></textarea></div>
 <div><label for="incidentSeverity">Mức độ</label><select id="incidentSeverity"><option value="LOW">Thấp</option><option value="NORMAL" selected>Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Nghiêm trọng</option></select></div>
-<fieldset><legend>Thành phần bị ảnh hưởng</legend><div id="createComponents"></div></fieldset>
+<fieldset><legend>Chức năng bị ảnh hưởng</legend><div id="createComponents"></div></fieldset>
 <p id="recurrenceNote" hidden>Đang tạo sự cố tái diễn, liên kết với hồ sơ đã đóng.</p>
 <p id="incidentCreateNotice" class="portal-dialog-error" role="alert" tabindex="-1"></p></div>
 <div class="portal-dialog-actions"><button type="submit" class="primary">Lưu ghi nhận</button><button id="cancelCreateIncident" type="button">Hủy</button></div></form>

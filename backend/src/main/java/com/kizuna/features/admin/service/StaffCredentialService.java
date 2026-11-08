@@ -33,7 +33,8 @@ public class StaffCredentialService {
     private final StaffCredentialRepository queue;
     private final PlatformTransactionManager transactions;
     private final Clock operationsClock;
-    @Value("${spring.mail.username:}") private String sender;
+    /** Admin đổi email người gửi ở trang Cấu hình; chưa đổi thì dùng tài khoản SMTP trong cấu hình triển khai. */
+    private final SystemSettingService settings;
     @Value("${app.frontend-url:http://localhost:3000}") private String frontendUrl;
 
     /** Ghi vào hàng đợi cùng giao dịch tạo tài khoản; rollback thì không có thư nào đi. */
@@ -78,8 +79,10 @@ public class StaffCredentialService {
 
     private boolean send(StaffCredentialRepository.Recipient to,String password) {
         try {
+            // mailSender là bộ gửi chung (AdminMailConfiguration): tự dùng email Admin cấu hình, chưa có thì dùng SMTP của server.
             MimeMessage message=mailSender.createMimeMessage();
             var helper=new MimeMessageHelper(message,"UTF-8");
+            var sender=settings.mailSenderEmail();
             helper.setFrom(sender.isBlank()?"no-reply@kizunatutor.local":sender,"KizunaTutor");
             helper.setTo(to.email());
             helper.setSubject("[KizunaTutor] Thông tin đăng nhập tài khoản nhân viên");

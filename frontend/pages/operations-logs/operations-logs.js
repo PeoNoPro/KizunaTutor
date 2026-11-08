@@ -1,16 +1,24 @@
-import { OPERATIONS_BASE as base, api, byId, text, date, notice, option, paging, query, emptyState, createOperationsPage } from '../../js/pages/operations.js';
+import { OPERATIONS_BASE as base, api, byId, text, date, option, paging, query, emptyState, badge, avatar, createOperationsPage } from '../../js/pages/operations.js';
 
 const state = {page: 0, catalogLoaded: false};
 
+const SOURCE_TONES = {'Nhân sự': 'info', 'Sự cố': 'warning', 'Cấu hình': 'success'};
+
+/** Mỗi dòng nhật ký là một câu: "<Người> <hành động> <đối tượng>", kèm nhóm, kết quả, thời gian; lý do (nếu có) ở dưới. */
 function row(event) {
-    const line = document.createElement('tr');
-    const target = text('td', event.targetLabel);
-    if (event.incidentId) {
-        const link = text('a', event.targetLabel); link.href = '/pages/operations-incident/?id=' + encodeURIComponent(event.incidentId);
-        target.replaceChildren(link);
-    }
-    line.append(text('td', date(event.occurredAt)), text('td', event.actorDisplayName), text('td', event.sourceLabel), text('td', event.actionLabel), target, text('td', event.resultLabel), text('td', event.reason || 'Không có'));
-    return line;
+    const item = text('li', '', 'log-item'), body = text('div', '', 'log-body'), sentence = text('p', '', 'log-sentence');
+    const target = event.incidentId ? text('a', event.targetLabel) : text('strong', event.targetLabel || '');
+    if (event.incidentId) target.href = '/pages/operations-incident/?id=' + encodeURIComponent(event.incidentId);
+    sentence.append(text('strong', event.actorDisplayName), document.createTextNode(' · ' + event.actionLabel + (event.targetLabel ? ': ' : '')), target);
+    const tags = text('div', '', 'log-tags');
+    tags.append(badge(event.sourceLabel, SOURCE_TONES[event.sourceLabel] || 'neutral'));
+    // Cấu hình ghi "trước → sau" nên hiện dạng chữ; sự cố hiện trạng thái dạng nhãn màu.
+    if (event.resultLabel && event.resultLabel.includes('→')) tags.append(text('span', event.resultLabel, 'log-change'));
+    else if (event.resultLabel && event.resultLabel !== 'Đã lưu') tags.append(badge(event.resultLabel));
+    body.append(sentence, tags);
+    if (event.reason) body.append(text('p', event.reason, 'log-reason'));
+    item.append(avatar(event.actorDisplayName), body, text('time', date(event.occurredAt), 'log-time'));
+    return item;
 }
 
 async function loadLogs() {
@@ -24,7 +32,7 @@ async function loadLogs() {
     byId('logEmpty').replaceChildren();
     if (!data.items.length) byId('logEmpty').append(emptyState('Chưa có nhật ký phù hợp', 'Vui lòng thử điều chỉnh bộ lọc hoặc quay lại sau khi có thao tác mới.'));
     byId('logPage').textContent = 'Trang ' + (state.page + 1);
-    paging('log', data, state.page); notice('Đã tải ' + data.totalElements + ' dòng nhật ký.');
+    paging('log', data, state.page);
 }
 
 const page = createOperationsPage(loadLogs);

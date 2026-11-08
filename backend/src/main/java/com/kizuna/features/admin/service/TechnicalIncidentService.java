@@ -18,7 +18,7 @@ import java.util.*;
 public class TechnicalIncidentService {
     public static final Set<String> STATES=Set.of("NEW","IN_PROGRESS","RESOLVED","CLOSED");
     public static final Set<String> SEVERITIES=Set.of("LOW","NORMAL","HIGH","CRITICAL");
-    public static final Map<String,String> STATUS_LABELS=Map.of("NEW","Mới ghi nhận","IN_PROGRESS","Đang xử lý","RESOLVED","Đã giải quyết","CLOSED","Đã đóng");
+    public static final Map<String,String> STATUS_LABELS=Map.of("NEW","Chưa xử lý","IN_PROGRESS","Đang xử lý","RESOLVED","Đã khắc phục, chờ đóng","CLOSED","Đã đóng");
     public static final Map<String,String> SEVERITY_LABELS=Map.of("LOW","Thấp","NORMAL","Bình thường","HIGH","Cao","CRITICAL","Nghiêm trọng");
     public static final Map<String,String> ACTION_LABELS=Map.of("CREATE","Ghi nhận sự cố","CLAIM","Nhận xử lý","REASSIGN","Phân công lại","PROGRESS","Ghi diễn biến","RESOLVE","Giải quyết","RESUME","Tiếp tục xử lý","CLOSE","Đóng sự cố","RELEASE","Trả lại danh sách chờ");
     private final TechnicalIncidentRepository incidents;
@@ -30,15 +30,47 @@ public class TechnicalIncidentService {
     @Transactional(timeout=4)
     public Map<String,Object> create(IncidentCreateRequest r) {
         var actor=actors.requireAdmin(); commands.lockAdmin(actor.userId());
+        var i=record(actor.userId(),r);
+        return projection(i,actor.userId());
+    }
+
+    /**
+     * Quản lý báo sự cố kỹ thuật cho Admin (thường từ yêu cầu hỗ trợ được chuyển lên). Sự cố vào "Chưa xử lý",
+     * người ghi nhận là Quản lý; nhận và xử lý vẫn chỉ Admin làm nên Quản lý không được báo lặp lại sự cố đã đóng.
+     */
+    @Transactional(timeout=4)
+    public Map<String,Object> report(IncidentCreateRequest r) {
+        var actor=actors.requireManager();
+        if(r.recurrenceOf()!=null) throw BusinessException.invalid();
+        var i=record(actor.userId(),r);
+        return readOnly(i,actors.names(Set.of(actor.userId())));
+    }
+
+    /** Sự cố Quản lý đang đăng nhập đã báo, mới nhất trước; chỉ xem trạng thái, không có thao tác. */
+    @Transactional(readOnly=true, timeout=3)
+    public PageResponse<Map<String,Object>> reportedByMe(int page,int size) {
+        var actor=actors.requireManager(); OperationsValidation.page(page,size);
+        Specification<TechnicalIncident> mine=(root,q,cb)->cb.equal(root.get("reporterId"),actor.userId());
+        var result=incidents.findAll(mine,PageRequest.of(page,size,LIST_ORDER));
+        var ids=new HashSet<UUID>(); ids.add(actor.userId()); result.forEach(i->{if(i.getAssigneeId()!=null)ids.add(i.getAssigneeId());});
+        var names=actors.names(ids);
+        return PageResponse.of(result.map(i->readOnly(i,names)));
+    }
+
+    private Map<String,Object> readOnly(TechnicalIncident i,Map<UUID,String> names) {
+        var m=projection(i,i.getReporterId(),names); m.put("allowedActions",List.of()); return m;
+    }
+
+    private TechnicalIncident record(UUID actor,IncidentCreateRequest r) {
         OperationsValidation.text(r.subject(),200); OperationsValidation.text(r.description(),10000);
         OperationsValidation.member(r.severity(),SEVERITIES);
         if(r.components()==null || r.components().isEmpty() || !OperationsComponentCatalog.CODES.containsAll(r.components())) throw BusinessException.invalid();
         if(r.recurrenceOf()!=null && !"CLOSED".equals(incidents.findById(r.recurrenceOf()).orElseThrow(BusinessException::missing).getStatus())) throw BusinessException.invalid();
         var i=new TechnicalIncident(); i.setIncidentId(UUID.randomUUID()); i.setSubject(r.subject()); i.setDescription(r.description());
-        i.setSeverity(r.severity()); i.setStatus("NEW"); i.setReporterId(actor.userId()); i.setRecurrenceOf(r.recurrenceOf());
+        i.setSeverity(r.severity()); i.setStatus("NEW"); i.setReporterId(actor); i.setRecurrenceOf(r.recurrenceOf());
         i.setComponents(new LinkedHashSet<>(r.components())); incidents.saveAndFlush(i);
-        append(i,actor.userId(),"CREATE",null,r.description(),null,null);
-        return projection(i,actor.userId());
+        append(i,actor,"CREATE",null,r.description(),null,null);
+        return i;
     }
 
     @Transactional(timeout=4)

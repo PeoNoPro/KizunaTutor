@@ -16,7 +16,7 @@ class StaffImportTest extends OperationsIntegrationBase {
     private static final String BASE="/api/admin/operations/staff/import";
     @org.springframework.beans.factory.annotation.Autowired org.springframework.mail.javamail.JavaMailSender mail;
     private static final String ACADEMIC="Cán bộ học vụ",SERVICE="Chăm sóc khách hàng";
-    @BeforeEach void schema() throws Exception {jdbc.execute(Files.readString(Path.of("../database/seeds/admin_staff_schema.sql")));cleanup();}
+    @BeforeEach void schema() throws Exception {jdbc.execute(Files.readString(Path.of("../database/seeds/fe11_operations_schema.sql")));cleanup();}
     @AfterEach void cleanup() {
         jdbc.execute("ALTER TABLE staff_account_audit_events DROP CONSTRAINT IF EXISTS staff_test_audit_failure");
         jdbc.update("DELETE FROM staff_account_audit_events WHERE target_user_id IN (SELECT user_id FROM users WHERE email LIKE 'import-%@test.invalid')");

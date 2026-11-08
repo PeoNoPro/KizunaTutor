@@ -54,6 +54,15 @@ public class OperationsApiController {
     @PostMapping("/incidents") public ResponseEntity<?> create(@jakarta.validation.Valid @RequestBody IncidentCreateRequest r) {
         var result=incidents.create(r); return ResponseEntity.created(URI.create("/api/admin/operations/incidents/"+result.get("incidentId"))).body(ApiResponse.ok(result));
     }
+    // Quản lý báo sự cố cho Admin và theo dõi sự cố mình đã báo (chỉ xem).
+    @GetMapping("/reported-incidents") public ApiResponse<?> reported(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) { return ApiResponse.ok(incidents.reportedByMe(page,size)); }
+    @GetMapping("/reported-incidents/components") public ApiResponse<?> reportComponents() { actors.requireManager(); return ApiResponse.ok(catalog.options()); }
+    @GetMapping("/reported-incidents/csrf") public ApiResponse<?> reportCsrf(org.springframework.security.web.csrf.CsrfToken token) {
+        actors.requireManager(); return ApiResponse.ok(Map.of("token",token.getToken(),"headerName",token.getHeaderName()));
+    }
+    @PostMapping("/reported-incidents") public ResponseEntity<?> report(@jakarta.validation.Valid @RequestBody IncidentCreateRequest r) {
+        return ResponseEntity.status(201).body(ApiResponse.ok(incidents.report(r)));
+    }
     @GetMapping("/incidents/{id}") public ApiResponse<?> detail(@PathVariable UUID id) { return ApiResponse.ok(incidents.detail(id)); }
     @GetMapping("/incidents/{id}/events") public ApiResponse<?> history(@PathVariable UUID id,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) { return ApiResponse.ok(incidents.history(id,page,size)); }
     @PostMapping("/incidents/{id}/claim") public ApiResponse<?> claim(@PathVariable UUID id,@RequestBody IncidentCommandRequest r) { return ApiResponse.ok(incidents.command(id,"CLAIM",r)); }

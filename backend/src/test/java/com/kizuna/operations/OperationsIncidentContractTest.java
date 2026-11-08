@@ -44,7 +44,7 @@ class OperationsIncidentContractTest extends OperationsIntegrationBase {
         assertEquals(org.apache.poi.ss.usermodel.CellType.STRING,row.getCell(1).getCellType());
         assertEquals("=HYPERLINK(\"http://x.invalid\")",row.getCell(1).getStringCellValue());
         assertEquals("Nghiêm trọng",row.getCell(2).getStringCellValue());
-        assertEquals("Đã giải quyết",row.getCell(3).getStringCellValue());
+        assertEquals("Đã khắc phục, chờ đóng",row.getCell(3).getStringCellValue());
         assertEquals(org.apache.poi.ss.usermodel.CellType.STRING,row.getCell(6).getCellType());
         assertEquals("=1+1",row.getCell(6).getStringCellValue());
         assertNull(rowOf(sheet,resumed).getCell(6),"Sự cố đã mở lại không còn kết quả hiệu lực");

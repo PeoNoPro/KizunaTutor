@@ -70,3 +70,25 @@ html{scrollbar-gutter:stable}
   .cs-ticket-status{align-self:flex-start}
 }
 .cs-workspace.support-page .support-tabs{scrollbar-width:none}
+
+/* Mục con "Yêu cầu hỗ trợ" ở sidebar khu nội bộ: bấm để mở/đóng danh sách nhóm. */
+.support-nav-group.is-collapsible>a{position:relative;padding-right:30px}
+.support-nav-group.is-collapsible>a::after{content:'';position:absolute;right:14px;top:50%;width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-70%) rotate(45deg);transition:transform .15s}
+.support-nav-group.is-collapsible.is-open>a::after{transform:translateY(-30%) rotate(-135deg)}
+.support-nav-group.is-collapsible:not(.is-open)>.support-nav-items{display:none}
+.support-nav-items{display:flex;flex-direction:column;gap:2px;margin:4px 0 6px 18px;padding-left:10px;border-left:1px solid #d5ccb6}
+.sidebar-menu .support-nav-items a{height:auto;min-height:36px;padding:7px 12px;font-size:13px;border-radius:8px}
+.cs-workspace .sidebar-menu .support-nav-items a[aria-current=page]{background:#f7f4ec;color:#0f2545;font-weight:700}
+
+/* Thanh ca làm ở Tổng quan nhân viên hỗ trợ. */
+.cs-shift{display:flex;align-items:center;gap:14px;margin:0 0 20px;padding:14px 18px;border-radius:14px;border:1px solid var(--cs-border,#ece8de);background:#fff}
+.cs-shift[data-state=on]{background:#e6f4ea;border-color:#b7dfc4}
+.cs-shift[data-state=off]{background:#fff8e8;border-color:#f1d9a6}
+.cs-shift-dot{font-size:18px;line-height:1;color:#1e6b35}
+.cs-shift[data-state=off] .cs-shift-dot{color:#8a5a00}
+.cs-shift-copy{flex:1;min-width:0}
+.cs-shift-copy strong{display:block;font-size:15px;color:#0f2545}
+.cs-shift-copy p{margin:2px 0 0;font-size:13px;color:#3f4850}
+.cs-shift-link{flex:none;font-size:13px;font-weight:600;color:#006194;text-decoration:underline}
+/* Tổng quan CS: bỏ các dòng ghi chú nhỏ dưới tiêu đề. */
+.cs-workspace .cs-description,.cs-workspace .cs-queue-count,.cs-workspace .cs-queue-footnote,.cs-workspace .cs-process p{display:none}

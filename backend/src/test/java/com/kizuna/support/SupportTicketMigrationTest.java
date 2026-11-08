@@ -27,6 +27,9 @@ class SupportTicketMigrationTest {
                 c.createStatement().execute("INSERT INTO users VALUES ('"+user+"'); INSERT INTO support_tickets(ticket_id,user_id,subject) VALUES ('"+ticket+"','"+user+"','Legacy'); INSERT INTO ticket_messages SELECT gen_random_uuid(),'"+ticket+"','"+user+"','Message',null,now() FROM generate_series(1,3)");
                 String sql=Files.readString(Path.of("../database/seeds/fe10_support_ticket.sql")).replace("BEGIN;","").replace("COMMIT;","");
                 c.createStatement().execute(sql); c.createStatement().execute(sql);
+                try(var shifts=c.createStatement().executeQuery("SELECT to_regclass('support_shifts') IS NOT NULL,to_regclass('idx_support_shifts_staff_date') IS NOT NULL")){
+                    shifts.next();assertTrue(shifts.getBoolean(1));assertTrue(shifts.getBoolean(2));
+                }
                 var rs=c.createStatement().executeQuery("SELECT count(*),count(DISTINCT sequence_no),min(sequence_no),max(sequence_no) FROM ticket_messages"); rs.next();
                 assertEquals(3,rs.getInt(1));assertEquals(3,rs.getInt(2));assertEquals(1,rs.getLong(3));assertEquals(3,rs.getLong(4));
                 c.createStatement().execute("UPDATE ticket_messages SET attachment_url='https://legacy.invalid/file'");

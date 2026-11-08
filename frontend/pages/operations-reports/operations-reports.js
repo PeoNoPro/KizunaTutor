@@ -1,31 +1,34 @@
-import { OPERATIONS_BASE as base, api, byId, text, date, notice, paging, query, incidentCards, createOperationsPage } from '../../js/pages/operations.js';
+import { OPERATIONS_BASE as base, api, byId, query, notice, paging, incidentCards, createOperationsPage } from '../../js/pages/operations.js';
 
-const state = {reportPage: 0, metric: null, cutoff: null};
+// Danh sách sự cố theo kỳ; ba nhóm (phát sinh, khắc phục, chưa đóng) là bộ lọc thay cho khối thống kê.
+const state = {reportPage: 0, cutoff: null};
+const COUNT_LABELS = {created: 'phát sinh trong kỳ', resolved: 'được khắc phục trong kỳ', open: 'chưa đóng đến cuối kỳ'};
 
 async function loadReport() {
     const params = query(byId('reportFilters'));
-    if (state.metric) { params.set('metric', state.metric); params.set('page', state.reportPage); if (state.cutoff) params.set('cutoff', state.cutoff); }
+    params.set('page', state.reportPage);
+    if (state.cutoff) params.set('cutoff', state.cutoff);
     const data = await api(base + '/reports/incidents?' + params); state.cutoff = data.cutoff;
-    // Preserve the concrete default period so a later drilldown cannot cross midnight.
+    // Giữ ngày cụ thể của kỳ mặc định để lần chuyển trang sau không bị lệch qua nửa đêm.
     byId('reportFilters').elements.startDate.value = data.startDate; byId('reportFilters').elements.endDate.value = data.endDate;
-    const day = value => value.split('-').reverse().join('/');
-    byId('reportCutoff').textContent = 'Kỳ ' + day(data.startDate) + ' đến ' + day(data.endDate) + ' · Chốt: ' + date(data.cutoff);
-    byId('reportSummary').replaceChildren();
-    const metrics = [['created', 'Mới ghi nhận', data.createdCount, 'Được tạo trong kỳ.'], ['resolved', 'Đã giải quyết', data.resolvedCount, 'Có lần giải quyết trong kỳ; mỗi sự cố tính một lần.'], ['open', 'Còn mở cuối kỳ', data.openAtCutoff, 'Chưa đóng tại thời điểm chốt, gồm sự cố từ trước kỳ.']];
-    metrics.forEach(([key, label, count, definition]) => {
-        const button = text('button', label + ': ' + count); button.type = 'button';
-        button.addEventListener('click', () => page.run(async () => { state.metric = key; state.reportPage = 0; await loadReport(); }));
-        byId('reportSummary').append(button, text('p', definition));
-        const groups = data.breakdowns[key];
-        Object.entries(groups).forEach(([group, values]) => byId('reportSummary').append(text('p', (group === 'status' ? 'Theo trạng thái: ' : 'Theo mức độ: ') + (Object.entries(values).map(([k, v]) => k + ': ' + v).join('; ') || 'Không có sự cố'))));
+    const metric = byId('reportMetric').value;
+    byId('reportCount').textContent = (data.totalElements ?? data.items.length) + ' sự cố ' + COUNT_LABELS[metric];
+    // Báo cáo chỉ trả tên và trạng thái; lấy thêm thao tác được phép của từng sự cố (tối đa 20 dòng một trang).
+    const items = await Promise.all(data.items.map(item => api(base + '/incidents/' + encodeURIComponent(item.incidentId)).catch(() => item)));
+    incidentCards(byId('reportItems'), items, runCommand);
+    paging('report', data, state.reportPage);
+}
+
+function runCommand(row, action, payload) {
+    page.run(async () => {
+        await api(base + '/incidents/' + encodeURIComponent(row.incidentId) + '/' + action, 'POST', payload);
+        await loadReport(); notice('Đã lưu thao tác cho sự cố ' + row.subject + '.');
     });
-    byId('reportItems').replaceChildren();
-    if (state.metric) { incidentCards(byId('reportItems'), data.items); paging('report', data, state.reportPage); }
-    byId('reportPrev').hidden = !state.metric; byId('reportNext').hidden = !state.metric; notice('Đã tổng hợp từ lịch sử sự cố.');
 }
 
 const page = createOperationsPage(loadReport);
-page.bind('reportFilters', 'submit', async () => { state.metric = null; state.cutoff = null; await loadReport(); });
+page.bind('reportFilters', 'submit', async () => { state.reportPage = 0; state.cutoff = null; await loadReport(); });
+byId('reportMetric').addEventListener('change', () => page.run(async () => { state.reportPage = 0; state.cutoff = null; await loadReport(); }));
 page.bind('reportPrev', 'click', async () => { state.reportPage = Math.max(0, state.reportPage - 1); await loadReport(); });
 page.bind('reportNext', 'click', async () => { state.reportPage++; await loadReport(); });
 page.start();

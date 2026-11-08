@@ -235,6 +235,73 @@
     </div>
   </div>
 
+  <!-- ===== MODAL ĐỔI LỊCH HỌC THỬ (DÀNH CHO HỌC VIÊN - SRS 5.3) ===== -->
+  <div id="modalRescheduleBooking" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalRescheduleTitle">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 animate-in fade-in duration-150 border border-slate-200">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-sky-50 text-[#006194] flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[22px]">edit_calendar</span>
+          </div>
+          <div>
+            <h2 id="modalRescheduleTitle" class="text-base font-bold text-[#0F172A]">Đổi lịch học thử</h2>
+            <p class="text-xs text-[#64748B]">Chọn ngày và giờ mới cho buổi học thử 1-1</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Tóm tắt lịch hiện tại -->
+      <div class="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1.5 text-xs">
+        <div class="flex items-center gap-2 text-[#0F172A]">
+          <span class="material-symbols-outlined text-[16px] text-[#006194]">person</span>
+          <span>Gia sư: <strong id="rescheduleTutorName" class="font-bold">—</strong></span>
+        </div>
+        <div class="flex items-center gap-2 text-[#0F172A]">
+          <span class="material-symbols-outlined text-[16px] text-[#006194]">schedule</span>
+          <span>Lịch hiện tại: <span id="rescheduleCurrentTimeStr" class="font-medium">—</span></span>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-500 leading-relaxed">
+        Lưu ý: Đối với buổi học đã xác nhận, bạn cần dời lịch trước giờ học ít nhất 24 giờ theo chính sách nền tảng.
+      </p>
+
+      <div id="rescheduleAlertBox" class="hidden p-3 rounded-xl text-xs bg-rose-50 text-rose-700 border border-rose-200"></div>
+
+      <!-- Chọn ngày và giờ học mới -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label for="rescheduleDateInput" class="block text-xs font-semibold text-[#0F172A]">Ngày học mới *</label>
+          <input type="date" id="rescheduleDateInput" class="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-[#006194]">
+        </div>
+        <div class="space-y-1.5">
+          <label for="rescheduleTimeInput" class="block text-xs font-semibold text-[#0F172A]">Giờ học mới *</label>
+          <input type="time" id="rescheduleTimeInput" class="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-[#006194]">
+        </div>
+      </div>
+
+      <!-- Lý do đổi lịch -->
+      <div class="space-y-1.5">
+        <label for="rescheduleReasonInput" class="block text-xs font-semibold text-[#0F172A]">Lý do đổi lịch (tùy chọn)</label>
+        <textarea id="rescheduleReasonInput" rows="2" placeholder="Ví dụ: Em có việc đột xuất, muốn xin dời sang ngày khác..." class="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-[#006194] resize-none"></textarea>
+      </div>
+
+      <!-- Nút hành động -->
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+        <button type="button" class="modal-close px-4 py-2 rounded-xl bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F172A] text-xs font-semibold transition-all cursor-pointer">
+          Quay lại
+        </button>
+        <button type="button" id="btnSubmitReschedule" class="px-5 py-2 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all cursor-pointer">
+          <span class="material-symbols-outlined text-[16px]">schedule_send</span>
+          <span id="btnSubmitRescheduleText">Xác nhận đổi lịch</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast thông báo nhanh góc màn hình -->
   <div id="toastNotification" class="fixed bottom-6 right-6 z-50 hidden max-w-sm px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all">
     <span id="toastIcon" class="material-symbols-outlined text-[20px]">check_circle</span>

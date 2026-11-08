@@ -137,14 +137,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     const reviewList = tutor.reviews || [];
-    const totalReviews = tutor.totalReviews || (reviewList.length > 0 ? reviewList.length : 18);
+    const totalReviews = reviewList.length > 0 ? reviewList.length : (tutor.totalReviews || 0);
     const avgRating = tutor.avgRating != null ? Number(tutor.avgRating).toFixed(1) : '5.0';
 
-    function renderSingleReview(r) {
+    function renderSingleReview(r, index) {
       const style = getAvatarStyle(r.learnerName);
       const initials = getInitials(r.learnerName);
+      const isExtra = index >= 3;
       return `
-        <div class="p-5 rounded-2xl border border-[#E5DECB] bg-white space-y-3 hover:shadow-xs transition-shadow review-item" data-tag="${r.tag || 'all'}" data-has-comment="${r.comment ? 'true' : 'false'}">
+        <div class="p-5 rounded-2xl border border-[#E5DECB] bg-white space-y-3 hover:shadow-xs transition-shadow review-item ${isExtra ? 'extra-review hidden' : ''}" data-has-comment="${r.comment ? 'true' : 'false'}">
           <!-- Top: Thông tin học viên & Đánh giá sao -->
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-3">
@@ -184,7 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const reviewsCardsHtml = reviewList.length > 0
-      ? reviewList.map(renderSingleReview).join('')
+      ? reviewList.map((r, i) => renderSingleReview(r, i)).join('')
       : `
         <div class="p-8 text-center bg-white rounded-2xl border border-[#E5DECB] space-y-2">
           <p class="text-xs text-slate-500">Chưa có đánh giá nào từ học viên. Hãy là người đầu tiên đặt lịch học thử!</p>
@@ -376,34 +377,20 @@ document.addEventListener('DOMContentLoaded', async () => {
               </div>
             </div>
 
-            <!-- Bộ lọc nhận xét (Filter Chips) -->
-            <div class="flex items-center gap-2 flex-wrap pt-1" id="review-filter-bar">
-              <button type="button" class="review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#006194] text-white shadow-xs transition-all" data-filter="all">
-                Tất cả (${totalReviews})
-              </button>
-              <button type="button" class="review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-slate-50 transition-all" data-filter="comment">
-                Có nhận xét chữ (${reviewList.length > 0 ? reviewList.length : 15})
-              </button>
-              <button type="button" class="review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-slate-50 transition-all" data-filter="kaiwa">
-                Học Kaiwa phản xạ (10)
-              </button>
-              <button type="button" class="review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-slate-50 transition-all" data-filter="jlpt">
-                Luyện thi JLPT N1-N2 (8)
-              </button>
-            </div>
-
             <!-- Danh sách các nhận xét -->
             <div class="space-y-3.5" id="reviews-list-container">
               ${reviewsCardsHtml}
             </div>
 
-            <!-- Nút Xem toàn bộ đánh giá -->
-            <div class="pt-1 text-center">
-              <button type="button" id="toggle-more-reviews-btn" class="w-full py-3 px-4 rounded-xl bg-white border border-[#E5DECB] hover:bg-[#FAF8F5] text-xs font-semibold text-[#0F2545] transition-colors flex items-center justify-center gap-1.5 shadow-2xs">
-                <span>Xem toàn bộ ${totalReviews} đánh giá</span>
-                <span class="material-symbols-outlined text-[16px]">expand_more</span>
-              </button>
-            </div>
+            <!-- Nút Xem toàn bộ đánh giá (Tự động ẩn nếu <= 3, chỉ hiện khi > 3) -->
+            ${totalReviews > 3 ? `
+              <div class="pt-1 text-center">
+                <button type="button" id="toggle-more-reviews-btn" class="w-full py-3 px-4 rounded-xl bg-white border border-[#E5DECB] hover:bg-[#FAF8F5] text-xs font-semibold text-[#0F2545] transition-colors flex items-center justify-center gap-1.5 shadow-2xs">
+                  <span id="toggle-more-text">Xem toàn bộ ${totalReviews} đánh giá</span>
+                  <span class="material-symbols-outlined text-[16px]" id="toggle-more-icon">expand_more</span>
+                </button>
+              </div>
+            ` : ''}
           </div>
 
         </div>
@@ -452,30 +439,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
 
 
-    // Xử lý bộ lọc đánh giá học viên
-    const filterBtns = document.querySelectorAll('.review-chip');
-    const reviewCards = document.querySelectorAll('.review-item');
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        filterBtns.forEach(b => {
-          b.className = 'review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-slate-50 transition-all';
-        });
-        btn.className = 'review-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#006194] text-white shadow-xs transition-all';
+    // Xử lý nút Xem thêm đánh giá (chỉ khi có trên 3 đánh giá)
+    const toggleBtn = document.getElementById('toggle-more-reviews-btn');
+    if (toggleBtn) {
+      let isExpanded = false;
+      toggleBtn.addEventListener('click', () => {
+        isExpanded = !isExpanded;
+        const extraCards = document.querySelectorAll('.extra-review');
+        extraCards.forEach(card => card.classList.toggle('hidden', !isExpanded));
 
-        const filter = btn.dataset.filter;
-        reviewCards.forEach(card => {
-          if (filter === 'all') {
-            card.style.display = 'block';
-          } else if (filter === 'comment') {
-            card.style.display = card.dataset.hasComment === 'true' ? 'block' : 'none';
-          } else if (filter === 'kaiwa') {
-            card.style.display = (card.dataset.tag === 'kaiwa' || card.innerText.includes('Kaiwa')) ? 'block' : 'none';
-          } else if (filter === 'jlpt') {
-            card.style.display = (card.dataset.tag === 'jlpt' || card.innerText.includes('JLPT')) ? 'block' : 'none';
-          }
-        });
+        const textEl = document.getElementById('toggle-more-text');
+        const iconEl = document.getElementById('toggle-more-icon');
+        if (textEl) {
+          textEl.textContent = isExpanded ? 'Thu gọn bớt đánh giá' : `Xem toàn bộ ${totalReviews} đánh giá`;
+        }
+        if (iconEl) {
+          iconEl.textContent = isExpanded ? 'expand_less' : 'expand_more';
+        }
       });
-    });
+    }
 
 
     // === LOGIC CHO MODAL CHỌN LỊCH HỌC THỬ (MẪU MỚI TIẾNG VIỆT - FE-05) ===

@@ -14,10 +14,10 @@
     <h2>Nhân viên có thể điều chuyển</h2>
     <form id="roleSearch" class="staff-toolbar"><label for="roleQuery">Tìm theo tên hoặc email<input id="roleQuery" maxlength="200" placeholder="Nhập tên hoặc email nhân viên"></label><button type="submit">Tìm kiếm</button></form>
     <p class="staff-help">Chỉ gồm Cán bộ học vụ và Chăm sóc khách hàng đang hoạt động.</p>
-    <div class="table-scroll"><table class="staff-table role-change-table"><caption class="sr-only">Nhân viên có thể điều chuyển</caption><thead><tr><th scope="col">Thông tin</th><th scope="col">Thao tác</th></tr></thead><tbody id="roleRows"></tbody></table></div>
+    <div class="table-scroll"><table class="staff-table role-change-table"><caption class="sr-only">Nhân viên có thể điều chuyển</caption><thead><tr><th scope="col">Nhân viên</th><th scope="col">Vai trò</th><th scope="col">Thao tác</th></tr></thead><tbody id="roleRows"></tbody></table></div>
     <div class="operations-pagination"><button id="rolePrev" type="button">Trang trước</button><span id="rolePage"></span><button id="roleNext" type="button">Trang sau</button></div>
   </section>
-  <section class="operations-card"><h2>Đề xuất thăng chức của bạn</h2><div id="myPromotions"></div><div class="operations-pagination"><button id="promotionPrev" type="button">Trang trước</button><span id="promotionPage"></span><button id="promotionNext" type="button">Trang sau</button></div></section>
+  <section class="operations-card"><h2>Đề xuất thăng chức của bạn</h2><div id="myPromotions" class="promotion-list"></div><div class="operations-pagination"><button id="promotionPrev" type="button">Trang trước</button><span id="promotionPage"></span><button id="promotionNext" type="button">Trang sau</button></div></section>
 </div></main>
 <dialog id="roleDialog" class="staff-dialog portal-dialog" aria-labelledby="roleDialogTitle">
   <form id="roleForm"><div class="portal-dialog-head"><h2 id="roleDialogTitle"></h2><button id="closeRole" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div><div class="portal-dialog-body"><p id="roleDialogSummary" class="staff-help"></p>

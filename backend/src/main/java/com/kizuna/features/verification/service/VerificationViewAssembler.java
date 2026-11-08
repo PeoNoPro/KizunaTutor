@@ -23,6 +23,8 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Dựng dữ liệu hồ sơ xác minh trả ra API và kiểm tra điều kiện nộp hồ sơ (FR-005).
@@ -57,6 +59,7 @@ public class VerificationViewAssembler {
 
     public TutorVerificationResponse build(Tutor tutor, boolean forOfficer) {
         List<TutorCredential> credentials = credentialRepository.findByTutor_TutorIdOrderByUploadedAtAsc(tutor.getTutorId());
+        Set<UUID> available = storage.availableIds(credentials);
         TutorVerificationStatus status = VerificationStateMachine.currentStatus(tutor);
         User user = tutor.getUser();
 
@@ -66,7 +69,7 @@ public class VerificationViewAssembler {
                 .submittedAt(tutor.getSubmittedAt())
                 .verifiedAt(tutor.getVerifiedAt())
                 .profile(profile(tutor))
-                .documents(credentials.stream().map(this::document).toList())
+                .documents(credentials.stream().map(c -> document(c, available.contains(c.getCredentialId()))).toList())
                 .latestFeedback(latestFeedback(tutor, status));
 
         if (forOfficer) {
@@ -74,16 +77,20 @@ public class VerificationViewAssembler {
         } else {
             boolean editable = VerificationStateMachine.isEditable(status);
             builder.editable(editable);
-            builder.missingRequirements(editable ? check(tutor, credentials).labels() : List.of());
+            builder.missingRequirements(editable ? check(tutor, credentials, available).labels() : List.of());
         }
         return builder.build();
     }
 
     public SubmissionCheck check(Tutor tutor) {
-        return check(tutor, credentialRepository.findByTutor_TutorIdOrderByUploadedAtAsc(tutor.getTutorId()));
+        List<TutorCredential> credentials = credentialRepository.findByTutor_TutorIdOrderByUploadedAtAsc(tutor.getTutorId());
+        return check(tutor, credentials, storage.availableIds(credentials));
     }
 
-    public SubmissionCheck check(Tutor tutor, List<TutorCredential> credentials) {
+    /**
+     * @param available mã các giấy tờ xem được tệp; giấy tờ mất tệp không được tính là đã nộp.
+     */
+    public SubmissionCheck check(Tutor tutor, List<TutorCredential> credentials, Set<UUID> available) {
         Map<String, String> fields = new LinkedHashMap<>();
         String fullName = tutor.getUser() != null ? tutor.getUser().getFullName() : null;
         if (fullName == null || fullName.trim().length() < 2) {
@@ -110,10 +117,10 @@ public class VerificationViewAssembler {
         List<String> missingDocuments = new ArrayList<>();
         boolean hasIdentity = credentials.stream()
                 .anyMatch(c -> c.getCredentialType() != null && c.getCredentialType().isIdentity()
-                        && storage.exists(c.getStorageKey()));
+                        && available.contains(c.getCredentialId()));
         boolean hasJapanese = credentials.stream()
                 .anyMatch(c -> c.getCredentialType() != null && c.getCredentialType().isJapaneseProficiency()
-                        && storage.exists(c.getStorageKey()));
+                        && available.contains(c.getCredentialId()));
         if (!hasIdentity) {
             missingDocuments.add(VerificationLabels.MISSING_IDENTITY);
         }
@@ -128,6 +135,10 @@ public class VerificationViewAssembler {
     }
 
     public VerificationDocumentResponse document(TutorCredential credential) {
+        return document(credential, storage.availableIds(List.of(credential)).contains(credential.getCredentialId()));
+    }
+
+    private VerificationDocumentResponse document(TutorCredential credential, boolean fileAvailable) {
         String key = credential.getStorageKey();
         return VerificationDocumentResponse.builder()
                 .id(credential.getCredentialId())
@@ -139,7 +150,7 @@ public class VerificationViewAssembler {
                 .status(credential.getVerifiedStatus() != null ? credential.getVerifiedStatus().name() : null)
                 .statusLabel(VerificationLabels.documentStatus(credential.getVerifiedStatus()))
                 .uploadedAt(credential.getUploadedAt())
-                .fileAvailable(storage.exists(key))
+                .fileAvailable(fileAvailable)
                 .build();
     }
 

@@ -1,15 +1,17 @@
 package com.kizuna.features.learning_support;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kizuna.features.admin.service.SystemSettingService;
+import org.mockito.Mockito;
 import com.kizuna.features.learning_support.dto.AiWritingCheckRequest;
 import com.kizuna.features.learning_support.dto.AiWritingCheckResponse;
+import com.kizuna.features.learning_support.dto.AiWritingPromptDto;
 import com.kizuna.features.learning_support.service.impl.AiWritingServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -19,7 +21,10 @@ class AiWritingServiceTest {
 
     @BeforeEach
     void setUp() {
-        aiWritingService = new AiWritingServiceImpl(new ObjectMapper());
+        // Cấu hình AI giờ đọc từ trang Cấu hình (FE-11); test không có API key nên luôn chạy bộ chấm dự phòng.
+        SystemSettingService settings = Mockito.mock(SystemSettingService.class);
+        Mockito.when(settings.aiChoice()).thenReturn(new SystemSettingService.AiChoice("GEMINI", "gemini-2.5-flash", "", ""));
+        aiWritingService = new AiWritingServiceImpl(new ObjectMapper(), settings);
     }
 
     @Test
@@ -44,12 +49,15 @@ class AiWritingServiceTest {
     @Test
     @DisplayName("Lấy danh sách mẫu câu gợi ý theo cấp độ JLPT")
     void testGetGrammarPrompts() {
-        List<Map<String, Object>> promptsN5 = aiWritingService.getGrammarChallengePrompts("N5");
+        List<AiWritingPromptDto> promptsN5 = aiWritingService.getGrammarChallengePrompts("N5");
         assertNotNull(promptsN5);
         assertFalse(promptsN5.isEmpty());
+        assertEquals("N5", promptsN5.get(0).getLevel());
+        assertNotNull(promptsN5.get(0).getGrammarPattern());
 
-        List<Map<String, Object>> promptsN4 = aiWritingService.getGrammarChallengePrompts("N4");
+        List<AiWritingPromptDto> promptsN4 = aiWritingService.getGrammarChallengePrompts("N4");
         assertNotNull(promptsN4);
         assertFalse(promptsN4.isEmpty());
+        assertEquals("N4", promptsN4.get(0).getLevel());
     }
 }

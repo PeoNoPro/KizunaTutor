@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import java.time.OffsetDateTime;
 import java.util.*;
-/** Hợp nhất ba nguồn lịch sử chỉ đọc; chỉ chọn cột đã làm sạch, không lấy nội dung điều tra hay giá trị bí mật. */
+/** Hợp nhất các nguồn lịch sử chỉ đọc (cấu hình, nhân sự, sự cố, lịch ca CS); chỉ chọn cột đã làm sạch, không lấy nội dung điều tra hay giá trị bí mật. */
 @Repository @RequiredArgsConstructor
 public class OperationsAuditLogRepository {
     private static final String EVENTS="""
@@ -19,7 +19,7 @@ public class OperationsAuditLogRepository {
         SELECT 'INCIDENT',e.event_id,e.occurred_at,e.actor_id,a.full_name,e.action,i.subject,e.reason,NULL,e.new_state->>'status',i.incident_id
         FROM technical_incident_events e JOIN users a ON a.user_id=e.actor_id JOIN technical_incidents i ON i.incident_id=e.incident_id
         UNION ALL
-        SELECT 'CONFIG',e.event_id,e.occurred_at,e.actor_user_id,a.full_name,'UPDATE','Giới hạn tệp đính kèm hỗ trợ',e.reason,e.before_value||' → '||e.after_value||' MB',NULL,NULL
+        SELECT 'CONFIG',e.event_id,e.occurred_at,e.actor_user_id,a.full_name,'UPDATE',CASE e.setting_key WHEN 'STAFF_MAIL_SENDER_EMAIL' THEN 'Tài khoản email gửi thư hệ thống' WHEN 'AI_PROVIDER_MODEL' THEN 'AI hỗ trợ học tập' ELSE 'Giới hạn tệp đính kèm hỗ trợ' END,e.reason,e.before_value||' → '||e.after_value||CASE WHEN e.setting_key IN ('STAFF_MAIL_SENDER_EMAIL','AI_PROVIDER_MODEL') THEN '' ELSE ' MB' END,NULL,NULL
         FROM system_setting_audit_events e JOIN users a ON a.user_id=e.actor_user_id
         UNION ALL
         SELECT 'STAFF',q.request_id,q.created_at,q.requester_user_id,a.full_name,'PROPOSE',t.full_name,q.reason,NULL,NULL,NULL
@@ -27,6 +27,11 @@ public class OperationsAuditLogRepository {
         UNION ALL
         SELECT 'STAFF',q.request_id,q.decided_at,q.decided_by,a.full_name,CASE q.status WHEN 'REJECTED' THEN 'REJECT' ELSE 'CANCEL' END,t.full_name,coalesce(q.decision_note,q.reason),NULL,NULL,NULL
         FROM staff_role_change_requests q JOIN users a ON a.user_id=q.decided_by JOIN users t ON t.user_id=q.target_user_id WHERE q.status IN ('REJECTED','CANCELLED')
+        UNION ALL
+        SELECT 'SHIFT',e.event_id,e.occurred_at,e.actor_id,a.full_name,e.action,
+               CASE e.shift_code WHEN 'MORNING' THEN 'Ca sáng' WHEN 'AFTERNOON' THEN 'Ca chiều' ELSE 'Ca tối' END||' '||to_char(e.shift_date,'DD/MM/YYYY')||' · '||t.full_name,
+               NULL,NULL,NULL,NULL
+        FROM support_shift_events e JOIN users a ON a.user_id=e.actor_id JOIN users t ON t.user_id=e.staff_id
         """;
     private final EntityManager em;
     public record Filter(String source,UUID actor,OffsetDateTime from,OffsetDateTime toExclusive) {

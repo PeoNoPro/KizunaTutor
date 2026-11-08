@@ -18,7 +18,6 @@ import com.kizuna.features.verification.service.DocumentFile;
 import com.kizuna.features.verification.service.TutorVerificationService;
 import com.kizuna.features.verification.service.VerificationException;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -30,8 +29,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -66,9 +64,6 @@ class TutorVerificationControllerTest {
 
     @MockBean
     private UserRepository userRepository;
-
-    @TempDir
-    Path tempDir;
 
     private static RequestPostProcessor asTutor() {
         User user = User.builder().userId(UUID.randomUUID()).email("gs@kizuna.test").fullName("Gia sư")
@@ -190,12 +185,13 @@ class TutorVerificationControllerTest {
 
     @Test
     void downloadSetsSafeHeaders() throws Exception {
-        Path file = Files.writeString(tempDir.resolve("abc.pdf"), "%PDF-1.4 %%EOF");
+        byte[] content = "%PDF-1.4 %%EOF".getBytes(StandardCharsets.US_ASCII);
         UUID id = UUID.randomUUID();
-        when(service.loadMyDocumentFile(id)).thenReturn(new DocumentFile(file, "application/pdf", "Chứng chỉ JLPT.pdf"));
+        when(service.loadMyDocumentFile(id)).thenReturn(new DocumentFile(content, "application/pdf", "Chứng chỉ JLPT.pdf"));
 
         mockMvc.perform(get("/api/tutor/verification/documents/{id}/file", id).with(asTutor()))
                 .andExpect(status().isOk())
+                .andExpect(content().bytes(content))
                 .andExpect(header().string("Content-Type", startsWith("application/pdf")))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
                 .andExpect(header().string("Cache-Control", containsString("no-store")))

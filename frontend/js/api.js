@@ -7,32 +7,34 @@ import { API_CONFIG } from './config/api.config.js';
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
 /** FE-11 transport: shared base URL, cookie session, CSRF and one bounded request budget. */
-export async function fetchAPI(path, {method = 'GET', body, csrfPath = '/admin/operations/csrf'} = {}) {
+export async function fetchAPI(path, { method = 'GET', body, csrfPath = '/admin/operations/csrf' } = {}) {
   if (!path.startsWith('/') || path.startsWith('//')) throw new Error('Đường dẫn chưa hợp lệ.');
   const deadline = Date.now() + 4500;
-  const headers = {'Content-Type': 'application/json'};
+  const headers = { 'Content-Type': 'application/json' };
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-    const csrf = await request(csrfPath, {method: 'GET'}, deadline);
+    const csrf = await request(csrfPath, { method: 'GET' }, deadline);
     headers[csrf.headerName] = csrf.token;
   }
-  return request(path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body)}, deadline);
+  return request(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }, deadline);
 }
 
 /** FE-10 multipart shares the session/CSRF transport; browser supplies the boundary. */
 export async function fetchMultipartAPI(path, payload, files = []) {
   if (!path.startsWith('/v1/tickets') || path.startsWith('//')) throw new Error('Đường dẫn chưa hợp lệ.');
   const deadline = Date.now() + 40000;
-  const csrf = await request('/v1/tickets/csrf', {method: 'GET'}, deadline);
+  const csrf = await request('/v1/tickets/csrf', { method: 'GET' }, deadline);
   const body = new FormData();
-  body.append('payload', new Blob([JSON.stringify(payload)], {type: 'application/json'}));
+  body.append('payload', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
   for (const file of files) body.append('files', file);
-  return request(path, {method: 'POST', headers: {[csrf.headerName]: csrf.token}, body}, deadline);
+  return request(path, { method: 'POST', headers: { [csrf.headerName]: csrf.token }, body }, deadline);
 }
 
 async function request(path, options, deadline) {
   try {
-    const response = await fetch(API_CONFIG.BASE_URL + path, {...options, credentials: 'include',
-      signal: AbortSignal.timeout(Math.max(1, deadline - Date.now()))});
+    const response = await fetch(API_CONFIG.BASE_URL + path, {
+      ...options, credentials: 'include',
+      signal: AbortSignal.timeout(Math.max(1, deadline - Date.now()))
+    });
     const result = await response.json();
     if (!response.ok || result.success === false) {
       const error = new Error(result.fieldErrors?.length ? result.fieldErrors.map(f => f.message).join(' ') :
@@ -74,7 +76,7 @@ function redirectToLogin() {
   try {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem('kizuna_user');
-  } catch (e) {}
+  } catch (e) { }
   window.location.href = '/login';
 }
 
@@ -119,7 +121,7 @@ export async function authRequest(path, { method = 'GET', body, responseType = '
     let data = {};
     try {
       data = await response.json();
-    } catch (e) {}
+    } catch (e) { }
     throw new ApiError({
       status: response.status,
       code: data.code || 'HTTP_ERROR',
@@ -144,7 +146,7 @@ export const API = {
      */
     async search(params = {}) {
       const queryParams = new URLSearchParams();
-      
+
       if (params.keyword) queryParams.set('keyword', params.keyword.trim());
       if (params.location && params.location.trim() && params.location !== 'all') queryParams.set('location', params.location.trim());
       if (params.jlptLevel && params.jlptLevel !== 'all') queryParams.set('jlptLevel', params.jlptLevel);
@@ -275,6 +277,256 @@ export const API = {
     }
   },
 
+  trialBookings: {
+    /**
+     * Gửi yêu cầu đăng ký học thử 1-1 với gia sư (FE-05)
+     */
+    async create(requestData) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(requestData),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          err.data = resData;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error('API.trialBookings.create error:', err);
+        throw err;
+      }
+    },
+
+    /**
+     * Lấy danh sách yêu cầu học thử của tôi (FE-05)
+     */
+    async getMyRequests(status = 'ALL', page = 0, size = 10) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      const queryParams = new URLSearchParams({
+        status,
+        page,
+        size
+      });
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/my-requests?${queryParams.toString()}`, {
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error('API.trialBookings.getMyRequests error:', err);
+        throw err;
+      }
+    },
+
+    /**
+     * Xem chi tiết buổi học thử (FE-05)
+     */
+    async getDetail(bookingId) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}`, {
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.trialBookings.getDetail(${bookingId}) error:`, err);
+        throw err;
+      }
+    },
+
+    /**
+     * Gia sư phản hồi yêu cầu học thử: Chấp nhận hoặc Từ chối (FE-05)
+     */
+    async respond(bookingId, payload) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}/respond`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.trialBookings.respond(${bookingId}) error:`, err);
+        throw err;
+      }
+    },
+
+    /**
+     * Hủy yêu cầu học thử (FE-05)
+     */
+    async cancel(bookingId, payload) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}/cancel`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.trialBookings.cancel(${bookingId}) error:`, err);
+        throw err;
+      }
+    }
+  },
+  tutorSchedule: {
+    /** Lấy danh sách ca rảnh giảng dạy của gia sư */
+    async getMySchedule() {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/tutor/availability`, {
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error('API.tutorSchedule.getMySchedule error:', err);
+        throw err;
+      }
+    },
+
+    /** Thêm ca rảnh mới */
+    async addSlot(payload) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/tutor/availability`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error('API.tutorSchedule.addSlot error:', err);
+        throw err;
+      }
+    },
+
+    /** Xóa ca rảnh */
+    async removeSlot(availabilityId) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/tutor/availability/${availabilityId}`, {
+          method: 'DELETE',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.tutorSchedule.removeSlot(${availabilityId}) error:`, err);
+        throw err;
+      }
+    },
+
+    /** Bật/tắt ca rảnh */
+    async toggleSlot(availabilityId, active) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/tutor/availability/${availabilityId}/toggle?active=${active}`, {
+          method: 'PATCH',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.tutorSchedule.toggleSlot(${availabilityId}) error:`, err);
+        throw err;
+      }
+    }
+  },
   tutorVerification: {
     /** Trạng thái và hồ sơ xác minh của gia sư đang đăng nhập (UC-22, UC-82, UC-83) */
     getMine() {
@@ -702,31 +954,31 @@ API.assignments = {
 
 /** Tải nội dung tệp của FE-07 (không bọc JSON); lỗi vẫn đọc thông điệp JSON chuẩn. */
 async function assignmentBlob(path) {
-    let response;
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}/classrooms${path}`,
+      { headers: classroomAuthHeaders(), signal: AbortSignal.timeout(120000) });
+  } catch (networkErr) {
+    console.debug('API.assignments file network error:', networkErr);
+    const err = new Error('network');
+    err.status = 0;
+    err.userMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối và thử lại.';
+    throw err;
+  }
+  if (response.status === 401) {
+    window.location.href = '/login';
+  }
+  if (!response.ok) {
+    let json = null;
     try {
-      response = await fetch(`${API_BASE_URL}/classrooms${path}`,
-        { headers: classroomAuthHeaders(), signal: AbortSignal.timeout(120000) });
-    } catch (networkErr) {
-      console.debug('API.assignments file network error:', networkErr);
-      const err = new Error('network');
-      err.status = 0;
-      err.userMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối và thử lại.';
-      throw err;
+      json = await response.json();
+    } catch (parseErr) {
+      json = null;
     }
-    if (response.status === 401) {
-      window.location.href = '/login';
-    }
-    if (!response.ok) {
-      let json = null;
-      try {
-        json = await response.json();
-      } catch (parseErr) {
-        json = null;
-      }
-      const err = new Error('request-failed');
-      err.status = response.status;
-      err.userMessage = json && typeof json.message === 'string' ? json.message : '';
-      throw err;
-    }
-    return await response.blob();
+    const err = new Error('request-failed');
+    err.status = response.status;
+    err.userMessage = json && typeof json.message === 'string' ? json.message : '';
+    throw err;
+  }
+  return await response.blob();
 }

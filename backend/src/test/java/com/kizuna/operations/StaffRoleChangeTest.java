@@ -16,8 +16,7 @@ class StaffRoleChangeTest extends OperationsIntegrationBase {
     private final RequestPostProcessor manager=user("ROLE_MANAGER@test.invalid");
     private final List<UUID> created=new ArrayList<>();
     @BeforeEach void schema() throws Exception {
-        jdbc.execute(Files.readString(Path.of("../database/seeds/admin_staff_schema.sql")));
-        jdbc.execute(Files.readString(Path.of("../database/seeds/staff_role_change_schema.sql")));
+        jdbc.execute(Files.readString(Path.of("../database/seeds/fe11_operations_schema.sql")));
         jdbc.execute("DELETE FROM staff_role_change_requests");
     }
     @AfterEach void cleanup() {

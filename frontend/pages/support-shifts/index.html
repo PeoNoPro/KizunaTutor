@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lịch làm việc - KizunaTutor</title><link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/variables.css"><link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css"><link rel="stylesheet" href="./support-shifts.css">
+</head>
+<body class="admin-dashboard operations-page">
+<script>/* Nhân viên hỗ trợ mở từ sidebar CS (?view=cs): dùng khung làm việc CS thay cho cổng quản trị. */ if (new URLSearchParams(location.search).get('view') === 'cs') document.body.dataset.workspace = 'cs';</script>
+<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+<main id="dashboardMain" class="dashboard-main">
+<div id="operationsContent" class="operations-content" aria-busy="true">
+  <div class="operations-page-heading"><span class="role-badge">Hỗ trợ</span><h1 id="shiftTitle">Lịch làm việc</h1><p></p></div>
+  <p id="operationsNotice" role="alert" tabindex="-1" hidden></p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+  <section class="operations-card shift-card">
+    <div class="shift-toolbar">
+      <div class="shift-week">
+        <button id="prevWeek" type="button" aria-label="Tuần trước">‹</button>
+        <strong id="weekLabel">—</strong>
+        <button id="nextWeek" type="button" aria-label="Tuần sau">›</button>
+        <button id="thisWeek" type="button" class="shift-today">Tuần này</button>
+      </div>
+      <p class="shift-rule">Yêu cầu mới được tự giao cho nhân viên <strong>đang trong ca</strong> và <strong>chưa có yêu cầu đang xử lý</strong>. Hết ca vẫn giữ việc cũ; kết quả quản lý trả về tiếp tục do người phụ trách cũ xử lý, có thể vượt mức 1 yêu cầu.</p>
+    </div>
+    <div class="table-scroll"><table class="shift-table"><caption class="sr-only">Lịch ca nhân viên hỗ trợ trong tuần</caption><thead id="shiftHead"></thead><tbody id="shiftBody"></tbody></table></div>
+    <p id="shiftHint" class="shift-hint"></p>
+  </section>
+</div>
+</main>
+<script type="module" src="/js/main.js"></script>
+<script type="module" src="./support-shifts.js"></script>
+</body></html>

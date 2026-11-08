@@ -121,7 +121,7 @@
                    class="absolute -top-3 -right-2 w-11 h-11 object-contain pointer-events-none select-none z-10" />
 
               <div class="flex items-center justify-between mb-2">
-                <span class="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Gia sư kết nối</span>
+                <span class="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Lịch hẹn học thử</span>
                 <span class="w-8 h-8 rounded-lg bg-[#F1F5F9] text-[#1E293B] border border-[#E2E8F0] flex items-center justify-center text-sm font-bold">
                   🧑‍🏫
                 </span>
@@ -130,16 +130,56 @@
                 Chưa có lịch
               </div>
               <div class="text-[13px] text-[#64748B] mt-1.5 truncate">
-                <a href="/pages/tutor-discovery/" class="text-[#006194] hover:underline font-semibold">Tìm Sensei kèm cặp ngay →</a>
+                <a href="/pages/connection-requests/" class="text-[#006194] hover:underline font-semibold">Xem danh sách yêu cầu →</a>
               </div>
             </div>
 
           </div>
 
           <!-- 3. KHU VỰC THAO TÁC NHANH (QUICK ACTION CARDS) -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             
-            <!-- Hành động 1: Tra cứu Kanji -->
+            <!-- Hành động 1: Tìm gia sư tiếng Nhật -->
+            <a href="/pages/tutor-discovery/" class="p-4 flex items-center justify-between no-underline group bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#006194] transition-all shadow-xs">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-12 h-12 rounded-xl bg-sky-50 border border-sky-200 text-[#006194] flex items-center justify-center text-xl shrink-0 font-bold">
+                  🔍
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-[15px] font-bold text-[#0F172A] group-hover:text-[#006194] transition-colors truncate">
+                    Tìm gia sư Kizuna
+                  </h3>
+                  <p class="text-[13px] text-[#64748B] mt-0.5 truncate">
+                    Khám phá gia sư bản xứ & N1-N2 uy tín toàn quốc.
+                  </p>
+                </div>
+              </div>
+              <span class="h-[38px] px-3.5 text-[13px] font-bold rounded-xl border border-sky-200 bg-sky-50 text-[#006194] group-hover:bg-[#006194] group-hover:text-white shrink-0 transition-colors inline-flex items-center justify-center">
+                Tìm gia sư →
+              </span>
+            </a>
+
+            <!-- Hành động 2: Yêu cầu kết nối -->
+            <a href="/pages/connection-requests/" class="p-4 flex items-center justify-between no-underline group bg-white border border-[#E2E8F0] rounded-2xl hover:border-emerald-500 transition-all shadow-xs">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center text-xl shrink-0 font-bold">
+                  📅
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-[15px] font-bold text-[#0F172A] group-hover:text-emerald-700 transition-colors truncate">
+                    Yêu cầu kết nối
+                  </h3>
+                  <p class="text-[13px] text-[#64748B] mt-0.5 truncate">
+                    Quản lý yêu cầu, nhận link Meet và xem trạng thái duyệt.
+                  </p>
+                </div>
+              </div>
+              <span class="h-[38px] px-3.5 text-[13px] font-bold rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white shrink-0 transition-colors inline-flex items-center justify-center">
+                Xem yêu cầu →
+              </span>
+            </a>
+
+            <!-- Hành động 3: Tra cứu từ điển Hán tự Joyo -->
             <a href="/kanji-dictionary" class="p-4 flex items-center justify-between no-underline group bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
               <div class="flex items-center gap-3.5 min-w-0">
                 <div class="w-12 h-12 rounded-xl bg-[#F0FDF4] border border-[#BBF7D0] text-[#166534] flex items-center justify-center text-xl shrink-0 font-bold">
@@ -147,19 +187,19 @@
                 </div>
                 <div class="min-w-0">
                   <h3 class="text-[15px] font-bold text-[#0F172A] group-hover:text-[#166534] transition-colors truncate">
-                    Tra cứu từ điển Hán tự Joyo
+                    Tra cứu chữ Hán Joyo
                   </h3>
                   <p class="text-[13px] text-[#64748B] mt-0.5 truncate">
-                    Kho dữ liệu hơn 6.700 chữ, tra cứu âm Hán Việt, On, Kun và nét viết.
+                    Hơn 6.700 chữ, âm Hán Việt, On-Kun và nét bút.
                   </p>
                 </div>
               </div>
-              <span class="h-[38px] px-4 text-[13px] font-bold rounded-xl border border-[#FBCFE8] bg-[#FFE5EC] text-[#831843] group-hover:bg-[#FCE7F3] shrink-0 transition-colors inline-flex items-center justify-center">
+              <span class="h-[38px] px-3.5 text-[13px] font-bold rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] text-[#166534] group-hover:bg-[#166534] group-hover:text-white shrink-0 transition-colors inline-flex items-center justify-center">
                 Tra từ →
               </span>
             </a>
 
-            <!-- Hành động 2: Bộ thẻ Flashcard -->
+            <!-- Hành động 4: Bộ thẻ Flashcard -->
             <a href="/flashcards" class="p-4 flex items-center justify-between no-underline group bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
               <div class="flex items-center gap-3.5 min-w-0">
                 <div class="w-12 h-12 rounded-xl bg-[#FFE5EC] border border-[#FBCFE8] text-[#831843] flex items-center justify-center text-xl shrink-0 font-bold">
@@ -167,19 +207,19 @@
                 </div>
                 <div class="min-w-0">
                   <h3 class="text-[15px] font-bold text-[#0F172A] group-hover:text-[#831843] transition-colors truncate">
-                    Bộ thẻ Flashcard của tôi
+                    Bộ thẻ Flashcard
                   </h3>
                   <p class="text-[13px] text-[#64748B] mt-0.5 truncate">
-                    Gom các chữ khó nhớ vào bộ thẻ riêng và lật thẻ 3D phản xạ.
+                    Gom các chữ khó nhớ vào bộ thẻ riêng và ôn tập.
                   </p>
                 </div>
               </div>
-              <span class="h-[38px] px-4 text-[13px] font-bold rounded-xl border border-[#FBCFE8] bg-[#FFE5EC] text-[#831843] group-hover:bg-[#FCE7F3] shrink-0 transition-colors inline-flex items-center justify-center">
+              <span class="h-[38px] px-3.5 text-[13px] font-bold rounded-xl border border-[#FBCFE8] bg-[#FFE5EC] text-[#831843] group-hover:bg-[#831843] group-hover:text-white shrink-0 transition-colors inline-flex items-center justify-center">
                 Vào thẻ →
               </span>
             </a>
 
-            <!-- Hành động 3: Shodo Canvas -->
+            <!-- Hành động 5: Shodo Canvas -->
             <a href="/shodo" class="p-4 flex items-center justify-between no-underline group bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
               <div class="flex items-center gap-3.5 min-w-0">
                 <div class="w-12 h-12 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] text-[#006194] flex items-center justify-center text-xl shrink-0 font-bold">
@@ -187,19 +227,19 @@
                 </div>
                 <div class="min-w-0">
                   <h3 class="text-[15px] font-bold text-[#0F172A] group-hover:text-[#006194] transition-colors truncate">
-                    Phòng luyện viết Shodo Canvas AI
+                    Luyện viết Shodo AI
                   </h3>
                   <p class="text-[13px] text-[#64748B] mt-0.5 truncate">
-                    Tập múa nét chữ Hán chuẩn bút thuận KanjiVG và nhận xét nét vẽ.
+                    Múa nét chữ Hán chuẩn bút thuận và nhận xét nét vẽ.
                   </p>
                 </div>
               </div>
-              <span class="h-[38px] px-4 text-[13px] font-bold rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] text-[#0F2545] group-hover:bg-[#F2EFE6] shrink-0 transition-colors inline-flex items-center justify-center">
+              <span class="h-[38px] px-3.5 text-[13px] font-bold rounded-xl border border-[#ECE8DE] bg-[#FAF8F2] text-[#0F2545] group-hover:bg-[#006194] group-hover:text-white shrink-0 transition-colors inline-flex items-center justify-center">
                 Luyện viết →
               </span>
             </a>
 
-            <!-- Hành động 4: Game Mưa chữ Hán -->
+            <!-- Hành động 6: Game Mưa chữ Hán -->
             <a href="/kanji-game" class="p-4 flex items-center justify-between no-underline group bg-white border border-[#E2E8F0] rounded-2xl hover:border-[#CBD5E1] transition-all shadow-xs">
               <div class="flex items-center gap-3.5 min-w-0">
                 <div class="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center text-xl shrink-0 font-bold">
@@ -207,18 +247,39 @@
                 </div>
                 <div class="min-w-0">
                   <h3 class="text-[15px] font-bold text-[#0F172A] group-hover:text-indigo-700 transition-colors truncate">
-                    Game Mưa chữ Hán (Kanji Rain)
+                    Game Mưa chữ Hán
                   </h3>
                   <p class="text-[13px] text-[#64748B] mt-0.5 truncate">
-                    Trò chơi bắn chữ rơi luyện phản xạ gõ nhanh Hiragana / Romaji.
+                    Bắn chữ rơi luyện phản xạ gõ nhanh Hiragana.
                   </p>
                 </div>
               </div>
-              <span class="h-[38px] px-4 text-[13px] font-bold rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100 shrink-0 transition-colors inline-flex items-center justify-center">
+              <span class="h-[38px] px-3.5 text-[13px] font-bold rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-700 group-hover:text-white shrink-0 transition-colors inline-flex items-center justify-center">
                 Chơi game →
               </span>
             </a>
 
+          </div>
+
+          <!-- 4. LỊCH HỌC THỬ & KẾT NỐI GẦN ĐÂY (TRỰC QUAN TRÊN DASHBOARD) -->
+          <div class="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px] text-[#006194]">event_available</span>
+                <h3 class="font-bold text-sm text-[#0F172A]">Lịch học thử 1-1 gần đây</h3>
+              </div>
+              <a href="/learner/connections" class="text-xs font-semibold text-[#006194] hover:underline flex items-center gap-1">
+                <span>Xem tất cả lịch hẹn</span>
+                <span>→</span>
+              </a>
+            </div>
+
+            <!-- Danh sách các buổi học thử gần nhất -->
+            <div id="dashboardBookingsList" class="space-y-3">
+              <div class="py-6 text-center text-xs text-[#64748B]">
+                Đang nạp dữ liệu lịch học thử...
+              </div>
+            </div>
           </div>
 
           <!-- 4. LỊCH SỬ THI ĐẤU & TIẾN ĐỘ HỌC TẬP GẦN ĐÂY -->

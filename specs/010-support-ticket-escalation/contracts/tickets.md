@@ -81,3 +81,27 @@ Hội thoại trả sequenceNo và sắp xếp tăng dần theo trường này; 
 SC-005: 100 người dùng đồng thời trong 10 phút, 1.000 phiếu có trao đổi; đo riêng p95 danh sách và chi tiết từ thao tác mở trang trên trình duyệt thật đến khi render hoàn tất, mỗi loại ≤2 giây. Báo cáo HTTP timing riêng để chẩn đoán; không dùng HTTP thay phép đo render.
 
 Menu learner và tutor có mục “Yêu cầu hỗ trợ”, dẫn lần lượt tới /learner/support/tickets và /tutor/support/tickets; danh sách cá nhân có nút tạo phiếu. Kiểm thử điều hướng và quyền cả hai vai trò, kể cả truy cập trực tiếp/đổi route.
+
+## Lịch ca nhân viên hỗ trợ và tự giao yêu cầu — bổ sung 2026-11-07
+
+Nhóm đã thống nhất bổ sung sau cuộc họp. Bảng `support_shifts` khai báo trong `database/seeds/fe10_support_ticket.sql` (`CREATE TABLE IF NOT EXISTS`). Ca cố định theo giờ Asia/Ho_Chi_Minh: `MORNING` 08:00–12:00, `AFTERNOON` 13:00–17:00, `EVENING` 18:00–22:00. Mã ca chỉ dùng nội bộ; giao diện hiện "Ca sáng/chiều/tối".
+
+| Method/path | Quyền | Request | Response `data` / lỗi |
+| --- | --- | --- | --- |
+| GET `/shifts?weekStart=YYYY-MM-DD` | Manager hoặc CS đang hoạt động; vai trò khác 403 | `weekStart` tùy chọn, mặc định tuần hiện tại, luôn quy về thứ Hai | `{weekStart,today,shiftTypes:[{code,label,start,end}],days:[{date,shifts:{MORNING:[{shiftId,staffId,displayName}],AFTERNOON:[...],EVENING:[...]}}],staff:[{id,name}],canEdit}`; `canEdit=true` chỉ với Manager |
+| POST `/shifts` | Chỉ Manager (403 với vai trò khác, kiểm tra trước khi khóa phân việc) | `{staffId,date,shiftCode}` | Trả lại lịch tuần chứa `date`. 400 ngày đã qua, ca sai hoặc người được xếp không phải CS đang hoạt động; 409 nhân viên đã có trong ca đó |
+| DELETE `/shifts/{shiftId}?weekStart=` | Chỉ Manager | — | Trả lại lịch tuần `weekStart`. 404 ca không còn; 400 ca của ngày đã qua |
+
+Lệnh ghi dùng CSRF từ GET `/csrf` như các lệnh khác. Không có PUT sửa ca; đổi ca bằng gỡ rồi xếp lại.
+
+Mỗi lần xếp hoặc gỡ ca ghi một dòng vào `support_shift_events` (shiftId, nhân viên, ngày, ca, `ASSIGN`/`REMOVE`, người thực hiện, thời điểm) trong cùng giao dịch; bảng chỉ thêm, trigger chặn sửa/xóa. Gỡ ca vẫn xóa dòng trong `support_shifts` nhưng lịch sử được giữ. Lịch sử hiện ở Nhật ký thao tác của Admin (nhóm "Lịch ca CS").
+
+Quy tắc tự giao (không có endpoint riêng):
+
+- Mỗi CS giữ tối đa 1 yêu cầu đang xử lý (IN_PROGRESS do mình phụ trách, chưa tính phiếu Quản lý trả về cho người phụ trách cũ).
+- Yêu cầu OPEN chưa có người phụ trách được tự giao cho CS **đang trong ca** và **chưa giữ yêu cầu nào**, ưu tiên phiếu cũ nhất; ghi lịch sử `AUTO_ASSIGN`. Chạy sau commit khi có phiếu mới, khi CS xong việc, khi Quản lý xếp ca, và định kỳ.
+- CS bị khóa hoặc đổi vai trò: phiếu đang giữ được giao cho CS khác đang trong ca và đang rảnh, ghi `REASSIGN_CS`; không có ai rảnh thì giữ nguyên người phụ trách và lịch sử.
+- POST `/{id}/claim` (tự nhận) chỉ được khi CS đang trong ca và chưa giữ yêu cầu nào; ngoài điều kiện này trả 409. Nếu hôm đó chưa xếp ca nào thì giữ cách nhận phiếu cũ.
+- Hết ca vẫn giữ việc đang làm; kết quả Quản lý trả về luôn về người phụ trách cũ, có thể vượt mức 1 yêu cầu.
+
+GET `/dashboard` (CS) bổ sung `shift: {current,next,activeTickets,maxActive}`; `current`/`next` là `{code,label,start,end,date}` hoặc `null`.

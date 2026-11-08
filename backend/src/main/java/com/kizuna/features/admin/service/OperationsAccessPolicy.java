@@ -15,6 +15,7 @@ public class OperationsAccessPolicy implements HandlerInterceptor {
         else if(path.equals("/api/admin/operations/management-report")) actors.requireReporter();
         // Service kiểm tra tiếp từng thao tác: Manager đổi vai trò/đề xuất, Admin duyệt.
         else if(path.startsWith("/api/admin/operations/role-changes/") || path.startsWith("/api/admin/operations/reports/business/")) actors.requireReporter();
+        else if(path.equals("/api/admin/operations/reported-incidents") || path.startsWith("/api/admin/operations/reported-incidents/")) actors.requireManager();
         else if(path.equals("/api/admin/operations/me") || path.equals("/api/admin/operations/profile")) actors.requireStaff();
         else actors.requireAdmin();
         if(path.startsWith("/api/admin/operations/")) actors.rejectPendingPasswordChange();

@@ -59,19 +59,7 @@ export function showToast(message, type = 'info') {
 }
 
 async function initSupportNavigation() {
-  if (document.querySelector('header nav') && !document.body.classList.contains('support-page')) {
-    return fetchAPI('/v1/tickets/me').then(account => {
-      if (!account.canCreate) return;
-      document.querySelectorAll('header nav,#mobileMenu').forEach(nav => {
-        if (nav.querySelector('[data-support-nav]')) return;
-        [[`/${account.viewRole}/support/tickets`, 'Yêu cầu hỗ trợ'], [`/${account.viewRole}/policies`, 'Chính sách']].forEach(([href, label]) => {
-          const link = document.createElement('a'); link.href = href;
-          link.textContent = label; link.dataset.supportNav = ''; link.className = 'px-3 py-2 text-sm font-medium'; nav.append(link);
-        });
-      });
-      initNavigation();
-    }).catch(() => { /* Phiên khách không có menu yêu cầu cá nhân. */ });
-  }
+  // Đã bỏ các mục "Yêu cầu hỗ trợ" và "Chính sách" khỏi thanh điều hướng header theo yêu cầu
 }
 
 // 4. Khởi tạo trạng thái thanh điều hướng (Active Navigation)
@@ -109,72 +97,28 @@ export function initNavigation() {
   if (mobileMenuBtn && mobileMenu && !mobileMenuBtn.hasAttribute('data-has-listener')) {
     mobileMenuBtn.setAttribute('data-has-listener', 'true');
     mobileMenuBtn.addEventListener('click', () => {
-      mobileMenu.classList.toggle('hidden');
+      const isHidden = mobileMenu.classList.toggle('hidden');
+      const icon = mobileMenuBtn.querySelector('.material-symbols-outlined');
+      if (icon) {
+        icon.textContent = isHidden ? 'menu' : 'close';
+      }
     });
   }
 }
 
-// 5. Đồng bộ trạng thái đăng nhập trên Header (Xác thực với Backend & Database thật)
-export async function syncAuthState() {
-  const token = localStorage.getItem('kizuna_token');
-
+// 5. Cập nhật giao diện người dùng đã đăng nhập (Đồng bộ tức thì 0ms từ đối tượng User)
+export function applyUserUI(user) {
+  if (!user) return;
   const guestActions = document.getElementById('headerGuestActions');
   const userActions = document.getElementById('headerUserActions');
   const mobileGuestActions = document.getElementById('mobileGuestActions');
   const mobileUserActions = document.getElementById('mobileUserActions');
 
-  const renderGuest = () => {
-    if (guestActions) guestActions.classList.remove('hidden');
-    if (userActions) userActions.classList.add('hidden');
-    if (mobileGuestActions) mobileGuestActions.classList.remove('hidden');
-    if (mobileUserActions) mobileUserActions.classList.add('hidden');
-  };
-
-  if (!token) {
-    renderGuest();
-    return;
-  }
-
-  let user = null;
-
-  // Xác thực token với Database thật qua API GET /api/auth/me
-  try {
-    const res = await fetch('/api/auth/me', {
-      headers: {
-        'Authorization': 'Bearer ' + token
-      }
-    });
-
-    if (res.ok) {
-      user = await res.json();
-      localStorage.setItem('kizuna_user', JSON.stringify(user));
-    } else {
-      // Token hết hạn hoặc không hợp lệ -> Xóa phiên và về Guest
-      console.warn('Phiên đăng nhập không hợp lệ hoặc đã hết hạn.');
-      localStorage.removeItem('kizuna_token');
-      localStorage.removeItem('kizuna_user');
-      renderGuest();
-      return;
-    }
-  } catch (err) {
-    console.error('Không thể kết nối API xác thực người dùng:', err);
-    const cachedUser = localStorage.getItem('kizuna_user');
-    if (cachedUser) {
-      try { user = JSON.parse(cachedUser); } catch (e) { user = null; }
-    }
-    if (!user) {
-      renderGuest();
-      return;
-    }
-  }
-
-  // Hiển thị trạng thái đã đăng nhập
   if (guestActions) guestActions.classList.add('hidden');
   if (userActions) userActions.classList.remove('hidden');
   if (mobileGuestActions) mobileGuestActions.classList.add('hidden');
   if (mobileUserActions) mobileUserActions.classList.remove('hidden');
 
-  // Điều hướng Dashboard phù hợp theo vai trò (Learner -> /learner/dashboard, Tutor -> /tutor/dashboard)
   const isTutor = user.role === 'ROLE_TUTOR';
   const dashboardUrl = isTutor ? '/tutor/dashboard' : '/learner/dashboard';
 
@@ -202,7 +146,6 @@ export async function syncAuthState() {
       showToast('Hiện tại chưa có thông báo mới.', 'info');
     });
   }
-  // Chưa có API thông báo thật -> ẩn chấm đỏ giả theo quy tắc Mục 6
   if (notificationBadge) notificationBadge.classList.add('hidden');
 
   // Hiển thị Avatar & Tên & Phụ đề
@@ -272,7 +215,6 @@ export async function syncAuthState() {
       userDropdownMenu.classList.toggle('hidden');
     });
 
-    // Đóng dropdown khi click ra ngoài
     document.addEventListener('click', (e) => {
       if (!userDropdownMenu.contains(e.target) && !userProfilePill.contains(e.target)) {
         userDropdownMenu.classList.add('hidden');
@@ -304,6 +246,69 @@ export async function syncAuthState() {
   if (mobileLogoutBtn && !mobileLogoutBtn.hasAttribute('data-has-logout')) {
     mobileLogoutBtn.setAttribute('data-has-logout', 'true');
     mobileLogoutBtn.addEventListener('click', handleLogout);
+  }
+}
+
+// 6. Đồng bộ trạng thái đăng nhập (Optimistic Render 0ms + Xác thực ngầm với Server)
+export async function syncAuthState() {
+  const token = localStorage.getItem('kizuna_token');
+
+  const guestActions = document.getElementById('headerGuestActions');
+  const userActions = document.getElementById('headerUserActions');
+  const mobileGuestActions = document.getElementById('mobileGuestActions');
+  const mobileUserActions = document.getElementById('mobileUserActions');
+
+  const renderGuest = () => {
+    if (guestActions) guestActions.classList.remove('hidden');
+    if (userActions) userActions.classList.add('hidden');
+    if (mobileGuestActions) mobileGuestActions.classList.remove('hidden');
+    if (mobileUserActions) mobileUserActions.classList.add('hidden');
+  };
+
+  if (!token) {
+    renderGuest();
+    return;
+  }
+
+  // Bước 1: Render ngay lập tức 0ms từ cache localStorage (loại bỏ hoàn toàn độ trễ 1s)
+  const cachedUserStr = localStorage.getItem('kizuna_user');
+  let cachedUser = null;
+  if (cachedUserStr) {
+    try { cachedUser = JSON.parse(cachedUserStr); } catch (e) { cachedUser = null; }
+  }
+
+  if (cachedUser) {
+    applyUserUI(cachedUser);
+  } else {
+    // Có token nhưng chưa có dữ liệu user -> tạm ẩn nút khách để tránh chớp
+    if (guestActions) guestActions.classList.add('hidden');
+    if (mobileGuestActions) mobileGuestActions.classList.add('hidden');
+  }
+
+  // Bước 2: Xác thực ngầm dưới nền với Backend thật qua API GET /api/auth/me
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: {
+        'Authorization': 'Bearer ' + token
+      }
+    });
+
+    if (res.ok) {
+      const user = await res.json();
+      localStorage.setItem('kizuna_user', JSON.stringify(user));
+      applyUserUI(user);
+    } else {
+      // Token hết hạn hoặc không hợp lệ -> Xóa phiên và về Guest
+      console.warn('Phiên đăng nhập không hợp lệ hoặc đã hết hạn.');
+      localStorage.removeItem('kizuna_token');
+      localStorage.removeItem('kizuna_user');
+      renderGuest();
+    }
+  } catch (err) {
+    console.error('Không thể kết nối API xác thực người dùng:', err);
+    if (!cachedUser) {
+      renderGuest();
+    }
   }
 }
 
@@ -470,12 +475,18 @@ export async function loadSharedComponents() {
     try {
       const res = await fetch('/components/header/header.html');
       if (res.ok) {
-        const html = await res.text();
+        let html = await res.text();
+        const token = localStorage.getItem('kizuna_token');
+        if (token) {
+          html = html.replace('id="headerGuestActions" class="', 'id="headerGuestActions" class="hidden ')
+                     .replace('id="headerUserActions" class="hidden ', 'id="headerUserActions" class="')
+                     .replace('id="mobileGuestActions" class="', 'id="mobileGuestActions" class="hidden ')
+                     .replace('id="mobileUserActions" class="hidden ', 'id="mobileUserActions" class="');
+        }
         headerPlaceholder.outerHTML = html;
         initNavigation();
-        await initSupportNavigation();
         initAuthModalEvents();
-        await syncAuthState();
+        syncAuthState();
       } else {
         console.error('Không tìm thấy file header.html:', res.status);
       }
@@ -484,9 +495,8 @@ export async function loadSharedComponents() {
     }
   } else {
     initNavigation();
-    await initSupportNavigation();
     initAuthModalEvents();
-    await syncAuthState();
+    syncAuthState();
   }
 
   // Nạp Footer từ components/footer/footer.html
@@ -521,6 +531,7 @@ if (typeof window !== 'undefined') {
   window.loadSharedComponents = loadSharedComponents;
   window.initNavigation = initNavigation;
   window.syncAuthState = syncAuthState;
+  window.applyUserUI = applyUserUI;
   window.openLoginModal = openLoginModal;
   window.closeLoginModal = closeLoginModal;
 }

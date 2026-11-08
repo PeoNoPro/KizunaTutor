@@ -17,6 +17,7 @@ public class SupportTicketController {
  @org.springframework.beans.factory.annotation.Autowired private com.kizuna.features.ticket.service.TicketAttachmentValidator attachments;
  @GetMapping("/attachment-limit") public ApiResponse<?> attachmentLimit(){service.me();return ApiResponse.ok(Map.of("maxBytes",attachments.maxBytes()));}
  @GetMapping("/me") public ApiResponse<?> me(){return ApiResponse.ok(service.me());}
+ @GetMapping("/counts") public ApiResponse<?> counts(@RequestParam(required=false) String category,@RequestParam(required=false) String priority,@RequestParam(required=false) UUID assignedTo){return ApiResponse.ok(service.counts(category,priority,assignedTo));}
  @GetMapping("/dashboard") public ApiResponse<?> dashboard(@RequestParam(required=false) String category){return ApiResponse.ok(service.dashboard(category));}
  @GetMapping("/csrf") public ApiResponse<?> csrf(CsrfToken token){service.me();return ApiResponse.ok(Map.of("headerName",token.getHeaderName(),"token",token.getToken()));}
  @GetMapping public ApiResponse<?> list(@RequestParam(required=false) List<String> status,@RequestParam(required=false) String category,@RequestParam(required=false) String priority,@RequestParam(required=false) UUID assignedTo,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return ApiResponse.ok(service.list(status,category,priority,assignedTo,page,size));}

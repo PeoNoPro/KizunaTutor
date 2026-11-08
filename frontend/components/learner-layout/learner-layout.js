@@ -26,18 +26,11 @@ export const LEARNER_MENU_GROUPS = [
     groupTitle: 'Gia sư & lớp học',
     items: [
       {
-        key: 'tutors',
-        title: 'Tìm gia sư Kizuna',
-        url: '/pages/tutor-discovery/',
-        icon: '🔍',
-        matcher: ['/tutors', '/pages/tutor-discovery']
-      },
-      {
         key: 'requests',
-        title: 'Lịch học thử & ghép lớp',
-        url: '/pages/connection-requests/',
+        title: 'Yêu cầu kết nối',
+        url: '/learner/connections',
         icon: '📅',
-        matcher: ['/connection-requests', '/pages/connection-requests']
+        matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests']
       },
       {
         key: 'my-courses',
@@ -129,7 +122,7 @@ export const LEARNER_MENU_GROUPS = [
 export const PAGE_META_MAP = {
   'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
   'tutors': { title: 'Tìm gia sư Kizuna', badge: 'Gia sư & lớp học' },
-  'requests': { title: 'Lịch học thử & ghép lớp', badge: 'Gia sư & lớp học' },
+  'requests': { title: 'Yêu cầu kết nối', badge: 'Gia sư & lớp học' },
   'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },
   'kanji-dictionary': { title: 'Tra cứu chữ Hán', badge: 'Học tập & rèn luyện' },
   'handwriting': { title: 'Tra cứu viết tay', badge: 'Học tập & rèn luyện' },
@@ -195,7 +188,7 @@ export function getLearnerSidebarHtml(activeKey) {
       return `
         <a href="${item.url}"
            data-menu-key="${item.key}"
-           data-spa-link
+           ${(item.key === 'tutors' || item.key === 'requests') ? 'data-no-spa' : 'data-spa-link'}
            class="nav-item flex items-center space-x-2.5 px-3 py-2 text-[14px] rounded-[6px] transition-all mb-1 no-underline ${activeClass}">
           <span class="text-sm shrink-0">${item.icon}</span>
           <span class="text-inherit truncate">${item.title}</span>

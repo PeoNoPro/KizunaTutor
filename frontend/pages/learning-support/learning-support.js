@@ -140,9 +140,9 @@ function renderVocabGrid(items) {
               <div class="text-xl md:text-2xl font-bold font-japanese text-[#0F172A] leading-snug truncate">
                 ${v.word || v.kanji}
               </div>
-              <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#68737D] font-mono truncate">
+              <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#64748B] font-mono truncate">
                 <span>${v.furigana || v.reading || ''}</span>
-                ${v.hanViet ? `<span class="text-slate-300">•</span><span class="text-amber-800 font-bold uppercase">${v.hanViet}</span>` : ''}
+                ${v.hanViet ? `<span class="text-slate-300">•</span><span class="text-[#831843] font-bold uppercase">${v.hanViet}</span>` : ''}
               </div>
             </div>
             <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] shrink-0">
@@ -157,7 +157,7 @@ function renderVocabGrid(items) {
           ${v.example ? `
             <div class="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs space-y-1 break-words">
               <div class="font-japanese font-medium text-[#0F172A]">${v.example}</div>
-              <div class="text-[#68737D] italic">${v.exampleMeaning || ''}</div>
+              <div class="text-[#64748B] italic">${v.exampleMeaning || ''}</div>
             </div>
           ` : ''}
         </div>
@@ -171,7 +171,7 @@ function renderVocabGrid(items) {
           </a>
           <button type="button"
                   onclick="navigator.clipboard?.writeText('${v.word || v.kanji}');"
-                  class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#68737D] hover:text-[#0F172A] transition cursor-pointer"
+                  class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#64748B] hover:text-[#0F172A] transition cursor-pointer"
                   title="Sao chép từ vựng">
             <span class="material-symbols-outlined text-[16px]">content_copy</span>
           </button>

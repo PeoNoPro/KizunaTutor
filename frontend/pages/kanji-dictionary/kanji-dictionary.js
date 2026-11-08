@@ -24,6 +24,8 @@ let learnerDebounce = null;
 let currentDictStroke = null;
 let currentDictRadical = null;
 let currentKanjiToSave = null;
+let currentSearchController = null;
+let isSearching = false;
 
 // Danh mục 23 bộ thủ chữ Hán thông dụng chuẩn
 const commonRadicals = [
@@ -119,8 +121,40 @@ function setDictRadicalFilter(radChar) {
 // =========================================================================
 // 3. TÌM KIẾM CƠ BẢN (KEYWORD & JLPT SEARCH)
 // =========================================================================
+/**
+ * Đọc từ khóa tìm kiếm từ URL mà không bị lỗi Double-Encoding
+ * và khôi phục từ sessionStorage khi quay lại trang
+ */
+function getNormalizedSearchQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const rawQuery = params.get('q') || params.get('keyword') || params.get('char') || '';
+  
+  if (!rawQuery) {
+    const saved = sessionStorage.getItem('kizuna_dict_last_query');
+    return saved ? saved.trim() : '';
+  }
+
+  try {
+    return decodeURIComponent(decodeURIComponent(rawQuery)).trim();
+  } catch (e) {
+    try {
+      return decodeURIComponent(rawQuery).trim();
+    } catch (err) {
+      return rawQuery.trim();
+    }
+  }
+}
+
+function getNormalizedFilterParams() {
+  const params = new URLSearchParams(window.location.search);
+  const jlpt = params.get('jlpt') || '';
+  const stroke = params.get('stroke') || params.get('strokeCount') || '';
+  const radical = params.get('radical') || '';
+  return { jlpt, stroke, radical };
+}
+
 function onSearchInputChange() {
-  const input = document.getElementById('learnerSearchInput');
+  const input = document.getElementById('learnerSearchInput') || document.getElementById('kanjiSearchInput');
   const clearBtn = document.getElementById('btnClearSearchInput');
   if (clearBtn) {
     if (input && input.value.trim().length > 0) clearBtn.classList.remove('hidden');
@@ -130,10 +164,11 @@ function onSearchInputChange() {
 }
 
 function clearLearnerSearchInput() {
-  const input = document.getElementById('learnerSearchInput');
+  const input = document.getElementById('learnerSearchInput') || document.getElementById('kanjiSearchInput');
   if (input) input.value = '';
   const clearBtn = document.getElementById('btnClearSearchInput');
   if (clearBtn) clearBtn.classList.add('hidden');
+  sessionStorage.removeItem('kizuna_dict_last_query');
   loadLearnerDictionary(0);
 }
 
@@ -149,7 +184,7 @@ function quickSearchPrompt(term) {
     const jlptSelect = document.getElementById('learnerJlptSelect');
     if (jlptSelect) jlptSelect.value = term;
   } else {
-    const searchInput = document.getElementById('learnerSearchInput');
+    const searchInput = document.getElementById('learnerSearchInput') || document.getElementById('kanjiSearchInput');
     if (searchInput) searchInput.value = term;
     const clearBtn = document.getElementById('btnClearSearchInput');
     if (clearBtn) clearBtn.classList.remove('hidden');
@@ -212,7 +247,7 @@ function renderStandbyState() {
 // =========================================================================
 async function loadLearnerDictionary(page = 0) {
   currentLearnerPage = page;
-  const inputEl = document.getElementById('learnerSearchInput');
+  const inputEl = document.getElementById('learnerSearchInput') || document.getElementById('kanjiSearchInput');
   const inputVal = inputEl ? inputEl.value.trim() : '';
   const kw = currentDictRadical ? (inputVal ? `${inputVal} ${currentDictRadical}` : currentDictRadical) : inputVal;
   const jlptSelect = document.getElementById('learnerJlptSelect');
@@ -222,15 +257,45 @@ async function loadLearnerDictionary(page = 0) {
   const hasJlpt = jlpt && jlpt !== 'ALL';
   const hasKeyword = !!kw;
 
+  // Nếu không có bất kỳ bộ lọc nào, hiển thị màn hình chờ Standby
   if (!hasKeyword && !hasJlpt && !hasStroke && !hasRadical) {
+    sessionStorage.removeItem('kizuna_dict_last_query');
+    if (window.location.search) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     renderStandbyState();
     return;
   }
+
+  // Lưu từ khóa vào sessionStorage để khi rời trang sang Shodo/Flashcards rồi quay lại không bị mất
+  if (inputVal) {
+    sessionStorage.setItem('kizuna_dict_last_query', inputVal);
+  }
+
+  // Đồng bộ URL sạch sẽ trên thanh địa chỉ không gây reload trang
+  const searchParams = new URLSearchParams();
+  if (inputVal) searchParams.set('q', inputVal);
+  if (jlpt && jlpt !== 'ALL') searchParams.set('jlpt', jlpt);
+  if (currentDictStroke !== null) searchParams.set('stroke', currentDictStroke);
+  if (currentDictRadical) searchParams.set('radical', currentDictRadical);
+  if (page > 0) searchParams.set('page', page);
+
+  const queryString = searchParams.toString();
+  const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
+  window.history.replaceState({ query: inputVal, page }, '', newUrl);
+
+  // Hủy request đang chạy trước đó nếu có (chống race condition & in-flight leak)
+  if (currentSearchController) {
+    currentSearchController.abort();
+  }
+  currentSearchController = new AbortController();
 
   const grid = document.getElementById('learnerKanjiGrid');
   if (grid) {
     grid.innerHTML = '<div class="col-span-full py-12 text-center text-[#64748B] font-meta text-xs">Đang lật mở các trang từ điển Kanji... 🔍</div>';
   }
+
+  isSearching = true;
 
   try {
     let url = `/api/learner/kanji/search?page=${page}&size=18`;
@@ -238,14 +303,35 @@ async function loadLearnerDictionary(page = 0) {
     if (jlpt && jlpt !== 'ALL') url += `&jlpt=${encodeURIComponent(jlpt)}`;
     if (currentDictStroke !== null) url += `&strokeCount=${encodeURIComponent(currentDictStroke)}`;
 
-    let res = await fetch(url).catch(() => null);
+    const fetchHeaders = {
+      'Accept': 'application/json',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    };
+
+    let res = await fetch(url, {
+      method: 'GET',
+      headers: fetchHeaders,
+      signal: currentSearchController.signal
+    }).catch(err => {
+      if (err.name === 'AbortError') throw err;
+      return null;
+    });
+
     if (!res || !res.ok) {
       // Fallback endpoint công khai
       let fallbackUrl = `/api/kanji/search?page=${page}&size=18`;
       if (kw) fallbackUrl += `&keyword=${encodeURIComponent(kw)}`;
       if (jlpt && jlpt !== 'ALL') fallbackUrl += `&jlpt=${encodeURIComponent(jlpt)}`;
       if (currentDictStroke !== null) fallbackUrl += `&strokeCount=${encodeURIComponent(currentDictStroke)}`;
-      res = await fetch(fallbackUrl).catch(() => null);
+      res = await fetch(fallbackUrl, {
+        method: 'GET',
+        headers: fetchHeaders,
+        signal: currentSearchController.signal
+      }).catch(err => {
+        if (err.name === 'AbortError') throw err;
+        return null;
+      });
     }
 
     if (res && res.ok) {
@@ -257,9 +343,16 @@ async function loadLearnerDictionary(page = 0) {
       renderLearnerPagination(0, 1, 0);
     }
   } catch (e) {
+    // Nếu request bị abort do người dùng chuyển trang hoặc gõ tiếp, BỎ QUA không render lỗi hay rỗng!
+    if (e.name === 'AbortError') {
+      return;
+    }
     if (grid) {
       grid.innerHTML = '<div class="col-span-full py-12 text-center text-[#DC2626] font-meta text-xs font-bold">Lỗi kết nối từ điển: ' + escapeHtml(e.message) + '</div>';
     }
+  } finally {
+    isSearching = false;
+    currentSearchController = null;
   }
 }
 
@@ -286,13 +379,13 @@ function renderLearnerGrid(items) {
   window.lastRenderedDictionaryItems = items;
 
   grid.innerHTML = items.map((k, idx) => `
-    <div class="bg-white rounded-xl border border-[#E2E8F0] hover:border-slate-300 p-4 flex flex-col justify-between transition-all relative">
+    <div class="bg-white rounded-xl border-2 border-[#0F172A] shadow-[3px_3px_0px_0px_#0F172A] hover:translate-x-[-1px] hover:translate-y-[-1px] p-4 flex flex-col justify-between transition-all relative">
       <div class="space-y-3">
         <!-- Header thông tin: Cấp độ JLPT, số nét, bộ thủ -->
         <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
-          <span class="badge-nhai bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold px-2 py-0.5 rounded-full">${escapeHtml(k.jlpt || 'N5')}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">${escapeHtml(k.jlpt || 'N5')}</span>
           <div class="flex items-center gap-1.5">
-            <span class="badge-nhai bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold font-meta px-2 py-0.5 rounded-full">${k.strokeCount || 1} nét</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">${k.strokeCount || 1} nét</span>
             ${k.radical ? `<span class="text-[10px] text-[#64748B] font-meta">Bộ: ${escapeHtml(k.radical)}</span>` : ''}
           </div>
         </div>
@@ -300,7 +393,7 @@ function renderLearnerGrid(items) {
         <!-- Nội dung chính của chữ Hán: Nằm liền mạch ngay dưới Header, không bị khoảng trống -->
         <div class="space-y-2.5">
           <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] flex items-center justify-center font-serif text-4xl font-extrabold text-[#0F172A] shrink-0">
+            <div class="w-16 h-16 rounded-[8px] bg-[#FAF8F2] border-2 border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center font-japanese text-3xl font-bold text-[#0F172A] shrink-0 select-none">
               ${escapeHtml(k.kanjiChar)}
             </div>
             <div class="flex-1 min-w-0">
@@ -388,7 +481,7 @@ function renderLearnerPagination(page, totalPages, totalElements) {
 
   let html = '';
   html += `<button type="button" id="btnPagePrev" ${page === 0 ? 'disabled' : ''} class="px-3 py-1.5 text-xs rounded-lg font-bold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 disabled:opacity-40 transition active:scale-95 cursor-pointer">◀</button>`;
-  html += `<span class="w-8 h-8 rounded-lg bg-[#1E293B] text-white flex items-center justify-center font-bold text-xs">${page + 1}</span>`;
+  html += `<span class="w-8 h-8 rounded-lg bg-[#9F1239] text-white flex items-center justify-center font-bold text-xs">${page + 1}</span>`;
   html += `<button type="button" id="btnPageNext" ${page >= totalPages - 1 ? 'disabled' : ''} class="px-3 py-1.5 text-xs rounded-lg font-bold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 disabled:opacity-40 transition active:scale-95 cursor-pointer">▶</button>`;
   btns.innerHTML = html;
 
@@ -444,7 +537,23 @@ async function loadDeckOptions() {
     options = [{ name: 'Bộ Thẻ Cá Nhân', count: 0 }];
   }
 
-  select.innerHTML = options.map(f => `<option value="${escapeHtml(f.name)}">${escapeHtml(f.name)} (${f.count} chữ)</option>`).join('');
+  let htmlOptions = options.map(f => `<option value="${escapeHtml(f.name)}">${escapeHtml(f.name)} (${f.count} chữ)</option>`).join('');
+  htmlOptions += '<option value="__NEW__">➕ Tạo bộ thẻ mới...</option>';
+  select.innerHTML = htmlOptions;
+
+  const newDeckWrapper = document.getElementById('newDeckInputWrapper');
+  const newDeckInput = document.getElementById('modalNewDeckNameInput');
+  if (newDeckWrapper) newDeckWrapper.classList.add('hidden');
+  if (newDeckInput) newDeckInput.value = '';
+
+  select.onchange = () => {
+    if (select.value === '__NEW__') {
+      newDeckWrapper?.classList.remove('hidden');
+      newDeckInput?.focus();
+    } else {
+      newDeckWrapper?.classList.add('hidden');
+    }
+  };
 }
 
 function openSaveDeckModal(kanjiDataOrId, char, hanViet) {
@@ -505,7 +614,11 @@ async function submitSaveToDeck(e) {
     btn.textContent = 'Đang cất...';
   }
 
-  const targetDeckName = document.getElementById('modalDeckSelect') ? document.getElementById('modalDeckSelect').value : 'Bộ Thẻ Cá Nhân';
+  let targetDeckName = document.getElementById('modalDeckSelect') ? document.getElementById('modalDeckSelect').value : 'Bộ Thẻ Cá Nhân';
+  if (targetDeckName === '__NEW__') {
+    const customNameInput = document.getElementById('modalNewDeckNameInput');
+    targetDeckName = (customNameInput && customNameInput.value.trim()) ? customNameInput.value.trim() : 'Bộ Thẻ Mới';
+  }
   const kanjiChar = document.getElementById('modalDeckCharInput') ? document.getElementById('modalDeckCharInput').value : '';
   const kanjiId = document.getElementById('modalDeckKanjiId') ? document.getElementById('modalDeckKanjiId').value : '';
   const hanViet = document.getElementById('modalDeckHanViet') ? document.getElementById('modalDeckHanViet').textContent : '';
@@ -612,9 +725,64 @@ async function submitSaveToDeck(e) {
 }
 
 // =========================================================================
-// 11. GẮN SỰ KIỆN KHỞI TẠO TOÀN CỤC KHI DOM SẴN SÀNG
+// 11. KHỞI TẠO TRANG TỪ ĐIỂN & LẮNG NGHE SỰ KIỆN
 // =========================================================================
-document.addEventListener('DOMContentLoaded', () => {
+async function initDictionaryPage() {
+  // 1. Reset các cờ trạng thái cũ chống rò rỉ dữ liệu phiên trước
+  isSearching = false;
+  if (currentSearchController) {
+    currentSearchController.abort();
+    currentSearchController = null;
+  }
+
+  // 2. Lấy từ khóa chuẩn hóa từ URL hoặc sessionStorage
+  const targetQuery = getNormalizedSearchQuery();
+  const searchInput = document.getElementById('learnerSearchInput') || document.getElementById('kanjiSearchInput');
+  const clearBtn = document.getElementById('btnClearSearchInput');
+
+  if (targetQuery && searchInput) {
+    searchInput.value = targetQuery;
+    if (clearBtn) clearBtn.classList.remove('hidden');
+  }
+
+  const { jlpt, stroke, radical } = getNormalizedFilterParams();
+
+  if (jlpt) {
+    const jlptSelect = document.getElementById('learnerJlptSelect');
+    if (jlptSelect) jlptSelect.value = jlpt;
+  }
+
+  if (stroke) {
+    const strokeInput = document.getElementById('dictStrokeInput');
+    if (strokeInput) {
+      strokeInput.value = stroke;
+      currentDictStroke = parseInt(stroke, 10);
+      const clearStroke = document.getElementById('btnClearStrokeInput');
+      if (clearStroke) clearStroke.classList.remove('hidden');
+    }
+  }
+
+  if (radical) {
+    currentDictRadical = radical;
+    const radicalSelect = document.getElementById('dictRadicalSelect');
+    if (radicalSelect) radicalSelect.value = radical;
+  }
+
+  // 3. Thực thi tìm kiếm nếu có từ khóa hoặc bộ lọc, ngược lại hiển thị Standby
+  const inputVal = searchInput ? searchInput.value.trim() : '';
+  const hasKeyword = !!inputVal;
+  const hasJlpt = jlpt && jlpt !== 'ALL';
+  const hasStroke = currentDictStroke !== null;
+  const hasRadical = currentDictRadical !== null;
+
+  if (hasKeyword || hasJlpt || hasStroke || hasRadical) {
+    await loadLearnerDictionary(0);
+  } else {
+    renderStandbyState();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
   renderDictRadicalButtons();
 
   // Sự kiện ô tìm kiếm
@@ -714,13 +882,13 @@ document.addEventListener('DOMContentLoaded', () => {
     formSaveToDeck.addEventListener('submit', submitSaveToDeck);
   }
 
-  // Nạp trạng thái ban đầu
-  const initialKeyword = searchInput ? searchInput.value.trim() : '';
-  if (initialKeyword) {
-    loadLearnerDictionary(0);
-  } else {
-    renderStandbyState();
-  }
+  // Lắng nghe sự kiện popstate của trình duyệt (Back/Forward)
+  window.addEventListener('popstate', () => {
+    initDictionaryPage();
+  });
+
+  // Nạp trạng thái ban đầu sạch sẽ, an toàn
+  await initDictionaryPage();
 });
 
 // Gắn toàn cục cho các hàm tương thích

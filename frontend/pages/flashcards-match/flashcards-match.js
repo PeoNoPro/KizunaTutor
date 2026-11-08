@@ -189,7 +189,7 @@ function renderMatchGrid(tiles) {
     const tileEl = document.createElement('div');
     const kanjiClass = tile.isKanji ? 'font-japanese text-2xl sm:text-3xl font-bold' : 'text-xs sm:text-sm font-semibold';
     
-    tileEl.className = `match-tile p-3 sm:p-4 bg-white border border-[#D9DDE8] rounded-xl shadow-xs flex items-center justify-center text-center cursor-pointer select-none transition-all duration-150 min-h-[90px] sm:min-h-[110px] text-[#282E3E] hover:border-[#4255FF] hover:shadow-sm leading-relaxed break-words ${kanjiClass}`;
+    tileEl.className = `match-tile p-3 sm:p-4 bg-white border border-2 border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] rounded-xl shadow-xs flex items-center justify-center text-center cursor-pointer select-none transition-all duration-150 min-h-[90px] sm:min-h-[110px] text-[#0F172A] hover:bg-[#FAF8F2] hover:shadow-sm leading-relaxed break-words ${kanjiClass}`;
     tileEl.dataset.id = tile.id;
     tileEl.dataset.pairId = tile.pairId;
     tileEl.dataset.type = tile.type;
@@ -207,7 +207,7 @@ function handleTileClick(el) {
   if (el.classList.contains('is-selected')) return;
 
   // Đánh dấu thẻ được chọn
-  el.classList.add('is-selected', 'border-[#4255FF]', 'bg-[#F6F7FB]', 'ring-2', 'ring-[#4255FF]/20', 'scale-[1.02]');
+  el.classList.add('is-selected', 'border-[#831843]', 'bg-[#FFE5EC]', 'text-[#831843]', 'ring-2', 'ring-[#831843]/30', 'scale-[1.02]');
   selectedCards.push(el);
 
   if (selectedCards.length === 2) {
@@ -258,12 +258,12 @@ function checkMatch() {
     first.classList.remove('border-[#4255FF]', 'bg-[#F6F7FB]', 'ring-2', 'ring-[#4255FF]/20');
     second.classList.remove('border-[#4255FF]', 'bg-[#F6F7FB]', 'ring-2', 'ring-[#4255FF]/20');
 
-    first.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-800', 'animate-shake');
-    second.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-800', 'animate-shake');
+    first.classList.add('border-[#BA1A1A]', 'bg-rose-50', 'text-[#BA1A1A]', 'animate-shake');
+    second.classList.add('border-[#BA1A1A]', 'bg-rose-50', 'text-[#BA1A1A]', 'animate-shake');
 
     setTimeout(() => {
-      first.classList.remove('is-selected', 'border-rose-500', 'bg-rose-50', 'text-rose-800', 'animate-shake', 'scale-[1.02]');
-      second.classList.remove('is-selected', 'border-rose-500', 'bg-rose-50', 'text-rose-800', 'animate-shake', 'scale-[1.02]');
+      first.classList.remove('is-selected', 'border-[#BA1A1A]', 'bg-rose-50', 'text-[#BA1A1A]', 'animate-shake', 'scale-[1.02]');
+      second.classList.remove('is-selected', 'border-[#BA1A1A]', 'bg-rose-50', 'text-[#BA1A1A]', 'animate-shake', 'scale-[1.02]');
       selectedCards = [];
       isLocked = false;
     }, 500);

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,7 +43,9 @@ public class KanjiDictionaryController {
         res.put("totalPages", pagedResult.getTotalPages());
         res.put("currentPage", pagedResult.getNumber());
 
-        return ResponseEntity.ok(res);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noCache())
+                .body(res);
     }
 
     @GetMapping("/detail")

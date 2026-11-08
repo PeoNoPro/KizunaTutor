@@ -1,4 +1,4 @@
-﻿# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
+# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
 # Khong can cai dat Node.js, chay truc tiep bang PowerShell tren moi may Windows
 
 param(
@@ -62,6 +62,8 @@ $aliases = @{
     "/learner/match"     = "/pages/flashcards-match/index.html"
     "/match"             = "/pages/flashcards-match/index.html"
     "/shodo"             = "/pages/shodo-practice/index.html"
+    "/template"          = "/pages/template-page/index.html"
+    "/template-page"     = "/pages/template-page/index.html"
     "/shodo-practice"    = "/pages/shodo-practice/index.html"
     "/grammar"           = "/pages/grammar/index.html"
     "/ai-writing"        = "/pages/ai-writing/index.html"
@@ -84,6 +86,8 @@ $aliases = @{
     "/learner/flashcards-practice" = "/pages/flashcards-study/index.html"
     "/learner/flashcards-detail" = "/pages/flashcards-detail/index.html"
     "/learner/deck-detail"     = "/pages/flashcards-detail/index.html"
+    "/grammar-detail"          = "/pages/grammar/index.html"
+    "/learner/grammar-detail"  = "/pages/grammar/index.html"
     "/learner/grammar"         = "/pages/grammar/index.html"
     "/learner/kanji-dictionary"= "/pages/kanji-dictionary/index.html"
     "/learner/dictionary"      = "/pages/kanji-dictionary/index.html"
@@ -243,8 +247,8 @@ while ($listener.IsListening) {
             $webRequest = [System.Net.HttpWebRequest]::Create($targetUri)
             $webRequest.Method = $request.HttpMethod
             $webRequest.ContentType = $request.ContentType
-            $webRequest.Timeout = 1000
-            $webRequest.ReadWriteTimeout = 1000
+            $webRequest.Timeout = 15000
+            $webRequest.ReadWriteTimeout = 15000
 
             try {
                 if ($request.HasEntityBody) {
@@ -332,6 +336,9 @@ while ($listener.IsListening) {
 
         $contentBytes = [System.IO.File]::ReadAllBytes($localPath)
         $response.ContentType = $cType
+        $response.AddHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+        $response.AddHeader("Pragma", "no-cache")
+        $response.AddHeader("Expires", "0")
         $response.ContentLength64 = $contentBytes.Length
         $response.OutputStream.Write($contentBytes, 0, $contentBytes.Length)
         $response.OutputStream.Close()

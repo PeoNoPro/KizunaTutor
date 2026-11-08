@@ -110,7 +110,7 @@ function applySelectedGrammar(rule) {
       if (rule.examples && rule.examples.length > 0) {
         examplesGrid.innerHTML = rule.examples.map(ex => `
           <div class="p-2.5 bg-white border border-[#BAE6FD] rounded-[4px] space-y-1">
-            <div class="text-xs font-bold text-[#0F2545] font-['Noto_Sans_JP']">${escapeHtml(ex.ja)}</div>
+            <div class="text-xs font-bold text-[#0F172A] font-japanese">${escapeHtml(ex.ja)}</div>
             ${ex.reading ? `<div class="text-[10px] text-[#64748B] font-mono">${escapeHtml(ex.reading)}</div>` : ''}
             <div class="text-[11px] text-[#059669] font-medium">${escapeHtml(ex.vi)}</div>
           </div>
@@ -128,7 +128,7 @@ function applySelectedGrammar(rule) {
   // Tùy biến nhãn và gợi ý của ô nhập câu
   const labelEl = document.getElementById('writingInputLabel');
   if (labelEl) {
-    labelEl.innerHTML = `Viết câu của bạn sử dụng mẫu <span class="text-[#006194] font-bold">"${escapeHtml(rule.pattern)}"</span>`;
+    labelEl.innerHTML = `Viết câu của bạn sử dụng mẫu <span class="text-[#831843] font-bold">"${escapeHtml(rule.pattern)}"</span>`;
   }
 
   const inputEl = document.getElementById('writingInput');
@@ -212,8 +212,8 @@ function switchMode(mode) {
   const inputEl = document.getElementById('writingInput');
 
   if (mode === 'free') {
-    if (btnFree) btnFree.className = 'px-4 py-2 rounded-[5px] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] text-white shadow-[2px_2px_0px_0px_#000000]';
-    if (btnGrammar) btnGrammar.className = 'px-4 py-2 rounded-[5px] text-xs font-bold text-[#475569] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer';
+    if (btnFree) btnFree.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#9F1239] hover:bg-[#BE185D] text-white border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A]';
+    if (btnGrammar) btnGrammar.className = 'px-3.5 py-1.5 rounded-md text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition flex items-center gap-1.5 cursor-pointer';
     banner?.classList.add('hidden');
 
     if (labelEl) labelEl.textContent = 'Viết câu tiếng Nhật của bạn để nhờ AI đánh giá';
@@ -222,12 +222,12 @@ function switchMode(mode) {
     }
   } else {
     if (activeGrammarRule) {
-      if (btnGrammar) btnGrammar.className = 'px-4 py-2 rounded-[5px] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] text-white shadow-[2px_2px_0px_0px_#000000]';
-      if (btnFree) btnFree.className = 'px-4 py-2 rounded-[5px] text-xs font-bold text-[#475569] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer';
+      if (btnGrammar) btnGrammar.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#9F1239] hover:bg-[#BE185D] text-white border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A]';
+      if (btnFree) btnFree.className = 'px-3.5 py-1.5 rounded-md text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition flex items-center gap-1.5 cursor-pointer';
       banner?.classList.remove('hidden');
 
       if (labelEl) {
-        labelEl.innerHTML = `Viết câu của bạn sử dụng mẫu <span class="text-[#006194] font-bold">"${escapeHtml(activeGrammarRule.pattern)}"</span>`;
+        labelEl.innerHTML = `Viết câu của bạn sử dụng mẫu <span class="text-[#831843] font-bold">"${escapeHtml(activeGrammarRule.pattern)}"</span>`;
       }
       if (inputEl && !inputEl.value) {
         inputEl.placeholder = `Hãy viết một câu tiếng Nhật của bạn có sử dụng mẫu ${activeGrammarRule.pattern}... Nhấn "AI Thẩm định & Chữa câu" để Sensei kiểm tra nhé!`;
@@ -517,19 +517,19 @@ function renderEvaluationResult(data) {
       `;
     } else {
       errorContainer.innerHTML = errors.map(err => `
-        <div class="p-3 bg-[#FFF5F5] border border-[#FECDD3] rounded-[4px] space-y-1.5">
+        <div class="p-3 bg-[#FFF5F5] border border-[#FBCFE8] rounded-[4px] space-y-1.5">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-[#E11D48] uppercase tracking-wider flex items-center gap-1">
               <span class="material-symbols-outlined text-[14px]">warning</span>
               ${escapeHtml(err.errorType || 'Lỗi ngữ pháp')}
             </span>
           </div>
-          <div class="flex items-center gap-2 text-xs font-['Noto_Sans_JP']">
+          <div class="flex items-center gap-2 text-xs font-japanese">
             <span class="line-through text-[#94A3B8] bg-white px-1.5 py-0.5 rounded border border-[#E2E8F0]">${escapeHtml(err.originalFragment || '')}</span>
             <span class="material-symbols-outlined text-[14px] text-[#64748B]">arrow_forward</span>
             <span class="font-bold text-[#16A34A] bg-[#DCFCE7] px-1.5 py-0.5 rounded border border-[#BBF7D0]">${escapeHtml(err.correctedFragment || '')}</span>
           </div>
-          <p class="text-xs text-[#475569] leading-relaxed pt-1 border-t border-[#FEE2E2]">
+          <p class="text-xs text-[#334155] leading-relaxed pt-1 border-t border-[#FEE2E2]">
             ${escapeHtml(err.explanation || '')}
           </p>
         </div>
@@ -547,11 +547,11 @@ function renderEvaluationResult(data) {
       vocabContainer.innerHTML = vocabList.map(v => `
         <div class="p-2.5 bg-[#FAF8F2] border border-[#CBD5E1] rounded-[4px] flex items-center justify-between gap-2 hover:border-black transition">
           <div class="min-w-0">
-            <div class="text-xs font-bold text-[#0F2545] font-['Noto_Sans_JP'] truncate">${escapeHtml(v.word)}</div>
-            <div class="text-[11px] text-[#64748B] font-['Noto_Sans_JP'] truncate">${escapeHtml(v.reading)}</div>
+            <div class="text-xs font-bold text-[#0F172A] font-japanese truncate">${escapeHtml(v.word)}</div>
+            <div class="text-[11px] text-[#64748B] font-japanese truncate">${escapeHtml(v.reading)}</div>
             <div class="text-[11px] text-[#334155] truncate font-medium">${escapeHtml(v.meaning)}</div>
           </div>
-          <button type="button" class="btn-add-flashcard shrink-0 px-2 py-1 bg-white hover:bg-[#006194] hover:text-white border border-black rounded-[4px] text-[11px] font-bold shadow-[1px_1px_0px_0px_#000000] transition flex items-center gap-1 cursor-pointer"
+          <button type="button" class="btn-add-flashcard shrink-0 px-2 py-1 bg-white hover:bg-[#9F1239] hover:text-white border border-black rounded-[4px] text-[11px] font-bold shadow-[1px_1px_0px_0px_#000000] transition flex items-center gap-1 cursor-pointer"
                   data-word="${escapeHtml(v.word)}"
                   data-reading="${escapeHtml(v.reading)}"
                   data-meaning="${escapeHtml(v.meaning)}">
@@ -581,7 +581,7 @@ function renderEvaluationResult(data) {
       altCard.classList.remove('hidden');
       altList.innerHTML = alts.map(alt => `
         <li class="p-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[4px] flex items-start gap-1.5">
-          <span class="text-[#006194] font-bold">•</span>
+          <span class="text-[#831843] font-bold">•</span>
           <span>${escapeHtml(alt)}</span>
         </li>
       `).join('');
@@ -686,11 +686,11 @@ function updateHistoryFilterButtons() {
   const btnCurrent = document.getElementById('btnFilterHistoryCurrent');
 
   if (historyFilter === 'all') {
-    btnAll.className = 'px-3 py-1 rounded-[4px] bg-[#006194] text-white transition';
-    btnCurrent.className = 'px-3 py-1 rounded-[4px] text-[#475569] hover:text-[#0F2545] transition';
+    btnAll.className = 'px-3 py-1 rounded-[4px] bg-[#9F1239] text-white transition';
+    btnCurrent.className = 'px-3 py-1 rounded-[4px] text-[#334155] hover:text-[#0F172A] transition';
   } else {
-    btnCurrent.className = 'px-3 py-1 rounded-[4px] bg-[#006194] text-white transition';
-    btnAll.className = 'px-3 py-1 rounded-[4px] text-[#475569] hover:text-[#0F2545] transition';
+    btnCurrent.className = 'px-3 py-1 rounded-[4px] bg-[#9F1239] text-white transition';
+    btnAll.className = 'px-3 py-1 rounded-[4px] text-[#334155] hover:text-[#0F172A] transition';
   }
 }
 
@@ -734,7 +734,7 @@ function renderHistory() {
     <div class="p-3.5 bg-[#FAF8F2] border border-black rounded-[5px] flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-[2px_2px_0px_0px_#000000]">
       <div class="space-y-1.5 min-w-0">
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#006194] text-white">${item.jlptLevel || 'N5'}</span>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">${item.jlptLevel || 'N5'}</span>
           ${item.grammarPattern && item.grammarPattern !== 'Tự do' ? `
             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#EFF6FF] text-[#1E40AF] border border-[#BFDBFE]">
               Mẫu: ${escapeHtml(item.grammarPattern)}
@@ -744,10 +744,10 @@ function renderHistory() {
           <span class="text-[11px] text-[#64748B]">• ${item.timestamp}</span>
         </div>
 
-        <div class="text-xs text-[#64748B] line-through font-['Noto_Sans_JP']">
+        <div class="text-xs text-[#64748B] line-through font-japanese">
           ${escapeHtml(item.originalText)}
         </div>
-        <div class="text-xs font-bold text-[#0F2545] font-['Noto_Sans_JP']">
+        <div class="text-xs font-bold text-[#0F172A] font-japanese">
           ${escapeHtml(item.correctedText)}
         </div>
       </div>

@@ -14,6 +14,7 @@
 
   <!-- Tailwind & Project CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/js/shodo-tailwind-theme.js"></script>
   <link rel="stylesheet" href="/assets/css/learning-support-common.css">
   <link rel="stylesheet" href="/styles/variables.css">
   <link rel="stylesheet" href="/styles/global.css">
@@ -53,7 +54,7 @@
       transform: rotateY(180deg);
     }
     .font-japanese {
-      font-family: 'Noto Sans JP', 'Noto Serif JP', sans-serif;
+      font-family: 'Noto Serif JP', serif !important;
     }
   </style>
 </head>
@@ -69,7 +70,7 @@
       <div id="learnerHeaderContainer"></div>
 
       <!-- Main Shell cuộn mượt mà -->
-      <main class="flex-1 overflow-y-auto p-3 sm:p-4 w-full max-w-4xl mx-auto">
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-6xl mx-auto">
         <div class="space-y-3 flex-1 flex flex-col">
 
           <!-- THANH TIẾN ĐỘ CHẠY -->
@@ -78,14 +79,14 @@
           </div>
 
           <!-- KHÔNG CÓ THẺ NÀO (EMPTY STATE) -->
-          <div id="emptyDeckState" class="hidden flex-1 flex flex-col items-center justify-center p-10 bg-white border border-[#E2E8F0] rounded-xl text-center space-y-3">
+          <div id="emptyDeckState" class="hidden flex-1 flex flex-col items-center justify-center p-10 bg-white border-2 border-[#0F172A] rounded-xl shadow-[3px_3px_0px_0px_#0F172A] text-center space-y-3">
             <span class="text-4xl">📭</span>
             <h3 class="font-bold text-base text-[#0F172A]">Bộ thẻ này chưa có thẻ học nào</h3>
             <p class="text-xs text-slate-500 max-w-sm">
               Bạn hãy quay lại trang danh sách bộ thẻ để thêm từ vựng, câu hỏi hoặc nạp dữ liệu từ file Excel nhé.
             </p>
             <button type="button" id="btnEmptyBack"
-                    class="py-2 px-4 bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold rounded-lg cursor-pointer transition">
+                    class="py-2 px-4 bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-semibold rounded-lg cursor-pointer transition">
               ← Quay lại bộ thẻ của tôi
             </button>
           </div>
@@ -98,7 +99,7 @@
               <div id="flashcardElement" class="flashcard-card">
                 
                 <!-- Mặt trước -->
-                <div class="flashcard-face bg-white border border-[#E2E8F0] rounded-xl p-6 text-center shadow-xs">
+                <div class="flashcard-face bg-white border-2 border-[#0F172A] rounded-xl p-6 text-center shadow-[3px_3px_0px_0px_#0F172A]">
                   <span class="absolute top-4 left-4 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]" id="studyCardLevel">
                     JLPT
                   </span>
@@ -118,7 +119,7 @@
                 </div>
 
                 <!-- Mặt sau -->
-                <div class="flashcard-face flashcard-face-back bg-white border border-[#E2E8F0] rounded-xl p-5 sm:p-6 text-left shadow-xs flex flex-col justify-between">
+                <div class="flashcard-face flashcard-face-back bg-white border-2 border-[#0F172A] rounded-xl p-5 sm:p-6 text-left shadow-[3px_3px_0px_0px_#0F172A] flex flex-col justify-between">
                   <div class="w-full flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
                     <div class="flex items-center gap-2 truncate">
                       <span class="text-2xl sm:text-3xl font-bold text-[#0F172A] font-japanese truncate" id="studyCardCharBack">—</span>
@@ -171,7 +172,7 @@
                 </span>
 
                 <button type="button" id="btnNextCard"
-                        class="py-1.5 px-3 bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold rounded-lg inline-flex items-center gap-1 cursor-pointer transition active:scale-95 shrink-0"
+                        class="py-1.5 px-3 bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-semibold rounded-lg inline-flex items-center gap-1 cursor-pointer transition active:scale-95 shrink-0"
                         title="Thẻ tiếp theo (Mũi tên phải)">
                   <span class="hidden sm:inline">Tiếp theo</span>
                   <span>→</span>

@@ -743,6 +743,67 @@ function resetAiFeedback() {
   document.getElementById('aiScoreBadge').classList.add('hidden');
 }
 
+/**
+ * Cất chữ Hán đang luyện viết trực tiếp vào Bộ thẻ Flashcard cá nhân
+ */
+function saveShodoCurrentCharToDeck() {
+  if (!currentChar) {
+    showToast('Vui lòng chọn hoặc nạp một chữ Hán trước khi lưu thẻ.', 'info');
+    return;
+  }
+
+  const hv = document.getElementById('detailHanViet')?.textContent || '';
+  const meaning = document.getElementById('detailMeaning')?.textContent || '';
+  const onyomi = document.getElementById('detailOnyomi')?.textContent || '—';
+  const kunyomi = document.getElementById('detailKunyomi')?.textContent || '—';
+  const jlpt = document.getElementById('kanjiJlptLevel')?.textContent || 'N3';
+
+  try {
+    const raw = localStorage.getItem('kizuna_flashcard_decks');
+    let decks = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(decks)) decks = [];
+
+    let deck = decks.find(d => d.title === 'Bộ Thẻ Cá Nhân' || d.title === 'Bộ Thẻ Shodo');
+    if (!deck && decks.length > 0) {
+      deck = decks[0];
+    }
+    if (!deck) {
+      deck = {
+        id: 'deck_' + Date.now(),
+        title: 'Bộ Thẻ Cá Nhân',
+        description: 'Bộ thẻ học viên tạo từ Shodo & Từ điển',
+        cards: [],
+        color: 'blue'
+      };
+      decks.push(deck);
+    }
+
+    deck.cards = deck.cards || [];
+    const existingIdx = deck.cards.findIndex(c => (c.char || c.kanjiChar) === currentChar);
+    const newCard = {
+      char: currentChar,
+      kanjiChar: currentChar,
+      hanViet: (hv && hv !== '—') ? hv : 'HÁN TỰ',
+      meaning: (meaning && meaning !== '—') ? meaning : 'Chữ Hán luyện viết Shodo',
+      onyomi: onyomi,
+      kunyomi: kunyomi,
+      jlpt: (jlpt && jlpt !== 'Chưa chọn chữ') ? jlpt : 'N3'
+    };
+
+    if (existingIdx >= 0) {
+      deck.cards[existingIdx] = { ...deck.cards[existingIdx], ...newCard };
+    } else {
+      deck.cards.push(newCard);
+    }
+
+    localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+    showToast(`Đã cất chữ "${currentChar}" vào bộ thẻ "${deck.title}" thành công! 🗂️`, 'success');
+  } catch (err) {
+    console.error('Lỗi lưu thẻ từ Shodo:', err);
+    showToast('Lỗi khi cất vào bộ thẻ: ' + err.message, 'error');
+  }
+}
+
 // =========================================================================
 // 8. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================
@@ -764,8 +825,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const clearBtn = document.getElementById('btnClearBoard') || document.getElementById('btnClearCanvas') || document.querySelector('[data-action="clear-canvas"]');
   clearBtn?.addEventListener('click', () => clearCanvas(true));
 
-  // Nút Chấm điểm
+  // Nút Chấm điểm & Cất thẻ
   document.getElementById('btnGradeWriting')?.addEventListener('click', gradeShodoWriting);
+  document.getElementById('btnShodoSaveDeck')?.addEventListener('click', saveShodoCurrentCharToDeck);
 
   // Nạp chữ mới
   document.getElementById('btnLoadChar')?.addEventListener('click', () => {

@@ -87,6 +87,7 @@ export const apiClient = {
    * GET /api/learner/decks
    */
   async getDecks() {
+    const localDecks = getStoredDecks();
     try {
       const res = await fetch('/api/learner/decks', {
         headers: { 'Accept': 'application/json' },
@@ -96,14 +97,20 @@ export const apiClient = {
       if (res && res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          saveStoredDecks(data);
-          return data;
+          const merged = [...data];
+          localDecks.forEach(ld => {
+            if (!merged.some(m => String(m.id) === String(ld.id) || m.title === ld.title)) {
+              merged.push(ld);
+            }
+          });
+          saveStoredDecks(merged);
+          return merged;
         }
       }
     } catch (e) {
       console.debug('API /api/learner/decks offline, dùng bộ nhớ cục bộ:', e);
     }
-    return getStoredDecks();
+    return localDecks;
   },
 
   /**
@@ -390,3 +397,7 @@ export const apiClient = {
     return target;
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.apiClient = apiClient;
+}

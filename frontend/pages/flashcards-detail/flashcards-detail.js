@@ -99,7 +99,9 @@ function renderCardsList(filterQuery = '') {
   const filtered = currentCards.filter(c => 
     String(c.char || '').toLowerCase().includes(q) ||
     String(c.meaning || '').toLowerCase().includes(q) ||
-    String(c.hanViet || '').toLowerCase().includes(q)
+    String(c.hanViet || '').toLowerCase().includes(q) ||
+    String(c.onyomi || '').toLowerCase().includes(q) ||
+    String(c.kunyomi || '').toLowerCase().includes(q)
   );
 
   countBadge.textContent = `(${filtered.length} / ${currentCards.length} thẻ)`;
@@ -117,6 +119,8 @@ function renderCardsList(filterQuery = '') {
   container.innerHTML = filtered.map((c) => {
     const originalIdx = currentCards.indexOf(c);
     const isKanji = (c.char && c.char.length === 1 && !c.char.match(/[a-zA-Z0-9\s]/));
+    const hasOn = c.onyomi && c.onyomi !== '—';
+    const hasKun = c.kunyomi && c.kunyomi !== '—';
 
     return `
       <div class="p-3 bg-white border border-[#E2E8F0] hover:border-[#CBD5E1] rounded-xl transition flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 group">
@@ -130,8 +134,15 @@ function renderCardsList(filterQuery = '') {
               <span class="font-japanese font-bold text-base text-[#0F172A] truncate" title="${escapeHtml(c.char)}">
                 ${escapeHtml(c.char)}
               </span>
+              ${c.jlpt ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">${escapeHtml(c.jlpt)}</span>` : ''}
             </div>
-            ${c.hanViet ? `<span class="text-[11px] font-semibold text-[#831843] uppercase tracking-wider">${escapeHtml(c.hanViet)}</span>` : ''}
+            ${c.hanViet ? `<div class="text-[11px] font-semibold text-[#831843] uppercase tracking-wider">${escapeHtml(c.hanViet)}</div>` : ''}
+            ${(hasOn || hasKun) ? `
+              <div class="text-[10px] text-slate-500 flex flex-wrap gap-2 mt-0.5 font-japanese">
+                ${hasOn ? `<span class="text-sky-700 bg-sky-50 px-1 rounded border border-sky-200">On: ${escapeHtml(c.onyomi)}</span>` : ''}
+                ${hasKun ? `<span class="text-rose-700 bg-rose-50 px-1 rounded border border-rose-200">Kun: ${escapeHtml(c.kunyomi)}</span>` : ''}
+              </div>
+            ` : ''}
           </div>
         </div>
 
@@ -216,26 +227,41 @@ async function deleteSingleCard(index) {
   renderCardsList(document.getElementById('internalSearchInput')?.value || '');
 }
 
-// 8. Thêm thẻ mới thủ công
+// 8. Thêm thẻ mới thủ công (Hỗ trợ đầy đủ các trường Kanji & JLPT)
 async function submitNewCard() {
   const charInput = document.getElementById('inputNewChar');
+  const hanVietInput = document.getElementById('inputNewHanViet');
+  const onyomiInput = document.getElementById('inputNewOnyomi');
+  const kunyomiInput = document.getElementById('inputNewKunyomi');
+  const jlptInput = document.getElementById('inputNewJlpt');
   const meaningInput = document.getElementById('inputNewMeaning');
-  const char = (charInput.value || '').trim();
-  const meaning = (meaningInput.value || '').trim();
+
+  const char = (charInput?.value || '').trim();
+  const hanViet = (hanVietInput?.value || '').trim();
+  const onyomi = (onyomiInput?.value || '').trim();
+  const kunyomi = (kunyomiInput?.value || '').trim();
+  const jlpt = (jlptInput?.value || 'N5').trim();
+  const meaning = (meaningInput?.value || '').trim();
 
   if (!char) {
-    KizunaToast.warning('Vui lòng nhập nội dung câu hỏi / từ vựng mặt trước.');
-    charInput.focus();
+    KizunaToast.warning('Vui lòng nhập nội dung chữ Hán / từ vựng mặt trước.');
+    charInput?.focus();
+    return;
+  }
+
+  if (!meaning) {
+    KizunaToast.warning('Vui lòng nhập giải nghĩa mặt sau.');
+    meaningInput?.focus();
     return;
   }
 
   const newCard = {
     char: char,
-    hanViet: '',
-    meaning: meaning || '—',
-    onyomi: '—',
-    kunyomi: '—',
-    jlpt: 'Tự do'
+    hanViet: hanViet,
+    onyomi: onyomi || '—',
+    kunyomi: kunyomi || '—',
+    meaning: meaning,
+    jlpt: jlpt || 'Tự do'
   };
 
   currentCards.push(newCard);
@@ -254,10 +280,14 @@ async function submitNewCard() {
 }
 
 function openAddCardModal() {
-  document.getElementById('inputNewChar').value = '';
-  document.getElementById('inputNewMeaning').value = '';
+  if (document.getElementById('inputNewChar')) document.getElementById('inputNewChar').value = '';
+  if (document.getElementById('inputNewHanViet')) document.getElementById('inputNewHanViet').value = '';
+  if (document.getElementById('inputNewOnyomi')) document.getElementById('inputNewOnyomi').value = '';
+  if (document.getElementById('inputNewKunyomi')) document.getElementById('inputNewKunyomi').value = '';
+  if (document.getElementById('inputNewJlpt')) document.getElementById('inputNewJlpt').value = 'N5';
+  if (document.getElementById('inputNewMeaning')) document.getElementById('inputNewMeaning').value = '';
   document.getElementById('modalAddCard').classList.remove('hidden');
-  document.getElementById('inputNewChar').focus();
+  document.getElementById('inputNewChar')?.focus();
 }
 
 function closeAddCardModal() {
@@ -270,10 +300,15 @@ function openEditCardModal(index) {
   editingCardIndex = index;
   const card = currentCards[index];
 
-  document.getElementById('inputEditChar').value = card.char || '';
-  document.getElementById('inputEditMeaning').value = card.meaning || '';
+  if (document.getElementById('inputEditChar')) document.getElementById('inputEditChar').value = card.char || '';
+  if (document.getElementById('inputEditHanViet')) document.getElementById('inputEditHanViet').value = card.hanViet || '';
+  if (document.getElementById('inputEditOnyomi')) document.getElementById('inputEditOnyomi').value = (card.onyomi && card.onyomi !== '—') ? card.onyomi : '';
+  if (document.getElementById('inputEditKunyomi')) document.getElementById('inputEditKunyomi').value = (card.kunyomi && card.kunyomi !== '—') ? card.kunyomi : '';
+  if (document.getElementById('inputEditJlpt')) document.getElementById('inputEditJlpt').value = card.jlpt || 'N5';
+  if (document.getElementById('inputEditMeaning')) document.getElementById('inputEditMeaning').value = card.meaning || '';
+
   document.getElementById('modalEditCard').classList.remove('hidden');
-  document.getElementById('inputEditChar').focus();
+  document.getElementById('inputEditChar')?.focus();
 }
 
 function closeEditCardModal() {
@@ -283,8 +318,12 @@ function closeEditCardModal() {
 
 async function saveEditCard() {
   if (editingCardIndex < 0 || editingCardIndex >= currentCards.length) return;
-  const char = (document.getElementById('inputEditChar').value || '').trim();
-  const meaning = (document.getElementById('inputEditMeaning').value || '').trim();
+  const char = (document.getElementById('inputEditChar')?.value || '').trim();
+  const hanViet = (document.getElementById('inputEditHanViet')?.value || '').trim();
+  const onyomi = (document.getElementById('inputEditOnyomi')?.value || '').trim();
+  const kunyomi = (document.getElementById('inputEditKunyomi')?.value || '').trim();
+  const jlpt = (document.getElementById('inputEditJlpt')?.value || 'N5').trim();
+  const meaning = (document.getElementById('inputEditMeaning')?.value || '').trim();
 
   if (!char) {
     KizunaToast.warning('Vui lòng nhập nội dung mặt trước.');
@@ -292,6 +331,10 @@ async function saveEditCard() {
   }
 
   currentCards[editingCardIndex].char = char;
+  currentCards[editingCardIndex].hanViet = hanViet;
+  currentCards[editingCardIndex].onyomi = onyomi || '—';
+  currentCards[editingCardIndex].kunyomi = kunyomi || '—';
+  currentCards[editingCardIndex].jlpt = jlpt;
   currentCards[editingCardIndex].meaning = meaning || '—';
 
   try {
@@ -299,7 +342,7 @@ async function saveEditCard() {
     KizunaToast.success('Đã cập nhật thông tin thẻ!');
   } catch (err) {
     console.error(err);
-    KizunaToast.error('Lỗi khi cập nhật thẻ!');
+    KizunaToast.error('Không thể lưu thay đổi thẻ qua API!');
   }
 
   closeEditCardModal();
@@ -344,7 +387,7 @@ async function saveEditDeckInfo() {
   closeEditDeckModal();
 }
 
-// 11. Đọc file Excel 2 cột (Cột 1: Câu hỏi / Từ vựng, Cột 2: Đáp án / Nghĩa)
+// 11. Đọc file Excel Đa Cột Chuẩn & Tương Thích Ngược 2 Cột
 function handleExcelImport(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -366,37 +409,72 @@ function handleExcelImport(event) {
       const newCards = [];
 
       rawRows.forEach((row, index) => {
-        if (!row || row.length < 2) return;
-        const col1 = String(row[0] || '').trim();
-        const col2 = String(row[1] || '').trim();
+        if (!row || row.length === 0) return;
+        const col0 = String(row[0] || '').trim();
+        if (!col0) return;
 
         // Bỏ qua dòng tiêu đề nếu chứa từ khóa
-        const lowerCol1 = col1.toLowerCase();
+        const lower0 = col0.toLowerCase();
         if (index === 0 && (
-          lowerCol1.includes('câu hỏi') || 
-          lowerCol1.includes('mặt trước') || 
-          lowerCol1.includes('question') || 
-          lowerCol1.includes('front') || 
-          lowerCol1.includes('thuật ngữ') || 
-          lowerCol1.includes('từ vựng')
+          lower0.includes('mặt trước') || 
+          lower0.includes('câu hỏi') || 
+          lower0.includes('chữ hán') || 
+          lower0.includes('từ vựng') || 
+          lower0.includes('front') || 
+          lower0.includes('kanji') ||
+          lower0.includes('thuật ngữ')
         )) {
           return;
         }
 
-        if (col1) {
+        // Kiểm tra số cột: Nếu từ 3 cột trở lên => Định dạng đa cột chuẩn
+        if (row.length >= 3) {
+          const char = col0;
+          const hanViet = String(row[1] || '').trim();
+          const onyomi = String(row[2] || '').trim();
+          const kunyomi = String(row[3] || '').trim();
+          const meaning = String(row[4] || '').trim();
+          const jlpt = String(row[5] || '').trim();
+
           newCards.push({
-            char: col1,
-            hanViet: '',
-            meaning: col2 || '—',
-            onyomi: '—',
-            kunyomi: '—',
-            jlpt: 'Excel'
+            char: char,
+            hanViet: hanViet,
+            onyomi: onyomi || '—',
+            kunyomi: kunyomi || '—',
+            meaning: meaning || '—',
+            jlpt: jlpt || 'Tự do'
+          });
+        } else {
+          // Tương thích ngược: Định dạng 2 cột
+          const col1 = String(row[1] || '').trim();
+          let hanViet = '';
+          let onyomi = '—';
+          let kunyomi = '—';
+          let meaning = col1;
+
+          // Bóc tách nhanh nếu có tiền tố On/Kun/Hán-Việt
+          const hvMatch = col1.match(/(?:Hán[- ]?Việt|HV)[:\s]+([^;\n\r]+)/i);
+          if (hvMatch) hanViet = hvMatch[1].trim();
+
+          const onMatch = col1.match(/(?:Onyomi|On|Âm On)[:\s]+([^;\n\r]+)/i);
+          if (onMatch) onyomi = onMatch[1].trim();
+
+          const kunMatch = col1.match(/(?:Kunyomi|Kun|Âm Kun)[:\s]+([^;\n\r]+)/i);
+          if (kunMatch) kunyomi = kunMatch[1].trim();
+
+          newCards.push({
+            char: col0,
+            hanViet: hanViet,
+            onyomi: onyomi,
+            kunyomi: kunyomi,
+            meaning: meaning || '—',
+            jlpt: 'Tự do'
           });
         }
       });
 
       if (newCards.length === 0) {
-        KizunaToast.warning('Không tìm thấy dữ liệu hợp lệ! Đảm bảo Cột 1 là Câu hỏi, Cột 2 là Đáp án.');
+        KizunaToast.warning('Không tìm thấy dữ liệu hợp lệ trong file Excel!');
         return;
       }
 
@@ -422,19 +500,40 @@ function downloadSampleExcel() {
     return;
   }
   const sampleData = [
-    ["Câu hỏi / Từ vựng (Mặt trước)", "Đáp án / Nghĩa (Mặt sau)"],
-    ["桜 (さくら)", "Hoa anh đào - Biểu tượng của mùa xuân Nhật Bản"],
-    ["勉強 (べんきょう)", "Học tập, rèn luyện kiến thức"],
-    ["先生 (せんせい)", "Thầy cô giáo, giáo viên"],
-    ["愛 (あい)", "Tình yêu thương, ái tình, trân quý"],
-    ["ありがとうございます", "Cảm ơn bạn rất nhiều (lịch sự)"],
-    ["こんにちは", "Xin chào (lời chào ban ngày)"]
+    [
+      "Mặt trước (Chữ Hán / Từ vựng)*",
+      "Âm Hán-Việt",
+      "Onyomi (Âm On)",
+      "Kunyomi (Âm Kun)",
+      "Nghĩa tiếng Việt*",
+      "Cấp độ JLPT",
+      "Ví dụ / Ghi chú"
+    ],
+    ["日", "NHẬT", "ニチ, ジツ", "ひ, -び, -か", "Mặt trời, ngày, Nhật Bản", "N5", "日曜日 (Chủ nhật)"],
+    ["月", "NGUYỆT", "ゲツ, ガツ", "つき", "Mặt trăng, tháng", "N5", "月曜日 (Thứ hai)"],
+    ["火", "HỎA", "カ", "ひ, -び, ほ-", "Lửa, sao Hỏa", "N5", "火曜日 (Thứ ba)"],
+    ["水", "THỦY", "スイ", "みず", "Nước", "N5", "水曜日 (Thứ tư)"],
+    ["木", "MỘC", "ボク, モク", "き, こ-", "Cây cối, gỗ", "N5", "木曜日 (Thứ năm)"],
+    ["金", "KIM", "キン, コン", "かね, かな-", "Vàng, tiền kim loại", "N5", "金曜日 (Thứ sáu)"],
+    ["土", "THỔ", "ド, ト", "つち", "Đất đai, thổ nhưỡng", "N5", "土曜日 (Thứ bảy)"],
+    ["山", "SƠN", "サン, セン", "やま", "Núi non", "N5", "富士山 (Núi Phú Sĩ)"],
+    ["川", "XUYÊN", "セン", "かわ", "Sông suối", "N5", "川 (Con sông)"],
+    ["桜", "ANH", "オウ", "さくら", "Hoa anh đào Nhật Bản", "N3", "桜の花 (Hoa anh đào)"]
   ];
   const ws = XLSX.utils.aoa_to_sheet(sampleData);
+  ws['!cols'] = [
+    { wch: 28 },
+    { wch: 15 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 32 },
+    { wch: 12 },
+    { wch: 25 }
+  ];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Flashcards");
-  XLSX.writeFile(wb, "mau-the-kizuna-2cot.xlsx");
-  KizunaToast.success('Đã tải xuống file Excel mẫu 2 cột!');
+  XLSX.utils.book_append_sheet(wb, ws, "Flashcards_Kanji");
+  XLSX.writeFile(wb, "mau-flashcard-tieng-nhat-chuan.xlsx");
+  KizunaToast.success('Đã tải xuống file Excel mẫu đa cột chuẩn tiếng Nhật!');
 }
 
 // 12. In bộ thẻ (Print Mode A4 / Xuất PDF 2 mặt)
@@ -454,46 +553,47 @@ function printCurrentDeck() {
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8">
-  <title>In Bộ Thẻ - ${escapeHtml(currentDeck.title)}</title>
+  <meta charset="UTF-8">
+  <title>In Bộ Thẻ - ${escapeHtml(currentDeck.title || 'Flashcards')}</title>
+  <link rel="stylesheet" href="/styles/variables.css">
   <style>
-    @page { size: A4; margin: 12mm; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0F172A; background: #FFF; margin: 0; padding: 0; }
-    .toolbar { padding: 10px 14px; background: #F1F5F9; margin-bottom: 16px; border-radius: 6px; display: flex; gap: 10px; }
-    .btn { padding: 7px 16px; background: #006194; color: white; border: 1px solid #0F172A; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer; }
-    .print-header { border-bottom: 2px solid #0F172A; padding-bottom: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .print-header h1 { margin: 0; font-size: 18px; font-weight: 800; }
-    .print-header p { margin: 4px 0 0; font-size: 12px; color: #64748B; }
-    .print-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .print-card { border: 1.5px dashed #0F172A; border-radius: 6px; padding: 12px 14px; page-break-inside: avoid; display: flex; flex-direction: column; justify-content: space-between; min-height: 110px; background: #FAFAFA; box-sizing: border-box; }
-    .card-front { font-size: 16px; font-weight: bold; color: #0F2545; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 6px; }
-    .card-back { font-size: 12px; color: #334155; line-height: 1.4; }
-    .card-footer { display: flex; justify-content: space-between; font-size: 10px; color: #94A3B8; margin-top: 8px; padding-top: 4px; }
-    @media print { .no-print { display: none !important; } body { background: white; } }
+    @page { size: A4; margin: 10mm; }
+    body { font-family: 'Be Vietnam Pro', system-ui, sans-serif; margin: 0; padding: 10px; color: #0F172A; }
+    .page-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0F172A; padding-bottom: 10px; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .card { border: 2px solid #0F172A; border-radius: 8px; padding: 16px; page-break-inside: avoid; display: flex; flex-direction: column; justify-content: space-between; min-height: 140px; }
+    .front { font-family: 'Shippori Mincho', serif; font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 8px; }
+    .hanviet { font-size: 13px; font-weight: bold; color: #831843; text-align: center; margin-bottom: 8px; }
+    .details { font-size: 11px; color: #475569; border-top: 1px dashed #CBD5E1; padding-top: 8px; }
+    .badge { display: inline-block; padding: 2px 6px; font-size: 10px; font-weight: bold; border-radius: 4px; background: #FFE5EC; color: #831843; }
+    @media print {
+      .no-print { display: none !important; }
+    }
   </style>
 </head>
 <body>
-  <div class="toolbar no-print">
-    <button class="btn" onclick="window.print()">🖨️ In Ngay (Print / Lưu PDF)</button>
-    <button class="btn" style="background:#64748B;" onclick="window.close()">Đóng Cửa Sổ</button>
+  <div class="no-print" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+    <div><strong>KizunaTutor</strong> - Xem trước trang in A4</div>
+    <button onclick="window.print()" style="padding: 6px 16px; background: #0F172A; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+      🖨️ In Ngay (Print / PDF)
+    </button>
   </div>
-  <div class="print-header">
-    <div>
-      <h1>🌸 ${escapeHtml(currentDeck.title)}</h1>
-      <p>${escapeHtml(currentDeck.description || 'Bộ thẻ Kizuna Flashcards')} • Tổng số: ${currentCards.length} thẻ</p>
-    </div>
-    <div style="font-size: 11px; font-weight: bold; color: #64748B;">KizunaTutor Flashcards</div>
+  <div class="page-header">
+    <h2 style="margin: 0 0 5px 0;">${escapeHtml(currentDeck.title)}</h2>
+    <p style="margin: 0; font-size: 13px; color: #475569;">${escapeHtml(currentDeck.description || '')} • Tổng cộng ${currentCards.length} thẻ</p>
   </div>
-  <div class="print-grid">
-    ${currentCards.map((c, i) => `
-      <div class="print-card">
+  <div class="grid">
+    ${currentCards.map(c => `
+      <div class="card">
         <div>
-          <div class="card-front">${escapeHtml(c.char || '')}</div>
-          <div class="card-back">${escapeHtml(c.meaning || c.hanViet || '')}</div>
+          <div class="front">${escapeHtml(c.char)}</div>
+          ${c.hanViet ? `<div class="hanviet">${escapeHtml(c.hanViet)}</div>` : ''}
         </div>
-        <div class="card-footer">
-          <span>Kizuna Flashcards</span>
-          <span>#${i + 1}</span>
+        <div class="details">
+          ${c.jlpt ? `<span class="badge">${escapeHtml(c.jlpt)}</span> ` : ''}
+          <span style="font-weight: 500;">${escapeHtml(c.meaning || '—')}</span>
+          ${(c.onyomi && c.onyomi !== '—') ? `<div style="margin-top: 4px; font-size: 10px; color: #0284c7;">On: ${escapeHtml(c.onyomi)}</div>` : ''}
+          ${(c.kunyomi && c.kunyomi !== '—') ? `<div style="font-size: 10px; color: #e11d48;">Kun: ${escapeHtml(c.kunyomi)}</div>` : ''}
         </div>
       </div>
     `).join('')}

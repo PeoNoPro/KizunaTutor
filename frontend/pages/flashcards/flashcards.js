@@ -577,7 +577,7 @@ function renderEditingCardsList() {
   if (editingCards.length === 0) {
     container.innerHTML = `
       <div class="p-6 text-center text-slate-400 text-xs border border-dashed border-slate-300 rounded-[4px] bg-slate-50">
-        Chưa có thẻ nào trong bộ. Hãy thêm từ file Excel 2 cột hoặc nhập nhanh ở trên nhé!
+        Chưa có thẻ nào trong bộ. Hãy thêm từ file Excel đa cột hoặc nhập nhanh ở trên nhé!
       </div>
     `;
     return;
@@ -585,12 +585,17 @@ function renderEditingCardsList() {
 
   container.innerHTML = editingCards.map((c, idx) => `
     <div class="flex items-center justify-between gap-2 p-2 bg-white border border-slate-200 rounded-[4px] text-xs hover:border-[#0F172A] transition">
-      <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-        <div class="font-bold text-[#0F172A] truncate font-japanese" title="${escapeHtml(c.char)}">
-          ${escapeHtml(c.char)}
+      <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-1.5 items-center">
+        <div class="flex items-center gap-1.5 truncate">
+          <span class="font-bold text-[#0F172A] font-japanese" title="${escapeHtml(c.char)}">
+            ${escapeHtml(c.char)}
+          </span>
+          ${c.hanViet ? `<span class="text-[10px] text-[#881337] font-semibold uppercase">(${escapeHtml(c.hanViet)})</span>` : ''}
+          ${c.jlpt ? `<span class="px-1 text-[9px] font-bold rounded bg-rose-50 text-rose-800 border border-rose-200">${escapeHtml(c.jlpt)}</span>` : ''}
         </div>
-        <div class="text-[#334155] truncate" title="${escapeHtml(c.meaning || c.hanViet || '')}">
-          ${escapeHtml(c.meaning || c.hanViet || '—')}
+        <div class="text-[#334155] truncate text-xs" title="${escapeHtml(c.meaning || '')}">
+          ${escapeHtml(c.meaning || '—')}
+          ${(c.onyomi && c.onyomi !== '—') ? `<span class="text-[10px] text-sky-700 ml-1.5 font-japanese">[On: ${escapeHtml(c.onyomi)}]</span>` : ''}
         </div>
       </div>
       <button type="button" data-action="remove-editing-card" data-index="${idx}"
@@ -609,7 +614,6 @@ function renderEditingCardsList() {
     });
   });
 }
-
 function quickAddCardToEditList() {
   const frontInput = document.getElementById('quickAddFrontInput');
   const backInput = document.getElementById('quickAddBackInput');
@@ -638,7 +642,7 @@ function quickAddCardToEditList() {
 }
 
 /**
- * Đọc file Excel 2 cột (Cột 1: Câu hỏi / Từ vựng, Cột 2: Đáp án / Nghĩa)
+ * Đọc file Excel Đa Cột Chuẩn & Tương Thích Ngược 2 Cột
  */
 function handleExcelUpload(event) {
   const file = event.target.files[0];
@@ -658,42 +662,76 @@ function handleExcelUpload(event) {
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
       
-      // Chuyển sheet thành mảng 2 chiều
       const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
       const newCards = [];
 
       rawRows.forEach((row, index) => {
-        if (!row || row.length < 2) return;
-        const col1 = String(row[0] || '').trim();
-        const col2 = String(row[1] || '').trim();
+        if (!row || row.length === 0) return;
+        const col0 = String(row[0] || '').trim();
+        if (!col0) return;
 
         // Bỏ qua dòng tiêu đề nếu chứa từ khóa thông dụng
-        const lowerCol1 = col1.toLowerCase();
+        const lower0 = col0.toLowerCase();
         if (index === 0 && (
-          lowerCol1.includes('câu hỏi') || 
-          lowerCol1.includes('mặt trước') || 
-          lowerCol1.includes('question') || 
-          lowerCol1.includes('front') || 
-          lowerCol1.includes('thuật ngữ') || 
-          lowerCol1.includes('từ vựng')
+          lower0.includes('mặt trước') || 
+          lower0.includes('câu hỏi') || 
+          lower0.includes('chữ hán') || 
+          lower0.includes('từ vựng') || 
+          lower0.includes('front') || 
+          lower0.includes('kanji') ||
+          lower0.includes('thuật ngữ')
         )) {
           return;
         }
 
-        if (col1) {
+        // Định dạng đa cột chuẩn (>= 3 cột)
+        if (row.length >= 3) {
+          const char = col0;
+          const hanViet = String(row[1] || '').trim();
+          const onyomi = String(row[2] || '').trim();
+          const kunyomi = String(row[3] || '').trim();
+          const meaning = String(row[4] || '').trim();
+          const jlpt = String(row[5] || '').trim();
+
           newCards.push({
-            char: col1,
-            hanViet: '',
-            meaning: col2 || '—',
-            onyomi: '—',
-            kunyomi: '—',
-            jlpt: 'Excel'
+            char: char,
+            hanViet: hanViet,
+            onyomi: onyomi || '—',
+            kunyomi: kunyomi || '—',
+            meaning: meaning || '—',
+            jlpt: jlpt || 'Tự do'
+          });
+        } else {
+          // Tương thích ngược: Định dạng 2 cột
+          const col1 = String(row[1] || '').trim();
+          let hanViet = '';
+          let onyomi = '—';
+          let kunyomi = '—';
+          let meaning = col1;
+
+          // Bóc tách nhanh nếu có tiền tố On/Kun/Hán-Việt
+          const hvMatch = col1.match(/(?:Hán[- ]?Việt|HV)[:\s]+([^;\n\r]+)/i);
+          if (hvMatch) hanViet = hvMatch[1].trim();
+
+          const onMatch = col1.match(/(?:Onyomi|On|Âm On)[:\s]+([^;\n\r]+)/i);
+          if (onMatch) onyomi = onMatch[1].trim();
+
+          const kunMatch = col1.match(/(?:Kunyomi|Kun|Âm Kun)[:\s]+([^;\n\r]+)/i);
+          if (kunMatch) kunyomi = kunMatch[1].trim();
+
+          newCards.push({
+            char: col0,
+            hanViet: hanViet,
+            onyomi: onyomi,
+            kunyomi: kunyomi,
+            meaning: meaning || '—',
+            jlpt: 'Tự do'
           });
         }
       });
 
       if (newCards.length === 0) {
-        KizunaToast.warning('Không tìm thấy dữ liệu hợp lệ! Đảm bảo Cột 1 là Câu hỏi, Cột 2 là Đáp án.');
+        KizunaToast.warning('Không tìm thấy dữ liệu hợp lệ trong file Excel!');
         return;
       }
 
@@ -716,21 +754,41 @@ function downloadSampleExcel() {
     return;
   }
   const sampleData = [
-    ["Câu hỏi / Từ vựng (Mặt trước)", "Đáp án / Nghĩa (Mặt sau)"],
-    ["桜 (さくら)", "Hoa anh đào - Biểu tượng của mùa xuân Nhật Bản"],
-    ["勉強 (べんきょう)", "Học tập, rèn luyện kiến thức"],
-    ["先生 (せんせい)", "Thầy cô giáo, giáo viên"],
-    ["愛 (あい)", "Tình yêu thương, ái tình, trân quý"],
-    ["ありがとうございます", "Cảm ơn bạn rất nhiều (lịch sự)"],
-    ["こんにちは", "Xin chào (lời chào ban ngày)"]
+    [
+      "Mặt trước (Chữ Hán / Từ vựng)*",
+      "Âm Hán-Việt",
+      "Onyomi (Âm On)",
+      "Kunyomi (Âm Kun)",
+      "Nghĩa tiếng Việt*",
+      "Cấp độ JLPT",
+      "Ví dụ / Ghi chú"
+    ],
+    ["日", "NHẬT", "ニチ, ジツ", "ひ, -び, -か", "Mặt trời, ngày, Nhật Bản", "N5", "日曜日 (Chủ nhật)"],
+    ["月", "NGUYỆT", "ゲツ, ガツ", "つき", "Mặt trăng, tháng", "N5", "月曜日 (Thứ hai)"],
+    ["火", "HỎA", "カ", "ひ, -び, ほ-", "Lửa, sao Hỏa", "N5", "火曜日 (Thứ ba)"],
+    ["水", "THỦY", "スイ", "みず", "Nước", "N5", "水曜日 (Thứ tư)"],
+    ["木", "MỘC", "ボク, モク", "き, こ-", "Cây cối, gỗ", "N5", "木曜日 (Thứ năm)"],
+    ["金", "KIM", "キン, コン", "かね, かな-", "Vàng, tiền kim loại", "N5", "金曜日 (Thứ sáu)"],
+    ["土", "THỔ", "ド, ト", "つち", "Đất đai, thổ nhưỡng", "N5", "土曜日 (Thứ bảy)"],
+    ["山", "SƠN", "サン, セン", "やま", "Núi non", "N5", "富士山 (Núi Phú Sĩ)"],
+    ["川", "XUYÊN", "セン", "かわ", "Sông suối", "N5", "川 (Con sông)"],
+    ["桜", "ANH", "オウ", "さくら", "Hoa anh đào Nhật Bản", "N3", "桜の花 (Hoa anh đào)"]
   ];
   const ws = XLSX.utils.aoa_to_sheet(sampleData);
+  ws['!cols'] = [
+    { wch: 28 },
+    { wch: 15 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 32 },
+    { wch: 12 },
+    { wch: 25 }
+  ];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Flashcards");
-  XLSX.writeFile(wb, "mau-the-kizuna-2cot.xlsx");
-  KizunaToast.success('Đã tải xuống file Excel mẫu 2 cột!');
+  XLSX.utils.book_append_sheet(wb, ws, "Flashcards_Kanji");
+  XLSX.writeFile(wb, "mau-flashcard-tieng-nhat-chuan.xlsx");
+  KizunaToast.success('Đã tải xuống file Excel mẫu đa cột chuẩn tiếng Nhật!');
 }
-
 async function saveDeckChanges() {
   if (!activeEditingDeck) return;
   const nameInput = document.getElementById('editDeckNameInput');

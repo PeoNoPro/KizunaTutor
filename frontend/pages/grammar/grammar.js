@@ -6,7 +6,18 @@
  */
 
 import { showToast, debounce } from '/js/main.js';
+import { voicevoxClient } from '/js/voicevoxClient.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
@@ -91,6 +102,8 @@ let currentLevel = 'N5';
 let currentDomain = 'daily';
 let currentDomainLevel = 'ALL'; // 'ALL', 'N5', 'N4', 'N3', 'N2', 'N1'
 let currentSearchKeyword = '';
+let currentGrammarPage = 1;
+const GRAMMAR_PAGE_SIZE = 12; // 12 m?u cu / trang (ph h?p lu?i 1, 2, 3 c?t)
 let masterGrammarList = []; // Toàn bộ 526 mẫu ngữ pháp đồng bộ từ Database
 
 /**
@@ -233,7 +246,7 @@ function updateDomainSubLevelCounts() {
     if (lvl === currentDomainLevel) {
       btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer flex items-center gap-1';
     } else {
-      btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1';
+      btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1';
     }
   });
 }
@@ -287,9 +300,12 @@ function renderGrammarCards() {
   // 3. Cập nhật số lượng mẫu câu hiển thị
   if (activeCountEl) activeCountEl.textContent = String(filtered.length);
 
+  const paginationEl = document.getElementById('grammarPagination');
+
   if (filtered.length === 0) {
     grid.innerHTML = '';
     grid.classList.add('hidden');
+    if (paginationEl) paginationEl.classList.add('hidden');
     emptyState.classList.remove('hidden');
     return;
   }
@@ -297,49 +313,64 @@ function renderGrammarCards() {
   emptyState.classList.add('hidden');
   grid.classList.remove('hidden');
 
+  // Tnh ton phn trang
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / GRAMMAR_PAGE_SIZE);
+  if (currentGrammarPage > totalPages) currentGrammarPage = totalPages || 1;
+  if (currentGrammarPage < 1) currentGrammarPage = 1;
+
+  const startIndex = (currentGrammarPage - 1) * GRAMMAR_PAGE_SIZE;
+  const endIndex = Math.min(startIndex + GRAMMAR_PAGE_SIZE, totalItems);
+  const pageItems = filtered.slice(startIndex, endIndex);
+
   let html = '';
 
-  filtered.forEach(rule => {
-    // Badges cho khối ứng dụng
-    const domainBadgesHtml = rule.domains.slice(0, 2).map(dId => {
+  pageItems.forEach(rule => {
+    // DÒNG 3: Danh sách các thẻ chủ đề / ngữ cảnh (Nhỏ hơn, chìm hơn badge JLPT)
+    const domainBadgesHtml = (rule.domains || []).slice(0, 3).map(dId => {
       const d = DOMAIN_CONFIG[dId];
       if (!d) return '';
-      return `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold border ${d.badgeClass}">${d.icon} ${d.name}</span>`;
+      return `<span class="px-2 py-0.5 text-[11px] font-medium text-[#64748B] bg-[#F1F5F9] border border-[#CBD5E1] rounded-full">#${d.name}</span>`;
     }).join('');
 
     html += `
-      <div class="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm hover:border-[#831843] hover:shadow-md transition flex flex-col justify-between group cursor-pointer"
+      <div class="bg-white border-2 border-[#0F172A] rounded-[12px] p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0F172A] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] flex flex-col justify-between group cursor-pointer"
            data-action="view-detail" data-id="${rule.id}">
         
-        <div class="space-y-3">
-          <!-- Header Thẻ -->
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
-                ${rule.level}
-              </span>
-              ${domainBadgesHtml}
+        <div>
+          <!-- DÒNG 1: TÊN NGỮ PHÁP (Trái) & HUY HIỆU JLPT (Phải sát lề) -->
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-baseline gap-2 min-w-0">
+              <h3 class="text-xl font-bold text-[#0F172A] font-japanese group-hover:text-[#831843] transition truncate">
+                ${rule.pattern}
+              </h3>
+              <span class="text-sm text-[#64748B] font-mono shrink-0">(${rule.romaji})</span>
             </div>
+            <!-- Duy nhất huy hiệu Cấp độ JLPT chuẩn hóa phong cách Shodo -->
+            <span class="px-2.5 py-0.5 text-xs font-bold text-[#0F172A] bg-[#FEF3C7] border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] shrink-0">
+              ${rule.level}
+            </span>
           </div>
 
-          <!-- Mẫu câu & Romaji -->
-          <div>
-            <h3 class="font-japanese text-xl font-bold text-[#0F2545] group-hover:text-[#831843] transition">
-              ${rule.pattern}
-            </h3>
-            <p class="text-xs text-[#68737D] font-mono mt-0.5">${rule.romaji}</p>
-          </div>
-
-          <!-- Ý nghĩa ngắn -->
-          <p class="text-xs font-semibold text-[#3F4850] line-clamp-2 leading-relaxed bg-[#F8FAFC] p-2.5 rounded-xl border border-[#E2E8F0]">
+          <!-- DÒNG 2: GIẢI NGHĨA NGỮ PHÁP -->
+          <p class="mt-2 text-sm text-[#334155] leading-relaxed line-clamp-2">
             ${rule.meaning}
           </p>
+
+          <!-- DÒNG 3: CÁC THẺ CHỦ ĐỀ / NGỮ CẢNH (Đặt sau phần giải nghĩa) -->
+          ${domainBadgesHtml ? `
+            <div class="mt-3 flex flex-wrap items-center gap-1.5">
+              ${domainBadgesHtml}
+            </div>
+          ` : ''}
         </div>
 
-        <!-- Footer Thẻ -->
-        <div class="pt-4 border-t border-[#E2E8F0] flex items-center justify-between text-xs text-[#831843] font-semibold mt-4">
-          <span>Xem chi tiết công thức &amp; ví dụ</span>
-          <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+        <!-- DÒNG 4: HÀNH ĐỘNG FOOTER (Nút xem chi tiết) -->
+        <div class="mt-4 pt-3 border-t border-[#E2E8F0] flex justify-end">
+          <div class="text-xs font-semibold text-[#9F1239] group-hover:text-[#BE185D] flex items-center gap-1 transition-colors">
+            <span>Xem chi tiết công thức &amp; ví dụ</span>
+            <span class="transition-transform group-hover:translate-x-0.5">→</span>
+          </div>
         </div>
       </div>
     `;
@@ -347,7 +378,10 @@ function renderGrammarCards() {
 
   grid.innerHTML = html;
 
-  // Gắn sự kiện click
+  // Render thanh phân trang chuẩn Shodo
+  renderGrammarPagination(totalItems, totalPages, startIndex, endIndex);
+
+  // G_n s kin click
   grid.querySelectorAll('[data-action="view-detail"]').forEach(card => {
     card.addEventListener('click', (e) => {
       e.preventDefault();
@@ -357,14 +391,107 @@ function renderGrammarCards() {
   });
 }
 
+/**
+ * Render thanh phân trang chuẩn phong cách Shodo
+ */
+function renderGrammarPagination(totalItems, totalPages, startIndex, endIndex) {
+  const paginationEl = document.getElementById('grammarPagination');
+  const infoEl = document.getElementById('grammarPaginationInfo');
+  const controlsEl = document.getElementById('grammarPaginationControls');
+
+  if (!paginationEl || !infoEl || !controlsEl) return;
+
+  if (totalPages <= 1) {
+    paginationEl.classList.add('hidden');
+    return;
+  }
+
+  paginationEl.classList.remove('hidden');
+  infoEl.innerHTML = `Hiển thị <span class="font-bold text-[#0F172A]">${startIndex + 1} - ${endIndex}</span> trên <span class="font-bold text-[#0F172A]">${totalItems}</span> mẫu câu (Trang ${currentGrammarPage}/${totalPages})`;
+
+  // To danh sAch trang thA'ng minh (vd: 1 ... 4 5 6 ... 10)
+  const pages = [];
+  const delta = 1;
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentGrammarPage - delta && i <= currentGrammarPage + delta)) {
+      pages.push(i);
+    } else if (pages[pages.length - 1] !== '...') {
+      pages.push('...');
+    }
+  }
+
+  let controlsHtml = '';
+
+  // NAt Tr>c
+  const isFirst = currentGrammarPage === 1;
+  controlsHtml += `
+    <button type="button" data-grammar-page="${currentGrammarPage - 1}" ${isFirst ? 'disabled' : ''}
+            class="h-8 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-all ${isFirst ? 'opacity-40 cursor-not-allowed border-[#CBD5E1] text-[#94A3B8] bg-slate-50' : 'bg-white text-[#334155] border-[#CBD5E1] hover:bg-slate-50 hover:border-[#0F172A] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer shadow-xs'}">
+      <span class="material-symbols-outlined text-[15px]">chevron_left</span>
+      <span>Trước</span>
+    </button>
+  `;
+
+  // CAc nAt s` trang
+  pages.forEach(p => {
+    if (p === '...') {
+      controlsHtml += `<span class="px-1.5 text-xs text-[#94A3B8] select-none">...</span>`;
+    } else if (p === currentGrammarPage) {
+      controlsHtml += `
+        <button type="button" disabled
+                class="h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold bg-[#9F1239] text-white border border-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] select-none">
+          ${p}
+        </button>
+      `;
+    } else {
+      controlsHtml += `
+        <button type="button" data-grammar-page="${p}"
+                class="h-8 min-w-[32px] px-2 rounded-lg text-xs font-semibold bg-white text-[#334155] border border-[#CBD5E1] hover:bg-slate-50 hover:border-[#0F172A] hover:text-[#0F172A] transition-all cursor-pointer shadow-xs active:translate-x-[1px] active:translate-y-[1px]">
+          ${p}
+        </button>
+      `;
+    }
+  });
+
+  // NAt Sau
+  const isLast = currentGrammarPage === totalPages;
+  controlsHtml += `
+    <button type="button" data-grammar-page="${currentGrammarPage + 1}" ${isLast ? 'disabled' : ''}
+            class="h-8 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-all ${isLast ? 'opacity-40 cursor-not-allowed border-[#CBD5E1] text-[#94A3B8] bg-slate-50' : 'bg-white text-[#334155] border-[#CBD5E1] hover:bg-slate-50 hover:border-[#0F172A] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer shadow-xs'}">
+      <span>Sau</span>
+      <span class="material-symbols-outlined text-[15px]">chevron_right</span>
+    </button>
+  `;
+
+  controlsEl.innerHTML = controlsHtml;
+
+  // L_ng nghe s kin click phAn trang
+  controlsEl.querySelectorAll('button[data-grammar-page]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const p = parseInt(btn.dataset.grammarPage, 10);
+      if (!isNaN(p) && p >= 1 && p <= totalPages && p !== currentGrammarPage) {
+        currentGrammarPage = p;
+        renderGrammarCards();
+        document.getElementById('grammarGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+}
+
 // =========================================================================
-// 5. GIAO DIỆN CHI TIẾT MẪU NGỮ PHÁP (DETAIL VIEW)
+// 5. GIAO DI+N CHI TI_T MU NGr PHA?P (DETAIL VIEW)
 // =========================================================================
 let lastScrollTop = 0;
 
 function openGrammarDetail(ruleId, pushHistory = true) {
   const rule = masterGrammarList.find(r => String(r.id) === String(ruleId));
   if (!rule) return;
+
+  if (rule.level && ['N5', 'N4', 'N3', 'N2', 'N1'].includes(rule.level.toUpperCase())) {
+    currentLevel = rule.level.toUpperCase();
+  }
 
   const mainEl = document.querySelector('main');
   if (mainEl) {
@@ -381,6 +508,9 @@ function openGrammarDetail(ruleId, pushHistory = true) {
   if (pushHistory) {
     const u = new URL(window.location);
     u.searchParams.set('detail', rule.id);
+    if (currentFilterMode === 'jlpt') {
+      u.searchParams.set('level', currentLevel);
+    }
     window.history.pushState({ grammarDetailId: rule.id }, '', u);
   }
 
@@ -397,21 +527,28 @@ function openGrammarDetail(ruleId, pushHistory = true) {
     examplesHtml = rule.examples.map(ex => `
       <div class="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl space-y-1.5 hover:bg-white transition break-words overflow-hidden">
         <div class="flex items-center justify-between gap-2">
-          <div class="font-japanese font-bold text-base md:text-lg text-[#0F2545] break-words whitespace-normal min-w-0">
-            ${ex.ja}
+          <div class="font-japanese font-bold text-base md:text-lg text-[#0F172A] break-words whitespace-normal min-w-0">
+            ${escapeHtml(ex.ja)}
           </div>
+          <button type="button" 
+                  data-action="speak-grammar-example"
+                  data-text="${escapeHtml(ex.ja)}"
+                  class="w-8 h-8 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-100 text-[#0F172A] flex items-center justify-center transition active:scale-95 cursor-pointer shrink-0 shadow-xs"
+                  title="Nghe phát âm câu ví dụ (VOICEVOX / AI Voice)">
+            🔊
+          </button>
         </div>
-        <div class="text-xs text-[#68737D] font-mono break-words">
-          Furigana: ${ex.reading}
+        <div class="text-xs text-[#64748B] font-mono break-words">
+          Furigana: ${escapeHtml(ex.reading)}
         </div>
         <div class="text-xs md:text-sm font-semibold text-[#059669] pt-1 break-words">
-          Dịch nghĩa: ${ex.vi}
+          Dịch nghĩa: ${escapeHtml(ex.vi)}
         </div>
       </div>
     `).join('');
   } else {
     examplesHtml = `
-      <div class="p-4 bg-[#F8FAFC] border border-dashed border-[#E2E8F0] rounded-xl text-center text-xs text-[#68737D] break-words overflow-hidden">
+      <div class="p-4 bg-[#F8FAFC] border border-dashed border-[#E2E8F0] rounded-xl text-center text-xs text-[#64748B] break-words overflow-hidden">
         Đang cập nhật thêm các câu ví dụ đàm thoại thực tế cho mẫu câu này.
       </div>
     `;
@@ -426,13 +563,13 @@ function openGrammarDetail(ruleId, pushHistory = true) {
 
   container.innerHTML = `
     <!-- Header Thẻ Mẫu Câu -->
-    <div class="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm space-y-3 break-words overflow-hidden">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3 break-words overflow-hidden">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-3 min-w-0">
-          <span class="font-japanese text-3xl md:text-4xl font-bold text-[#0F2545] break-words">
+          <span class="font-japanese text-2xl sm:text-3xl font-bold text-[#0F172A] break-words">
             ${rule.pattern}
           </span>
-          <span class="text-sm text-[#68737D] font-mono italic break-words">
+          <span class="text-sm text-[#64748B] font-mono italic break-words">
             (${rule.romaji})
           </span>
         </div>
@@ -446,15 +583,15 @@ function openGrammarDetail(ruleId, pushHistory = true) {
 
       <div class="p-3.5 bg-emerald-50/60 border border-emerald-100 rounded-xl break-words overflow-hidden">
         <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-0.5">Ý nghĩa ngữ pháp:</span>
-        <p class="text-sm md:text-base font-bold text-[#0F2545] leading-relaxed break-words">
+        <p class="text-sm md:text-base font-bold text-[#0F172A] leading-relaxed break-words">
           ${rule.meaning}
         </p>
       </div>
     </div>
 
     <!-- Công Thức Kết Hợp (Formation) -->
-    <div class="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm space-y-2 break-words overflow-hidden">
-      <h4 class="font-bold text-sm md:text-base text-[#0F2545] flex items-center gap-2">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-2 break-words overflow-hidden">
+      <h4 class="font-bold text-sm md:text-base text-[#0F172A] flex items-center gap-2">
         <span class="material-symbols-outlined text-[18px] text-[#831843]">account_tree</span>
         <span>Công thức kết hợp (Formation)</span>
       </h4>
@@ -464,19 +601,19 @@ function openGrammarDetail(ruleId, pushHistory = true) {
     </div>
 
     <!-- Giải Thích & Lưu Ý (Notes) -->
-    <div class="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm space-y-2">
-      <h4 class="font-bold text-sm md:text-base text-[#0F2545] flex items-center gap-2">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-2">
+      <h4 class="font-bold text-sm md:text-base text-[#0F172A] flex items-center gap-2">
         <span class="material-symbols-outlined text-[18px] text-amber-600">info</span>
         <span>Giải thích chi tiết &amp; Lưu ý khi sử dụng</span>
       </h4>
-      <p class="text-xs md:text-sm text-[#3F4850] leading-relaxed p-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
+      <p class="text-xs md:text-sm text-[#334155] leading-relaxed p-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
         ${rule.notes}
       </p>
     </div>
 
     <!-- Các Câu Ví Dụ Đàm Thoại Thực Tế -->
-    <div class="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm space-y-3">
-      <h4 class="font-bold text-sm md:text-base text-[#0F2545] flex items-center gap-2">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3">
+      <h4 class="font-bold text-sm md:text-base text-[#0F172A] flex items-center gap-2">
         <span class="material-symbols-outlined text-[18px] text-[#059669]">forum</span>
         <span>Câu ví dụ đàm thoại thực tế</span>
       </h4>
@@ -488,24 +625,24 @@ function openGrammarDetail(ruleId, pushHistory = true) {
 
   // Khối Đặt Câu Hỏi Kiểm Tra Với Sensei AI
   const practiceBox = document.createElement('div');
-  practiceBox.className = 'bg-gradient-to-r from-[#EFF6FF] to-[#FAF8F2] border-2 border-[#006194] rounded-2xl p-5 shadow-sm space-y-3 mt-4';
+  practiceBox.className = 'bg-[#FAF8F2] border border-[#CBD5E1] rounded-xl p-3.5 sm:p-4 shadow-sm space-y-3 mt-4';
   practiceBox.innerHTML = `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="space-y-1">
-        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#006194] text-white text-[11px] font-bold">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#9F1239] text-white text-[11px] font-bold">
           <span class="material-symbols-outlined text-[14px]">psychology</span>
           <span>Luyện tập &amp; Kiểm tra ngữ pháp với AI</span>
         </div>
-        <h4 class="text-base font-bold text-[#0F2545]">
+        <h4 class="text-base font-bold text-[#0F172A]">
           Tập đặt câu &amp; Kiểm tra với mẫu "${rule.pattern}"
         </h4>
-        <p class="text-xs text-[#475569] leading-relaxed max-w-xl">
+        <p class="text-xs text-[#334155] leading-relaxed max-w-xl">
           Tự viết câu tiếng Nhật của bạn với mẫu ngữ pháp này. AI Sensei sẽ chấm điểm, bắt mạch cấu trúc câu và phân tích chi tiết bằng tiếng Việt.
         </p>
       </div>
 
       <button type="button" id="btnGoToAiWritingPractice"
-              class="px-4 py-2.5 bg-[#006194] hover:bg-[#004e77] text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm">
+              class="px-4 py-2.5 bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm">
         <span class="material-symbols-outlined text-[18px]">edit_note</span>
         <span>Đặt câu hỏi kiểm tra</span>
       </button>
@@ -533,6 +670,20 @@ function openGrammarDetail(ruleId, pushHistory = true) {
     window.location.href = `/ai-writing?pattern=${encodeURIComponent(rule.pattern)}&level=${encodeURIComponent(rule.level)}`;
   });
 
+  // Gắn sự kiện phát âm câu ví dụ
+  container.querySelectorAll('[data-action="speak-grammar-example"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const text = btn.getAttribute('data-text');
+      if (!text) return;
+      btn.classList.add('scale-110');
+      voicevoxClient.speak(text).finally(() => {
+        setTimeout(() => btn.classList.remove('scale-110'), 300);
+      });
+    });
+  });
+
   if (mainEl) {
     mainEl.scrollTop = 0;
   }
@@ -547,11 +698,25 @@ function closeGrammarDetail(fromPopState = false) {
   detailView.classList.add('hidden');
   listView.classList.remove('hidden');
 
+  if (currentFilterMode === 'jlpt') {
+    renderGrammarCards();
+    document.querySelectorAll('#jlptLevelTabs button').forEach(t => {
+      if (t.dataset.level === currentLevel) {
+        t.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer';
+      } else {
+        t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer';
+      }
+    });
+  }
+
   if (!fromPopState) {
     const u = new URL(window.location);
     const hadDetailInUrl = u.searchParams.has('detail') || u.searchParams.has('id');
     u.searchParams.delete('detail');
     u.searchParams.delete('id');
+    if (currentFilterMode === 'jlpt') {
+      u.searchParams.set('level', currentLevel);
+    }
 
     if (hadDetailInUrl && window.history.state?.grammarDetailId) {
       window.history.back();
@@ -621,7 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (b.dataset.mode === currentFilterMode) {
       b.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#831843] text-white shadow-xs';
     } else {
-      b.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold text-[#68737D] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer';
+      b.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition flex items-center gap-1.5 cursor-pointer';
     }
   });
 
@@ -640,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (t.dataset.level === currentLevel) {
       t.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer';
     } else {
-      t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer';
+      t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer';
     }
   });
 
@@ -649,7 +814,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (t.dataset.domain === currentDomain) {
       t.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0';
     } else {
-      t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1.5 shrink-0';
+      t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1.5 shrink-0';
     }
   });
 
@@ -688,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (b.dataset.mode === currentFilterMode) {
           b.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#831843] text-white shadow-xs';
         } else {
-          b.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold text-[#68737D] hover:text-[#0F2545] transition flex items-center gap-1.5 cursor-pointer';
+          b.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition flex items-center gap-1.5 cursor-pointer';
         }
       });
 
@@ -715,12 +880,13 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       e.stopPropagation();
       currentLevel = tab.dataset.level;
+      currentGrammarPage = 1;
 
       document.querySelectorAll('#jlptLevelTabs button').forEach(t => {
         if (t.dataset.level === currentLevel) {
           t.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer';
         } else {
-          t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer';
+          t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer';
         }
       });
 
@@ -735,12 +901,13 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       e.stopPropagation();
       currentDomain = tab.dataset.domain;
+      currentGrammarPage = 1;
 
       document.querySelectorAll('#domainTabs button').forEach(t => {
         if (t.dataset.domain === currentDomain) {
           t.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0';
         } else {
-          t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1.5 shrink-0';
+          t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1.5 shrink-0';
         }
       });
 
@@ -755,12 +922,13 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       e.stopPropagation();
       currentDomainLevel = tab.dataset.domainLevel;
+      currentGrammarPage = 1;
 
       document.querySelectorAll('#domainJlptTabs button').forEach(t => {
         if (t.dataset.domainLevel === currentDomainLevel) {
           t.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer flex items-center gap-1';
         } else {
-          t.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#F8FAFC] text-[#3F4850] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1';
+          t.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1';
         }
       });
 
@@ -774,6 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (searchInput) {
     searchInput.addEventListener('input', debounce((e) => {
       currentSearchKeyword = e.target.value;
+      currentGrammarPage = 1;
       renderGrammarCards();
     }, 200));
   }

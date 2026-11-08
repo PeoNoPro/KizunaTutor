@@ -1,35 +1,60 @@
 /**
  * KizunaTutor Design Tokens & Variables
- * Compliant with FRONTEND_RULES.md & DESIGN.md
+ * Standardized across all pages based on Shodo Practice Template (/shodo)
+ * Compliant with FRONTEND_RULES.md & WCAG AAA Contrast
  */
 
 :root {
+  /* --- SHODO GOLD STANDARD DESIGN TOKENS --- */
+  --color-app-bg: #F8FAFC;
+  --color-app-surface: #FFFFFF;
+  --color-app-surface-warm: #FAF8F2;
+  --color-app-muted: #F8FAFC;
+  --color-app-border: #E2E8F0;
+  --color-app-border-input: #CBD5E1;
+  --color-app-border-ink: #0F172A;
+  --color-app-primary: #0F172A;
+  --color-app-body: #334155;
+  --color-app-secondary: #64748B;
+  --color-app-berry: #831843;
+  --color-app-pink-tint: #FFE5EC;
+  --color-app-pink-border: #FBCFE8;
+  --color-app-ink: #1E293B;
+  --color-btn-primary: #9F1239;
+  --color-btn-primary-hover: #BE185D;
+  --color-app-ink-hover: #334155;
+
   /* Brand Colors */
-  --color-primary: #006194;
-  --color-primary-hover: #007BB9;
-  --color-primary-container: #007BB9;
+  --color-primary: #9F1239;
+  --color-primary-hover: #BE185D;
+  --color-primary-container: #BE185D;
   --color-secondary: #4059AA;
   --color-navy: #0F2545;
   --color-white: #FFFFFF;
 
   /* Background Colors */
-  --color-bg-page: #FCFBF7;
-  --color-bg-surface: #FAF8F2;
-  --color-bg-section: #F7F4EC;
-  --color-bg-hero: #FAF6EE;
+  --color-bg-page: #F8FAFC;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-surface-warm: #FAF8F2;
+  --color-bg-section: #F8FAFC;
+  --color-bg-hero: #FAF8F2;
+  --color-bg-pink-tint: #FFE5EC;
 
   /* Text Colors */
-  --color-text-primary: #0F2545;
-  --color-text-main: #131B2E;
-  --color-text-secondary: #3F4850;
-  --color-text-muted: #707881;
+  --color-text-primary: #0F172A;
+  --color-text-main: #334155;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #64748B;
   --color-text-white: #FFFFFF;
+  --color-text-berry: #831843;
 
   /* Border Colors */
-  --color-border-default: #E5DECB;
-  --color-border-light: #ECE8DE;
-  --color-border-input: #E2D9C6;
-  --color-border-strong: #DED7C5;
+  --color-border-default: #E2E8F0;
+  --color-border-light: #E2E8F0;
+  --color-border-input: #CBD5E1;
+  --color-border-strong: #0F172A;
+  --color-border-ink: #0F172A;
+  --color-border-pink: #FBCFE8;
 
   /* Status & Accent Colors */
   --color-amber: #D97706;
@@ -40,18 +65,28 @@
   --color-info: #0284C7;
 
   /* Typography */
-  --font-family-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-japanese: 'Noto Serif JP', serif;
   --font-family-serif: 'Noto Serif JP', serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Radius */
-  --radius-sm: 0.25rem;  /* 4px */
+  --radius-xs: 0.25rem;  /* 4px */
+  --radius-sm: 0.375rem; /* 6px */
   --radius-md: 0.5rem;   /* 8px */
   --radius-lg: 0.75rem;  /* 12px */
   --radius-xl: 1rem;     /* 16px */
+  --radius-2xl: 1.25rem; /* 20px */
   --radius-full: 9999px;
+
+  /* Shadows (Soft & Retro Brutalist Accents) */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-retro: 3px 3px 0px 0px #0F172A;
+  --shadow-retro-sm: 2px 2px 0px 0px #0F172A;
+  --shadow-retro-xs: 1px 1px 0px 0px #0F172A;
 
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-

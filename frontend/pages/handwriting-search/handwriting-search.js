@@ -177,8 +177,7 @@ function pageHwRedraw() {
 
   // Nền trắng + Lưới ô Mễ mờ nhẹ
   pageHwCtx.save();
-  pageHwCtx.fillStyle = '#FFFFFF';
-  pageHwCtx.fillRect(0, 0, w, h);
+  // Transparent to let SVG grid and warm background show through
 
   pageHwCtx.strokeStyle = '#E2E8F0';
   pageHwCtx.lineWidth = 1;
@@ -403,16 +402,16 @@ function renderPageHwCandidates(matches) {
     const kChar = m.character || m.kanjiChar || '';
 
     return `
-      <div class="p-3.5 bg-white border border-[#E2E8F0] rounded-xl hover:border-slate-300 transition flex flex-col justify-between gap-3">
+      <div class="p-3.5 bg-white border-2 border-[#0F172A] rounded-xl shadow-[3px_3px_0px_0px_#0F172A] hover:translate-x-[-1px] hover:translate-y-[-1px] transition flex flex-col justify-between gap-3">
         <div class="flex items-start justify-between gap-2">
-          <span class="text-3xl font-bold text-[#0F172A] font-serif">${escapeHtml(kChar)}</span>
+          <span class="text-3xl font-bold text-[#0F172A] font-japanese">${escapeHtml(kChar)}</span>
           <span class="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">${percent}% khớp</span>
         </div>
         <div>
           <div class="flex items-center gap-1.5 mb-1 flex-wrap">
             <span class="font-bold text-[#831843] text-sm uppercase">${escapeHtml(m.hanViet || 'HÁN TỰ')}</span>
-            <span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-medium">${m.totalStrokes || m.strokeCount ? (m.totalStrokes || m.strokeCount) + ' nét' : ''}</span>
-            <span class="px-1.5 py-0.5 rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] text-[10px] font-semibold">${escapeHtml(m.jlpt || 'N/A')}</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">${m.totalStrokes || m.strokeCount ? (m.totalStrokes || m.strokeCount) + ' nét' : ''}</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">${escapeHtml(m.jlpt || 'N/A')}</span>
           </div>
           <p class="text-xs text-slate-500 line-clamp-2 m-0 leading-relaxed" title="${escapeHtml(m.meaning || '')}">${escapeHtml(m.meaning || 'Chữ Hán tra cứu')}</p>
         </div>

@@ -3,17 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Phòng Luyện Viết Shodo Canvas AI - KizunaTutor</title>
+  <title>Phòng luyện viết Shodo Canvas AI - KizunaTutor</title>
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
 
-  <!-- Tailwind & Fonts -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
-  <!-- Single Source of Truth CSS -->
+  <!-- Tailwind & Project CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/js/shodo-tailwind-theme.js"></script>
   <link rel="stylesheet" href="/assets/css/learning-support-common.css">
   <link rel="stylesheet" href="/styles/variables.css">
   <link rel="stylesheet" href="/styles/global.css">
@@ -21,23 +22,27 @@
   <link rel="stylesheet" href="/styles/utilities.css">
 
   <style>
-    /* Bảng Canvas Shodo: Cố định kích thước chuẩn vuông, không co giãn làm méo nét vẽ */
+    /* Bảng Canvas Shodo: Cố định kích thước chuẩn vuông chống xê dịch khung */
+    .shodo-canvas-box,
     .canvas-board-wrapper {
       position: relative;
-      width: 340px;
-      max-width: 100%;
+      width: 100%;
+      max-width: 420px;
       aspect-ratio: 1 / 1;
-      background-color: var(--color-text-white);
-      border: 1px solid var(--color-border-solid);
-      border-radius: var(--radius-sm);
+      background-color: #FAF8F2;
+      border: 2px solid #0F172A;
+      border-radius: 8px;
+      box-shadow: 3px 3px 0px 0px #0F172A;
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
       touch-action: none;
-      box-shadow: 2px 2px 0px 0px var(--color-border-solid);
       flex-shrink: 0;
       margin: 0 auto;
+      user-select: none;
+      contain: layout paint;
+      will-change: transform;
     }
 
     #practiceBoard {
@@ -47,7 +52,7 @@
       height: 100%;
       cursor: crosshair;
       touch-action: none;
-      z-index: 10;
+      z-index: 20;
     }
 
     #canvasGuidelineSvg {
@@ -56,8 +61,22 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 5;
+      z-index: 10;
       will-change: stroke-dashoffset;
+      transition: opacity 0.15s ease-out;
+    }
+
+    .shodo-toolbar {
+      contain: layout;
+      box-sizing: border-box;
+    }
+
+    .shodo-toolbar button,
+    .shodo-toolbar .ls-btn {
+      box-sizing: border-box;
+      text-align: center;
+      user-select: none;
+      padding: 0 !important;
     }
 
     .ksp-anim-path {
@@ -66,13 +85,13 @@
     }
 
     .shodo-grid-line {
-      stroke: #CBD5E1;
+      stroke: #E2E8F0;
       stroke-width: 1;
       stroke-dasharray: 4 4;
     }
 
     .shodo-grid-center {
-      stroke: #94A3B8;
+      stroke: #CBD5E1;
       stroke-width: 1.2;
       stroke-dasharray: 6 4;
     }
@@ -83,26 +102,28 @@
       justify-content: center;
       width: 30px;
       height: 30px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--color-border-solid);
-      background-color: var(--color-text-white);
-      font-size: var(--text-xs);
-      font-weight: 700;
+      border-radius: 8px;
+      border: 1px solid #CBD5E1;
+      background-color: #FFFFFF;
+      font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
-      box-shadow: 1px 1px 0px 0px var(--color-border-solid);
-      transition: var(--duration-fast);
+      transition: all 150ms ease;
+      color: #1E293B;
     }
     .stroke-step-badge:hover {
-      background-color: var(--color-bg-amber);
+      background-color: #F8FAFC;
+      border-color: #94A3B8;
     }
     .stroke-step-badge.active {
-      background-color: var(--color-accent-pink) !important;
-      color: var(--color-text-white) !important;
+      background-color: #FFE5EC !important;
+      color: #831843 !important;
+      border-color: #FBCFE8 !important;
     }
   </style>
 </head>
-<body class="learning-support-body antialiased selection:bg-[#E0399A] selection:text-white">
-  <div class="flex h-screen overflow-hidden">
+<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
+  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
 
     <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
     <div id="learnerSidebarContainer"></div>
@@ -114,205 +135,194 @@
       <div id="learnerHeaderContainer"></div>
 
       <!-- Scrollable Main Container -->
-      <main class="flex-1 overflow-y-auto p-3 sm:p-4 w-full max-w-6xl mx-auto space-y-4">
-        
-        <!-- Main Layout: 2 Columns (Canvas Area 5/12 + Details & Tools 7/12) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start w-full min-w-0">
-          
-          <!-- ==================== CỘT 1: KHUNG VẼ CANVAS Ô MỄ ==================== -->
-          <div class="lg:col-span-5 ls-card flex flex-col items-center space-y-3 min-w-0 w-full">
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-6xl mx-auto">
+        <div class="space-y-3">
+
+          <!-- Main Layout: 2 Columns (Canvas Area 5/12 + Details & Tools 7/12) -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start w-full min-w-0">
             
-            <!-- Thông tin chữ đang chọn trên Canvas -->
-            <div class="w-full flex items-center justify-between pb-2 border-b border-[#0F172A]/20">
-              <div class="flex items-center gap-2">
-                <span class="ls-badge ls-badge-jlpt">Kanji</span>
-                <span id="canvasActiveChar" class="text-2xl font-bold text-[#0F172A] font-serif leading-none">—</span>
-                <span id="canvasActiveHanViet" class="text-xs font-semibold text-[#707881]">(Chưa chọn chữ)</span>
-              </div>
-
-              <div class="flex items-center gap-1.5">
-                <span id="strokeCountBadge" class="ls-badge bg-[#FEF3C7] text-[#0F172A]">
-                  0 nét
-                </span>
-              </div>
-            </div>
-
-            <!-- Khung Canvas Ô Mễ Tỷ Lệ 1:1 Cố Định Chống Reflow -->
-            <div class="shodo-canvas-box canvas-board-wrapper relative w-full max-w-[420px] aspect-square mx-auto bg-[#FAF8F2] border-2 border-[#0F172A] rounded-[8px] shadow-[3px_3px_0px_0px_#0F172A] overflow-hidden select-none" id="canvasWrapper">
-              <!-- Lưới Ô Mễ SVG tĩnh (Background) -->
-              <svg class="absolute inset-0 w-full h-full pointer-events-none select-none z-0" viewBox="0 0 300 300">
-                <line x1="0" y1="0" x2="300" y2="300" class="shodo-grid-line" />
-                <line x1="300" y1="0" x2="0" y2="300" class="shodo-grid-line" />
-                <line x1="150" y1="0" x2="150" y2="300" class="shodo-grid-center" />
-                <line x1="0" y1="150" x2="300" y2="150" class="shodo-grid-center" />
-              </svg>
-
-              <!-- Lớp SVG Nét Hoạt Ảnh Bút Thuận & Guideline (Layer 2) -->
-              <svg id="canvasGuidelineSvg" class="absolute inset-0 w-full h-full pointer-events-none z-10 transition-opacity duration-150" viewBox="0 0 109 109"></svg>
-
-              <!-- Lớp Canvas 2D Học Viên Vẽ Tay (Layer 3) -->
-              <canvas id="practiceBoard" class="absolute inset-0 w-full h-full z-20 cursor-crosshair touch-none"></canvas>
-            </div>
-
-            <!-- Thanh Công Cụ Điều Khiển Nét Vẽ (Toolbar Cùng 1 Hàng Gọn Gàng) -->
-            <div class="shodo-toolbar w-full grid grid-cols-4 gap-1.5 p-1.5 bg-white border border-[#0F172A] rounded-[6px] shadow-[2px_2px_0px_0px_#0F172A]">
-              <button type="button" id="btnPlayStroke" data-action="play-stroke"
-                      class="ls-btn ls-btn-default w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
-                      title="Phát hoạt ảnh mô phỏng thứ tự từng nét chuẩn">
-                <span class="icon text-[11px] shrink-0">▷</span>
-                <span class="label whitespace-nowrap">Phát nét</span>
-              </button>
-
-              <button type="button" id="btnToggleGuide" data-action="toggle-ghost"
-                      class="ls-btn ls-btn-default is-active bg-[#FFE5EC] text-[#831843] w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
-                      title="Nhấn để ẩn nét mờ hướng dẫn">
-                <span class="icon text-[11px] shrink-0">👁️</span>
-                <span class="label whitespace-nowrap">Ẩn nét mờ</span>
-              </button>
-
-              <button type="button" id="btnUndoStroke" 
-                      class="ls-btn ls-btn-default w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
-                      title="Quay lại một nét vừa vẽ">
-                <span class="icon text-[11px] shrink-0">↩️</span>
-                <span class="label whitespace-nowrap">Hoàn tác</span>
-              </button>
-
-              <button type="button" id="btnClearBoard" 
-                      class="ls-btn ls-btn-danger w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
-                      title="Xóa trắng bảng vẽ để luyện lại từ đầu">
-                <span class="icon text-[11px] shrink-0">🗑️</span>
-                <span class="label whitespace-nowrap">Xóa hết</span>
-              </button>
-            </div>
-
-            <!-- Nút Chấm Điểm AI Sensei -->
-          </div>
-
-          <!-- ==================== CỘT 2: CHI TIẾT HÁN TỰ & CÔNG CỤ ==================== -->
-          <div class="lg:col-span-7 space-y-4 min-w-0 w-full">
-            
-            <!-- Hộp Tìm / Đổi Chữ Nhanh -->
-            <div class="ls-card space-y-2">
-              <label for="inputQuickChar" class="block text-xs font-bold text-[#0F172A] uppercase tracking-wider">
-                Luyện viết chữ Hán bất kỳ:
-              </label>
-              <div class="flex items-center gap-2">
-                <input type="text" id="inputQuickChar" placeholder="Nhập một chữ Hán (ví dụ: 心, 道, 学, 和, 絆...)" 
-                       maxlength="5"
-                       class="ls-input flex-1">
-                <button type="button" id="btnLoadChar" class="ls-btn ls-btn-primary">
-                  Nạp Chữ
-                </button>
-              </div>
-            </div>
-
-            <!-- Bảng Chi Tiết Thông Tin Chữ Hán -->
-            <div class="ls-card space-y-3">
-              <div class="flex items-center justify-between border-b border-[#0F172A]/20 pb-2.5 flex-wrap gap-2">
-                <h3 class="font-bold text-sm text-[#0F172A] flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-[18px] text-[#006194]">menu_book</span>
-                  <span>Thông Tin Tra Cứu Chữ Hán</span>
-                </h3>
-                <div class="flex items-center gap-1.5">
-                  <span id="kanjiJlptLevel" class="ls-badge ls-badge-jlpt">
-                    Chưa chọn chữ
+            <!-- ==================== CỘT 1: KHUNG VẼ CANVAS Ô MỄ ==================== -->
+            <div class="lg:col-span-5 bg-white border-2 border-[#0F172A] rounded-xl p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0F172A] flex flex-col items-center space-y-3 min-w-0 w-full">
+              
+              <!-- Thông tin chữ đang chọn trên Canvas -->
+              <div class="w-full flex items-center justify-between pb-2.5 border-b border-[#E2E8F0]">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
+                    Kanji
                   </span>
-                  <span id="kanjiStrokeBadge" class="ls-badge bg-[#FEF3C7] text-[#0F172A]">
+                  <span id="canvasActiveChar" class="text-2xl font-bold text-[#0F172A] font-japanese leading-none">—</span>
+                  <span id="canvasActiveHanViet" class="text-xs font-semibold text-slate-500">(Chưa chọn chữ)</span>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                  <span id="strokeCountBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                     0 nét
                   </span>
-                  <!-- Alias ID cho test suite -->
-                  <span id="kanjiJlptBadge" class="hidden"></span>
-                  <span id="kanjiDisplayChar" class="hidden"></span>
                 </div>
               </div>
 
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                <div class="p-2.5 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px]">
-                  <div class="text-[10px] text-[#707881] font-semibold">Âm Hán Việt</div>
-                  <div id="detailHanViet" class="font-bold text-sm text-[#831843] mt-0.5 uppercase tracking-wide">—</div>
-                  <span id="kanjiHanViet" class="hidden"></span>
-                  <span id="panelHanViet" class="hidden"></span>
-                </div>
-                <div class="p-2.5 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px]">
-                  <div class="text-[10px] text-[#707881] font-semibold">Bộ thủ chính</div>
-                  <div id="detailRadical" class="font-bold text-sm text-[#0F172A] mt-0.5 font-serif">—</div>
-                  <span id="kanjiRadical" class="hidden"></span>
-                  <span id="panelRadical" class="hidden"></span>
-                </div>
-                <div class="p-2.5 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px] col-span-2 sm:col-span-1">
-                  <div class="text-[10px] text-[#707881] font-semibold">Số nét chuẩn</div>
-                  <div id="detailStrokeCount" class="font-bold text-sm text-[#0F172A] mt-0.5 font-mono">—</div>
-                  <span id="panelStrokeCount" class="hidden"></span>
-                </div>
-                <div class="p-2.5 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px]">
-                  <div class="text-[10px] text-[#707881] font-semibold">Âm Onyomi</div>
-                  <div id="detailOnyomi" class="font-bold text-xs text-[#006194] mt-0.5 font-mono">—</div>
-                  <span id="kanjiOnyomi" class="hidden"></span>
-                  <span id="panelOnyomi" class="hidden"></span>
-                </div>
-                <div class="p-2.5 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px] col-span-2">
-                  <div class="text-[10px] text-[#707881] font-semibold">Âm Kunyomi</div>
-                  <div id="detailKunyomi" class="font-bold text-xs text-[#831843] mt-0.5 font-mono">—</div>
-                  <span id="kanjiKunyomi" class="hidden"></span>
-                  <span id="panelKunyomi" class="hidden"></span>
-                </div>
+              <!-- Khung Canvas Ô Mễ Tỷ Lệ 1:1 Cố Định Chống Reflow -->
+              <div class="shodo-canvas-box canvas-board-wrapper relative w-full max-w-[420px] aspect-square mx-auto bg-[#FAF8F2] border-2 border-[#0F172A] rounded-[8px] shadow-[3px_3px_0px_0px_#0F172A] overflow-hidden select-none" id="canvasWrapper">
+                <!-- Lớp 1: Lưới kẻ Mễ tự (Cố định nền) -->
+                <svg class="absolute inset-0 w-full h-full pointer-events-none select-none z-0" viewBox="0 0 300 300">
+                  <line x1="0" y1="0" x2="300" y2="300" class="shodo-grid-line" />
+                  <line x1="300" y1="0" x2="0" y2="300" class="shodo-grid-line" />
+                  <line x1="150" y1="0" x2="150" y2="300" class="shodo-grid-center" />
+                  <line x1="0" y1="150" x2="300" y2="150" class="shodo-grid-center" />
+                </svg>
+
+                <!-- Lớp 2: Lớp SVG Nét Hoạt Ảnh Bút Thuận & Guideline (Layer 2) -->
+                <svg id="canvasGuidelineSvg" class="absolute inset-0 w-full h-full pointer-events-none z-10 transition-opacity duration-150" viewBox="0 0 109 109"></svg>
+
+                <!-- Lớp 3: Canvas 2D Học Viên Vẽ Tay (Layer 3) -->
+                <canvas id="practiceBoard" class="absolute inset-0 w-full h-full z-20 cursor-crosshair touch-none"></canvas>
               </div>
 
-              <!-- Khối giải nghĩa đầy đủ không bị cắt cụt -->
-              <div class="p-2.5 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px]">
-                <div class="text-[10px] text-[#707881] font-semibold mb-1">Nghĩa tiếng Việt chi tiết:</div>
-                <p id="detailMeaning" class="text-xs text-[#0F172A] leading-relaxed font-sans m-0 font-medium">—</p>
-                <span id="kanjiMeaning" class="hidden"></span>
-                <span id="panelMeaning" class="hidden"></span>
+              <!-- Thanh Công Cụ Điều Khiển Nét Vẽ (Toolbar Cùng 1 Hàng Gọn Gàng) -->
+              <div class="shodo-toolbar w-full grid grid-cols-4 gap-1.5 p-1.5 bg-white border border-[#0F172A] rounded-[6px] shadow-[2px_2px_0px_0px_#0F172A]">
+                <!-- Nút Phát nét -->
+                <button type="button" id="btnPlayStroke" data-action="play-stroke"
+                        class="ls-btn ls-btn-default w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
+                        title="Phát hoạt ảnh mô phỏng thứ tự từng nét chuẩn">
+                  <span class="icon text-[11px] shrink-0">▷</span>
+                  <span class="label whitespace-nowrap">Phát nét</span>
+                </button>
+
+                <!-- Nút Ẩn/Hiện nét mờ -->
+                <button type="button" id="btnToggleGuide" data-action="toggle-ghost"
+                        class="ls-btn ls-btn-default is-active bg-[#FFE5EC] text-[#831843] w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
+                        title="Nhấn để ẩn nét mờ hướng dẫn (tự nhớ mặt chữ để vẽ)">
+                  <span class="icon text-[11px] shrink-0">👁️</span>
+                  <span class="label whitespace-nowrap">Ẩn nét mờ</span>
+                </button>
+
+                <!-- Nút Hoàn tác -->
+                <button type="button" id="btnUndoStroke" 
+                        class="ls-btn ls-btn-default w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
+                        title="Quay lại một nét vừa vẽ">
+                  <span class="icon text-[11px] shrink-0">↩️</span>
+                  <span class="label whitespace-nowrap">Hoàn tác</span>
+                </button>
+
+                <!-- Nút Xóa hết -->
+                <button type="button" id="btnClearBoard" 
+                        class="ls-btn ls-btn-danger w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
+                        title="Xóa trắng bảng vẽ để luyện lại từ đầu">
+                  <span class="icon text-[11px] shrink-0">🗑️</span>
+                  <span class="label whitespace-nowrap">Xóa hết</span>
+                </button>
               </div>
 
-              <!-- Khay Xem Từng Nét Riêng Biệt (Step By Step Strokes) -->
-              <div class="space-y-2 pt-1">
-                <div class="flex items-center justify-between text-xs font-semibold text-[#0F172A]">
-                  <span>Thứ tự nét (nhấn số nét để xem riêng nét):</span>
-                  <span id="activeStrokeLabel" class="text-[#006194] font-bold">Tất cả nét</span>
-                </div>
-                <div class="flex items-center gap-1.5 flex-wrap" id="strokeStepsContainer">
-                  <!-- Render tự động bởi shodo-practice.js -->
-                </div>
-              </div>
+              <!-- Nút Chấm Điểm AI Sensei -->
             </div>
 
+            <!-- ==================== CỘT 2: CHI TIẾT HÁN TỰ & CÔNG CỤ ==================== -->
+            <div class="lg:col-span-7 space-y-3 min-w-0 w-full">
+              
+              <!-- Hộp Tìm / Đổi Chữ Nhanh -->
+              <div class="bg-white border-2 border-[#0F172A] rounded-xl p-4 shadow-[3px_3px_0px_0px_#0F172A]">
+                <div>
+                  <label for="inputQuickChar" class="block text-xs font-semibold text-[#1E293B] mb-1">
+                    Luyện viết chữ Hán bất kỳ:
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input type="text" id="inputQuickChar" placeholder="Nhập chữ Hán (ví dụ: 心, 道, 学, 和, 絆...)" 
+                           maxlength="5"
+                           class="flex-1 px-3 py-1.5 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
+                    <button type="button" id="btnLoadChar" 
+                            class="px-3.5 py-1.5 font-semibold text-xs bg-[#9F1239] hover:bg-[#BE185D] text-white rounded-lg transition cursor-pointer">
+                      Nạp chữ
+                    </button>
+                  </div>
+                </div>
+              </div>
 
+              <!-- Bảng Chi Tiết Thông Tin Chữ Hán -->
+              <div class="bg-white border-2 border-[#0F172A] rounded-xl p-4 sm:p-5 space-y-3 shadow-[3px_3px_0px_0px_#0F172A]">
+                <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2.5 flex-wrap gap-2">
+                  <h3 class="font-bold text-sm text-[#0F172A] flex items-center gap-2">
+                    <span>📖</span>
+                    <span>Thông tin tra cứu chữ Hán</span>
+                  </h3>
+                  <div class="flex items-center gap-2">
+                    <span id="kanjiJlptLevel" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
+                      Chưa chọn chữ
+                    </span>
+                    <span id="kanjiStrokeBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                      0 nét
+                    </span>
+                    <button type="button" id="btnShodoSaveDeck"
+                            class="py-1 px-2.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs"
+                            title="Cất chữ Hán đang luyện vào bộ thẻ Flashcards">
+                      <span>📁</span> Cất Vào Thẻ
+                    </button>
+                    <span id="kanjiJlptBadge" class="hidden"></span>
+                    <span id="kanjiDisplayChar" class="hidden"></span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  <div class="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg">
+                    <div class="text-[10px] text-slate-500 font-medium">Âm Hán Việt</div>
+                    <div id="detailHanViet" class="font-bold text-sm text-[#831843] mt-0.5 uppercase tracking-wide">—</div>
+                    <span id="kanjiHanViet" class="hidden"></span>
+                    <span id="panelHanViet" class="hidden"></span>
+                  </div>
+                  <div class="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg">
+                    <div class="text-[10px] text-slate-500 font-medium">Bộ thủ chính</div>
+                    <div id="detailRadical" class="font-bold text-sm text-[#0F172A] mt-0.5 font-japanese">—</div>
+                    <span id="kanjiRadical" class="hidden"></span>
+                    <span id="panelRadical" class="hidden"></span>
+                  </div>
+                  <div class="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg col-span-2 sm:col-span-1">
+                    <div class="text-[10px] text-slate-500 font-medium">Số nét chuẩn</div>
+                    <div id="detailStrokeCount" class="font-bold text-sm text-[#0F172A] mt-0.5 font-mono">—</div>
+                    <span id="panelStrokeCount" class="hidden"></span>
+                  </div>
+                  <div class="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg">
+                    <div class="text-[10px] text-slate-500 font-medium">Âm Onyomi</div>
+                    <div id="detailOnyomi" class="font-bold text-xs text-slate-800 mt-0.5 font-mono">—</div>
+                    <span id="kanjiOnyomi" class="hidden"></span>
+                    <span id="panelOnyomi" class="hidden"></span>
+                  </div>
+                  <div class="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg col-span-2">
+                    <div class="text-[10px] text-slate-500 font-medium">Âm Kunyomi</div>
+                    <div id="detailKunyomi" class="font-bold text-xs text-[#831843] mt-0.5 font-mono">—</div>
+                    <span id="kanjiKunyomi" class="hidden"></span>
+                    <span id="panelKunyomi" class="hidden"></span>
+                  </div>
+                </div>
+
+                <!-- Khối giải nghĩa -->
+                <div class="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg">
+                  <div class="text-[10px] text-slate-500 font-medium mb-0.5">Nghĩa tiếng Việt chi tiết:</div>
+                  <p id="detailMeaning" class="text-xs text-[#0F172A] leading-relaxed font-sans m-0 font-medium">—</p>
+                  <span id="kanjiMeaning" class="hidden"></span>
+                  <span id="panelMeaning" class="hidden"></span>
+                </div>
+
+                <!-- Khay Xem Từng Nét Riêng Biệt -->
+                <div class="space-y-1.5 pt-1">
+                  <div class="flex items-center justify-between text-xs font-semibold text-[#1E293B]">
+                    <span>Thứ tự các nét (nhấn vào số nét để xem riêng):</span>
+                    <span id="activeStrokeLabel" class="text-[#831843] font-bold">Tất cả nét</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-wrap" id="strokeStepsContainer">
+                    <!-- Render tự động bởi shodo-practice.js -->
+                  </div>
+                </div>
+              </div>
+
+
+            </div>
           </div>
-        </div>
 
-        <div id="learnerFooterContainer"></div>
+          <!-- FOOTER DÙNG CHUNG -->
+          <footer class="mt-6 pt-3 pb-3 border-t border-[#0F172A]/10 text-center text-xs text-slate-500">
+            KizunaTutor &copy; 2026 &bull; Đồng hành cùng bạn trên từng nét bút Shodo 🌸
+          </footer>
+        </div>
       </main>
-    </div>
-  </div>
-
-  <!-- ==================== MODAL CẤT VÀO BỘ THẺ ==================== -->
-  <div id="modalAddToDeck" style="display: none;" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="ls-card max-w-sm w-full p-5 space-y-3 text-xs">
-      <div class="flex items-center justify-between pb-2 border-b border-[#0F172A]/20">
-        <h3 class="text-sm font-bold text-[#0F172A]">Cất Chữ Vào Bộ Thẻ Cá Nhân</h3>
-        <button type="button" id="btnCloseDeckModal" class="text-[#707881] hover:text-[#0F172A] font-bold p-1 text-sm transition cursor-pointer">✕</button>
-      </div>
-
-      <div class="text-center py-3 bg-[#FEF3C7] border border-[#0F172A] rounded-[6px]">
-        <div id="modalDeckChar" class="font-serif text-4xl font-extrabold text-[#831843]">未</div>
-        <div id="modalDeckHanViet" class="text-xs font-bold text-[#0F172A] mt-1 uppercase tracking-wider">VỊ</div>
-      </div>
-
-      <form id="formSaveToDeck" class="space-y-3">
-        <input type="hidden" id="modalDeckCharInput">
-        <div>
-          <label class="block font-bold text-[#0F172A] mb-1">Chọn Thư Mục / Bộ Thẻ:</label>
-          <select id="modalDeckSelect" class="ls-input w-full">
-            <option value="">Đang tải danh sách bộ thẻ...</option>
-          </select>
-        </div>
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#0F172A]/20">
-          <button type="button" id="btnCancelDeckModal" class="ls-btn ls-btn-default">Hủy Bỏ</button>
-          <button type="submit" id="btnConfirmSaveDeck" class="ls-btn ls-btn-primary">Cất Vào Thẻ</button>
-        </div>
-      </form>
     </div>
   </div>
 

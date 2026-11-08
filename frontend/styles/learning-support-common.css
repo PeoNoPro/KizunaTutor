@@ -49,7 +49,7 @@
   /* --- TYPOGRAPHY SCALE --- */
   --font-family-sans: ui-sans-serif, -apple-system, Segoe UI, system-ui, sans-serif;
   --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-family-serif: "Times New Roman", Times, serif;
+  --font-family-serif: "Noto Serif JP", serif;
 
   --font-size-xs: 11px;                 /* Captions, metadata, Furigana */
   --font-size-sm: 13px;                 /* Labels, phụ đề, nút nhỏ */
@@ -160,11 +160,11 @@ body.learning-support-body {
 
 /* Nút chính (Sensei Primary) */
 .ls-btn-primary {
-  background-color: var(--color-primary);
+  background-color: #9F1239;
   color: var(--color-text-white) !important;
 }
 .ls-btn-primary:hover {
-  background-color: var(--color-primary-container);
+  background-color: #BE185D;
 }
 
 /* Nút Shodo (Xanh nét bút) */
@@ -198,7 +198,7 @@ body.learning-support-body {
 /* Nút Xóa / Nguy hiểm */
 .ls-btn-danger {
   background-color: #FFF1F2;
-  border-color: #FECDD3;
+  border-color: #FBCFE8;
   color: var(--color-error) !important;
 }
 .ls-btn-danger:hover {

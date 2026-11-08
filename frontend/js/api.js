@@ -423,6 +423,32 @@ export const API = {
         console.error(`API.trialBookings.cancel(${bookingId}) error:`, err);
         throw err;
       }
+    },
+    /** Đổi lịch / dời lịch học thử sang khung giờ mới (SRS 5.3) */
+    async reschedule(bookingId, payload) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      try {
+        const response = await fetch(`${API_BASE_URL}/v1/trial-bookings/${bookingId}/reschedule`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(10000)
+        });
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+          err.status = response.status;
+          throw err;
+        }
+        return resData.data || resData;
+      } catch (err) {
+        console.error(`API.trialBookings.reschedule(${bookingId}) error:`, err);
+        throw err;
+      }
     }
   },
   tutorSchedule: {

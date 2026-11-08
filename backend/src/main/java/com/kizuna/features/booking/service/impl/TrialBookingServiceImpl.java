@@ -11,6 +11,7 @@ import com.kizuna.core.repository.TutorRepository;
 import com.kizuna.core.repository.UserRepository;
 import com.kizuna.features.booking.dto.request.CancelTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.request.CreateTrialBookingRequestDTO;
+import com.kizuna.features.booking.dto.request.RescheduleTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.request.RespondTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.response.TrialBookingResponseDTO;
 import com.kizuna.features.booking.entity.*;
@@ -417,6 +418,107 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         trialBookingHistoryRepository.save(history);
 
         log.info("User {} cancelled booking {}", user.getEmail(), bookingId);
+        return mapToDTO(trialBooking, user);
+    }
+
+    @Override
+    @Transactional
+    public TrialBookingResponseDTO rescheduleTrialBooking(String userEmail, UUID bookingId, RescheduleTrialBookingRequestDTO request) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản"));
+
+        TrialBooking trialBooking = trialBookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học thử"));
+
+        boolean isLearner = trialBooking.getLearner().getUser().getUserId().equals(user.getUserId());
+        boolean isTutor = trialBooking.getTutor().getUser().getUserId().equals(user.getUserId());
+
+        if (!isLearner && !isTutor) {
+            throw new AccessDeniedException("Bạn không có quyền dời lịch buổi học thử này");
+        }
+
+        // Chỉ cho đổi lịch khi đang ở trạng thái PENDING hoặc CONFIRMED
+        if (trialBooking.getBookingStatus() != TrialBookingStatus.PENDING &&
+            trialBooking.getBookingStatus() != TrialBookingStatus.CONFIRMED) {
+            throw new BadRequestException("Chỉ có thể đổi lịch cho buổi học thử đang chờ xác nhận hoặc đã xác nhận");
+        }
+
+        // Quy định đổi lịch: Buổi học CONFIRMED phải dời trước giờ học ít nhất 24 giờ (SRS 5.3 AF-1)
+        if (trialBooking.getBookingStatus() == TrialBookingStatus.CONFIRMED) {
+            OffsetDateTime now = OffsetDateTime.now();
+            if (now.plusHours(24).isAfter(trialBooking.getScheduledStartTime())) {
+                throw new BadRequestException("Theo quy định, bạn chỉ có thể đổi lịch buổi học đã xác nhận trước giờ học ít nhất 24 giờ. Vui lòng hủy lịch nếu không thể tham dự.");
+            }
+        }
+
+        OffsetDateTime newStartTime = request.getNewScheduledStartTime();
+        if (newStartTime == null || newStartTime.isBefore(OffsetDateTime.now())) {
+            throw new BadRequestException("Thời gian dời lịch học phải ở tương lai.");
+        }
+
+        int durationMinutes = 25;
+        if (trialBooking.getScheduledStartTime() != null && trialBooking.getScheduledEndTime() != null) {
+            long diff = Duration.between(trialBooking.getScheduledStartTime(), trialBooking.getScheduledEndTime()).toMinutes();
+            if (diff > 0) {
+                durationMinutes = (int) diff;
+            }
+        }
+        OffsetDateTime newEndTime = newStartTime.plusMinutes(durationMinutes);
+
+        // Chuyển sang múi giờ Việt Nam (+07:00) để kiểm tra ca rảnh của gia sư
+        ZonedDateTime vnStartTime = newStartTime.atZoneSameInstant(VN_ZONE);
+        ZonedDateTime vnEndTime = newEndTime.atZoneSameInstant(VN_ZONE);
+        int dayOfWeek = (vnStartTime.getDayOfWeek().getValue() % 7) + 1;
+        LocalTime localStartTime = vnStartTime.toLocalTime();
+        LocalTime localEndTime = vnEndTime.toLocalTime();
+
+        Tutor tutor = trialBooking.getTutor();
+        if (tutorScheduleService != null && tutorScheduleService.hasActiveAvailabilities(tutor.getTutorId())) {
+            boolean isSlotAvailable = tutorScheduleService.isSlotAvailable(
+                    tutor.getTutorId(), dayOfWeek, localStartTime, localEndTime);
+            if (!isSlotAvailable) {
+                throw new BadRequestException("Gia sư không có lịch rảnh vào khung giờ mới này. Vui lòng chọn khung giờ khác.");
+            }
+        }
+
+        // Khóa đồng thời cấp database (Concurrency Lock)
+        long tutorLockKey = Math.abs(tutor.getTutorId().getMostSignificantBits());
+        jdbcTemplate.execute("SELECT pg_advisory_xact_lock(" + tutorLockKey + ")");
+
+        // Kiểm tra trùng lịch gia sư (loại trừ chính booking này)
+        boolean tutorOverlaps = trialBookingRepository.existsOverlappingBookingExcludingId(
+                tutor.getTutorId(), bookingId, newStartTime, newEndTime);
+        if (tutorOverlaps) {
+            throw new ConflictException("Gia sư đã có một lịch hẹn học thử khác vào khung giờ mới này. Vui lòng chọn khung giờ khác.");
+        }
+
+        // Kiểm tra trùng lịch học viên (loại trừ chính booking này)
+        boolean learnerOverlaps = trialBookingRepository.existsOverlappingLearnerBookingExcludingId(
+                trialBooking.getLearner().getLearnerId(), bookingId, newStartTime, newEndTime);
+        if (learnerOverlaps) {
+            throw new ConflictException("Bạn đã có một lịch hẹn học thử khác vào khung giờ mới này. Vui lòng chọn khung giờ khác.");
+        }
+
+        TrialBookingStatus prevStatus = trialBooking.getBookingStatus();
+        trialBooking.setScheduledStartTime(newStartTime);
+        trialBooking.setScheduledEndTime(newEndTime);
+        trialBooking.setBookingStatus(TrialBookingStatus.RESCHEDULED);
+
+        trialBooking = trialBookingRepository.save(trialBooking);
+
+        String reason = (request.getRescheduleReason() != null && !request.getRescheduleReason().isBlank())
+                ? request.getRescheduleReason()
+                : "Người dùng yêu cầu đổi lịch học";
+        TrialBookingHistory history = TrialBookingHistory.builder()
+                .trialBooking(trialBooking)
+                .changedByUser(user)
+                .previousStatus(prevStatus)
+                .newStatus(TrialBookingStatus.RESCHEDULED)
+                .changeReason("Dời lịch học sang " + newStartTime + ". Lý do: " + reason)
+                .build();
+        trialBookingHistoryRepository.save(history);
+
+        log.info("User {} rescheduled booking {} to {}", user.getEmail(), bookingId, newStartTime);
         return mapToDTO(trialBooking, user);
     }
 

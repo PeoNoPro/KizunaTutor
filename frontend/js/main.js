@@ -153,7 +153,10 @@ export function applyUserUI(user) {
   if (isTutor && !displayName.toLowerCase().startsWith('sensei')) {
     displayName = 'Sensei ' + displayName;
   }
-  const subtitle = user.subtitle || (isTutor ? 'Gia sư • JLPT N1' : 'Học viên');
+  let subtitle = user.subtitle || (isTutor ? 'Gia sư • JLPT N1' : 'Học viên');
+  if (subtitle) {
+    subtitle = subtitle.replace(/\s*•\s*Mục tiêu.*$/i, '').trim();
+  }
   const initials = user.initialLetters || (displayName ? displayName.slice(0, 2).toUpperCase() : 'KZ');
 
   // Desktop Profile Pill

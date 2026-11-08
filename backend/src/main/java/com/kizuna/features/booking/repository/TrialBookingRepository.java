@@ -36,6 +36,30 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
             @Param("newStartTime") OffsetDateTime newStartTime,
             @Param("newEndTime") OffsetDateTime newEndTime);
 
+    @Query("SELECT COUNT(tb) > 0 FROM TrialBooking tb " +
+           "WHERE tb.tutor.tutorId = :tutorId " +
+           "AND tb.bookingId <> :excludeBookingId " +
+           "AND tb.bookingStatus IN ('PENDING', 'CONFIRMED') " +
+           "AND tb.scheduledStartTime < :newEndTime " +
+           "AND tb.scheduledEndTime > :newStartTime")
+    boolean existsOverlappingBookingExcludingId(
+            @Param("tutorId") UUID tutorId,
+            @Param("excludeBookingId") UUID excludeBookingId,
+            @Param("newStartTime") OffsetDateTime newStartTime,
+            @Param("newEndTime") OffsetDateTime newEndTime);
+
+    @Query("SELECT COUNT(tb) > 0 FROM TrialBooking tb " +
+           "WHERE tb.learner.learnerId = :learnerId " +
+           "AND tb.bookingId <> :excludeBookingId " +
+           "AND tb.bookingStatus IN ('PENDING', 'CONFIRMED') " +
+           "AND tb.scheduledStartTime < :newEndTime " +
+           "AND tb.scheduledEndTime > :newStartTime")
+    boolean existsOverlappingLearnerBookingExcludingId(
+            @Param("learnerId") UUID learnerId,
+            @Param("excludeBookingId") UUID excludeBookingId,
+            @Param("newStartTime") OffsetDateTime newStartTime,
+            @Param("newEndTime") OffsetDateTime newEndTime);
+
     Page<TrialBooking> findByLearnerLearnerIdAndBookingStatus(UUID learnerId, TrialBookingStatus status, Pageable pageable);
 
     Page<TrialBooking> findByLearnerLearnerId(UUID learnerId, Pageable pageable);
@@ -45,5 +69,7 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
     Page<TrialBooking> findByTutorTutorId(UUID tutorId, Pageable pageable);
 
     List<TrialBooking> findByTutorTutorIdAndBookingStatusIn(UUID tutorId, List<TrialBookingStatus> statuses);
+
+    List<TrialBooking> findByBookingStatusInAndScheduledEndTimeBefore(List<TrialBookingStatus> statuses, OffsetDateTime time);
 }
 

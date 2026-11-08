@@ -4,6 +4,7 @@ import com.kizuna.core.dto.ApiResponse;
 import com.kizuna.core.entity.User;
 import com.kizuna.features.booking.dto.request.CancelTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.request.CreateTrialBookingRequestDTO;
+import com.kizuna.features.booking.dto.request.RescheduleTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.request.RespondTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.response.TrialBookingResponseDTO;
 import com.kizuna.features.booking.service.TrialBookingService;
@@ -95,6 +96,38 @@ public class TrialBookingController {
         String userEmail = getAuthenticatedEmail(principal);
         TrialBookingResponseDTO response = trialBookingService.cancelTrialBooking(userEmail, bookingId, requestDto);
         return ResponseEntity.ok(ApiResponse.ok("Đã hủy lịch học thử thành công", response));
+    }
+
+    @PutMapping("/{bookingId}/reschedule")
+    @PreAuthorize("hasAnyAuthority('ROLE_LEARNER', 'ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> rescheduleTrialBooking(
+            @PathVariable UUID bookingId,
+            @Valid @RequestBody RescheduleTrialBookingRequestDTO requestDto,
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
+        TrialBookingResponseDTO response = trialBookingService.rescheduleTrialBooking(userEmail, bookingId, requestDto);
+        return ResponseEntity.ok(ApiResponse.ok("Đã dời lịch học thử thành công", response));
+    }
+
+    @PutMapping("/{bookingId}/complete")
+    @PreAuthorize("hasAnyAuthority('ROLE_LEARNER', 'ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> completeTrialBooking(
+            @PathVariable UUID bookingId,
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
+        TrialBookingResponseDTO response = trialBookingService.completeTrialBooking(userEmail, bookingId);
+        return ResponseEntity.ok(ApiResponse.ok("Đã xác nhận hoàn thành buổi học thử thành công", response));
+    }
+
+    @PostMapping("/schedule-lesson")
+    @PreAuthorize("hasAuthority('ROLE_TUTOR')")
+    public ResponseEntity<ApiResponse<TrialBookingResponseDTO>> scheduleLessonByTutor(
+            @Valid @RequestBody com.kizuna.features.booking.dto.request.TutorScheduleLessonRequestDTO requestDto,
+            Principal principal) {
+        String userEmail = getAuthenticatedEmail(principal);
+        TrialBookingResponseDTO response = trialBookingService.scheduleLessonByTutor(userEmail, requestDto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Đã lên lịch buổi học cho học viên thành công", response));
     }
 
     private String getAuthenticatedEmail(Principal principal) {

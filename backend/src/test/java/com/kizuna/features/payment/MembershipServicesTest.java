@@ -182,6 +182,108 @@ class MembershipServicesTest {
                     () -> service(properties).createPayment(user, "khong-phai-uuid", null));
         }
 
+        // ----- Chỉ cho nâng cấp: gói mua mới phải dài hơn gói đang còn hạn -----
+
+        MembershipPlan planOf(int months) {
+            return MembershipPlan.builder().planId(UUID.randomUUID()).planName("Gói " + months + " tháng")
+                    .durationMonths(months).price(new BigDecimal("199000.00")).isActive(true).featuresJson("[]").build();
+        }
+
+        TutorMembership owning(MembershipPlan plan) {
+            LocalDate now = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+            return TutorMembership.builder().plan(plan).status(TutorMembershipState.ACTIVE)
+                    .startDate(now.minusDays(1)).endDate(now.plusMonths(plan.getDurationMonths())).build();
+        }
+
+        Tutor approvedTutor() {
+            Tutor tutor = tutor(user, TutorVerificationStatus.APPROVED, TutorState.ACTIVE_PAID);
+            when(tutorRepository.findWithUserByUserId(user.getUserId())).thenReturn(Optional.of(tutor));
+            return tutor;
+        }
+
+        @Test
+        void rejectsSameOrShorterPlanThanOwned() {
+            Tutor tutor = approvedTutor();
+            MembershipPlan owned = planOf(3);
+            when(membershipRepository.findByTutorTutorIdOrderByStartDateDesc(tutor.getTutorId())).thenReturn(List.of(owning(owned)));
+            MembershipPlan shorter = planOf(1);
+            MembershipPlan same = planOf(3);
+            when(planRepository.findById(shorter.getPlanId())).thenReturn(Optional.of(shorter));
+            when(planRepository.findById(same.getPlanId())).thenReturn(Optional.of(same));
+
+            assertEquals(PaymentMessages.PLAN_NOT_UPGRADE, assertThrows(ConflictException.class,
+                    () -> service(properties).createPayment(user, shorter.getPlanId().toString(), null)).getMessage());
+            assertEquals(PaymentMessages.PLAN_NOT_UPGRADE, assertThrows(ConflictException.class,
+                    () -> service(properties).createPayment(user, same.getPlanId().toString(), null)).getMessage());
+            verify(transactionRepository, never()).save(any());
+        }
+
+        @Test
+        void allowsLongerPlanAsUpgrade() {
+            Tutor tutor = approvedTutor();
+            when(membershipRepository.findByTutorTutorIdOrderByStartDateDesc(tutor.getTutorId())).thenReturn(List.of(owning(planOf(1))));
+            MembershipPlan longer = planOf(6);
+            when(planRepository.findById(longer.getPlanId())).thenReturn(Optional.of(longer));
+            when(transactionRepository.save(any())).thenAnswer(inv -> {
+                PaymentTransaction tx = inv.getArgument(0);
+                tx.setTransactionId(UUID.randomUUID());
+                return tx;
+            });
+            when(gatewayClient.paymentParams(any(), any())).thenReturn(Map.of("vnp_TxnRef", "x"));
+            when(gatewayClient.buildPaymentUrl(any())).thenReturn("https://pay.test/vpcpay.html?x");
+
+            service(properties).createPayment(user, longer.getPlanId().toString(), null);
+
+            verify(transactionRepository).save(any());
+        }
+
+        @Test
+        void expiredMembershipDoesNotBlockAnyPlan() {
+            Tutor tutor = approvedTutor();
+            TutorMembership expired = owning(planOf(12));
+            expired.setStatus(TutorMembershipState.EXPIRED);
+            when(membershipRepository.findByTutorTutorIdOrderByStartDateDesc(tutor.getTutorId())).thenReturn(List.of(expired));
+            MembershipPlan oneMonth = planOf(1);
+            when(planRepository.findById(oneMonth.getPlanId())).thenReturn(Optional.of(oneMonth));
+            when(transactionRepository.save(any())).thenAnswer(inv -> {
+                PaymentTransaction tx = inv.getArgument(0);
+                tx.setTransactionId(UUID.randomUUID());
+                return tx;
+            });
+            when(gatewayClient.paymentParams(any(), any())).thenReturn(Map.of("vnp_TxnRef", "x"));
+            when(gatewayClient.buildPaymentUrl(any())).thenReturn("https://pay.test/vpcpay.html?x");
+
+            assertDoesNotThrow(() -> service(properties).createPayment(user, oneMonth.getPlanId().toString(), null));
+        }
+
+        // ----- API công khai cho feature khác (lớp học, bài đăng) -----
+
+        @Test
+        void hasActiveMembershipDelegatesToValidCount() {
+            UUID tutorId = UUID.randomUUID();
+            when(membershipRepository.countValidOn(tutorId, TutorMembershipState.ACTIVE, TODAY)).thenReturn(1L);
+            assertTrue(service(properties).hasActiveMembership(tutorId, TODAY));
+            when(membershipRepository.countValidOn(tutorId, TutorMembershipState.ACTIVE, TODAY)).thenReturn(0L);
+            assertFalse(service(properties).hasActiveMembership(tutorId, TODAY));
+        }
+
+        @Test
+        void activeMembershipEndDateIsLatestValidEndDate() {
+            UUID tutorId = UUID.randomUUID();
+            TutorMembership current = TutorMembership.builder().status(TutorMembershipState.ACTIVE)
+                    .startDate(TODAY.minusDays(10)).endDate(TODAY.plusDays(20)).build();
+            TutorMembership stacked = TutorMembership.builder().status(TutorMembershipState.ACTIVE)
+                    .startDate(TODAY.plusDays(21)).endDate(TODAY.plusDays(51)).build();
+            TutorMembership ended = TutorMembership.builder().status(TutorMembershipState.ACTIVE)
+                    .startDate(TODAY.minusMonths(2)).endDate(TODAY.minusDays(1)).build();
+            when(membershipRepository.findByTutorTutorIdOrderByStartDateDesc(tutorId)).thenReturn(List.of(stacked, current, ended));
+
+            assertEquals(Optional.of(TODAY.plusDays(51)), service(properties).activeMembershipEndDate(tutorId, TODAY));
+
+            when(membershipRepository.findByTutorTutorIdOrderByStartDateDesc(tutorId)).thenReturn(List.of(ended));
+            assertEquals(Optional.empty(), service(properties).activeMembershipEndDate(tutorId, TODAY));
+        }
+
         @Test
         void missingGatewayConfigurationReportsUnavailable() {
             VnpayProperties empty = VnpaySignerTest.properties("");

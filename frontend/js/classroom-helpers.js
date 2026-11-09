@@ -3,11 +3,14 @@
  * Hàm thuần, không phụ thuộc DOM để kiểm thử được bằng `node --test`.
  */
 
-export const MAX_MATERIAL_SIZE_BYTES = 10 * 1024 * 1024;
-export const ALLOWED_MATERIAL_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'mp3'];
-export const INVALID_FILE_MESSAGE = 'Dung lượng tệp vượt quá giới hạn 10 MB. Định dạng cho phép: PDF, PNG, JPG, MP3.';
-export const UNSUPPORTED_FORMAT_MESSAGE = 'Định dạng tệp không được hỗ trợ. Định dạng cho phép: PDF, PNG, JPG, MP3.';
-export const MATERIAL_ACCEPT_ATTR = '.pdf,.png,.jpg,.jpeg,.mp3,application/pdf,image/png,image/jpeg,audio/mpeg';
+export const MAX_MATERIAL_SIZE_BYTES = 25 * 1024 * 1024;
+export const MAX_FILES_PER_UPLOAD = 5;
+export const ALLOWED_MATERIAL_EXTENSIONS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'mp3'];
+export const FILE_RULES_TEXT = 'Định dạng PDF, DOC, DOCX, PNG, JPG, MP3. Mỗi tệp tối đa 25 MB, tối đa 5 tệp.';
+export const INVALID_FILE_MESSAGE = 'Dung lượng tệp vượt quá giới hạn 25 MB. Định dạng cho phép: PDF, DOC, DOCX, PNG, JPG, MP3.';
+export const UNSUPPORTED_FORMAT_MESSAGE = 'Định dạng tệp không được hỗ trợ. Định dạng cho phép: PDF, DOC, DOCX, PNG, JPG, MP3.';
+export const MATERIAL_ACCEPT_ATTR = '.pdf,.doc,.docx,.png,.jpg,.jpeg,.mp3,application/pdf,application/msword,'
+  + 'application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg,audio/mpeg';
 
 const STATUS_LABELS = {
   ACTIVE: 'Đang hoạt động',
@@ -25,6 +28,8 @@ const STATUS_TONES = {
 
 const FILE_TYPE_LABELS = {
   PDF: 'Tài liệu PDF',
+  DOC: 'Tài liệu Word',
+  DOCX: 'Tài liệu Word',
   PNG: 'Hình ảnh PNG',
   JPG: 'Hình ảnh JPG',
   MP3: 'Âm thanh MP3'
@@ -68,6 +73,34 @@ export function validateMaterialFile(file, { required = true } = {}) {
   return null;
 }
 
+/**
+ * Kiểm tra nhiều tệp chọn cùng lúc.
+ * @param {FileList|File[]} files tệp mới chọn
+ * @param {{required?: boolean, existing?: number}} opts existing = số tệp đang có (khi thêm vào bài đã có tệp)
+ * @returns {string|null} lỗi đầu tiên (kèm tên tệp) hoặc null
+ */
+export function validateMaterialFiles(files, { required = false, existing = 0 } = {}) {
+  const list = Array.from(files || []);
+  if (!list.length) return required ? 'Vui lòng chọn ít nhất một tệp.' : null;
+  const errors = [];
+  if (list.length + existing > MAX_FILES_PER_UPLOAD) {
+    errors.push(`Tối đa ${MAX_FILES_PER_UPLOAD} tệp (đang chọn ${list.length + existing} tệp).`);
+  }
+  // Liệt kê MỌI tệp lỗi (mỗi tệp một dòng) để sửa một lần; có lỗi thì không tệp nào được gửi
+  for (const f of list) {
+    const err = validateMaterialFile(f, { required: true });
+    if (err) errors.push(`Tệp "${f.name}": ${err}`);
+  }
+  return errors.length ? errors.join('\n') : null;
+}
+
+/** "1,2 MB" / "350 KB" */
+export function formatFileSize(bytes) {
+  const n = Number(bytes) || 0;
+  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`;
+  return `${Math.max(1, Math.round(n / 1024))} KB`;
+}
+
 /** @returns {{title?: string, description?: string}} lỗi theo trường, rỗng nếu hợp lệ */
 export function validateMaterialFields({ title, description }) {
   const errors = {};
@@ -82,6 +115,100 @@ export function validateClassroomTitle(title) {
   const t = (title || '').trim();
   if (!t) return 'Vui lòng nhập tên lớp học.';
   if (t.length > 150) return 'Tên lớp học tối đa 150 ký tự.';
+  return null;
+}
+
+// ----------------------------------------------------------------------------
+// Lịch học hằng tuần (1 = Thứ Hai ... 7 = Chủ nhật; giờ "HH:mm") — khớp quy tắc máy chủ
+// ----------------------------------------------------------------------------
+export const DAYS_OF_WEEK = [
+  { value: 1, label: 'Thứ Hai', short: 'T2' },
+  { value: 2, label: 'Thứ Ba', short: 'T3' },
+  { value: 3, label: 'Thứ Tư', short: 'T4' },
+  { value: 4, label: 'Thứ Năm', short: 'T5' },
+  { value: 5, label: 'Thứ Sáu', short: 'T6' },
+  { value: 6, label: 'Thứ Bảy', short: 'T7' },
+  { value: 7, label: 'Chủ nhật', short: 'CN' }
+];
+export const MAX_SCHEDULE_SLOTS = 14;
+
+export function dayOfWeekLabel(day) {
+  return DAYS_OF_WEEK.find((d) => d.value === Number(day))?.label || '';
+}
+
+export function dayOfWeekShort(day) {
+  return DAYS_OF_WEEK.find((d) => d.value === Number(day))?.short || '';
+}
+
+/** "19:00:00" hoặc "19:00" → số phút trong ngày; null nếu không hợp lệ. */
+export function timeToMinutes(value) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(value || ''));
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return h * 60 + min;
+}
+
+export function shortTime(value) {
+  const mins = timeToMinutes(value);
+  if (mins === null) return '';
+  return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+}
+
+/** "1 giờ 30 phút" */
+export function durationLabel(start, end) {
+  const a = timeToMinutes(start);
+  const b = timeToMinutes(end);
+  if (a === null || b === null || b <= a) return '';
+  const h = Math.floor((b - a) / 60);
+  const m = (b - a) % 60;
+  return [h ? `${h} giờ` : '', m ? `${m} phút` : ''].filter(Boolean).join(' ');
+}
+
+export function sortSchedules(list) {
+  return [...(list || [])].sort((x, y) =>
+    (x.dayOfWeek - y.dayOfWeek) || ((timeToMinutes(x.startTime) ?? 0) - (timeToMinutes(y.startTime) ?? 0)));
+}
+
+/** "T2 19:00–20:30 · T5 18:00–19:00" — dùng trên thẻ lớp học. */
+export function summarizeSchedules(list) {
+  const sorted = sortSchedules(list);
+  if (!sorted.length) return '';
+  return sorted.map((s) => `${dayOfWeekShort(s.dayOfWeek)} ${shortTime(s.startTime)}–${shortTime(s.endTime)}`).join(' · ');
+}
+
+/** @returns {string|null} lỗi tiếng Việt của một buổi học */
+export function validateScheduleSlot(slot) {
+  const day = Number(slot?.dayOfWeek);
+  if (!Number.isInteger(day) || day < 1 || day > 7) return 'Vui lòng chọn thứ trong tuần cho buổi học.';
+  const start = timeToMinutes(slot.startTime);
+  const end = timeToMinutes(slot.endTime);
+  if (start === null || end === null) return 'Vui lòng nhập giờ bắt đầu và giờ kết thúc của buổi học.';
+  if (end <= start) return 'Giờ kết thúc phải sau giờ bắt đầu.';
+  if (end - start < 30 || end - start > 240) return 'Mỗi buổi học dài từ 30 phút đến 4 giờ.';
+  return null;
+}
+
+/** @returns {string|null} lỗi của cả danh sách buổi học khi tạo lớp */
+export function validateScheduleList(list) {
+  if (!list || !list.length) return 'Vui lòng thêm ít nhất một buổi học trong tuần.';
+  if (list.length > MAX_SCHEDULE_SLOTS) return `Mỗi lớp có tối đa ${MAX_SCHEDULE_SLOTS} buổi học mỗi tuần.`;
+  for (const slot of list) {
+    const err = validateScheduleSlot(slot);
+    if (err) return err;
+  }
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = list[i];
+      const b = list[j];
+      if (Number(a.dayOfWeek) === Number(b.dayOfWeek)
+        && timeToMinutes(a.startTime) < timeToMinutes(b.endTime)
+        && timeToMinutes(b.startTime) < timeToMinutes(a.endTime)) {
+        return `Các buổi học bị trùng giờ nhau (${dayOfWeekLabel(b.dayOfWeek)}).`;
+      }
+    }
+  }
   return null;
 }
 

@@ -20,8 +20,16 @@ async function loadIncidents() {
     const filters = query(byId('incidentFilters')); filters.set('page', state.page);
     const data = await api(base + '/incidents?' + filters);
     filters.delete('page'); state.applied = filters.toString();
-    incidentCards(byId('incidentList'), data.items); paging('incident', data, state.page);
-    byId('incidentPage').textContent = 'Trang ' + (state.page + 1); notice('Đã tải danh sách sự cố.');
+    incidentCards(byId('incidentList'), data.items, runCommand); paging('incident', data, state.page);
+    byId('incidentPage').textContent = 'Trang ' + (state.page + 1);
+}
+
+/** Thao tác bấm ngay trên dòng sự cố, sau đó tải lại danh sách để thấy trạng thái mới. */
+function runCommand(row, action, payload) {
+    page.run(async () => {
+        await api(base + '/incidents/' + encodeURIComponent(row.incidentId) + '/' + action, 'POST', payload);
+        await loadIncidents(); notice('Đã lưu thao tác cho sự cố ' + row.subject + '.');
+    });
 }
 
 async function load() {

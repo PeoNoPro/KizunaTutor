@@ -247,7 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
         avatarUrl: item.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfWr7LjTJCoD0Gf2VNK0QdLAElZ9cyCzJkQ8IOJ7ZhfKFRiPoiK-N6PJaofpuz4ZSh0MCTyzeYN1pX3x0Uaq5OcxZn8yQJ0H4V9S7DtsrI2aXdgxRQ0o8NMGuIO63NK6Y74ZNBD0G7rqPan3Z9H-N80LBRdViJvA9zYNeJLWG53XmbteXaiLIE6gVUR1BHJBqSmUiPALj-L4qvCcRXCinX5eARKyo5T6tbevnMHOs',
         isOnline: true,
         verified: (item.verified !== undefined ? item.verified : item.isVerified) ?? true,
-        headline: item.headline || 'Gia sư tiếng Nhật',
+        // Tiêu đề bài đăng đã được cán bộ học vụ duyệt (nếu có)
+        headline: item.postTitle || item.headline || 'Gia sư tiếng Nhật',
         experienceYears: item.experienceYears || 0,
         experienceText: (item.experienceYears ? item.experienceYears + ' năm giảng dạy chuyên sâu' : 'Gia sư chuyên môn'),
         jlptLevel: item.highestJlptLevel || 'N1',
@@ -387,9 +388,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <a href="${profileUrl}" class="w-1/2 sm:w-auto px-space-md py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-semibold transition-colors text-center inline-flex items-center justify-center">
               Xem hồ sơ
             </a>
-            <button class="w-1/2 sm:w-auto px-space-lg py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold transition-all shadow-sm flex items-center justify-center gap-1.5" type="button" onclick="window.handleOpenConnect('${tutor.id}')">
-              <span class="material-symbols-outlined text-[16px]">send</span>
-              <span>Kết nối</span>
+            <button class="w-1/2 sm:w-auto px-space-md py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer" type="button" onclick="window.handleOpenConnect('${tutor.id}')">
+              <span class="material-symbols-outlined text-[16px]">calendar_add_on</span>
+              <span>Đặt lịch học thử</span>
             </button>
           </div>
         </div>
@@ -512,55 +513,17 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTutors();
   };
 
-  // 11. Modal kết nối
+  // 11. Đặt lịch học thử 1-1 với gia sư (Phương án 1)
   window.handleOpenConnect = function (tutorId) {
     const tutor = currentLoadedTutors.find(t => t.id === tutorId);
     if (!tutor) return;
 
-    // Kiểm tra phiên đăng nhập: Mở popup đăng nhập mờ mờ tại chỗ
-    const token = localStorage.getItem('kizuna_token');
-    if (!token) {
-      const tutorDisplay = tutor.fullName ? `Sensei ${tutor.fullName}` : 'gia sư';
-      if (typeof window.openLoginModal === 'function') {
-        window.openLoginModal({
-          tutorName: tutorDisplay,
-          onSuccess: () => {
-            window.handleOpenConnect(tutorId);
-          }
-        });
-        return;
-      }
-      const returnUrl = (tutor.tutorCode)
-        ? `/gs/${tutor.tutorCode}?connect=true`
-        : `/pages/tutor-profile/?id=${tutor.id}&connect=true`;
-      window.location.href = `/login?redirect=${encodeURIComponent(returnUrl)}`;
-      return;
-    }
+    const targetUrl = (tutor.tutorCode)
+      ? `/gs/${tutor.tutorCode}?connect=true`
+      : `/pages/tutor-profile/?id=${tutor.id}&connect=true`;
 
-    activeTutorForConnect = tutor;
-    if (connectTutorAvatar) connectTutorAvatar.src = tutor.avatarUrl;
-    if (connectTutorName) connectTutorName.textContent = tutor.fullName;
-    openModal('connect-modal');
+    window.location.href = targetUrl;
   };
-
-  if (closeConnectModalBtn) closeConnectModalBtn.addEventListener('click', () => closeModal('connect-modal'));
-  if (cancelConnectBtn) cancelConnectBtn.addEventListener('click', () => closeModal('connect-modal'));
-
-  if (connectForm) {
-    connectForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      try {
-        await API.connectionRequests.create({
-          tutorId: activeTutorForConnect?.id,
-          message: connectForm.querySelector('textarea')?.value || ''
-        });
-        alert(`Yêu cầu kết nối của bạn đã được gửi thành công tới gia sư ${activeTutorForConnect?.fullName}!`);
-        closeModal('connect-modal');
-      } catch (err) {
-        alert('Đã có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại sau.');
-      }
-    });
-  }
 
   // 12. Gắn sự kiện người dùng tương tác với bộ lọc (T015, T016, T017, T018, T020)
 

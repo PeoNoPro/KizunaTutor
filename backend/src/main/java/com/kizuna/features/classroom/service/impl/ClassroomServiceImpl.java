@@ -4,17 +4,22 @@ import com.kizuna.core.entity.Learner;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.core.entity.User;
 import com.kizuna.core.repository.LearnerRepository;
+import com.kizuna.features.classroom.dto.ClassScheduleRequest;
+import com.kizuna.features.classroom.dto.ClassScheduleResponse;
 import com.kizuna.features.classroom.dto.ClassroomCreateRequest;
 import com.kizuna.features.classroom.dto.ClassroomSummaryResponse;
 import com.kizuna.features.classroom.dto.EligibleLearnerResponse;
+import com.kizuna.features.classroom.entity.ClassSchedule;
 import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import com.kizuna.features.classroom.exception.ClassroomException;
+import com.kizuna.features.classroom.repository.ClassScheduleRepository;
 import com.kizuna.features.classroom.repository.LearningMaterialRepository;
 import com.kizuna.features.classroom.repository.LearningSpaceRepository;
 import com.kizuna.features.classroom.service.ClassroomService;
+import com.kizuna.features.classroom.util.ClassScheduleRules;
 import com.kizuna.features.classroom.util.CurrentActor;
-import com.kizuna.features.payment.entity.TutorMembershipStatus;
+import com.kizuna.features.classroom.util.MembershipRules;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +39,8 @@ public class ClassroomServiceImpl implements ClassroomService {
     private final LearningSpaceRepository spaceRepository;
     private final LearningMaterialRepository materialRepository;
     private final LearnerRepository learnerRepository;
+    private final ClassScheduleRepository scheduleRepository;
+    private final ClassScheduleRules scheduleRules;
 
     @Override
     @Transactional(readOnly = true)
@@ -48,6 +55,9 @@ public class ClassroomServiceImpl implements ClassroomService {
     @Transactional(readOnly = true)
     public List<EligibleLearnerResponse> listEligibleLearners(CurrentActor actor) {
         Tutor tutor = requireTutor(actor);
+        if (!MembershipRules.isActive(tutor)) {
+            throw ClassroomException.conflict(MembershipRules.createBlockedMessage(tutor));
+        }
         List<UUID> ids = spaceRepository.findEligibleLearnerIds(tutor.getTutorId());
         if (ids.isEmpty()) return List.of();
         return learnerRepository.findAllById(ids).stream()
@@ -67,9 +77,11 @@ public class ClassroomServiceImpl implements ClassroomService {
             throw ClassroomException.field("learnerId", "Vui lòng chọn học viên.");
         }
         String title = normalizeTitle(request.title());
+        List<ClassScheduleRequest> slots = request.schedules();
+        ClassScheduleRules.validateNewList(slots);
 
-        if (tutor.getMembershipStatus() == TutorMembershipStatus.EXPIRED) {
-            throw ClassroomException.conflict("Gói hội viên của bạn đã hết hạn. Vui lòng gia hạn để mở lớp học mới.");
+        if (!MembershipRules.isActive(tutor)) {
+            throw ClassroomException.conflict(MembershipRules.createBlockedMessage(tutor));
         }
         Learner learner = learnerRepository.findById(request.learnerId())
                 .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy học viên đã chọn."));
@@ -80,6 +92,7 @@ public class ClassroomServiceImpl implements ClassroomService {
                 tutor.getTutorId(), learner.getLearnerId(), OPEN_STATUSES)) {
             throw ClassroomException.conflict("Học viên này đã có lớp học đang hoạt động với bạn.");
         }
+        scheduleRules.ensureNoConflict(tutor.getTutorId(), learner.getLearnerId(), null, null, slots);
 
         LearningSpace saved = spaceRepository.save(LearningSpace.builder()
                 .tutor(tutor)
@@ -87,6 +100,12 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .title(title)
                 .status(LearningSpaceStatus.ACTIVE)
                 .build());
+        scheduleRepository.saveAll(slots.stream().map(slot -> ClassSchedule.builder()
+                .space(saved)
+                .dayOfWeek(slot.dayOfWeek())
+                .startTime(slot.startTime())
+                .endTime(slot.endTime())
+                .build()).toList());
         return toSummary(saved, actor);
     }
 
@@ -94,6 +113,14 @@ public class ClassroomServiceImpl implements ClassroomService {
     @Transactional(readOnly = true)
     public ClassroomSummaryResponse getDetail(CurrentActor actor, UUID spaceId) {
         return toSummary(loadAccessibleSpace(actor, spaceId), actor);
+    }
+
+    @Override
+    @Transactional
+    public ClassroomSummaryResponse rename(CurrentActor actor, UUID spaceId, String rawTitle) {
+        LearningSpace space = loadManageableSpace(actor, spaceId);
+        space.setTitle(normalizeTitle(rawTitle));
+        return toSummary(spaceRepository.save(space), actor);
     }
 
     @Override
@@ -112,13 +139,13 @@ public class ClassroomServiceImpl implements ClassroomService {
     public LearningSpace loadManageableSpace(CurrentActor actor, UUID spaceId) {
         LearningSpace space = loadAccessibleSpace(actor, spaceId);
         if (!isTutorOf(actor, space)) {
-            throw ClassroomException.forbidden("Chỉ gia sư của lớp mới được quản lý tài liệu.");
+            throw ClassroomException.forbidden("Chỉ gia sư của lớp mới được thay đổi nội dung lớp học.");
         }
-        if (space.getTutor().getMembershipStatus() == TutorMembershipStatus.EXPIRED) {
-            throw ClassroomException.conflict("Gói hội viên của bạn đã hết hạn nên lớp học đang ở chế độ chỉ xem.");
+        if (!MembershipRules.isActive(space.getTutor())) {
+            throw ClassroomException.conflict(MembershipRules.readOnlyMessage(space.getTutor()));
         }
         if (space.getStatus() != LearningSpaceStatus.ACTIVE) {
-            throw ClassroomException.conflict("Lớp học không còn hoạt động nên không thể thay đổi tài liệu.");
+            throw ClassroomException.conflict("Lớp học không còn hoạt động nên không thể thay đổi nội dung.");
         }
         return space;
     }
@@ -126,7 +153,7 @@ public class ClassroomServiceImpl implements ClassroomService {
     @Override
     public boolean isReadOnly(LearningSpace space) {
         return space.getStatus() != LearningSpaceStatus.ACTIVE
-                || space.getTutor().getMembershipStatus() == TutorMembershipStatus.EXPIRED;
+                || !MembershipRules.isActive(space.getTutor());
     }
 
     private ClassroomSummaryResponse toSummary(LearningSpace space, CurrentActor actor) {
@@ -145,6 +172,9 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .readOnly(readOnly)
                 .canManage(!readOnly && isTutorOf(actor, space))
                 .materialCount(space.getSpaceId() == null ? 0 : materialRepository.countBySpace_SpaceId(space.getSpaceId()))
+                .schedules(space.getSpaceId() == null ? List.of()
+                        : scheduleRepository.findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(space.getSpaceId())
+                                .stream().map(ClassScheduleResponse::of).toList())
                 .build();
     }
 

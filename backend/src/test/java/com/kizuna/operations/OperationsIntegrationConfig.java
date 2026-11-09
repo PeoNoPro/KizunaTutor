@@ -31,7 +31,6 @@ public class OperationsIntegrationConfig {
             c.createStatement().execute("CREATE TABLE IF NOT EXISTS system_configurations(config_key varchar(100) PRIMARY KEY,config_value text NOT NULL,data_type varchar(20) NOT NULL,description varchar(255),updated_at timestamptz NOT NULL DEFAULT now())");
             c.createStatement().execute("INSERT INTO system_configurations(config_key,config_value,data_type) VALUES ('TRIAL_DEFAULT_DURATION_MINUTES','45','NUMBER'),('BOOKING_MIN_HOURS_IN_ADVANCE','12','NUMBER') ON CONFLICT DO NOTHING");
             c.createStatement().execute(OperationsTestEnvironment.fe11Schema());
-            for(String file:java.util.List.of("staff_role_change_schema.sql","fe11_admin_update.sql")) c.createStatement().execute(java.nio.file.Files.readString(java.nio.file.Path.of("../database/seeds/"+file)));
         }
         return ds;
     }

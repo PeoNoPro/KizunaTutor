@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lịch giảng dạy & Thời khóa biểu - Gia sư KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+  <style>
+    /* Styling cho lưới thời khóa biểu (Weekly Time Grid) */
+    .calendar-time-cell {
+      height: 68px;
+    }
+    .calendar-slot-cell {
+      height: 68px;
+      transition: background-color 0.15s ease;
+    }
+    .calendar-slot-cell:hover {
+      background-color: rgba(241, 245, 249, 0.7);
+    }
+  </style>
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <!-- Thanh bên + thanh trên (components/tutor-layout/tutor-layout.js) -->
+  <div id="tutorSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="tutorTopbar"></div>
+
+    <main class="flex-1 w-full pt-16">
+      <div class="px-4 md:px-8 py-6 max-w-7xl space-y-6">
+
+        <!-- Tiêu đề trang & Nút hành động chính -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-caption font-semibold">Thời khóa biểu giảng dạy</span>
+              <span class="text-caption text-on-surface-variant">• Quản lý buổi học & Ca rảnh</span>
+            </div>
+            <h1 class="text-headline-md font-bold text-on-surface tracking-tight">Lịch giảng dạy & Thời khóa biểu</h1>
+            <p class="text-body-sm text-on-surface-variant mt-1">Theo dõi thời khóa biểu các buổi học đã lên lịch và thiết lập ca rảnh trong tuần để học viên tìm kiếm.</p>
+          </div>
+
+          <!-- Nút chốt lịch / lên lịch cho học sinh dạng viên thuốc gradient tím theo mẫu -->
+          <div class="flex items-center gap-3 shrink-0">
+            <a href="/tutor/classrooms?taoLop=1" id="btnOpenScheduleLesson" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:opacity-95 text-white font-semibold text-sm shadow-md hover:shadow-lg inline-flex items-center gap-2 transition-all cursor-pointer transform active:scale-95 no-underline" title="Buổi học chính thức được xếp theo lịch hằng tuần của lớp học">
+              <span class="material-symbols-outlined text-[20px]">add</span>
+              <span>Tạo lớp học</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Thanh Tabs phân tách 2 Phân hệ rõ rệt -->
+        <div class="flex items-center justify-between border-b border-outline-variant/40 gap-4 flex-wrap">
+          <div class="flex items-center gap-2">
+            <button type="button" id="tabBtnLessons" class="px-4 py-3 text-label-md font-bold border-b-2 border-primary text-primary flex items-center gap-2 transition-all cursor-pointer">
+              <span class="material-symbols-outlined text-[20px]">calendar_month</span>
+              <span>Lịch dạy & Buổi học thực tế</span>
+              <span id="badgeLessonsCount" class="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-primary-fixed text-primary">0</span>
+            </button>
+            <button type="button" id="tabBtnAvailability" class="px-4 py-3 text-label-md font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface flex items-center gap-2 transition-all cursor-pointer">
+              <span class="material-symbols-outlined text-[20px]">schedule</span>
+              <span>Cài đặt ca rảnh (Availability)</span>
+              <span id="badgeAvailabilityCount" class="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface-container text-on-surface-variant">0</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- PHÂN HỆ 1: LỊCH DẠY THỰC TẾ (WEEKLY TIME GRID)                      -->
+        <!-- =================================================================== -->
+        <section id="tabContentLessons" class="space-y-4">
+          <!-- Thanh điều hướng tuần & Bộ lọc -->
+          <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-outline-variant/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <button type="button" id="btnPrevWeek" class="w-9 h-9 rounded-xl bg-surface-container-low hover:bg-surface-container flex items-center justify-center text-on-surface transition-all cursor-pointer" title="Tuần trước">
+                <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+              </button>
+              <button type="button" id="btnNextWeek" class="w-9 h-9 rounded-xl bg-surface-container-low hover:bg-surface-container flex items-center justify-center text-on-surface transition-all cursor-pointer" title="Tuần sau">
+                <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+              </button>
+              <div class="h-6 w-px bg-outline-variant/40 mx-1"></div>
+              <button type="button" id="btnToday" class="px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-caption font-bold text-on-surface transition-all cursor-pointer">
+                Hôm nay
+              </button>
+              <span id="currentWeekRangeText" class="text-body-sm font-bold text-on-surface ml-2">Đang tải tuần...</span>
+            </div>
+
+            <!-- Chú thích loại buổi học (Legend) -->
+            <div class="flex items-center gap-4 text-caption text-on-surface-variant flex-wrap">
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-emerald-600 inline-block"></span>
+                <span class="font-medium text-emerald-900">Lớp học 1-1</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-[#006194] inline-block"></span>
+                <span class="font-medium text-[#006194]">Học thử miễn phí (0đ)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lưới Thời Khóa Biểu Tuần (Weekly Time Grid Container) -->
+          <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/40 overflow-hidden">
+            <div id="gridScroll" class="overflow-auto max-h-[68vh] relative">
+              <div class="min-w-[840px]">
+                <!-- Hàng tiêu đề 7 ngày trong tuần (dính khi cuộn dọc) -->
+                <div id="gridHeaderRow" class="grid grid-cols-8 border-b border-outline-variant/40 bg-surface-container-lowest sticky top-0 z-20 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
+                  <div class="p-3 text-caption font-bold text-on-surface-variant text-center border-r border-outline-variant/30 flex items-center justify-center">
+                    Giờ
+                  </div>
+                  <!-- 7 Cột ngày (Thứ 2 đến Chủ nhật) sẽ render tại đây -->
+                  <div class="grid-day-header p-3 text-center border-r border-outline-variant/30">...</div>
+                  <div class="grid-day-header p-3 text-center border-r border-outline-variant/30">...</div>
+                  <div class="grid-day-header p-3 text-center border-r border-outline-variant/30">...</div>
+                  <div class="grid-day-header p-3 text-center border-r border-outline-variant/30">...</div>
+                  <div class="grid-day-header p-3 text-center border-r border-outline-variant/30">...</div>
+                  <div class="grid-day-header p-3 text-center border-r border-outline-variant/30">...</div>
+                  <div class="grid-day-header p-3 text-center">...</div>
+                </div>
+
+                <!-- Thân lưới 24 mốc giờ (00:00 đến 23:00) -->
+                <div id="gridBodyRows" class="relative divide-y divide-outline-variant/20">
+                  <!-- Render động các hàng thời gian -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- PHÂN HỆ 2: CÀI ĐẶT CA RẢNH (AVAILABILITY CHO HỌC VIÊN TÌM KIẾM)     -->
+        <!-- =================================================================== -->
+        <section id="tabContentAvailability" class="space-y-6 hidden">
+          <!-- Hướng dẫn & Thông tin hiển thị -->
+          <div class="p-4 rounded-2xl bg-primary-fixed/20 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-body-sm text-on-surface">
+            <div class="flex items-start gap-3">
+              <span class="material-symbols-outlined text-primary text-[24px] shrink-0 mt-0.5">info</span>
+              <div>
+                <p class="font-semibold text-primary">Lịch rảnh được đồng bộ tự động tới trang tìm kiếm và hồ sơ của học viên</p>
+                <p class="text-caption text-on-surface-variant leading-relaxed">
+                  Các ca rảnh kích hoạt sẽ hiển thị trên mục <strong>"Lịch rảnh trong tuần"</strong> tại trang hồ sơ gia sư để học viên chọn giờ học thử.
+                </p>
+              </div>
+            </div>
+            <button id="btnOpenAddModal" type="button" class="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer shrink-0">
+              <span class="material-symbols-outlined text-[20px]">add_circle</span>
+              <span>Thêm ca rảnh</span>
+            </button>
+          </div>
+
+          <!-- Mẫu ca rảnh phổ biến (Gợi ý thêm nhanh) -->
+          <div class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm border border-outline-variant/40 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
+                <h3 class="text-label-md font-bold text-on-surface">Mẫu ca rảnh phổ biến (bấm để thêm nhanh)</h3>
+              </div>
+              <span class="text-caption text-on-surface-variant">Chọn mẫu để mở form nhanh</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              <button type="button" class="btn-preset p-3 rounded-xl bg-surface-container-low hover:bg-primary-fixed/40 border border-outline-variant/40 text-left transition-all cursor-pointer group" data-start="18:30" data-end="20:30">
+                <p class="text-caption font-bold text-primary group-hover:text-primary-container">Tối ngày thường</p>
+                <p class="text-body-sm font-semibold text-on-surface mt-0.5">18:30 - 20:30 (2 giờ)</p>
+              </button>
+              <button type="button" class="btn-preset p-3 rounded-xl bg-surface-container-low hover:bg-primary-fixed/40 border border-outline-variant/40 text-left transition-all cursor-pointer group" data-start="19:00" data-end="21:00">
+                <p class="text-caption font-bold text-primary group-hover:text-primary-container">Tối cuối tuần</p>
+                <p class="text-body-sm font-semibold text-on-surface mt-0.5">19:00 - 21:00 (2 giờ)</p>
+              </button>
+              <button type="button" class="btn-preset p-3 rounded-xl bg-surface-container-low hover:bg-primary-fixed/40 border border-outline-variant/40 text-left transition-all cursor-pointer group" data-start="09:00" data-end="11:00" data-dow="1">
+                <p class="text-caption font-bold text-primary group-hover:text-primary-container">Sáng Chủ nhật</p>
+                <p class="text-body-sm font-semibold text-on-surface mt-0.5">09:00 - 11:00 (2 giờ)</p>
+              </button>
+              <button type="button" class="btn-preset p-3 rounded-xl bg-surface-container-low hover:bg-primary-fixed/40 border border-outline-variant/40 text-left transition-all cursor-pointer group" data-start="14:00" data-end="16:00" data-dow="7">
+                <p class="text-caption font-bold text-primary group-hover:text-primary-container">Chiều Thứ bảy</p>
+                <p class="text-body-sm font-semibold text-on-surface mt-0.5">14:00 - 16:00 (2 giờ)</p>
+              </button>
+            </div>
+          </div>
+
+          <!-- Danh sách ca rảnh 7 ngày trong tuần -->
+          <div id="availabilityGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
+            <!-- Render động 7 cột từ Thứ 2 đến Chủ nhật -->
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Footer đồng bộ hệ thống -->
+    <footer class="w-full bg-[#131D2E] text-outline-variant py-6 mt-8">
+      <div class="px-4 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-caption">
+        <div class="flex items-center gap-2">
+          <span class="text-headline-sm text-white">Kizuna</span><span class="text-headline-sm text-[#38BDF8]">Tutor</span>
+        </div>
+        <p>© 2026 KizunaTutor. Nền tảng gắn kết học viên Việt Nam và gia sư tiếng Nhật.</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ===== MODAL THÊM CA RẢNH MỚI ===== -->
+  <div id="modalAddSlot" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalAddTitle">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-in fade-in duration-150">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-primary-fixed text-primary flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[22px]">calendar_today</span>
+          </div>
+          <div>
+            <h2 id="modalAddTitle" class="text-title-md font-bold text-on-surface">Thêm ca rảnh giảng dạy</h2>
+            <p class="text-caption text-on-surface-variant">Chọn ngày và khoảng thời gian bạn có thể dạy</p>
+          </div>
+        </div>
+        <button type="button" class="modal-add-close text-on-surface-variant hover:text-on-surface p-1 rounded-lg cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <form id="formAddSlot" class="space-y-4">
+        <!-- Chọn Thứ trong tuần -->
+        <div class="space-y-1.5">
+          <label for="selectDayOfWeek" class="text-label-md font-semibold text-on-surface">Ngày trong tuần</label>
+          <select id="selectDayOfWeek" class="tv-input" required>
+            <option value="2">Thứ hai</option>
+            <option value="3">Thứ ba</option>
+            <option value="4">Thứ tư</option>
+            <option value="5">Thứ năm</option>
+            <option value="6">Thứ sáu</option>
+            <option value="7">Thứ bảy</option>
+            <option value="1">Chủ nhật</option>
+          </select>
+        </div>
+
+        <!-- Chọn Giờ bắt đầu và Giờ kết thúc -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label for="inputStartTime" class="text-label-md font-semibold text-on-surface">Giờ bắt đầu</label>
+            <input type="time" id="inputStartTime" class="tv-input" value="18:30" required>
+          </div>
+          <div class="space-y-1.5">
+            <label for="inputEndTime" class="text-label-md font-semibold text-on-surface">Giờ kết thúc</label>
+            <input type="time" id="inputEndTime" class="tv-input" value="20:30" required>
+          </div>
+        </div>
+
+        <!-- Xem trước thời lượng -->
+        <div class="p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 flex items-center gap-2 text-caption text-on-surface">
+          <span class="material-symbols-outlined text-[18px] text-primary">schedule</span>
+          <span id="slotDurationPreview">Thời lượng: 2 giờ 0 phút</span>
+        </div>
+
+        <p id="formAddSlotError" class="text-caption text-error hidden"></p>
+
+        <!-- Nút hành động -->
+        <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/30">
+          <button type="button" class="modal-add-close px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md transition-all font-medium cursor-pointer">
+            Hủy bỏ
+          </button>
+          <button type="submit" id="btnSubmitSlot" class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">save</span>
+            <span id="btnSubmitSlotText">Lưu ca rảnh</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast thông báo -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 hidden max-w-sm px-4 py-3 rounded-xl shadow-lg text-body-sm font-semibold flex items-center gap-2 transition-all">
+    <span id="toastIcon" class="material-symbols-outlined text-[20px]">check_circle</span>
+    <span id="toastMsg">Thao tác thành công</span>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/pages/tutor-schedule/tutor-schedule.js"></script>
+</body>
+</html>

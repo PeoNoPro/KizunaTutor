@@ -8,6 +8,7 @@ import com.kizuna.features.learning_support.dto.AiWritingErrorItemDto;
 import com.kizuna.features.learning_support.dto.AiWritingVocabularyDto;
 import com.kizuna.features.learning_support.dto.AiWritingPromptDto;
 import com.kizuna.features.learning_support.service.AiWritingService;
+import com.kizuna.features.admin.service.SystemSettingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,13 +24,9 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AiWritingServiceImpl implements AiWritingService {
 
-    @Value("${app.ai.gemini-api-key:}")
-    private String geminiApiKey;
-
-    @Value("${app.ai.gemini-model:gemini-3.8-flash}")
-    private String geminiModel;
-
     private final ObjectMapper objectMapper;
+    /** Admin chọn nhà cung cấp, model và API key ở trang Cấu hình hệ thống (FE-11); không có thì dùng key trong cấu hình server. */
+    private final SystemSettingService settings;
 
     @Override
     public AiWritingCheckResponse checkWriting(AiWritingCheckRequest request) {
@@ -38,15 +35,21 @@ public class AiWritingServiceImpl implements AiWritingService {
         String formality = (request.getFormality() != null && !request.getFormality().isBlank()) ? request.getFormality() : "POLITE";
         String targetPattern = request.getGrammarPattern();
 
-        // 1. Thử gọi mô hình AI Gemini nếu có API key
-        if (geminiApiKey != null && !geminiApiKey.isBlank()) {
+        // 1. Thử gọi AI theo nhà cung cấp, model và API key Admin đã chọn
+        SystemSettingService.AiChoice ai = settings.aiChoice();
+        if (ai.apiKey() != null && !ai.apiKey().isBlank()) {
             try {
-                AiWritingCheckResponse aiResponse = callGeminiForEvaluation(originalText, jlpt, formality, targetPattern);
-                if (aiResponse != null) {
-                    return aiResponse;
+                String prompt = buildPrompt(originalText, jlpt, formality, targetPattern);
+                String jsonText = "GEMINI".equals(ai.provider())
+                        ? callGemini(prompt, ai.model(), ai.apiKey())
+                        : callOpenAiCompatible(prompt, ai.model(), ai.apiKey(), ai.baseUrl(), "OPENAI".equals(ai.provider()));
+                if (jsonText != null) {
+                    AiWritingCheckResponse result = objectMapper.readValue(stripFence(jsonText), AiWritingCheckResponse.class);
+                    result.setOriginalText(originalText);
+                    return result;
                 }
             } catch (Exception ex) {
-                log.warn("Không thể gọi Gemini AI API ({}), kích hoạt bộ đánh giá dự phòng: {}", ex.getClass().getSimpleName(), ex.getMessage());
+                log.warn("Không thể gọi AI {} ({}), kích hoạt bộ đánh giá dự phòng: {}", ai.provider(), ex.getClass().getSimpleName(), ex.getMessage());
             }
         }
 
@@ -54,10 +57,8 @@ public class AiWritingServiceImpl implements AiWritingService {
         return generateFallbackEvaluation(originalText, jlpt, formality, targetPattern);
     }
 
-    private AiWritingCheckResponse callGeminiForEvaluation(String text, String jlpt, String formality, String targetPattern) throws Exception {
-        String apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + geminiModel + ":generateContent?key=" + geminiApiKey;
-
-        String systemPrompt = """
+    private String buildPrompt(String text, String jlpt, String formality, String targetPattern) {
+        return """
             Bạn là Kizuna AI Sensei - chuyên gia ngôn ngữ tiếng Nhật và sư phạm giàu kinh nghiệm của nền tảng KizunaTutor.
             Nhiệm vụ của bạn là thẩm định, sửa lỗi và hướng dẫn học viên cải thiện câu văn hoặc đoạn văn tiếng Nhật.
 
@@ -96,8 +97,21 @@ public class AiWritingServiceImpl implements AiWritingService {
             }
             Chú ý: Điểm số từ 0 đến 100. Mọi lời giải thích và nhận xét BẮT BUỘC là tiếng Việt tự nhiên, thân thiện.
             """.formatted(jlpt, formality, targetPattern != null ? targetPattern : "Tự do", text);
+    }
 
-        Map<String, Object> part = Map.of("text", systemPrompt);
+    private static String stripFence(String jsonText) {
+        jsonText = jsonText.trim();
+        if (jsonText.startsWith("```json")) jsonText = jsonText.substring(7);
+        if (jsonText.startsWith("```")) jsonText = jsonText.substring(3);
+        if (jsonText.endsWith("```")) jsonText = jsonText.substring(0, jsonText.length() - 3);
+        return jsonText.trim();
+    }
+
+    /** Model chỉ gồm ký tự an toàn (đã kiểm tra khi Admin lưu). Key gửi qua header để không lọt vào log lỗi có kèm URL. */
+    private String callGemini(String prompt, String model, String apiKey) throws Exception {
+        if (!model.matches("[A-Za-z0-9._:-]{1,80}")) return null;
+        String apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+        Map<String, Object> part = Map.of("text", prompt);
         Map<String, Object> contentObj = Map.of("parts", List.of(part));
         Map<String, Object> genConfig = Map.of(
                 "temperature", 0.3,
@@ -111,35 +125,35 @@ public class AiWritingServiceImpl implements AiWritingService {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("x-goog-api-key", apiKey);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(reqBody, headers);
 
         ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String.class);
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            JsonNode root = objectMapper.readTree(response.getBody());
-            JsonNode candidates = root.path("candidates");
-            if (candidates.isArray() && !candidates.isEmpty()) {
-                JsonNode parts = candidates.get(0).path("content").path("parts");
-                if (parts.isArray() && !parts.isEmpty()) {
-                    String jsonText = parts.get(0).path("text").asText();
-                    jsonText = jsonText.trim();
-                    if (jsonText.startsWith("```json")) {
-                        jsonText = jsonText.substring(7);
-                    }
-                    if (jsonText.startsWith("```")) {
-                        jsonText = jsonText.substring(3);
-                    }
-                    if (jsonText.endsWith("```")) {
-                        jsonText = jsonText.substring(0, jsonText.length() - 3);
-                    }
-                    jsonText = jsonText.trim();
-
-                    AiWritingCheckResponse result = objectMapper.readValue(jsonText, AiWritingCheckResponse.class);
-                    result.setOriginalText(text);
-                    return result;
-                }
-            }
+            JsonNode parts = objectMapper.readTree(response.getBody()).path("candidates").path(0).path("content").path("parts");
+            if (parts.isArray() && !parts.isEmpty()) return parts.get(0).path("text").asText();
         }
+        return null;
+    }
 
+    /** OpenAI và các dịch vụ theo chuẩn OpenAI (Groq, DeepSeek, OpenRouter...) cùng gọi {baseUrl}/chat/completions. */
+    private String callOpenAiCompatible(String prompt, String model, String apiKey, String baseUrl, boolean jsonMode) throws Exception {
+        if (baseUrl == null || baseUrl.isBlank()) return null;
+        Map<String, Object> reqBody = new HashMap<>(Map.of(
+                "model", model,
+                "temperature", 0.3,
+                "messages", List.of(Map.of("role", "user", "content", prompt))
+        ));
+        // Không phải dịch vụ nào cũng hỗ trợ response_format nên chỉ bật cho OpenAI.
+        if (jsonMode) reqBody.put("response_format", Map.of("type", "json_object"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey);
+        ResponseEntity<String> response = new RestTemplate().exchange(baseUrl + "/chat/completions", HttpMethod.POST, new HttpEntity<>(reqBody, headers), String.class);
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            JsonNode content = objectMapper.readTree(response.getBody()).path("choices").path(0).path("message").path("content");
+            if (!content.isMissingNode() && !content.asText().isBlank()) return content.asText();
+        }
         return null;
     }
 

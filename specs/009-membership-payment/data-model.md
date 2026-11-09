@@ -96,4 +96,6 @@ CREATE INDEX IF NOT EXISTS idx_tutor_posts_tutor_id ON tutor_posts(tutor_id);
 CREATE INDEX IF NOT EXISTS idx_tutor_posts_status ON tutor_posts(status, created_at);
 ```
 
+**Bổ sung 2026-11-08** (`database/migrations/015_tutor_posts.sql`): thêm `specialties VARCHAR(255)`, `teaching_format VARCHAR(20)` (ONLINE | OFFLINE | BOTH), `hourly_rate NUMERIC(12,2)`. Quy ước: mỗi lần gia sư gửi bài là một dòng; bài hiển thị cho học viên là dòng `PUBLISHED` có `reviewed_at` mới nhất; mỗi gia sư tối đa một dòng `PENDING_REVIEW` (gửi lại khi đang chờ duyệt sẽ sửa dòng đó). Chỉ gia sư có gói hội viên còn hạn mới gửi được bài và mới xuất hiện ở trang Tìm gia sư.
+
 Lý do: BF I.2.2 yêu cầu lưu bài, trạng thái duyệt và lý do từ chối; không bảng nào hiện có đáp ứng. Phương án thay thế: gộp vào `tutors.bio` (không có luồng duyệt riêng, sai BF I.2.2) — không khuyến nghị.

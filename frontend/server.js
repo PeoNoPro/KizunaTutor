@@ -19,7 +19,8 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf'
+  '.ttf': 'font/ttf',
+  '.pdf': 'application/pdf'
 };
 
 const URL_ALIASES = {
@@ -27,8 +28,6 @@ const URL_ALIASES = {
   '/cs/dashboard': '/pages/cs-dashboard/index.html',
   '/manager/reports': '/pages/manager-reports/index.html',
   '/manager/dashboard': '/pages/manager-reports/index.html',
-  // Tạm trỏ về Hỗ trợ cho đến khi có dashboard gia sư.
-  '/tutor/dashboard': '/pages/support-tickets/?role=tutor',
   '/admin/profile': '/pages/admin-profile/index.html',
   '/': '/pages/home/index.html',
   '/admin/operations/logs': '/pages/operations-logs/index.html',
@@ -49,6 +48,13 @@ const URL_ALIASES = {
   '/tutor-discovery': '/pages/tutor-discovery/index.html',
   '/tutor-profile': '/pages/tutor-profile/index.html',
   '/connection-requests': '/pages/connection-requests/index.html',
+  '/tutor/connections': '/pages/tutor-connections/index.html',
+  '/tutor/connections/': '/pages/tutor-connections/index.html',
+  '/tutor/schedule': '/pages/tutor-schedule/index.html',
+  '/tutor/schedule/': '/pages/tutor-schedule/index.html',
+  '/learner/connections': '/pages/learner-connections/index.html',
+  '/learner/connections/': '/pages/learner-connections/index.html',
+  '/learner/bookings': '/pages/learner-connections/index.html',
   '/admin/operations/booking-policy': '/pages/operations-config/index.html',
   '/admin/operations/incidents': '/pages/operations-incidents/index.html',
   '/admin/operations/reports': '/pages/operations-reports/index.html',
@@ -58,8 +64,10 @@ const URL_ALIASES = {
   '/home.js': '/pages/home/home.js',
   '/tutor-profile.js': '/pages/tutor-profile/tutor-profile.js',
   '/connection-requests.js': '/pages/connection-requests/connection-requests.js',
+  '/tutor-connections.js': '/pages/tutor-connections/tutor-connections.js',
+  '/tutor-schedule.js': '/pages/tutor-schedule/tutor-schedule.js',
+  '/learner-connections.js': '/pages/learner-connections/learner-connections.js',
   '/learner/tutors': '/pages/tutor-discovery/index.html',
-  '/learner/bookings': '/pages/connection-requests/index.html',
   '/kana-quiz': '/pages/kana-quiz/index.html',
   '/kana': '/pages/kana-quiz/index.html',
   '/kana-quiz.html': '/pages/kana-quiz/index.html',
@@ -128,6 +136,14 @@ const URL_ALIASES = {
   '/academic/verifications': '/pages/academic-verifications/index.html',
   '/academic/verifications/': '/pages/academic-verifications/index.html',
   '/academic/verifications/detail': '/pages/academic-verification-detail/index.html',
+  '/academic/posts': '/pages/academic-posts/index.html',
+  '/academic/posts/': '/pages/academic-posts/index.html',
+  '/tutor/post': '/pages/tutor-post/index.html',
+  '/tutor/post/': '/pages/tutor-post/index.html',
+  '/academic/history': '/pages/academic-review-history/index.html',
+  '/academic/history/': '/pages/academic-review-history/index.html',
+  '/academic/profile': '/pages/academic-profile/index.html',
+  '/academic/profile/': '/pages/academic-profile/index.html',
   // FE-09: gói hội viên và thanh toán
   '/tutor/membership': '/pages/tutor-membership/index.html',
   '/tutor/membership/': '/pages/tutor-membership/index.html',

@@ -10,7 +10,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.junit.jupiter.api.Assertions.*;
 class OperationsAuditLogTest extends OperationsIntegrationBase {
     static final String LOG="/api/admin/operations/audit-log";
-    @BeforeEach void schema() throws Exception { jdbc.execute(Files.readString(Path.of("../database/seeds/admin_staff_schema.sql"))); }
+    @BeforeEach void schema() throws Exception { jdbc.execute(Files.readString(Path.of("../database/seeds/fe11_operations_schema.sql"))); }
     JsonNode read(String query) throws Exception { return data(mvc.perform(get(LOG+query).with(admin())).andExpect(status().isOk()).andReturn()); }
     JsonNode find(JsonNode page,String reason) { for(var item:page.get("items")) if(reason.equals(item.path("reason").asText())) return item; return null; }
     @Test void combinesAllSourcesWithFiltersAndWithoutInvestigationText() throws Exception {

@@ -3,7 +3,9 @@ package com.kizuna.features.classroom.repository;
 import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -24,6 +26,14 @@ public interface LearningSpaceRepository extends JpaRepository<LearningSpace, UU
 
     @EntityGraph(attributePaths = {"tutor", "tutor.user", "learner", "learner.user"})
     Optional<LearningSpace> findWithParticipantsBySpaceId(UUID spaceId);
+
+    /**
+     * Khóa dòng lớp học (SELECT ... FOR UPDATE) tới hết transaction, để các thao tác thêm/sửa lịch
+     * của cùng một lớp chạy lần lượt (chặn trường hợp bấm "Thêm buổi" 2 lần liên tiếp lọt buổi trùng giờ).
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s.spaceId FROM LearningSpace s WHERE s.spaceId = :spaceId")
+    Optional<UUID> lockById(@Param("spaceId") UUID spaceId);
 
     boolean existsByTutor_TutorIdAndLearner_LearnerIdAndStatusIn(UUID tutorId, UUID learnerId,
                                                                  Collection<LearningSpaceStatus> statuses);

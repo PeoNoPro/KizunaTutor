@@ -3,7 +3,7 @@
  * Hàm thuần, kiểm thử bằng `node --test`. Máy chủ vẫn kiểm tra lại mọi quy tắc.
  */
 
-import { validateMaterialFile } from './classroom-helpers.js';
+import { validateMaterialFile, validateMaterialFiles } from './classroom-helpers.js';
 
 const STATE_LABELS = {
   NOT_SUBMITTED: 'Chưa nộp',
@@ -84,11 +84,17 @@ export function validateAssignmentForm(form, { now = new Date(), dueUnchangedIso
 }
 
 /** @returns {string|null} lỗi tiếng Việt hoặc null */
-export function validateSubmission({ content, file }) {
+/**
+ * Bài nộp cần nội dung hoặc ít nhất một tệp.
+ * @param {{content?: string, file?: File, files?: File[]|FileList, keptFiles?: number}} p
+ *   keptFiles = số tệp cũ còn giữ lại khi sửa bài nộp
+ */
+export function validateSubmission({ content, file, files, keptFiles = 0 }) {
   const text = (content || '').trim();
-  if (!text && !file) return 'Vui lòng nhập nội dung trả lời hoặc chọn tệp bài làm.';
+  const list = files ? Array.from(files) : (file ? [file] : []);
+  if (!text && !list.length && !keptFiles) return 'Vui lòng nhập nội dung trả lời hoặc chọn tệp bài làm.';
   if (text.length > 5000) return 'Nội dung trả lời tối đa 5000 ký tự.';
-  return validateMaterialFile(file, { required: false });
+  return validateMaterialFiles(list, { required: false, existing: keptFiles });
 }
 
 /** @returns {string|null} */

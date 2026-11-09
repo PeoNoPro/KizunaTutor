@@ -22,6 +22,8 @@ class MaterialFileValidatorTest {
     static final byte[] MP3_ID3 = bytes(0x49, 0x44, 0x33, 0x03, 0);
     static final byte[] MP3_FRAME = bytes(0xFF, 0xFB, 0x90, 0x64);
     static final byte[] EXE = bytes(0x4D, 0x5A, 0x90, 0x00);
+    static final byte[] DOC = bytes(0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1, 0, 0);
+    static final byte[] DOCX = bytes(0x50, 0x4B, 0x03, 0x04, 0x14, 0x00);
 
     static byte[] bytes(int... v) {
         byte[] b = new byte[v.length];
@@ -46,6 +48,19 @@ class MaterialFileValidatorTest {
         assertThat(validator.validate(file("anh.jpeg", JPG))).isEqualTo(MaterialFileType.JPG);
         assertThat(validator.validate(file("nghe.mp3", MP3_ID3))).isEqualTo(MaterialFileType.MP3);
         assertThat(validator.validate(file("nghe2.mp3", MP3_FRAME))).isEqualTo(MaterialFileType.MP3);
+        assertThat(validator.validate(file("de bai.doc", DOC))).isEqualTo(MaterialFileType.DOC);
+        assertThat(validator.validate(file("bai lam.DOCX", DOCX))).isEqualTo(MaterialFileType.DOCX);
+    }
+
+    @Test
+    void rejectsWordFilesWithWrongContentAndMoreThanTenFiles() {
+        assertRejected(file("gia.docx", PDF), HttpStatus.BAD_REQUEST);
+        assertRejected(file("gia.doc", DOCX), HttpStatus.BAD_REQUEST);
+        java.util.List<org.springframework.web.multipart.MultipartFile> eleven =
+                java.util.Collections.nCopies(6, file("a.pdf", PDF));
+        assertThatThrownBy(() -> validator.nonEmpty(eleven)).isInstanceOf(ClassroomException.class);
+        assertThat(validator.nonEmpty(java.util.Arrays.asList(file("a.pdf", PDF), null, file("rong.pdf", new byte[0]))))
+                .hasSize(1);
     }
 
     @Test

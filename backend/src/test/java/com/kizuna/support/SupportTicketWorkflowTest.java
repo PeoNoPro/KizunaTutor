@@ -38,6 +38,23 @@ class SupportTicketWorkflowTest {
  }
  JsonNode command(String id,String path,String actor,long version,String fields)throws Exception{return data(mvc.perform(post(BASE+"/"+id+"/"+path).with(user(actor)).with(csrf()).contentType("application/json").content("{\"expectedVersion\":"+version+fields+"}")).andExpect(status().isOk()).andReturn());}
  String id(String actor){return jdbc.queryForObject("SELECT user_id::text FROM users WHERE email=?",String.class,actor);}
+ @Test void aggregateCountsMatchScopedListsAndDoNotLeakOtherRequesters()throws Exception{
+   var before=data(mvc.perform(get(BASE+"/counts").with(user(OWNER))).andExpect(status().isOk()).andReturn());
+   create(OTHER);
+   var afterOther=data(mvc.perform(get(BASE+"/counts").with(user(OWNER))).andExpect(status().isOk()).andReturn());
+   assertEquals(before,afterOther);
+   create(OWNER);
+   for(String actor:List.of(OWNER,OTHER,CS,MANAGER)){
+     var counts=data(mvc.perform(get(BASE+"/counts?category=BOOKING").with(user(actor))).andExpect(status().isOk()).andReturn());
+     for(String status:List.of("OPEN","IN_PROGRESS","ESCALATED","RESOLVED","CLOSED")){
+       var list=data(mvc.perform(get(BASE+"?category=BOOKING&size=1&status="+status).with(user(actor))).andExpect(status().isOk()).andReturn());
+       assertEquals(list.path("totalElements").asLong(),counts.path(status).asLong(),actor+" / "+status);
+     }
+   }
+   mvc.perform(get(BASE+"/counts")).andExpect(status().isUnauthorized());
+   mvc.perform(get(BASE+"/counts?assignedTo="+id(CS)).with(user(OWNER))).andExpect(status().isForbidden());
+   mvc.perform(get(BASE+"/counts?category=INVALID").with(user(CS))).andExpect(status().isBadRequest());
+ }
  @Test void requesterIsolationCsrfAndCurrentRole()throws Exception{
    mvc.perform(get(BASE)).andExpect(status().isUnauthorized());
    mvc.perform(post(BASE).with(user(OWNER))).andExpect(status().isForbidden());

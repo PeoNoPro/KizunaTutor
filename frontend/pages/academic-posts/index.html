@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Duyệt bài đăng - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <div id="academicSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="academicTopbar"></div>
+
+    <main class="flex-1 pt-16 lg:pt-0 w-full">
+      <div class="px-4 md:px-8 py-8 flex flex-col w-full gap-6">
+
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2.5">
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-primary-fixed text-primary">
+              <span class="material-symbols-outlined text-[20px]">fact_check</span>
+            </span>
+            <h1 class="text-headline-lg text-on-surface font-bold tracking-tight">Duyệt bài đăng</h1>
+          </div>
+          <p class="text-body-md text-on-surface-variant">Kiểm tra thông tin bài đăng của gia sư trước khi hiển thị cho học viên trên trang Tìm gia sư.</p>
+        </div>
+
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
+          <div class="p-6 pb-4 flex flex-col gap-4">
+            <div class="flex flex-wrap gap-2" role="tablist" aria-label="Trạng thái" id="statusTabs">
+              <button type="button" data-status="PENDING" class="status-tab px-3 py-1.5 rounded-full text-label-sm">Chờ duyệt <span data-count="pendingCount"></span></button>
+              <button type="button" data-status="NEEDS_INFO" class="status-tab px-3 py-1.5 rounded-full text-label-sm">Cần bổ sung <span data-count="needsInfoCount"></span></button>
+              <button type="button" data-status="APPROVED" class="status-tab px-3 py-1.5 rounded-full text-label-sm">Đã duyệt <span data-count="approvedCount"></span></button>
+              <button type="button" data-status="REJECTED" class="status-tab px-3 py-1.5 rounded-full text-label-sm">Bị từ chối <span data-count="rejectedCount"></span></button>
+              <button type="button" data-status="ALL" class="status-tab px-3 py-1.5 rounded-full text-label-sm">Tất cả</button>
+            </div>
+            <form id="filterForm" autocomplete="off">
+              <div class="relative flex items-center">
+                <span class="material-symbols-outlined text-outline absolute left-3 text-[18px]">search</span>
+                <input id="keywordInput" maxlength="100" type="search" placeholder="Tìm theo tên, email gia sư hoặc tiêu đề bài..."
+                       class="w-full h-10 pl-9 pr-3 rounded-lg bg-surface-container-low text-on-surface placeholder:text-outline text-body-sm outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 transition-all">
+              </div>
+            </form>
+          </div>
+
+          <ul id="postList" class="flex flex-col"></ul>
+
+          <div id="listState" class="hidden p-10 text-center">
+            <span id="listStateIcon" class="material-symbols-outlined text-5xl text-outline">inbox</span>
+            <p id="listStateTitle" class="text-title-sm text-on-surface mt-2"></p>
+            <button id="retryButton" type="button" class="hidden mt-3 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface text-label-sm">Thử lại</button>
+          </div>
+
+          <div id="pager" class="p-4 px-6 bg-surface-container-low"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Từ chối / yêu cầu bổ sung (cùng một hộp thoại, đổi nội dung theo thao tác) -->
+  <div id="rejectModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="rejectTitle">
+    <div class="w-full max-w-lg rounded-2xl bg-surface-container-lowest shadow-lg p-6">
+      <h2 id="rejectTitle" class="text-title-md font-semibold"></h2>
+      <p id="rejectHint" class="text-body-sm text-on-surface-variant mt-1"></p>
+      <textarea id="rejectReason" rows="5" maxlength="2000" class="mt-4 w-full rounded-lg bg-surface-container-low p-3 text-body-md outline-none focus:ring-2 focus:ring-primary/20"></textarea>
+      <p id="rejectError" class="hidden text-caption text-error mt-1"></p>
+      <div class="mt-5 flex justify-end gap-2">
+        <button id="rejectCancel" type="button" class="px-4 py-2.5 rounded-lg text-on-surface-variant text-label-md hover:bg-surface-container">Hủy</button>
+        <button id="rejectConfirm" type="button" class="px-4 py-2.5 rounded-lg text-white text-label-md hover:opacity-90 disabled:opacity-60"></button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/pages/academic-posts/academic-posts.js"></script>
+</body>
+</html>

@@ -3,8 +3,35 @@
 <link rel="icon" href="/assets/logos/kizuna-logo.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css">
 </head><body class="admin-dashboard operations-page"><a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
 <main id="dashboardMain" class="dashboard-main"><div id="operationsContent" class="operations-content" aria-busy="true">
-  <div class="operations-page-heading"><span class="role-badge">Tài khoản của bạn</span><h1>Hồ sơ cá nhân</h1><p>Thông tin của tài khoản đang sử dụng, lấy từ dữ liệu hệ thống.</p></div>
-  <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải hồ sơ…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
-  <section class="operations-card"><div class="profile-overview"><div id="profileAvatar" class="profile-avatar" aria-hidden="true">—</div><div><h2 id="profileName">Đang tải…</h2><p id="profileRole"></p></div></div><dl id="profileDetails" class="profile-details"></dl></section>
-  <p class="staff-help">Đây là trang xem hồ sơ tài khoản nội bộ hiện tại. Mật khẩu và thông tin bí mật không được hiển thị.</p>
-</div></main><script type="module" src="./admin-profile.js"></script></body></html>
+  <div class="operations-page-heading"><span class="role-badge">Tài khoản của bạn</span><h1>Hồ sơ cá nhân</h1><p>Xem và cập nhật thông tin tài khoản bạn đang dùng.</p></div>
+  <p id="operationsNotice" role="alert" tabindex="-1" hidden></p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+  <section class="operations-card profile-card">
+    <div class="profile-overview"><div id="profileAvatar" class="profile-avatar" aria-hidden="true">—</div><div><h2 id="profileName">Đang tải…</h2><p id="profileRole"></p><p id="profileStatus" class="profile-status"></p></div>
+      <div class="staff-row-actions profile-actions"><button id="editProfile" type="button" class="primary">Sửa thông tin</button><button id="openPassword" type="button">Đổi mật khẩu</button></div></div>
+    <dl id="profileDetails" class="profile-details"></dl>
+  </section>
+</div></main>
+<dialog id="profileDialog" class="staff-dialog portal-dialog" aria-labelledby="profileDialogTitle">
+  <form id="profileForm"><div class="portal-dialog-head"><h2 id="profileDialogTitle">Sửa thông tin cá nhân</h2><button class="portal-dialog-close" type="button" data-close>Đóng</button></div>
+    <div class="portal-dialog-body">
+      <div><label for="profileFullName">Họ và tên</label><input id="profileFullName" maxlength="100" autocomplete="name" required></div>
+      <div><label for="profilePhone">Số điện thoại</label><input id="profilePhone" type="tel" maxlength="20" autocomplete="tel"></div>
+      <p class="staff-help">Email và vai trò do Quản trị viên quản lý nên không đổi tại đây.</p>
+      <p id="profileNotice" class="staff-dialog-notice" role="alert"></p>
+    </div>
+    <div class="portal-dialog-actions"><button class="primary" type="submit">Lưu thông tin</button><button type="button" data-close>Hủy</button></div>
+  </form>
+</dialog>
+<dialog id="passwordDialog" class="staff-dialog portal-dialog" aria-labelledby="passwordDialogTitle">
+  <form id="passwordForm"><div class="portal-dialog-head"><h2 id="passwordDialogTitle">Đổi mật khẩu</h2><button class="portal-dialog-close" type="button" data-close>Đóng</button></div>
+    <div class="portal-dialog-body">
+      <div><label for="currentPassword">Mật khẩu hiện tại</label><input id="currentPassword" type="password" autocomplete="current-password" required></div>
+      <div><label for="newPassword">Mật khẩu mới</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="64" required></div>
+      <div><label for="confirmPassword">Nhập lại mật khẩu mới</label><input id="confirmPassword" type="password" autocomplete="new-password" required></div>
+      <p class="staff-help">8–64 ký tự, có cả chữ và số.</p>
+      <p id="passwordNotice" class="staff-dialog-notice" role="alert"></p>
+    </div>
+    <div class="portal-dialog-actions"><button class="primary" type="submit">Đổi mật khẩu</button><button type="button" data-close>Hủy</button></div>
+  </form>
+</dialog>
+<script type="module" src="./admin-profile.js"></script></body></html>

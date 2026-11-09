@@ -11,24 +11,28 @@ import java.util.*;
 public class SupportTicketCommandExecutor {
  private final SupportTicketRepository tickets;private final TicketMessageRepository messages;private final TicketAttachmentRepository attachments;
  private final TicketAuditEventRepository audit;private final SupportTicketActorResolver actors;private final SupportTicketAccessPolicy policy;private final SupportTicketRelatedContextService contexts;
+ /** Sau khi tạo yêu cầu hoặc khi nhân viên xong việc, giao tiếp yêu cầu đang chờ cho người rảnh trong ca. */
+ private final SupportShiftService shifts;
  @Transactional public UUID create(Create r,List<TicketAttachmentValidator.ValidatedFile> files){
    var actor=actors.current(true);if(!actor.requester())throw new BusinessException(403,"Chỉ học viên và gia sư được gửi yêu cầu hỗ trợ.");
    String subject=SupportTicketValidation.text(r.subject(),200),text=SupportTicketValidation.text(r.message(),10000);
    SupportTicketValidation.choice(r.category(),SupportTicketProjection.CATEGORY.keySet());contexts.validate(actor.userId(),r);
    UUID id=UUID.randomUUID();tickets.create(id,actor.userId(),subject,r.category(),r.relatedBookingId(),r.relatedMembershipId(),r.relatedTransactionId());
-   append(id,actor.userId(),text,files);audit.append(id,actor.userId(),"CREATE",0,Map.of(),snapshot(tickets.find(id,false)),null);return id;
+   append(id,actor.userId(),text,files);audit.append(id,actor.userId(),"CREATE",0,Map.of(),snapshot(tickets.find(id,false)),null);shifts.dispatchAfterCommit();return id;
  }
  @Transactional public void message(UUID id,Message r,List<TicketAttachmentValidator.ValidatedFile> files){
+   shifts.lockAssignments();
    var ticket=locked(id,r.expectedVersion());var actor=actors.current(true);policy.command(actor,ticket,"message");
    var before=snapshot(ticket);append(id,actor.userId(),SupportTicketValidation.text(r.message(),10000),files);
    if(actor.requester()&&ticket.get("status").equals("RESOLVED"))ticket.put("status","IN_PROGRESS");
    finish(ticket,actor,"MESSAGE_SENT",before,null);
  }
  @Transactional public void command(UUID id,String action,Command r){
+   shifts.lockAssignments();
    var t=locked(id,r.expectedVersion());var a=actors.current(true);policy.command(a,t,action);var before=snapshot(t);String note=null;
    switch(action){
-     case "claim"->{t.put("assigned_to",a.userId());t.put("status","IN_PROGRESS");}
-     case "assignment"->{actors.recipient(r.assigneeId(),"ROLE_CS_STAFF");if(Objects.equals(t.get("assigned_to"),r.assigneeId()))throw invalid();t.put("assigned_to",r.assigneeId());}
+     case "claim"->{shifts.requireNewAssignment(a.userId());t.put("assigned_to",a.userId());t.put("status","IN_PROGRESS");}
+     case "assignment"->{actors.recipient(r.assigneeId(),"ROLE_CS_STAFF");if(Objects.equals(t.get("assigned_to"),r.assigneeId()))throw invalid();shifts.requireNewAssignment(r.assigneeId());t.put("assigned_to",r.assigneeId());note=r.reason()==null||r.reason().isBlank()?"Bàn giao yêu cầu cho nhân viên khác":SupportTicketValidation.text(r.reason(),10000);}
      case "priority"->t.put("priority",SupportTicketValidation.choice(r.priority(),SupportTicketProjection.PRIORITY.keySet()));
      case "resolve"->{append(id,a.userId(),SupportTicketValidation.text(r.resolutionText(),10000),List.of());t.put("status","RESOLVED");}
      case "close"->t.put("status","CLOSED");
@@ -37,6 +41,7 @@ public class SupportTicketCommandExecutor {
      default->throw invalid();
    }
    finish(t,a,event(action),before,note);
+   if(Set.of("resolve","escalate","close","assignment","return").contains(action))shifts.dispatchAfterCommit();
  }
  private String escalation(Map<String,Object> t,SupportTicketActor a,String action,Command r,Map<String,Object> before){
    var rows=tickets.escalation((UUID)t.get("ticket_id"),true);if(rows.isEmpty()||!Boolean.TRUE.equals(rows.get(0).get("pending")))throw conflict();var e=rows.get(0);UUID eid=(UUID)e.get("escalation_id");

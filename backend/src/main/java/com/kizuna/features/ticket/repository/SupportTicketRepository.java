@@ -25,6 +25,11 @@ public class SupportTicketRepository {
  public Map<String,Object> find(UUID id,boolean lock){var rows=jdbc.queryForList("SELECT "+COLUMNS+SOURCE+" WHERE t.ticket_id=?"+(lock?" FOR UPDATE OF t":""),id);return rows.isEmpty()?null:rows.get(0);}
  public List<Map<String,Object>> list(String where,List<Object> args,int page,int size){var params=new ArrayList<>(args);params.add(size);params.add((long)page*size);return jdbc.queryForList("SELECT "+COLUMNS+SOURCE+" WHERE "+where+" ORDER BY t.updated_at DESC,t.ticket_id DESC LIMIT ? OFFSET ?",params.toArray());}
  public long count(String where,List<Object> args){return jdbc.queryForObject("SELECT count(*) FROM support_tickets t WHERE "+where,Long.class,args.toArray());}
+ public Map<String,Long> counts(String where,List<Object> args){
+   var result=new LinkedHashMap<String,Long>();
+   jdbc.query("SELECT t.status::text AS status,count(*) AS total FROM support_tickets t WHERE "+where+" GROUP BY t.status",rs->{result.put(rs.getString("status"),rs.getLong("total"));},args.toArray());
+   return result;
+ }
  public void create(UUID id,UUID user,String subject,String category,UUID booking,UUID membership,UUID payment){jdbc.update("INSERT INTO support_tickets(ticket_id,user_id,is_escalated,subject,category,priority,status,related_booking_id,related_membership_id,related_transaction_id,created_at,updated_at,version) VALUES(?,?,false,?,CAST(? AS support_ticket_category_enum),'MEDIUM','OPEN',?,?,?,now(),now(),0)",id,user,subject,category,booking,membership,payment);}
  public void save(Map<String,Object> t){jdbc.update("UPDATE support_tickets SET assigned_to=?,escalated_to=?,is_escalated=?,priority=CAST(? AS support_ticket_priority_enum),status=CAST(? AS support_ticket_status_enum),version=version+1,updated_at=now() WHERE ticket_id=?",t.get("assigned_to"),t.get("escalated_to"),t.get("is_escalated"),t.get("priority"),t.get("status"),t.get("ticket_id"));}
  public List<Map<String,Object>> escalation(UUID id,boolean lock){return jdbc.queryForList("SELECT escalation_id,ticket_id,referred_by,current_manager_id,reason,handling_summary,created_at,returned_at,pending,recipient_revision,decision_text,decision_by,decision_revision,decided_at FROM ticket_escalations WHERE ticket_id=? ORDER BY created_at DESC,escalation_id DESC LIMIT 1"+(lock?" FOR UPDATE":""),id);}

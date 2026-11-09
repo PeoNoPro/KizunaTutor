@@ -15,7 +15,7 @@
 <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
 
 <form id="statisticsFilters" class="operations-card operations-filters"><label>Từ ngày<input type="date" name="startDate"></label><label>Đến ngày<input type="date" name="endDate"></label><button class="primary" type="submit">Xem thống kê</button></form>
-<p id="statisticsPeriod">Mặc định 7 ngày, tối đa 366 ngày theo giờ Việt Nam.</p>
+<p id="statisticsPeriod" hidden>Mặc định 7 ngày, tối đa 366 ngày theo giờ Việt Nam.</p>
 <div class="statistics-layout">
 <section class="operations-card statistics-wide" aria-labelledby="newAccountsTitle"><h2 id="newAccountsTitle">Tài khoản mới</h2><p>Theo ngày tạo trong kỳ đã chọn, không gồm tài khoản đã xóa.</p><div id="newAccountsChart"></div></section>
 <section class="operations-card" aria-labelledby="rolesTitle"><h2 id="rolesTitle">Tài khoản theo vai trò</h2><p id="rolesNote">Tại thời điểm truy vấn, không phụ thuộc kỳ đã chọn.</p><div id="rolesChart"></div></section>

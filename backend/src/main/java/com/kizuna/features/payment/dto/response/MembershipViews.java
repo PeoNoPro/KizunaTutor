@@ -36,7 +36,9 @@ public final class MembershipViews {
 
     public record MyMembershipView(boolean eligible, String ineligibleReason, String tutorState, String tutorStateLabel,
                                    MembershipItemView current, List<MembershipItemView> upcoming, LocalDate expiresOn,
-                                   List<MembershipItemView> history) {
+                                   List<MembershipItemView> history,
+                                   /* Thời hạn (tháng) của gói cao nhất còn hiệu lực; null nếu chưa có. Chỉ gói dài hơn mới mua được. */
+                                   Integer ownedDurationMonths) {
     }
 
     public record PeriodView(LocalDate startDate, LocalDate endDate) {

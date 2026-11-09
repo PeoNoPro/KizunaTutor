@@ -4,8 +4,9 @@
 <link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/cs-workspace.css" data-cs-workspace></head>
 <body class="admin-dashboard cs-workspace" data-workspace="cs"><a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
 <main id="dashboardMain" class="dashboard-main cs-dashboard-main">
-  <div class="cs-intro"><h1>Yêu cầu hỗ trợ cần theo dõi</h1><p class="cs-description">Tiếp nhận, phản hồi người dùng và chuyển quản lý khi vượt thẩm quyền.</p></div>
+  <div class="cs-intro"><h1 id="csGreeting">Xin chào</h1><p class="cs-description">Tiếp nhận, phản hồi người dùng và chuyển quản lý khi vượt thẩm quyền.</p></div>
   <p id="csDashboardNotice" class="cs-dashboard-notice" role="status" aria-live="polite" tabindex="-1">Đang xác minh tài khoản…</p><button id="retryDashboard" type="button" class="cs-dashboard-retry" hidden>Thử tải lại</button>
+  <section id="csShift" class="cs-shift" hidden aria-live="polite"></section>
   <div id="csDashboardContent" class="cs-dashboard-grid" hidden aria-busy="true">
     <section class="cs-card" aria-labelledby="queueHeading">
       <div class="cs-card-heading"><h2 id="queueHeading">Hàng đợi hỗ trợ</h2><a id="allTicketsLink" href="/cs/support/tickets">Xem tất cả →</a></div>

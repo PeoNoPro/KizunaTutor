@@ -13,17 +13,21 @@ import com.kizuna.features.progress.dto.SubmissionResponse;
 import com.kizuna.features.progress.entity.Assignment;
 import com.kizuna.features.progress.entity.AssignmentSubmission;
 import com.kizuna.features.progress.entity.AssignmentSubmissionStatus;
+import com.kizuna.features.progress.entity.SubmissionFile;
 import com.kizuna.features.progress.repository.AssignmentRepository;
 import com.kizuna.features.progress.repository.AssignmentSubmissionRepository;
+import com.kizuna.features.progress.repository.SubmissionFileRepository;
 import com.kizuna.features.progress.service.impl.SubmissionServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,32 +41,37 @@ import static org.mockito.Mockito.*;
 class SubmissionServiceImplTest {
 
     private static final byte[] PDF = {0x25, 0x50, 0x44, 0x46, 0x2D, 0x31};
+    private static final byte[] DOCX = {0x50, 0x4B, 0x03, 0x04, 0x14, 0x00};
 
     private ClassroomService classrooms;
     private AssignmentRepository assignments;
     private AssignmentSubmissionRepository submissions;
+    private SubmissionFileRepository files;
     private SubmissionServiceImpl service;
 
-    private Tutor tutor;
-    private Learner learner;
     private LearningSpace space;
+    private Learner learner;
     private CurrentActor tutorActor;
     private CurrentActor learnerActor;
     private List<AssignmentSubmission> history;
+    /** Tệp đang lưu (giả lập bảng submission_files). */
+    private List<SubmissionFile> storedFiles;
 
     @BeforeEach
     void setUp() {
         classrooms = mock(ClassroomService.class);
         assignments = mock(AssignmentRepository.class);
         submissions = mock(AssignmentSubmissionRepository.class);
-        service = new SubmissionServiceImpl(classrooms, assignments, submissions, new MaterialFileValidator(), CLOCK);
+        files = mock(SubmissionFileRepository.class);
+        service = new SubmissionServiceImpl(classrooms, assignments, submissions, files, new MaterialFileValidator(), CLOCK);
 
-        tutor = tutor();
+        Tutor tutor = tutor();
         learner = learner();
         space = space(tutor, learner);
         tutorActor = asTutor(tutor);
         learnerActor = asLearner(learner);
         history = new ArrayList<>();
+        storedFiles = new ArrayList<>();
 
         when(classrooms.loadAccessibleSpace(any(), eq(space.getSpaceId()))).thenReturn(space);
         when(classrooms.loadManageableSpace(tutorActor, space.getSpaceId())).thenReturn(space);
@@ -73,6 +82,18 @@ class SubmissionServiceImplTest {
             if (s.getSubmissionId() == null) s.setSubmissionId(UUID.randomUUID());
             return s;
         });
+        when(files.insertFile(any(), any(), anyString(), anyLong(), any())).thenAnswer(inv -> {
+            storedFiles.add(SubmissionFile.builder().fileId(inv.getArgument(0)).submissionId(inv.getArgument(1))
+                    .fileName(inv.getArgument(2)).fileSize(inv.getArgument(3)).build());
+            return 1;
+        });
+        when(files.findBySubmissionIdOrderByCreatedAtAscFileNameAsc(any())).thenAnswer(inv ->
+                storedFiles.stream().filter(f -> f.getSubmissionId().equals(inv.getArgument(0))).toList());
+        doAnswer(inv -> {
+            Iterable<SubmissionFile> gone = inv.getArgument(0);
+            gone.forEach(storedFiles::remove);
+            return null;
+        }).when(files).deleteAll(anyIterable());
     }
 
     private Assignment stored(OffsetDateTime due) {
@@ -89,8 +110,20 @@ class SubmissionServiceImplTest {
         return s;
     }
 
-    private static MockMultipartFile pdf() {
-        return new MockMultipartFile("file", "C:\\bai lam/bai-1.PDF", "application/pdf", PDF);
+    private SubmissionFile storedFile(AssignmentSubmission s, String name) {
+        SubmissionFile f = SubmissionFile.builder().fileId(UUID.randomUUID()).submissionId(s.getSubmissionId())
+                .fileName(name).fileSize(6L).build();
+        storedFiles.add(f);
+        return f;
+    }
+
+    private static MockMultipartFile pdf(String name) {
+        return new MockMultipartFile("file", name, "application/pdf", PDF);
+    }
+
+    private static MockMultipartFile docx(String name) {
+        return new MockMultipartFile("file", name,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document", DOCX);
     }
 
     private static void assertStatus(Runnable call, HttpStatus status) {
@@ -100,111 +133,149 @@ class SubmissionServiceImplTest {
 
     private void verifyNothingSaved() {
         verify(submissions, never()).save(any());
-        verify(submissions, never()).updateFileData(any(), any());
+        verify(files, never()).insertFile(any(), any(), anyString(), anyLong(), any());
     }
 
-    // ----- UC-64 Submit -----
+    // ----- UC-64 Nộp bài lần đầu -----
 
     @Test
-    void firstSubmissionWithTextAndFile() {
+    void learnerSubmitsContentAndSeveralFilesAtOnce() {
         Assignment a = stored(NOW.plusDays(1));
 
-        SubmissionResponse r = service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "  Đáp án  ", pdf());
+        SubmissionResponse r = service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "  Bài làm  ",
+                List.of(pdf("C:\\bai lam/bai-1.PDF"), docx("bai 2.docx")));
 
-        assertThat(r.attemptNumber()).isEqualTo(1);
-        assertThat(r.content()).isEqualTo("Đáp án");
-        assertThat(r.fileName()).isEqualTo("bai-1.pdf");
-        assertThat(r.fileType()).isEqualTo("PDF");
+        assertThat(r.content()).isEqualTo("Bài làm");
         assertThat(r.onTime()).isTrue();
-        assertThat(r.submittedAt()).isEqualTo(NOW);
-        verify(submissions).save(argThat(s -> s.getStatus() == AssignmentSubmissionStatus.SUBMITTED && !s.isFinalized()
-                && s.getLearner() == learner));
-        verify(submissions).updateFileData(r.submissionId(), PDF);
+        assertThat(r.files()).extracting(f -> f.fileName()).containsExactly("bai-1.pdf", "bai 2.docx");
+        assertThat(r.files()).extracting(f -> f.fileType()).containsExactly("PDF", "DOCX");
+        verify(files, times(2)).insertFile(any(), eq(r.submissionId()), anyString(), eq(6L), any());
     }
 
     @Test
-    void textOnlySubmissionStoresNoFile() {
-        Assignment a = stored(null);
-        SubmissionResponse r = service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "Đáp án", null);
-        assertThat(r.fileName()).isNull();
-        verify(submissions, never()).updateFileData(any(), any());
-    }
-
-    @Test
-    void submissionRequiresTextOrValidFile() {
+    void submitNeedsContentOrFile() {
         Assignment a = stored(NOW.plusDays(1));
-        UUID s = space.getSpaceId();
-        assertStatus(() -> service.submit(learnerActor, s, a.getAssignmentId(), "   ", null), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.submit(learnerActor, s, a.getAssignmentId(), null,
-                new MockMultipartFile("file", "virus.pdf", "application/pdf", new byte[]{0x4D, 0x5A})), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.submit(learnerActor, s, a.getAssignmentId(), "a".repeat(5001), null), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "   ", List.of()),
+                HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), null, null),
+                HttpStatus.BAD_REQUEST);
         verifyNothingSaved();
     }
 
     @Test
-    void lateFirstSubmissionAcceptedAndMarkedLate() {
+    void submitRejectsMoreThanTenFilesOrInvalidFile() {
+        Assignment a = stored(NOW.plusDays(1));
+        List<MultipartFile> eleven = new ArrayList<>(Collections.nCopies(6, pdf("a.pdf")));
+        assertStatus(() -> service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), null, eleven),
+                HttpStatus.BAD_REQUEST);
+        MockMultipartFile fake = new MockMultipartFile("file", "x.docx", "application/octet-stream", PDF);
+        assertStatus(() -> service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), null,
+                List.of(pdf("a.pdf"), fake)), HttpStatus.BAD_REQUEST);
+        verifyNothingSaved();
+    }
+
+    @Test
+    void secondSubmitIsRejectedLearnerMustEditInstead() {
+        Assignment a = stored(NOW.plusDays(1));
+        previous(a, 1, NOW.minusHours(2), false);
+        assertThatThrownBy(() -> service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "x", null))
+                .isInstanceOf(ClassroomException.class).hasMessageContaining("chỉnh sửa bài đã nộp");
+        verifyNothingSaved();
+    }
+
+    @Test
+    void lateSubmissionAllowedOnceWhenNothingSubmitted() {
         Assignment a = stored(NOW.minusDays(1));
-        SubmissionResponse r = service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "Đáp án", null);
+        SubmissionResponse r = service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "Nộp muộn", null);
         assertThat(r.onTime()).isFalse();
-        assertThat(r.attemptNumber()).isEqualTo(1);
+    }
+
+    @Test
+    void submitAfterGradedBlockedAndReadOnlyBlocked() {
+        Assignment a = stored(null);
+        previous(a, 1, NOW.minusDays(2), true);
+        assertStatus(() -> service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "x", null), HttpStatus.CONFLICT);
+
+        Assignment b = stored(NOW.plusDays(1));
+        when(classrooms.isReadOnly(space)).thenReturn(true);
+        assertStatus(() -> service.submit(learnerActor, space.getSpaceId(), b.getAssignmentId(), "x", null), HttpStatus.CONFLICT);
+        verifyNothingSaved();
     }
 
     @Test
     void tutorCannotSubmit() {
         Assignment a = stored(NOW.plusDays(1));
         assertStatus(() -> service.submit(tutorActor, space.getSpaceId(), a.getAssignmentId(), "x", null), HttpStatus.FORBIDDEN);
-        verifyNothingSaved();
     }
 
+    // ----- UC-96 Sửa bài đã nộp -----
+
     @Test
-    void readOnlyClassroomBlocksSubmission() {
+    void learnerEditsSubmissionReplacingFiles() {
         Assignment a = stored(NOW.plusDays(1));
-        when(classrooms.isReadOnly(space)).thenReturn(true);
-        assertStatus(() -> service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "x", null), HttpStatus.CONFLICT);
-        verifyNothingSaved();
+        AssignmentSubmission s = previous(a, 1, NOW.minusHours(5), false);
+        SubmissionFile old = storedFile(s, "cu.pdf");
+        SubmissionFile keep = storedFile(s, "giu-lai.pdf");
+
+        SubmissionResponse r = service.update(learnerActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId(),
+                "Bản sửa", List.of(docx("moi.docx")), List.of(old.getFileId()));
+
+        assertThat(r.content()).isEqualTo("Bản sửa");
+        assertThat(r.files()).extracting(f -> f.fileName()).containsExactlyInAnyOrder("giu-lai.pdf", "moi.docx");
+        assertThat(s.getSubmittedAt()).isEqualTo(NOW);
+        assertThat(storedFiles).contains(keep).doesNotContain(old);
     }
 
-    // ----- UC-96 Resubmit -----
+    @Test
+    void editBlockedAfterDeadlineOrGraded() {
+        Assignment late = stored(NOW.minusDays(1));
+        AssignmentSubmission s1 = previous(late, 1, NOW.minusDays(2), false);
+        assertStatus(() -> service.update(learnerActor, space.getSpaceId(), late.getAssignmentId(), s1.getSubmissionId(),
+                "x", null, null), HttpStatus.CONFLICT);
+
+        history.clear();
+        Assignment graded = stored(null);
+        AssignmentSubmission s2 = previous(graded, 1, NOW.minusDays(2), true);
+        assertStatus(() -> service.update(learnerActor, space.getSpaceId(), graded.getAssignmentId(), s2.getSubmissionId(),
+                "x", null, null), HttpStatus.CONFLICT);
+        verify(submissions, never()).save(any());
+    }
 
     @Test
-    void resubmitBeforeDeadlineCreatesNextAttempt() {
+    void editCannotLeaveSubmissionEmpty() {
         Assignment a = stored(NOW.plusDays(1));
-        previous(a, 1, NOW.minusHours(3), false);
-        previous(a, 2, NOW.minusHours(2), false);
-
-        SubmissionResponse r = service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "Bản sửa", null);
-
-        assertThat(r.attemptNumber()).isEqualTo(3);
+        AssignmentSubmission s = previous(a, 1, NOW.minusHours(5), false);
+        SubmissionFile only = storedFile(s, "bai.pdf");
+        assertStatus(() -> service.update(learnerActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId(),
+                "  ", null, List.of(only.getFileId())), HttpStatus.BAD_REQUEST);
+        assertThat(storedFiles).contains(only);
     }
 
     @Test
-    void resubmitWithoutDeadlineAllowed() {
-        Assignment a = stored(null);
-        previous(a, 1, NOW.minusDays(5), false);
-        assertThat(service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "Bản sửa", null).attemptNumber())
-                .isEqualTo(2);
+    void editRejectsUnknownFileAndTooManyFiles() {
+        Assignment a = stored(NOW.plusDays(1));
+        AssignmentSubmission s = previous(a, 1, NOW.minusHours(5), false);
+        for (int i = 0; i < 4; i++) storedFile(s, "f" + i + ".pdf");
+        assertStatus(() -> service.update(learnerActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId(),
+                "x", null, List.of(UUID.randomUUID())), HttpStatus.NOT_FOUND);
+        assertStatus(() -> service.update(learnerActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId(),
+                "x", List.of(pdf("a.pdf"), pdf("b.pdf")), null), HttpStatus.BAD_REQUEST);
+        verify(files, never()).insertFile(any(), any(), anyString(), anyLong(), any());
     }
 
     @Test
-    void resubmitAfterDeadlineBlocked() {
-        Assignment a = stored(NOW.minusDays(1));
-        previous(a, 1, NOW.minusDays(2), false);
-        assertStatus(() -> service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "x", null), HttpStatus.CONFLICT);
-        verifyNothingSaved();
+    void onlyCurrentSubmissionCanBeEdited() {
+        Assignment a = stored(NOW.plusDays(1));
+        AssignmentSubmission old = previous(a, 1, NOW.minusDays(2), false);
+        previous(a, 2, NOW.minusDays(1), false);
+        assertStatus(() -> service.update(learnerActor, space.getSpaceId(), a.getAssignmentId(), old.getSubmissionId(),
+                "x", null, null), HttpStatus.FORBIDDEN);
     }
 
-    @Test
-    void submitAfterGradedBlocked() {
-        Assignment a = stored(null);
-        previous(a, 1, NOW.minusDays(2), true);
-        assertStatus(() -> service.submit(learnerActor, space.getSpaceId(), a.getAssignmentId(), "x", null), HttpStatus.CONFLICT);
-        verifyNothingSaved();
-    }
-
-    // ----- UC-67 Grade -----
+    // ----- UC-67 Chấm điểm -----
 
     @Test
-    void gradeLatestAfterDeadline() {
+    void gradeCurrentSubmissionAfterDeadline() {
         Assignment a = stored(NOW.minusDays(1));
         previous(a, 1, NOW.minusDays(3), false);
         AssignmentSubmission latest = previous(a, 2, NOW.minusDays(2), false);
@@ -228,24 +299,22 @@ class SubmissionServiceImplTest {
     }
 
     @Test
-    void gradeBeforeDeadlineBlocked() {
+    void gradeBeforeDeadlineBlockedAndOnlyOnce() {
         Assignment a = stored(NOW.plusDays(1));
         AssignmentSubmission s = previous(a, 1, NOW.minusHours(1), false);
         assertStatus(() -> service.grade(tutorActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId(),
+                new GradeRequest(BigDecimal.TEN, null)), HttpStatus.CONFLICT);
+
+        history.clear();
+        Assignment b = stored(NOW.minusDays(1));
+        AssignmentSubmission graded = previous(b, 1, NOW.minusDays(2), true);
+        assertStatus(() -> service.grade(tutorActor, space.getSpaceId(), b.getAssignmentId(), graded.getSubmissionId(),
                 new GradeRequest(BigDecimal.TEN, null)), HttpStatus.CONFLICT);
         verify(submissions, never()).save(any());
     }
 
     @Test
-    void gradeOnlyOnce() {
-        Assignment a = stored(NOW.minusDays(1));
-        AssignmentSubmission s = previous(a, 1, NOW.minusDays(2), true);
-        assertStatus(() -> service.grade(tutorActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId(),
-                new GradeRequest(BigDecimal.TEN, null)), HttpStatus.CONFLICT);
-    }
-
-    @Test
-    void gradeOlderAttemptBlocked() {
+    void gradeOlderRowBlocked() {
         Assignment a = stored(NOW.minusDays(1));
         AssignmentSubmission old = previous(a, 1, NOW.minusDays(3), false);
         previous(a, 2, NOW.minusDays(2), false);
@@ -268,42 +337,35 @@ class SubmissionServiceImplTest {
     void learnerCannotGrade() {
         Assignment a = stored(NOW.minusDays(1));
         AssignmentSubmission s = previous(a, 1, NOW.minusDays(2), false);
-        when(classrooms.loadManageableSpace(learnerActor, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
         assertStatus(() -> service.grade(learnerActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId(),
                 new GradeRequest(BigDecimal.TEN, null)), HttpStatus.FORBIDDEN);
     }
 
-    @Test
-    void gradeUnknownSubmissionNotFound() {
-        Assignment a = stored(NOW.minusDays(1));
-        when(submissions.findBySubmissionIdAndAssignment_AssignmentId(any(), eq(a.getAssignmentId()))).thenReturn(Optional.empty());
-        assertStatus(() -> service.grade(tutorActor, space.getSpaceId(), a.getAssignmentId(), UUID.randomUUID(),
-                new GradeRequest(BigDecimal.TEN, null)), HttpStatus.NOT_FOUND);
-    }
-
-    // ----- File -----
+    // ----- Tệp bài làm -----
 
     @Test
-    void fileReturnedForClassroomMember() {
+    void readsOneFileOfSubmission() {
         Assignment a = stored(NOW.plusDays(1));
         AssignmentSubmission s = previous(a, 1, NOW.minusHours(1), false);
-        s.setAttachmentUrl("bai-1.pdf");
-        when(submissions.findFileData(s.getSubmissionId())).thenReturn(PDF);
+        SubmissionFile f = storedFile(s, "bai 2.docx");
+        when(files.findByFileIdAndSubmissionId(f.getFileId(), s.getSubmissionId())).thenReturn(Optional.of(f));
+        when(files.findFileData(f.getFileId())).thenReturn(DOCX);
 
-        SubmissionFileContent f = service.getFile(tutorActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId());
+        SubmissionFileContent c = service.getFile(tutorActor, space.getSpaceId(), a.getAssignmentId(),
+                s.getSubmissionId(), f.getFileId());
 
-        assertThat(f.data()).isEqualTo(PDF);
-        assertThat(f.contentType()).isEqualTo("application/pdf");
+        assertThat(c.fileName()).isEqualTo("bai 2.docx");
+        assertThat(c.contentType()).isEqualTo("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        assertThat(c.data()).isEqualTo(DOCX);
     }
 
     @Test
-    void fileDeniedForOutsiderAndMissingWithoutAttachment() {
+    void unknownFileIsNotFound() {
         Assignment a = stored(NOW.plusDays(1));
         AssignmentSubmission s = previous(a, 1, NOW.minusHours(1), false);
-        CurrentActor outsider = asLearner(learner());
-        when(classrooms.loadAccessibleSpace(outsider, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
-        assertStatus(() -> service.getFile(outsider, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId()), HttpStatus.FORBIDDEN);
-        assertStatus(() -> service.getFile(learnerActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId()), HttpStatus.NOT_FOUND);
-        verify(submissions, never()).findFileData(any());
+        when(files.findByFileIdAndSubmissionId(any(), any())).thenReturn(Optional.empty());
+        assertStatus(() -> service.getFile(tutorActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId(),
+                UUID.randomUUID()), HttpStatus.NOT_FOUND);
+        verify(files, never()).findFileData(any());
     }
 }

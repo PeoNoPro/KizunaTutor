@@ -17,7 +17,7 @@ Hai liên kết sidebar và lối tắt nhân viên/vai trò mở trang thật; 
 - `frontend/tests/admin-staff.browser.mjs` dùng backend thật ở8086 với DB QA riêng `kizuna_staffqa_admin_dev`: root→dashboard, danh tính từDB, avatar, hai link hoạt động, tạo/sửa/tìm, gán vai trò, khóa/mở, audit, desktop1280/mobile390/320: **đạt**. Không giả response nghiệp vụ. Các tài khoản thử chỉ ở DB QA.
 - Đã xem ảnh staff desktop và role mobile; sửa empty icon để không lộ tên icon khi thiếu font, điều chỉnh khoảng cách thẻ và nút mobile.
 - API `/me`, `/staff`, `/roles` ở backend người dùng 8085 trả200 không cần qua màn đăng nhập, sau khi kiểm tra và khởi động lại đúng tiến trình trong checkout. DB duyệt vẫn là `kizuna_admin_dev`, không phải DB QA.
-- Schema `admin_staff_schema.sql` chỉ bổ sung bảng/index audit; chạy trên DB dev vàtest, không migrate Supabase. Script chạy có preflight tênDB/loopback; DB đã có không bị ghi đè.
+- Schema `fe11_operations_schema.sql` chỉ bổ sung bảng/index audit; chạy trên DB dev vàtest, không migrate Supabase. Script chạy có preflight tênDB/loopback; DB đã có không bị ghi đè.
 - Kết quả/ảnh: `../.dashboard-qa/staff-results.json`, `staff-1280.png`, `roles-1280.png`, `admin-staff-390.png`, `admin-roles-390.png`. Log Maven: `backend/target/staff-tests.log`.
 
 ## Phạm vi còn lại

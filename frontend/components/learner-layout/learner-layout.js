@@ -4,7 +4,7 @@
  * Tuân thủ nghiêm ngặt FRONTEND_RULES.md
  */
 
-import { initSidebarRouter } from '/js/sidebarRouter.js';
+import { initSidebarRouter, LEARNER_NAV_ACTIVE, LEARNER_NAV_IDLE } from '/js/sidebarRouter.js';
 
 // =========================================================================
 // 1. CẤU HÌNH DANH MỤC MENU HỌC VIÊN
@@ -17,7 +17,7 @@ export const LEARNER_MENU_GROUPS = [
         key: 'dashboard',
         title: 'Tổng quan học tập',
         url: '/learner/dashboard',
-        icon: '📊',
+        icon: 'grid_view',
         matcher: ['/learner/dashboard', '/learner', '/dashboard']
       }
     ]
@@ -27,16 +27,16 @@ export const LEARNER_MENU_GROUPS = [
     items: [
       {
         key: 'requests',
-        title: 'Yêu cầu kết nối',
+        title: 'Thời khóa biểu & Lịch học',
         url: '/learner/connections',
-        icon: '📅',
-        matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests']
+        icon: 'calendar_month',
+        matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests', '/pages/learner-connections']
       },
       {
         key: 'my-courses',
         title: 'Lớp học của tôi',
         url: '/pages/my-courses/',
-        icon: '🏫',
+        icon: 'school',
         matcher: ['/my-courses', '/pages/my-courses']
       }
     ]
@@ -48,49 +48,49 @@ export const LEARNER_MENU_GROUPS = [
         key: 'kanji-dictionary',
         title: 'Tra cứu chữ Hán',
         url: '/kanji-dictionary',
-        icon: '📖',
+        icon: 'menu_book',
         matcher: ['/kanji-dictionary', '/dictionary', '/kanji']
       },
       {
         key: 'handwriting',
         title: 'Tra cứu viết tay',
         url: '/handwriting',
-        icon: '🖋️',
+        icon: 'draw',
         matcher: ['/handwriting', '/handwriting-search', '/ohr']
       },
       {
         key: 'shodo',
         title: 'Phòng luyện viết Shodo',
         url: '/shodo',
-        icon: '✏️',
+        icon: 'brush',
         matcher: ['/shodo', '/shodo-practice', '/kanji-practice']
       },
       {
         key: 'kana',
         title: 'Đấu trường gõ Kana',
         url: '/kana',
-        icon: '⚡',
+        icon: 'keyboard',
         matcher: ['/kana', '/kana-quiz']
       },
       {
         key: 'grammar',
         title: 'Ngữ pháp & AI Sensei',
         url: '/grammar',
-        icon: '📖',
+        icon: 'auto_stories',
         matcher: ['/grammar', '/openjlpt']
       },
       {
         key: 'ai-writing',
         title: 'Chữa câu & Viết AI',
         url: '/ai-writing',
-        icon: '✍️',
+        icon: 'edit_note',
         matcher: ['/ai-writing', '/sakubun']
       },
       {
         key: 'flashcards',
         title: 'Bộ thẻ của tôi',
         url: '/flashcards',
-        icon: '🗂️',
+        icon: 'style',
         matcher: ['/flashcards', '/decks']
       }
     ]
@@ -102,14 +102,14 @@ export const LEARNER_MENU_GROUPS = [
         key: 'support',
         title: 'Yêu cầu hỗ trợ',
         url: '/learner/support/tickets',
-        icon: '💬',
+        icon: 'support_agent',
         matcher: ['/learner/support/tickets', '/pages/support-ticket']
       },
       {
         key: 'policies',
         title: 'Chính sách',
         url: '/learner/policies',
-        icon: '📄',
+        icon: 'policy',
         matcher: ['/learner/policies', '/pages/polic']
       }
     ]
@@ -172,89 +172,113 @@ export function getLearnerProfile() {
 }
 
 // =========================================================================
-// 4. RENDER HTML SIDEBAR HỌC VIÊN (ĐỒNG BỘ CHUẨN XÁC VỚI SIDEBAR LEGACY)
+// 4. RENDER HTML SIDEBAR HỌC VIÊN (ĐỒNG BỘ KIỂU SIDEBAR GIA SƯ — components/tutor-layout)
 // =========================================================================
+// Màu viết bằng mã hex (khớp components/tutor-layout/tailwind-theme.js) vì các trang học viên
+// không nạp theme Tailwind của gia sư; nhờ vậy sidebar hiển thị giống nhau trên mọi trang.
+
+function escapeAttr(text) {
+  return String(text == null ? '' : text)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/** Nạp phông Plus Jakarta Sans và bộ icon Material Symbols nếu trang chưa có (sidebar cần cả hai). */
+export function ensureLearnerLayoutAssets() {
+  if (typeof document === 'undefined') return;
+  const fonts = [
+    ['learnerFontJakarta', 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap'],
+    ['learnerFontSymbols', 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200']
+  ];
+  fonts.forEach(([id, href]) => {
+    if (document.getElementById(id)) return;
+    if (id === 'learnerFontSymbols' && document.querySelector('link[href*="Material+Symbols+Outlined"]')) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  });
+}
+
 export function getLearnerSidebarHtml(activeKey) {
+  ensureLearnerLayoutAssets();
   const currentActive = detectActiveMenu(activeKey);
   const profile = getLearnerProfile();
 
   const menuSectionsHtml = LEARNER_MENU_GROUPS.map(group => {
     const itemsHtml = group.items.map(item => {
       const isActive = item.key === currentActive;
-      const activeClass = isActive
-        ? 'bg-[#FFE5EC] border-l-[3px] border-l-[#831843] border border-[#FBCFE8] text-[#831843] font-semibold'
-        : 'text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-normal';
-
       return `
         <a href="${item.url}"
            data-menu-key="${item.key}"
            ${(item.key === 'tutors' || item.key === 'requests') ? 'data-no-spa' : 'data-spa-link'}
-           class="nav-item flex items-center space-x-2.5 px-3 py-2 text-[14px] rounded-[6px] transition-all mb-1 no-underline ${activeClass}">
-          <span class="text-sm shrink-0">${item.icon}</span>
-          <span class="text-inherit truncate">${item.title}</span>
+           class="${isActive ? LEARNER_NAV_ACTIVE : LEARNER_NAV_IDLE}" ${isActive ? 'aria-current="page"' : ''}>
+          <span class="material-symbols-outlined text-[20px] shrink-0">${item.icon}</span>
+          <span class="truncate">${item.title}</span>
         </a>
       `;
     }).join('');
 
     return `
-      <div>
-        <div class="sidebar-group-title text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.05em] px-2.5 mb-1.5">${group.groupTitle}</div>
+      <div class="flex flex-col gap-1">
+        <div class="px-3 pt-1 pb-1 text-[11px] leading-[14px] font-semibold text-[#707881] uppercase tracking-wider">${group.groupTitle}</div>
         ${itemsHtml}
       </div>
     `;
   }).join('');
 
   return `
-    <!-- Learner Sidebar (Đồng bộ chuẩn 100% với legacy KizunaTutor) -->
-    <aside id="learnerSidebar" class="w-[270px] min-w-[260px] max-w-[280px] bg-[#F8FAFC] border-r border-[#E2E8F0] h-screen sticky top-0 flex flex-col justify-between p-4 shrink-0 z-40 transition-transform duration-200 ease-in-out -translate-x-full md:translate-x-0 font-sans select-none fixed md:static inset-y-0 left-0 shadow-lg md:shadow-none">
-      
-      <!-- Khối Logo Thương Hiệu KizunaLearner Đẩy Lên Đầu Sidebar -->
-      <div class="pb-3 mb-2 border-b border-[#E2E8F0] flex items-center justify-between">
-        <a href="/learner/dashboard" class="flex items-center gap-2.5 no-underline group" title="KizunaTutor Học Viên">
-          <div class="w-8 h-8 rounded-[8px] bg-[#1E293B] text-white font-bold flex items-center justify-center text-base group-hover:scale-105 transition-transform">
-            絆
-          </div>
-          <div class="font-sans font-bold text-[18px] text-[#0F172A] tracking-tight">
-            Kizuna<span class="text-[#831843] font-extrabold">Learner</span>
-          </div>
-        </a>
-        <button type="button" id="btnCloseSidebarMobile" class="md:hidden p-1.5 rounded-[6px] text-slate-400 hover:text-slate-700 hover:bg-[#F1F5F9] transition-colors" title="Đóng menu">
-          ✕
-        </button>
-      </div>
+    <!-- Learner Sidebar (cùng kiểu sidebar khu vực gia sư) -->
+    <aside id="learnerSidebar" style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif;"
+           class="w-[270px] min-w-[260px] max-w-[280px] bg-white shadow-[0_1px_8px_rgba(0,0,0,0.04)] h-screen sticky top-0 flex flex-col justify-between shrink-0 z-40 transition-transform duration-200 ease-in-out -translate-x-full md:translate-x-0 select-none fixed md:static inset-y-0 left-0 overflow-hidden">
 
-      <!-- Danh Sách Menu Điều Hướng -->
-      <div class="space-y-3 flex-1 overflow-y-auto pr-1">
-        ${menuSectionsHtml}
-      </div>
-
-      <!-- Khối Thông Tin Học Viên Dưới Cùng -->
-      <div class="pt-3 mt-2 border-t border-[#E2E8F0] bg-[#F8FAFC]">
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center space-x-2.5 min-w-0">
-            <div id="sidebarUserAvatar" class="w-8 h-8 rounded-[8px] bg-[#1E293B] text-white flex items-center justify-center font-bold text-xs shrink-0">
-              ${profile.initials}
+      <div class="flex flex-col min-h-0 flex-1">
+        <!-- Logo -->
+        <div class="px-6 pt-6 pb-4 flex items-start justify-between">
+          <a href="/home" title="Về trang chủ KizunaTutor" class="no-underline">
+            <div class="flex items-center gap-2 mb-1">
+              <div class="w-8 h-8 rounded-lg bg-[#007bb9] flex items-center justify-center text-white text-[20px] leading-7 font-semibold">絆</div>
+              <div class="text-[20px] leading-7 font-semibold"><span class="text-[#0F2545]">Kizuna</span><span class="text-[#006194]">Tutor</span></div>
             </div>
-            <div class="text-xs leading-tight min-w-0">
-              <div id="sidebarLearnerName" class="font-semibold text-[#0F172A] truncate max-w-[95px]" title="${profile.name}">
-                ${profile.name}
-              </div>
-              <div class="text-[11px] text-[#64748B] truncate">Học viên</div>
-            </div>
-          </div>
-          <button type="button"
-                  id="btnLogoutSidebar"
-                  class="text-[13px] text-[#334155] hover:text-[#831843] hover:bg-[#FFE5EC] font-medium px-2.5 py-1.5 rounded-[6px] border border-[#CBD5E1] hover:border-[#FBCFE8] transition-all cursor-pointer flex items-center gap-1 shrink-0"
-                  title="Đăng xuất khỏi tài khoản">
-            <span>🚪</span>
-            <span>Thoát</span>
+            <p class="text-[11px] leading-[14px] font-medium text-[#3f4850] tracking-wider">Không gian học viên</p>
+          </a>
+          <button type="button" id="btnCloseSidebarMobile" class="md:hidden p-1.5 rounded-lg text-[#707881] hover:text-[#131b2e] hover:bg-[#eaedff] transition-colors" title="Đóng menu" aria-label="Đóng menu">
+            <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
+
+        <!-- Danh sách menu -->
+        <nav class="flex flex-col gap-3 px-4 mt-1 pb-2 flex-1 overflow-y-auto scrollbar-none" aria-label="Điều hướng học viên">
+          ${menuSectionsHtml}
+        </nav>
+      </div>
+
+      <!-- Menu tài khoản ở góc dưới bên trái (giống gia sư) -->
+      <div class="mx-4 my-4 relative" id="learnerUserMenu">
+        <div id="learnerUserMenuPanel" role="menu" aria-label="Tài khoản"
+             class="hidden absolute left-0 right-0 bottom-[calc(100%+8px)] rounded-xl bg-white shadow-lg ring-1 ring-black/5 p-1.5 flex-col z-50">
+          <a href="/home" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#131b2e] hover:bg-[#eaedff] no-underline">
+            <span class="material-symbols-outlined text-[18px]">home</span><span>Về trang chủ</span>
+          </a>
+          <div class="h-px bg-[#eaedff] my-1"></div>
+          <button type="button" role="menuitem" id="btnLogoutSidebar" class="w-full flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#ba1a1a] hover:bg-[#ffdad6] text-left">
+            <span class="material-symbols-outlined text-[18px]">logout</span><span>Đăng xuất</span>
+          </button>
+        </div>
+        <button id="learnerUserMenuButton" type="button" aria-haspopup="menu" aria-expanded="false"
+                class="w-full flex items-center gap-3 p-3 rounded-xl bg-[#f2f3ff] hover:bg-[#eaedff] transition-colors text-left">
+          <span id="sidebarUserAvatar" class="w-10 h-10 shrink-0 rounded-full bg-[#cce5ff] text-[#004b73] flex items-center justify-center text-[12px] font-semibold ring-2 ring-[#006194]/20">${escapeAttr(profile.initials)}</span>
+          <span class="min-w-0 flex-1">
+            <span id="sidebarLearnerName" class="block text-[14px] font-semibold text-[#131b2e] leading-tight truncate" title="${escapeAttr(profile.name)}">${escapeAttr(profile.name)}</span>
+            <span class="block text-[11px] leading-[14px] font-medium text-[#3f4850] truncate">Học viên</span>
+          </span>
+          <span class="material-symbols-outlined text-[18px] text-[#707881] transition-transform" data-chevron>expand_less</span>
+        </button>
       </div>
     </aside>
 
     <!-- Mobile Sidebar Backdrop Overlay -->
-    <div id="learnerSidebarBackdrop" class="fixed inset-0 bg-slate-900/40 z-30 hidden md:hidden transition-opacity"></div>
+    <div id="learnerSidebarBackdrop" class="fixed inset-0 bg-black/30 z-30 hidden md:hidden transition-opacity"></div>
   `;
 }
 
@@ -262,17 +286,16 @@ export function getLearnerSidebarHtml(activeKey) {
 // 5. RENDER HTML HEADER HỌC VIÊN
 // =========================================================================
 export function getLearnerHeaderHtml(options = {}) {
+  ensureLearnerLayoutAssets();
   return `
-    <!-- Header tinh gọn chuẩn legacy: Ẩn hoàn toàn trên Desktop (md:hidden) để loại bỏ Breadcrumb dư thừa & giải phóng 60px viewport -->
-    <header class="md:hidden h-14 bg-white border-b border-[#E2E8F0] sticky top-0 z-30 px-4 flex items-center justify-between font-sans shadow-2xs">
-      <div class="flex items-center gap-2.5">
-        <button type="button" id="btnOpenSidebarMobile" class="p-1.5 rounded-md border border-[#CBD5E1] text-[#334155] bg-white hover:bg-[#F8FAFC] transition-colors cursor-pointer" title="Mở danh mục menu">
-          <span class="material-symbols-outlined text-[20px]">menu</span>
-        </button>
-        <a href="/learner/dashboard" class="font-sans font-bold text-[18px] text-[#0F172A] tracking-tight no-underline">
-          Kizuna<span class="text-[#831843] font-extrabold">Learner</span>
-        </a>
-      </div>
+    <!-- Thanh trên chỉ hiện trên màn hình nhỏ để mở sidebar (giống khu vực gia sư) -->
+    <header class="md:hidden h-14 bg-white/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)] sticky top-0 z-30 px-4 flex items-center gap-3" style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif;">
+      <button type="button" id="btnOpenSidebarMobile" class="p-2 rounded-lg text-[#3f4850] hover:bg-[#eaedff] transition-colors cursor-pointer" title="Mở menu" aria-label="Mở menu">
+        <span class="material-symbols-outlined text-[22px]">menu</span>
+      </button>
+      <a href="/learner/dashboard" class="text-[20px] leading-7 font-semibold no-underline">
+        <span class="text-[#0F2545]">Kizuna</span><span class="text-[#006194]">Tutor</span>
+      </a>
     </header>
   `;
 }
@@ -320,6 +343,29 @@ export function bindLearnerLayoutEvents() {
       closeSidebar();
     }
   });
+
+  // Menu tài khoản góc dưới trái: bấm để mở/đóng (giống sidebar gia sư)
+  const menuRoot = document.getElementById('learnerUserMenu');
+  const menuButton = document.getElementById('learnerUserMenuButton');
+  const menuPanel = document.getElementById('learnerUserMenuPanel');
+  if (menuRoot && menuButton && menuPanel) {
+    const setMenuOpen = (open) => {
+      menuPanel.classList.toggle('hidden', !open);
+      menuPanel.classList.toggle('flex', open);
+      menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+      menuButton.querySelector('[data-chevron]')?.classList.toggle('rotate-180', open);
+    };
+    menuButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMenuOpen(menuPanel.classList.contains('hidden'));
+    });
+    document.addEventListener('click', (e) => {
+      if (!menuRoot.contains(e.target)) setMenuOpen(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    });
+  }
 
   // Xử lý Đăng xuất tập trung
   btnLogout?.addEventListener('click', async () => {

@@ -277,6 +277,21 @@ CREATE TABLE learning_spaces (
 CREATE INDEX idx_spaces_tutor_learner ON learning_spaces(tutor_id, learner_id);
 CREATE TRIGGER trg_spaces_updated_at BEFORE UPDATE ON learning_spaces FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
+-- 11b. Bảng Lịch Học Hằng Tuần Của Lớp (Class Schedules) — FE-06, migration 012
+DROP TABLE IF EXISTS class_schedules CASCADE;
+CREATE TABLE class_schedules (
+    schedule_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    space_id UUID NOT NULL REFERENCES learning_spaces(space_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_class_schedule_time CHECK (start_time < end_time)
+);
+CREATE INDEX idx_class_schedules_space ON class_schedules(space_id);
+CREATE TRIGGER trg_class_schedules_updated_at BEFORE UPDATE ON class_schedules FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+
 -- 12. Bảng Tài Liệu Học Tập (Learning Materials)
 DROP TABLE IF EXISTS learning_materials CASCADE;
 CREATE TABLE learning_materials (
@@ -329,6 +344,41 @@ CREATE TABLE assignment_submissions (
     graded_at TIMESTAMPTZ DEFAULT NULL
 );
 CREATE INDEX idx_submissions_assign_learner ON assignment_submissions(assignment_id, learner_id);
+
+-- 16a. Tệp của tài liệu học tập (FE-06, migration 014): một tài liệu gồm 1–10 tệp
+DROP TABLE IF EXISTS learning_material_files CASCADE;
+CREATE TABLE learning_material_files (
+    file_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    material_id UUID NOT NULL REFERENCES learning_materials(material_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    file_data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_learning_material_files_material ON learning_material_files(material_id);
+
+-- 16b. Tệp đề bài & tệp bài làm (FE-07, migration 013): nhiều tệp, mỗi tệp ≤ 25 MB, tối đa 10 tệp
+DROP TABLE IF EXISTS assignment_files CASCADE;
+CREATE TABLE assignment_files (
+    file_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assignment_id UUID NOT NULL REFERENCES assignments(assignment_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    file_data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_assignment_files_assignment ON assignment_files(assignment_id);
+
+DROP TABLE IF EXISTS submission_files CASCADE;
+CREATE TABLE submission_files (
+    file_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    submission_id UUID NOT NULL REFERENCES assignment_submissions(submission_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    file_data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_submission_files_submission ON submission_files(submission_id);
 
 -- ====================================================================================================
 -- PHÂN HỆ 4: KHO TỪ ĐIỂN KANJI, BỘ THẺ & MINIGAME LUYỆN VIẾT

@@ -19,6 +19,7 @@ public final class PaymentMessages {
     public static final String MSG37_GATEWAY_UNAVAILABLE = "Cổng thanh toán đang tạm thời không khả dụng. Vui lòng thử lại sau.";
 
     public static final String PLAN_NOT_FOUND = "Không tìm thấy gói hội viên.";
+    public static final String PLAN_NOT_UPGRADE = "Bạn đang sở hữu gói này hoặc gói cao hơn. Chỉ có thể nâng cấp lên gói cao hơn.";
     public static final String PLAN_NAME_DUPLICATE = "Tên gói đã tồn tại. Vui lòng chọn tên khác.";
     public static final String PLAN_CREATED = "Đã tạo gói hội viên.";
     public static final String PLAN_OPENED = "Đã mở bán gói hội viên.";

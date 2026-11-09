@@ -43,7 +43,7 @@ public abstract class ClassroomExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ClassroomApiResponse<Object>> handleTooLarge(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .body(ClassroomApiResponse.error("Tệp vượt quá dung lượng cho phép (tối đa 10 MB).", null));
+                .body(ClassroomApiResponse.error("Tệp vượt quá dung lượng cho phép (mỗi tệp tối đa 25 MB, mỗi lần tải lên tối đa 5 tệp, tổng 100 MB).", null));
     }
 
     @ExceptionHandler(Exception.class)

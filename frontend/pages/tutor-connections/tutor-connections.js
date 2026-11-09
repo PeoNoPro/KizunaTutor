@@ -11,6 +11,9 @@ const $ = (id) => document.getElementById(id);
 let bookingsList = [];
 let currentFilter = 'ALL';
 let activeBooking = null;
+let activeCompleteBooking = null;
+// Lớp đang học (ACTIVE/PAUSED) của gia sư theo học viên — từ FE-06 GET /api/classrooms — để biết đã tạo lớp chưa
+let openClassByLearner = new Map();
 
 function setVisible(el, visible) {
   if (!el) return;
@@ -65,11 +68,15 @@ function showToast(message, type = 'success') {
 /**
  * Cập nhật số liệu thống kê trên các thẻ KPI và nhãn của từng Tab
  */
+// Trạng thái từ backend: từ chối = DECLINED (giữ REJECTED cho dữ liệu cũ), dời lịch = RESCHEDULED, quá hạn = EXPIRED
+const CONFIRMED_STATUSES = ['CONFIRMED', 'RESCHEDULED'];
+const HISTORY_STATUSES = ['COMPLETED', 'REJECTED', 'DECLINED', 'CANCELLED', 'EXPIRED'];
+
 function updateCounts() {
   const total = bookingsList.length;
   const pending = bookingsList.filter(b => b.bookingStatus === 'PENDING').length;
-  const confirmed = bookingsList.filter(b => b.bookingStatus === 'CONFIRMED').length;
-  const history = bookingsList.filter(b => ['COMPLETED', 'REJECTED', 'CANCELLED'].includes(b.bookingStatus)).length;
+  const confirmed = bookingsList.filter(b => CONFIRMED_STATUSES.includes(b.bookingStatus)).length;
+  const history = bookingsList.filter(b => HISTORY_STATUSES.includes(b.bookingStatus)).length;
 
   if ($('statPending')) $('statPending').textContent = pending;
   if ($('statConfirmed')) $('statConfirmed').textContent = confirmed;
@@ -93,9 +100,9 @@ function renderBookings() {
   if (currentFilter === 'PENDING') {
     filtered = bookingsList.filter(b => b.bookingStatus === 'PENDING');
   } else if (currentFilter === 'CONFIRMED') {
-    filtered = bookingsList.filter(b => b.bookingStatus === 'CONFIRMED');
+    filtered = bookingsList.filter(b => CONFIRMED_STATUSES.includes(b.bookingStatus));
   } else if (currentFilter === 'HISTORY') {
-    filtered = bookingsList.filter(b => ['COMPLETED', 'REJECTED', 'CANCELLED'].includes(b.bookingStatus));
+    filtered = bookingsList.filter(b => HISTORY_STATUSES.includes(b.bookingStatus));
   }
 
   if (filtered.length === 0) {
@@ -119,10 +126,12 @@ function renderBookings() {
 
   listEl.innerHTML = filtered.map(item => {
     const isPending = item.bookingStatus === 'PENDING';
-    const isConfirmed = item.bookingStatus === 'CONFIRMED';
-    const isRejected = item.bookingStatus === 'REJECTED';
+    const isConfirmed = CONFIRMED_STATUSES.includes(item.bookingStatus);
+    const isRescheduled = item.bookingStatus === 'RESCHEDULED';
+    const isRejected = item.bookingStatus === 'REJECTED' || item.bookingStatus === 'DECLINED';
     const isCancelled = item.bookingStatus === 'CANCELLED';
     const isCompleted = item.bookingStatus === 'COMPLETED';
+    const isExpired = item.bookingStatus === 'EXPIRED';
 
     const avatarSrc = item.partnerAvatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
     const partnerName = escapeHtml(item.partnerName || 'Học viên');
@@ -133,12 +142,16 @@ function renderBookings() {
     let badgeHtml = '';
     if (isPending) {
       badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-amber-100 text-amber-800 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">hourglass_top</span>Chờ phản hồi</span>`;
+    } else if (isRescheduled) {
+      badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">event_repeat</span>Đã dời lịch</span>`;
     } else if (isConfirmed) {
       badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span>Đã xác nhận</span>`;
     } else if (isRejected) {
       badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-error-container text-error flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">cancel</span>Đã từ chối</span>`;
     } else if (isCancelled) {
       badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-surface-container text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">close</span>Đã hủy</span>`;
+    } else if (isExpired) {
+      badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-surface-container text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">timer_off</span>Đã quá hạn</span>`;
     } else if (isCompleted) {
       badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-primary-fixed text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">task_alt</span>Đã hoàn thành</span>`;
     }
@@ -158,27 +171,98 @@ function renderBookings() {
           </button>
         </div>
       `;
-    } else if (isConfirmed && item.meetingLink) {
+    } else if (isConfirmed) {
+      const sTime = item.scheduledStartTime ? new Date(item.scheduledStartTime) : null;
+      const eTime = item.scheduledEndTime
+        ? new Date(item.scheduledEndTime)
+        : (sTime ? new Date(sTime.getTime() + (item.durationMinutes || 60) * 60000) : null);
+      const isEnded = eTime ? (Date.now() >= eTime.getTime()) : true;
+      const padNum = (n) => String(n).padStart(2, '0');
+      const endTimeStr = eTime ? `${padNum(eTime.getHours())}:${padNum(eTime.getMinutes())}` : '';
+
       actionsHtml = `
         <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">video_camera_front</span>
-            <div class="min-w-0">
-              <p class="text-caption text-emerald-800 font-bold">Phòng học Google Meet đã sẵn sàng:</p>
-              <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="text-body-sm text-emerald-700 hover:text-emerald-900 font-medium underline truncate block">
-                ${escapeHtml(item.meetingLink)}
-              </a>
+          ${item.meetingLink ? `
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">video_camera_front</span>
+              <div class="min-w-0">
+                <p class="text-caption text-emerald-800 font-bold">Phòng học Google Meet đã sẵn sàng:</p>
+                <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="text-body-sm text-emerald-700 hover:text-emerald-900 font-medium underline truncate block">
+                  ${escapeHtml(item.meetingLink)}
+                </a>
+              </div>
             </div>
+          ` : `
+            <div class="flex items-center gap-2 text-body-sm text-emerald-800 font-medium">
+              <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">verified</span>
+              <span>Buổi học thử đã được xác nhận.</span>
+            </div>
+          `}
+          <div class="flex items-center gap-2 shrink-0">
+            ${item.meetingLink ? `
+              <button type="button" class="btn-copy-link px-3 py-1.5 rounded-lg bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-label-sm font-semibold inline-flex items-center gap-1 transition-all" data-link="${escapeHtml(item.meetingLink)}">
+                <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                <span>Sao chép</span>
+              </button>
+              <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="px-4 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-label-sm font-semibold inline-flex items-center gap-1 shadow-xs transition-all no-underline">
+                <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                <span>Vào lớp</span>
+              </a>
+            ` : ''}
+            ${isEnded ? `
+              <button type="button" class="btn-complete-booking px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-label-sm font-semibold inline-flex items-center gap-1 transition-all cursor-pointer" data-id="${item.bookingId}" data-ended="true" title="Xác nhận hoàn thành buổi học thử">
+                <span class="material-symbols-outlined text-[16px]">task_alt</span>
+                <span>Hoàn thành</span>
+              </button>
+            ` : `
+              <button type="button" class="btn-complete-booking px-3.5 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-400 text-label-sm font-semibold inline-flex items-center gap-1 transition-all cursor-not-allowed opacity-80" data-id="${item.bookingId}" data-ended="false" data-endtime="${endTimeStr}" title="Chỉ có thể xác nhận sau khi kết thúc buổi học lúc ${endTimeStr}">
+                <span class="material-symbols-outlined text-[16px]">schedule</span>
+                <span>Chưa kết thúc (${endTimeStr})</span>
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+    } else if (isCompleted) {
+      const createClassUrl = `/tutor/classrooms?taoLop=1&learnerId=${encodeURIComponent(item.learnerId || '')}`;
+      const openClass = item.officialArrangementAgreed ? openClassByLearner.get(String(item.learnerId)) : null;
+      actionsHtml = openClass ? `
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          <div class="flex items-center gap-2 text-body-sm text-emerald-900 font-medium min-w-0">
+            <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">school</span>
+            <span class="min-w-0 [overflow-wrap:anywhere]">Đã tạo lớp học <strong>${escapeHtml(openClass.title || '')}</strong> với học viên này.</span>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <button type="button" class="btn-copy-link px-3 py-1.5 rounded-lg bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-label-sm font-semibold inline-flex items-center gap-1 transition-all" data-link="${escapeHtml(item.meetingLink)}">
-              <span class="material-symbols-outlined text-[16px]">content_copy</span>
-              <span>Sao chép</span>
-            </button>
-            <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="px-4 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-label-sm font-semibold inline-flex items-center gap-1 shadow-xs transition-all">
-              <span class="material-symbols-outlined text-[16px]">open_in_new</span>
-              <span>Vào lớp</span>
+            <a href="/tutor/classrooms?space=${encodeURIComponent(openClass.spaceId)}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all no-underline">
+              <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+              <span>Vào lớp học</span>
             </a>
+          </div>
+        </div>
+      ` : item.officialArrangementAgreed ? `
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          <div class="flex items-center gap-2 text-body-sm text-emerald-900 font-medium">
+            <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">handshake</span>
+            <span>Bạn đã đồng ý kết nối với học viên này. Hãy tạo lớp học và xếp lịch học hằng tuần.</span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="${createClassUrl}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all no-underline">
+              <span class="material-symbols-outlined text-[18px]">add_circle</span>
+              <span>Tạo lớp học</span>
+            </a>
+          </div>
+        </div>
+      ` : `
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-sky-50/50 p-3 rounded-xl border border-sky-200/60">
+          <div class="flex items-center gap-2 text-body-sm text-sky-900 font-medium">
+            <span class="material-symbols-outlined text-sky-700 text-[20px] shrink-0">task_alt</span>
+            <span>Buổi học thử đã hoàn thành. Nếu muốn dạy chính thức học viên này, hãy đồng ý kết nối rồi tạo lớp học.</span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" class="btn-agree-connection px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all" data-id="${item.bookingId}">
+              <span class="material-symbols-outlined text-[18px]">handshake</span>
+              <span>Đồng ý kết nối</span>
+            </button>
           </div>
         </div>
       `;
@@ -187,6 +271,13 @@ function renderBookings() {
         <div class="pt-2 text-caption text-error flex items-center gap-1">
           <span class="material-symbols-outlined text-[16px]">info</span>
           <span>Yêu cầu học thử này đã được từ chối.</span>
+        </div>
+      `;
+    } else if (isExpired) {
+      actionsHtml = `
+        <div class="pt-2 text-caption text-on-surface-variant flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">info</span>
+          <span>Yêu cầu học thử này đã quá hạn phản hồi.</span>
         </div>
       `;
     }
@@ -289,6 +380,42 @@ function bindCardActionEvents() {
       }
     });
   });
+
+  // Nút đồng ý kết nối sau khi học thử xong → chuyển sang trang Lớp học (FE-06) để tạo lớp + lịch học
+  document.querySelectorAll('.btn-agree-connection').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const booking = bookingsList.find(b => String(b.bookingId) === String(id));
+      if (!booking) return;
+      btn.disabled = true;
+      try {
+        await API.trialBookings.agreeConnection(id);
+        showToast('Đã đồng ý kết nối. Đang chuyển sang trang tạo lớp học...');
+        setTimeout(() => {
+          window.location.href = `/tutor/classrooms?taoLop=1&learnerId=${encodeURIComponent(booking.learnerId || '')}`;
+        }, 900);
+      } catch (err) {
+        showToast(err.message || 'Không thể đồng ý kết nối lúc này. Vui lòng thử lại.', 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // Nút xác nhận hoàn thành buổi học
+  document.querySelectorAll('.btn-complete-booking').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      if (!id) return;
+      if (btn.dataset.ended === 'false') {
+        const endTimeStr = btn.dataset.endtime || 'kết thúc';
+        showToast(`Buổi học chưa kết thúc. Bạn chỉ có thể xác nhận hoàn thành sau ${endTimeStr}.`, 'error');
+        return;
+      }
+      const booking = bookingsList.find(b => String(b.bookingId) === String(id));
+      if (!booking) return;
+      openCompleteModal(booking);
+    });
+  });
 }
 
 /**
@@ -325,12 +452,28 @@ function openDeclineModal(booking) {
 }
 
 /**
+ * Mở modal Xác nhận hoàn thành
+ */
+function openCompleteModal(booking) {
+  activeCompleteBooking = booking;
+  if ($('completeStudentName')) {
+    $('completeStudentName').textContent = booking.partnerName || 'Học viên';
+  }
+  if ($('completeTimeStr')) {
+    $('completeTimeStr').textContent = formatBookingTime(booking.scheduledStartTime, booking.durationMinutes);
+  }
+  $('modalConfirmComplete')?.classList.remove('hidden');
+}
+
+/**
  * Đóng tất cả modal
  */
 function closeModals() {
-  $('modalAcceptBooking').classList.add('hidden');
-  $('modalDeclineBooking').classList.add('hidden');
+  $('modalAcceptBooking')?.classList.add('hidden');
+  $('modalDeclineBooking')?.classList.add('hidden');
+  $('modalConfirmComplete')?.classList.add('hidden');
   activeBooking = null;
+  activeCompleteBooking = null;
 }
 
 /**
@@ -343,8 +486,14 @@ async function loadBookings() {
   setVisible($('bookingsList'), false);
 
   try {
-    const res = await API.trialBookings.getMyRequests('ALL', 0, 50);
+    const [res, classrooms] = await Promise.all([
+      API.trialBookings.getMyRequests('ALL', 0, 50),
+      API.classrooms.list().catch(() => [])
+    ]);
     bookingsList = res?.items || res?.content || res?.data?.items || res?.data?.content || (Array.isArray(res) ? res : []);
+    openClassByLearner = new Map((Array.isArray(classrooms) ? classrooms : [])
+      .filter(c => c.status === 'ACTIVE' || c.status === 'PAUSED')
+      .map(c => [String(c.learnerId), c]));
 
     updateCounts();
     renderBookings();
@@ -470,6 +619,27 @@ function initEvents() {
     } finally {
       btn.disabled = false;
       btnText.textContent = 'Xác nhận từ chối';
+    }
+  });
+
+  // Gửi xác nhận Hoàn thành buổi học (COMPLETE)
+  $('btnSubmitComplete')?.addEventListener('click', async () => {
+    if (!activeCompleteBooking) return;
+    const btn = $('btnSubmitComplete');
+    const btnText = $('btnSubmitCompleteText');
+    btn.disabled = true;
+    if (btnText) btnText.textContent = 'Đang xử lý...';
+
+    try {
+      await API.trialBookings.complete(activeCompleteBooking.bookingId);
+      closeModals();
+      showToast('Đã xác nhận hoàn thành buổi học thành công!');
+      await loadBookings();
+    } catch (err) {
+      showToast(err.message || 'Không thể hoàn thành buổi học lúc này', 'error');
+    } finally {
+      btn.disabled = false;
+      if (btnText) btnText.textContent = 'Xác nhận hoàn thành';
     }
   });
 }

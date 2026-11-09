@@ -103,6 +103,8 @@ class TrialBookingServiceTest {
                 .user(mockTutorUser)
                 .verificationStatus(TutorVerificationStatus.APPROVED)
                 .build();
+
+        lenient().when(learnerRepository.save(any(Learner.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test
@@ -256,6 +258,80 @@ class TrialBookingServiceTest {
         );
 
         assertTrue(ex.getMessage().contains("ít nhất 24 giờ"));
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Hoàn thành buổi học thử thành công - Chuyển sang COMPLETED và ghi vết lịch sử")
+    void testCompleteTrialBooking_Success() {
+        UUID bookingId = UUID.randomUUID();
+        TrialBooking confirmedBooking = TrialBooking.builder()
+                .bookingId(bookingId)
+                .learner(mockLearner)
+                .tutor(mockTutor)
+                .scheduledStartTime(OffsetDateTime.now().minusHours(2))
+                .scheduledEndTime(OffsetDateTime.now().minusHours(1))
+                .bookingStatus(TrialBookingStatus.CONFIRMED)
+                .build();
+
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
+        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(confirmedBooking));
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TrialBookingResponseDTO response = trialBookingService.completeTrialBooking("learner@test.com", bookingId);
+
+        assertNotNull(response);
+        assertEquals(TrialBookingStatus.COMPLETED.name(), response.getBookingStatus());
+        assertEquals("Đã hoàn thành", response.getStatusLabel());
+        verify(trialBookingRepository, times(1)).save(any(TrialBooking.class));
+        verify(trialBookingHistoryRepository, times(1)).save(any(TrialBookingHistory.class));
+    }
+
+    @Test
+    @DisplayName("Hoàn thành buổi học thử thất bại - Trạng thái PENDING ném BadRequestException")
+    void testCompleteTrialBooking_PendingStatus_ThrowsBadRequest() {
+        UUID bookingId = UUID.randomUUID();
+        TrialBooking pendingBooking = TrialBooking.builder()
+                .bookingId(bookingId)
+                .learner(mockLearner)
+                .tutor(mockTutor)
+                .bookingStatus(TrialBookingStatus.PENDING)
+                .build();
+
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
+        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(pendingBooking));
+
+        com.kizuna.core.exception.BadRequestException ex = assertThrows(
+                com.kizuna.core.exception.BadRequestException.class,
+                () -> trialBookingService.completeTrialBooking("learner@test.com", bookingId)
+        );
+
+        assertTrue(ex.getMessage().contains("Chỉ có thể hoàn thành buổi học thử đã được xác nhận"));
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Hoàn thành buổi học thử thất bại - Chưa đến giờ kết thúc ném BadRequestException")
+    void testCompleteTrialBooking_BeforeEndTime_ThrowsBadRequest() {
+        UUID bookingId = UUID.randomUUID();
+        TrialBooking futureBooking = TrialBooking.builder()
+                .bookingId(bookingId)
+                .learner(mockLearner)
+                .tutor(mockTutor)
+                .scheduledStartTime(OffsetDateTime.now().plusHours(1))
+                .scheduledEndTime(OffsetDateTime.now().plusHours(2))
+                .bookingStatus(TrialBookingStatus.CONFIRMED)
+                .build();
+
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
+        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(futureBooking));
+
+        com.kizuna.core.exception.BadRequestException ex = assertThrows(
+                com.kizuna.core.exception.BadRequestException.class,
+                () -> trialBookingService.completeTrialBooking("learner@test.com", bookingId)
+        );
+
+        assertTrue(ex.getMessage().contains("Buổi học chưa kết thúc"));
         verify(trialBookingRepository, never()).save(any());
     }
 }

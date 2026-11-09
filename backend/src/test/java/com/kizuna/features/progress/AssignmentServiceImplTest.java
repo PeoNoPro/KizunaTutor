@@ -34,6 +34,9 @@ class AssignmentServiceImplTest {
     private ClassroomService classrooms;
     private AssignmentRepository assignments;
     private AssignmentSubmissionRepository submissions;
+    private com.kizuna.features.progress.repository.AssignmentFileRepository assignmentFiles;
+    private com.kizuna.features.progress.repository.SubmissionFileRepository submissionFiles;
+    private com.kizuna.features.progress.service.AssignmentAttachmentService attachments;
     private AssignmentServiceImpl service;
 
     private Tutor tutor;
@@ -47,7 +50,11 @@ class AssignmentServiceImplTest {
         classrooms = mock(ClassroomService.class);
         assignments = mock(AssignmentRepository.class);
         submissions = mock(AssignmentSubmissionRepository.class);
-        service = new AssignmentServiceImpl(classrooms, assignments, submissions, CLOCK);
+        assignmentFiles = mock(com.kizuna.features.progress.repository.AssignmentFileRepository.class);
+        submissionFiles = mock(com.kizuna.features.progress.repository.SubmissionFileRepository.class);
+        attachments = mock(com.kizuna.features.progress.service.AssignmentAttachmentService.class);
+        service = new AssignmentServiceImpl(classrooms, assignments, submissions, assignmentFiles, submissionFiles,
+                attachments, CLOCK);
 
         tutor = tutor();
         learner = learner();
@@ -128,8 +135,9 @@ class AssignmentServiceImplTest {
         AssignmentSummaryResponse r = service.list(learnerActor, space.getSpaceId()).get(0);
 
         assertThat(r.submissionState()).isEqualTo(SubmissionState.ON_TIME);
-        assertThat(r.canSubmit()).isFalse();   // quá hạn, đã nộp
-        assertThat(r.canGrade()).isFalse();    // học viên không chấm
+        assertThat(r.canSubmit()).isFalse();          // đã nộp
+        assertThat(r.canEditSubmission()).isFalse();  // quá hạn nên không sửa được
+        assertThat(r.canGrade()).isFalse();           // học viên không chấm
         assertThat(r.canEdit()).isFalse();
     }
 
@@ -145,6 +153,28 @@ class AssignmentServiceImplTest {
         assertThat(r.submissionState()).isEqualTo(SubmissionState.LATE);
         assertThat(r.canGrade()).isTrue();
         assertThat(r.canSubmit()).isFalse();
+    }
+
+    @Test
+    void createPassesFilesToAttachmentStepInSameCall() {
+        var files = List.<org.springframework.web.multipart.MultipartFile>of(
+                new org.springframework.mock.web.MockMultipartFile("file", "a.pdf", "application/pdf", new byte[]{0x25, 0x50, 0x44, 0x46}));
+        when(attachments.applyChanges(any(), eq(files), isNull())).thenReturn(List.of(
+                new com.kizuna.features.progress.dto.FileAttachmentResponse(UUID.randomUUID(), "a.pdf", "PDF", 4)));
+
+        AssignmentSummaryResponse r = service.create(tutorActor, space.getSpaceId(),
+                new AssignmentRequest("Bài 1", null, null, null), files);
+
+        assertThat(r.attachments()).extracting(f -> f.fileName()).containsExactly("a.pdf");
+        verify(attachments).applyChanges(argThat(a -> "Bài 1".equals(a.getTitle())), eq(files), isNull());
+    }
+
+    @Test
+    void invalidAssignmentFieldsStopBeforeAnyFileIsHandled() {
+        assertStatus(() -> service.create(tutorActor, space.getSpaceId(), new AssignmentRequest(" ", null, null, null), List.of()),
+                HttpStatus.BAD_REQUEST);
+        verify(attachments, never()).applyChanges(any(), any(), any());
+        verify(assignments, never()).save(any());
     }
 
     @Test
@@ -164,8 +194,10 @@ class AssignmentServiceImplTest {
 
         AssignmentDetailResponse d = service.detail(learnerActor, space.getSpaceId(), a.getAssignmentId());
 
-        assertThat(d.submissions()).extracting(s -> s.attemptNumber()).containsExactly(1, 2);
-        assertThat(d.assignment().canSubmit()).isTrue();
+        // Mỗi học viên một bài nộp: chỉ trả bài nộp hiện tại (dòng mới nhất của dữ liệu cũ)
+        assertThat(d.submissions()).extracting(s -> s.attemptNumber()).containsExactly(2);
+        assertThat(d.assignment().canSubmit()).isFalse();
+        assertThat(d.assignment().canEditSubmission()).isTrue();
         verify(submissions).findByAssignment_AssignmentIdAndLearner_LearnerIdOrderByAttemptNumberAsc(a.getAssignmentId(), learner.getLearnerId());
     }
 

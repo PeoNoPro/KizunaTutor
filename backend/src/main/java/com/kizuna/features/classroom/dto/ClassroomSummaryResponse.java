@@ -4,9 +4,10 @@ import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import lombok.Builder;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
-/** Thông tin một lớp học. readOnly = lớp không còn hoạt động hoặc hội viên gia sư đã hết hạn. */
+/** Thông tin một lớp học. readOnly = lớp không còn hoạt động hoặc gia sư không có gói hội viên còn hiệu lực (FREE/EXPIRED). */
 @Builder
 public record ClassroomSummaryResponse(
         UUID spaceId,
@@ -19,5 +20,6 @@ public record ClassroomSummaryResponse(
         OffsetDateTime createdAt,
         boolean readOnly,
         boolean canManage,
-        long materialCount) {
+        long materialCount,
+        List<ClassScheduleResponse> schedules) {
 }

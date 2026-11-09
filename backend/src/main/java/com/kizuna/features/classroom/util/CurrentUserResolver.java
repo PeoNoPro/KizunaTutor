@@ -2,8 +2,7 @@ package com.kizuna.features.classroom.util;
 
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.core.entity.User;
-import com.kizuna.features.payment.entity.TutorMembershipState;
-import com.kizuna.features.payment.repository.TutorMembershipRepository;
+import com.kizuna.features.payment.service.TutorMembershipService;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import com.kizuna.core.entity.UserAccountStatus;
@@ -38,11 +37,12 @@ public class CurrentUserResolver {
      * Inject qua setter (không đưa vào constructor) để giữ nguyên constructor 4 tham số mà
      * CurrentUserResolverTest đang dùng; khi null (unit test dựng tay) thì bỏ qua kiểm gói hội viên.
      */
-    private TutorMembershipRepository membershipRepository;
+    private TutorMembershipService membershipService;
 
+    /** Luật 3 (AGENTS.md): hỏi gói hội viên qua Service công khai của feature payment, không gọi repository. */
     @Autowired
-    public void setMembershipRepository(TutorMembershipRepository membershipRepository) {
-        this.membershipRepository = membershipRepository;
+    public void setMembershipService(TutorMembershipService membershipService) {
+        this.membershipService = membershipService;
     }
 
     private static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -69,8 +69,7 @@ public class CurrentUserResolver {
             Tutor tutor = tutorRepository.findByUser_UserId(user.getUserId())
                     .orElseThrow(() -> ClassroomException.forbidden("Không tìm thấy hồ sơ gia sư của tài khoản này."));
             // Lớp học, tài liệu, bài tập chỉ dành cho gia sư có gói hội viên còn hạn
-            if (membershipRepository != null && membershipRepository.countValidOn(tutor.getTutorId(), TutorMembershipState.ACTIVE,
-                    LocalDate.now(ZONE)) == 0) {
+            if (membershipService != null && !membershipService.hasActiveMembership(tutor.getTutorId(), LocalDate.now(ZONE))) {
                 throw ClassroomException.forbidden(MSG_NEED_MEMBERSHIP);
             }
             return new CurrentActor(user, tutor, null);

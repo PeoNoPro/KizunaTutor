@@ -37,6 +37,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
@@ -87,6 +88,21 @@ public class TutorMembershipServiceImpl implements TutorMembershipService {
         this.properties = properties;
         this.mapper = mapper;
         this.audit = audit;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasActiveMembership(UUID tutorId, LocalDate today) {
+        return membershipRepository.countValidOn(tutorId, TutorMembershipState.ACTIVE, today) > 0;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<LocalDate> activeMembershipEndDate(UUID tutorId, LocalDate today) {
+        return membershipRepository.findByTutorTutorIdOrderByStartDateDesc(tutorId).stream()
+                .filter(m -> m.getStatus() == TutorMembershipState.ACTIVE && !m.getEndDate().isBefore(today))
+                .map(TutorMembership::getEndDate)
+                .max(LocalDate::compareTo);
     }
 
     @Override

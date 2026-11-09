@@ -6,10 +6,8 @@ import com.kizuna.core.exception.BadRequestException;
 import com.kizuna.core.exception.ConflictException;
 import com.kizuna.core.exception.ResourceNotFoundException;
 import com.kizuna.core.repository.UserRepository;
-import com.kizuna.features.payment.entity.TutorMembership;
-import com.kizuna.features.payment.entity.TutorMembershipState;
-import com.kizuna.features.payment.repository.MembershipTutorRepository;
-import com.kizuna.features.payment.repository.TutorMembershipRepository;
+import com.kizuna.core.repository.TutorRepository;
+import com.kizuna.features.payment.service.TutorMembershipService;
 import com.kizuna.features.tutor_post.dto.TutorPostDtos.*;
 import com.kizuna.features.tutor_post.entity.TutorPost;
 import com.kizuna.features.tutor_post.entity.TutorPostStatus;
@@ -59,8 +57,9 @@ public class TutorPostService {
     private static final int MAX_PAGE_SIZE = 50;
 
     private final TutorPostRepository postRepository;
-    private final MembershipTutorRepository tutorRepository;
-    private final TutorMembershipRepository membershipRepository;
+    // Luật 3 (AGENTS.md): gói hội viên chỉ hỏi qua Service công khai của feature payment; hồ sơ gia sư qua core.
+    private final TutorRepository tutorRepository;
+    private final TutorMembershipService membershipService;
     private final UserRepository userRepository;
 
     // =====================================================================
@@ -187,7 +186,7 @@ public class TutorPostService {
 
     /** Gói hội viên còn hạn (ACTIVE và chưa hết ngày). */
     public boolean hasActiveMembership(UUID tutorId, LocalDate today) {
-        return membershipRepository.countValidOn(tutorId, TutorMembershipState.ACTIVE, today) > 0;
+        return membershipService.hasActiveMembership(tutorId, today);
     }
 
     /** Bản bài đăng đang hiển thị cho học viên. */
@@ -222,16 +221,11 @@ public class TutorPostService {
     }
 
     private LocalDate membershipExpiresOn(UUID tutorId) {
-        LocalDate today = LocalDate.now(ZONE);
-        return membershipRepository.findByTutorTutorIdOrderByStartDateDesc(tutorId).stream()
-                .filter(m -> m.getStatus() == TutorMembershipState.ACTIVE && !m.getEndDate().isBefore(today))
-                .map(TutorMembership::getEndDate)
-                .max(LocalDate::compareTo)
-                .orElse(null);
+        return membershipService.activeMembershipEndDate(tutorId, LocalDate.now(ZONE)).orElse(null);
     }
 
     private Tutor requireTutor(User user) {
-        return tutorRepository.findWithUserByUserId(user.getUserId())
+        return tutorRepository.findByUser_UserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ gia sư của tài khoản này."));
     }
 

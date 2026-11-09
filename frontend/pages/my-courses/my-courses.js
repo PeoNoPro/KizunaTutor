@@ -11,6 +11,7 @@ import {
   formatDateVi,
   sortSchedules,
   summarizeSchedules,
+  courseSummaryText,
   dayOfWeekLabel,
   shortTime,
   durationLabel,
@@ -69,6 +70,7 @@ async function loadCourses() {
           <div>Gia sư: <strong>${escapeHtml(c.tutorName || 'Gia sư')}</strong></div>
           <div>Ngày bắt đầu: ${escapeHtml(formatDateVi(c.createdAt))}</div>
           <div>Lịch học: ${c.schedules?.length ? escapeHtml(summarizeSchedules(c.schedules)) : 'Chưa có lịch học'}</div>
+          ${c.totalSessions ? `<div>Khóa học: ${escapeHtml(courseSummaryText(c))}</div>` : ''}
           <div>Tài liệu: ${Number(c.materialCount) || 0}</div>
         </div>
         <button type="button" class="mc-btn mt-auto" data-open-course="${escapeHtml(c.spaceId)}">Xem lớp học</button>

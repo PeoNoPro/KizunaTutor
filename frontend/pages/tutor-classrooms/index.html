@@ -165,6 +165,14 @@
               </div>
               <button type="button" id="openAddScheduleBtn" class="kz-btn kz-btn-primary shrink-0 hidden"><span class="material-symbols-outlined text-[16px]">more_time</span>Thêm buổi học</button>
             </div>
+            <div id="courseInfo" class="kz-item mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div class="min-w-0">
+                <p class="font-label-md text-label-md text-on-surface">Khóa học</p>
+                <p id="courseSummary" class="font-body-sm text-body-sm text-on-surface-variant"></p>
+                <p id="courseMissingNote" class="hidden mt-1 font-body-sm text-body-sm font-semibold text-error">Vui lòng nhập tổng số buổi của khóa để lịch học không lặp lại vô hạn.</p>
+              </div>
+              <button type="button" id="openCourseBtn" class="kz-btn shrink-0 hidden"><span class="material-symbols-outlined text-[16px]">edit_calendar</span>Sửa khóa học</button>
+            </div>
             <div id="scheduleState" class="kz-item text-center text-on-surface-variant py-6 hidden"></div>
             <ul id="scheduleList" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></ul>
           </div>
@@ -262,13 +270,25 @@
           <input id="classroomTitleInput" type="text" maxlength="150" class="kz-input" placeholder="Ví dụ: Luyện thi N4 cấp tốc">
           <p id="classroomTitleError" class="field-error hidden"></p>
         </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="courseStartInput" class="kz-label">Ngày bắt đầu khóa học</label>
+            <input id="courseStartInput" type="date" class="kz-input">
+            <p id="courseStartError" class="field-error hidden"></p>
+          </div>
+          <div>
+            <label for="courseTotalInput" class="kz-label">Tổng số buổi của khóa</label>
+            <input id="courseTotalInput" type="number" min="1" max="500" step="1" inputmode="numeric" class="kz-input" placeholder="Ví dụ: 24">
+            <p id="courseTotalError" class="field-error hidden"></p>
+          </div>
+        </div>
         <div>
           <div class="flex items-center justify-between gap-3 mb-1.5">
             <span class="kz-label mb-0">Lịch học hằng tuần</span>
             <button type="button" id="addScheduleRowBtn" class="kz-btn"><span class="material-symbols-outlined text-[16px]">add</span>Thêm buổi</button>
           </div>
           <div id="scheduleRows" class="flex flex-col gap-2"></div>
-          <p class="font-caption text-caption text-on-surface-variant mt-1.5">Mỗi buổi dài từ 30 phút đến 4 giờ. Sau khi tạo lớp, lịch học có thể chỉnh sửa nhưng không thể xóa.</p>
+          <p class="font-caption text-caption text-on-surface-variant mt-1.5">Mỗi buổi dài từ 30 phút đến 4 giờ. Lịch tự sinh từ ngày bắt đầu cho đủ tổng số buổi của khóa rồi dừng.</p>
           <p id="scheduleRowsError" class="field-error hidden"></p>
         </div>
       </div>
@@ -292,6 +312,30 @@
       <div class="flex justify-end gap-3 pt-1">
         <button type="button" class="kz-btn" data-close-modal="renameModal">Hủy</button>
         <button type="submit" id="renameSubmit" class="kz-btn kz-btn-primary">Lưu tên lớp</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== HỘP THOẠI SỬA KHÓA HỌC (tổng số buổi, ngày bắt đầu) ===== -->
+  <div id="courseModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="courseModalTitle">
+    <form id="courseForm" class="kz-card shadow-xl w-full max-w-[480px] p-6 space-y-4" novalidate>
+      <h2 id="courseModalTitle" class="font-title-md text-title-md text-on-surface">Sửa khóa học</h2>
+      <div>
+        <label for="courseEditStartInput" class="kz-label">Ngày bắt đầu khóa học</label>
+        <input id="courseEditStartInput" type="date" class="kz-input">
+        <p id="courseEditStartHint" class="font-caption text-caption text-on-surface-variant mt-1 hidden">Khóa học đã có buổi diễn ra nên không thể đổi ngày bắt đầu.</p>
+        <p id="courseEditStartError" class="field-error hidden"></p>
+      </div>
+      <div>
+        <label for="courseEditTotalInput" class="kz-label">Tổng số buổi của khóa</label>
+        <input id="courseEditTotalInput" type="number" min="1" max="500" step="1" inputmode="numeric" class="kz-input">
+        <p id="courseEditTotalHint" class="font-caption text-caption text-on-surface-variant mt-1"></p>
+        <p id="courseEditTotalError" class="field-error hidden"></p>
+      </div>
+      <p id="courseFormError" class="field-error hidden"></p>
+      <div class="flex justify-end gap-3 pt-1">
+        <button type="button" class="kz-btn" data-close-modal="courseModal">Hủy</button>
+        <button type="submit" id="courseSubmit" class="kz-btn kz-btn-primary">Lưu khóa học</button>
       </div>
     </form>
   </div>
@@ -355,7 +399,7 @@
   <div id="deleteScheduleModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="deleteScheduleTitle">
     <div class="kz-card shadow-xl w-full max-w-[440px] p-6 space-y-4">
       <h2 id="deleteScheduleTitle" class="font-title-md text-title-md text-on-surface">Xóa buổi học</h2>
-      <p class="text-on-surface-variant">Bạn có chắc muốn xóa buổi <strong id="deleteScheduleName" class="text-on-surface"></strong> khỏi lịch học hằng tuần? Học viên sẽ không còn thấy buổi này trên thời khóa biểu.</p>
+      <p class="text-on-surface-variant">Bạn có chắc muốn xóa buổi <strong id="deleteScheduleName" class="text-on-surface"></strong> khỏi lịch học hằng tuần? Buổi này bị bỏ ở mọi tuần từ bây giờ (các buổi đã học vẫn được giữ). Khóa học tự kéo dài thêm tuần để đủ tổng số buổi.</p>
       <p id="deleteScheduleError" class="field-error hidden"></p>
       <div class="flex justify-end gap-3 pt-1">
         <button type="button" class="kz-btn" data-close-modal="deleteScheduleModal">Hủy</button>

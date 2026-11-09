@@ -726,7 +726,7 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         ZonedDateTime vnEnd = end.atZoneSameInstant(VN_ZONE);
         java.time.LocalTime endTime = vnEnd.toLocalDate().isAfter(vnStart.toLocalDate())
                 ? java.time.LocalTime.of(23, 59, 59) : vnEnd.toLocalTime();
-        trialBookingRepository.findClassScheduleClash(tutorId, learnerId, vnStart.getDayOfWeek().getValue(),
+        trialBookingRepository.findClassScheduleClash(tutorId, learnerId, vnStart.toLocalDate(), vnStart.getDayOfWeek().getValue(),
                         vnStart.toLocalTime(), endTime)
                 .ifPresent(who -> {
                     throw new ConflictException("TUTOR".equals(who) ? tutorMessage : learnerMessage);

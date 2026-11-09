@@ -2,6 +2,7 @@ package com.kizuna.features.classroom.util;
 
 import com.kizuna.features.classroom.dto.ClassScheduleRequest;
 import com.kizuna.features.classroom.entity.ClassSchedule;
+import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import com.kizuna.features.classroom.exception.ClassroomException;
 import com.kizuna.features.classroom.repository.ClassScheduleRepository;
@@ -9,31 +10,42 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Predicate;
 
 /**
- * Quy tắc lịch học hằng tuần của lớp (FE-06):
+ * Quy tắc lịch học của lớp (FE-06):
  * - mỗi buổi có thứ (1 = Thứ Hai ... 7 = Chủ nhật), giờ bắt đầu &lt; giờ kết thúc, dài 30 phút – 4 giờ;
- * - lớp có 1 – {@value #MAX_SLOTS} buổi mỗi tuần;
- * - không trùng giờ với buổi khác của chính lớp, của các lớp đang mở của gia sư, hoặc của học viên.
+ * - lớp có 1 – {@value #MAX_SLOTS} buổi hằng tuần;
+ * - không trùng giờ với buổi học thử đã xác nhận, buổi khác của chính lớp, của các lớp đang mở của gia sư hoặc của học viên;
+ * - tính theo các buổi CỤ THỂ của khóa (đã áp dụng dời / hủy / thêm buổi, giới hạn tổng số buổi) — {@link ClassSessionCalendar}.
  */
 @Component
 @RequiredArgsConstructor
 public class ClassScheduleRules {
 
     public static final String FIELD = "schedules";
+    /** Trường lỗi khi dời / hủy / thêm một buổi học cụ thể. */
+    public static final String SESSION_FIELD = "session";
     public static final int MAX_SLOTS = 14;
     static final Duration MIN_DURATION = Duration.ofMinutes(30);
     static final Duration MAX_DURATION = Duration.ofHours(4);
     static final List<LearningSpaceStatus> OPEN_STATUSES = List.of(LearningSpaceStatus.ACTIVE, LearningSpaceStatus.PAUSED);
+    /** Khoảng thời gian tới để kiểm tra các buổi dời / thêm riêng khi đặt lịch hằng tuần. */
+    static final int LOOKAHEAD_WEEKS = 26;
     private static final String[] DAY_LABELS = {"Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ nhật"};
     private static final DateTimeFormatter HH_MM = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DD_MM = DateTimeFormatter.ofPattern("dd/MM");
+    private static final DateTimeFormatter DD_MM_YYYY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    public static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final ClassScheduleRepository scheduleRepository;
+    private final ClassSessionCalendar calendar;
 
     /** Kiểm tra danh sách buổi học khi tạo lớp: số lượng, từng buổi và trùng giờ lẫn nhau. */
     public static void validateNewList(List<ClassScheduleRequest> slots) {
@@ -69,30 +81,103 @@ public class ClassScheduleRules {
         }
     }
 
+    /** Giống {@link #validateSlot} nhưng báo lỗi ở trường "session" — dùng cho dời / thêm một buổi cụ thể. */
+    public static void validateSession(LocalDate date, LocalTime start, LocalTime end) {
+        if (date == null || start == null || end == null) {
+            throw ClassroomException.field(SESSION_FIELD, "Vui lòng chọn ngày, giờ bắt đầu và giờ kết thúc cho buổi học.");
+        }
+        try {
+            validateSlot(new ClassScheduleRequest(date.getDayOfWeek().getValue(), start, end));
+        } catch (ClassroomException e) {
+            throw ClassroomException.field(SESSION_FIELD, e.getMessage());
+        }
+    }
+
     /**
-     * Không cho trùng giờ với lịch các lớp đang mở của gia sư hoặc của học viên.
+     * Lịch HẰNG TUẦN mới / sửa không được trùng giờ với lịch các lớp đang mở (chưa kết thúc khóa) của gia sư hoặc học viên,
+     * buổi học thử đã xác nhận, và các buổi đã dời / thêm riêng sắp tới.
      * @param currentSpaceId lớp đang thao tác (null khi tạo lớp mới)
-     * @param excludeScheduleId buổi đang được sửa (null khi thêm mới)
+     * @param excludeScheduleId buổi hằng tuần đang được sửa (null khi thêm mới)
      */
     public void ensureNoConflict(UUID tutorId, UUID learnerId, UUID currentSpaceId,
                                  UUID excludeScheduleId, List<ClassScheduleRequest> candidates) {
         ensureNoTrialConflict(tutorId, learnerId, candidates);
+        LocalDateTime now = LocalDateTime.now(VN_ZONE);
+        Map<UUID, Boolean> ended = new HashMap<>();
         List<ClassSchedule> existing = scheduleRepository.findOpenSchedulesOfParticipants(tutorId, learnerId, OPEN_STATUSES);
         for (ClassScheduleRequest candidate : candidates) {
             for (ClassSchedule other : existing) {
                 if (Objects.equals(other.getScheduleId(), excludeScheduleId) || !overlaps(candidate, other)) continue;
-                UUID otherSpaceId = other.getSpace().getSpaceId();
-                if (currentSpaceId != null && currentSpaceId.equals(otherSpaceId)) {
-                    throw ClassroomException.fieldConflict(FIELD, "Khung giờ " + describe(candidate) + " trùng với một buổi học khác của lớp này.");
-                }
-                if (Objects.equals(other.getSpace().getTutor().getTutorId(), tutorId)) {
-                    throw ClassroomException.fieldConflict(FIELD, "Khung giờ " + describe(candidate) + " trùng với lịch lớp “"
-                            + other.getSpace().getTitle() + "” của bạn.");
-                }
-                // Lớp của học viên với gia sư khác: không lộ tên lớp/gia sư khác.
-                throw ClassroomException.fieldConflict(FIELD, "Học viên đã có lớp học khác vào khung giờ " + describe(candidate) + ".");
+                LearningSpace otherSpace = other.getSpace();
+                boolean otherEnded = ended.computeIfAbsent(otherSpace.getSpaceId(), id -> courseEnded(otherSpace, now));
+                if (otherEnded) continue;
+                throw scheduleConflict(otherSpace, tutorId, currentSpaceId, describe(candidate), FIELD);
             }
         }
+        // Các buổi đã dời / thêm riêng sắp tới cũng chiếm khung giờ của ngày đó
+        LocalDate today = now.toLocalDate();
+        List<ClassSessionCalendar.Session> upcoming = calendar.sessionsOfParticipants(tutorId, learnerId,
+                today, today.plusWeeks(LOOKAHEAD_WEEKS));
+        for (ClassScheduleRequest candidate : candidates) {
+            for (ClassSessionCalendar.Session s : upcoming) {
+                if (!(s.moved() || s.extra()) || !s.start().isAfter(now)) continue;
+                if (s.scheduleId() != null && s.scheduleId().equals(excludeScheduleId)) continue;
+                if (!overlaps(candidate.dayOfWeek(), candidate.startTime(), candidate.endTime(),
+                        s.date().getDayOfWeek().getValue(), s.startTime(), s.endTime())) continue;
+                throw ClassroomException.fieldConflict(FIELD, "Khung giờ " + describe(candidate)
+                        + " trùng với một buổi học " + (s.extra() ? "thêm" : "đã dời") + " vào ngày " + s.date().format(DD_MM_YYYY)
+                        + " (" + s.startTime().format(HH_MM) + "–" + s.endTime().format(HH_MM) + ").");
+            }
+        }
+    }
+
+    /**
+     * Một buổi CỤ THỂ (ngày + giờ) không được trùng với buổi học thử đã xác nhận hoặc buổi học khác
+     * của gia sư / học viên trong ngày đó.
+     * @param self buổi đang được dời (bỏ qua chính nó); null khi thêm buổi mới
+     */
+    public void ensureNoSessionConflict(UUID tutorId, UUID learnerId, UUID currentSpaceId,
+                                        Predicate<ClassSessionCalendar.Session> self,
+                                        LocalDate date, LocalTime start, LocalTime end) {
+        String when = describe(date, start, end);
+        int day = date.getDayOfWeek().getValue();
+        String dateText = date.format(DD_MM_YYYY);
+
+        List<Object[]> trials = scheduleRepository.findUpcomingTrialSlots(tutorId, learnerId);
+        for (Object[] row : trials == null ? List.<Object[]>of() : trials) {
+            LocalTime ts = parseTime(row[2]);
+            LocalTime te = parseTime(row[3]);
+            if (ts == null || te == null || !dateText.equals(String.valueOf(row[4]))) continue;
+            if (!overlaps(day, start, end, day, ts, te)) continue;
+            boolean ofTutor = tutorId != null && tutorId.toString().equalsIgnoreCase(String.valueOf(row[0]));
+            throw ClassroomException.fieldConflict(SESSION_FIELD, "Khung giờ " + when + " trùng với buổi học thử"
+                    + (ofTutor ? " của bạn" : " của học viên") + " (" + ts.format(HH_MM) + "–" + te.format(HH_MM) + ").");
+        }
+
+        for (ClassSessionCalendar.Session s : calendar.sessionsOfParticipants(tutorId, learnerId, date, date)) {
+            if (self != null && self.test(s)) continue;
+            if (!overlaps(day, start, end, day, s.startTime(), s.endTime())) continue;
+            throw scheduleConflict(s.space(), tutorId, currentSpaceId, when, SESSION_FIELD);
+        }
+    }
+
+    private boolean courseEnded(LearningSpace space, LocalDateTime now) {
+        if (space.getTotalSessions() == null) return false;
+        ClassSessionCalendar.Progress p = calendar.progress(space, now);
+        return p.startedSessions() >= p.totalSessions();
+    }
+
+    private static ClassroomException scheduleConflict(LearningSpace other, UUID tutorId, UUID currentSpaceId,
+                                                       String when, String field) {
+        if (currentSpaceId != null && currentSpaceId.equals(other.getSpaceId())) {
+            return ClassroomException.fieldConflict(field, "Khung giờ " + when + " trùng với một buổi học khác của lớp này.");
+        }
+        if (Objects.equals(other.getTutor().getTutorId(), tutorId)) {
+            return ClassroomException.fieldConflict(field, "Khung giờ " + when + " trùng với lịch lớp “"
+                    + other.getTitle() + "” của bạn.");
+        }
+        // Lớp của học viên với gia sư khác: không lộ tên lớp/gia sư khác.
+        return ClassroomException.fieldConflict(field, "Học viên đã có lớp học khác vào khung giờ " + when + ".");
     }
 
     /** Lịch lớp hằng tuần không được đè lên buổi học thử đã xác nhận (chưa diễn ra) của gia sư hoặc học viên. */
@@ -141,5 +226,11 @@ public class ClassScheduleRules {
 
     static String describe(ClassScheduleRequest s) {
         return dayLabel(s.dayOfWeek()) + " " + s.startTime().format(HH_MM) + "–" + s.endTime().format(HH_MM);
+    }
+
+    /** "Thứ Năm 19/11 06:00–07:00" */
+    public static String describe(LocalDate date, LocalTime start, LocalTime end) {
+        return dayLabel(date.getDayOfWeek().getValue()) + " " + date.format(DD_MM) + " "
+                + start.format(HH_MM) + "–" + end.format(HH_MM);
     }
 }

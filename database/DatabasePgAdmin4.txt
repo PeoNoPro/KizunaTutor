@@ -271,8 +271,11 @@ CREATE TABLE learning_spaces (
     trial_booking_id UUID REFERENCES trial_bookings(booking_id) ON DELETE SET NULL,
     title VARCHAR(150) NOT NULL,
     status learning_space_status_enum NOT NULL DEFAULT 'ACTIVE',
+    course_start_date DATE,                     -- FE-06 (migration 016): ngày bắt đầu khóa
+    total_sessions INTEGER,                     -- FE-06 (migration 016): tổng số buổi; NULL = lớp cũ, lịch lặp hằng tuần
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_learning_space_total_sessions CHECK (total_sessions IS NULL OR total_sessions BETWEEN 1 AND 500)
 );
 CREATE INDEX idx_spaces_tutor_learner ON learning_spaces(tutor_id, learner_id);
 CREATE TRIGGER trg_spaces_updated_at BEFORE UPDATE ON learning_spaces FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
@@ -285,12 +288,50 @@ CREATE TABLE class_schedules (
     day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
+    active_from TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- migration 016: bắt đầu hiệu lực
+    active_until TIMESTAMPTZ,                                      -- migration 016: NULL = đang hiệu lực
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_class_schedule_time CHECK (start_time < end_time)
 );
 CREATE INDEX idx_class_schedules_space ON class_schedules(space_id);
 CREATE TRIGGER trg_class_schedules_updated_at BEFORE UPDATE ON class_schedules FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+
+-- 11c. Bảng Thay Đổi Riêng Một Buổi Trong Tuần (Class Session Changes) — FE-06, migration 015 + 016
+-- Gia sư dời (cancelled = false) hoặc hủy (cancelled = true) MỘT buổi (schedule_id + original_date); các tuần khác giữ lịch gốc.
+DROP TABLE IF EXISTS class_session_changes CASCADE;
+CREATE TABLE class_session_changes (
+    change_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    schedule_id UUID NOT NULL REFERENCES class_schedules(schedule_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    original_date DATE NOT NULL,
+    new_date DATE,
+    start_time TIME,
+    end_time TIME,
+    cancelled BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_class_session_change_time CHECK (
+        cancelled OR (new_date IS NOT NULL AND start_time IS NOT NULL AND end_time IS NOT NULL AND start_time < end_time)
+    ),
+    CONSTRAINT uq_class_session_change UNIQUE (schedule_id, original_date)
+);
+CREATE INDEX idx_class_session_changes_new_date ON class_session_changes(new_date);
+CREATE TRIGGER trg_class_session_changes_updated_at BEFORE UPDATE ON class_session_changes FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
+
+-- 11d. Bảng Buổi Học Thêm Riêng Trong Tuần (Class Extra Sessions) — FE-06, migration 016 (tính vào tổng số buổi của khóa)
+DROP TABLE IF EXISTS class_extra_sessions CASCADE;
+CREATE TABLE class_extra_sessions (
+    extra_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    space_id UUID NOT NULL REFERENCES learning_spaces(space_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    session_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_class_extra_session_time CHECK (start_time < end_time)
+);
+CREATE INDEX idx_class_extra_sessions_space_date ON class_extra_sessions(space_id, session_date);
+CREATE TRIGGER trg_class_extra_sessions_updated_at BEFORE UPDATE ON class_extra_sessions FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();
 
 -- 12. Bảng Tài Liệu Học Tập (Learning Materials)
 DROP TABLE IF EXISTS learning_materials CASCADE;

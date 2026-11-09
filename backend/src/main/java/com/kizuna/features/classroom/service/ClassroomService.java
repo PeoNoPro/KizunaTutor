@@ -23,6 +23,9 @@ public interface ClassroomService {
     /** Gia sư của lớp đổi tên lớp (lớp đang hoạt động, gói hội viên còn hiệu lực). */
     ClassroomSummaryResponse rename(CurrentActor actor, UUID spaceId, String title);
 
+    /** Gia sư sửa khóa học: tổng số buổi (không nhỏ hơn số buổi đã học), ngày bắt đầu (khi chưa có buổi nào diễn ra). */
+    ClassroomSummaryResponse updateCourse(CurrentActor actor, UUID spaceId, com.kizuna.features.classroom.dto.ClassroomCourseRequest request);
+
     /** Lớp mà người dùng là gia sư hoặc học viên; 404 nếu không tồn tại, 403 nếu không thuộc lớp. */
     LearningSpace loadAccessibleSpace(CurrentActor actor, UUID spaceId);
 

@@ -865,8 +865,17 @@ API.classrooms = {
   },
 
   /** Gia sư tạo lớp cho học viên đã kết nối, kèm lịch học hằng tuần (UC-93) */
-  create({ learnerId, title, schedules }) {
-    return classroomRequest('', { method: 'POST', body: { learnerId, title, schedules } });
+  /**
+   * Gia sư tạo lớp: học viên, tên lớp, lịch hằng tuần, ngày bắt đầu khóa ("yyyy-MM-dd") và tổng số buổi của khóa.
+   * Lịch tự sinh cho đủ số buổi rồi dừng.
+   */
+  create({ learnerId, title, schedules, startDate, totalSessions }) {
+    return classroomRequest('', { method: 'POST', body: { learnerId, title, schedules, startDate, totalSessions } });
+  },
+
+  /** Gia sư sửa khóa học: tổng số buổi (không nhỏ hơn số buổi đã học), ngày bắt đầu (khi chưa có buổi nào diễn ra) */
+  updateCourse(spaceId, { startDate, totalSessions }) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/course`, { method: 'PUT', body: { startDate, totalSessions } });
   },
 
   /**
@@ -891,6 +900,49 @@ API.classrooms = {
   updateSchedule(spaceId, scheduleId, slot) {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}`,
       { method: 'PUT', body: slot });
+  },
+
+  /**
+   * Các buổi học cụ thể trong khoảng ngày [from, to] ("yyyy-MM-dd", tối đa 62 ngày) của mọi lớp đang mở mà người dùng tham gia.
+   * Mỗi phần tử: {spaceId, classTitle, partnerName, classStatus, scheduleId, extraId, originalDate, date,
+   *               startTime "HH:mm", endTime "HH:mm", moved, extra, number, totalSessions}
+   */
+  sessions(from, to) {
+    return classroomRequest(`/sessions/me?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+  },
+
+  /** Gia sư hủy riêng buổi của tuần đó (khóa tự bù thêm buổi ở cuối) */
+  cancelSession(spaceId, scheduleId, originalDate) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}/sessions/${encodeURIComponent(originalDate)}/cancel`,
+      { method: 'POST' });
+  },
+
+  /** Gia sư thêm một buổi riêng trong một tuần (tính vào tổng số buổi) */
+  addExtraSession(spaceId, { newDate, startTime, endTime }) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/extra-sessions`, { method: 'POST', body: { newDate, startTime, endTime } });
+  },
+
+  /** Gia sư dời buổi thêm sang ngày/giờ khác trong cùng tuần */
+  moveExtraSession(spaceId, extraId, { newDate, startTime, endTime }) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/extra-sessions/${encodeURIComponent(extraId)}`,
+      { method: 'PUT', body: { newDate, startTime, endTime } });
+  },
+
+  /** Gia sư hủy buổi thêm */
+  cancelExtraSession(spaceId, extraId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/extra-sessions/${encodeURIComponent(extraId)}`, { method: 'DELETE' });
+  },
+
+  /** Gia sư dời MỘT buổi (buổi của lịch scheduleId rơi vào ngày originalDate) sang ngày/giờ khác trong cùng tuần */
+  moveSession(spaceId, scheduleId, originalDate, { newDate, startTime, endTime }) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}/sessions/${encodeURIComponent(originalDate)}`,
+      { method: 'PUT', body: { newDate, startTime, endTime } });
+  },
+
+  /** Gia sư đưa buổi đã dời về lại lịch gốc */
+  restoreSession(spaceId, scheduleId, originalDate) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}/sessions/${encodeURIComponent(originalDate)}`,
+      { method: 'DELETE' });
   },
 
   detail(spaceId) {

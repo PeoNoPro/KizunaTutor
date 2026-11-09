@@ -6,6 +6,7 @@ import com.kizuna.core.entity.User;
 import com.kizuna.core.repository.LearnerRepository;
 import com.kizuna.features.classroom.dto.ClassScheduleRequest;
 import com.kizuna.features.classroom.dto.ClassScheduleResponse;
+import com.kizuna.features.classroom.dto.ClassroomCourseRequest;
 import com.kizuna.features.classroom.dto.ClassroomCreateRequest;
 import com.kizuna.features.classroom.dto.ClassroomSummaryResponse;
 import com.kizuna.features.classroom.dto.EligibleLearnerResponse;
@@ -18,29 +19,58 @@ import com.kizuna.features.classroom.repository.LearningMaterialRepository;
 import com.kizuna.features.classroom.repository.LearningSpaceRepository;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.util.ClassScheduleRules;
+import com.kizuna.features.classroom.util.ClassSessionCalendar;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.classroom.util.MembershipRules;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class ClassroomServiceImpl implements ClassroomService {
 
     static final int TITLE_MAX = 150;
+    static final int MAX_TOTAL_SESSIONS = 500;
     static final List<LearningSpaceStatus> OPEN_STATUSES = List.of(LearningSpaceStatus.ACTIVE, LearningSpaceStatus.PAUSED);
+    private static final DateTimeFormatter DD_MM_YYYY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final LearningSpaceRepository spaceRepository;
     private final LearningMaterialRepository materialRepository;
     private final LearnerRepository learnerRepository;
     private final ClassScheduleRepository scheduleRepository;
     private final ClassScheduleRules scheduleRules;
+    private final ClassSessionCalendar calendar;
+    private final Clock clock;
+
+    @Autowired
+    public ClassroomServiceImpl(LearningSpaceRepository spaceRepository, LearningMaterialRepository materialRepository,
+                                LearnerRepository learnerRepository, ClassScheduleRepository scheduleRepository,
+                                ClassScheduleRules scheduleRules, ClassSessionCalendar calendar) {
+        this(spaceRepository, materialRepository, learnerRepository, scheduleRepository, scheduleRules, calendar,
+                Clock.system(ClassScheduleRules.VN_ZONE));
+    }
+
+    public ClassroomServiceImpl(LearningSpaceRepository spaceRepository, LearningMaterialRepository materialRepository,
+                                LearnerRepository learnerRepository, ClassScheduleRepository scheduleRepository,
+                                ClassScheduleRules scheduleRules, ClassSessionCalendar calendar, Clock clock) {
+        this.spaceRepository = spaceRepository;
+        this.materialRepository = materialRepository;
+        this.learnerRepository = learnerRepository;
+        this.scheduleRepository = scheduleRepository;
+        this.scheduleRules = scheduleRules;
+        this.calendar = calendar;
+        this.clock = clock;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -79,6 +109,9 @@ public class ClassroomServiceImpl implements ClassroomService {
         String title = normalizeTitle(request.title());
         List<ClassScheduleRequest> slots = request.schedules();
         ClassScheduleRules.validateNewList(slots);
+        LocalDate today = LocalDate.now(clock);
+        LocalDate startDate = validateStartDate(request.startDate(), today);
+        int totalSessions = validateTotalSessions(request.totalSessions(), 0, slots.size());
 
         if (!MembershipRules.isActive(tutor)) {
             throw ClassroomException.conflict(MembershipRules.createBlockedMessage(tutor));
@@ -99,12 +132,16 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .learner(learner)
                 .title(title)
                 .status(LearningSpaceStatus.ACTIVE)
+                .courseStartDate(startDate)
+                .totalSessions(totalSessions)
                 .build());
+        OffsetDateTime activeFrom = ClassSessionCalendar.activeFromFor(saved, OffsetDateTime.now(clock));
         scheduleRepository.saveAll(slots.stream().map(slot -> ClassSchedule.builder()
                 .space(saved)
                 .dayOfWeek(slot.dayOfWeek())
                 .startTime(slot.startTime())
                 .endTime(slot.endTime())
+                .activeFrom(activeFrom)
                 .build()).toList());
         return toSummary(saved, actor);
     }
@@ -120,6 +157,32 @@ public class ClassroomServiceImpl implements ClassroomService {
     public ClassroomSummaryResponse rename(CurrentActor actor, UUID spaceId, String rawTitle) {
         LearningSpace space = loadManageableSpace(actor, spaceId);
         space.setTitle(normalizeTitle(rawTitle));
+        return toSummary(spaceRepository.save(space), actor);
+    }
+
+    @Override
+    @Transactional
+    public ClassroomSummaryResponse updateCourse(CurrentActor actor, UUID spaceId, ClassroomCourseRequest request) {
+        LearningSpace space = loadManageableSpace(actor, spaceId);
+        spaceRepository.lockById(space.getSpaceId());
+        LocalDateTime now = LocalDateTime.now(clock);
+        int started = calendar.progress(space, now).startedSessions();
+        int weekly = (int) scheduleRepository.countBySpace_SpaceId(space.getSpaceId());
+        int total = validateTotalSessions(request == null ? null : request.totalSessions(), started, weekly);
+
+        LocalDate newStart = request == null ? null : request.startDate();
+        LocalDate currentStart = ClassSessionCalendar.startDateOf(space);
+        if (newStart != null && !newStart.equals(currentStart)) {
+            if (started > 0) {
+                throw ClassroomException.field("startDate", "Khóa học đã có buổi diễn ra nên không thể đổi ngày bắt đầu.");
+            }
+            validateStartDate(newStart, now.toLocalDate());
+            space.setCourseStartDate(newStart);
+            OffsetDateTime activeFrom = ClassSessionCalendar.activeFromFor(space, OffsetDateTime.now(clock));
+            scheduleRepository.findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(space.getSpaceId())
+                    .forEach(slot -> slot.setActiveFrom(activeFrom));
+        }
+        space.setTotalSessions(total);
         return toSummary(spaceRepository.save(space), actor);
     }
 
@@ -160,6 +223,8 @@ public class ClassroomServiceImpl implements ClassroomService {
         boolean readOnly = isReadOnly(space);
         User tutorUser = space.getTutor().getUser();
         User learnerUser = space.getLearner().getUser();
+        ClassSessionCalendar.Progress progress = space.getSpaceId() == null ? null
+                : calendar.progress(space, LocalDateTime.now(clock));
         return ClassroomSummaryResponse.builder()
                 .spaceId(space.getSpaceId())
                 .title(space.getTitle())
@@ -175,6 +240,10 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .schedules(space.getSpaceId() == null ? List.of()
                         : scheduleRepository.findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(space.getSpaceId())
                                 .stream().map(ClassScheduleResponse::of).toList())
+                .courseStartDate(ClassSessionCalendar.startDateOf(space))
+                .totalSessions(space.getTotalSessions())
+                .startedSessions(progress == null ? 0 : progress.startedSessions())
+                .courseEndDate(progress == null ? null : progress.endDate())
                 .build();
     }
 
@@ -191,6 +260,43 @@ public class ClassroomServiceImpl implements ClassroomService {
 
     private static boolean isLearnerOf(CurrentActor actor, LearningSpace space) {
         return actor.isLearner() && Objects.equals(actor.learner().getLearnerId(), space.getLearner().getLearnerId());
+    }
+
+    /** Ngày bắt đầu khóa: bắt buộc, từ hôm nay trở đi và không quá 1 năm tới. */
+    static LocalDate validateStartDate(LocalDate startDate, LocalDate today) {
+        if (startDate == null) {
+            throw ClassroomException.field("startDate", "Vui lòng chọn ngày bắt đầu khóa học.");
+        }
+        if (startDate.isBefore(today)) {
+            throw ClassroomException.field("startDate", "Ngày bắt đầu khóa học phải từ hôm nay (" + today.format(DD_MM_YYYY) + ") trở đi.");
+        }
+        if (startDate.isAfter(today.plusYears(1))) {
+            throw ClassroomException.field("startDate", "Ngày bắt đầu khóa học không được quá 1 năm kể từ hôm nay.");
+        }
+        return startDate;
+    }
+
+    /**
+     * Tổng số buổi: bắt buộc, tối đa 500 và không nhỏ hơn số buổi tối thiểu =
+     * max(số buổi đã học, số buổi trong một tuần của lịch hằng tuần).
+     */
+    static int validateTotalSessions(Integer total, int started, int weeklySlots) {
+        if (total == null) {
+            throw ClassroomException.field("totalSessions", "Vui lòng nhập tổng số buổi của khóa học.");
+        }
+        if (total > MAX_TOTAL_SESSIONS) {
+            throw ClassroomException.field("totalSessions", "Mỗi khóa học có tối đa " + MAX_TOTAL_SESSIONS + " buổi.");
+        }
+        int min = Math.max(1, Math.max(started, weeklySlots));
+        if (total < min) {
+            String reason = started >= weeklySlots && started > 0
+                    ? "Khóa học đã học " + started + " buổi"
+                    : "Lịch học có " + weeklySlots + " buổi mỗi tuần";
+            throw ClassroomException.field("totalSessions", min > 1
+                    ? reason + " nên tổng số buổi cần từ " + min + " buổi trở lên."
+                    : "Khóa học cần có ít nhất 1 buổi.");
+        }
+        return total;
     }
 
     static String normalizeTitle(String raw) {

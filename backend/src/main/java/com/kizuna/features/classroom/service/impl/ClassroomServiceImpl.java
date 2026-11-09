@@ -78,7 +78,9 @@ public class ClassroomServiceImpl implements ClassroomService {
         List<LearningSpace> spaces = actor.isTutor()
                 ? spaceRepository.findByTutor_TutorIdOrderByCreatedAtDesc(actor.tutor().getTutorId())
                 : spaceRepository.findByLearner_LearnerIdOrderByCreatedAtDesc(actor.learner().getLearnerId());
-        return spaces.stream().map(space -> toSummary(space, actor)).toList();
+        java.util.Map<UUID, ClassSessionCalendar.Progress> progress =
+                ClassSessionCalendar.progressOf(calendar.load(spaces), LocalDateTime.now(clock));
+        return spaces.stream().map(space -> toSummary(space, actor, progress.get(space.getSpaceId()))).toList();
     }
 
     @Override
@@ -220,11 +222,14 @@ public class ClassroomServiceImpl implements ClassroomService {
     }
 
     private ClassroomSummaryResponse toSummary(LearningSpace space, CurrentActor actor) {
+        return toSummary(space, actor, space.getSpaceId() == null ? null
+                : calendar.progress(space, LocalDateTime.now(clock)));
+    }
+
+    private ClassroomSummaryResponse toSummary(LearningSpace space, CurrentActor actor, ClassSessionCalendar.Progress progress) {
         boolean readOnly = isReadOnly(space);
         User tutorUser = space.getTutor().getUser();
         User learnerUser = space.getLearner().getUser();
-        ClassSessionCalendar.Progress progress = space.getSpaceId() == null ? null
-                : calendar.progress(space, LocalDateTime.now(clock));
         return ClassroomSummaryResponse.builder()
                 .spaceId(space.getSpaceId())
                 .title(space.getTitle())

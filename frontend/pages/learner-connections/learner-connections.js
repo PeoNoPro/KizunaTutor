@@ -31,6 +31,7 @@ let bookingsList = [];
 let classTimetable = []; // Lịch học chính thức hằng tuần của các lớp (FE-06: GET /api/classrooms/schedules/me)
 let weekSessions = []; // Buổi học chính thức của tuần đang xem (FE-06: GET /api/classrooms/sessions/me)
 let weekSessionsToken = 0;
+let weekSessionsKey = ''; // Tuần của weekSessions đang vẽ ("yyyy-MM-dd" Thứ Hai)
 let currentFilter = 'ALL';
 let activeBooking = null;
 let activeCompleteBooking = null;
@@ -167,7 +168,11 @@ function updateCounts() {
 async function loadLearnerWeekSessions() {
   const token = ++weekSessionsToken;
   const { from, to } = weekRange(learnerCurrentWeekMonday);
-  weekSessions = [];
+  // Chỉ xóa buổi khi sang tuần khác; tải lại cùng tuần thì giữ lịch đang hiện tới khi có dữ liệu mới
+  if (weekSessionsKey !== from) {
+    weekSessions = [];
+    weekSessionsKey = from;
+  }
   renderLearnerWeeklyCalendar();
   try {
     const list = await API.classrooms.sessions(from, to);

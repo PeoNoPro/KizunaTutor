@@ -37,7 +37,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Dời / hủy / thêm riêng một buổi trong tuần. "Bây giờ" cố định: Thứ Tư 18/11/2026 10:00 (giờ Việt Nam);
+ * Dời (sang ngày bất kỳ trong khóa) / hủy / thêm riêng một buổi. "Bây giờ" cố định: Thứ Tư 18/11/2026 10:00 (giờ Việt Nam);
  * tuần đang xét: Thứ Hai 16/11 – Chủ nhật 22/11. Khóa bắt đầu Thứ Hai 02/11, mỗi tuần một buổi Thứ Năm 06:00–07:00.
  * Repository được giả lập bằng danh sách trong bộ nhớ để lịch buổi học sinh ra đúng như khi chạy thật.
  */
@@ -174,10 +174,36 @@ class ClassSessionServiceImplTest {
     }
 
     @Test
-    void moveFollowsTimeRulesSameWeekAndFuture() {
+    void movesToAnotherWeekWithinCourseAndRenumbers() {
+        // Thứ Năm 19/11 (buổi 3) dời sang Thứ Ba 01/12 — tuần khác, vẫn trong khóa
+        LocalDate before = endDate();
+        service.move(asTutor(tutor), space.getSpaceId(), thursday.getScheduleId(), THU, to(LocalDate.of(2026, 12, 1), 10, 11));
+
+        assertThat(week(MON)).isEmpty();
+        assertThat(week(MON.plusWeeks(1))).singleElement().satisfies(s -> {
+            assertThat(s.date()).isEqualTo(THU.plusWeeks(1));
+            assertThat(s.number()).isEqualTo(3);
+        });
+        List<ClassSessionCalendar.Session> weekOfMove = week(LocalDate.of(2026, 11, 30));
+        assertThat(weekOfMove).extracting(ClassSessionCalendar.Session::date)
+                .containsExactly(LocalDate.of(2026, 12, 1), LocalDate.of(2026, 12, 3));
+        assertThat(weekOfMove.get(0).moved()).isTrue();
+        assertThat(weekOfMove.get(0).originalDate()).isEqualTo(THU);
+        assertThat(weekOfMove).extracting(ClassSessionCalendar.Session::number).containsExactly(4, 5);
+        // Tổng số buổi không đổi nên buổi cuối khóa giữ nguyên
+        assertThat(endDate()).isEqualTo(before);
+    }
+
+    @Test
+    void moveFollowsTimeRulesAndStaysWithinCourse() {
         UUID id = thursday.getScheduleId();
-        // Sang tuần khác
-        assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(LocalDate.of(2026, 11, 23), 10, 11)), HttpStatus.BAD_REQUEST);
+        // Sau buổi cuối của khóa / trước ngày bắt đầu khóa
+        assertThatThrownBy(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(LocalDate.of(2027, 6, 1), 10, 11)))
+                .isInstanceOfSatisfying(ClassroomException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(e.getMessage()).startsWith("Chỉ được dời trong thời gian khóa học");
+                });
+        assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(LocalDate.of(2026, 10, 30), 10, 11)), HttpStatus.BAD_REQUEST);
         // Giờ mới đã qua
         assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(LocalDate.of(2026, 11, 18), 8, 9)), HttpStatus.BAD_REQUEST);
         // Dài hơn 4 giờ / ngắn hơn 30 phút
@@ -284,7 +310,9 @@ class ClassSessionServiceImplTest {
         UUID extraId = extraStore.get(0).getExtraId();
         service.moveExtra(asTutor(tutor), space.getSpaceId(), extraId, to(LocalDate.of(2026, 11, 22), 14, 15));
         assertThat(extraStore.get(0).getSessionDate()).isEqualTo(LocalDate.of(2026, 11, 22));
-        assertStatus(() -> service.moveExtra(asTutor(tutor), space.getSpaceId(), extraId, to(LocalDate.of(2026, 11, 24), 14, 15)), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.moveExtra(asTutor(tutor), space.getSpaceId(), extraId, to(LocalDate.of(2027, 6, 1), 14, 15)), HttpStatus.BAD_REQUEST);
+        service.moveExtra(asTutor(tutor), space.getSpaceId(), extraId, to(LocalDate.of(2026, 11, 24), 14, 15));
+        assertThat(extraStore.get(0).getSessionDate()).isEqualTo(LocalDate.of(2026, 11, 24));
 
         service.cancelExtra(asTutor(tutor), space.getSpaceId(), extraId);
         assertThat(extraStore).isEmpty();

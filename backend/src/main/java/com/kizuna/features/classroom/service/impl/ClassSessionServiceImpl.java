@@ -42,8 +42,9 @@ import static com.kizuna.features.classroom.util.ClassScheduleRules.VN_ZONE;
 /**
  * Buổi học cụ thể của khóa (FE-06):
  * - chỉ gia sư của lớp, lớp đang hoạt động, gói hội viên còn hiệu lực mới được dời / hủy / thêm buổi;
- * - mỗi thao tác chỉ ảnh hưởng đúng một buổi trong một tuần, các tuần khác giữ nguyên;
- * - buổi phải chưa bắt đầu, thời gian mới ở tương lai, cùng tuần, không trước ngày bắt đầu khóa,
+ * - mỗi thao tác chỉ ảnh hưởng đúng một buổi, các buổi khác giữ nguyên;
+ * - dời: sang ngày bất kỳ trong thời gian khóa học (từ ngày bắt đầu tới buổi cuối của khóa; lớp cũ không giới hạn số buổi: tối đa 1 năm tới);
+ * - buổi phải chưa bắt đầu, thời gian mới ở tương lai, không trước ngày bắt đầu khóa,
  *   tuân thủ quy tắc giờ học (30 phút – 4 giờ) và không trùng giờ với buổi học thử / buổi học khác của gia sư hoặc học viên;
  * - lịch tự sinh cho đủ tổng số buổi: hủy buổi thì khóa bù thêm buổi ở cuối, thêm buổi thì khóa kết thúc sớm hơn.
  * Mọi thời điểm tính theo giờ Việt Nam.
@@ -53,6 +54,7 @@ public class ClassSessionServiceImpl implements ClassSessionService {
 
     static final int MAX_RANGE_DAYS = 62;
     private static final DateTimeFormatter DD_MM = DateTimeFormatter.ofPattern("dd/MM");
+    private static final DateTimeFormatter DD_MM_YYYY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final ClassroomService classroomService;
     private final ClassScheduleRepository scheduleRepository;
@@ -99,8 +101,11 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         if (from == null || to == null || to.isBefore(from) || ChronoUnit.DAYS.between(from, to) > MAX_RANGE_DAYS) {
             throw ClassroomException.badRequest("Khoảng ngày xem lịch không hợp lệ.");
         }
-        return calendar.sessionsOfParticipants(tutorId, learnerId, from, to).stream()
-                .map(s -> toResponse(s, actor))
+        LocalDateTime now = LocalDateTime.now(clock);
+        List<ClassSessionCalendar.SpaceData> all = calendar.loadOfParticipants(tutorId, learnerId);
+        java.util.Map<UUID, ClassSessionCalendar.Progress> progress = ClassSessionCalendar.progressOf(all, now);
+        return ClassSessionCalendar.sessionsIn(all, from, to).stream()
+                .map(s -> toResponse(s, actor, progress.get(s.space().getSpaceId())))
                 .toList();
     }
 
@@ -113,13 +118,14 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         LearningSpace space = loadEditableSpace(actor, spaceId);
         ClassSchedule schedule = findSchedule(scheduleId, space);
         LocalDateTime now = LocalDateTime.now(clock);
-        Session current = requireOccurrence(space, scheduleId, originalDate);
+        ClassSessionCalendar.SpaceData data = calendar.load(space);
+        Session current = requireOccurrence(data, scheduleId, originalDate);
         ensureNotStarted(current, now);
 
         LocalDate newDate = request == null ? null : request.newDate();
         LocalTime start = request == null ? null : request.startTime();
         LocalTime end = request == null ? null : request.endTime();
-        validateNewTime(space, originalDate, newDate, start, end, now);
+        validateNewTime(data, newDate, start, end, now);
         rules.ensureNoSessionConflict(space.getTutor().getTutorId(), space.getLearner().getLearnerId(), space.getSpaceId(),
                 s -> s.isOccurrence(scheduleId, originalDate), newDate, start, end);
 
@@ -138,7 +144,7 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         change.setEndTime(end);
         changeRepository.save(change);
         ensureStillInCourse(space, newDate, s -> s.isOccurrence(scheduleId, originalDate),
-                "Buổi này là buổi cuối của khóa nên không thể dời ra sau các buổi khác trong tuần. Hãy tăng tổng số buổi trước.");
+                "Không thể dời buổi này ra sau buổi cuối của khóa. Hãy tăng tổng số buổi của khóa trước.");
     }
 
     @Override
@@ -146,7 +152,7 @@ public class ClassSessionServiceImpl implements ClassSessionService {
     public void cancel(CurrentActor actor, UUID spaceId, UUID scheduleId, LocalDate originalDate) {
         LearningSpace space = loadEditableSpace(actor, spaceId);
         ClassSchedule schedule = findSchedule(scheduleId, space);
-        Session current = requireOccurrence(space, scheduleId, originalDate);
+        Session current = requireOccurrence(calendar.load(space), scheduleId, originalDate);
         ensureNotStarted(current, LocalDateTime.now(clock));
         ClassSessionChange change = changeRepository.findBySchedule_ScheduleIdAndOriginalDate(scheduleId, originalDate)
                 .orElseGet(() -> ClassSessionChange.builder().schedule(schedule).originalDate(originalDate).build());
@@ -210,7 +216,7 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         LocalDate newDate = request == null ? null : request.newDate();
         LocalTime start = request == null ? null : request.startTime();
         LocalTime end = request == null ? null : request.endTime();
-        validateNewTime(space, extra.getSessionDate(), newDate, start, end, now);
+        validateNewTime(calendar.load(space), newDate, start, end, now);
         rules.ensureNoSessionConflict(space.getTutor().getTutorId(), space.getLearner().getLearnerId(), space.getSpaceId(),
                 s -> Objects.equals(s.extraId(), extraId), newDate, start, end);
         extra.setSessionDate(newDate);
@@ -218,7 +224,7 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         extra.setEndTime(end);
         extraRepository.save(extra);
         ensureStillInCourse(space, newDate, s -> Objects.equals(s.extraId(), extraId),
-                "Buổi này là buổi cuối của khóa nên không thể dời ra sau các buổi khác trong tuần. Hãy tăng tổng số buổi trước.");
+                "Không thể dời buổi này ra sau buổi cuối của khóa. Hãy tăng tổng số buổi của khóa trước.");
     }
 
     @Override
@@ -264,11 +270,11 @@ public class ClassSessionServiceImpl implements ClassSessionService {
     }
 
     /** Buổi (lịch hằng tuần + ngày gốc) phải có trong lịch của khóa (chưa bị hủy, chưa vượt quá tổng số buổi). */
-    private Session requireOccurrence(LearningSpace space, UUID scheduleId, LocalDate originalDate) {
+    private static Session requireOccurrence(ClassSessionCalendar.SpaceData data, UUID scheduleId, LocalDate originalDate) {
         if (originalDate == null) {
             throw ClassroomException.field(SESSION_FIELD, "Thiếu ngày của buổi học.");
         }
-        return calendar.sessionsOfSpace(space, originalDate.plusDays(6)).stream()
+        return ClassSessionCalendar.generate(data, originalDate.plusDays(6)).stream()
                 .filter(s -> s.isOccurrence(scheduleId, originalDate))
                 .findFirst()
                 .orElseThrow(() -> ClassroomException.notFound("Buổi học này không có trong lịch của khóa (đã hủy hoặc ngoài số buổi của khóa)."));
@@ -280,16 +286,24 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         }
     }
 
-    /** Ngày/giờ mới: đủ thông tin, đúng quy tắc giờ học, cùng tuần với ngày cũ, không trước ngày bắt đầu khóa, ở tương lai. */
-    private static void validateNewTime(LearningSpace space, LocalDate currentDate, LocalDate newDate,
-                                        LocalTime start, LocalTime end, LocalDateTime now) {
+    /**
+     * Ngày/giờ mới khi dời: đủ thông tin, đúng quy tắc giờ học (30 phút – 4 giờ), ở tương lai và nằm trong thời gian khóa học:
+     * từ ngày bắt đầu khóa tới ngày buổi cuối của khóa (lớp cũ không giới hạn số buổi: tối đa 1 năm tới).
+     */
+    private static void validateNewTime(ClassSessionCalendar.SpaceData data, LocalDate newDate, LocalTime start, LocalTime end,
+                                        LocalDateTime now) {
+        LearningSpace space = data.space();
         ClassScheduleRules.validateSession(newDate, start, end);
-        LocalDate monday = ClassSessionCalendar.mondayOf(currentDate);
-        if (!ClassSessionCalendar.mondayOf(newDate).equals(monday)) {
-            throw ClassroomException.field(SESSION_FIELD, "Chỉ được dời sang một ngày trong cùng tuần ("
-                    + monday.format(DD_MM) + " – " + monday.plusDays(6).format(DD_MM) + ").");
-        }
         validateDateInCourse(space, newDate, start, now);
+        LocalDate courseStart = ClassSessionCalendar.startDateOf(space);
+        LocalDate last = space.getTotalSessions() != null
+                ? ClassSessionCalendar.progress(data, now).endDate()
+                : now.toLocalDate().plusYears(1);
+        if (last != null && newDate.isAfter(last)) {
+            LocalDate from = courseStart.isAfter(now.toLocalDate()) ? courseStart : now.toLocalDate();
+            throw ClassroomException.field(SESSION_FIELD, "Chỉ được dời trong thời gian khóa học (từ "
+                    + from.format(DD_MM_YYYY) + " đến " + last.format(DD_MM_YYYY) + ").");
+        }
     }
 
     private static void validateDateInCourse(LearningSpace space, LocalDate date, LocalTime start, LocalDateTime now) {
@@ -311,11 +325,12 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         }
     }
 
-    private static ClassSessionResponse toResponse(Session s, CurrentActor actor) {
+    private static ClassSessionResponse toResponse(Session s, CurrentActor actor, ClassSessionCalendar.Progress progress) {
         LearningSpace sp = s.space();
         User partner = actor.isTutor() ? sp.getLearner().getUser() : sp.getTutor().getUser();
         return new ClassSessionResponse(sp.getSpaceId(), sp.getTitle(), partner == null ? null : partner.getFullName(),
                 sp.getStatus(), s.scheduleId(), s.extraId(), s.originalDate(), s.date(), s.startTime(), s.endTime(),
-                s.moved(), s.extra(), s.number(), sp.getTotalSessions());
+                s.moved(), s.extra(), s.number(), sp.getTotalSessions(),
+                progress.startDate(), progress.endDate());
     }
 }

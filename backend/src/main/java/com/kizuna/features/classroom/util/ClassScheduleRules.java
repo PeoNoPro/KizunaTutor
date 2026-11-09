@@ -103,21 +103,23 @@ public class ClassScheduleRules {
                                  UUID excludeScheduleId, List<ClassScheduleRequest> candidates) {
         ensureNoTrialConflict(tutorId, learnerId, candidates);
         LocalDateTime now = LocalDateTime.now(VN_ZONE);
-        Map<UUID, Boolean> ended = new HashMap<>();
+        List<ClassSessionCalendar.SpaceData> all = calendar.loadOfParticipants(tutorId, learnerId);
+        Set<UUID> ended = new HashSet<>();
+        ClassSessionCalendar.progressOf(all, now).forEach((id, p) -> {
+            if (p.totalSessions() != null && p.startedSessions() >= p.totalSessions()) ended.add(id);
+        });
         List<ClassSchedule> existing = scheduleRepository.findOpenSchedulesOfParticipants(tutorId, learnerId, OPEN_STATUSES);
         for (ClassScheduleRequest candidate : candidates) {
             for (ClassSchedule other : existing) {
                 if (Objects.equals(other.getScheduleId(), excludeScheduleId) || !overlaps(candidate, other)) continue;
                 LearningSpace otherSpace = other.getSpace();
-                boolean otherEnded = ended.computeIfAbsent(otherSpace.getSpaceId(), id -> courseEnded(otherSpace, now));
-                if (otherEnded) continue;
+                if (ended.contains(otherSpace.getSpaceId())) continue;
                 throw scheduleConflict(otherSpace, tutorId, currentSpaceId, describe(candidate), FIELD);
             }
         }
         // Các buổi đã dời / thêm riêng sắp tới cũng chiếm khung giờ của ngày đó
         LocalDate today = now.toLocalDate();
-        List<ClassSessionCalendar.Session> upcoming = calendar.sessionsOfParticipants(tutorId, learnerId,
-                today, today.plusWeeks(LOOKAHEAD_WEEKS));
+        List<ClassSessionCalendar.Session> upcoming = ClassSessionCalendar.sessionsIn(all, today, today.plusWeeks(LOOKAHEAD_WEEKS));
         for (ClassScheduleRequest candidate : candidates) {
             for (ClassSessionCalendar.Session s : upcoming) {
                 if (!(s.moved() || s.extra()) || !s.start().isAfter(now)) continue;
@@ -159,12 +161,6 @@ public class ClassScheduleRules {
             if (!overlaps(day, start, end, day, s.startTime(), s.endTime())) continue;
             throw scheduleConflict(s.space(), tutorId, currentSpaceId, when, SESSION_FIELD);
         }
-    }
-
-    private boolean courseEnded(LearningSpace space, LocalDateTime now) {
-        if (space.getTotalSessions() == null) return false;
-        ClassSessionCalendar.Progress p = calendar.progress(space, now);
-        return p.startedSessions() >= p.totalSessions();
     }
 
     private static ClassroomException scheduleConflict(LearningSpace other, UUID tutorId, UUID currentSpaceId,

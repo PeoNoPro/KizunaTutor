@@ -78,14 +78,19 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
      * Truy vấn CHỈ ĐỌC lịch học chính thức (FE-06) của gia sư HOẶC học viên vào NGÀY {@code date} (giờ Việt Nam),
      * trùng khung giờ [startTime, endTime). Sinh các buổi CỤ THỂ của khóa theo đúng quy tắc của
      * ClassSessionCalendar (FE-06): từ ngày bắt đầu khóa, buổi hằng tuần còn hiệu lực (active_from / active_until),
-     * bỏ buổi đã hủy, áp dụng buổi đã dời, thêm buổi riêng, đánh số theo thời gian và chỉ lấy tối đa total_sessions buổi.
+     * bỏ buổi đã hủy, áp dụng buổi đã dời (có thể sang tuần khác), thêm buổi riêng, đánh số theo thời gian thực tế
+     * và chỉ lấy tối đa total_sessions buổi.
      * dayOfWeek: 1 = Thứ Hai ... 7 = Chủ nhật (thứ của {@code date}).
      * @return 'TUTOR' nếu trùng lịch dạy của gia sư, 'LEARNER' nếu trùng lịch học của học viên; rỗng nếu không trùng
      */
     @Query(value = """
             WITH sp AS (
                 SELECT ls.space_id, ls.tutor_id, ls.learner_id, ls.total_sessions,
-                       COALESCE(ls.course_start_date, CAST(ls.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date)) AS start_date
+                       COALESCE(ls.course_start_date, CAST(ls.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date)) AS start_date,
+                       GREATEST(CAST(:date AS date), COALESCE((
+                           SELECT MAX(ch.original_date) FROM class_session_changes ch
+                           JOIN class_schedules cs2 ON cs2.schedule_id = ch.schedule_id
+                           WHERE cs2.space_id = ls.space_id), CAST(:date AS date))) AS horizon
                 FROM learning_spaces ls
                 WHERE ls.status IN ('ACTIVE', 'PAUSED')
                   AND (ls.tutor_id = :tutorId OR ls.learner_id = :learnerId)
@@ -101,7 +106,7 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
                 CROSS JOIN LATERAL (
                     SELECT CAST(g AS date) AS day
                     FROM generate_series(CAST(sp.start_date AS timestamp),
-                                         CAST(CAST(:date AS date) + 6 AS timestamp), interval '1 day') g
+                                         CAST(sp.horizon AS timestamp), interval '1 day') g
                 ) d
                 LEFT JOIN class_session_changes ch ON ch.schedule_id = cs.schedule_id AND ch.original_date = d.day
                 WHERE EXTRACT(ISODOW FROM d.day) = cs.day_of_week

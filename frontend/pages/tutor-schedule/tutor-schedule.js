@@ -27,6 +27,7 @@ let bookingsList = [];
 let availabilitiesList = [];
 let weekSessions = []; // Buổi học chính thức của tuần đang xem (FE-06: GET /api/classrooms/sessions/me)
 let weekSessionsToken = 0; // Bỏ kết quả cũ khi chuyển tuần nhanh
+let weekSessionsKey = ''; // Tuần của weekSessions đang vẽ ("yyyy-MM-dd" Thứ Hai)
 let manageableClasses = []; // Lớp gia sư đang quản lý được (để thêm buổi học)
 let currentSession = null; // Buổi đang mở trong hộp thoại
 let sessionModalMode = 'edit'; // 'edit' (dời / hủy buổi) hoặc 'add' (thêm buổi)
@@ -179,8 +180,13 @@ function renderWeeklyCalendar() {
 async function loadWeekSessions() {
   const token = ++weekSessionsToken;
   const { from, to } = weekRange(currentWeekMonday);
-  weekSessions = [];
+  // Sang tuần khác: xóa buổi của tuần cũ. Tải lại cùng tuần (sau khi dời / hủy / thêm): giữ lịch đang hiện tới khi có dữ liệu mới.
+  if (weekSessionsKey !== from) {
+    weekSessions = [];
+    weekSessionsKey = from;
+  }
   renderWeeklyCalendar();
+  setWeekLoading(true);
   try {
     const list = await API.classrooms.sessions(from, to);
     if (token !== weekSessionsToken) return;
@@ -190,7 +196,12 @@ async function loadWeekSessions() {
     console.error('Lỗi tải lịch học của tuần:', err);
     showToast(err.userMessage || 'Không thể tải lịch học của tuần này.', 'error');
   }
+  setWeekLoading(false);
   renderWeeklyCalendar();
+}
+
+function setWeekLoading(loading) {
+  $('weekLoadingNote')?.classList.toggle('hidden', !loading);
 }
 
 function setMoveError(message) {
@@ -200,18 +211,33 @@ function setMoveError(message) {
   el.classList.toggle('hidden', !message);
 }
 
-/** Đổ 7 ngày của tuần chứa {@code dateYmd} vào ô chọn ngày. */
-function fillWeekDates(dateYmd, selected) {
-  const [y, m, d] = dateYmd.split('-').map(Number);
-  const monday = getMondayOf(new Date(y, m - 1, d));
-  $('moveSessionDate').innerHTML = Array.from({ length: 7 }, (_, i) => {
-    const value = ymd(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i));
-    return `<option value="${value}">${escapeHtml(dayDateLabel(value))}</option>`;
-  }).join('');
-  $('moveSessionDate').value = selected;
+function ymdToDmy(value) {
+  const [y, m, d] = String(value || '').split('-');
+  return y && m && d ? `${d}/${m}/${y}` : '';
 }
 
-/** Bấm vào một buổi trên lưới: dời sang ngày/giờ khác trong tuần, hủy buổi, hoặc đưa về lịch gốc. */
+/** Ô chọn ngày chỉ cho chọn trong khoảng [min, max] ("yyyy-MM-dd"), kèm dòng ghi khoảng ngày được chọn. */
+function setDateRange(min, max, selected) {
+  const input = $('moveSessionDate');
+  input.min = min || '';
+  input.max = max || '';
+  input.value = selected;
+  $('moveSessionDateRange').textContent = max
+    ? `Chọn từ ${ymdToDmy(min)} đến ${ymdToDmy(max)}.`
+    : `Chọn từ ${ymdToDmy(min)} trở đi.`;
+}
+
+/** Dời buổi được chọn từ hôm nay (và không trước ngày bắt đầu khóa) tới buổi cuối của khóa; lớp cũ: tối đa 1 năm tới. */
+function courseDateRange(session) {
+  const today = formatDateYMD(new Date());
+  const min = session.courseStartDate && session.courseStartDate > today ? session.courseStartDate : today;
+  const oneYear = new Date();
+  oneYear.setFullYear(oneYear.getFullYear() + 1);
+  const max = session.courseEndDate || formatDateYMD(oneYear);
+  return { min, max };
+}
+
+/** Bấm vào một buổi trên lưới: dời sang ngày/giờ khác trong thời gian khóa học, hủy buổi, hoặc đưa về lịch gốc. */
 function openSessionModal(session) {
   if (!session) return;
   sessionModalMode = 'edit';
@@ -223,11 +249,12 @@ function openSessionModal(session) {
   $('moveSessionOriginal').textContent = `${number}${dayDateLabel(session.date)} · ${session.startTime} – ${session.endTime}`;
   $('moveSessionCurrent').textContent = session.moved ? `Đã dời từ lịch gốc ${dayDateLabel(session.originalDate)}.` : '';
   $('moveSessionCurrent').classList.toggle('hidden', !session.moved);
-  $('moveSessionHint').textContent = 'Chỉ thay đổi buổi của tuần này, các tuần khác giữ nguyên. Hủy buổi thì khóa tự bù thêm một buổi ở cuối.';
-  $('moveSessionDateLabel').textContent = 'Dời sang ngày (trong tuần này)';
+  $('moveSessionHint').textContent = 'Chỉ thay đổi riêng buổi này, các buổi khác giữ nguyên. Có thể dời sang bất kỳ ngày nào trong thời gian khóa học. Hủy buổi thì khóa tự bù thêm một buổi ở cuối.';
+  $('moveSessionDateLabel').textContent = 'Dời sang ngày (trong thời gian khóa học)';
   $('moveSessionOpenClass').href = `/tutor/classrooms?space=${encodeURIComponent(session.spaceId)}`;
   $('moveSessionOpenClass').classList.remove('hidden');
-  fillWeekDates(session.date, session.date);
+  const range = courseDateRange(session);
+  setDateRange(range.min, range.max, session.date);
   $('moveSessionStart').value = session.startTime;
   $('moveSessionEnd').value = session.endTime;
   $('btnCancelSession').classList.remove('hidden');
@@ -257,7 +284,8 @@ function openAddSessionModal() {
   $('moveSessionOpenClass').classList.add('hidden');
   const today = formatDateYMD(new Date());
   const { from, to } = weekRange(currentWeekMonday);
-  fillWeekDates(from, today >= from && today <= to ? today : from);
+  const min = today > from ? today : from;
+  setDateRange(min, to, today >= from && today <= to ? today : from);
   $('moveSessionStart').value = '18:00';
   $('moveSessionEnd').value = '19:30';
   $('btnCancelSession').classList.add('hidden');
@@ -294,6 +322,11 @@ async function submitMoveSession(event) {
   }
   if (endTime <= startTime) {
     setMoveError('Giờ kết thúc phải sau giờ bắt đầu.');
+    return;
+  }
+  const dateInput = $('moveSessionDate');
+  if ((dateInput.min && newDate < dateInput.min) || (dateInput.max && newDate > dateInput.max)) {
+    setMoveError($('moveSessionDateRange').textContent || 'Ngày đã chọn nằm ngoài khoảng cho phép.');
     return;
   }
   const body = { newDate, startTime, endTime };

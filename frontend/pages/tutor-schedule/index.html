@@ -91,6 +91,7 @@
                 Hôm nay
               </button>
               <span id="currentWeekRangeText" class="text-body-sm font-bold text-on-surface ml-2">Đang tải tuần...</span>
+              <span id="weekLoadingNote" class="hidden text-caption text-on-surface-variant ml-1">Đang cập nhật…</span>
             </div>
 
             <!-- Chú thích loại buổi học (Legend) -->
@@ -300,8 +301,9 @@
           <select id="moveSessionClassSelect" class="tv-input"></select>
         </div>
         <div class="space-y-1.5">
-          <label id="moveSessionDateLabel" for="moveSessionDate" class="text-label-md font-semibold text-on-surface">Dời sang ngày (trong tuần này)</label>
-          <select id="moveSessionDate" class="tv-input" required></select>
+          <label id="moveSessionDateLabel" for="moveSessionDate" class="text-label-md font-semibold text-on-surface">Dời sang ngày (trong thời gian khóa học)</label>
+          <input type="date" id="moveSessionDate" class="tv-input" required>
+          <p id="moveSessionDateRange" class="text-caption text-on-surface-variant"></p>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1.5">

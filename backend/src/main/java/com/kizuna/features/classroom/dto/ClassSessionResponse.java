@@ -9,9 +9,10 @@ import java.util.UUID;
 
 /**
  * Một buổi học cụ thể của khóa (dùng cho lưới thời khóa biểu tuần).
- * - Buổi theo lịch hằng tuần: scheduleId + originalDate (ngày gốc); moved = đã dời riêng trong tuần.
+ * - Buổi theo lịch hằng tuần: scheduleId + originalDate (ngày gốc); moved = đã được dời riêng (sang ngày bất kỳ trong khóa).
  * - Buổi thêm riêng: extra = true, extraId.
  * number / totalSessions: buổi thứ mấy của khóa (totalSessions null = lớp cũ, không giới hạn).
+ * courseStartDate / courseEndDate: ngày bắt đầu khóa và ngày buổi cuối (null nếu không giới hạn) — giới hạn ngày khi dời buổi.
  */
 public record ClassSessionResponse(
         UUID spaceId,
@@ -27,5 +28,7 @@ public record ClassSessionResponse(
         boolean moved,
         boolean extra,
         int number,
-        Integer totalSessions) {
+        Integer totalSessions,
+        @JsonFormat(pattern = "yyyy-MM-dd") LocalDate courseStartDate,
+        @JsonFormat(pattern = "yyyy-MM-dd") LocalDate courseEndDate) {
 }

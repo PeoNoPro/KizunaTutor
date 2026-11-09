@@ -105,6 +105,29 @@ class ClassSessionCalendarTest {
     }
 
     @Test
+    void sessionMovedToAnotherWeekIsOrderedByRealDate() {
+        // Buổi Thứ Hai 09/11 (buổi 2) dời sang Thứ Bảy 21/11
+        changes.add(ClassSessionChange.builder().schedule(monday).originalDate(LocalDate.of(2026, 11, 9))
+                .newDate(LocalDate.of(2026, 11, 21)).startTime(LocalTime.of(10, 0)).endTime(LocalTime.of(11, 0)).build());
+        List<Session> list = generate();
+        assertThat(dates(list)).containsExactly(
+                LocalDate.of(2026, 11, 5), LocalDate.of(2026, 11, 12), LocalDate.of(2026, 11, 16),
+                LocalDate.of(2026, 11, 19), LocalDate.of(2026, 11, 21));
+        assertThat(list.get(4).moved()).isTrue();
+        assertThat(list.get(4).number()).isEqualTo(5);
+    }
+
+    @Test
+    void sessionMovedEarlierFromLaterWeekPushesLastSessionOut() {
+        // Buổi Thứ Năm 19/11 (buổi 5) dời lên Thứ Bảy 07/11 → thứ tự đổi, buổi cuối khóa vẫn là buổi thứ 5 theo thời gian
+        changes.add(ClassSessionChange.builder().schedule(thursday).originalDate(LocalDate.of(2026, 11, 19))
+                .newDate(LocalDate.of(2026, 11, 7)).startTime(LocalTime.of(9, 0)).endTime(LocalTime.of(10, 0)).build());
+        assertThat(dates(generate())).containsExactly(
+                LocalDate.of(2026, 11, 5), LocalDate.of(2026, 11, 7), LocalDate.of(2026, 11, 9),
+                LocalDate.of(2026, 11, 12), LocalDate.of(2026, 11, 16));
+    }
+
+    @Test
     void removedWeeklySlotKeepsPastSessionsAndCourseIsExtendedWithRemainingSlot() {
         // Xóa buổi Thứ Hai từ 10/11 trở đi: Thứ Hai 09/11 đã học vẫn được tính
         monday.setActiveUntil(LocalDate.of(2026, 11, 10).atStartOfDay(VN).toOffsetDateTime());

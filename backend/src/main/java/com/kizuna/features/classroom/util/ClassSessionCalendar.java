@@ -26,8 +26,9 @@ import java.util.stream.Collectors;
  * - ngày bắt đầu khóa (course_start_date) và tổng số buổi (total_sessions; null = lặp hằng tuần không giới hạn — lớp cũ);
  * - các buổi hằng tuần với thời gian hiệu lực (active_from / active_until);
  * - các thay đổi riêng trong tuần: dời (class_session_changes), hủy (cancelled = true), thêm buổi (class_extra_sessions).
- * Buổi được đánh số theo thứ tự thời gian thực tế; khi đủ total_sessions buổi thì dừng (buổi bị hủy không tính,
- * nên khóa tự kéo dài để bù; buổi thêm được tính nên khóa kết thúc sớm hơn).
+ * Buổi được đánh số theo thứ tự thời gian thực tế trên toàn khóa (buổi có thể được dời sang ngày bất kỳ trong khóa);
+ * chỉ lấy tối đa total_sessions buổi (buổi bị hủy không tính nên khóa tự kéo dài để bù; buổi thêm được tính nên
+ * khóa kết thúc sớm hơn).
  * Mọi ngày giờ tính theo giờ Việt Nam.
  *
  * Lưu ý: câu SQL kiểm tra trùng giờ khi đặt học thử (TrialBookingRepository.findClassScheduleClash, FE-05)
@@ -93,16 +94,32 @@ public class ClassSessionCalendar {
         return load(List.of(space)).get(0);
     }
 
+    /** Dữ liệu (lịch hằng tuần, buổi dời / hủy, buổi thêm) của mọi lớp đang mở mà gia sư HOẶC học viên tham gia — 4 câu truy vấn. */
+    public List<SpaceData> loadOfParticipants(UUID tutorId, UUID learnerId) {
+        return load(spaceRepository.findOpenOfParticipants(tutorId, learnerId, OPEN_STATUSES));
+    }
+
     /** Các buổi trong khoảng [from, to] của mọi lớp đang mở mà gia sư HOẶC học viên tham gia. */
     public List<Session> sessionsOfParticipants(UUID tutorId, UUID learnerId, LocalDate from, LocalDate to) {
-        List<LearningSpace> spaces = spaceRepository.findOpenOfParticipants(tutorId, learnerId, OPEN_STATUSES);
+        return sessionsIn(loadOfParticipants(tutorId, learnerId), from, to);
+    }
+
+    /** Các buổi trong khoảng [from, to] từ dữ liệu đã nạp sẵn (không truy vấn thêm). */
+    public static List<Session> sessionsIn(List<SpaceData> all, LocalDate from, LocalDate to) {
         List<Session> result = new ArrayList<>();
-        for (SpaceData data : load(spaces)) {
+        for (SpaceData data : all) {
             generate(data, to).stream()
                     .filter(s -> !s.date().isBefore(from) && !s.date().isAfter(to))
                     .forEach(result::add);
         }
         result.sort(Comparator.comparing(Session::date).thenComparing(Session::startTime));
+        return result;
+    }
+
+    /** Tiến độ của từng lớp từ dữ liệu đã nạp sẵn (không truy vấn thêm). */
+    public static Map<UUID, Progress> progressOf(List<SpaceData> all, LocalDateTime now) {
+        Map<UUID, Progress> result = new HashMap<>();
+        for (SpaceData data : all) result.put(data.space().getSpaceId(), progress(data, now));
         return result;
     }
 
@@ -139,58 +156,75 @@ public class ClassSessionCalendar {
     }
 
     /**
-     * Sinh các buổi theo thứ tự thời gian, đánh số 1..n, dừng khi đủ tổng số buổi
-     * hoặc khi đã qua hết tuần chứa ngày {@code until}.
+     * Sinh các buổi theo thứ tự thời gian THỰC TẾ trên toàn khóa, đánh số 1..n, chỉ lấy tối đa tổng số buổi.
+     * Buổi có thể được dời sang bất kỳ ngày nào trong khóa (kể cả tuần khác), nên:
+     * - sinh các buổi theo tuần của ngày gốc tới ít nhất hết tuần chứa {@code until} và tới ngày gốc / ngày mới xa nhất
+     *   của các buổi đã dời (để buổi dời từ tuần sau lên vẫn có mặt và số thứ tự đúng);
+     * - với khóa giới hạn số buổi, dừng sớm khi đã có đủ số buổi diễn ra TRƯỚC tuần đang xét
+     *   và không còn buổi dời nào có ngày gốc từ tuần này trở đi;
+     * - cuối cùng sắp xếp theo thời gian thực tế và lấy tối đa total_sessions buổi.
      */
     public static List<Session> generate(SpaceData data, LocalDate until) {
         LearningSpace space = data.space();
         Integer total = space.getTotalSessions();
         LocalDate start = startDateOf(space);
         Map<String, ClassSessionChange> changes = new HashMap<>();
+        LocalDate lastChange = null;
         for (ClassSessionChange c : data.changes()) {
             changes.put(c.getSchedule().getScheduleId() + "|" + c.getOriginalDate(), c);
+            lastChange = later(lastChange, c.getOriginalDate());
+            if (!c.isCancelled()) lastChange = later(lastChange, c.getNewDate());
         }
+        LocalDate horizon = later(until, lastChange);
         LocalDate lastExtra = data.extras().stream().map(ClassExtraSession::getSessionDate)
                 .max(Comparator.naturalOrder()).orElse(null);
 
-        List<Session> result = new ArrayList<>();
-        int count = 0;
+        List<Session> candidates = new ArrayList<>();
+        for (ClassExtraSession e : data.extras()) {
+            if (e.getSessionDate().isBefore(start)) continue;
+            candidates.add(new Session(space, null, e.getExtraId(), e.getSessionDate(), e.getSessionDate(),
+                    e.getStartTime(), e.getEndTime(), false, true, 0));
+        }
         LocalDate monday = mondayOf(start);
         for (int week = 0; week < MAX_WEEKS; week++, monday = monday.plusWeeks(1)) {
-            if (monday.isAfter(until)) break;
-            if (total != null && count >= total) break;
+            if (monday.isAfter(horizon)) break;
+            if (total != null && (lastChange == null || monday.isAfter(lastChange))
+                    && countBefore(candidates, monday) >= total) break;
             if (!canProduceFrom(data.slots(), monday, lastExtra)) break;
-
-            List<Session> weekSessions = new ArrayList<>();
             for (ClassSchedule slot : data.slots()) {
                 LocalDate original = monday.plusDays(slot.getDayOfWeek() - 1L);
                 if (original.isBefore(start) || !isActiveAt(slot, original)) continue;
                 ClassSessionChange change = changes.get(slot.getScheduleId() + "|" + original);
                 if (change != null && change.isCancelled()) continue;
                 if (change != null) {
-                    weekSessions.add(new Session(space, slot.getScheduleId(), null, original, change.getNewDate(),
+                    candidates.add(new Session(space, slot.getScheduleId(), null, original, change.getNewDate(),
                             change.getStartTime(), change.getEndTime(), true, false, 0));
                 } else {
-                    weekSessions.add(new Session(space, slot.getScheduleId(), null, original, original,
+                    candidates.add(new Session(space, slot.getScheduleId(), null, original, original,
                             slot.getStartTime(), slot.getEndTime(), false, false, 0));
                 }
             }
-            LocalDate sunday = monday.plusDays(6);
-            for (ClassExtraSession e : data.extras()) {
-                LocalDate d = e.getSessionDate();
-                if (d.isBefore(monday) || d.isAfter(sunday) || d.isBefore(start)) continue;
-                weekSessions.add(new Session(space, null, e.getExtraId(), d, d, e.getStartTime(), e.getEndTime(),
-                        false, true, 0));
-            }
-            weekSessions.sort(Comparator.comparing(Session::date).thenComparing(Session::startTime));
-            for (Session s : weekSessions) {
-                if (total != null && count >= total) break;
-                count++;
-                result.add(new Session(s.space(), s.scheduleId(), s.extraId(), s.originalDate(), s.date(),
-                        s.startTime(), s.endTime(), s.moved(), s.extra(), count));
-            }
+        }
+        candidates.sort(Comparator.comparing(Session::date).thenComparing(Session::startTime));
+        List<Session> result = new ArrayList<>();
+        for (Session c : candidates) {
+            if (total != null && result.size() >= total) break;
+            result.add(new Session(c.space(), c.scheduleId(), c.extraId(), c.originalDate(), c.date(),
+                    c.startTime(), c.endTime(), c.moved(), c.extra(), result.size() + 1));
         }
         return result;
+    }
+
+    private static int countBefore(List<Session> sessions, LocalDate date) {
+        int n = 0;
+        for (Session s : sessions) if (s.date().isBefore(date)) n++;
+        return n;
+    }
+
+    private static LocalDate later(LocalDate a, LocalDate b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        return b.isAfter(a) ? b : a;
     }
 
     /** Buổi hằng tuần còn hiệu lực ở buổi rơi vào ngày {@code date} (so theo giờ bắt đầu, giờ Việt Nam). */

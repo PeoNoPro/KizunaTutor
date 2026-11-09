@@ -3,13 +3,13 @@ import { fetchAPI } from '../../js/api.js';
 // Sidebar quản trị: mỗi nhóm chức năng là một mục thả xuống; mục con giữ đường dẫn riêng để mở trực tiếp.
 // [tên mục, đường dẫn, mô tả ngắn hiện dưới tiêu đề trang, chỉ dành cho Quản lý]
 const ADMIN_NAV = [
-  {label: 'Tổng quan', href: '/pages/admin-dashboard/'},
-  {label: 'Quản lý nhân viên', items: [
+  {label: 'Tổng quan', icon: 'space_dashboard', href: '/pages/admin-dashboard/'},
+  {label: 'Quản lý nhân viên', icon: 'groups', items: [
     ['Danh sách nhân viên', '/pages/admin-staff/', 'Tạo, sửa, khóa tài khoản nhân viên và duyệt đề xuất thăng chức.'],
     ['Đề xuất thăng chức', '/pages/admin-roles/', 'Duyệt hoặc từ chối đề xuất thăng chức do Quản lý gửi.'],
     ['Đề xuất đổi vai trò', '/pages/manager-staff-roles/', 'Đề xuất thăng chức hoặc chuyển vai trò cho nhân viên do bạn quản lý.', true],
     ['Xếp lịch làm việc CS', '/pages/support-shifts/', 'Xếp nhân viên hỗ trợ vào ca làm; yêu cầu mới tự giao cho người đang trong ca.', true]]},
-  {label: 'Vận hành hệ thống', items: [
+  {label: 'Vận hành hệ thống', icon: 'settings_suggest', items: [
     ['Sự cố kỹ thuật', '/pages/operations-incidents/', 'Ghi nhận, nhận xử lý và theo dõi các sự cố kỹ thuật.'],
     ['Nhật ký thao tác', '/pages/operations-logs/', 'Ai đã thay đổi gì trong khu quản trị và vào lúc nào.'],
     ['Cấu hình hệ thống', '/pages/operations-config/', 'AI hỗ trợ học tập, gói hội viên, email gửi thư cho nhân viên và giới hạn tệp đính kèm.'],
@@ -17,11 +17,13 @@ const ADMIN_NAV = [
 ];
 const PAGE_ALIASES = {'/pages/operations-incident/': '/pages/operations-incidents/', '/pages/support-ticket/': '/pages/support-tickets/'};
 const escapeHtml = value => value.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[c]);
+/** Biểu tượng Material Symbols của sidebar (styles/staff-unified.css). */
+const icon = name => name ? '<span class="su-icon" aria-hidden="true">' + name + '</span>' : '';
 function adminNavigation() {
   return ADMIN_NAV.map(entry => entry.href
-    ? `<a href="${entry.href}">${escapeHtml(entry.label)}</a>`
-    : `<details class="nav-group"><summary>${escapeHtml(entry.label)}</summary><div class="nav-group-items">${entry.items.map(([label, href, , managerOnly]) => `<a href="${href}"${managerOnly ? ' data-manager-only hidden' : ''}>${escapeHtml(label)}</a>`).join('')}</div></details>`).join('')
-    + '<a href="/pages/support-tickets/" data-support-link hidden>Yêu cầu hỗ trợ</a>';
+    ? `<a href="${entry.href}">${icon(entry.icon)}${escapeHtml(entry.label)}</a>`
+    : `<details class="nav-group"><summary>${icon(entry.icon)}${escapeHtml(entry.label)}</summary><div class="nav-group-items">${entry.items.map(([label, href, , managerOnly]) => `<a href="${href}"${managerOnly ? ' data-manager-only hidden' : ''}>${escapeHtml(label)}</a>`).join('')}</div></details>`).join('')
+    + '<a href="/pages/support-tickets/" data-support-link hidden>' + icon('support_agent') + 'Yêu cầu hỗ trợ</a>';
 }
 /** Tiêu đề và mô tả trang lấy theo tên mục trong sidebar để hai nơi gọi cùng một tên. */
 function decoratePortalPage(path) {
@@ -73,10 +75,26 @@ export async function logout() {
   sessionStorage.clear();
   location.assign('/login');
 }
+/** Mở/đóng menu tài khoản ở góc dưới trái sidebar. */
+function bindSidebarAccount() {
+  const root = document.getElementById('sidebarAccount'), button = document.getElementById('sidebarAccountButton');
+  if (!root || !button) return;
+  const setOpen = open => { root.classList.toggle('is-open', open); button.setAttribute('aria-expanded', String(open)); };
+  button.addEventListener('click', event => { event.stopPropagation(); setOpen(!root.classList.contains('is-open')); });
+  document.addEventListener('click', event => { if (!root.contains(event.target)) setOpen(false); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') setOpen(false); });
+}
 export function mountAdminShell() {
   if (!document.body.classList.contains('admin-dashboard') || document.getElementById('adminSidebar')) return;
   const csWorkspace=document.body.dataset.workspace==='cs';
+  // Khung thống nhất cho Quản trị viên / Quản lý / CS: bố cục Cổng học vụ, màu Quản trị viên.
+  document.body.classList.add('staff-unified');
+  [['staffUnifiedFont', 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap'],
+   ['staffUnifiedIcons', 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200']]
+    .forEach(([id, href]) => { if (!document.getElementById(id)) { const link = document.createElement('link'); link.id = id; link.rel = 'stylesheet'; link.href = href; document.head.append(link); } });
   if(csWorkspace){document.body.classList.add('cs-workspace');if(!document.querySelector('link[data-cs-workspace]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/styles/cs-workspace.css';css.dataset.csWorkspace='';document.head.append(css);}}
+  // Nạp sau cùng để ghi đè bố cục cũ của admin.css / admin-portal.css / cs-workspace.css
+  if (!document.querySelector('link[data-staff-unified]')) { const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/styles/staff-unified.css'; css.dataset.staffUnified = ''; document.head.append(css); }
   const shell = document.createElement('template');
   shell.innerHTML = `  <aside class="admin-sidebar" id="adminSidebar" aria-label="Điều hướng quản trị">
     <a class="admin-brand" href="/pages/home/">
@@ -101,8 +119,20 @@ export function mountAdminShell() {
       </nav>
     </div>
     <div class="sidebar-bottom">
-      <a href="/pages/admin-profile/"><img src="/assets/icons/admin-dashboard/nav-profile.svg" alt="">Hồ sơ cá nhân</a>
-      <button type="button" class="logout-button"><img src="/assets/icons/admin-dashboard/nav-logout.svg" alt="">Đăng xuất</button>
+      <!-- Thẻ tài khoản góc dưới trái (giống Cổng học vụ): bấm để mở Hồ sơ cá nhân / Đăng xuất -->
+      <div class="sidebar-account" id="sidebarAccount">
+        <div class="sidebar-account-panel" id="sidebarAccountPanel" role="menu" aria-label="Tài khoản">
+          <a href="/pages/admin-profile/" role="menuitem">${icon('account_circle')}Hồ sơ cá nhân</a>
+          <a href="/pages/home/" role="menuitem">${icon('home')}Về trang chủ</a>
+          <div class="sidebar-account-divider"></div>
+          <button type="button" class="logout-button" role="menuitem">${icon('logout')}Đăng xuất</button>
+        </div>
+        <button type="button" class="sidebar-account-button" id="sidebarAccountButton" aria-haspopup="menu" aria-expanded="false">
+          <span class="admin-avatar" id="sidebarAccountAvatar" aria-hidden="true">KZ</span>
+          <span class="sidebar-account-text"><strong id="sidebarAccountName">Đang tải…</strong><small id="sidebarAccountRole"></small></span>
+          <span class="su-icon sidebar-account-chevron" aria-hidden="true">expand_less</span>
+        </button>
+      </div>
     </div>
   </aside>
   <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Đóng điều hướng" hidden></button>
@@ -114,10 +144,10 @@ export function mountAdminShell() {
     const root=shell.content,brand=root.querySelector('.admin-brand'),logo=brand.querySelector('img');logo.src='/assets/cs-dashboard/logo.png';logo.width=40;logo.height=40;brand.querySelector('small').remove();
     root.querySelector('.nav-caption').textContent='Nhân viên hỗ trợ';
     root.querySelector('.sidebar-menu nav').innerHTML=`
-      <a href="/cs/dashboard" data-cs-navigation><img src="/assets/cs-dashboard/grid.svg" alt="" width="20" height="20">Tổng quan</a>
-      <a href="/cs/support/tickets" data-cs-navigation data-support-link><img src="/assets/cs-dashboard/chat.svg" alt="" width="20" height="20">Yêu cầu hỗ trợ</a>
-      <a href="/pages/support-shifts/?view=cs" data-cs-navigation><img src="/assets/icons/admin-dashboard/calendar.svg" alt="" width="20" height="20">Lịch làm việc</a>`;
-    root.querySelector('.sidebar-bottom').innerHTML='<p>Kết nối để cùng tiến bộ</p><small>Không gian hỗ trợ người dùng</small><button type="button" class="logout-button">Đăng xuất</button>';
+      <a href="/cs/dashboard" data-cs-navigation>${icon('space_dashboard')}Tổng quan</a>
+      <a href="/cs/support/tickets" data-cs-navigation data-support-link>${icon('support_agent')}Yêu cầu hỗ trợ</a>
+      <a href="/pages/support-shifts/?view=cs" data-cs-navigation>${icon('calendar_month')}Lịch làm việc</a>`;
+    brand.querySelector('span').insertAdjacentHTML('beforeend', '<small>Chăm sóc khách hàng</small>');
     root.querySelector('.topbar-breadcrumb>span').textContent='Không gian làm việc';
     const notifications=root.querySelector('.notification-button');notifications.textContent='Thông báo';notifications.title='Thông báo tạm thời chưa khả dụng';notifications.setAttribute('aria-label','Thông báo tạm thời chưa khả dụng');
   }
@@ -126,8 +156,8 @@ export function mountAdminShell() {
     const root=shell.content,topbar=root.querySelector('.admin-topbar'),brand=root.querySelector('.admin-brand'),notifications=root.querySelector('.notification-button');
     root.querySelector('.nav-caption').textContent='Quản trị viên';
     root.querySelector('.sidebar-menu nav').innerHTML=adminNavigation();
-    brand.querySelector('small').textContent='Kết nối song ngữ Việt – Nhật';
-    topbar.prepend(brand);
+    brand.querySelector('small').textContent='Cổng quản trị';
+    // Logo giữ ở đầu sidebar như Cổng học vụ (trước đây được chuyển lên thanh trên).
     const bell=document.createElement('span');bell.textContent='Thông báo';notifications.append(bell);notifications.title='Thông báo sẽ khả dụng khi FE-12 được kết nối';
     decoratePortalPage(location.pathname);
   }
@@ -191,11 +221,18 @@ export function mountAdminShell() {
       } catch { /* Dùng chữ viết tắt nếu địa chỉ ảnh không hợp lệ. */ }
     }
     identity.before(avatar);
+    // Thẻ tài khoản ở góc dưới trái sidebar
+    document.getElementById('sidebarAccountName').textContent = account.displayName;
+    document.getElementById('sidebarAccountRole').textContent = identity.querySelector('small').textContent;
+    const sidebarAvatar = avatar.cloneNode(true); sidebarAvatar.id = 'sidebarAccountAvatar';
+    document.getElementById('sidebarAccountAvatar').replaceWith(sidebarAvatar);
   }).catch(error => {
     if (error.status === 401) { location.assign('/login'); return; }
     identity.querySelector('strong').textContent = 'Chưa xác minh tài khoản';
     identity.querySelector('small').textContent = 'Vui lòng kiểm tra kết nối hoặc phiên truy cập';
+    document.getElementById('sidebarAccountName').textContent = 'Chưa xác minh tài khoản';
   });
+  bindSidebarAccount();
   document.querySelector('.logout-button')?.addEventListener('click', logout);
   const sidebar = document.getElementById('adminSidebar');
   const toggle = document.getElementById('sidebarToggle');

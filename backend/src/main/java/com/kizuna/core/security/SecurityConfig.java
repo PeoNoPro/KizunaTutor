@@ -99,7 +99,11 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/tutor/verification/**").hasAuthority("ROLE_TUTOR")
-                .requestMatchers("/api/academic/verifications/**").hasAuthority("ROLE_ACADEMIC_OFFICER")
+                .requestMatchers("/api/academic/verifications/**", "/api/academic/reviews/**", "/api/academic/reviews",
+                        "/api/academic/profile/**", "/api/academic/profile",
+                        "/api/academic/posts/**", "/api/academic/posts").hasAuthority("ROLE_ACADEMIC_OFFICER")
+                // Bài đăng gia sư (sau khi mua gói)
+                .requestMatchers("/api/tutor/post/**", "/api/tutor/post").hasAuthority("ROLE_TUTOR")
                 // FE-05: Đặt lịch học thử & Quản lý lịch rảnh gia sư
                 .requestMatchers(HttpMethod.POST, "/api/v1/trial-bookings", "/api/trial-bookings").hasAuthority("ROLE_LEARNER")
                 .requestMatchers("/api/v1/trial-bookings/*/respond", "/api/trial-bookings/*/respond").hasAuthority("ROLE_TUTOR")

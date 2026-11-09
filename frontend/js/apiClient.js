@@ -92,23 +92,37 @@ export const apiClient = {
       const res = await fetch('/api/learner/decks', {
         headers: { 'Accept': 'application/json' },
         signal: AbortSignal.timeout(4000)
-      }).catch(() => null);
+      }).catch(err => {
+        console.warn('Lỗi kết nối /api/learner/decks:', err);
+        return null;
+      });
 
-      if (res && res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          const merged = [...data];
-          localDecks.forEach(ld => {
-            if (!merged.some(m => String(m.id) === String(ld.id) || m.title === ld.title)) {
-              merged.push(ld);
-            }
-          });
-          saveStoredDecks(merged);
-          return merged;
+      if (res) {
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            const merged = [...data];
+            localDecks.forEach(ld => {
+              if (!merged.some(m => String(m.id) === String(ld.id) || m.title === ld.title)) {
+                merged.push(ld);
+              }
+            });
+            saveStoredDecks(merged);
+            return merged;
+          }
+        } else {
+          KizunaToast.warning(`Máy chủ bộ thẻ phản hồi mã ${res.status}. Đang hiển thị bản lưu cục bộ.`);
+        }
+      } else {
+        if (localDecks.length > 0) {
+          KizunaToast.info('Không thể kết nối máy chủ bộ thẻ. Đang hiển thị dữ liệu lưu trong máy.');
+        } else {
+          KizunaToast.warning('Không thể kết nối máy chủ bộ thẻ và chưa có dữ liệu lưu cục bộ.');
         }
       }
     } catch (e) {
-      console.debug('API /api/learner/decks offline, dùng bộ nhớ cục bộ:', e);
+      console.warn('API /api/learner/decks offline, dùng bộ nhớ cục bộ:', e);
+      KizunaToast.warning('Đang chạy ở chế độ ngoại tuyến (dữ liệu cục bộ).');
     }
     return localDecks;
   },

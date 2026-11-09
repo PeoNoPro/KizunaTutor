@@ -68,15 +68,15 @@ async function loadStudyDeck() {
   // 2. Nếu chưa có, thử tìm qua REST API Backend
   if (!currentDeck) {
     try {
-      const res = await fetch(`/api/user/kanji-folders/${encodeURIComponent(currentDeckId)}`).catch(() => null);
+      const res = await fetch(`/api/learner/decks/${encodeURIComponent(currentDeckId)}`).catch(() => null);
       if (res && res.ok) {
         const d = await res.json();
         currentDeck = {
-          id: String(d.id || d.folderId),
-          title: d.folderName || d.title,
+          id: String(d.id || d.folderId || currentDeckId),
+          title: d.title || d.folderName || 'Bộ thẻ',
           description: d.description || '',
           color: d.color || 'blue',
-          cards: (d.items || d.cards || []).map(c => ({
+          cards: (d.cards || d.items || []).map(c => ({
             char: c.character || c.kanjiChar || c.char || c.front || '',
             hanViet: c.hanViet || '',
             meaning: c.meaning || c.back || '',

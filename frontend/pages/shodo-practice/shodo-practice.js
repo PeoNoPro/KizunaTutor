@@ -237,6 +237,41 @@ function renderGuidelineSvg() {
   }
 }
 
+function resetAnimStrokes(fade = false, onComplete = null) {
+  const animGroup = document.getElementById('animStrokesGroup');
+  if (fade && animGroup) {
+    animGroup.style.transition = 'opacity 0.35s ease-out';
+    animGroup.style.opacity = '0';
+    setTimeout(() => {
+      strokePaths.forEach((_, idx) => {
+        const p = document.getElementById('strokePath_' + idx);
+        if (p) {
+          const len = p.getTotalLength ? p.getTotalLength() : 200;
+          p.style.transition = 'none';
+          p.style.strokeDashoffset = `${len}`;
+        }
+      });
+      animGroup.style.transition = 'none';
+      animGroup.style.opacity = '1';
+      if (typeof onComplete === 'function') onComplete();
+    }, 350);
+  } else {
+    strokePaths.forEach((_, idx) => {
+      const p = document.getElementById('strokePath_' + idx);
+      if (p) {
+        const len = p.getTotalLength ? p.getTotalLength() : 200;
+        p.style.transition = 'none';
+        p.style.strokeDashoffset = `${len}`;
+      }
+    });
+    if (animGroup) {
+      animGroup.style.transition = 'none';
+      animGroup.style.opacity = '1';
+    }
+    if (typeof onComplete === 'function') onComplete();
+  }
+}
+
 function playStrokeAnimation() {
   if (strokePaths.length === 0) {
     showToast('Vui lòng nhập chữ Hán trước khi phát hoạt ảnh nét viết.', 'info');
@@ -245,8 +280,13 @@ function playStrokeAnimation() {
 
   if (isPlayingAnimation) {
     stopStrokeAnimation();
+    resetAnimStrokes(false);
+    clearCanvas(false);
     return;
   }
+
+  // Làm sạch nét vẽ tay trước khi bắt đầu phát hoạt ảnh nét
+  clearCanvas(false);
 
   isPlayingAnimation = true;
   const playBtn = document.getElementById('btnPlayStroke') || document.querySelector('[data-action="play-stroke"]');
@@ -259,22 +299,26 @@ function playStrokeAnimation() {
     playBtn.classList.remove('bg-white', 'bg-[#FFE5EC]', 'text-[#831843]', 'text-[#0F172A]');
   }
 
-  // Đặt lại toàn bộ nét về trạng thái ẩn (transition = none để không có hiệu ứng giật ngược)
-  strokePaths.forEach((_, idx) => {
-    const p = document.getElementById('strokePath_' + idx);
-    if (p) {
-      const len = p.getTotalLength ? p.getTotalLength() : 200;
-      p.style.transition = 'none';
-      p.style.strokeDashoffset = `${len}`;
-      p.setAttribute('stroke', '#0F2545');
-    }
-  });
+  // Đặt lại toàn bộ nét về trạng thái ẩn
+  resetAnimStrokes(false);
 
   let currentAnimIdx = 0;
 
   function animateNextStroke() {
-    if (!isPlayingAnimation || currentAnimIdx >= strokePaths.length) {
+    if (!isPlayingAnimation) {
       stopStrokeAnimation();
+      return;
+    }
+
+    // Khi đã phát nét xong toàn bộ
+    if (currentAnimIdx >= strokePaths.length) {
+      // Dừng lại 800ms để người học quan sát trọn vẹn chữ hoàn chỉnh, sau đó làm sạch bảng trắng
+      animTimer = setTimeout(() => {
+        resetAnimStrokes(true, () => {
+          clearCanvas(false);
+          stopStrokeAnimation();
+        });
+      }, 800);
       return;
     }
 
@@ -293,7 +337,10 @@ function playStrokeAnimation() {
 
 function stopStrokeAnimation() {
   isPlayingAnimation = false;
-  if (animTimer) clearTimeout(animTimer);
+  if (animTimer) {
+    clearTimeout(animTimer);
+    animTimer = null;
+  }
 
   const playBtn = document.getElementById('btnPlayStroke') || document.querySelector('[data-action="play-stroke"]');
   if (playBtn) {
@@ -604,7 +651,8 @@ function renderStrokeStepBadges() {
   allBtn.style.padding = '0 10px';
   allBtn.addEventListener('click', () => {
     activeStrokeFilter = null;
-    document.getElementById('activeStrokeLabel').textContent = 'Tất cả nét';
+    const label = document.getElementById('activeStrokeLabel');
+    if (label) label.textContent = 'Tất cả nét';
     renderGuidelineSvg();
     renderStrokeStepBadges();
   });
@@ -619,7 +667,8 @@ function renderStrokeStepBadges() {
     btn.title = `Xem riêng nét thứ ${idx + 1}`;
     btn.addEventListener('click', () => {
       activeStrokeFilter = idx;
-      document.getElementById('activeStrokeLabel').textContent = `Nét số ${idx + 1}`;
+      const label = document.getElementById('activeStrokeLabel');
+      if (label) label.textContent = `Nét số ${idx + 1}`;
       renderGuidelineSvg();
       renderStrokeStepBadges();
 
@@ -687,28 +736,33 @@ function gradeShodoWriting() {
   const totalScore = Math.round((strokeScore * 0.4) + (balanceScore * 0.3) + (smoothnessScore * 0.3));
 
   // Cập nhật giao diện kết quả
-  document.getElementById('aiStandbyMessage').classList.add('hidden');
+  document.getElementById('aiStandbyMessage')?.classList.add('hidden');
   const resultCard = document.getElementById('aiResultCard');
-  resultCard.classList.remove('hidden');
+  if (resultCard) resultCard.classList.remove('hidden');
 
   const badge = document.getElementById('aiScoreBadge');
-  badge.classList.remove('hidden');
-  badge.textContent = `${totalScore} / 100 điểm`;
-
-  document.getElementById('scoreBalance').textContent = `${balanceScore}%`;
-  document.getElementById('scoreSmoothness').textContent = `${smoothnessScore}%`;
-  document.getElementById('scoreAccuracy').textContent = `${strokeScore}%`;
-
-  const commentEl = document.getElementById('aiCommentText');
-  if (totalScore >= 90) {
-    commentEl.textContent = 'Xuất sắc! Đường bút rất dứt khoát và chuẩn mực. Độ cân đối trục Mễ hài hòa như một tác phẩm thư pháp thực thụ!';
-  } else if (totalScore >= 75) {
-    commentEl.textContent = 'Khá tốt! Các nét chữ có hồn và đường đi mực rõ ràng. Chú ý số lượng nét và lực ấn ở các góc gập để chữ thêm phần sắc nét nhé.';
-  } else {
-    commentEl.textContent = `Số nét bạn vẽ (${userStrokes} nét) hơi chênh so với mẫu (${expectedStrokes} nét). Hãy bật tính năng "Nét mờ" để đồ theo vài lượt trước khi tự viết nhé!`;
+  if (badge) {
+    badge.classList.remove('hidden');
+    badge.textContent = `${totalScore} / 100 điểm`;
   }
 
-    const commentText = commentEl.textContent;
+  const elBalance = document.getElementById('scoreBalance');
+  if (elBalance) elBalance.textContent = `${balanceScore}%`;
+  const elSmoothness = document.getElementById('scoreSmoothness');
+  if (elSmoothness) elSmoothness.textContent = `${smoothnessScore}%`;
+  const elAccuracy = document.getElementById('scoreAccuracy');
+  if (elAccuracy) elAccuracy.textContent = `${strokeScore}%`;
+
+  const commentEl = document.getElementById('aiCommentText');
+  let commentText = '';
+  if (totalScore >= 90) {
+    commentText = 'Xuất sắc! Đường bút rất dứt khoát và chuẩn mực. Độ cân đối trục Mễ hài hòa như một tác phẩm thư pháp thực thụ!';
+  } else if (totalScore >= 75) {
+    commentText = 'Khá tốt! Các nét chữ có hồn và đường đi mực rõ ràng. Chú ý số lượng nét và lực ấn ở các góc gập để chữ thêm phần sắc nét nhé.';
+  } else {
+    commentText = `Số nét bạn vẽ (${userStrokes} nét) hơi chênh so với mẫu (${expectedStrokes} nét). Hãy bật tính năng "Nét mờ" để đồ theo vài lượt trước khi tự viết nhé!`;
+  }
+  if (commentEl) commentEl.textContent = commentText;
 
   // Ghi nhận ngữ cảnh vào TencentDB Agent Memory (Port 8081)
   AgentMemoryService.recordLearningProgress({
@@ -730,7 +784,7 @@ function gradeShodoWriting() {
     historyAdvice: adviceFromMemory,
     actionText: 'Tiếp tục rèn luyện',
     onAction: () => {
-      clearCanvasOnly();
+      clearCanvas();
     }
   });
 
@@ -738,9 +792,9 @@ function gradeShodoWriting() {
 }
 
 function resetAiFeedback() {
-  document.getElementById('aiStandbyMessage').classList.remove('hidden');
-  document.getElementById('aiResultCard').classList.add('hidden');
-  document.getElementById('aiScoreBadge').classList.add('hidden');
+  document.getElementById('aiStandbyMessage')?.classList.remove('hidden');
+  document.getElementById('aiResultCard')?.classList.add('hidden');
+  document.getElementById('aiScoreBadge')?.classList.add('hidden');
 }
 
 /**

@@ -26,6 +26,9 @@ let pageHwIsDrawing = false;
 let pageHwDebounceTimer = null;
 let pageHwCurrentCandidates = [];
 let pageHwSelectedKanji = null;
+let pageHwResizeObserver = null;
+let pageHwCurrentDisplayW = 300;
+let pageHwCurrentDisplayH = 300;
 
 function escapeHtml(text) {
   if (text === null || text === undefined) return '';
@@ -38,17 +41,62 @@ function escapeHtml(text) {
 }
 
 // =========================================================================
-// 2. KHỞI TẠO BẢNG CANVAS Ô MỄ (300x300 HIGH-DPI)
+// 2. KHỞI TẠO BẢNG CANVAS Ô MỄ & RESIZE LISTENER (CHỐNG LỆCH TỶ LỆ TỌA ĐỘ)
 // =========================================================================
+function handlePageHwResize() {
+  if (!pageHwCanvas || !pageHwCtx) return;
+  const parent = pageHwCanvas.parentElement;
+  const rect = parent ? parent.getBoundingClientRect() : pageHwCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+
+  const newW = (rect.width > 0) ? Math.round(rect.width) : 300;
+  const newH = (rect.height > 0) ? Math.round(rect.height) : 300;
+
+  if (Math.abs(pageHwCurrentDisplayW - newW) < 2 && Math.abs(pageHwCurrentDisplayH - newH) < 2) {
+    return;
+  }
+
+  // Tỷ lệ co giãn nét vẽ nếu kích thước khung vẽ thay đổi
+  const scaleX = newW / (pageHwCurrentDisplayW || 300);
+  const scaleY = newH / (pageHwCurrentDisplayH || 300);
+
+  if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
+    pageHwStrokes = pageHwStrokes.map(stroke =>
+      stroke.map(p => ({
+        x: p.x * scaleX,
+        y: p.y * scaleY,
+        t: p.t
+      }))
+    );
+  }
+
+  pageHwCurrentDisplayW = newW;
+  pageHwCurrentDisplayH = newH;
+
+  pageHwCanvas.width = Math.round(newW * dpr);
+  pageHwCanvas.height = Math.round(newH * dpr);
+  pageHwCanvas.style.width = newW + 'px';
+  pageHwCanvas.style.height = newH + 'px';
+
+  pageHwCtx.setTransform(1, 0, 0, 1, 0, 0);
+  pageHwCtx.scale(dpr, dpr);
+
+  pageHwRedraw();
+}
+
 function initPageHwCanvas() {
   pageHwCanvas = document.getElementById('pageHwCanvas');
   if (!pageHwCanvas) return;
   pageHwCtx = pageHwCanvas.getContext('2d');
 
-  const rect = pageHwCanvas.getBoundingClientRect();
+  const parent = pageHwCanvas.parentElement;
+  const rect = parent ? parent.getBoundingClientRect() : pageHwCanvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-  const w = (rect.width > 0) ? rect.width : 300;
-  const h = (rect.height > 0) ? rect.height : 300;
+  const w = (rect.width > 0) ? Math.round(rect.width) : 300;
+  const h = (rect.height > 0) ? Math.round(rect.height) : 300;
+
+  pageHwCurrentDisplayW = w;
+  pageHwCurrentDisplayH = h;
 
   pageHwCanvas.width = Math.round(w * dpr);
   pageHwCanvas.height = Math.round(h * dpr);
@@ -67,6 +115,18 @@ function initPageHwCanvas() {
   pageHwCanvas.ontouchmove = pageHwOnTouchMove;
   window.addEventListener('touchend', pageHwOnTouchEnd);
 
+  // Gắn ResizeObserver và window resize listener để tự động điều chỉnh canvas
+  if (!pageHwResizeObserver) {
+    if (window.ResizeObserver && parent) {
+      pageHwResizeObserver = new ResizeObserver(() => handlePageHwResize());
+      pageHwResizeObserver.observe(parent);
+    }
+    window.addEventListener('resize', () => {
+      clearTimeout(window._hwResizeDebounce);
+      window._hwResizeDebounce = setTimeout(handlePageHwResize, 100);
+    });
+  }
+
   pageHwRedraw();
 }
 
@@ -75,9 +135,14 @@ function getPageHwCoords(e) {
   const rect = pageHwCanvas.getBoundingClientRect();
   const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
   const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
+
+  // Tính tỷ lệ chuẩn xác giữa tọa độ thực tế và khung CSS (chống sai lệch Coordinate Mismatch)
+  const scaleX = (pageHwCurrentDisplayW > 0 && rect.width > 0) ? (pageHwCurrentDisplayW / rect.width) : 1;
+  const scaleY = (pageHwCurrentDisplayH > 0 && rect.height > 0) ? (pageHwCurrentDisplayH / rect.height) : 1;
+
   return {
-    x: clientX - rect.left,
-    y: clientY - rect.top
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
   };
 }
 
@@ -169,9 +234,8 @@ function pageHwDrawSegment(p1, p2) {
 
 function pageHwRedraw() {
   if (!pageHwCanvas || !pageHwCtx) return;
-  const rect = pageHwCanvas.getBoundingClientRect();
-  const w = (rect.width > 0) ? rect.width : 300;
-  const h = (rect.height > 0) ? rect.height : 300;
+  const w = pageHwCurrentDisplayW || 300;
+  const h = pageHwCurrentDisplayH || 300;
 
   pageHwCtx.clearRect(0, 0, w, h);
 
@@ -276,9 +340,8 @@ async function pageHwExecuteRecognition() {
     candidateBox.innerHTML = '<div class="col-span-full py-12 text-center text-slate-500 font-meta text-xs animate-pulse">Đang nhận diện nét vẽ thời gian thực... ⚡</div>';
   }
 
-  const rect = pageHwCanvas ? pageHwCanvas.getBoundingClientRect() : null;
-  const w = (rect && rect.width > 0) ? rect.width : 300;
-  const h = w;
+  const w = pageHwCurrentDisplayW || 300;
+  const h = pageHwCurrentDisplayH || 300;
 
   const ink = pageHwStrokes.map(stroke => {
     const xs = stroke.map(p => Math.round(p.x));

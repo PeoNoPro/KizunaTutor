@@ -125,24 +125,37 @@ function setDictRadicalFilter(radChar) {
  * Đọc từ khóa tìm kiếm từ URL mà không bị lỗi Double-Encoding
  * và khôi phục từ sessionStorage khi quay lại trang
  */
-function getNormalizedSearchQuery() {
-  const params = new URLSearchParams(window.location.search);
-  const rawQuery = params.get('q') || params.get('keyword') || params.get('char') || '';
-  
-  if (!rawQuery) {
-    const saved = sessionStorage.getItem('kizuna_dict_last_query');
-    return saved ? saved.trim() : '';
-  }
-
-  try {
-    return decodeURIComponent(decodeURIComponent(rawQuery)).trim();
-  } catch (e) {
-    try {
-      return decodeURIComponent(rawQuery).trim();
-    } catch (err) {
-      return rawQuery.trim();
+/**
+ * Chuẩn hóa giải mã URL an toàn (hỗ trợ single/double encode, không lỗi ký tự đặc biệt)
+ */
+function safeDecodeQuery(raw) {
+  if (!raw) return '';
+  let str = String(raw).trim();
+  // Decode tối đa 2 lần nếu chuỗi chứa mẫu %XX hợp lệ
+  for (let i = 0; i < 2; i++) {
+    if (/%[0-9A-Fa-f]{2}/.test(str)) {
+      try {
+        str = decodeURIComponent(str);
+      } catch (e) {
+        break;
+      }
+    } else {
+      break;
     }
   }
+  return str.trim();
+}
+
+function getNormalizedSearchQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const rawQuery = params.get('q') ?? params.get('keyword') ?? params.get('char') ?? null;
+  
+  if (rawQuery !== null && rawQuery !== '') {
+    return safeDecodeQuery(rawQuery);
+  }
+
+  // Nếu trên URL không có query param (ví dụ click từ Sidebar vào /kanji), giữ màn hình chờ sạch sẽ
+  return '';
 }
 
 function getNormalizedFilterParams() {
@@ -288,7 +301,8 @@ async function loadLearnerDictionary(page = 0) {
   if (currentSearchController) {
     currentSearchController.abort();
   }
-  currentSearchController = new AbortController();
+  const controller = new AbortController();
+  currentSearchController = controller;
 
   const grid = document.getElementById('learnerKanjiGrid');
   if (grid) {
@@ -312,7 +326,7 @@ async function loadLearnerDictionary(page = 0) {
     let res = await fetch(url, {
       method: 'GET',
       headers: fetchHeaders,
-      signal: currentSearchController.signal
+      signal: controller.signal
     }).catch(err => {
       if (err.name === 'AbortError') throw err;
       return null;
@@ -327,7 +341,7 @@ async function loadLearnerDictionary(page = 0) {
       res = await fetch(fallbackUrl, {
         method: 'GET',
         headers: fetchHeaders,
-        signal: currentSearchController.signal
+        signal: controller.signal
       }).catch(err => {
         if (err.name === 'AbortError') throw err;
         return null;
@@ -351,8 +365,10 @@ async function loadLearnerDictionary(page = 0) {
       grid.innerHTML = '<div class="col-span-full py-12 text-center text-[#DC2626] font-meta text-xs font-bold">Lỗi kết nối từ điển: ' + escapeHtml(e.message) + '</div>';
     }
   } finally {
-    isSearching = false;
-    currentSearchController = null;
+    if (currentSearchController === controller) {
+      isSearching = false;
+      currentSearchController = null;
+    }
   }
 }
 
@@ -509,11 +525,11 @@ async function loadDeckOptions() {
     const token = localStorage.getItem('access_token') || localStorage.getItem('kizuna_token');
     const headers = { 'Accept': 'application/json' };
     if (token) headers['Authorization'] = 'Bearer ' + token;
-    const res = await fetch('/api/user/kanji-folders', { headers }).catch(() => null);
+    const res = await fetch('/api/learner/decks', { headers }).catch(() => null);
     if (res && res.ok) {
       const folders = await res.json();
       if (Array.isArray(folders) && folders.length > 0) {
-        options = folders.map(f => ({ name: f.folderName || f.title, count: f.kanjiCount || 0 }));
+        options = folders.map(f => ({ id: f.id, name: f.title || f.folderName || 'Bộ thẻ', count: (Array.isArray(f.cards) ? f.cards.length : (f.kanjiCount || 0)) }));
       }
     }
   } catch (err) {}
@@ -525,8 +541,8 @@ async function loadDeckOptions() {
       const localDecks = JSON.parse(raw);
       if (Array.isArray(localDecks)) {
         localDecks.forEach(d => {
-          if (!options.some(o => o.name === d.title)) {
-            options.push({ name: d.title, count: (d.cards ? d.cards.length : 0) });
+          if (!options.some(o => (d.id && o.id === d.id) || o.name === d.title)) {
+            options.push({ id: d.id, name: d.title, count: (d.cards ? d.cards.length : 0) });
           }
         });
       }
@@ -534,10 +550,10 @@ async function loadDeckOptions() {
   } catch (e) {}
 
   if (options.length === 0) {
-    options = [{ name: 'Bộ Thẻ Cá Nhân', count: 0 }];
+    options = [{ id: 'deck_default', name: 'Bộ Thẻ Cá Nhân', count: 0 }];
   }
 
-  let htmlOptions = options.map(f => `<option value="${escapeHtml(f.name)}">${escapeHtml(f.name)} (${f.count} chữ)</option>`).join('');
+  let htmlOptions = options.map(f => `<option value="${escapeHtml(f.id || f.name)}" data-id="${escapeHtml(f.id || '')}" data-name="${escapeHtml(f.name)}">${escapeHtml(f.name)} (${f.count} chữ)</option>`).join('');
   htmlOptions += '<option value="__NEW__">➕ Tạo bộ thẻ mới...</option>';
   select.innerHTML = htmlOptions;
 
@@ -614,11 +630,16 @@ async function submitSaveToDeck(e) {
     btn.textContent = 'Đang cất...';
   }
 
-  let targetDeckName = document.getElementById('modalDeckSelect') ? document.getElementById('modalDeckSelect').value : 'Bộ Thẻ Cá Nhân';
-  if (targetDeckName === '__NEW__') {
-    const customNameInput = document.getElementById('modalNewDeckNameInput');
-    targetDeckName = (customNameInput && customNameInput.value.trim()) ? customNameInput.value.trim() : 'Bộ Thẻ Mới';
-  }
+  const select = document.getElementById('modalDeckSelect');
+  const selectedOption = select && select.options ? select.options[select.selectedIndex] : null;
+  const isNewDeck = select && select.value === '__NEW__';
+  const customNameInput = document.getElementById('modalNewDeckNameInput');
+
+  let targetDeckId = isNewDeck ? null : (selectedOption ? (selectedOption.getAttribute('data-id') || selectedOption.value) : null);
+  let targetDeckName = isNewDeck
+    ? ((customNameInput && customNameInput.value.trim()) ? customNameInput.value.trim() : 'Bộ Thẻ Mới')
+    : (selectedOption ? (selectedOption.getAttribute('data-name') || selectedOption.textContent.replace(/\s*\(\d+\s*chữ\)$/, '')) : 'Bộ Thẻ Cá Nhân');
+
   const kanjiChar = document.getElementById('modalDeckCharInput') ? document.getElementById('modalDeckCharInput').value : '';
   const kanjiId = document.getElementById('modalDeckKanjiId') ? document.getElementById('modalDeckKanjiId').value : '';
   const hanViet = document.getElementById('modalDeckHanViet') ? document.getElementById('modalDeckHanViet').textContent : '';
@@ -655,38 +676,49 @@ async function submitSaveToDeck(e) {
   const kunyomiToSave = (currentKanjiToSave && currentKanjiToSave.kunyomi) ? currentKanjiToSave.kunyomi : '—';
   const jlptToSave = (currentKanjiToSave && currentKanjiToSave.jlpt) ? currentKanjiToSave.jlpt : 'N5';
 
-  // 1. Lưu vào LocalStorage đồng bộ cho trang Flashcard
+  // 1. Lưu vào LocalStorage & Đồng bộ lên REST API Backend (/api/learner/decks)
   try {
     const raw = localStorage.getItem('kizuna_flashcard_decks');
     let decks = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(decks)) decks = [];
 
-    let deck = decks.find(d => d.title === targetDeckName);
+    let deck = null;
+    if (targetDeckId) {
+      deck = decks.find(d => String(d.id) === String(targetDeckId));
+    }
+    if (!deck) {
+      deck = decks.find(d => d.title === targetDeckName);
+    }
+
     if (!deck) {
       deck = {
-        id: 'deck_' + Date.now(),
+        id: targetDeckId || ('deck_' + Date.now()),
         title: targetDeckName,
         description: 'Bộ thẻ học viên tạo từ từ điển',
         cards: [],
-        color: 'blue'
+        color: 'blue',
+        createdAt: new Date().toISOString()
       };
-      decks.push(deck);
+      decks.unshift(deck);
     }
 
     deck.cards = deck.cards || [];
     const existingIdx = deck.cards.findIndex(c => (c.char || c.kanjiChar) === charToSave);
+
+    // Ghép mặt sau: âm Ôn, âm Kun, Hán việt, Nghĩa (phân cách bằng dấu phẩy và khoảng trắng ", ")
+    const backParts = [];
+    if (onyomiToSave && onyomiToSave !== '—' && onyomiToSave.trim()) backParts.push(onyomiToSave.trim());
+    if (kunyomiToSave && kunyomiToSave !== '—' && kunyomiToSave.trim()) backParts.push(kunyomiToSave.trim());
+    if (hvToSave && hvToSave !== '—' && hvToSave.trim()) backParts.push(hvToSave.trim());
+    if (meaningToSave && meaningToSave !== '—' && meaningToSave.trim()) backParts.push(meaningToSave.trim());
+    const formattedBack = backParts.length > 0 ? backParts.join(', ') : (meaningToSave || 'Chưa cập nhật nghĩa');
+
     const newCard = {
       char: charToSave,
-      kanjiChar: charToSave,
-      hanViet: hvToSave,
-      meaning: meaningToSave,
-      onyomi: onyomiToSave,
-      kunyomi: kunyomiToSave,
-      jlpt: jlptToSave
+      meaning: formattedBack
     };
 
     if (existingIdx >= 0) {
-      // Cập nhật lại thẻ nếu đã tồn tại hoặc trước đó bị thiếu thông tin
       deck.cards[existingIdx] = {
         ...deck.cards[existingIdx],
         ...newCard
@@ -695,27 +727,43 @@ async function submitSaveToDeck(e) {
       deck.cards.push(newCard);
     }
     localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
-  } catch (err) {
-    console.debug('Lỗi lưu thẻ localStorage:', err);
-  }
 
-  // 2. Gửi request Backend nếu có endpoint
-  try {
-    const payload = {
-      kanjiId: kanjiId,
-      kanjiChar: charToSave,
-      targetDeckName: targetDeckName
-    };
-    await fetch('/api/learner/kanji/save-card', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).catch(() => null);
+    // 2. Đồng bộ trực tiếp đến API Backend /api/learner/decks
+    let synced = false;
+    try {
+      const putRes = await fetch('/api/learner/decks/' + encodeURIComponent(deck.id), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          title: deck.title,
+          description: deck.description || '',
+          cards: deck.cards
+        })
+      }).catch(() => null);
+
+      if (putRes && putRes.ok) {
+        const savedData = await putRes.json().catch(() => null);
+        if (savedData && (savedData.id || savedData.title)) {
+          synced = true;
+        }
+      }
+
+      if (!synced) {
+        await fetch('/api/learner/decks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(deck)
+        }).catch(() => null);
+      }
+    } catch (apiErr) {
+      console.debug('Lỗi đồng bộ API /api/learner/decks:', apiErr);
+    }
 
     closeDeckModal();
-    showAlert('Đã cất chữ vào bộ thẻ thành công, tha hồ lôi ra cày cuốc! 🗂️', true);
+    showAlert(`Đã lưu "${charToSave}" vào bộ thẻ "${targetDeckName}" thành công! 🗂️`, true);
   } catch (err) {
-    showAlert('Lỗi: ' + err.message, false);
+    console.error('Lỗi lưu thẻ:', err);
+    showAlert('Có lỗi khi lưu thẻ: ' + (err.message || 'Vui lòng thử lại!'), false);
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -742,6 +790,7 @@ async function initDictionaryPage() {
 
   if (targetQuery && searchInput) {
     searchInput.value = targetQuery;
+    searchInput.setAttribute('value', targetQuery);
     if (clearBtn) clearBtn.classList.remove('hidden');
   }
 

@@ -85,7 +85,23 @@ function checkForTransferredGrammar() {
   }
 }
 
+function sanitizeGrammarPattern(str) {
+  if (!str) return str;
+  return str
+    .replace(/[（(]frequency[）)]/gi, '（tần suất）')
+    .replace(/[（(]time[）)]/gi, '（thời gian）')
+    .replace(/[（(]destination[）)]/gi, '（điểm đến）')
+    .replace(/[（(]place of existence[）)]/gi, '（vị trí tồn tại）')
+    .replace(/[（(]subject[）)]/gi, '（chủ ngữ）')
+    .replace(/[（(]means\/method[）)]/gi, '（phương tiện / cách thức）')
+    .replace(/[（(]location of action[）)]/gi, '（nơi diễn ra hành động）');
+}
+
 function applySelectedGrammar(rule) {
+  if (rule) {
+    if (rule.pattern) rule.pattern = sanitizeGrammarPattern(rule.pattern);
+    if (rule.romaji) rule.romaji = sanitizeGrammarPattern(rule.romaji);
+  }
   activeGrammarRule = rule;
   currentMode = 'grammar';
   currentJlpt = rule.level ? rule.level.toUpperCase() : 'N5';
@@ -344,10 +360,44 @@ async function handleCheckWriting() {
 }
 
 /**
+ * Kiem tra mau ngu phap
+ */
+function isGrammarPatternSatisfied(text, targetPattern) {
+  if (!text || !targetPattern) return true;
+
+  // 1. Làm sạch các chú thích tiếng Anh/tiếng Việt trong ngoặc
+  const cleanPattern = targetPattern
+    .replace(/（[^）]*）/g, '')
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/[〜~]/g, '')
+    .trim();
+
+  if (!cleanPattern) return true;
+
+  // 2. Nhận diện cấu trúc tần suất: [Khoảng thời gian] + に + [Số lần]
+  const lowerTarget = targetPattern.toLowerCase();
+  if (lowerTarget.includes('tần suất') || lowerTarget.includes('frequency') || cleanPattern === 'に') {
+    if (/[一二三四五六七八九十百千\d]+(日|週|週間|月|か月|ヶ月|年|時間|分)に[一二三四五六七八九十百千\d]+(回|度|時間)/.test(text) ||
+        (text.includes('に') && (text.includes('回') || text.includes('度')))) {
+      return true;
+    }
+  }
+
+  // 3. Tách các thành phần rời nhau (như 〜より〜のほうが)
+  const parts = cleanPattern.split(/[〜~\s]+/).filter(Boolean);
+  if (parts.length > 0 && parts.every(part => text.includes(part))) {
+    return true;
+  }
+
+  return text.includes(cleanPattern);
+}
+
+/**
  * Bộ thẩm định và chữa câu AI dự phòng thông minh (Client-side Smart Evaluator)
  */
 function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targetPattern = null) {
-  let score = 92;
+  let score = 96;
   const errors = [];
   const suggestedVocabulary = [];
   const nativeAlternatives = [];
@@ -369,7 +419,7 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
   if (/([るうつぬぶむくぐす])でした/.test(text) || text.includes('食べるでした') || text.includes('行くでした') || text.includes('飲むでした')) {
     errors.push({
       errorType: 'Chia thể động từ',
-      originalFragment: 'Động từ + でした',
+      originalFragment: 'Động từ nguyên mẫu + でした',
       correctedFragment: '〜ました (Lịch sự) hoặc 〜た (Thể thường)',
       explanation: 'Động từ thể từ điển không thể kết hợp trực tiếp với "でした". Dạng quá khứ đúng là đuôi 〜ました (ví dụ: 食べました, 行きました).'
     });
@@ -392,23 +442,25 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     score -= 10;
   }
 
-  // 4. Kiểm tra phong cách Formality
-  if (formality === 'POLITE' && (correctedText.endsWith('だ') || correctedText.endsWith('る') || correctedText.endsWith('た') || correctedText.endsWith('ない'))) {
-    if (!correctedText.endsWith('です') && !correctedText.endsWith('ます') && !correctedText.endsWith('でした') && !correctedText.endsWith('ました') && !correctedText.endsWith('でしょうか') && !correctedText.endsWith('ください')) {
-      errors.push({
-        errorType: 'Sắc thái câu',
-        originalFragment: 'Đuôi câu thể thường',
-        correctedFragment: 'Đuôi câu thể lịch sự (です / ます)',
-        explanation: 'Bạn đang chọn phong cách Lịch sự. Hãy kết thúc câu bằng です hoặc ます để câu văn nhã nhặn, tôn trọng đối phương hơn.'
-      });
-      score -= 10;
+  // 4. Kiểm tra phong cách Formality (Lịch sự)
+  if (formality === 'POLITE') {
+    const trimmed = correctedText.replace(/[。！？\s]+$/, '');
+    if (trimmed.endsWith('だ') || trimmed.endsWith('る') || trimmed.endsWith('た') || trimmed.endsWith('ない')) {
+      if (!trimmed.endsWith('です') && !trimmed.endsWith('ます') && !trimmed.endsWith('でした') && !trimmed.endsWith('ました') && !trimmed.endsWith('でしょうか') && !trimmed.endsWith('ください')) {
+        errors.push({
+          errorType: 'Sắc thái câu',
+          originalFragment: 'Đuôi câu thể thường',
+          correctedFragment: 'Đuôi câu thể lịch sự (です / ます)',
+          explanation: 'Bạn đang chọn phong cách Lịch sự. Hãy kết thúc câu bằng です hoặc ます để câu văn nhã nhặn, tôn trọng đối phương hơn.'
+        });
+        score -= 10;
+      }
     }
   }
 
   // 5. Kiểm tra mẫu ngữ pháp mục tiêu nếu có
   if (targetPattern) {
-    const rawPat = targetPattern.replace(/〜/g, '').trim();
-    if (rawPat && !text.includes(rawPat)) {
+    if (!isGrammarPatternSatisfied(text, targetPattern)) {
       errors.push({
         errorType: 'Mẫu ngữ pháp mục tiêu',
         originalFragment: 'Chưa thấy mẫu câu',
@@ -423,12 +475,14 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
   let ratingBadge = 'Tự nhiên xuất sắc';
   let overallComment = 'Rất tuyệt vời! Diễn đạt của bạn rất tự nhiên, áp dụng đúng cấu trúc ngữ pháp chuẩn Nhật.';
 
-  if (score < 75) {
-    ratingBadge = 'Cần cải thiện';
-    overallComment = 'Câu viết đã thể hiện được ý tưởng, nhưng bạn cần lưu ý kỹ các lỗi trợ từ và thể chia động từ để người nghe hiểu chính xác.';
-  } else if (score < 90) {
-    ratingBadge = 'Khá tốt - Cần trau chuốt';
-    overallComment = 'Câu viết tương đối mượt mà. Hãy tham khảo phần sửa đổi bên dưới để câu văn đạt mức hoàn hảo nhất.';
+  if (errors.length > 0) {
+    if (score >= 80) {
+      ratingBadge = 'Khá tốt - Cần trau chuốt';
+      overallComment = 'Câu viết tương đối mượt mà. Hãy tham khảo các phần lưu ý bên dưới để câu văn đạt mức hoàn hảo nhất nhé!';
+    } else {
+      ratingBadge = 'Cần cải thiện';
+      overallComment = 'Câu viết đã thể hiện được ý tưởng, nhưng bạn cần lưu ý kỹ các lỗi trợ từ và thể chia động từ để người nghe hiểu chính xác.';
+    }
   }
 
   // Gợi ý từ vựng theo ngữ cảnh câu
@@ -459,7 +513,6 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     nativeAlternatives: nativeAlternatives
   };
 }
-
 // =========================================================================
 // 7. HIỂN THỊ KẾT QUẢ THẨM ĐỊNH TỪ SENSEI AI
 // =========================================================================
@@ -534,59 +587,6 @@ function renderEvaluationResult(data) {
           </p>
         </div>
       `).join('');
-    }
-  }
-
-  // 4. Từ vựng & Cụm từ hay (Lưu vào Flashcards)
-  const vocabContainer = document.getElementById('suggestedVocabContainer');
-  if (vocabContainer) {
-    const vocabList = data.suggestedVocabulary || [];
-    if (vocabList.length === 0) {
-      vocabContainer.innerHTML = '<span class="text-xs text-[#64748B] italic col-span-full">Không có từ vựng đề xuất thêm.</span>';
-    } else {
-      vocabContainer.innerHTML = vocabList.map(v => `
-        <div class="p-2.5 bg-[#FAF8F2] border border-[#CBD5E1] rounded-[4px] flex items-center justify-between gap-2 hover:border-black transition">
-          <div class="min-w-0">
-            <div class="text-xs font-bold text-[#0F172A] font-japanese truncate">${escapeHtml(v.word)}</div>
-            <div class="text-[11px] text-[#64748B] font-japanese truncate">${escapeHtml(v.reading)}</div>
-            <div class="text-[11px] text-[#334155] truncate font-medium">${escapeHtml(v.meaning)}</div>
-          </div>
-          <button type="button" class="btn-add-flashcard shrink-0 px-2 py-1 bg-white hover:bg-[#9F1239] hover:text-white border border-black rounded-[4px] text-[11px] font-bold shadow-[1px_1px_0px_0px_#000000] transition flex items-center gap-1 cursor-pointer"
-                  data-word="${escapeHtml(v.word)}"
-                  data-reading="${escapeHtml(v.reading)}"
-                  data-meaning="${escapeHtml(v.meaning)}">
-            <span class="material-symbols-outlined text-[13px]">add</span>
-            <span>Thẻ</span>
-          </button>
-        </div>
-      `).join('');
-
-      vocabContainer.querySelectorAll('.btn-add-flashcard').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const w = e.currentTarget.dataset.word;
-          const r = e.currentTarget.dataset.reading;
-          const m = e.currentTarget.dataset.meaning;
-          addWordToFlashcard(w, r, m);
-        });
-      });
-    }
-  }
-
-  // 5. Các cách diễn đạt khác của người Nhật
-  const altCard = document.getElementById('alternativesCard');
-  const altList = document.getElementById('alternativesList');
-  if (altCard && altList) {
-    const alts = data.nativeAlternatives || [];
-    if (alts.length > 0) {
-      altCard.classList.remove('hidden');
-      altList.innerHTML = alts.map(alt => `
-        <li class="p-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[4px] flex items-start gap-1.5">
-          <span class="text-[#831843] font-bold">•</span>
-          <span>${escapeHtml(alt)}</span>
-        </li>
-      `).join('');
-    } else {
-      altCard.classList.add('hidden');
     }
   }
 

@@ -5,6 +5,7 @@
  */
 
 import { showToast, debounce } from '/js/main.js';
+import { apiClient, KizunaToast } from '/js/apiClient.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
@@ -21,16 +22,20 @@ let userDecks = [];
 let sourceMergeDeckId = null;
 let activeEditingDeck = null;
 let editingCards = [];
+let isDeckLoadError = false;
 
 // =========================================================================
 // 2. TẢI DỮ LIỆU BỘ THẺ QUA APICLIENT
 // =========================================================================
 async function loadDecks() {
+  isDeckLoadError = false;
   try {
     userDecks = await apiClient.getDecks();
   } catch (e) {
-    console.debug('Lỗi nạp bộ thẻ:', e);
+    console.error('Lỗi nạp bộ thẻ:', e);
+    isDeckLoadError = true;
     userDecks = [];
+    KizunaToast.error('Không thể tải dữ liệu bộ thẻ từ máy chủ! (' + (e.message || 'Lỗi mạng') + ')');
   }
   renderDecks();
 }
@@ -69,6 +74,26 @@ function renderDecks(filterQuery = '') {
     grid.innerHTML = '';
     grid.classList.add('hidden');
     emptyState.classList.remove('hidden');
+
+    const emptyTitle = emptyState.querySelector('h3');
+    const emptyDesc = emptyState.querySelector('p');
+    const emptyBtn = document.getElementById('btnEmptyCreateDeck');
+
+    if (isDeckLoadError) {
+      if (emptyTitle) emptyTitle.textContent = 'Mất kết nối với máy chủ bộ thẻ';
+      if (emptyDesc) emptyDesc.textContent = 'Hệ thống không thể tải danh sách bộ thẻ lúc này. Vui lòng kiểm tra lại kết nối và bấm thử lại.';
+      if (emptyBtn) {
+        emptyBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">refresh</span><span>Thử tải lại</span>';
+        emptyBtn.onclick = () => loadDecks();
+      }
+    } else {
+      if (emptyTitle) emptyTitle.textContent = filterQuery ? 'Không tìm thấy bộ thẻ phù hợp' : 'Chưa có bộ thẻ ghi nhớ nào';
+      if (emptyDesc) emptyDesc.textContent = filterQuery ? 'Không có bộ thẻ nào khớp với từ khóa tìm kiếm của bạn.' : 'Tạo ngay một bộ thẻ mới để cất giữ những từ vựng khó nhớ và luyện tập lật thẻ mỗi ngày nhé!';
+      if (emptyBtn) {
+        emptyBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">add</span><span>Tạo bộ thẻ đầu tiên</span>';
+        emptyBtn.onclick = () => openCreateDeckModal();
+      }
+    }
     return;
   }
 

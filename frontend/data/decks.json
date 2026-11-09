@@ -1,0 +1,44 @@
+﻿[
+    {
+        "id":  "deck-kanji-n5-sample",
+        "title":  "Kanji N5 Co Ban",
+        "description":  "Bo the Kanji N5 goc danh cho nguoi hoc Kizuna",
+        "cards":  [
+                      {
+                          "char":  "日",
+                          "meaning":  "ニチ, ジツ, ひ, -び, か, NHẬT, Mặt trời, ngày"
+                      },
+                      {
+                          "char":  "月",
+                          "meaning":  "ゲツ, ガツ, つき, NGUYỆT, Mặt trăng, tháng"
+                      },
+                      {
+                          "char":  "木",
+                          "meaning":  "ボク, モク, き, こ-, MỘC, Cây cối"
+                      },
+                      {
+                          "char":  "山",
+                          "meaning":  "サン, やま, SƠN, Núi"
+                      },
+                      {
+                          "char":  "川",
+                          "meaning":  "セン, かわ, XUYÊN, Sông"
+                      },
+                      {
+                          "char":  "田",
+                          "meaning":  "デン, た, ĐIỀN, Cánh đồng"
+                      }
+                  ]
+    },
+    {
+        "title":  "Bo The Mau",
+        "description":  "Test deck",
+        "cards":  [
+                      {
+                          "meaning":  "�f\u003c�f�, NHAT",
+                          "char":  "?"
+                      }
+                  ],
+        "id":  "deck-1794194674723"
+    }
+]

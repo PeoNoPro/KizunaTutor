@@ -71,23 +71,25 @@ async function loadMatchGame() {
     console.debug('Lỗi đọc localStorage flashcards:', e);
   }
 
-  // 2. Nếu chưa có, thử tìm qua REST API Backend
-  if (!currentDeck) {
+  // 2. Nếu chưa có hoặc chưa có thẻ, nạp qua REST API Backend /api/learner/decks/{id}
+  if (!currentDeck || !currentDeck.cards || currentDeck.cards.length === 0) {
     try {
-      const res = await fetch(`/api/user/kanji-folders/${encodeURIComponent(currentDeckId)}`).catch(() => null);
+      const res = await fetch(`/api/learner/decks/${encodeURIComponent(currentDeckId)}`).catch(() => null);
       if (res && res.ok) {
         const d = await res.json();
-        currentDeck = {
-          id: String(d.id || d.folderId),
-          title: d.folderName || d.title,
-          cards: (d.items || d.cards || []).map(c => ({
-            char: c.character || c.kanjiChar || c.char || c.front || '',
-            meaning: c.meaning || c.back || ''
-          }))
-        };
+        if (d && (d.title || d.id)) {
+          currentDeck = {
+            id: String(d.id || currentDeckId),
+            title: d.title || d.folderName || 'Bộ thẻ',
+            cards: (d.cards || d.items || []).map(c => ({
+              char: c.char || c.kanjiChar || c.front || c.character || '',
+              meaning: c.meaning || c.back || ''
+            }))
+          };
+        }
       }
     } catch (e) {
-      console.debug('Lỗi API backend:', e);
+      console.debug('Lỗi API backend /api/learner/decks:', e);
     }
   }
 

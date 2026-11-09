@@ -102,12 +102,22 @@ $aliases = @{
 # Nap cache Grammar tu Database san o memory de phuc vu sieu toc
 $allGrammarsCache = $null
 $grammarsJsonFile = Join-Path $rootDir "data/grammars.json"
-if (Test-Path $grammarsJsonFile) {
-    try {
-        $allGrammarsCache = Get-Content -Raw $grammarsJsonFile -Encoding UTF8 | ConvertFrom-Json
-        Write-Host " Da nap $($allGrammarsCache.Count) mau ngu phap vao RAM Cache." -ForegroundColor Green
-    } catch {}
+$lastGrammarModified = [System.DateTime]::MinValue
+
+function Reload-GrammarCache {
+    if (Test-Path $grammarsJsonFile) {
+        try {
+            $rawContent = [System.IO.File]::ReadAllText($grammarsJsonFile, [System.Text.Encoding]::UTF8)
+            $script:allGrammarsCache = $rawContent | ConvertFrom-Json
+            $script:lastGrammarModified = (Get-Item $grammarsJsonFile).LastWriteTimeUtc
+            Write-Host " [Grammar] Da nap $($script:allGrammarsCache.Count) mau ngu phap vao RAM Cache." -ForegroundColor Green
+        } catch {
+            Write-Host " [Grammar] Loi nap cache: $_" -ForegroundColor Red
+        }
+    }
 }
+
+Reload-GrammarCache
 
 while ($listener.IsListening) {
     try {
@@ -120,6 +130,12 @@ while ($listener.IsListening) {
 
         # 1. Neu la API Grammar -> Phuc vu truc tiep tu du lieu Database
         if ($pathPart.StartsWith("/api/learner/grammar")) {
+            if (Test-Path $grammarsJsonFile) {
+                $currentMtime = (Get-Item $grammarsJsonFile).LastWriteTimeUtc
+                if ($currentMtime -ne $lastGrammarModified -or $null -eq $allGrammarsCache) {
+                    Reload-GrammarCache
+                }
+            }
             if ($allGrammarsCache) {
                 $query = $request.Url.Query
                 $level = "ALL"
@@ -157,6 +173,114 @@ while ($listener.IsListening) {
                 }
                 $jsonStr = $resultObj | ConvertTo-Json -Depth 5 -Compress
                 $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonStr)
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.OutputStream.Close()
+                continue
+            }
+        }
+
+        # 1a-1b. Neu la API Decks Flashcards -> Phuc vu tu file data/decks.json
+        if ($pathPart.StartsWith("/api/learner/decks")) {
+            $decksJsonFile = Join-Path $rootDir "data/decks.json"
+            $decks = @()
+            if (Test-Path $decksJsonFile) {
+                try {
+                    $rawDecks = [System.IO.File]::ReadAllText($decksJsonFile, [System.Text.Encoding]::UTF8)
+                    $parsed = $rawDecks | ConvertFrom-Json
+                    if ($parsed -is [System.Array]) {
+                        $decks = @($parsed | Where-Object { $_ -and $_.id })
+                    } elseif ($parsed -and $parsed.id) {
+                        $decks = @($parsed)
+                    }
+                } catch { $decks = @() }
+            }
+
+            $subId = $pathPart.Substring("/api/learner/decks".Length).Trim('/')
+
+            if ($request.HttpMethod -eq "GET") {
+                if ([string]::IsNullOrEmpty($subId)) {
+                    $jsonStr = if ($decks.Count -gt 0) { $decks | ConvertTo-Json -Depth 6 } else { "[]" }
+                } else {
+                    $found = $decks | Where-Object { $_.id -eq $subId } | Select-Object -First 1
+                    $jsonStr = if ($found) { $found | ConvertTo-Json -Depth 6 } else { "{}" }
+                }
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonStr)
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.OutputStream.Close()
+                continue
+            }
+
+            if ($request.HttpMethod -eq "POST") {
+                $reader = New-Object System.IO.StreamReader($request.InputStream, [System.Text.Encoding]::UTF8)
+                $postBody = $reader.ReadToEnd()
+                $newDeck = $postBody | ConvertFrom-Json
+                if (-not $newDeck.id) {
+                    $newDeck | Add-Member -NotePropertyName "id" -NotePropertyValue ("deck-" + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) -Force
+                }
+                $cleanList = @($newDeck) + @($decks | Where-Object { $_.id -ne $newDeck.id })
+                $savedJson = $cleanList | ConvertTo-Json -Depth 6
+                [System.IO.File]::WriteAllText($decksJsonFile, $savedJson, [System.Text.Encoding]::UTF8)
+
+                $jsonStr = $newDeck | ConvertTo-Json -Depth 6
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonStr)
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.OutputStream.Close()
+                continue
+            }
+
+            if ($request.HttpMethod -eq "PUT") {
+                $reader = New-Object System.IO.StreamReader($request.InputStream, [System.Text.Encoding]::UTF8)
+                $putBody = $reader.ReadToEnd()
+                $updatedFields = $putBody | ConvertFrom-Json
+                $updatedDeck = $null
+                for ($di = 0; $di -lt $decks.Count; $di++) {
+                    if ($decks[$di].id -eq $subId) {
+                        if ($updatedFields.title) { $decks[$di].title = $updatedFields.title }
+                        if ($updatedFields.description) { $decks[$di].description = $updatedFields.description }
+                        if ($updatedFields.cards) { $decks[$di].cards = $updatedFields.cards }
+                        $updatedDeck = $decks[$di]
+                        break
+                    }
+                }
+                if (-not $updatedDeck) {
+                    $newDeckObj = [PSCustomObject]@{
+                        id = $subId
+                        title = if ($updatedFields.title) { $updatedFields.title } else { "Bộ Thẻ" }
+                        description = if ($updatedFields.description) { $updatedFields.description } else { "" }
+                        cards = if ($updatedFields.cards) { $updatedFields.cards } else { @() }
+                        createdAt = [DateTime]::UtcNow.ToString("o")
+                    }
+                    $decks = @($decks) + @($newDeckObj)
+                    $updatedDeck = $newDeckObj
+                }
+                $savedJson = if ($decks.Count -gt 0) { $decks | ConvertTo-Json -Depth 6 } else { "[]" }
+                [System.IO.File]::WriteAllText($decksJsonFile, $savedJson, [System.Text.Encoding]::UTF8)
+
+                $jsonStr = if ($updatedDeck) { $updatedDeck | ConvertTo-Json -Depth 6 } else { "{}" }
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonStr)
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.OutputStream.Close()
+                continue
+            }
+
+            if ($request.HttpMethod -eq "DELETE") {
+                $remain = @($decks | Where-Object { $_.id -ne $subId })
+                $savedJson = if ($remain.Count -gt 0) { $remain | ConvertTo-Json -Depth 6 } else { "[]" }
+                [System.IO.File]::WriteAllText($decksJsonFile, $savedJson, [System.Text.Encoding]::UTF8)
+
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes('{"success":true}')
                 $response.StatusCode = 200
                 $response.ContentType = "application/json; charset=UTF-8"
                 $response.ContentLength64 = $bytes.Length

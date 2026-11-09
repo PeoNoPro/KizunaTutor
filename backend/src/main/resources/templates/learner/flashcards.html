@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8">
@@ -48,8 +48,7 @@
                        placeholder="Tìm kiếm bộ thẻ theo tên hoặc ghi chú..." 
                        class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
               </div>
-              <button type="button" id="btnOpenCreateDeck" 
-                      class="px-4 py-2 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0">
+              <button type="button" id="btnOpenCreateDeck" class="px-4 py-2 rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-bold border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0">
                 <span class="material-symbols-outlined text-[16px]">add</span>
                 <span>Tạo bộ thẻ mới</span>
               </button>
@@ -57,7 +56,7 @@
 
             <div class="flex items-center gap-2 text-xs text-slate-600 pt-2 border-t border-[#E2E8F0]">
               <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span class="font-medium text-[#1E293B]">Bộ thẻ của bạn:</span>
+              <span class="font-medium text-[#0F172A]">Bộ thẻ của bạn:</span>
               <span id="deckCountBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
                 0 bộ thẻ
               </span>
@@ -78,8 +77,7 @@
             <p class="text-xs text-slate-500 max-w-md mx-auto">
               Tạo ngay một bộ thẻ mới để cất giữ những từ vựng khó nhớ và luyện tập lật thẻ mỗi ngày nhé!
             </p>
-            <button type="button" id="btnEmptyCreateDeck" 
-                    class="mt-1 px-4 py-2 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer">
+            <button type="button" id="btnEmptyCreateDeck" class="mt-1 px-4 py-2 rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-bold border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] inline-flex items-center gap-1.5 transition cursor-pointer">
               <span class="material-symbols-outlined text-[16px]">add</span>
               <span>Tạo bộ thẻ đầu tiên</span>
             </button>
@@ -109,7 +107,7 @@
 
       <div class="space-y-3">
         <div>
-          <label for="deckNameInput" class="block text-xs font-semibold text-[#1E293B] mb-1">
+          <label for="deckNameInput" class="block text-xs font-semibold text-[#0F172A] mb-1">
             Tên bộ thẻ *
           </label>
           <input type="text" id="deckNameInput" placeholder="Ví dụ: Từ Vựng N3 Chuyên Đề Thời Tiết" 
@@ -117,7 +115,7 @@
         </div>
 
         <div>
-          <label for="deckDescInput" class="block text-xs font-semibold text-[#1E293B] mb-1">
+          <label for="deckDescInput" class="block text-xs font-semibold text-[#0F172A] mb-1">
             Mô tả ngắn gọn
           </label>
           <textarea id="deckDescInput" rows="2" placeholder="Ghi chú thêm về mục tiêu ôn tập của bộ thẻ này..." 
@@ -126,10 +124,10 @@
       </div>
 
       <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
-        <button type="button" id="btnCancelDeck" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-50 transition cursor-pointer">
+        <button type="button" id="btnCancelDeck" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] text-[#0F172A] hover:bg-slate-50 transition cursor-pointer">
           Hủy bỏ
         </button>
-        <button type="button" id="btnSaveDeck" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#1E293B] hover:bg-[#334155] text-white transition cursor-pointer">
+        <button type="button" id="btnSaveDeck" class="px-4 py-1.5 text-xs font-bold rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] transition cursor-pointer">
           Lưu bộ thẻ
         </button>
       </div>
@@ -154,11 +152,11 @@
         <!-- Sửa Tên & Mô Tả -->
         <div class="space-y-2.5">
           <div>
-            <label class="block text-xs font-semibold text-[#1E293B] mb-1">Tên bộ thẻ *</label>
+            <label class="block text-xs font-semibold text-[#0F172A] mb-1">Tên bộ thẻ *</label>
             <input type="text" id="editDeckNameInput" placeholder="Ví dụ: Từ Vựng N3 - Mimikara Oboeru" class="w-full text-xs p-2 rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843]">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-[#1E293B] mb-1">Mô tả ngắn gọn:</label>
+            <label class="block text-xs font-semibold text-[#0F172A] mb-1">Mô tả ngắn gọn:</label>
             <textarea id="editDeckDescInput" rows="2" placeholder="Ghi chú thêm về mục tiêu ôn tập của bộ thẻ này..." class="w-full text-xs p-2 rounded-lg border border-[#CBD5E1] bg-white text-[#334155] focus:outline-none focus:border-[#831843]"></textarea>
           </div>
         </div>
@@ -192,13 +190,13 @@
         </div>
         <!-- Thêm thẻ thủ công nhanh -->
         <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-          <div class="text-xs font-semibold text-[#1E293B]">➕ Thêm nhanh thẻ lẻ vào bộ:</div>
+          <div class="text-xs font-semibold text-[#0F172A]">➕ Thêm nhanh thẻ lẻ vào bộ:</div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" id="quickAddFrontInput" placeholder="Mặt trước: Câu hỏi / Từ vựng..." class="text-xs p-2 border border-[#CBD5E1] rounded-lg bg-white text-[#0F172A] focus:outline-none focus:border-[#831843]">
             <input type="text" id="quickAddBackInput" placeholder="Mặt sau: Đáp án / Nghĩa..." class="text-xs p-2 border border-[#CBD5E1] rounded-lg bg-white text-[#334155] focus:outline-none focus:border-[#831843]">
           </div>
           <div class="flex justify-end">
-            <button type="button" id="btnQuickAddCard" class="py-1 px-3 bg-[#1E293B] hover:bg-[#334155] text-white text-xs font-semibold rounded-lg cursor-pointer flex items-center gap-1">
+            <button type="button" id="btnQuickAddCard" class="py-1 px-3 bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-bold border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] rounded-lg cursor-pointer flex items-center gap-1">
               <span>+ Thêm thẻ</span>
             </button>
           </div>
@@ -219,7 +217,7 @@
 
       <!-- Modal Footer -->
       <div class="px-4 py-2.5 border-t border-[#E2E8F0] bg-slate-50 flex items-center justify-end gap-2 shrink-0">
-        <button type="button" id="btnCancelEditDeck" class="py-1.5 px-3.5 text-xs font-semibold border border-[#CBD5E1] rounded-lg bg-white text-[#1E293B] hover:bg-slate-100 cursor-pointer">
+        <button type="button" id="btnCancelEditDeck" class="py-1.5 px-3.5 text-xs font-semibold border border-[#CBD5E1] rounded-lg bg-white text-[#0F172A] hover:bg-slate-100 cursor-pointer">
           Đóng
         </button>
         <button type="button" id="btnSaveDeckChanges" class="py-1.5 px-4 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer flex items-center gap-1">
@@ -251,7 +249,7 @@
         </div>
 
         <div>
-          <label class="block font-semibold text-[#1E293B] mb-1">Chọn bộ thẻ đích để gộp vào *</label>
+          <label class="block font-semibold text-[#0F172A] mb-1">Chọn bộ thẻ đích để gộp vào *</label>
           <select id="mergeTargetDeckSelect" class="w-full p-2 border border-[#CBD5E1] rounded-lg bg-white text-xs focus:outline-none">
             <!-- Render động options -->
           </select>
@@ -275,7 +273,7 @@
         <button type="button" id="btnCancelMerge" class="py-1.5 px-3.5 text-xs font-semibold border border-[#CBD5E1] rounded-lg bg-white hover:bg-slate-100 cursor-pointer">
           Hủy bỏ
         </button>
-        <button type="button" id="btnConfirmMerge" class="py-1.5 px-4 text-xs font-semibold rounded-lg bg-[#1E293B] text-white hover:bg-[#334155] cursor-pointer flex items-center gap-1">
+        <button type="button" id="btnConfirmMerge" class="py-1.5 px-4 text-xs font-bold rounded-lg bg-[#9F1239] text-white hover:bg-[#BE185D] border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] cursor-pointer flex items-center gap-1">
           <span>🔗</span>
           <span>Thực Hiện Gộp</span>
         </button>

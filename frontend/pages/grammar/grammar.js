@@ -339,15 +339,15 @@ function renderGrammarCards() {
         
         <div>
           <!-- DÒNG 1: TÊN NGỮ PHÁP (Trái) & HUY HIỆU JLPT (Phải sát lề) -->
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex items-baseline gap-2 min-w-0">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex flex-col min-w-0">
               <h3 class="text-xl font-bold text-[#0F172A] font-japanese group-hover:text-[#831843] transition truncate">
                 ${rule.pattern}
               </h3>
-              <span class="text-sm text-[#64748B] font-mono shrink-0">(${rule.romaji})</span>
+              ${rule.romaji ? `<span class="text-sm text-[#64748B] font-mono mt-0.5">(${rule.romaji})</span>` : ''}
             </div>
             <!-- Duy nhất huy hiệu Cấp độ JLPT chuẩn hóa phong cách Shodo -->
-            <span class="px-2.5 py-0.5 text-xs font-bold text-[#0F172A] bg-[#FEF3C7] border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] shrink-0">
+            <span class="px-2.5 py-0.5 text-xs font-bold text-[#0F172A] bg-[#FEF3C7] border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] shrink-0 mt-0.5">
               ${rule.level}
             </span>
           </div>
@@ -564,14 +564,16 @@ function openGrammarDetail(ruleId, pushHistory = true) {
   container.innerHTML = `
     <!-- Header Thẻ Mẫu Câu -->
     <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 sm:p-4 shadow-xs space-y-3 break-words overflow-hidden">
-      <div class="flex items-center justify-between flex-wrap gap-2">
-        <div class="flex items-center gap-3 min-w-0">
+      <div class="flex items-start justify-between flex-wrap gap-2">
+        <div class="flex flex-col min-w-0">
           <span class="font-japanese text-2xl sm:text-3xl font-bold text-[#0F172A] break-words">
             ${rule.pattern}
           </span>
-          <span class="text-sm text-[#64748B] font-mono italic break-words">
-            (${rule.romaji})
-          </span>
+          ${rule.romaji ? `
+            <span class="text-sm text-[#64748B] font-mono italic break-words mt-0.5">
+              (${rule.romaji})
+            </span>
+          ` : ''}
         </div>
         <div class="flex items-center gap-2 flex-wrap">
           <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] shrink-0">

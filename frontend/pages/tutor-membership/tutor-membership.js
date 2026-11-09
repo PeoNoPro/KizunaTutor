@@ -5,12 +5,13 @@
 
 import { API, ApiError } from '/js/api.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
+import { renderPagination } from '/components/pagination/pagination.js';
 import { escapeHtml, formatMoney, formatDate, formatDateTime, statusBadge, badge, toast } from '/js/membership-format.js';
 
-const PAGE_SIZE = 10;
+
 const $ = (id) => document.getElementById(id);
 
-const state = { mine: null, plans: [], paymentsPage: 0, selectedPlan: null, submitting: false };
+const state = { mine: null, plans: [], paymentsPage: 0, paymentsSize: 10, selectedPlan: null, submitting: false };
 
 function show(section) {
   ['loadingState', 'errorState', 'contentState'].forEach((id) => $(id).classList.toggle('hidden', id !== section));
@@ -28,7 +29,7 @@ function renderCurrent() {
 
   if (current) {
     block.innerHTML = `
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl bg-surface-container-low p-4">
+      <div class="flex flex-col gap-3 rounded-xl bg-surface-container-low p-4">
         <div>
           <p class="text-title-md font-semibold">${escapeHtml(current.planName)}</p>
           <p class="text-body-sm text-on-surface-variant mt-1">Từ ${formatDate(current.startDate)} đến ${formatDate(current.endDate)}</p>
@@ -64,10 +65,21 @@ function renderCurrent() {
 
 function renderPlans() {
   const grid = $('plansGrid');
-  $('plansEmpty').classList.toggle('hidden', state.plans.length > 0);
+  // Chỉ nâng cấp: gói cùng thời hạn (đang có) hoặc ngắn hơn gói đang sở hữu được hiển thị mờ và không bấm được.
   const hasValid = Boolean(state.mine.expiresOn);
-  grid.innerHTML = state.plans.map((plan) => `
-    <article class="tv-card p-6 flex flex-col">
+  const owned = state.mine.ownedDurationMonths;
+  const lockReason = (plan) => {
+    if (owned == null) return '';
+    if (plan.durationMonths === owned) return 'Bạn đang có gói này';
+    if (plan.durationMonths < owned) return 'Thấp hơn gói hiện tại';
+    return '';
+  };
+  $('plansEmpty').classList.toggle('hidden', state.plans.length > 0);
+  $('plansTitle').textContent = hasValid ? 'Nâng cấp gói' : 'Chọn gói';
+  grid.innerHTML = state.plans.map((plan) => {
+    const locked = lockReason(plan);
+    return `
+    <article class="tv-card p-6 flex flex-col ${locked ? 'opacity-50 grayscale' : ''}" ${locked ? 'aria-disabled="true"' : ''}>
       <h3 class="text-title-md font-semibold">${escapeHtml(plan.planName)}</h3>
       <p class="text-body-sm text-on-surface-variant mt-1">${plan.durationMonths} tháng</p>
       <p class="text-headline-sm text-primary mt-3">${formatMoney(plan.price)}</p>
@@ -76,10 +88,13 @@ function renderPlans() {
           <li class="flex items-start gap-2 text-body-sm"><span class="material-symbols-outlined text-[18px] text-primary">check_circle</span><span>${escapeHtml(b)}</span></li>`).join('')
         || '<li class="text-body-sm text-on-surface-variant">Chưa có mô tả quyền lợi.</li>'}
       </ul>
-      <button type="button" class="tv-btn tv-btn-primary mt-6 w-full" data-plan-id="${plan.planId}" ${state.mine.eligible ? '' : 'disabled'}>
-        ${hasValid ? 'Gia hạn bằng gói này' : 'Đăng ký gói'}
-      </button>
-    </article>`).join('');
+      ${locked
+        ? `<button type="button" class="tv-btn mt-6 w-full" disabled>${locked}</button>`
+        : `<button type="button" class="tv-btn tv-btn-primary mt-6 w-full" data-plan-id="${plan.planId}" ${state.mine.eligible ? '' : 'disabled'}>
+        ${hasValid ? 'Nâng cấp lên gói này' : 'Đăng ký gói'}
+      </button>`}
+    </article>`;
+  }).join('');
 
   grid.querySelectorAll('[data-plan-id]').forEach((button) => {
     button.addEventListener('click', () => openConfirm(button.dataset.planId));
@@ -89,7 +104,7 @@ function renderPlans() {
 async function loadPayments(page = 0) {
   const block = $('paymentsBlock');
   try {
-    const data = await API.tutorMembership.getPayments(page, PAGE_SIZE);
+    const data = await API.tutorMembership.getPayments(page, state.paymentsSize);
     state.paymentsPage = data.page;
     if (!data.items.length) {
       block.innerHTML = '<p class="text-body-md text-on-surface-variant">Bạn chưa có giao dịch nào.</p>';
@@ -152,16 +167,10 @@ async function resumePayment(transactionId, button) {
 }
 
 function renderPager(data) {
-  const pager = $('paymentsPager');
-  if (data.totalPages <= 1) {
-    pager.innerHTML = '';
-    return;
-  }
-  pager.innerHTML = `
-    <button type="button" class="tv-btn-small" data-page="${data.page - 1}" ${data.page <= 0 ? 'disabled' : ''}>Trang trước</button>
-    <span class="text-body-sm text-on-surface-variant">Trang ${data.page + 1}/${data.totalPages}</span>
-    <button type="button" class="tv-btn-small" data-page="${data.page + 1}" ${data.page + 1 >= data.totalPages ? 'disabled' : ''}>Trang sau</button>`;
-  pager.querySelectorAll('[data-page]').forEach((b) => b.addEventListener('click', () => loadPayments(Number(b.dataset.page))));
+  renderPagination($('paymentsPager'), { ...data, size: state.paymentsSize }, {
+    onPage: (p) => loadPayments(p),
+    onSize: (s) => { state.paymentsSize = s; loadPayments(0); }
+  });
 }
 
 function openConfirm(planId) {

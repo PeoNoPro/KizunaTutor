@@ -12,7 +12,12 @@ body.learner-frame{display:flex;flex-direction:row;min-height:100vh;margin:0;pad
   .learner-frame #learnerSidebar.-translate-x-full{transform:translateX(-100%)}
 }
 /* Trang hỗ trợ có style nút chung, trả nút trong khung về đúng thiết kế của sidebar. */
-.learner-frame #learnerSidebar button{min-height:0;background:transparent;color:#334155;font-size:13px;font-weight:500;line-height:20px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px}
-.learner-frame #learnerSidebar #btnCloseSidebarMobile{border:0;padding:6px}
+/* Sidebar học viên theo kiểu sidebar gia sư (components/learner-layout/learner-layout.js). */
+.learner-frame #learnerSidebar button{min-height:0;font:inherit;line-height:inherit;border:0;text-align:left}
+.learner-frame #learnerSidebar #learnerUserMenuButton{background:#f2f3ff;color:#131b2e;padding:12px;border-radius:12px}
+.learner-frame #learnerSidebar #learnerUserMenuButton:hover{background:#eaedff}
+.learner-frame #learnerSidebar #btnLogoutSidebar{background:transparent;color:#ba1a1a;font-size:14px;font-weight:500;padding:8px 12px;border-radius:8px}
+.learner-frame #learnerSidebar #btnLogoutSidebar:hover{background:#ffdad6}
+.learner-frame #learnerSidebar #btnCloseSidebarMobile{background:transparent;padding:6px;border-radius:8px}
 .learner-frame header button{min-height:0;padding:6px}
 .learner-frame.operations-page main{padding-top:40px}

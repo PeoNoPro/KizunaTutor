@@ -46,14 +46,21 @@ function loadLearnerProfile() {
   if (sidebarLearnerName) sidebarLearnerName.textContent = displayName;
   if (bannerLearnerName) bannerLearnerName.textContent = displayName;
 
-  if (sidebarUserAvatar) {
-    const initials = displayName
-      .split(' ')
-      .filter(Boolean)
-      .slice(-2)
-      .map(part => part[0]?.toUpperCase())
-      .join('') || 'HV';
-    sidebarUserAvatar.textContent = initials;
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(-2)
+    .map(part => part[0]?.toUpperCase())
+    .join('') || 'HV';
+  if (sidebarUserAvatar) sidebarUserAvatar.textContent = initials;
+  const heroAvatar = document.getElementById('heroLearnerAvatar');
+  if (heroAvatar) heroAvatar.textContent = initials;
+
+  // Ngày hôm nay trên khối lời chào (giống dashboard gia sư)
+  const todayText = document.getElementById('todayText');
+  if (todayText) {
+    const text = new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+    todayText.textContent = text.charAt(0).toUpperCase() + text.slice(1);
   }
 }
 
@@ -114,29 +121,29 @@ async function loadRecentSessions() {
               month: '2-digit'
             }) : 'Vừa xong';
 
-            const statusClass = item.isWon 
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-              : 'bg-rose-50 text-rose-700 border-rose-200';
+            const statusClass = item.isWon
+              ? 'bg-[#1E8B3F]/10 text-[#1E8B3F]'
+              : 'bg-[#ffdad6] text-[#93000a]';
             const statusText = item.isWon ? 'Chiến thắng' : 'Chạm đáy';
 
             return `
-              <div class="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] text-xs">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-lg bg-white border border-[#ECE8DE] flex items-center justify-center text-lg font-bold">
-                    ${item.isWon ? '🏆' : '🌧️'}
+              <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#f2f3ff]">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-10 h-10 rounded-xl ${item.isWon ? 'bg-[#ffdcc3] text-[#8d4b00]' : 'bg-[#dce1ff] text-[#4059aa]'} flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[20px]">${item.isWon ? 'emoji_events' : 'rainy'}</span>
                   </div>
-                  <div>
-                    <div class="font-bold text-[#0F2545]">${item.titleRank || 'Chiến Binh Luyện Chữ'}</div>
-                    <div class="text-[11px] text-[#68737D] mt-0.5">
+                  <div class="min-w-0">
+                    <div class="text-[14px] font-semibold text-[#131b2e] truncate">${item.titleRank || 'Chiến Binh Luyện Chữ'}</div>
+                    <div class="text-[11px] leading-[14px] font-medium text-[#3f4850] mt-0.5 truncate">
                       Bắn trúng ${item.wordsTypedCount} chữ • Chính xác ${item.accuracy}% • ${dateStr}
                     </div>
                   </div>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusClass}">
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusClass}">
                     ${statusText}
                   </span>
-                  <span class="font-extrabold text-[#006194] text-sm">
+                  <span class="font-semibold text-[#006194] text-[14px]">
                     ${item.score} đ
                   </span>
                 </div>
@@ -154,8 +161,8 @@ async function loadRecentSessions() {
   // Nếu chưa có phiên luyện tập nào
   if (recentActivityList) {
     recentActivityList.innerHTML = `
-      <div class="py-8 text-center text-xs text-[#68737D] space-y-2">
-        <span class="material-symbols-outlined text-4xl text-slate-300">school</span>
+      <div class="py-8 text-center text-[13px] text-[#3f4850] flex flex-col items-center gap-2">
+        <span class="material-symbols-outlined text-4xl text-[#bfc7d2]">school</span>
         <p>Chưa có phiên luyện tập nào được ghi nhận. Hãy bắt đầu học ngay nhé!</p>
       </div>
     `;
@@ -173,10 +180,10 @@ async function loadTrialBookings() {
     
     if (items.length === 0) {
       dashboardBookingsList.innerHTML = `
-        <div class="py-6 text-center text-xs text-[#64748B] space-y-2">
-          <span class="material-symbols-outlined text-3xl text-slate-300">event_available</span>
+        <div class="py-6 text-center text-[13px] text-[#3f4850] flex flex-col items-center gap-2">
+          <span class="material-symbols-outlined text-4xl text-[#bfc7d2]">event_available</span>
           <p>Chưa có lịch học thử nào. Đặt lịch với gia sư để bắt đầu học nhé!</p>
-          <a href="/pages/tutor-discovery/" class="inline-flex items-center gap-1 font-semibold text-[#006194] hover:underline mt-1">
+          <a href="/pages/tutor-discovery/" class="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-[#006194] text-white text-[14px] font-medium hover:bg-[#007bb9] no-underline mt-1">
             <span>Tìm gia sư</span>
             <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
           </a>
@@ -198,20 +205,20 @@ async function loadTrialBookings() {
 
       let statusBadge = '';
       if (item.bookingStatus === 'PENDING') {
-        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">Chờ phản hồi</span>';
+        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#ffdcc3] text-[#8d4b00]">Chờ phản hồi</span>';
       } else if (item.bookingStatus === 'CONFIRMED') {
-        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Đã xác nhận</span>';
+        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#1E8B3F]/10 text-[#1E8B3F]">Đã xác nhận</span>';
       } else {
-        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">${item.statusLabel || 'Đã đóng'}</span>`;
+        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#eaedff] text-[#3f4850]">${item.statusLabel || 'Đã đóng'}</span>`;
       }
 
       return `
-        <div class="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] text-xs">
+        <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#f2f3ff]">
           <div class="flex items-center gap-3 min-w-0">
-            <img src="${avatarSrc}" alt="${item.partnerName || 'Gia sư'}" class="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-200 shrink-0">
+            <img src="${avatarSrc}" alt="${item.partnerName || 'Gia sư'}" class="w-10 h-10 rounded-xl object-cover ring-2 ring-[#006194]/10 shrink-0">
             <div class="min-w-0">
-              <div class="font-bold text-[#0F2545] truncate">${item.partnerName || 'Gia sư Kizuna'}</div>
-              <div class="text-[11px] text-[#64748B] flex items-center gap-1.5 mt-0.5">
+              <div class="text-[14px] font-semibold text-[#131b2e] truncate">${item.partnerName || 'Gia sư Kizuna'}</div>
+              <div class="text-[11px] leading-[14px] font-medium text-[#3f4850] flex items-center gap-1.5 mt-0.5">
                 <span class="material-symbols-outlined text-[13px] text-[#006194]">schedule</span>
                 <span>${timeStr}</span>
                 <span>•</span>
@@ -221,7 +228,7 @@ async function loadTrialBookings() {
           </div>
           <div class="flex items-center gap-2 shrink-0">
             ${statusBadge}
-            <a href="/learner/connections" class="p-1 rounded-lg hover:bg-white text-slate-400 hover:text-[#006194] transition-colors" title="Xem chi tiết">
+            <a href="/learner/connections" class="p-1 rounded-lg hover:bg-white text-[#707881] hover:text-[#006194] transition-colors" title="Xem chi tiết">
               <span class="material-symbols-outlined text-[18px]">chevron_right</span>
             </a>
           </div>
@@ -232,7 +239,7 @@ async function loadTrialBookings() {
   } catch (err) {
     console.debug('Chưa tải được lịch học thử trên dashboard:', err);
     dashboardBookingsList.innerHTML = `
-      <div class="py-4 text-center text-xs text-[#64748B]">
+      <div class="py-4 text-center text-[13px] text-[#3f4850]">
         Chưa có lịch hẹn nào.
       </div>
     `;

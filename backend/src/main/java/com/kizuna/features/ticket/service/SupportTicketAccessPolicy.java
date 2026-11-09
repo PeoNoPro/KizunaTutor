@@ -19,7 +19,7 @@ public class SupportTicketAccessPolicy {
    boolean assigned=a.cs()&&a.userId().equals(t.get("assigned_to"));
    if(owner||assigned)actions.add("message");
    if(owner&&status.equals("RESOLVED"))actions.add("close");
-   if(a.cs()&&status.equals("OPEN")&&t.get("assigned_to")==null&&(shifts==null||shifts.canClaim(a.userId())))actions.add("claim");
+   // Không còn nhận thủ công: yêu cầu được hệ thống tự giao theo ca (2026-11-09).
    if(a.cs()&&t.get("assigned_to")!=null)actions.add("assignment");
    if(assigned){actions.add("priority");if(status.equals("IN_PROGRESS")){actions.add("resolve");actions.add("escalate");}if(status.equals("ESCALATED"))actions.add("recipient");}
    if(a.manager()&&status.equals("ESCALATED")){actions.add("decision");actions.add("return");}

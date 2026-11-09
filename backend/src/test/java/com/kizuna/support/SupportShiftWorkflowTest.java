@@ -60,28 +60,37 @@ class SupportShiftWorkflowTest {
  Map<String,Object> ticket(UUID id){return jdbc.queryForMap("SELECT * FROM support_tickets WHERE ticket_id=?",id);}
  int active(UUID staff){return jdbc.queryForObject("SELECT count(*) FROM support_tickets WHERE assigned_to=? AND status='IN_PROGRESS'",Integer.class,staff);}
  int claim(UUID id)throws Exception {as(cs);try{service.command(id,"claim",command(0));return 200;}catch(BusinessException ex){return ex.status();}finally{SecurityContextHolder.clearContext();}}
+ /** Giả lập yêu cầu đã được giao cho nhân viên (thay cho thao tác tự nhận đã bỏ): phiên bản tăng 1 như lúc giao. */
+ void own(UUID id,UUID staff){jdbc.update("UPDATE support_tickets SET assigned_to=?,status='IN_PROGRESS',version=version+1 WHERE ticket_id=?",staff,id);}
 
- @Test void simultaneousManualClaimsForDifferentTicketsRespectCapacity()throws Exception {
-  UUID first=create(),second=create();schedule(cs);
-  var start=new CountDownLatch(1);var ready=new CountDownLatch(2);var pool=Executors.newFixedThreadPool(2);
+ @Test void manualClaimIsNoLongerAllowed()throws Exception {
+  UUID id=create();schedule(cs);
+  assertEquals(400,claim(id));assertNull(ticket(id).get("assigned_to"));
+ }
+
+ @Test void concurrentDispatchesNeverExceedCapacity()throws Exception {
+  for(int i=0;i<5;i++)create();schedule(cs);
+  var start=new CountDownLatch(1);var pool=Executors.newFixedThreadPool(2);
   try {
-   var a=pool.submit(()->{ready.countDown();start.await();return claim(first);});
-   var b=pool.submit(()->{ready.countDown();start.await();return claim(second);});
-   assertTrue(ready.await(5,TimeUnit.SECONDS));start.countDown();
-   var result=new ArrayList<>(List.of(a.get(15,TimeUnit.SECONDS),b.get(15,TimeUnit.SECONDS)));Collections.sort(result);
-   assertEquals(List.of(200,409),result);assertEquals(1,active(cs));
+   var a=pool.submit(()->{start.await();return shifts.dispatch();});
+   var b=pool.submit(()->{start.await();return shifts.dispatch();});
+   start.countDown();a.get(15,TimeUnit.SECONDS);b.get(15,TimeUnit.SECONDS);
+   assertEquals(SupportShiftService.MAX_ACTIVE,active(cs));
+   assertEquals(5-SupportShiftService.MAX_ACTIVE,jdbc.queryForObject("SELECT count(*) FROM support_tickets WHERE assigned_to IS NULL",Integer.class));
   }finally{pool.shutdownNow();}
  }
 
- @Test void manualClaimAndDispatcherShareTheSameAllocationLock()throws Exception {
-  UUID first=create();create();schedule(cs);
-  var start=new CountDownLatch(1);var pool=Executors.newFixedThreadPool(2);
-  try {
-   var manual=pool.submit(()->{start.await();return claim(first);});
-   var automatic=pool.submit(()->{start.await();return shifts.dispatch();});
-   start.countDown();assertTrue(Set.of(200,409).contains(manual.get(15,TimeUnit.SECONDS)));automatic.get(15,TimeUnit.SECONDS);
-   assertEquals(1,active(cs));
-  }finally{pool.shutdownNow();}
+ @Test void urgentTicketsAreAssignedBeforeOlderNormalOnes(){
+  UUID first=create(),second=create(),third=create(),urgent=create();
+  jdbc.update("UPDATE support_tickets SET priority='URGENT' WHERE ticket_id=?",urgent);
+  schedule(cs);shifts.dispatch();
+  assertEquals(cs,ticket(urgent).get("assigned_to"));assertEquals(cs,ticket(first).get("assigned_to"));assertEquals(cs,ticket(second).get("assigned_to"));
+  assertNull(ticket(third).get("assigned_to"));
+ }
+
+ @Test void dayWithoutShiftsIsViewOnly(){
+  UUID id=create();
+  assertFalse(shifts.canClaim(cs));assertEquals(0,shifts.dispatch());assertNull(ticket(id).get("assigned_to"));
  }
 
  @Test void afterCommitDispatchPersistsAssignmentAndAuditInNewTransaction(){
@@ -109,26 +118,26 @@ class SupportShiftWorkflowTest {
  }
 
  @Test void changingShiftEndsNewWorkButKeepsExistingWork(){
-  UUID current=create(),waiting=create();schedule(cs);as(cs);service.command(current,"claim",command(0));
+  UUID current=create(),waiting=create();schedule(cs);own(current,cs);
   time("2026-11-09T05:00:00Z"); // 12:00 Vietnam: end is exclusive.
-  as(cs);assertFalse(shifts.canClaim(cs));
-  assertEquals(409,assertThrows(BusinessException.class,()->service.command(waiting,"claim",command(0))).status());
+  as(cs);assertFalse(shifts.canClaim(cs));assertEquals(0,shifts.dispatch());
+  as(cs);
   service.command(current,"priority",new Command(1L,null,null,"HIGH",null,null,null,null));
   assertEquals(cs,ticket(current).get("assigned_to"));assertNull(ticket(waiting).get("assigned_to"));
  }
 
  @Test void managerReturnsToOriginalCsEvenWhenCsHasNewWork(){
-  UUID first=create(),second=create(),third=create();schedule(cs);as(cs);service.command(first,"claim",command(0));
+  UUID first=create(),second=create(),third=create(),fourth=create();schedule(cs);own(first,cs);as(cs);
   service.command(first,"escalate",new Command(1L,null,manager,null,"Cần quản lý","Đã kiểm tra",null,null));
-  assertEquals(cs,ticket(second).get("assigned_to"));
+  assertEquals(cs,ticket(second).get("assigned_to"));assertEquals(cs,ticket(fourth).get("assigned_to"));assertEquals(SupportShiftService.MAX_ACTIVE,active(cs));
   as(manager);service.command(first,"decision",new Command(2L,null,null,null,null,null,"Hướng xử lý nội bộ",null));
   service.command(first,"return",command(3));
-  assertEquals(cs,ticket(first).get("assigned_to"));assertEquals(2,active(cs));assertNull(ticket(third).get("assigned_to"));
-  as(cs);assertEquals(409,assertThrows(BusinessException.class,()->service.command(third,"claim",command(0))).status());
+  assertEquals(cs,ticket(first).get("assigned_to"));assertEquals(SupportShiftService.MAX_ACTIVE+1,active(cs));
+  assertEquals(cs,ticket(third).get("assigned_to"));UUID fifth=create();assertNull(ticket(fifth).get("assigned_to"));
  }
 
  @Test void unavailableCsIsHandedOverWithoutLosingMessagesOrEscalation(){
-  UUID id=create();schedule(cs);as(cs);service.command(id,"claim",command(0));
+  UUID id=create();schedule(cs);own(id,cs);as(cs);
   service.command(id,"escalate",new Command(1L,null,manager,null,"Cần quản lý","Đã kiểm tra",null,null));
   schedule(other);jdbc.update("UPDATE users SET account_status='SUSPENDED' WHERE user_id=?",cs);
   assertEquals(1,shifts.dispatch());var t=ticket(id);
@@ -139,21 +148,21 @@ class SupportShiftWorkflowTest {
  }
 
  @Test void handoverToBusyCsIsRejected(){
-  UUID first=create(),second=create();schedule(cs);schedule(other);
-  as(cs);service.command(first,"claim",command(0));as(other);service.command(second,"claim",command(0));
+  UUID first=create(),second=create(),third=create(),fourth=create();schedule(cs);schedule(other);
+  own(first,cs);own(second,other);own(third,other);own(fourth,other);as(cs);
   assertEquals(409,assertThrows(BusinessException.class,()->service.command(first,"assignment",new Command(1L,other,null,null,"Bàn giao",null,null,null))).status());
   assertEquals(cs,ticket(first).get("assigned_to"));
  }
 
  @Test void noFreeReplacementKeepsExistingOwnerAndHistory(){
-  UUID id=create();schedule(cs);as(cs);service.command(id,"claim",command(0));
+  UUID id=create();schedule(cs);own(id,cs);
   jdbc.update("UPDATE users SET account_status='SUSPENDED' WHERE user_id=?",cs);
   assertEquals(0,shifts.dispatch());assertEquals(cs,ticket(id).get("assigned_to"));
   assertEquals(1L,((Number)ticket(id).get("version")).longValue());
  }
 
  @Test void removingCurrentShiftDoesNotDropOwnedTicket(){
-  UUID id=create();schedule(cs);as(cs);service.command(id,"claim",command(0));
+  UUID id=create();schedule(cs);own(id,cs);
   UUID shift=jdbc.queryForObject("SELECT shift_id FROM support_shifts WHERE staff_id=?",UUID.class,cs);
   as(manager);shifts.unassign(shift,day);
   assertEquals(cs,ticket(id).get("assigned_to"));assertEquals("IN_PROGRESS",ticket(id).get("status"));

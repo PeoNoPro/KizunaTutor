@@ -14,7 +14,9 @@ const statuses = {OPEN:'Chưa nhận xử lý', IN_PROGRESS:'Đang xử lý', ES
  * Học viên, gia sư không cần biết yêu cầu đã có nhân viên nhận hay đang chờ quản lý: với họ đều là "Đang xử lý".
  * Đã giải quyết nghĩa là đang chờ chính họ xác nhận đóng.
  */
-const requesterStatuses = {OPEN:'Đang xử lý', IN_PROGRESS:'Đang xử lý', ESCALATED:'Đang xử lý', RESOLVED:'Chờ bạn xác nhận', CLOSED:'Đã đóng'};
+// Quản lý nhìn yêu cầu được chuyển lên: "chờ bạn quyết định" rõ hơn "chờ quản lý xem xét".
+const managerStatuses = {OPEN:'Chưa nhận xử lý', IN_PROGRESS:'Đã trả kết quả cho CS', ESCALATED:'Chờ bạn quyết định', RESOLVED:'Đã giải quyết', CLOSED:'Đã đóng'};
+const requesterStatuses = {OPEN:'Chờ tiếp nhận', IN_PROGRESS:'Đang xử lý', ESCALATED:'Đang xử lý', RESOLVED:'Chờ bạn xác nhận', CLOSED:'Đã đóng'};
 const categories = {ACCOUNT:'Tài khoản', BILLING:'Thanh toán', TUTOR:'Kết nối gia sư', BOOKING:'Đặt học thử', MEMBERSHIP:'Hội viên', TECHNICAL:'Sự cố kỹ thuật', OTHER:'Nội dung khác'};
 const priorities = {LOW:'Thấp', MEDIUM:'Bình thường', HIGH:'Cao', URGENT:'Khẩn cấp'};
 /** Biểu tượng (Material Symbols) cho từng nhóm yêu cầu, dùng ở thẻ yêu cầu của học viên/gia sư. */
@@ -162,7 +164,7 @@ export async function startSupportPage(isDetail) {
    * mỗi nút kèm số yêu cầu để biết bấm vào sẽ thấy bao nhiêu.
    */
   let statusChoice='';
-  const statusLabel=(status,fallback)=>(account?.canCreate?requesterStatuses[status]:statuses[status])||fallback;
+  const statusLabel=(status,fallback)=>(account?.canCreate?requesterStatuses[status]:account?.canDecide?managerStatuses[status]:statuses[status])||fallback;
   /** Nút lọc của nhóm: trạng thái nào hiển thị cùng một chữ thì gộp lại (học viên: 3 trạng thái đang xử lý thành 1). */
   function statusChoices(group) {
     const byLabel=new Map();
@@ -220,10 +222,21 @@ export async function startSupportPage(isDetail) {
     link.href=route(t.ticketId);open.setAttribute('aria-hidden','true');status.append(badge(statusLabel(t.status,t.statusLabel),t.status));
     // Bấm vào bất kỳ đâu trên thẻ cũng mở yêu cầu (trừ khi đang bôi đen chữ).
     row.onclick=event=>{if(event.target.closest('a')||String(getSelection()))return;location.assign(link.href);};
-    const meta=account.canCreate?`${t.categoryLabel} · Gửi ${date(t.createdAt)} · Cập nhật ${date(t.updatedAt)}`:account.canHandle?`${t.requesterDisplayName} · ${t.categoryLabel} · Ưu tiên ${t.priorityLabel.toLocaleLowerCase('vi-VN')} · ${t.assigneeDisplayName||'Chưa phân công'}`:`${t.requesterDisplayName} · Nhân viên hỗ trợ ${t.assigneeDisplayName||'chưa phân công'} · Cập nhật ${date(t.updatedAt)}`;
-    info.append(link,element('p',meta));if(t.descriptionPreview)info.append(element('p',t.descriptionPreview,'support-preview'));
+    const meta=account.canCreate?`${t.categoryLabel} · Gửi ${date(t.createdAt)} · Cập nhật ${date(t.updatedAt)}`:account.canHandle?`Người gửi: ${t.requesterDisplayName} · ${t.categoryLabel} · Ưu tiên ${t.priorityLabel.toLocaleLowerCase('vi-VN')} · Phụ trách: ${t.assigneeDisplayName||'chưa có ai'}`:`Người gửi: ${t.requesterDisplayName} · CS phụ trách: ${t.assigneeDisplayName||'chưa có ai'} · Cập nhật ${date(t.updatedAt)}`;
+    info.append(link,element('p',meta));
+    row.dataset.ticketId=t.ticketId;
+    if(account.canHandle&&t.assigneeId===account.userId){row.classList.add('support-row-mine');status.prepend(badge('Của bạn','mine'));}if(t.descriptionPreview)info.append(element('p',t.descriptionPreview,'support-preview'));
     if(account.canCreate){row.classList.add('support-row-icon');row.append(icon(categoryIcons[t.category]||'help','support-row-symbol'));}
     row.append(info,status,open);return row;
+  }
+  /** Quản lý: đánh dấu các yêu cầu đã báo sự cố kỹ thuật cho Admin (mô tả sự cố có "Mã yêu cầu hỗ trợ: <mã>"). */
+  async function markReportedTickets(){
+    if(!account.canDecide||account.canHandle)return;
+    try{const data=await fetchAPI('/admin/operations/reported-incidents?page=0&size=50');const reported=new Map();
+      data.items.forEach(item=>{const match=/Mã yêu cầu hỗ trợ: ([0-9a-f-]{36})/i.exec(item.description||'');if(match&&!reported.has(match[1]))reported.set(match[1],item);});
+      document.querySelectorAll('.support-row[data-ticket-id]').forEach(row=>{const item=reported.get(row.dataset.ticketId);if(!item||row.querySelector('[data-reported]'))return;
+        const tag=badge('Đã báo Admin · '+item.statusLabel,'reported');tag.dataset.reported='';tag.title='Sự cố kỹ thuật đã báo cho Admin: '+item.subject;row.querySelector('.support-row-info p')?.after(tag);});
+    }catch{/* Không tải được thì chỉ không có nhãn. */}
   }
   async function loadList(next=page) {
     const generation=++listGeneration;
@@ -232,7 +245,7 @@ export async function startSupportPage(isDetail) {
       params.set('status',statusParam());
       const data=await api('?'+params);if(generation!==listGeneration)return;const target=$('ticketList');
       if(!data.items.length){empty(target,pageCopy[audience()].hint,pageCopy[audience()].empty);if(account.canCreate){const cta=element('button',undefined,'primary');cta.type='button';cta.append(icon('add'),document.createTextNode('Gửi yêu cầu hỗ trợ'));cta.onclick=()=>$('createTicket').click();target.querySelector('.support-empty').append(cta);}}
-      else {const rows=[];if(account.canDecide){const head=element('div',undefined,'support-row-head');['Thông tin','Trạng thái','Thao tác'].forEach(label=>head.append(element('span',label)));rows.push(head);}rows.push(...data.items.map(ticketRow));target.replaceChildren(...rows);}
+      else {const rows=[];if(account.canDecide){const head=element('div',undefined,'support-row-head');['Thông tin','Trạng thái','Thao tác'].forEach(label=>head.append(element('span',label)));rows.push(head);}rows.push(...data.items.map(ticketRow));target.replaceChildren(...rows);markReportedTickets();}
       paging($('ticketPaging'),data,loadList);$('ticketCount').textContent=data.totalElements+' yêu cầu';notice('');$('reloadSupport').hidden=true;
     }catch(error){if(generation===listGeneration)fail(error);}finally{if(generation===listGeneration)content.setAttribute('aria-busy','false');}
   }
@@ -250,7 +263,7 @@ export async function startSupportPage(isDetail) {
     $('contextType').onchange=()=>loadContexts();$('moreContexts').onclick=()=>{contextPage++;loadContexts(true);};
     form.onsubmit=async event=>{event.preventDefault();const submit=form.querySelector('[type=submit]');submit.disabled=true;try{const payload={subject:validText(form.elements.subject.value,200),category:form.elements.category.value,message:validText(form.elements.message.value,10000)};
         const type=$('contextType').value,contextId=$('contextChoice').value;if(type&&contextId){const keys={booking:'relatedBookingId',membership:'relatedMembershipId',payment:'relatedTransactionId'};payload[keys[type]]=contextId;}
-        await loadAttachmentLimit();const created=await fetchMultipartAPI(base,payload,validFiles(form.elements.files));location.assign(route(created.ticketId));
+        await loadAttachmentLimit();const created=await fetchMultipartAPI(base,payload,validFiles(form.elements.files));location.assign(route(created.ticketId)+'?created=1');
       }catch(error){if(await accountChanged(error))return;notice(error.message,true,'createNotice');}finally{submit.disabled=false;}};
   }
   function initDetailTabs() {
@@ -277,6 +290,24 @@ export async function startSupportPage(isDetail) {
       notice(preserve?'Đã tải bản mới nhất và giữ nội dung đang soạn. Vui lòng chọn lại tệp nếu cần.':'Đã tải nội dung yêu cầu.');$('reloadSupport').hidden=true;return true;
     }catch(error){fail(error);return false;}finally{content.setAttribute('aria-busy','false');}
   }
+  /** Người gửi luôn biết yêu cầu đang ở bước nào và mình cần làm gì tiếp. */
+  function requesterGuide() {
+    const steps={
+      OPEN:['schedule','Đã gửi yêu cầu, đang chờ nhân viên hỗ trợ tiếp nhận.','Bạn sẽ nhận thông báo trên chuông khi nhân viên trả lời. Có thể bổ sung thông tin ngay bên dưới.'],
+      IN_PROGRESS:['support_agent','Nhân viên hỗ trợ đang xử lý yêu cầu của bạn.','Khi có trả lời bạn sẽ nhận thông báo trên chuông. Bạn có thể trả lời hoặc gửi thêm ảnh, tệp bên dưới.'],
+      ESCALATED:['groups','Yêu cầu đang được bộ phận quản lý xem xét thêm.','Bạn không cần làm gì thêm; khi có kết quả nhân viên hỗ trợ sẽ trả lời và bạn nhận thông báo trên chuông.'],
+      RESOLVED:['task_alt','Nhân viên hỗ trợ đã gửi kết quả xử lý.','Nếu vấn đề đã xong, bấm “Xác nhận đóng yêu cầu”. Nếu chưa, trả lời bên dưới để yêu cầu được xử lý tiếp.'],
+      CLOSED:['inventory_2','Yêu cầu đã đóng.','Nếu vẫn còn vấn đề, vui lòng gửi một yêu cầu hỗ trợ mới.']};
+    const [symbol,title,text]=steps[ticket.status]||steps.IN_PROGRESS;
+    const box=element('div',undefined,'support-guide');box.dataset.state=ticket.status;box.setAttribute('role','status');
+    const body=element('div');body.append(element('strong',title),element('p',text));box.append(icon(symbol),body);
+    if(query.get('created')==='1'){
+      box.classList.add('support-guide-created');body.prepend(element('span','✓ Đã gửi yêu cầu hỗ trợ thành công','support-guide-badge'));
+      showToast('Đã gửi yêu cầu hỗ trợ. Nhân viên hỗ trợ sẽ phản hồi sớm nhất có thể.','success');
+      query.delete('created');history.replaceState(null,'',location.pathname+(query.toString()?'?'+query:''));
+    }
+    return box;
+  }
   function renderDetail() {
     document.querySelector('#supportMain h1').textContent=ticket.subject;
     if(csDetail()){renderCsHeader(ticket);renderCsInformation(ticket);return;}
@@ -289,6 +320,7 @@ export async function startSupportPage(isDetail) {
       const head=document.querySelector('.support-sheet-head');if(head&&!head.querySelector('.support-head-symbol'))head.querySelector('h1').before(icon(categoryIcons[ticket.category]||'help','support-head-symbol'));
     } else meta.append(badge(statusLabel(ticket.status,ticket.statusLabel),ticket.status),` · ${ticket.requesterDisplayName} · Nhân viên hỗ trợ ${ticket.assigneeDisplayName||'chưa phân công'} · ${ticket.categoryLabel}`);
     const parts=[meta];
+    if(account.canCreate)parts.push(requesterGuide());
     if(ticket.relatedContext?.length){const contexts=element('div',undefined,'support-context');ticket.relatedContext.forEach(c=>contexts.append(element('p',(c.available?'Liên quan: ':'')+c.label)));parts.push(contexts);}
     $('ticketDetail').replaceChildren(...parts);
   }
@@ -324,10 +356,9 @@ export async function startSupportPage(isDetail) {
       const form=createCsReplyForm((replyForm,files)=>{try{perform('messages',{message:validText(replyForm.elements.message.value,10000)},replyForm,true,files);}catch(error){$('csReplyNotice').textContent=error.message;$('csReplyNotice').focus();}},
         {label:account.canCreate?'Trả lời nhân viên hỗ trợ':'Phản hồi',help:'',button:'Gửi',placeholder:account.canCreate?'Nhập câu trả lời hoặc thông tin bổ sung…':'Nhập phản hồi…'});
       form.classList.add('support-reply');$('replyArea').append(form);}
-    else $('replyArea').append(element('p',ticket.status==='CLOSED'?(account.canCreate?'Yêu cầu đã đóng, không thể thêm trao đổi. Nếu vẫn còn vấn đề, vui lòng tạo yêu cầu mới.':'Yêu cầu đã đóng, không thể thêm trao đổi.'):account.canDecide?'Mở tab “Xử lý nội bộ” để ghi quyết định và trả kết quả cho nhân viên.':actions.includes('claim')?'Tiếp nhận yêu cầu để bắt đầu phản hồi người gửi.':'Chỉ người phụ trách hiện tại được gửi phản hồi.'));
+    else $('replyArea').append(element('p',ticket.status==='CLOSED'?(account.canCreate?'Yêu cầu đã đóng, không thể thêm trao đổi. Nếu vẫn còn vấn đề, vui lòng tạo yêu cầu mới.':'Yêu cầu đã đóng, không thể thêm trao đổi.'):account.canDecide?'Mở tab “Xử lý nội bộ” để ghi quyết định và trả kết quả cho nhân viên.':ticket.status==='OPEN'&&!ticket.assigneeId?'Yêu cầu đang chờ hệ thống tự giao cho nhân viên đang trong ca và còn chỗ nhận việc.':'Chỉ người phụ trách hiện tại được gửi phản hồi.'));
     const target=$('internalActions'),publicActions=$('ticketActions');
     const informationActions=csDetail()?$('csInformationControls'):target;
-    if(actions.includes('claim'))publicActions.append(commandForm('claim','Tiếp nhận yêu cầu','Xác nhận tiếp nhận'));
     if(actions.includes('assignment')){const people=await api('/assignees');informationActions.append(commandForm('assignment','Đổi người phụ trách','Chuyển nhân viên',[['assigneeId','Nhân viên tiếp nhận','select']],{assigneeId:Object.fromEntries(people.filter(p=>p.userId!==ticket.assigneeId).map(p=>[p.userId,p.displayName]))}));}
     if(actions.includes('priority')){const card=commandForm('priority','Mức ưu tiên','Cập nhật ưu tiên',[['priority','Ưu tiên','select']],{priority:priorities});card.querySelector('select').value=ticket.priority;informationActions.append(card);}
     if(actions.includes('resolve'))publicActions.append(commandForm('resolve','Kết quả xử lý','Gửi kết quả hỗ trợ',[['resolutionText','Phản hồi tới người dùng','textarea']]));
@@ -349,6 +380,7 @@ export async function startSupportPage(isDetail) {
     const section=element('section',undefined,'support-card support-internal support-current');section.append(element('h2','Tình trạng xử lý hiện tại'),badge(ticket.statusLabel,ticket.status));
     section.append(element('p',`Người phụ trách: ${ticket.assigneeDisplayName||'Chưa phân công'}`));
     if(ticket.recipientDisplayName)section.append(element('p',`Quản lý tiếp nhận: ${ticket.recipientDisplayName}`));
+    if(account.canDecide&&ticket.escalation?.pending){const next=element('p',undefined,'support-next-step');next.append(element('strong','Việc của bạn: '),document.createTextNode('ghi “Quyết định nội bộ” rồi bấm “Trả kết quả cho nhân viên” để CS trả lời người gửi. Báo sự cố cho Admin không tự trả kết quả hay đóng yêu cầu này.'));section.append(next);}
     if(ticket.escalation){const e=ticket.escalation;section.append(element('h3',e.pending?'Lần chuyển cấp hiện tại':'Kết quả chuyển cấp gần nhất'));[['Lý do chuyển cấp',e.reason],['Tóm tắt đã xử lý',e.handlingSummary],['Quyết định của quản lý',e.decisionText||'Chưa có quyết định cho người nhận hiện tại']].forEach(([label,value])=>section.append(element('h3',label),element('p',value,'support-preserve')));}
     else section.append(element('p','Yêu cầu chưa được chuyển cấp. Các bước đã thực hiện nằm trong lịch sử xử lý.'));
     $('internalArea').replaceChildren(section);

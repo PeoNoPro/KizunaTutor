@@ -96,12 +96,14 @@ Lệnh ghi dùng CSRF từ GET `/csrf` như các lệnh khác. Không có PUT s�
 
 Mỗi lần xếp hoặc gỡ ca ghi một dòng vào `support_shift_events` (shiftId, nhân viên, ngày, ca, `ASSIGN`/`REMOVE`, người thực hiện, thời điểm) trong cùng giao dịch; bảng chỉ thêm, trigger chặn sửa/xóa. Gỡ ca vẫn xóa dòng trong `support_shifts` nhưng lịch sử được giữ. Lịch sử hiện ở Nhật ký thao tác của Admin (nhóm "Lịch ca CS").
 
-Quy tắc tự giao (không có endpoint riêng):
+Quy tắc tự giao (không có endpoint riêng; cập nhật 2026-11-09 theo yêu cầu nhóm):
 
-- Mỗi CS giữ tối đa 1 yêu cầu đang xử lý (IN_PROGRESS do mình phụ trách, chưa tính phiếu Quản lý trả về cho người phụ trách cũ).
-- Yêu cầu OPEN chưa có người phụ trách được tự giao cho CS **đang trong ca** và **chưa giữ yêu cầu nào**, ưu tiên phiếu cũ nhất; ghi lịch sử `AUTO_ASSIGN`. Chạy sau commit khi có phiếu mới, khi CS xong việc, khi Quản lý xếp ca, và định kỳ.
+- Mỗi CS giữ tối đa **3** yêu cầu đang xử lý (`SupportShiftService.MAX_ACTIVE`; IN_PROGRESS do mình phụ trách, chưa tính phiếu Quản lý trả về cho người phụ trách cũ). Lý do: phần lớn thời gian một yêu cầu là chờ người dùng trả lời.
+- Yêu cầu OPEN chưa có người phụ trách được tự giao cho CS **đang trong ca** và **còn chỗ**, theo **mức ưu tiên** (Khẩn cấp → Cao → Bình thường → Thấp) rồi tới thời gian gửi; chia vòng, người đang giữ ít việc nhận trước. Ghi lịch sử `AUTO_ASSIGN` và gửi thông báo FE-12 cho CS được giao. Chạy sau commit khi có phiếu mới, khi CS xong việc, khi Quản lý xếp ca, và định kỳ 30 giây.
+- **Mức ưu tiên ban đầu** do hệ thống đặt lúc tạo (người gửi không chọn, `SupportTicketPriorityRule`): gắn buổi học thử bắt đầu trong 24 giờ tới → Khẩn cấp; Thanh toán, Sự cố kỹ thuật → Cao; Nội dung khác → Thấp; còn lại → Bình thường. CS phụ trách vẫn đổi được sau khi nhận.
+- **Không có nhận thủ công**: CS không bấm "Tiếp nhận"; `POST /{id}/claim` trả 400. Ngoài ca hoặc ngày chưa xếp ca thì CS chỉ xem, không được giao việc mới (bỏ ngoại lệ "ngày chưa xếp ca thì nhận tự do").
+- Ca đang diễn ra không có CS nào mà còn yêu cầu chờ: gửi thông báo FE-12 cho mọi Quản lý "Chưa có nhân viên hỗ trợ trong ca" (mỗi ca một lần), link tới trang xếp ca.
 - CS bị khóa hoặc đổi vai trò: phiếu đang giữ được giao cho CS khác đang trong ca và đang rảnh, ghi `REASSIGN_CS`; không có ai rảnh thì giữ nguyên người phụ trách và lịch sử.
-- POST `/{id}/claim` (tự nhận) chỉ được khi CS đang trong ca và chưa giữ yêu cầu nào; ngoài điều kiện này trả 409. Nếu hôm đó chưa xếp ca nào thì giữ cách nhận phiếu cũ.
-- Hết ca vẫn giữ việc đang làm; kết quả Quản lý trả về luôn về người phụ trách cũ, có thể vượt mức 1 yêu cầu.
+- Hết ca vẫn giữ việc đang làm; kết quả Quản lý trả về luôn về người phụ trách cũ, có thể vượt mức 3 yêu cầu. Bàn giao cho CS khác chỉ được khi người nhận đang trong ca và còn chỗ (409 nếu không).
 
 GET `/dashboard` (CS) bổ sung `shift: {current,next,activeTickets,maxActive}`; `current`/`next` là `{code,label,start,end,date}` hoặc `null`.

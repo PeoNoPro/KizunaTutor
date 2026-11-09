@@ -31,7 +31,8 @@ public class SupportShiftService {
         new Shift("MORNING", "Ca sáng", LocalTime.of(8, 0), LocalTime.of(12, 0)),
         new Shift("AFTERNOON", "Ca chiều", LocalTime.of(13, 0), LocalTime.of(17, 0)),
         new Shift("EVENING", "Ca tối", LocalTime.of(18, 0), LocalTime.of(22, 0)));
-    private static final int MAX_ACTIVE = 1;
+    /** Mỗi nhân viên hỗ trợ giữ tối đa 3 yêu cầu đang xử lý cùng lúc (phần lớn thời gian là chờ người dùng trả lời). */
+    public static final int MAX_ACTIVE = 3;
 
     private final SupportShiftRepository shifts;
     private final SupportTicketRepository tickets;
@@ -164,9 +165,9 @@ public class SupportShiftService {
 
     private boolean canTakeNewTicket(UUID staff) {
         var time=now();
-        return !shifts.anyShiftOn(time.toLocalDate()) ||
-            (currentShift(time).map(s -> shifts.onShift(staff,time.toLocalDate(),s.code())).orElse(false)
-                && shifts.activeTickets(staff)<MAX_ACTIVE);
+        // Chỉ nhận việc mới khi đang trong ca Quản lý đã xếp; ngày chưa xếp ca thì chỉ xem (bỏ ngoại lệ cũ, 2026-11-09).
+        return currentShift(time).map(s -> shifts.onShift(staff,time.toLocalDate(),s.code())).orElse(false)
+                && shifts.activeTickets(staff)<MAX_ACTIVE;
     }
 
     /** Never use the UI/request cache when granting work: state may have changed while waiting for the lock. */
@@ -197,15 +198,21 @@ public class SupportShiftService {
     private SupportShiftService proxy;
     private SupportShiftService self() { return proxy == null ? this : proxy; }
 
-    /** Giao lần lượt: mỗi nhân viên rảnh trong ca nhận một yêu cầu mới cũ nhất. Khóa chung để hai lượt không chạy chồng. */
+    /**
+     * Giao lần lượt theo vòng: mỗi vòng, mỗi nhân viên trong ca còn chỗ (dưới {@link #MAX_ACTIVE} yêu cầu) nhận một yêu cầu
+     * theo mức ưu tiên rồi thời gian gửi; lặp tới khi hết yêu cầu chờ hoặc không ai còn chỗ. Khóa chung để hai lượt không chạy chồng.
+     */
     @Transactional(propagation=Propagation.REQUIRES_NEW, timeout = 15)
     public int dispatch() {
         var now = now();
         var current = currentShift(now);
         if (current.isEmpty()) return 0;
         shifts.lockDispatch();
-        int assigned = 0;
-        for (var staff : shifts.freeStaff(now.toLocalDate(), current.get().code())) {
+        int assigned = 0, round;
+        rounds:
+        do {
+          round = 0;
+          for (var staff : shifts.freeStaff(now.toLocalDate(), current.get().code(), MAX_ACTIVE)) {
             // Lock current identity against concurrent deactivation/role changes.
             try { if(!identities.find(null,staff,true).cs()) continue; }
             catch(BusinessException exception) { if(exception.status()==403)continue;throw exception; }
@@ -213,7 +220,7 @@ public class SupportShiftService {
             // An inactive assignee must not leave a ticket stranded. End-of-shift alone is not inactivity.
             var handover=shifts.oldestUnavailableTicket();
             var ticketId = handover.isPresent()?handover:shifts.oldestOpenTicket();
-            if (ticketId.isEmpty()) break;
+            if (ticketId.isEmpty()) break rounds;
             var t = tickets.find(ticketId.get(), true);
             if(t==null)continue;
             boolean replacing=handover.isPresent();
@@ -227,8 +234,9 @@ public class SupportShiftService {
             after.put("status", t.get("status")); after.put("assigned_to", staff); after.put("version", next);
             audit.append(ticketId.get(), staff, replacing?"REASSIGN_CS":"AUTO_ASSIGN", next, before, after,
                 replacing?"Hệ thống bàn giao vì nhân viên cũ không còn hoạt động; "+current.get().label():current.get().label());
-            assigned++;
-        }
+            assigned++; round++;
+          }
+        } while (round > 0);
         if (assigned > 0) log.info("[SUPPORT SHIFT] Đã tự giao {} yêu cầu trong {}", assigned, current.get().label());
         return assigned;
     }

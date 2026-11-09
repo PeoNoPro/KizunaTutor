@@ -17,7 +17,10 @@ public class SupportTicketCommandExecutor {
    var actor=actors.current(true);if(!actor.requester())throw new BusinessException(403,"Chỉ học viên và gia sư được gửi yêu cầu hỗ trợ.");
    String subject=SupportTicketValidation.text(r.subject(),200),text=SupportTicketValidation.text(r.message(),10000);
    SupportTicketValidation.choice(r.category(),SupportTicketProjection.CATEGORY.keySet());contexts.validate(actor.userId(),r);
-   UUID id=UUID.randomUUID();tickets.create(id,actor.userId(),subject,r.category(),r.relatedBookingId(),r.relatedMembershipId(),r.relatedTransactionId());
+   UUID id=UUID.randomUUID();
+   // Mức ưu tiên ban đầu do hệ thống đặt theo nhóm và buổi học liên quan (người gửi không tự chọn).
+   String priority=SupportTicketPriorityRule.initial(r.category(),contexts.bookingStart(r.relatedBookingId()).orElse(null),java.time.OffsetDateTime.now());
+   tickets.create(id,actor.userId(),subject,r.category(),priority,r.relatedBookingId(),r.relatedMembershipId(),r.relatedTransactionId());
    append(id,actor.userId(),text,files);audit.append(id,actor.userId(),"CREATE",0,Map.of(),snapshot(tickets.find(id,false)),null);shifts.dispatchAfterCommit();return id;
  }
  @Transactional public void message(UUID id,Message r,List<TicketAttachmentValidator.ValidatedFile> files){
@@ -31,7 +34,7 @@ public class SupportTicketCommandExecutor {
    shifts.lockAssignments();
    var t=locked(id,r.expectedVersion());var a=actors.current(true);policy.command(a,t,action);var before=snapshot(t);String note=null;
    switch(action){
-     case "claim"->{shifts.requireNewAssignment(a.userId());t.put("assigned_to",a.userId());t.put("status","IN_PROGRESS");}
+     case "claim"->throw new BusinessException(400,"Yêu cầu được hệ thống tự giao cho nhân viên đang trong ca; không cần nhận thủ công.");
      case "assignment"->{actors.recipient(r.assigneeId(),"ROLE_CS_STAFF");if(Objects.equals(t.get("assigned_to"),r.assigneeId()))throw invalid();shifts.requireNewAssignment(r.assigneeId());t.put("assigned_to",r.assigneeId());note=r.reason()==null||r.reason().isBlank()?"Bàn giao yêu cầu cho nhân viên khác":SupportTicketValidation.text(r.reason(),10000);}
      case "priority"->t.put("priority",SupportTicketValidation.choice(r.priority(),SupportTicketProjection.PRIORITY.keySet()));
      case "resolve"->{append(id,a.userId(),SupportTicketValidation.text(r.resolutionText(),10000),List.of());t.put("status","RESOLVED");}

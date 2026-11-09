@@ -49,7 +49,7 @@ Nhân viên chăm sóc khách hàng xem hàng đợi, nhận xử lý, hỏi th�
 **Acceptance Scenarios**:
 
 1. **Given** có nhiều phiếu, **When** lọc theo trạng thái, nhóm, ưu tiên hoặc người xử lý, **Then** danh sách chỉ chứa phiếu phù hợp và mở được chi tiết.
-2. **Given** phiếu chưa có người xử lý, **When** nhân viên nhận phiếu, **Then** lưu người phụ trách và chuyển thành “Đang xử lý”.
+2. **Given** phiếu chưa có người xử lý, **When** hệ thống giao phiếu cho nhân viên đang trong ca và còn chỗ (bổ sung 2026-11-09: bỏ thao tác tự nhận, mỗi nhân viên tối đa 3 phiếu đang xử lý, giao theo mức ưu tiên rồi thời gian gửi), **Then** lưu người phụ trách và chuyển thành “Đang xử lý”.
 3. **Given** phiếu đang xử lý, **When** nhân viên gửi câu hỏi hoặc hướng dẫn, **Then** chủ phiếu thấy phản hồi theo thứ tự thời gian và có thể bổ sung khi chưa đóng.
 4. **Given** vấn đề đã được xử lý, **When** người phụ trách nhập kết quả và đánh dấu giải quyết, **Then** lưu kết quả công khai và trạng thái “Đã giải quyết”; chỉ khi chủ phiếu xác nhận đóng mới chuyển thành “Đã đóng”.
 5. **Given** danh sách rỗng hoặc tải thất bại, **When** mở danh sách, **Then** hiển thị trạng thái rỗng hoặc lỗi tiếng Việt tương ứng, không có phiếu giả.

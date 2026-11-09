@@ -11,7 +11,8 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Entity Lần Nộp Bài (FE-07). Mỗi lần nộp/nộp lại là một dòng mới với attemptNumber tăng dần.
+ * Entity Bài Nộp (FE-07). Mỗi học viên có một bài nộp cho mỗi bài tập; sửa bài nộp (khi còn hạn, chưa chấm) cập nhật
+ * nội dung, tệp (bảng submission_files) và submittedAt. Dữ liệu cũ có thể còn nhiều dòng (attemptNumber) — dùng dòng mới nhất.
  * Nội dung tệp nằm ở cột file_data (BYTEA) và cố ý KHÔNG ánh xạ để danh sách không tải dữ liệu nhị phân;
  * attachmentUrl lưu tên tệp gốc đã làm sạch. Bảng không có created_at/updated_at nên không kế thừa BaseEntity.
  */
@@ -64,7 +65,7 @@ public class AssignmentSubmission {
     private AssignmentSubmissionStatus status = AssignmentSubmissionStatus.SUBMITTED;
 
     /** Gán bởi service từ đồng hồ máy chủ để so sánh hạn nộp nhất quán. */
-    @Column(name = "submitted_at", nullable = false, updatable = false)
+    @Column(name = "submitted_at", nullable = false)
     private OffsetDateTime submittedAt;
 
     @Column(name = "graded_at")

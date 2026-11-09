@@ -2,6 +2,7 @@ package com.kizuna.features.classroom.controller;
 
 import com.kizuna.features.classroom.dto.*;
 import com.kizuna.features.classroom.exception.ClassroomExceptionHandler;
+import com.kizuna.features.classroom.service.ClassScheduleService;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.service.LearningMaterialService;
 import com.kizuna.features.classroom.util.CurrentActor;
@@ -32,6 +33,7 @@ public class ClassroomController extends ClassroomExceptionHandler {
     private final CurrentUserResolver currentUserResolver;
     private final ClassroomService classroomService;
     private final LearningMaterialService materialService;
+    private final ClassScheduleService scheduleService;
 
     // ===== Lớp học (UC-93, UC-58) =====
 
@@ -56,7 +58,7 @@ public class ClassroomController extends ClassroomExceptionHandler {
             @RequestBody ClassroomCreateRequest request) {
         CurrentActor actor = currentUserResolver.resolve(auth);
         return ResponseEntity.status(HttpStatus.CREATED).body(ClassroomApiResponse.ok(
-                "Đã thêm học viên vào lớp học và kích hoạt quyền truy cập.", classroomService.create(actor, request)));
+                "Tạo lớp học thành công.", classroomService.create(actor, request)));
     }
 
     @GetMapping("/{spaceId}")
@@ -65,6 +67,63 @@ public class ClassroomController extends ClassroomExceptionHandler {
             @PathVariable UUID spaceId) {
         CurrentActor actor = currentUserResolver.resolve(auth);
         return ClassroomApiResponse.ok("Tải thông tin lớp học thành công.", classroomService.getDetail(actor, spaceId));
+    }
+
+    @PutMapping("/{spaceId}")
+    public ClassroomApiResponse<ClassroomSummaryResponse> rename(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId,
+            @RequestBody ClassroomRenameRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Đổi tên lớp học thành công.",
+                classroomService.rename(actor, spaceId, request == null ? null : request.title()));
+    }
+
+    // ===== Lịch học hằng tuần (thêm / sửa / xóa; lớp luôn còn ít nhất 1 buổi) =====
+
+    /** Thời khóa biểu của người đang đăng nhập (dùng cho lưới tuần "Lịch giảng dạy" của FE-05). */
+    @GetMapping("/schedules/me")
+    public ClassroomApiResponse<List<TimetableEntryResponse>> myTimetable(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Tải thời khóa biểu thành công.", scheduleService.timetable(actor));
+    }
+
+    @GetMapping("/{spaceId}/schedules")
+    public ClassroomApiResponse<List<ClassScheduleResponse>> schedules(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Tải lịch học thành công.", scheduleService.list(actor, spaceId));
+    }
+
+    @PostMapping("/{spaceId}/schedules")
+    public ResponseEntity<ClassroomApiResponse<ClassScheduleResponse>> addSchedule(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId,
+            @RequestBody ClassScheduleRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ClassroomApiResponse.ok(
+                "Thêm buổi học thành công.", scheduleService.add(actor, spaceId, request)));
+    }
+
+    @PutMapping("/{spaceId}/schedules/{scheduleId}")
+    public ClassroomApiResponse<ClassScheduleResponse> updateSchedule(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID scheduleId,
+            @RequestBody ClassScheduleRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Cập nhật lịch học thành công.",
+                scheduleService.update(actor, spaceId, scheduleId, request));
+    }
+
+    @DeleteMapping("/{spaceId}/schedules/{scheduleId}")
+    public ClassroomApiResponse<Void> deleteSchedule(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID scheduleId) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        scheduleService.delete(actor, spaceId, scheduleId);
+        return ClassroomApiResponse.ok("Xóa buổi học thành công.", null);
     }
 
     // ===== Tài liệu học tập (UC-61, UC-65, UC-94, Delete Learning Material) =====
@@ -77,13 +136,13 @@ public class ClassroomController extends ClassroomExceptionHandler {
         return ClassroomApiResponse.ok("Tải danh sách tài liệu thành công.", materialService.list(actor, spaceId));
     }
 
-    /** Trả nội dung tệp (đọc từ DB) sau khi kiểm quyền; trình duyệt hiển thị trực tiếp hoặc tải về. */
-    @GetMapping("/{spaceId}/materials/{materialId}/file")
+    /** Trả nội dung một tệp của tài liệu (đọc từ DB) sau khi kiểm quyền; trình duyệt hiển thị trực tiếp hoặc tải về. */
+    @GetMapping("/{spaceId}/materials/{materialId}/files/{fileId}")
     public ResponseEntity<byte[]> file(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
-            @PathVariable UUID spaceId, @PathVariable UUID materialId) {
+            @PathVariable UUID spaceId, @PathVariable UUID materialId, @PathVariable UUID fileId) {
         CurrentActor actor = currentUserResolver.resolve(auth);
-        MaterialFileContent content = materialService.getFile(actor, spaceId, materialId);
+        MaterialFileContent content = materialService.getFile(actor, spaceId, materialId, fileId);
         ContentDisposition disposition = ContentDisposition.inline()
                 .filename(content.fileName(), StandardCharsets.UTF_8)
                 .build();
@@ -96,16 +155,17 @@ public class ClassroomController extends ClassroomExceptionHandler {
                 .body(content.data());
     }
 
+    /** Tạo một tài liệu gồm 1–10 tệp (nhiều phần "file"), tiêu đề bắt buộc. */
     @PostMapping(value = "/{spaceId}/materials", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ClassroomApiResponse<LearningMaterialResponse>> upload(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
             @PathVariable UUID spaceId,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "description", required = false) String description,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
+            @RequestPart(value = "file", required = false) List<MultipartFile> files) {
         CurrentActor actor = currentUserResolver.resolve(auth);
         return ResponseEntity.status(HttpStatus.CREATED).body(ClassroomApiResponse.ok(
-                "Tải lên tài liệu thành công.", materialService.upload(actor, spaceId, title, description, file)));
+                "Tải lên tài liệu thành công.", materialService.upload(actor, spaceId, title, description, files)));
     }
 
     @PutMapping(value = "/{spaceId}/materials/{materialId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -114,10 +174,11 @@ public class ClassroomController extends ClassroomExceptionHandler {
             @PathVariable UUID spaceId, @PathVariable UUID materialId,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "description", required = false) String description,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
+            @RequestParam(value = "removeFileIds", required = false) List<UUID> removeFileIds,
+            @RequestPart(value = "file", required = false) List<MultipartFile> files) {
         CurrentActor actor = currentUserResolver.resolve(auth);
         return ClassroomApiResponse.ok("Cập nhật tài liệu thành công.",
-                materialService.update(actor, spaceId, materialId, title, description, file));
+                materialService.update(actor, spaceId, materialId, title, description, files, removeFileIds));
     }
 
     @DeleteMapping("/{spaceId}/materials/{materialId}")

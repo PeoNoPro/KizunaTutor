@@ -74,3 +74,11 @@ test('kiểm điểm', () => {
   assert.equal(parsePoints('8,5'), 8.5);
   assert.equal(parsePoints(''), null);
 });
+
+test('bài nộp nhiều tệp và khi sửa bài nộp', () => {
+  assert.equal(validateSubmission({ content: '', files: [{ name: 'a.pdf', size: 10 }, { name: 'b.docx', size: 10 }] }), null);
+  // Sửa: gỡ hết tệp cũ và không có nội dung → lỗi; còn giữ tệp cũ → hợp lệ
+  assert.ok(validateSubmission({ content: '', files: [], keptFiles: 0 }));
+  assert.equal(validateSubmission({ content: '', files: [], keptFiles: 1 }), null);
+  assert.ok(validateSubmission({ content: 'x', files: [{ name: 'a.pdf', size: 10 }], keptFiles: 5 }));
+});

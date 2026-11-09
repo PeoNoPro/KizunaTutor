@@ -6,8 +6,9 @@
 import { API, ApiError } from '/js/api.js';
 import { debounce } from '/js/main.js';
 import { mountAcademicLayout } from '/components/academic-layout/academic-layout.js';
+import { renderPagination as renderPaginationBar, PAGE_SIZE_OPTIONS } from '/components/pagination/pagination.js';
 
-const PAGE_SIZE = 10;
+
 const MSG01 = 'Không tìm thấy kết quả phù hợp. Vui lòng thử lại với từ khóa hoặc bộ lọc khác.';
 
 const STATUS_STYLE = {
@@ -17,7 +18,7 @@ const STATUS_STYLE = {
   REJECTED: { badge: 'bg-error-container text-error', dot: 'bg-error' }
 };
 
-const state = { page: 0 };
+const state = { page: 0, size: PAGE_SIZE_OPTIONS[0] };
 const $ = (id) => document.getElementById(id);
 
 // =========================================================================
@@ -60,11 +61,6 @@ function initialsOf(name) {
   return ((parts[0][0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }
 
-function nowText() {
-  const d = new Date();
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 // =========================================================================
 // 2. SỐ LIỆU TỔNG QUAN
 // =========================================================================
@@ -73,7 +69,6 @@ async function loadSummary() {
   try {
     const s = await API.academicVerification.getSummary();
     renderSummary(s);
-    $('updatedAtText').textContent = nowText();
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) return;
     $('summaryErrorText').textContent = err instanceof ApiError ? err.message : 'Không thể tải số liệu tổng quan.';
@@ -95,7 +90,6 @@ function renderSummary(s) {
   $('approvedMonthText').textContent = formatNumber(s.approvedThisMonth);
   $('rejectedMonthText').textContent = formatNumber(s.rejectedThisMonth);
   $('totalTutorsText').textContent = formatNumber(s.totalTutors);
-  $('notSubmittedText').textContent = `${formatNumber(s.notSubmittedCount)} gia sư chưa nộp hồ sơ xác minh (không tính trong biểu đồ).`;
 
   renderDistribution(s);
 }
@@ -152,7 +146,7 @@ function currentFilters() {
     submittedTo: $('toInput').value,
     sort: $('sortSelect').value,
     page: state.page,
-    size: PAGE_SIZE
+    size: state.size
   };
 }
 
@@ -194,8 +188,7 @@ async function loadQueue() {
     if (err instanceof ApiError && err.status === 401) return;
     $('filteredTotal').textContent = '0';
     showQueueState({ icon: 'cloud_off', title: 'Không thể tải danh sách hồ sơ.', text: err instanceof ApiError ? err.message : '', retry: true });
-    $('pageInfo').textContent = '';
-    $('pagination').innerHTML = '';
+    $('pager').innerHTML = '';
   }
 }
 
@@ -245,31 +238,10 @@ function rowHtml(item) {
 }
 
 function renderPagination(page) {
-  const total = page.totalElements || 0;
-  const from = total === 0 ? 0 : page.page * page.size + 1;
-  const to = Math.min(total, (page.page + 1) * page.size);
-  $('pageInfo').innerHTML = `Hiển thị <strong class="text-on-surface font-semibold">${from} - ${to}</strong> trong tổng số <strong class="text-on-surface font-semibold">${formatNumber(total)}</strong> hồ sơ`;
-
-  const totalPages = page.totalPages || 0;
-  if (totalPages <= 1) {
-    $('pagination').innerHTML = '';
-    return;
-  }
-  const current = page.page;
-  const pages = new Set([0, totalPages - 1, current - 1, current, current + 1]);
-  const sorted = [...pages].filter((p) => p >= 0 && p < totalPages).sort((a, b) => a - b);
-  const btn = (label, target, disabled, active = false) => `
-    <button type="button" data-page="${target}" ${disabled ? 'disabled' : ''}
-      class="h-8 min-w-[2rem] px-2.5 rounded-lg ${active ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface'} ${disabled ? 'text-outline-variant cursor-not-allowed hover:bg-surface-container-lowest' : ''} text-label-sm flex items-center justify-center">${label}</button>`;
-  let html = btn('<span class="material-symbols-outlined text-[16px]">chevron_left</span>Trước', current - 1, current === 0);
-  let last = -1;
-  sorted.forEach((p) => {
-    if (last >= 0 && p - last > 1) html += '<span class="px-1 text-outline text-label-sm">...</span>';
-    html += btn(String(p + 1), p, false, p === current);
-    last = p;
+  renderPaginationBar($('pager'), page, {
+    onPage: (p) => { state.page = p; loadQueue(); },
+    onSize: (s) => { state.size = s; state.page = 0; loadQueue(); }
   });
-  html += btn('Tiếp<span class="material-symbols-outlined text-[16px]">chevron_right</span>', current + 1, current >= totalPages - 1);
-  $('pagination').innerHTML = html;
 }
 
 function applyFilters() {
@@ -304,22 +276,28 @@ function bindEvents() {
     $('sortSelect').value = 'oldest';
     applyFilters();
   });
-  $('pagination').addEventListener('click', (e) => {
-    const button = e.target.closest('button[data-page]');
-    if (!button || button.disabled) return;
-    state.page = Number(button.dataset.page);
-    loadQueue();
-  });
   $('queueRetryButton').addEventListener('click', loadQueue);
   document.querySelectorAll('[data-kpi-filter]').forEach((card) => card.addEventListener('click', () => focusQueue(card.dataset.kpiFilter)));
-  $('refreshButton').addEventListener('click', () => { loadSummary(); loadQueue(); });
   $('summaryRetryButton').addEventListener('click', loadSummary);
 }
 
-const onQueuePage = window.location.pathname.startsWith('/academic/verifications');
+// Máy chủ dev chuyển /academic/verifications sang /pages/academic-verifications/ nên dùng ?view=queue để nhận biết.
+const onQueuePage = new URLSearchParams(window.location.search).get('view') === 'queue'
+  || window.location.pathname.startsWith('/academic/verifications');
 mountAcademicLayout(onQueuePage ? 'verifications' : 'dashboard', onQueuePage ? 'Hồ sơ xác thực gia sư' : 'Tổng quan học vụ');
 
+/** Trang "Hồ sơ xác thực gia sư": chỉ tập trung vào bảng hồ sơ, bỏ cột thống kê để bảng chiếm toàn chiều ngang. */
+function applyQueueLayout() {
+  document.title = 'Hồ sơ xác thực gia sư - KizunaTutor';
+  $('pageTitle').textContent = 'Hồ sơ xác thực gia sư';
+  $('pageSubtitle').textContent = 'Tìm kiếm, lọc và mở từng hồ sơ để thẩm định thông tin và giấy tờ của gia sư.';
+  $('statsAside').classList.add('hidden');
+  $('queue').classList.remove('xl:col-span-8');
+  $('queue').classList.add('xl:col-span-12');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  if (onQueuePage) applyQueueLayout();
   bindEvents();
   highlightKpi();
   loadSummary();

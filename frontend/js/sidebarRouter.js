@@ -3,6 +3,11 @@
  * Chuyển trang mượt mà không reload toàn bộ màn hình, loại bỏ hiện tượng giật cục & chớp trắng.
  */
 
+// Lớp CSS mục sidebar học viên (đồng bộ kiểu sidebar gia sư); learner-layout.js dùng chung hai hằng này.
+export const LEARNER_NAV_BASE = 'nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] leading-5 transition-colors no-underline';
+export const LEARNER_NAV_ACTIVE = `${LEARNER_NAV_BASE} bg-[#007bb9] text-[#fdfcff] font-semibold shadow-sm`;
+export const LEARNER_NAV_IDLE = `${LEARNER_NAV_BASE} text-[#3f4850] font-medium hover:bg-[#e2e7ff] hover:text-[#131b2e]`;
+
 let isNavigating = false;
 let currentPathname = typeof window !== 'undefined' ? window.location.pathname : '';
 
@@ -75,12 +80,14 @@ export async function navigateTo(targetUrl, activeLink = null, pushHistory = tru
   if (sidebar) {
     const allLinks = sidebar.querySelectorAll('a[data-menu-key]');
     allLinks.forEach(l => {
-      l.className = 'nav-item flex items-center space-x-2.5 px-3 py-2 text-[14px] rounded-[6px] transition-all mb-1 no-underline text-[#334155] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent font-normal';
+      l.className = LEARNER_NAV_IDLE;
+      l.removeAttribute('aria-current');
     });
 
     const activeEl = activeLink || sidebar.querySelector(`a[href="${targetUrl}"], a[href="${targetUrl.split('?')[0]}"]`);
     if (activeEl) {
-      activeEl.className = 'nav-item flex items-center space-x-2.5 px-3 py-2 text-[14px] rounded-[6px] transition-all mb-1 no-underline bg-[#FFE5EC] border-l-[3px] border-l-[#831843] border border-[#FBCFE8] text-[#831843] font-semibold';
+      activeEl.className = LEARNER_NAV_ACTIVE;
+      activeEl.setAttribute('aria-current', 'page');
     }
 
     // Đóng sidebar nếu đang mở trên mobile

@@ -46,7 +46,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-outline-variant/40 flex items-center justify-between">
             <div>
-              <p class="text-caption text-on-surface-variant font-medium">Chờ phản hồi</p>
+              <p class="text-caption text-on-surface-variant font-medium">Học thử chờ phản hồi</p>
               <h3 id="statPending" class="text-headline-sm font-bold text-amber-700 mt-1">0</h3>
             </div>
             <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
@@ -56,7 +56,7 @@
 
           <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-outline-variant/40 flex items-center justify-between">
             <div>
-              <p class="text-caption text-on-surface-variant font-medium">Đã xác nhận</p>
+              <p class="text-caption text-on-surface-variant font-medium">Học thử sắp diễn ra</p>
               <h3 id="statConfirmed" class="text-headline-sm font-bold text-primary mt-1">0</h3>
             </div>
             <div class="w-10 h-10 rounded-xl bg-primary-fixed text-primary flex items-center justify-center">
@@ -66,7 +66,7 @@
 
           <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-outline-variant/40 flex items-center justify-between">
             <div>
-              <p class="text-caption text-on-surface-variant font-medium">Tổng số yêu cầu</p>
+              <p class="text-caption text-on-surface-variant font-medium">Tổng yêu cầu học thử</p>
               <h3 id="statTotal" class="text-headline-sm font-bold text-on-surface mt-1">0</h3>
             </div>
             <div class="w-10 h-10 rounded-xl bg-surface-container text-on-surface flex items-center justify-center">
@@ -260,6 +260,53 @@
         <button type="button" id="btnSubmitDecline" class="px-5 py-2.5 rounded-xl bg-error hover:opacity-90 text-on-error text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all">
           <span class="material-symbols-outlined text-[18px]">close</span>
           <span id="btnSubmitDeclineText">Xác nhận từ chối</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL XÁC NHẬN HOÀN THÀNH BUỔI HỌC ===== -->
+  <div id="modalConfirmComplete" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalCompleteTitle">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-in fade-in duration-150">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200">
+            <span class="material-symbols-outlined text-[24px]">task_alt</span>
+          </div>
+          <div>
+            <h2 id="modalCompleteTitle" class="text-title-md font-bold text-on-surface">Xác nhận hoàn thành buổi học</h2>
+            <p class="text-caption text-on-surface-variant">Ghi nhận buổi học 1-1 đã hoàn tất thành công</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close text-on-surface-variant hover:text-on-surface p-1 rounded-lg cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Tóm tắt buổi học -->
+      <div class="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-2 text-body-sm">
+        <div class="flex items-center gap-2 text-on-surface">
+          <span class="material-symbols-outlined text-[18px] text-emerald-700">person</span>
+          <span>Học viên: <strong id="completeStudentName" class="font-bold">—</strong></span>
+        </div>
+        <div class="flex items-center gap-2 text-on-surface">
+          <span class="material-symbols-outlined text-[18px] text-emerald-700">schedule</span>
+          <span>Thời gian: <span id="completeTimeStr" class="font-medium">—</span></span>
+        </div>
+      </div>
+
+      <p class="text-body-sm text-on-surface-variant leading-relaxed">
+        Xác nhận bạn và học viên đã hoàn thành buổi học này. Trạng thái sẽ được lưu vào lịch sử và mở điều kiện sắp xếp lớp học chính thức.
+      </p>
+
+      <!-- Nút hành động -->
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/30">
+        <button type="button" class="modal-close px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md transition-all font-medium cursor-pointer">
+          Hủy bỏ
+        </button>
+        <button type="button" id="btnSubmitComplete" class="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]">check_circle</span>
+          <span id="btnSubmitCompleteText">Xác nhận hoàn thành</span>
         </button>
       </div>
     </div>

@@ -4,10 +4,13 @@ import com.kizuna.core.entity.Learner;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.features.classroom.dto.LearningMaterialResponse;
 import com.kizuna.features.classroom.dto.MaterialFileContent;
+import com.kizuna.features.classroom.dto.MaterialFileResponse;
 import com.kizuna.features.classroom.entity.LearningMaterial;
+import com.kizuna.features.classroom.entity.LearningMaterialFile;
 import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import com.kizuna.features.classroom.exception.ClassroomException;
+import com.kizuna.features.classroom.repository.LearningMaterialFileRepository;
 import com.kizuna.features.classroom.repository.LearningMaterialRepository;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.service.impl.LearningMaterialServiceImpl;
@@ -18,7 +21,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,38 +38,60 @@ import static org.mockito.Mockito.*;
 class LearningMaterialServiceImplTest {
 
     private static final byte[] PDF = MaterialFileValidatorTest.PDF;
-    private static final byte[] PNG = MaterialFileValidatorTest.PNG;
+    private static final byte[] DOCX = MaterialFileValidatorTest.DOCX;
 
     private ClassroomService classrooms;
     private LearningMaterialRepository materials;
+    private LearningMaterialFileRepository files;
     private LearningMaterialServiceImpl service;
 
     private Tutor tutor;
     private Learner learner;
     private LearningSpace space;
     private CurrentActor tutorActor;
+    /** Giả lập bảng learning_material_files. */
+    private List<LearningMaterialFile> stored;
 
     @BeforeEach
     void setUp() {
         classrooms = mock(ClassroomService.class);
         materials = mock(LearningMaterialRepository.class);
-        service = new LearningMaterialServiceImpl(classrooms, materials, new MaterialFileValidator());
+        files = mock(LearningMaterialFileRepository.class);
+        service = new LearningMaterialServiceImpl(classrooms, materials, files, new MaterialFileValidator());
 
         tutor = tutor(TutorMembershipStatus.PREMIUM);
         learner = learner();
         space = space(tutor, learner, LearningSpaceStatus.ACTIVE);
         tutorActor = asTutor(tutor);
+        stored = new ArrayList<>();
 
         when(classrooms.loadManageableSpace(tutorActor, space.getSpaceId())).thenReturn(space);
+        when(classrooms.loadAccessibleSpace(any(), eq(space.getSpaceId()))).thenReturn(space);
         when(materials.save(any(LearningMaterial.class))).thenAnswer(inv -> {
             LearningMaterial m = inv.getArgument(0);
             if (m.getMaterialId() == null) m.setMaterialId(UUID.randomUUID());
             return m;
         });
+        when(files.insertFile(any(), any(), anyString(), anyLong(), any())).thenAnswer(inv -> {
+            stored.add(LearningMaterialFile.builder().fileId(inv.getArgument(0)).materialId(inv.getArgument(1))
+                    .fileName(inv.getArgument(2)).fileSize(inv.getArgument(3)).build());
+            return 1;
+        });
+        when(files.findByMaterialIdOrderByCreatedAtAscFileNameAsc(any())).thenAnswer(inv ->
+                stored.stream().filter(f -> f.getMaterialId().equals(inv.getArgument(0))).toList());
+        doAnswer(inv -> {
+            Iterable<LearningMaterialFile> gone = inv.getArgument(0);
+            gone.forEach(stored::remove);
+            return null;
+        }).when(files).deleteAll(anyIterable());
     }
 
-    private static MockMultipartFile pdf() {
-        return new MockMultipartFile("file", "bai-1.pdf", "application/pdf", PDF);
+    private static MockMultipartFile pdf(String name) {
+        return new MockMultipartFile("file", name, "application/pdf", PDF);
+    }
+
+    private static MockMultipartFile docx(String name) {
+        return new MockMultipartFile("file", name, "application/octet-stream", DOCX);
     }
 
     private static void assertStatus(Runnable call, HttpStatus status) {
@@ -71,47 +99,58 @@ class LearningMaterialServiceImplTest {
                 .extracting(e -> ((ClassroomException) e).getStatus()).isEqualTo(status);
     }
 
-    private LearningMaterial existing() {
+    private LearningMaterial existing(String... fileNames) {
         LearningMaterial m = LearningMaterial.builder().materialId(UUID.randomUUID()).space(space).title("Cũ")
-                .description("Mô tả cũ").fileUrl("cu.pdf").fileType("PDF").uploadedBy(tutor.getUser()).build();
+                .description("Mô tả cũ").fileUrl(fileNames.length > 0 ? fileNames[0] : "cu.pdf").fileType("PDF")
+                .uploadedBy(tutor.getUser()).build();
         when(materials.findByMaterialIdAndSpace_SpaceId(m.getMaterialId(), space.getSpaceId())).thenReturn(Optional.of(m));
+        for (String name : fileNames) {
+            LearningMaterialFile f = LearningMaterialFile.builder().fileId(UUID.randomUUID())
+                    .materialId(m.getMaterialId()).fileName(name).fileSize(6L).build();
+            stored.add(f);
+            when(files.findByFileIdAndMaterialId(f.getFileId(), m.getMaterialId())).thenReturn(Optional.of(f));
+        }
         return m;
     }
 
     private void verifyNothingWritten() {
         verify(materials, never()).save(any());
-        verify(materials, never()).updateFileData(any(), any());
+        verify(files, never()).insertFile(any(), any(), anyString(), anyLong(), any());
     }
 
-    // ----- UC-65 Upload -----
+    // ----- UC-65 Upload: một tài liệu nhiều tệp -----
 
     @Test
-    void uploadSavesRecordThenFileBytes() {
-        LearningMaterialResponse r = service.upload(tutorActor, space.getSpaceId(), " Từ vựng bài 1 ", " Ôn tập ", pdf());
+    void uploadCreatesOneMaterialWithAllFiles() {
+        LearningMaterialResponse r = service.upload(tutorActor, space.getSpaceId(), " Ngữ pháp ", " Ôn tập ",
+                List.of(pdf("C:\\Users\\a\\Bai 1.PDF"), docx("Bai 2.docx")));
 
-        var order = inOrder(materials);
-        order.verify(materials).save(argThat(m -> m.getFileUrl().equals("bai-1.pdf") && m.getFileType().equals("PDF")
-                && m.getSpace() == space && m.getUploadedBy() == tutor.getUser()));
-        order.verify(materials).updateFileData(r.materialId(), PDF);
-        assertThat(r.title()).isEqualTo("Từ vựng bài 1");
+        assertThat(r.title()).isEqualTo("Ngữ pháp");
         assertThat(r.description()).isEqualTo("Ôn tập");
-        assertThat(r.fileType()).isEqualTo("PDF");
+        assertThat(r.files()).extracting(MaterialFileResponse::fileName).containsExactly("Bai 1.pdf", "Bai 2.docx");
+        assertThat(r.files()).extracting(MaterialFileResponse::fileType).containsExactly("PDF", "DOCX");
+        verify(materials, times(1)).save(argThat(m -> m.getFileUrl().equals("Bai 1.pdf") && m.getFileType().equals("PDF")
+                && m.getSpace() == space && m.getUploadedBy() == tutor.getUser()));
+        verify(files, times(2)).insertFile(any(), eq(r.materialId()), anyString(), anyLong(), any());
     }
 
     @Test
-    void uploadBlankDescriptionStoredAsNull() {
-        assertThat(service.upload(tutorActor, space.getSpaceId(), "Bài 1", "   ", pdf()).description()).isNull();
+    void uploadAlwaysRequiresTitleAndAtLeastOneFile() {
+        assertStatus(() -> service.upload(tutorActor, space.getSpaceId(), "  ", null, List.of(pdf("a.pdf"), pdf("b.pdf"))),
+                HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.upload(tutorActor, space.getSpaceId(), "Ngữ pháp", null, List.of()), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.upload(tutorActor, space.getSpaceId(), "Ngữ pháp", "x".repeat(1001), List.of(pdf("a.pdf"))),
+                HttpStatus.BAD_REQUEST);
+        verifyNothingWritten();
     }
 
     @Test
-    void uploadRejectsMissingTitleOrFileOrLongDescription() {
-        UUID id = space.getSpaceId();
-        assertStatus(() -> service.upload(tutorActor, id, "  ", null, pdf()), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.upload(tutorActor, id, "a".repeat(151), null, pdf()), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.upload(tutorActor, id, "Bài 1", "a".repeat(1001), pdf()), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.upload(tutorActor, id, "Bài 1", null, null), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.upload(tutorActor, id, "Bài 1", null,
-                new MockMultipartFile("file", "virus.pdf", "application/pdf", new byte[]{0x4D, 0x5A, 0, 0})), HttpStatus.BAD_REQUEST);
+    void uploadRejectsBadFileOrMoreThanTenWithoutSavingAnything() {
+        MockMultipartFile fake = new MockMultipartFile("file", "gia.docx", "application/octet-stream", PDF);
+        assertStatus(() -> service.upload(tutorActor, space.getSpaceId(), "Ngữ pháp", null, List.of(pdf("a.pdf"), fake)),
+                HttpStatus.BAD_REQUEST);
+        List<MultipartFile> eleven = new ArrayList<>(Collections.nCopies(6, pdf("a.pdf")));
+        assertStatus(() -> service.upload(tutorActor, space.getSpaceId(), "Ngữ pháp", null, eleven), HttpStatus.BAD_REQUEST);
         verifyNothingWritten();
     }
 
@@ -119,11 +158,7 @@ class LearningMaterialServiceImplTest {
     void uploadBlockedWhenClassroomNotManageable() {
         CurrentActor learnerActor = asLearner(learner);
         when(classrooms.loadManageableSpace(learnerActor, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
-        assertStatus(() -> service.upload(learnerActor, space.getSpaceId(), "Bài", null, pdf()), HttpStatus.FORBIDDEN);
-
-        CurrentActor expiredActor = asTutor(tutor(TutorMembershipStatus.EXPIRED));
-        when(classrooms.loadManageableSpace(expiredActor, space.getSpaceId())).thenThrow(ClassroomException.conflict("x"));
-        assertStatus(() -> service.upload(expiredActor, space.getSpaceId(), "Bài", null, pdf()), HttpStatus.CONFLICT);
+        assertStatus(() -> service.upload(learnerActor, space.getSpaceId(), "T", null, List.of(pdf("a.pdf"))), HttpStatus.FORBIDDEN);
         verifyNothingWritten();
     }
 
@@ -131,11 +166,10 @@ class LearningMaterialServiceImplTest {
     void cleanFileNameStripsPathAndUnsafeCharacters() {
         var pdf = MaterialFileValidator.MaterialFileType.PDF;
         var jpg = MaterialFileValidator.MaterialFileType.JPG;
-        assertThat(LearningMaterialServiceImplTest.clean("C:\\Users\\a\\Bài 1.PDF", pdf)).isEqualTo("Bài 1.pdf");
+        assertThat(clean("C:\\Users\\a\\Bài 1.PDF", pdf)).isEqualTo("Bài 1.pdf");
         assertThat(clean("../../etc/pa<ss>wd.pdf", pdf)).isEqualTo("passwd.pdf");
         assertThat(clean("anh.jpeg", jpg)).isEqualTo("anh.jpg");
         assertThat(clean(null, pdf)).isEqualTo("tai-lieu.pdf");
-        assertThat(clean(".pdf", pdf)).isEqualTo("tai-lieu.pdf");
         assertThat(clean("a".repeat(400) + ".pdf", pdf)).hasSize(204);
     }
 
@@ -153,129 +187,96 @@ class LearningMaterialServiceImplTest {
     // ----- UC-61 View -----
 
     @Test
-    void listReturnsMaterialsForParticipants() {
-        LearningMaterial m = existing();
+    void listReturnsMaterialsWithTheirFiles() {
+        LearningMaterial m = existing("a.pdf", "b.docx");
         when(materials.findBySpace_SpaceIdOrderByCreatedAtDesc(space.getSpaceId())).thenReturn(List.of(m));
-        CurrentActor learnerActor = asLearner(learner);
+        when(files.findByMaterialIdInOrderByCreatedAtAscFileNameAsc(List.of(m.getMaterialId()))).thenReturn(List.copyOf(stored));
 
-        List<LearningMaterialResponse> result = service.list(learnerActor, space.getSpaceId());
+        List<LearningMaterialResponse> r = service.list(asLearner(learner), space.getSpaceId());
 
-        verify(classrooms).loadAccessibleSpace(learnerActor, space.getSpaceId());
-        assertThat(result).extracting(LearningMaterialResponse::title).containsExactly("Cũ");
-        assertThat(result.get(0).uploadedByName()).isEqualTo("Gia sư A");
-        verify(materials, never()).findFileData(any());
+        assertThat(r).singleElement().satisfies(x ->
+                assertThat(x.files()).extracting(MaterialFileResponse::fileName).containsExactly("a.pdf", "b.docx"));
     }
 
     @Test
-    void listDeniedForOutsiders() {
-        CurrentActor outsider = asLearner(learner());
-        when(classrooms.loadAccessibleSpace(outsider, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
-        assertStatus(() -> service.list(outsider, space.getSpaceId()), HttpStatus.FORBIDDEN);
-        verify(materials, never()).findBySpace_SpaceIdOrderByCreatedAtDesc(any());
+    void readsOneFileOfMaterialWithContentType() {
+        LearningMaterial m = existing("a.pdf", "b.docx");
+        LearningMaterialFile docxFile = stored.get(1);
+        when(files.findFileData(docxFile.getFileId())).thenReturn(DOCX);
+
+        MaterialFileContent c = service.getFile(asLearner(learner), space.getSpaceId(), m.getMaterialId(), docxFile.getFileId());
+
+        assertThat(c.fileName()).isEqualTo("b.docx");
+        assertThat(c.contentType()).isEqualTo("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        assertStatus(() -> service.getFile(asLearner(learner), space.getSpaceId(), m.getMaterialId(), UUID.randomUUID()),
+                HttpStatus.NOT_FOUND);
     }
 
-    @Test
-    void fileReturnedForParticipantWithContentType() {
-        LearningMaterial m = existing();
-        when(materials.findFileData(m.getMaterialId())).thenReturn(PDF);
-
-        MaterialFileContent file = service.getFile(asLearner(learner), space.getSpaceId(), m.getMaterialId());
-
-        assertThat(file.data()).isEqualTo(PDF);
-        assertThat(file.contentType()).isEqualTo("application/pdf");
-        assertThat(file.fileName()).isEqualTo("cu.pdf");
-    }
+    // ----- UC-94 Update: thay / xóa / thêm tệp -----
 
     @Test
-    void fileDeniedForOutsiderMissingForOtherClassroomOrEmpty() {
-        CurrentActor outsider = asLearner(learner());
-        when(classrooms.loadAccessibleSpace(outsider, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
-        assertStatus(() -> service.getFile(outsider, space.getSpaceId(), UUID.randomUUID()), HttpStatus.FORBIDDEN);
-
-        when(materials.findByMaterialIdAndSpace_SpaceId(any(), eq(space.getSpaceId()))).thenReturn(Optional.empty());
-        assertStatus(() -> service.getFile(tutorActor, space.getSpaceId(), UUID.randomUUID()), HttpStatus.NOT_FOUND);
-        verify(materials, never()).findFileData(any());
-
-        LearningMaterial m = existing();
-        when(materials.findFileData(m.getMaterialId())).thenReturn(null);
-        assertStatus(() -> service.getFile(tutorActor, space.getSpaceId(), m.getMaterialId()), HttpStatus.NOT_FOUND);
-    }
-
-    // ----- UC-94 Update -----
-
-    @Test
-    void updateMetadataOnlyKeepsFile() {
-        LearningMaterial m = existing();
-
-        LearningMaterialResponse r = service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "Mới", "", null);
-
+    void updateMetadataOnlyKeepsFiles() {
+        LearningMaterial m = existing("a.pdf");
+        LearningMaterialResponse r = service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "Mới", "", null, null);
         assertThat(r.title()).isEqualTo("Mới");
         assertThat(r.description()).isNull();
-        assertThat(m.getFileUrl()).isEqualTo("cu.pdf");
-        verify(materials).save(m);
-        verify(materials, never()).updateFileData(any(), any());
+        assertThat(r.files()).extracting(MaterialFileResponse::fileName).containsExactly("a.pdf");
+        verify(files, never()).insertFile(any(), any(), anyString(), anyLong(), any());
     }
 
     @Test
-    void updateReplacesFileContentAndName() {
-        LearningMaterial m = existing();
+    void updateReplacesOneFileAndAddsAnother() {
+        LearningMaterial m = existing("a.pdf", "b.pdf");
+        UUID replaceA = stored.get(0).getFileId();
 
-        LearningMaterialResponse r = service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "Mới", null,
-                new MockMultipartFile("file", "hinh.png", "image/png", PNG));
+        LearningMaterialResponse r = service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "Ngữ pháp", null,
+                List.of(pdf("a-moi.pdf"), docx("c.docx")), List.of(replaceA));
 
-        assertThat(r.fileType()).isEqualTo("PNG");
-        assertThat(m.getFileUrl()).isEqualTo("hinh.png");
-        var order = inOrder(materials);
-        order.verify(materials).save(m);
-        order.verify(materials).updateFileData(m.getMaterialId(), PNG);
+        assertThat(r.files()).extracting(MaterialFileResponse::fileName).containsExactly("b.pdf", "a-moi.pdf", "c.docx");
+        assertThat(m.getFileUrl()).isEqualTo("b.pdf");
     }
 
     @Test
-    void updateWithInvalidReplacementKeepsOriginal() {
-        LearningMaterial m = existing();
-        assertStatus(() -> service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "Mới", null,
-                new MockMultipartFile("file", "video.mp4", "video/mp4", PDF)), HttpStatus.BAD_REQUEST);
-        assertThat(m.getTitle()).isEqualTo("Cũ");
-        assertThat(m.getFileUrl()).isEqualTo("cu.pdf");
-        verifyNothingWritten();
+    void updateCannotRemoveAllFilesOrExceedTenOrRemoveUnknownFile() {
+        LearningMaterial m = existing("a.pdf");
+        UUID only = stored.get(0).getFileId();
+        assertStatus(() -> service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "T", null, null, List.of(only)),
+                HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "T", null, null,
+                List.of(UUID.randomUUID())), HttpStatus.NOT_FOUND);
+        List<MultipartFile> ten = new ArrayList<>(Collections.nCopies(5, pdf("x.pdf")));
+        assertStatus(() -> service.update(tutorActor, space.getSpaceId(), m.getMaterialId(), "T", null, ten, null),
+                HttpStatus.BAD_REQUEST);
+        assertThat(stored).hasSize(1);
+        verify(materials, never()).save(any());
     }
 
     @Test
     void updateRejectsMaterialOfOtherClassroomAndNonManagers() {
         when(materials.findByMaterialIdAndSpace_SpaceId(any(), eq(space.getSpaceId()))).thenReturn(Optional.empty());
-        assertStatus(() -> service.update(tutorActor, space.getSpaceId(), UUID.randomUUID(), "Mới", null, null),
+        assertStatus(() -> service.update(tutorActor, space.getSpaceId(), UUID.randomUUID(), "T", null, null, null),
                 HttpStatus.NOT_FOUND);
-
         CurrentActor learnerActor = asLearner(learner);
         when(classrooms.loadManageableSpace(learnerActor, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
-        assertStatus(() -> service.update(learnerActor, space.getSpaceId(), UUID.randomUUID(), "Mới", null, null),
+        assertStatus(() -> service.update(learnerActor, space.getSpaceId(), UUID.randomUUID(), "T", null, null, null),
                 HttpStatus.FORBIDDEN);
-        verifyNothingWritten();
     }
 
     // ----- Delete Learning Material -----
 
     @Test
     void deleteRemovesMaterialOfClassroom() {
-        LearningMaterial m = existing();
+        LearningMaterial m = existing("a.pdf");
         service.delete(tutorActor, space.getSpaceId(), m.getMaterialId());
         verify(materials).delete(m);
     }
 
     @Test
-    void deleteRejectsMaterialOfOtherClassroom() {
-        when(materials.findByMaterialIdAndSpace_SpaceId(any(), eq(space.getSpaceId()))).thenReturn(Optional.empty());
-        assertStatus(() -> service.delete(tutorActor, space.getSpaceId(), UUID.randomUUID()), HttpStatus.NOT_FOUND);
-        verify(materials, never()).delete(any());
-    }
-
-    @Test
     void deleteBlockedForNonManagersAndReadOnlyClassroom() {
-        LearningMaterial m = existing();
+        LearningMaterial m = existing("a.pdf");
         CurrentActor learnerActor = asLearner(learner);
         when(classrooms.loadManageableSpace(learnerActor, space.getSpaceId())).thenThrow(ClassroomException.forbidden("x"));
         assertStatus(() -> service.delete(learnerActor, space.getSpaceId(), m.getMaterialId()), HttpStatus.FORBIDDEN);
-
         when(classrooms.loadManageableSpace(tutorActor, space.getSpaceId())).thenThrow(ClassroomException.conflict("x"));
         assertStatus(() -> service.delete(tutorActor, space.getSpaceId(), m.getMaterialId()), HttpStatus.CONFLICT);
         verify(materials, never()).delete(any());

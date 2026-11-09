@@ -11,21 +11,26 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Kiểm tra tệp tài liệu học tập (FE-06): PDF, PNG, JPG/JPEG, MP3; tối đa 10 MB.
+ * Kiểm tra tệp tài liệu / đề bài / bài làm (FE-06, FE-07): PDF, DOC, DOCX, PNG, JPG/JPEG, MP3; tối đa 25 MB mỗi tệp,
+ * tối đa {@value #MAX_FILES} tệp mỗi lần tải lên.
  * Đuôi tệp và chữ ký nhị phân đầu tệp phải cùng loại; Content-Type của trình duyệt không được tin cậy.
  */
 @Component
 public class MaterialFileValidator {
 
-    public static final long MAX_SIZE_BYTES = 10L * 1024 * 1024;
+    public static final long MAX_SIZE_BYTES = 25L * 1024 * 1024;
+    public static final int MAX_FILES = 5;
     /** Thông điệp tải tệp theo SRS (vượt dung lượng). */
     public static final String INVALID_FILE_MESSAGE =
-            "Dung lượng tệp vượt quá giới hạn 10 MB. Định dạng cho phép: PDF, PNG, JPG, MP3.";
+            "Dung lượng tệp vượt quá giới hạn 25 MB. Định dạng cho phép: PDF, DOC, DOCX, PNG, JPG, MP3.";
     public static final String UNSUPPORTED_FORMAT_MESSAGE =
-            "Định dạng tệp không được hỗ trợ hoặc nội dung tệp không khớp phần mở rộng. Định dạng cho phép: PDF, PNG, JPG, MP3.";
+            "Định dạng tệp không được hỗ trợ hoặc nội dung tệp không khớp phần mở rộng. Định dạng cho phép: PDF, DOC, DOCX, PNG, JPG, MP3.";
+    public static final String TOO_MANY_FILES_MESSAGE = "Mỗi lần chỉ được tải lên tối đa " + MAX_FILES + " tệp.";
 
     public enum MaterialFileType {
         PDF("pdf", "application/pdf"),
+        DOC("doc", "application/msword"),
+        DOCX("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
         PNG("png", "image/png"),
         JPG("jpg", "image/jpeg"),
         MP3("mp3", "audio/mpeg");
@@ -41,6 +46,8 @@ public class MaterialFileValidator {
 
     private static final Map<String, MaterialFileType> EXTENSIONS = Map.of(
             "pdf", MaterialFileType.PDF,
+            "doc", MaterialFileType.DOC,
+            "docx", MaterialFileType.DOCX,
             "png", MaterialFileType.PNG,
             "jpg", MaterialFileType.JPG,
             "jpeg", MaterialFileType.JPG,
@@ -63,6 +70,19 @@ public class MaterialFileValidator {
         return byExtension;
     }
 
+    /**
+     * Kiểm tra một lần tải nhiều tệp: bỏ phần tử rỗng, tối đa {@value #MAX_FILES} tệp, từng tệp hợp lệ.
+     * @return danh sách tệp không rỗng (có thể rỗng nếu không chọn tệp nào)
+     */
+    public java.util.List<MultipartFile> nonEmpty(java.util.List<MultipartFile> files) {
+        java.util.List<MultipartFile> list = files == null ? java.util.List.of()
+                : files.stream().filter(f -> f != null && !f.isEmpty()).toList();
+        if (list.size() > MAX_FILES) {
+            throw ClassroomException.field("file", TOO_MANY_FILES_MESSAGE);
+        }
+        return list;
+    }
+
     static String extensionOf(String filename) {
         if (filename == null) return "";
         int dot = filename.lastIndexOf('.');
@@ -81,6 +101,8 @@ public class MaterialFileValidator {
     static boolean matchesSignature(MaterialFileType type, byte[] h) {
         return switch (type) {
             case PDF -> startsWith(h, 0x25, 0x50, 0x44, 0x46);                          // %PDF
+            case DOC -> startsWith(h, 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1);  // Word 97-2003 (OLE)
+            case DOCX -> startsWith(h, 0x50, 0x4B, 0x03, 0x04);                         // Word 2007+ (ZIP)
             case PNG -> startsWith(h, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A);
             case JPG -> startsWith(h, 0xFF, 0xD8, 0xFF);
             case MP3 -> startsWith(h, 0x49, 0x44, 0x33)                                 // ID3

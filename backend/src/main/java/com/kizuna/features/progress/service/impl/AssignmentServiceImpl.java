@@ -1,5 +1,14 @@
 package com.kizuna.features.progress.service.impl;
 
+import com.kizuna.features.progress.dto.FileAttachmentResponse;
+import com.kizuna.features.progress.entity.AssignmentFile;
+import com.kizuna.features.progress.entity.SubmissionFile;
+import com.kizuna.features.progress.repository.AssignmentFileRepository;
+import com.kizuna.features.progress.repository.SubmissionFileRepository;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.exception.ClassroomException;
 import com.kizuna.features.classroom.service.ClassroomService;
@@ -14,8 +23,6 @@ import com.kizuna.features.progress.repository.AssignmentRepository;
 import com.kizuna.features.progress.repository.AssignmentSubmissionRepository;
 import com.kizuna.features.progress.service.AssignmentService;
 import com.kizuna.features.progress.util.AssignmentRules;
-import com.kizuna.features.progress.util.SubmissionFileSupport;
-import com.kizuna.features.classroom.util.MaterialFileValidator.MaterialFileType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,19 +47,33 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final ClassroomService classroomService;
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
+    private final AssignmentFileRepository assignmentFileRepository;
+    private final SubmissionFileRepository submissionFileRepository;
+    private final com.kizuna.features.progress.service.AssignmentAttachmentService attachmentService;
     private final Clock clock;
 
     @Autowired
     public AssignmentServiceImpl(ClassroomService classroomService, AssignmentRepository assignmentRepository,
-                                 AssignmentSubmissionRepository submissionRepository) {
-        this(classroomService, assignmentRepository, submissionRepository, Clock.systemDefaultZone());
+                                 AssignmentSubmissionRepository submissionRepository,
+                                 AssignmentFileRepository assignmentFileRepository,
+                                 SubmissionFileRepository submissionFileRepository,
+                                 com.kizuna.features.progress.service.AssignmentAttachmentService attachmentService) {
+        this(classroomService, assignmentRepository, submissionRepository, assignmentFileRepository,
+                submissionFileRepository, attachmentService, Clock.systemDefaultZone());
     }
 
     public AssignmentServiceImpl(ClassroomService classroomService, AssignmentRepository assignmentRepository,
-                                 AssignmentSubmissionRepository submissionRepository, Clock clock) {
+                                 AssignmentSubmissionRepository submissionRepository,
+                                 AssignmentFileRepository assignmentFileRepository,
+                                 SubmissionFileRepository submissionFileRepository,
+                                 com.kizuna.features.progress.service.AssignmentAttachmentService attachmentService,
+                                 Clock clock) {
         this.classroomService = classroomService;
         this.assignmentRepository = assignmentRepository;
         this.submissionRepository = submissionRepository;
+        this.assignmentFileRepository = assignmentFileRepository;
+        this.submissionFileRepository = submissionFileRepository;
+        this.attachmentService = attachmentService;
         this.clock = clock;
     }
 
@@ -62,8 +83,16 @@ public class AssignmentServiceImpl implements AssignmentService {
         LearningSpace space = classroomService.loadAccessibleSpace(actor, spaceId);
         OffsetDateTime now = OffsetDateTime.now(clock);
         boolean readOnly = classroomService.isReadOnly(space);
-        return assignmentRepository.findBySpace_SpaceIdOrderByCreatedAtDesc(spaceId).stream()
-                .map(a -> toSummary(actor, a, submissionsOf(a, space), now, readOnly))
+        List<Assignment> assignments = assignmentRepository.findBySpace_SpaceIdOrderByCreatedAtDesc(spaceId);
+        Map<UUID, List<FileAttachmentResponse>> filesByAssignment = assignments.isEmpty() ? Map.of()
+                : assignmentFileRepository.findByAssignmentIdInOrderByCreatedAtAscFileNameAsc(
+                                assignments.stream().map(Assignment::getAssignmentId).toList())
+                        .stream()
+                        .collect(Collectors.groupingBy(AssignmentFile::getAssignmentId, LinkedHashMap::new,
+                                Collectors.mapping(FileAttachmentResponse::of, Collectors.toList())));
+        return assignments.stream()
+                .map(a -> toSummary(actor, a, submissionsOf(a, space), now, readOnly,
+                        filesByAssignment.getOrDefault(a.getAssignmentId(), List.of())))
                 .toList();
     }
 
@@ -74,15 +103,24 @@ public class AssignmentServiceImpl implements AssignmentService {
         Assignment assignment = findInSpace(assignmentId, spaceId);
         List<AssignmentSubmission> submissions = submissionsOf(assignment, space);
         AssignmentSummaryResponse summary = toSummary(actor, assignment, submissions, OffsetDateTime.now(clock),
-                classroomService.isReadOnly(space));
-        return new AssignmentDetailResponse(summary, submissions.stream()
-                .map(s -> AssignmentMapper.toSubmissionResponse(s, assignment.getDueDate()))
+                classroomService.isReadOnly(space), filesOf(assignmentId));
+        // Mỗi học viên một bài nộp: chỉ trả bài nộp hiện tại (dòng mới nhất nếu dữ liệu cũ còn nhiều lần nộp)
+        List<AssignmentSubmission> current = submissions.isEmpty() ? List.of()
+                : List.of(submissions.get(submissions.size() - 1));
+        Map<UUID, List<SubmissionFile>> filesBySubmission = current.isEmpty() ? Map.of()
+                : submissionFileRepository.findBySubmissionIdInOrderByCreatedAtAscFileNameAsc(
+                                current.stream().map(AssignmentSubmission::getSubmissionId).toList())
+                        .stream().collect(Collectors.groupingBy(SubmissionFile::getSubmissionId));
+        return new AssignmentDetailResponse(summary, current.stream()
+                .map(s -> AssignmentMapper.toSubmissionResponse(s, assignment.getDueDate(),
+                        filesBySubmission.getOrDefault(s.getSubmissionId(), List.of())))
                 .toList());
     }
 
     @Override
     @Transactional
-    public AssignmentSummaryResponse create(CurrentActor actor, UUID spaceId, AssignmentRequest request) {
+    public AssignmentSummaryResponse create(CurrentActor actor, UUID spaceId, AssignmentRequest request,
+                                            List<org.springframework.web.multipart.MultipartFile> files) {
         requireTutor(actor);
         LearningSpace space = classroomService.loadManageableSpace(actor, spaceId);
         OffsetDateTime now = OffsetDateTime.now(clock);
@@ -100,13 +138,17 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .dueDate(req.dueDate())
                 .totalPoints(points)
                 .build());
-        return toSummary(actor, saved, List.of(), now, false);
+        // Tệp đề bài lưu trong cùng giao dịch: tệp lỗi / thiếu cả nội dung lẫn tệp → hủy toàn bộ, bài tập không được tạo
+        List<FileAttachmentResponse> attachments = attachmentService.applyChanges(saved, files, null);
+        return toSummary(actor, saved, List.of(), now, false, attachments);
     }
 
     @Override
     @Transactional
     public AssignmentSummaryResponse update(CurrentActor actor, UUID spaceId, UUID assignmentId,
-                                            AssignmentRequest request) {
+                                            AssignmentRequest request,
+                                            List<org.springframework.web.multipart.MultipartFile> files,
+                                            List<UUID> removeFileIds) {
         requireTutor(actor);
         LearningSpace space = classroomService.loadManageableSpace(actor, spaceId);
         Assignment assignment = findInSpace(assignmentId, spaceId);
@@ -127,7 +169,9 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setTotalPoints(points);
         assignment.setDueDate(req.dueDate());
         Assignment saved = assignmentRepository.save(assignment);
-        return toSummary(actor, saved, submissionsOf(saved, space), now, false);
+        // Thêm / gỡ / thay tệp đề bài trong cùng giao dịch; lỗi bất kỳ → hủy toàn bộ, bài tập giữ nguyên như trước
+        List<FileAttachmentResponse> attachments = attachmentService.applyChanges(saved, files, removeFileIds);
+        return toSummary(actor, saved, submissionsOf(saved, space), now, false, attachments);
     }
 
     // ---------------------------------------------------------------------
@@ -142,8 +186,14 @@ public class AssignmentServiceImpl implements AssignmentService {
                 assignment.getAssignmentId(), space.getLearner().getLearnerId());
     }
 
+    private List<FileAttachmentResponse> filesOf(UUID assignmentId) {
+        return assignmentFileRepository.findByAssignmentIdOrderByCreatedAtAscFileNameAsc(assignmentId).stream()
+                .map(FileAttachmentResponse::of).toList();
+    }
+
     private AssignmentSummaryResponse toSummary(CurrentActor actor, Assignment a, List<AssignmentSubmission> subs,
-                                                OffsetDateTime now, boolean readOnly) {
+                                                OffsetDateTime now, boolean readOnly,
+                                                List<FileAttachmentResponse> attachments) {
         AssignmentSubmission latest = subs.isEmpty() ? null : subs.get(subs.size() - 1);
         boolean graded = subs.stream().anyMatch(AssignmentSubmission::isFinalized);
         return AssignmentSummaryResponse.builder()
@@ -152,8 +202,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .description(a.getDescription())
                 .dueDate(a.getDueDate())
                 .totalPoints(a.getTotalPoints())
-                .attachmentName(a.getAttachmentUrl())
-                .attachmentType(attachmentType(a.getAttachmentUrl()))
+                .attachments(attachments)
                 .createdAt(a.getCreatedAt())
                 .dueOver(AssignmentRules.dueOver(a.getDueDate(), now))
                 .submissionState(AssignmentRules.state(a.getDueDate(), now, latest))
@@ -162,15 +211,12 @@ public class AssignmentServiceImpl implements AssignmentService {
                         .filter(Objects::nonNull).findFirst().orElse(null))
                 .canSubmit(actor.isLearner()
                         && AssignmentRules.canSubmit(a.getDueDate(), now, subs.size(), graded, readOnly))
+                .canEditSubmission(actor.isLearner()
+                        && AssignmentRules.canEditSubmission(a.getDueDate(), now, latest != null, graded, readOnly))
                 .canGrade(actor.isTutor()
                         && AssignmentRules.canGrade(a.getDueDate(), now, latest != null, graded, readOnly))
                 .canEdit(actor.isTutor() && !readOnly && !graded)
                 .build();
-    }
-
-    private static String attachmentType(String fileName) {
-        MaterialFileType type = SubmissionFileSupport.typeOf(fileName);
-        return type == null ? null : type.name();
     }
 
     private static void requireTutor(CurrentActor actor) {

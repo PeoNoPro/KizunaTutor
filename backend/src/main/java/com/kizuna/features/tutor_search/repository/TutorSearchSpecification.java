@@ -5,13 +5,24 @@ import com.kizuna.core.entity.User;
 import com.kizuna.core.entity.UserAccountStatus;
 import com.kizuna.features.tutor_search.dto.TutorSearchCriteriaDTO;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
+import com.kizuna.features.payment.entity.TutorMembership;
+import com.kizuna.features.payment.entity.TutorMembershipState;
+import com.kizuna.features.tutor_post.entity.TutorPost;
+import com.kizuna.features.tutor_post.entity.TutorPostStatus;
+import com.kizuna.features.tutor_post.service.TutorPostService;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Xây dựng Specification truy vấn lọc động danh sách gia sư theo JPA Criteria.
@@ -25,6 +36,9 @@ public class TutorSearchSpecification {
 
             // 1. Quy tắc cốt lõi GB-06: Hồ sơ phải được Ban học vụ phê duyệt (APPROVED)
             predicates.add(cb.equal(root.get("verificationStatus"), TutorVerificationStatus.APPROVED));
+
+            // 1b. Chỉ hiển thị gia sư có bài đăng đã được cán bộ học vụ duyệt và gói hội viên còn hạn
+            predicates.add(hasPublishedPostAndActiveMembership(root, query, cb));
 
             // 2. Tài khoản User liên kết phải đang hoạt động (ACTIVE) và chưa bị xóa mềm
             Join<Tutor, User> userJoin = root.join("user");
@@ -65,6 +79,24 @@ public class TutorSearchSpecification {
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    /** EXISTS bài đăng đã duyệt AND EXISTS gói hội viên ACTIVE chưa hết hạn. */
+    private static Predicate hasPublishedPostAndActiveMembership(Root<Tutor> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+        Subquery<UUID> post = query.subquery(UUID.class);
+        Root<TutorPost> p = post.from(TutorPost.class);
+        post.select(p.get("postId")).where(
+                cb.equal(p.get("tutor"), root),
+                cb.equal(p.get("status"), TutorPostStatus.PUBLISHED));
+
+        Subquery<UUID> membership = query.subquery(UUID.class);
+        Root<TutorMembership> m = membership.from(TutorMembership.class);
+        membership.select(m.get("membershipId")).where(
+                cb.equal(m.get("tutor"), root),
+                cb.equal(m.get("status"), TutorMembershipState.ACTIVE),
+                cb.greaterThanOrEqualTo(m.<LocalDate>get("endDate"), LocalDate.now(TutorPostService.ZONE)));
+
+        return cb.and(cb.exists(post), cb.exists(membership));
     }
 }
 

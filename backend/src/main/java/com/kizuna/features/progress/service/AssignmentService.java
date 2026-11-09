@@ -15,7 +15,23 @@ public interface AssignmentService {
 
     AssignmentDetailResponse detail(CurrentActor actor, UUID spaceId, UUID assignmentId);
 
-    AssignmentSummaryResponse create(CurrentActor actor, UUID spaceId, AssignmentRequest request);
+    /**
+     * Giao bài tập kèm tệp đề bài trong MỘT lần (tối đa 5 tệp). Kiểm tra tất cả (tiêu đề, nội dung hoặc tệp, hạn nộp,
+     * điểm, từng tệp); lỗi bất kỳ → không lưu gì.
+     */
+    AssignmentSummaryResponse create(CurrentActor actor, UUID spaceId, AssignmentRequest request,
+                                     java.util.List<org.springframework.web.multipart.MultipartFile> files);
 
-    AssignmentSummaryResponse update(CurrentActor actor, UUID spaceId, UUID assignmentId, AssignmentRequest request);
+    default AssignmentSummaryResponse create(CurrentActor actor, UUID spaceId, AssignmentRequest request) {
+        return create(actor, spaceId, request, null);
+    }
+
+    /** Sửa bài tập + thêm/gỡ/thay tệp đề bài trong MỘT lần; lỗi bất kỳ → không lưu gì. */
+    AssignmentSummaryResponse update(CurrentActor actor, UUID spaceId, UUID assignmentId, AssignmentRequest request,
+                                     java.util.List<org.springframework.web.multipart.MultipartFile> files,
+                                     java.util.List<UUID> removeFileIds);
+
+    default AssignmentSummaryResponse update(CurrentActor actor, UUID spaceId, UUID assignmentId, AssignmentRequest request) {
+        return update(actor, spaceId, assignmentId, request, null, null);
+    }
 }

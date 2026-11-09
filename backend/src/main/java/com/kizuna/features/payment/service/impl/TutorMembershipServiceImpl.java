@@ -37,6 +37,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
@@ -90,8 +91,42 @@ public class TutorMembershipServiceImpl implements TutorMembershipService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean hasActiveMembership(UUID tutorId, LocalDate today) {
+        return membershipRepository.countValidOn(tutorId, TutorMembershipState.ACTIVE, today) > 0;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<LocalDate> activeMembershipEndDate(UUID tutorId, LocalDate today) {
+        return membershipRepository.findByTutorTutorIdOrderByStartDateDesc(tutorId).stream()
+                .filter(m -> m.getStatus() == TutorMembershipState.ACTIVE && !m.getEndDate().isBefore(today))
+                .map(TutorMembership::getEndDate)
+                .max(LocalDate::compareTo);
+    }
+
+    @Override
     public List<MembershipViews.PlanView> listPlans() {
         return planRepository.findByIsActiveTrueOrderByDurationMonthsAscPriceAsc().stream().map(mapper::plan).toList();
+    }
+
+    /** Hạng gói theo thời hạn: gói dài hơn là gói cao hơn; cùng thời hạn là cùng hạng. */
+    private static final Comparator<MembershipPlan> PLAN_TIER =
+            Comparator.comparing((MembershipPlan p) -> p.getDurationMonths() == null ? 0 : p.getDurationMonths());
+
+    private Integer ownedDurationMonths(UUID tutorId) {
+        MembershipPlan owned = highestOwnedPlan(tutorId);
+        return owned == null ? null : owned.getDurationMonths();
+    }
+
+    /** Gói cao nhất trong các gói còn hiệu lực hoặc đã gia hạn nối tiếp; null nếu chưa có gói nào còn hạn. */
+    private MembershipPlan highestOwnedPlan(UUID tutorId) {
+        LocalDate today = today();
+        return membershipRepository.findByTutorTutorIdOrderByStartDateDesc(tutorId).stream()
+                .filter(m -> m.getStatus() == TutorMembershipState.ACTIVE && !m.getEndDate().isBefore(today))
+                .map(TutorMembership::getPlan)
+                .max(PLAN_TIER)
+                .orElse(null);
     }
 
     @Override
@@ -125,7 +160,7 @@ public class TutorMembershipServiceImpl implements TutorMembershipService {
         return new MembershipViews.MyMembershipView(eligible, eligible ? null : PaymentMessages.MSG34_NOT_APPROVED,
                 tutor.getTutorState() == null ? null : tutor.getTutorState().name(),
                 MembershipLabels.tutorState(tutor.getTutorState()),
-                current, upcoming, expiresOn, history);
+                current, upcoming, expiresOn, history, ownedDurationMonths(tutor.getTutorId()));
     }
 
     @Override
@@ -142,6 +177,11 @@ public class TutorMembershipServiceImpl implements TutorMembershipService {
                 .orElseThrow(() -> new ResourceNotFoundException(PaymentMessages.PLAN_NOT_FOUND));
         if (!Boolean.TRUE.equals(plan.getIsActive())) {
             throw new ConflictException(PaymentMessages.MSG35_PLAN_INACTIVE);
+        }
+        // Chỉ cho nâng cấp: không mua lại gói đang có hoặc gói thấp hơn khi gói hiện tại còn hạn
+        MembershipPlan owned = highestOwnedPlan(tutor.getTutorId());
+        if (owned != null && PLAN_TIER.compare(plan, owned) <= 0) {
+            throw new ConflictException(PaymentMessages.PLAN_NOT_UPGRADE);
         }
 
         PaymentTransaction tx = transactionRepository.save(PaymentTransaction.builder()

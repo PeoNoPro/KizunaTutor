@@ -25,6 +25,16 @@ window.closeCancelModal = () => {
   activeBookingId = null;
 };
 
+window.closeRescheduleModal = () => {
+  document.getElementById('modal-reschedule-booking')?.classList.add('hidden');
+  const alertBox = document.getElementById('reschedule-alert-box');
+  if (alertBox) {
+    alertBox.classList.add('hidden');
+    alertBox.innerText = '';
+  }
+  activeBookingId = null;
+};
+
 function showToast(message, isError = false) {
   const alertEl = document.getElementById('action-toast-alert');
   const msgEl = document.getElementById('action-toast-msg');
@@ -80,6 +90,16 @@ function getStatusBadge(status, label) {
       return `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
         <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
         ${label || 'Đã hủy'}
+      </span>`;
+    case 'DECLINED':
+      return `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+        ${label || 'Đã từ chối'}
+      </span>`;
+    case 'RESCHEDULED':
+      return `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+        ${label || 'Đã dời lịch'}
       </span>`;
     case 'COMPLETED':
       return `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
@@ -197,9 +217,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (currentStatusFilter === 'PENDING') {
       filtered = bookingsList.filter(b => b.bookingStatus === 'PENDING');
     } else if (currentStatusFilter === 'CONFIRMED') {
-      filtered = bookingsList.filter(b => b.bookingStatus === 'CONFIRMED');
+      filtered = bookingsList.filter(b => b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'RESCHEDULED');
     } else if (currentStatusFilter === 'HISTORY') {
-      filtered = bookingsList.filter(b => b.bookingStatus === 'CANCELLED' || b.bookingStatus === 'COMPLETED');
+      filtered = bookingsList.filter(b => b.bookingStatus === 'CANCELLED' || b.bookingStatus === 'COMPLETED' || b.bookingStatus === 'DECLINED');
     }
 
     if (filtered.length === 0) {
@@ -255,9 +275,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           `;
         } else {
-          // Học viên có thể hủy khi đang chờ
+          // Học viên có thể đổi lịch hoặc hủy khi đang chờ
           actionButtonsHtml = `
-            <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+            <div class="flex items-center gap-2 pt-2 border-t border-slate-100 flex-wrap">
+              <button type="button" class="btn-open-reschedule px-4 py-2 rounded-xl bg-white border border-[#006194] hover:bg-[#006194]/5 text-[#006194] text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5" data-booking-id="${item.bookingId}" data-current-time="${item.scheduledStartTime}">
+                <span class="material-symbols-outlined text-[16px]">edit_calendar</span>
+                <span>Đổi lịch</span>
+              </button>
               <button type="button" class="btn-open-cancel px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-all flex items-center gap-1.5" data-booking-id="${item.bookingId}">
                 <span class="material-symbols-outlined text-[16px]">close</span>
                 <span>Hủy yêu cầu</span>
@@ -265,7 +289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           `;
         }
-      } else if (item.bookingStatus === 'CONFIRMED') {
+      } else if (item.bookingStatus === 'CONFIRMED' || item.bookingStatus === 'RESCHEDULED') {
         const meetButtonHtml = (isOnline && item.meetingLink) ? `
           <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5">
             <span class="material-symbols-outlined text-[16px]">video_call</span>
@@ -276,6 +300,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         actionButtonsHtml = `
           <div class="flex items-center gap-2 pt-2 border-t border-slate-100 flex-wrap">
             ${meetButtonHtml}
+            <button type="button" class="btn-open-reschedule px-4 py-2 rounded-xl bg-white border border-[#006194] hover:bg-[#006194]/5 text-[#006194] text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5" data-booking-id="${item.bookingId}" data-current-time="${item.scheduledStartTime}">
+              <span class="material-symbols-outlined text-[16px]">edit_calendar</span>
+              <span>Đổi lịch</span>
+            </button>
             <button type="button" class="btn-open-cancel px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-all flex items-center gap-1.5" data-booking-id="${item.bookingId}">
               <span class="material-symbols-outlined text-[16px]">event_busy</span>
               <span>Hủy lịch</span>
@@ -381,6 +409,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
+    // Nút mở modal Đổi lịch (SRS 5.3)
+    document.querySelectorAll('.btn-open-reschedule').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeBookingId = btn.dataset.bookingId;
+        const alertBox = document.getElementById('reschedule-alert-box');
+        if (alertBox) {
+          alertBox.classList.add('hidden');
+          alertBox.innerText = '';
+        }
+        // Gợi ý ngày mai
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const pad = n => String(n).padStart(2, '0');
+        const defaultDate = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
+        const dateInput = document.getElementById('reschedule-date-input');
+        const timeInput = document.getElementById('reschedule-time-input');
+        if (dateInput) dateInput.value = defaultDate;
+        if (timeInput) timeInput.value = '09:00';
+        document.getElementById('modal-reschedule-booking')?.classList.remove('hidden');
+      });
+    });
+
     // Nút đóng các modal & toast (FRONTEND_RULES: thay thế inline onclick)
     document.querySelectorAll('[data-action="close-accept-modal"]').forEach(btn => {
       btn.addEventListener('click', window.closeAcceptModal);
@@ -390,6 +440,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.querySelectorAll('[data-action="close-cancel-modal"]').forEach(btn => {
       btn.addEventListener('click', window.closeCancelModal);
+    });
+    document.querySelectorAll('[data-action="close-reschedule-modal"]').forEach(btn => {
+      btn.addEventListener('click', window.closeRescheduleModal);
     });
     document.getElementById('btn-close-toast')?.addEventListener('click', () => {
       document.getElementById('action-toast-alert')?.classList.add('hidden');
@@ -501,6 +554,57 @@ document.addEventListener('DOMContentLoaded', async () => {
       } finally {
         submitCancelBtn.disabled = false;
         submitCancelBtn.innerText = 'Xác nhận hủy lịch';
+      }
+    });
+  }
+
+  // Xử lý Đổi lịch (Reschedule - SRS 5.3)
+  const submitRescheduleBtn = document.getElementById('btn-submit-reschedule');
+  if (submitRescheduleBtn) {
+    submitRescheduleBtn.addEventListener('click', async () => {
+      if (!activeBookingId) return;
+
+      const dateInput = document.getElementById('reschedule-date-input');
+      const timeInput = document.getElementById('reschedule-time-input');
+      const reasonInput = document.getElementById('reschedule-reason-input');
+      const alertBox = document.getElementById('reschedule-alert-box');
+
+      const dateVal = dateInput ? dateInput.value.trim() : '';
+      const timeVal = timeInput ? timeInput.value.trim() : '';
+      const reason = reasonInput ? reasonInput.value.trim() : '';
+
+      if (!dateVal || !timeVal) {
+        if (alertBox) {
+          alertBox.classList.remove('hidden');
+          alertBox.innerText = 'Vui lòng chọn ngày và giờ học mới.';
+        }
+        return;
+      }
+
+      const isoStartTime = `${dateVal}T${timeVal}:00+07:00`;
+
+      submitRescheduleBtn.disabled = true;
+      submitRescheduleBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span><span>Đang xử lý...</span>';
+
+      try {
+        await API.trialBookings.reschedule(activeBookingId, {
+          newScheduledStartTime: isoStartTime,
+          rescheduleReason: reason || 'Thay đổi thời gian học thử'
+        });
+
+        window.closeRescheduleModal();
+        showToast('Đã dời lịch học thử thành công.');
+        await loadBookings();
+      } catch (err) {
+        if (alertBox) {
+          alertBox.classList.remove('hidden');
+          alertBox.innerText = err.message || 'Không thể dời lịch lúc này. Vui lòng thử lại sau.';
+        } else {
+          alert(err.message || 'Không thể dời lịch lúc này.');
+        }
+      } finally {
+        submitRescheduleBtn.disabled = false;
+        submitRescheduleBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">schedule_send</span><span>Xác nhận đổi lịch</span>';
       }
     });
   }

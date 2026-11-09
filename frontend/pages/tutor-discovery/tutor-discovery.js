@@ -247,7 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
         avatarUrl: item.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfWr7LjTJCoD0Gf2VNK0QdLAElZ9cyCzJkQ8IOJ7ZhfKFRiPoiK-N6PJaofpuz4ZSh0MCTyzeYN1pX3x0Uaq5OcxZn8yQJ0H4V9S7DtsrI2aXdgxRQ0o8NMGuIO63NK6Y74ZNBD0G7rqPan3Z9H-N80LBRdViJvA9zYNeJLWG53XmbteXaiLIE6gVUR1BHJBqSmUiPALj-L4qvCcRXCinX5eARKyo5T6tbevnMHOs',
         isOnline: true,
         verified: (item.verified !== undefined ? item.verified : item.isVerified) ?? true,
-        headline: item.headline || 'Gia sư tiếng Nhật',
+        // Tiêu đề bài đăng đã được cán bộ học vụ duyệt (nếu có)
+        headline: item.postTitle || item.headline || 'Gia sư tiếng Nhật',
         experienceYears: item.experienceYears || 0,
         experienceText: (item.experienceYears ? item.experienceYears + ' năm giảng dạy chuyên sâu' : 'Gia sư chuyên môn'),
         jlptLevel: item.highestJlptLevel || 'N1',

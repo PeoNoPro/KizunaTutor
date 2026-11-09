@@ -4,11 +4,12 @@
 
 import { API, ApiError } from '/js/api.js';
 import { mountStaffLayout } from '/components/staff-layout/staff-layout.js';
+import { renderPagination } from '/components/pagination/pagination.js';
 import { escapeHtml, formatMoney, formatDate, formatDateTime, statusBadge } from '/js/membership-format.js';
 
-const PAGE_SIZE = 20;
+
 const $ = (id) => document.getElementById(id);
-const state = { page: 0 };
+const state = { page: 0, size: 20 };
 
 function show(id) {
   ['loadingState', 'errorState', 'contentState'].forEach((s) => $(s).classList.toggle('hidden', s !== id));
@@ -40,7 +41,7 @@ async function loadPlans() {
 async function load(page = 0) {
   show('loadingState');
   try {
-    const data = await API.managerMembership.getTutorMemberships({ ...filters(), page, size: PAGE_SIZE });
+    const data = await API.managerMembership.getTutorMemberships({ ...filters(), page, size: state.size });
     state.page = data.page;
     $('rowsBody').innerHTML = data.items.map((row) => `
       <tr class="border-t border-surface-container">
@@ -66,18 +67,10 @@ async function load(page = 0) {
 }
 
 function renderPager(data) {
-  if (data.totalPages <= 1) {
-    $('pager').innerHTML = data.totalItems ? `<span class="text-on-surface-variant">Tổng ${data.totalItems} gia sư</span>` : '';
-    return;
-  }
-  $('pager').innerHTML = `
-    <span class="text-on-surface-variant">Tổng ${data.totalItems} gia sư</span>
-    <div class="flex items-center gap-2">
-      <button type="button" class="tv-btn-small" data-page="${data.page - 1}" ${data.page <= 0 ? 'disabled' : ''}>Trang trước</button>
-      <span>Trang ${data.page + 1}/${data.totalPages}</span>
-      <button type="button" class="tv-btn-small" data-page="${data.page + 1}" ${data.page + 1 >= data.totalPages ? 'disabled' : ''}>Trang sau</button>
-    </div>`;
-  $('pager').querySelectorAll('[data-page]').forEach((b) => b.addEventListener('click', () => load(Number(b.dataset.page))));
+  renderPagination($('pager'), { ...data, size: state.size }, {
+    onPage: (p) => load(p),
+    onSize: (s) => { state.size = s; load(0); }
+  });
 }
 
 async function openDetail(tutorId) {

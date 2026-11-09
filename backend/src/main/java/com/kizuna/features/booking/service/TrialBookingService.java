@@ -2,6 +2,7 @@ package com.kizuna.features.booking.service;
 
 import com.kizuna.features.booking.dto.request.CancelTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.request.CreateTrialBookingRequestDTO;
+import com.kizuna.features.booking.dto.request.RescheduleTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.request.RespondTrialBookingRequestDTO;
 import com.kizuna.features.booking.dto.response.TrialBookingResponseDTO;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,22 @@ public interface TrialBookingService {
      * Hủy buổi học thử trước giờ học (User Story 4 - P3)
      */
     TrialBookingResponseDTO cancelTrialBooking(String userEmail, UUID bookingId, CancelTrialBookingRequestDTO request);
+
+    /**
+     * Đổi lịch / dời lịch học thử sang khung giờ mới (SRS 5.3, UC-34)
+     */
+    TrialBookingResponseDTO rescheduleTrialBooking(String userEmail, UUID bookingId, RescheduleTrialBookingRequestDTO request);
+
+    /**
+     * Xác nhận hoàn thành buổi học thử (chuyển sang COMPLETED)
+     */
+    TrialBookingResponseDTO completeTrialBooking(String userEmail, UUID bookingId);
+
+    /**
+     * Gia sư đồng ý kết nối với học viên sau khi buổi học thử đã hoàn thành (COMPLETED):
+     * đặt yêu cầu kết nối ACCEPTED và official_arrangement_agreed = true. Sau đó gia sư tạo lớp + lịch học ở FE-06.
+     */
+    TrialBookingResponseDTO agreeConnectionAfterTrial(String userEmail, UUID bookingId);
 
     /**
      * Kiểm tra xem gia sư có lịch học thử nào đang PENDING hoặc CONFIRMED trong ca này không

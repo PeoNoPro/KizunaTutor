@@ -13,18 +13,26 @@
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
-export function renderPagination(container, data, { onPage, onSize, sizes = PAGE_SIZE_OPTIONS } = {}) {
-  if (!container) return;
+/**
+ * Tính trạng thái phân trang (không đụng DOM): trang hiện tại, khoảng "a - b" và các số trang cần hiện
+ * (trang đầu, trang cuối, trang hiện tại và hai trang kề).
+ */
+export function paginationState(data = {}, sizes = PAGE_SIZE_OPTIONS) {
   const total = Number(data.total ?? data.totalElements ?? data.totalItems ?? 0);
   const size = Number(data.size) || sizes[0];
   const totalPages = Math.max(1, Number(data.totalPages) || Math.ceil(total / size) || 1);
   const current = Math.min(Math.max(0, Number(data.page) || 0), totalPages - 1);
   const from = total === 0 ? 0 : current * size + 1;
   const to = Math.min(total, (current + 1) * size);
-
   const pages = [...new Set([0, totalPages - 1, current - 1, current, current + 1])]
     .filter((p) => p >= 0 && p < totalPages)
     .sort((a, b) => a - b);
+  return { total, size, totalPages, current, from, to, pages };
+}
+
+export function renderPagination(container, data, { onPage, onSize, sizes = PAGE_SIZE_OPTIONS } = {}) {
+  if (!container) return;
+  const { size, totalPages, current, from, to, pages } = paginationState(data, sizes);
 
   const btn = (label, target, disabled, active = false, aria = '') => `
     <button type="button" data-page="${target}" ${disabled ? 'disabled' : ''} ${aria ? `aria-label="${aria}"` : ''} ${active ? 'aria-current="page"' : ''}

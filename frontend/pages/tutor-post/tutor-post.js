@@ -7,6 +7,7 @@
 import { API, ApiError } from '/js/api.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
 import { formatDateTime, toast } from '/js/membership-format.js';
+import { validatePostDraft, submitLabel } from '/js/tutor-post-helpers.js';
 
 const $ = (id) => document.getElementById(id);
 const STATES = ['loadingState', 'errorState', 'blockedState', 'contentState'];
@@ -64,8 +65,9 @@ function fillForm(post) {
 /** Chỉ cho soạn/gửi khi chưa có bài hoặc được yêu cầu bổ sung; các trạng thái khác chỉ xem. */
 function applyEditable(editable, post) {
   $('postForm').querySelectorAll('input, textarea, select').forEach((el) => { el.disabled = !editable; });
-  $('submitRow').classList.toggle('hidden', !editable);
-  $('submitText').textContent = post ? 'Gửi lại' : 'Gửi duyệt';
+  const label = submitLabel(editable, post);
+  $('submitRow').classList.toggle('hidden', !label);
+  if (label) $('submitText').textContent = label;
   $('formHint').textContent = editable
     ? (post ? 'Sửa các thông tin được yêu cầu rồi gửi lại để cán bộ học vụ duyệt.'
             : 'Điền thông tin và gửi để cán bộ học vụ duyệt trước khi hiển thị cho học viên.')
@@ -77,14 +79,6 @@ function updateCounters() {
   $('descriptionCounter').textContent = $('descriptionInput').value.length.toLocaleString('vi-VN');
 }
 
-function validate(p) {
-  const errors = [];
-  if (p.title.length < 10) errors.push('Tiêu đề tối thiểu 10 ký tự');
-  if (p.description.length < 50) errors.push('Giới thiệu tối thiểu 50 ký tự');
-  if (!p.teachingFormat) errors.push('Chọn hình thức dạy');
-  if (!(p.hourlyRate >= 10000 && p.hourlyRate <= 10000000)) errors.push('Học phí mỗi giờ từ 10.000 đ đến 10.000.000 đ');
-  return errors;
-}
 
 async function submit(event) {
   event.preventDefault();
@@ -95,7 +89,7 @@ async function submit(event) {
     teachingFormat: $('formatInput').value,
     hourlyRate: Number($('rateInput').value)
   };
-  const errors = validate(payload);
+  const errors = validatePostDraft(payload);
   $('formError').textContent = errors.join('. ') + (errors.length ? '.' : '');
   $('formError').classList.toggle('hidden', errors.length === 0);
   if (errors.length) return;

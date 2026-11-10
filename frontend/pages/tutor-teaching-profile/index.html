@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thông tin giảng dạy - KizunaTutor</title>
+  <title>Hồ sơ cá nhân - KizunaTutor</title>
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,12 +21,17 @@
     <div id="tutorTopbar"></div>
 
     <main class="flex-1 w-full pt-16">
-      <div class="px-4 md:px-8 py-6 max-w-6xl">
-        <div class="mb-6">
-          <h1 class="text-headline-md text-on-surface">Thông tin giảng dạy</h1>
-          <p class="text-body-md text-on-surface-variant mt-1">Thông tin cá nhân và giảng dạy hiển thị với học viên trên hồ sơ công khai của bạn.</p>
+      <div class="px-4 md:px-8 py-6 max-w-6xl space-y-6">
+        <div>
+          <h1 class="text-headline-md text-on-surface">Hồ sơ cá nhân</h1>
+          <p class="text-body-md text-on-surface-variant mt-1">Thông tin cá nhân, thông tin giảng dạy hiển thị với học viên và mật khẩu đăng nhập của bạn.</p>
         </div>
-        <div id="tutorProfileRoot"></div>
+
+        <!-- Khung hồ sơ: mỗi hàng một nhóm thông tin. Các hàng thông tin giảng dạy thêm ở Phase 4 (T027-T029). -->
+        <section id="tutorProfileCard" class="bg-white rounded-2xl border border-[#E2E8F0] divide-y divide-[#EEF1F5]">
+          <!-- Mật khẩu (khối dùng chung components/change-password) -->
+          <div id="changePasswordSection"></div>
+        </section>
       </div>
     </main>
   </div>

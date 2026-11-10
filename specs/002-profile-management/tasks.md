@@ -55,6 +55,8 @@
 - [x] T017 [US1] Bổ sung các hàm `getLearnerProfile()` và `updateLearnerProfile(data)` vào namespace `api.profile` trong `frontend/js/api.js`
 - [x] T018 [US1] Xây dựng giao diện thẻ hồ sơ cá nhân chuẩn Wabi-Sabi (trong khung `learner-layout`, thông tin tài khoản, badge trình độ, khối mục tiêu) tại `frontend/pages/learner-profile/index.html`
 - [x] T019 [US1] Xây dựng logic tải dữ liệu, hiển thị Skeleton Loading, mở Modal chỉnh sửa, xác thực định dạng form tiếng Việt và gọi API lưu hồ sơ tại `frontend/pages/learner-profile/learner-profile.js`
+- [x] T019b [US1][US2] Đổi mật khẩu cho học viên và gia sư: `PUT /api/profile/password` (`ProfilePasswordController`, `ProfilePasswordService`, `ChangePasswordRequest`, test `ProfilePasswordServiceTest`, `ProfilePasswordControllerTest`), khối dùng chung `frontend/components/change-password/change-password.js` gắn vào `learner-profile` và `tutor-teaching-profile`; hợp đồng bổ sung mục 2A
+- [x] T019c [US1][US2] Chuyển lối vào "Hồ sơ cá nhân" từ danh sách sidebar sang menu tài khoản (học viên: `learner-layout.js`; gia sư: tùy chọn `menuItems` của `components/user-menu/user-menu.js`, dùng trong `tutor-layout.js`)
 
 **Điểm kiểm soát (Checkpoint)**: User Story 1 hoàn tất đầy đủ cả Backend và Frontend, hoạt động độc lập như một bản MVP.
 

@@ -5,6 +5,7 @@
  */
 
 import { initSidebarRouter, LEARNER_NAV_ACTIVE, LEARNER_NAV_IDLE } from '/js/sidebarRouter.js';
+import { brandLogoHtml } from '/components/brand-logo/brand-logo.js';
 
 // =========================================================================
 // 1. CẤU HÌNH DANH MỤC MENU HỌC VIÊN
@@ -21,12 +22,13 @@ export const LEARNER_MENU_GROUPS = [
         matcher: ['/learner/dashboard', '/learner', '/dashboard']
       },
       {
-        // FE-02: học viên xem và cập nhật hồ sơ cá nhân.
+        // FE-02: học viên xem và cập nhật hồ sơ cá nhân. Mở từ menu tài khoản, không hiện trong danh sách sidebar.
         key: 'profile',
         title: 'Hồ sơ cá nhân',
         url: '/pages/learner-profile/',
-        icon: '👤',
-        matcher: ['/pages/learner-profile']
+        icon: 'person',
+        matcher: ['/pages/learner-profile'],
+        hiddenInSidebar: true
       }
     ]
   },
@@ -223,7 +225,7 @@ export function getLearnerSidebarHtml(activeKey) {
   const profile = getLearnerProfile();
 
   const menuSectionsHtml = LEARNER_MENU_GROUPS.map(group => {
-    const itemsHtml = group.items.map(item => {
+    const itemsHtml = group.items.filter(item => !item.hiddenInSidebar).map(item => {
       const isActive = item.key === currentActive;
       return `
         <a href="${item.url}"
@@ -252,13 +254,7 @@ export function getLearnerSidebarHtml(activeKey) {
       <div class="flex flex-col min-h-0 flex-1">
         <!-- Logo -->
         <div class="px-6 pt-6 pb-4 flex items-start justify-between">
-          <a href="/home" title="Về trang chủ KizunaTutor" class="no-underline">
-            <div class="flex items-center gap-2 mb-1">
-              <div class="w-8 h-8 rounded-lg bg-[#007bb9] flex items-center justify-center text-white text-[20px] leading-7 font-semibold">絆</div>
-              <div class="text-[20px] leading-7 font-semibold"><span class="text-[#0F2545]">Kizuna</span><span class="text-[#006194]">Tutor</span></div>
-            </div>
-            <p class="text-[11px] leading-[14px] font-medium text-[#3f4850] tracking-wider">Không gian học viên</p>
-          </a>
+          ${brandLogoHtml({ href: '/home', subtitle: 'Không gian học viên' })}
           <button type="button" id="btnCloseSidebarMobile" class="md:hidden p-1.5 rounded-lg text-[#707881] hover:text-[#131b2e] hover:bg-[#eaedff] transition-colors" title="Đóng menu" aria-label="Đóng menu">
             <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -274,7 +270,10 @@ export function getLearnerSidebarHtml(activeKey) {
       <div class="mx-4 my-4 relative" id="learnerUserMenu">
         <div id="learnerUserMenuPanel" role="menu" aria-label="Tài khoản"
              class="hidden absolute left-0 right-0 bottom-[calc(100%+8px)] rounded-xl bg-white shadow-lg ring-1 ring-black/5 p-1.5 flex-col z-50">
-          <a href="/home" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#131b2e] hover:bg-[#eaedff] no-underline">
+          <a href="/pages/learner-profile/" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#131b2e] hover:bg-[#eaedff] no-underline">
+            <span class="material-symbols-outlined text-[18px]">person</span><span>Hồ sơ cá nhân</span>
+          </a>
+          <a href="/home" data-no-spa role="menuitem" class="flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#131b2e] hover:bg-[#eaedff] no-underline">
             <span class="material-symbols-outlined text-[18px]">home</span><span>Về trang chủ</span>
           </a>
           <div class="h-px bg-[#eaedff] my-1"></div>

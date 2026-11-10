@@ -11,6 +11,7 @@
  */
 
 import { userMenuHtml, bindUserMenu } from '/components/user-menu/user-menu.js';
+import { brandLogoHtml } from '/components/brand-logo/brand-logo.js';
 // Bố cục giống Cổng học vụ, màu giống khung Quản trị viên (dùng chung hằng số với academic-layout)
 import {
   STAFF_PAGE_BG, STAFF_NAV_ACTIVE, STAFF_NAV_IDLE, STAFF_SIDEBAR, STAFF_ACCOUNT_CARD
@@ -113,13 +114,7 @@ export function mountStaffLayout(role, activeKey, pageTitle) {
       <div id="staffSidebarBackdrop" class="fixed inset-0 bg-black/30 z-40 hidden lg:hidden"></div>
       <aside id="staffSidebarPanel" class="fixed left-0 top-0 bottom-0 w-72 ${STAFF_SIDEBAR} z-50 flex flex-col justify-between py-6 -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
         <div class="flex flex-col">
-          <a href="${config.home}" class="px-6 mb-8 flex items-center gap-3 no-underline">
-            <img src="/assets/logos/kizuna-logo.png" alt="KizunaTutor" class="h-10 w-10 object-contain rounded-lg">
-            <div class="flex flex-col">
-              <span class="text-title-md font-bold tracking-tight text-[#0f2545]">KizunaTutor</span>
-              <span class="text-caption text-[#3f4850] tracking-wider">${escapeHtml(config.portal)}</span>
-            </div>
-          </a>
+          ${brandLogoHtml({ href: config.home, subtitle: config.portal, className: 'px-6 mb-8' })}
           <div class="px-6 mb-3"><span class="text-caption text-[#707881] tracking-wider font-semibold">Gói hội viên và thanh toán</span></div>
           <nav class="flex flex-col gap-1 px-4" aria-label="Điều hướng ${escapeHtml(config.portal.toLowerCase())}">
             ${config.items.map((item) => navItemHtml(item, activeKey)).join('')}

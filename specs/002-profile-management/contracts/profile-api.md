@@ -146,6 +146,39 @@
 
 ---
 
+## 2A. Đổi mật khẩu của chính mình (Change Password)
+
+> Bổ sung 2026-11-10 theo yêu cầu người dùng: học viên và gia sư đổi mật khẩu ngay trong trang hồ sơ cá nhân.
+
+### 2A.1. Đổi mật khẩu
+- **Endpoint**: `PUT /api/profile/password`
+- **Quyền truy cập**: `ROLE_LEARNER`, `ROLE_TUTOR` (luôn đổi mật khẩu của tài khoản trong phiên đăng nhập)
+- **Quy tắc**: mật khẩu mới dài 8–64 ký tự, có cả chữ và số (cùng quy tắc với nhân sự nội bộ); `confirmPassword` phải trùng `newPassword`; mật khẩu mới phải khác mật khẩu hiện tại.
+
+#### Request Body:
+```json
+{
+  "currentPassword": "MatKhauCu123",
+  "newPassword": "MatKhauMoi456",
+  "confirmPassword": "MatKhauMoi456"
+}
+```
+
+#### Response (200 OK):
+```json
+{
+  "success": true,
+  "message": "Đổi mật khẩu thành công.",
+  "data": null
+}
+```
+
+#### Lỗi:
+- `400` — "Mật khẩu hiện tại chưa đúng." / "Mật khẩu xác nhận không khớp." / "Mật khẩu mới cần khác mật khẩu hiện tại." / lỗi kiểm tra từng trường (`fieldErrors`).
+- `403` — tài khoản không phải học viên hoặc gia sư.
+
+---
+
 ## 3. API Tải ảnh đại diện (Avatar Upload)
 
 ### 3.1. Tải file ảnh đại diện lên máy chủ

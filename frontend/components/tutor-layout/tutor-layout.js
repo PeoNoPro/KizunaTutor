@@ -12,6 +12,7 @@
  */
 
 import { userMenuHtml, bindUserMenu, setUserMenuName, setUserMenuDetails } from '/components/user-menu/user-menu.js';
+import { brandLogoHtml } from '/components/brand-logo/brand-logo.js';
 
 // Đúng thứ tự và biểu tượng của thiết kế Stitch. "Hồ sơ gia sư" mở trang xác minh hồ sơ (FE-03).
 const NAV_ITEMS = [
@@ -24,8 +25,6 @@ const NAV_ITEMS = [
   { key: 'assignments', label: 'Quản lý bài tập', icon: 'assignment', href: '/tutor/classrooms?view=assignments', member: true },
   { key: 'progress', label: 'Báo cáo tiến độ', icon: 'insights', member: true },
   { key: 'notifications', label: 'Thông báo', icon: 'notifications' },
-  // FE-02: gia sư xem và cập nhật thông tin cá nhân, giảng dạy.
-  { key: 'profile', label: 'Thông tin giảng dạy', icon: 'person', href: '/tutor/profile' },
   { key: 'verification', label: 'Hồ sơ gia sư', icon: 'badge', href: '/tutor/verification' },
   { key: 'membership', label: 'Gói hội viên', icon: 'workspace_premium', href: '/tutor/membership' },
   { key: 'post', label: 'Bài đăng của tôi', icon: 'campaign', href: '/tutor/post', member: true },
@@ -140,11 +139,7 @@ export function mountTutorLayout(activeKey) {
       <aside id="tutorSidebarPanel" class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
         <div class="flex flex-col">
           <div class="px-6 pt-6 pb-4">
-            <a href="/home" title="Về trang chủ KizunaTutor" class="flex items-center gap-2 mb-1 no-underline">
-              <div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-on-primary text-headline-sm">絆</div>
-              <div><span class="text-headline-sm text-brand-navy">Kizuna</span><span class="text-headline-sm text-primary">Tutor</span></div>
-            </a>
-            <p class="text-caption text-on-surface-variant tracking-wider">Kết nối song ngữ Việt - Nhật</p>
+            ${brandLogoHtml({ href: '/home', subtitle: 'Không gian gia sư' })}
           </div>
           <nav class="flex flex-col gap-1 px-4 mt-2" aria-label="Điều hướng gia sư">
             ${NAV_ITEMS.map((item) => navItemHtml(item, activeKey)).join('')}
@@ -152,7 +147,11 @@ export function mountTutorLayout(activeKey) {
         </div>
         <!-- Menu tài khoản ở góc dưới bên trái (thay cho thanh trên) -->
         <div class="mx-4 my-4">
-          ${userMenuHtml({ prefix: 'tutor', name: storedUserName() || 'Gia sư', roleLabel: 'Gia sư tiếng Nhật', placement: 'sidebar' })}
+          ${userMenuHtml({
+            prefix: 'tutor', name: storedUserName() || 'Gia sư', roleLabel: 'Gia sư tiếng Nhật', placement: 'sidebar',
+            // FE-02: thông tin cá nhân, giảng dạy và đổi mật khẩu của gia sư.
+            menuItems: [{ label: 'Hồ sơ cá nhân', icon: 'person', href: '/tutor/profile' }]
+          })}
         </div>
       </aside>`;
   }

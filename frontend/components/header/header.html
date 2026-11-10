@@ -50,11 +50,11 @@
 
       <!-- 2. Trạng thái đã đăng nhập (Learner hoặc Tutor) -->
       <div id="headerUserActions" class="hidden flex items-center gap-1.5 sm:gap-3">
-        <!-- Nút Vào Dashboard: Ẩn trên mobile, chỉ hiện từ sm trở lên -->
+        <!-- Nút vào không gian học tập: Ẩn trên mobile, chỉ hiện từ sm trở lên -->
         <a id="headerDashboardBtn" href="/learner/dashboard"
           class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#006194] hover:bg-[#004B73] text-white font-semibold text-sm shadow-sm transition-all active:scale-[0.98] cursor-pointer">
           <span class="material-symbols-outlined text-[18px]">grid_view</span>
-          <span>Vào Dashboard</span>
+          <span data-workspace-label>Không gian học tập</span>
         </a>
 
         <!-- Biểu tượng Chuông thông báo -->
@@ -93,15 +93,10 @@
             </div>
 
             <div class="py-1">
-              <a id="dropdownDashboardLink" href="/learner/dashboard"
+              <a id="dropdownProfileLink" href="/pages/learner-profile/"
                 class="flex items-center gap-2.5 px-4 py-2 font-medium text-[#3F4850] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors">
-                <span class="material-symbols-outlined text-[18px]">grid_view</span>
-                <span>Bảng điều khiển</span>
-              </a>
-              <a href="/tutors"
-                class="flex items-center gap-2.5 px-4 py-2 font-medium text-[#3F4850] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors">
-                <span class="material-symbols-outlined text-[18px]">search</span>
-                <span>Tìm gia sư</span>
+                <span class="material-symbols-outlined text-[18px]">person</span>
+                <span>Hồ sơ cá nhân</span>
               </a>
               <a id="dropdownSettingsLink" href="/learner/dashboard"
                 class="flex items-center gap-2.5 px-4 py-2 font-medium text-[#3F4850] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors">
@@ -177,9 +172,14 @@
       <a id="mobileDashboardBtn" href="/learner/dashboard"
         class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#006194] text-white font-semibold text-sm shadow-sm hover:bg-[#004B73] transition-colors">
         <span class="material-symbols-outlined text-[18px]">grid_view</span>
-        <span>Vào Bảng điều khiển</span>
+        <span data-workspace-label>Không gian học tập</span>
       </a>
-      <div class="grid grid-cols-2 gap-2">
+      <div class="grid grid-cols-3 gap-2">
+        <a id="mobileProfileBtn" href="/pages/learner-profile/"
+          class="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white border border-[#ECE8DE] font-semibold text-xs text-[#3F4850] hover:bg-[#FAF8F2] transition-colors">
+          <span class="material-symbols-outlined text-[16px]">person</span>
+          <span>Hồ sơ cá nhân</span>
+        </a>
         <a id="mobileSettingsBtn" href="/learner/dashboard"
           class="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white border border-[#ECE8DE] font-semibold text-xs text-[#3F4850] hover:bg-[#FAF8F2] transition-colors">
           <span class="material-symbols-outlined text-[16px]">settings</span>

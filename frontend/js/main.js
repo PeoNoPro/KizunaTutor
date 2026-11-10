@@ -106,6 +106,16 @@ export function initNavigation() {
   }
 }
 
+// Trang hồ sơ cá nhân của từng vai trò (FE-02 và các cổng nhân sự).
+const PROFILE_URL_BY_ROLE = {
+  ROLE_LEARNER: '/pages/learner-profile/',
+  ROLE_TUTOR: '/tutor/profile',
+  ROLE_ACADEMIC_OFFICER: '/academic/profile',
+  ROLE_ADMIN: '/pages/admin-profile/',
+  ROLE_MANAGER: '/pages/admin-profile/',
+  ROLE_CS_STAFF: '/pages/admin-profile/'
+};
+
 // 5. Cập nhật giao diện người dùng đã đăng nhập (Đồng bộ tức thì 0ms từ đối tượng User)
 export function applyUserUI(user) {
   if (!user) return;
@@ -128,8 +138,17 @@ export function applyUserUI(user) {
   const mobileDashboardBtn = document.getElementById('mobileDashboardBtn');
   if (mobileDashboardBtn) mobileDashboardBtn.href = dashboardUrl;
 
-  const dropdownDashboardLink = document.getElementById('dropdownDashboardLink');
-  if (dropdownDashboardLink) dropdownDashboardLink.href = dashboardUrl;
+  // Gia sư vào không gian giảng dạy; học viên (và vai trò khác) giữ nhãn "Không gian học tập".
+  if (isTutor) {
+    document.querySelectorAll('[data-workspace-label]').forEach((el) => { el.textContent = 'Không gian giảng dạy'; });
+  }
+
+  // FE-02: "Hồ sơ cá nhân" trong menu tài khoản mở đúng trang hồ sơ theo vai trò.
+  const profileUrl = PROFILE_URL_BY_ROLE[user.role] || '/pages/learner-profile/';
+  ['dropdownProfileLink', 'mobileProfileBtn'].forEach((id) => {
+    const link = document.getElementById(id);
+    if (link) link.href = profileUrl;
+  });
 
   const dropdownSettingsLink = document.getElementById('dropdownSettingsLink');
   if (dropdownSettingsLink) dropdownSettingsLink.href = dashboardUrl;

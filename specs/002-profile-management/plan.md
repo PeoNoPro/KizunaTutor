@@ -136,3 +136,24 @@ frontend/
 - **Phản hồi `PUT`** dùng chung `LearnerProfileResponseDto` với `GET` (có thêm `createdAt` so với ví dụ ở hợp đồng mục 1.2).
 - **Frontend**: `learner-profile` có đủ 4 trạng thái (đang tải, lỗi kèm nút thử lại, nội dung, giá trị trống hiển thị "Chưa chọn"/"Chưa cập nhật"), modal chỉnh sửa có kiểm tra dữ liệu tiếng Việt, tải ảnh lên hoặc dán đường dẫn; sau khi lưu cập nhật `kizuna_user` (tên, ảnh) để header dùng chung hiển thị đúng. Module khởi tạo ngay khi chạy vì `sidebarRouter` import lại module mỗi lần chuyển trang.
 - **Kiểm thử**: `LearnerProfileServiceTest` (6 ca), `LearnerProfileControllerTest` (5 ca) — xanh. Lưu ý cho T048: mẫu `-Dtest="*Profile*Test"` còn khớp `com.kizuna.operations.ManagementReportProfileTest` (FE-11, cần `OPERATIONS_TEST_DB_URL`); nên dùng `-Dtest="com.kizuna.features.profile.*Test"`.
+
+### Menu tài khoản và đổi mật khẩu (T019b, T019c) — 2026-11-10
+
+- **Lý do**: người dùng yêu cầu đưa "Hồ sơ cá nhân" vào menu tài khoản (góc dưới sidebar) và thêm đổi mật khẩu trong trang hồ sơ của cả học viên và gia sư.
+- **Menu**: học viên — mục `profile` trong `LEARNER_MENU_GROUPS` có cờ `hiddenInSidebar` (vẫn dùng để nhận diện trang và tiêu đề header), thêm liên kết "Hồ sơ cá nhân" vào menu tài khoản. Gia sư — bỏ mục khỏi `NAV_ITEMS`; `user-menu.js` có thêm tùy chọn `menuItems` (mặc định rỗng, các khung học vụ/quản lý không đổi). Trang gia sư đổi tiêu đề thành "Hồ sơ cá nhân".
+- **Đổi mật khẩu**: API mới `PUT /api/profile/password` (hợp đồng mục 2A, chỉ `ROLE_LEARNER`/`ROLE_TUTOR`). Quy tắc giống nhân sự nội bộ (`PersonalProfileService`): 8–64 ký tự, có chữ và số, khác mật khẩu cũ; thêm `confirmPassword`. Tài khoản có hash không phải BCrypt (ví dụ tạo qua Google) nhận "Mật khẩu hiện tại chưa đúng." thay vì lỗi kỹ thuật — các tài khoản này chưa có cách đặt mật khẩu đầu tiên, cần nhóm quyết định.
+- JWT không bị thu hồi sau khi đổi mật khẩu (hệ thống chưa có cơ chế thu hồi token); phiên hiện tại vẫn dùng tiếp.
+
+### Bố cục lại trang hồ sơ theo mẫu người dùng gửi — 2026-11-10
+
+- Thay thẻ hồ sơ + modal bằng một khung gồm các hàng (trái: tên mục và mô tả; phải: nội dung và nút): Thông tin cá nhân (ảnh, họ tên, email khóa), Trình độ & mục tiêu, Số điện thoại (xem / "Đổi số" sửa tại chỗ), Mật khẩu (thu gọn, bấm "Đổi mật khẩu" để mở form). Mỗi hàng lưu riêng; nút "Lưu thay đổi" chỉ bật khi có thay đổi. Vì `PUT /api/profile/learner/me` cần đủ trường, mỗi lần lưu ghép giá trị mới của hàng với hồ sơ hiện tại (không đổi hợp đồng).
+- Không đưa vào các phần của mẫu chưa có trong đặc tả/dữ liệu: khu vực và địa chỉ của học viên (bảng `learners` không có cột), thông báo đẩy (feature `notification`), trạng thái "Chưa đặt mật khẩu" (API không trả thông tin này).
+- Trang gia sư dùng cùng khung; hiện có hàng Mật khẩu, các hàng thông tin giảng dạy thêm ở Phase 4.
+
+### Đồng bộ bố cục hồ sơ cá nhân của nhân sự nội bộ — 2026-11-10
+
+- **Theo yêu cầu người dùng**: mọi trang hồ sơ cá nhân (trừ gia sư) dùng cùng bố cục hàng với hồ sơ học viên, bỏ hàng "Trình độ & mục tiêu" (riêng học viên). **Ngoài phạm vi FE-02** — cần báo người phụ trách:
+  - `pages/admin-profile/` (FE-11; Quản trị viên, Quản lý vận hành, CSKH): hàng Thông tin cá nhân (ảnh chỉ hiển thị vì API không cho đổi ảnh, vai trò, trạng thái, họ tên, email khóa), Số điện thoại, Mật khẩu. API giữ nguyên `/api/admin/operations/profile`, `/profile/password` (CSRF). Thay hai hộp thoại cũ bằng các hàng; giữ `#profileName` và `#profileDetails` (chứa email) để `tests/management-profile.browser.mjs` không đổi. Thêm Tailwind CDN và Material Symbols vào trang; `global.css` vốn đã reset tương đương preflight, quy tắc `admin-portal` gắn theo class.
+  - `pages/academic-profile/` (FE-03; Cán bộ học vụ): cùng các hàng; API cập nhật giữ nguyên `/api/academic/profile`. **Thêm mới** hàng Mật khẩu, gửi tới `PUT /api/admin/operations/profile/password` (backend `requireStaff` đã cho `ROLE_ACADEMIC_OFFICER`).
+- `components/change-password` nhận tùy chọn `submit` để mỗi trang dùng API của mình; không dùng thẻ `<p>` vì `.admin-portal p` ghi đè màu chữ.
+- Chưa kiểm tra trên trình duyệt với tài khoản nhân sự thật (cần đăng nhập); `tests/management-profile.browser.mjs` cần backend và DB của FE-11 nên chưa chạy.

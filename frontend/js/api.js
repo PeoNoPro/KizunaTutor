@@ -854,6 +854,11 @@ export const API = {
     /** data: fullName, phone, avatarUrl, currentLevel, targetLevel, learningGoals (email chỉ đọc) */
     updateLearnerProfile(data) {
       return authRequest('/profile/learner/me', { method: 'PUT', body: data }).then((res) => res.data);
+    },
+
+    /** Học viên hoặc gia sư đổi mật khẩu: currentPassword, newPassword, confirmPassword */
+    changePassword(data) {
+      return authRequest('/profile/password', { method: 'PUT', body: data });
     }
   }
 };

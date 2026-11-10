@@ -1,8 +1,9 @@
 /**
- * KizunaTutor - Trang Học Từ Vựng Theo Chủ Đề (Learning Support)
- * Chuẩn hóa layout: Topic Pills cuộn ngang, Grid 3 cột auto-fill, không giật màn hình
+ * KizunaTutor - Trang Học & Tra Cứu Từ Vựng Theo Chủ Đề (Learning Support)
+ * Hỗ trợ 3 chế độ xem: 🎯 Chuẩn thi JLPT | 🈸 Trọng tâm Hán tự | 🔤 Trọng tâm Kana
  */
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+import { showToast } from '/js/main.js';
 
 let currentTopics = [
   { id: 'JLPT_N5', code: 'JLPT_N5', titleVn: 'JLPT N5 Căn bản', icon: '🌱', count: '650' },
@@ -16,16 +17,48 @@ let currentTopics = [
 
 let activeTopic = 'JLPT_N5';
 let vocabList = [];
+let currentViewMode = localStorage.getItem('kizuna_vocab_view_mode') || 'jlpt'; // 'jlpt' | 'kanji' | 'kana'
 
-document.addEventListener('DOMContentLoaded', () => {
+// Danh sách các từ vựng ưu tiên hiển thị Hiragana / Katakana ở trình độ sơ cấp (JLPT N5/N4)
+// theo đúng quy chuẩn khảo thí JLPT và giáo trình Minna no Nihongo
+const KANA_PREFER_SET = new Set([
+  // Đại từ, từ chỉ định, nghi vấn từ
+  'これ', 'それ', 'あれ', 'どれ', 'ここ', 'そこ', 'あそこ', 'どこ',
+  'こちら', 'そちら', 'あちら', 'どちら', 'こっち', 'そっち', 'あっち', 'どっち',
+  'だれ', 'どなた', 'いつ', 'いくら', 'いくつ', 'どう', 'どんな', 'どうして', 'なぜ', 'なに', 'なん',
+  'あなた', 'あの', 'この', 'その', 'どの', 'ぼく', 'わたし',
+  // Lời chào, phó từ, liên từ
+  'ありがとう', 'こんにちは', 'こんばんは', 'おはよう', 'さようなら', 'すみません', 'ごめんなさい',
+  'どうぞ', 'どうも', 'たくさん', 'あまり', 'とても', 'たいへん', 'すこし', 'ちょっと', 'ちょうど',
+  'だんだん', 'そろそろ', 'いつも', 'ときどき', 'たぶん', 'ぜんぜん', 'もっと', 'もう', 'まだ',
+  'いっしょに', 'まっすぐ', 'ゆっくり', 'よく', 'すぐ', 'また', 'そして', 'それから', 'でも',
+  // Danh từ thường viết bằng Kana ở N5/N4 (Chữ Hán thuộc N2/N1)
+  'あめ', 'つくえ', 'いす', 'くつ', 'くつした', 'めがね', 'さいふ', 'かぎ', 'かばん', 'はこ',
+  'りんご', 'みかん', 'たまご', 'ごはん', 'おちゃ', 'みず', 'くだもの', 'おかし', 'ねこ', 'いぬ',
+  'とり', 'さかな', 'へや', 'にわ', 'うち', 'いえ', 'まち', 'くるま', 'バス', 'タクシー', 'パン',
+  'テレビ', 'ラジオ', 'カメラ', 'コーヒー', 'トイレ', 'シャワー', 'ベッド', 'シャツ', 'ネクタイ',
+  // Động từ thường viết bằng Kana ở sơ cấp
+  'やる', 'くれる', 'もらう', 'あげる', 'いる', 'ある', 'あびる', 'できる',
+  // Tính từ thường viết bằng Kana ở sơ cấp
+  'いい', 'よい', 'きれい', 'きれいな', 'かわいい', 'おいしい', 'まずい', 'すごい'
+]);
+
+function boot() {
   initLearnerShell({
-    activeMenu: 'dashboard',
-    pageTitle: 'Kho từ vựng & Hỗ trợ học tập',
+    activeMenu: 'learning-support',
+    pageTitle: 'Tra cứu từ vựng',
     badge: 'Học tập & rèn luyện'
   });
 
   initPage();
-});
+  initViewModeToggles();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
 
 async function initPage() {
   await loadTopics();
@@ -35,6 +68,76 @@ async function initPage() {
   document.getElementById('searchVocabInput')?.addEventListener('input', (e) => {
     filterVocab(e.target.value);
   });
+}
+
+/**
+ * Khởi tạo bộ nút chuyển chế độ xem: Chuẩn JLPT / Chữ Hán / Chữ Kana
+ */
+function initViewModeToggles() {
+  updateViewModeButtons();
+
+  document.querySelectorAll('[data-view-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.viewMode;
+      if (mode && mode !== currentViewMode) {
+        currentViewMode = mode;
+        try {
+          localStorage.setItem('kizuna_vocab_view_mode', mode);
+        } catch (e) {}
+        updateViewModeButtons();
+        renderVocabGrid(vocabList);
+
+        const modeNames = {
+          jlpt: '🎯 Chuẩn thi JLPT (Tự động thích ứng Kana/Kanji)',
+          kanji: '🈸 Trọng tâm Hán tự (Ưu tiên mặt chữ Hán)',
+          kana: '🔤 Trọng tâm Kana (Ưu tiên Hiragana / Katakana)'
+        };
+        showToast(`Đã chuyển chế độ: ${modeNames[mode] || mode}`, 'info');
+      }
+    });
+  });
+}
+
+function updateViewModeButtons() {
+  const modes = ['jlpt', 'kanji', 'kana'];
+  modes.forEach(m => {
+    const btn = document.querySelector(`[data-view-mode="${m}"]`);
+    if (btn) {
+      if (m === currentViewMode) {
+        btn.className = 'px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer bg-white text-[#831843] shadow-xs';
+      } else {
+        btn.className = 'px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]';
+      }
+    }
+  });
+}
+
+/**
+ * Kiểm tra xem từ vựng nên hiển thị to bằng Kana hay Kanji theo chuẩn thi JLPT
+ */
+function shouldDisplayKana(v) {
+  if (currentViewMode === 'kana') return true;
+  if (currentViewMode === 'kanji') return false;
+
+  // Chế độ 'jlpt':
+  const word = (v.word || '').trim();
+  const reading = (v.reading || v.furigana || '').trim();
+  const level = (v.level || '').toUpperCase();
+
+  // 1. Nếu từ vốn là thuần Kana (word == reading hoặc không có Hán Việt)
+  if (word === reading || !v.hanViet || v.hanViet.trim() === '') return true;
+
+  // 2. Nếu là từ mượn Katakana hoặc từ thuần Hiragana
+  if (/^[ぁ-んァ-ヶー・\s]+$/.test(word)) return true;
+
+  // 3. Nếu là N5 hoặc N4 và nằm trong tập từ vựng ưu tiên Kana
+  if (level === 'N5' || level === 'N4' || !level || level === 'JLPT') {
+    if (KANA_PREFER_SET.has(reading) || KANA_PREFER_SET.has(word)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function loadTopics() {
@@ -80,6 +183,8 @@ function renderTopicPills() {
       if (badge && matched) {
         badge.textContent = matched.titleVn;
       }
+      const searchInput = document.getElementById('searchVocabInput');
+      if (searchInput) searchInput.value = '';
       renderTopicPills();
       loadVocabularies();
     });
@@ -99,7 +204,7 @@ async function loadVocabularies() {
   grid.innerHTML = '<div class="col-span-full py-10 text-center text-xs text-slate-400">Đang tải danh sách từ vựng...</div>';
 
   try {
-    const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}`);
+    const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}&limit=500`);
     if (res.ok) {
       const data = await res.json();
       vocabList = Array.isArray(data) ? data : (data.content || data.items || []);
@@ -111,7 +216,6 @@ async function loadVocabularies() {
   }
 
   if (!vocabList || vocabList.length === 0) {
-    // Dữ liệu mẫu nếu API backend chưa có dữ liệu cho topic này
     vocabList = getSampleVocab(activeTopic);
   }
 
@@ -132,53 +236,190 @@ function renderVocabGrid(items) {
   emptyState?.classList.add('hidden');
 
   grid.innerHTML = items.map(v => {
+    const isKanaMain = shouldDisplayKana(v);
+    const mainText = isKanaMain ? (v.reading || v.furigana || v.word) : (v.word || v.kanji);
+    const hasKanji = Boolean(v.word && v.reading && v.word !== v.reading && v.hanViet && v.hanViet.trim() !== '');
+
+    let subLineHtml = '';
+    if (isKanaMain) {
+      if (hasKanji) {
+        subLineHtml = `
+          <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#64748B] font-mono truncate" title="Chữ Hán tham khảo">
+            <span class="text-slate-400">Hán tự:</span>
+            <span class="font-bold text-[#0F172A] font-japanese">${escapeHtml(v.word)}</span>
+            <span class="text-slate-300">•</span>
+            <span class="text-[#831843] font-bold uppercase">${escapeHtml(v.hanViet)}</span>
+          </div>
+        `;
+      } else {
+        subLineHtml = `
+          <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#64748B] font-mono truncate">
+            <span>${v.romaji ? escapeHtml(v.romaji) : 'Từ thuần Kana'}</span>
+          </div>
+        `;
+      }
+    } else {
+      subLineHtml = `
+        <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#64748B] font-mono truncate">
+          <span>${escapeHtml(v.furigana || v.reading || '')}</span>
+          ${v.hanViet ? `<span class="text-slate-300">•</span><span class="text-[#831843] font-bold uppercase">${escapeHtml(v.hanViet)}</span>` : ''}
+        </div>
+      `;
+    }
+
     return `
       <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 hover:border-[#CBD5E1] transition-all flex flex-col justify-between h-full min-w-0 group">
         <div class="space-y-2.5 flex-1 min-w-0">
           <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#E2E8F0]">
             <div class="min-w-0">
-              <div class="text-xl md:text-2xl font-bold font-japanese text-[#0F172A] leading-snug truncate">
-                ${v.word || v.kanji}
+              <div class="text-xl md:text-2xl font-bold font-japanese text-[#0F172A] leading-snug truncate" title="${escapeHtml(mainText)}">
+                ${escapeHtml(mainText)}
               </div>
-              <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#64748B] font-mono truncate">
-                <span>${v.furigana || v.reading || ''}</span>
-                ${v.hanViet ? `<span class="text-slate-300">•</span><span class="text-[#831843] font-bold uppercase">${v.hanViet}</span>` : ''}
-              </div>
+              ${subLineHtml}
             </div>
             <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] shrink-0">
-              ${v.level || 'JLPT'}
+              ${escapeHtml(v.level || 'JLPT')}
             </span>
           </div>
 
           <div class="text-xs md:text-sm font-semibold text-[#0F172A] leading-relaxed break-words">
-            ${v.meaning || v.meaningVn || 'Đang cập nhật'}
+            ${escapeHtml(v.meaning || v.meaningVn || 'Đang cập nhật')}
           </div>
 
           ${v.example ? `
             <div class="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs space-y-1 break-words">
-              <div class="font-japanese font-medium text-[#0F172A]">${v.example}</div>
-              <div class="text-[#64748B] italic">${v.exampleMeaning || ''}</div>
+              <div class="font-japanese font-medium text-[#0F172A]">${escapeHtml(v.example)}</div>
+              <div class="text-[#64748B] italic">${escapeHtml(v.exampleMeaning || '')}</div>
             </div>
           ` : ''}
         </div>
 
         <!-- Cụm nút hành động bám sát đáy (mt-auto) -->
         <div class="pt-3 mt-auto border-t border-[#E2E8F0] flex items-center justify-between gap-2">
-          <a href="/shodo?char=${encodeURIComponent(v.kanji || v.word || '')}"
-             class="flex-1 py-1.5 px-2 rounded-lg bg-white hover:bg-[#FFE5EC] text-[#0F172A] hover:text-[#831843] border border-[#E2E8F0] hover:border-[#FBCFE8] text-xs font-bold flex items-center justify-center gap-1 transition no-underline text-center truncate">
-            <span>🖌️</span>
-            <span>Luyện viết</span>
-          </a>
           <button type="button"
-                  onclick="navigator.clipboard?.writeText('${v.word || v.kanji}');"
+                  data-action="speak-vocab"
+                  data-word="${escapeHtml(v.word || v.kanji || v.reading)}"
+                  class="flex-1 py-1.5 px-3 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FFE5EC] hover:border-[#FBCFE8] text-[#0F172A] hover:text-[#831843] text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  title="Nghe phát âm từ vựng">
+            <span class="material-symbols-outlined text-[16px] text-[#831843]">volume_up</span>
+            <span>Phát âm</span>
+          </button>
+          <button type="button"
+                  data-action="save-vocab"
+                  data-word="${escapeHtml(isKanaMain ? (v.reading || v.word) : (v.word || v.reading))}"
+                  data-reading="${escapeHtml(v.furigana || v.reading || '')}"
+                  data-meaning="${escapeHtml(v.meaning || v.meaningVn || '')}"
+                  data-level="${escapeHtml(v.level || 'JLPT')}"
+                  class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FFE5EC] text-[#64748B] hover:text-[#831843] transition cursor-pointer"
+                  title="Cất vào bộ thẻ Flashcards">
+            <span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+          </button>
+          <button type="button"
+                  onclick="navigator.clipboard?.writeText('${escapeHtml(v.word || v.kanji)}'); showToast('Đã sao chép từ vựng.', 'info');"
                   class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#64748B] hover:text-[#0F172A] transition cursor-pointer"
                   title="Sao chép từ vựng">
-            <span class="material-symbols-outlined text-[16px]">content_copy</span>
+            <span class="material-symbols-outlined text-[18px]">content_copy</span>
           </button>
         </div>
       </div>
     `;
   }).join('');
+
+  // Gắn sự kiện cho các nút hành động
+  grid.querySelectorAll('[data-action="speak-vocab"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      speakWord(btn.dataset.word);
+    });
+  });
+
+  grid.querySelectorAll('[data-action="save-vocab"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      saveVocabToFlashcard(btn.dataset.word, btn.dataset.reading, btn.dataset.meaning, btn.dataset.level);
+    });
+  });
+}
+
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function speakWord(text) {
+  if (!text) return;
+  try {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ja-JP';
+      u.rate = 0.85;
+      window.speechSynthesis.speak(u);
+    } else {
+      showToast('Trình duyệt không hỗ trợ phát âm tự động.', 'info');
+    }
+  } catch (e) {
+    console.debug('Lỗi phát âm từ vựng:', e);
+  }
+}
+
+function saveVocabToFlashcard(word, reading, meaning, level = 'N5') {
+  if (!word) return;
+  try {
+    const raw = localStorage.getItem('kizuna_flashcard_decks');
+    let decks = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(decks)) decks = [];
+
+    let deck = decks.find(d => d.title === 'Từ Vựng Sổ Tay' || d.title === 'Từ vựng JLPT');
+    if (!deck) {
+      deck = {
+        id: 'deck_vocab_' + Date.now(),
+        title: 'Từ Vựng Sổ Tay',
+        description: 'Bộ thẻ từ vựng lưu từ chuyên mục Tra Cứu Từ Vựng',
+        color: 'emerald',
+        cards: [],
+        createdAt: new Date().toISOString()
+      };
+      decks.unshift(deck);
+    }
+
+    if (!Array.isArray(deck.cards)) deck.cards = [];
+    const exists = deck.cards.some(c => (c.char || c.front || c.word) === word);
+    if (exists) {
+      showToast(`Từ "${word}" đã có sẵn trong bộ thẻ "${deck.title}".`, 'info');
+      return;
+    }
+
+    const backText = reading ? `${reading} • ${meaning}` : meaning;
+    deck.cards.push({
+      id: 'card_' + Date.now(),
+      char: word,
+      front: word,
+      meaning: backText,
+      back: backText,
+      reading: reading || '',
+      level: level || 'N5',
+      createdAt: new Date().toISOString()
+    });
+
+    localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+
+    fetch('/api/learner/decks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(deck)
+    }).catch(() => null);
+
+    showToast(`Đã lưu "${word}" vào bộ thẻ "${deck.title}" thành công!`, 'success');
+  } catch (err) {
+    console.error('Lỗi lưu Flashcard:', err);
+    showToast('Không thể lưu từ vựng vào Flashcard lúc này.', 'error');
+  }
 }
 
 function filterVocab(kw) {
@@ -191,7 +432,9 @@ function filterVocab(kw) {
     return (v.word && v.word.toLowerCase().includes(query)) ||
            (v.kanji && v.kanji.toLowerCase().includes(query)) ||
            (v.furigana && v.furigana.toLowerCase().includes(query)) ||
+           (v.reading && v.reading.toLowerCase().includes(query)) ||
            (v.meaning && v.meaning.toLowerCase().includes(query)) ||
+           (v.meaningVn && v.meaningVn.toLowerCase().includes(query)) ||
            (v.hanViet && v.hanViet.toLowerCase().includes(query));
   });
   renderVocabGrid(filtered);

@@ -49,14 +49,21 @@ export const LEARNER_MENU_GROUPS = [
         title: 'Tra cứu chữ Hán',
         url: '/kanji-dictionary',
         icon: 'menu_book',
-        matcher: ['/kanji-dictionary', '/dictionary', '/kanji']
+        matcher: ['/kanji-dictionary', '/dictionary', '/kanji', '/handwriting', '/handwriting-search', '/ohr']
       },
       {
-        key: 'handwriting',
-        title: 'Tra cứu viết tay',
-        url: '/handwriting',
-        icon: 'draw',
-        matcher: ['/handwriting', '/handwriting-search', '/ohr']
+        key: 'learning-support',
+        title: 'Tra cứu từ vựng',
+        url: '/vocabulary',
+        icon: 'translate',
+        matcher: ['/vocabulary', '/vocab', '/learning-support', '/learner/learning-support', '/learner/vocabulary']
+      },
+      {
+        key: 'grammar',
+        title: 'Ngữ pháp & AI Sensei',
+        url: '/grammar',
+        icon: 'auto_stories',
+        matcher: ['/grammar', '/openjlpt']
       },
       {
         key: 'shodo',
@@ -71,13 +78,6 @@ export const LEARNER_MENU_GROUPS = [
         url: '/kana',
         icon: 'keyboard',
         matcher: ['/kana', '/kana-quiz']
-      },
-      {
-        key: 'grammar',
-        title: 'Ngữ pháp & AI Sensei',
-        url: '/grammar',
-        icon: 'auto_stories',
-        matcher: ['/grammar', '/openjlpt']
       },
       {
         key: 'ai-writing',
@@ -125,13 +125,14 @@ export const PAGE_META_MAP = {
   'requests': { title: 'Thời khóa biểu & Lịch học', badge: 'Gia sư & lớp học' },
   'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },
   'kanji-dictionary': { title: 'Tra cứu chữ Hán', badge: 'Học tập & rèn luyện' },
-  'handwriting': { title: 'Tra cứu viết tay', badge: 'Học tập & rèn luyện' },
+  'handwriting': { title: 'Tra cứu chữ Hán (Viết tay)', badge: 'Học tập & rèn luyện' },
   'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Học tập & rèn luyện' },
   'kana': { title: 'Đấu trường gõ Kana', badge: 'Học tập & rèn luyện' },
   'flashcards': { title: 'Bộ thẻ của tôi', badge: 'Học tập & rèn luyện' },
   'grammar': { title: 'Ngữ pháp & AI Sensei', badge: 'Học tập & rèn luyện' },
   'ai-writing': { title: 'Luyện viết & Chữa câu AI', badge: 'Học tập & rèn luyện' },
-  'learning-support': { title: 'Kho từ vựng & Hỗ trợ học tập', badge: 'Học tập & rèn luyện' },
+  'learning-support': { title: 'Tra cứu từ vựng', badge: 'Học tập & rèn luyện' },
+  'vocabulary': { title: 'Tra cứu từ vựng', badge: 'Học tập & rèn luyện' },
   'kanji-game': { title: 'Game Mưa chữ Hán', badge: 'Học tập & rèn luyện' }
 };
 

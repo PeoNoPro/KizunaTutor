@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kho Từ Vựng &amp; Hỗ Trợ Học Tập Đời Sống - KizunaTutor</title>
+  <title>Tra Cứu Từ Vựng - KizunaTutor</title>
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
 
   <!-- Fonts & Icons -->
@@ -60,10 +60,29 @@
               </div>
             </div>
 
-            <div class="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+            <div class="flex items-center justify-between flex-wrap gap-2 text-xs text-slate-500 pt-0.5">
               <span id="topicCountSummary" class="font-medium">
                 Đang nạp danh mục...
               </span>
+
+              <!-- Cụm chuyển đổi chế độ hiển thị từ vựng JLPT -->
+              <div class="inline-flex items-center p-0.5 bg-[#F1F5F9] rounded-lg border border-[#E2E8F0]">
+                <button type="button" id="btnModeJlpt" data-view-mode="jlpt"
+                        class="px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer bg-white text-[#831843] shadow-xs"
+                        title="Tự động hiển thị Kana đối với từ vựng không yêu cầu chữ Hán ở cấp độ này">
+                  <span>🎯 Chuẩn JLPT</span>
+                </button>
+                <button type="button" id="btnModeKanji" data-view-mode="kanji"
+                        class="px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]"
+                        title="Luôn hiển thị chữ Hán to nhất để học âm Hán Việt">
+                  <span>🈸 Chữ Hán</span>
+                </button>
+                <button type="button" id="btnModeKana" data-view-mode="kana"
+                        class="px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]"
+                        title="Luôn hiển thị Hiragana / Katakana to nhất để luyện phát âm">
+                  <span>🔤 Chữ Kana</span>
+                </button>
+              </div>
             </div>
 
             <!-- Dải nút chọn chủ đề (Topic Pills) -->
@@ -95,6 +114,6 @@
 
   <!-- Shared Layout & Component Scripts -->
   <script type="module" src="/components/learner-layout/learner-layout.js"></script>
-  <script type="module" src="/pages/learning-support/learning-support.js"></script>
+  <script type="module" src="/pages/learning-support/learning-support.js?v=20261110_v3"></script>
 </body>
 </html>

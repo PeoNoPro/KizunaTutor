@@ -777,6 +777,28 @@ function finishQuiz() {
     }
   }
 
+  // Lưu lịch sử điểm số vào LocalStorage để bảo toàn kết quả qua F5 và đồng bộ Dashboard
+  try {
+    const history = JSON.parse(localStorage.getItem('kizuna_kana_stats') || '[]');
+    history.unshift({
+      timestamp: new Date().toISOString(),
+      script: currentScript,
+      total: total,
+      correct: correctCount,
+      accuracy: parseFloat(accuracy),
+      timeSpent: timeElapsed
+    });
+    localStorage.setItem('kizuna_kana_stats', JSON.stringify(history.slice(0, 30)));
+    localStorage.setItem('kizuna_kana_last_result', JSON.stringify({
+      accuracy: parseFloat(accuracy),
+      correct: correctCount,
+      total: total,
+      timestamp: new Date().toISOString()
+    }));
+  } catch (e) {
+    console.debug('Lỗi lưu thống kê kana:', e);
+  }
+
   renderRowBreakdown();
 }
 

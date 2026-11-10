@@ -39,26 +39,30 @@
 
 ## 2. Color Palette (Design Tokens)
 
-Bảng màu được trích xuất từ văn hóa truyền thống Nhật Bản:
+Bảng màu được trích xuất từ văn hóa truyền thống Nhật Bản kết hợp hệ quy chuẩn Shodo Neo-Brutalist:
 
 | Tên Token | Mã Hex | Ý nghĩa văn hóa / Ứng dụng |
 | :--- | :--- | :--- |
-| `--color-primary-aizome` | `#1B2A4A` | **Lam Chàm (Aizome)**: Màu chủ đạo, thanh điều hướng, nút chính, tiêu đề H1. |
-| `--color-secondary-sakura`| `#FAD0C4` | **Hoa Anh Đào (Sakura)**: Màu phụ trợ, điểm nhấn nhẹ nhàng, tag thẻ học thử, badge. |
+| `--color-primary` / `--color-btn-primary` | `#9F1239` | **Đỏ Hồng Trầm (Rose Wine)**: Màu hành động chính khối học tập, nút CTA, nạp chữ, tìm kiếm, tab đang chọn. |
+| `--color-primary-hover` | `#BE185D` | Hiệu ứng hover cho nút bấm chính khối học tập. |
+| `--color-secondary-cherry` | `#FFE5EC` | **Hồng Anh Đào (Cherry Tint)**: Nền nút phụ, tab thẻ cá nhân, badge JLPT, vùng chọn nhẹ. |
+| `--color-secondary-border` | `#FBCFE8` | Đường viền cho nút và badge Cherry. |
+| `--color-secondary-text`   | `#831843` | Chữ trên nền hồng cherry, tạo độ tương phản cao đạt chuẩn WCAG AAA. |
+| `--color-ink-border`       | `#0F172A` | **Màu Mực Đen (Ink Border)**: Viền mực 2px cho Card/Canvas, 1px cho Button/Toolbar. |
 | `--color-accent-matcha`   | `#88A064` | **Trà Xanh (Matcha)**: Trạng thái thành công, bài tập đạt chuẩn, thanh tiến độ. |
 | `--color-alert-akane`     | `#C84B31` | **Đỏ son (Akane)**: Nét vẽ sai, cảnh báo vi phạm hạn mức, nút hủy. |
-| `--color-bg-washi`        | `#FAF9F6` | **Giấy Washi**: Nền chính toàn trang, êm mắt khi học viên luyện chữ lâu. |
+| `--color-bg-washi`        | `#FAF8F2` | **Giấy Washi**: Nền chính bàn vẽ Canvas Shodo, khung luyện viết. |
 | `--color-surface`         | `#FFFFFF` | Nền thẻ bài học (Card), bảng từ điển, modal popup. |
-| `--color-text-sumi`       | `#1F2421` | **Mực Tàu (Sumi)**: Màu chữ chính và nét vẽ chữ Hán Kanji, độ tương phản cao. |
-| `--color-text-muted`      | `#687076` | Chú thích Furigana, Romaji, ngày tạo, số nét. |
+| `--color-text-sumi`       | `#0F172A` | **Mực Tàu (Sumi)**: Màu chữ chính, độ tương phản cao. |
+| `--color-text-muted`      | `#64748B` | Chú thích Furigana, Romaji, ngày tạo, số nét. |
 
 ---
 
 ## 3. Typography Hierarchy
 
-- **Latin Font**: `Inter`, `Plus Jakarta Sans` hoặc system fonts (`-apple-system, BlinkMacSystemFont, "Segoe UI"`).
+- **Latin Font (Body & Headings)**: `"Inter"`, `"Plus Jakarta Sans"` hoặc system fonts (`-apple-system, BlinkMacSystemFont, "Segoe UI"`). Tuyệt đối không dùng phông viết tay `Itim` làm tiêu đề gây lệch chuẩn học thuật.
 - **Japanese Kanji & Kana Font**: `"Noto Sans JP"`, `"Zen Kaku Gothic New"`, `"Yu Gothic"`, `sans-serif`.
-- **Kanji Practice Font**: `"Klee One"`, `"Noto Serif JP"` (cho phong cách nét bút lông truyền thống).
+- **Kanji Practice Font**: `"Noto Serif JP"`, `"Klee One"` (cho phong cách nét bút lông truyền thống).
 
 ### Tỷ lệ cỡ chữ:
 - **Display (Kanji Focus)**: `48px` - `64px` (Hiển thị nét chữ Hán tập viết trên khung Canvas).
@@ -74,10 +78,10 @@ Bảng màu được trích xuất từ văn hóa truyền thống Nhật Bản:
 
 - **Kích thước chuẩn**: `109px x 109px` (khớp với viewBox chuẩn của KanjiVG `0 0 109 109`).
 - **Lưới phụ trợ**:
-  - Khung viền ngoài: `border: 2px solid #1B2A4A`.
+  - Khung viền ngoài: `border: 2px solid #0F172A`.
   - Trục chữ thập (thập tự giá) và đường chéo mờ chia 4 ô hoặc 8 ô: `stroke: #E2E8F0; stroke-dasharray: 4, 4`.
 - **Màu nét chữ**:
-  - Nét mẫu: `#1B2A4A` (độ dày nét `3px`).
+  - Nét mẫu: `#0F172A` (độ dày nét `3px`).
   - Nét đang vẽ: `#C84B31` hoặc `#88A064` (khi vẽ đúng).
   - Thứ tự số thứ tự nét: `#808080`, cỡ chữ `8px`.
 
@@ -90,7 +94,7 @@ Tuân thủ nghiêm ngặt theo **Leonxlnx/taste-skill** & **pbakaus/impeccable*
 2. ❌ **Không dùng layout 3 thẻ bài (three identical cards)** đồng dạng nhàm chán.
 3. ✅ **Tập trung vào trải nghiệm sư phạm**: Lộ trình bài học rõ ràng, bảng từ điển dễ tra cứu, thẻ gia sư làm nổi bật chứng chỉ N1/N2/Sư phạm.
 4. ✅ **Khoảng cách (Spacing)**: Sử dụng hệ số 8pt (`8px`, `16px`, `24px`, `32px`, `48px`).
-5. ✅ **Border Radius**: Vừa phải (`6px` - `10px`), tránh bo tròn quá đà làm mất vẻ nghiêm túc của ứng dụng học tập.
+5. ✅ **Border Radius**: Card dùng `rounded-xl` (12px), Canvas dùng `rounded-[8px]`, Button dùng `rounded-lg` (8px).
 
 ---
 
@@ -140,32 +144,105 @@ Tất cả các phản hồi từ API hoặc xử lý giao diện phải ánh x�
 
 ---
 
-## 7. NHAITOPIK.COM RETRO HARD-SHADOW DESIGN SYSTEM (TUTOR & LEARNER VIEWS)
+## 7. QUY CHUẨN ĐỒNG NHẤT SHODO NEO-BRUTALIST (LEARNING & PRACTICE PAGES)
 
-Áp dụng cho toàn bộ các màn hình của phân hệ **Học viên (Learner)** và **Gia sư (Tutor)**:
+*(Quy chuẩn thiết kế chuẩn mực trích xuất trực tiếp từ trang mẫu `/handwriting` và áp dụng thống nhất cho toàn bộ 12 trang khối Học Tập & Rèn Luyện)*
 
-### 1. Visual Language:
-- **Bo góc cố định:** Duy nhất `border-radius: 5px` (`rounded-[5px]`). Cấm dùng bo tròn lớn mềm (`rounded-xl`, `rounded-2xl`).
-- **Đổ bóng khối cứng (Hard/Retro Shadow):** `shadow-sm: 4px 4px 0px 0px #000000` (`shadow-retro`).
-- **Viền ngoài:** Viền đen mảnh sắc sảo `border: 1px solid #000000`.
-- **Micro-interactions:** 
-  - Hover: `transform: translate(-1px, -1px); box-shadow: 5px 5px 0px 0px #000000;`
-  - Active: `transform: translate(2px, 2px); box-shadow: 1px 1px 0px 0px #000000;`
-  - Transition: `0.15s cubic-bezier(0.4, 0, 0.2, 1)`.
+### 1. Khóa Chặt Khổ Rộng Trục Trang (Unified Container Shell):
+- Toàn bộ các trang học tập được gom trong thẻ `<main>` duy nhất:
+  ```html
+  <main class="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-6xl mx-auto">
+  ```
+- **Tuyệt đối cấm phân mảnh:** Không dùng các khổ `max-w-4xl`, `max-w-5xl`, `max-w-7xl` hoặc `max-w-[1240px]` trên các trang học tập.
+- **Loại bỏ khung `<PageHeader>` rườm rà:** Không chèn banner hay khối tiêu đề cồng kềnh đầu trang gây chiếm diện tích; đưa ngay thanh công cụ và giao diện luyện tập vào tầm nhìn.
 
-### 2. Bảng Color Tokens:
-- `color-1` (`#000000`): Màu chữ chính, viền vi tính, shadow khối cứng.
-- `color-2` (`#2A5A1A` - Rêu đậm): Nhấn khu vực Học viên (Learner Primary CTA).
-- `color-3` (`#7A2CA8` - Tím trầm): Nhấn khu vực Gia sư (Tutor Primary CTA).
-- `color-4` (`#BF360C` - Đỏ đất / Terracotta): Cảnh báo, Deadline, nút hành động nổi bật cần lưu ý.
-- `color-5` (`#1F6FB4` - Xanh biển): Liên kết, thẻ bài tập.
-- `color-6` (`#1E8B3F` - Xanh lục tươi): Hoàn thành, Duyệt, Điểm cao.
-- `color-10` (`#E76F51` - Cam san hô): Trạng thái Đang học, Thẻ Flashcard.
-- `color-11` (`#FFFFFF`): Nền thẻ card trắng, chữ trên nền đậm.
+### 2. Ngôn Ngữ Hình Khối & Bóng Đổ (Visual Language & Hard Shadow):
+- **Bo góc chuẩn:**
+  - Thẻ nội dung chính (`.shodo-card`, `.ls-card`): `rounded-xl` (12px).
+  - Khung Canvas / Bàn luyện viết: `rounded-[8px]`.
+  - Thanh công cụ (Toolbar) / Nút bấm: `rounded-lg` (8px) hoặc `rounded-[6px]`.
+- **Viền mực (Ink Border):**
+  - Thẻ và khung lớn: `border-2 border-[#0F172A]`.
+  - Nút bấm, thanh toolbar, ô input: `border border-[#0F172A]`.
+- **Đổ bóng khối cứng (Hard Ink Shadow):**
+  - Card chính & Canvas: `shadow-[3px_3px_0px_0px_#0F172A]`.
+  - Nút bấm chính & Toolbar: `shadow-[2px_2px_0px_0px_#0F172A]`.
+  - Nút phụ & Huy hiệu: `shadow-[1px_1px_0px_0px_#0F172A]`.
+- **Hiệu ứng tương tác (Micro-interactions):**
+  - Hover: Tăng tương phản nhẹ nhàng (`hover:bg-[#BE185D]`, `hover:bg-slate-50`).
+  - Active (Bấm nút): `active:translate-x-[1px] active:translate-y-[1px] active:shadow-none`.
 
-### 3. Font Stack & Typography Scale:
-- **Heading / Tiêu đề:** `Itim`, cursive (cỡ 30px cho H1, 20px cho H2, 16px cho H3).
-- **Body / Nội dung:** `Segoe UI`, sans-serif (14px).
-- **Nhãn, Badge, Meta:** `ui-sans-serif`, system-ui (11px, 7px).
-- **Nguyên tắc hành động (UX Rule):** Chỉ có DUY NHẤT 1 nút bấm Primary CTA trên mỗi màn hình/khối nhìn. Các nút khác dùng dạng Outlined (nền trắng viền đen) hoặc Secondary.
+### 3. Bảng Color Tokens Thống Nhất:
+- **Nền trang chính:** `bg-[#F8FAFC]` (hoặc `#FCFBF7`).
+- **Nền thẻ nội dung:** `bg-white` (bề mặt thẻ sạch sẽ, tương phản cao).
+- **Nền bàn vẽ Canvas / Giấy Washi:** `bg-[#FAF8F2]`.
+- **Nút hành động chính (Primary Action CTA - Tìm kiếm, Nạp chữ, Chấm bài, Bắt đầu):**  
+  `bg-[#9F1239]` (Đỏ Hồng Trầm / Rose Wine), hover `bg-[#BE185D]`, chữ `text-white font-bold`, viền `border border-[#0F172A]`, bóng `shadow-[2px_2px_0px_0px_#0F172A]`.
+- **Nút phụ / Điểm nhấn nhẹ (Cherry Tint - Bộ thẻ cá nhân, Bộ lọc, Tab phụ):**  
+  `bg-[#FFE5EC]`, hover `bg-[#FCE7F3]`, chữ `text-[#831843]`, viền `border border-[#FBCFE8]`, bóng `shadow-[1px_1px_0px_0px_#0F172A]`.
+- **Nút viền mảnh trung tính (Neutral Outline - Quay lại, Xóa nét, Đóng popup):**  
+  `bg-white`, hover `bg-slate-50`, chữ `text-[#0F172A]`, viền `border border-[#0F172A]`, bóng `shadow-[1px_1px_0px_0px_#0F172A]`.
+- **Huy hiệu JLPT / Sakura Pill:**  
+  `bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] px-2.5 py-0.5 rounded-full text-xs font-semibold`.
 
+### 4. Quy Chuẩn Phông Chữ (Typography Scale):
+- **Tuyệt đối cấm sử dụng phông viết tay `Itim` hoặc `Segoe UI`** làm tiêu đề trên các trang học tập vì gây xung đột giao diện và mất vẻ học thuật.
+- **Văn bản chung, tiêu đề UI, nội dung bài học:** `"Inter"`, `"Plus Jakarta Sans"`, sans-serif.
+- **Ký tự Kanji & Kana nét bút:** `"Noto Serif JP"`, `"Klee One"`, serif.
+- **Số liệu / Mã / Phím tắt:** Monospace.
+
+---
+
+## 📦 QUY CHUẨN THỰC THI CHO KHỐI "HỖ TRỢ HỌC TẬP" (LEARNING SUPPORT ARCHITECTURE)
+
+### 1. BẮT BUỘC NHÚNG CSS DÙNG CHUNG (MANDATORY INCLUSION)
+Tất cả các màn hình thuộc phân hệ Học Tập & Rèn Luyện của Học viên:
+- **Tra cứu Từ Điển Chữ Hán:** `/kanji-dictionary` (hoặc `/learner/dictionary`)
+- **Tra cứu Viết tay AI:** `/handwriting` (hoặc `/handwriting-search`)
+- **Phòng luyện viết Shodo:** `/shodo` (hoặc `/shodo-practice`, `/learner/practice-canvas`)
+- **Chấm & Sửa câu bằng AI:** `/ai-writing`
+- **Ngữ pháp & AI Sensei:** `/grammar` (hoặc `/learner/grammar`)
+- **Bộ thẻ Flashcard:** `/flashcards`, `/flashcards-detail`, `/flashcards-study`, `/flashcards-match`
+- **Game Mưa Chữ Hán:** `/kanji-game`
+- **Đấu trường Kana Quiz:** `/kana-quiz`
+
+**BẮT BUỘC** phải import file CSS dùng chung ở thẻ `<head>`:
+```html
+<link rel="stylesheet" href="/assets/css/learning-support-common.css">
+```
+
+### 2. ÁNH XẠ NGUYÊN TẮC THIẾT KẾ (DESIGN RULE MAPPING)
+
+| Thành phần UI | Class chuẩn sử dụng | Mô tả & Quy tắc bắt buộc |
+| :--- | :--- | :--- |
+| **Nền trang chính** | `<body class="bg-[#F8FAFC]">` | Sử dụng màu `#F8FAFC` sạch sẽ, êm mắt. |
+| **Khung trục trang** | `<main class="max-w-6xl mx-auto p-4 sm:p-6">` | Khóa chặt trục `max-w-6xl`, căn giữa toàn trang. |
+| **Thẻ bài học chính** | `.shodo-card` / `.ls-card` | Nền trắng, viền mực `border-2 border-[#0F172A]`, bo góc `rounded-xl`, bóng `shadow-[3px_3px_0px_0px_#0F172A]`. |
+| **Khung vẽ Canvas** | `.shodo-canvas-box` | Nền Washi `#FAF8F2`, viền `border-2 border-[#0F172A]`, bo góc `rounded-[8px]`, bóng `shadow-[3px_3px_0px_0px_#0F172A]`. |
+| **Nút bấm chính (Action)** | `.btn-primary` / `.shodo-btn-primary` / `.ls-btn-primary` | Nền Đỏ Hồng Trầm `bg-[#9F1239]`, chữ trắng rõ nét, viền `border border-[#0F172A]`, bóng `shadow-[2px_2px_0px_0px_#0F172A]`. |
+| **Nút phụ / Điểm nhấn** | `.btn-secondary` / `.shodo-btn-secondary` / `.ls-btn-secondary` | Nền `bg-[#FFE5EC]`, chữ `text-[#831843]`, viền `border border-[#FBCFE8]`, bóng `shadow-[1px_1px_0px_0px_#0F172A]`. |
+| **Nút viền mảnh / Quay lại** | `.btn-outline` / `.shodo-btn-outline` / `.ls-btn-outline` | Nền trắng, viền `border border-[#0F172A]`, chữ `#0F172A`, bóng `shadow-[1px_1px_0px_0px_#0F172A]`. |
+| **Tab / Nút đang chọn** | `.is-active` / `.ls-btn-active` | Nền Đỏ Hồng Trầm `bg-[#9F1239] text-white`, viền `#0F172A`, bóng `shadow-[2px_2px_0px_0px_#0F172A]`. |
+| **Thanh điều hướng / Tác vụ**| `.shodo-toolbar` / `.ls-toolbar` | Đặt ở đầu trang chi tiết, bọc cụm nút bấm và bộ lọc, viền `#0F172A`, bóng `shadow-[2px_2px_0px_0px_#0F172A]`. |
+| **Bộ lọc dạng Pill** | `.ls-pill` | Bo tròn viên thuốc `rounded-full`, nền `#FFE5EC` text `#831843` khi chọn tab JLPT. |
+| **Ô nhập liệu** | `.ls-input` / `.shodo-input` | Viền mực `border border-[#0F172A]`, bo góc `rounded-lg`, focus viền nổi bật. |
+| **Huy hiệu JLPT** | `.ls-badge.ls-badge-jlpt` | Nền hồng anh đào `#FFE5EC`, chữ `#831843`, viền `#FBCFE8`. |
+
+### 3. QUY TẮC ĐỘ TƯƠNG PHẢN & NỘI DUNG (WCAG AAA SAFETY)
+- **Tuyệt đối chống chữ tàng hình:** Tất cả văn bản (giải nghĩa tiếng Việt, câu ví dụ, âm Hán Việt) bắt buộc nhận màu mực đậm `#0F172A` hoặc `#334155`. Không bao giờ áp dụng màu chữ trắng (`#FFFFFF`) lên các vùng thẻ có nền sáng.
+- **Xóa bỏ thành phần dư thừa:** Tuyệt đối không để dải breadcrumb lặp lại (`school Không gian học viên...`) hoặc banner từ điển tĩnh xuất hiện làm choán diện tích trên các trang học tập.
+- **Luồng dữ liệu (Zero-Reload):** Toàn bộ thao tác chuyển tab bài học, lật thẻ Flashcard, nộp nét vẽ Shodo phải truyền ngầm bằng gói tin JSON qua `apiClient.js` và cập nhật DOM động, không reload trang.
+
+### 4. NGUYÊN TẮC BẮT BUỘC KHI THÊM MỚI TÍNH NĂNG / MÀN HÌNH (MANDATORY INHERITANCE RULE)
+> ⚠️ **ĐẶC QUYỀN ÁP DỤNG RIÊNG CHO KHỐI "HỌC TẬP & RÈN LUYỆN":**  
+> Mỗi khi phát triển hoặc thêm mới bất kỳ màn hình, thành phần (component), popup/modal hay tính năng nào thuộc khối **Học Tập & Rèn Luyện (Learning & Practice)** của Học viên:
+> 
+> 1. **Bắt buộc đọc lại và tuân thủ tuyệt đối các quy tắc ở trên:**
+>    - Nhúng file CSS dùng chung: `<link rel="stylesheet" href="/assets/css/learning-support-common.css">` ở đầu thẻ `<head>`.
+>    - Khóa chặt chiều rộng: `<main class="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-6xl mx-auto">`.
+>    - Sử dụng đúng hệ thống Design Tokens, thẻ bài học `.shodo-card` / `.ls-card`, cụm nút bấm (`.btn-primary`, `.btn-secondary`, `.btn-outline`), thanh tác vụ `.shodo-toolbar`, ô nhập liệu và huy hiệu `.ls-badge`.
+>    - Tuyệt đối tuân thủ nguyên tắc WCAG AAA chống chữ tàng hình (`#0F172A`, `#334155`), không bao giờ để chữ trắng trên nền sáng.
+>    - Toàn bộ luồng dữ liệu phải là Zero-Reload: truyền ngầm JSON qua `apiClient.js` và cập nhật DOM động, kèm thông báo nổi Toast/Dialog.
+> 
+> 2. **Giới hạn phạm vi nghiêm ngặt:**  
+>    Quy định này **chỉ áp dụng duy nhất cho các phần trong khối Học Tập & Rèn Luyện** (bao gồm: Kana Quiz, Bộ thẻ Flashcards, Chi tiết Flashcard, Luyện lật thẻ, Phòng luyện viết Shodo, Tra cứu Từ điển chữ Hán, Tra cứu viết tay AI, Game Mưa chữ Hán, Ngữ pháp & AI Sensei, Trợ lý học tập và các module học tập mới phát triển thêm sau này). Tuyệt đối **không áp dụng** sang các phân hệ ngoài khối này (như Admin, Manager, Gia sư, CSKH hay các trang Portal công khai).

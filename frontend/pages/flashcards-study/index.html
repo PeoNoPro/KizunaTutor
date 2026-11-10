@@ -9,20 +9,22 @@
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Itim&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
   <!-- Tailwind & Project CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/js/shodo-tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/assets/css/learning-support-common.css">
   <link rel="stylesheet" href="/styles/variables.css">
   <link rel="stylesheet" href="/styles/global.css">
   <link rel="stylesheet" href="/styles/components.css">
   <link rel="stylesheet" href="/styles/utilities.css">
 
   <style>
-    /* 3D Flashcard Scene */
+    /* 3D Flip Card Effect */
     .flashcard-scene {
-      perspective: 1200px;
+      perspective: 1000px;
     }
     .flashcard-card {
       width: 100%;
@@ -42,19 +44,21 @@
       height: 100%;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
-      border-radius: 8px;
+      border-radius: 12px;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
     .flashcard-face-back {
       transform: rotateY(180deg);
     }
     .font-japanese {
-      font-family: 'Noto Sans JP', 'Noto Serif JP', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+      font-family: 'Noto Serif JP', serif !important;
     }
   </style>
 </head>
-<body class="bg-[#F8FAFC] text-slate-800 antialiased min-h-screen">
+<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased min-h-screen selection:bg-[#E0399A] selection:text-white">
   <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
 
     <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
@@ -66,185 +70,136 @@
       <div id="learnerHeaderContainer"></div>
 
       <!-- Main Shell cuộn mượt mà -->
-      <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] flex flex-col min-w-0">
-        <div class="max-w-4xl mx-auto w-full flex-1 flex flex-col space-y-4">
-          
-          <!-- THANH ĐIỀU HƯỚNG & TIÊU ĐỀ TRANG LUYỆN TẬP -->
-          <div class="flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-[#0F172A] rounded-[5px] shadow-[2px_2px_0px_0px_#0F172A]">
-            <div class="flex items-center gap-2.5">
-              <button type="button" id="btnBack"
-                      class="py-1 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center gap-1 cursor-pointer">
-                <span>←</span>
-                <span>Quay lại</span>
-              </button>
-              <div class="h-4 w-[1px] bg-slate-300"></div>
-              <div>
-                <h1 class="font-['Itim'] text-base md:text-lg font-bold text-slate-900 flex items-center gap-1.5 truncate">
-                  <span>🎴</span>
-                  <span id="studyDeckTitle">Đang tải bộ thẻ...</span>
-                </h1>
-              </div>
-            </div>
-
-            <!-- Công cụ tiện ích: Tiến độ & Xáo trộn -->
-            <div class="flex items-center gap-2 text-xs">
-              <span id="studyProgressBadge" class="py-1 px-2.5 bg-sky-50 text-sky-800 font-mono font-bold rounded border border-sky-300">
-                Thẻ 0 / 0
-              </span>
-              <button type="button" id="btnShuffle" 
-                      class="py-1 px-2.5 bg-white hover:bg-slate-100 text-slate-700 font-bold border border-[#0F172A] rounded shadow-[1px_1px_0px_0px_#0F172A] flex items-center gap-1 cursor-pointer"
-                      title="Xáo trộn thứ tự các thẻ">
-                <span>🔀</span>
-                <span class="hidden sm:inline">Xáo trộn</span>
-              </button>
-              <button type="button" id="btnResetProgress" 
-                      class="py-1 px-2.5 bg-white hover:bg-slate-100 text-slate-700 font-bold border border-[#0F172A] rounded shadow-[1px_1px_0px_0px_#0F172A] flex items-center gap-1 cursor-pointer"
-                      title="Bắt đầu lại từ thẻ đầu tiên">
-                <span>🔁</span>
-              </button>
-            </div>
-          </div>
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-6xl mx-auto">
+        <div class="space-y-3 flex-1 flex flex-col">
 
           <!-- THANH TIẾN ĐỘ CHẠY -->
-          <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden border border-[#0F172A]">
-            <div id="studyProgressBar" class="bg-emerald-500 h-full transition-all duration-300" style="width: 0%;"></div>
+          <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-[#E2E8F0]">
+            <div id="studyProgressBar" class="bg-[#831843] h-full transition-all duration-300" style="width: 0%;"></div>
           </div>
 
           <!-- KHÔNG CÓ THẺ NÀO (EMPTY STATE) -->
-          <div id="emptyDeckState" class="hidden flex-1 flex flex-col items-center justify-center p-12 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] text-center space-y-4">
-            <span class="text-5xl">📭</span>
-            <h3 class="font-bold text-lg text-slate-800 font-['Itim']">Bộ thẻ này chưa có thẻ học nào</h3>
-            <p class="text-xs text-slate-600 max-w-sm">
-              Bạn hãy quay lại trang chi tiết bộ thẻ để thêm từ vựng, câu hỏi hoặc nạp dữ liệu từ file Excel.
+          <div id="emptyDeckState" class="hidden flex-1 flex flex-col items-center justify-center p-10 bg-white border-2 border-[#0F172A] rounded-xl shadow-[3px_3px_0px_0px_#0F172A] text-center space-y-3">
+            <span class="text-4xl">📭</span>
+            <h3 class="font-bold text-base text-[#0F172A]">Bộ thẻ này chưa có thẻ học nào</h3>
+            <p class="text-xs text-slate-500 max-w-sm">
+              Bạn hãy quay lại trang danh sách bộ thẻ để thêm từ vựng, câu hỏi hoặc nạp dữ liệu từ file Excel nhé.
             </p>
             <button type="button" id="btnEmptyBack"
-                    class="py-2 px-4 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] cursor-pointer">
-              ← Quay lại trang bộ thẻ
+                    class="py-2 px-4 bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-semibold rounded-lg cursor-pointer transition">
+              ← Quay lại bộ thẻ của tôi
             </button>
           </div>
 
           <!-- KHUNG HỌC THẺ 3D CHÍNH -->
-          <div id="studyAreaContainer" class="flex-1 flex flex-col space-y-4">
+          <div id="studyAreaContainer" class="flex-1 flex flex-col space-y-3">
             
             <!-- Thẻ 3D Lật -->
-            <div class="flashcard-scene w-full h-[360px] sm:h-[400px] select-none">
+            <div class="flashcard-scene w-full h-[330px] sm:h-[370px] select-none">
               <div id="flashcardElement" class="flashcard-card">
                 
-                <!-- MẶT TRƯỚC (CÂU HỎI / TỪ VỰNG) -->
-                <div class="flashcard-face bg-white border-2 border-[#0F172A] rounded-[8px] shadow-[4px_4px_0px_0px_#0F172A] p-6 justify-between text-center">
-                  <!-- Header mặt trước -->
-                  <div class="flex items-center justify-between text-xs">
-                    <span id="cardLevelBadgeFront" class="px-2 py-0.5 rounded font-bold bg-pink-100 text-pink-700 border border-pink-300">
-                      Flashcard
-                    </span>
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mặt Trước: Câu Hỏi</span>
-                  </div>
+                <!-- Mặt trước -->
+                <div class="flashcard-face bg-white border-2 border-[#0F172A] rounded-xl p-6 text-center shadow-[3px_3px_0px_0px_#0F172A]">
+                  <span class="absolute top-4 left-4 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]" id="studyCardLevel">
+                    JLPT
+                  </span>
+                  <span class="absolute top-4 right-4 text-[11px] font-mono text-slate-400" id="studyCardStep">
+                    1 / 10
+                  </span>
 
-                  <!-- Nội dung chính mặt trước -->
-                  <div class="my-auto py-4 space-y-2">
-                    <div id="cardCharFront" class="text-4xl sm:text-5xl md:text-6xl font-bold font-japanese text-slate-900 tracking-wide break-words max-h-[160px] overflow-y-auto px-2">
+                  <div class="my-auto space-y-3 w-full px-4">
+                    <div id="studyCardChar" class="font-bold text-[#0F172A] font-japanese leading-tight break-words">
                       —
                     </div>
-                    <div id="cardHanVietFront" class="text-sm font-bold text-[#006194] uppercase tracking-widest min-h-[20px]">
-                      
-                    </div>
-                  </div>
-
-                  <!-- Footer gợi ý lật thẻ -->
-                  <div class="pt-3 border-t border-dashed border-slate-200 text-xs text-slate-400 font-medium flex items-center justify-center gap-1.5">
-                    <span class="material-symbols-outlined text-[15px]">touch_app</span>
-                    <span>Bấm vào thẻ hoặc phím Cách (Space) để lật mặt sau</span>
+                    <p class="text-xs text-slate-400 flex items-center justify-center gap-1">
+                      <span class="material-symbols-outlined text-[15px]">touch_app</span>
+                      <span>Chạm thẻ hoặc bấm SPACE để lật mặt sau</span>
+                    </p>
                   </div>
                 </div>
 
-                <!-- MẶT SAU (ĐÁP ÁN / NGHĨA) -->
-                <div class="flashcard-face flashcard-face-back bg-[#FDFBF7] border-2 border-[#0F172A] rounded-[8px] shadow-[4px_4px_0px_0px_#0F172A] p-6 justify-between text-center">
-                  <!-- Header mặt sau -->
-                  <div class="flex items-center justify-between text-xs">
-                    <span id="cardLevelBadgeBack" class="px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-700 border border-emerald-300">
-                      Đáp Án
-                    </span>
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mặt Sau: Đáp Án</span>
+                <!-- Mặt sau -->
+                <div class="flashcard-face flashcard-face-back bg-white border-2 border-[#0F172A] rounded-xl p-5 sm:p-6 text-left shadow-[3px_3px_0px_0px_#0F172A] flex flex-col justify-between">
+                  <div class="w-full flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
+                    <div class="flex items-center gap-2 truncate">
+                      <span class="text-2xl sm:text-3xl font-bold text-[#0F172A] font-japanese truncate" id="studyCardCharBack">—</span>
+                      <span class="text-sm sm:text-base font-bold text-[#831843]" id="studyCardHanViet"></span>
+                    </div>
+                    <button type="button" id="btnStudyAudio" class="w-8 h-8 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center text-xs transition cursor-pointer shrink-0" title="Phát âm từ vựng">
+                      🔊
+                    </button>
                   </div>
 
-                  <!-- Nội dung chính mặt sau -->
-                  <div class="my-auto py-3 space-y-3">
-                    <div class="flex items-center justify-center gap-2">
-                      <span id="cardCharBack" class="text-2xl sm:text-3xl font-bold font-japanese text-slate-900">
-                        —
-                      </span>
-                      <span id="cardHanVietBack" class="text-xs font-bold text-[#006194] uppercase tracking-wider bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-                        
-                      </span>
-                    </div>
-
-                    <!-- Nghĩa / Đáp án -->
-                    <div class="p-3 bg-white rounded border border-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] max-w-lg mx-auto">
-                      <p id="cardMeaningBack" class="text-sm sm:text-base font-semibold text-slate-800 leading-relaxed break-words">
-                        —
-                      </p>
-                    </div>
-
-                    <!-- On / Kun readings (nếu có) -->
-                    <div id="cardReadingsContainer" class="flex flex-wrap items-center justify-center gap-3 text-xs text-slate-600 font-mono">
-                      <span id="cardOnyomi">On: —</span>
-                      <span>•</span>
-                      <span id="cardKunyomi">Kun: —</span>
-                    </div>
-
-                    <!-- Nút Shodo Canvas nếu là Hán tự -->
-                    <div id="shodoLinkContainer">
-                      <a id="btnShodoPractice" href="#" target="_blank"
-                         class="inline-flex items-center gap-1.5 py-1 px-3 text-xs font-bold rounded border border-pink-300 bg-[#FFE5EC] text-[#831843] hover:bg-pink-100 transition no-underline">
-                        <span>🖌️</span>
-                        <span>Luyện viết nét chữ này trên Shodo</span>
-                      </a>
-                    </div>
+                  <!-- Khối nội dung giải nghĩa tự thích ứng (Adaptive Content Container) -->
+                  <div class="w-full my-auto py-2 overflow-y-auto max-h-[200px] space-y-2 text-xs sm:text-sm" id="studyCardMeaningContainer">
+                    <!-- Sẽ render động các dòng phân cách bằng dấu / hoặc đoạn văn bản -->
                   </div>
 
-                  <!-- Footer gợi ý lật thẻ -->
-                  <div class="pt-3 border-t border-dashed border-slate-200 text-xs text-slate-400 font-medium flex items-center justify-center gap-1.5">
-                    <span class="material-symbols-outlined text-[15px]">touch_app</span>
-                    <span>Bấm vào thẻ để quay lại mặt trước</span>
+                  <div class="w-full pt-2 border-t border-[#E2E8F0] flex items-center justify-between">
+                    <a id="btnStudyPracticeShodo" href="#" 
+                       class="text-xs font-semibold text-[#831843] hover:underline flex items-center gap-1 no-underline">
+                      <span>🖌️</span>
+                      <span>Luyện viết chữ này</span>
+                    </a>
+                    <span class="text-[11px] text-slate-400">Chạm thẻ để lật lại</span>
                   </div>
                 </div>
-
               </div>
             </div>
 
-            <!-- THANH ĐIỀU KHIỂN BÊN DƯỚI THẺ -->
-            <div class="flex items-center justify-between gap-2 p-3 bg-white border border-[#0F172A] rounded-[5px] shadow-[2px_2px_0px_0px_#0F172A]">
-              <!-- Nút Thẻ trước -->
-              <button type="button" id="btnPrevCard"
-                      class="flex-1 sm:flex-none py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer">
-                <span>◀</span>
-                <span class="hidden sm:inline">Thẻ trước (←)</span>
+            <!-- THANH ĐIỀU KHIỂN CHUẨN ANKI / QUIZLET (TỐI GIẢN & CHÍNH XÁC) -->
+            <div class="p-3 bg-white border border-[#E2E8F0] rounded-xl flex items-center justify-between gap-3 select-none">
+              <!-- Bên trái: Xáo trộn ngẫu nhiên -->
+              <button type="button" id="btnShuffle" 
+                      class="py-1.5 px-3 bg-white hover:bg-slate-50 text-[#1E293B] text-xs font-semibold border border-[#CBD5E1] rounded-lg inline-flex items-center gap-1.5 cursor-pointer transition active:scale-95 shrink-0"
+                      title="Xáo trộn thứ tự các thẻ">
+                <span>🔀</span>
+                <span>Xáo trộn</span>
               </button>
 
-              <!-- Nút Lật Thẻ Trung Tâm -->
+              <!-- Chính giữa: Bộ điều hướng [ ← Thẻ trước ] [ Thẻ 1 / 2 ] [ Tiếp theo → ] -->
+              <div class="flex items-center gap-2">
+                <button type="button" id="btnPrevCard"
+                        class="py-1.5 px-3 bg-white hover:bg-slate-50 text-[#1E293B] text-xs font-semibold border border-[#CBD5E1] rounded-lg inline-flex items-center gap-1 cursor-pointer transition active:scale-95 shrink-0"
+                        title="Thẻ trước (Mũi tên trái)">
+                  <span>←</span>
+                  <span class="hidden sm:inline">Thẻ trước</span>
+                </button>
+
+                <span id="studyProgressBadge" 
+                      class="py-1.5 px-3 bg-slate-100 text-[#0F172A] font-mono text-xs font-bold rounded-lg border border-slate-200 min-w-[80px] text-center shrink-0">
+                  Thẻ 0 / 0
+                </span>
+
+                <button type="button" id="btnNextCard"
+                        class="py-1.5 px-3 bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-semibold rounded-lg inline-flex items-center gap-1 cursor-pointer transition active:scale-95 shrink-0"
+                        title="Thẻ tiếp theo (Mũi tên phải)">
+                  <span class="hidden sm:inline">Tiếp theo</span>
+                  <span>→</span>
+                </button>
+              </div>
+
+              <!-- Bên phải: Lật thẻ -->
               <button type="button" id="btnFlipCard"
-                      class="flex-1 sm:flex-none py-2 px-6 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1.5 cursor-pointer">
-                <span class="material-symbols-outlined text-[16px]">sync</span>
-                <span>Lật Thẻ (Space)</span>
-              </button>
-
-              <!-- Nút Thẻ tiếp -->
-              <button type="button" id="btnNextCard"
-                      class="flex-1 sm:flex-none py-2 px-4 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer">
-                <span class="hidden sm:inline">Thẻ tiếp (→)</span>
-                <span>▶</span>
+                      class="py-1.5 px-3.5 bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] text-xs font-semibold border border-[#FBCFE8] rounded-lg inline-flex items-center gap-1.5 cursor-pointer transition active:scale-95 shrink-0"
+                      title="Lật thẻ (Bấm thẻ hoặc phím Space)">
+                <span>🔄</span>
+                <span>Lật thẻ</span>
               </button>
             </div>
 
           </div>
 
+          <!-- FOOTER -->
+          <footer class="mt-4 pt-3 pb-3 border-t border-[#0F172A]/10 text-center text-xs text-slate-500">
+            KizunaTutor &copy; 2026 &bull; Đồng hành cùng bạn trên từng thẻ ghi nhớ 🌸
+          </footer>
         </div>
       </main>
     </div>
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="/js/main.js"></script>
   <script type="module" src="/components/learner-layout/learner-layout.js"></script>
   <script type="module" src="/pages/flashcards-study/flashcards-study.js"></script>
 </body>

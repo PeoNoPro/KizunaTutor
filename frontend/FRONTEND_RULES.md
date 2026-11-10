@@ -53,6 +53,8 @@ frontend/
 ├── FRONTEND_RULES.md                # Tài liệu chuẩn mực này
 │
 ├── assets/                          # Tài nguyên tĩnh tập trung
+│   ├── css/
+│   │   └── learning-support-common.css # CSS dùng chung chuẩn Shodo Neo-Brutalist cho 12 trang học tập
 │   ├── logos/
 │   │   └── kizuna-logo.png          # Logo chính thức DUY NHẤT (dùng chung toàn hệ thống)
 │   ├── images/                      # Ảnh minh họa, banner, minh họa trống (empty state)
@@ -75,27 +77,20 @@ frontend/
 │
 ├── pages/                           # Mỗi màn hình/chức năng là một thư mục riêng biệt
 │   ├── home/                        # Trang chủ KizunaTutor
-│   │   ├── index.html
-│   │   └── home.js
-│   ├── tutor-discovery/             # Trang Khám phá & Tìm kiếm gia sư
-│   │   ├── index.html
-│   │   └── tutor-discovery.js
-│   ├── tutor-profile/               # Trang Xem chi tiết hồ sơ & lịch rảnh gia sư
-│   │   ├── index.html
-│   │   └── tutor-profile.js
-│   └── connection-requests/         # Trang Quản lý yêu cầu kết nối học thử của học viên
-│       ├── index.html
-│       └── connection-requests.js
+│   ├── kanji-dictionary/            # Tra cứu Chữ Hán
+│   ├── handwriting-search/          # Tra cứu Chữ Hán Viết Tay AI (/handwriting)
+│   ├── shodo-practice/              # Phòng Luyện Viết Shodo (/shodo)
+│   ├── ai-writing/                  # Chấm & Sửa Câu Tự Do Bằng AI
+│   ├── grammar/                     # Cẩm Nang Ngữ Pháp & Sensei AI
+│   ├── kanji-game/                  # Game Mưa Chữ Hán
+│   ├── flashcards/                  # Bộ Thẻ Học Flashcard
+│   └── ...
 │
 └── js/                              # Mã nguồn JavaScript cốt lõi dùng chung
-    ├── api.js                       # Module gọi REST API tập trung (Fetch API wrapper)
+    ├── apiClient.js                 # Module gọi REST API tập trung, tự động gắn Token & xử lý Toast
     ├── main.js                      # Tiện ích chung: formatVND, showToast, Mobile Menu toggle
-    ├── config/
-    │   └── api.config.js            # Địa chỉ Base URL API Backend (http://localhost:8085/api)
-    ├── data/
-    │   └── tutors.mock.js           # Dữ liệu mẫu tham khảo cấu trúc (CHỈ DÙNG TEST CỤC BỘ)
-    └── pages/
-        └── tutors.js                # Helper render card gia sư dùng chung
+    └── config/
+        └── api.config.js            # Địa chỉ Base URL API Backend (http://localhost:8085/api)
 ```
 
 ---
@@ -151,23 +146,35 @@ Tất cả các trang **BẮT BUỘC sử dụng Footer 4 cột nền tối** th
 
 ## 5. HỆ THỐNG MÀU SẮC & DESIGN TOKENS CHUẨN
 
-Toàn bộ nhóm phải dùng bảng màu đã định nghĩa trong `styles/variables.css`:
+Toàn bộ nhóm phải dùng bảng màu đã định nghĩa trong `styles/variables.css` và `assets/css/learning-support-common.css`:
 
+### 5.1. Nhóm Token Chung Toàn Hệ Thống (Core Brand Tokens)
 | Tên Token | Mã HEX | Mục đích sử dụng |
 |---|---|---|
-| **Primary** | `#006194` | Nút bấm chính, liên kết chính, trạng thái active |
-| **Primary Hover** | `#004b73` / `#007bb9` | Hiệu ứng rê chuột trên nút chính |
-| **Navy Brand** | `#0F2545` | Chữ Kizuna, tiêu đề lớn, thanh điều hướng nổi bật |
-| **Warm Page Background** | `#FCFBF7` | Màu nền chính toàn trang (ấm áp, êm mắt phong cách Washi) |
+| **Navy Brand** | `#0F2545` | Chữ Kizuna, tiêu đề lớn thương hiệu, thanh điều hướng nổi bật |
+| **Warm Page Background** | `#FCFBF7` / `#F8FAFC` | Màu nền chính toàn trang (ấm áp, êm mắt phong cách Washi) |
 | **Card / Surface** | `#FFFFFF` | Nền thẻ gia sư, bảng dữ liệu, form nhập liệu |
-| **Warm Surface** | `#FAF8F2` | Nền ô input, nền phụ hỗ trợ |
-| **Borders** | `#ECE8DE` / `#E5DECB` | Đường phân cách, viền thẻ card |
-| **Text Primary** | `#0F2545` | Tiêu đề chính, tên gia sư, điểm số |
-| **Text Secondary** | `#3F4850` | Nội dung mô tả, tiêu chí chuyên môn |
-| **Text Muted** | `#68737D` | Nhãn phụ, phụ đề slogan, ghi chú nhỏ |
-| **Success / Matcha** | `#059669` / `#88A064` | Trạng thái rảnh, đã duyệt, đã xác thực CCCD |
+| **Warm Surface** | `#FAF8F2` | Nền ô input, nền bàn vẽ Shodo, nền phụ hỗ trợ |
+| **Text Primary** | `#0F172A` / `#0F2545` | Tiêu đề chính, tên gia sư, điểm số, mực chữ Hán Sumi |
+| **Text Secondary** | `#334155` / `#3F4850` | Nội dung mô tả, tiêu chí chuyên môn, âm Hán Việt |
+| **Text Muted** | `#64748B` / `#68737D` | Nhãn phụ, phụ đề slogan, ghi chú nhỏ, số nét |
+| **Success / Matcha** | `#059669` / `#88A064` | Trạng thái rảnh, đã duyệt, đã hoàn thành nét vẽ |
 | **Warning / Amber** | `#D97706` | Đánh giá sao, trạng thái chờ duyệt |
-| **Error / Crimson** | `#BA1A1A` | Thông báo lỗi, từ chối, xóa |
+| **Error / Crimson** | `#BA1A1A` / `#C84B31` | Thông báo lỗi, từ chối, xóa, nét vẽ sai |
+
+### 5.2. Nhóm Token Chuẩn Hóa Khối Học Tập & Rèn Luyện (Shodo Neo-Brutalist - Mẫu chuẩn `/handwriting`)
+> ⚠️ **Quy chuẩn bắt buộc cho 12 trang học tập:** `/kanji-dictionary`, `/handwriting`, `/shodo`, `/ai-writing`, `/grammar`, `/flashcards`, `/kanji-game`, `/kana`, `/match`, v.v.
+
+| Tên Token / Class | Thuộc tính & Mã HEX | Mục đích & Quy tắc bắt buộc |
+|---|---|---|
+| **Primary Action CTA** (`.btn-primary`, `.shodo-btn-primary`, `.ls-btn-primary`) | `bg-[#9F1239]`, hover `bg-[#BE185D]`, text `#FFFFFF`, border `1px solid #0F172A`, shadow `2px 2px 0px 0px #0F172A` | Nút hành động chính duy nhất: Nạp chữ, Tìm kiếm, Bắt đầu chơi, Chấm câu, Lưu thẻ, Tab đang chọn. |
+| **Secondary Cherry** (`.btn-secondary`, `.shodo-btn-secondary`, `.ls-btn-secondary`) | `bg-[#FFE5EC]`, hover `bg-[#FCE7F3]`, text `#831843`, border `1px solid #FBCFE8`, shadow `1px 1px 0px 0px #0F172A` | Nút phụ mềm mại, tab bộ thẻ cá nhân, highlight hỗ trợ học tập. |
+| **Neutral Outline** (`.btn-outline`, `.shodo-btn-outline`, `.ls-btn-outline`) | `bg-white`, hover `bg-slate-50`, text `#0F172A`, border `1px solid #0F172A`, shadow `1px 1px 0px 0px #0F172A` | Nút quay lại, xóa nét vẽ, đóng popup, các hành động trung tính. |
+| **Ink Border (Viền mực)** | `#0F172A` (Card/Canvas: `border-2`, Button/Input: `border`) | Viền sắc nét phong cách mực Shodo, thay thế toàn bộ viền xám mờ cũ. |
+| **Hard Shadow (Bóng cứng)** | Card: `shadow-[3px_3px_0px_0px_#0F172A]`, Button: `shadow-[2px_2px_0px_0px_#0F172A]` | Đổ bóng khối cứng, tạo chiều sâu thị giác rõ nét. |
+| **Khóa Khổ Rộng Trục** | `max-w-6xl mx-auto p-4 sm:p-6` | 100% trang học tập phải nằm trong khổ này, tuyệt đối không dùng `max-w-4xl` hay `max-w-5xl`. |
+| **Bo góc chuẩn** | Card: `rounded-xl` (12px), Canvas: `rounded-[8px]`, Button: `rounded-lg` | Thống nhất hình khối bo góc, loại bỏ quy tắc cấm bo góc cũ. |
+| **Phông chữ chuẩn** | UI/Body: `Inter` / `Plus Jakarta Sans`, Kanji: `Noto Serif JP` | Cấm dùng phông viết tay `Itim` làm tiêu đề trên trang học tập. |
 
 ---
 
@@ -195,19 +202,21 @@ Khi một thành viên trong nhóm cần tạo một trang mới (ví dụ: `pag
      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
      <!-- Tailwind & Project CSS -->
      <script src="https://cdn.tailwindcss.com"></script>
+     <link rel="stylesheet" href="/assets/css/learning-support-common.css">
      <link rel="stylesheet" href="/styles/variables.css">
      <link rel="stylesheet" href="/styles/global.css">
      <link rel="stylesheet" href="/styles/components.css">
      <link rel="stylesheet" href="/styles/utilities.css">
    </head>
-   <body class="bg-[#FCFBF7] text-[#131B2E] min-h-screen flex flex-col font-sans antialiased">
+   <body class="bg-[#F8FAFC] text-[#0F172A] min-h-screen flex flex-col font-sans antialiased">
      
      <!-- 1. Header (Copy nguyên khối từ components/header/header.html) -->
      <header> ... </header>
 
      <!-- 2. Main Content -->
      <main class="w-full pt-28 pb-16 flex-1">
-       <div class="max-w-[1240px] mx-auto px-4 md:px-8">
+       <!-- Lưu ý: Trang Portal công khai dùng max-w-[1240px]; Toàn bộ trang Học tập & Rèn luyện bắt buộc dùng max-w-6xl mx-auto -->
+       <div class="max-w-6xl mx-auto px-4 sm:px-6">
          <!-- Nội dung trang tại đây -->
        </div>
      </main>
@@ -230,7 +239,7 @@ Khi một thành viên trong nhóm cần tạo một trang mới (ví dụ: `pag
 ### 7.1. Cấu hình Endpoint
 - Sử dụng file tập trung: `frontend/js/config/api.config.js`.
 - Tuyệt đối không hardcode URL `http://localhost:8085` rải rác trong các file giao diện.
-- Gọi qua wrapper hàm `fetchAPI` hoặc `apiService` trong `frontend/js/api.js`.
+- Gọi qua wrapper hàm `fetchAPI` hoặc `apiService` trong `frontend/js/apiClient.js` hoặc `api.js`.
 
 ### 7.2. Xử lý 4 trạng thái giao diện bắt buộc:
 Mọi màn hình gọi API BẮT BUỘC xử lý đủ 4 trạng thái sau:
@@ -239,10 +248,10 @@ Mọi màn hình gọi API BẮT BUỘC xử lý đủ 4 trạng thái sau:
 3. **Empty State (Trạng thái rỗng)**:
    - Khi API trả về mảng rỗng `[]`, hiển thị Card rỗng lịch sự:
    ```html
-   <div class="text-center py-16 bg-white rounded-2xl border border-[#ECE8DE] p-8">
-     <span class="material-symbols-outlined text-5xl text-[#68737D] mb-3">sentiment_dissatisfied</span>
-     <h3 class="text-base font-bold text-[#0F2545]">Chưa tìm thấy gia sư phù hợp</h3>
-     <p class="text-sm text-[#68737D] mt-1">Vui lòng thử điều chỉnh lại bộ lọc tìm kiếm hoặc quay lại sau ít phút.</p>
+   <div class="text-center py-16 bg-white rounded-xl border-2 border-[#0F172A] shadow-[3px_3px_0px_0px_#0F172A] p-8">
+     <span class="material-symbols-outlined text-5xl text-[#64748B] mb-3">sentiment_dissatisfied</span>
+     <h3 class="text-base font-bold text-[#0F172A]">Chưa tìm thấy dữ liệu phù hợp</h3>
+     <p class="text-sm text-[#64748B] mt-1">Vui lòng thử điều chỉnh lại bộ lọc tìm kiếm hoặc quay lại sau ít phút.</p>
    </div>
    ```
 4. **Error State**: Bắt lỗi `catch`, hiển thị thông báo nhẹ nhàng qua hàm `showToast('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.', 'error')`.
@@ -287,6 +296,9 @@ Trước khi hoàn thành bất kỳ task Frontend nào, hãy tự kiểm tra l�
 - [ ] Header đã đồng bộ đúng 5 menu và **KHÔNG có nút Đăng nhập** chưa?
 - [ ] Header có nút "Đăng ký" kèm biểu tượng `arrow_forward` chưa?
 - [ ] Footer đã dùng bản 4 cột nền tối `#131d2e` kèm Hotline `1900 6886` chưa?
+- [ ] Khung trang học tập đã dùng đúng `max-w-6xl mx-auto p-4 sm:p-6` chưa?
+- [ ] Các Card chính đã chuẩn viền `border-2 border-[#0F172A]` và bóng `shadow-[3px_3px_0px_0px_#0F172A]` chưa?
+- [ ] Nút chính CTA đã dùng màu Đỏ Hồng Trầm `#9F1239` (hover `#BE185D`) chưa?
 - [ ] Có bị lộ chữ tiếng Anh kỹ thuật hoặc mã Backend (`ROLE_...`, `Exception`) nào không?
 - [ ] Có dòng thông báo nào bị viết IN HOA TOÀN BỘ không?
 - [ ] Đã kiểm tra giao diện co giãn hiển thị tốt trên Mobile / Tablet / Desktop chưa?

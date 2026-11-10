@@ -1,4 +1,4 @@
-﻿/**
+/**
  * KizunaTutor - KizunaDialog Component
  * Impeccable Retro-Brutalist Dialog for AI Sensei Feedback & Interactive Guidance
  */
@@ -57,7 +57,7 @@ export class KizunaDialog {
             Đóng
           </button>
           <button type="button" id="dialogBtnConfirm" 
-                  class="py-1.5 px-4 bg-[#006194] hover:bg-[#004B73] text-white text-xs sm:text-sm font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] cursor-pointer transition">
+                  class="py-1.5 px-4 bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs sm:text-sm font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] cursor-pointer transition">
             Đồng ý
           </button>
         </div>

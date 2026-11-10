@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khung Trang Mẫu Chuẩn Shodo (TemplatePage) - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+
+  <!-- 1. Typography Fonts: Inter (Latin/Body) & Noto Serif JP (Kanji/Kana) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- 2. Tailwind & CSS Tokens -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/assets/css/learning-support-common.css">
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <link rel="stylesheet" href="/styles/utilities.css">
+</head>
+<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
+  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
+
+    <!-- Sidebar Chung (Shell) -->
+    <div id="learnerSidebarContainer"></div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <!-- Header Chung (Shell) -->
+      <div id="learnerHeaderContainer"></div>
+
+      <!-- Scrollable Main Container: max-w-6xl mx-auto p-3 sm:p-4 -->
+      <main class="flex-1 overflow-y-auto p-3 sm:p-4 w-full max-w-6xl mx-auto space-y-4">
+
+        <!-- ============================================================= -->
+        <!-- COMPONENT 1: PAGE HEADER (Tiêu đề trang & Badge nhận diện)    -->
+        <!-- ============================================================= -->
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-[#E2E8F0]">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
+                <span class="material-symbols-outlined text-[14px]">verified</span>
+                Design Standard
+              </span>
+              <span class="text-xs text-[#64748B] font-mono">v1.0 • Shodo Reference</span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
+              Khung Trang Mẫu Chuẩn Shodo (Template Page)
+            </h1>
+            <p class="text-xs sm:text-sm text-[#64748B] mt-0.5">
+              Tài liệu đối chiếu và cấu trúc linh kiện mẫu đạt chuẩn WCAG, đồng bộ 100% token Shodo Gold Standard.
+            </p>
+          </div>
+
+          <!-- Quick Actions Toolbar -->
+          <div class="flex items-center gap-2">
+            <button class="shodo-btn-retro">
+              <span class="material-symbols-outlined text-[15px]">refresh</span>
+              Đặt lại
+            </button>
+            <button class="shodo-btn-primary">
+              <span class="material-symbols-outlined text-[16px]">save</span>
+              Lưu thay đổi
+            </button>
+          </div>
+        </header>
+
+        <!-- ============================================================= -->
+        <!-- COMPONENT 2: STATS / SUMMARY BOXES                            -->
+        <!-- ============================================================= -->
+        <section class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <div class="shodo-stat-box">
+            <div class="text-[10px] text-[#64748B] font-semibold uppercase tracking-wider">Màu Nền Chính</div>
+            <div class="text-base sm:text-lg font-bold text-[#0F172A] font-mono">#F8FAFC</div>
+            <div class="text-[11px] text-[#059669] font-medium flex items-center gap-0.5 mt-0.5">
+              <span class="material-symbols-outlined text-[12px]">check_circle</span> Slate-50 App BG
+            </div>
+          </div>
+
+          <div class="shodo-stat-box">
+            <div class="text-[10px] text-[#64748B] font-semibold uppercase tracking-wider">Màu Chữ Chính</div>
+            <div class="text-base sm:text-lg font-bold text-[#0F172A] font-mono">#0F172A</div>
+            <div class="text-[11px] text-[#334155] font-medium mt-0.5">Slate-900 Headings</div>
+          </div>
+
+          <div class="shodo-stat-box">
+            <div class="text-[10px] text-[#64748B] font-semibold uppercase tracking-wider">Màu Nội Dung</div>
+            <div class="text-base sm:text-lg font-bold text-[#334155] font-mono">#334155</div>
+            <div class="text-[11px] text-[#64748B] mt-0.5">Slate-700 Body Text</div>
+          </div>
+
+          <div class="shodo-stat-box">
+            <div class="text-[10px] text-[#64748B] font-semibold uppercase tracking-wider">Điểm Nhấn Điểm Số</div>
+            <div class="text-base sm:text-lg font-bold text-[#831843] font-mono">#831843</div>
+            <div class="text-[11px] text-[#831843] font-semibold mt-0.5">Pink-900 Berry</div>
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- COMPONENT 3: 2-COLUMN LAYOUT (5/12 + 7/12 CHUẨN SHODO)         -->
+        <!-- ============================================================= -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+
+          <!-- CỘT TRÁI (5 CỘT): Hero / Display Box / Canvas                  -->
+          <div class="lg:col-span-5 space-y-3">
+
+            <!-- Card Kiểu Shodo Brutalist: Khung Viền 2px + Shadow Cứng 3px -->
+            <div class="bg-white border-2 border-[#0F172A] rounded-xl p-4 shadow-[3px_3px_0px_0px_#0F172A] space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-[#0F172A] uppercase tracking-wide flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[16px] text-[#831843]">edit_note</span>
+                  Khu vực Hiển thị Chữ Hán
+                </span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-[#FFE5EC] text-[#831843] font-bold">N5 • 4 Nét</span>
+              </div>
+
+              <!-- Hán Tự Canvas Box Khung Vuông Ấm Áp (#FAF8F2) -->
+              <div class="relative w-full aspect-square max-w-[280px] mx-auto bg-[#FAF8F2] border-2 border-[#0F172A] rounded-lg shadow-[2px_2px_0px_0px_#0F172A] flex flex-col items-center justify-center p-3">
+                <span class="font-japanese text-7xl font-bold text-[#0F172A] select-none hover:scale-105 transition-transform cursor-pointer">
+                  日
+                </span>
+                <div class="absolute bottom-2 text-center">
+                  <span class="text-xs font-bold text-[#831843] tracking-wider">NHẬT</span>
+                  <span class="text-[11px] text-[#64748B] block font-mono">hi, nichi, jitsu</span>
+                </div>
+              </div>
+
+              <!-- Nút Điều Hướng Trận Đấu / Bút Vẽ -->
+              <div class="flex items-center justify-center gap-2 pt-1">
+                <button class="shodo-btn-retro">
+                  <span class="material-symbols-outlined text-[14px]">skip_previous</span>
+                  Trước
+                </button>
+                <button class="shodo-btn-retro active">
+                  <span class="material-symbols-outlined text-[14px]">play_arrow</span>
+                  Phát âm
+                </button>
+                <button class="shodo-btn-retro">
+                  Sau
+                  <span class="material-symbols-outlined text-[14px]">skip_next</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Card Nhỏ Phụ: Tip / Thông Tin Bổ Trợ -->
+            <div class="bg-[#FFE5EC] border border-[#FBCFE8] rounded-xl p-3.5 flex items-start gap-2.5">
+              <span class="material-symbols-outlined text-[#831843] text-lg shrink-0 mt-0.5">lightbulb</span>
+              <div class="text-xs text-[#831843] leading-relaxed">
+                <strong class="font-bold">Mẹo thiết kế:</strong> Luôn áp dụng font <code class="font-mono bg-white/70 px-1 py-0.5 rounded">font-japanese</code> (Noto Serif JP) cho các ký tự tiếng Nhật và font <code class="font-mono bg-white/70 px-1 py-0.5 rounded">font-body</code> (Inter) cho toàn bộ phần văn bản giải nghĩa.
+              </div>
+            </div>
+
+          </div>
+
+          <!-- CỘT PHẢI (7 CỘT): Tabs, Bảng Chi Tiết, Danh Sách Luyện Tập  -->
+          <div class="lg:col-span-7 space-y-3">
+
+            <!-- Card Bảng Chi Tiết Chuẩn (Standard Card) -->
+            <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 shadow-sm space-y-3.5">
+              <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2.5">
+                <h3 class="text-sm font-bold text-[#0F172A] flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[16px] text-[#006194]">palette</span>
+                  Bộ Linh Kiện Tái Sử Dụng (UI Elements)
+                </h3>
+                <span class="text-[11px] text-[#64748B]">Shodo Components v1.0</span>
+              </div>
+
+              <!-- Section: Nút Bấm Các Biến Thể -->
+              <div>
+                <div class="text-xs font-semibold text-[#0F172A] mb-2">1. Button Styles</div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button class="shodo-btn-primary">
+                    <span class="material-symbols-outlined text-[15px]">check</span>
+                    Ink Primary
+                  </button>
+                  <button class="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-xs font-medium text-[#334155] transition-colors">
+                    Secondary Outline
+                  </button>
+                  <button class="shodo-btn-retro">
+                    Retro Brutalist
+                  </button>
+                  <button class="px-3 py-1.5 rounded-lg bg-[#FFE5EC] border border-[#FBCFE8] hover:bg-[#FCE7F3] text-xs font-semibold text-[#831843] transition-colors">
+                    Pink Accent
+                  </button>
+                  <button class="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-xs font-semibold text-[#E11D48] hover:bg-rose-100 transition-colors">
+                    Danger
+                  </button>
+                </div>
+              </div>
+
+              <!-- Section: Badge & Tags -->
+              <div>
+                <div class="text-xs font-semibold text-[#0F172A] mb-2">2. Status Badges & Tags</div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
+                    Hán Việt: NHẬT
+                  </span>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-[#059669] border border-emerald-200">
+                    Đã thuộc: 100%
+                  </span>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-[#D97706] border border-amber-200">
+                    Cần ôn lại
+                  </span>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-[#64748B] border border-[#E2E8F0]">
+                    JLPT N5
+                  </span>
+                </div>
+              </div>
+
+              <!-- Section: Form Inputs -->
+              <div>
+                <div class="text-xs font-semibold text-[#0F172A] mb-2">3. Form Input Field</div>
+                <div class="relative">
+                  <input type="text" placeholder="Nhập từ vựng, Hiragana hoặc Kanji để tìm kiếm..." 
+                         class="shodo-input pr-10" value="にちようび">
+                  <button class="absolute right-2 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#0F172A]">
+                    <span class="material-symbols-outlined text-[18px]">search</span>
+                  </button>
+                </div>
+              </div>
+
+                            <!-- Section: 5. Thẻ Ngữ Pháp Chuẩn (Grammar Card Standard) -->
+              <div>
+                <div class="text-xs font-semibold text-[#0F172A] mb-2">5. Thẻ Ngữ Pháp Chuẩn (Grammar Card)</div>
+                <div class="bg-white border-2 border-[#0F172A] rounded-[12px] p-4 shadow-[3px_3px_0px_0px_#0F172A] flex flex-col justify-between group">
+                  <div>
+                    <!-- DÒNG 1: Tên ngữ pháp (Trái) & Duy nhất Badge JLPT (Phải sát lề) -->
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex items-baseline gap-2 min-w-0">
+                        <h4 class="text-lg font-bold text-[#0F172A] font-japanese">～は</h4>
+                        <span class="text-xs text-[#64748B] font-mono">(wa)</span>
+                      </div>
+                      <span class="px-2.5 py-0.5 text-xs font-bold text-[#0F172A] bg-[#FEF3C7] border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] shrink-0">
+                        N5
+                      </span>
+                    </div>
+
+                    <!-- DÒNG 2: Giải nghĩa ngữ pháp -->
+                    <p class="mt-2 text-xs sm:text-sm text-[#334155] leading-relaxed">
+                      Thì; là; đóng vai trò làm chủ đề chính của câu
+                    </p>
+
+                    <!-- DÒNG 3: Thẻ chủ đề / ngữ cảnh (Đặt sau giải nghĩa) -->
+                    <div class="mt-3 flex flex-wrap items-center gap-1.5">
+                      <span class="px-2 py-0.5 text-[11px] font-medium text-[#64748B] bg-[#F1F5F9] border border-[#CBD5E1] rounded-full">#Đời thường</span>
+                      <span class="px-2 py-0.5 text-[11px] font-medium text-[#64748B] bg-[#F1F5F9] border border-[#CBD5E1] rounded-full">#Giao tiếp</span>
+                    </div>
+                  </div>
+
+                  <!-- DÒNG 4: Nút xem chi tiết -->
+                  <div class="mt-3 pt-2.5 border-t border-[#E2E8F0] flex justify-end">
+                    <span class="text-xs font-semibold text-[#006194] flex items-center gap-1 group-hover:text-[#007BB9]">
+                      <span>Xem chi tiết công thức &amp; ví dụ</span>
+                      <span>→</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section: Sample Data Table / List -->
+              <div>
+                <div class="text-xs font-semibold text-[#0F172A] mb-2">4. Dữ Liệu Ví Dụ (Table Row Standard)</div>
+                <div class="border border-[#E2E8F0] rounded-lg divide-y divide-[#E2E8F0] overflow-hidden text-xs">
+                  <div class="p-2.5 bg-slate-50 flex items-center justify-between font-semibold text-[#0F172A]">
+                    <span class="w-1/3">Từ vựng (Kana/Kanji)</span>
+                    <span class="w-1/3">Âm Hán Việt</span>
+                    <span class="w-1/3 text-right">Ý nghĩa</span>
+                  </div>
+                  <div class="p-2.5 bg-white flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    <span class="w-1/3 font-japanese font-bold text-sm text-[#0F172A]">今日 (きょう)</span>
+                    <span class="w-1/3 text-[#831843] font-semibold">KIM NHẬT</span>
+                    <span class="w-1/3 text-right text-[#334155]">Hôm nay</span>
+                  </div>
+                  <div class="p-2.5 bg-white flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    <span class="w-1/3 font-japanese font-bold text-sm text-[#0F172A]">毎日 (まいにち)</span>
+                    <span class="w-1/3 text-[#831843] font-semibold">MỖI NHẬT</span>
+                    <span class="w-1/3 text-right text-[#334155]">Mỗi ngày</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Script nạp Layout Learner Shell chung -->
+  <script type="module">
+    import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+    initLearnerShell({
+      activeMenu: 'learning-support',
+      pageTitle: 'Khung Trang Mẫu Chuẩn Shodo'
+    });
+  </script>
+</body>
+</html>

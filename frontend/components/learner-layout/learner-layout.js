@@ -59,6 +59,20 @@ export const LEARNER_MENU_GROUPS = [
         matcher: ['/handwriting', '/handwriting-search', '/ohr']
       },
       {
+        key: 'learning-support',
+        title: 'Tra cứu từ vựng',
+        url: '/vocabulary',
+        icon: 'translate',
+        matcher: ['/vocabulary', '/vocab', '/learning-support', '/learner/learning-support', '/learner/vocabulary']
+      },
+      {
+        key: 'grammar',
+        title: 'Ngữ pháp & AI Sensei',
+        url: '/grammar',
+        icon: 'auto_stories',
+        matcher: ['/grammar', '/openjlpt']
+      },
+      {
         key: 'shodo',
         title: 'Phòng luyện viết Shodo',
         url: '/shodo',
@@ -73,13 +87,6 @@ export const LEARNER_MENU_GROUPS = [
         matcher: ['/kana', '/kana-quiz']
       },
       {
-        key: 'grammar',
-        title: 'Ngữ pháp & AI Sensei',
-        url: '/grammar',
-        icon: 'auto_stories',
-        matcher: ['/grammar', '/openjlpt']
-      },
-      {
         key: 'ai-writing',
         title: 'Chữa câu & Viết AI',
         url: '/ai-writing',
@@ -90,8 +97,8 @@ export const LEARNER_MENU_GROUPS = [
         key: 'flashcards',
         title: 'Bộ thẻ của tôi',
         url: '/flashcards',
-        icon: 'style',
-        matcher: ['/flashcards', '/decks']
+        icon: '🗂️',
+        matcher: ['/flashcards', '/decks', '/learner/flashcards', '/learner/deck-detail', '/deck-detail']
       }
     ]
   },
@@ -122,16 +129,17 @@ export const LEARNER_MENU_GROUPS = [
 export const PAGE_META_MAP = {
   'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
   'tutors': { title: 'Tìm gia sư Kizuna', badge: 'Gia sư & lớp học' },
-  'requests': { title: 'Yêu cầu kết nối', badge: 'Gia sư & lớp học' },
+  'requests': { title: 'Thời khóa biểu & Lịch học', badge: 'Gia sư & lớp học' },
   'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },
   'kanji-dictionary': { title: 'Tra cứu chữ Hán', badge: 'Học tập & rèn luyện' },
-  'handwriting': { title: 'Tra cứu viết tay', badge: 'Học tập & rèn luyện' },
+  'handwriting': { title: 'Tra cứu chữ Hán (Viết tay)', badge: 'Học tập & rèn luyện' },
   'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Học tập & rèn luyện' },
   'kana': { title: 'Đấu trường gõ Kana', badge: 'Học tập & rèn luyện' },
   'flashcards': { title: 'Bộ thẻ của tôi', badge: 'Học tập & rèn luyện' },
   'grammar': { title: 'Ngữ pháp & AI Sensei', badge: 'Học tập & rèn luyện' },
   'ai-writing': { title: 'Luyện viết & Chữa câu AI', badge: 'Học tập & rèn luyện' },
-  'learning-support': { title: 'Kho từ vựng & Hỗ trợ học tập', badge: 'Học tập & rèn luyện' },
+  'learning-support': { title: 'Tra cứu từ vựng', badge: 'Học tập & rèn luyện' },
+  'vocabulary': { title: 'Tra cứu từ vựng', badge: 'Học tập & rèn luyện' },
   'kanji-game': { title: 'Game Mưa chữ Hán', badge: 'Học tập & rèn luyện' }
 };
 
@@ -368,9 +376,7 @@ export function bindLearnerLayoutEvents() {
   }
 
   // Xử lý Đăng xuất tập trung
-  btnLogout?.addEventListener('click', async () => {
-    // Cookie phiên là HttpOnly nên phải nhờ backend xóa.
-    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (e) {}
+  btnLogout?.addEventListener('click', () => {
     localStorage.removeItem('kizuna_token');
     localStorage.removeItem('kizuna_user');
     sessionStorage.clear();

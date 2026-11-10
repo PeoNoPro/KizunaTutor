@@ -122,11 +122,11 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             throw new BadRequestException("Thời gian bắt đầu học phải ở tương lai");
         }
 
-        // Validate thời lượng (chỉ hỗ trợ 25 hoặc 50 phút)
+        // Validate thời lượng (chỉ hỗ trợ 30 phút theo quy định đăng ký học thử)
         int duration = (request.getDurationMinutes() != null && request.getDurationMinutes() > 0)
-                ? request.getDurationMinutes() : 50;
-        if (duration != 25 && duration != 50) {
-            throw new BadRequestException("Thời lượng buổi học thử chỉ hỗ trợ 25 phút hoặc 50 phút");
+                ? request.getDurationMinutes() : 30;
+        if (duration != 30) {
+            throw new BadRequestException("Thời lượng buổi học thử là 30 phút");
         }
         OffsetDateTime endTime = startTime.plusMinutes(duration);
 
@@ -256,7 +256,7 @@ public class TrialBookingServiceImpl implements TrialBookingService {
 
         if ("ACCEPT".equalsIgnoreCase(request.getAction())) {
             OffsetDateTime acceptEnd = trialBooking.getScheduledEndTime() != null ? trialBooking.getScheduledEndTime()
-                    : trialBooking.getScheduledStartTime().plusMinutes(50);
+                    : trialBooking.getScheduledStartTime().plusMinutes(30);
             ensureNoClassScheduleClash(trialBooking.getTutor().getTutorId(), trialBooking.getLearner().getLearnerId(),
                     trialBooking.getScheduledStartTime(), acceptEnd,
                     "Buổi học thử trùng với lịch dạy lớp chính thức của bạn. Hãy đề nghị học viên dời lịch hoặc từ chối yêu cầu này.",
@@ -482,7 +482,7 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             throw new BadRequestException("Thời gian dời lịch học phải ở tương lai.");
         }
 
-        int durationMinutes = 25;
+        int durationMinutes = 30;
         if (trialBooking.getScheduledStartTime() != null && trialBooking.getScheduledEndTime() != null) {
             long diff = Duration.between(trialBooking.getScheduledStartTime(), trialBooking.getScheduledEndTime()).toMinutes();
             if (diff > 0) {
@@ -604,7 +604,7 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime endTime = trialBooking.getScheduledEndTime();
         if (endTime == null && trialBooking.getScheduledStartTime() != null) {
-            int duration = trialBooking.getPolicyDurationMinutes() != null ? trialBooking.getPolicyDurationMinutes() : 50;
+            int duration = trialBooking.getPolicyDurationMinutes() != null ? trialBooking.getPolicyDurationMinutes() : 30;
             endTime = trialBooking.getScheduledStartTime().plusMinutes(duration);
         }
 
@@ -771,7 +771,7 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             case EXPIRED -> "Đã hết hạn";
         };
 
-        int duration = 50;
+        int duration = 30;
         if (tb.getScheduledStartTime() != null && tb.getScheduledEndTime() != null) {
             duration = (int) Duration.between(tb.getScheduledStartTime(), tb.getScheduledEndTime()).toMinutes();
         }

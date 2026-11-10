@@ -131,6 +131,175 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       `;
 
+    // Hàm render khối Môn dạy & học phí (theo môn học, thời lượng, học phí thực tế của gia sư)
+    function renderSubjectsAndPricingHtml(tutor) {
+      const rawRate = Number(tutor.hourlyRate);
+      const hasRate = !isNaN(rawRate) && rawRate > 0;
+      const rate60 = hasRate ? rawRate : 0;
+      const rate90 = hasRate ? Math.round(rawRate * 1.5) : 0;
+
+      const price60Html = hasRate
+        ? `<span class="font-bold text-[#006194] text-sm sm:text-base">${formatVND(rate60)} <span class="text-xs font-normal text-slate-400">/buổi</span></span>`
+        : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-medium">Chưa cập nhật</span>`;
+
+      const price90Html = hasRate
+        ? `<span class="font-bold text-[#006194] text-sm sm:text-base">${formatVND(rate90)} <span class="text-xs font-normal text-slate-400">/buổi</span></span>`
+        : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-medium">Thỏa thuận</span>`;
+
+      const highestLevel = (tutor.highestJlptLevel || '').toUpperCase();
+      const hasN1orN2 = ['N1', 'N2'].includes(highestLevel);
+
+      const specialties = tutor.specialties || [];
+      const specialtiesStr = (specialties.join(' ') + ' ' + (tutor.headline || '') + ' ' + (tutor.bio || '')).toLowerCase();
+
+      const hasKaiwa = specialtiesStr.includes('kaiwa') || specialtiesStr.includes('giao tiếp') || specialtiesStr.includes('khẩu ngữ') || specialtiesStr.includes('phát âm');
+      const hasBusiness = specialtiesStr.includes('thương mại') || specialtiesStr.includes('doanh nghiệp') || specialtiesStr.includes('bjt') || specialtiesStr.includes('business') || specialtiesStr.includes('công sở');
+
+      // Danh sách các khối môn học được tạo động theo dữ liệu của chính gia sư
+      const subjectBlocks = [];
+
+      // 1. Khối Luyện thi JLPT & Tiếng Nhật nền tảng
+      let jlptSubLevel1 = 'Lớp N5, Lớp N4, Lớp N3, Ôn luyện cấp tốc';
+      let jlptSubLevel2 = 'Lớp N2, Lớp N1, Luyện giải đề chuyên sâu Dokkai & Choukai';
+
+      if (highestLevel === 'N3') {
+        jlptSubLevel1 = 'Lớp N5, Lớp N4, Lớp N3, Ôn luyện sơ - trung cấp';
+      } else if (highestLevel === 'N4' || highestLevel === 'N5') {
+        jlptSubLevel1 = 'Tiếng Nhật sơ cấp, Bảng chữ cái Hiragana & Katakana, Lớp N5';
+      }
+
+      subjectBlocks.push(`
+        <div class="border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs">
+          <div class="flex items-center gap-2 px-4 py-2.5 bg-[#F0F5FA] border-b border-slate-200 text-[#006194] font-bold text-sm">
+            <span class="material-symbols-outlined text-[18px]">school</span>
+            <span>Luyện thi JLPT & Ngữ pháp</span>
+          </div>
+          <div class="divide-y divide-slate-100 bg-white">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 px-4 gap-2 hover:bg-slate-50/50 transition-colors">
+              <span class="text-xs sm:text-sm font-medium text-slate-800">${jlptSubLevel1}</span>
+              <div class="flex items-center justify-between sm:justify-end gap-6 sm:gap-10 shrink-0 text-xs sm:text-sm">
+                <span class="text-slate-400">60 phút/buổi</span>
+                ${price60Html}
+              </div>
+            </div>
+            ${hasN1orN2 ? `
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 px-4 gap-2 hover:bg-slate-50/50 transition-colors">
+              <span class="text-xs sm:text-sm font-medium text-slate-800">${jlptSubLevel2}</span>
+              <div class="flex items-center justify-between sm:justify-end gap-6 sm:gap-10 shrink-0 text-xs sm:text-sm">
+                <span class="text-slate-400">90 phút/buổi</span>
+                ${price90Html}
+              </div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+      `);
+
+      // 2. Khối Tiếng Nhật giao tiếp (Kaiwa)
+      if (hasKaiwa || !hasBusiness) {
+        subjectBlocks.push(`
+          <div class="border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs">
+            <div class="flex items-center gap-2 px-4 py-2.5 bg-[#F0F5FA] border-b border-slate-200 text-[#006194] font-bold text-sm">
+              <span class="material-symbols-outlined text-[18px]">forum</span>
+              <span>Tiếng Nhật giao tiếp (Kaiwa)</span>
+            </div>
+            <div class="divide-y divide-slate-100 bg-white">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 px-4 gap-2 hover:bg-slate-50/50 transition-colors">
+                <span class="text-xs sm:text-sm font-medium text-slate-800">Giao tiếp phản xạ hàng ngày, Phát âm chuẩn bản xứ</span>
+                <div class="flex items-center justify-between sm:justify-end gap-6 sm:gap-10 shrink-0 text-xs sm:text-sm">
+                  <span class="text-slate-400">60 phút/buổi</span>
+                  ${price60Html}
+                </div>
+              </div>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 px-4 gap-2 hover:bg-slate-50/50 transition-colors">
+                <span class="text-xs sm:text-sm font-medium text-slate-800">Hội thoại nâng cao, Phỏng vấn xin việc & Du học Nhật Bản</span>
+                <div class="flex items-center justify-between sm:justify-end gap-6 sm:gap-10 shrink-0 text-xs sm:text-sm">
+                  <span class="text-slate-400">90 phút/buổi</span>
+                  ${price90Html}
+                </div>
+              </div>
+            </div>
+          </div>
+        `);
+      }
+
+      // 3. Khối Tiếng Nhật thương mại (Business)
+      if (hasBusiness) {
+        subjectBlocks.push(`
+          <div class="border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs">
+            <div class="flex items-center gap-2 px-4 py-2.5 bg-[#F0F5FA] border-b border-slate-200 text-[#006194] font-bold text-sm">
+              <span class="material-symbols-outlined text-[18px]">business_center</span>
+              <span>Tiếng Nhật thương mại (Business)</span>
+            </div>
+            <div class="divide-y divide-slate-100 bg-white">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 px-4 gap-2 hover:bg-slate-50/50 transition-colors">
+                <span class="text-xs sm:text-sm font-medium text-slate-800">Tiếng Nhật công sở, Soạn thảo văn bản email, Ôn thi chứng chỉ BJT</span>
+                <div class="flex items-center justify-between sm:justify-end gap-6 sm:gap-10 shrink-0 text-xs sm:text-sm">
+                  <span class="text-slate-400">90 phút/buổi</span>
+                  ${price90Html}
+                </div>
+              </div>
+            </div>
+          </div>
+        `);
+      }
+
+      // Hình thức dạy (teaching format)
+      const teachingFormatStr = (tutor.teachingFormat || '').toLowerCase();
+      const hasOnline = teachingFormatStr.includes('online') || !teachingFormatStr;
+      const hasOffline = teachingFormatStr.includes('offline') || teachingFormatStr.includes('trực tiếp') || (tutor.location && tutor.location.trim().length > 0);
+
+      const badges = [];
+      if (hasOffline) {
+        badges.push(`
+          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+            <span class="text-emerald-600 font-bold">✓</span> Tại nhà học sinh
+          </span>
+        `);
+      }
+      if (hasOnline) {
+        badges.push(`
+          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+            <span class="text-emerald-600 font-bold">✓</span> Online
+          </span>
+        `);
+      }
+
+      return `
+        <!-- Môn dạy & học phí -->
+        <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5">
+          <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">menu_book</span>
+            Môn dạy & học phí
+          </h3>
+
+          <!-- Danh sách các nhóm môn học -->
+          <div class="space-y-4">
+            ${subjectBlocks.join('')}
+          </div>
+
+          <!-- Hình thức giảng dạy (Badges with Checkmarks) -->
+          <div class="flex items-center gap-2 pt-1 flex-wrap">
+            ${badges.join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    const tutorStyle = getAvatarStyle(tutor.fullName);
+    const tutorInitials = getInitials(tutor.fullName);
+    const tutorAvatarImgHtml = tutor.avatarUrl
+      ? `<img class="w-28 h-28 rounded-2xl object-cover border-2 border-emerald-500 shadow-md"
+              src="${tutor.avatarUrl}"
+              alt="${tutor.fullName}"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+         <div class="w-28 h-28 rounded-2xl ${tutorStyle.bg} ${tutorStyle.text} font-bold text-3xl hidden items-center justify-center border-2 border-emerald-500 shadow-md">
+           ${tutorInitials}
+         </div>`
+      : `<div class="w-28 h-28 rounded-2xl ${tutorStyle.bg} ${tutorStyle.text} font-bold text-3xl flex items-center justify-center border-2 border-emerald-500 shadow-md">
+           ${tutorInitials}
+         </div>`;
+
     // Render nội dung hồ sơ
     container.innerHTML = `
       <!-- Breadcrumb -->
@@ -152,9 +321,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
               <div class="relative shrink-0">
-                <img class="w-28 h-28 rounded-2xl object-cover border-2 border-emerald-500 shadow-md"
-                     src="${tutor.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfWr7LjTJCoD0Gf2VNK0QdLAElZ9cyCzJkQ8IOJ7ZhfKFRiPoiK-N6PJaofpuz4ZSh0MCTyzeYN1pX3x0Uaq5OcxZn8yQJ0H4V9S7DtsrI2aXdgxRQ0o8NMGuIO63NK6Y74ZNBD0G7rqPan3Z9H-N80LBRdViJvA9zYNeJLWG53XmbteXaiLIE6gVUR1BHJBqSmUiPALj-L4qvCcRXCinX5eARKyo5T6tbevnMHOs'}"
-                     alt="${tutor.fullName}">
+                ${tutorAvatarImgHtml}
                 <span class="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-sm flex items-center gap-1">
                   <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> Trực tuyến
                 </span>
@@ -176,11 +343,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <p class="text-sm font-medium text-primary">${tutor.headline || 'Gia sư tiếng Nhật'}</p>
 
                 <div class="flex flex-wrap items-center gap-4 text-xs pt-1 text-on-surface-variant">
+                  ${totalReviews > 0 ? `
                   <div class="flex items-center gap-1 text-amber-500 font-bold">
                     <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                    <span class="text-sm">${Number(tutor.avgRating || 5.0).toFixed(1)}</span>
-                    <span class="text-on-surface-variant font-normal">(${tutor.totalReviews || 0} đánh giá)</span>
+                    <span class="text-sm">${avgRating}</span>
+                    <span class="text-on-surface-variant font-normal">(${totalReviews} đánh giá)</span>
                   </div>
+                  ` : `
+                  <div class="flex items-center gap-1 text-slate-500 font-medium">
+                    <span class="material-symbols-outlined text-[16px] text-slate-400">rate_review</span>
+                    <span>Chưa có đánh giá</span>
+                  </div>
+                  `}
                   <span class="text-[#E5DECB]">|</span>
                   <div class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-[16px] text-primary">school</span>
@@ -216,6 +390,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           </div>
 
+          <!-- Môn dạy & học phí (theo mẫu) -->
+          ${renderSubjectsAndPricingHtml(tutor)}
+
           <!-- Lịch giảng dạy & Đặt lịch học thử trực tuyến 1-1 (Preply-style Unified Weekly Calendar) -->
           <div id="weekly-booking-calendar-section" class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5 scroll-mt-28 transition-all duration-300">
             
@@ -240,14 +417,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </span>
               </div>
 
-              <!-- Tab chọn thời lượng buổi học: 25 phút / 50 phút -->
-              <div class="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 border border-slate-200 text-xs font-bold text-center min-w-[170px]">
-                <button type="button" id="btn-weekly-duration-25" class="py-1.5 px-3 rounded-xl transition-all cursor-pointer bg-white text-[#0F2545] shadow-xs">
-                  25 phút
-                </button>
-                <button type="button" id="btn-weekly-duration-50" class="py-1.5 px-3 rounded-xl transition-all cursor-pointer text-slate-500 hover:text-[#0F2545]">
-                  50 phút
-                </button>
+              <!-- Thời lượng buổi học thử: 30 phút -->
+              <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-[#0F2545]">
+                <span class="material-symbols-outlined text-[16px] text-primary">schedule</span>
+                <span>Học thử 30 phút</span>
               </div>
             </div>
 
@@ -359,10 +532,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="lg:col-span-1 space-y-6 lg:sticky lg:top-28">
           <div class="bg-white border-2 border-primary/20 rounded-2xl p-6 shadow-lg space-y-6">
             <div class="space-y-1 pb-4 border-b border-[#ECE8DE]">
-              <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Học phí trực tiếp</span>
+              <span class="text-xs font-semibold text-slate-500">Học phí</span>
               <div class="flex items-baseline gap-1">
-                <span class="text-3xl font-extrabold text-[#006194]">${formatVND(tutor.hourlyRate)}</span>
-                <span class="text-xs text-on-surface-variant font-medium">/ giờ (60 phút)</span>
+                ${Number(tutor.hourlyRate) > 0 ? `
+                  <span class="text-3xl font-extrabold text-[#006194]">${formatVND(tutor.hourlyRate)}</span>
+                  <span class="text-xs text-on-surface-variant font-medium">/ giờ (60 phút)</span>
+                ` : `
+                  <span class="text-2xl font-extrabold text-[#006194]">Thỏa thuận</span>
+                  <span class="text-xs text-on-surface-variant font-medium">(Chưa cập nhật)</span>
+                `}
               </div>
             </div>
 
@@ -379,10 +557,6 @@ document.addEventListener('DOMContentLoaded', async () => {
               <div class="flex items-center gap-2.5">
                 <span class="material-symbols-outlined text-emerald-600 text-[18px]">verified_user</span>
                 <span>Hồ sơ, bằng cấp JLPT đã được kiểm tra nghiêm ngặt</span>
-              </div>
-              <div class="flex items-center gap-2.5">
-                <span class="material-symbols-outlined text-emerald-600 text-[18px]">history</span>
-                <span>Hoàn 100% học phí nếu không hài lòng buổi học đầu</span>
               </div>
             </div>
           </div>
@@ -421,7 +595,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     // === LOGIC CHO MODAL VÀ LỊCH ĐẶT HỌC THỬ TRỰC TUYẾN 1-1 ===
-    let selectedDurationMinutes = 25;
+    let selectedDurationMinutes = 30;
     let selectedSlot = null;
     let weekOffset = 0; // 0 = tuần này
     let selectedDayOffset = 0; // 0 = Thứ 2, 1 = Thứ 3, ..., 6 = Chủ nhật
@@ -487,10 +661,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       return d;
     }
 
-    // Avatar gia sư trong modal
+    // Avatar gia sư trong modal (ưu tiên lấy từ database)
     const modalAvatar = document.getElementById('booking-modal-avatar');
-    if (modalAvatar) {
-      modalAvatar.src = tutor.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80';
+    const modalAvatarContainer = document.getElementById('booking-modal-avatar-container');
+    if (tutor.avatarUrl) {
+      if (modalAvatar) {
+        modalAvatar.src = tutor.avatarUrl;
+        modalAvatar.onerror = () => {
+          if (modalAvatarContainer) {
+            modalAvatarContainer.innerHTML = `
+              <div class="w-12 h-12 rounded-2xl ${tutorStyle.bg} ${tutorStyle.text} font-bold flex items-center justify-center border border-slate-200 shadow-xs text-sm">
+                ${tutorInitials}
+              </div>
+            `;
+          }
+        };
+      }
+    } else {
+      if (modalAvatarContainer) {
+        modalAvatarContainer.innerHTML = `
+          <div class="w-12 h-12 rounded-2xl ${tutorStyle.bg} ${tutorStyle.text} font-bold flex items-center justify-center border border-slate-200 shadow-xs text-sm">
+            ${tutorInitials}
+          </div>
+        `;
+      }
     }
     const modalSubtitle = document.getElementById('booking-modal-subtitle');
     if (modalSubtitle && tutor.fullName) {
@@ -783,28 +977,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderSlotSection(eveningSection, eveningGrid, eveningSlots);
     }
 
-    // Modal: Toggle thời lượng 25 phút / 50 phút
-    const btn25 = document.getElementById('btn-duration-25');
-    const btn50 = document.getElementById('btn-duration-50');
-    if (btn25 && btn50) {
-      btn25.addEventListener('click', () => {
-        selectedDurationMinutes = 25;
-        selectedSlot = null;
-        btn25.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all bg-white text-[#0F2545] shadow-xs cursor-pointer font-bold';
-        btn50.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all text-slate-500 hover:text-[#0F2545] cursor-pointer font-bold';
-        renderDays();
-        renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
-      });
-      btn50.addEventListener('click', () => {
-        selectedDurationMinutes = 50;
-        selectedSlot = null;
-        btn50.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all bg-white text-[#0F2545] shadow-xs cursor-pointer font-bold';
-        btn25.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all text-slate-500 hover:text-[#0F2545] cursor-pointer font-bold';
-        renderDays();
-        renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
-      });
-    }
-
+    // Modal: Thời lượng cố định 30 phút theo quy định học thử
     renderDays();
     renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
 
@@ -942,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // === LOGIC CHO BẢNG LỊCH TUẦN TRÊN TRANG (PREPLY STYLE TABLE) ===
-    let weeklyDurationMinutes = 25;
+    let weeklyDurationMinutes = 30;
     let weeklyOffset = 0;
     let isWeeklySlotsExpanded = false;
 
@@ -1112,42 +1285,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function openBookingModalWithSlot(colIndex, slot) {
       weekOffset = weeklyOffset;
       selectedDayOffset = colIndex;
-      selectedDurationMinutes = weeklyDurationMinutes;
-
-      // Đồng bộ nút thời lượng trong modal
-      if (btn25 && btn50) {
-        if (selectedDurationMinutes === 25) {
-          btn25.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all bg-white text-[#0F2545] shadow-xs cursor-pointer font-bold';
-          btn50.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all text-slate-500 hover:text-[#0F2545] cursor-pointer font-bold';
-        } else {
-          btn50.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all bg-white text-[#0F2545] shadow-xs cursor-pointer font-bold';
-          btn25.className = 'duration-tab-btn py-2.5 rounded-xl text-center transition-all text-slate-500 hover:text-[#0F2545] cursor-pointer font-bold';
-        }
-      }
+      selectedDurationMinutes = 30;
 
       renderDays();
       renderAvailableSlots(getSelectedDate(), selectedDurationMinutes, slot);
       openModal('connect-modal');
-    }
-
-    // Gắn sự kiện nút thời lượng trên bảng tuần
-    const dur25Btn = document.getElementById('btn-weekly-duration-25');
-    const dur50Btn = document.getElementById('btn-weekly-duration-50');
-
-    if (dur25Btn && dur50Btn) {
-      dur25Btn.addEventListener('click', () => {
-        weeklyDurationMinutes = 25;
-        dur25Btn.className = 'py-1.5 px-3 rounded-xl transition-all cursor-pointer bg-white text-[#0F2545] shadow-xs';
-        dur50Btn.className = 'py-1.5 px-3 rounded-xl transition-all cursor-pointer text-slate-500 hover:text-[#0F2545]';
-        renderWeeklyCalendar();
-      });
-
-      dur50Btn.addEventListener('click', () => {
-        weeklyDurationMinutes = 50;
-        dur50Btn.className = 'py-1.5 px-3 rounded-xl transition-all cursor-pointer bg-white text-[#0F2545] shadow-xs';
-        dur25Btn.className = 'py-1.5 px-3 rounded-xl transition-all cursor-pointer text-slate-500 hover:text-[#0F2545]';
-        renderWeeklyCalendar();
-      });
     }
 
     // Điều hướng tuần trên bảng tuần

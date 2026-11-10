@@ -32,18 +32,20 @@ async function initHome() {
         <article class="bg-white border border-[#E5DECB] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
           <div class="space-y-4">
             <div class="flex items-start gap-4">
-              <img class="w-16 h-16 rounded-full object-cover border border-[#E5DECB] shrink-0" 
-                   src="${tutor.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfWr7LjTJCoD0Gf2VNK0QdLAElZ9cyCzJkQ8IOJ7ZhfKFRiPoiK-N6PJaofpuz4ZSh0MCTyzeYN1pX3x0Uaq5OcxZn8yQJ0H4V9S7DtsrI2aXdgxRQ0o8NMGuIO63NK6Y74ZNBD0G7rqPan3Z9H-N80LBRdViJvA9zYNeJLWG53XmbteXaiLIE6gVUR1BHJBqSmUiPALj-L4qvCcRXCinX5eARKyo5T6tbevnMHOs'}" 
-                   alt="${tutor.fullName}">
+              ${tutor.avatarUrl
+                ? `<img class="w-16 h-16 rounded-full object-cover border border-[#E5DECB] shrink-0" src="${tutor.avatarUrl}" alt="${tutor.fullName}">`
+                : `<div class="w-16 h-16 rounded-full bg-sky-100 text-[#006194] font-bold text-base flex items-center justify-center border border-[#E5DECB] shrink-0">${(tutor.fullName || 'GS').substring(0, 2).toUpperCase()}</div>`}
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-1">
                   <h3 class="font-bold text-[#0F2545] text-base group-hover:text-primary transition-colors truncate">
                     <a href="${profileUrl}">${tutor.fullName}</a>
                   </h3>
+                  ${(tutor.totalReviews || 0) > 0 ? `
                   <div class="flex items-center text-amber-500 font-bold text-xs shrink-0">
                     <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
                     <span>${Number(tutor.avgRating || 5.0).toFixed(1)}</span>
                   </div>
+                  ` : ''}
                 </div>
                 <p class="text-xs text-primary font-medium truncate mt-0.5">${tutor.headline || 'Gia sư tiếng Nhật'}</p>
                 <div class="flex items-center gap-2 mt-2">
@@ -51,6 +53,13 @@ async function initHome() {
                     JLPT ${tutor.highestJlptLevel || 'N1'}
                   </span>
                   <span class="text-xs text-on-surface-variant">${tutor.experienceYears || 0} năm kinh nghiệm</span>
+                  ${(tutor.totalReviews || 0) > 0 ? '' : `
+                    <span class="text-[#E5DECB]">•</span>
+                    <span class="text-xs text-slate-500 flex items-center gap-1">
+                      <span class="material-symbols-outlined text-[14px] text-slate-400">rate_review</span>
+                      <span>Chưa có đánh giá</span>
+                    </span>
+                  `}
                 </div>
               </div>
             </div>

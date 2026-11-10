@@ -53,7 +53,9 @@
       <!-- 1. Header: Avatar + Tiêu đề + Nút đóng -->
       <div class="flex items-center justify-between p-5 md:p-6 pb-3.5 border-b border-[#ECE8DE] bg-white flex-shrink-0">
         <div class="flex items-center gap-3">
-          <img id="booking-modal-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" alt="Avatar gia sư" class="w-12 h-12 rounded-2xl object-cover border border-[#E5DECB] shadow-xs">
+          <div id="booking-modal-avatar-container" class="relative shrink-0">
+            <img id="booking-modal-avatar" src="" alt="Avatar gia sư" class="w-12 h-12 rounded-2xl object-cover border border-[#E5DECB] shadow-xs">
+          </div>
           <div>
             <h3 class="text-base md:text-lg font-bold text-[#0F2545] leading-tight">Đặt lịch học thử 1–1</h3>
             <p id="booking-modal-subtitle" class="text-xs text-on-surface-variant font-medium mt-0.5">Trao đổi về trình độ và lộ trình học tập của bạn</p>
@@ -67,15 +69,14 @@
       <!-- Khung chứa nội dung cuộn (Scrollable Body) -->
       <div id="booking-modal-body" class="overflow-y-auto flex-1 divide-y divide-[#ECE8DE]">
         
-        <!-- 2. Chọn thời lượng buổi học: 25 phút | 50 phút -->
-        <div class="p-5 md:p-6 pb-3">
-          <div class="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 border border-slate-200 text-xs font-semibold">
-            <button type="button" id="btn-duration-25" class="duration-tab-btn py-2.5 rounded-xl text-center transition-all bg-white text-[#0F2545] shadow-xs cursor-pointer font-bold">
-              25 phút
-            </button>
-            <button type="button" id="btn-duration-50" class="duration-tab-btn py-2.5 rounded-xl text-center transition-all text-slate-500 hover:text-[#0F2545] cursor-pointer font-bold">
-              50 phút
-            </button>
+        <!-- 2. Thời lượng buổi học thử: 30 phút -->
+        <div class="px-5 md:px-6 pt-4 pb-2">
+          <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-[#0F2545]">
+            <div class="flex items-center gap-2 font-semibold text-slate-700">
+              <span class="material-symbols-outlined text-[#006194] text-[18px]">schedule</span>
+              <span>Thời lượng buổi học thử</span>
+            </div>
+            <span class="px-3 py-1 rounded-xl bg-white border border-slate-200 font-bold text-[#006194] shadow-2xs">30 phút</span>
           </div>
         </div>
 
@@ -105,7 +106,7 @@
           <!-- Thông báo khi không có khung giờ khả dụng (Phong cách như Ảnh 2) -->
           <div id="booking-empty-state" class="hidden py-10 px-4 text-center space-y-2">
             <div id="booking-empty-title" class="text-base sm:text-lg font-bold text-[#0F2545]">
-              Không có khung giờ 25 phút khả dụng
+              Không có khung giờ 30 phút khả dụng
             </div>
             <div class="text-xs sm:text-sm text-slate-500 font-medium">
               Vui lòng chọn ngày khác để xem thời gian khả dụng

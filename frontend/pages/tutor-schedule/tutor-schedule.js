@@ -193,9 +193,9 @@ function computeDurationText(startStr, endStr) {
   const m = totalMin % 60;
   const hText = h > 0 ? `${h} giờ ` : '';
   const mText = m > 0 ? `${m} phút` : '';
-  const approxSlots = Math.floor(totalMin / 50);
+  const approxSlots = Math.floor(totalMin / 30);
 
-  return `Thời lượng: ${hText}${mText} (học viên có thể đặt tối đa ~${approxSlots} ca học thử 50 phút)`;
+  return `Thời lượng: ${hText}${mText} (học viên có thể đặt tối đa ~${approxSlots} ca học thử 30 phút)`;
 }
 
 function updateDurationPreview() {

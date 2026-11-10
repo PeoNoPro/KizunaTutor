@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
     format: '',
     priceRange: '',
     schedule: '',
+    tutorLevel: '',
+    verifiedOnly: false,
+    scheduleSlots: new Set(),
     sortBy: 'rating',
     currentPage: 1,
     pageSize: 6
@@ -43,6 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const sortSelect = document.getElementById('sort-select');
   const resetBtn = document.getElementById('reset-filter-btn');
   const emptyResetBtn = document.getElementById('empty-reset-btn');
+  const btnToggleAdvancedFilter = document.getElementById('btn-toggle-advanced-filter');
+  const advancedFilterDrawer = document.getElementById('advanced-filter-drawer');
+  const advancedFilterCountBadge = document.getElementById('advanced-filter-count-badge');
+  const filterTutorLevel = document.getElementById('filter-tutor-level');
+  const filterVerifiedOnly = document.getElementById('filter-verified-only');
+  const formatButtons = document.querySelectorAll('#format-segmented-group .format-btn');
+  const scheduleMatrixCells = document.querySelectorAll('.schedule-matrix-cell');
+  const btnClearScheduleSlots = document.getElementById('btn-clear-schedule-slots');
+  const btnApplyAdvancedFilter = document.getElementById('btn-apply-advanced-filter');
   const tutorGrid = document.getElementById('tutor-grid');
   const emptyState = document.getElementById('empty-state');
   const resultsCount = document.getElementById('total-tutors-count');
@@ -82,13 +94,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (goal && VALID_GOALS.includes(goal)) validated.goal = goal;
 
     const format = params.get('format');
-    if (format && VALID_FORMATS.includes(format)) validated.format = format;
+    if (format && (VALID_FORMATS.includes(format) || format === 'all')) validated.format = format;
 
     const price = params.get('price');
     if (price && VALID_PRICES.includes(price)) validated.priceRange = price;
 
     const schedule = params.get('schedule');
     if (schedule && VALID_SCHEDULES.includes(schedule)) validated.schedule = schedule;
+
+    const tutorLevel = params.get('tutorLevel');
+    if (tutorLevel && tutorLevel.trim()) validated.tutorLevel = tutorLevel.trim();
+
+    const verified = params.get('verified');
+    if (verified === 'true') validated.verifiedOnly = true;
+
+    const slots = params.get('slots');
+    if (slots && slots.trim()) {
+      validated.scheduleSlots = new Set(slots.split(',').filter(s => s.trim().length > 0));
+    }
 
     const sort = params.get('sort') || params.get('sortBy');
     if (sort && VALID_SORTS.includes(sort)) validated.sortBy = sort;
@@ -111,6 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
     state.format = validated.format || '';
     state.priceRange = validated.priceRange || '';
     state.schedule = validated.schedule || '';
+    state.tutorLevel = validated.tutorLevel || '';
+    state.verifiedOnly = validated.verifiedOnly || false;
+    state.scheduleSlots = validated.scheduleSlots || new Set();
     state.sortBy = validated.sortBy || 'rating';
     state.currentPage = validated.currentPage || 1;
 
@@ -125,8 +151,62 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filterFormat) filterFormat.value = state.format;
     if (filterPrice) filterPrice.value = state.priceRange;
     if (filterSchedule) filterSchedule.value = state.schedule;
+    if (filterTutorLevel) filterTutorLevel.value = state.tutorLevel;
+    if (filterVerifiedOnly) filterVerifiedOnly.checked = state.verifiedOnly;
     if (sortSelect) sortSelect.value = state.sortBy;
     syncJlptPills();
+    syncFormatButtonsUI();
+    syncScheduleMatrixUI();
+    updateAdvancedFilterBadge();
+  }
+
+  // Helper cập nhật badge đếm số lượng bộ lọc nâng cao
+  function updateAdvancedFilterBadge() {
+    let count = 0;
+    if (state.format && state.format !== 'all') count++;
+    if (state.tutorLevel) count++;
+    if (state.verifiedOnly) count++;
+    if (state.scheduleSlots.size > 0) count++;
+
+    if (advancedFilterCountBadge) {
+      if (count > 0) {
+        advancedFilterCountBadge.textContent = count;
+        advancedFilterCountBadge.classList.remove('hidden');
+      } else {
+        advancedFilterCountBadge.classList.add('hidden');
+      }
+    }
+  }
+
+  // Đồng bộ giao diện nút bấm Hình thức (Segmented Control)
+  function syncFormatButtonsUI() {
+    const cur = state.format || 'all';
+    formatButtons.forEach(btn => {
+      const f = btn.getAttribute('data-format');
+      if (f === cur) {
+        btn.className = 'format-btn px-3 py-1.5 rounded-md text-xs font-semibold bg-[#006194] text-white shadow-2xs transition-all cursor-pointer';
+      } else {
+        btn.className = 'format-btn px-3 py-1.5 rounded-md text-xs font-medium text-[#0F2545] hover:bg-slate-100 transition-all cursor-pointer';
+      }
+    });
+  }
+
+  // Đồng bộ giao diện 21 ô ma trận lịch rảnh
+  function syncScheduleMatrixUI() {
+    scheduleMatrixCells.forEach(cell => {
+      const day = cell.getAttribute('data-day');
+      const shift = cell.getAttribute('data-shift');
+      const key = `${day}-${shift}`;
+      if (state.scheduleSlots.has(key)) {
+        cell.className = 'schedule-matrix-cell h-7 rounded border border-[#006194] bg-[#006194] text-white shadow-2xs transition-colors flex items-center justify-center cursor-pointer';
+      } else {
+        cell.className = 'schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer';
+      }
+    });
+
+    if (btnClearScheduleSlots) {
+      btnClearScheduleSlots.classList.toggle('hidden', state.scheduleSlots.size === 0);
+    }
   }
 
   // Đồng bộ giao diện Pill JLPT (Hiện xanh nổi bật khi được chọn)
@@ -151,9 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.location && state.location.trim()) params.set('location', state.location.trim());
     if (state.jlptLevel && state.jlptLevel !== 'all') params.set('jlpt', state.jlptLevel);
     if (state.goal) params.set('goal', state.goal);
-    if (state.format) params.set('format', state.format);
+    if (state.format && state.format !== 'all') params.set('format', state.format);
     if (state.priceRange) params.set('price', state.priceRange);
     if (state.schedule) params.set('schedule', state.schedule);
+    if (state.tutorLevel) params.set('tutorLevel', state.tutorLevel);
+    if (state.verifiedOnly) params.set('verified', 'true');
+    if (state.scheduleSlots.size > 0) params.set('slots', Array.from(state.scheduleSlots).join(','));
     if (state.sortBy && state.sortBy !== 'rating') params.set('sort', state.sortBy);
     if (state.currentPage && state.currentPage > 1) params.set('page', state.currentPage);
 
@@ -244,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         id: item.tutorId,
         tutorCode: item.tutorCode,
         fullName: item.fullName || 'Gia sư Kizuna',
-        avatarUrl: item.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfWr7LjTJCoD0Gf2VNK0QdLAElZ9cyCzJkQ8IOJ7ZhfKFRiPoiK-N6PJaofpuz4ZSh0MCTyzeYN1pX3x0Uaq5OcxZn8yQJ0H4V9S7DtsrI2aXdgxRQ0o8NMGuIO63NK6Y74ZNBD0G7rqPan3Z9H-N80LBRdViJvA9zYNeJLWG53XmbteXaiLIE6gVUR1BHJBqSmUiPALj-L4qvCcRXCinX5eARKyo5T6tbevnMHOs',
+        avatarUrl: item.avatarUrl || null,
         isOnline: true,
         verified: (item.verified !== undefined ? item.verified : item.isVerified) ?? true,
         headline: item.headline || 'Gia sư tiếng Nhật',
@@ -255,15 +338,32 @@ document.addEventListener('DOMContentLoaded', () => {
         teachingFormat: item.teachingFormat || 'Online 1-1',
         location: item.location || 'Hà Nội, Việt Nam',
         hourlyRate: item.hourlyRate || 0,
-        rating: item.avgRating || 5.0,
+        rating: item.avgRating != null ? Number(item.avgRating) : 0,
         reviewsCount: item.totalReviews || 0,
-        bio: item.bio || 'Chưa có thông tin giới thiệu chi tiết.'
+        bio: item.bio || 'Chưa có thông tin giới thiệu chi tiết.',
+        availabilities: item.availabilities || []
       }));
 
-      if (resultsCount) resultsCount.textContent = totalElements;
-      if (totalCountEl) totalCountEl.textContent = totalElements;
+      // Áp dụng bộ lọc nâng cao (Trình độ gia sư, Hồ sơ xác thực, Lịch rảnh ô ma trận)
+      let displayTutors = currentLoadedTutors;
 
-      if (totalElements === 0) {
+      if (state.verifiedOnly) {
+        displayTutors = displayTutors.filter(t => t.verified);
+      }
+
+      if (state.tutorLevel) {
+        displayTutors = displayTutors.filter(t => matchTutorLevel(t, state.tutorLevel));
+      }
+
+      if (state.scheduleSlots.size > 0) {
+        displayTutors = displayTutors.filter(t => matchTutorSchedule(t, state.scheduleSlots));
+      }
+
+      const totalMatched = displayTutors.length;
+      if (resultsCount) resultsCount.textContent = totalMatched;
+      if (totalCountEl) totalCountEl.textContent = totalMatched;
+
+      if (totalMatched === 0) {
         // Trạng thái Rỗng (Empty State - MSG01)
         if (tutorGrid) tutorGrid.innerHTML = '';
         if (emptyState) emptyState.classList.remove('hidden');
@@ -272,9 +372,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Trạng thái Thành công (Success)
         if (emptyState) emptyState.classList.add('hidden');
         if (tutorGrid) {
-          tutorGrid.innerHTML = currentLoadedTutors.map(renderTutorCard).join('');
+          tutorGrid.innerHTML = displayTutors.map(renderTutorCard).join('');
         }
-        renderPagination(totalPages, state.currentPage, totalElements, state.pageSize);
+        renderPagination(totalPages, state.currentPage, totalMatched, state.pageSize);
       }
     } catch (err) {
       if (requestId !== currentRequestId) return;
@@ -318,7 +418,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <!-- Header info: Avatar & Main credentials -->
           <div class="flex items-start gap-space-md">
             <div class="relative shrink-0">
-              <img class="w-20 h-20 rounded-full object-cover shadow-sm ring-2 ring-surface-container-lowest" alt="${tutor.fullName}" src="${tutor.avatarUrl}">
+              ${tutor.avatarUrl
+                ? `<img class="w-20 h-20 rounded-full object-cover shadow-sm ring-2 ring-surface-container-lowest" alt="${tutor.fullName}" src="${tutor.avatarUrl}">`
+                : `<div class="w-20 h-20 rounded-full bg-sky-100 text-[#006194] font-bold text-lg flex items-center justify-center shadow-sm ring-2 ring-surface-container-lowest">${tutor.fullName.substring(0, 2).toUpperCase()}</div>`}
               ${tutor.isOnline ? '<span class="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-emerald-500 ring-2 ring-surface-container-lowest" title="Đang trực tuyến"></span>' : ''}
             </div>
             <div class="flex-1 min-w-0 space-y-1">
@@ -326,11 +428,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h3 class="font-title-md text-title-md font-bold text-on-surface group-hover:text-primary transition-colors truncate">
                   <a href="${profileUrl}">${tutor.fullName}</a>
                 </h3>
-                <div class="flex items-center gap-1 text-amber-500 font-bold shrink-0 text-sm">
-                  <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span>${Number(tutor.rating).toFixed(1)}</span>
-                  <span class="text-on-surface-variant font-normal text-xs">(${tutor.reviewsCount})</span>
-                </div>
+                ${tutor.reviewsCount > 0 ? `
+                  <div class="flex items-center gap-1 text-amber-500 font-bold shrink-0 text-sm">
+                    <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                    <span>${Number(tutor.rating).toFixed(1)}</span>
+                    <span class="text-on-surface-variant font-normal text-xs">(${tutor.reviewsCount})</span>
+                  </div>
+                ` : ''}
               </div>
 
               <!-- Badges -->
@@ -359,6 +463,13 @@ document.addEventListener('DOMContentLoaded', () => {
               <span class="material-symbols-outlined text-[15px] text-primary">history_edu</span>
               <span>${tutor.experienceText}</span>
             </span>
+            ${tutor.reviewsCount > 0 ? '' : `
+              <span class="text-[#E5DECB]">•</span>
+              <span class="text-xs text-slate-500 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[15px] text-slate-400">rate_review</span>
+                <span>Chưa có đánh giá</span>
+              </span>
+            `}
           </div>
 
           <!-- Highlights (Specialties & Format) -->
@@ -461,6 +572,57 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Khớp trình độ chuyên môn gia sư
+  function matchTutorLevel(tutor, level) {
+    if (!level) return true;
+    const text = `${tutor.fullName || ''} ${tutor.headline || ''} ${tutor.bio || ''} ${(tutor.specialties || []).join(' ')}`.toLowerCase();
+    switch (level) {
+      case 'teacher':
+        return /giáo viên|chuyên nghiệp|sư phạm/i.test(text);
+      case 'lecturer':
+        return /giảng viên|đại học|thạc sĩ|tiến sĩ/i.test(text);
+      case 'pedagogy':
+        return /sư phạm|cử nhân/i.test(text);
+      case 'overseas':
+        return /du học|nhật bản|tokyo|kyoto|osaka/i.test(text);
+      case 'native':
+        return /bản xứ|người nhật|sensei|yamada|suzuki|tanaka|sato/i.test(text);
+      case 'student':
+        return /sinh viên/i.test(text);
+      default:
+        return true;
+    }
+  }
+
+  // Khớp lịch rảnh của gia sư với các ô ma trận đã chọn
+  function matchTutorSchedule(tutor, selectedSlots) {
+    if (!selectedSlots || selectedSlots.size === 0) return true;
+    if (!tutor.availabilities || tutor.availabilities.length === 0) return false;
+
+    return tutor.availabilities.some(av => {
+      const dow = av.dayOfWeek; // 1 = CN, 2 = T2, ..., 7 = T7
+      const startParts = (av.startTime || '00:00').split(':');
+      const endParts = (av.endTime || '23:59').split(':');
+      const startHour = parseInt(startParts[0], 10);
+      const endHour = parseInt(endParts[0], 10);
+
+      return Array.from(selectedSlots).some(slotKey => {
+        const [sDayStr, sShift] = slotKey.split('-');
+        const sDay = parseInt(sDayStr, 10);
+        if (dow !== sDay) return false;
+
+        if (sShift === 'morning') {
+          return startHour < 12;
+        } else if (sShift === 'afternoon') {
+          return startHour < 18 && endHour > 12;
+        } else if (sShift === 'evening') {
+          return endHour > 18 || startHour >= 18;
+        }
+        return false;
+      });
+    });
+  }
+
   // 10. Chip bộ lọc đang áp dụng & Xóa từng chip đồng bộ URL (T019)
   function renderActiveChips() {
     if (!activeChipsContainer) return;
@@ -473,8 +635,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const map = { kaiwa: 'Luyện giao tiếp', jlpt: 'Luyện thi JLPT', business: 'Tiếng Nhật thương mại', it: 'Tiếng Nhật IT' };
       chips.push({ key: 'goal', label: map[state.goal] || state.goal });
     }
-    if (state.format) {
-      const map = { online: 'Học Online', offline: 'Học Trực tiếp', hybrid: 'Kết hợp' };
+    if (state.format && state.format !== 'all') {
+      const map = { online: 'Học Online', offline: 'Tại nhà', hybrid: 'Linh hoạt' };
       chips.push({ key: 'format', label: map[state.format] || state.format });
     }
     if (state.priceRange) {
@@ -484,6 +646,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.schedule) {
       const map = { today: 'Hôm nay', weekend: 'Cuối tuần', evening: 'Buổi tối' };
       chips.push({ key: 'schedule', label: map[state.schedule] || state.schedule });
+    }
+    if (state.tutorLevel) {
+      const levelMap = {
+        teacher: 'Giáo viên',
+        lecturer: 'Giảng viên',
+        pedagogy: 'Sư phạm',
+        overseas: 'Du học sinh',
+        native: 'Bản xứ (Sensei)',
+        student: 'Sinh viên'
+      };
+      chips.push({ key: 'tutorLevel', label: `Trình độ: ${levelMap[state.tutorLevel] || state.tutorLevel}` });
+    }
+    if (state.verifiedOnly) {
+      chips.push({ key: 'verifiedOnly', label: 'Hồ sơ đã xác thực' });
+    }
+    if (state.scheduleSlots.size > 0) {
+      chips.push({ key: 'scheduleSlots', label: `Lịch rảnh: ${state.scheduleSlots.size} ô đã chọn` });
     }
 
     if (chips.length === 0) {
@@ -504,9 +683,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (key === 'location') { state.location = ''; if (filterLocation) filterLocation.value = ''; }
     if (key === 'jlptLevel') { state.jlptLevel = 'all'; syncJlptPills(); }
     if (key === 'goal') { state.goal = ''; if (filterGoal) filterGoal.value = ''; }
-    if (key === 'format') { state.format = ''; if (filterFormat) filterFormat.value = ''; }
+    if (key === 'format') { state.format = ''; syncFormatButtonsUI(); }
     if (key === 'priceRange') { state.priceRange = ''; if (filterPrice) filterPrice.value = ''; }
     if (key === 'schedule') { state.schedule = ''; if (filterSchedule) filterSchedule.value = ''; }
+    if (key === 'tutorLevel') { state.tutorLevel = ''; if (filterTutorLevel) filterTutorLevel.value = ''; }
+    if (key === 'verifiedOnly') { state.verifiedOnly = false; if (filterVerifiedOnly) filterVerifiedOnly.checked = false; }
+    if (key === 'scheduleSlots') { state.scheduleSlots.clear(); syncScheduleMatrixUI(); }
+    updateAdvancedFilterBadge();
     state.currentPage = 1;
     updateUrlFromState(true);
     loadTutors();
@@ -556,13 +739,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sự kiện 5 dropdown bộ lọc (Khu vực, Mục tiêu, Hình thức, Học phí, Lịch rảnh)
+  // Sự kiện dropdown bộ lọc cơ bản
   [
     { el: filterLocation, prop: 'location' },
     { el: filterGoal, prop: 'goal' },
-    { el: filterFormat, prop: 'format' },
-    { el: filterPrice, prop: 'priceRange' },
-    { el: filterSchedule, prop: 'schedule' }
+    { el: filterPrice, prop: 'priceRange' }
   ].forEach(({ el, prop }) => {
     if (el) {
       el.addEventListener('change', (e) => {
@@ -573,6 +754,81 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   });
+
+  // Sự kiện nút bật/tắt Bộ lọc thêm
+  if (btnToggleAdvancedFilter && advancedFilterDrawer) {
+    btnToggleAdvancedFilter.addEventListener('click', () => {
+      const isHidden = advancedFilterDrawer.classList.toggle('hidden');
+      if (!isHidden) {
+        btnToggleAdvancedFilter.className = 'flex-1 h-11 px-3 rounded-lg border border-[#006194] bg-[#006194] text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer';
+      } else {
+        btnToggleAdvancedFilter.className = 'flex-1 h-11 px-3 rounded-lg border border-[#006194] bg-white hover:bg-sky-50 text-[#006194] font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer';
+      }
+    });
+  }
+
+
+
+  // Sự kiện nhóm nút Hình thức giảng dạy (Segmented Control)
+  formatButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = btn.getAttribute('data-format');
+      state.format = f === 'all' ? '' : f;
+      syncFormatButtonsUI();
+      updateAdvancedFilterBadge();
+    });
+  });
+
+  // Sự kiện dropdown Trình độ gia sư
+  if (filterTutorLevel) {
+    filterTutorLevel.addEventListener('change', (e) => {
+      state.tutorLevel = e.target.value;
+      updateAdvancedFilterBadge();
+    });
+  }
+
+  // Sự kiện checkbox Hồ sơ xác thực
+  if (filterVerifiedOnly) {
+    filterVerifiedOnly.addEventListener('change', (e) => {
+      state.verifiedOnly = e.target.checked;
+      updateAdvancedFilterBadge();
+    });
+  }
+
+  // Sự kiện click ô trong ma trận Lịch rảnh (21 ô)
+  scheduleMatrixCells.forEach(cell => {
+    cell.addEventListener('click', () => {
+      const day = cell.getAttribute('data-day');
+      const shift = cell.getAttribute('data-shift');
+      const key = `${day}-${shift}`;
+
+      if (state.scheduleSlots.has(key)) {
+        state.scheduleSlots.delete(key);
+      } else {
+        state.scheduleSlots.add(key);
+      }
+      syncScheduleMatrixUI();
+      updateAdvancedFilterBadge();
+    });
+  });
+
+  // Sự kiện nút Bỏ chọn tất cả ô
+  if (btnClearScheduleSlots) {
+    btnClearScheduleSlots.addEventListener('click', () => {
+      state.scheduleSlots.clear();
+      syncScheduleMatrixUI();
+      updateAdvancedFilterBadge();
+    });
+  }
+
+  // Sự kiện nút "Áp dụng" từ Bộ lọc thêm
+  if (btnApplyAdvancedFilter) {
+    btnApplyAdvancedFilter.addEventListener('click', () => {
+      state.currentPage = 1;
+      updateUrlFromState(true);
+      loadTutors();
+    });
+  }
 
   // Sự kiện dropdown sắp xếp (T018)
   if (sortSelect) {
@@ -592,6 +848,9 @@ document.addEventListener('DOMContentLoaded', () => {
     state.format = '';
     state.priceRange = '';
     state.schedule = '';
+    state.tutorLevel = '';
+    state.verifiedOnly = false;
+    state.scheduleSlots.clear();
     state.sortBy = 'rating';
     state.currentPage = 1;
     syncFiltersWithState();

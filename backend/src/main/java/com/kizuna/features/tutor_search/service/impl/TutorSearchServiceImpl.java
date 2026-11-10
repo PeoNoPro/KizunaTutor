@@ -150,6 +150,40 @@ public class TutorSearchServiceImpl implements TutorSearchService {
         List<TutorAvailabilityDTO> availabilities = Collections.emptyList();
         List<TutorReviewDTO> reviews = Collections.emptyList();
 
+        try {
+            availabilities = jdbcTemplate.query(
+                "SELECT availability_id, day_of_week, start_time::text, end_time::text " +
+                "FROM tutor_availabilities WHERE tutor_id = ? AND is_active = TRUE ORDER BY day_of_week, start_time",
+                (rs, rowNum) -> {
+                    int dow = rs.getInt("day_of_week");
+                    String dayName = switch (dow) {
+                        case 1 -> "Chủ nhật";
+                        case 2 -> "Thứ hai";
+                        case 3 -> "Thứ ba";
+                        case 4 -> "Thứ tư";
+                        case 5 -> "Thứ năm";
+                        case 6 -> "Thứ sáu";
+                        case 7 -> "Thứ bảy";
+                        default -> "Thứ " + dow;
+                    };
+                    String start = rs.getString("start_time");
+                    String end = rs.getString("end_time");
+                    if (start != null && start.length() >= 5) start = start.substring(0, 5);
+                    if (end != null && end.length() >= 5) end = end.substring(0, 5);
+                    return TutorAvailabilityDTO.builder()
+                        .availabilityId(rs.getObject("availability_id", UUID.class))
+                        .dayOfWeek(dow)
+                        .dayName(dayName)
+                        .startTime(start)
+                        .endTime(end)
+                        .build();
+                },
+                tutor.getTutorId()
+            );
+        } catch (Exception e) {
+            // ignore
+        }
+
         if (includeDetails) {
             try {
                 credentials = jdbcTemplate.query(
@@ -166,40 +200,6 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                 );
             } catch (Exception e) {
                 // ignore if table not present or error
-            }
-
-            try {
-                availabilities = jdbcTemplate.query(
-                    "SELECT availability_id, day_of_week, start_time::text, end_time::text " +
-                    "FROM tutor_availabilities WHERE tutor_id = ? AND is_active = TRUE ORDER BY day_of_week, start_time",
-                    (rs, rowNum) -> {
-                        int dow = rs.getInt("day_of_week");
-                        String dayName = switch (dow) {
-                            case 1 -> "Chủ nhật";
-                            case 2 -> "Thứ hai";
-                            case 3 -> "Thứ ba";
-                            case 4 -> "Thứ tư";
-                            case 5 -> "Thứ năm";
-                            case 6 -> "Thứ sáu";
-                            case 7 -> "Thứ bảy";
-                            default -> "Thứ " + dow;
-                        };
-                        String start = rs.getString("start_time");
-                        String end = rs.getString("end_time");
-                        if (start != null && start.length() >= 5) start = start.substring(0, 5);
-                        if (end != null && end.length() >= 5) end = end.substring(0, 5);
-                        return TutorAvailabilityDTO.builder()
-                            .availabilityId(rs.getObject("availability_id", UUID.class))
-                            .dayOfWeek(dow)
-                            .dayName(dayName)
-                            .startTime(start)
-                            .endTime(end)
-                            .build();
-                    },
-                    tutor.getTutorId()
-                );
-            } catch (Exception e) {
-                // ignore
             }
 
             try {

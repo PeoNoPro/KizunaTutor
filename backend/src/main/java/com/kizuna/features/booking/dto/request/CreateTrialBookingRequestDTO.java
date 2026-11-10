@@ -20,7 +20,7 @@ public class CreateTrialBookingRequestDTO {
     private OffsetDateTime scheduledStartTime;
 
     @Builder.Default
-    private Integer durationMinutes = 50;
+    private Integer durationMinutes = 30;
 
     @Builder.Default
     private String learningMode = "ONLINE";

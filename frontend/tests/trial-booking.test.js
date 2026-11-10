@@ -7,12 +7,12 @@ test('API_CONFIG should define trial booking endpoints and base URL', () => {
   assert.equal(typeof API_CONFIG.BASE_URL, 'string');
 });
 
-test('Format booking time calculates start and end correctly', () => {
+test('Format booking time calculates start and end correctly with 30-minute duration', () => {
   const startStr = '2026-11-05T18:00:00+07:00';
-  const durationMinutes = 50;
+  const durationMinutes = 30;
   const start = new Date(startStr);
   const end = new Date(start.getTime() + durationMinutes * 60000);
 
-  assert.equal(end.getTime() - start.getTime(), 50 * 60 * 1000);
+  assert.equal(end.getTime() - start.getTime(), 30 * 60 * 1000);
 });
 

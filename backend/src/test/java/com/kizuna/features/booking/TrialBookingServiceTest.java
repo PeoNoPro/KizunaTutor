@@ -114,7 +114,7 @@ class TrialBookingServiceTest {
         CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
                 .tutorId(tutorId)
                 .scheduledStartTime(startTime)
-                .durationMinutes(50)
+                .durationMinutes(30)
                 .learningMode("ONLINE")
                 .currentLevel("N5")
                 .learningGoals("Muốn luyện hội thoại Kaiwa")
@@ -160,7 +160,7 @@ class TrialBookingServiceTest {
         CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
                 .tutorId(tutorId)
                 .scheduledStartTime(startTime)
-                .durationMinutes(50)
+                .durationMinutes(30)
                 .learningMode("ONLINE")
                 .build();
 
@@ -186,7 +186,7 @@ class TrialBookingServiceTest {
         CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
                 .tutorId(tutorId)
                 .scheduledStartTime(startTime)
-                .durationMinutes(50)
+                .durationMinutes(30)
                 .learningMode("ONLINE")
                 .build();
 
@@ -218,6 +218,28 @@ class TrialBookingServiceTest {
         CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
                 .tutorId(tutorId)
                 .scheduledStartTime(startTime)
+                .durationMinutes(30)
+                .build();
+
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
+        when(learnerRepository.findByUser(mockLearnerUser)).thenReturn(Optional.of(mockLearner));
+        when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(mockTutor));
+
+        com.kizuna.core.exception.BadRequestException ex = assertThrows(com.kizuna.core.exception.BadRequestException.class, () ->
+                trialBookingService.createTrialBooking("learner@test.com", request)
+        );
+
+        assertTrue(ex.getMessage().contains("chưa sẵn sàng nhận học viên mới"));
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Đặt lịch học thử thất bại - Thời lượng khác 30 phút ném BadRequestException")
+    void testCreateTrialBooking_InvalidDuration_ThrowsBadRequest() {
+        OffsetDateTime startTime = OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0);
+        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
+                .tutorId(tutorId)
+                .scheduledStartTime(startTime)
                 .durationMinutes(50)
                 .build();
 
@@ -229,7 +251,7 @@ class TrialBookingServiceTest {
                 trialBookingService.createTrialBooking("learner@test.com", request)
         );
 
-        assertTrue(ex.getMessage().contains("Gia sư hiện chưa sẵn sàng nhận học viên mới"));
+        assertTrue(ex.getMessage().contains("Thời lượng buổi học thử là 30 phút"));
         verify(trialBookingRepository, never()).save(any());
     }
 

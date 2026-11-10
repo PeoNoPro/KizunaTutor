@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return data.content.map(item => ({
         id: item.tutorId,
         fullName: item.fullName || 'Gia sư Kizuna',
-        avatarUrl: item.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfWr7LjTJCoD0Gf2VNK0QdLAElZ9cyCzJkQ8IOJ7ZhfKFRiPoiK-N6PJaofpuz4ZSh0MCTyzeYN1pX3x0Uaq5OcxZn8yQJ0H4V9S7DtsrI2aXdgxRQ0o8NMGuIO63NK6Y74ZNBD0G7rqPan3Z9H-N80LBRdViJvA9zYNeJLWG53XmbteXaiLIE6gVUR1BHJBqSmUiPALj-L4qvCcRXCinX5eARKyo5T6tbevnMHOs',
+        avatarUrl: item.avatarUrl || null,
         isOnline: true,
         verified: (item.verified !== undefined ? item.verified : item.isVerified) ?? true,
         headline: item.headline || 'Gia sư tiếng Nhật',
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         teachingFormat: item.teachingFormat || 'Online 1-1',
         location: item.location || 'Hà Nội, Việt Nam',
         hourlyRate: item.hourlyRate || 0,
-        rating: item.avgRating || 5.0,
+        rating: item.avgRating != null ? Number(item.avgRating) : 0,
         reviewsCount: item.totalReviews || 0,
         bio: item.bio || 'Chưa có thông tin giới thiệu chi tiết.',
         featured: (item.featured !== undefined ? item.featured : item.isFeatured) ?? false
@@ -132,7 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <!-- Header info: Avatar & Main credentials -->
           <div class="flex items-start gap-space-md">
             <div class="relative shrink-0">
-              <img class="w-20 h-20 rounded-full object-cover shadow-sm ring-2 ring-surface-container-lowest" alt="${tutor.fullName}" src="${tutor.avatarUrl}">
+              ${tutor.avatarUrl
+                ? `<img class="w-20 h-20 rounded-full object-cover shadow-sm ring-2 ring-surface-container-lowest" alt="${tutor.fullName}" src="${tutor.avatarUrl}">`
+                : `<div class="w-20 h-20 rounded-full bg-sky-100 text-[#006194] font-bold text-lg flex items-center justify-center shadow-sm ring-2 ring-surface-container-lowest">${(tutor.fullName || 'GS').substring(0, 2).toUpperCase()}</div>`}
               ${tutor.isOnline ? '<span class="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-emerald-500 ring-2 ring-surface-container-lowest" title="Đang trực tuyến"></span>' : ''}
             </div>
             <div class="flex-1 min-w-0 space-y-1">
@@ -140,11 +142,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h3 class="font-title-md text-title-md font-bold text-on-surface group-hover:text-primary transition-colors truncate">
                   ${tutor.fullName}
                 </h3>
-                <div class="flex items-center gap-1 text-amber-500 font-bold shrink-0 text-sm">
-                  <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span>${Number(tutor.rating).toFixed(1)}</span>
-                  <span class="text-on-surface-variant font-normal text-xs">(${tutor.reviewsCount})</span>
-                </div>
+                ${tutor.reviewsCount > 0 ? `
+                  <div class="flex items-center gap-1 text-amber-500 font-bold shrink-0 text-sm">
+                    <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                    <span>${Number(tutor.rating).toFixed(1)}</span>
+                    <span class="text-on-surface-variant font-normal text-xs">(${tutor.reviewsCount})</span>
+                  </div>
+                ` : ''}
               </div>
 
               <!-- Badges -->
@@ -173,6 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
               <span class="material-symbols-outlined text-[15px] text-primary">history_edu</span>
               <span>${tutor.experienceText}</span>
             </span>
+            ${tutor.reviewsCount > 0 ? '' : `
+              <span class="text-[#E5DECB]">•</span>
+              <span class="text-xs text-slate-500 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[15px] text-slate-400">rate_review</span>
+                <span>Chưa có đánh giá</span>
+              </span>
+            `}
           </div>
 
           <!-- Highlights (Specialties & Format) -->
@@ -326,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
           tutor = {
             id: item.tutorId,
             fullName: item.fullName,
-            avatarUrl: item.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfWr7LjTJCoD0Gf2VNK0QdLAElZ9cyCzJkQ8IOJ7ZhfKFRiPoiK-N6PJaofpuz4ZSh0MCTyzeYN1pX3x0Uaq5OcxZn8yQJ0H4V9S7DtsrI2aXdgxRQ0o8NMGuIO63NK6Y74ZNBD0G7rqPan3Z9H-N80LBRdViJvA9zYNeJLWG53XmbteXaiLIE6gVUR1BHJBqSmUiPALj-L4qvCcRXCinX5eARKyo5T6tbevnMHOs',
+            avatarUrl: item.avatarUrl || null,
             badge: item.headline || 'Gia sư tiếng Nhật',
             experienceYears: item.experienceYears || 0,
             experienceText: (item.experienceYears ? item.experienceYears + ' năm giảng dạy' : 'Gia sư chuyên môn'),
@@ -352,7 +363,9 @@ document.addEventListener('DOMContentLoaded', () => {
     detailModalBody.innerHTML = `
       <!-- Tutor Top Profile -->
       <div class="flex flex-col sm:flex-row items-start gap-4 pb-6 border-b border-[#ECE8DE]">
-        <img class="w-24 h-24 rounded-2xl object-cover border border-[#E5DECB] shrink-0" src="${tutor.avatarUrl}" alt="${tutor.fullName}">
+        ${tutor.avatarUrl
+          ? `<img class="w-24 h-24 rounded-2xl object-cover border border-[#E5DECB] shrink-0" src="${tutor.avatarUrl}" alt="${tutor.fullName}">`
+          : `<div class="w-24 h-24 rounded-2xl bg-sky-100 text-[#006194] font-bold text-2xl flex items-center justify-center border border-[#E5DECB] shrink-0">${(tutor.fullName || 'GS').substring(0, 2).toUpperCase()}</div>`}
         <div class="flex-1 space-y-2">
           <div class="flex items-center gap-2 flex-wrap">
             <h2 class="text-xl font-bold text-[#0F2545]">${tutor.fullName}</h2>

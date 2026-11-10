@@ -83,7 +83,9 @@ public class AssignmentServiceImpl implements AssignmentService {
         LearningSpace space = classroomService.loadAccessibleSpace(actor, spaceId);
         OffsetDateTime now = OffsetDateTime.now(clock);
         boolean readOnly = classroomService.isReadOnly(space);
-        List<Assignment> assignments = assignmentRepository.findBySpace_SpaceIdOrderByCreatedAtDesc(spaceId);
+        List<Assignment> assignments = assignmentRepository.findBySpace_SpaceIdOrderByCreatedAtDesc(spaceId).stream()
+                .filter(a -> actor.isTutor() || AssignmentRules.isOpen(a.getOpensAt(), now))
+                .toList();
         Map<UUID, List<FileAttachmentResponse>> filesByAssignment = assignments.isEmpty() ? Map.of()
                 : assignmentFileRepository.findByAssignmentIdInOrderByCreatedAtAscFileNameAsc(
                                 assignments.stream().map(Assignment::getAssignmentId).toList())
@@ -101,6 +103,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     public AssignmentDetailResponse detail(CurrentActor actor, UUID spaceId, UUID assignmentId) {
         LearningSpace space = classroomService.loadAccessibleSpace(actor, spaceId);
         Assignment assignment = findInSpace(assignmentId, spaceId);
+        if (!actor.isTutor() && !AssignmentRules.isOpen(assignment.getOpensAt(), OffsetDateTime.now(clock))) {
+            throw ClassroomException.notFound("Không tìm thấy bài tập trong lớp học này.");
+        }
         List<AssignmentSubmission> submissions = submissionsOf(assignment, space);
         AssignmentSummaryResponse summary = toSummary(actor, assignment, submissions, OffsetDateTime.now(clock),
                 classroomService.isReadOnly(space), filesOf(assignmentId));
@@ -129,6 +134,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         String title = normalizeTitle(req.title());
         String description = normalizeDescription(req.description());
         if (req.dueDate() != null) requireFuture(req.dueDate(), now);
+        requireOpensBeforeDue(req.opensAt(), req.dueDate());
         BigDecimal points = normalizePoints(req.totalPoints());
 
         Assignment saved = assignmentRepository.save(Assignment.builder()
@@ -137,6 +143,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .description(description)
                 .dueDate(req.dueDate())
                 .totalPoints(points)
+                .opensAt(req.opensAt())
                 .build());
         // Tệp đề bài lưu trong cùng giao dịch: tệp lỗi / thiếu cả nội dung lẫn tệp → hủy toàn bộ, bài tập không được tạo
         List<FileAttachmentResponse> attachments = attachmentService.applyChanges(saved, files, null);
@@ -163,7 +170,9 @@ public class AssignmentServiceImpl implements AssignmentService {
         BigDecimal points = normalizePoints(req.totalPoints());
         boolean dueChanged = !sameInstant(req.dueDate(), assignment.getDueDate());
         if (dueChanged && req.dueDate() != null) requireFuture(req.dueDate(), now);
+        requireOpensBeforeDue(req.opensAt(), req.dueDate());
 
+        assignment.setOpensAt(req.opensAt());
         assignment.setTitle(title);
         assignment.setDescription(description);
         assignment.setTotalPoints(points);
@@ -205,6 +214,8 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .attachments(attachments)
                 .createdAt(a.getCreatedAt())
                 .dueOver(AssignmentRules.dueOver(a.getDueDate(), now))
+                .opensAt(a.getOpensAt())
+                .opened(AssignmentRules.isOpen(a.getOpensAt(), now))
                 .submissionState(AssignmentRules.state(a.getDueDate(), now, latest))
                 .attemptCount(subs.size())
                 .grade(subs.stream().filter(AssignmentSubmission::isFinalized).map(AssignmentSubmission::getGrade)
@@ -228,6 +239,13 @@ public class AssignmentServiceImpl implements AssignmentService {
     private static boolean sameInstant(OffsetDateTime a, OffsetDateTime b) {
         if (a == null || b == null) return a == b;
         return a.isEqual(b);
+    }
+
+    /** Thời gian mở bài (nếu có) phải trước hạn nộp (nếu có). */
+    private static void requireOpensBeforeDue(OffsetDateTime opensAt, OffsetDateTime dueDate) {
+        if (opensAt != null && dueDate != null && !opensAt.isBefore(dueDate)) {
+            throw ClassroomException.field("opensAt", "Thời gian mở bài phải trước hạn nộp.");
+        }
     }
 
     private static void requireFuture(OffsetDateTime dueDate, OffsetDateTime now) {

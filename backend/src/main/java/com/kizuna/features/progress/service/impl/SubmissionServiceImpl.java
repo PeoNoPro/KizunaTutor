@@ -79,6 +79,9 @@ public class SubmissionServiceImpl implements SubmissionService {
         loadLearnerSpace(actor, spaceId);
         Assignment assignment = findInSpace(assignmentId, spaceId);
         OffsetDateTime now = OffsetDateTime.now(clock);
+        if (!AssignmentRules.isOpen(assignment.getOpensAt(), now)) {
+            throw ClassroomException.notFound("Không tìm thấy bài tập trong lớp học này.");
+        }
 
         List<AssignmentSubmission> previous = submissionsOf(assignmentId, actor);
         if (previous.stream().anyMatch(AssignmentSubmission::isFinalized)) {

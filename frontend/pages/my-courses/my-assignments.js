@@ -4,6 +4,7 @@
  */
 
 import { API } from '../../js/api.js';
+import { formatDateTime, formatScore } from '../../js/exercise-helpers.js';
 import { createFileList } from '../../js/file-picker.js';
 import {
   fileTypeLabel,
@@ -48,7 +49,12 @@ export async function loadLearnerAssignments(space, { notify } = {}) {
   $('myAssignmentsState').classList.add('hidden');
   list.innerHTML = '<li class="text-[#444]">Đang tải bài tập...</li>';
   try {
-    ctx.assignments = await API.assignments.list(space.spaceId) || [];
+    const [assignments, exercises] = await Promise.all([
+      API.assignments.list(space.spaceId),
+      API.exercises.list(space.spaceId).catch(() => [])
+    ]);
+    ctx.assignments = assignments || [];
+    ctx.exercises = exercises || [];
     renderList();
   } catch (err) {
     list.innerHTML = '';
@@ -56,18 +62,59 @@ export async function loadLearnerAssignments(space, { notify } = {}) {
   }
 }
 
+/** Bài làm trực tiếp (FE-07): mở trang làm bài riêng. */
+function exerciseItemHtml(e) {
+  const url = `/pages/exercise-take/index.html?space=${encodeURIComponent(ctx.space.spaceId)}&exercise=${encodeURIComponent(e.exerciseId)}`;
+  const status = e.inProgressAttemptId ? 'Đang làm dở'
+    : e.pendingGrading ? 'Chờ gia sư chấm'
+      : e.bestScore !== null && e.bestScore !== undefined ? `Điểm: ${formatScore(e.bestScore)} / ${formatScore(e.maxScore)}`
+        : e.state === 'CLOSED' ? 'Đã đóng đề' : 'Chưa làm';
+  const button = e.inProgressAttemptId ? 'Làm tiếp' : (e.canStart ? (e.attemptsUsed ? 'Làm lượt mới' : 'Làm bài') : 'Xem kết quả');
+  const meta = [
+    `${e.questionCount} câu · ${formatScore(e.maxScore)} điểm`,
+    e.timeLimitMinutes ? `${e.timeLimitMinutes} phút` : 'Không giới hạn thời gian',
+    `Đã làm ${e.attemptsUsed}/${e.maxAttempts} lượt`,
+    e.closesAt ? `Đóng đề ${formatDateTime(e.closesAt)}` : ''
+  ].filter(Boolean).join(' · ');
+  return `
+    <li class="border border-black rounded-[5px] p-4 bg-white flex flex-col sm:flex-row sm:items-start gap-3">
+      <div class="flex-1 min-w-0 space-y-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="mc-badge" data-tone="active">Làm trực tiếp</span>
+          <h3 class="font-semibold text-[16px] break-words">${escapeHtml(e.title)}</h3>
+          <span class="mc-badge">${escapeHtml(status)}</span>
+        </div>
+        <p class="mc-meta text-[#555]">${escapeHtml(meta)}</p>
+      </div>
+      <a class="mc-btn ${e.canStart || e.inProgressAttemptId ? 'mc-btn-primary' : ''} shrink-0" href="${url}">${button}</a>
+    </li>`;
+}
+
 function renderList() {
   const list = $('myAssignmentsList');
-  if (!ctx.assignments.length) {
+  const exercises = ctx.exercises || [];
+  if (!ctx.assignments.length && !exercises.length) {
     list.innerHTML = '';
     stateBox('Hiện chưa có bài tập nào trong lớp học này.');
     return;
   }
   $('myAssignmentsState').classList.add('hidden');
-  list.innerHTML = ctx.assignments.map((a) => `
+  const items = [
+    ...ctx.assignments.map((a) => ({ kind: 'file', at: a.createdAt, a })),
+    ...exercises.map((e) => ({ kind: 'online', at: e.createdAt, e }))
+  ].sort((x, y) => String(y.at || '').localeCompare(String(x.at || '')));
+  list.innerHTML = items.map((it) => (it.kind === 'online' ? exerciseItemHtml(it.e) : fileItemHtml(it.a))).join('');
+  list.querySelectorAll('[data-open-assignment]').forEach((btn) => {
+    btn.addEventListener('click', () => openDetail(btn.dataset.openAssignment));
+  });
+}
+
+function fileItemHtml(a) {
+  return `
     <li class="border border-black rounded-[5px] p-4 bg-white flex flex-col sm:flex-row sm:items-start gap-3">
       <div class="flex-1 min-w-0 space-y-1">
         <div class="flex flex-wrap items-center gap-2">
+          <span class="mc-badge">Nộp tệp</span>
           <h3 class="font-semibold text-[16px] break-words">${escapeHtml(a.title)}</h3>
           <span class="mc-badge" data-tone="${submissionStateTone(a.submissionState)}">${escapeHtml(submissionStateLabel(a.submissionState))}</span>
         </div>
@@ -75,11 +122,7 @@ function renderList() {
           ${a.grade !== null && a.grade !== undefined ? ` · Điểm của bạn: ${escapeHtml(formatPoints(a.grade))}` : ''}</p>
       </div>
       <button type="button" class="mc-btn shrink-0" data-open-assignment="${escapeHtml(a.assignmentId)}">Xem bài tập</button>
-    </li>
-  `).join('');
-  list.querySelectorAll('[data-open-assignment]').forEach((btn) => {
-    btn.addEventListener('click', () => openDetail(btn.dataset.openAssignment));
-  });
+    </li>`;
 }
 
 async function openDetail(assignmentId) {

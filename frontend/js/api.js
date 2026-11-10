@@ -1017,11 +1017,12 @@ API.classrooms = {
 // FE-07: BÀI TẬP, NỘP BÀI & CHẤM ĐIỂM (Homework, Assessment & Progress Tracking)
 // Bổ sung riêng cho FE-07, dùng lại classroomRequest/classroomAuthHeaders của FE-06.
 // =========================================================================
-function assignmentFormData({ title, description, dueDate, totalPoints, files, removeFileIds }) {
+function assignmentFormData({ title, description, dueDate, totalPoints, opensAt, files, removeFileIds }) {
   const fd = new FormData();
   fd.append('title', title ?? '');
   fd.append('description', description ?? '');
   if (dueDate) fd.append('dueDate', dueDate);
+  if (opensAt) fd.append('opensAt', opensAt);
   if (totalPoints !== null && totalPoints !== undefined && totalPoints !== '') fd.append('totalPoints', String(totalPoints));
   Array.from(files || []).forEach((f) => fd.append('file', f));
   (removeFileIds || []).forEach((id) => fd.append('removeFileIds', id));
@@ -1047,17 +1048,17 @@ API.assignments = {
    * Gia sư giao bài tập (UC-66) — MỘT lần gửi: thông tin bài tập + tệp đề bài (tối đa 5).
    * Máy chủ kiểm tra tất cả; lỗi bất kỳ (kể cả một tệp) thì không lưu gì.
    */
-  create(spaceId, { title, description, dueDate, totalPoints, files }) {
+  create(spaceId, { title, description, dueDate, totalPoints, opensAt, files }) {
     return classroomRequest(assignmentPath(spaceId), {
-      method: 'POST', formData: assignmentFormData({ title, description, dueDate, totalPoints, files }), timeout: 300000
+      method: 'POST', formData: assignmentFormData({ title, description, dueDate, totalPoints, opensAt, files }), timeout: 300000
     });
   },
 
   /** Gia sư sửa bài tập (UC-95) — MỘT lần gửi: thông tin + tệp thêm (`files`) + tệp gỡ (`removeFileIds`). */
-  update(spaceId, assignmentId, { title, description, dueDate, totalPoints, files, removeFileIds }) {
+  update(spaceId, assignmentId, { title, description, dueDate, totalPoints, opensAt, files, removeFileIds }) {
     return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}`), {
       method: 'PUT',
-      formData: assignmentFormData({ title, description, dueDate, totalPoints, files, removeFileIds }),
+      formData: assignmentFormData({ title, description, dueDate, totalPoints, opensAt, files, removeFileIds }),
       timeout: 300000
     });
   },
@@ -1135,3 +1136,67 @@ async function assignmentBlob(path) {
   }
   return await response.blob();
 }
+
+// =========================================================================
+// FE-07: BÀI LÀM TRỰC TIẾP TRÊN WEB (online exercise) — /api/classrooms/{spaceId}/exercises
+// Đề do gia sư soạn từng câu; học viên làm trên web; hệ thống chấm tự động hoặc gia sư chấm. Điểm riêng với bài nộp tệp.
+// =========================================================================
+function exercisePath(spaceId, rest = '') {
+  return `/${encodeURIComponent(spaceId)}/exercises${rest}`;
+}
+
+API.exercises = {
+  /** Gia sư: mọi bài (kể cả nháp). Học viên: bài đã giao và đã tới giờ mở. */
+  list(spaceId) {
+    return classroomRequest(exercisePath(spaceId));
+  },
+
+  /** Gia sư nhận kèm câu hỏi đầy đủ (có đáp án); học viên chỉ nhận thông tin bài. */
+  detail(spaceId, exerciseId) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}`));
+  },
+
+  /** body: {title, instructions, opensAt, closesAt, timeLimitMinutes, maxAttempts, gradingMode, showAnswers, publish, questions} */
+  create(spaceId, body) {
+    return classroomRequest(exercisePath(spaceId), { method: 'POST', body, timeout: 60000 });
+  },
+
+  update(spaceId, exerciseId, body) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}`), { method: 'PUT', body, timeout: 60000 });
+  },
+
+  remove(spaceId, exerciseId) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}`), { method: 'DELETE' });
+  },
+
+  /** Học viên bắt đầu lượt mới, hoặc nhận lại lượt đang làm dở. */
+  start(spaceId, exerciseId) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}/attempts`), { method: 'POST' });
+  },
+
+  attempts(spaceId, exerciseId) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}/attempts`));
+  },
+
+  attempt(spaceId, exerciseId, attemptId) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}`));
+  },
+
+  /** Tự lưu câu trả lời một câu trong lúc làm bài. */
+  saveAnswer(spaceId, exerciseId, attemptId, questionId, response) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/answers/${encodeURIComponent(questionId)}`),
+    { method: 'PUT', body: response ?? null });
+  },
+
+  submit(spaceId, exerciseId, attemptId) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/submit`), { method: 'POST', timeout: 60000 });
+  },
+
+  /** Gia sư chấm / sửa điểm: items = [{questionId, score, comment}] (score null = dùng điểm máy chấm). */
+  grade(spaceId, exerciseId, attemptId, items) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/grade`), { method: 'PUT', body: { items } });
+  }
+};

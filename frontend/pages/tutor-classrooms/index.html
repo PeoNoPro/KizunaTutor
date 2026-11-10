@@ -200,7 +200,7 @@
                   <div class="w-2.5 h-6 rounded-full bg-tertiary"></div>
                   <div>
                     <h2 class="font-title-md text-title-md text-on-surface">Bài tập</h2>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Giao bài, xem bài nộp và chấm điểm học viên</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">Bài nộp tệp và bài làm trực tiếp: giao bài, xem bài làm, chấm điểm</p>
                   </div>
                 </div>
                 <button type="button" id="openAssignmentFormBtn" class="kz-btn kz-btn-primary shrink-0 hidden"><span class="material-symbols-outlined text-[16px]">add_task</span>Giao bài tập</button>
@@ -422,6 +422,26 @@
   </div>
 
   <!-- ===== FE-07: HỘP THOẠI GIAO / SỬA BÀI TẬP ===== -->
+  <!-- ===== CHỌN LOẠI BÀI TẬP KHI GIAO ===== -->
+  <div id="assignmentTypeModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assignmentTypeTitle">
+    <div class="kz-card shadow-xl w-full max-w-[620px] p-6 space-y-4">
+      <h2 id="assignmentTypeTitle" class="font-title-md text-title-md text-on-surface">Chọn loại bài tập</h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <button type="button" id="chooseFileAssignment" class="kz-item text-left space-y-1.5 border border-transparent hover:border-primary">
+          <span class="material-symbols-outlined text-primary">attach_file</span>
+          <p class="font-title-sm text-title-sm">Bài nộp tệp</p>
+          <p class="font-body-sm text-body-sm text-on-surface-variant">Học viên nộp tệp hoặc câu trả lời, gia sư chấm tay.</p>
+        </button>
+        <button type="button" id="chooseOnlineExercise" class="kz-item text-left space-y-1.5 border border-transparent hover:border-primary">
+          <span class="material-symbols-outlined text-primary">edit_note</span>
+          <p class="font-title-sm text-title-sm">Bài làm trực tiếp</p>
+          <p class="font-body-sm text-body-sm text-on-surface-variant">Trắc nghiệm, điền từ, nối cột, sắp xếp, tự luận… học viên làm ngay trên web.</p>
+        </button>
+      </div>
+      <div class="flex justify-end"><button type="button" class="kz-btn" data-close-modal="assignmentTypeModal">Hủy</button></div>
+    </div>
+  </div>
+
   <div id="assignmentModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
     <form id="assignmentForm" class="kz-card shadow-xl w-full max-w-[560px] p-6 space-y-4 max-h-[90vh] overflow-y-auto" novalidate>
       <h2 id="assignmentModalTitle" class="font-title-md text-title-md text-on-surface">Giao bài tập</h2>
@@ -434,6 +454,11 @@
         <label for="assignmentDescriptionInput" class="kz-label">Nội dung bài tập <span class="font-normal text-on-surface-variant">(nhập nội dung hoặc tải tệp đề bài, ít nhất một trong hai)</span></label>
         <textarea id="assignmentDescriptionInput" rows="4" maxlength="5000" class="kz-input" placeholder="Ví dụ: Viết 10 câu dùng ～ている. Xem tài liệu Ngữ pháp bài 5 trong mục Tài liệu học tập."></textarea>
         <p id="assignmentDescriptionError" class="field-error hidden"></p>
+      </div>
+      <div>
+        <label for="assignmentOpensInput" class="kz-label">Thời gian mở bài <span class="font-normal text-on-surface-variant">(để trống = học viên thấy bài ngay)</span></label>
+        <input id="assignmentOpensInput" type="datetime-local" class="kz-input">
+        <p id="assignmentOpensError" class="field-error hidden"></p>
       </div>
       <div class="grid gap-4 sm:grid-cols-2">
         <div>

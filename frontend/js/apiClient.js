@@ -47,6 +47,7 @@ export const KizunaToast = {
   },
   success(message) { this.show(message, 'success'); },
   error(message) { this.show(message, 'error'); },
+  danger(message) { this.show(message, 'error'); },
   info(message) { this.show(message, 'info'); },
   warning(message) { this.show(message, 'warning'); }
 };
@@ -78,6 +79,16 @@ function saveStoredDecks(decks) {
   }
 }
 
+function getDeckHeaders(withJson = false) {
+  const headers = { 'Accept': 'application/json' };
+  if (withJson) headers['Content-Type'] = 'application/json';
+  try {
+    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  } catch (e) {}
+  return headers;
+}
+
 // =========================================================================
 // 3. API CLIENT IMPLEMENTATION
 // =========================================================================
@@ -90,7 +101,7 @@ export const apiClient = {
     const localDecks = getStoredDecks();
     try {
       const res = await fetch('/api/learner/decks', {
-        headers: { 'Accept': 'application/json' },
+        headers: getDeckHeaders(false),
         signal: AbortSignal.timeout(4000)
       }).catch(err => {
         console.warn('Lỗi kết nối /api/learner/decks:', err);
@@ -169,7 +180,7 @@ export const apiClient = {
     try {
       const res = await fetch('/api/learner/decks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: getDeckHeaders(true),
         body: JSON.stringify(newDeck),
         signal: AbortSignal.timeout(4000)
       }).catch(() => null);
@@ -213,7 +224,7 @@ export const apiClient = {
     try {
       const res = await fetch(`/api/learner/decks/${encodeURIComponent(id)}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: getDeckHeaders(true),
         body: JSON.stringify(updatedDeck),
         signal: AbortSignal.timeout(4000)
       }).catch(() => null);
@@ -243,6 +254,7 @@ export const apiClient = {
     try {
       await fetch(`/api/learner/decks/${encodeURIComponent(id)}`, {
         method: 'DELETE',
+        headers: getDeckHeaders(false),
         signal: AbortSignal.timeout(4000)
       }).catch(() => null);
     } catch (e) {

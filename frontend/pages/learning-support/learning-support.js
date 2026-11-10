@@ -204,7 +204,7 @@ async function loadVocabularies() {
   grid.innerHTML = '<div class="col-span-full py-10 text-center text-xs text-slate-400">Đang tải danh sách từ vựng...</div>';
 
   try {
-    const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}&limit=500`);
+    const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}&limit=3500`);
     if (res.ok) {
       const data = await res.json();
       vocabList = Array.isArray(data) ? data : (data.content || data.items || []);
@@ -409,9 +409,15 @@ function saveVocabToFlashcard(word, reading, meaning, level = 'N5') {
 
     localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
 
+    const deckHeaders = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    try {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+      if (token) deckHeaders['Authorization'] = `Bearer ${token}`;
+    } catch (e) {}
+
     fetch('/api/learner/decks', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: deckHeaders,
       body: JSON.stringify(deck)
     }).catch(() => null);
 

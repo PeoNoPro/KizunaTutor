@@ -107,6 +107,36 @@ public class AuthController {
         return ResponseEntity.ok(loginResponse);
     }
 
+    /**
+     * Tiếp nhận yêu cầu Quên mật khẩu, cấp mật khẩu ngẫu nhiên mới và gửi về email người dùng.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, Object>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        String cleanEmail = request.getEmail().trim().toLowerCase();
+        authService.resetPasswordAndSendEmail(cleanEmail);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Mật khẩu mới đã được gửi tới email của bạn. Vui lòng kiểm tra hộp thư để đăng nhập.",
+                "email", cleanEmail
+        ));
+    }
+
+    /**
+     * Xác minh mật khẩu tạm được cấp qua email và đổi sang mật khẩu mới do người dùng đặt.
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, Object>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        String cleanEmail = request.getEmail().trim().toLowerCase();
+        authService.resetPasswordWithTemporary(request);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Đổi mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.",
+                "email", cleanEmail
+        ));
+    }
+
     @PostMapping("/register")
     public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request,
                                                   HttpServletResponse response) {

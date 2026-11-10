@@ -2,7 +2,19 @@ package com.kizuna.features.auth.service.impl;
 
 import com.kizuna.core.entity.*;
 import com.kizuna.core.exception.BadRequestException;
+import com.kizuna.core.exception.BusinessException;
 import com.kizuna.core.exception.ResourceNotFoundException;
+import com.kizuna.core.exception.ServiceUnavailableException;
+import java.util.EnumSet;
+import java.util.Set;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import java.io.UnsupportedEncodingException;
+import java.security.SecureRandom;
 import com.kizuna.core.repository.LearnerRepository;
 import com.kizuna.core.repository.RoleRepository;
 import com.kizuna.core.repository.TutorRepository;
@@ -16,6 +28,7 @@ import com.kizuna.features.auth.dto.response.UserSummaryDto;
 import com.kizuna.features.auth.service.AuthService;
 import com.kizuna.features.auth.service.OtpService;
 import com.kizuna.features.auth.service.EmailService;
+import com.kizuna.features.auth.dto.request.ResetPasswordRequest;
 import com.kizuna.features.auth.dto.request.VerifyOtpRequest;
 import com.kizuna.features.auth.dto.response.PendingRegistration;
 import com.kizuna.features.payment.entity.TutorMembershipStatus;
@@ -45,6 +58,126 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider tokenProvider;
     private final OtpService otpService;
     private final EmailService emailService;
+    private final JavaMailSender mailSender;
+
+    @Value("${app.mail.sender-email:${spring.mail.username:kizunatutor@gmail.com}}")
+    private String senderEmail;
+
+    @Value("${app.mail.sender-name:KizunaTutor - Nền Tảng Gia Sư & Học Tiếng Nhật}")
+    private String senderName;
+
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    private static final SecureRandom PASSWORD_RANDOM = new SecureRandom();
+    private static final int TEMP_PASSWORD_LENGTH = 10;
+
+    private static final Set<RoleEnum> FORGOT_PASSWORD_RESTRICTED_ROLES = EnumSet.of(
+            RoleEnum.ROLE_ADMIN,
+            RoleEnum.ROLE_MANAGER,
+            RoleEnum.ROLE_CS_STAFF,
+            RoleEnum.ROLE_ACADEMIC_OFFICER
+    );
+
+    private void ensureForgotPasswordAllowed(User user) {
+        if (user.getRole() == null) return;
+        RoleEnum roleEnum = RoleEnum.fromString(user.getRole().getRoleName());
+        if (FORGOT_PASSWORD_RESTRICTED_ROLES.contains(roleEnum)) {
+            log.warn("[SECURITY] Chặn thao tác Quên mật khẩu đối với tài khoản nội bộ: {} ({})",
+                    user.getEmail(), roleEnum.getRoleName());
+            throw new BusinessException(403,
+                    "Tài khoản quản trị và nhân sự nội bộ (Admin, Manager, CS Staff, Academic Officer) không thể tự thực hiện quên mật khẩu. Vui lòng liên hệ Quản trị viên để được hỗ trợ.");
+        }
+    }
+
+    private String generateRandomPassword(int length) {
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(PASSWORD_CHARS.charAt(PASSWORD_RANDOM.nextInt(PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
+    }
+
+    @Override
+    @Transactional
+    public void resetPasswordAndSendEmail(String email) {
+        String cleanEmail = email.trim().toLowerCase();
+
+        // 1. Kiểm tra tài khoản tồn tại trong hệ thống
+        User user = userRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy tài khoản nào được đăng ký với email: " + cleanEmail));
+
+        // 2. Bảo mật: Cấm nhân sự nội bộ / quản trị viên tự khôi phục mật khẩu
+        ensureForgotPasswordAllowed(user);
+
+        // 2. Sinh mật khẩu ngẫu nhiên và cập nhật mã hóa vào CSDL
+        // (@Transactional sẽ tự động rollback nếu bước gửi email bên dưới gặp lỗi)
+        String randomPassword = generateRandomPassword(TEMP_PASSWORD_LENGTH);
+        user.setPasswordHash(passwordEncoder.encode(randomPassword));
+        userRepository.save(user);
+
+        // 3. Gửi email chứa mật khẩu ngẫu nhiên qua JavaMailSender (không nuốt lỗi)
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(senderEmail, senderName);
+            helper.setTo(cleanEmail);
+            helper.setSubject("[KizunaTutor] Mật khẩu đăng nhập mới của bạn");
+
+            String displayName = (user.getFullName() != null && !user.getFullName().isBlank())
+                    ? user.getFullName()
+                    : "Học viên";
+
+            String htmlContent = """
+                    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; background-color: #FFE5EC; border: 3px solid #0F172A; border-radius: 12px;">
+                      <h2 style="color: #0F172A; margin-top: 0;">Cấp lại mật khẩu - KizunaTutor</h2>
+                      <p style="color: #0F172A;">Xin chào <strong>%s</strong>,</p>
+                      <p style="color: #0F172A;">Hệ thống đã tạo một mật khẩu ngẫu nhiên mới cho tài khoản của bạn. Bạn có thể dùng mật khẩu bên dưới để đăng nhập trực tiếp vào hệ thống:</p>
+                      <div style="background: #FFFFFF; border: 2px solid #0F172A; padding: 14px 20px; text-align: center; font-size: 24px; font-weight: 800; letter-spacing: 3px; color: #E0399A; margin: 20px 0; font-family: monospace;">
+                        %s
+                      </div>
+                      <p style="color: #0F172A; font-size: 13px;">
+                        Khuyến nghị: Sau khi đăng nhập thành công, hãy đổi lại mật khẩu cá nhân để đảm bảo an toàn tài khoản.
+                      </p>
+                    </div>
+                    """.formatted(displayName, randomPassword);
+
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+
+            log.info("[FORGOT PASSWORD] Đã cấp mật khẩu mới và gửi email tới: {}", cleanEmail);
+        } catch (MessagingException | MailException | UnsupportedEncodingException ex) {
+            log.error("[FORGOT PASSWORD] Gửi email mật khẩu mới thất bại tới {}: {}", cleanEmail, ex.getMessage(), ex);
+            throw new ServiceUnavailableException(
+                    "Không thể gửi email chứa mật khẩu mới lúc này. Vui lòng thử lại sau.", ex);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void resetPasswordWithTemporary(ResetPasswordRequest request) {
+        String cleanEmail = request.getEmail().trim().toLowerCase();
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BadRequestException("Mật khẩu mới và mật khẩu xác minh không trùng khớp.");
+        }
+
+        User user = userRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy tài khoản nào được đăng ký với email: " + cleanEmail));
+
+        ensureForgotPasswordAllowed(user);
+
+        if (!passwordEncoder.matches(request.getTemporaryPassword(), user.getPasswordHash())) {
+            throw new BadRequestException("Mật khẩu được cấp không chính xác. Vui lòng kiểm tra lại email.");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setMustChangePassword(false);
+        userRepository.save(user);
+
+        log.info("[RESET PASSWORD] Đã xác minh mật khẩu tạm và cập nhật mật khẩu mới cho: {}", cleanEmail);
+    }
 
     @Override
     public void initiateRegistration(RegisterRequest request) {

@@ -1,9 +1,10 @@
-﻿/**
+/**
  * KizunaTutor - Quản lý đăng nhập & Điều hướng phiên làm việc
  * Module Feature-Based độc lập tuân thủ nghiêm ngặt FRONTEND_RULES.md
  */
 
 import { showToast } from '/js/main.js';
+import { initPasswordVisibilityToggles, initForgotPasswordModal } from '/js/auth-features.js';
 
 // =========================================================================
 // 1. CẤU HÌNH & KHÓA LƯU TRỮ PHIÊN
@@ -342,12 +343,30 @@ document.addEventListener('DOMContentLoaded', () => {
   setupQuickLoginButtons();
 
   // First time password form
+  // Tính năng Ẩn/Hiện mật khẩu & Modal Quên mật khẩu (Zero-Reload)
+  initPasswordVisibilityToggles();
+  initForgotPasswordModal();
   document.getElementById('firstTimeChangePasswordForm')?.addEventListener('submit', handleFirstTimeChangePassword);
 
   // Xử lý query parameters trên URL
   const params = new URLSearchParams(window.location.search);
   const error = params.get('error');
   const registered = params.get('registered');
+  const oauthToken = params.get('token');
+
+  if (oauthToken) {
+    const role = params.get('role') || 'ROLE_LEARNER';
+    const email = params.get('email') ? decodeURIComponent(params.get('email')) : '';
+    const fullName = params.get('name') ? decodeURIComponent(params.get('name')) : 'Học Viên Kizuna';
+    setAuthSession(oauthToken, { email, fullName, role });
+    showLoginAlert('Đăng nhập bằng Google thành công! Đang chuyển hướng...', 'success');
+    const isLearner = role === 'ROLE_LEARNER' || role === 'ROLE_STUDENT';
+    const targetUrl = isLearner ? '/pages/home/' : (DASHBOARD_ROUTES[role] || '/pages/home/');
+    setTimeout(() => {
+      window.location.href = targetUrl;
+    }, 350);
+    return;
+  }
 
   if (registered === 'true') {
     showLoginAlert('Tài khoản đã tạo thành công! Hãy đăng nhập để bắt đầu.', 'success');

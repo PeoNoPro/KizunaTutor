@@ -1,7 +1,7 @@
 /**
  * KizunaTutor - Trang tổng quan của gia sư (bố cục theo thiết kế Stitch "Tutor Dashboard").
  * Chỉ hiển thị dữ liệu thật từ API xác minh (/api/tutor/verification).
- * Các khối chưa có API (lịch dạy, bài tập, yêu cầu kết nối, học viên) hiển thị trạng thái rỗng, không dùng số liệu giả.
+ * Các chức năng giảng dạy khác (lịch dạy, bài tập, yêu cầu kết nối, học viên) nằm ở thanh bên, không lặp lại ở đây.
  */
 
 import { API, ApiError } from '/js/api.js';
@@ -113,7 +113,8 @@ function renderProgress(data) {
 
   const fb = data.latestFeedback;
   const missing = data.editable ? (data.missingRequirements || []) : [];
-  let html;
+  // Chỉ hiện khung chi tiết khi có phản hồi hoặc mục còn thiếu; trạng thái chung đã có ở thẻ số liệu và lời chào.
+  let html = '';
   if (fb && fb.content) {
     html = `
       <p class="text-label-sm ${data.status === 'REJECTED' ? 'text-error' : 'text-tertiary'}">${escapeHtml(fb.kindLabel || 'Phản hồi')} từ cán bộ học vụ${fb.createdAt ? ` · ${formatDate(fb.createdAt)}` : ''}</p>
@@ -122,10 +123,9 @@ function renderProgress(data) {
     html = `
       <p class="text-label-sm text-tertiary">Hồ sơ còn thiếu</p>
       <ul class="list-disc pl-5 mt-1 text-body-sm text-on-surface">${missing.map((m) => `<li>${escapeHtml(m)}</li>`).join('')}</ul>`;
-  } else {
-    html = `<p class="text-body-sm text-on-surface-variant">${escapeHtml((STATUS_VIEW[data.status] || STATUS_VIEW.UNVERIFIED).note)}.</p>`;
   }
   $('progressDetail').innerHTML = html;
+  setVisible($('progressDetail'), Boolean(html));
 }
 
 /** Hoạt động gần đây dựng từ các mốc thật của hồ sơ xác minh. */
@@ -167,6 +167,8 @@ function render(data) {
   const verified = data.status === 'APPROVED';
   $('heroVerifiedMark').classList.toggle('hidden', !verified);
   $('heroVerifiedMark').classList.toggle('flex', verified);
+  $('heroEligibleBadge').classList.toggle('hidden', !verified);
+  $('heroEligibleBadge').classList.toggle('flex', verified);
   const hasLevel = Boolean(profile.highestJlptLevel);
   $('heroLevelBadge').classList.toggle('hidden', !hasLevel);
   $('heroLevelBadge').classList.toggle('flex', hasLevel);

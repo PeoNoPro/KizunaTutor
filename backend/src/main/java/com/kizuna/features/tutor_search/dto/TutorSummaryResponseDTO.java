@@ -22,6 +22,8 @@ public class TutorSummaryResponseDTO {
     private String fullName;
     private String avatarUrl;
     private String headline;
+    /** Tiêu đề bài đăng đã được cán bộ học vụ duyệt (null nếu chưa có). */
+    private String postTitle;
     private String bio;
     private String highestJlptLevel;
     private Short experienceYears;

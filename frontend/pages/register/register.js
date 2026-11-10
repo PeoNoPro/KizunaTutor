@@ -1,10 +1,11 @@
-﻿/**
+/**
  * KizunaTutor - Quản lý đăng ký tài khoản & Xác thực mã OTP 6 số
  * Module Feature-Based độc lập tuân thủ nghiêm ngặt FRONTEND_RULES.md
  */
 
 import { showToast } from '/js/main.js';
 import { setAuthSession } from '/pages/login/login.js';
+import { initPasswordVisibilityToggles } from '/js/auth-features.js';
 
 // =========================================================================
 // 1. TRẠNG THÁI QUẢN LÝ LUỒNG OTP
@@ -480,6 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Khởi tạo form và các ô số OTP
   initRegistrationForm();
+  initPasswordVisibilityToggles();
   initOtpInputs();
 
   // Nút xác nhận OTP

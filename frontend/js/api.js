@@ -686,6 +686,69 @@ export const API = {
     }
   },
 
+  // ===== Bài đăng gia sư (cần gói hội viên còn hạn) =====
+  tutorPost: {
+    /** { canPost, blockedReason, membershipExpiresOn, post } */
+    getMine() {
+      return authRequest('/tutor/post');
+    },
+
+    /** { title, description, specialties, teachingFormat, hourlyRate } → { message, post } */
+    submit(payload) {
+      return authRequest('/tutor/post', { method: 'PUT', body: payload });
+    }
+  },
+
+  // ===== Cán bộ học vụ: duyệt bài đăng gia sư =====
+  academicPosts: {
+    getSummary() {
+      return authRequest('/academic/posts/summary');
+    },
+
+    /** status (PENDING | APPROVED | REJECTED | ALL), keyword, page, size */
+    list(params = {}) {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && String(value).trim() !== '') query.append(key, value);
+      });
+      return authRequest(`/academic/posts?${query.toString()}`);
+    },
+
+    approve(postId) {
+      return authRequest(`/academic/posts/${postId}/approve`, { method: 'POST' });
+    },
+
+    reject(postId, reason) {
+      return authRequest(`/academic/posts/${postId}/reject`, { method: 'POST', body: { reason } });
+    },
+
+    /** Yêu cầu gia sư bổ sung; nội dung yêu cầu gửi trong trường reason */
+    requestInfo(postId, message) {
+      return authRequest(`/academic/posts/${postId}/request-info`, { method: 'POST', body: { reason: message } });
+    }
+  },
+
+  // ===== Cán bộ học vụ: lịch sử xét duyệt + hồ sơ cá nhân =====
+  academicOfficer: {
+    /** action (APPROVE | REJECT | REQUEST_INFO | ALL), keyword, mine, page, size */
+    getReviews(params = {}) {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && String(value).trim() !== '') query.append(key, value);
+      });
+      return authRequest(`/academic/reviews?${query.toString()}`);
+    },
+
+    getProfile() {
+      return authRequest('/academic/profile');
+    },
+
+    /** { fullName, phone } → { message, profile } */
+    updateProfile(payload) {
+      return authRequest('/academic/profile', { method: 'PUT', body: payload });
+    }
+  },
+
   // ===== FE-09: Gói hội viên và thanh toán (phản hồi dạng { success, message, data }) =====
 
   tutorMembership: {

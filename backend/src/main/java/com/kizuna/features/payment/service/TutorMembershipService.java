@@ -11,6 +11,15 @@ import java.util.Map;
  */
 public interface TutorMembershipService {
 
+    /**
+     * Gia sư có gói hội viên còn hiệu lực vào ngày {@code today} (trạng thái ACTIVE, chưa hết hạn).
+     * Feature khác (lớp học, bài đăng) dùng phương thức này thay vì gọi thẳng repository của payment.
+     */
+    boolean hasActiveMembership(java.util.UUID tutorId, java.time.LocalDate today);
+
+    /** Ngày hết hạn xa nhất trong các gói còn hiệu lực; rỗng nếu không có gói nào còn hạn. */
+    java.util.Optional<java.time.LocalDate> activeMembershipEndDate(java.util.UUID tutorId, java.time.LocalDate today);
+
     List<MembershipViews.PlanView> listPlans();
 
     MembershipViews.MyMembershipView getMyMembership(User user);

@@ -330,7 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
         avatarUrl: item.avatarUrl || null,
         isOnline: true,
         verified: (item.verified !== undefined ? item.verified : item.isVerified) ?? true,
-        headline: item.headline || 'Gia sư tiếng Nhật',
+        // Tiêu đề bài đăng đã được cán bộ học vụ duyệt (nếu có)
+        headline: item.postTitle || item.headline || 'Gia sư tiếng Nhật',
         experienceYears: item.experienceYears || 0,
         experienceText: (item.experienceYears ? item.experienceYears + ' năm giảng dạy chuyên sâu' : 'Gia sư chuyên môn'),
         jlptLevel: item.highestJlptLevel || 'N1',

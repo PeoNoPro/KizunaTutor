@@ -1,4 +1,4 @@
-﻿/**
+/**
  * KizunaTutor - Phòng Luyện Viết Shodo Canvas AI
  * Module độc lập theo kiến trúc Feature-Based, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * TUYỆT ĐỐI KHÔNG DÙNG DỮ LIỆU MẪU (NO MOCK DATA INJECTION)
@@ -50,7 +50,22 @@ async function loadKanjiSvg(char) {
   const targetChar = char.trim().charAt(0);
   if (!targetChar) return [];
 
-  // 1. Thử lấy từ Backend Database (PostgreSQL lưu sẵn KanjiVG SVG)
+  const hex = getKanjiUnicodeHex(targetChar);
+
+  // 1. Kiểm tra static file nội bộ /kanjivg/{hex}.svg trước (cực nhanh, không trễ)
+  if (hex) {
+    try {
+      const localRes = await fetch(`/kanjivg/${hex}.svg`).catch(() => null);
+      if (localRes && localRes.ok) {
+        const svgText = await localRes.text();
+        if (svgText && svgText.includes('<path')) {
+          return parseKanjiSvgPaths(svgText);
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Thử lấy từ Backend Database (PostgreSQL lưu sẵn KanjiVG SVG)
   try {
     let bRes = await fetch(`/api/learner/kanji/detail?char=${encodeURIComponent(targetChar)}`).catch(() => null);
     if (!bRes || !bRes.ok) {
@@ -65,21 +80,20 @@ async function loadKanjiSvg(char) {
     }
   } catch (e) {}
 
-  // 2. Dự phòng tải từ KanjiVG CDN theo mã Hex
-  const hex = getKanjiUnicodeHex(targetChar);
-  if (!hex) return [];
-
-  const cdnUrl = `https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/${hex}.svg`;
-
-  try {
-    const res = await fetch(cdnUrl);
-    if (!res.ok) throw new Error('Không tìm thấy SVG');
-    const svgText = await res.text();
-    return parseKanjiSvgPaths(svgText);
-  } catch (err) {
-    console.debug('Không thể tải dữ liệu nét bút chuẩn cho chữ này:', err);
-    return [];
+  // 3. Dự phòng tải từ KanjiVG CDN theo mã Hex
+  if (hex) {
+    const cdnUrl = `https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/${hex}.svg`;
+    try {
+      const res = await fetch(cdnUrl);
+      if (res.ok) {
+        const svgText = await res.text();
+        return parseKanjiSvgPaths(svgText);
+      }
+    } catch (err) {
+      console.debug('Không thể tải dữ liệu nét bút chuẩn cho chữ này:', err);
+    }
   }
+  return [];
 }
 
 function parseKanjiSvgPaths(svgText) {
@@ -96,48 +110,166 @@ function parseKanjiSvgPaths(svgText) {
 // =========================================================================
 // 4. RENDER SVG NÉT BÚT THUẬN & HOẠT ẢNH BÚT MỰC
 // =========================================================================
+/**
+ * Quản lý trạng thái bật / tắt nét mờ hướng dẫn
+ */
+let isGhostStrokeVisible = true;
+
+function updateGhostToggleButton(btn, ghostLayer) {
+  if (!btn) return;
+  const labelEl = btn.querySelector('.label') || btn.querySelector('span:last-child');
+  const iconEl = btn.querySelector('.icon') || btn.querySelector('span:first-child');
+
+  if (isGhostStrokeVisible) {
+    btn.classList.add('is-active', 'bg-[#FFE5EC]', 'text-[#831843]');
+    btn.classList.remove('bg-white', 'text-[#0F172A]');
+    if (iconEl) iconEl.textContent = '👁️';
+    if (labelEl) labelEl.textContent = 'Ẩn nét mờ';
+    btn.title = 'Nhấn để ẩn nét mờ hướng dẫn (tự nhớ mặt chữ để vẽ)';
+    if (ghostLayer) {
+      ghostLayer.style.opacity = '0.35';
+      ghostLayer.style.visibility = 'visible';
+    }
+  } else {
+    btn.classList.remove('is-active', 'bg-[#FFE5EC]', 'text-[#831843]');
+    btn.classList.add('bg-white', 'text-[#0F172A]');
+    if (iconEl) iconEl.textContent = '👁️';
+    if (labelEl) labelEl.textContent = 'Hiện nét mờ';
+    btn.title = 'Nhấn để hiện nét mờ hướng dẫn (tô theo nét)';
+    if (ghostLayer) {
+      ghostLayer.style.opacity = '0';
+      ghostLayer.style.visibility = 'hidden';
+    }
+  }
+}
+
+function setupGhostStrokeToggle() {
+  const toggleBtn = document.getElementById('btnToggleGuide') || document.getElementById('btnToggleGhost') || document.getElementById('btnToggleGhostStroke') || document.querySelector('[data-action="toggle-ghost"]');
+  const ghostLayer = document.getElementById('kanjiGhostLayer') || document.getElementById('ghostStrokeLayer') || document.getElementById('ghostGuidelineGroup');
+
+  if (!toggleBtn) return;
+
+  updateGhostToggleButton(toggleBtn, ghostLayer);
+
+  toggleBtn.onclick = (e) => {
+    e.preventDefault();
+    isGhostStrokeVisible = !isGhostStrokeVisible;
+
+    const layer = document.getElementById('kanjiGhostLayer') || document.getElementById('ghostStrokeLayer') || document.getElementById('ghostGuidelineGroup');
+    if (layer) {
+      if (isGhostStrokeVisible) {
+        layer.style.opacity = '0.35';
+        layer.style.visibility = 'visible';
+      } else {
+        layer.style.opacity = '0';
+        layer.style.visibility = 'hidden';
+      }
+    }
+
+    updateGhostToggleButton(toggleBtn, layer);
+    showToast(isGhostStrokeVisible ? 'Đã bật nét mờ hướng dẫn.' : 'Đã ẩn nét mờ hướng dẫn.', 'info');
+  };
+}
+
 function renderGuidelineSvg() {
   const svg = document.getElementById('canvasGuidelineSvg');
   if (!svg) return;
 
   svg.innerHTML = '';
 
+  // Lớp 1: Lớp nét mờ dẫn đường (Ghost / Guideline Layer)
+  const ghostGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  ghostGroup.id = 'kanjiGhostLayer';
+  ghostGroup.setAttribute('id', 'kanjiGhostLayer');
+  ghostGroup.classList.add('ghost-stroke-layer', 'kanji-ghost-layer');
+  ghostGroup.style.opacity = isGhostStrokeVisible ? '0.35' : '0';
+  ghostGroup.style.visibility = isGhostStrokeVisible ? 'visible' : 'hidden';
+  ghostGroup.style.transition = 'opacity 0.15s ease-out';
+
+  // Lớp 2: Lớp hoạt ảnh bút mực khi phát nét (Anim Strokes Layer)
+  const animGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  animGroup.id = 'animStrokesGroup';
+  animGroup.classList.add('anim-stroke-layer');
+
   strokePaths.forEach((d, idx) => {
-    // Nếu đang lọc một nét cụ thể, chỉ hiển thị nét đó
-    if (activeStrokeFilter !== null && activeStrokeFilter !== idx) {
-      return;
-    }
+    const isFiltered = (activeStrokeFilter !== null && activeStrokeFilter !== idx);
 
-    // Lớp nét mờ dẫn đường (Ghost Guideline)
-    if (isGuidelineVisible) {
-      const ghostPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      ghostPath.setAttribute('d', d);
-      ghostPath.setAttribute('fill', 'none');
-      ghostPath.setAttribute('stroke', '#CBD5E1');
-      ghostPath.setAttribute('stroke-width', '4');
-      ghostPath.setAttribute('stroke-linecap', 'round');
-      ghostPath.setAttribute('stroke-linejoin', 'round');
-      ghostPath.setAttribute('opacity', '0.45');
-      svg.appendChild(ghostPath);
+    // 1. Nét xám mỏng mờ nằm dưới khung vẽ để học viên tô theo
+    const ghostPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    ghostPath.setAttribute('d', d);
+    ghostPath.setAttribute('fill', 'none');
+    ghostPath.setAttribute('stroke', isFiltered ? '#CBD5E1' : '#475569');
+    ghostPath.setAttribute('stroke-width', '4.5');
+    ghostPath.setAttribute('stroke-linecap', 'round');
+    ghostPath.setAttribute('stroke-linejoin', 'round');
+    if (isFiltered) {
+      ghostPath.setAttribute('opacity', '0.2');
     }
+    ghostPath.id = 'ghostPath_' + idx;
+    ghostGroup.appendChild(ghostPath);
 
-    // Lớp nét hoạt ảnh
+    // 2. Lớp nét mô phỏng hoạt ảnh bút mực
     const animPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     animPath.setAttribute('d', d);
     animPath.setAttribute('fill', 'none');
     animPath.setAttribute('stroke', '#0F2545');
     animPath.setAttribute('stroke-width', '4.5');
+    animPath.setAttribute('stroke-linecap', 'round');
+    animPath.setAttribute('stroke-linejoin', 'round');
     animPath.classList.add('ksp-anim-path');
-    animPath.id = `strokePath_${idx}`;
+    animPath.id = 'strokePath_' + idx;
 
-    svg.appendChild(animPath);
+    animGroup.appendChild(animPath);
 
-    // Tính độ dài để thiết lập stroke-dashoffset
+    // QUAN TRỌNG: transition = none để TUYỆT ĐỐI KHÔNG BỊ TUA NGƯỢC NÉT khi tải trang
+    animPath.style.transition = 'none';
     const len = animPath.getTotalLength ? animPath.getTotalLength() : 200;
     animPath.style.strokeDasharray = `${len} ${len}`;
-    // Mặc định ban đầu ẩn nét (strokeDashoffset = len)
     animPath.style.strokeDashoffset = `${len}`;
   });
+
+  svg.appendChild(ghostGroup);
+  svg.appendChild(animGroup);
+
+  const toggleBtn = document.getElementById('btnToggleGuide') || document.getElementById('btnToggleGhost') || document.getElementById('btnToggleGhostStroke') || document.querySelector('[data-action="toggle-ghost"]');
+  if (toggleBtn) {
+    updateGhostToggleButton(toggleBtn, ghostGroup);
+  }
+}
+
+function resetAnimStrokes(fade = false, onComplete = null) {
+  const animGroup = document.getElementById('animStrokesGroup');
+  if (fade && animGroup) {
+    animGroup.style.transition = 'opacity 0.35s ease-out';
+    animGroup.style.opacity = '0';
+    setTimeout(() => {
+      strokePaths.forEach((_, idx) => {
+        const p = document.getElementById('strokePath_' + idx);
+        if (p) {
+          const len = p.getTotalLength ? p.getTotalLength() : 200;
+          p.style.transition = 'none';
+          p.style.strokeDashoffset = `${len}`;
+        }
+      });
+      animGroup.style.transition = 'none';
+      animGroup.style.opacity = '1';
+      if (typeof onComplete === 'function') onComplete();
+    }, 350);
+  } else {
+    strokePaths.forEach((_, idx) => {
+      const p = document.getElementById('strokePath_' + idx);
+      if (p) {
+        const len = p.getTotalLength ? p.getTotalLength() : 200;
+        p.style.transition = 'none';
+        p.style.strokeDashoffset = `${len}`;
+      }
+    });
+    if (animGroup) {
+      animGroup.style.transition = 'none';
+      animGroup.style.opacity = '1';
+    }
+    if (typeof onComplete === 'function') onComplete();
+  }
 }
 
 function playStrokeAnimation() {
@@ -148,37 +280,51 @@ function playStrokeAnimation() {
 
   if (isPlayingAnimation) {
     stopStrokeAnimation();
+    resetAnimStrokes(false);
+    clearCanvas(false);
     return;
   }
 
+  // Làm sạch nét vẽ tay trước khi bắt đầu phát hoạt ảnh nét
+  clearCanvas(false);
+
   isPlayingAnimation = true;
-  const playBtn = document.getElementById('btnPlayStroke');
+  const playBtn = document.getElementById('btnPlayStroke') || document.querySelector('[data-action="play-stroke"]');
   if (playBtn) {
-    playBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">pause</span><span>Dừng lại</span>';
-    playBtn.classList.replace('bg-[#006194]', 'bg-amber-600');
+    const iconEl = playBtn.querySelector('.icon') || playBtn.querySelector('span:first-child');
+    const labelEl = playBtn.querySelector('.label') || playBtn.querySelector('span:last-child');
+    if (iconEl) iconEl.textContent = '⏸️';
+    if (labelEl) labelEl.textContent = 'Tạm dừng';
+    playBtn.classList.add('bg-amber-500', 'text-white');
+    playBtn.classList.remove('bg-white', 'bg-[#FFE5EC]', 'text-[#831843]', 'text-[#0F172A]');
   }
 
   // Đặt lại toàn bộ nét về trạng thái ẩn
-  strokePaths.forEach((_, idx) => {
-    const p = document.getElementById(`strokePath_${idx}`);
-    if (p) {
-      const len = p.getTotalLength ? p.getTotalLength() : 200;
-      p.style.transition = 'none';
-      p.style.strokeDashoffset = `${len}`;
-    }
-  });
+  resetAnimStrokes(false);
 
   let currentAnimIdx = 0;
 
   function animateNextStroke() {
-    if (!isPlayingAnimation || currentAnimIdx >= strokePaths.length) {
+    if (!isPlayingAnimation) {
       stopStrokeAnimation();
       return;
     }
 
-    const p = document.getElementById(`strokePath_${currentAnimIdx}`);
+    // Khi đã phát nét xong toàn bộ
+    if (currentAnimIdx >= strokePaths.length) {
+      // Dừng lại 800ms để người học quan sát trọn vẹn chữ hoàn chỉnh, sau đó làm sạch bảng trắng
+      animTimer = setTimeout(() => {
+        resetAnimStrokes(true, () => {
+          clearCanvas(false);
+          stopStrokeAnimation();
+        });
+      }, 800);
+      return;
+    }
+
+    const p = document.getElementById('strokePath_' + currentAnimIdx);
     if (p) {
-      p.style.transition = 'stroke-dashoffset 0.55s ease-in-out';
+      p.style.transition = 'stroke-dashoffset 0.55s ease-out';
       p.style.strokeDashoffset = '0';
     }
 
@@ -186,17 +332,24 @@ function playStrokeAnimation() {
     animTimer = setTimeout(animateNextStroke, 650);
   }
 
-  animTimer = setTimeout(animateNextStroke, 100);
+  animTimer = setTimeout(animateNextStroke, 150);
 }
 
 function stopStrokeAnimation() {
   isPlayingAnimation = false;
-  if (animTimer) clearTimeout(animTimer);
+  if (animTimer) {
+    clearTimeout(animTimer);
+    animTimer = null;
+  }
 
-  const playBtn = document.getElementById('btnPlayStroke');
+  const playBtn = document.getElementById('btnPlayStroke') || document.querySelector('[data-action="play-stroke"]');
   if (playBtn) {
-    playBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">play_arrow</span><span>Phát nét</span>';
-    playBtn.classList.replace('bg-amber-600', 'bg-[#006194]');
+    const iconEl = playBtn.querySelector('.icon') || playBtn.querySelector('span:first-child');
+    const labelEl = playBtn.querySelector('.label') || playBtn.querySelector('span:last-child');
+    if (iconEl) iconEl.textContent = '▷';
+    if (labelEl) labelEl.textContent = 'Phát nét';
+    playBtn.classList.remove('bg-amber-500', 'text-white');
+    playBtn.classList.add('bg-white', 'text-[#0F172A]');
   }
 }
 
@@ -321,7 +474,6 @@ function undoLastStroke() {
 function clearCanvas(showToastNotification = false) {
   drawnStrokes = [];
   redrawCanvas();
-  resetAiFeedback();
   if (showToastNotification === true) {
     showToast('Đã xóa trắng bảng vẽ.', 'info');
   }
@@ -498,7 +650,8 @@ function renderStrokeStepBadges() {
   allBtn.style.padding = '0 10px';
   allBtn.addEventListener('click', () => {
     activeStrokeFilter = null;
-    document.getElementById('activeStrokeLabel').textContent = 'Tất cả nét';
+    const label = document.getElementById('activeStrokeLabel');
+    if (label) label.textContent = 'Tất cả nét';
     renderGuidelineSvg();
     renderStrokeStepBadges();
   });
@@ -513,122 +666,87 @@ function renderStrokeStepBadges() {
     btn.title = `Xem riêng nét thứ ${idx + 1}`;
     btn.addEventListener('click', () => {
       activeStrokeFilter = idx;
-      document.getElementById('activeStrokeLabel').textContent = `Nét số ${idx + 1}`;
+      const label = document.getElementById('activeStrokeLabel');
+      if (label) label.textContent = `Nét số ${idx + 1}`;
       renderGuidelineSvg();
       renderStrokeStepBadges();
 
       // Cho nét đó hiện rõ lên
       const p = document.getElementById(`strokePath_${idx}`);
       if (p) {
-        p.style.strokeDashoffset = '0';
-        p.setAttribute('stroke', '#006194');
+        const len = p.getTotalLength ? p.getTotalLength() : 200;
+        p.style.transition = 'none';
+        p.style.strokeDashoffset = `${len}`;
+        p.setAttribute('stroke', '#831843');
+        requestAnimationFrame(() => {
+          p.style.transition = 'stroke-dashoffset 0.4s ease-out';
+          p.style.strokeDashoffset = '0';
+        });
       }
     });
     container.appendChild(btn);
   });
 }
 
-// =========================================================================
-// 7. THUẬT TOÁN CHẤM ĐIỂM THƯ PHÁP SHODO AI
-// =========================================================================
-function gradeShodoWriting() {
+/**
+ * Cất chữ Hán đang luyện viết trực tiếp vào Bộ thẻ Flashcard cá nhân
+ */
+function saveShodoCurrentCharToDeck() {
   if (!currentChar) {
-    showToast('Bạn hãy nhập một chữ Hán cần luyện viết trước nhé.', 'info');
+    showToast('Vui lòng chọn hoặc nạp một chữ Hán trước khi lưu thẻ.', 'info');
     return;
   }
 
-  if (drawnStrokes.length === 0) {
-    showToast('Bạn hãy vẽ ít nhất một nét lên bảng trước khi yêu cầu chấm điểm nhé.', 'error');
-    return;
-  }
+  const hv = document.getElementById('detailHanViet')?.textContent || '';
+  const meaning = document.getElementById('detailMeaning')?.textContent || '';
+  const onyomi = document.getElementById('detailOnyomi')?.textContent || '—';
+  const kunyomi = document.getElementById('detailKunyomi')?.textContent || '—';
+  const jlpt = document.getElementById('kanjiJlptLevel')?.textContent || 'N3';
 
-  const expectedStrokes = strokePaths.length || 5;
-  const userStrokes = drawnStrokes.length;
+  try {
+    const raw = localStorage.getItem('kizuna_flashcard_decks');
+    let decks = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(decks)) decks = [];
 
-  // 1. Điểm số lượng nét
-  const strokeDiff = Math.abs(userStrokes - expectedStrokes);
-  let strokeScore = Math.max(30, 100 - strokeDiff * 12);
-
-  // 2. Điểm cân đối trọng tâm (Balance score)
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  let totalPoints = 0;
-
-  drawnStrokes.forEach(s => {
-    s.forEach(pt => {
-      totalPoints++;
-      if (pt.x < minX) minX = pt.x;
-      if (pt.x > maxX) maxX = pt.x;
-      if (pt.y < minY) minY = pt.y;
-      if (pt.y > maxY) maxY = pt.y;
-    });
-  });
-
-  const width = maxX - minX;
-  const height = maxY - minY;
-  const ratio = width > 0 && height > 0 ? Math.min(width, height) / Math.max(width, height) : 0.5;
-  const balanceScore = Math.round(Math.min(98, 70 + ratio * 28));
-
-  // 3. Điểm độ mượt mà nét mực
-  const smoothnessScore = Math.min(96, Math.max(75, Math.round(80 + Math.random() * 15)));
-
-  // Tổng hợp điểm tổng kết
-  const totalScore = Math.round((strokeScore * 0.4) + (balanceScore * 0.3) + (smoothnessScore * 0.3));
-
-  // Cập nhật giao diện kết quả
-  document.getElementById('aiStandbyMessage').classList.add('hidden');
-  const resultCard = document.getElementById('aiResultCard');
-  resultCard.classList.remove('hidden');
-
-  const badge = document.getElementById('aiScoreBadge');
-  badge.classList.remove('hidden');
-  badge.textContent = `${totalScore} / 100 điểm`;
-
-  document.getElementById('scoreBalance').textContent = `${balanceScore}%`;
-  document.getElementById('scoreSmoothness').textContent = `${smoothnessScore}%`;
-  document.getElementById('scoreAccuracy').textContent = `${strokeScore}%`;
-
-  const commentEl = document.getElementById('aiCommentText');
-  if (totalScore >= 90) {
-    commentEl.textContent = 'Xuất sắc! Đường bút rất dứt khoát và chuẩn mực. Độ cân đối trục Mễ hài hòa như một tác phẩm thư pháp thực thụ!';
-  } else if (totalScore >= 75) {
-    commentEl.textContent = 'Khá tốt! Các nét chữ có hồn và đường đi mực rõ ràng. Chú ý số lượng nét và lực ấn ở các góc gập để chữ thêm phần sắc nét nhé.';
-  } else {
-    commentEl.textContent = `Số nét bạn vẽ (${userStrokes} nét) hơi chênh so với mẫu (${expectedStrokes} nét). Hãy bật tính năng "Nét mờ" để đồ theo vài lượt trước khi tự viết nhé!`;
-  }
-
-    const commentText = commentEl.textContent;
-
-  // Ghi nhận ngữ cảnh vào TencentDB Agent Memory (Port 8081)
-  AgentMemoryService.recordLearningProgress({
-    feature: 'shodo',
-    targetChar: currentChar,
-    score: totalScore,
-    mistakes: userStrokes !== expectedStrokes ? [`Lệch nét: bạn vẽ ${userStrokes} nét so với mẫu ${expectedStrokes} nét`] : [],
-    feedback: commentText,
-    context: { userStrokes, expectedStrokes, balanceScore, smoothnessScore }
-  });
-
-  const adviceFromMemory = AgentMemoryService.getPersonalizedSenseiAdvice('shodo', currentChar);
-
-  // Hiển thị nhận xét gợi mở từ Sensei AI qua component KizunaDialog
-  KizunaDialog.showSenseiAdvice({
-    char: currentChar,
-    score: totalScore,
-    comment: commentText,
-    historyAdvice: adviceFromMemory,
-    actionText: 'Tiếp tục rèn luyện',
-    onAction: () => {
-      clearCanvasOnly();
+    let deck = decks.find(d => d.title === 'Bộ Thẻ Cá Nhân' || d.title === 'Bộ Thẻ Shodo');
+    if (!deck && decks.length > 0) {
+      deck = decks[0];
     }
-  });
+    if (!deck) {
+      deck = {
+        id: 'deck_' + Date.now(),
+        title: 'Bộ Thẻ Cá Nhân',
+        description: 'Bộ thẻ học viên tạo từ Shodo & Từ điển',
+        cards: [],
+        color: 'blue'
+      };
+      decks.push(deck);
+    }
 
-  showToast(`Sensei AI đã chấm xong: ${totalScore} điểm.`, 'success');
-}
+    deck.cards = deck.cards || [];
+    const existingIdx = deck.cards.findIndex(c => (c.char || c.kanjiChar) === currentChar);
+    const newCard = {
+      char: currentChar,
+      kanjiChar: currentChar,
+      hanViet: (hv && hv !== '—') ? hv : 'HÁN TỰ',
+      meaning: (meaning && meaning !== '—') ? meaning : 'Chữ Hán luyện viết Shodo',
+      onyomi: onyomi,
+      kunyomi: kunyomi,
+      jlpt: (jlpt && jlpt !== 'Chưa chọn chữ') ? jlpt : 'N3'
+    };
 
-function resetAiFeedback() {
-  document.getElementById('aiStandbyMessage').classList.remove('hidden');
-  document.getElementById('aiResultCard').classList.add('hidden');
-  document.getElementById('aiScoreBadge').classList.add('hidden');
+    if (existingIdx >= 0) {
+      deck.cards[existingIdx] = { ...deck.cards[existingIdx], ...newCard };
+    } else {
+      deck.cards.push(newCard);
+    }
+
+    localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+    showToast(`Đã cất chữ "${currentChar}" vào bộ thẻ "${deck.title}" thành công! 🗂️`, 'success');
+  } catch (err) {
+    console.error('Lỗi lưu thẻ từ Shodo:', err);
+    showToast('Lỗi khi cất vào bộ thẻ: ' + err.message, 'error');
+  }
 }
 
 // =========================================================================
@@ -638,22 +756,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupCanvas();
   renderStrokeStepBadges();
 
-  // Nút Play hoạt ảnh
-  document.getElementById('btnPlayStroke')?.addEventListener('click', playStrokeAnimation);
+  // Nút Play hoạt ảnh (hỗ trợ cả các ID và data-action)
+  const playBtn = document.getElementById('btnPlayStroke') || document.querySelector('[data-action="play-stroke"]');
+  playBtn?.addEventListener('click', playStrokeAnimation);
 
-  // Nút Nét mờ
-  document.getElementById('btnToggleGuide')?.addEventListener('click', () => {
-    isGuidelineVisible = !isGuidelineVisible;
-    renderGuidelineSvg();
-    showToast(isGuidelineVisible ? 'Đã bật nét mờ hướng dẫn.' : 'Đã ẩn nét mờ hướng dẫn.', 'info');
-  });
+  // Thiết lập bật / tắt nét mờ hướng dẫn (Zero Layout Shift)
+  setupGhostStrokeToggle();
 
   // Nút Undo & Clear
-  document.getElementById('btnUndoStroke')?.addEventListener('click', undoLastStroke);
-  document.getElementById('btnClearBoard')?.addEventListener('click', () => clearCanvas(true));
+  const undoBtn = document.getElementById('btnUndoStroke') || document.querySelector('[data-action="undo-stroke"]');
+  undoBtn?.addEventListener('click', undoLastStroke);
 
-  // Nút Chấm điểm
-  document.getElementById('btnGradeWriting')?.addEventListener('click', gradeShodoWriting);
+  const clearBtn = document.getElementById('btnClearBoard') || document.getElementById('btnClearCanvas') || document.querySelector('[data-action="clear-canvas"]');
+  clearBtn?.addEventListener('click', () => clearCanvas(true));
+
+  // Nút Cất thẻ
+  document.getElementById('btnShodoSaveDeck')?.addEventListener('click', saveShodoCurrentCharToDeck);
 
   // Nạp chữ mới
   document.getElementById('btnLoadChar')?.addEventListener('click', () => {

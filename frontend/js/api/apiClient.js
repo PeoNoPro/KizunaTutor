@@ -32,7 +32,10 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}) {
-    const url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+    const cleanEndpoint = (!endpoint.startsWith('http') && this.baseUrl.endsWith('/api') && endpoint.startsWith('/api/'))
+      ? endpoint.slice(4)
+      : endpoint;
+    const url = cleanEndpoint.startsWith('http') ? cleanEndpoint : `${this.baseUrl}${cleanEndpoint.startsWith('/') ? '' : '/'}${cleanEndpoint}`;
     const config = {
       ...options,
       headers: {

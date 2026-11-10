@@ -2,8 +2,9 @@ package com.kizuna.features.learning_support.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kizuna.core.exception.BusinessException;
 import com.kizuna.core.exception.ResourceNotFoundException;
-import com.kizuna.core.security.JwtTokenProvider;
+import com.kizuna.core.security.AuthenticatedUserHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,7 @@ import java.util.*;
 
 /**
  * REST API quản lý Bộ thẻ Flashcards (/api/learner/decks).
- * Lưu trữ bền vững trên PostgreSQL theo từng tài khoản học viên (hoặc chế độ guest).
+ * Mọi thao tác đọc, tạo, cập nhật và xóa đều bắt buộc xác thực JWT và kiểm tra chủ sở hữu (owner_key).
  */
 @Slf4j
 @RestController
@@ -25,7 +26,7 @@ public class FlashcardDeckController {
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticatedUserHelper authenticatedUserHelper;
 
     private volatile boolean tableInitialized = false;
 
@@ -36,7 +37,7 @@ public class FlashcardDeckController {
             jdbcTemplate.execute("""
                     CREATE TABLE IF NOT EXISTS learner_flashcard_decks (
                         id VARCHAR(120) PRIMARY KEY,
-                        owner_key VARCHAR(255) NOT NULL DEFAULT 'guest',
+                        owner_key VARCHAR(255) NOT NULL,
                         title VARCHAR(255) NOT NULL,
                         description TEXT,
                         color VARCHAR(50) DEFAULT 'blue',
@@ -49,17 +50,21 @@ public class FlashcardDeckController {
         }
     }
 
-    private String resolveOwnerKey(String authHeader, String cookieToken) {
-        String token = (authHeader != null && authHeader.startsWith("Bearer "))
-                ? authHeader.substring(7).trim()
-                : cookieToken;
-        if (token != null && !token.isBlank() && jwtTokenProvider.validateToken(token)) {
-            String email = jwtTokenProvider.getEmailFromToken(token);
-            if (email != null && !email.isBlank()) {
-                return email.trim().toLowerCase();
-            }
+    private Optional<Map<String, Object>> findDeckRowById(String id) {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT id, owner_key, title, description, color, cards_json, created_at, updated_at FROM learner_flashcard_decks WHERE id = ?",
+                id
+        );
+        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+    }
+
+    private void assertOwner(Map<String, Object> existingRow, String ownerKey, String forbiddenMessage) {
+        String existingOwner = existingRow.get("owner_key") != null
+                ? String.valueOf(existingRow.get("owner_key")).trim().toLowerCase()
+                : "";
+        if (!ownerKey.equals(existingOwner)) {
+            throw new BusinessException(403, forbiddenMessage);
         }
-        return "guest";
     }
 
     private List<Map<String, Object>> parseCardsJson(String json) {
@@ -97,34 +102,35 @@ public class FlashcardDeckController {
     public ResponseEntity<List<Map<String, Object>>> getDecks(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String ownerKey = authenticatedUserHelper.requireAuthenticatedEmail(authHeader, cookieToken);
         ensureTable();
-        String ownerKey = resolveOwnerKey(authHeader, cookieToken);
 
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 """
-                SELECT id, title, description, color, cards_json, created_at, updated_at
+                SELECT id, owner_key, title, description, color, cards_json, created_at, updated_at
                 FROM learner_flashcard_decks
-                WHERE owner_key = ? OR (? <> 'guest' AND owner_key = 'guest')
+                WHERE owner_key = ?
                 ORDER BY updated_at DESC, created_at DESC
                 """,
-                ownerKey, ownerKey
+                ownerKey
         );
 
-        List<Map<String, Object>> decks = rows.stream().map(this::mapRowToDeck).toList();
-        return ResponseEntity.ok(decks);
+        return ResponseEntity.ok(rows.stream().map(this::mapRowToDeck).toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> getDeck(@PathVariable String id) {
+    public ResponseEntity<Map<String, Object>> getDeck(
+            @PathVariable String id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String ownerKey = authenticatedUserHelper.requireAuthenticatedEmail(authHeader, cookieToken);
         ensureTable();
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT id, title, description, color, cards_json, created_at, updated_at FROM learner_flashcard_decks WHERE id = ?",
-                id
-        );
-        if (rows.isEmpty()) {
-            throw new ResourceNotFoundException("Không tìm thấy bộ thẻ với mã: " + id);
-        }
-        return ResponseEntity.ok(mapRowToDeck(rows.get(0)));
+
+        Map<String, Object> row = findDeckRowById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ thẻ với mã: " + id));
+        assertOwner(row, ownerKey, "Bạn không có quyền truy cập bộ thẻ của tài khoản khác.");
+
+        return ResponseEntity.ok(mapRowToDeck(row));
     }
 
     @PostMapping
@@ -132,8 +138,8 @@ public class FlashcardDeckController {
             @RequestBody Map<String, Object> body,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String ownerKey = authenticatedUserHelper.requireAuthenticatedEmail(authHeader, cookieToken);
         ensureTable();
-        String ownerKey = resolveOwnerKey(authHeader, cookieToken);
 
         String id = body.get("id") != null && !String.valueOf(body.get("id")).isBlank()
                 ? String.valueOf(body.get("id")).trim()
@@ -145,19 +151,26 @@ public class FlashcardDeckController {
         String color = body.get("color") != null ? String.valueOf(body.get("color")) : "blue";
         String cardsJson = toCardsJson(body.get("cards"));
 
-        jdbcTemplate.update(
-                """
-                INSERT INTO learner_flashcard_decks (id, owner_key, title, description, color, cards_json, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
-                ON CONFLICT (id) DO UPDATE SET
-                    title = EXCLUDED.title,
-                    description = EXCLUDED.description,
-                    color = EXCLUDED.color,
-                    cards_json = EXCLUDED.cards_json,
-                    updated_at = NOW()
-                """,
-                id, ownerKey, title, description, color, cardsJson
-        );
+        Optional<Map<String, Object>> existingOpt = findDeckRowById(id);
+        if (existingOpt.isPresent()) {
+            assertOwner(existingOpt.get(), ownerKey, "Không thể ghi đè bộ thẻ thuộc tài khoản khác.");
+            jdbcTemplate.update(
+                    """
+                    UPDATE learner_flashcard_decks
+                    SET title = ?, description = ?, color = ?, cards_json = ?, updated_at = NOW()
+                    WHERE id = ? AND owner_key = ?
+                    """,
+                    title, description, color, cardsJson, id, ownerKey
+            );
+        } else {
+            jdbcTemplate.update(
+                    """
+                    INSERT INTO learner_flashcard_decks (id, owner_key, title, description, color, cards_json, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    """,
+                    id, ownerKey, title, description, color, cardsJson
+            );
+        }
 
         Map<String, Object> saved = new LinkedHashMap<>();
         saved.put("id", id);
@@ -175,8 +188,8 @@ public class FlashcardDeckController {
             @RequestBody Map<String, Object> body,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String ownerKey = authenticatedUserHelper.requireAuthenticatedEmail(authHeader, cookieToken);
         ensureTable();
-        String ownerKey = resolveOwnerKey(authHeader, cookieToken);
 
         String title = body.get("title") != null && !String.valueOf(body.get("title")).isBlank()
                 ? String.valueOf(body.get("title")).trim()
@@ -185,16 +198,18 @@ public class FlashcardDeckController {
         String color = body.get("color") != null ? String.valueOf(body.get("color")) : "blue";
         String cardsJson = toCardsJson(body.get("cards"));
 
-        int updatedRows = jdbcTemplate.update(
-                """
-                UPDATE learner_flashcard_decks
-                SET title = ?, description = ?, color = ?, cards_json = ?, updated_at = NOW()
-                WHERE id = ?
-                """,
-                title, description, color, cardsJson, id
-        );
-
-        if (updatedRows == 0) {
+        Optional<Map<String, Object>> existingOpt = findDeckRowById(id);
+        if (existingOpt.isPresent()) {
+            assertOwner(existingOpt.get(), ownerKey, "Bạn không có quyền chỉnh sửa bộ thẻ thuộc tài khoản khác.");
+            jdbcTemplate.update(
+                    """
+                    UPDATE learner_flashcard_decks
+                    SET title = ?, description = ?, color = ?, cards_json = ?, updated_at = NOW()
+                    WHERE id = ? AND owner_key = ?
+                    """,
+                    title, description, color, cardsJson, id, ownerKey
+            );
+        } else {
             jdbcTemplate.update(
                     """
                     INSERT INTO learner_flashcard_decks (id, owner_key, title, description, color, cards_json, created_at, updated_at)
@@ -215,9 +230,18 @@ public class FlashcardDeckController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> deleteDeck(@PathVariable String id) {
+    public ResponseEntity<Map<String, Object>> deleteDeck(
+            @PathVariable String id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String ownerKey = authenticatedUserHelper.requireAuthenticatedEmail(authHeader, cookieToken);
         ensureTable();
-        jdbcTemplate.update("DELETE FROM learner_flashcard_decks WHERE id = ?", id);
+
+        Map<String, Object> existingRow = findDeckRowById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ thẻ để xóa: " + id));
+        assertOwner(existingRow, ownerKey, "Bạn không có quyền xóa bộ thẻ thuộc tài khoản khác.");
+
+        jdbcTemplate.update("DELETE FROM learner_flashcard_decks WHERE id = ? AND owner_key = ?", id, ownerKey);
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Đã xóa bộ thẻ thành công.",

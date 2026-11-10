@@ -12,8 +12,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Điều hướng luồng Google OAuth2 (/oauth2/authorization/google).
- * - Nếu đã cấu hình Google Client ID thật -> chuyển sang trang đăng nhập Google OAuth2.
- * - Nếu đang dùng cấu hình dev/placeholder -> chuyển sang luồng dev /api/auth/mock-google-login để tránh lỗi 404.
+ * Tuyệt đối không chuyển sang endpoint giả lập khi chưa cấu hình Client ID hợp lệ.
  */
 @Slf4j
 @Controller
@@ -24,17 +23,20 @@ public class GoogleOAuthController {
     @Value("${spring.security.oauth2.client.registration.google.client-id:}")
     private String googleClientId;
 
+    @Value("${app.auth.google-redirect-uri:http://localhost:3000/login/oauth2/code/google}")
+    private String redirectUri;
+
     @GetMapping("/oauth2/authorization/google")
     public void authorizeGoogle(HttpServletResponse response) throws IOException {
         if (googleClientId == null || googleClientId.isBlank() || PLACEHOLDER_CLIENT_ID.equals(googleClientId.trim())) {
-            log.info("[OAUTH2 DEV] Google Client ID đang ở cấu hình mẫu, chuyển hướng sang /api/auth/mock-google-login");
-            response.sendRedirect("/api/auth/mock-google-login");
+            log.warn("[OAUTH2] Chưa cấu hình Google Client ID thật; từ chối chuyển hướng đăng nhập Google.");
+            response.sendRedirect("/login?error=oauth2_not_configured");
             return;
         }
 
         String googleAuthUrl = UriComponentsBuilder.fromHttpUrl("https://accounts.google.com/o/oauth2/v2/auth")
                 .queryParam("client_id", googleClientId.trim())
-                .queryParam("redirect_uri", "http://localhost:3000/login/oauth2/code/google")
+                .queryParam("redirect_uri", redirectUri)
                 .queryParam("response_type", "code")
                 .queryParam("scope", "openid email profile")
                 .queryParam("access_type", "offline")

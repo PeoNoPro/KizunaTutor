@@ -5,7 +5,7 @@
  */
 
 import { showToast, debounce } from '/js/main.js';
-import { apiClient, KizunaToast } from '/js/apiClient.js';
+import { apiClient, KizunaToast, enrichFlashcardItem } from '/js/apiClient.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
@@ -709,8 +709,8 @@ function handleExcelUpload(event) {
           return;
         }
 
-        // Định dạng đa cột chuẩn (>= 3 cột)
-        if (row.length >= 3) {
+        // Định dạng đa cột chuẩn (>= 4 cột: Kanji, Hán Việt, On, Kun, Nghĩa, JLPT)
+        if (row.length >= 4) {
           const char = col0;
           const hanViet = String(row[1] || '').trim();
           const onyomi = String(row[2] || '').trim();
@@ -718,14 +718,24 @@ function handleExcelUpload(event) {
           const meaning = String(row[4] || '').trim();
           const jlpt = String(row[5] || '').trim();
 
-          newCards.push({
+          newCards.push(enrichFlashcardItem({
             char: char,
             hanViet: hanViet,
             onyomi: onyomi || '—',
             kunyomi: kunyomi || '—',
             meaning: meaning || '—',
             jlpt: jlpt || 'Tự do'
-          });
+          }));
+        } else if (row.length === 3) {
+          // Định dạng 3 cột: Mặt trước | Cách đọc Kana | Nghĩa tiếng Việt
+          const readingCol = String(row[1] || '').trim();
+          const meaningCol = String(row[2] || '').trim();
+          newCards.push(enrichFlashcardItem({
+            char: col0,
+            reading: readingCol,
+            meaning: readingCol && meaningCol ? `${readingCol} • ${meaningCol}` : (meaningCol || readingCol || '—'),
+            jlpt: 'Tự do'
+          }));
         } else {
           // Tương thích ngược: Định dạng 2 cột
           const col1 = String(row[1] || '').trim();
@@ -744,14 +754,14 @@ function handleExcelUpload(event) {
           const kunMatch = col1.match(/(?:Kunyomi|Kun|Âm Kun)[:\s]+([^;\n\r]+)/i);
           if (kunMatch) kunyomi = kunMatch[1].trim();
 
-          newCards.push({
+          newCards.push(enrichFlashcardItem({
             char: col0,
             hanViet: hanViet,
             onyomi: onyomi,
             kunyomi: kunyomi,
             meaning: meaning || '—',
             jlpt: 'Tự do'
-          });
+          }));
         }
       });
 

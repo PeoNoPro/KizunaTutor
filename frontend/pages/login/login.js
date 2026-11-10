@@ -375,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (error === 'email_not_provided') msg = 'Dịch vụ xác thực không cung cấp thông tin email của bạn.';
     if (error === 'oauth2_failure') msg = 'Đăng nhập bằng tài khoản Google thất bại hoặc bạn đã hủy ủy quyền.';
     if (error === 'oauth2_process_error') msg = 'Lỗi xử lý tài khoản Google phía máy chủ.';
+    if (error === 'oauth2_not_configured') msg = 'Đăng nhập bằng Google chưa được cấu hình Client ID trên máy chủ.';
     showLoginAlert(msg, 'danger');
   }
 });

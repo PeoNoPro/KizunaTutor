@@ -4,6 +4,11 @@
  */
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { showToast } from '/js/main.js';
+import { apiClient } from '/js/apiClient.js';
+import { voicevoxClient } from '/js/voicevoxClient.js';
+
+let pendingVocabToSave = null;
+let lastSelectedVocabDeckId = '';
 
 let currentTopics = [
   { id: 'JLPT_N5', code: 'JLPT_N5', titleVn: 'JLPT N5 Căn bản', icon: '🌱', count: '650' },
@@ -52,6 +57,7 @@ function boot() {
 
   initPage();
   initViewModeToggles();
+  initVocabDeckModal();
 }
 
 if (document.readyState === 'loading') {
@@ -336,7 +342,7 @@ function renderVocabGrid(items) {
   grid.querySelectorAll('[data-action="save-vocab"]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
-      saveVocabToFlashcard(btn.dataset.word, btn.dataset.reading, btn.dataset.meaning, btn.dataset.level);
+      openVocabSaveDeckModal(btn.dataset.word, btn.dataset.reading, btn.dataset.meaning, btn.dataset.level);
     });
   });
 }
@@ -354,49 +360,142 @@ function escapeHtml(text) {
 function speakWord(text) {
   if (!text) return;
   try {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'ja-JP';
-      u.rate = 0.85;
-      window.speechSynthesis.speak(u);
-    } else {
-      showToast('Trình duyệt không hỗ trợ phát âm tự động.', 'info');
-    }
+    voicevoxClient.speak(text);
   } catch (e) {
     console.debug('Lỗi phát âm từ vựng:', e);
   }
 }
 
-function saveVocabToFlashcard(word, reading, meaning, level = 'N5') {
+function initVocabDeckModal() {
+  const modal = document.getElementById('vocabSaveToDeckModal');
+  const closeBtn = document.getElementById('btnCloseVocabDeckModal');
+  const cancelBtn = document.getElementById('btnCancelVocabDeckModal');
+  const form = document.getElementById('formSaveVocabToDeck');
+  const selectEl = document.getElementById('modalVocabDeckSelect');
+  const newWrapper = document.getElementById('newVocabDeckInputWrapper');
+  const newNameInput = document.getElementById('modalNewVocabDeckNameInput');
+
+  if (!modal || !form || !selectEl) return;
+
+  closeBtn?.addEventListener('click', closeVocabDeckModal);
+  cancelBtn?.addEventListener('click', closeVocabDeckModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeVocabDeckModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+      closeVocabDeckModal();
+    }
+  });
+
+  selectEl.addEventListener('change', () => {
+    if (selectEl.value === '__NEW__') {
+      newWrapper?.classList.remove('hidden');
+      newNameInput?.focus();
+    } else {
+      newWrapper?.classList.add('hidden');
+    }
+  });
+
+  form.addEventListener('submit', submitSaveVocabToDeck);
+}
+
+async function openVocabSaveDeckModal(word, reading, meaning, level = 'N5') {
   if (!word) return;
+  pendingVocabToSave = { word, reading: reading || '', meaning: meaning || '', level: level || 'N5' };
+
+  const wordEl = document.getElementById('modalVocabWord');
+  const readingEl = document.getElementById('modalVocabReading');
+  const meaningEl = document.getElementById('modalVocabMeaning');
+  const levelEl = document.getElementById('modalVocabLevel');
+
+  if (wordEl) wordEl.textContent = word;
+  if (readingEl) readingEl.textContent = (reading && reading !== word) ? `(${reading})` : '';
+  if (meaningEl) meaningEl.textContent = meaning || 'Chưa cập nhật nghĩa';
+  if (levelEl) levelEl.textContent = level || 'N5';
+
+  const modal = document.getElementById('vocabSaveToDeckModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  await loadVocabDeckOptions();
+}
+
+function closeVocabDeckModal() {
+  const modal = document.getElementById('vocabSaveToDeckModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+async function loadVocabDeckOptions() {
+  const selectEl = document.getElementById('modalVocabDeckSelect');
+  const newWrapper = document.getElementById('newVocabDeckInputWrapper');
+  const newNameInput = document.getElementById('modalNewVocabDeckNameInput');
+  if (!selectEl) return;
+
+  selectEl.innerHTML = '<option value="">Đang tải danh sách bộ thẻ...</option>';
+  if (newWrapper) newWrapper.classList.add('hidden');
+  if (newNameInput) newNameInput.value = '';
+
+  let decks = [];
   try {
-    const raw = localStorage.getItem('kizuna_flashcard_decks');
-    let decks = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(decks)) decks = [];
+    decks = await apiClient.getDecks();
+  } catch (err) {
+    console.error('Lỗi tải danh sách bộ thẻ:', err);
+  }
 
-    let deck = decks.find(d => d.title === 'Từ Vựng Sổ Tay' || d.title === 'Từ vựng JLPT');
-    if (!deck) {
-      deck = {
-        id: 'deck_vocab_' + Date.now(),
-        title: 'Từ Vựng Sổ Tay',
-        description: 'Bộ thẻ từ vựng lưu từ chuyên mục Tra Cứu Từ Vựng',
-        color: 'emerald',
-        cards: [],
-        createdAt: new Date().toISOString()
-      };
-      decks.unshift(deck);
-    }
+  if (!Array.isArray(decks) || decks.length === 0) {
+    selectEl.innerHTML = `
+      <option value="__DEFAULT_VOCAB__">Từ Vựng Sổ Tay (Tạo mặc định • 0 thẻ)</option>
+      <option value="__NEW__">➕ Tạo bộ thẻ mới...</option>
+    `;
+    return;
+  }
 
-    if (!Array.isArray(deck.cards)) deck.cards = [];
-    const exists = deck.cards.some(c => (c.char || c.front || c.word) === word);
-    if (exists) {
-      showToast(`Từ "${word}" đã có sẵn trong bộ thẻ "${deck.title}".`, 'info');
-      return;
-    }
+  const optionsHtml = decks.map(d => {
+    const count = Array.isArray(d.cards) ? d.cards.length : 0;
+    return `<option value="${escapeHtml(d.id)}">${escapeHtml(d.title || 'Bộ thẻ')} (${count} thẻ)</option>`;
+  }).join('');
 
+  selectEl.innerHTML = optionsHtml + '<option value="__NEW__">➕ Tạo bộ thẻ mới...</option>';
+
+  if (lastSelectedVocabDeckId && decks.some(d => String(d.id) === String(lastSelectedVocabDeckId))) {
+    selectEl.value = lastSelectedVocabDeckId;
+  }
+}
+
+async function submitSaveVocabToDeck(e) {
+  e.preventDefault();
+  if (!pendingVocabToSave) return;
+
+  const selectEl = document.getElementById('modalVocabDeckSelect');
+  const newNameInput = document.getElementById('modalNewVocabDeckNameInput');
+  const submitBtn = document.getElementById('btnConfirmSaveVocabDeck');
+  if (!selectEl) return;
+
+  const selectedValue = selectEl.value;
+  const { word, reading, meaning, level } = pendingVocabToSave;
+
+  if (selectedValue === '__NEW__' && (!newNameInput || !newNameInput.value.trim())) {
+    showToast('Vui lòng nhập tên bộ thẻ mới.', 'error');
+    newNameInput?.focus();
+    return;
+  }
+
+  const defaultBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>Đang lưu...</span>';
+  }
+
+  try {
+    const decks = await apiClient.getDecks();
     const backText = reading ? `${reading} • ${meaning}` : meaning;
-    deck.cards.push({
+    const newCard = {
       id: 'card_' + Date.now(),
       char: word,
       front: word,
@@ -405,26 +504,54 @@ function saveVocabToFlashcard(word, reading, meaning, level = 'N5') {
       reading: reading || '',
       level: level || 'N5',
       createdAt: new Date().toISOString()
-    });
+    };
 
-    localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+    if (selectedValue === '__NEW__' || selectedValue === '__DEFAULT_VOCAB__') {
+      const title = selectedValue === '__NEW__' ? newNameInput.value.trim() : 'Từ Vựng Sổ Tay';
+      const created = await apiClient.createDeck({
+        id: 'deck_vocab_' + Date.now(),
+        title,
+        description: 'Bộ thẻ từ vựng lưu từ chuyên mục Tra Cứu Từ Vựng',
+        color: 'emerald',
+        cards: [newCard]
+      });
+      lastSelectedVocabDeckId = created.id;
+      showToast(`Đã lưu "${word}" vào bộ thẻ mới "${created.title}"!`, 'success');
+    } else {
+      const targetDeck = decks.find(d => String(d.id) === String(selectedValue));
+      if (!targetDeck) {
+        showToast('Không tìm thấy bộ thẻ đã chọn.', 'error');
+        return;
+      }
 
-    const deckHeaders = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
-    try {
-      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
-      if (token) deckHeaders['Authorization'] = `Bearer ${token}`;
-    } catch (e) {}
+      const cards = Array.isArray(targetDeck.cards) ? [...targetDeck.cards] : [];
+      const exists = cards.some(c => (c.char || c.front || c.word) === word);
+      if (exists) {
+        showToast(`Từ "${word}" đã có sẵn trong bộ thẻ "${targetDeck.title}".`, 'info');
+        closeVocabDeckModal();
+        return;
+      }
 
-    fetch('/api/learner/decks', {
-      method: 'POST',
-      headers: deckHeaders,
-      body: JSON.stringify(deck)
-    }).catch(() => null);
+      cards.push(newCard);
+      await apiClient.updateDeck(targetDeck.id, {
+        title: targetDeck.title,
+        description: targetDeck.description || '',
+        color: targetDeck.color || 'blue',
+        cards
+      });
+      lastSelectedVocabDeckId = targetDeck.id;
+      showToast(`Đã lưu "${word}" vào bộ thẻ "${targetDeck.title}" thành công!`, 'success');
+    }
 
-    showToast(`Đã lưu "${word}" vào bộ thẻ "${deck.title}" thành công!`, 'success');
+    closeVocabDeckModal();
   } catch (err) {
-    console.error('Lỗi lưu Flashcard:', err);
-    showToast('Không thể lưu từ vựng vào Flashcard lúc này.', 'error');
+    console.error('Lỗi lưu từ vựng vào bộ thẻ:', err);
+    showToast('Không thể lưu từ vựng vào bộ thẻ lúc này.', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = defaultBtnHtml;
+    }
   }
 }
 

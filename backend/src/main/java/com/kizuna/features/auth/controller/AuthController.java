@@ -2,6 +2,9 @@ package com.kizuna.features.auth.controller;
 
 import com.kizuna.core.entity.*;
 import com.kizuna.core.exception.BadRequestException;
+import com.kizuna.core.exception.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import com.kizuna.core.repository.LearnerRepository;
 import com.kizuna.core.repository.RoleRepository;
 import com.kizuna.core.repository.TutorRepository;
@@ -50,6 +53,9 @@ public class AuthController {
     private final TutorRepository tutorRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+
+    @Value("${app.auth.mock-google.enabled:false}")
+    private boolean mockGoogleEnabled;
 
     @PostMapping("/register/send-otp")
     public ResponseEntity<Map<String, Object>> sendRegistrationOtp(@Valid @RequestBody RegisterRequest request) {
@@ -117,7 +123,7 @@ public class AuthController {
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "Mật khẩu mới đã được gửi tới email của bạn. Vui lòng kiểm tra hộp thư để đăng nhập.",
+                "message", "Nếu địa chỉ email tồn tại và đủ điều kiện khôi phục, mật khẩu mới đã được gửi tới hộp thư của bạn.",
                 "email", cleanEmail
         ));
     }
@@ -144,22 +150,33 @@ public class AuthController {
         return ResponseEntity.ok(registerResponse);
     }
 
+    /**
+     * Endpoint đăng nhập Google giả lập chỉ phục vụ dev cục bộ khi bật app.auth.mock-google.enabled=true.
+     * Bị tắt mặc định và không cho phép truyền email/role tùy ý qua URL.
+     */
     @GetMapping("/mock-google-login")
-    public void mockGoogleLogin(@RequestParam(required = false, defaultValue = "google.learner@kizuna.vn") String email,
-                                @RequestParam(required = false, defaultValue = "Học Viên Google Kizuna") String name,
-                                @RequestParam(required = false, defaultValue = "ROLE_LEARNER") String role,
-                                HttpServletResponse response) throws IOException {
-        String cleanEmail = email.trim().toLowerCase();
+    public void mockGoogleLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String remoteAddr = request != null ? request.getRemoteAddr() : "";
+        boolean isLoopback = "127.0.0.1".equals(remoteAddr)
+                || "::1".equals(remoteAddr)
+                || "0:0:0:0:0:0:0:1".equals(remoteAddr);
+        if (!mockGoogleEnabled || !isLoopback) {
+            throw new BusinessException(403, "Chức năng đăng nhập giả lập đã bị vô hiệu hóa.");
+        }
+
+        final String cleanEmail = "google.learner@kizuna.vn";
+        final String fixedName = "Học Viên Google Kizuna";
+        final String fixedRole = RoleEnum.ROLE_LEARNER.name();
+
         User user = userRepository.findByEmail(cleanEmail).orElse(null);
 
         if (user == null) {
-            Role userRole = roleRepository.findByRoleName(role)
-                    .orElseGet(() -> roleRepository.findByRoleName("ROLE_LEARNER")
-                            .orElseThrow(() -> new IllegalStateException("Không tìm thấy vai trò")));
+            Role userRole = roleRepository.findByRoleName(fixedRole)
+                    .orElseThrow(() -> new IllegalStateException("Không tìm thấy vai trò ROLE_LEARNER"));
 
             user = User.builder()
                     .email(cleanEmail)
-                    .fullName(name)
+                    .fullName(fixedName)
                     .avatarUrl("https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150")
                     .passwordHash(passwordEncoder.encode(UUID.randomUUID().toString()))
                     .role(userRole)
@@ -168,16 +185,14 @@ public class AuthController {
 
             user = userRepository.save(user);
 
-            if (RoleEnum.ROLE_LEARNER.name().equals(role)) {
-                Learner learner = Learner.builder()
-                        .user(user)
-                        .currentLevel("N5")
-                        .targetLevel("N3")
-                        .learningGoals("Luyện Kanji & Ngữ pháp cùng KizunaTutor qua Gmail")
-                        .updatedAt(OffsetDateTime.now())
-                        .build();
-                learnerRepository.save(learner);
-            }
+            Learner learner = Learner.builder()
+                    .user(user)
+                    .currentLevel("N5")
+                    .targetLevel("N3")
+                    .learningGoals("Luyện Kanji & Ngữ pháp cùng KizunaTutor qua Gmail")
+                    .updatedAt(OffsetDateTime.now())
+                    .build();
+            learnerRepository.save(learner);
         }
 
         String token = jwtTokenProvider.generateToken(user);

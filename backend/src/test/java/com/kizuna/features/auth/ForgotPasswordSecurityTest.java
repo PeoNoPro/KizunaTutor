@@ -140,4 +140,30 @@ class ForgotPasswordSecurityTest {
         assertEquals("encoded-MyNewPass99", learner.getPasswordHash());
         verify(userRepository, times(1)).save(learner);
     }
+
+    @Test
+    @DisplayName("Không tiết lộ email chưa đăng ký: trả về bình thường và không gửi mail")
+    void shouldNotRevealUnregisteredEmailOnForgotPassword() {
+        String unknownEmail = "unknown@gmail.com";
+        when(userRepository.findByEmail(unknownEmail)).thenReturn(Optional.empty());
+
+        assertDoesNotThrow(() -> authService.resetPasswordAndSendEmail(unknownEmail));
+        verify(userRepository, never()).save(any());
+        verify(mailSender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    @DisplayName("Giới hạn tần suất quên mật khẩu: chặn lần thứ 4 liên tiếp (HTTP 429)")
+    void shouldRateLimitRepeatedForgotPasswordRequests() {
+        String email = "spam@gmail.com";
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        for (int i = 0; i < 3; i++) {
+            assertDoesNotThrow(() -> authService.resetPasswordAndSendEmail(email));
+        }
+
+        BusinessException rateEx = assertThrows(BusinessException.class,
+                () -> authService.resetPasswordAndSendEmail(email));
+        assertEquals(429, rateEx.status());
+    }
 }

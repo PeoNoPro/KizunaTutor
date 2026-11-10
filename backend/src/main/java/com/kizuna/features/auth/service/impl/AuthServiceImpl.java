@@ -5,8 +5,14 @@ import com.kizuna.core.exception.BadRequestException;
 import com.kizuna.core.exception.BusinessException;
 import com.kizuna.core.exception.ResourceNotFoundException;
 import com.kizuna.core.exception.ServiceUnavailableException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.time.Duration;
+import java.time.Instant;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
@@ -69,6 +75,39 @@ public class AuthServiceImpl implements AuthService {
     private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
     private static final SecureRandom PASSWORD_RANDOM = new SecureRandom();
     private static final int TEMP_PASSWORD_LENGTH = 10;
+    private static final int FORGOT_RATE_LIMIT_MAX_ATTEMPTS = 3;
+    private static final Duration FORGOT_RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
+
+    private final Map<String, Deque<Instant>> forgotPasswordAttempts = new ConcurrentHashMap<>();
+
+    private void enforceForgotPasswordRateLimit(String cleanEmail) {
+        Instant now = Instant.now();
+        Instant windowStart = now.minus(FORGOT_RATE_LIMIT_WINDOW);
+
+        if (forgotPasswordAttempts.size() > 5000) {
+            forgotPasswordAttempts.entrySet().removeIf(e -> {
+                synchronized (e.getValue()) {
+                    while (!e.getValue().isEmpty() && e.getValue().peekFirst().isBefore(windowStart)) {
+                        e.getValue().pollFirst();
+                    }
+                    return e.getValue().isEmpty();
+                }
+            });
+        }
+
+        Deque<Instant> timestamps = forgotPasswordAttempts.computeIfAbsent(cleanEmail, k -> new ArrayDeque<>());
+        synchronized (timestamps) {
+            while (!timestamps.isEmpty() && timestamps.peekFirst().isBefore(windowStart)) {
+                timestamps.pollFirst();
+            }
+            if (timestamps.size() >= FORGOT_RATE_LIMIT_MAX_ATTEMPTS) {
+                log.warn("[SECURITY] Vượt giới hạn tần suất yêu cầu Quên mật khẩu cho: {}", cleanEmail);
+                throw new BusinessException(429,
+                        "Bạn đã yêu cầu khôi phục mật khẩu quá nhiều lần. Vui lòng thử lại sau ít phút.");
+            }
+            timestamps.addLast(now);
+        }
+    }
 
     private static final Set<RoleEnum> FORGOT_PASSWORD_RESTRICTED_ROLES = EnumSet.of(
             RoleEnum.ROLE_ADMIN,
@@ -101,12 +140,18 @@ public class AuthServiceImpl implements AuthService {
     public void resetPasswordAndSendEmail(String email) {
         String cleanEmail = email.trim().toLowerCase();
 
-        // 1. Kiểm tra tài khoản tồn tại trong hệ thống
-        User user = userRepository.findByEmail(cleanEmail)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy tài khoản nào được đăng ký với email: " + cleanEmail));
+        // 1. Giới hạn tần suất yêu cầu nhằm chống spam và dò tìm tài khoản
+        enforceForgotPasswordRateLimit(cleanEmail);
 
-        // 2. Bảo mật: Cấm nhân sự nội bộ / quản trị viên tự khôi phục mật khẩu
+        // 2. Tránh tiết lộ email có tồn tại hay không: nếu không tìm thấy tài khoản vẫn kết thúc bình thường để trả thông báo chung
+        Optional<User> userOpt = userRepository.findByEmail(cleanEmail);
+        if (userOpt.isEmpty()) {
+            log.debug("[FORGOT PASSWORD] Yêu cầu với email chưa đăng ký (trả thông báo chung): {}", cleanEmail);
+            return;
+        }
+        User user = userOpt.get();
+
+        // 3. Bảo mật: Cấm nhân sự nội bộ / quản trị viên tự khôi phục mật khẩu
         ensureForgotPasswordAllowed(user);
 
         // 2. Sinh mật khẩu ngẫu nhiên và cập nhật mã hóa vào CSDL
@@ -163,13 +208,13 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = userRepository.findByEmail(cleanEmail)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy tài khoản nào được đăng ký với email: " + cleanEmail));
+                .orElseThrow(() -> new BadRequestException(
+                        "Email hoặc mật khẩu được cấp không chính xác. Vui lòng kiểm tra lại."));
 
         ensureForgotPasswordAllowed(user);
 
         if (!passwordEncoder.matches(request.getTemporaryPassword(), user.getPasswordHash())) {
-            throw new BadRequestException("Mật khẩu được cấp không chính xác. Vui lòng kiểm tra lại email.");
+            throw new BadRequestException("Email hoặc mật khẩu được cấp không chính xác. Vui lòng kiểm tra lại.");
         }
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));

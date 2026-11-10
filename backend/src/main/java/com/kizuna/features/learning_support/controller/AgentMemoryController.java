@@ -1,6 +1,7 @@
 package com.kizuna.features.learning_support.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kizuna.core.security.AuthenticatedUserHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,7 @@ import java.util.*;
 
 /**
  * REST API lưu trữ Agent Memory dài hạn cho Sensei AI (/memory/append).
- * Đóng vai trò dịch vụ nội bộ dự phòng trên cổng 8085 khi microservice cổng 8081 chưa được bật riêng.
+ * Bắt buộc đăng nhập qua JWT và chỉ đọc/ghi dữ liệu thuộc đúng danh tính đã xác thực trên server.
  */
 @Slf4j
 @RestController
@@ -21,6 +22,7 @@ public class AgentMemoryController {
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final AuthenticatedUserHelper authenticatedUserHelper;
     private volatile boolean tableInitialized = false;
 
     private void ensureTable() {
@@ -44,9 +46,13 @@ public class AgentMemoryController {
     }
 
     @PostMapping("/append")
-    public ResponseEntity<Map<String, Object>> appendMemory(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, Object>> appendMemory(
+            @RequestBody Map<String, Object> body,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String userKey = authenticatedUserHelper.requireAuthenticatedEmail(authHeader, cookieToken);
         ensureTable();
-        String userKey = body.get("userId") != null ? String.valueOf(body.get("userId")) : "learner-guest";
+
         String feature = body.get("feature") != null ? String.valueOf(body.get("feature")) : "shodo";
         String targetChar = body.get("targetChar") != null ? String.valueOf(body.get("targetChar")) : null;
         int score = body.get("score") instanceof Number n ? n.intValue() : 0;
@@ -69,19 +75,25 @@ public class AgentMemoryController {
             log.warn("Không thể ghi learner_agent_memories: {}", ex.getMessage());
         }
 
+        Map<String, Object> sanitized = new LinkedHashMap<>(body);
+        sanitized.put("userId", userKey);
+
         return ResponseEntity.ok(Map.of(
                 "status", 200,
                 "success", true,
                 "message", "Đã ghi nhận tiến độ học tập vào bộ nhớ Sensei AI.",
-                "data", body
+                "data", sanitized
         ));
     }
 
     @GetMapping("/recent")
     public ResponseEntity<List<Map<String, Object>>> getRecent(
-            @RequestParam(defaultValue = "learner-guest") String userId,
-            @RequestParam(defaultValue = "shodo") String feature) {
+            @RequestParam(defaultValue = "shodo") String feature,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String userKey = authenticatedUserHelper.requireAuthenticatedEmail(authHeader, cookieToken);
         ensureTable();
+
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 """
                 SELECT id, user_key AS "userId", feature, target_char AS "targetChar", score, feedback, created_at AS "timestamp"
@@ -90,7 +102,7 @@ public class AgentMemoryController {
                 ORDER BY created_at DESC
                 LIMIT 20
                 """,
-                userId, feature
+                userKey, feature
         );
         return ResponseEntity.ok(rows);
     }

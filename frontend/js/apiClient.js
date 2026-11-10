@@ -56,6 +56,60 @@ if (typeof window !== 'undefined') {
   window.KizunaToast = KizunaToast;
 }
 
+/**
+ * Trích xuất các cụm Kana (Hiragana / Katakana) thuần túy từ chuỗi cách đọc / mặt sau thẻ,
+ * loại bỏ hoàn toàn nghĩa tiếng Việt, dấu ngăn cách (•, -, ,) và dấu chấm okurigana.
+ */
+export function extractKanaReadingsFromText(rawText) {
+  if (!rawText) return [];
+  const str = String(rawText).trim();
+  const tokens = [];
+
+  const joinedOkurigana = str.replace(/([\u3040-\u309F\u30A0-\u30FF])\.([\u3040-\u309F\u30A0-\u30FF])/g, '$1$2');
+  const joinedMatches = joinedOkurigana.match(/[\u3040-\u309F\u30A0-\u30FFー]+/g) || [];
+  tokens.push(...joinedMatches);
+
+  // 2. Nếu có dấu "." tách okurigana (vd: "あお.い"), chỉ bổ sung phần gốc trước dấu "."
+  if (joinedOkurigana !== str) {
+    str.split(/[,;/|\s]+/).forEach(part => {
+      if (part.includes('.')) {
+        const stem = part.split('.')[0].match(/[\u3040-\u309F\u30A0-\u30FFー]+/g);
+        if (stem) tokens.push(...stem);
+      }
+    });
+  }
+
+  return Array.from(new Set(tokens.map(t => t.trim()).filter(Boolean)));
+}
+
+/**
+ * Chuẩn hóa đối tượng thẻ Flashcard: luôn bóc tách sẵn trường reading nếu mặt sau có chứa Kana
+ * để tương thích cả hiển thị 2 mặt lẫn luyện gõ Mưa chữ Kanji.
+ */
+export function enrichFlashcardItem(card = {}) {
+  const front = String(card.char || card.front || card.word || '').trim();
+  const back = String(card.meaning || card.back || '').trim();
+  const explicitReading = String(card.reading || card.furigana || card.kunyomi || card.onyomi || '').trim();
+
+  let reading = explicitReading;
+  if (!reading || /[\s•\-/|]/.test(reading)) {
+    const kanaFromExplicit = extractKanaReadingsFromText(explicitReading);
+    const kanaFromBack = extractKanaReadingsFromText(back);
+    const combined = [...kanaFromExplicit, ...kanaFromBack];
+    if (combined.length > 0) {
+      reading = combined[0];
+    }
+  }
+
+  return {
+    ...card,
+    char: front || card.char,
+    front: front || card.front,
+    meaning: back || card.meaning,
+    reading: reading || ''
+  };
+}
+
 // =========================================================================
 // 2. STORAGE FALLBACK HELPERS
 // =========================================================================

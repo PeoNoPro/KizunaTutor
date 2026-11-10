@@ -474,7 +474,6 @@ function undoLastStroke() {
 function clearCanvas(showToastNotification = false) {
   drawnStrokes = [];
   redrawCanvas();
-  resetAiFeedback();
   if (showToastNotification === true) {
     showToast('Đã xóa trắng bảng vẽ.', 'info');
   }
@@ -689,114 +688,6 @@ function renderStrokeStepBadges() {
   });
 }
 
-// =========================================================================
-// 7. THUẬT TOÁN CHẤM ĐIỂM THƯ PHÁP SHODO AI
-// =========================================================================
-function gradeShodoWriting() {
-  if (!currentChar) {
-    showToast('Bạn hãy nhập một chữ Hán cần luyện viết trước nhé.', 'info');
-    return;
-  }
-
-  if (drawnStrokes.length === 0) {
-    showToast('Bạn hãy vẽ ít nhất một nét lên bảng trước khi yêu cầu chấm điểm nhé.', 'error');
-    return;
-  }
-
-  const expectedStrokes = strokePaths.length || 5;
-  const userStrokes = drawnStrokes.length;
-
-  // 1. Điểm số lượng nét
-  const strokeDiff = Math.abs(userStrokes - expectedStrokes);
-  let strokeScore = Math.max(30, 100 - strokeDiff * 12);
-
-  // 2. Điểm cân đối trọng tâm (Balance score)
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  let totalPoints = 0;
-
-  drawnStrokes.forEach(s => {
-    s.forEach(pt => {
-      totalPoints++;
-      if (pt.x < minX) minX = pt.x;
-      if (pt.x > maxX) maxX = pt.x;
-      if (pt.y < minY) minY = pt.y;
-      if (pt.y > maxY) maxY = pt.y;
-    });
-  });
-
-  const width = maxX - minX;
-  const height = maxY - minY;
-  const ratio = width > 0 && height > 0 ? Math.min(width, height) / Math.max(width, height) : 0.5;
-  const balanceScore = Math.round(Math.min(98, 70 + ratio * 28));
-
-  // 3. Điểm độ mượt mà nét mực
-  const smoothnessScore = Math.min(96, Math.max(75, Math.round(80 + Math.random() * 15)));
-
-  // Tổng hợp điểm tổng kết
-  const totalScore = Math.round((strokeScore * 0.4) + (balanceScore * 0.3) + (smoothnessScore * 0.3));
-
-  // Cập nhật giao diện kết quả
-  document.getElementById('aiStandbyMessage')?.classList.add('hidden');
-  const resultCard = document.getElementById('aiResultCard');
-  if (resultCard) resultCard.classList.remove('hidden');
-
-  const badge = document.getElementById('aiScoreBadge');
-  if (badge) {
-    badge.classList.remove('hidden');
-    badge.textContent = `${totalScore} / 100 điểm`;
-  }
-
-  const elBalance = document.getElementById('scoreBalance');
-  if (elBalance) elBalance.textContent = `${balanceScore}%`;
-  const elSmoothness = document.getElementById('scoreSmoothness');
-  if (elSmoothness) elSmoothness.textContent = `${smoothnessScore}%`;
-  const elAccuracy = document.getElementById('scoreAccuracy');
-  if (elAccuracy) elAccuracy.textContent = `${strokeScore}%`;
-
-  const commentEl = document.getElementById('aiCommentText');
-  let commentText = '';
-  if (totalScore >= 90) {
-    commentText = 'Xuất sắc! Đường bút rất dứt khoát và chuẩn mực. Độ cân đối trục Mễ hài hòa như một tác phẩm thư pháp thực thụ!';
-  } else if (totalScore >= 75) {
-    commentText = 'Khá tốt! Các nét chữ có hồn và đường đi mực rõ ràng. Chú ý số lượng nét và lực ấn ở các góc gập để chữ thêm phần sắc nét nhé.';
-  } else {
-    commentText = `Số nét bạn vẽ (${userStrokes} nét) hơi chênh so với mẫu (${expectedStrokes} nét). Hãy bật tính năng "Nét mờ" để đồ theo vài lượt trước khi tự viết nhé!`;
-  }
-  if (commentEl) commentEl.textContent = commentText;
-
-  // Ghi nhận ngữ cảnh vào TencentDB Agent Memory (Port 8081)
-  AgentMemoryService.recordLearningProgress({
-    feature: 'shodo',
-    targetChar: currentChar,
-    score: totalScore,
-    mistakes: userStrokes !== expectedStrokes ? [`Lệch nét: bạn vẽ ${userStrokes} nét so với mẫu ${expectedStrokes} nét`] : [],
-    feedback: commentText,
-    context: { userStrokes, expectedStrokes, balanceScore, smoothnessScore }
-  });
-
-  const adviceFromMemory = AgentMemoryService.getPersonalizedSenseiAdvice('shodo', currentChar);
-
-  // Hiển thị nhận xét gợi mở từ Sensei AI qua component KizunaDialog
-  KizunaDialog.showSenseiAdvice({
-    char: currentChar,
-    score: totalScore,
-    comment: commentText,
-    historyAdvice: adviceFromMemory,
-    actionText: 'Tiếp tục rèn luyện',
-    onAction: () => {
-      clearCanvas();
-    }
-  });
-
-  showToast(`Sensei AI đã chấm xong: ${totalScore} điểm.`, 'success');
-}
-
-function resetAiFeedback() {
-  document.getElementById('aiStandbyMessage')?.classList.remove('hidden');
-  document.getElementById('aiResultCard')?.classList.add('hidden');
-  document.getElementById('aiScoreBadge')?.classList.add('hidden');
-}
-
 /**
  * Cất chữ Hán đang luyện viết trực tiếp vào Bộ thẻ Flashcard cá nhân
  */
@@ -879,8 +770,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const clearBtn = document.getElementById('btnClearBoard') || document.getElementById('btnClearCanvas') || document.querySelector('[data-action="clear-canvas"]');
   clearBtn?.addEventListener('click', () => clearCanvas(true));
 
-  // Nút Chấm điểm & Cất thẻ
-  document.getElementById('btnGradeWriting')?.addEventListener('click', gradeShodoWriting);
+  // Nút Cất thẻ
   document.getElementById('btnShodoSaveDeck')?.addEventListener('click', saveShodoCurrentCharToDeck);
 
   // Nạp chữ mới

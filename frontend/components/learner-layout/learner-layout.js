@@ -49,7 +49,14 @@ export const LEARNER_MENU_GROUPS = [
         title: 'Tra cứu chữ Hán',
         url: '/kanji-dictionary',
         icon: 'menu_book',
-        matcher: ['/kanji-dictionary', '/dictionary', '/kanji', '/handwriting', '/handwriting-search', '/ohr']
+        matcher: ['/kanji-dictionary', '/dictionary', '/kanji']
+      },
+      {
+        key: 'handwriting',
+        title: 'Tra cứu viết tay',
+        url: '/handwriting',
+        icon: 'draw',
+        matcher: ['/handwriting', '/handwriting-search', '/ohr']
       },
       {
         key: 'learning-support',

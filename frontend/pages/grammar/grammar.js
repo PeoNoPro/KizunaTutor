@@ -334,45 +334,41 @@ function renderGrammarCards() {
     }).join('');
 
     html += `
-      <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 sm:p-4 hover:border-[#CBD5E1] transition-all flex flex-col justify-between h-full min-w-0 group cursor-pointer"
+      <div class="bg-white border-2 border-[#0F172A] rounded-[12px] p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0F172A] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] flex flex-col justify-between group cursor-pointer"
            data-action="view-detail" data-id="${rule.id}">
         
-        <div class="space-y-2.5 flex-1 min-w-0">
+        <div>
           <!-- DÒNG 1: TÊN NGỮ PHÁP (Trái) & HUY HIỆU JLPT (Phải sát lề) -->
-          <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#E2E8F0]">
+          <div class="flex items-start justify-between gap-3">
             <div class="flex flex-col min-w-0">
-              <h3 class="text-xl md:text-2xl font-bold text-[#0F172A] font-japanese group-hover:text-[#831843] leading-snug transition truncate">
+              <h3 class="text-xl font-bold text-[#0F172A] font-japanese group-hover:text-[#831843] transition truncate">
                 ${rule.pattern}
               </h3>
-              ${rule.romaji ? `<span class="text-xs text-[#64748B] font-mono mt-0.5 truncate">(${rule.romaji})</span>` : ''}
+              ${rule.romaji ? `<span class="text-sm text-[#64748B] font-mono mt-0.5">(${rule.romaji})</span>` : ''}
             </div>
-            <!-- Huy hiệu Cấp độ JLPT đồng bộ phong cách với Tra Cứu Từ Vựng -->
-            <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] shrink-0">
+            <!-- Duy nhất huy hiệu Cấp độ JLPT chuẩn hóa phong cách Shodo -->
+            <span class="px-2.5 py-0.5 text-xs font-bold text-[#0F172A] bg-[#FEF3C7] border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] shrink-0 mt-0.5">
               ${rule.level}
             </span>
           </div>
 
           <!-- DÒNG 2: GIẢI NGHĨA NGỮ PHÁP -->
-          <p class="text-xs md:text-sm font-semibold text-[#0F172A] leading-relaxed line-clamp-2">
+          <p class="mt-2 text-sm text-[#334155] leading-relaxed line-clamp-2">
             ${rule.meaning}
           </p>
 
           <!-- DÒNG 3: CÁC THẺ CHỦ ĐỀ / NGỮ CẢNH (Đặt sau phần giải nghĩa) -->
           ${domainBadgesHtml ? `
-            <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <div class="mt-3 flex flex-wrap items-center gap-1.5">
               ${domainBadgesHtml}
             </div>
           ` : ''}
         </div>
 
-        <!-- DÒNG 4: HÀNH ĐỘNG FOOTER (Bám sát đáy mt-auto) -->
-        <div class="pt-3 mt-auto border-t border-[#E2E8F0] flex items-center justify-between">
-          <span class="text-[11px] text-[#64748B] flex items-center gap-1">
-            <span class="material-symbols-outlined text-[15px]">menu_book</span>
-            <span>Cấu trúc ngữ pháp</span>
-          </span>
-          <div class="text-xs font-semibold text-[#831843] group-hover:text-[#9F1239] flex items-center gap-1 transition-colors">
-            <span>Xem chi tiết &amp; ví dụ</span>
+        <!-- DÒNG 4: HÀNH ĐỘNG FOOTER (Nút xem chi tiết) -->
+        <div class="mt-4 pt-3 border-t border-[#E2E8F0] flex justify-end">
+          <div class="text-xs font-semibold text-[#9F1239] group-hover:text-[#BE185D] flex items-center gap-1 transition-colors">
+            <span>Xem chi tiết công thức &amp; ví dụ</span>
             <span class="transition-transform group-hover:translate-x-0.5">→</span>
           </div>
         </div>

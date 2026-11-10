@@ -6,7 +6,7 @@
 
 import { debounce } from '/js/main.js';
 import { voicevoxClient } from '/js/voicevoxClient.js';
-import { apiClient, KizunaToast } from '/js/apiClient.js';
+import { apiClient, KizunaToast, enrichFlashcardItem } from '/js/apiClient.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 
 // 1. Khởi tạo Shell học viên
@@ -232,10 +232,10 @@ async function submitNewCard() {
     return;
   }
 
-  const newCard = {
+  const newCard = enrichFlashcardItem({
     char: char,
     meaning: meaning
-  };
+  });
 
   currentCards.push(newCard);
 
@@ -299,8 +299,11 @@ async function saveEditCard() {
     return;
   }
 
-  currentCards[editingCardIndex].char = char;
-  currentCards[editingCardIndex].meaning = meaning;
+  currentCards[editingCardIndex] = enrichFlashcardItem({
+    ...currentCards[editingCardIndex],
+    char,
+    meaning
+  });
 
   try {
     await apiClient.updateDeck(currentDeckId, { cards: currentCards });
@@ -393,11 +396,21 @@ function handleExcelImport(event) {
           return;
         }
 
-        // Cột 1: Mặt trước, Cột 2: Mặt sau
-        newCards.push({
-          char: col0,
-          meaning: col1 || '—'
-        });
+        // Hỗ trợ cả định dạng 3 cột (Mặt trước | Cách đọc Kana | Nghĩa) và 2 cột (Mặt trước | Mặt sau)
+        if (row.length >= 3 && String(row[2] || '').trim()) {
+          const readingCol = String(row[1] || '').trim();
+          const meaningCol = String(row[2] || '').trim();
+          newCards.push(enrichFlashcardItem({
+            char: col0,
+            reading: readingCol,
+            meaning: readingCol ? `${readingCol} • ${meaningCol}` : meaningCol
+          }));
+        } else {
+          newCards.push(enrichFlashcardItem({
+            char: col0,
+            meaning: col1 || '—'
+          }));
+        }
       });
 
       if (newCards.length === 0) {

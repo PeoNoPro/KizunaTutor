@@ -7,6 +7,7 @@
 
 import { debounce, showToast } from '/js/main.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+import { apiClient, extractKanaReadingsFromText } from '/js/apiClient.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
@@ -509,7 +510,7 @@ const ROMAJI_TO_HIRAGANA = {
   'ta': 'た', 'chi': 'ち', 'ti': 'ち', 'tsu': 'つ', 'tu': 'つ', 'te': 'て', 'to': 'と',
   'na': 'な', 'ni': 'に', 'nu': 'ぬ', 'ne': 'ね', 'no': 'の',
   'ha': 'は', 'hi': 'ひ', 'fu': 'ふ', 'hu': 'ふ', 'he': 'へ', 'ho': 'ほ',
-  'ma': 'ま', 'mi': 'み', 'mu': 'む', 'me': 'め', 'mo': 'mo',
+  'ma': 'ま', 'mi': 'み', 'mu': 'む', 'me': 'め', 'mo': 'も',
   'ya': 'や', 'yu': 'ゆ', 'yo': 'よ',
   'ra': 'ら', 'ri': 'り', 'ru': 'る', 're': 'れ', 'ro': 'ろ',
   'wa': 'わ', 'wo': 'を', 'nn': 'ん', "n'": 'ん',
@@ -525,7 +526,7 @@ const ROMAJI_TO_HIRAGANA = {
   'hya': 'ひゃ', 'hyu': 'ひゅ', 'hyo': 'ひょ',
   'mya': 'みゃ', 'myu': 'みゅ', 'myo': 'みょ',
   'rya': 'りゃ', 'ryu': 'りゅ', 'ryo': 'りょ',
-  'gya': 'ぎゃ', 'gyu': 'gyu', 'gyo': 'ぎょ',
+  'gya': 'ぎゃ', 'gyu': 'ぎゅ', 'gyo': 'ぎょ',
   'ja': 'じゃ', 'ju': 'じゅ', 'jo': 'じょ', 'jya': 'じゃ', 'jyu': 'じゅ', 'jyo': 'じょ',
   'zya': 'じゃ', 'zyu': 'じゅ', 'zyo': 'じょ',
   'bya': 'びゃ', 'byu': 'びゅ', 'byo': 'びょ',
@@ -536,27 +537,27 @@ const HIRAGANA_TO_ROMAJI = {
   'あ':'a','い':'i','う':'u','え':'e','お':'o',
   'か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
   'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so',
-  'ta':'ta','ち':'chi','つ':'tsu','て':'te','と':'to',
+  'た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to',
   'な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no',
   'は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho',
-  'ま':'ma','mi':'mi','む':'mu','め':'me','も':'mo',
+  'ま':'ma','み':'mi','む':'mu','め':'me','も':'mo',
   'や':'ya','ゆ':'yu','よ':'yo',
   'ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro',
   'わ':'wa','を':'wo','ん':'n',
   'が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go',
   'ざ':'za','じ':'ji','ず':'zu','ぜ':'ze','ぞ':'zo',
-  'da':'da','ぢ':'ji','づ':'zu','de':'de','ど':'do',
-  'ba':'ba','bi':'bi','ぶ':'bu','べ':'be','ぼ':'bo',
-  'ぱ':'pa','pi':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po',
+  'だ':'da','ぢ':'ji','づ':'zu','で':'de','ど':'do',
+  'ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo',
+  'ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po',
   'きゃ':'kya','きゅ':'kyu','きょ':'kyo',
   'しゃ':'sha','しゅ':'shu','しょ':'sho',
   'ちゃ':'cha','ちゅ':'chu','ちょ':'cho',
   'にゃ':'nya','にゅ':'nyu','にょ':'nyo',
   'ひゃ':'hya','ひゅ':'hyu','ひょ':'hyo',
-  'mya':'mya','みゅ':'myu','みょ':'myo',
+  'みゃ':'mya','みゅ':'myu','みょ':'myo',
   'りゃ':'rya','りゅ':'ryu','りょ':'ryo',
-  'gya':'gya','gyu':'gyu','gyo':'gyo',
-  'じゃ':'ja','ju':'ju','jo':'jo',
+  'ぎゃ':'gya','ぎゅ':'gyu','ぎょ':'gyo',
+  'じゃ':'ja','じゅ':'ju','じょ':'jo',
   'びゃ':'bya','びゅ':'byu','びょ':'byo',
   'ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo'
 };
@@ -659,32 +660,104 @@ function hiraganaToRomaji(hira) {
 // =========================================================================
 // 7. TRUY VẤN DỮ LIỆU CHỮ HÁN CHO TRẬN ĐẤU (ZERO MOCK DATA)
 // =========================================================================
+/**
+ * Bóc tách sạch mọi cách đọc Kana hợp lệ (Hiragana/Katakana) và âm Hán-Việt từ thẻ 2 mặt hoặc đa cột,
+ * loại bỏ hoàn toàn phần nghĩa tiếng Việt / dấu phân cách (•, -, ,) phía sau.
+ */
+function mapDeckCardToGameEntry(c, index) {
+  const character = String(c.char || c.front || c.word || '?').trim();
+  const meaning = String(c.meaning || c.back || '').trim();
+  const explicitHanViet = String(c.hanViet || '').trim();
+
+  // Gom các cụm Kana thuần túy từ trường đọc riêng lẫn mặt sau (VD: "あおい • Xanh lam" -> "あおい")
+  const kanaPool = [
+    ...extractKanaReadingsFromText(c.reading || ''),
+    ...extractKanaReadingsFromText(c.furigana || ''),
+    ...extractKanaReadingsFromText(c.kunyomi || ''),
+    ...extractKanaReadingsFromText(c.onyomi || ''),
+    ...extractKanaReadingsFromText(meaning)
+  ];
+
+  // Đề xuất 3 (Fallback): nếu thẻ chưa có Kana ở mặt sau, lấy Kana từ mặt trước (VD: あめ, こんにちは)
+  if (kanaPool.length === 0) {
+    kanaPool.push(...extractKanaReadingsFromText(character));
+  }
+
+  const normalizedKanaReadings = Array.from(new Set(
+    kanaPool.map(k => normalizeInput(k)).filter(Boolean)
+  ));
+
+  // Gom âm Hán Việt (tách theo dấu phẩy / gạch ngang nếu có nhiều âm)
+  const hvTokens = explicitHanViet
+    ? explicitHanViet.split(/[,;/|•]+/).map(s => s.trim()).filter(Boolean)
+    : [];
+
+  // Bổ sung nhận diện từ viết HOA toàn bộ trong mặt sau thẻ từ điển (VD: "セイ, ショウ, あお, THANH, Xanh")
+  if (hvTokens.length === 0 && meaning) {
+    meaning.split(/[,;/•\n]+/).forEach(part => {
+      const cleaned = part.trim();
+      if (/^[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯẠ-Ỹ\s]{2,20}$/.test(cleaned)) {
+        hvTokens.push(cleaned);
+      }
+    });
+  }
+
+  const hvReadings = [];
+  hvTokens.forEach(hv => {
+    const low = hv.toLowerCase();
+    const noAcc = removeAccents(low);
+    if (low) hvReadings.push(low);
+    if (noAcc) hvReadings.push(noAcc);
+  });
+
+  // Fallback cuối cùng nếu thẻ không có cả Kana lẫn Hán-Việt (thẻ thuần nghĩa)
+  const fallbackReadings = [];
+  if (normalizedKanaReadings.length === 0 && hvReadings.length === 0) {
+    const firstMeaningSegment = meaning.split(/[•\-/,;(\n]/)[0].trim().toLowerCase();
+    if (firstMeaningSegment) {
+      fallbackReadings.push(firstMeaningSegment, removeAccents(firstMeaningSegment));
+    }
+    if (character) {
+      fallbackReadings.push(character.toLowerCase());
+    }
+  }
+
+  const allReadings = Array.from(new Set([
+    ...normalizedKanaReadings,
+    ...hvReadings,
+    ...fallbackReadings
+  ].filter(Boolean)));
+
+  const primaryReading = normalizedKanaReadings[0] || hvTokens[0] || allReadings[0] || '';
+
+  return {
+    kanjiId: `deck-card-${index}`,
+    character,
+    hanViet: hvTokens[0] || explicitHanViet,
+    meaning,
+    jlptLevel: c.jlpt || c.level || 'N5',
+    primaryReading,
+    readings: allReadings
+  };
+}
+
 async function loadGameData() {
   const source = selectGameSource.value;
 
   // Nếu người dùng chọn một bộ thẻ cá nhân từ Flashcards
   if (source.startsWith('deck:')) {
     const deckId = source.replace('deck:', '');
-    const rawDecks = localStorage.getItem('kizuna_flashcard_decks');
     let decks = [];
-    try { decks = rawDecks ? JSON.parse(rawDecks) : []; } catch (e) { decks = []; }
+    try {
+      decks = await apiClient.getDecks();
+    } catch (e) {
+      const rawDecks = localStorage.getItem('kizuna_flashcard_decks');
+      try { decks = rawDecks ? JSON.parse(rawDecks) : []; } catch (_) { decks = []; }
+    }
 
     const targetDeck = decks.find(d => String(d.id) === String(deckId));
     if (targetDeck && targetDeck.cards && targetDeck.cards.length > 0) {
-      gamePool = targetDeck.cards.map((c, i) => ({
-        kanjiId: `deck-card-${i}`,
-        character: c.char,
-        hanViet: c.hanViet || '',
-        meaning: c.meaning || '',
-        jlptLevel: c.jlpt || 'N5',
-        primaryReading: c.kunyomi || c.onyomi || c.hanViet || '',
-        readings: [
-          normalizeInput(c.kunyomi || ''),
-          normalizeInput(c.onyomi || ''),
-          removeAccents(c.hanViet || '').toLowerCase(),
-          (c.hanViet || '').toLowerCase()
-        ].filter(Boolean)
-      }));
+      gamePool = targetDeck.cards.map((c, i) => mapDeckCardToGameEntry(c, i));
       return true;
     } else {
       showToast('Bộ thẻ này hiện chưa có chữ Hán nào. Vui lòng chọn bộ khác hoặc kho từ điển.', 'error');
@@ -712,10 +785,14 @@ async function loadGameData() {
 }
 
 // Nạp danh sách bộ thẻ cá nhân vào dropdown và cập nhật banner nếu có
-function populatePersonalDecksDropdown() {
-  const rawDecks = localStorage.getItem('kizuna_flashcard_decks');
+async function populatePersonalDecksDropdown() {
   let decks = [];
-  try { decks = rawDecks ? JSON.parse(rawDecks) : []; } catch (e) { decks = []; }
+  try {
+    decks = await apiClient.getDecks();
+  } catch (e) {
+    const rawDecks = localStorage.getItem('kizuna_flashcard_decks');
+    try { decks = rawDecks ? JSON.parse(rawDecks) : []; } catch (_) { decks = []; }
+  }
 
   if (!optgroupFlashcardDecks) return;
   optgroupFlashcardDecks.innerHTML = '';
@@ -1261,8 +1338,8 @@ async function loadLeaderboard() {
 // =========================================================================
 // 13. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN
 // =========================================================================
-document.addEventListener('DOMContentLoaded', () => {
-  populatePersonalDecksDropdown();
+document.addEventListener('DOMContentLoaded', async () => {
+  await populatePersonalDecksDropdown();
   loadLeaderboard();
 
   // Tự động chọn bộ thẻ từ URL param (?deckId=... hoặc ?id=...)

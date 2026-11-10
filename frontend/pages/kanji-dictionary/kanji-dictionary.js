@@ -218,7 +218,7 @@ function renderStandbyState() {
 
   if (grid) {
     grid.innerHTML = `
-      <div class="col-span-full p-8 sm:p-12 text-center rounded-xl border border-dashed border-[#CBD5E1] bg-white space-y-3">
+      <div class="col-span-full p-8 sm:p-12 text-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white space-y-3">
         <img src="/assets/images/stickers/tea-meditation-capi.png" 
              alt="Capybara Thiền Trà Shodo" 
              class="w-16 h-16 mx-auto mb-2 object-contain pointer-events-none select-none" />
@@ -381,7 +381,7 @@ function renderLearnerGrid(items) {
 
   if (!items || items.length === 0) {
     grid.innerHTML = `
-      <div class="col-span-full p-10 text-center rounded-xl border border-dashed border-[#CBD5E1] bg-white space-y-2">
+      <div class="col-span-full p-10 text-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white space-y-2">
         <img src="/assets/images/stickers/confused-capi.png" 
              alt="Capybara Bối Rối" 
              class="w-16 h-16 mx-auto mb-2 object-contain pointer-events-none select-none" />
@@ -395,44 +395,44 @@ function renderLearnerGrid(items) {
   window.lastRenderedDictionaryItems = items;
 
   grid.innerHTML = items.map((k, idx) => `
-    <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 hover:border-[#CBD5E1] transition-all flex flex-col justify-between h-full min-w-0 group relative">
-      <div class="space-y-2.5 flex-1 min-w-0">
+    <div class="bg-white rounded-xl border-2 border-[#0F172A] shadow-[3px_3px_0px_0px_#0F172A] hover:translate-x-[-1px] hover:translate-y-[-1px] p-4 flex flex-col justify-between transition-all relative">
+      <div class="space-y-3">
         <!-- Header thông tin: Cấp độ JLPT, số nét, bộ thủ -->
-        <div class="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">${escapeHtml(k.jlpt || 'N5')}</span>
+        <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">${escapeHtml(k.jlpt || 'N5')}</span>
           <div class="flex items-center gap-1.5">
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">${k.strokeCount || 1} nét</span>
-            ${k.radical ? `<span class="text-[11px] text-[#64748B] font-mono">Bộ: ${escapeHtml(k.radical)}</span>` : ''}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">${k.strokeCount || 1} nét</span>
+            ${k.radical ? `<span class="text-[10px] text-[#64748B] font-meta">Bộ: ${escapeHtml(k.radical)}</span>` : ''}
           </div>
         </div>
 
-        <!-- Nội dung chính của chữ Hán: Nằm liền mạch ngay dưới Header -->
-        <div class="space-y-2">
-          <div class="flex items-center gap-3">
-            <div class="w-14 h-14 rounded-xl bg-[#FAF8F2] border border-[#CBD5E1] group-hover:border-[#FBCFE8] group-hover:bg-[#FFE5EC]/30 flex items-center justify-center font-japanese text-3xl font-bold text-[#0F172A] shrink-0 select-none transition-colors">
+        <!-- Nội dung chính của chữ Hán: Nằm liền mạch ngay dưới Header, không bị khoảng trống -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-[8px] bg-[#FAF8F2] border-2 border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center font-japanese text-3xl font-bold text-[#0F172A] shrink-0 select-none">
               ${escapeHtml(k.kanjiChar)}
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-extrabold text-[#831843] uppercase tracking-wide truncate">${escapeHtml(k.hanViet || 'HÁN TỰ')}</div>
-              <div class="text-[11px] text-[#64748B] font-mono mt-0.5 truncate">On: ${escapeHtml(k.onyomi || '-')}</div>
+              <div class="text-[11px] text-[#64748B] font-mono mt-1 truncate">On: ${escapeHtml(k.onyomi || '-')}</div>
               <div class="text-[11px] text-[#64748B] font-mono truncate">Kun: ${escapeHtml(k.kunyomi || '-')}</div>
             </div>
           </div>
 
-          <div class="p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-[#334155] text-xs leading-relaxed line-clamp-2" title="${escapeHtml(k.meaning)}">
+          <div class="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-slate-700 text-[11px] font-sans leading-relaxed line-clamp-2" title="${escapeHtml(k.meaning)}">
             ${escapeHtml(k.meaning || 'Chưa có chú giải nghĩa')}
           </div>
         </div>
       </div>
 
       <!-- CỤM NÚT HÀNH ĐỘNG: PHÁT ÂM + LƯU THẺ + LUYỆN NÉT -->
-      <div class="pt-3 mt-auto border-t border-[#E2E8F0] flex items-center gap-2 shrink-0">
+      <div class="pt-3 mt-4 border-t border-[#E2E8F0] flex items-center gap-2 shrink-0">
         <button type="button" 
                 data-action="speak-kanji"
                 data-char="${escapeHtml(k.kanjiChar)}"
-                class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#64748B] hover:text-[#0F172A] transition cursor-pointer shrink-0"
-                title="Nghe phát âm chuẩn (VOICEVOX AI TTS)">
-          <span class="material-symbols-outlined text-[16px] text-[#831843]">volume_up</span>
+                class="w-8 h-8 rounded-lg border border-[#CBD5E1] bg-slate-50 hover:bg-slate-100 text-[#1E293B] flex items-center justify-center transition active:scale-95 cursor-pointer shrink-0"
+                title="Nghe phát âm chuẩn trọng âm (VOICEVOX AI TTS)">
+          🔊
         </button>
         <button type="button" 
                 data-action="save-deck"
@@ -440,14 +440,12 @@ function renderLearnerGrid(items) {
                 data-id="${k.id || ''}"
                 data-char="${escapeHtml(k.kanjiChar)}"
                 data-hanviet="${escapeHtml(k.hanViet || '')}"
-                class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 flex items-center justify-center gap-1 transition cursor-pointer">
-          <span class="material-symbols-outlined text-[15px]">bookmark_add</span>
-          <span>Lưu Thẻ</span>
+                class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer">
+          <span>📁</span> Lưu Thẻ
         </button>
         <a href="/shodo?char=${encodeURIComponent(k.kanjiChar)}" 
-           class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition cursor-pointer">
-          <span>✍️</span>
-          <span>Luyện Nét</span>
+           class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer">
+          <span>✍️</span> Luyện Nét
         </a>
       </div>
     </div>
@@ -715,9 +713,18 @@ async function submitSaveToDeck(e) {
     if (meaningToSave && meaningToSave !== '—' && meaningToSave.trim()) backParts.push(meaningToSave.trim());
     const formattedBack = backParts.length > 0 ? backParts.join(', ') : (meaningToSave || 'Chưa cập nhật nghĩa');
 
+    const cleanOn = (onyomiToSave && onyomiToSave !== '—') ? onyomiToSave.trim() : '';
+    const cleanKun = (kunyomiToSave && kunyomiToSave !== '—') ? kunyomiToSave.trim() : '';
     const newCard = {
       char: charToSave,
-      meaning: formattedBack
+      front: charToSave,
+      hanViet: hvToSave,
+      onyomi: cleanOn,
+      kunyomi: cleanKun,
+      reading: cleanKun || cleanOn,
+      jlpt: jlptToSave,
+      meaning: formattedBack,
+      back: formattedBack
     };
 
     if (existingIdx >= 0) {
@@ -733,9 +740,13 @@ async function submitSaveToDeck(e) {
     // 2. Đồng bộ trực tiếp đến API Backend /api/learner/decks
     let synced = false;
     try {
+      const deckHeaders = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+      const authToken = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+      if (authToken) deckHeaders['Authorization'] = 'Bearer ' + authToken;
+
       const putRes = await fetch('/api/learner/decks/' + encodeURIComponent(deck.id), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: deckHeaders,
         body: JSON.stringify({
           title: deck.title,
           description: deck.description || '',
@@ -753,7 +764,7 @@ async function submitSaveToDeck(e) {
       if (!synced) {
         await fetch('/api/learner/decks', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          headers: deckHeaders,
           body: JSON.stringify(deck)
         }).catch(() => null);
       }

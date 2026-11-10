@@ -52,6 +52,8 @@ const URL_ALIASES = {
   '/tutor/connections/': '/pages/tutor-connections/index.html',
   '/tutor/schedule': '/pages/tutor-schedule/index.html',
   '/tutor/schedule/': '/pages/tutor-schedule/index.html',
+  '/tutor/profile': '/pages/tutor-teaching-profile/index.html',
+  '/tutor/profile/': '/pages/tutor-teaching-profile/index.html',
   '/learner/connections': '/pages/learner-connections/index.html',
   '/learner/connections/': '/pages/learner-connections/index.html',
   '/learner/bookings': '/pages/learner-connections/index.html',

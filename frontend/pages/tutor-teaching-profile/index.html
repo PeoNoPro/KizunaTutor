@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thông tin giảng dạy - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <div id="tutorSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="tutorTopbar"></div>
+
+    <main class="flex-1 w-full pt-16">
+      <div class="px-4 md:px-8 py-6 max-w-6xl">
+        <div class="mb-6">
+          <h1 class="text-headline-md text-on-surface">Thông tin giảng dạy</h1>
+          <p class="text-body-md text-on-surface-variant mt-1">Thông tin cá nhân và giảng dạy hiển thị với học viên trên hồ sơ công khai của bạn.</p>
+        </div>
+        <div id="tutorProfileRoot"></div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/pages/tutor-teaching-profile/tutor-teaching-profile.js"></script>
+</body>
+</html>

@@ -23,6 +23,8 @@ const NAV_ITEMS = [
   { key: 'assignments', label: 'Quản lý bài tập', icon: 'assignment', href: '/tutor/classrooms' },
   { key: 'progress', label: 'Báo cáo tiến độ', icon: 'insights' },
   { key: 'notifications', label: 'Thông báo', icon: 'notifications' },
+  // FE-02: gia sư xem và cập nhật thông tin cá nhân, giảng dạy.
+  { key: 'profile', label: 'Thông tin giảng dạy', icon: 'person', href: '/tutor/profile' },
   { key: 'verification', label: 'Hồ sơ gia sư', icon: 'badge', href: '/tutor/verification' },
   { key: 'membership', label: 'Gói hội viên', icon: 'workspace_premium', href: '/tutor/membership' },
   // FE-10: gia sư gửi và theo dõi yêu cầu hỗ trợ.

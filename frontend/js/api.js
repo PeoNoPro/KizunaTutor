@@ -772,6 +772,26 @@ export const API = {
     addNote(transactionId, note) {
       return authRequest(`/admin/payment-transactions/${transactionId}/notes`, { method: 'POST', body: { note } });
     }
+  },
+
+  // FE-02: Quản lý hồ sơ (specs/002-profile-management/contracts/profile-api.md)
+  profile: {
+    /** Tải ảnh đại diện (JPG, PNG, WEBP, tối đa 5MB); trả { avatarUrl, fileName, size } */
+    uploadAvatar(file) {
+      const form = new FormData();
+      form.append('file', file);
+      return authRequest('/profile/avatar', { method: 'POST', body: form, timeoutMs: 60000 }).then((res) => res.data);
+    },
+
+    /** Hồ sơ của học viên đang đăng nhập */
+    getLearnerProfile() {
+      return authRequest('/profile/learner/me').then((res) => res.data);
+    },
+
+    /** data: fullName, phone, avatarUrl, currentLevel, targetLevel, learningGoals (email chỉ đọc) */
+    updateLearnerProfile(data) {
+      return authRequest('/profile/learner/me', { method: 'PUT', body: data }).then((res) => res.data);
+    }
   }
 };
 

@@ -19,6 +19,14 @@ export const LEARNER_MENU_GROUPS = [
         url: '/learner/dashboard',
         icon: '📊',
         matcher: ['/learner/dashboard', '/learner', '/dashboard']
+      },
+      {
+        // FE-02: học viên xem và cập nhật hồ sơ cá nhân.
+        key: 'profile',
+        title: 'Hồ sơ cá nhân',
+        url: '/pages/learner-profile/',
+        icon: '👤',
+        matcher: ['/pages/learner-profile']
       }
     ]
   },
@@ -121,6 +129,7 @@ export const LEARNER_MENU_GROUPS = [
 // =========================================================================
 export const PAGE_META_MAP = {
   'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
+  'profile': { title: 'Hồ sơ cá nhân', badge: 'Bàn học tập' },
   'tutors': { title: 'Tìm gia sư Kizuna', badge: 'Gia sư & lớp học' },
   'requests': { title: 'Yêu cầu kết nối', badge: 'Gia sư & lớp học' },
   'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },

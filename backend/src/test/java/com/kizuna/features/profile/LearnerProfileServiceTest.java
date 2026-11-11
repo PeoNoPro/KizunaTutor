@@ -57,7 +57,8 @@ class LearnerProfileServiceTest {
     }
 
     private static UpdateLearnerProfileRequest request(String phone) {
-        return new UpdateLearnerProfileRequest("  Nguyễn Văn Bình ", phone, "", "N5", "N2", "Luyện thi N2");
+        return new UpdateLearnerProfileRequest("  Nguyễn Văn Bình ", phone, "", "N5", "N2", "Luyện thi N2",
+                "  Hà Nội ", "Số 12 ngõ 34 Cầu Giấy");
     }
 
     @Test
@@ -118,6 +119,8 @@ class LearnerProfileServiceTest {
         assertThat(dto.currentLevel()).isEqualTo("N5");
         assertThat(dto.targetLevel()).isEqualTo("N2");
         assertThat(dto.learningGoals()).isEqualTo("Luyện thi N2");
+        assertThat(dto.province()).isEqualTo("Hà Nội");
+        assertThat(dto.address()).isEqualTo("Số 12 ngõ 34 Cầu Giấy");
     }
 
     @Test

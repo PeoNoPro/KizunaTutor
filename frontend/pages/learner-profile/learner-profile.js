@@ -2,7 +2,7 @@
  * KizunaTutor - Hồ sơ cá nhân của học viên (FE-02, User Story 1), mở từ menu tài khoản trong dashboard học viên.
  * Đặc tả: specs/002-profile-management/. Dữ liệu từ GET/PUT /api/profile/learner/me.
  *
- * Trang chia thành các hàng (thông tin cá nhân, trình độ & mục tiêu, số điện thoại, mật khẩu); mỗi hàng lưu riêng.
+ * Trang chia thành các hàng (thông tin cá nhân, địa chỉ, trình độ & mục tiêu, số điện thoại, mật khẩu); mỗi hàng lưu riêng.
  * PUT cần đủ trường nên mỗi lần lưu ghép giá trị mới của hàng với hồ sơ hiện tại.
  * Trang có thể được nạp lại bởi sidebarRouter (thay <main> rồi import lại module) nên khởi tạo ngay khi module chạy.
  */
@@ -125,12 +125,35 @@ function fillPhone() {
   setPhoneEditing(false);
 }
 
+function fillAddress() {
+  $('province').value = profile.province || '';
+  $('address').value = profile.address || '';
+  updateAddressDirty();
+}
+
+/** Gợi ý Tỉnh/Thành phố từ danh sách khu vực có gia sư; học viên vẫn gõ tự do được. */
+async function loadProvinceOptions() {
+  const locations = await API.tutors.getLocations();
+  const list = $('provinceOptions');
+  if (!list || !Array.isArray(locations)) return;
+  list.replaceChildren(...locations.map((loc) => {
+    const opt = document.createElement('option');
+    opt.value = loc;
+    return opt;
+  }));
+}
+
+function renderUpdatedAt() {
+  const updated = formatDateTime(profile?.updatedAt);
+  $('profileUpdatedAt').textContent = updated ? `Cập nhật lần cuối: ${updated}` : '';
+}
+
 function renderAll() {
   fillPersonal();
   fillLearning();
   fillPhone();
-  const updated = formatDateTime(profile.updatedAt);
-  $('profileUpdatedAt').textContent = updated ? `Cập nhật lần cuối: ${updated}` : '';
+  fillAddress();
+  renderUpdatedAt();
 }
 
 function updatePersonalDirty() {
@@ -143,6 +166,12 @@ function updateLearningDirty() {
     || $('targetLevel').value !== (profile.targetLevel || '')
     || $('learningGoals').value.trim() !== (profile.learningGoals || '');
   $('learningForm').querySelector('[data-save]').disabled = !dirty;
+}
+
+function updateAddressDirty() {
+  const dirty = $('province').value.trim() !== (profile.province || '')
+    || $('address').value.trim() !== (profile.address || '');
+  $('addressForm').querySelector('[data-save]').disabled = !dirty;
 }
 
 function setPhoneEditing(editing) {
@@ -165,6 +194,8 @@ async function save(form, overrides, label) {
     currentLevel: profile.currentLevel || null,
     targetLevel: profile.targetLevel || null,
     learningGoals: profile.learningGoals || '',
+    province: profile.province || '',
+    address: profile.address || '',
     ...overrides
   };
   setFormMessage(form, '');
@@ -172,6 +203,7 @@ async function save(form, overrides, label) {
   try {
     profile = await API.profile.updateLearnerProfile(payload);
     syncStoredUser(profile);
+    renderUpdatedAt();
     return true;
   } catch (err) {
     setFormMessage(form, errorText(err));
@@ -226,6 +258,21 @@ async function handlePhoneSubmit(event) {
   if (await save(form, { phone }, 'Lưu số mới')) {
     fillPhone();
     setFormMessage(form, 'Cập nhật số điện thoại thành công.', 'success');
+  }
+}
+
+async function handleAddressSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const province = $('province').value.trim();
+  const address = $('address').value.trim();
+  setFieldError('province', '');
+  setFieldError('address', '');
+  if (province.length > 100) return setFieldError('province', 'Tỉnh/Thành phố tối đa 100 ký tự.');
+  if (address.length > 255) return setFieldError('address', 'Địa chỉ chi tiết tối đa 255 ký tự.');
+  if (await save(form, { province, address }, 'Lưu thay đổi')) {
+    fillAddress();
+    setFormMessage(form, 'Cập nhật địa chỉ thành công.', 'success');
   }
 }
 
@@ -298,10 +345,14 @@ function bindEvents() {
     setPhoneEditing(true);
   });
   $('btnCancelPhone').addEventListener('click', () => setPhoneEditing(false));
+
+  $('addressForm').addEventListener('submit', handleAddressSubmit);
+  ['province', 'address'].forEach((id) => $(id).addEventListener('input', updateAddressDirty));
 }
 
 if ($('profileContent')) {
   bindEvents();
   mountChangePasswordForm($('changePasswordSection'));
   loadProfile();
+  loadProvinceOptions();
 }

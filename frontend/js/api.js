@@ -55,11 +55,12 @@ const DEFAULT_ERROR_MESSAGE = 'Không thể kết nối đến máy chủ. Vui l
  * Lỗi API đã được ánh xạ sang thông điệp tiếng Việt từ backend (code, message, fields, missingDocuments).
  */
 export class ApiError extends Error {
-  constructor({ status = 0, code = 'NETWORK_ERROR', message = DEFAULT_ERROR_MESSAGE, fields = {}, missingDocuments = [] } = {}) {
+  constructor({ status = 0, code = 'NETWORK_ERROR', message = DEFAULT_ERROR_MESSAGE, fields = {}, fieldErrors = [], missingDocuments = [] } = {}) {
     super(message);
     this.status = status;
     this.code = code;
     this.fields = fields || {};
+    this.fieldErrors = fieldErrors || [];
     this.missingDocuments = missingDocuments || [];
   }
 }
@@ -129,6 +130,7 @@ export async function authRequest(path, { method = 'GET', body, responseType = '
         ? 'Tệp không hợp lệ. Vui lòng chọn tệp PDF, PNG hoặc JPG có dung lượng tối đa 10MB.'
         : 'Hệ thống đang bận, bạn vui lòng thử lại sau.'),
       fields: data.fields || data.details,
+      fieldErrors: Array.isArray(data.fieldErrors) ? data.fieldErrors : [],
       missingDocuments: data.missingDocuments
     });
   }
@@ -859,6 +861,32 @@ export const API = {
     /** Học viên hoặc gia sư đổi mật khẩu: currentPassword, newPassword, confirmPassword */
     changePassword(data) {
       return authRequest('/profile/password', { method: 'PUT', body: data });
+    },
+
+    /** Hồ sơ cá nhân và giảng dạy của gia sư đang đăng nhập */
+    getTutorProfile() {
+      return authRequest('/profile/tutor/me').then((res) => res.data);
+    },
+
+    /** Gia sư cập nhật hồ sơ cá nhân và giảng dạy (email chỉ đọc) */
+    updateTutorProfile(data) {
+      return authRequest('/profile/tutor/me', { method: 'PUT', body: data }).then((res) => res.data);
+    },
+
+    /** Quản lý / Quản trị viên tra cứu danh sách người dùng phân trang */
+    getUsers(params = {}) {
+      const q = toQuery(params);
+      return authRequest(`/profile/users${q ? `?${q}` : ''}`).then((res) => res.data);
+    },
+
+    /** Quản lý / Quản trị viên xem chi tiết một tài khoản Học viên hoặc Gia sư */
+    getUserDetail(userId) {
+      return authRequest(`/profile/users/${userId}`).then((res) => res.data);
+    },
+
+    /** Quản lý / Quản trị viên cập nhật trạng thái tài khoản kèm lý do bắt buộc */
+    updateUserStatus(userId, data) {
+      return authRequest(`/profile/users/${userId}/status`, { method: 'PUT', body: data }).then((res) => res.data);
     }
   }
 };

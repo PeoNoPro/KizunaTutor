@@ -7,6 +7,21 @@
 import { API } from '../../js/api.js';
 import { formatVND } from '../../js/main.js';
 import { openModal, closeModal } from '../../components/modal/modal.js';
+import { isSlotClashing } from '../../js/tutor-schedule-helpers.js';
+import { containsDetailedAddressOrGps, escapeHtml } from '../../js/profile-utils.js';
+
+function sanitizeDisplayLocation(rawLocation) {
+  if (!rawLocation) return 'Hà Nội, Việt Nam';
+  const text = String(rawLocation).trim();
+  if (text.includes(' - ')) {
+    const [province, detail] = text.split(/\s+-\s+/, 2);
+    if (detail && !containsDetailedAddressOrGps(detail)) {
+      return `${province.trim()} - ${detail.trim()}`;
+    }
+    return province.trim() || 'Hà Nội, Việt Nam';
+  }
+  return containsDetailedAddressOrGps(text) ? 'Hà Nội, Việt Nam' : text;
+}
 
 
 function getInitials(name) {
@@ -363,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   <span class="text-[#E5DECB]">|</span>
                   <div class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-[16px] text-primary">location_on</span>
-                    <span>${tutor.location || 'Hà Nội, Việt Nam'}</span>
+                    <span>${escapeHtml(sanitizeDisplayLocation(tutor.location))}</span>
                   </div>
                 </div>
               </div>
@@ -634,6 +649,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const isToday = startOfD === startOfToday;
         const dow = WEEKDAY_COLUMNS[offset].dow;
+        const pad = (n) => String(n).padStart(2, '0');
+        const dateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
         const dayAvails = (tutor.availabilities || []).filter(a => Number(a.dayOfWeek) === dow);
 
         for (const avail of dayAvails) {
@@ -645,6 +662,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           for (let time = startTotal; time + selectedDurationMinutes <= endTotal; time += 30) {
             if (isToday && time <= nowMinutes + 15) continue;
+            if (isSlotClashing(tutor, dow, dateStr, time, selectedDurationMinutes)) continue;
             return offset;
           }
         }
@@ -770,6 +788,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isToday = startOfD === startOfToday;
         const col = WEEKDAY_COLUMNS[i];
         const isSelected = (i === selectedDayOffset);
+        const pad = (n) => String(n).padStart(2, '0');
+        const dateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 
         // Tính xem ngày này có khung giờ rảnh nào khả dụng không
         let hasAvailableSlots = false;
@@ -784,6 +804,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             for (let time = startTotal; time + selectedDurationMinutes <= endTotal; time += 30) {
               if (isToday && time <= nowMinutes + 15) {
+                continue;
+              }
+              if (isSlotClashing(tutor, col.dow, dateStr, time, selectedDurationMinutes)) {
                 continue;
               }
               hasAvailableSlots = true;
@@ -889,6 +912,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const isPastDay = startOfTarget < startOfToday;
       const isToday = startOfTarget === startOfToday;
       const nowMinutes = today.getHours() * 60 + today.getMinutes();
+      const pad = (n) => String(n).padStart(2, '0');
+      const targetDateStr = `${pad(targetDate.getDate())}/${pad(targetDate.getMonth() + 1)}/${targetDate.getFullYear()}`;
 
       const slotsSet = new Set();
 
@@ -902,6 +927,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           for (let time = startTotal; time + durationMinutes <= endTotal; time += 30) {
             if (isToday && time <= nowMinutes + 15) {
+              continue;
+            }
+            if (isSlotClashing(tutor, backendDow, targetDateStr, time, durationMinutes)) {
               continue;
             }
             const h = Math.floor(time / 60);
@@ -1173,6 +1201,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             for (let time = startTotal; time + weeklyDurationMinutes <= endTotal; time += 30) {
               if (isToday && time <= nowMinutes + 15) {
+                continue;
+              }
+              if (isSlotClashing(tutor, col.dow, dateStr, time, weeklyDurationMinutes)) {
                 continue;
               }
               const h = Math.floor(time / 60);

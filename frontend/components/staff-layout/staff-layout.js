@@ -31,19 +31,23 @@ const ROLES = {
     requiredRole: 'ROLE_MANAGER',
     portal: 'Quản lý vận hành',
     roleLabel: 'Quản lý vận hành',
+    sectionTitle: 'Quản lý vận hành',
     home: '/manager/membership-plans',
     items: [
       { key: 'membershipPlans', label: 'Gói hội viên', icon: 'workspace_premium', href: '/manager/membership-plans' },
-      { key: 'tutorMemberships', label: 'Hội viên gia sư', icon: 'card_membership', href: '/manager/tutor-memberships' }
+      { key: 'tutorMemberships', label: 'Hội viên gia sư', icon: 'card_membership', href: '/manager/tutor-memberships' },
+      { key: 'users', label: 'Quản lý người dùng', icon: 'manage_accounts', href: '/manager/users' }
     ]
   },
   admin: {
     requiredRole: 'ROLE_ADMIN',
     portal: 'Quản trị hệ thống',
     roleLabel: 'Quản trị viên',
+    sectionTitle: 'Quản trị hệ thống',
     home: '/admin/payments',
     items: [
-      { key: 'payments', label: 'Quản lý thanh toán', icon: 'receipt_long', href: '/admin/payments' }
+      { key: 'payments', label: 'Quản lý thanh toán', icon: 'receipt_long', href: '/admin/payments' },
+      { key: 'users', label: 'Quản lý người dùng', icon: 'manage_accounts', href: '/manager/users' }
     ]
   }
 };
@@ -98,10 +102,15 @@ function navItemHtml(item, activeKey) {
 /**
  * Dựng khung trang. Trả về false nếu tài khoản không đúng vai trò của trang — khi đó trang không gọi API.
  */
-export function mountStaffLayout(role, activeKey, pageTitle) {
-  const config = ROLES[role] || ROLES.manager;
+export function mountStaffLayout(role, activeKey, pageTitle, options = {}) {
   const user = storedUser();
-  const allowed = !user.role || user.role === config.requiredRole;
+  const baseConfig = ROLES[role] || ROLES.manager;
+  const allowedRoles = Array.isArray(options.allowedRoles) && options.allowedRoles.length
+    ? options.allowedRoles
+    : [baseConfig.requiredRole];
+  const allowed = !user.role || allowedRoles.includes(user.role);
+  const matchingRoleKey = Object.keys(ROLES).find((k) => ROLES[k].requiredRole === user.role);
+  const config = (allowed && matchingRoleKey) ? ROLES[matchingRoleKey] : baseConfig;
   const name = user.fullName || config.roleLabel;
   const roleLabel = ROLE_LABELS[user.role] || config.roleLabel;
   const sidebar = document.getElementById('staffSidebar');
@@ -115,7 +124,7 @@ export function mountStaffLayout(role, activeKey, pageTitle) {
       <aside id="staffSidebarPanel" class="fixed left-0 top-0 bottom-0 w-72 ${STAFF_SIDEBAR} z-50 flex flex-col justify-between py-6 -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
         <div class="flex flex-col">
           ${brandLogoHtml({ href: config.home, subtitle: config.portal, className: 'px-6 mb-8' })}
-          <div class="px-6 mb-3"><span class="text-caption text-[#707881] tracking-wider font-semibold">Gói hội viên và thanh toán</span></div>
+          <div class="px-6 mb-3"><span class="text-caption text-[#707881] tracking-wider font-semibold">${escapeHtml(config.sectionTitle || 'Quản lý vận hành')}</span></div>
           <nav class="flex flex-col gap-1 px-4" aria-label="Điều hướng ${escapeHtml(config.portal.toLowerCase())}">
             ${config.items.map((item) => navItemHtml(item, activeKey)).join('')}
           </nav>

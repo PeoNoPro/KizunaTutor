@@ -38,6 +38,14 @@ public class Learner {
     @Column(name = "learning_goals", columnDefinition = "TEXT")
     private String learningGoals;
 
+    /** Tỉnh/Thành phố (database/migrations/017_learner_address.sql). */
+    @Column(name = "province", length = 100)
+    private String province;
+
+    /** Địa chỉ chi tiết: số nhà, đường, phường/xã, quận/huyện. Chỉ học viên xem được. */
+    @Column(name = "address", length = 255)
+    private String address;
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;

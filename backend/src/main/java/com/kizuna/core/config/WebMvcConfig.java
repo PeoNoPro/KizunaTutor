@@ -78,6 +78,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         forwardWithSlash(registry, "/academic/posts", "academic-posts");
         forwardWithSlash(registry, "/academic/history", "academic-review-history");
         forwardWithSlash(registry, "/academic/profile", "academic-profile");
+        forwardWithSlash(registry, "/tutor/profile", "tutor-teaching-profile");
+        forwardWithSlash(registry, "/manager/users", "manager-users");
         forwardWithSlash(registry, "/my-courses", "my-courses");
         forwardWithSlash(registry, "/learner/my-courses", "my-courses");
     }

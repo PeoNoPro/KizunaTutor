@@ -72,7 +72,7 @@ class LearnerProfileControllerTest {
 
     private static LearnerProfileResponseDto sample() {
         return new LearnerProfileResponseDto(UUID.randomUUID(), EMAIL, "Nguyễn Văn An", "0987654321", null,
-                "N5", "N3", "Luyện ngữ pháp N3", OffsetDateTime.now(), OffsetDateTime.now());
+                "N5", "N3", "Luyện ngữ pháp N3", "Hà Nội", "Cầu Giấy", OffsetDateTime.now(), OffsetDateTime.now());
     }
 
     @Test

@@ -162,6 +162,8 @@ const URL_ALIASES = {
   '/tutor/membership/result': '/pages/tutor-membership-result/index.html',
   '/manager/membership-plans': '/pages/manager-membership-plans/index.html',
   '/manager/tutor-memberships': '/pages/manager-tutor-memberships/index.html',
+  '/manager/users': '/pages/manager-users/index.html',
+  '/manager/users/': '/pages/manager-users/index.html',
   '/admin/payments': '/pages/admin-payments/index.html'
 };
 

@@ -20,15 +20,168 @@
   <div class="lg:pl-72 flex flex-col min-h-screen">
     <div id="staffTopbar"></div>
 
-    <main class="flex-1 w-full pt-16">
-      <div class="px-4 md:px-8 py-6">
-        <div class="mb-6">
-          <h1 class="text-headline-md">Quản lý người dùng</h1>
-          <p class="text-body-md text-on-surface-variant mt-1">Tra cứu hồ sơ học viên và gia sư, xem chi tiết và cập nhật trạng thái tài khoản.</p>
+    <main class="flex-1 w-full pt-16 lg:pt-0">
+      <div class="px-4 md:px-8 py-6 max-w-7xl space-y-5">
+        <div>
+          <h1 class="text-headline-md text-on-surface">Quản lý người dùng</h1>
+          <p class="text-body-md text-on-surface-variant mt-1">Tra cứu danh sách học viên và gia sư, xem chi tiết hồ sơ và điều chỉnh trạng thái tài khoản.</p>
         </div>
-        <div id="managerUsersRoot"></div>
+
+        <div id="managerUsersRoot" class="space-y-4">
+          <!-- Tab phân loại vai trò -->
+          <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Lọc theo vai trò người dùng">
+            <button type="button" role="tab" data-role-tab="ALL" aria-selected="true" class="px-4 py-2 rounded-xl text-label-md font-semibold transition-colors bg-primary text-on-primary shadow-sm">
+              Tất cả
+            </button>
+            <button type="button" role="tab" data-role-tab="ROLE_TUTOR" aria-selected="false" class="px-4 py-2 rounded-xl text-label-md font-medium transition-colors bg-white text-on-surface-variant border border-outline-variant hover:bg-surface-container-low">
+              Gia sư
+            </button>
+            <button type="button" role="tab" data-role-tab="ROLE_LEARNER" aria-selected="false" class="px-4 py-2 rounded-xl text-label-md font-medium transition-colors bg-white text-on-surface-variant border border-outline-variant hover:bg-surface-container-low">
+              Học viên
+            </button>
+          </div>
+
+          <!-- Thanh tìm kiếm & lọc -->
+          <form id="filterForm" class="tv-card p-4 grid grid-cols-1 md:grid-cols-[1fr,220px,auto] gap-3 items-end">
+            <label class="flex flex-col gap-1">
+              <span class="tv-label mb-0">Tìm kiếm</span>
+              <input id="keywordInput" type="search" maxlength="100" placeholder="Tìm theo họ tên hoặc địa chỉ email..." class="tv-input">
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="tv-label mb-0">Trạng thái tài khoản</span>
+              <select id="statusFilter" class="tv-input">
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="ACTIVE">Đang hoạt động</option>
+                <option value="SUSPENDED">Tạm khóa</option>
+                <option value="BANNED">Đã cấm</option>
+              </select>
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <button type="submit" class="tv-btn tv-btn-primary">
+                <span class="material-symbols-outlined text-[18px]">search</span>
+                Tìm kiếm
+              </button>
+              <button id="resetFilterBtn" type="button" class="tv-btn">Xóa bộ lọc</button>
+            </div>
+          </form>
+
+          <div id="usersFeedback" class="hidden rounded-xl px-4 py-3 text-sm" role="status"></div>
+
+          <section id="usersLoading" class="space-y-3" aria-live="polite" aria-label="Đang tải danh sách người dùng">
+            <div class="tv-skeleton h-16"></div>
+            <div class="tv-skeleton h-64"></div>
+          </section>
+
+          <section id="usersError" class="hidden tv-card p-8 text-center">
+            <span class="material-symbols-outlined text-5xl text-error">cloud_off</span>
+            <h2 class="text-headline-sm mt-2">Chưa tải được danh sách người dùng</h2>
+            <p id="usersErrorMessage" class="text-on-surface-variant mt-1"></p>
+            <button id="retryUsersBtn" type="button" class="tv-btn tv-btn-primary mt-4">Thử lại</button>
+          </section>
+
+          <section id="usersContent" class="hidden tv-card p-0 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-body-sm min-w-[820px]">
+                <thead class="text-on-surface-variant bg-surface-container-low">
+                  <tr>
+                    <th class="px-4 py-3 font-semibold">Người dùng</th>
+                    <th class="px-4 py-3 font-semibold">Số điện thoại</th>
+                    <th class="px-4 py-3 font-semibold">Vai trò</th>
+                    <th class="px-4 py-3 font-semibold">Trạng thái</th>
+                    <th class="px-4 py-3 font-semibold">Ngày tham gia</th>
+                    <th class="px-4 py-3 font-semibold text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody" class="divide-y divide-surface-container"></tbody>
+              </table>
+            </div>
+
+            <div id="usersEmpty" class="hidden p-10 text-center space-y-3">
+              <span class="material-symbols-outlined text-5xl text-outline">person_search</span>
+              <p id="usersEmptyText" class="text-body-md text-on-surface-variant"></p>
+              <button id="emptyResetBtn" type="button" class="hidden tv-btn">Xóa bộ lọc</button>
+            </div>
+
+            <div id="usersPager" class="px-4 py-3 bg-surface-container-low border-t border-surface-container"></div>
+          </section>
+        </div>
       </div>
     </main>
+  </div>
+
+  <!-- Modal xem chi tiết người dùng -->
+  <div id="userDetailModal" class="hidden fixed inset-0 z-[60] tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+    <div class="tv-card w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-xl">
+      <div class="px-6 py-4 border-b border-surface-container flex items-center justify-between gap-3">
+        <h2 id="detailModalTitle" class="text-title-lg font-semibold text-on-surface">Chi tiết hồ sơ người dùng</h2>
+        <button id="closeDetailModal" type="button" class="p-1.5 rounded-lg hover:bg-surface-container" aria-label="Đóng cửa sổ">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div id="detailModalBody" class="p-6 overflow-y-auto space-y-5 flex-1"></div>
+      <div class="px-6 py-4 border-t border-surface-container bg-surface-container-low flex items-center justify-end gap-2">
+        <button id="detailOpenStatusBtn" type="button" class="hidden tv-btn tv-btn-primary">Cập nhật trạng thái</button>
+        <button id="detailCloseFooterBtn" type="button" class="tv-btn">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal cập nhật trạng thái tài khoản -->
+  <div id="statusChangeModal" class="hidden fixed inset-0 z-[70] tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="statusModalTitle">
+    <div class="tv-card w-full max-w-lg overflow-hidden shadow-xl">
+      <div class="px-6 py-4 border-b border-surface-container flex items-center justify-between gap-3">
+        <h2 id="statusModalTitle" class="text-title-lg font-semibold text-on-surface">Cập nhật trạng thái tài khoản</h2>
+        <button id="closeStatusModal" type="button" class="p-1.5 rounded-lg hover:bg-surface-container" aria-label="Đóng cửa sổ">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <form id="statusChangeForm" class="p-6 space-y-4" novalidate>
+        <div id="statusTargetSummary" class="rounded-xl bg-surface-container-low p-3.5 text-sm"></div>
+
+        <fieldset class="space-y-2">
+          <legend class="tv-label">Chọn trạng thái mới</legend>
+          <label class="flex items-center gap-2.5 p-2.5 rounded-xl border border-outline-variant cursor-pointer hover:bg-surface-container-low">
+            <input type="radio" name="accountStatusOption" value="ACTIVE" class="accent-[#006194]">
+            <div>
+              <span class="text-sm font-semibold text-on-surface">Đang hoạt động</span>
+              <p class="text-xs text-on-surface-variant">Cho phép người dùng đăng nhập và sử dụng đầy đủ tính năng.</p>
+            </div>
+          </label>
+          <label class="flex items-center gap-2.5 p-2.5 rounded-xl border border-outline-variant cursor-pointer hover:bg-surface-container-low">
+            <input type="radio" name="accountStatusOption" value="SUSPENDED" class="accent-[#006194]">
+            <div>
+              <span class="text-sm font-semibold text-amber-800">Tạm khóa</span>
+              <p class="text-xs text-on-surface-variant">Tạm ngưng truy cập hệ thống để xử lý vi phạm hoặc xác minh thêm.</p>
+            </div>
+          </label>
+          <label class="flex items-center gap-2.5 p-2.5 rounded-xl border border-outline-variant cursor-pointer hover:bg-surface-container-low">
+            <input type="radio" name="accountStatusOption" value="BANNED" class="accent-[#006194]">
+            <div>
+              <span class="text-sm font-semibold text-rose-700">Đã cấm</span>
+              <p class="text-xs text-on-surface-variant">Ngừng cung cấp tài khoản vĩnh viễn do vi phạm nghiêm trọng quy định.</p>
+            </div>
+          </label>
+        </fieldset>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="statusReasonInput" class="tv-label mb-0">Lý do thay đổi trạng thái <span class="text-error">*</span></label>
+            <span id="reasonCharCount" class="text-xs text-on-surface-variant">0 / 500</span>
+          </div>
+          <textarea id="statusReasonInput" rows="3" maxlength="500" required class="tv-input" placeholder="Nhập lý do cụ thể (từ 5 đến 500 ký tự)..."></textarea>
+          <p id="statusReasonError" class="tv-field-error hidden"></p>
+        </div>
+
+        <div id="statusFormError" class="hidden rounded-lg bg-[#BA1A1A]/5 border border-[#BA1A1A]/20 px-3.5 py-2.5 text-sm text-[#BA1A1A]"></div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button id="cancelStatusModalBtn" type="button" class="tv-btn">Hủy</button>
+          <button id="submitStatusBtn" type="submit" class="tv-btn tv-btn-primary">
+            <span id="submitStatusLabel">Xác nhận cập nhật</span>
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script type="module" src="/pages/manager-users/manager-users.js"></script>

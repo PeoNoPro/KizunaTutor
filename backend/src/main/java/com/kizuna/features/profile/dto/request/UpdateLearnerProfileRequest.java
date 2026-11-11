@@ -28,5 +28,11 @@ public record UpdateLearnerProfileRequest(
         String targetLevel,
 
         @Size(max = 2000, message = "Mục tiêu học tập tối đa 2000 ký tự.")
-        String learningGoals) {
+        String learningGoals,
+
+        @Size(max = 100, message = "Tỉnh/Thành phố tối đa 100 ký tự.")
+        String province,
+
+        @Size(max = 255, message = "Địa chỉ chi tiết tối đa 255 ký tự.")
+        String address) {
 }

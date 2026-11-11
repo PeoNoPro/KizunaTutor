@@ -26,6 +26,8 @@ public final class LearnerProfileMapper {
                 learner == null ? null : learner.getCurrentLevel(),
                 learner == null ? null : learner.getTargetLevel(),
                 learner == null ? null : learner.getLearningGoals(),
+                learner == null ? null : learner.getProvince(),
+                learner == null ? null : learner.getAddress(),
                 user.getCreatedAt(),
                 latest(user.getUpdatedAt(), learner == null ? null : learner.getUpdatedAt()));
     }
@@ -38,6 +40,8 @@ public final class LearnerProfileMapper {
         learner.setCurrentLevel(blankToNull(request.currentLevel()));
         learner.setTargetLevel(blankToNull(request.targetLevel()));
         learner.setLearningGoals(blankToNull(request.learningGoals()));
+        learner.setProvince(blankToNull(request.province()));
+        learner.setAddress(blankToNull(request.address()));
     }
 
     public static String blankToNull(String value) {

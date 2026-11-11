@@ -16,6 +16,8 @@ public record LearnerProfileResponseDto(
         String currentLevel,
         String targetLevel,
         String learningGoals,
+        String province,
+        String address,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt) {
 }

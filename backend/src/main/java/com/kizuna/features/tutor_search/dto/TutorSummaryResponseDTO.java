@@ -37,5 +37,7 @@ public class TutorSummaryResponseDTO {
     private String teachingFormat;
     private List<TutorCredentialDTO> credentials;
     private List<TutorAvailabilityDTO> availabilities;
+    private List<TutorAvailabilityDTO> classSchedules;
+    private List<TutorBookedSlotDTO> bookedSlots;
     private List<TutorReviewDTO> reviews;
 }

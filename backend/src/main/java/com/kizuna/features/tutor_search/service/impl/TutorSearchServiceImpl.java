@@ -6,9 +6,12 @@ import com.kizuna.features.tutor_search.dto.TutorSearchPageResponse;
 import com.kizuna.features.tutor_search.dto.TutorSummaryResponseDTO;
 import com.kizuna.features.tutor_search.dto.TutorCredentialDTO;
 import com.kizuna.features.tutor_search.dto.TutorAvailabilityDTO;
+import com.kizuna.features.tutor_search.dto.TutorBookedSlotDTO;
 import com.kizuna.features.tutor_search.dto.TutorReviewDTO;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
 import com.kizuna.features.tutor_search.repository.TutorSearchRepository;
 import com.kizuna.features.tutor_search.repository.TutorSearchSpecification;
@@ -30,6 +33,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +43,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class TutorSearchServiceImpl implements TutorSearchService {
+
+    private static final Pattern PUBLIC_GPS_PATTERN =
+            Pattern.compile("[-+]?\\d{1,3}\\.\\d{4,}");
+    private static final Pattern PUBLIC_STREET_PATTERN =
+            Pattern.compile("(?iu)(?:^|[\\s,])(?:\\d+[A-Za-z]?(?:/\\d+)*\\s+\\S+|(?:số\\s*nhà|ngõ|ngách|hẻm|kiệt|căn\\s*hộ|tòa\\s*nhà|đường)\\s+\\S+|số\\s+\\d+|(?<!thành\\s)phố\\s+\\S+)");
 
     private final TutorSearchRepository tutorSearchRepository;
     private final JdbcTemplate jdbcTemplate;
@@ -119,6 +128,42 @@ public class TutorSearchServiceImpl implements TutorSearchService {
         return VIETNAM_34_PROVINCES;
     }
 
+    private String sanitizePublicLocation(String address) {
+        if (address == null || address.trim().isEmpty()) {
+            return "Hà Nội, Việt Nam";
+        }
+        String clean = address.trim();
+        if (clean.contains(" - ")) {
+            String[] parts = clean.split("\\s+-\\s+", 2);
+            String province = parts[0].trim();
+            String district = parts.length > 1 ? parts[1].trim() : "";
+            if (!district.isEmpty() && isCoarseAreaOnly(district)) {
+                return province + " - " + district;
+            }
+            return province.isEmpty() ? "Hà Nội, Việt Nam" : province;
+        }
+        List<String> segments = Arrays.stream(clean.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty() && !s.equalsIgnoreCase("Việt Nam") && !s.equalsIgnoreCase("Vietnam"))
+                .toList();
+        if (segments.isEmpty()) {
+            return "Hà Nội, Việt Nam";
+        }
+        String province = segments.get(segments.size() - 1);
+        if (segments.size() >= 2) {
+            String district = segments.get(segments.size() - 2);
+            if (isCoarseAreaOnly(district)) {
+                return province + " - " + district;
+            }
+        }
+        return isCoarseAreaOnly(province) ? province : extractProvince(clean);
+    }
+
+    private boolean isCoarseAreaOnly(String segment) {
+        return !PUBLIC_GPS_PATTERN.matcher(segment).find()
+                && !PUBLIC_STREET_PATTERN.matcher(segment).find();
+    }
+
     private String extractProvince(String address) {
         if (address == null || address.trim().isEmpty()) {
             return "Hà Nội";
@@ -156,6 +201,8 @@ public class TutorSearchServiceImpl implements TutorSearchService {
 
         List<TutorCredentialDTO> credentials = Collections.emptyList();
         List<TutorAvailabilityDTO> availabilities = Collections.emptyList();
+        List<TutorAvailabilityDTO> classSchedules = Collections.emptyList();
+        List<TutorBookedSlotDTO> bookedSlots = Collections.emptyList();
         List<TutorReviewDTO> reviews = Collections.emptyList();
 
         try {
@@ -190,6 +237,77 @@ public class TutorSearchServiceImpl implements TutorSearchService {
             );
         } catch (Exception e) {
             // ignore
+        }
+
+        // Truy vấn lịch học chính thức các lớp đang mở của gia sư (FE-06 class_schedules)
+        try {
+            classSchedules = jdbcTemplate.query(
+                "SELECT cs.day_of_week, cs.start_time::text, cs.end_time::text " +
+                "FROM class_schedules cs " +
+                "JOIN learning_spaces ls ON ls.space_id = cs.space_id " +
+                "WHERE ls.tutor_id = ? AND ls.status IN ('ACTIVE', 'PAUSED') " +
+                "ORDER BY cs.day_of_week, cs.start_time",
+                (rs, rowNum) -> {
+                    int csDow = rs.getInt("day_of_week");
+                    // Chuyển cs.day_of_week (1 = Thứ Hai ... 7 = Chủ nhật) sang định dạng tutor_availabilities (1 = Chủ nhật, 2 = Thứ Hai ... 7 = Thứ Bảy)
+                    int dow = (csDow % 7) + 1;
+                    String dayName = switch (dow) {
+                        case 1 -> "Chủ nhật";
+                        case 2 -> "Thứ hai";
+                        case 3 -> "Thứ ba";
+                        case 4 -> "Thứ tư";
+                        case 5 -> "Thứ năm";
+                        case 6 -> "Thứ sáu";
+                        case 7 -> "Thứ bảy";
+                        default -> "Thứ " + dow;
+                    };
+                    String start = rs.getString("start_time");
+                    String end = rs.getString("end_time");
+                    if (start != null && start.length() >= 5) start = start.substring(0, 5);
+                    if (end != null && end.length() >= 5) end = end.substring(0, 5);
+                    return TutorAvailabilityDTO.builder()
+                        .dayOfWeek(dow)
+                        .dayName(dayName)
+                        .startTime(start)
+                        .endTime(end)
+                        .isActive(true)
+                        .build();
+                },
+                tutor.getTutorId()
+            );
+        } catch (Exception e) {
+            // ignore nếu bảng chưa tạo
+        }
+
+        // Tự động loại trừ các khung giờ bị trùng với lịch học lớp học chính thức
+        if (!classSchedules.isEmpty() && !availabilities.isEmpty()) {
+            Map<Integer, List<TimeInterval>> busyByDow = classSchedules.stream()
+                .collect(Collectors.groupingBy(
+                    TutorAvailabilityDTO::getDayOfWeek,
+                    Collectors.mapping(cs -> new TimeInterval(parseMinutes(cs.getStartTime()), parseMinutes(cs.getEndTime())), Collectors.toList())
+                ));
+
+            List<TutorAvailabilityDTO> filtered = new ArrayList<>();
+            for (TutorAvailabilityDTO av : availabilities) {
+                List<TimeInterval> busyList = busyByDow.getOrDefault(av.getDayOfWeek(), Collections.emptyList());
+                if (busyList.isEmpty()) {
+                    filtered.add(av);
+                } else {
+                    List<TimeInterval> init = List.of(new TimeInterval(parseMinutes(av.getStartTime()), parseMinutes(av.getEndTime())));
+                    List<TimeInterval> rem = subtractIntervals(init, busyList, 30);
+                    for (TimeInterval interval : rem) {
+                        filtered.add(TutorAvailabilityDTO.builder()
+                            .availabilityId(av.getAvailabilityId())
+                            .dayOfWeek(av.getDayOfWeek())
+                            .dayName(av.getDayName())
+                            .startTime(formatMinutes(interval.startMinutes()))
+                            .endTime(formatMinutes(interval.endMinutes()))
+                            .isActive(av.getIsActive())
+                            .build());
+                    }
+                }
+            }
+            availabilities = filtered;
         }
 
         if (includeDetails) {
@@ -254,6 +372,26 @@ public class TutorSearchServiceImpl implements TutorSearchService {
             } catch (Exception e) {
                 // ignore
             }
+            try {
+                bookedSlots = jdbcTemplate.query(
+                    "SELECT to_char(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh', 'DD/MM/YYYY') AS date_str, " +
+                    "to_char(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI') AS start_str, " +
+                    "to_char(tb.scheduled_end_time AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI') AS end_str " +
+                    "FROM trial_bookings tb " +
+                    "WHERE tb.tutor_id = ? " +
+                    "  AND tb.booking_status IN ('PENDING', 'CONFIRMED', 'RESCHEDULED') " +
+                    "  AND tb.scheduled_end_time > CURRENT_TIMESTAMP " +
+                    "ORDER BY tb.scheduled_start_time ASC",
+                    (rs, rowNum) -> TutorBookedSlotDTO.builder()
+                        .date(rs.getString("date_str"))
+                        .startTime(rs.getString("start_str"))
+                        .endTime(rs.getString("end_str"))
+                        .build(),
+                    tutor.getTutorId()
+                );
+            } catch (Exception e) {
+                // ignore
+            }
         }
 
         // Bài đăng đã duyệt (nếu có) thay cho phần giới thiệu, học phí, hình thức dạy mặc định
@@ -276,14 +414,55 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                 .hourlyRate(post != null ? post.getHourlyRate() : tutor.getHourlyRate())
                 .avgRating(tutor.getAvgRating())
                 .totalReviews(tutor.getTotalReviews())
-                .location(tutor.getAddress() != null ? tutor.getAddress() : "Hà Nội, Việt Nam")
+                .location(sanitizePublicLocation(tutor.getAddress()))
                 .isFeatured(Boolean.TRUE.equals(tutor.getIsFeatured()))
                 .isVerified(tutor.getVerificationStatus() == TutorVerificationStatus.APPROVED)
                 .specialties(specialties)
                 .teachingFormat(post != null ? TutorPostService.formatLabel(post.getTeachingFormat()) : "Online 1-1")
                 .credentials(credentials)
                 .availabilities(availabilities)
+                .classSchedules(classSchedules)
+                .bookedSlots(bookedSlots)
                 .reviews(reviews)
                 .build();
+    }
+
+    public record TimeInterval(int startMinutes, int endMinutes) {
+        public boolean isValid(int minDuration) {
+            return (endMinutes - startMinutes) >= minDuration;
+        }
+    }
+
+    public static int parseMinutes(String timeStr) {
+        if (timeStr == null || !timeStr.contains(":")) return 0;
+        String[] parts = timeStr.trim().split(":");
+        return Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
+    }
+
+    public static String formatMinutes(int minutes) {
+        int h = minutes / 60;
+        int m = minutes % 60;
+        return String.format("%02d:%02d", h, m);
+    }
+
+    public static List<TimeInterval> subtractIntervals(List<TimeInterval> available, List<TimeInterval> busy, int minDuration) {
+        List<TimeInterval> current = new ArrayList<>(available);
+        for (TimeInterval b : busy) {
+            List<TimeInterval> next = new ArrayList<>();
+            for (TimeInterval a : current) {
+                if (b.endMinutes <= a.startMinutes || b.startMinutes >= a.endMinutes) {
+                    next.add(a);
+                } else {
+                    if (a.startMinutes < b.startMinutes) {
+                        next.add(new TimeInterval(a.startMinutes, b.startMinutes));
+                    }
+                    if (a.endMinutes > b.endMinutes) {
+                        next.add(new TimeInterval(b.endMinutes, a.endMinutes));
+                    }
+                }
+            }
+            current = next;
+        }
+        return current.stream().filter(i -> i.isValid(minDuration)).toList();
     }
 }

@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { key: 'verifications', label: 'Hồ sơ xác thực gia sư', icon: 'verified_user', href: '/academic/verifications?view=queue' },
   { key: 'posts', label: 'Duyệt bài đăng', icon: 'fact_check', href: '/academic/posts' },
   { key: 'history', label: 'Lịch sử xét duyệt', icon: 'history_edu', href: '/academic/history' },
+  { key: 'content-import', label: 'Kho học liệu', icon: 'library_books', href: '/academic/content-import' },
   { key: 'notifications', label: 'Thông báo', icon: 'notifications', href: '/pages/notifications/' },
   { key: 'profile', label: 'Hồ sơ cá nhân', icon: 'account_circle', href: '/academic/profile' }
 ];

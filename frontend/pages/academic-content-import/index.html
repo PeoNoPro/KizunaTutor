@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kho học liệu - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <div id="academicSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="academicTopbar"></div>
+
+    <main class="flex-1 pt-16 lg:pt-0 w-full">
+      <div class="px-4 md:px-8 py-8 flex flex-col w-full gap-6">
+
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2.5">
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-primary-fixed text-primary">
+              <span class="material-symbols-outlined text-[20px]">library_books</span>
+            </span>
+            <h1 class="text-headline-lg text-on-surface font-bold tracking-tight">Kho học liệu</h1>
+          </div>
+          <p class="text-body-md text-on-surface-variant">Xem kho Kanji, từ vựng và ngữ pháp dùng chung cho học viên, thêm mục mới từ tệp Excel và theo dõi lịch sử các lần nhập.</p>
+        </div>
+
+        <!-- Loại học liệu (dùng chung cho cả 3 tab) -->
+        <div id="typeCards" class="grid grid-cols-1 sm:grid-cols-3 gap-3" role="radiogroup" aria-label="Loại học liệu"></div>
+
+        <div class="flex gap-1 border-b border-surface-container" role="tablist" aria-label="Chức năng">
+          <button type="button" role="tab" data-tab="list" class="content-tab px-4 py-2.5 text-label-md -mb-px border-b-2">
+            <span class="material-symbols-outlined text-[18px] align-[-4px] mr-1">list</span>Danh sách
+          </button>
+          <button type="button" role="tab" data-tab="import" class="content-tab px-4 py-2.5 text-label-md -mb-px border-b-2">
+            <span class="material-symbols-outlined text-[18px] align-[-4px] mr-1">upload_file</span>Nhập từ Excel
+          </button>
+          <button type="button" role="tab" data-tab="history" class="content-tab px-4 py-2.5 text-label-md -mb-px border-b-2">
+            <span class="material-symbols-outlined text-[18px] align-[-4px] mr-1">history</span>Lịch sử nhập
+          </button>
+        </div>
+
+        <!-- ===== Tab Danh sách ===== -->
+        <section id="panelList" class="rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden" role="tabpanel">
+          <form id="listFilter" class="p-6 pb-4 flex flex-col md:flex-row gap-3" autocomplete="off">
+            <div class="relative flex items-center flex-1">
+              <span class="material-symbols-outlined text-outline absolute left-3 text-[18px]">search</span>
+              <input id="listKeyword" maxlength="100" type="search"
+                     class="w-full h-10 pl-9 pr-3 rounded-lg bg-surface-container-low text-on-surface placeholder:text-outline text-body-sm outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20">
+            </div>
+            <select id="listJlpt" aria-label="Cấp độ JLPT" class="h-10 px-3 rounded-lg bg-surface-container-low text-body-sm outline-none focus:ring-2 focus:ring-primary/20"></select>
+            <select id="listSort" aria-label="Sắp xếp" class="h-10 px-3 rounded-lg bg-surface-container-low text-body-sm outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="LEVEL">Theo cấp độ N5 → N1</option>
+              <option value="NEWEST">Mới thêm gần đây</option>
+            </select>
+          </form>
+          <div class="overflow-x-auto">
+            <table class="w-full text-body-sm">
+              <thead id="listHead" class="bg-surface-container-low text-on-surface-variant text-left"></thead>
+              <tbody id="listRows"></tbody>
+            </table>
+          </div>
+          <div id="listState" class="hidden p-10 text-center">
+            <span id="listStateIcon" class="material-symbols-outlined text-5xl text-outline">inbox</span>
+            <p id="listStateTitle" class="text-title-sm text-on-surface mt-2"></p>
+            <button id="listRetry" type="button" class="hidden mt-3 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface text-label-sm">Thử lại</button>
+          </div>
+          <div id="listPager" class="p-4 px-6 bg-surface-container-low"></div>
+        </section>
+
+        <!-- ===== Tab Nhập từ Excel ===== -->
+        <div id="panelImport" class="hidden flex flex-col gap-6" role="tabpanel">
+          <section class="rounded-xl bg-surface-container-lowest shadow-sm p-6 flex flex-col gap-5">
+            <h2 class="text-title-md font-semibold">Chọn tệp</h2>
+            <div id="columnInfo" class="rounded-lg bg-surface-container-low p-4 text-body-sm"></div>
+
+            <label for="fileInput" id="dropZone" class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-outline-variant p-8 text-center cursor-pointer hover:bg-surface-container-low transition-colors">
+              <span class="material-symbols-outlined text-4xl text-primary">description</span>
+              <span id="fileName" class="text-title-sm text-on-surface">Bấm để chọn hoặc kéo tệp .xlsx vào đây</span>
+              <span class="text-caption text-on-surface-variant">Tối đa 15 MB. Hệ thống đọc mọi sheet có dòng tiêu đề đúng tên cột.</span>
+              <input id="fileInput" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="sr-only">
+            </label>
+            <p id="fileError" class="hidden text-caption text-error -mt-3"></p>
+
+            <div class="flex items-start gap-3 rounded-lg p-3 bg-surface-container-low text-body-sm">
+              <span class="material-symbols-outlined text-[20px] text-primary">info</span>
+              <span>Hệ thống chỉ thêm mục mới. Mục đã có trong kho (cùng chữ Kanji, cùng từ và cách đọc, hoặc cùng mã ngữ pháp) luôn được giữ nguyên, không bị ghi đè.</span>
+            </div>
+
+            <div class="flex justify-end">
+              <button id="checkButton" type="button" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#006194] text-white text-label-md hover:opacity-90 disabled:opacity-60">
+                <span class="material-symbols-outlined text-[18px]">rule</span>
+                <span>Kiểm tra tệp</span>
+              </button>
+            </div>
+          </section>
+
+          <section id="reportSection" class="hidden rounded-xl bg-surface-container-lowest shadow-sm p-6 flex flex-col gap-5" aria-live="polite">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 id="reportTitle" class="text-title-md font-semibold"></h2>
+                <p id="reportMeta" class="text-body-sm text-on-surface-variant mt-1"></p>
+              </div>
+              <span id="reportBadge" class="px-2.5 py-1 rounded-full text-label-sm"></span>
+            </div>
+
+            <div id="reportStats" class="grid grid-cols-2 md:grid-cols-5 gap-3"></div>
+            <p id="reportHint" class="text-body-sm"></p>
+
+            <div id="issueBlock" class="hidden flex flex-col gap-2">
+              <h3 class="text-title-sm font-semibold">Các dòng cần lưu ý</h3>
+              <div class="overflow-x-auto rounded-lg border border-surface-container">
+                <table class="w-full text-body-sm">
+                  <thead class="bg-surface-container-low text-on-surface-variant text-left">
+                    <tr>
+                      <th class="px-3 py-2 font-medium">Mức</th>
+                      <th class="px-3 py-2 font-medium">Sheet</th>
+                      <th class="px-3 py-2 font-medium">Dòng</th>
+                      <th class="px-3 py-2 font-medium">Nội dung</th>
+                    </tr>
+                  </thead>
+                  <tbody id="issueRows"></tbody>
+                </table>
+              </div>
+              <p id="issueTruncated" class="hidden text-caption text-on-surface-variant">Chỉ hiển thị 300 dòng đầu. Hãy sửa các dòng này trong tệp rồi kiểm tra lại để xem phần còn lại.</p>
+            </div>
+
+            <div class="flex flex-wrap justify-end gap-2">
+              <button id="resetButton" type="button" class="px-4 py-2.5 rounded-lg text-on-surface-variant text-label-md hover:bg-surface-container">Chọn tệp khác</button>
+              <button id="confirmButton" type="button" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#006194] text-white text-label-md hover:opacity-90 disabled:opacity-60">
+                <span class="material-symbols-outlined text-[18px]">cloud_upload</span>
+                <span>Nhập vào hệ thống</span>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <!-- ===== Tab Lịch sử nhập ===== -->
+        <section id="panelHistory" class="hidden rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden" role="tabpanel">
+          <div class="overflow-x-auto">
+            <table class="w-full text-body-sm">
+              <thead class="bg-surface-container-low text-on-surface-variant text-left">
+                <tr>
+                  <th class="px-4 py-3 font-medium">Thời gian</th>
+                  <th class="px-4 py-3 font-medium">Người nhập</th>
+                  <th class="px-4 py-3 font-medium">Tệp</th>
+                  <th class="px-4 py-3 font-medium">Kết quả</th>
+                  <th class="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody id="historyRows"></tbody>
+            </table>
+          </div>
+          <div id="historyState" class="hidden p-10 text-center">
+            <span class="material-symbols-outlined text-5xl text-outline">history</span>
+            <p id="historyStateTitle" class="text-title-sm text-on-surface mt-2"></p>
+            <button id="historyRetry" type="button" class="hidden mt-3 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface text-label-sm">Thử lại</button>
+          </div>
+          <div id="historyPager" class="p-4 px-6 bg-surface-container-low"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Hộp thoại chi tiết (một mục học liệu hoặc một lần nhập) -->
+  <div id="detailModal" class="hidden fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <div class="w-full max-w-3xl max-h-[90vh] rounded-2xl bg-surface-container-lowest shadow-lg flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b border-surface-container flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h2 id="detailTitle" class="text-title-md font-semibold"></h2>
+          <p id="detailSubtitle" class="text-body-sm text-on-surface-variant mt-0.5"></p>
+        </div>
+        <button id="detailClose" type="button" class="p-1.5 rounded-lg hover:bg-surface-container shrink-0" aria-label="Đóng">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div id="detailBody" class="px-6 py-5 overflow-y-auto flex flex-col gap-3"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/pages/academic-content-import/academic-content-import.js"></script>
+</body>
+</html>

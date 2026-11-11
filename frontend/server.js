@@ -154,6 +154,8 @@ const URL_ALIASES = {
   '/academic/history/': '/pages/academic-review-history/index.html',
   '/academic/profile': '/pages/academic-profile/index.html',
   '/academic/profile/': '/pages/academic-profile/index.html',
+  '/academic/content-import': '/pages/academic-content-import/index.html',
+  '/academic/content-import/': '/pages/academic-content-import/index.html',
   // FE-09: gói hội viên và thanh toán
   '/tutor/membership': '/pages/tutor-membership/index.html',
   '/tutor/membership/': '/pages/tutor-membership/index.html',

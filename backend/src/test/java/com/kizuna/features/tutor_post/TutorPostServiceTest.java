@@ -8,6 +8,8 @@ import com.kizuna.core.repository.TutorRepository;
 import com.kizuna.core.repository.UserRepository;
 import com.kizuna.features.payment.service.TutorMembershipService;
 import com.kizuna.features.tutor_post.dto.TutorPostDtos.MyPostView;
+import com.kizuna.features.tutor_post.dto.TutorPostDtos.PriceItemRequest;
+import com.kizuna.features.tutor_post.entity.PostPriceItem;
 import com.kizuna.features.tutor_post.dto.TutorPostDtos.RejectPostRequest;
 import com.kizuna.features.tutor_post.dto.TutorPostDtos.SubmitPostRequest;
 import com.kizuna.features.tutor_post.entity.TutorPost;
@@ -22,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,9 +50,13 @@ class TutorPostServiceTest {
     Tutor tutor = Tutor.builder().tutorId(UUID.randomUUID()).user(user)
             .verificationStatus(TutorVerificationStatus.APPROVED).build();
 
-    static SubmitPostRequest validRequest() {
+    static SubmitPostRequest requestWith(List<PriceItemRequest> prices) {
         return new SubmitPostRequest("Luyện thi JLPT N3 cấp tốc", "Giới thiệu ".repeat(10),
-                "JLPT N3, Kaiwa", "online", new BigDecimal("250000"));
+                "JLPT N3, Kaiwa", "online", prices);
+    }
+
+    static SubmitPostRequest validRequest() {
+        return requestWith(List.of(new PriceItemRequest("JLPT_N3", new BigDecimal("250000"))));
     }
 
     TutorPost post(TutorPostStatus status) {
@@ -108,17 +115,73 @@ class TutorPostServiceTest {
 
         @Test
         void invalidContentIsRejectedWithFriendlyMessage() {
-            SubmitPostRequest bad = new SubmitPostRequest("Ngắn", "Ngắn", null, "", new BigDecimal("5000"));
+            SubmitPostRequest bad = new SubmitPostRequest("Ngắn", "Ngắn", null, "",
+                    List.of(new PriceItemRequest("JLPT_N3", new BigDecimal("5000"))));
             BadRequestException e = assertThrows(BadRequestException.class, () -> service.submit(user, bad));
             assertTrue(e.getMessage().contains("Tiêu đề từ 10 đến 150 ký tự"));
             assertTrue(e.getMessage().contains("Học phí mỗi giờ"));
             verify(postRepository, never()).saveAndFlush(any());
         }
 
+        // ----- Bảng học phí theo môn học / cấp độ -----
+
         @Test
-        void cannotResubmitWhilePendingApprovedOrRejected() {
-            for (TutorPostStatus status : new TutorPostStatus[]{
-                    TutorPostStatus.PENDING_REVIEW, TutorPostStatus.PUBLISHED, TutorPostStatus.REJECTED}) {
+        void savesPriceTableSortedAndUsesLowestAsHourlyRate() {
+            service.submit(user, requestWith(List.of(
+                    new PriceItemRequest("KAIWA", new BigDecimal("180000")),
+                    new PriceItemRequest("jlpt_n2", new BigDecimal("300000")),
+                    new PriceItemRequest("JLPT_N5", new BigDecimal("150000")))));
+
+            ArgumentCaptor<TutorPost> saved = ArgumentCaptor.forClass(TutorPost.class);
+            verify(postRepository).saveAndFlush(saved.capture());
+            List<PostPriceItem> items = saved.getValue().getPriceItems();
+            assertEquals(List.of("JLPT_N5", "JLPT_N2", "KAIWA"), items.stream().map(PostPriceItem::level).toList());
+            assertEquals(new BigDecimal("150000"), saved.getValue().getHourlyRate());
+
+            var views = TutorPostService.priceViews(saved.getValue());
+            assertEquals("JLPT N5", views.get(0).levelLabel());
+            assertEquals("Giao tiếp (Kaiwa)", views.get(2).levelLabel());
+        }
+
+        @Test
+        void priceTableIsRequired() {
+            BadRequestException e = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of())));
+            assertTrue(e.getMessage().contains("ít nhất một mức học phí"));
+        }
+
+        @Test
+        void rejectsDuplicateUnknownLevelAndOutOfRangeRate() {
+            BadRequestException dup = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
+                    new PriceItemRequest("JLPT_N3", new BigDecimal("200000")),
+                    new PriceItemRequest("JLPT_N3", new BigDecimal("250000"))))));
+            assertTrue(dup.getMessage().contains("chỉ được đặt một mức học phí"));
+
+            BadRequestException unknown = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
+                    new PriceItemRequest("TOEIC", new BigDecimal("200000"))))));
+            assertTrue(unknown.getMessage().contains("chọn môn học hoặc cấp độ"));
+
+            BadRequestException rate = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
+                    new PriceItemRequest("JLPT_N1", new BigDecimal("20000000"))))));
+            assertTrue(rate.getMessage().contains("Học phí mỗi giờ từ 10.000 đ đến 10.000.000 đ"));
+            verify(postRepository, never()).saveAndFlush(any());
+        }
+
+        @Test
+        void myPostViewListsAllPriceLevels() {
+            MyPostView mine = service.getMine(user);
+            assertEquals(8, mine.priceLevels().size());
+            assertEquals("JLPT_N5", mine.priceLevels().get(0).code());
+            assertEquals("Luyện thi EJU", mine.priceLevels().get(7).label());
+        }
+
+        @Test
+        void legacyPostWithoutPriceTableHasEmptyPriceViews() {
+            assertTrue(TutorPostService.priceViews(post(TutorPostStatus.PUBLISHED)).isEmpty());
+        }
+
+        @Test
+        void cannotSubmitWhilePendingOrAfterFirstPostRejected() {
+            for (TutorPostStatus status : new TutorPostStatus[]{TutorPostStatus.PENDING_REVIEW, TutorPostStatus.REJECTED}) {
                 when(postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId()))
                         .thenReturn(Optional.of(post(status)));
 
@@ -127,6 +190,47 @@ class TutorPostServiceTest {
                         assertThrows(ConflictException.class, () -> service.submit(user, validRequest())).getMessage());
             }
             verify(postRepository, never()).saveAndFlush(any());
+        }
+
+        @Test
+        void updatingApprovedPostCreatesNewPendingVersionAndKeepsPublishedOne() {
+            TutorPost published = post(TutorPostStatus.PUBLISHED);
+            when(postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId())).thenReturn(Optional.of(published));
+            when(postRepository.findFirstByTutorTutorIdAndStatusOrderByReviewedAtDesc(tutor.getTutorId(), TutorPostStatus.PUBLISHED))
+                    .thenReturn(Optional.of(published));
+
+            assertTrue(service.getMine(user).editable());
+            service.submit(user, validRequest());
+
+            ArgumentCaptor<TutorPost> saved = ArgumentCaptor.forClass(TutorPost.class);
+            verify(postRepository).saveAndFlush(saved.capture());
+            assertNotSame(published, saved.getValue(), "bản cập nhật là dòng mới");
+            assertEquals(TutorPostStatus.PENDING_REVIEW, saved.getValue().getStatus());
+            assertEquals(TutorPostStatus.PUBLISHED, published.getStatus(), "bản đang hiển thị giữ nguyên");
+        }
+
+        @Test
+        void canUpdateAgainAfterUpdateRejectedWhilePublishedVersionRemains() {
+            TutorPost published = post(TutorPostStatus.PUBLISHED);
+            when(postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId()))
+                    .thenReturn(Optional.of(post(TutorPostStatus.REJECTED)));
+            when(postRepository.findFirstByTutorTutorIdAndStatusOrderByReviewedAtDesc(tutor.getTutorId(), TutorPostStatus.PUBLISHED))
+                    .thenReturn(Optional.of(published));
+
+            assertTrue(service.getMine(user).editable());
+            service.submit(user, validRequest());
+            verify(postRepository).saveAndFlush(any());
+        }
+
+        @Test
+        void submittedMessageDistinguishesFirstPostFromUpdate() {
+            assertEquals(TutorPostService.MSG_SUBMITTED, TutorPostService.submittedMessage(null));
+            when(postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId()))
+                    .thenReturn(Optional.of(post(TutorPostStatus.PUBLISHED)));
+            when(postRepository.findFirstByTutorTutorIdAndStatusOrderByReviewedAtDesc(tutor.getTutorId(), TutorPostStatus.PUBLISHED))
+                    .thenReturn(Optional.of(post(TutorPostStatus.PUBLISHED)));
+            assertEquals(TutorPostService.MSG_UPDATE_SUBMITTED,
+                    TutorPostService.submittedMessage(service.getMine(user).post()));
         }
 
         @Test

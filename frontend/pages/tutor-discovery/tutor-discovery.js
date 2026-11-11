@@ -256,6 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
         teachingFormat: item.teachingFormat || 'Online 1-1',
         location: item.location || 'Hà Nội, Việt Nam',
         hourlyRate: item.hourlyRate || 0,
+        // Bảng học phí theo môn học / cấp độ (bài đăng đã duyệt); nhiều mức thì hiện "Từ <giá thấp nhất>"
+        priceItems: Array.isArray(item.priceItems) ? item.priceItems : [],
         rating: item.avgRating || 5.0,
         reviewsCount: item.totalReviews || 0,
         bio: item.bio || 'Chưa có thông tin giới thiệu chi tiết.'
@@ -380,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="flex flex-col">
             <span class="font-caption text-caption text-on-surface-variant">Học phí đề xuất:</span>
             <div class="flex items-baseline gap-1">
-              <span class="font-title-md text-title-md font-bold text-primary">${formatVND(tutor.hourlyRate)}</span>
+              <span class="font-title-md text-title-md font-bold text-primary">${tutor.priceItems.length > 1 ? 'Từ ' : ''}${formatVND(tutor.hourlyRate)}</span>
               <span class="font-caption text-caption text-on-surface-variant">/ giờ</span>
             </div>
           </div>

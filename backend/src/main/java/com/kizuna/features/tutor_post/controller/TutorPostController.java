@@ -31,7 +31,7 @@ public class TutorPostController {
     public ResponseEntity<Map<String, Object>> submit(@RequestBody(required = false) SubmitPostRequest request) {
         PostView post = service.submit(currentUser.requireUser(), request);
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("message", TutorPostService.MSG_SUBMITTED);
+        body.put("message", TutorPostService.submittedMessage(post));
         body.put("post", post);
         return ResponseEntity.ok(body);
     }

@@ -58,6 +58,9 @@ public interface TrialBookingService {
      */
     int expireStalePendingTrials();
 
+    /** Chuyển các buổi học thử đã xác nhận mà đã qua giờ kết thúc sang COMPLETED (chạy bởi tác vụ nền). */
+    void completeEndedTrials();
+
     /**
      * Kiểm tra xem gia sư có lịch học thử nào đang PENDING hoặc CONFIRMED trong ca này không
      */

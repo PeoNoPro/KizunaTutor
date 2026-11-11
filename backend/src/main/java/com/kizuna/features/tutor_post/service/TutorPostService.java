@@ -194,6 +194,22 @@ public class TutorPostService {
         return postRepository.findFirstByTutorTutorIdAndStatusOrderByReviewedAtDesc(tutorId, TutorPostStatus.PUBLISHED);
     }
 
+    /**
+     * Bản đang hiển thị của nhiều gia sư trong 1 query: mỗi gia sư lấy dòng PUBLISHED được duyệt gần nhất
+     * (cùng quy tắc với publishedPost). Gia sư không có bài đăng thì không có trong kết quả.
+     */
+    public java.util.Map<UUID, TutorPost> publishedPosts(java.util.Collection<UUID> tutorIds) {
+        java.util.Map<UUID, TutorPost> result = new java.util.HashMap<>();
+        if (tutorIds == null || tutorIds.isEmpty()) return result;
+        java.util.Comparator<TutorPost> newestReviewed = java.util.Comparator.comparing(
+                TutorPost::getReviewedAt, java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder()));
+        for (TutorPost post : postRepository.findByTutorTutorIdInAndStatus(tutorIds, TutorPostStatus.PUBLISHED)) {
+            result.merge(post.getTutor().getTutorId(), post,
+                    (a, b) -> newestReviewed.compare(a, b) >= 0 ? a : b);
+        }
+        return result;
+    }
+
     public static String formatLabel(String format) {
         if (format == null) {
             return null;

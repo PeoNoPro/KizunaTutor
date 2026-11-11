@@ -180,15 +180,15 @@
                 </button>
               </div>
 
-              <!-- Hàng bộ lọc ngang duy nhất (1 hàng ngang kiểu popover pill) -->
-              <div id="filter-pill-bar" class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-                <div class="flex flex-wrap items-center gap-2">
+              <!-- Hàng bộ lọc ngang duy nhất (1 hàng ngang giãn đều hết chiều rộng) -->
+              <div id="filter-pill-bar" class="flex flex-wrap lg:flex-nowrap items-center gap-2.5 pt-0.5">
+                <div class="w-full lg:flex-1 grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-nowrap items-center gap-2.5">
 
                   <!-- 1. Môn học -->
-                  <div class="relative filter-dropdown" data-dropdown="goal">
-                    <button type="button" data-dropdown-trigger="goal" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
-                      <span data-pill-label="goal">Môn học</span>
-                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="goal">
+                    <button type="button" data-dropdown-trigger="goal" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="goal" class="truncate">Môn học</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
                     </button>
                     <div data-dropdown-panel="goal" class="hidden absolute left-0 top-full mt-2 w-64 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
                       <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="">Tất cả môn</button>
@@ -200,10 +200,10 @@
                   </div>
 
                   <!-- 2. Trình độ JLPT -->
-                  <div class="relative filter-dropdown" data-dropdown="jlpt">
-                    <button type="button" data-dropdown-trigger="jlpt" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
-                      <span data-pill-label="jlpt">Trình độ JLPT</span>
-                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="jlpt">
+                    <button type="button" data-dropdown-trigger="jlpt" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="jlpt" class="truncate">Trình độ JLPT</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
                     </button>
                     <div data-dropdown-panel="jlpt" class="hidden absolute left-0 top-full mt-2 w-48 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
                       <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="all">Tất cả trình độ</button>
@@ -216,10 +216,10 @@
                   </div>
 
                   <!-- 3. Thời gian học (Popover theo ảnh 2: Khung giờ học + Ngày học) -->
-                  <div class="relative filter-dropdown" data-dropdown="schedule">
-                    <button type="button" data-dropdown-trigger="schedule" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
-                      <span data-pill-label="schedule">Thời gian học</span>
-                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="schedule">
+                    <button type="button" data-dropdown-trigger="schedule" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="schedule" class="truncate">Thời gian học</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
                     </button>
                     <div id="popover-schedule" data-dropdown-panel="schedule" class="hidden absolute left-0 top-full mt-2 w-72 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-4 z-40 space-y-4">
                       <div class="flex items-center justify-between">
@@ -284,10 +284,10 @@
                   </div>
 
                   <!-- 4. Hình thức học -->
-                  <div class="relative filter-dropdown" data-dropdown="format">
-                    <button type="button" data-dropdown-trigger="format" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
-                      <span data-pill-label="format">Hình thức học</span>
-                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="format">
+                    <button type="button" data-dropdown-trigger="format" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="format" class="truncate">Hình thức học</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
                     </button>
                     <div data-dropdown-panel="format" class="hidden absolute left-0 top-full mt-2 w-48 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
                       <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="format" data-value="">Mọi hình thức</button>
@@ -298,10 +298,10 @@
                   </div>
 
                   <!-- 5. Địa điểm (Nạp từ API /api/tutors/locations) -->
-                  <div class="relative filter-dropdown" data-dropdown="location">
-                    <button type="button" data-dropdown-trigger="location" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
-                      <span data-pill-label="location">Địa điểm</span>
-                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="location">
+                    <button type="button" data-dropdown-trigger="location" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="location" class="truncate">Địa điểm</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
                     </button>
                     <div data-dropdown-panel="location" class="hidden absolute left-0 top-full mt-2 w-60 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
                       <div id="location-options-list" class="max-h-64 overflow-y-auto space-y-0.5">
@@ -311,12 +311,12 @@
                   </div>
 
                   <!-- 6. Học phí -->
-                  <div class="relative filter-dropdown" data-dropdown="price">
-                    <button type="button" data-dropdown-trigger="price" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
-                      <span data-pill-label="price">Học phí</span>
-                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="price">
+                    <button type="button" data-dropdown-trigger="price" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="price" class="truncate">Học phí</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
                     </button>
-                    <div data-dropdown-panel="price" class="hidden absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-60 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
+                    <div data-dropdown-panel="price" class="hidden absolute right-0 lg:right-0 lg:left-auto top-full mt-2 w-60 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
                       <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="">Mọi mức giá</button>
                       <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="150-250">150.000đ - 250.000đ / giờ</button>
                       <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="250-400">250.000đ - 400.000đ / giờ</button>
@@ -324,41 +324,13 @@
                     </div>
                   </div>
 
-                  <!-- 7. Khác (Trình độ gia sư + Hồ sơ xác thực) -->
-                  <div class="relative filter-dropdown" data-dropdown="more">
-                    <button type="button" data-dropdown-trigger="more" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
-                      <span data-pill-label="more">Khác</span>
-                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
-                    </button>
-                    <div data-dropdown-panel="more" class="hidden absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-4 z-40 space-y-3.5">
-                      <div class="space-y-1.5">
-                        <label for="filter-tutor-level" class="block text-[13px] font-semibold text-[#0F2545]">Trình độ gia sư</label>
-                        <div class="relative">
-                          <select id="filter-tutor-level" class="w-full h-10 px-3 pr-8 rounded-lg bg-[#FAF8F2] border border-[#E5DECB] text-[13px] font-medium text-[#0F2545] appearance-none focus:outline-none focus:border-[#006194] cursor-pointer">
-                            <option value="">Mọi trình độ</option>
-                            <option value="teacher">Giáo viên chuyên nghiệp</option>
-                            <option value="lecturer">Giảng viên đại học</option>
-                            <option value="pedagogy">Cử nhân Sư phạm tiếng Nhật</option>
-                            <option value="overseas">Du học sinh Nhật Bản</option>
-                            <option value="native">Người bản xứ (Sensei)</option>
-                            <option value="student">Sinh viên chuyên ngành tiếng Nhật</option>
-                          </select>
-                          <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-[16px]">expand_more</span>
-                        </div>
-                      </div>
-                      <label class="flex items-center gap-2.5 pt-1 border-t border-[#ECE8DE] text-[13px] font-medium text-[#0F2545] cursor-pointer select-none">
-                        <input type="checkbox" id="filter-verified-only" class="w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer">
-                        <span>Chỉ gia sư đã xác thực</span>
-                      </label>
-                    </div>
-                  </div>
                 </div>
 
                 <!-- Nút Đặt lại bộ lọc cùng 1 hàng ngang -->
-                <button class="h-9 inline-flex items-center gap-1.5 px-3 rounded-full bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors text-[13px] font-medium shadow-2xs cursor-pointer whitespace-nowrap" 
+                <button class="w-full sm:w-auto lg:shrink-0 h-10 inline-flex items-center justify-center gap-1.5 px-4 rounded-full bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors text-[13.5px] font-medium shadow-2xs cursor-pointer whitespace-nowrap" 
                         id="reset-filter-btn" 
                         type="button">
-                  <span class="material-symbols-outlined text-[17px]">restart_alt</span>
+                  <span class="material-symbols-outlined text-[18px]">restart_alt</span>
                   <span>Đặt lại bộ lọc</span>
                 </button>
               </div>

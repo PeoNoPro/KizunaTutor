@@ -30,11 +30,15 @@ public class TutorSummaryResponseDTO {
     private BigDecimal hourlyRate;
     private BigDecimal avgRating;
     private Integer totalReviews;
+    private int studentCount;
+    private int lessonCount;
     private String location;
     private boolean isFeatured;
     private boolean isVerified;
     private List<String> specialties;
     private String teachingFormat;
+    /** Mã hình thức dạy gốc trong DB (tutor_posts.teaching_format): ONLINE | OFFLINE | BOTH; null khi chưa có bài đăng / chưa khai báo. */
+    private String teachingFormatCode;
     private List<TutorCredentialDTO> credentials;
     private List<TutorAvailabilityDTO> availabilities;
     private List<TutorAvailabilityDTO> classSchedules;

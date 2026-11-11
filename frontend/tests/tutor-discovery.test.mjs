@@ -38,6 +38,8 @@ test('normalizeTutorRecord ánh xạ dữ liệu thật từ API và không tạ
     hourlyRate: 280000,
     avgRating: 4.9,
     totalReviews: 12,
+    studentCount: 6,
+    lessonCount: 24,
     location: 'Cầu Giấy, Hà Nội',
     teachingFormat: 'Online 1-1',
     specialties: ['JLPT N2', 'Kaiwa'],
@@ -53,6 +55,8 @@ test('normalizeTutorRecord ánh xạ dữ liệu thật từ API và không tạ
   assert.equal(normalized.isFeatured, true);
   assert.equal(normalized.rating, 4.9);
   assert.equal(normalized.reviewsCount, 12);
+  assert.equal(normalized.studentCount, 6);
+  assert.equal(normalized.lessonCount, 24);
   assert.equal(normalized.availabilities.length, 1);
   assert.equal('isOnline' in normalized, false);
 
@@ -61,38 +65,36 @@ test('normalizeTutorRecord ánh xạ dữ liệu thật từ API và không tạ
   assert.equal(legacyFlags.isFeatured, true);
 });
 
-test('buildMetricTriplet chỉ dùng dữ liệu thật từ DB (đánh giá, kinh nghiệm/trình độ, lịch rảnh)', () => {
+test('buildMetricTriplet chỉ dùng dữ liệu thật từ DB (đánh giá, số học viên, số buổi học)', () => {
   const fullMetrics = buildMetricTriplet({
     rating: 4.86,
     reviewsCount: 8,
-    experienceYears: 5,
-    jlptLevel: 'N1',
-    availabilities: [{}, {}, {}]
+    studentCount: 5,
+    lessonCount: 19
   });
   assert.deepEqual(fullMetrics, [
     { value: '4.9 ★', label: '8 đánh giá' },
-    { value: '5 năm', label: 'Kinh nghiệm' },
-    { value: '3 ca', label: 'Lịch rảnh/tuần' }
+    { value: '5', label: 'Học viên' },
+    { value: '19', label: 'Buổi học' }
   ]);
 
   const minimalMetrics = buildMetricTriplet({
     rating: 0,
     reviewsCount: 0,
-    experienceYears: 0,
-    jlptLevel: 'N2',
-    availabilities: []
+    studentCount: 0,
+    lessonCount: 0
   });
   assert.deepEqual(minimalMetrics, [
     { value: 'Mới', label: 'Chưa có đánh giá' },
-    { value: 'JLPT N2', label: 'Trình độ' },
-    { value: 'Linh hoạt', label: 'Lịch thỏa thuận' }
+    { value: '0', label: 'Học viên' },
+    { value: '0', label: 'Buổi học' }
   ]);
 });
 
 test('formatHourlyRateInfo, summarizeAvailabilities và các hàm tên gia sư hoạt động chính xác', () => {
   const rate = formatHourlyRateInfo(250000);
   assert.match(rate.primary, /^250[.,]000đ$/);
-  assert.equal(rate.unit, '/ giờ học');
+  assert.equal(rate.unit, '60 phút/giờ');
 
   const contactRate = formatHourlyRateInfo(0);
   assert.equal(contactRate.primary, 'Liên hệ');
@@ -132,6 +134,8 @@ test('buildTutorCardHtml dựng thẻ ngang tiếng Việt an toàn, không inli
     hourlyRate: 300000,
     rating: 5,
     reviewsCount: 4,
+    studentCount: 3,
+    lessonCount: 14,
     bio: longBio,
     availabilities: [{ dayName: 'Thứ ba', startTime: '19:00', endTime: '20:30' }]
   }, { isSelected: true });
@@ -140,9 +144,18 @@ test('buildTutorCardHtml dựng thẻ ngang tiếng Việt an toàn, không inli
   assert.ok(html.includes('Trần &lt;script&gt;alert(1)&lt;/script&gt; Thảo'));
   assert.ok(!html.includes('<script>'));
   assert.ok(html.includes('Đặt lịch học thử'));
+  assert.ok(!html.includes('calendar_add_on'));
   assert.ok(html.includes('bg-[#006194]'));
   assert.ok(!html.includes('bg-[#FF85B3]'));
-  assert.ok(html.includes('Xem hồ sơ'));
+  assert.ok(html.includes('Kết nối với gia sư'));
+  assert.ok(!html.includes('<span>Xem hồ sơ</span>'));
+  assert.ok(html.includes('4 đánh giá'));
+  assert.ok(html.includes('>3</div>'));
+  assert.ok(html.includes('>Học viên</div>'));
+  assert.ok(html.includes('>14</div>'));
+  assert.ok(html.includes('>Buổi học</div>'));
+  assert.ok(!html.includes('>Kinh nghiệm</div>'));
+  assert.ok(!html.includes('>Lịch rảnh/tuần</div>'));
   assert.ok(html.includes('Xem thêm'));
   assert.ok(html.includes('Gia sư tiêu biểu'));
   assert.ok(html.includes('Đã xác thực'));
@@ -288,6 +301,12 @@ test('hợp đồng HTML/JS trang tutor-discovery dùng component chung, bộ l�
   }
   assert.ok(!html.includes('id="advanced-filter-drawer"'), 'Không còn ngăn kéo bộ lọc nhiều tầng cũ');
   assert.ok(!html.includes('schedule-matrix-cell'), 'Không còn ma trận T2..CN dạng lưới cũ');
+  assert.ok(!html.includes('data-dropdown="more"'), 'Không còn mục bộ lọc Khác');
+  assert.ok(!html.includes('id="filter-tutor-level"'));
+  assert.ok(!html.includes('id="filter-verified-only"'));
+  assert.ok(!controllerJs.includes('matchTutorLevel'));
+  assert.ok(html.includes('lg:flex-auto'), 'Các nút lọc tự giãn đều chiếm hết khoảng trống ngang');
+  assert.ok(controllerJs.includes('filter-pill-btn w-full h-10'), 'Giữ kích thước giãn rộng khi đổi trạng thái nút lọc');
 
   assert.ok(html.includes('id="results-layout"'));
   assert.ok(html.includes('items-stretch'));
@@ -316,4 +335,14 @@ test('trang tutor-profile tự động cuộn tới lịch rảnh tuần sau khi
   assert.ok(profileJs.includes('scheduleSection.scrollIntoView'));
   assert.ok(!profileJs.includes('Mã: #'), 'Không hiển thị thẻ Mã gia sư ở đầu hồ sơ');
   assert.ok(!profileJs.includes('Đã xác thực hồ sơ'), 'Không hiển thị thẻ Đã xác thực hồ sơ ở đầu hồ sơ');
+  assert.ok(
+    profileJs.indexOf('id="open-booking-btn"') < profileJs.indexOf('id="open-connect-btn"'),
+    'Nút Đặt lịch học thử 1-1 nằm phía trên nút Kết nối với gia sư'
+  );
+  const ctaBlockStart = profileJs.indexOf('<!-- Hành động chính (CTA) -->');
+  const ctaBlockEnd = profileJs.indexOf('<!-- Cam kết đảm bảo quyền lợi -->');
+  assert.ok(ctaBlockStart !== -1 && ctaBlockEnd > ctaBlockStart);
+  const ctaBlock = profileJs.slice(ctaBlockStart, ctaBlockEnd);
+  assert.ok(!ctaBlock.includes('calendar_add_on'), 'Không hiển thị icon calendar_add_on trên nút Đặt lịch học thử 1-1');
+  assert.ok(!ctaBlock.includes('handshake'), 'Không hiển thị icon handshake trên nút Kết nối với gia sư');
 });

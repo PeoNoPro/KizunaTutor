@@ -4,6 +4,7 @@ import com.kizuna.features.booking.entity.TrialBooking;
 import com.kizuna.features.booking.entity.TrialBookingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -46,12 +47,16 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
             @Param("newStartTime") OffsetDateTime newStartTime,
             @Param("newEndTime") OffsetDateTime newEndTime);
 
+    @EntityGraph(attributePaths = {"learner", "learner.user", "tutor", "tutor.user", "connectionRequest"})
     Page<TrialBooking> findByLearnerLearnerIdAndBookingStatus(UUID learnerId, TrialBookingStatus status, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"learner", "learner.user", "tutor", "tutor.user", "connectionRequest"})
     Page<TrialBooking> findByLearnerLearnerId(UUID learnerId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"learner", "learner.user", "tutor", "tutor.user", "connectionRequest"})
     Page<TrialBooking> findByTutorTutorIdAndBookingStatus(UUID tutorId, TrialBookingStatus status, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"learner", "learner.user", "tutor", "tutor.user", "connectionRequest"})
     Page<TrialBooking> findByTutorTutorId(UUID tutorId, Pageable pageable);
 
     List<TrialBooking> findByTutorTutorIdAndBookingStatusIn(UUID tutorId, List<TrialBookingStatus> statuses);

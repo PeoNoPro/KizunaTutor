@@ -19,9 +19,12 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -69,16 +72,94 @@ public class TutorSearchSpecification {
                 predicates.add(cb.equal(cb.upper(root.get("highestJlptLevel")), criteria.getJlptLevel().trim().toUpperCase()));
             }
 
-            // 5. Lọc theo khoảng học phí
-            if (criteria.getMinPrice() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("hourlyRate"), criteria.getMinPrice()));
-            }
-            if (criteria.getMaxPrice() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("hourlyRate"), criteria.getMaxPrice()));
+            // 5. Hình thức học, môn học, học phí: lọc theo BÀI ĐĂNG ĐANG HIỂN THỊ (bài PUBLISHED được duyệt gần nhất),
+            //    vì học viên nhìn thấy hình thức dạy / chuyên môn / học phí lấy từ bài đăng đó.
+            Predicate postFilters = displayedPostMatches(root, query, cb, criteria);
+            if (postFilters != null) {
+                predicates.add(postFilters);
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    /** Từ khóa nhận diện từng môn học trên bộ lọc (so khớp không phân biệt hoa thường trong chuyên môn, tiêu đề, nội dung bài đăng). */
+    private static final Map<String, List<String>> GOAL_KEYWORDS = Map.of(
+            "kaiwa", List.of("kaiwa", "giao tiếp", "hội thoại"),
+            "jlpt", List.of("jlpt", "luyện thi", "n1", "n2", "n3", "n4", "n5"),
+            "business", List.of("thương mại", "doanh nghiệp", "business", "công sở"),
+            "it", List.of(" it ", "công nghệ thông tin", "lập trình"));
+
+    /** Hình thức dạy trong bài đăng phù hợp với từng lựa chọn trên bộ lọc. */
+    private static final Map<String, List<String>> FORMAT_VALUES = Map.of(
+            "online", List.of("ONLINE", "BOTH"),
+            "offline", List.of("OFFLINE", "BOTH"),
+            "hybrid", List.of("BOTH"));
+
+    /**
+     * EXISTS bài đăng đang hiển thị của gia sư (PUBLISHED, không có bài PUBLISHED nào được duyệt muộn hơn)
+     * thỏa các bộ lọc hình thức học / môn học / học phí. Trả về null khi không có bộ lọc nào trong nhóm này.
+     */
+    private static Predicate displayedPostMatches(Root<Tutor> root, CriteriaQuery<?> query, CriteriaBuilder cb,
+                                                  TutorSearchCriteriaDTO criteria) {
+        String format = normalize(criteria.getFormat());
+        String goal = normalize(criteria.getGoal());
+        List<String> formatValues = format == null ? null : FORMAT_VALUES.get(format);
+        List<String> goalKeywords = goal == null ? null : GOAL_KEYWORDS.get(goal);
+        if (formatValues == null && goalKeywords == null
+                && criteria.getMinPrice() == null && criteria.getMaxPrice() == null) {
+            return null;
+        }
+
+        Subquery<UUID> post = query.subquery(UUID.class);
+        Root<TutorPost> p = post.from(TutorPost.class);
+
+        // Không có bài PUBLISHED nào của cùng gia sư được duyệt muộn hơn → đây là bài đang hiển thị
+        Subquery<UUID> newer = query.subquery(UUID.class);
+        Root<TutorPost> p2 = newer.from(TutorPost.class);
+        newer.select(p2.get("postId")).where(
+                cb.equal(p2.get("tutor"), p.get("tutor")),
+                cb.equal(p2.get("status"), TutorPostStatus.PUBLISHED),
+                cb.greaterThan(p2.<OffsetDateTime>get("reviewedAt"), p.<OffsetDateTime>get("reviewedAt")));
+
+        List<Predicate> conditions = new ArrayList<>();
+        conditions.add(cb.equal(p.get("tutor"), root));
+        conditions.add(cb.equal(p.get("status"), TutorPostStatus.PUBLISHED));
+        conditions.add(cb.not(cb.exists(newer)));
+
+        if (formatValues != null) {
+            conditions.add(cb.upper(p.get("teachingFormat")).in(formatValues));
+        }
+
+        if (goalKeywords != null) {
+            // " " + chuyên môn + tiêu đề + nội dung + " ", bỏ dấu câu thành khoảng trắng để so khớp được cả từ ngắn như "IT"
+            Expression<String> text = cb.concat(cb.concat(cb.concat(cb.concat(cb.concat(
+                    cb.literal(" "), cb.coalesce(p.get("specialties"), "")), cb.literal(" ")),
+                    cb.coalesce(p.get("title"), "")), cb.literal(" ")), cb.coalesce(p.get("content"), ""));
+            Expression<String> normalizedText = cb.function("translate", String.class,
+                    cb.lower(cb.concat(text, cb.literal(" "))), cb.literal(",.;:/()-•|"), cb.literal("          "));
+            conditions.add(cb.or(goalKeywords.stream()
+                    .map(k -> cb.like(normalizedText, "%" + k + "%"))
+                    .toArray(Predicate[]::new)));
+        }
+
+        // Học phí hiển thị = học phí của bài đăng (nếu bài đăng không ghi thì dùng học phí trong hồ sơ)
+        Expression<BigDecimal> price = cb.coalesce(p.<BigDecimal>get("hourlyRate"), root.<BigDecimal>get("hourlyRate"));
+        if (criteria.getMinPrice() != null) {
+            conditions.add(cb.greaterThanOrEqualTo(price, criteria.getMinPrice()));
+        }
+        if (criteria.getMaxPrice() != null) {
+            conditions.add(cb.lessThanOrEqualTo(price, criteria.getMaxPrice()));
+        }
+
+        post.select(p.get("postId")).where(conditions.toArray(new Predicate[0]));
+        return cb.exists(post);
+    }
+
+    private static String normalize(String value) {
+        if (value == null) return null;
+        String v = value.trim().toLowerCase();
+        return v.isEmpty() || "all".equals(v) ? null : v;
     }
 
     /** EXISTS bài đăng đã duyệt AND EXISTS gói hội viên ACTIVE chưa hết hạn. */

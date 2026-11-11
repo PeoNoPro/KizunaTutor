@@ -305,13 +305,8 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản"));
 
-        // Tự động chuyển các buổi học đã quá giờ kết thúc sang COMPLETED, yêu cầu quá hạn sang EXPIRED
-        try {
-            autoCompleteEndedBookings();
-            expireStalePendingTrials();
-        } catch (Exception e) {
-            log.warn("Lỗi khi tự động cập nhật trạng thái buổi học thử: {}", e.getMessage());
-        }
+        // Việc tự hoàn thành buổi đã qua giờ và tự hết hạn yêu cầu quá hạn do tác vụ nền BookingExpiryScheduler
+        // đảm nhiệm (mỗi 5 phút), không chạy ở đây nữa để mở danh sách nhanh hơn (DB ở xa, mỗi query ~110 ms).
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "scheduledStartTime"));
 
@@ -322,13 +317,14 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             } catch (IllegalArgumentException ignored) {}
         }
 
-        Optional<Learner> learnerOpt = learnerRepository.findByUser(user);
-        Optional<Tutor> tutorOpt = tutorRepository.findByUser(user);
-
-        Page<TrialBooking> bookingsPage;
-
         boolean isTutor = user.getRole() != null && "ROLE_TUTOR".equalsIgnoreCase(user.getRole().getRoleName());
         boolean isLearner = user.getRole() != null && "ROLE_LEARNER".equalsIgnoreCase(user.getRole().getRoleName());
+
+        // Chỉ tra hồ sơ đúng vai trò; vai trò khác mới tra cả hai (giữ hành vi cũ)
+        Optional<Learner> learnerOpt = isTutor ? Optional.empty() : learnerRepository.findByUser(user);
+        Optional<Tutor> tutorOpt = isLearner ? Optional.empty() : tutorRepository.findByUser(user);
+
+        Page<TrialBooking> bookingsPage;
 
         if (isLearner && learnerOpt.isPresent()) {
             UUID learnerId = learnerOpt.get().getLearnerId();
@@ -763,6 +759,12 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             log.info("Auto-expired {} pending trial booking(s)", stale.size());
         }
         return stale.size();
+    }
+
+    @Override
+    @Transactional
+    public void completeEndedTrials() {
+        autoCompleteEndedBookings();
     }
 
     private void autoCompleteEndedBookings() {

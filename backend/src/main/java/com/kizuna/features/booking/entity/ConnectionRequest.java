@@ -4,6 +4,7 @@ import com.kizuna.core.entity.Learner;
 import com.kizuna.core.entity.Tutor;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
@@ -59,6 +60,7 @@ public class ConnectionRequest {
     /** Các ca hằng tuần học viên chọn (chỉ có ở yêu cầu DIRECT). */
     @OneToMany(mappedBy = "connectionRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("dayOfWeek ASC, startTime ASC")
+    @BatchSize(size = 50) // danh sách yêu cầu: nạp ca của nhiều yêu cầu trong 1 query thay vì mỗi yêu cầu 1 query
     @Builder.Default
     private List<ConnectionRequestSlot> slots = new ArrayList<>();
 

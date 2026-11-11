@@ -260,9 +260,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       // Hình thức dạy (teaching format)
-      const teachingFormatStr = (tutor.teachingFormat || '').toLowerCase();
-      const hasOnline = teachingFormatStr.includes('online') || !teachingFormatStr;
-      const hasOffline = teachingFormatStr.includes('offline') || teachingFormatStr.includes('trực tiếp') || (tutor.location && tutor.location.trim().length > 0);
+      // Lấy theo DB: tutor_posts.teaching_format của bài đăng đang hiển thị (ONLINE | OFFLINE | BOTH).
+      // Không đoán từ địa chỉ; chưa khai báo hình thức dạy thì không hiện nhãn nào.
+      const formatCode = String(tutor.teachingFormatCode || '').toUpperCase();
+      const hasOnline = formatCode === 'ONLINE' || formatCode === 'BOTH';
+      const hasOffline = formatCode === 'OFFLINE' || formatCode === 'BOTH';
 
       const badges = [];
       if (hasOffline) {
@@ -538,13 +540,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <!-- Hành động chính (CTA) -->
             <div class="space-y-2.5">
-              <button type="button" id="open-connect-btn" class="w-full h-12 px-4 rounded-xl bg-[#006194] hover:bg-[#004b73] border border-[#004b73] text-white font-semibold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2.5 cursor-pointer">
-                <span class="material-symbols-outlined text-[20px]">handshake</span>
-                Kết nối với gia sư
-              </button>
-              <button type="button" id="open-booking-btn" class="w-full h-12 px-4 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-inset ring-slate-200 hover:ring-slate-300 text-[#0F2545] font-semibold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2.5 cursor-pointer">
-                <span class="material-symbols-outlined text-[20px]">calendar_add_on</span>
+              <button type="button" id="open-booking-btn" class="w-full h-12 px-4 rounded-xl bg-[#006194] hover:bg-[#004b73] border border-[#004b73] text-white font-semibold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center cursor-pointer">
                 Đặt lịch học thử 1-1
+              </button>
+              <button type="button" id="open-connect-btn" class="w-full h-12 px-4 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-inset ring-slate-200 hover:ring-slate-300 text-[#0F2545] font-semibold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center cursor-pointer">
+                Kết nối với gia sư
               </button>
             </div>
 
@@ -967,7 +967,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   ${selectedSlots.map(s => `<li class="font-semibold text-[#0F2545]">${slotLabel(s)}</li>`).join('')}
                 </ul>
                 <div class="grid grid-cols-2 gap-2.5 pt-2">
-                  <a href="/pages/learner-connections/" class="py-2.5 px-3 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5">
+                  <a href="/pages/learner-requests/?tab=direct" class="py-2.5 px-3 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px]">list_alt</span>
                     <span>Xem yêu cầu của tôi</span>
                   </a>
@@ -1158,9 +1158,9 @@ document.addEventListener('DOMContentLoaded', async () => {
               Sensei sẽ xem thời gian bạn chọn và đồng ý hoặc từ chối. Bạn có thể theo dõi trong danh sách lịch học của mình.
             </div>
             <div class="grid grid-cols-2 gap-2.5 pt-2">
-              <a href="/pages/learner-connections/" class="py-2.5 px-3 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5">
-                <span class="material-symbols-outlined text-[16px]">calendar_month</span>
-                <span>Xem lịch học của tôi</span>
+              <a href="/pages/learner-requests/?tab=trial" class="py-2.5 px-3 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">list_alt</span>
+                <span>Xem yêu cầu của tôi</span>
               </a>
               <button type="button" onclick="window.closeModal('connect-modal'); location.reload();" class="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all">
                 Hoàn tất

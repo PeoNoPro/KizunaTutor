@@ -176,4 +176,9 @@ Mục đích: Đối chiếu mã nguồn hiện tại của `002-profile-managem
 - [x] T058 Cập nhật `frontend/pages/learner-profile/learner-profile.js` (`handlePersonalSubmit`, `handleLearningSubmit`, `handlePhoneSubmit`) để làm mới nhãn `#profileUpdatedAt` ngay sau khi lưu thành công mà không cần tải lại trang, và kiểm tra đồng bộ font `Plus Jakarta Sans` tại `frontend/pages/learner-profile/index.html` theo quy chuẩn giao diện per `spec.md#US1/AC2, Constitution IV.2` (partial)
 - [ ] T059 Kiểm chứng thực tế trên trình duyệt hoặc xác nhận lại với người phụ trách FE-03/FE-11 về các thay đổi ngoài phạm vi đã thực hiện tại `frontend/pages/academic-profile/` và `frontend/pages/admin-profile/` (đã ghi chú trong `plan.md#6`), đảm bảo không gây hồi quy ngoài ý muốn per `plan.md#6, Constitution V.3` (unrequested)
 
+## Phase 9: Convergence
+
+- [ ] T060 Chạy lại bộ kiểm thử backend của FE-02 trong môi trường Maven Wrapper hoạt động, sau đó thực hiện và ghi nhận đủ 3 kịch bản E2E trong `specs/002-profile-management/quickstart.md` với backend, cơ sở dữ liệu và tài khoản thật per `US1/AC1–3, US2/AC1–3, SC-001, SC-002, Constitution V.2` (partial)
+- [ ] T061 Xác nhận với phụ trách FE-03/FE-11 về các thay đổi ngoài phạm vi FE-02 trong `frontend/pages/academic-profile/` và `frontend/pages/admin-profile/`, kiểm chứng luồng hồ sơ nhân sự thật và ghi nhận không có hồi quy per `plan.md#6, Constitution V.3` (unrequested)
+
 

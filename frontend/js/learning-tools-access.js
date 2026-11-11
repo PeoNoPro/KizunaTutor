@@ -22,7 +22,7 @@ const LOCK_COPY = {
     text: 'Hãy kết nối với một gia sư. Khi gia sư thêm bạn vào lớp, toàn bộ công cụ học tập sẽ được mở.',
     actions: [
       { href: '/tutors', icon: 'person_search', label: 'Tìm gia sư', primary: true },
-      { href: '/learner/connections', icon: 'calendar_month', label: 'Yêu cầu kết nối của tôi' }
+      { href: '/pages/learner-requests/', icon: 'pending_actions', label: 'Yêu cầu của tôi' }
     ]
   },
   // Khách chưa đăng nhập (hoặc phiên đã hết hạn)

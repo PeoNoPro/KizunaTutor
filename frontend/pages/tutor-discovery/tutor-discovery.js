@@ -26,8 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     format: '',
     priceRange: '',
     schedule: '',
-    tutorLevel: '',
-    verifiedOnly: false,
     selectedShifts: new Set(),
     selectedDays: new Set(),
     sortBy: 'rating',
@@ -52,8 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const sortSelect = document.getElementById('sort-select');
   const resetBtn = document.getElementById('reset-filter-btn');
   const emptyResetBtn = document.getElementById('empty-reset-btn');
-  const filterTutorLevel = document.getElementById('filter-tutor-level');
-  const filterVerifiedOnly = document.getElementById('filter-verified-only');
   const shiftCheckboxes = document.querySelectorAll('.schedule-shift-checkbox');
   const dayCheckboxes = document.querySelectorAll('.schedule-day-checkbox');
   const btnClearScheduleSlots = document.getElementById('btn-clear-schedule-slots');
@@ -103,12 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const schedule = params.get('schedule');
     if (schedule && VALID_SCHEDULES.includes(schedule)) validated.schedule = schedule;
 
-    const tutorLevel = params.get('tutorLevel');
-    if (tutorLevel && tutorLevel.trim()) validated.tutorLevel = tutorLevel.trim();
-
-    const verified = params.get('verified');
-    if (verified === 'true') validated.verifiedOnly = true;
-
     const shiftsParam = params.get('shifts');
     if (shiftsParam && shiftsParam.trim()) {
       validated.selectedShifts = new Set(
@@ -157,8 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
     state.format = validated.format || '';
     state.priceRange = validated.priceRange || '';
     state.schedule = validated.schedule || '';
-    state.tutorLevel = validated.tutorLevel || '';
-    state.verifiedOnly = validated.verifiedOnly || false;
     state.selectedShifts = validated.selectedShifts || new Set();
     state.selectedDays = validated.selectedDays || new Set();
     state.sortBy = validated.sortBy || 'rating';
@@ -194,8 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (labelEl) labelEl.textContent = labelText;
     if (triggerBtn) {
       triggerBtn.className = isActive
-        ? 'filter-pill-btn h-9 px-3.5 rounded-full bg-[#EBF4FF] border border-[#006194] text-[#004B73] text-[13px] font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap'
-        : 'filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap';
+        ? 'filter-pill-btn w-full h-10 px-4 rounded-full bg-[#EBF4FF] border border-[#006194] text-[#004B73] text-[13.5px] font-semibold inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap'
+        : 'filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap';
     }
   }
 
@@ -212,8 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Đồng bộ State lên thanh bộ lọc 1 hàng ngang & các popover
   function syncFiltersWithState() {
     if (searchInput) searchInput.value = state.keyword;
-    if (filterTutorLevel) filterTutorLevel.value = state.tutorLevel;
-    if (filterVerifiedOnly) filterVerifiedOnly.checked = state.verifiedOnly;
     if (sortSelect) sortSelect.value = state.sortBy;
 
     const goalLabels = {
@@ -257,9 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const priceLabels = { '150-250': '150k - 250k', '250-400': '250k - 400k', '400-600': 'Trên 400k' };
     setPillStyle('price', state.priceRange ? (priceLabels[state.priceRange] || state.priceRange) : 'Học phí', Boolean(state.priceRange));
     syncOptionHighlight('priceRange', state.priceRange);
-
-    const moreCount = (state.tutorLevel ? 1 : 0) + (state.verifiedOnly ? 1 : 0);
-    setPillStyle('more', moreCount > 0 ? `Khác (${moreCount})` : 'Khác', moreCount > 0);
   }
 
   // 5. Cập nhật URL từ State với PushState hoặc ReplaceState (T007)
@@ -275,8 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.format && state.format !== 'all') params.set('format', state.format);
     if (state.priceRange) params.set('price', state.priceRange);
     if (state.schedule) params.set('schedule', state.schedule);
-    if (state.tutorLevel) params.set('tutorLevel', state.tutorLevel);
-    if (state.verifiedOnly) params.set('verified', 'true');
     if (state.selectedShifts.size > 0) params.set('shifts', Array.from(state.selectedShifts).join(','));
     if (state.selectedDays.size > 0) params.set('days', Array.from(state.selectedDays).join(','));
     if (state.sortBy && state.sortBy !== 'rating') params.set('sort', state.sortBy);
@@ -470,23 +451,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       currentLoadedTutors = items.map(normalizeTutorRecord);
 
-      // Áp dụng bộ lọc nâng cao (Trình độ gia sư, Hồ sơ xác thực, Lịch rảnh ô ma trận)
+      // Áp dụng bộ lọc thời gian học (khung giờ & ngày học)
       let displayTutors = currentLoadedTutors;
-
-      if (state.verifiedOnly) {
-        displayTutors = displayTutors.filter(t => t.verified);
-      }
-
-      if (state.tutorLevel) {
-        displayTutors = displayTutors.filter(t => matchTutorLevel(t, state.tutorLevel));
-      }
 
       if (state.selectedShifts.size > 0 || state.selectedDays.size > 0) {
         displayTutors = displayTutors.filter(t => matchTutorTimeFilter(t, state.selectedShifts, state.selectedDays));
       }
 
       currentDisplayedTutors = displayTutors;
-      const hasClientFilters = Boolean(state.verifiedOnly || state.tutorLevel || state.selectedShifts.size > 0 || state.selectedDays.size > 0);
+      const hasClientFilters = Boolean(state.selectedShifts.size > 0 || state.selectedDays.size > 0);
       const totalMatched = hasClientFilters ? displayTutors.length : totalElements;
       const effectiveTotalPages = hasClientFilters
         ? Math.max(1, Math.ceil(totalMatched / state.pageSize))
@@ -683,29 +656,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Khớp trình độ chuyên môn gia sư
-  function matchTutorLevel(tutor, level) {
-    if (!level) return true;
-    const text = `${tutor.fullName || ''} ${tutor.headline || ''} ${tutor.bio || ''} ${(tutor.specialties || []).join(' ')}`.toLowerCase();
-    switch (level) {
-      case 'teacher':
-        return /giáo viên|chuyên nghiệp|sư phạm/i.test(text);
-      case 'lecturer':
-        return /giảng viên|đại học|thạc sĩ|tiến sĩ/i.test(text);
-      case 'pedagogy':
-        return /sư phạm|cử nhân/i.test(text);
-      case 'overseas':
-        return /du học|nhật bản|tokyo|kyoto|osaka/i.test(text);
-      case 'native':
-        return /bản xứ|người nhật|sensei|yamada|suzuki|tanaka|sato/i.test(text);
-      case 'student':
-        return /sinh viên/i.test(text);
-      default:
-        return true;
-    }
-  }
-
-
   // 10. Chip bộ lọc đang áp dụng & Xóa từng chip đồng bộ URL (T019)
   function renderActiveChips() {
     if (!activeChipsContainer) return;
@@ -729,20 +679,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.schedule) {
       const map = { today: 'Hôm nay', weekend: 'Cuối tuần', evening: 'Buổi tối' };
       chips.push({ key: 'schedule', label: map[state.schedule] || state.schedule });
-    }
-    if (state.tutorLevel) {
-      const levelMap = {
-        teacher: 'Giáo viên',
-        lecturer: 'Giảng viên',
-        pedagogy: 'Sư phạm',
-        overseas: 'Du học sinh',
-        native: 'Bản xứ (Sensei)',
-        student: 'Sinh viên'
-      };
-      chips.push({ key: 'tutorLevel', label: `Trình độ: ${levelMap[state.tutorLevel] || state.tutorLevel}` });
-    }
-    if (state.verifiedOnly) {
-      chips.push({ key: 'verifiedOnly', label: 'Hồ sơ đã xác thực' });
     }
     const shiftLabels = {
       morning: 'Buổi sáng',
@@ -792,8 +728,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (key === 'format') state.format = '';
     if (key === 'priceRange') state.priceRange = '';
     if (key === 'schedule') state.schedule = '';
-    if (key === 'tutorLevel') state.tutorLevel = '';
-    if (key === 'verifiedOnly') state.verifiedOnly = false;
     if (key.startsWith('shift:')) state.selectedShifts.delete(key.slice(6));
     if (key.startsWith('day:')) state.selectedDays.delete(parseInt(key.slice(4), 10));
 
@@ -874,28 +808,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sự kiện dropdown Trình độ gia sư (trong popover Khác)
-  if (filterTutorLevel) {
-    filterTutorLevel.addEventListener('change', (e) => {
-      state.tutorLevel = e.target.value;
-      syncFiltersWithState();
-      state.currentPage = 1;
-      updateUrlFromState(true);
-      loadTutors();
-    });
-  }
-
-  // Sự kiện checkbox Hồ sơ xác thực (trong popover Khác)
-  if (filterVerifiedOnly) {
-    filterVerifiedOnly.addEventListener('change', (e) => {
-      state.verifiedOnly = e.target.checked;
-      syncFiltersWithState();
-      state.currentPage = 1;
-      updateUrlFromState(true);
-      loadTutors();
-    });
-  }
-
   // Sự kiện checkbox Khung giờ học & Ngày học (trong popover Thời gian học)
   shiftCheckboxes.forEach(cb => {
     cb.addEventListener('change', () => {
@@ -950,8 +862,6 @@ document.addEventListener('DOMContentLoaded', () => {
     state.format = '';
     state.priceRange = '';
     state.schedule = '';
-    state.tutorLevel = '';
-    state.verifiedOnly = false;
     state.selectedShifts.clear();
     state.selectedDays.clear();
     state.sortBy = 'rating';

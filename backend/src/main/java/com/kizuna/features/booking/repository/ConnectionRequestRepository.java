@@ -5,6 +5,7 @@ import com.kizuna.features.booking.entity.ConnectionRequestStatus;
 import com.kizuna.features.booking.entity.ConnectionRequestType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -40,13 +41,17 @@ public interface ConnectionRequestRepository extends JpaRepository<ConnectionReq
     java.util.List<ConnectionRequest> findByRequestTypeAndStatusAndCreatedAtBefore(
             ConnectionRequestType requestType, ConnectionRequestStatus status, java.time.OffsetDateTime before);
 
+    @EntityGraph(attributePaths = {"learner", "learner.user", "tutor", "tutor.user"})
     Page<ConnectionRequest> findByLearnerLearnerIdAndRequestType(UUID learnerId, ConnectionRequestType requestType, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"learner", "learner.user", "tutor", "tutor.user"})
     Page<ConnectionRequest> findByLearnerLearnerIdAndRequestTypeAndStatus(UUID learnerId, ConnectionRequestType requestType,
                                                                          ConnectionRequestStatus status, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"learner", "learner.user", "tutor", "tutor.user"})
     Page<ConnectionRequest> findByTutorTutorIdAndRequestType(UUID tutorId, ConnectionRequestType requestType, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"learner", "learner.user", "tutor", "tutor.user"})
     Page<ConnectionRequest> findByTutorTutorIdAndRequestTypeAndStatus(UUID tutorId, ConnectionRequestType requestType,
                                                                      ConnectionRequestStatus status, Pageable pageable);
 }

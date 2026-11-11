@@ -51,7 +51,7 @@ export function formatHourlyRateInfo(amount) {
   const formatted = new Intl.NumberFormat('vi-VN').format(Math.round(numeric));
   return {
     primary: `${formatted}đ`,
-    unit: '/ giờ học'
+    unit: '60 phút/giờ'
   };
 }
 
@@ -79,6 +79,8 @@ export function normalizeTutorRecord(item) {
     hourlyRate: Math.max(0, Number(safeItem.hourlyRate) || 0),
     rating: safeItem.avgRating != null ? Number(safeItem.avgRating) : 0,
     reviewsCount: Math.max(0, Number(safeItem.totalReviews) || 0),
+    studentCount: Math.max(0, Number(safeItem.studentCount) || 0),
+    lessonCount: Math.max(0, Number(safeItem.lessonCount) || 0),
     bio: String(safeItem.bio || '').trim(),
     availabilities: Array.isArray(safeItem.availabilities) ? safeItem.availabilities : []
   };
@@ -88,8 +90,8 @@ export function buildMetricTriplet(tutor) {
   const safeTutor = tutor || {};
   const reviewsCount = Math.max(0, Number(safeTutor.reviewsCount) || 0);
   const rating = Number(safeTutor.rating) || 0;
-  const experienceYears = Math.max(0, Number(safeTutor.experienceYears) || 0);
-  const slotCount = Array.isArray(safeTutor.availabilities) ? safeTutor.availabilities.length : 0;
+  const studentCount = Math.max(0, Number(safeTutor.studentCount) || 0);
+  const lessonCount = Math.max(0, Number(safeTutor.lessonCount) || 0);
 
   return [
     reviewsCount > 0 && rating > 0
@@ -101,24 +103,14 @@ export function buildMetricTriplet(tutor) {
           value: 'Mới',
           label: 'Chưa có đánh giá'
         },
-    experienceYears > 0
-      ? {
-          value: `${experienceYears} năm`,
-          label: 'Kinh nghiệm'
-        }
-      : {
-          value: `JLPT ${escapeHtml(safeTutor.jlptLevel || 'N1')}`,
-          label: 'Trình độ'
-        },
-    slotCount > 0
-      ? {
-          value: `${slotCount} ca`,
-          label: 'Lịch rảnh/tuần'
-        }
-      : {
-          value: 'Linh hoạt',
-          label: 'Lịch thỏa thuận'
-        }
+    {
+      value: String(studentCount),
+      label: 'Học viên'
+    },
+    {
+      value: String(lessonCount),
+      label: 'Buổi học'
+    }
   ];
 }
 
@@ -325,7 +317,7 @@ export function buildTutorCardHtml(tutor, options = {}) {
         </div>
 
         <!-- Cột phải: Học phí, 3 chỉ số thật và nút hành động -->
-        <div class="md:w-52 shrink-0 flex flex-col justify-between gap-3 md:border-l md:border-[#EFECE4] md:pl-5 pt-3 md:pt-0 border-t md:border-t-0 border-[#EFECE4]">
+        <div class="md:w-56 shrink-0 flex flex-col justify-between gap-3 md:border-l md:border-[#EFECE4] md:pl-5 pt-3 md:pt-0 border-t md:border-t-0 border-[#EFECE4]">
           <!-- Học phí -->
           <div class="hidden md:block">
             <div class="text-[22px] font-bold text-[#0F2545] leading-none tracking-tight">${escapeHtml(priceInfo.primary)}</div>
@@ -333,9 +325,9 @@ export function buildTutorCardHtml(tutor, options = {}) {
           </div>
 
           <!-- 3 chỉ số thực tế từ DB -->
-          <div class="grid grid-cols-3 gap-1.5 py-2.5 border-y border-[#F1EDE4] text-center">
+          <div class="grid grid-cols-3 gap-1 py-2.5 border-y border-[#F1EDE4] text-center">
             ${metrics.map(m => `
-              <div class="px-1">
+              <div class="px-0.5">
                 <div class="text-[14px] font-bold text-[#0F2545] leading-tight truncate">${escapeHtml(m.value)}</div>
                 <div class="text-[11px] text-[#475569] leading-tight mt-0.5 truncate">${escapeHtml(m.label)}</div>
               </div>
@@ -348,16 +340,15 @@ export function buildTutorCardHtml(tutor, options = {}) {
               type="button"
               data-action="connect"
               data-tutor-id="${escapeHtml(tutor.id)}"
-              class="w-full py-2.5 px-3 rounded-[8px] bg-[#006194] hover:bg-[#004b73] text-white font-bold text-[13px] transition-all shadow-sm hover:shadow-md active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
+              class="w-full py-2.5 px-3 rounded-[8px] bg-[#006194] hover:bg-[#004b73] text-white font-bold text-[13px] transition-all shadow-sm hover:shadow-md active:scale-[0.98] flex items-center justify-center cursor-pointer"
             >
-              <span class="material-symbols-outlined text-[17px]">calendar_add_on</span>
               <span>Đặt lịch học thử</span>
             </button>
             <a
               href="${profileUrl}"
               class="w-full py-2 px-3 rounded-[8px] bg-white hover:bg-[#F7F4EC] text-[#0F2545] border border-[#CBD5E1] hover:border-[#0F2545] font-semibold text-[13px] transition-all flex items-center justify-center gap-1.5"
             >
-              <span>Xem hồ sơ</span>
+              <span>Kết nối với gia sư</span>
             </a>
           </div>
         </div>

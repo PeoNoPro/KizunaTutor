@@ -36,6 +36,8 @@
       "hourlyRate": 300000,
       "avgRating": 4.9,
       "totalReviews": 38,
+      "studentCount": 6,
+      "lessonCount": 24,
       "teachingFormat": "Online 1-1",
       "location": "Hà Nội, Việt Nam",
       "specialties": ["Kaiwa thương mại", "Luyện phát âm chuẩn Tokyo"],
@@ -50,6 +52,10 @@
   "last": true
 }
 ```
+
+Ghi chú hai trường thống kê thực tế trên thẻ gia sư:
+- `studentCount`: Số học viên duy nhất (`DISTINCT learner_id`) của gia sư trong `learning_spaces` ở trạng thái `ACTIVE`, `PAUSED`, hoặc `COMPLETED`.
+- `lessonCount`: Tổng số buổi học thử đã hoàn thành (`trial_bookings` có `booking_status = 'COMPLETED'`) cộng số buổi học chính thức đã trôi qua theo lịch cố định hằng tuần (`class_schedules` thuộc `learning_spaces` ở trạng thái `ACTIVE`, `PAUSED`, `COMPLETED`, tính đến thời điểm hiện tại theo giờ Việt Nam đối với lớp `ACTIVE` hoặc đến `updated_at` đối với lớp `PAUSED`/`COMPLETED`).
 
 ---
 

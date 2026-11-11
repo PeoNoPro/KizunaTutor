@@ -166,11 +166,7 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
     public Page<ConnectionRequestResponseDTO> getMyDirectRequests(String userEmail, String status, int page, int size) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản"));
-        try {
-            expireStaleDirectRequests();
-        } catch (Exception e) {
-            log.warn("Lỗi khi tự động hết hạn yêu cầu kết nối: {}", e.getMessage());
-        }
+        // Tự hết hạn yêu cầu quá hạn do tác vụ nền BookingExpiryScheduler đảm nhiệm (không chạy ở đây để mở nhanh hơn)
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100),
                 Sort.by(Sort.Direction.DESC, "createdAt"));
 

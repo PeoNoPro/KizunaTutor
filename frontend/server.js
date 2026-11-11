@@ -57,6 +57,8 @@ const URL_ALIASES = {
   '/learner/connections': '/pages/learner-connections/index.html',
   '/learner/connections/': '/pages/learner-connections/index.html',
   '/learner/bookings': '/pages/learner-connections/index.html',
+  '/learner/requests': '/pages/learner-requests/index.html',
+  '/learner/requests/': '/pages/learner-requests/index.html',
   '/admin/operations/booking-policy': '/pages/operations-config/index.html',
   '/admin/operations/incidents': '/pages/operations-incidents/index.html',
   '/admin/operations/reports': '/pages/operations-reports/index.html',

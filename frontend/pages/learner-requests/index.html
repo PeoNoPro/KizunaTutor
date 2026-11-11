@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yêu cầu của tôi - Không Gian Học Viên KizunaTutor</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <link rel="stylesheet" href="/styles/utilities.css">
+
+  <!-- Google Fonts: Inter & Noto Serif JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+  <!-- Material Symbols Outlined -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .font-japanese { font-family: 'Noto Serif JP', serif; }
+    .tv-modal-backdrop { background: rgba(15, 23, 42, 0.45); }
+    .skeleton-shimmer {
+      background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 37%, #F1F5F9 63%);
+      background-size: 400% 100%;
+      animation: skeleton-wave 1.4s ease infinite;
+    }
+    @keyframes skeleton-wave {
+      0% { background-position: 100% 50%; }
+      100% { background-position: 0 50%; }
+    }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-[#1E293B] font-sans antialiased">
+  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
+
+    <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
+    <div id="learnerSidebarContainer"></div>
+
+    <!-- 2. MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      
+      <!-- HEADER DÙNG CHUNG CHO HỌC VIÊN -->
+      <div id="learnerHeaderContainer"></div>
+
+      <!-- Scrollable Main Container -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] flex flex-col min-w-0">
+        <div class="max-w-[1240px] w-full mx-auto flex-1 space-y-6">
+
+          <!-- BANNER ĐẦU TRANG -->
+          <div class="bg-white border border-[#FBCFE8] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-xs">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center flex-wrap gap-2 mb-2">
+                <span class="bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] text-[12px] font-bold px-3 py-0.5 rounded-full inline-flex items-center gap-1">
+                  <span>🌸</span>
+                  <span>Yêu cầu của tôi</span>
+                </span>
+                <span class="text-xs text-slate-500">• Học thử & Kết nối gia sư</span>
+              </div>
+              <h1 class="text-[22px] sm:text-[26px] font-bold text-[#0F172A] leading-tight">
+                Yêu cầu của tôi
+              </h1>
+              <p class="text-[14px] text-[#64748B] mt-1 leading-relaxed">
+                Theo dõi các yêu cầu học thử và kết nối bạn đã gửi tới gia sư: chờ phản hồi, đã chấp nhận hay đã kết thúc.
+              </p>
+            </div>
+
+            <div class="flex items-center gap-2.5 shrink-0">
+              <button id="btnRefresh" type="button" class="px-3.5 py-2 rounded-xl bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F172A] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">refresh</span>
+                <span>Làm mới</span>
+              </button>
+              <a href="/learner/connections" class="px-4 py-2 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all no-underline">
+                <span class="material-symbols-outlined text-[18px]">calendar_month</span>
+                <span>Lịch học của tôi</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- CHỌN LOẠI YÊU CẦU -->
+          <div id="typeTabs" class="inline-flex items-center gap-1 p-1 rounded-2xl bg-[#F1F5F9] border border-[#E2E8F0]">
+            <button type="button" class="type-btn px-4 py-2.5 rounded-xl bg-white text-[#0F172A] shadow-xs font-bold text-sm flex items-center gap-2 cursor-pointer" data-type="trial">
+              <span class="material-symbols-outlined text-[18px]">event_available</span>
+              <span>Học thử</span>
+              <span id="typeCountTrial" class="hidden px-1.5 rounded-full text-[11px] bg-amber-100 text-amber-800"></span>
+            </button>
+            <button type="button" class="type-btn px-4 py-2.5 rounded-xl text-[#64748B] hover:text-[#0F172A] font-semibold text-sm flex items-center gap-2 cursor-pointer" data-type="direct">
+              <span class="material-symbols-outlined text-[18px]">handshake</span>
+              <span>Kết nối trực tiếp</span>
+              <span id="typeCountDirect" class="hidden px-1.5 rounded-full text-[11px] bg-amber-100 text-amber-800"></span>
+            </button>
+          </div>
+
+          <!-- ===== HỌC THỬ ===== -->
+          <section id="trialPanel" class="space-y-4">
+            <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#E2E8F0] text-xs font-semibold" id="statusTabs">
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl bg-[#006194] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer" data-status="ALL">
+                <span>Tất cả</span>
+                <span id="tabCountAll" class="px-1.5 py-0.2 rounded-full text-[11px] bg-white/20">0</span>
+              </button>
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="PENDING">
+                <span>Chờ phản hồi</span>
+                <span id="tabCountPending" class="px-1.5 py-0.2 rounded-full text-[11px] bg-amber-100 text-amber-800">0</span>
+              </button>
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="CONFIRMED">
+                <span>Đã chấp nhận</span>
+                <span id="tabCountConfirmed" class="px-1.5 py-0.2 rounded-full text-[11px] bg-emerald-100 text-emerald-800">0</span>
+              </button>
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="HISTORY">
+                <span>Lịch sử</span>
+                <span id="tabCountHistory" class="px-1.5 py-0.2 rounded-full text-[11px] bg-[#F1F5F9] text-[#64748B]">0</span>
+              </button>
+            </div>
+
+            <!-- Đang tải -->
+            <div id="loadingState" class="space-y-4">
+              <div class="skeleton-shimmer h-40 rounded-2xl"></div>
+              <div class="skeleton-shimmer h-40 rounded-2xl"></div>
+            </div>
+
+            <!-- Lỗi -->
+            <div id="errorState" class="hidden bg-white border border-[#E2E8F0] rounded-2xl p-8 text-center shadow-xs">
+              <span class="material-symbols-outlined text-5xl text-rose-500">cloud_off</span>
+              <h2 class="text-base font-bold text-[#0F172A] mt-2">Chưa tải được yêu cầu học thử</h2>
+              <p id="errorMessage" class="text-xs text-[#64748B] mt-1">Không thể kết nối đến máy chủ. Vui lòng thử lại sau.</p>
+              <button id="btnRetry" type="button" class="mt-4 px-4 py-2 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-semibold inline-flex items-center gap-2 shadow-xs transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">refresh</span>
+                <span>Thử lại</span>
+              </button>
+            </div>
+
+            <!-- Rỗng -->
+            <div id="emptyState" class="hidden bg-white border border-[#E2E8F0] rounded-2xl p-10 text-center shadow-xs space-y-3">
+              <div class="w-14 h-14 rounded-2xl bg-[#F8FAFC] text-[#006194] mx-auto flex items-center justify-center">
+                <span class="material-symbols-outlined text-[32px]">event_available</span>
+              </div>
+              <h3 class="text-base font-bold text-[#0F172A]">Không có yêu cầu học thử nào</h3>
+              <p id="emptyMessage" class="text-xs text-[#64748B] max-w-md mx-auto">
+                Bạn chưa có yêu cầu học thử nào trong mục này. Hãy tìm gia sư tiếng Nhật phù hợp và đặt lịch học thử miễn phí (0đ).
+              </p>
+              <div class="pt-2">
+                <a href="/pages/tutor-discovery/" class="px-5 py-2.5 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold inline-flex items-center gap-2 shadow-xs transition-all no-underline">
+                  <span class="material-symbols-outlined text-[16px]">search</span>
+                  <span>Tìm kiếm gia sư ngay</span>
+                </a>
+              </div>
+            </div>
+
+            <div id="bookingsList" class="space-y-4 hidden">
+              <!-- Render động bằng JS -->
+            </div>
+          </section>
+
+          <!-- ===== KẾT NỐI TRỰC TIẾP ===== -->
+          <section id="directPanel" class="hidden space-y-4">
+            <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#E2E8F0] text-xs font-semibold" id="directStatusTabs">
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl bg-[#006194] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer" data-status="ALL">
+                <span>Tất cả</span>
+                <span id="directCountAll" class="px-1.5 py-0.2 rounded-full text-[11px] bg-white/20">0</span>
+              </button>
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="PENDING">
+                <span>Chờ phản hồi</span>
+                <span id="directCountPending" class="px-1.5 py-0.2 rounded-full text-[11px] bg-amber-100 text-amber-800">0</span>
+              </button>
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="ACCEPTED">
+                <span>Đã kết nối</span>
+                <span id="directCountAccepted" class="px-1.5 py-0.2 rounded-full text-[11px] bg-emerald-100 text-emerald-800">0</span>
+              </button>
+              <button type="button" class="tab-btn px-4 py-2 rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-all flex items-center gap-1.5 cursor-pointer" data-status="HISTORY">
+                <span>Lịch sử</span>
+                <span id="directCountHistory" class="px-1.5 py-0.2 rounded-full text-[11px] bg-[#F1F5F9] text-[#64748B]">0</span>
+              </button>
+            </div>
+            <div id="directList" class="space-y-4">
+              <!-- Render động bằng JS -->
+            </div>
+          </section>
+
+        </div>
+
+        <div id="learnerFooterContainer"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ===== MODAL HỦY YÊU CẦU HỌC THỬ (DÀNH CHO HỌC VIÊN) ===== -->
+  <div id="modalCancelBooking" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalCancelTitle">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-in fade-in duration-150 border border-slate-200">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[22px]">event_busy</span>
+          </div>
+          <div>
+            <h2 id="modalCancelTitle" class="text-base font-bold text-[#0F172A]">Hủy yêu cầu học thử</h2>
+            <p class="text-xs text-[#64748B]">Xác nhận rút lại yêu cầu hẹn học thử đã gửi tới gia sư</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Tóm tắt lịch hẹn -->
+      <div class="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs">
+        <div class="flex items-center gap-2 text-[#0F172A]">
+          <span class="material-symbols-outlined text-[16px] text-[#006194]">person</span>
+          <span>Gia sư: <strong id="cancelTutorName" class="font-bold">—</strong></span>
+        </div>
+        <div class="flex items-center gap-2 text-[#0F172A]">
+          <span class="material-symbols-outlined text-[16px] text-[#006194]">schedule</span>
+          <span>Thời gian: <span id="cancelTimeStr" class="font-medium">—</span></span>
+        </div>
+      </div>
+
+      <!-- Chọn lý do hủy -->
+      <div class="space-y-2">
+        <label for="cancelReasonSelect" class="text-xs font-semibold text-[#0F172A]">Lý do hủy yêu cầu</label>
+        <select id="cancelReasonSelect" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs text-[#0F172A] bg-white focus:outline-none focus:border-[#006194]">
+          <option value="Bận việc đột xuất không thể tham gia đúng giờ">Bận việc đột xuất không thể tham gia đúng giờ</option>
+          <option value="Muốn đổi sang khung giờ hoặc ngày khác">Muốn đổi sang khung giờ hoặc ngày khác</option>
+          <option value="Đã tìm được gia sư khác phù hợp hơn">Đã tìm được gia sư khác phù hợp hơn</option>
+          <option value="Khác">Lý do khác...</option>
+        </select>
+        <textarea id="cancelCustomReason" rows="2" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs text-[#0F172A] bg-white focus:outline-none focus:border-[#006194] resize-none hidden" placeholder="Nhập lý do cụ thể..."></textarea>
+      </div>
+
+      <!-- Nút hành động -->
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+        <button type="button" class="modal-close px-4 py-2 rounded-xl bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F172A] text-xs font-semibold transition-all cursor-pointer">
+          Đóng
+        </button>
+        <button type="button" id="btnSubmitCancel" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all cursor-pointer">
+          <span class="material-symbols-outlined text-[16px]">check</span>
+          <span id="btnSubmitCancelText">Xác nhận hủy</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL ĐỔI LỊCH HỌC THỬ (DÀNH CHO HỌC VIÊN - SRS 5.3) ===== -->
+  <div id="modalRescheduleBooking" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalRescheduleTitle">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 animate-in fade-in duration-150 border border-slate-200">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-sky-50 text-[#006194] flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[22px]">edit_calendar</span>
+          </div>
+          <div>
+            <h2 id="modalRescheduleTitle" class="text-base font-bold text-[#0F172A]">Đổi lịch học thử</h2>
+            <p class="text-xs text-[#64748B]">Chọn ngày và giờ mới cho buổi học thử 1-1</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Tóm tắt lịch hiện tại -->
+      <div class="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1.5 text-xs">
+        <div class="flex items-center gap-2 text-[#0F172A]">
+          <span class="material-symbols-outlined text-[16px] text-[#006194]">person</span>
+          <span>Gia sư: <strong id="rescheduleTutorName" class="font-bold">—</strong></span>
+        </div>
+        <div class="flex items-center gap-2 text-[#0F172A]">
+          <span class="material-symbols-outlined text-[16px] text-[#006194]">schedule</span>
+          <span>Lịch hiện tại: <span id="rescheduleCurrentTimeStr" class="font-medium">—</span></span>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-500 leading-relaxed">
+        Lưu ý: Sau khi đổi lịch, gia sư cần xác nhận lại giờ mới. Với buổi học đã xác nhận, bạn cần đổi lịch trước giờ học ít nhất 24 giờ theo chính sách nền tảng.
+      </p>
+
+      <div id="rescheduleAlertBox" class="hidden p-3 rounded-xl text-xs bg-rose-50 text-rose-700 border border-rose-200"></div>
+
+      <!-- Chọn ngày và giờ học mới -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label for="rescheduleDateInput" class="block text-xs font-semibold text-[#0F172A]">Ngày học mới *</label>
+          <input type="date" id="rescheduleDateInput" class="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-[#006194]">
+        </div>
+        <div class="space-y-1.5">
+          <label for="rescheduleTimeInput" class="block text-xs font-semibold text-[#0F172A]">Giờ học mới *</label>
+          <input type="time" id="rescheduleTimeInput" class="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-[#006194]">
+        </div>
+      </div>
+
+      <!-- Lý do đổi lịch -->
+      <div class="space-y-1.5">
+        <label for="rescheduleReasonInput" class="block text-xs font-semibold text-[#0F172A]">Lý do đổi lịch (tùy chọn)</label>
+        <textarea id="rescheduleReasonInput" rows="2" placeholder="Ví dụ: Em có việc đột xuất, muốn xin dời sang ngày khác..." class="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-[#006194] resize-none"></textarea>
+      </div>
+
+      <!-- Nút hành động -->
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+        <button type="button" class="modal-close px-4 py-2 rounded-xl bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F172A] text-xs font-semibold transition-all cursor-pointer">
+          Quay lại
+        </button>
+        <button type="button" id="btnSubmitReschedule" class="px-5 py-2 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all cursor-pointer">
+          <span class="material-symbols-outlined text-[16px]">schedule_send</span>
+          <span id="btnSubmitRescheduleText">Xác nhận đổi lịch</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL XÁC NHẬN HOÀN THÀNH BUỔI HỌC ===== -->
+  <div id="modalConfirmComplete" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalCompleteTitle">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-in fade-in duration-150 border border-slate-200">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200">
+            <span class="material-symbols-outlined text-[24px]">task_alt</span>
+          </div>
+          <div>
+            <h2 id="modalCompleteTitle" class="text-base font-bold text-[#0F172A]">Xác nhận hoàn thành buổi học</h2>
+            <p class="text-xs text-[#64748B]">Ghi nhận buổi học với gia sư đã hoàn tất</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Tóm tắt buổi học -->
+      <div class="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs">
+        <div class="flex items-center gap-2 text-[#0F172A]">
+          <span class="material-symbols-outlined text-[18px] text-[#006194]">person</span>
+          <span>Gia sư: <strong id="completeTutorName" class="font-bold">—</strong></span>
+        </div>
+        <div class="flex items-center gap-2 text-[#0F172A]">
+          <span class="material-symbols-outlined text-[18px] text-[#006194]">schedule</span>
+          <span>Thời gian: <span id="completeTimeStr" class="font-medium">—</span></span>
+        </div>
+      </div>
+
+      <p class="text-xs text-[#64748B] leading-relaxed">
+        Xác nhận bạn và gia sư đã hoàn thành buổi học này. Trạng thái sẽ được lưu vào lịch sử học tập của bạn.
+      </p>
+
+      <!-- Nút hành động -->
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+        <button type="button" class="modal-close px-4 py-2 rounded-xl bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F172A] text-xs font-semibold transition-all cursor-pointer">
+          Hủy bỏ
+        </button>
+        <button type="button" id="btnSubmitComplete" class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all cursor-pointer">
+          <span class="material-symbols-outlined text-[16px]">check_circle</span>
+          <span id="btnSubmitCompleteText">Xác nhận hoàn thành</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast thông báo nhanh góc màn hình -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 hidden max-w-sm px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all">
+    <span id="toastIcon" class="material-symbols-outlined text-[20px]">check_circle</span>
+    <span id="toastMsg">Thao tác thành công</span>
+  </div>
+
+  <script type="module" src="/components/learner-layout/learner-layout.js"></script>
+  <script type="module" src="/pages/learner-requests/learner-requests.js"></script>
+</body>
+</html>
+

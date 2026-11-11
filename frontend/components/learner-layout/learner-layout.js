@@ -38,10 +38,18 @@ export const LEARNER_MENU_GROUPS = [
     items: [
       {
         key: 'requests',
-        title: 'Thời khóa biểu & Lịch học',
+        title: 'Lịch học của tôi',
         url: '/learner/connections',
         icon: 'calendar_month',
-        matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests', '/pages/learner-connections']
+        matcher: ['/learner/connections', '/learner/bookings', '/pages/learner-connections']
+      },
+      {
+        // Yêu cầu học thử và kết nối trực tiếp học viên đã gửi tới gia sư
+        key: 'my-requests',
+        title: 'Yêu cầu của tôi',
+        url: '/pages/learner-requests/',
+        icon: 'pending_actions',
+        matcher: ['/learner/requests', '/pages/learner-requests', '/connection-requests', '/pages/connection-requests']
       },
       {
         key: 'my-courses',

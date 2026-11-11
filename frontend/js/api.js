@@ -9,7 +9,7 @@ const API_BASE_URL = API_CONFIG.BASE_URL;
 /** FE-11 transport: shared base URL, cookie session, CSRF and one bounded request budget. */
 export async function fetchAPI(path, { method = 'GET', body, csrfPath = '/admin/operations/csrf' } = {}) {
   if (!path.startsWith('/') || path.startsWith('//')) throw new Error('Đường dẫn chưa hợp lệ.');
-  const deadline = Date.now() + 4500;
+  const deadline = Date.now() + 12000;
   const headers = { 'Content-Type': 'application/json' };
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     const csrf = await request(csrfPath, { method: 'GET' }, deadline);

@@ -5,8 +5,8 @@ import java.util.*;
 public interface SupportTicketService {
  Map<String,Object> me();
  Map<String,Object> dashboard(String category);
- Map<String,Object> list(List<String> status,String category,String priority,UUID assignedTo,int page,int size);
- Map<String,Long> counts(String category,String priority,UUID assignedTo);
+ Map<String,Object> list(List<String> status,String category,String priority,UUID assignedTo,boolean handover,int page,int size);
+ Map<String,Long> counts(String category,String priority,UUID assignedTo,boolean handover);
  Map<String,Object> detail(UUID id);
  Map<String,Object> messages(UUID id,int page,int size);
  Map<String,Object> history(UUID id,int page,int size);

@@ -185,3 +185,9 @@ Ví dụ chỉ là cơ hội chia việc, không tự chạy agent trong lượt
 ## Notes
 
 Bao phủ task không chứng minh source/SMTP đã chạy. Retry/lease đã chốt trong research/model/contracts và T023/T028; readiness T001 cùng từng source T039–T042 phải có bằng chứng riêng. Thiếu nguồn vẫn giữ task chưa hoàn tất, không tự hạ tiêu chí hoặc bypass quyền để checkbox đạt.
+
+## Cập nhật 2026-11-10
+
+- Sửa lỗi không tạo được thông báo tự động: `NotificationEvents.Writer` bỏ `Propagation.NESTED` (JPA không hỗ trợ savepoint), tự đặt savepoint JDBC; đã xác nhận trên DB có đợt `origin=EVENT` đầu tiên sau khi sửa. `NotificationEventsTest` 5/5 đạt.
+- Thêm sự kiện FE-10 "Yêu cầu hỗ trợ cần bàn giao" → mọi Quản lý.
+- Sidebar: "Thông báo" ở cuối, trên thẻ tài khoản (CS bỏ mục trùng; gia sư chuyển xuống cuối, bỏ chuông cạnh logo trên máy tính). Học viên, Cán bộ học vụ chưa đổi.

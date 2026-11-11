@@ -32,7 +32,7 @@ public class StaffAccountService {
         "ROLE_ACADEMIC_OFFICER",List.of("Thẩm định hồ sơ, bằng cấp và chứng chỉ JLPT của gia sư","Kiểm duyệt, chuẩn hóa từ điển Kanji"),
         "ROLE_TUTOR",List.of("Quản lý hồ sơ, lịch dạy và lớp học trực tuyến","Nhận yêu cầu kết nối, dạy học thử","Giao và theo dõi bài tập của học viên","Đăng ký gói hội viên gia sư"),
         "ROLE_LEARNER",List.of("Tìm gia sư, gửi yêu cầu kết nối và đặt lịch học thử","Tham gia lớp học, làm bài tập","Luyện viết Kanji và học từ vựng, ngữ pháp","Gửi yêu cầu hỗ trợ khi cần"));
-    public static final Map<String,String> ACTION_LABELS=Map.of("CREATE","Tạo nhân viên","UPDATE","Sửa thông tin","ROLE","Đổi vai trò","STATUS","Đổi trạng thái tài khoản","PROPOSE","Đề xuất thăng chức","REJECT","Từ chối đề xuất thăng chức","CANCEL","Hủy đề xuất thăng chức");
+    public static final Map<String,String> ACTION_LABELS=Map.of("CREATE","Tạo nhân viên","UPDATE","Sửa thông tin","ROLE","Đổi vai trò","STATUS","Đổi trạng thái tài khoản","PROPOSE","Đề xuất thăng chức","REJECT","Từ chối đề xuất thăng chức","CANCEL","Hủy đề xuất thăng chức","DELETE","Xóa tài khoản");
     static final String LOCKED_EMAIL_MESSAGE="Email này thuộc tài khoản nhân viên đang bị khóa. Hãy mở lại tài khoản đó thay vì tạo mới.";
     OffsetDateTime now() { return OffsetDateTime.now(operationsClock).truncatedTo(ChronoUnit.MICROS); }
     OffsetDateTime nextTime(Account account) { var time=now();return time.isAfter(account.updatedAt())?time:account.updatedAt().plusNanos(1000); }
@@ -40,7 +40,7 @@ public class StaffAccountService {
         var result=new LinkedHashMap<String,Object>();
         result.put("userId",a.id());result.put("fullName",a.name());result.put("email",a.email());result.put("phone",a.phone());
         result.put("roleId",a.roleId());result.put("roleLabel",ROLES.get(a.role()));result.put("status",a.status());
-        result.put("statusLabel",STATES.getOrDefault(a.status(),"Cần kiểm tra trạng thái"));result.put("updatedAt",a.updatedAt().toString());result.put("self",actor.equals(a.id()));result.put("mustChangePassword",a.mustChangePassword());result.put("emailStatus",a.emailStatus());result.put("emailStatusLabel",a.emailStatus()==null?null:EMAIL_STATES.get(a.emailStatus()));result.put("emailSentAt",a.emailSentAt());return result;
+        result.put("statusLabel",STATES.getOrDefault(a.status(),"Cần kiểm tra trạng thái"));result.put("updatedAt",a.updatedAt().toString());result.put("self",actor.equals(a.id()));result.put("deletable",!actor.equals(a.id())&&!a.role().equals("ROLE_ADMIN"));result.put("mustChangePassword",a.mustChangePassword());result.put("emailStatus",a.emailStatus());result.put("emailStatusLabel",a.emailStatus()==null?null:EMAIL_STATES.get(a.emailStatus()));result.put("emailSentAt",a.emailSentAt());return result;
     }
     @Transactional(readOnly=true,timeout=3)
     public Map<String,Object> list(String q,int page,int size) {
@@ -102,6 +102,24 @@ public class StaffAccountService {
         if(!Set.of("ACTIVE","SUSPENDED").contains(r.status()==null?"":r.status())||!Set.of("ACTIVE","SUSPENDED").contains(a.status()))throw BusinessException.invalid();
         protect(a,actor,!r.status().equals("ACTIVE"));if(r.status().equals("ACTIVE"))staff.activeRole(a.roleId());
         var time=nextTime(a);staff.changeStatus(id,r.status(),time);staff.audit(actor,id,"STATUS",r.reason().trim(),time);return view(staff.get(id,false),actor);
+    }
+    /**
+     * Xóa mềm: ẩn khỏi danh sách, chặn đăng nhập (deleted_at + Tạm khóa), giữ nguyên lịch sử, yêu cầu hỗ trợ, nhật ký, giao dịch.
+     * Không xóa chính mình và tài khoản Quản trị viên. Ca làm từ hôm nay trở đi được gỡ (có ghi lịch sử gỡ ca).
+     * Nhật ký dùng hành động DELETE (database/seeds/fe11_fe12_review_fixes.sql). Phiên đăng nhập cũ bị từ chối ngay ở request kế tiếp
+     * vì mỗi request đều đọc lại deleted_at và trạng thái tài khoản từ DB (JwtAuthenticationFilter, OperationsIdentityRepository).
+     * Yêu cầu hỗ trợ đang dở của CS bị xóa sẽ hiện ở nhóm "Cần bàn giao" của Quản lý (FE-10 FR-022).
+     */
+    @Transactional(timeout=5)
+    public Map<String,Object> delete(UUID id,Delete r) {
+        UUID actor=beginWrite();var a=checked(id,r.expectedUpdatedAt());
+        if(actor.equals(id))throw new BusinessException(400,"Không xóa chính tài khoản đang sử dụng.");
+        if(a.role().equals("ROLE_ADMIN"))throw new BusinessException(400,"Không xóa tài khoản Quản trị viên.");
+        var time=nextTime(a);
+        staff.softDelete(id,time);
+        staff.removeUpcomingShifts(id,actor,time.atZoneSameInstant(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate());
+        staff.audit(actor,id,"DELETE",r.reason().trim(),time);
+        return Map.of("userId",id,"deleted",true);
     }
     @Transactional(readOnly=true,timeout=3)
     public Map<String,Object> history(int page,int size) {

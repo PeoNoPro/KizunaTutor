@@ -26,7 +26,7 @@ function draftDescription(ticket) {
   return lines.join('\n');
 }
 
-function openDialog(ticket) {
+function openDialog(ticket, onSent) {
   const dialog = element('dialog', undefined, 'staff-dialog portal-dialog');
   dialog.setAttribute('aria-labelledby', 'incidentReportTitle');
   const form = element('form'); form.noValidate = true;
@@ -79,9 +79,10 @@ function openDialog(ticket) {
     if (problem) { error.textContent = problem; error.focus(); return; }
     busy = true; submit.disabled = cancel.disabled = close.disabled = true; submit.textContent = 'Đang gửi…'; error.textContent = '';
     try {
-      await api('', {method: 'POST', body: {subject: subject.value.trim(), description: description.value.trim(), severity: severity.value, components: chosen}});
+      await api('', {method: 'POST', body: {subject: subject.value.trim(), description: description.value.trim(), severity: severity.value, components: chosen, supportTicketId: ticket.ticketId}});
       busy = false; dialog.close();
       showToast('Đã báo sự cố cho Admin. Theo dõi ở mục "Sự cố đã báo".', 'success');
+      onSent?.();
     } catch (failure) {
       error.textContent = failure.message; error.focus();
     } finally {
@@ -91,12 +92,36 @@ function openDialog(ticket) {
   dialog.showModal(); subject.focus();
 }
 
-/** Thẻ đặt ở tab "Xử lý nội bộ" của Quản lý. */
+const STATUS_STYLE = {'Chưa xử lý': '#a15c00', 'Đang xử lý': '#006194', 'Đã khắc phục, chờ đóng': '#1f7a4d', 'Đã đóng': '#6b7280'};
+const when = value => value ? new Date(value).toLocaleString('vi-VN', {timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '';
+
+/**
+ * Thẻ đặt ở tab "Xử lý nội bộ" của Quản lý. Nếu yêu cầu này đã được báo cho Admin thì hiện "Đã báo" kèm trạng thái
+ * xử lý mới nhất (Admin đã nhận chưa, ai phụ trách); vẫn cho báo thêm nếu có lỗi khác.
+ */
 export function incidentReportCard(ticket) {
-  const card = element('section', undefined, 'support-card support-action-card');
-  card.append(element('h3', 'Lỗi kỹ thuật của hệ thống?'), element('p', 'Nếu yêu cầu này do hệ thống lỗi, báo cho Admin để họ ghi nhận và khắc phục.'));
+  const card = element('section', undefined, 'support-card support-action-card incident-report-card');
+  const title = element('h3', 'Lỗi kỹ thuật của hệ thống?');
+  const lead = element('p', 'Nếu yêu cầu này do hệ thống lỗi, báo cho Admin để họ ghi nhận và khắc phục.', 'support-card-hint');
+  const reported = element('div'); reported.hidden = true;
   const button = element('button', 'Báo sự cố kỹ thuật cho Admin'); button.type = 'button';
-  button.onclick = () => openDialog(ticket);
-  card.append(button);
+  card.append(title, lead, reported, button);
+
+  async function refresh() {
+    try {
+      const data = await api('?ticket=' + encodeURIComponent(ticket.ticketId) + '&page=0&size=5');
+      if (!data.items.length) return;
+      const latest = data.items[0];
+      title.textContent = 'Đã báo cho Admin';
+      lead.textContent = data.items.length > 1 ? `Bạn đã báo ${data.items.length} sự cố từ yêu cầu này. Sự cố gần nhất:` : 'Admin đã nhận được báo cáo sự cố từ yêu cầu này.';
+      const box = element('div', undefined, 'incident-reported-box');
+      const status = element('span', latest.statusLabel, 'incident-reported-status'); status.style.color = STATUS_STYLE[latest.statusLabel] || '#3f4850';
+      box.append(element('strong', latest.subject, 'incident-reported-subject'), status, element('span', `Báo lúc ${when(latest.createdAt)} · Phụ trách: ${latest.assigneeLabel}`, 'incident-reported-meta'));
+      reported.replaceChildren(box); reported.hidden = false;
+      button.textContent = 'Báo thêm sự cố khác';
+    } catch { /* Không tải được thì vẫn giữ nút báo sự cố như cũ. */ }
+  }
+  button.onclick = () => openDialog(ticket, refresh);
+  refresh();
   return card;
 }

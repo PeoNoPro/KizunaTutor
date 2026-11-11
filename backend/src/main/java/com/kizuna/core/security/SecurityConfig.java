@@ -52,7 +52,7 @@ public class SecurityConfig {
             log.warn("Đang bật phiên quản trị phát triển trên máy cục bộ và cơ sở dữ liệu riêng.");
         }
         http
-            .securityMatcher("/api/admin/operations/**", "/api/policies", "/api/policies/**", "/api/v1/tickets", "/api/v1/tickets/**")
+            .securityMatcher("/api/admin/operations/**", "/api/policies", "/api/policies/**", "/api/v1/tickets", "/api/v1/tickets/**", "/api/v1/notifications", "/api/v1/notifications/**")
             .cors(cors -> cors.configurationSource(corsConfigurationSource(origins)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

@@ -18,7 +18,7 @@ function currentShiftCode(data) {
 
 function render() {
   const data = state.data, editable = data.canEdit, liveCode = currentShiftCode(data);
-  const title = editable ? 'Xếp lịch làm việc CS' : 'Lịch làm việc'; byId('shiftTitle').textContent = title; document.querySelector('.shift-rule').hidden = !editable; document.title = title + ' - KizunaTutor';
+  const title = editable ? 'Xếp lịch làm việc CS' : 'Lịch làm việc'; byId('shiftTitle').textContent = title; document.title = title + ' - KizunaTutor';
   const crumb = document.querySelector('.topbar-breadcrumb strong'); if (crumb) crumb.textContent = title;
   byId('weekLabel').textContent = 'Tuần ' + dm(data.days[0].date) + ' – ' + dm(data.days[6].date);
   const head = text('tr'); head.append(text('th', 'Ca'));

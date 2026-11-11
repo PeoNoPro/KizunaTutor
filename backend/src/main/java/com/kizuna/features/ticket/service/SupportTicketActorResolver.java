@@ -21,5 +21,5 @@ public class SupportTicketActorResolver {
    try{if(id==null || !identities.find(null,id,true).role().equals(role))throw new BusinessException(400,"Người nhận không còn hoạt động hoặc không phù hợp.");}
    catch(BusinessException e){if(e.status()==403)throw new BusinessException(400,"Người nhận không còn hoạt động hoặc không phù hợp.");throw e;}
  }
- public List<Map<String,Object>> candidates(boolean managers){if(!current(false).cs())throw new BusinessException(403,"Bạn không có quyền xem danh sách này.");return identities.candidates(managers?"ROLE_MANAGER":"ROLE_CS_STAFF");}
+ public List<Map<String,Object>> candidates(boolean managers){var a=current(false);/* Quản lý cần danh sách CS để bàn giao tay yêu cầu của nhân viên đã nghỉ. */if(!(a.cs()||(!managers&&a.manager())))throw new BusinessException(403,"Bạn không có quyền xem danh sách này.");return identities.candidates(managers?"ROLE_MANAGER":"ROLE_CS_STAFF");}
 }

@@ -17,6 +17,9 @@ public final class StaffAccountRequests {
         @Size(max=20,message="Số điện thoại tối đa 20 ký tự.") String phone,
         @NotNull(message="Vui lòng tải lại dữ liệu.") OffsetDateTime expectedUpdatedAt,
         @NotBlank(message="Vui lòng nhập lý do.") @Size(max=2000,message="Lý do tối đa 2000 ký tự.") String reason) { }
+    /** Xóa mềm tài khoản nhân viên: bắt buộc lý do, kiểm phiên bản như các lệnh khác. */
+    public record Delete(@NotNull(message="Vui lòng tải lại dữ liệu.") OffsetDateTime expectedUpdatedAt,
+        @NotBlank(message="Vui lòng nhập lý do xóa.") @Size(max=2000,message="Lý do tối đa 2000 ký tự.") String reason) { }
     public record Resend(@NotNull(message="Vui lòng tải lại dữ liệu.") OffsetDateTime expectedUpdatedAt) { }
     public record Command(String status,
         @NotNull(message="Vui lòng tải lại dữ liệu.") OffsetDateTime expectedUpdatedAt,

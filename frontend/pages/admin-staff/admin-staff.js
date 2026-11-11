@@ -24,6 +24,8 @@ function rowActions(account) {
     box.append(actionButton(account.status === 'ACTIVE' ? 'Khóa' : 'Mở khóa', () => open('status', account), account.status === 'ACTIVE' ? 'danger' : 'primary'));
   if (account.mustChangePassword && account.status === 'ACTIVE')
     box.append(actionButton(account.emailStatus === 'FAILED' ? 'Gửi lại email' : 'Cấp lại mật khẩu', () => resendCredentials(account)));
+  // Xóa mềm: không có với chính mình và tài khoản Quản trị viên (backend trả deletable).
+  if (account.deletable) box.append(actionButton('Xóa', () => open('delete', account), 'danger'));
   return box;
 }
 
@@ -161,14 +163,16 @@ function open(action, selected = null) {
   state.action = action; state.selected = selected;
   byId('staffForm').reset(); byId('staffDialogNotice').textContent = ''; byId('reloadStaffItem').hidden = true;
   const locking = selected?.status === 'ACTIVE';
-  const titles = {create: 'Tạo tài khoản nhân viên', edit: 'Thông tin nhân viên', status: locking ? 'Khóa tài khoản nhân viên' : 'Mở lại tài khoản nhân viên'};
+  const titles = {create: 'Tạo tài khoản nhân viên', edit: 'Thông tin nhân viên', status: locking ? 'Khóa tài khoản nhân viên' : 'Mở lại tài khoản nhân viên', delete: 'Xóa tài khoản nhân viên'};
   byId('staffDialogTitle').textContent = titles[action];
-  byId('saveStaff').textContent = {create: 'Tạo tài khoản', edit: 'Lưu thông tin', status: locking ? 'Xác nhận khóa' : 'Xác nhận mở lại'}[action];
+  byId('saveStaff').textContent = {create: 'Tạo tài khoản', edit: 'Lưu thông tin', status: locking ? 'Xác nhận khóa' : 'Xác nhận mở lại', delete: 'Xác nhận xóa'}[action];
+  byId('saveStaff').classList.toggle('danger', action === 'delete');
   byId('staffDialogDescription').textContent = action === 'create' ? 'Hệ thống tự tạo mật khẩu tạm và gửi vào email của nhân viên; họ phải đổi mật khẩu khi đăng nhập lần đầu.' : action === 'status' ? (locking ? 'Tài khoản này sẽ không được truy cập hệ thống khi bị khóa.' : 'Tài khoản này sẽ được truy cập hệ thống trở lại.') : selected.fullName + ' · ' + selected.email;
   byId('staffCurrentState').textContent = selected ? 'Hiện tại: ' + selected.roleLabel + ' · ' + selected.statusLabel : '';
   // Khóa/mở và cấp lại mật khẩu đã có nút riêng trên từng dòng.
   byId('staffExtraActions').hidden = true;
-  const fields = {create: ['name', 'email', 'phone', 'role', 'appointment'], edit: ['name', 'email', 'phone', 'reason'], status: ['reason']}[action];
+  if (action === 'delete') byId('staffDialogDescription').textContent = 'Xóa ' + selected.fullName + ' (' + selected.email + '). Tài khoản sẽ biến mất khỏi danh sách và không đăng nhập được nữa; lịch sử xử lý, nhật ký và dữ liệu liên quan vẫn được giữ. Ca làm từ hôm nay trở đi sẽ bị gỡ; yêu cầu hỗ trợ đang dở chuyển sang nhóm "Cần bàn giao" của Quản lý. Không hoàn tác được trên giao diện, email này cũng không dùng lại để tạo tài khoản mới.';
+  const fields = {create: ['name', 'email', 'phone', 'role', 'appointment'], edit: ['name', 'email', 'phone', 'reason'], status: ['reason'], delete: ['reason']}[action];
   document.querySelectorAll('[data-staff-field]').forEach(wrapper => {
     wrapper.hidden = !fields.includes(wrapper.dataset.staffField);
     wrapper.querySelectorAll('input,textarea,select').forEach(input => { input.disabled = wrapper.hidden; input.required = !wrapper.hidden && wrapper.dataset.staffField !== 'phone'; });
@@ -198,9 +202,10 @@ async function save(event) {
       payload = {expectedUpdatedAt: account.updatedAt, reason: byId('staffReason').value.trim()};
       if (action === 'edit') Object.assign(payload, {fullName: byId('staffFullName').value.trim(), email: byId('staffEmail').value.trim(), phone: byId('staffPhone').value.trim()});
       if (action === 'status') { path += '/status'; payload.status = account.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'; }
+      if (action === 'delete') { path += '/delete'; method = 'POST'; }
     }
     const result = await api(path, method, payload); dialog.close();
-    await page.run(load); notice(action === 'create' ? 'Đã tạo tài khoản. Đang gửi email mật khẩu tạm tới ' + payload.email + '…' : 'Đã lưu thay đổi và ghi nhận lịch sử.');
+    await page.run(load); notice(action === 'create' ? 'Đã tạo tài khoản. Đang gửi email mật khẩu tạm tới ' + payload.email + '…' : action === 'delete' ? 'Đã xóa tài khoản ' + account.fullName + '.' : 'Đã lưu thay đổi và ghi nhận lịch sử.');
     if (action === 'create') trackEmail(result?.userId, payload.email);
     // Khi sửa tên của chính mình, header cũng lấy lại tên từ DB.
     if (account?.self) {

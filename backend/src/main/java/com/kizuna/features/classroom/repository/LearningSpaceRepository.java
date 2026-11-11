@@ -38,6 +38,9 @@ public interface LearningSpaceRepository extends JpaRepository<LearningSpace, UU
     boolean existsByTutor_TutorIdAndLearner_LearnerIdAndStatusIn(UUID tutorId, UUID learnerId,
                                                                  Collection<LearningSpaceStatus> statuses);
 
+    /** Số lớp của học viên (theo user_id) đang ở các trạng thái cho trước; dùng để mở khóa công cụ học. */
+    long countByLearner_User_UserIdAndStatusIn(UUID userId, Collection<LearningSpaceStatus> statuses);
+
     /**
      * Truy vấn CHỈ ĐỌC bảng connection_requests (thuộc tutor_search, không import entity của feature đó):
      * học viên đã được gia sư chấp nhận kết nối và chưa có lớp đang hoạt động/tạm dừng với gia sư này.

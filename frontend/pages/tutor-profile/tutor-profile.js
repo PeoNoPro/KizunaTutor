@@ -343,17 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               </div>
 
               <div class="flex-1 space-y-2">
-                <div class="flex items-center gap-2.5 flex-wrap">
-                  <h1 class="text-2xl md:text-3xl font-bold text-[#0F2545]">${tutor.fullName}</h1>
-                  ${tutor.tutorCode ? `
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md bg-sky-50 text-primary text-xs font-bold border border-sky-200">
-                      Mã: #${tutor.tutorCode}
-                    </span>
-                  ` : ''}
-                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
-                    <span class="material-symbols-outlined text-[15px] text-emerald-600">verified</span> Đã xác thực hồ sơ
-                  </span>
-                </div>
+                <h1 class="text-2xl md:text-3xl font-bold text-[#0F2545]">${tutor.fullName}</h1>
 
                 <p class="text-sm font-medium text-primary">${tutor.headline || 'Gia sư tiếng Nhật'}</p>
 
@@ -1354,6 +1344,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Khởi tạo bảng lịch tuần
     renderWeeklyCalendar();
 
+    const urlParams = new URLSearchParams(window.location.search);
+    if (window.location.hash === '#weekly-booking-calendar-section' || urlParams.get('section') === 'schedule') {
+      const scheduleSection = document.getElementById('weekly-booking-calendar-section');
+      if (scheduleSection) {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            scheduleSection.classList.add('ring-2', 'ring-[#006194]/30');
+            setTimeout(() => {
+              scheduleSection.classList.remove('ring-2', 'ring-[#006194]/30');
+            }, 1600);
+          }, 150);
+        });
+      }
+    }
+
     function openBookingModalWithoutPreselect() {
       selectedSlot = null;
       selectedDayOffset = getInitialDayOffset();
@@ -1390,7 +1396,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Tự động mở modal kết nối nếu có cờ connect=true
-    const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('connect') === 'true') {
       const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
       if (token) {

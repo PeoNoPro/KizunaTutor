@@ -20,6 +20,18 @@
       main > :first-child { margin-top: 0 !important; }
       main > :last-child { margin-bottom: 0 !important; }
     }
+    .material-symbols-outlined.filled {
+      font-variation-settings: 'FILL' 1;
+    }
+    #tutor-preview-panel {
+      will-change: transform;
+      transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #tutor-preview-panel {
+        transition: none;
+      }
+    }
   </style>
 
   <!-- Tailwind CSS CDN with Figma Design Tokens -->
@@ -125,7 +137,7 @@
   <main class="w-full pt-20 bg-[#FCFBF7] flex-1">
     <div class="flex flex-col w-full">
       <!-- Top Background Ambient Elements -->
-      <div class="relative w-full overflow-hidden pb-space-xl">
+      <div class="relative w-full overflow-x-clip pb-space-xl">
         <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[980px] h-[340px] bg-gradient-to-b from-[#F7F4EC]/60 via-[#FCFBF7] to-transparent blur-3xl pointer-events-none -z-10"></div>
         <div class="max-w-[1200px] mx-auto px-margin-mobile md:px-margin">
           
@@ -135,7 +147,7 @@
               <div class="max-w-3xl space-y-space-xs">
                 <div class="inline-flex items-center gap-2 px-space-md py-1 rounded-full bg-surface-container-low text-primary text-label-sm font-label-sm">
                   <span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
-                  <span class="tracking-wide">一期一会 • KẾT NỐI TẬN TÂM CHUẨN SƯ PHẠM</span>
+                  <span class="tracking-wide">Nhất kỳ nhất hội • Kết nối tận tâm chuẩn sư phạm</span>
                 </div>
                 <h1 class="font-headline-lg text-headline-lg md:text-display-hero text-on-surface tracking-tight font-bold">
                   Tìm gia sư tiếng Nhật
@@ -147,277 +159,221 @@
             </div>
           </section>
 
-          <!-- 2. Search & Filter Section -->
-          <section class="mt-space-md">
-            <div class="bg-[#F7F4EC] border border-[#E5DECB] rounded-xl p-space-md md:p-space-lg shadow-sm space-y-space-md">
+          <!-- 2. Search & Single-Row Pill Filter Section -->
+          <section class="mt-space-md relative z-30">
+            <div class="bg-[#F7F4EC] border border-[#E5DECB] rounded-xl p-4 md:p-5 shadow-sm space-y-3">
               
               <!-- Main Search Bar -->
-              <div class="flex flex-col sm:flex-row items-center gap-space-xs p-1.5 bg-[#FAF8F2] border border-[#E5DECB] rounded-xl shadow-inner">
-                <div class="flex items-center gap-space-sm w-full px-space-md py-2.5">
-                  <span class="material-symbols-outlined text-outline text-[22px]">search</span>
+              <div class="flex flex-col sm:flex-row items-center gap-space-xs p-1 bg-white border border-[#E5DECB] rounded-xl shadow-2xs">
+                <div class="flex items-center gap-space-sm w-full px-space-md py-2">
+                  <span class="material-symbols-outlined text-outline text-[20px]">search</span>
                   <input class="w-full bg-transparent text-body-md font-body-md text-on-surface placeholder:text-outline focus:outline-none" 
                          id="search-input" 
                          placeholder="Tìm theo tên gia sư, từ khóa, kỹ năng (vd: Kenji, Kaiwa, IT, Phỏng vấn...)" 
                          type="text">
                 </div>
-                <button class="w-full sm:w-auto px-space-xl py-3 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold tracking-wide transition-all shadow-sm shrink-0 flex items-center justify-center gap-2 cursor-pointer" 
+                <button class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold tracking-wide transition-all shadow-sm shrink-0 flex items-center justify-center gap-1.5 cursor-pointer" 
                         id="search-button" 
                         type="button">
                   <span>Tìm kiếm</span>
-                  <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  <span class="material-symbols-outlined text-[17px]">arrow_forward</span>
                 </button>
               </div>
 
-              <!-- Multi-tier Filter Rows -->
-              <div class="space-y-space-md pt-space-xs">
-                <!-- JLPT Level Quick Pills -->
-                <div class="flex flex-col md:flex-row md:items-center gap-space-sm text-body-sm font-body-sm">
-                  <span class="font-label-md text-label-md text-on-surface font-semibold shrink-0 min-w-[120px] flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-primary text-[18px]">school</span> Trình độ JLPT:
-                  </span>
-                  <div class="flex flex-wrap items-center gap-space-xs" id="jlpt-pills">
-                    <button class="jlpt-chip px-space-md py-1 rounded-full bg-[#006194] text-white border border-[#006194] font-label-sm text-label-sm font-semibold transition-all shadow-sm cursor-pointer" data-level="all" type="button">Tất cả</button>
-                    <button class="jlpt-chip px-space-md py-1 rounded-full bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#0F2545] font-label-sm text-label-sm transition-colors cursor-pointer" data-level="N1" type="button">N1</button>
-                    <button class="jlpt-chip px-space-md py-1 rounded-full bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#0F2545] font-label-sm text-label-sm transition-colors cursor-pointer" data-level="N2" type="button">N2</button>
-                    <button class="jlpt-chip px-space-md py-1 rounded-full bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#0F2545] font-label-sm text-label-sm transition-colors cursor-pointer" data-level="N3" type="button">N3</button>
-                    <button class="jlpt-chip px-space-md py-1 rounded-full bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#0F2545] font-label-sm text-label-sm transition-colors cursor-pointer" data-level="N4" type="button">N4</button>
-                    <button class="jlpt-chip px-space-md py-1 rounded-full bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#0F2545] font-label-sm text-label-sm transition-colors cursor-pointer" data-level="N5" type="button">N5</button>
-                  </div>
-                </div>
+              <!-- Hàng bộ lọc ngang duy nhất (1 hàng ngang kiểu popover pill) -->
+              <div id="filter-pill-bar" class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                <div class="flex flex-wrap items-center gap-2">
 
-                <!-- Detailed Criteria Grid (Hàng trên chuẩn theo mẫu) -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-space-sm pt-space-xs items-end">
-                  <!-- Khu vực / Tỉnh thành (34 tỉnh thành Việt Nam) -->
-                  <div class="lg:col-span-4 space-y-1">
-                    <label class="font-caption text-caption text-on-surface-variant font-semibold tracking-wider">TỈNH / THÀNH</label>
-                    <div class="relative">
-                      <select id="filter-location" class="w-full h-11 px-space-md pr-10 rounded-lg bg-white border border-[#E5DECB] text-body-sm font-body-sm text-[#0F2545] appearance-none focus:outline-none focus:border-[#006194] focus:ring-1 focus:ring-[#006194] cursor-pointer transition-colors shadow-sm">
-                        <option value="">Tất cả khu vực</option>
-                        <option value="An Giang">An Giang</option>
-                        <option value="Bắc Ninh">Bắc Ninh</option>
-                        <option value="Cà Mau">Cà Mau</option>
-                        <option value="Cao Bằng">Cao Bằng</option>
-                        <option value="Cần Thơ">Cần Thơ</option>
-                        <option value="Đà Nẵng">Đà Nẵng</option>
-                        <option value="Đắk Lắk">Đắk Lắk</option>
-                        <option value="Điện Biên">Điện Biên</option>
-                        <option value="Đồng Nai">Đồng Nai</option>
-                        <option value="Đồng Tháp">Đồng Tháp</option>
-                        <option value="Gia Lai">Gia Lai</option>
-                        <option value="Hà Nội">Hà Nội</option>
-                        <option value="Hà Tĩnh">Hà Tĩnh</option>
-                        <option value="Hải Phòng">Hải Phòng</option>
-                        <option value="Huế">Huế</option>
-                        <option value="Hưng Yên">Hưng Yên</option>
-                        <option value="Khánh Hòa">Khánh Hòa</option>
-                        <option value="Lai Châu">Lai Châu</option>
-                        <option value="Lạng Sơn">Lạng Sơn</option>
-                        <option value="Lào Cai">Lào Cai</option>
-                        <option value="Lâm Đồng">Lâm Đồng</option>
-                        <option value="Nghệ An">Nghệ An</option>
-                        <option value="Ninh Bình">Ninh Bình</option>
-                        <option value="Phú Thọ">Phú Thọ</option>
-                        <option value="Quảng Ngãi">Quảng Ngãi</option>
-                        <option value="Quảng Ninh">Quảng Ninh</option>
-                        <option value="Quảng Trị">Quảng Trị</option>
-                        <option value="Sơn La">Sơn La</option>
-                        <option value="Tây Ninh">Tây Ninh</option>
-                        <option value="Thái Nguyên">Thái Nguyên</option>
-                        <option value="Thanh Hóa">Thanh Hóa</option>
-                        <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                        <option value="Tuyên Quang">Tuyên Quang</option>
-                        <option value="Vĩnh Long">Vĩnh Long</option>
-                      </select>
-                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-[18px]">expand_more</span>
-                    </div>
-                  </div>
-
-                  <!-- Môn học / Mục tiêu học tập -->
-                  <div class="lg:col-span-3 space-y-1">
-                    <label class="font-caption text-caption text-on-surface-variant font-semibold tracking-wider">MÔN HỌC / KỸ NĂNG</label>
-                    <div class="relative">
-                      <select id="filter-goal" class="w-full h-11 px-space-md pr-10 rounded-lg bg-white border border-[#E5DECB] text-body-sm font-body-sm text-[#0F2545] appearance-none focus:outline-none focus:border-[#006194] focus:ring-1 focus:ring-[#006194] cursor-pointer transition-colors shadow-sm">
-                        <option value="">Tất cả môn</option>
-                        <option value="kaiwa">Kaiwa giao tiếp thực chiến</option>
-                        <option value="jlpt">Luyện thi chứng chỉ JLPT</option>
-                        <option value="business">Tiếng Nhật thương mại (Business)</option>
-                        <option value="it">Tiếng Nhật chuyên ngành IT &amp; BrSE</option>
-                      </select>
-                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-[18px]">expand_more</span>
-                    </div>
-                  </div>
-
-                  <!-- Học phí theo giờ / Buổi -->
-                  <div class="lg:col-span-3 space-y-1">
-                    <label class="font-caption text-caption text-on-surface-variant font-semibold tracking-wider">HỌC PHÍ / BUỔI</label>
-                    <div class="relative">
-                      <select id="filter-price" class="w-full h-11 px-space-md pr-10 rounded-lg bg-white border border-[#E5DECB] text-body-sm font-body-sm text-[#0F2545] appearance-none focus:outline-none focus:border-[#006194] focus:ring-1 focus:ring-[#006194] cursor-pointer transition-colors shadow-sm">
-                        <option value="">Mọi mức giá</option>
-                        <option value="150-250">150.000đ - 250.000đ / giờ</option>
-                        <option value="250-400">250.000đ - 400.000đ / giờ</option>
-                        <option value="400-600">400.000đ - 600.000đ+ / giờ</option>
-                      </select>
-                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-[18px]">expand_more</span>
-                    </div>
-                  </div>
-
-                  <!-- Nút Lọc thêm -->
-                  <div class="lg:col-span-2 flex items-center h-11">
-                    <button type="button" id="btn-toggle-advanced-filter" class="w-full h-11 px-3 rounded-lg border border-[#006194] bg-white hover:bg-sky-50 text-[#006194] font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
-                      <span class="material-symbols-outlined text-[18px]">tune</span>
-                      <span>Lọc thêm</span>
-                      <span id="advanced-filter-count-badge" class="hidden px-1.5 py-0.2 rounded-full bg-[#006194] text-white text-[10px] font-bold">0</span>
+                  <!-- 1. Môn học -->
+                  <div class="relative filter-dropdown" data-dropdown="goal">
+                    <button type="button" data-dropdown-trigger="goal" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="goal">Môn học</span>
+                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
                     </button>
-                  </div>
-                </div>
-
-                <!-- Khối "Bộ lọc thêm" (Bấm mở rộng) -->
-                <div id="advanced-filter-drawer" class="hidden pt-4 mt-2 border-t border-[#ECE8DE] bg-[#FAF8F2] rounded-xl p-4 md:p-5 space-y-4 shadow-2xs transition-all duration-300">
-                  <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-                    
-                    <!-- Cột Trái: Hình thức, Trình độ gia sư, Hồ sơ xác thực (Col span 7) -->
-                    <div class="lg:col-span-7 space-y-4">
-                      
-                      <!-- Hàng 1: Hình thức giảng dạy (Segmented Control) -->
-                      <div class="space-y-1.5">
-                        <label class="font-caption text-caption text-on-surface-variant font-bold tracking-wider">HÌNH THỨC</label>
-                        <div class="inline-flex rounded-lg border border-[#E5DECB] bg-white p-1 gap-1 flex-wrap" id="format-segmented-group">
-                          <button type="button" class="format-btn px-3 py-1.5 rounded-md text-xs font-semibold bg-[#006194] text-white shadow-2xs transition-all cursor-pointer" data-format="all">Mọi hình thức</button>
-                          <button type="button" class="format-btn px-3 py-1.5 rounded-md text-xs font-medium text-[#0F2545] hover:bg-slate-100 transition-all cursor-pointer" data-format="offline">Tại nhà</button>
-                          <button type="button" class="format-btn px-3 py-1.5 rounded-md text-xs font-medium text-[#0F2545] hover:bg-slate-100 transition-all cursor-pointer" data-format="online">Online 1-1</button>
-                          <button type="button" class="format-btn px-3 py-1.5 rounded-md text-xs font-medium text-[#0F2545] hover:bg-slate-100 transition-all cursor-pointer" data-format="hybrid">Linh hoạt</button>
-                        </div>
-                      </div>
-
-                      <!-- Hàng 2: Trình độ gia sư & Hồ sơ xác minh -->
-                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        <!-- Trình độ gia sư -->
-                        <div class="space-y-1.5">
-                          <label class="font-caption text-caption text-on-surface-variant font-bold tracking-wider">TRÌNH ĐỘ GIA SƯ</label>
-                          <div class="relative">
-                            <select id="filter-tutor-level" class="w-full h-10 px-3 pr-8 rounded-lg bg-white border border-[#E5DECB] text-xs font-medium text-[#0F2545] appearance-none focus:outline-none focus:border-[#006194] cursor-pointer shadow-2xs">
-                              <option value="">Mọi trình độ</option>
-                              <option value="teacher">Giáo viên chuyên nghiệp</option>
-                              <option value="lecturer">Giảng viên đại học</option>
-                              <option value="pedagogy">Cử nhân Sư phạm tiếng Nhật</option>
-                              <option value="overseas">Du học sinh Nhật Bản</option>
-                              <option value="native">Người bản xứ (Sensei)</option>
-                              <option value="student">Sinh viên chuyên ngành tiếng Nhật</option>
-                            </select>
-                            <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-[16px]">expand_more</span>
-                          </div>
-                        </div>
-
-                        <!-- Hồ sơ -->
-                        <div class="space-y-1.5">
-                          <label class="font-caption text-caption text-on-surface-variant font-bold tracking-wider">HỒ SƠ</label>
-                          <div class="pt-2 flex flex-col gap-2">
-                            <label class="relative inline-flex items-center cursor-pointer select-none">
-                              <input type="checkbox" id="filter-verified-only" class="sr-only peer">
-                              <div class="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#006194]"></div>
-                              <span class="ml-2 text-xs font-medium text-slate-700">Chỉ gia sư đã xác thực</span>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-
+                    <div data-dropdown-panel="goal" class="hidden absolute left-0 top-full mt-2 w-64 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="">Tất cả môn</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="kaiwa">Kaiwa giao tiếp thực chiến</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt">Luyện thi chứng chỉ JLPT</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="business">Tiếng Nhật thương mại (Business)</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="it">Tiếng Nhật chuyên ngành IT &amp; BrSE</button>
                     </div>
+                  </div>
 
-                    <!-- Cột Phải: Ma trận Lịch rảnh (bấm ô rồi áp dụng) (Col span 5) -->
-                    <div class="lg:col-span-5 space-y-2.5 border-t lg:border-t-0 lg:border-l border-[#ECE8DE] lg:pl-5 pt-3 lg:pt-0">
+                  <!-- 2. Trình độ JLPT -->
+                  <div class="relative filter-dropdown" data-dropdown="jlpt">
+                    <button type="button" data-dropdown-trigger="jlpt" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="jlpt">Trình độ JLPT</span>
+                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                    </button>
+                    <div data-dropdown-panel="jlpt" class="hidden absolute left-0 top-full mt-2 w-48 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="all">Tất cả trình độ</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="N1">JLPT N1</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="N2">JLPT N2</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="N3">JLPT N3</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="N4">JLPT N4</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="N5">JLPT N5</button>
+                    </div>
+                  </div>
+
+                  <!-- 3. Thời gian học (Popover theo ảnh 2: Khung giờ học + Ngày học) -->
+                  <div class="relative filter-dropdown" data-dropdown="schedule">
+                    <button type="button" data-dropdown-trigger="schedule" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="schedule">Thời gian học</span>
+                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                    </button>
+                    <div id="popover-schedule" data-dropdown-panel="schedule" class="hidden absolute left-0 top-full mt-2 w-72 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-4 z-40 space-y-4">
                       <div class="flex items-center justify-between">
-                        <label class="font-caption text-caption text-on-surface-variant font-bold tracking-wider">
-                          LỊCH RẢNH <span class="font-normal text-slate-500 text-[11px]">(bấm ô rồi áp dụng)</span>
-                        </label>
-                        <button type="button" id="btn-clear-schedule-slots" class="text-[11px] text-slate-400 hover:text-red-600 font-medium transition-colors hidden cursor-pointer">
-                          Bỏ chọn tất cả ô
-                        </button>
+                        <h3 class="text-[15px] font-bold text-[#0F2545]">Thời gian học</h3>
+                        <button type="button" id="btn-clear-schedule-slots" class="hidden text-[12px] font-medium text-[#006194] hover:underline cursor-pointer">Bỏ chọn</button>
                       </div>
 
-                      <!-- Grid ma trận 7 cột x 3 hàng -->
-                      <div class="bg-white border border-[#E5DECB] rounded-xl p-2.5 shadow-2xs select-none">
-                        <!-- Hàng tiêu đề các thứ: T2, T3, T4, T5, T6, T7, CN -->
-                        <div class="grid grid-cols-8 gap-1 items-center text-center text-[10px] font-bold text-slate-600 pb-1.5 border-b border-slate-100">
-                          <span class="text-left text-slate-400 font-normal">Buổi</span>
-                          <span>T2</span>
-                          <span>T3</span>
-                          <span>T4</span>
-                          <span>T5</span>
-                          <span>T6</span>
-                          <span>T7</span>
-                          <span class="text-rose-600">CN</span>
-                        </div>
-
-                        <!-- Hàng Sáng (< 12:00) -->
-                        <div class="grid grid-cols-8 gap-1 items-center text-center pt-1.5">
-                          <span class="text-left text-[11px] font-medium text-slate-500">Sáng</span>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="2" data-shift="morning" title="Thứ 2 - Buổi sáng"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="3" data-shift="morning" title="Thứ 3 - Buổi sáng"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="4" data-shift="morning" title="Thứ 4 - Buổi sáng"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="5" data-shift="morning" title="Thứ 5 - Buổi sáng"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="6" data-shift="morning" title="Thứ 6 - Buổi sáng"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="7" data-shift="morning" title="Thứ 7 - Buổi sáng"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="1" data-shift="morning" title="Chủ nhật - Buổi sáng"></button>
-                        </div>
-
-                        <!-- Hàng Chiều (12:00 - 18:00) -->
-                        <div class="grid grid-cols-8 gap-1 items-center text-center pt-1">
-                          <span class="text-left text-[11px] font-medium text-slate-500">Chiều</span>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="2" data-shift="afternoon" title="Thứ 2 - Buổi chiều"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="3" data-shift="afternoon" title="Thứ 3 - Buổi chiều"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="4" data-shift="afternoon" title="Thứ 4 - Buổi chiều"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="5" data-shift="afternoon" title="Thứ 5 - Buổi chiều"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="6" data-shift="afternoon" title="Thứ 6 - Buổi chiều"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="7" data-shift="afternoon" title="Thứ 7 - Buổi chiều"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="1" data-shift="afternoon" title="Chủ nhật - Buổi chiều"></button>
-                        </div>
-
-                        <!-- Hàng Tối (18:00 - 22:00) -->
-                        <div class="grid grid-cols-8 gap-1 items-center text-center pt-1">
-                          <span class="text-left text-[11px] font-medium text-slate-500">Tối</span>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="2" data-shift="evening" title="Thứ 2 - Buổi tối"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="3" data-shift="evening" title="Thứ 3 - Buổi tối"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="4" data-shift="evening" title="Thứ 4 - Buổi tối"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="5" data-shift="evening" title="Thứ 5 - Buổi tối"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="6" data-shift="evening" title="Thứ 6 - Buổi tối"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="7" data-shift="evening" title="Thứ 7 - Buổi tối"></button>
-                          <button type="button" class="schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer" data-day="1" data-shift="evening" title="Chủ nhật - Buổi tối"></button>
+                      <!-- Khung giờ học -->
+                      <div class="space-y-2.5">
+                        <p class="text-[13px] font-semibold text-[#0F2545]">Khung giờ học</p>
+                        <div class="space-y-2">
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1E293B] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-shift-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="morning">
+                            <span>Buổi sáng (00:00 - 12:00)</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1E293B] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-shift-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="afternoon">
+                            <span>Buổi chiều (12:00 - 18:00)</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1E293B] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-shift-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="evening">
+                            <span>Buổi tối (18:00 - 24:00)</span>
+                          </label>
                         </div>
                       </div>
 
-                      <!-- Nút Áp dụng -->
-                      <div class="pt-1 flex items-center justify-end">
-                        <button type="button" id="btn-apply-advanced-filter" class="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[#006194] hover:bg-[#004b73] text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]">
-                          <span class="material-symbols-outlined text-[16px]">search</span>
-                          <span>Áp dụng</span>
-                        </button>
+                      <!-- Ngày học -->
+                      <div class="space-y-2.5">
+                        <p class="text-[13px] font-semibold text-[#0F2545]">Ngày học</p>
+                        <div class="space-y-2">
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1E293B] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="2">
+                            <span>Thứ 2</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1E293B] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="3">
+                            <span>Thứ 3</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1E293B] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="4">
+                            <span>Thứ 4</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1E293B] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="5">
+                            <span>Thứ 5</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1E293B] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="6">
+                            <span>Thứ 6</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1E293B] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="7">
+                            <span>Thứ 7</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1E293B] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="1">
+                            <span>Chủ nhật</span>
+                          </label>
+                        </div>
                       </div>
-
                     </div>
+                  </div>
 
+                  <!-- 4. Hình thức học -->
+                  <div class="relative filter-dropdown" data-dropdown="format">
+                    <button type="button" data-dropdown-trigger="format" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="format">Hình thức học</span>
+                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                    </button>
+                    <div data-dropdown-panel="format" class="hidden absolute left-0 top-full mt-2 w-48 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="format" data-value="">Mọi hình thức</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="format" data-value="offline">Tại nhà</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="format" data-value="online">Online 1-1</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="format" data-value="hybrid">Linh hoạt</button>
+                    </div>
+                  </div>
+
+                  <!-- 5. Địa điểm (Nạp từ API /api/tutors/locations) -->
+                  <div class="relative filter-dropdown" data-dropdown="location">
+                    <button type="button" data-dropdown-trigger="location" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="location">Địa điểm</span>
+                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                    </button>
+                    <div data-dropdown-panel="location" class="hidden absolute left-0 top-full mt-2 w-60 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
+                      <div id="location-options-list" class="max-h-64 overflow-y-auto space-y-0.5">
+                        <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="location" data-value="">Tất cả khu vực</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 6. Học phí -->
+                  <div class="relative filter-dropdown" data-dropdown="price">
+                    <button type="button" data-dropdown-trigger="price" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="price">Học phí</span>
+                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                    </button>
+                    <div data-dropdown-panel="price" class="hidden absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-60 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="">Mọi mức giá</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="150-250">150.000đ - 250.000đ / giờ</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="250-400">250.000đ - 400.000đ / giờ</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="400-600">400.000đ - 600.000đ+ / giờ</button>
+                    </div>
+                  </div>
+
+                  <!-- 7. Khác (Trình độ gia sư + Hồ sơ xác thực) -->
+                  <div class="relative filter-dropdown" data-dropdown="more">
+                    <button type="button" data-dropdown-trigger="more" aria-expanded="false" class="filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="more">Khác</span>
+                      <span class="material-symbols-outlined text-[17px] text-[#64748B]">expand_more</span>
+                    </button>
+                    <div data-dropdown-panel="more" class="hidden absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-4 z-40 space-y-3.5">
+                      <div class="space-y-1.5">
+                        <label for="filter-tutor-level" class="block text-[13px] font-semibold text-[#0F2545]">Trình độ gia sư</label>
+                        <div class="relative">
+                          <select id="filter-tutor-level" class="w-full h-10 px-3 pr-8 rounded-lg bg-[#FAF8F2] border border-[#E5DECB] text-[13px] font-medium text-[#0F2545] appearance-none focus:outline-none focus:border-[#006194] cursor-pointer">
+                            <option value="">Mọi trình độ</option>
+                            <option value="teacher">Giáo viên chuyên nghiệp</option>
+                            <option value="lecturer">Giảng viên đại học</option>
+                            <option value="pedagogy">Cử nhân Sư phạm tiếng Nhật</option>
+                            <option value="overseas">Du học sinh Nhật Bản</option>
+                            <option value="native">Người bản xứ (Sensei)</option>
+                            <option value="student">Sinh viên chuyên ngành tiếng Nhật</option>
+                          </select>
+                          <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-[16px]">expand_more</span>
+                        </div>
+                      </div>
+                      <label class="flex items-center gap-2.5 pt-1 border-t border-[#ECE8DE] text-[13px] font-medium text-[#0F2545] cursor-pointer select-none">
+                        <input type="checkbox" id="filter-verified-only" class="w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer">
+                        <span>Chỉ gia sư đã xác thực</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Active Filter Toolbar Actions -->
-                <div class="flex flex-wrap items-center justify-between gap-space-sm pt-space-xs text-body-sm font-body-sm">
-                  <div class="flex flex-wrap items-center gap-space-xs">
-                    <span class="text-[#68737D] text-caption font-caption tracking-wider font-semibold">Đang áp dụng:</span>
-                    <div id="active-filter-chips" class="inline-flex flex-wrap items-center gap-space-xs"></div>
-                  </div>
-                  <button class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors text-label-md font-label-md font-medium shadow-sm cursor-pointer" 
-                          id="reset-filter-btn" 
-                          type="button">
-                    <span class="material-symbols-outlined text-[18px]">restart_alt</span>
-                    <span>Đặt lại bộ lọc</span>
-                  </button>
-                </div>
-
+                <!-- Nút Đặt lại bộ lọc cùng 1 hàng ngang -->
+                <button class="h-9 inline-flex items-center gap-1.5 px-3 rounded-full bg-white border border-[#E5DECB] text-[#0F2545] hover:bg-[#FAF8F2] hover:text-[#006194] transition-colors text-[13px] font-medium shadow-2xs cursor-pointer whitespace-nowrap" 
+                        id="reset-filter-btn" 
+                        type="button">
+                  <span class="material-symbols-outlined text-[17px]">restart_alt</span>
+                  <span>Đặt lại bộ lọc</span>
+                </button>
               </div>
+
+              <!-- Chip bộ lọc đang chọn (chỉ hiện khi có bộ lọc được chọn) -->
+              <div id="active-chips-row" class="hidden flex-wrap items-center gap-2 pt-1 border-t border-[#ECE8DE]">
+                <span class="text-[#68737D] text-caption font-caption font-semibold">Đang áp dụng:</span>
+                <div id="active-filter-chips" class="inline-flex flex-wrap items-center gap-1.5"></div>
+              </div>
+
             </div>
           </section>
 
           <!-- 3. Tutor Results Section -->
-          <section class="mt-space-lg space-y-space-md">
+          <section class="mt-space-lg space-y-space-md relative z-10">
             <!-- Results Header Status & Sort -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-xs">
               <div class="flex items-center gap-2">
@@ -441,8 +397,18 @@
               </div>
             </div>
 
-            <!-- Tutor Grid (Populated dynamically by tutor-discovery.js) -->
-            <div id="tutor-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-space-md"></div>
+            <!-- Marketplace Split Layout: Left Stacked Cards + Right Sliding Preview -->
+            <div id="results-layout" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              <!-- Cột trái: Danh sách thẻ gia sư chiều ngang -->
+              <div id="tutor-cards-col" class="lg:col-span-8 space-y-4">
+                <div id="tutor-grid" class="grid grid-cols-1 gap-4"></div>
+              </div>
+
+              <!-- Cột phải: Khung xem nhanh trượt theo thẻ gia sư đang chọn -->
+              <aside id="tutor-preview-aside" class="hidden lg:block lg:col-span-4 relative" aria-label="Xem nhanh hồ sơ gia sư">
+                <div id="tutor-preview-panel"></div>
+              </aside>
+            </div>
 
             <!-- Empty State Container -->
             <div id="empty-state" class="hidden flex-col items-center justify-center p-12 bg-white rounded-2xl border border-[#E5DECB] text-center space-y-4">

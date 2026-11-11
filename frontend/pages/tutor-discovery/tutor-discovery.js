@@ -5,8 +5,16 @@
  */
 
 import { API } from '../../js/api.js';
-import { formatVND, debounce } from '../../js/main.js';
-import { openModal, closeModal } from '../../components/modal/modal.js';
+import { debounce } from '../../js/main.js';
+import {
+  escapeHtml,
+  getTutorProfileUrl,
+  normalizeTutorRecord,
+  buildTutorCardHtml,
+  buildPreviewPanelHtml,
+  computePreviewOffsetPx,
+  matchTutorTimeFilter
+} from './tutor-discovery-helpers.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Trạng thái tìm kiếm trung tâm (State)
@@ -20,7 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
     schedule: '',
     tutorLevel: '',
     verifiedOnly: false,
-    scheduleSlots: new Set(),
+    selectedShifts: new Set(),
+    selectedDays: new Set(),
     sortBy: 'rating',
     currentPage: 1,
     pageSize: 6
@@ -32,47 +41,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const VALID_FORMATS = ['online', 'offline', 'hybrid'];
   const VALID_PRICES = ['150-250', '250-400', '400-600'];
   const VALID_SCHEDULES = ['today', 'weekend', 'evening'];
+  const VALID_SHIFTS = ['morning', 'afternoon', 'evening'];
   const VALID_SORTS = ['rating', 'price_asc', 'price_desc', 'exp', 'newest'];
 
   // DOM Elements
   const searchInput = document.getElementById('search-input');
   const searchBtn = document.getElementById('search-button');
-  const jlptPills = document.querySelectorAll('.jlpt-chip');
-  const filterLocation = document.getElementById('filter-location');
-  const filterGoal = document.getElementById('filter-goal');
-  const filterFormat = document.getElementById('filter-format');
-  const filterPrice = document.getElementById('filter-price');
-  const filterSchedule = document.getElementById('filter-schedule');
+  const filterPillBar = document.getElementById('filter-pill-bar');
+  const locationOptionsList = document.getElementById('location-options-list');
   const sortSelect = document.getElementById('sort-select');
   const resetBtn = document.getElementById('reset-filter-btn');
   const emptyResetBtn = document.getElementById('empty-reset-btn');
-  const btnToggleAdvancedFilter = document.getElementById('btn-toggle-advanced-filter');
-  const advancedFilterDrawer = document.getElementById('advanced-filter-drawer');
-  const advancedFilterCountBadge = document.getElementById('advanced-filter-count-badge');
   const filterTutorLevel = document.getElementById('filter-tutor-level');
   const filterVerifiedOnly = document.getElementById('filter-verified-only');
-  const formatButtons = document.querySelectorAll('#format-segmented-group .format-btn');
-  const scheduleMatrixCells = document.querySelectorAll('.schedule-matrix-cell');
+  const shiftCheckboxes = document.querySelectorAll('.schedule-shift-checkbox');
+  const dayCheckboxes = document.querySelectorAll('.schedule-day-checkbox');
   const btnClearScheduleSlots = document.getElementById('btn-clear-schedule-slots');
-  const btnApplyAdvancedFilter = document.getElementById('btn-apply-advanced-filter');
+  const resultsLayout = document.getElementById('results-layout');
+  const tutorCardsCol = document.getElementById('tutor-cards-col');
   const tutorGrid = document.getElementById('tutor-grid');
+  const tutorPreviewAside = document.getElementById('tutor-preview-aside');
+  const tutorPreviewPanel = document.getElementById('tutor-preview-panel');
   const emptyState = document.getElementById('empty-state');
   const resultsCount = document.getElementById('total-tutors-count');
+  const activeChipsRow = document.getElementById('active-chips-row');
   const activeChipsContainer = document.getElementById('active-filter-chips');
   const paginationSection = document.getElementById('pagination-section');
   const paginationNav = document.getElementById('pagination-nav');
   const currentRangeEl = document.getElementById('current-range');
   const totalCountEl = document.getElementById('total-count-display');
 
-  // Modals DOM Elements
-  const connectForm = document.getElementById('connect-form');
-  const closeConnectModalBtn = document.getElementById('close-connect-modal');
-  const cancelConnectBtn = document.getElementById('cancel-connect-btn');
-  const connectTutorAvatar = document.getElementById('connect-tutor-avatar');
-  const connectTutorName = document.getElementById('connect-tutor-name');
-
-  let activeTutorForConnect = null;
   let currentLoadedTutors = [];
+  let currentDisplayedTutors = [];
+  let activePreviewTutorId = null;
   let isPopStateHandling = false;
   let currentRequestId = 0;
 
@@ -108,9 +109,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const verified = params.get('verified');
     if (verified === 'true') validated.verifiedOnly = true;
 
+    const shiftsParam = params.get('shifts');
+    if (shiftsParam && shiftsParam.trim()) {
+      validated.selectedShifts = new Set(
+        shiftsParam.split(',').map(s => s.trim()).filter(s => VALID_SHIFTS.includes(s))
+      );
+    }
+
+    const daysParam = params.get('days');
+    if (daysParam && daysParam.trim()) {
+      validated.selectedDays = new Set(
+        daysParam.split(',').map(d => parseInt(d.trim(), 10)).filter(d => d >= 1 && d <= 7)
+      );
+    }
+
+    // Hỗ trợ tham số cũ ?slots=2-morning nếu người dùng truy cập link đã lưu
     const slots = params.get('slots');
     if (slots && slots.trim()) {
-      validated.scheduleSlots = new Set(slots.split(',').filter(s => s.trim().length > 0));
+      validated.selectedShifts = validated.selectedShifts || new Set();
+      validated.selectedDays = validated.selectedDays || new Set();
+      slots.split(',').forEach(token => {
+        const [dStr, shiftKey] = token.trim().split('-');
+        const dayNum = parseInt(dStr, 10);
+        if (dayNum >= 1 && dayNum <= 7) validated.selectedDays.add(dayNum);
+        if (VALID_SHIFTS.includes(shiftKey)) validated.selectedShifts.add(shiftKey);
+      });
     }
 
     const sort = params.get('sort') || params.get('sortBy');
@@ -136,89 +159,107 @@ document.addEventListener('DOMContentLoaded', () => {
     state.schedule = validated.schedule || '';
     state.tutorLevel = validated.tutorLevel || '';
     state.verifiedOnly = validated.verifiedOnly || false;
-    state.scheduleSlots = validated.scheduleSlots || new Set();
+    state.selectedShifts = validated.selectedShifts || new Set();
+    state.selectedDays = validated.selectedDays || new Set();
     state.sortBy = validated.sortBy || 'rating';
     state.currentPage = validated.currentPage || 1;
 
     syncFiltersWithState();
   }
 
-  // 4. Đồng bộ State lên các UI Controls
+  function closeAllDropdowns() {
+    document.querySelectorAll('[data-dropdown-panel]').forEach(panel => {
+      panel.classList.add('hidden');
+    });
+    document.querySelectorAll('[data-dropdown-trigger]').forEach(btn => {
+      btn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function toggleDropdown(name) {
+    const targetPanel = document.querySelector(`[data-dropdown-panel="${name}"]`);
+    const targetTrigger = document.querySelector(`[data-dropdown-trigger="${name}"]`);
+    if (!targetPanel || !targetTrigger) return;
+    const isCurrentlyHidden = targetPanel.classList.contains('hidden');
+    closeAllDropdowns();
+    if (isCurrentlyHidden) {
+      targetPanel.classList.remove('hidden');
+      targetTrigger.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  function setPillStyle(key, labelText, isActive) {
+    const labelEl = document.querySelector(`[data-pill-label="${key}"]`);
+    const triggerBtn = document.querySelector(`[data-dropdown-trigger="${key}"]`);
+    if (labelEl) labelEl.textContent = labelText;
+    if (triggerBtn) {
+      triggerBtn.className = isActive
+        ? 'filter-pill-btn h-9 px-3.5 rounded-full bg-[#EBF4FF] border border-[#006194] text-[#004B73] text-[13px] font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap'
+        : 'filter-pill-btn h-9 px-3.5 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap';
+    }
+  }
+
+  function syncOptionHighlight(filterType, activeValue) {
+    document.querySelectorAll(`.filter-option-btn[data-filter-type="${filterType}"]`).forEach(btn => {
+      const isSelected = String(btn.getAttribute('data-value') || '') === String(activeValue || '');
+      btn.classList.toggle('bg-[#EBF4FF]', isSelected);
+      btn.classList.toggle('text-[#004B73]', isSelected);
+      btn.classList.toggle('font-semibold', isSelected);
+      btn.classList.toggle('text-[#0F2545]', !isSelected);
+    });
+  }
+
+  // 4. Đồng bộ State lên thanh bộ lọc 1 hàng ngang & các popover
   function syncFiltersWithState() {
     if (searchInput) searchInput.value = state.keyword;
-    if (filterLocation) filterLocation.value = state.location;
-    if (filterGoal) filterGoal.value = state.goal;
-    if (filterFormat) filterFormat.value = state.format;
-    if (filterPrice) filterPrice.value = state.priceRange;
-    if (filterSchedule) filterSchedule.value = state.schedule;
     if (filterTutorLevel) filterTutorLevel.value = state.tutorLevel;
     if (filterVerifiedOnly) filterVerifiedOnly.checked = state.verifiedOnly;
     if (sortSelect) sortSelect.value = state.sortBy;
-    syncJlptPills();
-    syncFormatButtonsUI();
-    syncScheduleMatrixUI();
-    updateAdvancedFilterBadge();
-  }
 
-  // Helper cập nhật badge đếm số lượng bộ lọc nâng cao
-  function updateAdvancedFilterBadge() {
-    let count = 0;
-    if (state.format && state.format !== 'all') count++;
-    if (state.tutorLevel) count++;
-    if (state.verifiedOnly) count++;
-    if (state.scheduleSlots.size > 0) count++;
+    const goalLabels = {
+      kaiwa: 'Kaiwa',
+      jlpt: 'Luyện thi JLPT',
+      business: 'Thương mại',
+      it: 'IT & BrSE'
+    };
+    setPillStyle('goal', state.goal ? (goalLabels[state.goal] || state.goal) : 'Môn học', Boolean(state.goal));
+    syncOptionHighlight('goal', state.goal);
 
-    if (advancedFilterCountBadge) {
-      if (count > 0) {
-        advancedFilterCountBadge.textContent = count;
-        advancedFilterCountBadge.classList.remove('hidden');
-      } else {
-        advancedFilterCountBadge.classList.add('hidden');
-      }
-    }
-  }
+    const hasJlpt = Boolean(state.jlptLevel && state.jlptLevel !== 'all');
+    setPillStyle('jlpt', hasJlpt ? `JLPT ${state.jlptLevel}` : 'Trình độ JLPT', hasJlpt);
+    syncOptionHighlight('jlpt', state.jlptLevel || 'all');
 
-  // Đồng bộ giao diện nút bấm Hình thức (Segmented Control)
-  function syncFormatButtonsUI() {
-    const cur = state.format || 'all';
-    formatButtons.forEach(btn => {
-      const f = btn.getAttribute('data-format');
-      if (f === cur) {
-        btn.className = 'format-btn px-3 py-1.5 rounded-md text-xs font-semibold bg-[#006194] text-white shadow-2xs transition-all cursor-pointer';
-      } else {
-        btn.className = 'format-btn px-3 py-1.5 rounded-md text-xs font-medium text-[#0F2545] hover:bg-slate-100 transition-all cursor-pointer';
-      }
+    const timeCount = state.selectedShifts.size + state.selectedDays.size;
+    const legacyScheduleMap = { today: 'Hôm nay', weekend: 'Cuối tuần', evening: 'Buổi tối' };
+    const scheduleLabel = timeCount > 0
+      ? `Thời gian học (${timeCount})`
+      : (state.schedule ? (legacyScheduleMap[state.schedule] || state.schedule) : 'Thời gian học');
+    setPillStyle('schedule', scheduleLabel, timeCount > 0 || Boolean(state.schedule));
+
+    shiftCheckboxes.forEach(cb => {
+      cb.checked = state.selectedShifts.has(cb.value);
     });
-  }
-
-  // Đồng bộ giao diện 21 ô ma trận lịch rảnh
-  function syncScheduleMatrixUI() {
-    scheduleMatrixCells.forEach(cell => {
-      const day = cell.getAttribute('data-day');
-      const shift = cell.getAttribute('data-shift');
-      const key = `${day}-${shift}`;
-      if (state.scheduleSlots.has(key)) {
-        cell.className = 'schedule-matrix-cell h-7 rounded border border-[#006194] bg-[#006194] text-white shadow-2xs transition-colors flex items-center justify-center cursor-pointer';
-      } else {
-        cell.className = 'schedule-matrix-cell h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center cursor-pointer';
-      }
+    dayCheckboxes.forEach(cb => {
+      cb.checked = state.selectedDays.has(parseInt(cb.value, 10));
     });
-
     if (btnClearScheduleSlots) {
-      btnClearScheduleSlots.classList.toggle('hidden', state.scheduleSlots.size === 0);
+      btnClearScheduleSlots.classList.toggle('hidden', timeCount === 0);
     }
-  }
 
-  // Đồng bộ giao diện Pill JLPT (Hiện xanh nổi bật khi được chọn)
-  function syncJlptPills() {
-    jlptPills.forEach(pill => {
-      const level = pill.getAttribute('data-level');
-      if (level === state.jlptLevel) {
-        pill.className = 'jlpt-chip px-space-md py-1 rounded-full bg-[#006194] text-white border border-[#006194] font-label-sm text-label-sm font-semibold transition-all shadow-sm cursor-pointer';
-      } else {
-        pill.className = 'jlpt-chip px-space-md py-1 rounded-full bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#0F2545] font-label-sm text-label-sm transition-colors cursor-pointer';
-      }
-    });
+    const formatLabels = { online: 'Online 1-1', offline: 'Tại nhà', hybrid: 'Linh hoạt' };
+    const hasFormat = Boolean(state.format && state.format !== 'all');
+    setPillStyle('format', hasFormat ? (formatLabels[state.format] || state.format) : 'Hình thức học', hasFormat);
+    syncOptionHighlight('format', hasFormat ? state.format : '');
+
+    setPillStyle('location', state.location || 'Địa điểm', Boolean(state.location));
+    syncOptionHighlight('location', state.location);
+
+    const priceLabels = { '150-250': '150k - 250k', '250-400': '250k - 400k', '400-600': 'Trên 400k' };
+    setPillStyle('price', state.priceRange ? (priceLabels[state.priceRange] || state.priceRange) : 'Học phí', Boolean(state.priceRange));
+    syncOptionHighlight('priceRange', state.priceRange);
+
+    const moreCount = (state.tutorLevel ? 1 : 0) + (state.verifiedOnly ? 1 : 0);
+    setPillStyle('more', moreCount > 0 ? `Khác (${moreCount})` : 'Khác', moreCount > 0);
   }
 
   // 5. Cập nhật URL từ State với PushState hoặc ReplaceState (T007)
@@ -236,7 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.schedule) params.set('schedule', state.schedule);
     if (state.tutorLevel) params.set('tutorLevel', state.tutorLevel);
     if (state.verifiedOnly) params.set('verified', 'true');
-    if (state.scheduleSlots.size > 0) params.set('slots', Array.from(state.scheduleSlots).join(','));
+    if (state.selectedShifts.size > 0) params.set('shifts', Array.from(state.selectedShifts).join(','));
+    if (state.selectedDays.size > 0) params.set('days', Array.from(state.selectedDays).join(','));
     if (state.sortBy && state.sortBy !== 'rating') params.set('sort', state.sortBy);
     if (state.currentPage && state.currentPage > 1) params.set('page', state.currentPage);
 
@@ -267,20 +309,123 @@ document.addEventListener('DOMContentLoaded', () => {
     isPopStateHandling = false;
   });
 
+  function setSplitLayoutMode(mode) {
+    if (resultsLayout) {
+      resultsLayout.classList.toggle('hidden', mode === 'empty');
+    }
+    if (tutorCardsCol) {
+      if (mode === 'error') {
+        tutorCardsCol.classList.remove('lg:col-span-8');
+        tutorCardsCol.classList.add('lg:col-span-12');
+      } else {
+        tutorCardsCol.classList.remove('lg:col-span-12');
+        tutorCardsCol.classList.add('lg:col-span-8');
+      }
+    }
+    if (tutorPreviewAside) {
+      tutorPreviewAside.classList.toggle('lg:hidden', mode === 'empty' || mode === 'error');
+    }
+    if (emptyState) {
+      if (mode === 'empty') {
+        emptyState.classList.remove('hidden');
+        emptyState.classList.add('flex');
+      } else {
+        emptyState.classList.add('hidden');
+        emptyState.classList.remove('flex');
+      }
+    }
+  }
+
+  let previewPositionRaf = null;
+
+  function renderPreviewSkeleton() {
+    if (!tutorPreviewPanel) return;
+    tutorPreviewPanel.style.transform = 'translate3d(0, 0, 0)';
+    tutorPreviewPanel.innerHTML = `
+      <div class="bg-white border border-[#E5DECB] rounded-[12px] p-3.5 shadow-sm space-y-3 animate-pulse">
+        <div class="w-full aspect-[16/10] rounded-[8px] bg-[#EFECE4]"></div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="h-10 rounded-[8px] bg-[#FAF8F2] border border-[#EFECE4]"></div>
+          <div class="h-10 rounded-[8px] bg-[#FAF8F2] border border-[#EFECE4]"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function syncPreviewPanelPosition() {
+    if (previewPositionRaf !== null) {
+      cancelAnimationFrame(previewPositionRaf);
+    }
+    previewPositionRaf = requestAnimationFrame(() => {
+      previewPositionRaf = null;
+      if (!tutorPreviewPanel || !tutorPreviewAside || !tutorGrid) return;
+      if (tutorPreviewAside.offsetParent === null) {
+        tutorPreviewPanel.style.transform = '';
+        return;
+      }
+
+      const cards = Array.from(tutorGrid.querySelectorAll('[data-tutor-card]'));
+      if (cards.length === 0) {
+        tutorPreviewPanel.style.transform = 'translate3d(0, 0, 0)';
+        return;
+      }
+
+      const activeCard = cards.find(c => c.getAttribute('data-tutor-id') === String(activePreviewTutorId)) || cards[0];
+      const cardRect = activeCard.getBoundingClientRect();
+      const asideRect = tutorPreviewAside.getBoundingClientRect();
+      const offsetY = computePreviewOffsetPx({
+        cardTopRelativeToAside: cardRect.top - asideRect.top,
+        asideTopInViewport: asideRect.top,
+        asideHeight: tutorPreviewAside.offsetHeight,
+        panelHeight: tutorPreviewPanel.offsetHeight,
+        stickyTopPx: 96
+      });
+
+      tutorPreviewPanel.style.transform = `translate3d(0, ${offsetY}px, 0)`;
+    });
+  }
+
+  function setActivePreviewTutor(tutorId) {
+    const matched = currentDisplayedTutors.find(t => String(t.id) === String(tutorId));
+    if (!matched) return;
+    const isChanged = String(activePreviewTutorId) !== String(matched.id);
+    activePreviewTutorId = matched.id;
+
+    if (tutorGrid) {
+      tutorGrid.querySelectorAll('[data-tutor-card]').forEach(cardEl => {
+        const isCurrent = cardEl.getAttribute('data-tutor-id') === String(matched.id);
+        cardEl.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
+        cardEl.classList.toggle('tutor-card-selected', isCurrent);
+        cardEl.classList.toggle('border-[#0F2545]', isCurrent);
+        cardEl.classList.toggle('ring-1', isCurrent);
+        cardEl.classList.toggle('ring-[#0F2545]/15', isCurrent);
+        cardEl.classList.toggle('shadow-[0_10px_28px_rgba(15,37,69,0.10)]', isCurrent);
+        cardEl.classList.toggle('border-[#E5DECB]', !isCurrent);
+      });
+    }
+
+    if (tutorPreviewPanel && (isChanged || !tutorPreviewPanel.innerHTML.trim())) {
+      tutorPreviewPanel.innerHTML = buildPreviewPanelHtml(matched);
+    }
+
+    syncPreviewPanelPosition();
+  }
+
   // 7. Gọi REST API nạp dữ liệu gia sư thật & Chống Race Condition (T023)
   async function loadTutors() {
     const requestId = ++currentRequestId;
 
     // Trạng thái Loading
+    setSplitLayoutMode('loading');
+    renderPreviewSkeleton();
     if (tutorGrid) {
       tutorGrid.innerHTML = `
-        <div class="col-span-full py-16 flex flex-col items-center justify-center text-on-surface-variant gap-3">
+        <div class="py-16 flex flex-col items-center justify-center text-on-surface-variant gap-3 bg-white border border-[#E5DECB] rounded-[12px]">
           <span class="material-symbols-outlined text-primary text-[40px] animate-spin">progress_activity</span>
           <p class="text-sm font-medium">Đang tải danh sách gia sư từ máy chủ...</p>
         </div>
       `;
     }
-    if (emptyState) emptyState.classList.add('hidden');
 
     try {
       const searchParams = {
@@ -323,27 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      currentLoadedTutors = items.map(item => ({
-        id: item.tutorId,
-        tutorCode: item.tutorCode,
-        fullName: item.fullName || 'Gia sư Kizuna',
-        avatarUrl: item.avatarUrl || null,
-        isOnline: true,
-        verified: (item.verified !== undefined ? item.verified : item.isVerified) ?? true,
-        // Tiêu đề bài đăng đã được cán bộ học vụ duyệt (nếu có)
-        headline: item.postTitle || item.headline || 'Gia sư tiếng Nhật',
-        experienceYears: item.experienceYears || 0,
-        experienceText: (item.experienceYears ? item.experienceYears + ' năm giảng dạy chuyên sâu' : 'Gia sư chuyên môn'),
-        jlptLevel: item.highestJlptLevel || 'N1',
-        specialties: (item.specialties && item.specialties.length > 0) ? item.specialties : [item.headline || 'Luyện thi JLPT & Kaiwa'],
-        teachingFormat: item.teachingFormat || 'Online 1-1',
-        location: item.location || 'Hà Nội, Việt Nam',
-        hourlyRate: item.hourlyRate || 0,
-        rating: item.avgRating != null ? Number(item.avgRating) : 0,
-        reviewsCount: item.totalReviews || 0,
-        bio: item.bio || 'Chưa có thông tin giới thiệu chi tiết.',
-        availabilities: item.availabilities || []
-      }));
+      currentLoadedTutors = items.map(normalizeTutorRecord);
 
       // Áp dụng bộ lọc nâng cao (Trình độ gia sư, Hồ sơ xác thực, Lịch rảnh ô ma trận)
       let displayTutors = currentLoadedTutors;
@@ -356,35 +481,59 @@ document.addEventListener('DOMContentLoaded', () => {
         displayTutors = displayTutors.filter(t => matchTutorLevel(t, state.tutorLevel));
       }
 
-      if (state.scheduleSlots.size > 0) {
-        displayTutors = displayTutors.filter(t => matchTutorSchedule(t, state.scheduleSlots));
+      if (state.selectedShifts.size > 0 || state.selectedDays.size > 0) {
+        displayTutors = displayTutors.filter(t => matchTutorTimeFilter(t, state.selectedShifts, state.selectedDays));
       }
 
-      const totalMatched = displayTutors.length;
+      currentDisplayedTutors = displayTutors;
+      const hasClientFilters = Boolean(state.verifiedOnly || state.tutorLevel || state.selectedShifts.size > 0 || state.selectedDays.size > 0);
+      const totalMatched = hasClientFilters ? displayTutors.length : totalElements;
+      const effectiveTotalPages = hasClientFilters
+        ? Math.max(1, Math.ceil(totalMatched / state.pageSize))
+        : totalPages;
+
       if (resultsCount) resultsCount.textContent = totalMatched;
       if (totalCountEl) totalCountEl.textContent = totalMatched;
 
-      if (totalMatched === 0) {
+      if (displayTutors.length === 0 || totalMatched === 0) {
         // Trạng thái Rỗng (Empty State - MSG01)
         if (tutorGrid) tutorGrid.innerHTML = '';
-        if (emptyState) emptyState.classList.remove('hidden');
+        if (tutorPreviewPanel) tutorPreviewPanel.innerHTML = '';
         if (paginationSection) paginationSection.classList.add('hidden');
+        setSplitLayoutMode('empty');
       } else {
         // Trạng thái Thành công (Success)
-        if (emptyState) emptyState.classList.add('hidden');
-        if (tutorGrid) {
-          tutorGrid.innerHTML = displayTutors.map(renderTutorCard).join('');
+        setSplitLayoutMode('results');
+        const hasCurrentActive = displayTutors.some(t => String(t.id) === String(activePreviewTutorId));
+        if (!hasCurrentActive) {
+          activePreviewTutorId = displayTutors[0].id;
         }
-        renderPagination(totalPages, state.currentPage, totalMatched, state.pageSize);
+        if (tutorGrid) {
+          tutorGrid.innerHTML = displayTutors
+            .map(t => buildTutorCardHtml(t, { isSelected: String(t.id) === String(activePreviewTutorId) }))
+            .join('');
+        }
+        const selectedTutor = displayTutors.find(t => String(t.id) === String(activePreviewTutorId)) || displayTutors[0];
+        if (tutorPreviewPanel) {
+          tutorPreviewPanel.innerHTML = buildPreviewPanelHtml(selectedTutor);
+        }
+        syncPreviewPanelPosition();
+        renderPagination(effectiveTotalPages, state.currentPage, totalMatched, state.pageSize);
       }
     } catch (err) {
       if (requestId !== currentRequestId) return;
       console.error('Không thể kết nối tải dữ liệu gia sư:', err);
 
+      currentDisplayedTutors = [];
+      activePreviewTutorId = null;
+      if (tutorPreviewPanel) tutorPreviewPanel.innerHTML = '';
+      if (paginationSection) paginationSection.classList.add('hidden');
+      setSplitLayoutMode('error');
+
       // Trạng thái Lỗi mạng (Error State) thân thiện kèm nút Thử lại
       if (tutorGrid) {
         tutorGrid.innerHTML = `
-          <div class="col-span-full p-12 bg-white rounded-2xl border border-red-200 text-center space-y-4 max-w-lg mx-auto my-6 shadow-sm">
+          <div class="p-12 bg-white rounded-2xl border border-red-200 text-center space-y-4 max-w-lg mx-auto my-6 shadow-sm">
             <div class="w-16 h-16 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
               <span class="material-symbols-outlined text-[32px]">cloud_off</span>
             </div>
@@ -394,7 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Đã có sự cố khi tải danh sách gia sư. Vui lòng kiểm tra lại kết nối và thử lại.
               </p>
             </div>
-            <button id="retry-search-btn" type="button" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-semibold transition-colors inline-flex items-center gap-1.5 shadow-sm">
+            <button id="retry-search-btn" type="button" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-semibold transition-colors inline-flex items-center gap-1.5 shadow-sm cursor-pointer">
               <span class="material-symbols-outlined text-[16px]">refresh</span>
               <span>Thử lại</span>
             </button>
@@ -403,110 +552,71 @@ document.addEventListener('DOMContentLoaded', () => {
         const retryBtn = document.getElementById('retry-search-btn');
         if (retryBtn) retryBtn.addEventListener('click', () => loadTutors());
       }
-      if (emptyState) emptyState.classList.add('hidden');
-      if (paginationSection) paginationSection.classList.add('hidden');
     }
 
     renderActiveChips();
   }
 
-  // 8. Render thẻ gia sư với link dynamic route /gs/:tutorCode (T022)
-  function renderTutorCard(tutor) {
-    const profileUrl = tutor.tutorCode ? `/gs/${tutor.tutorCode}` : `/pages/tutor-profile/?id=${tutor.id}`;
-    return `
-      <article class="bg-white border border-[#E5DECB] rounded-xl p-space-md md:p-space-lg shadow-[0_1px_4px_rgba(15,37,69,0.04)] hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
-        <div class="space-y-space-md">
-          <!-- Header info: Avatar & Main credentials -->
-          <div class="flex items-start gap-space-md">
-            <div class="relative shrink-0">
-              ${tutor.avatarUrl
-                ? `<img class="w-20 h-20 rounded-full object-cover shadow-sm ring-2 ring-surface-container-lowest" alt="${tutor.fullName}" src="${tutor.avatarUrl}">`
-                : `<div class="w-20 h-20 rounded-full bg-sky-100 text-[#006194] font-bold text-lg flex items-center justify-center shadow-sm ring-2 ring-surface-container-lowest">${tutor.fullName.substring(0, 2).toUpperCase()}</div>`}
-              ${tutor.isOnline ? '<span class="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-emerald-500 ring-2 ring-surface-container-lowest" title="Đang trực tuyến"></span>' : ''}
-            </div>
-            <div class="flex-1 min-w-0 space-y-1">
-              <div class="flex items-center justify-between gap-2">
-                <h3 class="font-title-md text-title-md font-bold text-on-surface group-hover:text-primary transition-colors truncate">
-                  <a href="${profileUrl}">${tutor.fullName}</a>
-                </h3>
-                ${tutor.reviewsCount > 0 ? `
-                  <div class="flex items-center gap-1 text-amber-500 font-bold shrink-0 text-sm">
-                    <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                    <span>${Number(tutor.rating).toFixed(1)}</span>
-                    <span class="text-on-surface-variant font-normal text-xs">(${tutor.reviewsCount})</span>
-                  </div>
-                ` : ''}
-              </div>
+  function openConnectForTutor(tutorId) {
+    const tutor = currentLoadedTutors.find(t => String(t.id) === String(tutorId));
+    if (!tutor) return;
+    const baseUrl = getTutorProfileUrl(tutor);
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    window.location.href = `${baseUrl}${separator}connect=true`;
+  }
 
-              <!-- Badges -->
-              <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                ${tutor.verified ? `
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 text-[11px] font-semibold border border-sky-200">
-                    <span class="material-symbols-outlined text-[14px] text-sky-600">verified</span>
-                    <span>Đã xác thực CCCD & Bằng cấp</span>
-                  </span>
-                ` : ''}
-              </div>
+  if (tutorGrid) {
+    tutorGrid.addEventListener('mouseover', (e) => {
+      const card = e.target.closest('[data-tutor-card]');
+      if (!card || !tutorGrid.contains(card)) return;
+      const tid = card.getAttribute('data-tutor-id');
+      if (tid) {
+        setActivePreviewTutor(tid);
+      }
+    });
 
-              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-surface-container-low text-primary text-xs font-semibold max-w-full">
-                <span class="material-symbols-outlined text-[15px] shrink-0">badge</span>
-                <span class="truncate">${tutor.headline}</span>
-              </div>
-            </div>
-          </div>
+    tutorGrid.addEventListener('focusin', (e) => {
+      const card = e.target.closest('[data-tutor-card]');
+      if (!card || !tutorGrid.contains(card)) return;
+      const tid = card.getAttribute('data-tutor-id');
+      if (tid) {
+        setActivePreviewTutor(tid);
+      }
+    });
 
-          <!-- JLPT & Experience Tags -->
-          <div class="flex flex-wrap items-center gap-1.5">
-            <span class="px-2.5 py-0.5 rounded bg-surface-container text-primary font-semibold text-xs border border-surface-variant">
-              JLPT ${tutor.jlptLevel}
-            </span>
-            <span class="text-xs text-on-surface-variant flex items-center gap-1">
-              <span class="material-symbols-outlined text-[15px] text-primary">history_edu</span>
-              <span>${tutor.experienceText}</span>
-            </span>
-            ${tutor.reviewsCount > 0 ? '' : `
-              <span class="text-[#E5DECB]">•</span>
-              <span class="text-xs text-slate-500 flex items-center gap-1">
-                <span class="material-symbols-outlined text-[15px] text-slate-400">rate_review</span>
-                <span>Chưa có đánh giá</span>
-              </span>
-            `}
-          </div>
+    tutorGrid.addEventListener('click', (e) => {
+      const connectBtn = e.target.closest('[data-action="connect"]');
+      if (connectBtn) {
+        e.preventDefault();
+        openConnectForTutor(connectBtn.getAttribute('data-tutor-id'));
+        return;
+      }
 
-          <!-- Highlights (Specialties & Format) -->
-          <div class="space-y-1.5 text-xs text-on-surface-variant bg-[#FAF8F2] p-2.5 rounded-lg border border-[#ECE8DE]">
-            <div class="flex items-start gap-1.5">
-              <span class="material-symbols-outlined text-primary text-[16px] shrink-0">psychology</span>
-              <span class="line-clamp-2"><strong class="text-on-surface">Chuyên môn:</strong> ${tutor.specialties.join(', ')}.</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-primary text-[16px] shrink-0">computer</span>
-              <span><strong class="text-on-surface">Hình thức:</strong> ${tutor.teachingFormat}</span>
-            </div>
-          </div>
-        </div>
+      const toggleBioBtn = e.target.closest('[data-action="toggle-bio"]');
+      if (toggleBioBtn) {
+        e.preventDefault();
+        const card = toggleBioBtn.closest('[data-tutor-card]');
+        const bioEl = card ? card.querySelector('[data-bio-text]') : null;
+        if (bioEl) {
+          const isExpanded = toggleBioBtn.getAttribute('aria-expanded') === 'true';
+          bioEl.classList.toggle('line-clamp-2', isExpanded);
+          toggleBioBtn.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+          toggleBioBtn.textContent = isExpanded ? 'Xem thêm' : 'Thu gọn';
+          syncPreviewPanelPosition();
+        }
+        return;
+      }
 
-        <!-- Footer Card: Pricing & Actions -->
-        <div class="pt-space-md mt-space-md flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm border-t border-[#f0ebe0]">
-          <div class="flex flex-col">
-            <span class="font-caption text-caption text-on-surface-variant">Học phí đề xuất:</span>
-            <div class="flex items-baseline gap-1">
-              <span class="font-title-md text-title-md font-bold text-primary">${formatVND(tutor.hourlyRate)}</span>
-              <span class="font-caption text-caption text-on-surface-variant">/ giờ</span>
-            </div>
-          </div>
-          <div class="flex items-center gap-space-xs w-full sm:w-auto">
-            <a href="${profileUrl}" class="w-1/2 sm:w-auto px-space-md py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-semibold transition-colors text-center inline-flex items-center justify-center">
-              Xem hồ sơ
-            </a>
-            <button class="w-1/2 sm:w-auto px-space-md py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer" type="button" onclick="window.handleOpenConnect('${tutor.id}')">
-              <span class="material-symbols-outlined text-[16px]">calendar_add_on</span>
-              <span>Đặt lịch học thử</span>
-            </button>
-          </div>
-        </div>
-      </article>
-    `;
+      const card = e.target.closest('[data-tutor-card]');
+      if (card) {
+        const tid = card.getAttribute('data-tutor-id');
+        if (tid) setActivePreviewTutor(tid);
+      }
+    });
+
+    window.addEventListener('resize', debounce(() => {
+      syncPreviewPanelPosition();
+    }, 100));
   }
 
   // 9. Hiện thực phân trang hai chiều Frontend ↔ Backend (T021)
@@ -595,34 +705,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Khớp lịch rảnh của gia sư với các ô ma trận đã chọn
-  function matchTutorSchedule(tutor, selectedSlots) {
-    if (!selectedSlots || selectedSlots.size === 0) return true;
-    if (!tutor.availabilities || tutor.availabilities.length === 0) return false;
-
-    return tutor.availabilities.some(av => {
-      const dow = av.dayOfWeek; // 1 = CN, 2 = T2, ..., 7 = T7
-      const startParts = (av.startTime || '00:00').split(':');
-      const endParts = (av.endTime || '23:59').split(':');
-      const startHour = parseInt(startParts[0], 10);
-      const endHour = parseInt(endParts[0], 10);
-
-      return Array.from(selectedSlots).some(slotKey => {
-        const [sDayStr, sShift] = slotKey.split('-');
-        const sDay = parseInt(sDayStr, 10);
-        if (dow !== sDay) return false;
-
-        if (sShift === 'morning') {
-          return startHour < 12;
-        } else if (sShift === 'afternoon') {
-          return startHour < 18 && endHour > 12;
-        } else if (sShift === 'evening') {
-          return endHour > 18 || startHour >= 18;
-        }
-        return false;
-      });
-    });
-  }
 
   // 10. Chip bộ lọc đang áp dụng & Xóa từng chip đồng bộ URL (T019)
   function renderActiveChips() {
@@ -662,8 +744,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.verifiedOnly) {
       chips.push({ key: 'verifiedOnly', label: 'Hồ sơ đã xác thực' });
     }
-    if (state.scheduleSlots.size > 0) {
-      chips.push({ key: 'scheduleSlots', label: `Lịch rảnh: ${state.scheduleSlots.size} ô đã chọn` });
+    const shiftLabels = {
+      morning: 'Buổi sáng',
+      afternoon: 'Buổi chiều',
+      evening: 'Buổi tối'
+    };
+    const dayLabels = {
+      1: 'Chủ nhật',
+      2: 'Thứ 2',
+      3: 'Thứ 3',
+      4: 'Thứ 4',
+      5: 'Thứ 5',
+      6: 'Thứ 6',
+      7: 'Thứ 7'
+    };
+
+    state.selectedShifts.forEach(s => {
+      chips.push({ key: `shift:${s}`, label: `Khung giờ: ${shiftLabels[s] || s}` });
+    });
+    state.selectedDays.forEach(d => {
+      chips.push({ key: `day:${d}`, label: `Ngày học: ${dayLabels[d] || `Thứ ${d}`}` });
+    });
+
+    if (activeChipsRow) {
+      activeChipsRow.classList.toggle('hidden', chips.length === 0);
+      activeChipsRow.classList.toggle('flex', chips.length > 0);
     }
 
     if (chips.length === 0) {
@@ -673,52 +778,81 @@ document.addEventListener('DOMContentLoaded', () => {
 
     activeChipsContainer.innerHTML = chips.map(chip => `
       <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container text-primary text-xs font-semibold border border-surface-variant">
-        <span>${chip.label}</span>
-        <button type="button" class="hover:text-error ml-1 text-[14px] leading-none cursor-pointer" onclick="window.removeFilter('${chip.key}')">×</button>
+        <span>${escapeHtml(chip.label)}</span>
+        <button type="button" class="hover:text-error ml-1 text-[14px] leading-none cursor-pointer" data-remove-filter="${escapeHtml(chip.key)}" aria-label="Bỏ lọc ${escapeHtml(chip.label)}">×</button>
       </span>
     `).join('');
   }
 
-  window.removeFilter = function (key) {
-    if (key === 'keyword') { state.keyword = ''; if (searchInput) searchInput.value = ''; }
-    if (key === 'location') { state.location = ''; if (filterLocation) filterLocation.value = ''; }
-    if (key === 'jlptLevel') { state.jlptLevel = 'all'; syncJlptPills(); }
-    if (key === 'goal') { state.goal = ''; if (filterGoal) filterGoal.value = ''; }
-    if (key === 'format') { state.format = ''; syncFormatButtonsUI(); }
-    if (key === 'priceRange') { state.priceRange = ''; if (filterPrice) filterPrice.value = ''; }
-    if (key === 'schedule') { state.schedule = ''; if (filterSchedule) filterSchedule.value = ''; }
-    if (key === 'tutorLevel') { state.tutorLevel = ''; if (filterTutorLevel) filterTutorLevel.value = ''; }
-    if (key === 'verifiedOnly') { state.verifiedOnly = false; if (filterVerifiedOnly) filterVerifiedOnly.checked = false; }
-    if (key === 'scheduleSlots') { state.scheduleSlots.clear(); syncScheduleMatrixUI(); }
-    updateAdvancedFilterBadge();
+  function removeFilterByKey(key) {
+    if (key === 'keyword') state.keyword = '';
+    if (key === 'location') state.location = '';
+    if (key === 'jlptLevel') state.jlptLevel = 'all';
+    if (key === 'goal') state.goal = '';
+    if (key === 'format') state.format = '';
+    if (key === 'priceRange') state.priceRange = '';
+    if (key === 'schedule') state.schedule = '';
+    if (key === 'tutorLevel') state.tutorLevel = '';
+    if (key === 'verifiedOnly') state.verifiedOnly = false;
+    if (key.startsWith('shift:')) state.selectedShifts.delete(key.slice(6));
+    if (key.startsWith('day:')) state.selectedDays.delete(parseInt(key.slice(4), 10));
+
+    syncFiltersWithState();
     state.currentPage = 1;
     updateUrlFromState(true);
     loadTutors();
-  };
+  }
 
-  // 11. Đặt lịch học thử 1-1 với gia sư (Phương án 1)
-  window.handleOpenConnect = function (tutorId) {
-    const tutor = currentLoadedTutors.find(t => t.id === tutorId);
-    if (!tutor) return;
-
-    const targetUrl = (tutor.tutorCode)
-      ? `/gs/${tutor.tutorCode}?connect=true`
-      : `/pages/tutor-profile/?id=${tutor.id}&connect=true`;
-
-    window.location.href = targetUrl;
-  };
-
-  // 12. Gắn sự kiện người dùng tương tác với bộ lọc (T015, T016, T017, T018, T020)
-
-  // Sự kiện Pill JLPT (T016)
-  jlptPills.forEach(pill => {
-    pill.addEventListener('click', () => {
-      state.jlptLevel = pill.getAttribute('data-level');
-      state.currentPage = 1;
-      syncJlptPills();
-      updateUrlFromState(true);
-      loadTutors();
+  if (activeChipsContainer) {
+    activeChipsContainer.addEventListener('click', (e) => {
+      const removeBtn = e.target.closest('[data-remove-filter]');
+      if (!removeBtn) return;
+      const key = removeBtn.getAttribute('data-remove-filter');
+      if (key) removeFilterByKey(key);
     });
+  }
+
+  // 12. Gắn sự kiện cho thanh bộ lọc 1 hàng ngang & các popover
+
+  if (filterPillBar) {
+    filterPillBar.addEventListener('click', (e) => {
+      const trigger = e.target.closest('[data-dropdown-trigger]');
+      if (trigger) {
+        e.stopPropagation();
+        const name = trigger.getAttribute('data-dropdown-trigger');
+        if (name) toggleDropdown(name);
+        return;
+      }
+
+      const optionBtn = e.target.closest('.filter-option-btn');
+      if (optionBtn) {
+        const filterType = optionBtn.getAttribute('data-filter-type');
+        const value = optionBtn.getAttribute('data-value') || '';
+        if (filterType === 'goal') state.goal = value;
+        else if (filterType === 'jlpt') state.jlptLevel = value || 'all';
+        else if (filterType === 'format') state.format = value;
+        else if (filterType === 'location') state.location = value;
+        else if (filterType === 'priceRange') state.priceRange = value;
+
+        closeAllDropdowns();
+        syncFiltersWithState();
+        state.currentPage = 1;
+        updateUrlFromState(true);
+        loadTutors();
+      }
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.filter-dropdown')) {
+      closeAllDropdowns();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeAllDropdowns();
+    }
   });
 
   // Sự kiện Debounce ô tìm kiếm 300ms + replaceState (T015)
@@ -740,91 +874,58 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sự kiện dropdown bộ lọc cơ bản
-  [
-    { el: filterLocation, prop: 'location' },
-    { el: filterGoal, prop: 'goal' },
-    { el: filterPrice, prop: 'priceRange' }
-  ].forEach(({ el, prop }) => {
-    if (el) {
-      el.addEventListener('change', (e) => {
-        state[prop] = e.target.value;
-        state.currentPage = 1;
-        updateUrlFromState(true);
-        loadTutors();
-      });
-    }
-  });
-
-  // Sự kiện nút bật/tắt Bộ lọc thêm
-  if (btnToggleAdvancedFilter && advancedFilterDrawer) {
-    btnToggleAdvancedFilter.addEventListener('click', () => {
-      const isHidden = advancedFilterDrawer.classList.toggle('hidden');
-      if (!isHidden) {
-        btnToggleAdvancedFilter.className = 'flex-1 h-11 px-3 rounded-lg border border-[#006194] bg-[#006194] text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer';
-      } else {
-        btnToggleAdvancedFilter.className = 'flex-1 h-11 px-3 rounded-lg border border-[#006194] bg-white hover:bg-sky-50 text-[#006194] font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer';
-      }
-    });
-  }
-
-
-
-  // Sự kiện nhóm nút Hình thức giảng dạy (Segmented Control)
-  formatButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const f = btn.getAttribute('data-format');
-      state.format = f === 'all' ? '' : f;
-      syncFormatButtonsUI();
-      updateAdvancedFilterBadge();
-    });
-  });
-
-  // Sự kiện dropdown Trình độ gia sư
+  // Sự kiện dropdown Trình độ gia sư (trong popover Khác)
   if (filterTutorLevel) {
     filterTutorLevel.addEventListener('change', (e) => {
       state.tutorLevel = e.target.value;
-      updateAdvancedFilterBadge();
+      syncFiltersWithState();
+      state.currentPage = 1;
+      updateUrlFromState(true);
+      loadTutors();
     });
   }
 
-  // Sự kiện checkbox Hồ sơ xác thực
+  // Sự kiện checkbox Hồ sơ xác thực (trong popover Khác)
   if (filterVerifiedOnly) {
     filterVerifiedOnly.addEventListener('change', (e) => {
       state.verifiedOnly = e.target.checked;
-      updateAdvancedFilterBadge();
+      syncFiltersWithState();
+      state.currentPage = 1;
+      updateUrlFromState(true);
+      loadTutors();
     });
   }
 
-  // Sự kiện click ô trong ma trận Lịch rảnh (21 ô)
-  scheduleMatrixCells.forEach(cell => {
-    cell.addEventListener('click', () => {
-      const day = cell.getAttribute('data-day');
-      const shift = cell.getAttribute('data-shift');
-      const key = `${day}-${shift}`;
-
-      if (state.scheduleSlots.has(key)) {
-        state.scheduleSlots.delete(key);
-      } else {
-        state.scheduleSlots.add(key);
-      }
-      syncScheduleMatrixUI();
-      updateAdvancedFilterBadge();
+  // Sự kiện checkbox Khung giờ học & Ngày học (trong popover Thời gian học)
+  shiftCheckboxes.forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) state.selectedShifts.add(cb.value);
+      else state.selectedShifts.delete(cb.value);
+      syncFiltersWithState();
+      state.currentPage = 1;
+      updateUrlFromState(true);
+      loadTutors();
     });
   });
 
-  // Sự kiện nút Bỏ chọn tất cả ô
+  dayCheckboxes.forEach(cb => {
+    cb.addEventListener('change', () => {
+      const dayVal = parseInt(cb.value, 10);
+      if (cb.checked) state.selectedDays.add(dayVal);
+      else state.selectedDays.delete(dayVal);
+      syncFiltersWithState();
+      state.currentPage = 1;
+      updateUrlFromState(true);
+      loadTutors();
+    });
+  });
+
+  // Sự kiện nút Bỏ chọn thời gian học
   if (btnClearScheduleSlots) {
     btnClearScheduleSlots.addEventListener('click', () => {
-      state.scheduleSlots.clear();
-      syncScheduleMatrixUI();
-      updateAdvancedFilterBadge();
-    });
-  }
-
-  // Sự kiện nút "Áp dụng" từ Bộ lọc thêm
-  if (btnApplyAdvancedFilter) {
-    btnApplyAdvancedFilter.addEventListener('click', () => {
+      state.selectedShifts.clear();
+      state.selectedDays.clear();
+      syncFiltersWithState();
       state.currentPage = 1;
       updateUrlFromState(true);
       loadTutors();
@@ -851,9 +952,11 @@ document.addEventListener('DOMContentLoaded', () => {
     state.schedule = '';
     state.tutorLevel = '';
     state.verifiedOnly = false;
-    state.scheduleSlots.clear();
+    state.selectedShifts.clear();
+    state.selectedDays.clear();
     state.sortBy = 'rating';
     state.currentPage = 1;
+    closeAllDropdowns();
     syncFiltersWithState();
     updateUrlFromState(true);
     loadTutors();
@@ -866,21 +969,30 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadLocationOptions() {
     try {
       const locations = await API.tutors.getLocations();
-      if (!filterLocation) return;
+      if (!locationOptionsList) return;
 
-      filterLocation.innerHTML = '<option value="">Tất cả khu vực</option>';
+      locationOptionsList.innerHTML = '';
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.className = 'filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer';
+      allBtn.setAttribute('data-filter-type', 'location');
+      allBtn.setAttribute('data-value', '');
+      allBtn.textContent = 'Tất cả khu vực';
+      locationOptionsList.appendChild(allBtn);
+
       if (Array.isArray(locations) && locations.length > 0) {
         locations.forEach(loc => {
-          const opt = document.createElement('option');
-          opt.value = loc;
-          opt.textContent = loc;
-          filterLocation.appendChild(opt);
+          const optBtn = document.createElement('button');
+          optBtn.type = 'button';
+          optBtn.className = 'filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer';
+          optBtn.setAttribute('data-filter-type', 'location');
+          optBtn.setAttribute('data-value', loc);
+          optBtn.textContent = loc;
+          locationOptionsList.appendChild(optBtn);
         });
       }
 
-      if (state.location) {
-        filterLocation.value = state.location;
-      }
+      syncFiltersWithState();
     } catch (err) {
       console.warn('Lỗi khi nạp danh sách địa điểm gia sư:', err);
     }

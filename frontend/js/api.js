@@ -840,6 +840,27 @@ export const API = {
   },
 
   // FE-02: Quản lý hồ sơ (specs/002-profile-management/contracts/profile-api.md)
+  learningTools: {
+    /**
+     * Trạng thái mở khóa công cụ học: { allowed, openClassCount, message, loginRequired }.
+     * Không tự chuyển về trang đăng nhập (khác authRequest) vì được gọi ngầm cả ở trang chủ:
+     * chưa đăng nhập hoặc phiên hết hạn thì trả loginRequired = true.
+     */
+    async getAccess() {
+      const loginRequired = { allowed: false, openClassCount: 0, loginRequired: true };
+      const token = getStoredToken();
+      if (!token) return loginRequired;
+      const response = await fetch(`${API_BASE_URL}/learner/learning-tools/access`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (response.status === 401) return loginRequired;
+      if (!response.ok) throw new ApiError({ status: response.status });
+      const json = await response.json();
+      return { ...json.data, loginRequired: false };
+    }
+  },
+
   profile: {
     /** Tải ảnh đại diện (JPG, PNG, WEBP, tối đa 5MB); trả { avatarUrl, fileName, size } */
     uploadAvatar(file) {

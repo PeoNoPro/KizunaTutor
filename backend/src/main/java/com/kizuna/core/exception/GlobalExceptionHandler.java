@@ -12,9 +12,14 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import java.time.OffsetDateTime;
 import java.util.Map;
-/** Xử lý lỗi dùng chung cho mọi controller: chỉ trả thông điệp tiếng Việt, không lộ tên exception. */
+/**
+ * Xử lý lỗi dùng chung cho mọi controller: chỉ trả thông điệp tiếng Việt, không lộ tên exception.
+ * Thứ tự HIGHEST_PRECEDENCE + 1 để handler riêng của feature (vd VerificationExceptionHandler, chỉ áp cho
+ * controller của nó, khai báo HIGHEST_PRECEDENCE) được ưu tiên; nếu bằng nhau, handler Exception.class ở đây
+ * sẽ nuốt lỗi nghiệp vụ của feature thành 503.
+ */
 @Slf4j
-@RestControllerAdvice @Order(Ordered.HIGHEST_PRECEDENCE)
+@RestControllerAdvice @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class GlobalExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<?> conflictException(ConflictException e) {

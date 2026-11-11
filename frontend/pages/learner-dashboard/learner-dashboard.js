@@ -8,6 +8,7 @@
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { showToast } from '/js/main.js';
 import { API } from '/js/api.js';
+import { getLearningToolAccess, renderAccessBanner } from '/js/learning-tools-access.js';
 
 // Khởi tạo khung Layout dùng chung cho Học Viên
 initLearnerShell({
@@ -262,7 +263,13 @@ function handleLogout() {
 // =========================================================================
 // 5. KHỞI TẠO DOM VÀ SỰ KIỆN
 // =========================================================================
+async function loadLearningToolsBanner() {
+  const access = await getLearningToolAccess();
+  renderAccessBanner(document.getElementById('learningToolsAccessBanner'), access);
+}
+
 function initDashboard() {
+  loadLearningToolsBanner();
   loadLearnerProfile();
   loadRealFlashcardStats();
   loadRecentSessions();

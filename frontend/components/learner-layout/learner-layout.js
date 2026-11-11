@@ -6,6 +6,7 @@
 
 import { initSidebarRouter, LEARNER_NAV_ACTIVE, LEARNER_NAV_IDLE } from '/js/sidebarRouter.js';
 import { brandLogoHtml } from '/components/brand-logo/brand-logo.js';
+import { initLearningToolsGuard } from '/js/learning-tools-access.js';
 
 // =========================================================================
 // 1. CẤU HÌNH DANH MỤC MENU HỌC VIÊN
@@ -478,6 +479,9 @@ export function initLearnerShell(options = {}) {
   // Khởi tạo router điều hướng mượt mà không reload trang (Dynamic Shell Router)
   initSidebarRouter();
 
+  // Khóa công cụ học khi học viên chưa vào lớp (chạy cả khi trang được nạp lại qua router SPA)
+  initLearningToolsGuard();
+
   // Kiểm tra chống trùng lặp: Nếu sidebar đã được render, tuyệt đối không tạo thêm
   if (document.getElementById('learnerSidebar')) {
     return;
@@ -594,6 +598,7 @@ if (typeof customElements !== 'undefined' && !customElements.get('kizuna-learner
 
       this.appendChild(wrapper);
       bindLearnerLayoutEvents();
+      initLearningToolsGuard();
     }
   }
 

@@ -64,6 +64,8 @@ class PaymentControllersTest {
     @MockBean private PaymentIssueService issueService;
     @MockBean private JwtTokenProvider jwtTokenProvider;
     @MockBean private UserRepository userRepository;
+    @MockBean private com.kizuna.core.security.JwtTokenVerifier jwtTokenVerifier;
+    @MockBean private com.kizuna.features.admin.service.OperationsActorResolver operationsActorResolver;
 
     private static RequestPostProcessor as(String role) {
         User user = User.builder().userId(UUID.randomUUID()).email("u@kizuna.test").fullName("Người dùng")

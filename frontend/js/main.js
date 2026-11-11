@@ -4,6 +4,7 @@
  * Cung cấp cơ chế nạp Header / Footer từ components/ để đồng bộ toàn dự án.
  */
 import {fetchAPI} from './api.js';
+import { initLearningToolsGuard } from './learning-tools-access.js';
 
 // 1. Định dạng tiền tệ VND
 export function formatVND(amount) {
@@ -543,6 +544,9 @@ export async function loadSharedComponents() {
 // Khởi chạy tự động khi DOM sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
   loadSharedComponents();
+  // Trang công khai (trang chủ, tìm gia sư, chính sách…): khách hoặc học viên chưa vào lớp
+  // bấm vào công cụ học bị khóa thì hiện hộp thoại hướng dẫn thay vì vào trang.
+  initLearningToolsGuard();
 });
 
 // Gắn toàn cục

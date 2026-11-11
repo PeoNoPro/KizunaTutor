@@ -199,6 +199,23 @@ class TrialBookingRespondTest {
     }
 
     @Test
+    @DisplayName("Không cho chấp nhận học thử trùng giờ một buổi học thử khác gia sư đã xác nhận")
+    void testRespondTrialBooking_Accept_ClashWithConfirmedTrial() {
+        RespondTrialBookingRequestDTO dto = RespondTrialBookingRequestDTO.builder()
+                .action("ACCEPT").meetingLink("https://meet.google.com/abc-xyz-123").build();
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(mockBooking));
+        when(trialBookingRepository.existsConfirmedTutorOverlap(any(), any(), any(), any())).thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class,
+                () -> trialBookingService.respondTrialBooking("tutor@test.com", bookingId, dto));
+        assertTrue(ex.getMessage().contains("buổi học thử khác trùng khung giờ"));
+        assertEquals(TrialBookingStatus.PENDING, mockBooking.getBookingStatus());
+        verify(trialBookingRepository, never()).save(any(TrialBooking.class));
+    }
+
+    @Test
     @DisplayName("Không cho đồng ý kết nối khi buổi học thử chưa hoàn thành")
     void testAgreeConnectionAfterTrial_NotCompleted() {
         mockBooking.setBookingStatus(TrialBookingStatus.CONFIRMED);

@@ -16,45 +16,31 @@ import java.util.UUID;
 @Repository
 public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID> {
 
-    @Query("SELECT COUNT(tb) > 0 FROM TrialBooking tb " +
-           "WHERE tb.tutor.tutorId = :tutorId " +
-           "AND tb.bookingStatus IN ('PENDING', 'CONFIRMED') " +
-           "AND tb.scheduledStartTime < :newEndTime " +
-           "AND tb.scheduledEndTime > :newStartTime")
-    boolean existsOverlappingBooking(
-            @Param("tutorId") UUID tutorId,
-            @Param("newStartTime") OffsetDateTime newStartTime,
-            @Param("newEndTime") OffsetDateTime newEndTime);
-
-    @Query("SELECT COUNT(tb) > 0 FROM TrialBooking tb " +
-           "WHERE tb.learner.learnerId = :learnerId " +
-           "AND tb.bookingStatus IN ('PENDING', 'CONFIRMED') " +
-           "AND tb.scheduledStartTime < :newEndTime " +
-           "AND tb.scheduledEndTime > :newStartTime")
-    boolean existsOverlappingLearnerBooking(
-            @Param("learnerId") UUID learnerId,
-            @Param("newStartTime") OffsetDateTime newStartTime,
-            @Param("newEndTime") OffsetDateTime newEndTime);
-
+    /**
+     * Gia sư đã có buổi học thử ĐÃ XÁC NHẬN (CONFIRMED/RESCHEDULED) khác chồng lấn khung giờ này hay chưa.
+     * Yêu cầu đang chờ (PENDING) được phép trùng nhau vì học viên tự chọn giờ; trùng lịch chỉ bị chặn
+     * khi gia sư bấm đồng ý hoặc khi dời lịch.
+     */
     @Query("SELECT COUNT(tb) > 0 FROM TrialBooking tb " +
            "WHERE tb.tutor.tutorId = :tutorId " +
            "AND tb.bookingId <> :excludeBookingId " +
-           "AND tb.bookingStatus IN ('PENDING', 'CONFIRMED') " +
+           "AND tb.bookingStatus IN ('CONFIRMED', 'RESCHEDULED') " +
            "AND tb.scheduledStartTime < :newEndTime " +
            "AND tb.scheduledEndTime > :newStartTime")
-    boolean existsOverlappingBookingExcludingId(
+    boolean existsConfirmedTutorOverlap(
             @Param("tutorId") UUID tutorId,
             @Param("excludeBookingId") UUID excludeBookingId,
             @Param("newStartTime") OffsetDateTime newStartTime,
             @Param("newEndTime") OffsetDateTime newEndTime);
 
+    /** Học viên đã có buổi học thử ĐÃ XÁC NHẬN (CONFIRMED/RESCHEDULED) khác chồng lấn khung giờ này hay chưa. */
     @Query("SELECT COUNT(tb) > 0 FROM TrialBooking tb " +
            "WHERE tb.learner.learnerId = :learnerId " +
            "AND tb.bookingId <> :excludeBookingId " +
-           "AND tb.bookingStatus IN ('PENDING', 'CONFIRMED') " +
+           "AND tb.bookingStatus IN ('CONFIRMED', 'RESCHEDULED') " +
            "AND tb.scheduledStartTime < :newEndTime " +
            "AND tb.scheduledEndTime > :newStartTime")
-    boolean existsOverlappingLearnerBookingExcludingId(
+    boolean existsConfirmedLearnerOverlap(
             @Param("learnerId") UUID learnerId,
             @Param("excludeBookingId") UUID excludeBookingId,
             @Param("newStartTime") OffsetDateTime newStartTime,
@@ -96,6 +82,26 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
                                                       @Param("dayOfWeek") int dayOfWeek,
                                                       @Param("startTime") java.time.LocalTime startTime,
                                                       @Param("endTime") java.time.LocalTime endTime);
+
+    /** Cặp học viên - gia sư đang có buổi học thử ở một trong các trạng thái (dùng để chặn gửi trùng). */
+    boolean existsByLearnerLearnerIdAndTutorTutorIdAndBookingStatusIn(UUID learnerId, UUID tutorId,
+                                                                       java.util.Collection<TrialBookingStatus> statuses);
+
+    /** Gia sư đã từ chối học viên này sau mốc thời gian cho trước hay chưa (thời gian chờ sau khi bị từ chối). */
+    boolean existsByLearnerLearnerIdAndTutorTutorIdAndBookingStatusAndUpdatedAtAfter(UUID learnerId, UUID tutorId,
+                                                                                    TrialBookingStatus status,
+                                                                                    OffsetDateTime after);
+
+    /**
+     * Yêu cầu học thử đang chờ đã quá hạn: gia sư chưa phản hồi kể từ lần gửi/đổi lịch gần nhất (updatedAt)
+     * trước mốc staleBefore, hoặc đã tới giờ học.
+     */
+    @Query("SELECT tb FROM TrialBooking tb " +
+           "WHERE tb.bookingStatus = :status " +
+           "AND (tb.updatedAt < :staleBefore OR tb.scheduledStartTime <= :now)")
+    List<TrialBooking> findStalePending(@Param("status") TrialBookingStatus status,
+                                        @Param("staleBefore") OffsetDateTime staleBefore,
+                                        @Param("now") OffsetDateTime now);
 
     List<TrialBooking> findByBookingStatusInAndScheduledEndTimeBefore(List<TrialBookingStatus> statuses, OffsetDateTime time);
 }

@@ -732,7 +732,7 @@ function initEvents() {
       });
 
       closeModals();
-      showToast('Đã dời lịch học thử thành công!');
+      showToast('Đã đổi lịch học thử. Yêu cầu đang chờ gia sư xác nhận lại giờ mới.');
       await loadBookings();
     } catch (err) {
       if (alertBox) {
@@ -769,8 +769,82 @@ function initEvents() {
   });
 }
 
+// ====================================================================
+// Yêu cầu kết nối trực tiếp (không học thử): xem trạng thái, hủy khi đang chờ
+// ====================================================================
+let directRequests = [];
+
+function renderDirect() {
+  const section = $('directSection');
+  const listEl = $('directList');
+  if (!section || !listEl) return;
+  setVisible(section, directRequests.length > 0);
+  if (!directRequests.length) return;
+
+  listEl.innerHTML = directRequests.map(r => {
+    const tutorName = escapeHtml(r.partnerName || 'Gia sư');
+    const badgeCls = r.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200'
+      : r.status === 'ACCEPTED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      : r.status === 'DECLINED' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-[#F1F5F9] text-[#64748B] border-[#E2E8F0]';
+    const slots = (r.slots || []).map(s => `
+      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-100 text-[11px] font-semibold text-[#006194]">
+        <span class="material-symbols-outlined text-[14px]">event_repeat</span>${escapeHtml(`${s.dayName} ${s.startTime}–${s.endTime}`)}
+      </span>`).join('');
+    let footer = '';
+    if (r.status === 'PENDING') {
+      footer = `
+        <div class="flex justify-end">
+          <button type="button" class="btn-cancel-direct px-3.5 py-1.5 rounded-xl bg-[#F1F5F9] hover:bg-rose-50 hover:text-rose-700 text-[#0F172A] text-xs font-semibold inline-flex items-center gap-1 transition-all cursor-pointer" data-id="${r.requestId}">
+            <span class="material-symbols-outlined text-[16px]">close</span><span>Hủy yêu cầu</span>
+          </button>
+        </div>`;
+    } else if (r.status === 'ACCEPTED') {
+      footer = `<p class="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl p-3">Gia sư đã đồng ý kết nối. Lớp học chính thức sẽ xuất hiện trong thời khóa biểu khi gia sư tạo lớp.${r.responseMessage ? `<br><span class="italic">"${escapeHtml(r.responseMessage)}"</span>` : ''}</p>`;
+    } else if (r.status === 'DECLINED' && r.responseMessage) {
+      footer = `<p class="text-xs text-rose-700">Lý do từ chối: ${escapeHtml(r.responseMessage)}</p>`;
+    }
+    return `
+      <div class="bg-white border border-[#E2E8F0] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div class="text-sm font-bold text-[#0F172A]">Sensei ${tutorName}</div>
+          <span class="px-2.5 py-0.5 rounded-full border text-[11px] font-bold ${badgeCls}">${escapeHtml(r.statusLabel || '')}</span>
+        </div>
+        <div class="flex flex-wrap gap-2">${slots}</div>
+        ${footer}
+      </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('.btn-cancel-direct').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!window.confirm('Bạn chắc chắn muốn hủy yêu cầu kết nối này?')) return;
+      btn.disabled = true;
+      try {
+        await API.connectionRequests.cancel(btn.dataset.id);
+        showToast('Đã hủy yêu cầu kết nối.');
+        await loadDirect();
+      } catch (err) {
+        showToast(err.message || 'Không thể hủy yêu cầu lúc này. Vui lòng thử lại.', 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+async function loadDirect() {
+  try {
+    const res = await API.connectionRequests.getMyRequests('ALL', 0, 50);
+    directRequests = res?.items || [];
+  } catch (err) {
+    console.error('Lỗi tải yêu cầu kết nối trực tiếp:', err);
+    directRequests = [];
+  }
+  renderDirect();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initEvents();
+  $('btnRefresh')?.addEventListener('click', loadDirect);
+  loadDirect();
   loadBookings();
 });
 

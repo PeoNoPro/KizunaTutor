@@ -398,34 +398,21 @@ document.addEventListener('DOMContentLoaded', async () => {
           <!-- Môn dạy & học phí (theo mẫu) -->
           ${renderSubjectsAndPricingHtml(tutor)}
 
-          <!-- Lịch giảng dạy & Đặt lịch học thử trực tuyến 1-1 (Preply-style Unified Weekly Calendar) -->
+          <!-- Lịch rảnh hằng tuần (chỉ hiển thị). Muốn kết nối: bấm "Kết nối với gia sư" để mở form chọn ca. -->
           <div id="weekly-booking-calendar-section" class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5 scroll-mt-28 transition-all duration-300">
-            
-            <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
-              <span class="material-symbols-outlined text-primary">calendar_month</span>
-              Lịch rảnh giảng dạy trong tuần
-            </h3>
 
-            <!-- Thanh điều hướng tuần (Tuần trước/sau & Khoảng ngày & Tab 25m/50m) -->
-            <div class="flex items-center justify-between flex-wrap gap-4 pb-2 border-b border-slate-100">
-              <div class="flex items-center gap-2.5 sm:gap-3">
-                <div class="flex items-center gap-1">
-                  <button type="button" id="btn-weekly-prev" class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 transition-colors shadow-2xs cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Tuần trước">
-                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-                  </button>
-                  <button type="button" id="btn-weekly-next" class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 transition-colors shadow-2xs cursor-pointer" aria-label="Tuần sau">
-                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-                  </button>
-                </div>
-                <span id="weekly-calendar-range-label" class="text-xs sm:text-sm md:text-base font-bold text-[#0F2545]">
-                  <!-- Render động qua JS -->
-                </span>
+            <div class="flex items-start justify-between flex-wrap gap-3 pb-3 border-b border-slate-100">
+              <div class="space-y-1">
+                <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">calendar_month</span>
+                  Lịch rảnh giảng dạy hằng tuần
+                </h3>
+                <p class="text-xs text-on-surface-variant leading-relaxed">
+                  Bấm vào giờ bạn muốn để mở form kết nối với gia sư. Bạn không cần học thử trước.
+                </p>
               </div>
-
-              <!-- Thời lượng buổi học thử: 30 phút -->
-              <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-[#0F2545]">
-                <span class="material-symbols-outlined text-[16px] text-primary">schedule</span>
-                <span>Học thử 30 phút</span>
+              <div class="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
+                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-200"></span>Đã có học viên</span>
               </div>
             </div>
 
@@ -550,8 +537,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
 
             <!-- Hành động chính (CTA) -->
-            <div class="space-y-3">
-              <button type="button" id="open-booking-btn" class="w-full py-3.5 px-4 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+            <div class="space-y-2.5">
+              <button type="button" id="open-connect-btn" class="w-full h-12 px-4 rounded-xl bg-[#006194] hover:bg-[#004b73] border border-[#004b73] text-white font-semibold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[20px]">handshake</span>
+                Kết nối với gia sư
+              </button>
+              <button type="button" id="open-booking-btn" class="w-full h-12 px-4 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-inset ring-slate-200 hover:ring-slate-300 text-[#0F2545] font-semibold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2.5 cursor-pointer">
                 <span class="material-symbols-outlined text-[20px]">calendar_add_on</span>
                 Đặt lịch học thử 1-1
               </button>
@@ -599,104 +590,437 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    // === LOGIC CHO MODAL VÀ LỊCH ĐẶT HỌC THỬ TRỰC TUYẾN 1-1 ===
-    let selectedDurationMinutes = 30;
-    let selectedSlot = null;
-    let weekOffset = 0; // 0 = tuần này
-    let selectedDayOffset = 0; // 0 = Thứ 2, 1 = Thứ 3, ..., 6 = Chủ nhật
-
-    // Bắt đầu nghiêm ngặt từ Thứ hai đến Chủ nhật
+    // ======================================================================
+    // Hai cách bắt đầu học với gia sư:
+    //  1) Kết nối trực tiếp: chọn các ca hằng tuần trong lịch rảnh → gia sư đồng ý/từ chối.
+    //  2) Học thử 30 phút: học viên tự chọn ngày giờ bất kỳ → gia sư đồng ý/từ chối.
+    // ======================================================================
     const WEEKDAY_COLUMNS = [
-      { dow: 2, shortName: 'Thứ 2', minName: 'T2', fullName: 'Thứ hai' },
-      { dow: 3, shortName: 'Thứ 3', minName: 'T3', fullName: 'Thứ ba' },
-      { dow: 4, shortName: 'Thứ 4', minName: 'T4', fullName: 'Thứ tư' },
-      { dow: 5, shortName: 'Thứ 5', minName: 'T5', fullName: 'Thứ năm' },
-      { dow: 6, shortName: 'Thứ 6', minName: 'T6', fullName: 'Thứ sáu' },
-      { dow: 7, shortName: 'Thứ 7', minName: 'T7', fullName: 'Thứ bảy' },
-      { dow: 1, shortName: 'Chủ nhật', minName: 'CN', fullName: 'Chủ nhật' }
+      { dow: 2, shortName: 'Thứ 2', fullName: 'Thứ hai' },
+      { dow: 3, shortName: 'Thứ 3', fullName: 'Thứ ba' },
+      { dow: 4, shortName: 'Thứ 4', fullName: 'Thứ tư' },
+      { dow: 5, shortName: 'Thứ 5', fullName: 'Thứ năm' },
+      { dow: 6, shortName: 'Thứ 6', fullName: 'Thứ sáu' },
+      { dow: 7, shortName: 'Thứ 7', fullName: 'Thứ bảy' },
+      { dow: 1, shortName: 'Chủ nhật', fullName: 'Chủ nhật' }
     ];
+    const DURATION_OPTIONS = [60, 90, 120];
+    const MAX_SELECTED_SLOTS = 7;
+    const TRIAL_DURATION_MINUTES = 30;
+    const MIN_CONNECT_DURATION = DURATION_OPTIONS[0];
+    const MAX_PREVIEW_ITEMS = 8;
+    let isWeeklySlotsExpanded = false;
 
-    // Tính Thứ hai của tuần hiện tại (bắt đầu từ Thứ hai -> Chủ nhật)
-    function getMondayOfCurrentWeek() {
-      const d = new Date();
-      const jsDay = d.getDay(); // 0 = Chủ nhật, 1 = Thứ 2, ..., 6 = Thứ 7
-      const distToMonday = jsDay === 0 ? -6 : 1 - jsDay;
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate() + distToMonday);
+    const pad = (n) => String(n).padStart(2, '0');
+    const toMinutes = (hhmm) => {
+      const [h, m] = String(hhmm).split(':').map(Number);
+      return h * 60 + m;
+    };
+    const toHHMM = (minutes) => `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
+    const dayNameOf = (dow) => (WEEKDAY_COLUMNS.find(c => c.dow === dow) || {}).fullName || '';
+    const slotLabel = (s) => `${dayNameOf(s.dow)} ${toHHMM(s.start)}–${toHHMM(s.start + s.duration)}`;
+    const overlaps = (aStart, aEnd, bStart, bEnd) => aStart < bEnd && aEnd > bStart;
+    const isLoggedIn = () => !!(localStorage.getItem('kizuna_token') || localStorage.getItem('token'));
+
+    /** Chạy onReady khi đã đăng nhập; nếu chưa thì mở hộp đăng nhập (hoặc chuyển trang đăng nhập). */
+    function requireLogin(onReady, redirectFlag = '') {
+      if (isLoggedIn()) {
+        onReady();
+        return;
+      }
+      const tutorDisplay = tutor.fullName ? `Sensei ${tutor.fullName}` : 'gia sư';
+      if (typeof window.openLoginModal === 'function') {
+        window.openLoginModal({ tutorName: tutorDisplay, onSuccess: onReady });
+        return;
+      }
+      let returnUrl = window.location.pathname + window.location.search;
+      if (redirectFlag && !returnUrl.includes(redirectFlag)) {
+        returnUrl += (returnUrl.includes('?') ? '&' : '?') + redirectFlag;
+      }
+      window.location.href = `/login?redirect=${encodeURIComponent(returnUrl)}`;
     }
 
-    const currentMonday = getMondayOfCurrentWeek();
+    function friendlyError(err, fallback) {
+      if (err && (err.status === 401)) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+      if (err && (err.name === 'TypeError' || err.name === 'TimeoutError' || String(err.message || '').toLowerCase().includes('fetch'))) {
+        return 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.';
+      }
+      if (err && err.status === 403) return 'Chỉ tài khoản học viên mới có thể gửi yêu cầu này.';
+      return (err && err.message) ? err.message : fallback;
+    }
 
-    // Tự động tìm ngày đầu tiên có lịch rảnh khả dụng trong tuần để chọn mặc định
-    function getInitialDayOffset() {
-      const today = new Date();
-      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-      const nowMinutes = today.getHours() * 60 + today.getMinutes();
+    // ---------------------------------------------------------------- Lịch rảnh hằng tuần (chỉ hiển thị)
 
-      for (let offset = 0; offset < 7; offset++) {
-        const d = new Date(currentMonday.getFullYear(), currentMonday.getMonth(), currentMonday.getDate() + offset);
-        const startOfD = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-        if (startOfD < startOfToday) continue; // Bỏ qua ngày quá khứ
+    function lockedRangesOf(dow) {
+      return (tutor.lockedSlots || [])
+        .filter(l => Number(l.dayOfWeek) === dow && l.startTime && l.endTime)
+        .map(l => ({ start: toMinutes(l.startTime), end: toMinutes(l.endTime) }));
+    }
 
-        const isToday = startOfD === startOfToday;
-        const dow = WEEKDAY_COLUMNS[offset].dow;
-        const pad = (n) => String(n).padStart(2, '0');
-        const dateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-        const dayAvails = (tutor.availabilities || []).filter(a => Number(a.dayOfWeek) === dow);
+    /** Khung rảnh của một ngày sau khi trừ đi các ca đã có học viên. */
+    function freeRangesOf(dow) {
+      const locked = lockedRangesOf(dow);
+      const result = [];
+      (tutor.availabilities || [])
+        .filter(a => Number(a.dayOfWeek) === dow && a.startTime && a.endTime)
+        .forEach(a => {
+          let pieces = [{ start: toMinutes(a.startTime), end: toMinutes(a.endTime) }];
+          locked.forEach(l => {
+            pieces = pieces.flatMap(p => {
+              if (!overlaps(p.start, p.end, l.start, l.end)) return [p];
+              const parts = [];
+              if (l.start > p.start) parts.push({ start: p.start, end: l.start });
+              if (l.end < p.end) parts.push({ start: l.end, end: p.end });
+              return parts;
+            });
+          });
+          result.push(...pieces.filter(p => p.end - p.start >= 30));
+        });
+      return result.sort((x, y) => x.start - y.start);
+    }
 
-        for (const avail of dayAvails) {
-          if (!avail.startTime || !avail.endTime) continue;
-          const [startH, startM] = avail.startTime.split(':').map(Number);
-          const [endH, endM] = avail.endTime.split(':').map(Number);
-          const startTotal = startH * 60 + startM;
-          const endTotal = endH * 60 + endM;
+    function renderWeeklyCalendar() {
+      const gridEl = document.getElementById('weekly-calendar-grid');
+      if (!gridEl) return;
 
-          for (let time = startTotal; time + selectedDurationMinutes <= endTotal; time += 30) {
-            if (isToday && time <= nowMinutes + 15) continue;
-            if (isSlotClashing(tutor, dow, dateStr, time, selectedDurationMinutes)) continue;
-            return offset;
-          }
+      if (!(tutor.availabilities || []).length) {
+        gridEl.innerHTML = `
+          <div class="col-span-7 py-8 text-center space-y-1">
+            <div class="text-sm font-bold text-[#0F2545]">Gia sư chưa cập nhật lịch rảnh</div>
+            <div class="text-xs text-slate-500">Bạn vẫn có thể đặt lịch học thử vào thời gian bạn muốn.</div>
+          </div>`;
+        return;
+      }
+
+      const expandWrapper = document.getElementById('weekly-expand-wrapper');
+      const expandText = document.getElementById('toggle-weekly-slots-text');
+      const expandIcon = document.getElementById('toggle-weekly-slots-icon');
+      let anyColumnTooLong = false;
+
+      gridEl.innerHTML = WEEKDAY_COLUMNS.map(col => {
+        // Giờ bắt đầu còn trống (đủ cho ca ngắn nhất) + các ca đã có học viên (mờ)
+        const items = [
+          ...startTimesOf(col.dow, MIN_CONNECT_DURATION).map(start => ({ start, locked: false })),
+          ...lockedRangesOf(col.dow).map(r => ({ ...r, locked: true }))
+        ].sort((x, y) => x.start - y.start);
+        const hasFree = items.some(i => !i.locked);
+        if (items.length > MAX_PREVIEW_ITEMS) anyColumnTooLong = true;
+        const shown = isWeeklySlotsExpanded ? items : items.slice(0, MAX_PREVIEW_ITEMS);
+
+        const itemsHtml = shown.map(i => i.locked ? `
+            <div class="w-full py-1 px-1 rounded-lg bg-slate-100 text-slate-400 text-center select-none cursor-not-allowed" title="Ca này đã có học viên">
+              <div class="text-[11px] sm:text-xs font-semibold line-through">${toHHMM(i.start)}–${toHHMM(i.end)}</div>
+              <div class="text-[10px] font-medium">Đã có học viên</div>
+            </div>` : `
+            <button type="button"
+              class="weekly-slot-btn w-full py-1.5 px-1 rounded-lg text-xs sm:text-sm font-semibold text-[#0F2545] hover:text-[#006194] hover:bg-sky-50 underline decoration-slate-300 hover:decoration-[#006194] underline-offset-4 transition-all text-center cursor-pointer active:scale-95"
+              data-dow="${col.dow}" data-start="${i.start}"
+              title="Kết nối học ${col.fullName} lúc ${toHHMM(i.start)} hằng tuần">
+              ${toHHMM(i.start)}
+            </button>`).join('');
+
+        return `
+          <div class="flex flex-col items-center min-w-[76px] sm:min-w-[82px] text-center">
+            <div class="h-1 w-full rounded-full ${hasFree ? 'bg-emerald-500' : 'bg-slate-200'} mb-2.5"></div>
+            <div class="pb-2 w-full">
+              <span class="block text-xs sm:text-sm font-bold ${hasFree ? 'text-slate-700' : 'text-slate-400'}">${col.shortName}</span>
+            </div>
+            <div class="w-full flex flex-col items-center gap-1.5 pt-1 min-h-[50px]">
+              ${itemsHtml || '<span class="text-[11px] text-slate-300 pt-2">Không có ca</span>'}
+            </div>
+          </div>`;
+      }).join('');
+
+      if (expandWrapper) {
+        expandWrapper.classList.toggle('hidden', !anyColumnTooLong);
+        if (expandText) expandText.innerText = isWeeklySlotsExpanded ? 'Thu gọn lịch trình' : 'Xem toàn bộ lịch trình';
+        if (expandIcon) expandIcon.innerText = isWeeklySlotsExpanded ? 'expand_less' : 'expand_more';
+      }
+
+      // Bấm vào một giờ → mở form kết nối với ca đó đã được chọn sẵn
+      gridEl.querySelectorAll('.weekly-slot-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const dow = Number(btn.dataset.dow);
+          const start = Number(btn.dataset.start);
+          requireLogin(() => openDirectModal({ dow, start }));
+        });
+      });
+    }
+
+    function scrollToCalendar() {
+      const scheduleSection = document.getElementById('weekly-booking-calendar-section');
+      if (!scheduleSection) return;
+      scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scheduleSection.classList.add('ring-2', 'ring-[#006194]/30');
+      setTimeout(() => scheduleSection.classList.remove('ring-2', 'ring-[#006194]/30'), 1600);
+    }
+
+    // ---------------------------------------------------------------- Form kết nối trực tiếp
+
+    let connectDuration = MIN_CONNECT_DURATION;
+    let connectDay = null; // dow đang xem trong form
+    const selectedSlots = []; // { dow, start (phút từ 00:00), duration }
+
+    /** Các giờ bắt đầu (bước 30 phút) đủ chỗ cho một ca dài `duration` phút trong khung rảnh còn trống. */
+    function startTimesOf(dow, duration = connectDuration) {
+      const starts = [];
+      freeRangesOf(dow).forEach(r => {
+        for (let t = Math.ceil(r.start / 30) * 30; t + duration <= r.end && t + duration < 24 * 60; t += 30) {
+          if (isSlotClashing(tutor, dow, null, t, duration)) continue;
+          starts.push(t);
+        }
+      });
+      return [...new Set(starts)].sort((a, b) => a - b);
+    }
+
+    const directErrorAlert = document.getElementById('direct-error-alert');
+    const directErrorMsg = document.getElementById('direct-error-message');
+    const directSubmitBtn = document.getElementById('btn-direct-submit');
+
+    function showDirectError(msg) {
+      if (!directErrorAlert || !directErrorMsg) return;
+      directErrorMsg.textContent = msg;
+      directErrorAlert.classList.toggle('hidden', !msg);
+      if (msg) directErrorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    const directSubtitle = document.getElementById('direct-modal-subtitle');
+    if (directSubtitle && tutor.fullName) {
+      directSubtitle.textContent = `Chọn ca học cố định mỗi tuần cùng Sensei ${tutor.fullName}, không cần học thử trước`;
+    }
+
+    function renderConnectForm() {
+      // Thời lượng
+      const durEl = document.getElementById('dc-duration');
+      if (durEl) {
+        durEl.innerHTML = DURATION_OPTIONS.map(d => `
+          <button type="button" data-duration="${d}"
+            class="px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${d === connectDuration ? 'bg-white text-[#006194] shadow-2xs border border-slate-200' : 'text-slate-500 hover:text-slate-700'}">
+            ${d} phút
+          </button>`).join('');
+        durEl.querySelectorAll('[data-duration]').forEach(btn => btn.addEventListener('click', () => {
+          connectDuration = Number(btn.dataset.duration);
+          renderConnectForm();
+        }));
+      }
+
+      // Thứ trong tuần
+      const daysEl = document.getElementById('dc-days');
+      if (daysEl) {
+        daysEl.innerHTML = WEEKDAY_COLUMNS.map(col => {
+          const available = startTimesOf(col.dow).length > 0;
+          const active = col.dow === connectDay;
+          const count = selectedSlots.filter(s => s.dow === col.dow).length;
+          const cls = active
+            ? 'border-2 border-[#006194] bg-sky-50 text-[#006194] font-bold'
+            : available ? 'border border-slate-200 hover:bg-slate-50 text-slate-800 font-semibold' : 'border border-transparent text-slate-300';
+          return `
+            <button type="button" data-day="${col.dow}" ${available || count ? '' : 'disabled'}
+              class="relative py-2 rounded-xl text-[11px] sm:text-xs transition-all ${available || count ? 'cursor-pointer' : 'cursor-not-allowed'} ${cls}">
+              ${col.shortName === 'Chủ nhật' ? 'CN' : col.shortName.replace('Thứ ', 'T')}
+              ${count ? `<span class="absolute -top-1.5 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#006194] text-white text-[10px] leading-4">${count}</span>` : ''}
+            </button>`;
+        }).join('');
+        daysEl.querySelectorAll('[data-day]').forEach(btn => btn.addEventListener('click', () => {
+          connectDay = Number(btn.dataset.day);
+          renderConnectForm();
+        }));
+      }
+
+      // Giờ bắt đầu của ngày đang chọn
+      const timesEl = document.getElementById('dc-times');
+      const timesLabel = document.getElementById('dc-times-label');
+      if (timesLabel) timesLabel.textContent = connectDay ? `Giờ bắt đầu - ${dayNameOf(connectDay)}` : 'Giờ bắt đầu';
+      if (timesEl) {
+        const starts = connectDay ? startTimesOf(connectDay) : [];
+        const daySelected = selectedSlots.filter(s => s.dow === connectDay);
+        const allStarts = [...new Set([...starts, ...daySelected.map(s => s.start)])].sort((a, b) => a - b);
+        if (!allStarts.length) {
+          timesEl.innerHTML = `<div class="col-span-full py-4 text-center text-xs text-slate-500">${connectDay
+            ? `Không còn khung ${connectDuration} phút trống vào ${dayNameOf(connectDay)}. Hãy chọn thứ khác hoặc thời lượng ngắn hơn.`
+            : 'Gia sư chưa có khung giờ trống phù hợp.'}</div>`;
+        } else {
+          timesEl.innerHTML = allStarts.map(t => {
+            const chosen = daySelected.find(s => s.start === t);
+            const blocked = !chosen && daySelected.some(s => overlaps(t, t + connectDuration, s.start, s.start + s.duration));
+            if (chosen) {
+              return `<button type="button" data-start="${t}" class="py-2 px-1 rounded-xl border-2 border-[#006194] bg-[#006194] text-white text-xs font-bold cursor-pointer" title="Bỏ chọn">
+                ${toHHMM(t)}–${toHHMM(t + chosen.duration)}</button>`;
+            }
+            if (blocked) {
+              return `<div class="py-2 px-1 rounded-xl border border-slate-100 text-slate-300 text-xs font-medium text-center cursor-not-allowed" title="Trùng với ca bạn đã chọn">${toHHMM(t)}</div>`;
+            }
+            return `<button type="button" data-start="${t}" class="py-2 px-1 rounded-xl border border-slate-300 bg-white hover:border-[#006194] hover:bg-sky-50 text-slate-800 text-xs font-semibold cursor-pointer transition-all"
+              title="${dayNameOf(connectDay)} ${toHHMM(t)}–${toHHMM(t + connectDuration)}">${toHHMM(t)}</button>`;
+          }).join('');
+          timesEl.querySelectorAll('[data-start]').forEach(btn => btn.addEventListener('click', () => toggleSlot(connectDay, Number(btn.dataset.start))));
         }
       }
-      const todayJsDay = today.getDay();
-      return todayJsDay === 0 ? 6 : todayJsDay - 1;
+
+      // Ca đã chọn
+      const selLabel = document.getElementById('dc-selected-label');
+      const selEl = document.getElementById('dc-selected');
+      if (selLabel) selLabel.textContent = `Ca đã chọn (${selectedSlots.length}/${MAX_SELECTED_SLOTS})`;
+      if (selEl) {
+        selEl.innerHTML = selectedSlots.length
+          ? selectedSlots.map((s, i) => `
+              <span class="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-xs font-semibold text-[#006194]">
+                ${slotLabel(s)}
+                <button type="button" data-remove-index="${i}" class="w-5 h-5 rounded-full hover:bg-sky-100 flex items-center justify-center cursor-pointer" aria-label="Bỏ chọn ${slotLabel(s)}">
+                  <span class="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </span>`).join('')
+          : '<span class="text-xs text-slate-500">Chưa chọn ca nào. Hãy chọn thứ rồi bấm vào giờ bắt đầu.</span>';
+        selEl.querySelectorAll('[data-remove-index]').forEach(btn => btn.addEventListener('click', () => {
+          selectedSlots.splice(Number(btn.dataset.removeIndex), 1);
+          renderConnectForm();
+        }));
+      }
+
+      if (directSubmitBtn) directSubmitBtn.disabled = selectedSlots.length === 0;
+      const submitText = document.getElementById('btn-direct-submit-text');
+      if (submitText) {
+        submitText.textContent = selectedSlots.length
+          ? `Gửi yêu cầu kết nối (${selectedSlots.length} ca/tuần)`
+          : 'Gửi yêu cầu kết nối';
+      }
     }
 
-    selectedDayOffset = getInitialDayOffset();
-
-    function getSelectedDate() {
-      const baseMonday = new Date(currentMonday.getFullYear(), currentMonday.getMonth(), currentMonday.getDate() + (weekOffset * 7));
-      const d = new Date(baseMonday.getFullYear(), baseMonday.getMonth(), baseMonday.getDate() + selectedDayOffset);
-      return d;
+    function toggleSlot(dow, start) {
+      showDirectError('');
+      const idx = selectedSlots.findIndex(s => s.dow === dow && s.start === start);
+      if (idx >= 0) {
+        selectedSlots.splice(idx, 1);
+      } else if (selectedSlots.length >= MAX_SELECTED_SLOTS) {
+        showDirectError(`Bạn chỉ có thể chọn tối đa ${MAX_SELECTED_SLOTS} ca mỗi tuần.`);
+        return;
+      } else {
+        selectedSlots.push({ dow, start, duration: connectDuration });
+        const order = (d) => WEEKDAY_COLUMNS.findIndex(c => c.dow === d);
+        selectedSlots.sort((a, b) => order(a.dow) - order(b.dow) || a.start - b.start);
+      }
+      renderConnectForm();
     }
 
-    // Avatar gia sư trong modal (ưu tiên lấy từ database)
+    /** preselect: { dow, start } khi học viên bấm một giờ trên bảng lịch rảnh. */
+    function openDirectModal(preselect = null) {
+      if (preselect) {
+        connectDay = preselect.dow;
+        const already = selectedSlots.some(s => s.dow === preselect.dow && s.start === preselect.start);
+        const clash = selectedSlots.some(s => s.dow === preselect.dow
+          && overlaps(preselect.start, preselect.start + connectDuration, s.start, s.start + s.duration));
+        if (!already && !clash && selectedSlots.length < MAX_SELECTED_SLOTS) {
+          // Giờ bấm trên bảng luôn đủ cho ca ngắn nhất; nếu thời lượng đang chọn không vừa thì lùi về ca ngắn nhất
+          if (!startTimesOf(preselect.dow).includes(preselect.start)) connectDuration = MIN_CONNECT_DURATION;
+          if (startTimesOf(preselect.dow).includes(preselect.start)) {
+            selectedSlots.push({ dow: preselect.dow, start: preselect.start, duration: connectDuration });
+            const order = (d) => WEEKDAY_COLUMNS.findIndex(c => c.dow === d);
+            selectedSlots.sort((a, b) => order(a.dow) - order(b.dow) || a.start - b.start);
+          }
+        }
+      } else if (!connectDay || !startTimesOf(connectDay).length) {
+        const firstDay = WEEKDAY_COLUMNS.find(c => startTimesOf(c.dow).length > 0);
+        connectDay = firstDay ? firstDay.dow : null;
+      }
+      showDirectError('');
+      renderConnectForm();
+      openModal('direct-connect-modal');
+    }
+
+    if (directSubmitBtn) {
+      directSubmitBtn.addEventListener('click', async () => {
+        showDirectError('');
+        if (!selectedSlots.length) {
+          showDirectError('Hãy chọn ít nhất một ca học hằng tuần.');
+          return;
+        }
+        const level = document.getElementById('direct-level');
+        const goals = document.getElementById('direct-goals');
+        const notes = document.getElementById('direct-notes');
+        const payload = {
+          tutorId: tutor.tutorId,
+          slots: selectedSlots.map(s => ({ dayOfWeek: s.dow, startTime: toHHMM(s.start), durationMinutes: s.duration })),
+          currentLevel: level ? level.value : null,
+          learningGoals: goals ? (goals.value.trim() || null) : null,
+          initialMessage: notes ? (notes.value.trim() || null) : null
+        };
+
+        directSubmitBtn.disabled = true;
+        const original = directSubmitBtn.innerHTML;
+        directSubmitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span><span>Đang gửi...</span>';
+        try {
+          await API.connectionRequests.create(payload);
+          const body = document.getElementById('direct-modal-body');
+          const footer = document.getElementById('direct-modal-footer');
+          if (body) {
+            body.innerHTML = `
+              <div class="p-8 text-center space-y-4">
+                <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-xs border border-emerald-100">
+                  <span class="material-symbols-outlined text-[34px]">check_circle</span>
+                </div>
+                <h3 class="text-lg font-bold text-[#0F2545]">Đã gửi yêu cầu kết nối</h3>
+                <p class="text-xs text-on-surface-variant leading-relaxed">
+                  Sensei <strong>${escapeHtml(tutor.fullName || '')}</strong> sẽ xem các ca bạn chọn và phản hồi sớm.
+                  Khi gia sư đồng ý, hai bạn được kết nối và có thể bắt đầu lớp học chính thức.
+                </p>
+                <ul class="p-4 bg-[#FAF8F2] rounded-2xl border border-[#ECE8DE] text-xs text-left space-y-1.5">
+                  ${selectedSlots.map(s => `<li class="font-semibold text-[#0F2545]">${slotLabel(s)}</li>`).join('')}
+                </ul>
+                <div class="grid grid-cols-2 gap-2.5 pt-2">
+                  <a href="/pages/learner-connections/" class="py-2.5 px-3 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">list_alt</span>
+                    <span>Xem yêu cầu của tôi</span>
+                  </a>
+                  <button type="button" onclick="window.closeModal('direct-connect-modal'); location.reload();" class="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all">
+                    Hoàn tất
+                  </button>
+                </div>
+              </div>`;
+          }
+          if (footer) footer.style.display = 'none';
+        } catch (err) {
+          console.error('Lỗi khi gửi yêu cầu kết nối:', err);
+          showDirectError(friendlyError(err, 'Không thể gửi yêu cầu kết nối lúc này. Vui lòng thử lại sau.'));
+          directSubmitBtn.disabled = false;
+          directSubmitBtn.innerHTML = original;
+        }
+      });
+    }
+
+    const openConnectBtn = document.getElementById('open-connect-btn');
+    if (openConnectBtn) {
+      openConnectBtn.addEventListener('click', () => requireLogin(() => openDirectModal()));
+    }
+
+    const toggleWkExpandBtn = document.getElementById('btn-toggle-weekly-slots');
+    if (toggleWkExpandBtn) {
+      toggleWkExpandBtn.addEventListener('click', () => {
+        isWeeklySlotsExpanded = !isWeeklySlotsExpanded;
+        renderWeeklyCalendar();
+      });
+    }
+
+    renderWeeklyCalendar();
+
+    // ---------------------------------------------------------------- Modal học thử (tự chọn ngày giờ)
+
     const modalAvatar = document.getElementById('booking-modal-avatar');
     const modalAvatarContainer = document.getElementById('booking-modal-avatar-container');
-    if (tutor.avatarUrl) {
-      if (modalAvatar) {
-        modalAvatar.src = tutor.avatarUrl;
-        modalAvatar.onerror = () => {
-          if (modalAvatarContainer) {
-            modalAvatarContainer.innerHTML = `
-              <div class="w-12 h-12 rounded-2xl ${tutorStyle.bg} ${tutorStyle.text} font-bold flex items-center justify-center border border-slate-200 shadow-xs text-sm">
-                ${tutorInitials}
-              </div>
-            `;
-          }
-        };
-      }
-    } else {
-      if (modalAvatarContainer) {
-        modalAvatarContainer.innerHTML = `
-          <div class="w-12 h-12 rounded-2xl ${tutorStyle.bg} ${tutorStyle.text} font-bold flex items-center justify-center border border-slate-200 shadow-xs text-sm">
-            ${tutorInitials}
-          </div>
-        `;
-      }
+    const initialsAvatarHtml = `
+      <div class="w-12 h-12 rounded-2xl ${tutorStyle.bg} ${tutorStyle.text} font-bold flex items-center justify-center border border-slate-200 shadow-xs text-sm">
+        ${tutorInitials}
+      </div>`;
+    if (tutor.avatarUrl && modalAvatar) {
+      modalAvatar.src = tutor.avatarUrl;
+      modalAvatar.onerror = () => {
+        if (modalAvatarContainer) modalAvatarContainer.innerHTML = initialsAvatarHtml;
+      };
+    } else if (modalAvatarContainer) {
+      modalAvatarContainer.innerHTML = initialsAvatarHtml;
     }
     const modalSubtitle = document.getElementById('booking-modal-subtitle');
     if (modalSubtitle && tutor.fullName) {
-      modalSubtitle.innerText = `Trao đổi về lộ trình và học thử 1-1 cùng Sensei ${tutor.fullName}`;
+      modalSubtitle.innerText = `Chọn thời gian bạn muốn học thử cùng Sensei ${tutor.fullName}`;
     }
 
     const continueBtn = document.getElementById('btn-booking-continue');
@@ -704,6 +1028,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modalFooter = document.getElementById('booking-modal-footer');
     const errorAlert = document.getElementById('booking-error-alert');
     const errorMsgEl = document.getElementById('booking-error-message');
+    const trialDateInput = document.getElementById('trial-date');
+    const trialTimeInput = document.getElementById('trial-time');
+    const trialSummary = document.getElementById('trial-time-summary');
+    const DAY_NAMES = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
 
     function showError(msg) {
       if (errorAlert && errorMsgEl) {
@@ -716,705 +1044,154 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function clearError() {
-      if (errorAlert) {
-        errorAlert.classList.add('hidden');
-      }
+      if (errorAlert) errorAlert.classList.add('hidden');
     }
 
-    function updateContinueButtonState() {
-      const formFields = document.getElementById('booking-form-fields');
-      const footerEl = document.getElementById('booking-modal-footer');
-
-      if (!selectedSlot) {
-        if (formFields) formFields.classList.add('hidden');
-        if (footerEl) footerEl.classList.add('hidden');
-        if (continueBtn) {
-          continueBtn.disabled = true;
-          continueBtn.className = 'w-full py-3.5 px-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-slate-200 text-slate-400 cursor-not-allowed shadow-none';
-        }
-      } else {
-        if (formFields) formFields.classList.remove('hidden');
-        if (footerEl) footerEl.classList.remove('hidden');
-        if (continueBtn) {
-          continueBtn.disabled = false;
-          continueBtn.className = 'w-full py-3.5 px-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-[#006194] text-white shadow-md hover:bg-[#004b73] active:scale-[0.99] cursor-pointer';
-        }
-      }
+    /** Ngày giờ học thử học viên chọn (giờ Việt Nam), hoặc null nếu chưa đủ. */
+    function getTrialStart() {
+      if (!trialDateInput || !trialTimeInput || !trialDateInput.value || !trialTimeInput.value) return null;
+      const [y, mo, d] = trialDateInput.value.split('-').map(Number);
+      const [h, mi] = trialTimeInput.value.split(':').map(Number);
+      return new Date(y, mo - 1, d, h, mi, 0, 0);
     }
 
-    // Modal: 7 ngày trong tuần
-    const weekLabelEl = document.getElementById('current-week-label');
-    const daysContainer = document.getElementById('days-picker-container');
-    const prevWeekBtn = document.getElementById('btn-prev-week');
-    const nextWeekBtn = document.getElementById('btn-next-week');
-
-    function renderDays() {
-      if (!daysContainer) return;
-      daysContainer.innerHTML = '';
-
-      if (prevWeekBtn) {
-        prevWeekBtn.disabled = weekOffset <= 0;
+    function updateTrialSummary() {
+      const start = getTrialStart();
+      if (continueBtn) continueBtn.disabled = !start;
+      if (!trialSummary) return;
+      if (!start) {
+        trialSummary.textContent = 'Bạn có thể chọn bất kỳ ngày giờ nào thuận tiện. Gia sư sẽ xem và đồng ý hoặc từ chối yêu cầu của bạn.';
+        return;
       }
+      const end = new Date(start.getTime() + TRIAL_DURATION_MINUTES * 60000);
+      trialSummary.innerHTML = `Bạn muốn học thử vào <strong class="text-[#0F2545]">${DAY_NAMES[start.getDay()]}, ${pad(start.getDate())}/${pad(start.getMonth() + 1)}/${start.getFullYear()} · ${pad(start.getHours())}:${pad(start.getMinutes())}–${pad(end.getHours())}:${pad(end.getMinutes())}</strong>. Gia sư sẽ xác nhận lại với bạn.`;
+    }
 
-      const baseMonday = new Date(currentMonday.getFullYear(), currentMonday.getMonth(), currentMonday.getDate() + (weekOffset * 7));
-      const sundayDate = new Date(baseMonday.getFullYear(), baseMonday.getMonth(), baseMonday.getDate() + 6);
-
-      if (weekLabelEl) {
-        if (baseMonday.getMonth() === sundayDate.getMonth()) {
-          weekLabelEl.innerText = `${baseMonday.getDate()} – ${sundayDate.getDate()} Tháng ${baseMonday.getMonth() + 1}, ${baseMonday.getFullYear()}`;
-        } else {
-          weekLabelEl.innerText = `${baseMonday.getDate()} Thg ${baseMonday.getMonth() + 1} – ${sundayDate.getDate()} Thg ${sundayDate.getMonth() + 1}, ${baseMonday.getFullYear()}`;
-        }
-      }
-
+    if (trialDateInput) {
       const today = new Date();
-      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-      const nowMinutes = today.getHours() * 60 + today.getMinutes();
+      trialDateInput.min = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+      trialDateInput.addEventListener('change', () => { clearError(); updateTrialSummary(); });
+    }
+    if (trialTimeInput) {
+      trialTimeInput.addEventListener('change', () => { clearError(); updateTrialSummary(); });
+    }
+    updateTrialSummary();
 
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(baseMonday.getFullYear(), baseMonday.getMonth(), baseMonday.getDate() + i);
-        const startOfD = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-        const isPastDay = startOfD < startOfToday;
-        const isToday = startOfD === startOfToday;
-        const col = WEEKDAY_COLUMNS[i];
-        const isSelected = (i === selectedDayOffset);
-        const pad = (n) => String(n).padStart(2, '0');
-        const dateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+    function openTrialModal() {
+      clearError();
+      updateTrialSummary();
+      openModal('connect-modal');
+    }
 
-        // Tính xem ngày này có khung giờ rảnh nào khả dụng không
-        let hasAvailableSlots = false;
-        if (!isPastDay) {
-          const dayAvails = (tutor.availabilities || []).filter(a => Number(a.dayOfWeek) === col.dow);
-          for (const avail of dayAvails) {
-            if (!avail.startTime || !avail.endTime) continue;
-            const [startH, startM] = avail.startTime.split(':').map(Number);
-            const [endH, endM] = avail.endTime.split(':').map(Number);
-            const startTotal = startH * 60 + startM;
-            const endTotal = endH * 60 + endM;
+    if (continueBtn && modalBody) {
+      continueBtn.addEventListener('click', () => requireLogin(submitTrial, 'connect=true'));
+    }
 
-            for (let time = startTotal; time + selectedDurationMinutes <= endTotal; time += 30) {
-              if (isToday && time <= nowMinutes + 15) {
-                continue;
-              }
-              if (isSlotClashing(tutor, col.dow, dateStr, time, selectedDurationMinutes)) {
-                continue;
-              }
-              hasAvailableSlots = true;
-              break;
-            }
-            if (hasAvailableSlots) break;
-          }
-        }
-
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        
-        let btnClasses = 'day-picker-btn flex flex-col items-center py-2 px-1 rounded-2xl border transition-all cursor-pointer ';
-        let minNameClass = 'text-[11px] leading-tight ';
-        let dateClass = 'text-sm mt-1 leading-tight ';
-        let dotClass = 'w-1.5 h-1.5 rounded-full mt-1 ';
-
-        if (isSelected) {
-          if (hasAvailableSlots) {
-            btnClasses += 'border-2 border-[#006194] bg-sky-50 text-[#006194] font-bold shadow-2xs';
-            minNameClass += 'font-bold text-[#006194]';
-            dateClass += 'font-extrabold text-[#006194]';
-            dotClass += 'bg-emerald-500';
-          } else {
-            btnClasses += 'border-2 border-slate-300 bg-slate-100 text-slate-500 font-bold shadow-2xs';
-            minNameClass += 'font-semibold text-slate-400';
-            dateClass += 'font-bold text-slate-600';
-            dotClass += 'bg-transparent';
-          }
-        } else {
-          if (isPastDay) {
-            btnClasses += 'border-transparent hover:bg-slate-50 text-slate-300 opacity-50';
-            minNameClass += 'text-slate-300 font-normal';
-            dateClass += 'text-slate-300 font-normal';
-            dotClass += 'bg-transparent';
-          } else if (hasAvailableSlots) {
-            btnClasses += 'border-transparent hover:bg-slate-50 text-slate-800 font-medium';
-            minNameClass += 'text-slate-600 font-semibold';
-            dateClass += 'text-slate-900 font-bold';
-            dotClass += 'bg-emerald-500';
-          } else {
-            btnClasses += 'border-transparent hover:bg-slate-50 text-slate-400 font-normal';
-            minNameClass += 'text-slate-400 font-normal';
-            dateClass += 'text-slate-400 font-normal';
-            dotClass += 'bg-transparent';
-          }
-        }
-
-        btn.className = btnClasses;
-        btn.innerHTML = `
-          <span class="${minNameClass}">${col.minName}</span>
-          <span class="${dateClass}">${d.getDate()}</span>
-          <span class="${dotClass}"></span>
-        `;
-        btn.addEventListener('click', () => {
-          selectedDayOffset = i;
-          selectedSlot = null;
-          renderDays();
-          renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
-        });
-        daysContainer.appendChild(btn);
+    async function submitTrial() {
+      clearError();
+      const start = getTrialStart();
+      if (!start) {
+        showError('Vui lòng chọn ngày và giờ bạn muốn học thử.');
+        return;
       }
-    }
-
-    if (prevWeekBtn) {
-      prevWeekBtn.addEventListener('click', () => {
-        if (weekOffset > 0) {
-          weekOffset--;
-          selectedSlot = null;
-          renderDays();
-          renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
-        }
-      });
-    }
-    if (nextWeekBtn) {
-      nextWeekBtn.addEventListener('click', () => {
-        weekOffset++;
-        selectedSlot = null;
-        renderDays();
-        renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
-      });
-    }
-
-    // Modal: Render động các khung giờ theo lịch rảnh thực tế của gia sư
-    function renderAvailableSlots(targetDate, durationMinutes, preselectSlot = null) {
-      selectedSlot = preselectSlot;
-      updateContinueButtonState();
-
-      const morningGrid = document.getElementById('morning-slots-grid');
-      const afternoonGrid = document.getElementById('afternoon-slots-grid');
-      const eveningGrid = document.getElementById('evening-slots-grid');
-      const emptyStateEl = document.getElementById('booking-empty-state');
-      const emptyTitleEl = document.getElementById('booking-empty-title');
-
-      const jsDay = targetDate.getDay();
-      const backendDow = jsDay === 0 ? 1 : jsDay + 1;
-
-      const dayAvails = (tutor.availabilities || []).filter(a => Number(a.dayOfWeek) === backendDow);
-
-      const today = new Date();
-      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-      const startOfTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate()).getTime();
-      const isPastDay = startOfTarget < startOfToday;
-      const isToday = startOfTarget === startOfToday;
-      const nowMinutes = today.getHours() * 60 + today.getMinutes();
-      const pad = (n) => String(n).padStart(2, '0');
-      const targetDateStr = `${pad(targetDate.getDate())}/${pad(targetDate.getMonth() + 1)}/${targetDate.getFullYear()}`;
-
-      const slotsSet = new Set();
-
-      if (!isPastDay) {
-        dayAvails.forEach(avail => {
-          if (!avail.startTime || !avail.endTime) return;
-          const [startH, startM] = avail.startTime.split(':').map(Number);
-          const [endH, endM] = avail.endTime.split(':').map(Number);
-          const startTotal = startH * 60 + startM;
-          const endTotal = endH * 60 + endM;
-
-          for (let time = startTotal; time + durationMinutes <= endTotal; time += 30) {
-            if (isToday && time <= nowMinutes + 15) {
-              continue;
-            }
-            if (isSlotClashing(tutor, backendDow, targetDateStr, time, durationMinutes)) {
-              continue;
-            }
-            const h = Math.floor(time / 60);
-            const m = time % 60;
-            const slotStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-            slotsSet.add(slotStr);
-          }
-        });
-      }
-
-      const allSlots = Array.from(slotsSet).sort();
-
-      const morningSection = document.getElementById('morning-slots-section');
-      const afternoonSection = document.getElementById('afternoon-slots-section');
-      const eveningSection = document.getElementById('evening-slots-section');
-
-      if (allSlots.length === 0) {
-        if (emptyStateEl) {
-          emptyStateEl.classList.remove('hidden');
-          if (emptyTitleEl) {
-            emptyTitleEl.innerText = `Không có khung giờ ${durationMinutes} phút khả dụng`;
-          }
-        }
-        if (morningSection) morningSection.classList.add('hidden');
-        if (afternoonSection) afternoonSection.classList.add('hidden');
-        if (eveningSection) eveningSection.classList.add('hidden');
+      if (start <= new Date()) {
+        showError('Thời gian học thử phải ở tương lai. Vui lòng chọn thời gian khác.');
         return;
       }
 
-      if (emptyStateEl) {
-        emptyStateEl.classList.add('hidden');
-      }
+      const scheduledStartTime = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}T${pad(start.getHours())}:${pad(start.getMinutes())}:00+07:00`;
+      const levelInput = document.getElementById('booking-level');
+      const goalsInput = document.getElementById('booking-goals');
+      const notesInput = document.getElementById('booking-notes');
+      const payload = {
+        tutorId: tutor.tutorId,
+        scheduledStartTime,
+        durationMinutes: TRIAL_DURATION_MINUTES,
+        learningMode: 'ONLINE',
+        locationDetails: null,
+        currentLevel: levelInput ? levelInput.value : 'N5',
+        learningGoals: goalsInput ? (goalsInput.value.trim() || null) : null,
+        initialMessage: notesInput ? (notesInput.value.trim() || 'Đăng ký học thử trực tuyến 1–1') : 'Đăng ký học thử trực tuyến 1–1'
+      };
 
-      // Phân nhóm theo 3 buổi (Sáng, Chiều, Tối)
-      const morningSlots = allSlots.filter(s => parseInt(s.split(':')[0], 10) < 12);
-      const afternoonSlots = allSlots.filter(s => {
-        const h = parseInt(s.split(':')[0], 10);
-        return h >= 12 && h < 18;
-      });
-      const eveningSlots = allSlots.filter(s => parseInt(s.split(':')[0], 10) >= 18);
+      continueBtn.disabled = true;
+      const origBtnHtml = continueBtn.innerHTML;
+      continueBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span><span>Đang xử lý...</span>';
 
-      function renderSlotSection(sectionEl, gridEl, slots) {
-        if (!sectionEl || !gridEl) return;
-        if (!slots || slots.length === 0) {
-          sectionEl.classList.add('hidden');
-          gridEl.innerHTML = '';
-          return;
-        }
-        sectionEl.classList.remove('hidden');
-        gridEl.innerHTML = '';
-        slots.forEach(slot => {
-          const isSlotActive = (selectedSlot === slot);
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = isSlotActive
-            ? 'slot-btn py-2.5 px-2 text-center text-xs font-bold rounded-xl border-2 border-[#006194] bg-[#006194] text-white shadow-xs cursor-pointer'
-            : 'slot-btn py-2.5 px-2 text-center text-xs font-semibold rounded-xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-800 bg-white cursor-pointer shadow-2xs';
-          btn.innerText = slot;
-          btn.addEventListener('click', () => {
-            document.querySelectorAll('.slot-btn').forEach(b => {
-              b.className = 'slot-btn py-2.5 px-2 text-center text-xs font-semibold rounded-xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-800 bg-white cursor-pointer shadow-2xs';
-            });
-            btn.className = 'slot-btn py-2.5 px-2 text-center text-xs font-bold rounded-xl border-2 border-[#006194] bg-[#006194] text-white shadow-xs cursor-pointer';
-            selectedSlot = slot;
-            updateContinueButtonState();
-          });
-          gridEl.appendChild(btn);
-        });
-      }
+      try {
+        await API.trialBookings.create(payload);
+        const end = new Date(start.getTime() + TRIAL_DURATION_MINUTES * 60000);
+        const timeText = `${pad(start.getHours())}:${pad(start.getMinutes())}–${pad(end.getHours())}:${pad(end.getMinutes())}`;
+        const dayFull = `${DAY_NAMES[start.getDay()]}, ${start.getDate()}/${start.getMonth() + 1}/${start.getFullYear()}`;
 
-      renderSlotSection(morningSection, morningGrid, morningSlots);
-      renderSlotSection(afternoonSection, afternoonGrid, afternoonSlots);
-      renderSlotSection(eveningSection, eveningGrid, eveningSlots);
-    }
-
-    // Modal: Thời lượng cố định 30 phút theo quy định học thử
-    renderDays();
-    renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
-
-    // Modal: Nút gửi yêu cầu học thử
-    if (continueBtn && modalBody) {
-      continueBtn.addEventListener('click', async () => {
-        clearError();
-
-        // 1. Kiểm tra xác thực đăng nhập
-        const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
-        if (!token) {
-          const tutorDisplay = tutor.fullName ? `Sensei ${tutor.fullName}` : 'gia sư';
-          if (typeof window.openLoginModal === 'function') {
-            window.openLoginModal({
-              tutorName: tutorDisplay,
-              onSuccess: () => {
-                openModal('connect-modal');
-              }
-            });
-            return;
-          }
-          const currentPath = window.location.pathname + window.location.search;
-          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-          return;
-        }
-
-        // 2. Tính toán ngày giờ bắt đầu
-        if (!selectedSlot) {
-          showError('Vui lòng chọn một khung giờ học khả dụng');
-          return;
-        }
-        const targetDate = getSelectedDate();
-        const [hours, minutes] = selectedSlot.split(':').map(Number);
-        targetDate.setHours(hours, minutes, 0, 0);
-
-        if (targetDate <= new Date()) {
-          showError('Thời gian bắt đầu học phải ở tương lai. Vui lòng chọn khung giờ khác.');
-          return;
-        }
-
-        // 3. Chuẩn bị payload đăng ký học thử trực tuyến 1-1
-        const pad = (n) => String(n).padStart(2, '0');
-        const scheduledStartTime = `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())}T${pad(hours)}:${pad(minutes)}:00+07:00`;
-
-        const levelInput = document.getElementById('booking-level');
-        const goalsInput = document.getElementById('booking-goals');
-        const notesInput = document.getElementById('booking-notes');
-
-        const payload = {
-          tutorId: tutor.tutorId,
-          scheduledStartTime: scheduledStartTime,
-          durationMinutes: selectedDurationMinutes,
-          learningMode: 'ONLINE',
-          locationDetails: null,
-          currentLevel: levelInput ? levelInput.value : 'N5',
-          learningGoals: goalsInput ? (goalsInput.value.trim() || null) : null,
-          initialMessage: notesInput ? (notesInput.value.trim() || 'Đăng ký học thử trực tuyến 1–1') : 'Đăng ký học thử trực tuyến 1–1'
-        };
-
-        // 4. Gọi API gửi yêu cầu
-        continueBtn.disabled = true;
-        const origBtnHtml = continueBtn.innerHTML;
-        continueBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span><span>Đang xử lý...</span>';
-
-        try {
-          await API.trialBookings.create(payload);
-
-          // Render màn hình thành công bên trong modal
-          const DAY_NAMES = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
-          const dayFull = `${DAY_NAMES[targetDate.getDay()]}, ${targetDate.getDate()}/${targetDate.getMonth() + 1}/${targetDate.getFullYear()}`;
-
-          modalBody.innerHTML = `
-            <div class="p-8 text-center space-y-4">
-              <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-xs border border-emerald-100">
-                <span class="material-symbols-outlined text-[34px]">check_circle</span>
+        modalBody.innerHTML = `
+          <div class="p-8 text-center space-y-4">
+            <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-xs border border-emerald-100">
+              <span class="material-symbols-outlined text-[34px]">check_circle</span>
+            </div>
+            <h3 class="text-lg font-bold text-[#0F2545]">Đã gửi yêu cầu học thử thành công!</h3>
+            <p class="text-xs text-on-surface-variant leading-relaxed">
+              Yêu cầu học thử <strong>${TRIAL_DURATION_MINUTES} phút</strong> đã được gửi tới <strong>Sensei ${escapeHtml(tutor.fullName || '')}</strong>.
+            </p>
+            <div class="p-4 bg-[#FAF8F2] rounded-2xl border border-[#ECE8DE] text-xs text-left space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500 font-medium">Thời gian:</span>
+                <span class="font-bold text-[#0F2545]">${timeText} • ${dayFull}</span>
               </div>
-              <h3 class="text-lg font-bold text-[#0F2545]">Đã gửi yêu cầu học thử thành công!</h3>
-              <p class="text-xs text-on-surface-variant leading-relaxed">
-                Yêu cầu học thử <strong>${selectedDurationMinutes} phút</strong> đã được gửi tới <strong>Sensei ${tutor.fullName}</strong>.
-              </p>
-              <div class="p-4 bg-[#FAF8F2] rounded-2xl border border-[#ECE8DE] text-xs text-left space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-500 font-medium">Khung giờ:</span>
-                  <span class="font-bold text-[#0F2545]">${selectedSlot} • ${dayFull}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-500 font-medium">Trạng thái:</span>
-                  <span class="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                    Chờ gia sư xác nhận
-                  </span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-500 font-medium">Hình thức:</span>
-                  <span class="font-semibold text-slate-800">Trực tuyến (Google Meet)</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-500 font-medium">Học phí:</span>
-                  <span class="font-bold text-emerald-600">0 VNĐ (Miễn phí học thử 1-1)</span>
-                </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500 font-medium">Trạng thái:</span>
+                <span class="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                  Chờ gia sư xác nhận
+                </span>
               </div>
-              <div class="text-[11px] text-slate-500 italic">
-                Sensei sẽ kiểm tra lịch và phản hồi yêu cầu. Bạn có thể theo dõi tiến độ trong danh sách lịch học của mình.
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500 font-medium">Hình thức:</span>
+                <span class="font-semibold text-slate-800">Trực tuyến (Google Meet)</span>
               </div>
-              <div class="grid grid-cols-2 gap-2.5 pt-2">
-                <a href="/pages/learner-connections/" class="py-2.5 px-3 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5">
-                  <span class="material-symbols-outlined text-[16px]">calendar_month</span>
-                  <span>Xem lịch học của tôi</span>
-                </a>
-                <button type="button" onclick="window.closeModal('connect-modal'); location.reload();" class="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all">
-                  Hoàn tất
-                </button>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500 font-medium">Học phí:</span>
+                <span class="font-bold text-emerald-600">0 VNĐ (Miễn phí học thử 1-1)</span>
               </div>
             </div>
-          `;
-          if (modalFooter) {
-            modalFooter.style.display = 'none';
-          }
-
-        } catch (err) {
-          console.error('Lỗi khi gửi yêu cầu học thử:', err);
-          if (err.status === 409) {
-            showError('Khung giờ này vừa có người đăng ký. Vui lòng chọn khung giờ khác.');
-          } else if (err.status === 401 || err.status === 403) {
-            showError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-          } else if (err.name === 'TypeError' || err.message?.toLowerCase().includes('fetch') || err.name === 'TimeoutError') {
-            showError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.');
-          } else {
-            showError(err.message && !err.message.includes('fetch') ? err.message : 'Không thể gửi yêu cầu lúc này. Vui lòng thử lại sau.');
-          }
-          continueBtn.disabled = false;
-          continueBtn.innerHTML = origBtnHtml;
-        }
-      });
-    }
-
-    // === LOGIC CHO BẢNG LỊCH TUẦN TRÊN TRANG (PREPLY STYLE TABLE) ===
-    let weeklyDurationMinutes = 30;
-    let weeklyOffset = 0;
-    let isWeeklySlotsExpanded = false;
-
-    function renderWeeklyCalendar() {
-      const gridEl = document.getElementById('weekly-calendar-grid');
-      const rangeLabelEl = document.getElementById('weekly-calendar-range-label');
-      const prevBtn = document.getElementById('btn-weekly-prev');
-      const expandWrapper = document.getElementById('weekly-expand-wrapper');
-      const expandText = document.getElementById('toggle-weekly-slots-text');
-      const expandIcon = document.getElementById('toggle-weekly-slots-icon');
-
-      if (!gridEl) return;
-
-      if (prevBtn) {
-        prevBtn.disabled = weeklyOffset <= 0;
-      }
-
-      const baseMonday = new Date(currentMonday.getFullYear(), currentMonday.getMonth(), currentMonday.getDate() + (weeklyOffset * 7));
-      const sundayDate = new Date(baseMonday.getFullYear(), baseMonday.getMonth(), baseMonday.getDate() + 6);
-
-      if (rangeLabelEl) {
-        if (baseMonday.getMonth() === sundayDate.getMonth()) {
-          rangeLabelEl.innerText = `${baseMonday.getDate()} – ${sundayDate.getDate()} Tháng ${baseMonday.getMonth() + 1}, ${baseMonday.getFullYear()}`;
-        } else {
-          rangeLabelEl.innerText = `${baseMonday.getDate()} Thg ${baseMonday.getMonth() + 1} – ${sundayDate.getDate()} Thg ${sundayDate.getMonth() + 1}, ${baseMonday.getFullYear()}`;
-        }
-      }
-
-      const today = new Date();
-      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-      const nowMinutes = today.getHours() * 60 + today.getMinutes();
-
-      let hasAnyColumnExceedLimit = false;
-      const MAX_PREVIEW_SLOTS = 8;
-
-      const columnsData = WEEKDAY_COLUMNS.map((col, colIndex) => {
-        const colDate = new Date(baseMonday.getFullYear(), baseMonday.getMonth(), baseMonday.getDate() + colIndex);
-        const startOfCol = new Date(colDate.getFullYear(), colDate.getMonth(), colDate.getDate()).getTime();
-        const isPastDay = startOfCol < startOfToday;
-        const isToday = startOfCol === startOfToday;
-
-        const pad = (n) => String(n).padStart(2, '0');
-        const dateStr = `${pad(colDate.getDate())}/${pad(colDate.getMonth() + 1)}/${colDate.getFullYear()}`;
-
-        const dayAvails = (tutor.availabilities || []).filter(a => Number(a.dayOfWeek) === col.dow);
-        const slotsSet = new Set();
-
-        if (!isPastDay) {
-          dayAvails.forEach(avail => {
-            if (!avail.startTime || !avail.endTime) return;
-            const [startH, startM] = avail.startTime.split(':').map(Number);
-            const [endH, endM] = avail.endTime.split(':').map(Number);
-            const startTotal = startH * 60 + startM;
-            const endTotal = endH * 60 + endM;
-
-            for (let time = startTotal; time + weeklyDurationMinutes <= endTotal; time += 30) {
-              if (isToday && time <= nowMinutes + 15) {
-                continue;
-              }
-              if (isSlotClashing(tutor, col.dow, dateStr, time, weeklyDurationMinutes)) {
-                continue;
-              }
-              const h = Math.floor(time / 60);
-              const m = time % 60;
-              slotsSet.add(`${pad(h)}:${pad(m)}`);
-            }
-          });
-        }
-
-        const sortedSlots = Array.from(slotsSet).sort();
-        if (sortedSlots.length > MAX_PREVIEW_SLOTS) {
-          hasAnyColumnExceedLimit = true;
-        }
-
-        const displayedSlots = isWeeklySlotsExpanded ? sortedSlots : sortedSlots.slice(0, MAX_PREVIEW_SLOTS);
-
-        return {
-          col,
-          colDate,
-          dateStr,
-          isToday,
-          isPastDay,
-          allSlotsCount: sortedSlots.length,
-          displayedSlots
-        };
-      });
-
-      if (expandWrapper) {
-        if (hasAnyColumnExceedLimit) {
-          expandWrapper.classList.remove('hidden');
-          if (expandText) {
-            expandText.innerText = isWeeklySlotsExpanded ? 'Thu gọn lịch trình' : 'Xem toàn bộ lịch trình';
-          }
-          if (expandIcon) {
-            expandIcon.innerText = isWeeklySlotsExpanded ? 'expand_less' : 'expand_more';
-          }
-        } else {
-          expandWrapper.classList.add('hidden');
-        }
-      }
-
-      gridEl.innerHTML = columnsData.map((data, colIndex) => {
-        const hasSlots = data.allSlotsCount > 0;
-        const accentBarClass = hasSlots ? 'bg-emerald-500' : 'bg-slate-200';
-
-        const slotsHtml = data.displayedSlots.map(slot => {
-          return `
-            <button type="button"
-              class="weekly-slot-btn w-full py-1.5 px-1 rounded-lg text-xs sm:text-sm font-semibold text-[#0F2545] hover:text-[#006194] hover:bg-sky-50 underline decoration-slate-300 hover:decoration-[#006194] underline-offset-4 transition-all text-center cursor-pointer active:scale-95"
-              data-col-index="${colIndex}"
-              data-slot="${slot}"
-              title="Đặt học thử lúc ${slot} ${data.col.fullName} ngày ${data.dateStr}">
-              ${slot}
-            </button>
-          `;
-        }).join('');
-
-        return `
-          <div class="flex flex-col items-center min-w-[76px] sm:min-w-[82px] text-center">
-            <!-- Vạch trạng thái trên đầu cột -->
-            <div class="h-1 w-full rounded-full ${accentBarClass} mb-2.5"></div>
-            
-            <!-- Tiêu đề ngày & Ngày trong tháng -->
-            <div class="pb-2 w-full">
-              <span class="block text-xs font-semibold ${data.isToday ? 'text-primary font-bold' : (data.isPastDay ? 'text-slate-300' : 'text-slate-600')}">
-                ${data.col.shortName}
-              </span>
-              <span class="block text-sm sm:text-base font-bold mt-0.5 ${data.isToday ? 'text-primary' : (data.isPastDay ? 'text-slate-300' : 'text-slate-900')}">
-                ${data.colDate.getDate()}
-              </span>
+            <div class="text-[11px] text-slate-500 italic">
+              Sensei sẽ xem thời gian bạn chọn và đồng ý hoặc từ chối. Bạn có thể theo dõi trong danh sách lịch học của mình.
             </div>
-
-            <!-- Danh sách các khung giờ trống dạng cột dọc -->
-            <div class="w-full flex flex-col items-center gap-1 pt-1 min-h-[50px]">
-              ${slotsHtml}
+            <div class="grid grid-cols-2 gap-2.5 pt-2">
+              <a href="/pages/learner-connections/" class="py-2.5 px-3 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">calendar_month</span>
+                <span>Xem lịch học của tôi</span>
+              </a>
+              <button type="button" onclick="window.closeModal('connect-modal'); location.reload();" class="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all">
+                Hoàn tất
+              </button>
             </div>
           </div>
         `;
-      }).join('');
-
-      // Gắn sự kiện click slot trên bảng tuần: Mở popup modal đặt lịch với mốc giờ tương ứng đã chọn
-      gridEl.querySelectorAll('.weekly-slot-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const colIndex = Number(btn.dataset.colIndex);
-          const slot = btn.dataset.slot;
-
-          // Kiểm tra xác thực
-          const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
-          if (!token) {
-            const tutorDisplay = tutor.fullName ? `Sensei ${tutor.fullName}` : 'gia sư';
-            if (typeof window.openLoginModal === 'function') {
-              window.openLoginModal({
-                tutorName: tutorDisplay,
-                onSuccess: () => {
-                  openBookingModalWithSlot(colIndex, slot);
-                }
-              });
-              return;
-            }
-            const currentPath = window.location.pathname + window.location.search;
-            window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-            return;
-          }
-
-          openBookingModalWithSlot(colIndex, slot);
-        });
-      });
-    }
-
-    function openBookingModalWithSlot(colIndex, slot) {
-      weekOffset = weeklyOffset;
-      selectedDayOffset = colIndex;
-      selectedDurationMinutes = 30;
-
-      renderDays();
-      renderAvailableSlots(getSelectedDate(), selectedDurationMinutes, slot);
-      openModal('connect-modal');
-    }
-
-    // Điều hướng tuần trên bảng tuần
-    const prevWkBtn = document.getElementById('btn-weekly-prev');
-    const nextWkBtn = document.getElementById('btn-weekly-next');
-
-    if (prevWkBtn) {
-      prevWkBtn.addEventListener('click', () => {
-        if (weeklyOffset > 0) {
-          weeklyOffset--;
-          renderWeeklyCalendar();
-        }
-      });
-    }
-
-    if (nextWkBtn) {
-      nextWkBtn.addEventListener('click', () => {
-        weeklyOffset++;
-        renderWeeklyCalendar();
-      });
-    }
-
-    const toggleWkExpandBtn = document.getElementById('btn-toggle-weekly-slots');
-    if (toggleWkExpandBtn) {
-      toggleWkExpandBtn.addEventListener('click', () => {
-        isWeeklySlotsExpanded = !isWeeklySlotsExpanded;
-        renderWeeklyCalendar();
-      });
-    }
-
-    // Khởi tạo bảng lịch tuần
-    renderWeeklyCalendar();
-
-    const urlParams = new URLSearchParams(window.location.search);
-    if (window.location.hash === '#weekly-booking-calendar-section' || urlParams.get('section') === 'schedule') {
-      const scheduleSection = document.getElementById('weekly-booking-calendar-section');
-      if (scheduleSection) {
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            scheduleSection.classList.add('ring-2', 'ring-[#006194]/30');
-            setTimeout(() => {
-              scheduleSection.classList.remove('ring-2', 'ring-[#006194]/30');
-            }, 1600);
-          }, 150);
-        });
+        if (modalFooter) modalFooter.style.display = 'none';
+      } catch (err) {
+        console.error('Lỗi khi gửi yêu cầu học thử:', err);
+        showError(friendlyError(err, 'Không thể gửi yêu cầu lúc này. Vui lòng thử lại sau.'));
+        continueBtn.disabled = false;
+        continueBtn.innerHTML = origBtnHtml;
       }
     }
 
-    function openBookingModalWithoutPreselect() {
-      selectedSlot = null;
-      selectedDayOffset = getInitialDayOffset();
-      renderDays();
-      renderAvailableSlots(getSelectedDate(), selectedDurationMinutes);
-      openModal('connect-modal');
-    }
-
-    // Nút "Đặt lịch học thử 1-1" ở cột bên phải: Mở popup modal đặt lịch
+    // Nút "Đặt lịch học thử 1-1" ở cột bên phải
     const openBtn = document.getElementById('open-booking-btn');
     if (openBtn) {
-      openBtn.addEventListener('click', () => {
-        const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
-        if (!token) {
-          const tutorDisplay = tutor.fullName ? `Sensei ${tutor.fullName}` : 'gia sư';
-          if (typeof window.openLoginModal === 'function') {
-            window.openLoginModal({
-              tutorName: tutorDisplay,
-              onSuccess: () => {
-                openBookingModalWithoutPreselect();
-              }
-            });
-            return;
-          }
-          const currentPath = window.location.pathname + window.location.search;
-          const returnUrl = currentPath.includes('connect=true')
-            ? currentPath
-            : (currentPath + (currentPath.includes('?') ? '&' : '?') + 'connect=true');
-          window.location.href = `/login?redirect=${encodeURIComponent(returnUrl)}`;
-          return;
-        }
-        openBookingModalWithoutPreselect();
-      });
+      openBtn.addEventListener('click', () => requireLogin(openTrialModal, 'connect=true'));
     }
 
-    // Tự động mở modal kết nối nếu có cờ connect=true
+    // Liên kết tới thẳng phần lịch rảnh
+    const urlParams = new URLSearchParams(window.location.search);
+    if (window.location.hash === '#weekly-booking-calendar-section' || urlParams.get('section') === 'schedule') {
+      requestAnimationFrame(() => setTimeout(scrollToCalendar, 150));
+    }
+
+    // connect=true (từ nút "Đặt lịch học thử" ở trang tìm gia sư): mở sẵn modal học thử
     if (urlParams.get('connect') === 'true') {
-      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
-      if (token) {
-        setTimeout(() => {
-          openBookingModalWithoutPreselect();
-        }, 350);
-      } else {
-        setTimeout(() => {
-          const tutorDisplay = tutor.fullName ? `Sensei ${tutor.fullName}` : 'gia sư';
-          if (typeof window.openLoginModal === 'function') {
-            window.openLoginModal({
-              tutorName: tutorDisplay,
-              onSuccess: () => {
-                openBookingModalWithoutPreselect();
-              }
-            });
-          }
-        }, 350);
-      }
+      setTimeout(() => requireLogin(openTrialModal), 350);
     }
 
   } catch (err) {

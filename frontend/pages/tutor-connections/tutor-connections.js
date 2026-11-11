@@ -472,8 +472,208 @@ function closeModals() {
   $('modalAcceptBooking')?.classList.add('hidden');
   $('modalDeclineBooking')?.classList.add('hidden');
   $('modalConfirmComplete')?.classList.add('hidden');
+  $('modalDirectRespond')?.classList.add('hidden');
   activeBooking = null;
   activeCompleteBooking = null;
+  activeDirect = null;
+  directAction = null;
+}
+
+// ====================================================================
+// Kết nối trực tiếp (không học thử): học viên chọn ca hằng tuần, gia sư đồng ý / từ chối
+// ====================================================================
+let directRequests = [];
+let directFilter = 'PENDING';
+let activeDirect = null;
+let directAction = null; // 'ACCEPT' | 'DECLINE'
+let directLoaded = false;
+
+const DIRECT_HISTORY = ['DECLINED', 'CANCELLED', 'EXPIRED'];
+
+function slotText(s) {
+  return `${s.dayName} ${s.startTime}–${s.endTime} (${s.durationMinutes} phút)`;
+}
+
+function renderDirect() {
+  const listEl = $('directList');
+  if (!listEl || !directLoaded) return;
+
+  const pending = directRequests.filter(r => r.status === 'PENDING').length;
+  const badge = $('directPendingBadge');
+  if (badge) {
+    badge.textContent = `${pending} chờ phản hồi`;
+    badge.classList.toggle('hidden', pending === 0);
+  }
+
+  const filtered = directRequests.filter(r =>
+    directFilter === 'HISTORY' ? DIRECT_HISTORY.includes(r.status) : r.status === directFilter);
+
+  if (!filtered.length) {
+    const emptyText = directFilter === 'PENDING'
+      ? 'Chưa có yêu cầu kết nối nào đang chờ bạn phản hồi.'
+      : directFilter === 'ACCEPTED' ? 'Bạn chưa đồng ý kết nối trực tiếp với học viên nào.' : 'Chưa có yêu cầu nào trong mục này.';
+    listEl.innerHTML = `
+      <div class="bg-surface-container-lowest rounded-2xl p-6 text-center shadow-sm border border-outline-variant/30 text-body-sm text-on-surface-variant">
+        ${emptyText}
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(r => {
+    const name = escapeHtml(r.partnerName || 'Học viên');
+    const avatarSrc = r.partnerAvatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
+    const badgeCls = r.status === 'PENDING' ? 'bg-amber-100 text-amber-800'
+      : r.status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-800'
+      : r.status === 'DECLINED' ? 'bg-error-container text-error' : 'bg-surface-container text-on-surface-variant';
+    const slotsHtml = (r.slots || []).map(s => `
+      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-fixed text-primary text-caption font-semibold">
+        <span class="material-symbols-outlined text-[14px]">event_repeat</span>${escapeHtml(slotText(s))}
+      </span>`).join('');
+
+    let actionsHtml = '';
+    if (r.status === 'PENDING') {
+      actionsHtml = `
+        <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-outline-variant/40">
+          <button type="button" class="btn-direct-accept px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all" data-id="${r.requestId}">
+            <span class="material-symbols-outlined text-[18px]">handshake</span><span>Đồng ý kết nối</span>
+          </button>
+          <button type="button" class="btn-direct-decline px-4 py-2 rounded-xl bg-surface-container hover:bg-error-container hover:text-error text-on-surface text-label-md font-semibold inline-flex items-center gap-1.5 transition-all" data-id="${r.requestId}">
+            <span class="material-symbols-outlined text-[18px]">cancel</span><span>Từ chối</span>
+          </button>
+        </div>`;
+    } else if (r.status === 'ACCEPTED') {
+      const openClass = openClassByLearner.get(String(r.learnerId));
+      actionsHtml = openClass ? `
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          <span class="text-body-sm text-emerald-900 font-medium [overflow-wrap:anywhere]">Đã tạo lớp học <strong>${escapeHtml(openClass.title || '')}</strong> với học viên này.</span>
+          <a href="/tutor/classrooms?space=${encodeURIComponent(openClass.spaceId)}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm no-underline">
+            <span class="material-symbols-outlined text-[18px]">arrow_forward</span><span>Vào lớp học</span>
+          </a>
+        </div>` : `
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          <span class="text-body-sm text-emerald-900 font-medium">Đã kết nối. Hãy tạo lớp học và xếp lịch theo các ca học viên đã chọn.</span>
+          <a href="/tutor/classrooms?taoLop=1&learnerId=${encodeURIComponent(r.learnerId || '')}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm no-underline">
+            <span class="material-symbols-outlined text-[18px]">add_circle</span><span>Tạo lớp học</span>
+          </a>
+        </div>`;
+    } else if (r.responseMessage) {
+      actionsHtml = `<div class="text-caption text-on-surface-variant">Lý do: ${escapeHtml(r.responseMessage)}</div>`;
+    }
+
+    return `
+      <div class="bg-surface-container-lowest rounded-2xl p-5 sm:p-6 shadow-sm border border-outline-variant/40 hover:border-primary/40 transition-all space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <img src="${avatarSrc}" alt="${name}" class="w-12 h-12 rounded-2xl object-cover ring-2 ring-surface-container shrink-0">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-title-md font-bold text-on-surface">${name}</h3>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary-fixed text-primary">Kết nối trực tiếp</span>
+              </div>
+              <p class="text-caption text-on-surface-variant mt-0.5">${(r.slots || []).length} ca mỗi tuần • Không qua học thử</p>
+            </div>
+          </div>
+          <span class="self-start sm:self-center px-2.5 py-1 rounded-full text-caption font-bold ${badgeCls}">${escapeHtml(r.statusLabel || '')}</span>
+        </div>
+        <div class="flex flex-wrap gap-2">${slotsHtml}</div>
+        ${(r.currentLevel || r.learningGoals) ? `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 text-body-sm">
+            ${r.currentLevel ? `<div class="text-on-surface-variant">Trình độ hiện tại: <strong class="text-on-surface">${escapeHtml(r.currentLevel)}</strong></div>` : ''}
+            ${r.learningGoals ? `<div class="text-on-surface-variant">Mục tiêu: <span class="text-on-surface font-medium">${escapeHtml(r.learningGoals)}</span></div>` : ''}
+          </div>` : ''}
+        ${r.initialMessage ? `<div class="text-body-sm text-on-surface-variant bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/30 italic">"${escapeHtml(r.initialMessage)}"</div>` : ''}
+        ${actionsHtml}
+      </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('.btn-direct-accept').forEach(btn =>
+    btn.addEventListener('click', () => openDirectRespond(btn.dataset.id, 'ACCEPT')));
+  listEl.querySelectorAll('.btn-direct-decline').forEach(btn =>
+    btn.addEventListener('click', () => openDirectRespond(btn.dataset.id, 'DECLINE')));
+}
+
+function openDirectRespond(requestId, action) {
+  activeDirect = directRequests.find(r => String(r.requestId) === String(requestId));
+  if (!activeDirect) return;
+  directAction = action;
+  const accept = action === 'ACCEPT';
+  $('directRespondTitle').textContent = accept ? 'Đồng ý kết nối' : 'Từ chối yêu cầu kết nối';
+  $('directRespondSubtitle').textContent = accept
+    ? 'Các ca bên dưới sẽ được giữ cho học viên này'
+    : 'Học viên sẽ nhận được lý do bạn gửi';
+  $('directRespondIcon').textContent = accept ? 'handshake' : 'cancel';
+  $('directRespondIconWrap').className = `w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accept ? 'bg-primary-fixed text-primary' : 'bg-error-container text-error'}`;
+  $('directRespondLearner').textContent = activeDirect.partnerName || 'Học viên';
+  $('directRespondSlots').innerHTML = (activeDirect.slots || []).map(s => `<li>${escapeHtml(slotText(s))}</li>`).join('');
+  $('directRespondMessageLabel').textContent = accept ? 'Lời nhắn gửi học viên (tùy chọn)' : 'Lý do từ chối';
+  const msg = $('directRespondMessage');
+  msg.value = '';
+  msg.placeholder = accept ? 'Ví dụ: Chào em, thầy sẽ tạo lớp và gửi tài liệu trước buổi đầu tiên.' : 'Ví dụ: Ca này thầy vừa kín lịch, em có thể chọn ca khác giúp thầy nhé.';
+  const btn = $('btnSubmitDirectRespond');
+  btn.className = `px-5 py-2.5 rounded-xl text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all ${accept ? 'bg-primary hover:bg-primary-container text-on-primary' : 'bg-error hover:opacity-90 text-on-error'}`;
+  $('btnSubmitDirectRespondText').textContent = accept ? 'Xác nhận đồng ý' : 'Xác nhận từ chối';
+  $('modalDirectRespond').classList.remove('hidden');
+}
+
+async function submitDirectRespond() {
+  if (!activeDirect || !directAction) return;
+  const message = $('directRespondMessage').value.trim();
+  if (directAction === 'DECLINE' && !message) {
+    showToast('Vui lòng nhập lý do từ chối để học viên biết.', 'error');
+    $('directRespondMessage').focus();
+    return;
+  }
+  const btn = $('btnSubmitDirectRespond');
+  const btnText = $('btnSubmitDirectRespondText');
+  const original = btnText.textContent;
+  btn.disabled = true;
+  btnText.textContent = 'Đang xử lý...';
+  try {
+    await API.connectionRequests.respond(activeDirect.requestId, { action: directAction, message: message || null });
+    const accepted = directAction === 'ACCEPT';
+    closeModals();
+    showToast(accepted ? 'Đã đồng ý kết nối. Bạn có thể tạo lớp học cho học viên.' : 'Đã từ chối yêu cầu kết nối.');
+    await Promise.all([loadDirect(), loadBookings()]);
+  } catch (err) {
+    showToast(err.message || 'Không thể xử lý yêu cầu lúc này. Vui lòng thử lại.', 'error');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = original;
+  }
+}
+
+async function loadDirect() {
+  const listEl = $('directList');
+  try {
+    const res = await API.connectionRequests.getMyRequests('ALL', 0, 100);
+    directRequests = res?.items || [];
+    directLoaded = true;
+    renderDirect();
+  } catch (err) {
+    console.error('Lỗi tải yêu cầu kết nối trực tiếp:', err);
+    if (listEl) {
+      listEl.innerHTML = `
+        <div class="bg-surface-container-lowest rounded-2xl p-6 text-center shadow-sm border border-outline-variant/30 text-body-sm text-on-surface-variant">
+          ${escapeHtml(err.message || 'Không thể tải yêu cầu kết nối. Vui lòng thử lại sau.')}
+        </div>`;
+    }
+  }
+}
+
+function initDirectEvents() {
+  const tabBtns = document.querySelectorAll('#directTabs .direct-tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => {
+        b.className = 'direct-tab-btn px-3 py-1.5 rounded-xl text-on-surface-variant hover:bg-surface-container transition-all';
+      });
+      btn.className = 'direct-tab-btn px-3 py-1.5 rounded-xl bg-primary text-on-primary transition-all';
+      directFilter = btn.dataset.status;
+      renderDirect();
+    });
+  });
+  $('btnSubmitDirectRespond')?.addEventListener('click', submitDirectRespond);
+  $('btnRefresh')?.addEventListener('click', loadDirect);
 }
 
 /**
@@ -497,6 +697,7 @@ async function loadBookings() {
 
     updateCounts();
     renderBookings();
+    renderDirect(); // cập nhật nút "Tạo lớp / Vào lớp" theo danh sách lớp mới nhất
   } catch (err) {
     console.error('Lỗi tải danh sách yêu cầu kết nối:', err);
     $('errorMessage').textContent = err instanceof ApiError ? err.message : 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
@@ -662,6 +863,8 @@ API.tutorVerification.getMine()
 
 document.addEventListener('DOMContentLoaded', () => {
   initEvents();
+  initDirectEvents();
+  loadDirect();
   loadBookings();
 });
 

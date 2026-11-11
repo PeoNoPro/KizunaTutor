@@ -53,6 +53,12 @@ public interface TrialBookingService {
     TrialBookingResponseDTO agreeConnectionAfterTrial(String userEmail, UUID bookingId);
 
     /**
+     * Chuyển các yêu cầu học thử đang chờ đã quá hạn sang EXPIRED (gia sư chưa phản hồi sau 48 giờ, hoặc đã tới giờ học).
+     * @return số yêu cầu vừa hết hạn
+     */
+    int expireStalePendingTrials();
+
+    /**
      * Kiểm tra xem gia sư có lịch học thử nào đang PENDING hoặc CONFIRMED trong ca này không
      */
     boolean hasActiveBookingsInSlot(UUID tutorId, Integer dayOfWeek, java.time.LocalTime startTime, java.time.LocalTime endTime);

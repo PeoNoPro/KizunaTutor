@@ -252,30 +252,51 @@ export const API = {
     }
   },
 
+  /**
+   * Kết nối gia sư trực tiếp (không cần học thử): học viên chọn các ca hằng tuần trong lịch rảnh, gia sư duyệt.
+   */
   connectionRequests: {
-    /**
-     * Gửi yêu cầu kết nối học thử với gia sư (UC-30)
-     */
-    async create(requestData) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/bookings/trial`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestData),
-          signal: AbortSignal.timeout(10000)
-        });
-
-        if (!response.ok) {
-          throw new Error(`Không thể gửi yêu cầu kết nối: HTTP ${response.status}`);
-        }
-
-        return await response.json();
-      } catch (err) {
-        console.error('API.connectionRequests.create error:', err);
+    async _call(path, { method = 'GET', body, timeout = 10000 } = {}) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/v1/connection-requests${path}`, {
+        method,
+        headers: {
+          'Accept': 'application/json',
+          ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        signal: AbortSignal.timeout(timeout)
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+        err.status = response.status;
+        err.data = resData;
         throw err;
       }
+      return resData.data || resData;
+    },
+
+    /** payload: { tutorId, slots: [{ dayOfWeek, startTime: 'HH:mm', durationMinutes }], currentLevel, learningGoals, initialMessage } */
+    create(payload) {
+      return this._call('', { method: 'POST', body: payload });
+    },
+
+    /** Danh sách yêu cầu kết nối trực tiếp của tôi (học viên hoặc gia sư). */
+    getMyRequests(status = 'ALL', page = 0, size = 20) {
+      const query = new URLSearchParams({ status, page, size });
+      return this._call(`/my-requests?${query.toString()}`, { timeout: 8000 });
+    },
+
+    /** Gia sư phản hồi: { action: 'ACCEPT' | 'DECLINE', message } */
+    respond(requestId, payload) {
+      return this._call(`/${requestId}/respond`, { method: 'PUT', body: payload });
+    },
+
+    /** Học viên hủy yêu cầu đang chờ. */
+    cancel(requestId) {
+      return this._call(`/${requestId}/cancel`, { method: 'PUT' });
     }
   },
 

@@ -32,7 +32,7 @@
               <span class="text-caption text-on-surface-variant">• Buổi học 1-1 (0đ)</span>
             </div>
             <h1 class="text-headline-md font-bold text-on-surface tracking-tight">Yêu cầu kết nối</h1>
-            <p class="text-body-sm text-on-surface-variant mt-1">Xem xét, duyệt hoặc từ chối các yêu cầu hẹn lịch học thử từ học viên. Sau khi chấp nhận, link Google Meet sẽ được gửi trực tiếp cho học viên.</p>
+            <p class="text-body-sm text-on-surface-variant mt-1">Duyệt các yêu cầu kết nối trực tiếp theo ca hằng tuần và các yêu cầu học thử do học viên tự chọn thời gian.</p>
           </div>
 
           <!-- Nút làm mới dữ liệu -->
@@ -41,6 +41,33 @@
             <span>Làm mới</span>
           </button>
         </div>
+
+        <!-- Yêu cầu kết nối trực tiếp (học viên chọn ca hằng tuần, không cần học thử) -->
+        <section id="directSection" class="mb-8 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <h2 class="text-title-lg font-bold text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[22px]">handshake</span>
+                Kết nối trực tiếp
+                <span id="directPendingBadge" class="hidden px-2 py-0.5 rounded-full text-caption font-bold bg-amber-100 text-amber-800"></span>
+              </h2>
+              <p class="text-body-sm text-on-surface-variant mt-1">Học viên muốn học chính thức theo các ca hằng tuần trong lịch rảnh của bạn, không qua học thử.</p>
+            </div>
+            <div id="directTabs" class="flex items-center gap-1.5 text-label-md font-semibold">
+              <button type="button" class="direct-tab-btn px-3 py-1.5 rounded-xl bg-primary text-on-primary transition-all" data-status="PENDING">Chờ phản hồi</button>
+              <button type="button" class="direct-tab-btn px-3 py-1.5 rounded-xl text-on-surface-variant hover:bg-surface-container transition-all" data-status="ACCEPTED">Đã kết nối</button>
+              <button type="button" class="direct-tab-btn px-3 py-1.5 rounded-xl text-on-surface-variant hover:bg-surface-container transition-all" data-status="HISTORY">Lịch sử</button>
+            </div>
+          </div>
+          <div id="directList" class="space-y-4">
+            <!-- Render động từ tutor-connections.js -->
+          </div>
+        </section>
+
+        <h2 class="text-title-lg font-bold text-on-surface flex items-center gap-2 mb-4">
+          <span class="material-symbols-outlined text-primary text-[22px]">event_available</span>
+          Yêu cầu học thử
+        </h2>
 
         <!-- Thống kê nhanh 3 thẻ -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -118,7 +145,7 @@
             <span class="material-symbols-outlined text-[36px]">event_available</span>
           </div>
           <h3 class="text-title-md font-bold text-on-surface">Không có yêu cầu kết nối nào</h3>
-          <p id="emptyMessage" class="text-body-sm text-on-surface-variant max-w-md mx-auto">Hiện tại bạn chưa có yêu cầu học thử nào trong mục này. Khi học viên đăng ký ca rảnh của bạn, thông tin sẽ hiển thị tại đây.</p>
+          <p id="emptyMessage" class="text-body-sm text-on-surface-variant max-w-md mx-auto">Hiện tại bạn chưa có yêu cầu học thử nào trong mục này. Khi học viên gửi yêu cầu học thử, thông tin sẽ hiển thị tại đây.</p>
         </div>
 
         <!-- Danh sách thẻ yêu cầu -->
@@ -260,6 +287,48 @@
         <button type="button" id="btnSubmitDecline" class="px-5 py-2.5 rounded-xl bg-error hover:opacity-90 text-on-error text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all">
           <span class="material-symbols-outlined text-[18px]">close</span>
           <span id="btnSubmitDeclineText">Xác nhận từ chối</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL PHẢN HỒI YÊU CẦU KẾT NỐI TRỰC TIẾP ===== -->
+  <div id="modalDirectRespond" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="directRespondTitle">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-5 animate-in fade-in duration-150">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <div id="directRespondIconWrap" class="w-10 h-10 rounded-xl bg-primary-fixed text-primary flex items-center justify-center shrink-0">
+            <span id="directRespondIcon" class="material-symbols-outlined text-[22px]">handshake</span>
+          </div>
+          <div>
+            <h2 id="directRespondTitle" class="text-title-md font-bold text-on-surface">Đồng ý kết nối</h2>
+            <p id="directRespondSubtitle" class="text-caption text-on-surface-variant">Các ca bên dưới sẽ được giữ cho học viên này</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close text-on-surface-variant hover:text-on-surface p-1 rounded-lg">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/50 space-y-2 text-body-sm">
+        <div class="flex items-center gap-2 text-on-surface">
+          <span class="material-symbols-outlined text-[18px] text-primary">person</span>
+          <span>Học viên: <strong id="directRespondLearner" class="font-bold">—</strong></span>
+        </div>
+        <ul id="directRespondSlots" class="space-y-1 pl-7 list-disc text-on-surface"></ul>
+      </div>
+
+      <div class="space-y-2">
+        <label for="directRespondMessage" id="directRespondMessageLabel" class="text-label-md font-semibold text-on-surface">Lời nhắn gửi học viên (tùy chọn)</label>
+        <textarea id="directRespondMessage" rows="3" maxlength="1000" class="tv-input text-body-sm resize-none" placeholder=""></textarea>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/30">
+        <button type="button" class="modal-close px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md transition-all font-medium">
+          Đóng
+        </button>
+        <button type="button" id="btnSubmitDirectRespond" class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all">
+          <span id="btnSubmitDirectRespondText">Xác nhận đồng ý</span>
         </button>
       </div>
     </div>

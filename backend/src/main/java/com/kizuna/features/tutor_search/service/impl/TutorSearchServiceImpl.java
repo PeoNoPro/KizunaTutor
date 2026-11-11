@@ -203,6 +203,7 @@ public class TutorSearchServiceImpl implements TutorSearchService {
         List<TutorAvailabilityDTO> availabilities = Collections.emptyList();
         List<TutorAvailabilityDTO> classSchedules = Collections.emptyList();
         List<TutorBookedSlotDTO> bookedSlots = Collections.emptyList();
+        List<TutorAvailabilityDTO> lockedSlots = Collections.emptyList();
         List<TutorReviewDTO> reviews = Collections.emptyList();
 
         try {
@@ -392,6 +393,35 @@ public class TutorSearchServiceImpl implements TutorSearchService {
             } catch (Exception e) {
                 // ignore
             }
+            // Ca hằng tuần đã bị "khóa" bởi kết nối trực tiếp đã được đồng ý (đọc CHỈ ĐỌC bảng của booking).
+            // Ca được nhả khi cặp gia sư - học viên chỉ còn lớp đã kết thúc. Cùng điều kiện với
+            // ConnectionRequestSlotRepository.existsLockedSlotOverlap.
+            try {
+                lockedSlots = jdbcTemplate.query(
+                    "SELECT s.day_of_week, s.start_time::text, s.end_time::text " +
+                    "FROM connection_request_slots s " +
+                    "JOIN connection_requests cr ON cr.request_id = s.request_id " +
+                    "WHERE cr.tutor_id = ? AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED' " +
+                    "  AND (EXISTS (SELECT 1 FROM learning_spaces ls WHERE ls.tutor_id = cr.tutor_id " +
+                    "               AND ls.learner_id = cr.learner_id AND ls.status IN ('ACTIVE', 'PAUSED')) " +
+                    "       OR NOT EXISTS (SELECT 1 FROM learning_spaces ls WHERE ls.tutor_id = cr.tutor_id " +
+                    "               AND ls.learner_id = cr.learner_id)) " +
+                    "ORDER BY s.day_of_week, s.start_time",
+                    (rs, rowNum) -> {
+                        String start = rs.getString("start_time");
+                        String end = rs.getString("end_time");
+                        return TutorAvailabilityDTO.builder()
+                            .dayOfWeek(rs.getInt("day_of_week"))
+                            .startTime(start != null && start.length() >= 5 ? start.substring(0, 5) : start)
+                            .endTime(end != null && end.length() >= 5 ? end.substring(0, 5) : end)
+                            .isActive(true)
+                            .build();
+                    },
+                    tutor.getTutorId()
+                );
+            } catch (Exception e) {
+                // ignore nếu bảng chưa tạo
+            }
         }
 
         // Bài đăng đã duyệt (nếu có) thay cho phần giới thiệu, học phí, hình thức dạy mặc định
@@ -423,6 +453,7 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                 .availabilities(availabilities)
                 .classSchedules(classSchedules)
                 .bookedSlots(bookedSlots)
+                .lockedSlots(lockedSlots)
                 .reviews(reviews)
                 .build();
     }

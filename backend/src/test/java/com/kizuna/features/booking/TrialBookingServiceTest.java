@@ -4,7 +4,6 @@ import com.kizuna.core.entity.Learner;
 import com.kizuna.core.entity.Role;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.core.entity.User;
-import com.kizuna.core.exception.ConflictException;
 import com.kizuna.core.repository.LearnerRepository;
 import com.kizuna.core.repository.TutorRepository;
 import com.kizuna.core.repository.UserRepository;
@@ -18,7 +17,6 @@ import com.kizuna.features.booking.repository.ConnectionRequestRepository;
 import com.kizuna.features.booking.repository.TrialBookingHistoryRepository;
 import com.kizuna.features.booking.repository.TrialBookingRepository;
 import com.kizuna.features.booking.service.impl.TrialBookingServiceImpl;
-import com.kizuna.features.tutor_search.service.TutorScheduleService;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,7 +26,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,9 +54,6 @@ class TrialBookingServiceTest {
 
     @Mock
     private TrialBookingHistoryRepository trialBookingHistoryRepository;
-
-    @Mock
-    private TutorScheduleService tutorScheduleService;
 
     @Mock
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
@@ -108,7 +102,7 @@ class TrialBookingServiceTest {
     }
 
     @Test
-    @DisplayName("Đặt lịch học thử thành công - Khung giờ rảnh, trả về PENDING")
+    @DisplayName("Đặt lịch học thử thành công - Học viên tự chọn giờ, trả về PENDING")
     void testCreateTrialBooking_Success() {
         OffsetDateTime startTime = OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0);
         CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
@@ -124,11 +118,6 @@ class TrialBookingServiceTest {
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
         when(learnerRepository.findByUser(mockLearnerUser)).thenReturn(Optional.of(mockLearner));
         when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(mockTutor));
-        when(trialBookingRepository.existsOverlappingBooking(eq(tutorId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                .thenReturn(false);
-        when(trialBookingRepository.existsOverlappingLearnerBooking(eq(mockLearner.getLearnerId()), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                .thenReturn(false);
-        when(tutorScheduleService.hasActiveAvailabilities(tutorId)).thenReturn(false);
 
         when(connectionRequestRepository.save(any(ConnectionRequest.class)))
                 .thenAnswer(inv -> {
@@ -154,59 +143,47 @@ class TrialBookingServiceTest {
     }
 
     @Test
-    @DisplayName("Đặt lịch học thử thất bại - Khung giờ bị trùng lịch ném ConflictException (409)")
-    void testCreateTrialBooking_OverlappingSlot_ThrowsConflictException() {
-        OffsetDateTime startTime = OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0);
+    @DisplayName("Đặt lịch học thử - Không kiểm tra lịch rảnh hay trùng lịch lúc học viên gửi yêu cầu")
+    void testCreateTrialBooking_DoesNotCheckAvailabilityOrOverlap() {
+        OffsetDateTime startTime = OffsetDateTime.now().plusDays(2).withHour(3).withMinute(15);
         CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
                 .tutorId(tutorId)
                 .scheduledStartTime(startTime)
                 .durationMinutes(30)
-                .learningMode("ONLINE")
                 .build();
 
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
         when(learnerRepository.findByUser(mockLearnerUser)).thenReturn(Optional.of(mockLearner));
         when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(mockTutor));
-        when(trialBookingRepository.existsOverlappingBooking(eq(tutorId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                .thenReturn(true);
+        when(connectionRequestRepository.save(any(ConnectionRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ConflictException ex = assertThrows(ConflictException.class, () ->
-                trialBookingService.createTrialBooking("learner@test.com", request)
-        );
+        TrialBookingResponseDTO response = trialBookingService.createTrialBooking("learner@test.com", request);
 
-        assertTrue(ex.getMessage().contains("Khung giờ này vừa có người đăng ký"));
-        verify(trialBookingRepository, never()).save(any());
-        verify(connectionRequestRepository, never()).save(any());
+        assertEquals("PENDING", response.getBookingStatus());
+        verify(trialBookingRepository, never()).existsConfirmedTutorOverlap(any(), any(), any(), any());
+        verify(trialBookingRepository, never()).existsConfirmedLearnerOverlap(any(), any(), any(), any());
+        verify(trialBookingRepository, never()).findClassScheduleClash(any(), any(), anyInt(), any(), any());
     }
 
     @Test
-    @DisplayName("Đặt lịch học thử thất bại - Khung giờ ngoài ca rảnh ném BadRequestException (400)")
-    void testCreateTrialBooking_OutsideAvailability_ThrowsBadRequestException() {
-        OffsetDateTime startTime = OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0);
+    @DisplayName("Đặt lịch học thử thất bại - Thời gian trong quá khứ ném BadRequestException")
+    void testCreateTrialBooking_PastTime_ThrowsBadRequest() {
         CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
                 .tutorId(tutorId)
-                .scheduledStartTime(startTime)
+                .scheduledStartTime(OffsetDateTime.now().minusHours(1))
                 .durationMinutes(30)
-                .learningMode("ONLINE")
                 .build();
 
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
         when(learnerRepository.findByUser(mockLearnerUser)).thenReturn(Optional.of(mockLearner));
         when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(mockTutor));
-        when(trialBookingRepository.existsOverlappingBooking(eq(tutorId), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                .thenReturn(false);
-        when(trialBookingRepository.existsOverlappingLearnerBooking(eq(mockLearner.getLearnerId()), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-                .thenReturn(false);
-
-        when(tutorScheduleService.hasActiveAvailabilities(tutorId)).thenReturn(true);
-        when(tutorScheduleService.isSlotAvailable(eq(tutorId), anyInt(), any(LocalTime.class), any(LocalTime.class)))
-                .thenReturn(false);
 
         com.kizuna.core.exception.BadRequestException ex = assertThrows(com.kizuna.core.exception.BadRequestException.class, () ->
                 trialBookingService.createTrialBooking("learner@test.com", request)
         );
 
-        assertTrue(ex.getMessage().contains("Gia sư không có lịch rảnh vào khung giờ này"));
+        assertTrue(ex.getMessage().contains("phải ở tương lai"));
         verify(trialBookingRepository, never()).save(any());
     }
 

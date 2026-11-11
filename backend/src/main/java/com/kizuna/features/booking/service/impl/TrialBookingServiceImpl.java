@@ -18,11 +18,10 @@ import com.kizuna.features.booking.entity.*;
 import com.kizuna.features.booking.repository.ConnectionRequestRepository;
 import com.kizuna.features.booking.repository.TrialBookingHistoryRepository;
 import com.kizuna.features.booking.repository.TrialBookingRepository;
+import com.kizuna.features.booking.service.BookingLimits;
 import com.kizuna.features.booking.service.TrialBookingService;
-import com.kizuna.features.tutor_search.service.TutorScheduleService;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -54,7 +53,6 @@ public class TrialBookingServiceImpl implements TrialBookingService {
     private final ConnectionRequestRepository connectionRequestRepository;
     private final TrialBookingRepository trialBookingRepository;
     private final TrialBookingHistoryRepository trialBookingHistoryRepository;
-    private final TutorScheduleService tutorScheduleService;
     private final JdbcTemplate jdbcTemplate;
 
     public TrialBookingServiceImpl(
@@ -64,7 +62,6 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             ConnectionRequestRepository connectionRequestRepository,
             TrialBookingRepository trialBookingRepository,
             TrialBookingHistoryRepository trialBookingHistoryRepository,
-            @Lazy TutorScheduleService tutorScheduleService,
             JdbcTemplate jdbcTemplate) {
         this.userRepository = userRepository;
         this.learnerRepository = learnerRepository;
@@ -72,7 +69,6 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         this.connectionRequestRepository = connectionRequestRepository;
         this.trialBookingRepository = trialBookingRepository;
         this.trialBookingHistoryRepository = trialBookingHistoryRepository;
-        this.tutorScheduleService = tutorScheduleService;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -130,47 +126,25 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         }
         OffsetDateTime endTime = startTime.plusMinutes(duration);
 
-        // Khóa giao dịch cấp cơ sở dữ liệu theo mã gia sư (Chống Race Condition khi 2 học viên đặt cùng lúc)
-        if (jdbcTemplate != null) {
-            try {
-                long tutorLockKey = Math.abs(tutor.getTutorId().getMostSignificantBits());
-                jdbcTemplate.execute("SELECT pg_advisory_xact_lock(" + tutorLockKey + ")");
-            } catch (Exception e) {
-                log.warn("Không thể kích hoạt pg_advisory_xact_lock: {}", e.getMessage());
-            }
+        // Học viên tự chọn ngày giờ học thử: KHÔNG ràng buộc theo lịch rảnh và KHÔNG chặn trùng lịch ở bước này.
+        // Gia sư là người quyết định; trùng lịch được kiểm tra khi gia sư bấm "Đồng ý" (respondTrialBooking).
+
+        // Chống spam: khóa theo gia sư để hai lần bấm gửi liên tiếp không cùng lọt qua các kiểm tra bên dưới
+        lockTutor(tutor.getTutorId());
+        expireStalePendingTrials(); // yêu cầu cũ đã quá hạn không còn tính là "đang mở"
+
+        // Mỗi cặp học viên - gia sư chỉ có tối đa 1 buổi học thử đang mở
+        if (trialBookingRepository.existsByLearnerLearnerIdAndTutorTutorIdAndBookingStatusIn(
+                learner.getLearnerId(), tutor.getTutorId(), BookingLimits.OPEN_TRIAL_STATUSES)) {
+            throw new ConflictException("Bạn đang có một yêu cầu học thử với gia sư này. "
+                    + "Hãy chờ gia sư phản hồi, đổi lịch hoặc hủy yêu cầu cũ trước khi gửi yêu cầu mới.");
         }
-
-        // Kiểm tra trùng lịch gia sư
-        boolean hasOverlap = trialBookingRepository.existsOverlappingBooking(tutor.getTutorId(), startTime, endTime);
-        if (hasOverlap) {
-            throw new ConflictException("Khung giờ này vừa có người đăng ký. Vui lòng chọn khung giờ khác.");
-        }
-
-        // Kiểm tra học viên không được đặt 2 lịch trùng giờ
-        boolean hasLearnerOverlap = trialBookingRepository.existsOverlappingLearnerBooking(learner.getLearnerId(), startTime, endTime);
-        if (hasLearnerOverlap) {
-            throw new ConflictException("Bạn đã có một lịch hẹn học thử khác vào khung giờ này. Vui lòng chọn khung giờ khác.");
-        }
-
-        // Không trùng lịch học chính thức hằng tuần (lớp FE-06) của gia sư hoặc của học viên
-        ensureNoClassScheduleClash(tutor.getTutorId(), learner.getLearnerId(), startTime, endTime,
-                "Gia sư đã có lịch dạy lớp chính thức vào khung giờ này. Vui lòng chọn khung giờ khác.",
-                "Bạn đã có lịch học lớp chính thức vào khung giờ này. Vui lòng chọn khung giờ khác.");
-
-        // Đổi sang múi giờ Việt Nam (+07:00) trước khi so sánh với lịch rảnh của gia sư
-        ZonedDateTime vnStartTime = startTime.atZoneSameInstant(VN_ZONE);
-        ZonedDateTime vnEndTime = endTime.atZoneSameInstant(VN_ZONE);
-        int dayOfWeek = (vnStartTime.getDayOfWeek().getValue() % 7) + 1; // 1 = Chủ nhật, 2 = Thứ hai...
-        LocalTime localStartTime = vnStartTime.toLocalTime();
-        LocalTime localEndTime = vnEndTime.toLocalTime();
-
-        // Kiểm tra ca rảnh của gia sư qua Service interface công khai (Tuân thủ AGENTS Luật 3)
-        if (tutorScheduleService != null && tutorScheduleService.hasActiveAvailabilities(tutor.getTutorId())) {
-            boolean isSlotAvailable = tutorScheduleService.isSlotAvailable(
-                    tutor.getTutorId(), dayOfWeek, localStartTime, localEndTime);
-            if (!isSlotAvailable) {
-                throw new BadRequestException("Gia sư không có lịch rảnh vào khung giờ này. Vui lòng chọn khung giờ khác.");
-            }
+        // Vừa bị gia sư này từ chối thì phải chờ một thời gian mới được gửi lại
+        if (trialBookingRepository.existsByLearnerLearnerIdAndTutorTutorIdAndBookingStatusAndUpdatedAtAfter(
+                learner.getLearnerId(), tutor.getTutorId(), TrialBookingStatus.DECLINED,
+                OffsetDateTime.now().minusHours(BookingLimits.DECLINE_COOLDOWN_HOURS))) {
+            throw new ConflictException("Gia sư vừa từ chối yêu cầu học thử của bạn. Bạn có thể gửi lại sau "
+                    + BookingLimits.DECLINE_COOLDOWN_HOURS + " giờ, hoặc chọn gia sư khác.");
         }
 
         // Buổi học thử bắt buộc là học trực tuyến (ONLINE) theo quy định nền tảng
@@ -249,6 +223,10 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         if (trialBooking.getBookingStatus() != TrialBookingStatus.PENDING) {
             throw new BadRequestException("Buổi học thử này đã được xử lý trước đó");
         }
+        if (isStalePending(trialBooking, OffsetDateTime.now())) {
+            // Tác vụ nền sẽ chuyển yêu cầu này sang "Đã hết hạn"
+            throw new BadRequestException("Yêu cầu học thử này đã hết hạn phản hồi. Học viên có thể gửi lại yêu cầu mới.");
+        }
 
         TrialBookingStatus prevStatus = trialBooking.getBookingStatus();
         TrialBookingStatus newStatus;
@@ -257,6 +235,19 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         if ("ACCEPT".equalsIgnoreCase(request.getAction())) {
             OffsetDateTime acceptEnd = trialBooking.getScheduledEndTime() != null ? trialBooking.getScheduledEndTime()
                     : trialBooking.getScheduledStartTime().plusMinutes(30);
+            if (!trialBooking.getScheduledStartTime().isAfter(OffsetDateTime.now())) {
+                throw new BadRequestException("Thời gian học thử học viên chọn đã qua. Hãy từ chối hoặc đề nghị học viên dời lịch.");
+            }
+            // Khóa theo gia sư để hai lần bấm "Đồng ý" cho hai yêu cầu trùng giờ không cùng lọt qua
+            lockTutor(trialBooking.getTutor().getTutorId());
+            if (trialBookingRepository.existsConfirmedTutorOverlap(trialBooking.getTutor().getTutorId(), bookingId,
+                    trialBooking.getScheduledStartTime(), acceptEnd)) {
+                throw new ConflictException("Bạn đã nhận một buổi học thử khác trùng khung giờ này. Hãy đề nghị học viên dời lịch hoặc từ chối yêu cầu này.");
+            }
+            if (trialBookingRepository.existsConfirmedLearnerOverlap(trialBooking.getLearner().getLearnerId(), bookingId,
+                    trialBooking.getScheduledStartTime(), acceptEnd)) {
+                throw new ConflictException("Học viên đã có một buổi học thử khác được xác nhận vào khung giờ này. Hãy đề nghị học viên dời lịch hoặc từ chối yêu cầu này.");
+            }
             ensureNoClassScheduleClash(trialBooking.getTutor().getTutorId(), trialBooking.getLearner().getLearnerId(),
                     trialBooking.getScheduledStartTime(), acceptEnd,
                     "Buổi học thử trùng với lịch dạy lớp chính thức của bạn. Hãy đề nghị học viên dời lịch hoặc từ chối yêu cầu này.",
@@ -314,11 +305,12 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản"));
 
-        // Tự động chuyển các buổi học đã quá giờ kết thúc sang COMPLETED
+        // Tự động chuyển các buổi học đã quá giờ kết thúc sang COMPLETED, yêu cầu quá hạn sang EXPIRED
         try {
             autoCompleteEndedBookings();
+            expireStalePendingTrials();
         } catch (Exception e) {
-            log.warn("Lỗi khi tự động hoàn thành buổi học quá giờ: {}", e.getMessage());
+            log.warn("Lỗi khi tự động cập nhật trạng thái buổi học thử: {}", e.getMessage());
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "scheduledStartTime"));
@@ -463,14 +455,13 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             throw new AccessDeniedException("Bạn không có quyền dời lịch buổi học thử này");
         }
 
-        // Chỉ cho đổi lịch khi đang ở trạng thái PENDING hoặc CONFIRMED
-        if (trialBooking.getBookingStatus() != TrialBookingStatus.PENDING &&
-            trialBooking.getBookingStatus() != TrialBookingStatus.CONFIRMED) {
+        // Chỉ cho đổi lịch khi buổi học thử còn đang mở (chờ xác nhận, đã xác nhận, đã dời lịch)
+        if (!BookingLimits.OPEN_TRIAL_STATUSES.contains(trialBooking.getBookingStatus())) {
             throw new BadRequestException("Chỉ có thể đổi lịch cho buổi học thử đang chờ xác nhận hoặc đã xác nhận");
         }
 
-        // Quy định đổi lịch: Buổi học CONFIRMED phải dời trước giờ học ít nhất 24 giờ (SRS 5.3 AF-1)
-        if (trialBooking.getBookingStatus() == TrialBookingStatus.CONFIRMED) {
+        // Quy định đổi lịch: Buổi học đã xác nhận phải dời trước giờ học ít nhất 24 giờ (SRS 5.3 AF-1)
+        if (trialBooking.getBookingStatus() != TrialBookingStatus.PENDING) {
             OffsetDateTime now = OffsetDateTime.now();
             if (now.plusHours(24).isAfter(trialBooking.getScheduledStartTime())) {
                 throw new BadRequestException("Theo quy định, bạn chỉ có thể đổi lịch buổi học đã xác nhận trước giờ học ít nhất 24 giờ. Vui lòng hủy lịch nếu không thể tham dự.");
@@ -491,35 +482,20 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         }
         OffsetDateTime newEndTime = newStartTime.plusMinutes(durationMinutes);
 
-        // Chuyển sang múi giờ Việt Nam (+07:00) để kiểm tra ca rảnh của gia sư
-        ZonedDateTime vnStartTime = newStartTime.atZoneSameInstant(VN_ZONE);
-        ZonedDateTime vnEndTime = newEndTime.atZoneSameInstant(VN_ZONE);
-        int dayOfWeek = (vnStartTime.getDayOfWeek().getValue() % 7) + 1;
-        LocalTime localStartTime = vnStartTime.toLocalTime();
-        LocalTime localEndTime = vnEndTime.toLocalTime();
-
+        // Giờ học thử do học viên tự chọn, không ràng buộc lịch rảnh. Vẫn chặn trùng với các buổi học thử
+        // đã xác nhận và lịch lớp chính thức để học viên biết sớm.
         Tutor tutor = trialBooking.getTutor();
-        if (tutorScheduleService != null && tutorScheduleService.hasActiveAvailabilities(tutor.getTutorId())) {
-            boolean isSlotAvailable = tutorScheduleService.isSlotAvailable(
-                    tutor.getTutorId(), dayOfWeek, localStartTime, localEndTime);
-            if (!isSlotAvailable) {
-                throw new BadRequestException("Gia sư không có lịch rảnh vào khung giờ mới này. Vui lòng chọn khung giờ khác.");
-            }
-        }
-
-        // Khóa đồng thời cấp database (Concurrency Lock)
-        long tutorLockKey = Math.abs(tutor.getTutorId().getMostSignificantBits());
-        jdbcTemplate.execute("SELECT pg_advisory_xact_lock(" + tutorLockKey + ")");
+        lockTutor(tutor.getTutorId());
 
         // Kiểm tra trùng lịch gia sư (loại trừ chính booking này)
-        boolean tutorOverlaps = trialBookingRepository.existsOverlappingBookingExcludingId(
+        boolean tutorOverlaps = trialBookingRepository.existsConfirmedTutorOverlap(
                 tutor.getTutorId(), bookingId, newStartTime, newEndTime);
         if (tutorOverlaps) {
             throw new ConflictException("Gia sư đã có một lịch hẹn học thử khác vào khung giờ mới này. Vui lòng chọn khung giờ khác.");
         }
 
         // Kiểm tra trùng lịch học viên (loại trừ chính booking này)
-        boolean learnerOverlaps = trialBookingRepository.existsOverlappingLearnerBookingExcludingId(
+        boolean learnerOverlaps = trialBookingRepository.existsConfirmedLearnerOverlap(
                 trialBooking.getLearner().getLearnerId(), bookingId, newStartTime, newEndTime);
         if (learnerOverlaps) {
             throw new ConflictException("Bạn đã có một lịch hẹn học thử khác vào khung giờ mới này. Vui lòng chọn khung giờ khác.");
@@ -533,7 +509,13 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         TrialBookingStatus prevStatus = trialBooking.getBookingStatus();
         trialBooking.setScheduledStartTime(newStartTime);
         trialBooking.setScheduledEndTime(newEndTime);
-        trialBooking.setBookingStatus(TrialBookingStatus.RESCHEDULED);
+        // Học viên đổi giờ → quay về "Chờ gia sư xác nhận" để gia sư đồng ý/từ chối giờ mới.
+        // Gia sư tự đổi giờ thì coi như gia sư đã đồng ý giờ mới.
+        TrialBookingStatus newStatus = isLearner ? TrialBookingStatus.PENDING : TrialBookingStatus.RESCHEDULED;
+        trialBooking.setBookingStatus(newStatus);
+        if (isLearner) {
+            trialBooking.setTutorConfirmed(false);
+        }
 
         trialBooking = trialBookingRepository.save(trialBooking);
 
@@ -544,8 +526,8 @@ public class TrialBookingServiceImpl implements TrialBookingService {
                 .trialBooking(trialBooking)
                 .changedByUser(user)
                 .previousStatus(prevStatus)
-                .newStatus(TrialBookingStatus.RESCHEDULED)
-                .changeReason("Dời lịch học sang " + newStartTime + ". Lý do: " + reason)
+                .newStatus(newStatus)
+                .changeReason("Dời lịch học sang " + newStartTime + (isLearner ? " (chờ gia sư xác nhận lại)" : "") + ". Lý do: " + reason)
                 .build();
         trialBookingHistoryRepository.save(history);
 
@@ -663,7 +645,7 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         if (connection == null) {
             UUID learnerId = trialBooking.getLearner().getLearnerId();
             connection = connectionRequestRepository
-                    .findByLearnerLearnerIdAndTutorTutorIdAndStatus(learnerId, tutor.getTutorId(), ConnectionRequestStatus.ACCEPTED)
+                    .findFirstByLearnerLearnerIdAndTutorTutorIdAndStatus(learnerId, tutor.getTutorId(), ConnectionRequestStatus.ACCEPTED)
                     .orElseGet(() -> connectionRequestRepository.save(ConnectionRequest.builder()
                             .learner(trialBooking.getLearner())
                             .tutor(tutor)
@@ -731,6 +713,56 @@ public class TrialBookingServiceImpl implements TrialBookingService {
                 .ifPresent(who -> {
                     throw new ConflictException("TUTOR".equals(who) ? tutorMessage : learnerMessage);
                 });
+    }
+
+    /** Khóa giao dịch cấp cơ sở dữ liệu theo mã gia sư, giữ tới hết transaction. */
+    private void lockTutor(UUID tutorId) {
+        if (jdbcTemplate == null || tutorId == null) return;
+        try {
+            jdbcTemplate.execute("SELECT pg_advisory_xact_lock(" + Math.abs(tutorId.getMostSignificantBits()) + ")");
+        } catch (Exception e) {
+            log.warn("Không thể kích hoạt pg_advisory_xact_lock: {}", e.getMessage());
+        }
+    }
+
+    /** Yêu cầu đang chờ đã quá hạn: gia sư chưa phản hồi sau TRIAL_RESPONSE_HOURS kể từ lần gửi/đổi lịch gần nhất, hoặc đã tới giờ học. */
+    private static boolean isStalePending(TrialBooking tb, OffsetDateTime now) {
+        if (tb.getBookingStatus() != TrialBookingStatus.PENDING) return false;
+        boolean reachedStart = tb.getScheduledStartTime() != null && !tb.getScheduledStartTime().isAfter(now);
+        boolean noResponse = tb.getUpdatedAt() != null
+                && tb.getUpdatedAt().isBefore(now.minusHours(BookingLimits.TRIAL_RESPONSE_HOURS));
+        return reachedStart || noResponse;
+    }
+
+    @Override
+    @Transactional
+    public int expireStalePendingTrials() {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<TrialBooking> stale = trialBookingRepository.findStalePending(
+                TrialBookingStatus.PENDING, now.minusHours(BookingLimits.TRIAL_RESPONSE_HOURS), now);
+        for (TrialBooking tb : stale) {
+            boolean reachedStart = tb.getScheduledStartTime() != null && !tb.getScheduledStartTime().isAfter(now);
+            tb.setBookingStatus(TrialBookingStatus.EXPIRED);
+            ConnectionRequest cr = tb.getConnectionRequest();
+            if (cr != null && cr.getStatus() == ConnectionRequestStatus.PENDING) {
+                cr.setStatus(ConnectionRequestStatus.EXPIRED);
+                cr.setRespondedAt(now);
+            }
+            trialBookingRepository.save(tb);
+            trialBookingHistoryRepository.save(TrialBookingHistory.builder()
+                    .trialBooking(tb)
+                    .changedByUser(null)
+                    .previousStatus(TrialBookingStatus.PENDING)
+                    .newStatus(TrialBookingStatus.EXPIRED)
+                    .changeReason(reachedStart
+                            ? "Tự động hết hạn vì đã tới giờ học mà gia sư chưa xác nhận"
+                            : "Tự động hết hạn vì gia sư chưa phản hồi trong " + BookingLimits.TRIAL_RESPONSE_HOURS + " giờ")
+                    .build());
+        }
+        if (!stale.isEmpty()) {
+            log.info("Auto-expired {} pending trial booking(s)", stale.size());
+        }
+        return stale.size();
     }
 
     private void autoCompleteEndedBookings() {

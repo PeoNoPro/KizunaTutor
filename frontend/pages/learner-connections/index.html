@@ -81,6 +81,18 @@
             </div>
           </div>
 
+          <!-- YÊU CẦU KẾT NỐI TRỰC TIẾP (không học thử) - chỉ hiện khi có dữ liệu -->
+          <section id="directSection" class="hidden space-y-3">
+            <div>
+              <h2 class="text-base font-bold text-[#0F172A] flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#006194] text-[20px]">handshake</span>
+                Yêu cầu kết nối trực tiếp
+              </h2>
+              <p class="text-xs text-[#64748B] mt-0.5">Các ca hằng tuần bạn đã chọn để học chính thức với gia sư, không qua học thử.</p>
+            </div>
+            <div id="directList" class="space-y-3"></div>
+          </section>
+
           <!-- THỐNG KÊ NHANH 3 THẺ -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-xs flex items-center justify-between">
@@ -328,7 +340,7 @@
       </div>
 
       <p class="text-[11px] text-slate-500 leading-relaxed">
-        Lưu ý: Đối với buổi học đã xác nhận, bạn cần dời lịch trước giờ học ít nhất 24 giờ theo chính sách nền tảng.
+        Lưu ý: Sau khi đổi lịch, gia sư cần xác nhận lại giờ mới. Với buổi học đã xác nhận, bạn cần đổi lịch trước giờ học ít nhất 24 giờ theo chính sách nền tảng.
       </p>
 
       <div id="rescheduleAlertBox" class="hidden p-3 rounded-xl text-xs bg-rose-50 text-rose-700 border border-rose-200"></div>

@@ -9,6 +9,8 @@ import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -44,6 +46,21 @@ public class ConnectionRequest {
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "status", nullable = false)
     private ConnectionRequestStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "request_type", nullable = false, length = 20)
+    @Builder.Default
+    private ConnectionRequestType requestType = ConnectionRequestType.TRIAL;
+
+    /** Lời nhắn / lý do từ chối của gia sư khi phản hồi yêu cầu kết nối trực tiếp. */
+    @Column(name = "response_message", columnDefinition = "TEXT")
+    private String responseMessage;
+
+    /** Các ca hằng tuần học viên chọn (chỉ có ở yêu cầu DIRECT). */
+    @OneToMany(mappedBy = "connectionRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("dayOfWeek ASC, startTime ASC")
+    @Builder.Default
+    private List<ConnectionRequestSlot> slots = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

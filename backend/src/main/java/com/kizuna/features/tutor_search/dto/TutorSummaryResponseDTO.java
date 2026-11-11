@@ -39,5 +39,7 @@ public class TutorSummaryResponseDTO {
     private List<TutorAvailabilityDTO> availabilities;
     private List<TutorAvailabilityDTO> classSchedules;
     private List<TutorBookedSlotDTO> bookedSlots;
+    /** Ca hằng tuần đã có học viên nhận qua kết nối trực tiếp (dayOfWeek: 1 = Chủ nhật ... 7 = Thứ Bảy). */
+    private List<TutorAvailabilityDTO> lockedSlots;
     private List<TutorReviewDTO> reviews;
 }

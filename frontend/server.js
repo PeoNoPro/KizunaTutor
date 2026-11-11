@@ -89,10 +89,16 @@ const URL_ALIASES = {
   '/decks': '/pages/flashcards/index.html',
   '/learner/flashcards': '/pages/flashcards/index.html',
   '/learner/decks': '/pages/flashcards/index.html',
+  '/learner/flashcards-match': '/pages/flashcards-match/index.html',
+  '/flashcards-match': '/pages/flashcards-match/index.html',
+  '/flashcards-match.html': '/pages/flashcards-match/index.html',
+  '/match': '/pages/flashcards-match/index.html',
+  '/learner/match': '/pages/flashcards-match/index.html',
   '/grammar': '/pages/grammar/index.html',
   '/grammar.html': '/pages/grammar/index.html',
   '/learner/grammar': '/pages/grammar/index.html',
   '/learner/grammar-detail': '/pages/grammar/index.html',
+  '/grammar-detail': '/pages/grammar/index.html',
   '/openjlpt': '/pages/grammar/index.html',
   '/ai-writing': '/pages/ai-writing/index.html',
   '/ai-writing.html': '/pages/ai-writing/index.html',
@@ -112,6 +118,10 @@ const URL_ALIASES = {
   '/game': '/pages/kanji-game/index.html',
   '/rain': '/pages/kanji-game/index.html',
   '/learning-support': '/pages/learning-support/index.html',
+  '/vocabulary': '/pages/learning-support/index.html',
+  '/vocabulary.html': '/pages/learning-support/index.html',
+  '/vocab': '/pages/learning-support/index.html',
+  '/learner/vocabulary': '/pages/learning-support/index.html',
   '/learner/learning-support': '/pages/learning-support/index.html',
   '/learner/dashboard': '/pages/learner-dashboard/index.html',
   '/learner/dashboard/': '/pages/learner-dashboard/index.html',
@@ -156,38 +166,49 @@ const URL_ALIASES = {
 const server = http.createServer((req, res) => {
   // 1. Proxy TencentDB Agent Memory Microservice (port 8081)
   if (req.url.startsWith('/memory/') || req.url.startsWith('/agent-memory/')) {
-    const memoryPath = req.url.startsWith('/agent-memory/') 
-      ? req.url.replace('/agent-memory', '') 
+    const memoryPath = req.url.startsWith('/agent-memory/')
+      ? req.url.replace('/agent-memory', '')
       : req.url;
-    const options = {
-      hostname: '127.0.0.1',
-      port: AGENT_MEMORY_PORT,
-      path: memoryPath,
-      method: req.method,
-      headers: {
-        ...req.headers,
-        host: `127.0.0.1:${AGENT_MEMORY_PORT}`
-      }
-    };
-    const proxyReq = http.request(options, (proxyRes) => {
-      res.writeHead(proxyRes.statusCode, proxyRes.headers);
-      proxyRes.pipe(res, { end: true });
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => {
+      const bodyBuffer = Buffer.concat(chunks);
+      const forwardMemory = (targetPort, onErrorFallback) => {
+        const opts = {
+          hostname: '127.0.0.1',
+          port: targetPort,
+          path: memoryPath,
+          method: req.method,
+          headers: { ...req.headers, host: `127.0.0.1:${targetPort}` }
+        };
+        const pReq = http.request(opts, (pRes) => {
+          res.writeHead(pRes.statusCode, pRes.headers);
+          pRes.pipe(res, { end: true });
+        });
+        pReq.on('error', onErrorFallback);
+        if (bodyBuffer.length > 0) pReq.write(bodyBuffer);
+        pReq.end();
+      };
+
+      // Thử microservice 8081 trước; nếu chưa chạy thì fallback về Spring Boot Backend 8085
+      forwardMemory(AGENT_MEMORY_PORT, () => {
+        forwardMemory(BACKEND_PORT, () => {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            status: 502,
+            success: false,
+            message: `Agent Memory service unreachable on ports ${AGENT_MEMORY_PORT} and ${BACKEND_PORT}`,
+            data: null
+          }));
+        });
+      });
     });
-    proxyReq.on('error', () => {
-      res.writeHead(502, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 502,
-        success: false,
-        message: `Agent Memory service unreachable on port ${AGENT_MEMORY_PORT}`,
-        data: null
-      }));
-    });
-    req.pipe(proxyReq, { end: true });
     return;
   }
 
-  // 2. Proxy REST API requests tới Spring Boot backend (port 8085 / 8080)
-  if (req.url.startsWith('/api/')) {
+  // 2. Proxy REST API & Google OAuth2 requests tới Spring Boot backend (port 8085 / 8080)
+  // 2. Proxy REST API & Google OAuth2 requests tới Spring Boot backend (port 8085 / 8080)
+  if (req.url.startsWith('/api/') || req.url.startsWith('/oauth2/') || req.url.startsWith('/login/oauth2/')) {
     const options = {
       hostname: '127.0.0.1',
       port: BACKEND_PORT,

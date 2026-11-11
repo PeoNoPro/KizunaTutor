@@ -37,3 +37,6 @@
 5. **Kỷ luật phạm vi yêu cầu (Strict Scope Discipline):**
    - Chỉ thực hiện chính xác những gì người dùng yêu cầu, không tự ý sửa các phần khác khi chưa được phép.
    - Khi nhận yêu cầu xóa một khối giao diện hoặc nút bấm, chỉ xóa tại đúng vị trí đó; tuyệt đối không tự ý di dời sang container khác hoặc tự ý thêm bớt các thành phần ngoài phạm vi chỉ định.
+6. **Quy tắc bắt buộc riêng cho khối "Học Tập & Rèn Luyện" (Learning & Practice Scope):**
+   - Khi thêm mới hoặc chỉnh sửa bất kỳ màn hình, thành phần, modal hay tính năng nào thuộc khối **Học Tập & Rèn Luyện** (Kana Quiz, Flashcards, Chi tiết Flashcard, Shodo, Từ điển chữ Hán, Tra cứu viết tay AI, Game Mưa chữ Hán, Ngữ pháp & AI Sensei, Trợ lý học tập), BẮT BUỘC phải đọc lại và áp dụng đúng toàn bộ các quy chuẩn tại mục `QUY CHUẨN THỰC THI CHO KHỐI HỖ TRỢ HỌC TẬP` trong `docs/guidelines/DESIGN.md`: nhúng file CSS dùng chung `/assets/css/learning-support-common.css`, dùng đúng token và class chuẩn (`.ls-card`, `.ls-btn`, `.ls-toolbar`, `.ls-pill`, `.ls-input`, `.ls-badge`), tuyệt đối chống chữ tàng hình, không breadcrumb dư thừa, luồng dữ liệu Zero-Reload bằng JSON qua `apiClient.js`.
+   - **Phạm vi áp dụng:** Quy định này CHỈ áp dụng duy nhất cho các phần trong khối Học Tập & Rèn Luyện của Học viên, không áp dụng cho các phân hệ khác (Admin, Manager, Gia sư, CSKH hay trang Portal công khai).

@@ -1,4 +1,4 @@
-﻿# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
+# KizunaTutor - Local Web Server & API Proxy (PowerShell Built-in)
 # Khong can cai dat Node.js, chay truc tiep bang PowerShell tren moi may Windows
 
 param(
@@ -57,7 +57,13 @@ $aliases = @{
     "/flashcards-practice" = "/pages/flashcards-study/index.html"
     "/flashcards-detail" = "/pages/flashcards-detail/index.html"
     "/deck-detail"       = "/pages/flashcards-detail/index.html"
+    "/flashcards-match"  = "/pages/flashcards-match/index.html"
+    "/learner/flashcards-match" = "/pages/flashcards-match/index.html"
+    "/learner/match"     = "/pages/flashcards-match/index.html"
+    "/match"             = "/pages/flashcards-match/index.html"
     "/shodo"             = "/pages/shodo-practice/index.html"
+    "/template"          = "/pages/template-page/index.html"
+    "/template-page"     = "/pages/template-page/index.html"
     "/shodo-practice"    = "/pages/shodo-practice/index.html"
     "/grammar"           = "/pages/grammar/index.html"
     "/ai-writing"        = "/pages/ai-writing/index.html"
@@ -80,6 +86,8 @@ $aliases = @{
     "/learner/flashcards-practice" = "/pages/flashcards-study/index.html"
     "/learner/flashcards-detail" = "/pages/flashcards-detail/index.html"
     "/learner/deck-detail"     = "/pages/flashcards-detail/index.html"
+    "/grammar-detail"          = "/pages/grammar/index.html"
+    "/learner/grammar-detail"  = "/pages/grammar/index.html"
     "/learner/grammar"         = "/pages/grammar/index.html"
     "/learner/kanji-dictionary"= "/pages/kanji-dictionary/index.html"
     "/learner/dictionary"      = "/pages/kanji-dictionary/index.html"
@@ -94,12 +102,22 @@ $aliases = @{
 # Nap cache Grammar tu Database san o memory de phuc vu sieu toc
 $allGrammarsCache = $null
 $grammarsJsonFile = Join-Path $rootDir "data/grammars.json"
-if (Test-Path $grammarsJsonFile) {
-    try {
-        $allGrammarsCache = Get-Content -Raw $grammarsJsonFile -Encoding UTF8 | ConvertFrom-Json
-        Write-Host " Da nap $($allGrammarsCache.Count) mau ngu phap vao RAM Cache." -ForegroundColor Green
-    } catch {}
+$lastGrammarModified = [System.DateTime]::MinValue
+
+function Reload-GrammarCache {
+    if (Test-Path $grammarsJsonFile) {
+        try {
+            $rawContent = [System.IO.File]::ReadAllText($grammarsJsonFile, [System.Text.Encoding]::UTF8)
+            $script:allGrammarsCache = $rawContent | ConvertFrom-Json
+            $script:lastGrammarModified = (Get-Item $grammarsJsonFile).LastWriteTimeUtc
+            Write-Host " [Grammar] Da nap $($script:allGrammarsCache.Count) mau ngu phap vao RAM Cache." -ForegroundColor Green
+        } catch {
+            Write-Host " [Grammar] Loi nap cache: $_" -ForegroundColor Red
+        }
+    }
 }
+
+Reload-GrammarCache
 
 while ($listener.IsListening) {
     try {
@@ -112,6 +130,12 @@ while ($listener.IsListening) {
 
         # 1. Neu la API Grammar -> Phuc vu truc tiep tu du lieu Database
         if ($pathPart.StartsWith("/api/learner/grammar")) {
+            if (Test-Path $grammarsJsonFile) {
+                $currentMtime = (Get-Item $grammarsJsonFile).LastWriteTimeUtc
+                if ($currentMtime -ne $lastGrammarModified -or $null -eq $allGrammarsCache) {
+                    Reload-GrammarCache
+                }
+            }
             if ($allGrammarsCache) {
                 $query = $request.Url.Query
                 $level = "ALL"
@@ -158,6 +182,155 @@ while ($listener.IsListening) {
             }
         }
 
+        # 1a-1b. Neu la API Decks Flashcards -> Phuc vu tu file data/decks.json
+        if ($pathPart.StartsWith("/api/learner/decks")) {
+            $decksJsonFile = Join-Path $rootDir "data/decks.json"
+            $decks = @()
+            if (Test-Path $decksJsonFile) {
+                try {
+                    $rawDecks = [System.IO.File]::ReadAllText($decksJsonFile, [System.Text.Encoding]::UTF8)
+                    $parsed = $rawDecks | ConvertFrom-Json
+                    if ($parsed -is [System.Array]) {
+                        $decks = @($parsed | Where-Object { $_ -and $_.id })
+                    } elseif ($parsed -and $parsed.id) {
+                        $decks = @($parsed)
+                    }
+                } catch { $decks = @() }
+            }
+
+            $subId = $pathPart.Substring("/api/learner/decks".Length).Trim('/')
+
+            if ($request.HttpMethod -eq "GET") {
+                if ([string]::IsNullOrEmpty($subId)) {
+                    $jsonStr = if ($decks.Count -gt 0) { $decks | ConvertTo-Json -Depth 6 } else { "[]" }
+                } else {
+                    $found = $decks | Where-Object { $_.id -eq $subId } | Select-Object -First 1
+                    $jsonStr = if ($found) { $found | ConvertTo-Json -Depth 6 } else { "{}" }
+                }
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonStr)
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.OutputStream.Close()
+                continue
+            }
+
+            if ($request.HttpMethod -eq "POST") {
+                $reader = New-Object System.IO.StreamReader($request.InputStream, [System.Text.Encoding]::UTF8)
+                $postBody = $reader.ReadToEnd()
+                $newDeck = $postBody | ConvertFrom-Json
+                if (-not $newDeck.id) {
+                    $newDeck | Add-Member -NotePropertyName "id" -NotePropertyValue ("deck-" + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) -Force
+                }
+                $cleanList = @($newDeck) + @($decks | Where-Object { $_.id -ne $newDeck.id })
+                $savedJson = $cleanList | ConvertTo-Json -Depth 6
+                [System.IO.File]::WriteAllText($decksJsonFile, $savedJson, [System.Text.Encoding]::UTF8)
+
+                $jsonStr = $newDeck | ConvertTo-Json -Depth 6
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonStr)
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.OutputStream.Close()
+                continue
+            }
+
+            if ($request.HttpMethod -eq "PUT") {
+                $reader = New-Object System.IO.StreamReader($request.InputStream, [System.Text.Encoding]::UTF8)
+                $putBody = $reader.ReadToEnd()
+                $updatedFields = $putBody | ConvertFrom-Json
+                $updatedDeck = $null
+                for ($di = 0; $di -lt $decks.Count; $di++) {
+                    if ($decks[$di].id -eq $subId) {
+                        if ($updatedFields.title) { $decks[$di].title = $updatedFields.title }
+                        if ($updatedFields.description) { $decks[$di].description = $updatedFields.description }
+                        if ($updatedFields.cards) { $decks[$di].cards = $updatedFields.cards }
+                        $updatedDeck = $decks[$di]
+                        break
+                    }
+                }
+                if (-not $updatedDeck) {
+                    $newDeckObj = [PSCustomObject]@{
+                        id = $subId
+                        title = if ($updatedFields.title) { $updatedFields.title } else { "Bộ Thẻ" }
+                        description = if ($updatedFields.description) { $updatedFields.description } else { "" }
+                        cards = if ($updatedFields.cards) { $updatedFields.cards } else { @() }
+                        createdAt = [DateTime]::UtcNow.ToString("o")
+                    }
+                    $decks = @($decks) + @($newDeckObj)
+                    $updatedDeck = $newDeckObj
+                }
+                $savedJson = if ($decks.Count -gt 0) { $decks | ConvertTo-Json -Depth 6 } else { "[]" }
+                [System.IO.File]::WriteAllText($decksJsonFile, $savedJson, [System.Text.Encoding]::UTF8)
+
+                $jsonStr = if ($updatedDeck) { $updatedDeck | ConvertTo-Json -Depth 6 } else { "{}" }
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonStr)
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.OutputStream.Close()
+                continue
+            }
+
+            if ($request.HttpMethod -eq "DELETE") {
+                $remain = @($decks | Where-Object { $_.id -ne $subId })
+                $savedJson = if ($remain.Count -gt 0) { $remain | ConvertTo-Json -Depth 6 } else { "[]" }
+                [System.IO.File]::WriteAllText($decksJsonFile, $savedJson, [System.Text.Encoding]::UTF8)
+
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes('{"success":true}')
+                $response.StatusCode = 200
+                $response.ContentType = "application/json; charset=UTF-8"
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.OutputStream.Close()
+                continue
+            }
+        }
+
+        # 1a-2. Neu la VOICEVOX API -> Proxy chuyen tiep den VOICEVOX Engine cong 50021
+        if ($pathPart.StartsWith("/api/voicevox")) {
+            $vvSubPath = $rawUrl.Substring("/api/voicevox".Length)
+            if ([string]::IsNullOrEmpty($vvSubPath)) { $vvSubPath = "/" }
+            $targetUri = "http://127.0.0.1:50021$vvSubPath"
+            try {
+                $webRequest = [System.Net.HttpWebRequest]::Create($targetUri)
+                $webRequest.Method = $request.HttpMethod
+                $webRequest.ContentType = $request.ContentType
+                $webRequest.Timeout = 10000
+
+                if ($request.HasEntityBody) {
+                    $reqStream = $request.InputStream
+                    $proxyStream = $webRequest.GetRequestStream()
+                    $reqStream.CopyTo($proxyStream)
+                    $proxyStream.Close()
+                }
+
+                $webResponse = $webRequest.GetResponse()
+                $response.StatusCode = [int]$webResponse.StatusCode
+                $response.ContentType = $webResponse.ContentType
+                $resStream = $webResponse.GetResponseStream()
+                $resStream.CopyTo($response.OutputStream)
+                $webResponse.Close()
+            } catch [System.Net.WebException] {
+                if ($_.Exception.Response) {
+                    $errRes = $_.Exception.Response
+                    $response.StatusCode = [int]$errRes.StatusCode
+                    $response.ContentType = $errRes.ContentType
+                    $errRes.GetResponseStream().CopyTo($response.OutputStream)
+                } else {
+                    $response.StatusCode = 503
+                    $response.ContentType = "application/json; charset=UTF-8"
+                    $bytes = [System.Text.Encoding]::UTF8.GetBytes('{"error":"VOICEVOX Engine not running on 127.0.0.1:50021","status":"offline"}')
+                    $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                }
+            }
+            $response.OutputStream.Close()
+            continue
+        }
+
                 # 1c. Proxy Agent Memory Service (Port 8081)
         if ($pathPart.StartsWith("/memory/") -or $pathPart.StartsWith("/agent-memory/")) {
             $memPath = if ($pathPart.StartsWith("/agent-memory/")) { $rawUrl.Replace("/agent-memory", "") } else { $rawUrl }
@@ -165,8 +338,8 @@ while ($listener.IsListening) {
             $memReq = [System.Net.HttpWebRequest]::Create($memTargetUri)
             $memReq.Method = $request.HttpMethod
             $memReq.ContentType = $request.ContentType
-            $memReq.Timeout = 10000
-            $memReq.ReadWriteTimeout = 10000
+            $memReq.Timeout = 1500
+            $memReq.ReadWriteTimeout = 1500
 
             try {
                 if ($request.HasEntityBody) {
@@ -198,8 +371,8 @@ while ($listener.IsListening) {
             $webRequest = [System.Net.HttpWebRequest]::Create($targetUri)
             $webRequest.Method = $request.HttpMethod
             $webRequest.ContentType = $request.ContentType
-            $webRequest.Timeout = 30000
-            $webRequest.ReadWriteTimeout = 30000
+            $webRequest.Timeout = 15000
+            $webRequest.ReadWriteTimeout = 15000
 
             try {
                 if ($request.HasEntityBody) {
@@ -247,6 +420,8 @@ while ($listener.IsListening) {
             $pathPart = $aliases[$pathPart]
         } elseif ($aliases.ContainsKey($lookupPath)) {
             $pathPart = $aliases[$lookupPath]
+        } elseif ($pathPart -match "^/learner/flashcards/[^/]+/match$") {
+            $pathPart = "/pages/flashcards-match/index.html"
         } elseif ($pathPart -match "^/learner/flashcards/[^/]+$") {
             $pathPart = "/pages/flashcards-detail/index.html"
         } else {
@@ -285,6 +460,9 @@ while ($listener.IsListening) {
 
         $contentBytes = [System.IO.File]::ReadAllBytes($localPath)
         $response.ContentType = $cType
+        $response.AddHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+        $response.AddHeader("Pragma", "no-cache")
+        $response.AddHeader("Expires", "0")
         $response.ContentLength64 = $contentBytes.Length
         $response.OutputStream.Write($contentBytes, 0, $contentBytes.Length)
         $response.OutputStream.Close()

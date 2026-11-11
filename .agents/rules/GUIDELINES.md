@@ -32,11 +32,17 @@ Tài liệu này xác lập các tiêu chuẩn phát triển phần mềm cho to
 ---
 
 ## 2. Tiêu Chuẩn Frontend & Trải Nghiệm Người Dùng (UI/UX)
-1. **Design System:** Tuân thủ triệt để [DESIGN.md](DESIGN.md) theo chuẩn nhaitopik.com:
-   - Font heading: `Itim`, cursive.
-   - Font body: `Segoe UI`, sans-serif.
-   - Bo góc đồng nhất: Duy nhất `rounded-[5px]`. Không dùng bo góc lớn (`rounded-xl`, `rounded-2xl`).
-   - Đường viền và bóng đổ: Viền đen mảnh `border border-black`, bóng đổ khối cứng `shadow-[4px_4px_0px_0px_#000000]`.
+1. **Design System:** Tuân thủ triệt để [DESIGN.md](DESIGN.md) và hệ quy chuẩn **Shodo Neo-Brutalist** chuẩn hóa từ trang `/handwriting`:
+   - **Phông chữ:**
+     - Văn bản, tiêu đề UI: `"Inter"`, `"Plus Jakarta Sans"`, sans-serif. (Tuyệt đối không dùng phông viết tay `Itim` gây lệch tính học thuật).
+     - Chữ Hán Kanji & Kana nét bút: `"Noto Serif JP"`, `"Klee One"`, serif.
+   - **Bo góc đồng nhất:** Thẻ nội dung chính dùng `rounded-xl` (12px), khung Canvas dùng `rounded-[8px]`, nút bấm dùng `rounded-lg`.
+   - **Đường viền và bóng đổ:** Viền mực đen `border-2 border-[#0F172A]` cho thẻ, `border border-[#0F172A]` cho nút bấm; bóng đổ khối cứng `shadow-[3px_3px_0px_0px_#0F172A]` cho thẻ, `shadow-[2px_2px_0px_0px_#0F172A]` cho nút chính.
+   - **Bảng màu nút bấm:**
+     - Nút hành động chính (Primary CTA): Nền Đỏ Hồng Trầm `bg-[#9F1239]` (hover `#BE185D`), chữ trắng, viền `#0F172A`, bóng `shadow-[2px_2px_0px_0px_#0F172A]`.
+     - Nút phụ (Secondary): Nền Hồng Anh Đào `bg-[#FFE5EC]`, chữ `#831843`, viền `#FBCFE8`.
+     - Nút viền mảnh (Outline): Nền trắng `bg-white`, viền `#0F172A`, chữ `#0F172A`.
+   - **Khóa chặt khổ rộng:** Toàn bộ trang học tập dùng duy nhất `max-w-6xl mx-auto p-4 sm:p-6`.
 2. **Master Shell Layout:**
    - Mỗi phân hệ (Admin, Tutor, Learner, CS Staff, Manager, Academic Officer) có một Master Shell hoàn chỉnh gồm Header, Sidebar phân nhóm rõ ràng và Compact Footer.
    - Khi chuyển trang bên trong phân hệ, tuyệt đối không được làm mất Header/Sidebar hoặc điều hướng ra trang ngoài gây lệch layout.
@@ -61,7 +67,6 @@ Tài liệu này xác lập các tiêu chuẩn phát triển phần mềm cho to
 ## 4. Quy Trình Kiểm Thử Tự Động (Automated Quality Assurance)
 - Mọi pull request hoặc commit phải đảm bảo vượt qua toàn bộ bộ kiểm thử tự động `mvnw test`.
 - Các route giao diện của 6 Actor bắt buộc có bài test kiểm tra HTTP status 200 trong `ActorSpecificViewsTest.java`.
-
 
 ---
 

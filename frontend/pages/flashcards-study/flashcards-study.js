@@ -1,9 +1,11 @@
 /**
  * KizunaTutor - Trang Luyện Tập Flashcard 3D Độc Lập
  * URL Route: /flashcards-study?id={deckId}
+ * Hỗ trợ đa năng: Thẻ Kanji Từ Điển, Thẻ Thêm Tay & Thẻ Excel 2 Cột
  */
 
 import { showToast } from '/js/main.js';
+import { voicevoxClient } from '/js/voicevoxClient.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 
 // 1. Khởi tạo Shell học viên
@@ -66,18 +68,18 @@ async function loadStudyDeck() {
   // 2. Nếu chưa có, thử tìm qua REST API Backend
   if (!currentDeck) {
     try {
-      const res = await fetch(`/api/user/kanji-folders/${encodeURIComponent(currentDeckId)}`).catch(() => null);
+      const res = await fetch(`/api/learner/decks/${encodeURIComponent(currentDeckId)}`).catch(() => null);
       if (res && res.ok) {
         const d = await res.json();
         currentDeck = {
-          id: String(d.id || d.folderId),
-          title: d.folderName || d.title,
+          id: String(d.id || d.folderId || currentDeckId),
+          title: d.title || d.folderName || 'Bộ thẻ',
           description: d.description || '',
           color: d.color || 'blue',
-          cards: (d.items || d.cards || []).map(c => ({
-            char: c.character || c.kanjiChar || c.char,
+          cards: (d.cards || d.items || []).map(c => ({
+            char: c.character || c.kanjiChar || c.char || c.front || '',
             hanViet: c.hanViet || '',
-            meaning: c.meaning || '',
+            meaning: c.meaning || c.back || '',
             onyomi: c.onyomi || '—',
             kunyomi: c.kunyomi || '—',
             jlpt: c.jlptLevel || c.jlpt || 'Flashcard'
@@ -96,30 +98,37 @@ async function loadStudyDeck() {
   }
 
   // Cập nhật tiêu đề bộ thẻ
-  document.getElementById('studyDeckTitle').textContent = currentDeck.title || 'Bộ Thẻ';
-  document.title = `Luyện Tập: ${currentDeck.title} - KizunaTutor`;
+  const titleEl = document.getElementById('studyDeckTitle');
+  if (titleEl) {
+    titleEl.textContent = currentDeck.title || 'Bộ Thẻ';
+  }
+  document.title = `Luyện Tập: ${currentDeck.title || 'Flashcard'} - KizunaTutor`;
 
   originalCards = Array.isArray(currentDeck.cards) ? [...currentDeck.cards] : [];
   cards = [...originalCards];
 
+  const emptyState = document.getElementById('emptyDeckState');
+  const studyArea = document.getElementById('studyAreaContainer');
+  const progressBadge = document.getElementById('studyProgressBadge');
+  const progressBar = document.getElementById('studyProgressBar');
+
   if (cards.length === 0) {
-    document.getElementById('emptyDeckState').classList.remove('hidden');
-    document.getElementById('studyAreaContainer').classList.add('hidden');
-    document.getElementById('studyProgressBadge').textContent = 'Thẻ 0 / 0';
-    document.getElementById('studyProgressBar').style.width = '0%';
+    if (emptyState) emptyState.classList.remove('hidden');
+    if (studyArea) studyArea.classList.add('hidden');
+    if (progressBadge) progressBadge.textContent = 'Thẻ 0 / 0';
+    if (progressBar) progressBar.style.width = '0%';
     return;
   }
 
-  document.getElementById('emptyDeckState').classList.add('hidden');
-  document.getElementById('studyAreaContainer').classList.remove('hidden');
+  if (emptyState) emptyState.classList.add('hidden');
+  if (studyArea) studyArea.classList.remove('hidden');
 
   currentIndex = 0;
   isFlipped = false;
-  renderThumbnails();
   renderCard();
 }
 
-// 5. Hiển thị thẻ hiện tại
+// 4. Hiển thị thẻ hiện tại với cơ chế tự thích ứng đa năng (Adaptive Card Rendering)
 function renderCard() {
   if (cards.length === 0) return;
   if (currentIndex < 0) currentIndex = 0;
@@ -135,64 +144,135 @@ function renderCard() {
     cardElement.classList.remove('is-flipped');
   }
 
-  // Tiến độ
-  document.getElementById('studyProgressBadge').textContent = `Thẻ ${currentIndex + 1} / ${total}`;
-  const pct = Math.round(((currentIndex + 1) / total) * 100);
-  document.getElementById('studyProgressBar').style.width = `${pct}%`;
-
-  // Mặt trước
-  document.getElementById('cardLevelBadgeFront').textContent = card.jlpt || 'Flashcard';
-  document.getElementById('cardCharFront').textContent = card.char || '—';
-  const hvFront = document.getElementById('cardHanVietFront');
-  if (hvFront) {
-    hvFront.textContent = card.hanViet ? card.hanViet.toUpperCase() : '';
+  // Cập nhật tiến độ
+  const progressBadge = document.getElementById('studyProgressBadge');
+  if (progressBadge) {
+    progressBadge.textContent = `Thẻ ${currentIndex + 1} / ${total}`;
+  }
+  const progressBar = document.getElementById('studyProgressBar');
+  if (progressBar) {
+    const pct = Math.round(((currentIndex + 1) / total) * 100);
+    progressBar.style.width = `${pct}%`;
   }
 
-  // Mặt sau
-  document.getElementById('cardLevelBadgeBack').textContent = card.jlpt || 'Đáp Án';
-  document.getElementById('cardCharBack').textContent = card.char || '—';
-  const hvBack = document.getElementById('cardHanVietBack');
-  if (hvBack) {
-    if (card.hanViet) {
-      hvBack.textContent = card.hanViet.toUpperCase();
-      hvBack.classList.remove('hidden');
+  // ==================== A. MẶT TRƯỚC (FRONT) ====================
+  const frontText = card.char || card.front || card.kanjiChar || card.question || '—';
+  const cardCharEl = document.getElementById('studyCardChar');
+  if (cardCharEl) {
+    cardCharEl.textContent = frontText;
+    // Tự động co giãn cỡ chữ mặt trước
+    if (frontText.length <= 2) {
+      cardCharEl.className = 'text-6xl sm:text-7xl font-bold text-[#0F172A] font-japanese leading-none block';
+    } else if (frontText.length <= 12) {
+      cardCharEl.className = 'text-2xl sm:text-3xl font-bold text-[#0F172A] font-japanese leading-tight break-words block';
     } else {
-      hvBack.classList.add('hidden');
+      cardCharEl.className = 'text-base sm:text-lg font-bold text-[#0F172A] leading-snug break-words block';
     }
   }
 
-  document.getElementById('cardMeaningBack').textContent = card.meaning || '—';
-
-  // Âm On/Kun (nếu có)
-  const readingsContainer = document.getElementById('cardReadingsContainer');
-  const onEl = document.getElementById('cardOnyomi');
-  const kunEl = document.getElementById('cardKunyomi');
-  const hasOnKun = (card.onyomi && card.onyomi !== '—') || (card.kunyomi && card.kunyomi !== '—');
-
-  if (hasOnKun && readingsContainer) {
-    readingsContainer.classList.remove('hidden');
-    if (onEl) onEl.textContent = `On: ${card.onyomi || '—'}`;
-    if (kunEl) kunEl.textContent = `Kun: ${card.kunyomi || '—'}`;
-  } else if (readingsContainer) {
-    readingsContainer.classList.add('hidden');
+  const levelBadge = document.getElementById('studyCardLevel');
+  if (levelBadge) {
+    levelBadge.textContent = card.jlpt || 'Flashcard';
   }
 
-  // Nút Shodo Canvas nếu là chữ đơn (Kanji)
-  const isKanji = typeof card.char === 'string' && card.char.length === 1 && /[\u4e00-\u9faf]/.test(card.char);
-  const shodoContainer = document.getElementById('shodoLinkContainer');
-  const shodoBtn = document.getElementById('btnShodoPractice');
-  if (isKanji && shodoContainer && shodoBtn) {
-    shodoContainer.classList.remove('hidden');
-    shodoBtn.href = `/shodo?kanji=${encodeURIComponent(card.char)}`;
-  } else if (shodoContainer) {
-    shodoContainer.classList.add('hidden');
+  const stepEl = document.getElementById('studyCardStep');
+  if (stepEl) {
+    stepEl.textContent = `${currentIndex + 1} / ${total}`;
   }
 
-  // Đánh dấu thumbnail đang chọn
-  highlightActiveThumbnail();
+  // ==================== B. MẶT SAU (BACK) ====================
+  const charBackEl = document.getElementById('studyCardCharBack');
+  if (charBackEl) {
+    charBackEl.textContent = frontText;
+  }
+
+  // Âm Hán Việt (chỉ hiện khi có)
+  const hvEl = document.getElementById('studyCardHanViet');
+  if (hvEl) {
+    if (card.hanViet && card.hanViet !== '—' && card.hanViet !== 'HÁN TỰ') {
+      hvEl.textContent = card.hanViet.toUpperCase();
+      hvEl.classList.remove('hidden');
+    } else {
+      hvEl.textContent = '';
+      hvEl.classList.add('hidden');
+    }
+  }
+
+  // Chuẩn bị nội dung mặt sau (Back Content)
+  let backText = card.meaning || card.back || card.answer || '';
+
+  // Tương thích ngược: Nếu thẻ cũ chưa ghép On/Kun vào meaning nhưng có trường riêng
+  if ((card.onyomi && card.onyomi !== '—' && !backText.includes('On:')) ||
+      (card.kunyomi && card.kunyomi !== '—' && !backText.includes('Kun:'))) {
+    const parts = [];
+    if (card.onyomi && card.onyomi !== '—' && card.onyomi !== '-') parts.push(`On: ${card.onyomi}`);
+    if (card.kunyomi && card.kunyomi !== '—' && card.kunyomi !== '-') parts.push(`Kun: ${card.kunyomi}`);
+    if (backText) parts.push(backText);
+    backText = parts.join(' / ');
+  }
+
+  const meaningContainer = document.getElementById('studyCardMeaningContainer');
+  if (meaningContainer) {
+    if (backText.includes(' / ')) {
+      // Định dạng phân tách bằng dấu gạch chéo: On / Kun / Nghĩa
+      const items = backText.split(' / ').map(s => s.trim()).filter(Boolean);
+      meaningContainer.innerHTML = items.map(item => {
+        if (item.startsWith('On:')) {
+          return `
+            <div class="flex items-start gap-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-2">
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0 mt-0.5">Onyomi:</span>
+              <span class="text-xs sm:text-sm font-japanese font-bold text-[#0F172A] leading-relaxed break-words">${escapeHtml(item.replace(/^On:\s*/i, ''))}</span>
+            </div>
+          `;
+        }
+        if (item.startsWith('Kun:')) {
+          return `
+            <div class="flex items-start gap-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-2">
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0 mt-0.5">Kunyomi:</span>
+              <span class="text-xs sm:text-sm font-japanese font-bold text-[#831843] leading-relaxed break-words">${escapeHtml(item.replace(/^Kun:\s*/i, ''))}</span>
+            </div>
+          `;
+        }
+        if (item.startsWith('Âm Hán:') || item.startsWith('Hán Việt:')) {
+          return `
+            <div class="flex items-start gap-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-2">
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0 mt-0.5">Hán Việt:</span>
+              <span class="text-xs sm:text-sm font-bold text-[#831843] uppercase tracking-wide leading-relaxed break-words">${escapeHtml(item.replace(/^(Âm Hán|Hán Việt):\s*/i, ''))}</span>
+            </div>
+          `;
+        }
+        return `
+          <div class="p-2 bg-white rounded-lg border border-slate-100">
+            <span class="text-[11px] font-bold text-slate-500 block mb-0.5">Nghĩa tiếng Việt:</span>
+            <div class="text-xs sm:text-sm font-semibold text-[#0F172A] leading-relaxed break-words">${escapeHtml(item)}</div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      // Định dạng thẻ thường (thêm tay, Excel thông thường)
+      meaningContainer.innerHTML = `
+        <div class="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg">
+          <span class="text-[11px] font-bold text-slate-500 block mb-1">Đáp án / Giải nghĩa:</span>
+          <div class="text-sm sm:text-base font-semibold text-[#0F172A] leading-relaxed break-words">${escapeHtml(backText || 'Chưa có giải nghĩa')}</div>
+        </div>
+      `;
+    }
+  }
+
+  // Nút Shodo Canvas: chỉ xuất hiện khi mặt trước đúng là 1 chữ Kanji đơn lẻ
+  const isKanji = typeof frontText === 'string' && frontText.trim().length === 1 && /[\u4e00-\u9faf]/.test(frontText.trim());
+  const shodoBtn = document.getElementById('btnStudyPracticeShodo');
+  if (shodoBtn) {
+    if (isKanji) {
+      shodoBtn.classList.remove('hidden');
+      shodoBtn.href = `/shodo?char=${encodeURIComponent(frontText.trim())}`;
+    } else {
+      shodoBtn.classList.add('hidden');
+    }
+  }
 }
 
-// 6. Lật thẻ 3D
+// 5. Lật thẻ 3D
 function flipCard() {
   const cardElement = document.getElementById('flashcardElement');
   if (!cardElement) return;
@@ -200,7 +280,7 @@ function flipCard() {
   cardElement.classList.toggle('is-flipped', isFlipped);
 }
 
-// 7. Thẻ tiếp theo
+// 6. Thẻ tiếp theo
 function nextCard() {
   if (cards.length === 0) return;
   if (currentIndex < cards.length - 1) {
@@ -212,7 +292,7 @@ function nextCard() {
   renderCard();
 }
 
-// 8. Thẻ trước đó
+// 7. Thẻ trước đó
 function prevCard() {
   if (cards.length === 0) return;
   if (currentIndex > 0) {
@@ -223,7 +303,7 @@ function prevCard() {
   renderCard();
 }
 
-// 9. Xáo trộn thứ tự thẻ (Fisher-Yates)
+// 8. Xáo trộn thứ tự thẻ (Fisher-Yates)
 function shuffleCards() {
   if (cards.length <= 1) return;
   for (let i = cards.length - 1; i > 0; i--) {
@@ -231,35 +311,49 @@ function shuffleCards() {
     [cards[i], cards[j]] = [cards[j], cards[i]];
   }
   currentIndex = 0;
-  renderThumbnails();
   renderCard();
   showToast('Đã xáo trộn thứ tự các thẻ trong bộ!', 'success');
 }
 
-// 10. Bắt đầu lại
+// 9. Bắt đầu lại
 function resetProgress() {
   cards = [...originalCards];
   currentIndex = 0;
-  renderThumbnails();
   renderCard();
   showToast('Đã bắt đầu lại từ thẻ đầu tiên!', 'info');
 }
 
-// 11. Render thanh thumbnails (đã loại bỏ theo yêu cầu người dùng)
-function renderThumbnails() {}
+// 10. Phát âm từ vựng (VOICEVOX Engine & Fallback TTS)
+async function speakCurrentCard() {
+  if (cards.length === 0) return;
+  const card = cards[currentIndex];
+  const text = card.char || card.front || card.kanjiChar || card.question || '';
+  if (!text) return;
 
-function highlightActiveThumbnail() {}
+  const btnSpeaker = document.getElementById('btnSpeakerStudy');
+  if (btnSpeaker) {
+    btnSpeaker.classList.add('scale-110', 'text-[#831843]');
+  }
 
-// 12. Điều hướng quay lại
-function goBack() {
-  if (currentDeckId) {
-    window.location.href = `/flashcards-detail?id=${encodeURIComponent(currentDeckId)}`;
-  } else {
-    window.location.href = '/flashcards';
+  try {
+    await voicevoxClient.speak(text);
+  } finally {
+    if (btnSpeaker) {
+      setTimeout(() => btnSpeaker.classList.remove('scale-110', 'text-[#831843]'), 400);
+    }
   }
 }
 
-// 13. DOM Ready & Gán sự kiện
+// 11. Điều hướng quay lại
+function goBack() {
+  if (currentDeckId) {
+    window.location.href = `/learner/deck-detail?id=${encodeURIComponent(currentDeckId)}`;
+  } else {
+    window.location.href = '/learner/flashcards';
+  }
+}
+
+// 12. DOM Ready & Gán sự kiện
 document.addEventListener('DOMContentLoaded', () => {
   loadStudyDeck();
 
@@ -273,13 +367,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnNextCard')?.addEventListener('click', nextCard);
   document.getElementById('btnPrevCard')?.addEventListener('click', prevCard);
 
+  // Phát âm
+  document.getElementById('btnStudyAudio')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    speakCurrentCard();
+  });
+
   // Xáo trộn & Reset
   document.getElementById('btnShuffle')?.addEventListener('click', shuffleCards);
   document.getElementById('btnResetProgress')?.addEventListener('click', resetProgress);
 
   // Điều hướng bằng bàn phím
   document.addEventListener('keydown', (e) => {
-    // Tránh can thiệp khi đang gõ vào input
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
 
     if (e.code === 'Space') {

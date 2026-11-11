@@ -110,6 +110,40 @@ public class VerificationStateMachine {
         return record(tutor, TutorVerifAction.REJECT, officer, feedback, reason, internalNote);
     }
 
+    // ----- Yêu cầu cập nhật hồ sơ đã phê duyệt (ghi vào lịch sử, xem ProfileUpdateTimeline) -----
+
+    /** Gia sư gửi yêu cầu cập nhật; hồ sơ vẫn "Đã phê duyệt". note: ghi chú của gia sư (feedback). */
+    public TutorVerificationHistory submitProfileUpdate(Tutor tutor, String requestedJlpt, String note) {
+        requireApproved(tutor);
+        return record(tutor, TutorVerifAction.SUBMIT, null, note, null,
+                ProfileUpdateTimeline.submitNotes(tutor.getHighestJlptLevel(), requestedJlpt));
+    }
+
+    /** Chấp nhận: áp dụng JLPT đề xuất (nếu có) và xác minh các giấy tờ đang chờ. */
+    public TutorVerificationHistory approveProfileUpdate(Tutor tutor, User officer, String requestedJlpt) {
+        requireApproved(tutor);
+        if (requestedJlpt != null) {
+            tutor.setHighestJlptLevel(requestedJlpt);
+        }
+        credentialRepository.updateStatusForTutor(tutor.getTutorId(),
+                TutorCredentialStatus.PENDING, TutorCredentialStatus.VERIFIED);
+        return record(tutor, TutorVerifAction.APPROVE, officer, null, null, ProfileUpdateTimeline.MARKER);
+    }
+
+    /** Từ chối: giấy tờ đang chờ bị đánh dấu không được chấp nhận; hồ sơ vẫn "Đã phê duyệt". */
+    public TutorVerificationHistory rejectProfileUpdate(Tutor tutor, User officer, String feedback) {
+        requireApproved(tutor);
+        credentialRepository.updateStatusForTutor(tutor.getTutorId(),
+                TutorCredentialStatus.PENDING, TutorCredentialStatus.REJECTED);
+        return record(tutor, TutorVerifAction.REJECT, officer, feedback, null, ProfileUpdateTimeline.MARKER);
+    }
+
+    private static void requireApproved(Tutor tutor) {
+        if (currentStatus(tutor) != TutorVerificationStatus.APPROVED) {
+            throw VerificationException.alreadyProcessed();
+        }
+    }
+
     /**
      * Nội dung từ chối hiển thị cho gia sư: nhãn lý do, kèm phản hồi nếu cán bộ có nhập. Không chứa ghi chú nội bộ.
      */

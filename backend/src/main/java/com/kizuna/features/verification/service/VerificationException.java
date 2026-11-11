@@ -63,6 +63,18 @@ public class VerificationException extends RuntimeException {
         return of(HttpStatus.CONFLICT, "VERIFICATION_REJECTED", MSG_REJECTED_FINAL);
     }
 
+    /** Hồ sơ đã phê duyệt đang có yêu cầu cập nhật chờ thẩm định: chưa đổi được giấy tờ / JLPT. */
+    public static VerificationException updatePending() {
+        return of(HttpStatus.CONFLICT, "PROFILE_UPDATE_PENDING",
+                "Bạn đang có yêu cầu cập nhật hồ sơ chờ thẩm định nên chưa thể thay đổi giấy tờ hoặc trình độ JLPT.");
+    }
+
+    /** Giấy tờ đã được xác minh của hồ sơ đã phê duyệt không sửa / gỡ được; chỉ tải thêm giấy tờ mới. */
+    public static VerificationException verifiedDocumentLocked() {
+        return of(HttpStatus.CONFLICT, "DOCUMENT_VERIFIED",
+                "Giấy tờ đã được xác minh nên không thể sửa hoặc gỡ. Bạn có thể tải lên giấy tờ mới để cập nhật.");
+    }
+
     public static VerificationException alreadyProcessed() {
         return of(HttpStatus.CONFLICT, "ALREADY_PROCESSED", MSG_ALREADY_PROCESSED);
     }

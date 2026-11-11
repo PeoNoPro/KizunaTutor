@@ -119,7 +119,7 @@ public class AcademicOfficerService {
                 .tutorEmail(tutorUser.getEmail())
                 .tutorJlptLevel(h.getTutor().getHighestJlptLevel())
                 .action(h.getAction().name())
-                .actionLabel(VerificationLabels.action(h.getAction()))
+                .actionLabel(VerificationLabels.historyAction(h))
                 .feedback(h.getFeedback())
                 .reasonLabel(VerificationLabels.rejectionReason(h.getReasonCode()))
                 .internalNote(h.getInternalNote())

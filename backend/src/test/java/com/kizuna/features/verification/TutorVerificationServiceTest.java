@@ -11,6 +11,10 @@ import com.kizuna.features.verification.entity.TutorCredential;
 import com.kizuna.features.verification.entity.TutorVerifAction;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import com.kizuna.features.verification.repository.TutorCredentialRepository;
+import com.kizuna.features.verification.dto.request.SubmitProfileUpdateRequest;
+import com.kizuna.features.verification.entity.TutorVerificationHistory;
+import com.kizuna.features.verification.service.ProfileUpdateTimeline;
+import com.kizuna.features.verification.entity.TutorCredentialStatus;
 import com.kizuna.features.verification.repository.TutorVerificationHistoryRepository;
 import com.kizuna.features.verification.repository.VerificationTutorRepository;
 import com.kizuna.features.verification.service.CurrentUserProvider;
@@ -88,7 +92,7 @@ class TutorVerificationServiceTest {
         VerificationStateMachine stateMachine = new VerificationStateMachine(historyRepository, credentialRepository);
         VerificationViewAssembler assembler = new VerificationViewAssembler(credentialRepository, historyRepository, storage);
         service = new TutorVerificationServiceImpl(tutorRepository, credentialRepository, storage, stateMachine,
-                assembler, currentUserProvider);
+                assembler, currentUserProvider, historyRepository);
     }
 
     private void fillCompleteProfile() {
@@ -119,7 +123,7 @@ class TutorVerificationServiceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = TutorVerificationStatus.class, names = {"PENDING", "APPROVED"})
+    @EnumSource(value = TutorVerificationStatus.class, names = {"PENDING"})
     void editingLockedProfileIsRejected(TutorVerificationStatus status) {
         tutor.setVerificationStatus(status);
         VerificationException ex = assertThrows(VerificationException.class,
@@ -317,5 +321,121 @@ class TutorVerificationServiceTest {
                 .thenReturn(Optional.empty());
         assertEquals("NOT_FOUND", assertThrows(VerificationException.class,
                 () -> service.loadMyDocumentFile(UUID.randomUUID())).getCode());
+    }
+
+    // ===== Cập nhật hồ sơ sau khi đã phê duyệt =====
+
+    private void approve() {
+        fillCompleteProfile();
+        tutor.setVerificationStatus(TutorVerificationStatus.APPROVED);
+        tutor.setTutorState(TutorState.APPROVED_UNPAID);
+    }
+
+    private TutorCredential credential(TutorCredentialStatus status) {
+        TutorCredential c = TutorCredential.builder()
+                .credentialId(UUID.randomUUID()).tutor(tutor).credentialType(CredentialType.JLPT_CERTIFICATE)
+                .title("JLPT").storageKey(UUID.randomUUID() + ".pdf").verifiedStatus(status).build();
+        credentials.add(c);
+        when(credentialRepository.findByCredentialIdAndTutor_TutorId(c.getCredentialId(), tutor.getTutorId()))
+                .thenReturn(Optional.of(c));
+        return c;
+    }
+
+    @Test
+    void approvedTutorSavesContactInfoImmediatelyButKeepsNameBirthDateAndJlpt() {
+        approve();
+        TutorVerificationResponse response = service.updateProfile(UpdateVerificationProfileRequest.builder()
+                .fullName("Tên Khác").phone("0911222333").address("Hà Nội")
+                .bio("Giới thiệu mới đủ dài hơn hai mươi ký tự.").experienceYears(6)
+                .dateOfBirth(LocalDate.of(2000, 1, 1)).highestJlptLevel("N1").build());
+
+        assertEquals(TutorVerificationStatus.APPROVED, tutor.getVerificationStatus());
+        assertEquals("0911222333", tutor.getPhone());
+        assertEquals("Hà Nội", tutor.getAddress());
+        assertEquals((short) 6, tutor.getExperienceYears());
+        assertEquals("Nguyễn Gia Sư", tutor.getUser().getFullName());
+        assertEquals(LocalDate.of(1995, 4, 12), tutor.getDateOfBirth());
+        assertEquals("N2", tutor.getHighestJlptLevel(), "đổi JLPT phải qua yêu cầu cập nhật");
+        assertEquals(TutorVerificationServiceImpl.MSG_APPROVED_SAVED, response.getMessage());
+        assertTrue(response.getUpdatable());
+        verify(historyRepository, never()).save(any());
+    }
+
+    @Test
+    void approvedTutorCannotBlankRequiredContactInfo() {
+        approve();
+        VerificationException ex = assertThrows(VerificationException.class, () -> service.updateProfile(
+                UpdateVerificationProfileRequest.builder().phone(" ").address("").bio("ngắn").build()));
+        assertEquals("VALIDATION_FAILED", ex.getCode());
+        assertTrue(ex.getFields().keySet().containsAll(List.of("phone", "address", "bio")));
+        assertEquals("0905123456", tutor.getPhone());
+    }
+
+    @Test
+    void approvedTutorCannotChangeVerifiedDocumentButCanRemoveNewOnes() {
+        approve();
+        TutorCredential verified = credential(TutorCredentialStatus.VERIFIED);
+        TutorCredential fresh = credential(TutorCredentialStatus.PENDING);
+
+        assertEquals("DOCUMENT_VERIFIED", assertThrows(VerificationException.class,
+                () -> service.removeDocument(verified.getCredentialId())).getCode());
+        assertEquals("DOCUMENT_VERIFIED", assertThrows(VerificationException.class,
+                () -> service.updateDocument(verified.getCredentialId(), "DEGREE", null, null)).getCode());
+
+        service.removeDocument(fresh.getCredentialId());
+        verify(credentialRepository).delete(fresh);
+    }
+
+    @Test
+    void submitProfileUpdateRecordsPendingRequestAndKeepsApprovedStatus() {
+        approve();
+        credential(TutorCredentialStatus.PENDING);
+
+        TutorVerificationResponse response = service.submitProfileUpdate(new SubmitProfileUpdateRequest("n1", " Đã đỗ N1 "));
+
+        // Lưu vào lịch sử thẩm định: dòng SUBMIT đánh dấu cập nhật, JLPT đề xuất trong notes, ghi chú ở feedback
+        ArgumentCaptor<TutorVerificationHistory> saved = ArgumentCaptor.forClass(TutorVerificationHistory.class);
+        verify(historyRepository).save(saved.capture());
+        assertEquals(TutorVerifAction.SUBMIT, saved.getValue().getAction());
+        assertTrue(ProfileUpdateTimeline.isUpdateRow(saved.getValue()));
+        assertEquals("N1", new ProfileUpdateTimeline.Request(saved.getValue(), null).requestedJlpt());
+        assertEquals("N2", new ProfileUpdateTimeline.Request(saved.getValue(), null).previousJlpt());
+        assertEquals("Đã đỗ N1", saved.getValue().getFeedback());
+        assertEquals(TutorVerificationStatus.APPROVED, tutor.getVerificationStatus());
+        assertEquals("N2", tutor.getHighestJlptLevel(), "chưa áp dụng cho tới khi được duyệt");
+        assertEquals(TutorVerificationServiceImpl.MSG_UPDATE_SUBMITTED, response.getMessage());
+    }
+
+    @Test
+    void submitProfileUpdateWithoutChangesIsRejected() {
+        approve();
+        credential(TutorCredentialStatus.VERIFIED);
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(new SubmitProfileUpdateRequest("N2", null)));
+        assertEquals(TutorVerificationServiceImpl.MSG_NO_CHANGES, ex.getMessage());
+        verify(historyRepository, never()).save(any());
+    }
+
+    @Test
+    void pendingProfileUpdateLocksDocumentsButNotContactInfo() {
+        approve();
+        when(historyRepository.findTimeline(tutor.getTutorId())).thenReturn(List.of(
+                TutorVerificationHistory.builder().action(TutorVerifAction.APPROVE).build(),
+                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT)
+                        .internalNote(ProfileUpdateTimeline.submitNotes("N2", "N1")).build()));
+        assertEquals("PROFILE_UPDATE_PENDING", assertThrows(VerificationException.class,
+                () -> service.addDocument("JLPT_CERTIFICATE", "N1", null)).getCode());
+        assertEquals("PROFILE_UPDATE_PENDING", assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(new SubmitProfileUpdateRequest("N1", null))).getCode());
+        service.updateProfile(UpdateVerificationProfileRequest.builder().phone("0911222333").address("Huế")
+                .bio("Giới thiệu mới đủ dài hơn hai mươi ký tự.").build());
+        assertEquals("Huế", tutor.getAddress());
+    }
+
+    @Test
+    void unapprovedTutorCannotSubmitProfileUpdate() {
+        tutor.setVerificationStatus(TutorVerificationStatus.PENDING);
+        assertEquals("VERIFICATION_LOCKED", assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(new SubmitProfileUpdateRequest("N1", null))).getCode());
     }
 }

@@ -112,7 +112,13 @@ export function mountAdminShell() {
   if(csWorkspace){document.body.classList.add('cs-workspace');if(!document.querySelector('link[data-cs-workspace]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/styles/cs-workspace.css';css.dataset.csWorkspace='';document.head.append(css);}}
   // Nạp sau cùng để ghi đè bố cục cũ của admin.css / admin-portal.css / cs-workspace.css
   if (!document.querySelector('link[data-staff-unified]')) { const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/styles/staff-unified.css'; css.dataset.staffUnified = ''; document.head.append(css); }
-  if (!document.getElementById('staffNavHidden')) { const style = document.createElement('style'); style.id = 'staffNavHidden'; style.textContent = '.staff-unified .sidebar-menu [hidden],.staff-unified .sidebar-menu .nav-group[hidden],.staff-unified .sidebar-bottom [hidden]{display:none!important}'; document.head.append(style); }
+  if (!document.getElementById('staffNavHidden')) { const style = document.createElement('style'); style.id = 'staffNavHidden'; style.textContent = '.staff-unified .sidebar-menu [hidden],.staff-unified .sidebar-menu .nav-group[hidden],.staff-unified .sidebar-bottom [hidden]{display:none!important}'
+      // Bỏ tiêu đề trang ở khu Admin/Quản lý/CS (trừ trang Tổng quan, vốn dùng khối chào riêng): sidebar đã cho biết đang ở trang nào.
+      // Chỉ ẩn khỏi màn hình, trình đọc màn hình vẫn đọc được tiêu đề.
+      + '.staff-unified .operations-page-heading h1,.staff-unified .operations-page-heading>p,.staff-unified .operations-page-heading .role-badge,'
+      + '.staff-unified .support-intro h1,.staff-unified .support-intro .support-lead,.staff-unified .support-sheet-head h1,.staff-unified .nt-head h1'
+      + '{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important}'
+      + '.staff-unified .operations-page-heading{margin:0!important;padding:0!important;min-height:0!important}.staff-unified .support-intro{margin:0!important}'; document.head.append(style); }
   const shell = document.createElement('template');
   shell.innerHTML = `  <aside class="admin-sidebar" id="adminSidebar" aria-label="Điều hướng quản trị">
     <a class="admin-brand" href="/pages/home/">

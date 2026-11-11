@@ -33,7 +33,7 @@ public class TechnicalIncidentService {
     @Transactional(timeout=4)
     public Map<String,Object> create(IncidentCreateRequest r) {
         var actor=actors.requireAdmin(); commands.lockAdmin(actor.userId());
-        var i=record(actor.userId(),r);
+        var i=record(actor.userId(),r,null);
         return projection(i,actor.userId());
     }
 
@@ -45,7 +45,9 @@ public class TechnicalIncidentService {
     public Map<String,Object> report(IncidentCreateRequest r) {
         var actor=actors.requireManager();
         if(r.recurrenceOf()!=null) throw BusinessException.invalid();
-        var i=record(actor.userId(),r);
+        if(r.supportTicketId()!=null && incidents.countEscalatedTo(r.supportTicketId(),actor.userId())==0)
+            throw new BusinessException(400,"Chỉ báo sự cố từ yêu cầu hỗ trợ được chuyển lên cho bạn.");
+        var i=record(actor.userId(),r,r.supportTicketId());
         if(notifications!=null) notifications.publishToRole("incident:"+i.getIncidentId()+":reported","SYSTEM","Quản lý báo sự cố kỹ thuật mới",
             "Sự cố \""+i.getSubject()+"\" (mức độ "+SEVERITY_LABELS.get(i.getSeverity())+") đang chờ Admin nhận xử lý.","/pages/operations-incident/?id="+i.getIncidentId(),"ROLE_ADMIN");
         return readOnly(i,actors.names(Set.of(actor.userId())));
@@ -55,9 +57,9 @@ public class TechnicalIncidentService {
     @Transactional(readOnly=true, timeout=3)
     public PageResponse<Map<String,Object>> reportedByMe(int page,int size,UUID ticket) {
         var actor=actors.requireManager(); OperationsValidation.page(page,size);
-        // Lọc theo yêu cầu hỗ trợ: mô tả do giao diện điền sẵn luôn có "Mã yêu cầu hỗ trợ: <mã>".
+        // Lọc theo yêu cầu hỗ trợ bằng cột support_ticket_id (không phụ thuộc nội dung mô tả).
         Specification<TechnicalIncident> mine=(root,q,cb)->ticket==null?cb.equal(root.get("reporterId"),actor.userId())
-            :cb.and(cb.equal(root.get("reporterId"),actor.userId()),cb.like(root.get("description"),"%"+ticket+"%"));
+            :cb.and(cb.equal(root.get("reporterId"),actor.userId()),cb.equal(root.get("supportTicketId"),ticket));
         var result=incidents.findAll(mine,PageRequest.of(page,size,LIST_ORDER));
         var ids=new HashSet<UUID>(); ids.add(actor.userId()); result.forEach(i->{if(i.getAssigneeId()!=null)ids.add(i.getAssigneeId());});
         var names=actors.names(ids);
@@ -65,17 +67,17 @@ public class TechnicalIncidentService {
     }
 
     private Map<String,Object> readOnly(TechnicalIncident i,Map<UUID,String> names) {
-        var m=projection(i,i.getReporterId(),names); m.put("allowedActions",List.of()); return m;
+        var m=projection(i,i.getReporterId(),names); m.put("allowedActions",List.of()); m.put("supportTicketId",i.getSupportTicketId()); return m;
     }
 
-    private TechnicalIncident record(UUID actor,IncidentCreateRequest r) {
+    private TechnicalIncident record(UUID actor,IncidentCreateRequest r,UUID supportTicket) {
         OperationsValidation.text(r.subject(),200); OperationsValidation.text(r.description(),10000);
         OperationsValidation.member(r.severity(),SEVERITIES);
         if(r.components()==null || r.components().isEmpty() || !OperationsComponentCatalog.CODES.containsAll(r.components())) throw BusinessException.invalid();
         if(r.recurrenceOf()!=null && !"CLOSED".equals(incidents.findById(r.recurrenceOf()).orElseThrow(BusinessException::missing).getStatus())) throw BusinessException.invalid();
         var i=new TechnicalIncident(); i.setIncidentId(UUID.randomUUID()); i.setSubject(r.subject()); i.setDescription(r.description());
         i.setSeverity(r.severity()); i.setStatus("NEW"); i.setReporterId(actor); i.setRecurrenceOf(r.recurrenceOf());
-        i.setComponents(new LinkedHashSet<>(r.components())); incidents.saveAndFlush(i);
+        i.setComponents(new LinkedHashSet<>(r.components())); i.setSupportTicketId(supportTicket); incidents.saveAndFlush(i);
         append(i,actor,"CREATE",null,r.description(),null,null);
         return i;
     }
@@ -108,12 +110,11 @@ public class TechnicalIncidentService {
         boolean manager=notifications.roleOf(i.getReporterId()).map("ROLE_MANAGER"::equals).orElse(false);
         notifications.publish("incident:"+i.getIncidentId()+":v"+i.getVersion()+":"+action,"SYSTEM",title,
             "Sự cố \""+i.getSubject()+"\" bạn đã báo hiện ở trạng thái: "+STATUS_LABELS.get(i.getStatus())+".",
-            manager?reportedTicketPath(i.getDescription()):"/pages/operations-incident/?id="+i.getIncidentId(),List.of(i.getReporterId()));
+            manager?reportedTicketPath(i):"/pages/operations-incident/?id="+i.getIncidentId(),List.of(i.getReporterId()));
     }
-    /** Quản lý xem trạng thái sự cố ở tab Xử lý nội bộ của yêu cầu hỗ trợ gốc (mô tả có "Mã yêu cầu hỗ trợ: <mã>"). */
-    static String reportedTicketPath(String description) {
-        var m=java.util.regex.Pattern.compile("Mã yêu cầu hỗ trợ:\\s*([0-9a-fA-F-]{36})").matcher(description==null?"":description);
-        return m.find()?"/pages/support-ticket/?role=manager&tab=internal&id="+m.group(1):"/manager/support/tickets";
+    /** Quản lý xem trạng thái sự cố ở tab Xử lý nội bộ của yêu cầu hỗ trợ gốc. */
+    static String reportedTicketPath(TechnicalIncident i) {
+        return i.getSupportTicketId()!=null?"/pages/support-ticket/?role=manager&tab=internal&id="+i.getSupportTicketId():"/manager/support/tickets";
     }
 
     private static final Map<String,Set<String>> COMMAND_FIELDS=Map.of("CLAIM",Set.of(),"RELEASE",Set.of("reason"),"PROGRESS",Set.of("detail"),"RESOLVE",Set.of("result","verification"),"RESUME",Set.of("reason"),"CLOSE",Set.of());

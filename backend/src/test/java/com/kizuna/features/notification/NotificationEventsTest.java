@@ -46,6 +46,10 @@ class NotificationEventsTest {
     void externalLinksAndUnknownGroupsAreRejected() {
         assertThrows(IllegalArgumentException.class, () -> events.publish("k", "TICKET", "A", "B", "https://evil.example", List.of(learner)));
         assertThrows(IllegalArgumentException.class, () -> events.publish("k", "CHAT", "A", "B", null, List.of(learner)));
+        // Góp ý review PR #21: "/\evil.com" được trình duyệt hiểu là "//evil.com"; xuống dòng cũng bị chặn.
+        for (var path : List.of("//evil.example", "/\\evil.example", "/a\nb", "/a b", "javascript:alert(1)"))
+            assertThrows(IllegalArgumentException.class, () -> events.publish("k", "TICKET", "A", "B", path, List.of(learner)), path);
+        assertTrue(NotificationEvents.safePath("/pages/support-ticket/?role=manager&tab=internal&id=00000000-0000-0000-0000-000000000001"));
     }
 
     private Map<String, Object> ticket() {

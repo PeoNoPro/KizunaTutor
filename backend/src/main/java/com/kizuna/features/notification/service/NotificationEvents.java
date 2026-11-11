@@ -42,13 +42,24 @@ import java.util.*;
 public class NotificationEvents {
     private final Writer writer;
 
+    /**
+     * Đường dẫn nội bộ an toàn: bắt đầu bằng đúng một "/", chỉ chữ, số và / _ . ~ % = & ? # + -.
+     * Chặn "//trang-ngoai", "/\\trang-ngoai" (trình duyệt hiểu "\\" là "/") và ký tự xuống dòng. Dùng chung với giao diện và ràng buộc DB.
+     */
+    public static final java.util.regex.Pattern SAFE_PATH = java.util.regex.Pattern.compile("^/([A-Za-z0-9_.~%=&?#+-][A-Za-z0-9/_.~%=&?#+-]*)?$");
+
+    public static boolean safePath(String path) { return path == null || (path.length() <= 300 && SAFE_PATH.matcher(path).matches()); }
+
+    /** Tiêu đề một dòng: đổi ký tự điều khiển (xuống dòng, tab...) thành dấu cách. */
+    static String oneLine(String value) { return value == null ? null : value.replaceAll("\\p{Cntrl}+", " ").strip(); }
+
     public void publish(String eventKey, String type, String title, String content, String actionPath, Collection<UUID> recipients) {
         var targets = recipients == null ? List.<UUID>of() : recipients.stream().filter(Objects::nonNull).distinct().toList();
         if (targets.isEmpty() || eventKey == null || eventKey.isBlank()) return;
         if (!NotificationInboxService.TYPES.containsKey(type)) throw new IllegalArgumentException("Nhóm thông báo không hợp lệ: " + type);
-        if (actionPath != null && !actionPath.matches("^/[^/].*")) throw new IllegalArgumentException("Đường dẫn thông báo phải là đường dẫn nội bộ.");
+        if (!safePath(actionPath)) throw new IllegalArgumentException("Đường dẫn thông báo phải là đường dẫn nội bộ.");
         try {
-            writer.write(eventKey.length() > 255 ? eventKey.substring(0, 255) : eventKey, type, limit(title, 150), limit(content, 10000), actionPath, targets);
+            writer.write(eventKey.length() > 255 ? eventKey.substring(0, 255) : eventKey, type, limit(oneLine(title), 150), limit(content, 10000), actionPath, targets);
         } catch (RuntimeException exception) {
             log.warn("[NOTIFICATION] Chưa tạo được thông báo cho sự kiện {}: {}", eventKey, exception.getClass().getSimpleName());
         }

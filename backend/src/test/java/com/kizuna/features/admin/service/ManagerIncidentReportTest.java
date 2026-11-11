@@ -27,7 +27,7 @@ class ManagerIncidentReportTest {
     private final TechnicalIncidentService service = new TechnicalIncidentService(incidents, events, actors, commands, Clock.systemUTC());
 
     private static IncidentCreateRequest request(UUID recurrenceOf) {
-        return new IncidentCreateRequest("Không tải được tệp đính kèm", "Từ yêu cầu hỗ trợ của gia sư.", "HIGH", Set.of("APPLICATION"), recurrenceOf);
+        return new IncidentCreateRequest("Không tải được tệp đính kèm", "Từ yêu cầu hỗ trợ của gia sư.", "HIGH", Set.of("APPLICATION"), recurrenceOf, null);
     }
 
     @Test

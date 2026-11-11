@@ -112,3 +112,13 @@ SQL `database/seeds/fe12_notification.sql (phần 3)`: thêm `action_path` (đư
 `NotificationEvents.publish(eventKey,type,title,content,actionPath,recipientIds)` (Java, không có REST): tạo đợt `origin=EVENT`, `target_mode=EXPLICIT`, kênh IN_APP+EMAIL theo tùy chọn người nhận, chốt người nhận ngay. Ghi trong savepoint JDBC của transaction nghiệp vụ: thành công thì lưu cùng nghiệp vụ, lỗi chỉ ghi log và không làm hỏng nghiệp vụ; không có transaction thì tự mở transaction riêng. **Sửa 2026-11-10:** bản đầu dùng `Propagation.NESTED`, nhưng JpaTransactionManager + HibernateJpaDialect không hỗ trợ savepoint nên mọi lời gọi đều lỗi và bị nuốt (DB không có đợt `origin=EVENT` nào); nay `Writer` tự đặt/rollback savepoint trên kết nối của transaction hiện tại. `event_key` unique: xử lý lại cùng sự kiện không tạo thêm. Lịch sử gửi của Admin chỉ hiện đợt `origin=ADMIN`.
 
 Đã gắn: FE-10 (trả lời, bổ sung, giải quyết, giao/tự giao, chuyển lên, đổi Quản lý, trả kết quả; 2026-11-10 thêm "Yêu cầu hỗ trợ cần bàn giao" → mọi Quản lý khi CS phụ trách không còn hoạt động) và FE-11 (Quản lý báo sự cố → mọi Admin; nhận/khắc phục/đóng/trả lại/xử lý tiếp → người báo). Học thử, bài tập, thanh toán: xem `integration-guide.md`, các module đó tự thêm lời gọi.
+
+## Bổ sung 2026-11-11 (review PR #21)
+
+- `POST /api/admin/operations/notification-broadcasts/{id}/cancel`: hủy đợt `SCHEDULED` chưa chốt người nhận. Người tạo hoặc Quản trị viên; khác người tạo (Quản lý) 403; đã gửi/đã hủy hoặc vừa đến giờ gửi 409. Trạng thái mới `CANCELLED` ("Đã hủy"); lịch sử và chi tiết trả thêm `canCancel`.
+- Tiêu đề thông báo chỉ một dòng: có ký tự điều khiển (xuống dòng, tab) thì 400. Thông báo tự động đổi ký tự điều khiển trong tiêu đề thành dấu cách.
+- `actionPath` chỉ nhận `^/([A-Za-z0-9_.~%=&?#+-][A-Za-z0-9/_.~%=&?#+-]*)?$`, tối đa 300 ký tự (chặn `//…`, `/\…`, xuống dòng). Giao diện kiểm lại cùng biểu thức trước khi mở.
+- Số người "dự kiến" và lúc chốt dùng chung một điều kiện tài khoản/vai trò.
+- Email: mỗi lượt giữ chỗ 5 thư, đánh dấu lại thời điểm ngay trước khi gửi từng thư.
+- Nhật ký thao tác (FE-11) có nhóm "Thông báo": gửi, hẹn giờ, gửi khẩn toàn hệ thống, hủy hẹn giờ.
+- SQL: `database/seeds/fe11_fe12_review_fixes.sql`.

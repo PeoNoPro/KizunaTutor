@@ -41,6 +41,10 @@ public class NotificationBroadcastController {
         return ApiResponse.ok(service.history(fromDate, toDate, status, channel, role, title, page, size));
     }
 
+    /** Hủy thông báo đã hẹn giờ khi chưa đến giờ gửi. */
+    @PostMapping("/{id}/cancel")
+    public ApiResponse<?> cancel(@PathVariable UUID id) { return ApiResponse.ok(service.cancel(id)); }
+
     @GetMapping("/{id}")
     public ApiResponse<?> detail(@PathVariable UUID id) { return ApiResponse.ok(service.detail(id)); }
 }

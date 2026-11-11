@@ -128,8 +128,8 @@ async function incidents() {
     byId('kpiIncidentsFoot').textContent = data.totalElements ? 'Tổng đã báo: ' + number(data.totalElements) : 'Chưa báo sự cố nào';
     if (!data.items.length) return empty(box, 'Bạn chưa báo sự cố nào cho Admin.');
     box.replaceChildren(...data.items.slice(0, 4).map(incident => {
-      // Mở yêu cầu hỗ trợ gốc (tab Xử lý nội bộ hiện trạng thái sự cố); mô tả có sẵn "Mã yêu cầu hỗ trợ: <mã>".
-      const ticketId = /Mã yêu cầu hỗ trợ:\s*([0-9a-f-]{36})/i.exec(incident.description || '')?.[1];
+      // Mở yêu cầu hỗ trợ gốc (tab Xử lý nội bộ hiện trạng thái sự cố).
+      const ticketId = incident.supportTicketId;
       const row = element(ticketId ? 'a' : 'div', null, 'mh-row');
       if (ticketId) row.href = '/pages/support-ticket/?role=manager&tab=internal&id=' + encodeURIComponent(ticketId);
       const main = element('div', null, 'mh-row-main');

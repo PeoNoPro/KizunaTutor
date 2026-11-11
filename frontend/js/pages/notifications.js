@@ -27,6 +27,12 @@ export function icon(name, className = '') {
   return node;
 }
 
+/**
+ * Đường dẫn nội bộ an toàn (giống NotificationEvents.SAFE_PATH ở backend): một dấu "/" đầu, không "//", "\\" hay xuống dòng.
+ * Chặn dạng "/\\trang-ngoai" mà trình duyệt hiểu thành "//trang-ngoai".
+ */
+export const SAFE_PATH = /^\/([A-Za-z0-9_.~%=&?#+-][A-Za-z0-9/_.~%=&?#+-]*)?$/;
+
 export function formatDate(value) {
   if (!value) return '';
   return new Date(value).toLocaleString('vi-VN', {timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'});
@@ -220,7 +226,7 @@ export async function startNotificationsPage() {
     if (loading) body.setAttribute('aria-busy', 'true');
     const parts = [hero, body];
     // Thông báo tự động có đường dẫn tới yêu cầu/sự cố/lịch học liên quan (chỉ nhận đường dẫn nội bộ).
-    if (item.actionPath && /^\/[^/]/.test(item.actionPath)) {
+    if (item.actionPath && SAFE_PATH.test(item.actionPath)) {
       const go = element('a', null, 'nt-related'); go.href = item.actionPath;
       const text = element('span', null, 'nt-related-text');
       text.append(element('strong', 'Mở trang liên quan'), element('span', 'Xem chi tiết và xử lý tiếp tại trang gốc'));

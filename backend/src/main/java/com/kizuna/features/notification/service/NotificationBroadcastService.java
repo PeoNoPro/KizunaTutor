@@ -32,7 +32,7 @@ public class NotificationBroadcastService {
         var statuses = new LinkedHashMap<String, String>();
         statuses.put("SCHEDULED", "Đã lên lịch"); statuses.put("QUEUED", "Đang chờ"); statuses.put("SENDING", "Đang gửi");
         statuses.put("COMPLETED", "Hoàn tất"); statuses.put("PARTIAL", "Hoàn tất một phần"); statuses.put("FAILED", "Thất bại");
-        statuses.put("NO_RECIPIENTS", "Không có người nhận"); statuses.put("NEEDS_REVIEW", "Cần kiểm tra");
+        statuses.put("NO_RECIPIENTS", "Không có người nhận"); statuses.put("NEEDS_REVIEW", "Cần kiểm tra"); statuses.put("CANCELLED", "Đã hủy");
         STATUSES = Collections.unmodifiableMap(statuses);
     }
 
@@ -63,6 +63,8 @@ public class NotificationBroadcastService {
 
     Validated validate(BroadcastRequest r, boolean forSubmit) {
         if (r == null) throw BusinessException.invalid();
+        // Tiêu đề còn làm tiêu đề email nên chỉ được một dòng (chặn xuống dòng, tab và ký tự điều khiển khác).
+        if (r.title() != null && r.title().strip().codePoints().anyMatch(Character::isISOControl)) throw invalid("Tiêu đề chỉ được một dòng, không xuống dòng.");
         var title = text(r.title(), 150, "tiêu đề");
         var content = text(r.content(), 10000, "nội dung");
         if (r.type() == null || !NotificationInboxService.TYPES.containsKey(r.type())) throw invalid("Vui lòng chọn nhóm thông báo.");
@@ -161,6 +163,37 @@ public class NotificationBroadcastService {
         return "ALL".equals(mode) ? "Toàn hệ thống" : String.join(", ", roles.stream().map(ROLES::get).toList());
     }
 
+    /**
+     * Hủy thông báo đã hẹn giờ khi chưa đến giờ gửi. Người tạo được hủy đợt của mình; Quản trị viên hủy được mọi đợt.
+     * Ghi ai hủy, lúc nào (hiện trong Nhật ký thao tác). Đã chốt người nhận hoặc đã hủy rồi thì báo 409.
+     */
+    @Transactional(timeout = 5)
+    public Map<String, Object> cancel(UUID id) {
+        var actor = actors.requireBroadcaster();
+        try {
+            var d = dispatches.find(id).filter(found -> found.creatorId() != null).orElseThrow(BusinessException::missing);
+            if (!canCancel(d, actor)) {
+                if (!"SCHEDULED".equals(d.status())) throw new BusinessException(409, "Thông báo này đã gửi hoặc đã hủy, không hủy được nữa.");
+                throw new BusinessException(403, "Bạn chỉ hủy được thông báo do chính mình hẹn giờ.");
+            }
+            if (!dispatches.cancel(id, actor.userId())) throw new BusinessException(409, "Thông báo vừa đến giờ gửi nên không hủy được nữa.");
+            var m = summary(dispatches.find(id).orElseThrow(BusinessException::missing), actor);
+            m.put("message", "Đã hủy thông báo hẹn giờ. Người nhận sẽ không nhận được thông báo này.");
+            return m;
+        } catch (DataAccessException exception) { throw unavailable(); }
+    }
+
+    static boolean canCancel(Dispatch d, com.kizuna.features.admin.dto.OperationsActor actor) {
+        return "SCHEDULED".equals(d.status()) && d.frozenAt() == null
+                && ("ROLE_ADMIN".equals(actor.role()) || actor.userId().equals(d.creatorId()));
+    }
+
+    private Map<String, Object> summary(Dispatch d, com.kizuna.features.admin.dto.OperationsActor actor) {
+        var m = summary(d);
+        m.put("canCancel", canCancel(d, actor));
+        return m;
+    }
+
     private Map<String, Object> summary(Dispatch d) {
         var m = new LinkedHashMap<String, Object>();
         m.put("id", d.id()); m.put("title", d.title());
@@ -177,7 +210,7 @@ public class NotificationBroadcastService {
 
     @Transactional(readOnly = true, timeout = 5)
     public PageResponse<Map<String, Object>> history(LocalDate fromDate, LocalDate toDate, String status, String channel, String role, String title, int page, int size) {
-        actors.requireBroadcaster();
+        var actor = actors.requireBroadcaster();
         if (page < 0 || size < 1 || size > 50) throw BusinessException.invalid();
         if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) throw invalid("Ngày bắt đầu phải trước ngày kết thúc.");
         if (status != null && !STATUSES.containsKey(status)) throw BusinessException.invalid();
@@ -188,7 +221,7 @@ public class NotificationBroadcastService {
                 title == null || title.isBlank() ? null : title.strip());
         try {
             long total = dispatches.historyCount(filter);
-            var items = dispatches.history(filter, page, size).stream().map(this::summary).toList();
+            var items = dispatches.history(filter, page, size).stream().map(d -> summary(d, actor)).toList();
             return new PageResponse<>(items, page, size, total, (total + size - 1) / size);
         } catch (DataAccessException exception) { throw unavailable(); }
     }
@@ -197,10 +230,10 @@ public class NotificationBroadcastService {
 
     @Transactional(readOnly = true, timeout = 5)
     public Map<String, Object> detail(UUID id) {
-        actors.requireBroadcaster();
+        var actor = actors.requireBroadcaster();
         try {
             var d = dispatches.find(id).filter(found -> found.creatorId() != null).orElseThrow(BusinessException::missing);
-            var m = summary(d);
+            var m = summary(d, actor);
             m.put("content", d.content());
             var counts = dispatches.counts(id);
             var channels = new ArrayList<Map<String, Object>>();

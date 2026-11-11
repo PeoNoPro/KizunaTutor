@@ -11,7 +11,7 @@ const PATH = '/admin/operations/notification-broadcasts';
 const api = (path, method = 'GET', body) => fetchAPI(path, {method, body, csrfPath: PATH + '/csrf'});
 const $ = id => document.getElementById(id);
 const state = {page: 0, submissionKey: null, payload: null, sending: false};
-const STATUS_TONES = {SCHEDULED: 'info', QUEUED: 'warning', SENDING: 'info', COMPLETED: 'success', PARTIAL: 'warning', FAILED: 'danger', NEEDS_REVIEW: 'warning', NO_RECIPIENTS: 'neutral'};
+const STATUS_TONES = {SCHEDULED: 'info', QUEUED: 'warning', SENDING: 'info', COMPLETED: 'success', PARTIAL: 'warning', FAILED: 'danger', NEEDS_REVIEW: 'warning', NO_RECIPIENTS: 'neutral', CANCELLED: 'neutral'};
 const form = $('broadcastForm');
 
 const newKey = () => (crypto.randomUUID ? crypto.randomUUID() : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)));
@@ -192,7 +192,28 @@ async function openDetail(id) {
     const note = element('p', '“Thành công” với email là máy chủ thư đã nhận gửi, không có nghĩa người nhận đã đọc. “Bỏ qua” là người nhận đã tắt kênh này hoặc tài khoản không còn hoạt động. “Chưa rõ” là gửi bị gián đoạn; hệ thống không tự gửi lại để tránh trùng.', 'nt-help');
     note.style.margin = '12px 22px 0';
     const foot = element('div', null, 'nt-dialog-foot');
-    const done = element('button', 'Đóng', 'nt-button primary'); done.type = 'button'; done.onclick = () => dialog.close(); foot.append(done);
+    const done = element('button', 'Đóng', 'nt-button primary'); done.type = 'button'; done.onclick = () => dialog.close();
+    // Hủy được khi còn hẹn giờ, chưa đến giờ gửi (người tạo hoặc Quản trị viên).
+    if (d.canCancel) {
+      const cancel = element('button', null, 'nt-button ghost-danger'); cancel.type = 'button';
+      cancel.append(icon('event_busy'), document.createTextNode('Hủy hẹn giờ'));
+      cancel.onclick = async () => {
+        if (!confirm('Hủy thông báo hẹn giờ "' + d.title + '"? Người nhận sẽ không nhận được thông báo này.')) return;
+        cancel.disabled = true;
+        try {
+          const result = await api(PATH + '/' + encodeURIComponent(d.id) + '/cancel', 'POST');
+          showToast(result.message || 'Đã hủy thông báo hẹn giờ.', 'success');
+          dialog.close(); loadHistory();
+        } catch (error) {
+          cancel.disabled = false;
+          if (error.status === 401) { location.assign('/login'); return; }
+          showToast(error.message || 'Chưa hủy được. Vui lòng thử lại.', 'error');
+          if (error.status === 409) { dialog.close(); loadHistory(); }
+        }
+      };
+      foot.append(cancel);
+    }
+    foot.append(done);
     dialog.replaceChildren(head, element('div', null), facts, table, note, message, foot);
     title.focus();
   } catch (error) {

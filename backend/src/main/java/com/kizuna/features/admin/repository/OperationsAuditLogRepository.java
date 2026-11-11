@@ -32,6 +32,14 @@ public class OperationsAuditLogRepository {
                CASE e.shift_code WHEN 'MORNING' THEN 'Ca sáng' WHEN 'AFTERNOON' THEN 'Ca chiều' ELSE 'Ca tối' END||' '||to_char(e.shift_date,'DD/MM/YYYY')||' · '||t.full_name,
                NULL,NULL,NULL,NULL
         FROM support_shift_events e JOIN users a ON a.user_id=e.actor_id JOIN users t ON t.user_id=e.staff_id
+        UNION ALL
+        SELECT 'NOTIFY',d.dispatch_id,d.created_at,d.creator_id,a.full_name,
+               CASE WHEN d.urgent THEN 'URGENT' WHEN d.scheduled_at IS NOT NULL THEN 'SCHEDULE' ELSE 'SEND' END,d.title,NULL,
+               CASE d.target_mode WHEN 'ALL' THEN 'Toàn hệ thống' ELSE 'Theo vai trò' END||' · '||replace(replace(array_to_string(d.channels,', '),'IN_APP','Trong ứng dụng'),'EMAIL','Email'),NULL,NULL
+        FROM notification_dispatches d JOIN users a ON a.user_id=d.creator_id WHERE d.origin='ADMIN'
+        UNION ALL
+        SELECT 'NOTIFY',md5(d.dispatch_id::text||':cancel')::uuid,d.cancelled_at,d.cancelled_by,a.full_name,'CANCEL',d.title,NULL,'Đã hủy, không gửi',NULL,NULL
+        FROM notification_dispatches d JOIN users a ON a.user_id=d.cancelled_by WHERE d.cancelled_at IS NOT NULL
         """;
     private final EntityManager em;
     public record Filter(String source,UUID actor,OffsetDateTime from,OffsetDateTime toExclusive) {

@@ -215,3 +215,10 @@ Không có tài liệu: danh sách rỗng, chi tiết404; chồng lấn:409 thô
 - `/admin/operations/reports`: chọn kỳ, từng chỉ số có định nghĩa/mẫu số; số0 khác missing/error.
 - `/learner/policies`, `/tutor/policies`, cùng `/{type}`: menu dẫn tới danh mục/chính sách, version/effective date, text escaped. Không editor.
 - Admin theo DESIGN chung/shell hiện có; learner/tutor mục7 DESIGN. Mọi trạng thái/nhãn Việt đúng dấu, không all-caps ngoài từ viết tắt được duyệt; focus/error/keyboard và loading/empty/error riêng; không mock khi nguồn thiếu.
+
+## Bổ sung 2026-11-11 (review PR #21)
+
+- `POST /reported-incidents` nhận thêm `supportTicketId` (không bắt buộc); phải là yêu cầu đang/đã chuyển lên cho chính Quản lý đó, sai thì 400. Lưu vào cột `technical_incidents.support_ticket_id`; `GET /reported-incidents?ticket=` lọc theo cột này (không dò chuỗi trong mô tả). Sự cố cũ được điền cột từ mô tả khi chạy SQL.
+- Xóa nhân viên ghi nhật ký hành động `DELETE` ("Xóa tài khoản"), lý do không còn tiền tố. Phiên đăng nhập cũ của người bị xóa bị từ chối ngay ở request kế tiếp vì mỗi request đọc lại `deleted_at`/trạng thái từ DB.
+- Nhật ký thao tác thêm nguồn `NOTIFY` ("Thông báo").
+- SQL: `database/seeds/fe11_fe12_review_fixes.sql`.

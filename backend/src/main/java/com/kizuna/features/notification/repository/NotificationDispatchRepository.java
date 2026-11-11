@@ -28,10 +28,14 @@ public class NotificationDispatchRepository {
      * Người nhận được phép: tài khoản còn hoạt động, vai trò còn bật; đợt theo vai trò thì thuộc vai trò đã chọn,
      * đợt từ sự kiện nghiệp vụ thì đúng những người module nguồn đã chỉ định (tham số mảng đầu tiên).
      */
+    /** Điều kiện tài khoản được nhận, dùng CHUNG cho số dự kiến (estimate) và lúc chốt người nhận (freeze) để hai số khớp nhau. */
+    private static final String ACTIVE_USER = "u.account_status::text='ACTIVE' AND u.deleted_at IS NULL";
+    private static final String ACTIVE_ROLE = "r.role_id=u.role_id AND r.is_active=true";
+
     private static String eligible(boolean explicit) {
-        return " FROM notification_dispatches d JOIN users u ON u.account_status::text='ACTIVE' AND u.deleted_at IS NULL"
+        return " FROM notification_dispatches d JOIN users u ON " + ACTIVE_USER
                 + (explicit ? " AND u.user_id=ANY(?::uuid[])" : "")
-                + " JOIN roles r ON r.role_id=u.role_id AND r.is_active=true" + (explicit ? "" : " AND r.role_name=ANY(d.target_roles)")
+                + " JOIN roles r ON " + ACTIVE_ROLE + (explicit ? "" : " AND r.role_name=ANY(d.target_roles)")
                 + " LEFT JOIN notification_preferences p ON p.user_id=u.user_id AND p.notification_type=d.notification_type WHERE d.dispatch_id=?";
     }
     private static final String DISPATCH = "SELECT d.dispatch_id,d.creator_id,c.full_name,d.notification_type::text,d.title,d.content,d.urgent,d.target_mode,d.target_roles,d.channels,"
@@ -53,8 +57,8 @@ public class NotificationDispatchRepository {
 
     /** Số người dự kiến nhận nếu chốt ngay bây giờ (chỉ để xem trước, không giữ chỗ). */
     public int estimate(List<String> roles) {
-        return Objects.requireNonNull(jdbc.queryForObject("SELECT count(*) FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.account_status::text='ACTIVE'"
-                + " AND u.deleted_at IS NULL AND r.is_active=true AND r.role_name=ANY(?::text[])", Integer.class, (Object) roles.toArray(String[]::new)));
+        return Objects.requireNonNull(jdbc.queryForObject("SELECT count(DISTINCT u.user_id) FROM users u JOIN roles r ON " + ACTIVE_ROLE + " WHERE " + ACTIVE_USER
+                + " AND r.role_name=ANY(?::text[])", Integer.class, (Object) roles.toArray(String[]::new)));
     }
 
     /** Thêm đợt mới; trùng mã thao tác của cùng người tạo (hoặc trùng mã sự kiện) thì không thêm và trả false. */
@@ -85,7 +89,8 @@ public class NotificationDispatchRepository {
 
     /** Như trên; `explicit` khác null là đợt từ sự kiện nghiệp vụ, chỉ gửi đúng những người này (vẫn lọc tài khoản còn hoạt động và tùy chọn). */
     public boolean freeze(UUID id, Collection<UUID> explicit) {
-        var rows = jdbc.query("SELECT frozen_at IS NULL FROM notification_dispatches WHERE dispatch_id=? FOR UPDATE", (rs, n) -> rs.getBoolean(1), id);
+        // Đợt đã hủy (Admin/Quản lý hủy hẹn giờ ngay trước giờ gửi) thì không chốt nữa.
+        var rows = jdbc.query("SELECT frozen_at IS NULL AND status<>'CANCELLED' FROM notification_dispatches WHERE dispatch_id=? FOR UPDATE", (rs, n) -> rs.getBoolean(1), id);
         if (rows.isEmpty() || !rows.get(0)) return false;
         var notification = UUID.randomUUID();
         boolean withPath = explicit != null;
@@ -152,6 +157,20 @@ public class NotificationDispatchRepository {
                 + " FROM notification_dispatches d JOIN users u ON u.user_id=? JOIN roles r ON r.role_id=u.role_id"
                 + " LEFT JOIN notification_preferences p ON p.user_id=u.user_id AND p.notification_type=d.notification_type WHERE d.dispatch_id=?",
                 (rs, n) -> new EmailTarget(rs.getString(1), rs.getBoolean(2), rs.getBoolean(3), rs.getString(4), rs.getString(5)), user, dispatch).stream().findFirst();
+    }
+
+    /**
+     * Hủy đợt hẹn giờ chưa đến giờ gửi (chưa chốt người nhận). Khóa dòng nên không chạy chồng với tác vụ nền đang chốt.
+     * Trả false nếu đợt không còn ở trạng thái "Đã lên lịch".
+     */
+    public boolean cancel(UUID id, UUID actor) {
+        return jdbc.update("UPDATE notification_dispatches SET status='CANCELLED',cancelled_at=now(),cancelled_by=? WHERE dispatch_id=? AND origin='ADMIN'"
+                + " AND status='SCHEDULED' AND frozen_at IS NULL", actor, id) == 1;
+    }
+
+    /** Đánh dấu "đang gửi" ngay trước khi gửi từng email, để email cuối lượt không bị coi là gián đoạn khi máy chủ thư chậm. */
+    public void touch(UUID delivery) {
+        jdbc.update("UPDATE notification_deliveries SET updated_at=now() WHERE delivery_id=? AND state='SENDING'", delivery);
     }
 
     /** Ghi kết quả; chỉ ghi khi lượt vẫn đang SENDING để không đè kết quả khác. */

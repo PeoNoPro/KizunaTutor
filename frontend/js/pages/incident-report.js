@@ -79,7 +79,7 @@ function openDialog(ticket, onSent) {
     if (problem) { error.textContent = problem; error.focus(); return; }
     busy = true; submit.disabled = cancel.disabled = close.disabled = true; submit.textContent = 'Đang gửi…'; error.textContent = '';
     try {
-      await api('', {method: 'POST', body: {subject: subject.value.trim(), description: description.value.trim(), severity: severity.value, components: chosen}});
+      await api('', {method: 'POST', body: {subject: subject.value.trim(), description: description.value.trim(), severity: severity.value, components: chosen, supportTicketId: ticket.ticketId}});
       busy = false; dialog.close();
       showToast('Đã báo sự cố cho Admin. Theo dõi ở mục "Sự cố đã báo".', 'success');
       onSent?.();

@@ -1,5 +1,6 @@
 /* FE-10 theo Figma "KizunaTutor · Dashboard" (bộ MỚI) và FRONTEND_RULES: chung cho người gửi, CS và quản lý. */
-.support-page{--support-primary:var(--color-primary,#006194);--support-navy:#0f2545;--support-text:#3f4850;--support-muted:#68737d;--support-line:#d5ccb6;--support-field:#d2e2ee;--support-sand:#f7f4ec;margin:0;background:#fcfbf7;color:var(--support-navy);font:14px/1.6 'Plus Jakarta Sans',sans-serif}
+/* Màu xanh cố định: --color-primary của toàn web đã đổi sang đỏ cho phần học tập (variables.css). */
+.support-page{--support-primary:#006194;--support-navy:#0f2545;--support-text:#3f4850;--support-muted:#68737d;--support-line:#d5ccb6;--support-field:#d2e2ee;--support-sand:#f7f4ec;margin:0;background:#fcfbf7;color:var(--support-navy);font:14px/1.6 'Plus Jakarta Sans',sans-serif}
 .support-page [hidden]{display:none!important}
 .support-page *{box-sizing:border-box}
 .skip-link{position:fixed;top:8px;left:12px;z-index:100;padding:12px;background:white;transform:translateY(-150%)}.skip-link:focus{transform:none}

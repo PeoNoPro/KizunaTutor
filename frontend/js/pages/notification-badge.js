@@ -111,7 +111,8 @@ function attachPanel(button) {
         const row = element('li', null, 'kz-bell-item' + (item.isRead ? '' : ' is-unread'));
         const link = element('a'); link.href = '/pages/notifications/?id=' + encodeURIComponent(item.id);
         // Thông báo có trang liên quan (yêu cầu hỗ trợ, sự cố...): bấm là đánh dấu đã đọc rồi mở thẳng trang đó.
-        if (item.actionPath && /^\/[^/]/.test(item.actionPath)) {
+        // Chỉ mở đường dẫn nội bộ an toàn (giống SAFE_PATH ở js/pages/notifications.js và backend).
+        if (item.actionPath && /^\/([A-Za-z0-9_.~%=&?#+-][A-Za-z0-9/_.~%=&?#+-]*)?$/.test(item.actionPath)) {
           link.href = item.actionPath;
           link.addEventListener('click', async event => {
             if (event.ctrlKey || event.metaKey || event.shiftKey || event.button) return;

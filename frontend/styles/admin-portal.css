@@ -1,3 +1,6 @@
+/* Khu Admin/Quản lý/CS giữ màu xanh #006194: nhóm vừa đổi --color-primary của toàn web sang đỏ (#9F1239) cho phần học tập
+   (styles/variables.css); đặt lại ở body để mọi trang quản trị, biểu đồ và nút vẫn màu xanh như cũ. */
+body.admin-dashboard{--color-primary:#006194;--color-primary-hover:#007BB9;--color-primary-container:#007BB9}
 /* Khung Quản trị viên và Quản lý theo Figma "KizunaTutor · Dashboard" (bộ MỚI). Chỉ áp dụng khi body có .admin-portal, không ảnh hưởng khung CS. */
 .admin-dashboard.admin-portal{--admin-bg:#fcfbf7;--admin-surface:#f7f4ec;--admin-accent:#f7f4ec;--portal-primary:var(--color-primary,#006194);--portal-navy:#0f2545;--portal-text:#3f4850;--portal-line:#d5ccb6;--portal-field:#d2e2ee;background:#fcfbf7;color:var(--portal-navy);font-family:'Plus Jakarta Sans',sans-serif}
 .admin-portal p{color:var(--portal-text)}

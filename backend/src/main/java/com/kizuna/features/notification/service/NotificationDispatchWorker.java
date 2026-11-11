@@ -31,6 +31,8 @@ import java.util.*;
 @Component
 public class NotificationDispatchWorker {
     static final int MAX_ATTEMPTS = 4;
+    /** Mỗi lượt chỉ giữ chỗ 5 email (gửi lần lượt) để lượt cuối không quá ngưỡng 2 phút khi máy chủ thư chậm. */
+    static final int BATCH = 5;
     static final List<Duration> RETRY_DELAYS = List.of(Duration.ofSeconds(30), Duration.ofMinutes(2), Duration.ofMinutes(5));
 
     private final NotificationDispatchRepository dispatches;
@@ -53,7 +55,7 @@ public class NotificationDispatchWorker {
                 try { transactions.executeWithoutResult(status -> dispatches.freeze(id)); }
                 catch (RuntimeException exception) { log.warn("[NOTIFICATION] Chưa chốt được đợt hẹn giờ {}: {}", id, exception.getClass().getSimpleName()); }
             }
-            for (var claimed : dispatches.claimEmails(20)) {
+            for (var claimed : dispatches.claimEmails(BATCH)) {
                 deliver(claimed);
                 touched.add(claimed.dispatchId());
             }
@@ -72,9 +74,10 @@ public class NotificationDispatchWorker {
         if (target == null || !target.active()) { dispatches.finish(claimed.deliveryId(), "SKIPPED", "INACTIVE", null); return; }
         if (!target.emailEnabled()) { dispatches.finish(claimed.deliveryId(), "SKIPPED", "PREFERENCE", null); return; }
         if (target.email() == null || target.email().isBlank()) { dispatches.finish(claimed.deliveryId(), "SKIPPED", "NO_EMAIL", null); return; }
+        dispatches.touch(claimed.deliveryId());
         var message = new SimpleMailMessage();
         message.setTo(target.email());
-        message.setSubject("[KizunaTutor] " + target.title());
+        message.setSubject("[KizunaTutor] " + target.title().replaceAll("\\p{Cntrl}+", " ").strip());
         message.setText(target.content() + "\n\n—\nBạn nhận thư này vì đã bật nhận thông báo qua email trên KizunaTutor."
                 + " Có thể tắt trong mục Tùy chọn nhận thông báo.");
         Outcome outcome;

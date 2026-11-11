@@ -30,11 +30,11 @@
 .support-page [data-error=true]{color:#ba1a1a;background:#fff0ee;padding:12px;border-radius:8px}
 
 /* Nút */
-.support-page button,.support-page .support-link{border:1px solid var(--support-primary);border-radius:8px;padding:10px 20px;background:#fff;color:var(--support-primary);cursor:pointer;font:700 14px/22px 'Plus Jakarta Sans',sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;text-decoration:none;text-align:center}
-.support-page button:hover:not(:disabled),.support-page .support-link:hover{background:#eef5fa}
+.support-page button:not(:where(#tutorSidebar *,#tutorTopbar *,#learnerSidebar *)),.support-page .support-link{border:1px solid var(--support-primary);border-radius:8px;padding:10px 20px;background:#fff;color:var(--support-primary);cursor:pointer;font:700 14px/22px 'Plus Jakarta Sans',sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;text-decoration:none;text-align:center}
+.support-page button:not(:where(#tutorSidebar *,#tutorTopbar *,#learnerSidebar *)):hover:not(:disabled),.support-page .support-link:hover{background:#eef5fa}
 .support-page .primary{background:var(--support-primary);color:#fff}
 .support-page .primary:hover:not(:disabled){background:var(--color-primary-dark,#004b73)}
-.support-page button:disabled{opacity:.55;cursor:wait}
+.support-page button:not(:where(#tutorSidebar *,#tutorTopbar *,#learnerSidebar *)):disabled{opacity:.55;cursor:wait}
 
 /* Trường nhập */
 .support-page label{display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:21px;font-weight:600;color:var(--support-primary);min-width:0}
@@ -64,6 +64,7 @@
 .support-page .support-row-info .support-preview{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .support-badge{display:inline-block;padding:2px 10px;border-radius:999px;background:#e8f1f7;font-size:12px;line-height:20px;font-weight:600;color:var(--support-primary)}
 .support-badge[data-state=RESOLVED]{background:#e6f4ee;color:#047857}.support-badge[data-state=CLOSED]{background:var(--support-sand);color:var(--support-muted)}.support-badge[data-state=ESCALATED]{background:#fdf1e0;color:#b45309}
+.support-badge[data-state=handover]{background:#fde8e8;color:#b42318;margin-right:6px}
 .support-empty{padding:48px 24px;text-align:center;color:var(--support-muted);font-size:14px}
 .support-empty .material-symbols-outlined{font-size:48px;display:block;margin-bottom:12px}
 .support-page .support-empty p{margin:0}
@@ -351,3 +352,75 @@ body.learner-frame .support-guide{border-color:#fbcfe8;background:#fff1f5}body.l
 .support-badge[data-state=mine]{background:#e6f1f8;color:#006194;margin-right:6px}
 .support-badge[data-state=reported]{display:inline-flex;width:fit-content;margin-top:6px;background:#fff4e5;color:#8d4b00}
 .support-next-step{margin-top:10px;padding:10px 12px;border-radius:10px;background:#fff8e6;border:1px solid #f5d79e;font-size:14px;line-height:21px}
+/* Tab Xử lý nội bộ: trạng thái, người phụ trách, nội dung chuyển cấp. */
+.support-page .support-current{padding:24px 26px}
+.support-status-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.support-page .support-status-head h2{margin:0;font-size:20px;line-height:28px}
+.support-page .support-current h2 + .support-badge{margin-bottom:0}
+.support-people{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.support-person{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:#fff;border:1px solid #e3ecf2}
+.support-person>.material-symbols-outlined{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#e6f1f8;color:#006194;font-size:20px;flex:none}
+.support-person span{display:block;font-size:12px;line-height:18px;color:var(--support-muted)}
+.support-person strong{display:block;font-size:14px;line-height:21px;color:var(--support-navy);overflow-wrap:anywhere}
+.support-next-step{display:flex;gap:12px;align-items:flex-start;margin-top:14px;padding:12px 14px;border-radius:12px;background:#fff8e6;border:1px solid #f5d79e;font-size:14px;line-height:21px}
+.support-next-step>.material-symbols-outlined{color:#a35c00;font-size:22px;flex:none}
+.support-next-step strong{display:block;color:#7a4a00}
+.support-next-step p{margin:2px 0 0;color:#5c4a2a}
+.support-page .support-current h3.support-section-title{margin:22px 0 10px;font-size:15px;line-height:22px;color:var(--support-navy)}
+.support-facts{display:grid;gap:10px}
+.support-fact{padding:12px 14px;border-radius:12px;background:#fff;border:1px solid #ece8de}
+.support-fact>span{display:block;margin-bottom:4px;font-size:12px;line-height:18px;font-weight:700;color:var(--support-primary)}
+.support-fact>p{margin:0;font-size:14px;line-height:22px;color:var(--support-text)}
+.support-fact-empty{margin:0;font-size:14px;color:var(--support-muted);font-style:italic}
+.support-card-hint{margin:-2px 0 14px;font-size:13px;line-height:20px;color:var(--support-muted)}
+.support-page .support-action-card h3{margin-bottom:4px}
+.support-page .support-action-card textarea{min-height:120px}
+.support-page .support-action-card form>button{width:100%}
+/* Thẻ "Đã báo cho Admin" (FE-11). */
+.incident-reported-box{display:flex;flex-direction:column;gap:4px;margin:4px 0 14px;padding:12px 14px;border:1px solid #d7e6dd;border-radius:12px;background:#f3faf6;font-size:14px;line-height:1.5}
+.incident-reported-subject{color:var(--support-navy)}
+.incident-reported-status{font-size:13px;font-weight:700}
+.incident-reported-status::before{content:"● "}
+.incident-reported-meta{font-size:12px;color:var(--support-muted)}
+.incident-reported-link{margin-top:4px;font-size:13px;font-weight:700;color:#006194}
+
+/* Bàn giao yêu cầu (Quản lý): thẻ người cũ, chọn người nhận dạng thẻ, ghi chú bàn giao */
+.handover-card{padding:22px;border:1px solid #f3d3a4!important;background:linear-gradient(180deg,#fffaf1 0,#fff 120px)!important}
+.handover-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
+.handover-head h3{margin:0 0 4px;font-size:18px;line-height:26px;color:#131b2e}
+.handover-head p{margin:0;font-size:13px;line-height:20px;color:#5b6470}
+.handover-icon{flex:none;width:42px;height:42px;border-radius:12px;background:#fdecd2;color:#a35c00;display:inline-flex;align-items:center;justify-content:center;font-size:24px}
+.handover-from{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:#fff;border:1px dashed #e8cfa8;margin-bottom:18px}
+.handover-from small{display:block;font-size:11px;color:#6f7881}
+.handover-from strong{font-size:14px;color:#131b2e}
+.handover-tag{margin-left:auto;padding:3px 10px;border-radius:999px;background:#fde8e8;color:#b42318;font-size:11px;font-weight:700;white-space:nowrap}
+.handover-avatar{flex:none;width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#dbeaf5;color:#006194;font-size:13px;font-weight:700}
+.handover-avatar.is-off{background:#eceef2;color:#8a929c;text-decoration:line-through}
+.handover-form{display:flex;flex-direction:column;gap:16px}
+.handover-people{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto}
+.handover-people legend{padding:0;margin-bottom:8px;font-size:13px;font-weight:700;color:#131b2e}
+.handover-person{position:relative;display:flex;align-items:center;gap:12px;padding:10px 12px;border:1.5px solid #e3e6f0;border-radius:12px;background:#fff;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
+.handover-person:hover{border-color:#9cc3dd;background:#f7fbfe}
+.handover-person.is-selected{border-color:#006194;background:#eef6fc;box-shadow:0 0 0 3px rgba(0,97,148,.12)}
+.handover-person input{position:absolute;opacity:0;pointer-events:none}
+.handover-person:has(input:focus-visible){outline:2px solid #006194;outline-offset:2px}
+.handover-person-text{display:flex;flex-direction:column;gap:4px;min-width:0}
+.handover-person-text strong{font-size:14px;color:#131b2e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.handover-person-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.handover-chip{padding:1px 8px;border-radius:999px;background:#eef0f4;color:#5b6470;font-size:11px;font-weight:600}
+.handover-chip.is-on{background:#e6f4ee;color:#047857}
+.handover-load{font-size:12px;color:#5b6470}
+.handover-load.is-full{color:#b42318;font-weight:600}
+.handover-note{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#131b2e}
+.handover-note textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cfd6df;border-radius:10px;font:400 14px/21px 'Plus Jakarta Sans',sans-serif;resize:vertical}
+.handover-note textarea:focus{outline:none;border-color:#006194;box-shadow:0 0 0 3px rgba(0,97,148,.12)}
+.support-page .handover-submit{width:100%;background:#006194;color:#fff;border-color:#006194}
+.support-page .handover-submit:hover:not(:disabled){background:#007bb9}
+.support-page .handover-submit:disabled{background:#c9d3dc;border-color:#c9d3dc;color:#fff;opacity:1;cursor:not-allowed}
+.handover-empty{margin:0;padding:12px;border-radius:10px;background:#f6f7f9;font-size:13px;color:#5b6470}
+.support-badge[data-state=handover]::before{background:#b42318}
+.support-page .handover-person{flex-direction:row;align-items:center;gap:12px;text-align:left;color:#131b2e;font-weight:400}
+.support-page .handover-note{color:#131b2e}
+.handover-avatar.is-off{text-decoration:none;opacity:.7}
+.handover-person::after{content:'';margin-left:auto;flex:none;width:18px;height:18px;border-radius:50%;border:2px solid #c3cbd5;box-sizing:border-box}
+.handover-person.is-selected::after{border:6px solid #006194}

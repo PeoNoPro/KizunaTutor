@@ -101,15 +101,21 @@ public class SupportShiftRepository {
         return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
 
-    public Optional<UUID> oldestUnavailableTicket() {
+    /** Nhân viên hỗ trợ đang hoạt động kèm số yêu cầu đang xử lý và có trong ca hiện tại không (code null: ngoài giờ ca). */
+    public List<Map<String, Object>> handoverCandidates(LocalDate date, String code) {
         return jdbc.queryForList("""
-            SELECT t.ticket_id FROM support_tickets t
-            WHERE t.status::text IN ('IN_PROGRESS','ESCALATED','RESOLVED') AND t.assigned_to IS NOT NULL
-              AND NOT EXISTS (SELECT 1 FROM users u JOIN roles r ON r.role_id=u.role_id
-                WHERE u.user_id=t.assigned_to AND u.account_status::text='ACTIVE' AND u.deleted_at IS NULL
-                  AND r.is_active=true AND r.role_name='ROLE_CS_STAFF')
-            ORDER BY t.updated_at,t.ticket_id LIMIT 1 FOR UPDATE OF t SKIP LOCKED
-            """, UUID.class).stream().findFirst();
+            SELECT u.user_id, u.full_name,
+              (SELECT count(*) FROM support_tickets t WHERE t.assigned_to=u.user_id AND t.status::text='IN_PROGRESS') AS active_tickets,
+              EXISTS(SELECT 1 FROM support_shifts s WHERE s.staff_id=u.user_id AND s.shift_date=? AND s.shift_code=?) AS on_shift
+            FROM users u JOIN roles r ON r.role_id=u.role_id
+            WHERE u.account_status::text='ACTIVE' AND u.deleted_at IS NULL AND r.is_active=true AND r.role_name='ROLE_CS_STAFF'
+            ORDER BY on_shift DESC, active_tickets, u.full_name, u.user_id""", date, code == null ? "" : code);
+    }
+
+    /** Yêu cầu còn dở mà người phụ trách không còn là nhân viên hỗ trợ hoạt động (chờ Quản lý bàn giao tay). */
+    public List<Map<String, Object>> ticketsNeedingHandover() {
+        return jdbc.queryForList("SELECT t.ticket_id, t.subject, t.assigned_to, u.full_name AS assignee_name FROM support_tickets t"
+            + " JOIN users u ON u.user_id=t.assigned_to WHERE " + SupportTicketRepository.NEEDS_HANDOVER + " ORDER BY t.updated_at LIMIT 200");
     }
 
     public void lockDispatch() { jdbc.queryForList("SELECT pg_advisory_xact_lock(?)", 20261107L); }

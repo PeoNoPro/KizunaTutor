@@ -40,6 +40,9 @@ public class SupportShiftService {
     private final SupportTicketActorResolver actors;
     private final SupportTicketIdentityRepository identities;
     private final Clock clock;
+    /** FE-12: báo nhân viên khi hệ thống tự giao yêu cầu (không bắt buộc để test dựng service bằng tay vẫn chạy). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private SupportTicketNotifier notifier;
 
     public SupportShiftService(SupportShiftRepository shifts, SupportTicketRepository tickets,
             TicketAuditEventRepository audit, SupportTicketActorResolver actors,
@@ -99,7 +102,9 @@ public class SupportShiftService {
         if (date.isBefore(now().toLocalDate())) throw new BusinessException(400, "Không xếp ca cho ngày đã qua.");
         actors.recipient(staffId, "ROLE_CS_STAFF");
         if (!shifts.add(UUID.randomUUID(), staffId, date, code, actor.userId())) throw new BusinessException(409, "Nhân viên này đã có trong ca đó.");
-        dispatchAfterCommit();
+        // Giao việc chạy nền: lượt giao có thể mất vài giây với DB ở xa, không được giữ request xếp ca của Quản lý
+        // (trước đây làm trang báo "Chưa kết nối được hệ thống" dù ca đã lưu).
+        dispatchInBackgroundAfterCommit();
         return week(date);
     }
 
@@ -122,6 +127,21 @@ public class SupportShiftService {
      */
     private void requireManager() {
         if (!actors.current(false).manager()) throw new BusinessException(403, "Chỉ quản lý được xếp ca.");
+    }
+
+    /** Danh sách nhân viên hỗ trợ để Quản lý bàn giao tay: người đang trong ca và ít việc lên trước. */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> handoverCandidates() {
+        if (!actors.current(false).manager()) throw new BusinessException(403, "Chỉ quản lý được bàn giao yêu cầu.");
+        var now = now();
+        var code = currentShift(now).map(Shift::code).orElse(null);
+        return shifts.handoverCandidates(now.toLocalDate(), code).stream().map(row -> {
+            var item = new LinkedHashMap<String, Object>();
+            item.put("userId", row.get("user_id")); item.put("displayName", row.get("full_name"));
+            item.put("activeTickets", ((Number) row.get("active_tickets")).longValue()); item.put("onShift", Boolean.TRUE.equals(row.get("on_shift")));
+            item.put("maxActive", MAX_ACTIVE);
+            return (Map<String, Object>) item;
+        }).toList();
     }
 
     // ---------------- Thông tin ca cho nhân viên hỗ trợ ----------------
@@ -186,6 +206,31 @@ public class SupportShiftService {
         });
     }
 
+    /** Một luồng nền duy nhất cho các lượt giao kích hoạt từ thao tác xếp ca (các lượt vẫn khóa chung trong DB). */
+    private static final java.util.concurrent.ExecutorService BACKGROUND = java.util.concurrent.Executors.newSingleThreadExecutor(runnable -> {
+        var thread = new Thread(runnable, "support-shift-dispatch"); thread.setDaemon(true); return thread;
+    });
+
+    /** Như {@link #dispatchAfterCommit()} nhưng không chặn request hiện tại. */
+    public void dispatchInBackgroundAfterCommit() {
+        Runnable task = () -> BACKGROUND.execute(this::dispatchSafely);
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) { task.run(); return; }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override public void afterCommit() { task.run(); }
+        });
+    }
+
+    /**
+     * Nhân viên hỗ trợ bị khóa, xóa hoặc đổi vai trò khi còn giữ yêu cầu dở: báo mọi Quản lý để bàn giao tay.
+     * Mỗi cặp (yêu cầu, người phụ trách cũ) chỉ báo một lần nhờ mã sự kiện cố định; chạy cả ngoài giờ ca.
+     */
+    @Scheduled(fixedDelay = 60000, initialDelay = 25000)
+    public void notifyHandoversNeeded() {
+        if (notifier == null) return;
+        try { shifts.ticketsNeedingHandover().forEach(notifier::handoverNeeded); }
+        catch (RuntimeException exception) { log.warn("[SUPPORT SHIFT] Chưa kiểm tra được yêu cầu cần bàn giao: {}", exception.getClass().getSimpleName()); }
+    }
+
     /** Lưới an toàn: định kỳ giao các yêu cầu còn chờ, kể cả khi vừa sang ca mới. */
     @Scheduled(fixedDelay = 30000, initialDelay = 20000)
     public void dispatchSafely() {
@@ -201,6 +246,7 @@ public class SupportShiftService {
     /**
      * Giao lần lượt theo vòng: mỗi vòng, mỗi nhân viên trong ca còn chỗ (dưới {@link #MAX_ACTIVE} yêu cầu) nhận một yêu cầu
      * theo mức ưu tiên rồi thời gian gửi; lặp tới khi hết yêu cầu chờ hoặc không ai còn chỗ. Khóa chung để hai lượt không chạy chồng.
+     * Ca hiện tại không có nhân viên nào mà vẫn có yêu cầu chờ thì nhắc Quản lý xếp ca (mỗi ca nhắc một lần).
      */
     @Transactional(propagation=Propagation.REQUIRES_NEW, timeout = 15)
     public int dispatch() {
@@ -208,6 +254,11 @@ public class SupportShiftService {
         var current = currentShift(now);
         if (current.isEmpty()) return 0;
         shifts.lockDispatch();
+        if (notifier != null && shifts.staffOnShift(now.toLocalDate(), current.get().code()) == 0) {
+            long waiting = shifts.waitingTickets();
+            if (waiting > 0) notifier.missingShift(now.toLocalDate(), current.get().code(), current.get().label(), waiting);
+            return 0;
+        }
         int assigned = 0, round;
         rounds:
         do {
@@ -217,23 +268,21 @@ public class SupportShiftService {
             try { if(!identities.find(null,staff,true).cs()) continue; }
             catch(BusinessException exception) { if(exception.status()==403)continue;throw exception; }
             if(!canTakeNewTicket(staff)) continue;
-            // An inactive assignee must not leave a ticket stranded. End-of-shift alone is not inactivity.
-            var handover=shifts.oldestUnavailableTicket();
-            var ticketId = handover.isPresent()?handover:shifts.oldestOpenTicket();
+            // Yêu cầu của nhân viên đã nghỉ/bị khóa KHÔNG tự bàn giao: Quản lý được báo và tự chọn người tiếp nhận.
+            var ticketId = shifts.oldestOpenTicket();
             if (ticketId.isEmpty()) break rounds;
             var t = tickets.find(ticketId.get(), true);
             if(t==null)continue;
-            boolean replacing=handover.isPresent();
-            if(!replacing&&(!"OPEN".equals(String.valueOf(t.get("status")))||t.get("assigned_to")!=null))continue;
+            if(!"OPEN".equals(String.valueOf(t.get("status")))||t.get("assigned_to")!=null)continue;
             var before = new LinkedHashMap<String, Object>();
             before.put("status", t.get("status")); before.put("assigned_to", t.get("assigned_to")); before.put("version", t.get("version"));
-            t.put("assigned_to", staff); if(!replacing)t.put("status", "IN_PROGRESS");
+            t.put("assigned_to", staff); t.put("status", "IN_PROGRESS");
             tickets.save(t);
             long next = ((Number) t.get("version")).longValue() + 1;
             var after = new LinkedHashMap<String, Object>();
             after.put("status", t.get("status")); after.put("assigned_to", staff); after.put("version", next);
-            audit.append(ticketId.get(), staff, replacing?"REASSIGN_CS":"AUTO_ASSIGN", next, before, after,
-                replacing?"Hệ thống bàn giao vì nhân viên cũ không còn hoạt động; "+current.get().label():current.get().label());
+            if (notifier != null) notifier.autoAssigned(t, staff);
+            audit.append(ticketId.get(), staff, "AUTO_ASSIGN", next, before, after, current.get().label());
             assigned++; round++;
           }
         } while (round > 0);

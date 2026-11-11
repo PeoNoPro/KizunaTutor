@@ -136,15 +136,28 @@ class SupportShiftWorkflowTest {
   assertEquals(cs,ticket(third).get("assigned_to"));UUID fifth=create();assertNull(ticket(fifth).get("assigned_to"));
  }
 
- @Test void unavailableCsIsHandedOverWithoutLosingMessagesOrEscalation(){
+ @Test void unavailableCsIsNotAutoHandedOverButManagerCanReassign(){
   UUID id=create();schedule(cs);own(id,cs);as(cs);
   service.command(id,"escalate",new Command(1L,null,manager,null,"Cần quản lý","Đã kiểm tra",null,null));
   schedule(other);jdbc.update("UPDATE users SET account_status='SUSPENDED' WHERE user_id=?",cs);
-  assertEquals(1,shifts.dispatch());var t=ticket(id);
+  // Hệ thống không tự bàn giao: yêu cầu vẫn của người cũ cho tới khi Quản lý chọn người tiếp nhận.
+  assertEquals(0,shifts.dispatch());assertEquals(cs,ticket(id).get("assigned_to"));
+  as(manager);var detail=service.detail(id);
+  assertEquals(Boolean.TRUE,detail.get("needsHandover"));assertTrue(((List<?>)detail.get("allowedActions")).contains("assignment"));
+  // Quản lý bàn giao tay, không bị giới hạn ca/số việc của người nhận.
+  jdbc.update("DELETE FROM support_shifts WHERE staff_id=?",other);
+  service.command(id,"assignment",new Command(((Number)ticket(id).get("version")).longValue(),other,null,null,null,null,null,null));
+  var t=ticket(id);
   assertEquals(other,t.get("assigned_to"));assertEquals(manager,t.get("escalated_to"));assertEquals("ESCALATED",t.get("status"));
   assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ticket_messages WHERE ticket_id=?",Integer.class,id));
   assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ticket_escalations WHERE ticket_id=? AND pending",Integer.class,id));
   assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ticket_audit_events WHERE ticket_id=? AND event_type='REASSIGN_CS' AND before_values->>'assigned_to'=? AND after_values->>'assigned_to'=?",Integer.class,id,cs.toString(),other.toString()));
+ }
+
+ @Test void managerCannotReassignTicketsOfActiveCs(){
+  UUID id=create();schedule(cs);own(id,cs);as(manager);
+  assertEquals(404,assertThrows(BusinessException.class,()->service.command(id,"assignment",new Command(1L,other,null,null,null,null,null,null))).status());
+  assertEquals(cs,ticket(id).get("assigned_to"));
  }
 
  @Test void handoverToBusyCsIsRejected(){

@@ -310,11 +310,6 @@ html{scrollbar-gutter:stable}
 .admin-dashboard ul.plan-benefits li{display:block;position:relative;margin:2px 0;padding:0 0 0 14px;overflow-wrap:anywhere}
 .admin-dashboard ul.plan-benefits li::before{content:'';position:absolute;left:3px;top:.6em;width:5px;height:5px;border-radius:50%;background:#006194}
 /* Sự cố Quản lý đã báo: chỉ hai cột (không có thao tác); nội dung giữ xuống dòng như lúc gửi. */
-.admin-portal .reported-incidents .portal-row-head,.admin-portal .reported-incidents .portal-row{grid-template-columns:minmax(0,1fr) 200px}
-.admin-portal .reported-incidents details{margin-top:8px}
-.admin-portal .reported-incidents details summary{cursor:pointer;color:var(--portal-primary);font-weight:600;font-size:14px}
-.admin-portal .reported-incidents details p{white-space:pre-wrap;margin:8px 0 0;font-size:14px;line-height:1.6}
-@media(max-width:760px){.admin-portal .reported-incidents .portal-row{grid-template-columns:minmax(0,1fr)}}
 .admin-portal .portal-dialog label.incident-component{display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:10px;margin:8px 0 0;font-weight:500;color:var(--portal-navy)}
 .admin-portal .portal-dialog label.incident-component input{width:18px;height:18px;min-height:0;margin:0;flex:none}
 /* Nút tạo/nhập nhân viên nằm gọn dưới ô tìm kiếm, cỡ nhỏ. */
@@ -327,3 +322,44 @@ html{scrollbar-gutter:stable}
 .admin-dashboard.admin-portal .operations-content #incidentFilters>button{min-height:38px;padding:6px 12px;font-size:13px;white-space:nowrap}
 @media(max-width:1100px){.admin-dashboard.admin-portal .operations-content #incidentFilters{flex-wrap:wrap}.admin-dashboard.admin-portal .operations-content #incidentFilters>label{flex:1 1 30%}}
 @media(max-width:760px){.admin-dashboard.admin-portal .operations-content #incidentFilters>label{flex:1 1 100%}}
+/* FE-12: chuông thông báo trên thanh trên, kèm số chưa đọc. */
+.admin-dashboard .notification-button[data-bell]{position:relative;cursor:pointer}
+.admin-dashboard .notification-button .notification-count{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#b42318;color:#fff;font-size:11px;line-height:20px;font-weight:700;text-align:center}
+.admin-dashboard .notification-button .notification-count[hidden]{display:none}
+/* FE-12: trang Gửi thông báo của Quản trị viên. */
+.admin-dashboard.admin-portal .operations-content .broadcast-form{display:flex;flex-direction:column;gap:12px}
+.admin-dashboard.admin-portal .operations-content .broadcast-form>label{margin:0}
+.broadcast-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.admin-dashboard.admin-portal .operations-content .broadcast-form fieldset{display:flex;flex-direction:column;gap:8px}
+.admin-dashboard.admin-portal .operations-content .broadcast-form fieldset:disabled{opacity:.55}
+.broadcast-options{display:flex;flex-wrap:wrap;gap:8px 20px}
+.admin-dashboard.admin-portal .operations-content label.broadcast-choice{display:inline-flex;align-items:center;gap:8px;margin:0;font-weight:500;color:var(--portal-navy);cursor:pointer}
+.admin-dashboard.admin-portal .operations-content label.broadcast-choice input{width:18px;height:18px;margin:0;accent-color:var(--portal-primary)}
+.admin-dashboard.admin-portal .operations-content #bcScheduledAt{max-width:280px}
+.broadcast-warning{margin:0;padding:12px 14px;border-radius:8px;background:#fff4e5;border:1px solid #f5c98b;color:#7a4b00;font-size:14px;line-height:21px}
+.broadcast-error{margin:0;padding:10px 14px;border-radius:8px;background:#fdecea;border:1px solid #f3b4ad;color:#b42318;font-size:14px}
+.broadcast-error[hidden]{display:none}
+.broadcast-facts{display:grid;grid-template-columns:max-content 1fr;gap:6px 20px;margin:0 0 16px;font-size:14px}
+.broadcast-facts dt{color:var(--portal-text);font-weight:600}.broadcast-facts dd{margin:0;color:var(--portal-navy)}
+.broadcast-message{border:1px solid var(--portal-line);border-radius:10px;padding:14px 16px;background:var(--admin-surface);margin-bottom:16px}
+.broadcast-message strong{display:block;margin-bottom:6px;color:var(--portal-navy)}
+.broadcast-message p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.6}
+.admin-dashboard.admin-portal .operations-content button.danger{background:#b42318;border-color:#b42318;color:#fff}
+.admin-portal .broadcast-row.portal-row-head,.admin-portal .broadcast-row.portal-row{grid-template-columns:minmax(0,1fr) 180px 200px}
+.admin-dashboard.admin-portal .operations-content .broadcast-filters{flex-wrap:nowrap;gap:8px;margin-bottom:12px}
+.admin-dashboard.admin-portal .operations-content .broadcast-filters>label{flex:1 1 0;min-width:0;font-size:12px}
+.admin-dashboard.admin-portal .operations-content .broadcast-filters input,.admin-dashboard.admin-portal .operations-content .broadcast-filters select{margin-top:4px;padding:7px 8px;font-size:13px;min-height:38px}
+.admin-dashboard.admin-portal .operations-content .broadcast-filters>button{min-height:38px;padding:6px 14px;font-size:13px}
+.broadcast-counts{margin:0 0 12px}.broadcast-counts td,.broadcast-counts th{text-align:center}
+.broadcast-counts td:first-child,.broadcast-counts th:first-child{text-align:left}
+@media(max-width:1100px){.admin-dashboard.admin-portal .operations-content .broadcast-filters{flex-wrap:wrap}.admin-dashboard.admin-portal .operations-content .broadcast-filters>label{flex:1 1 30%}}
+@media(max-width:760px){.broadcast-grid{grid-template-columns:1fr}.admin-portal .broadcast-row.portal-row{grid-template-columns:1fr}}
+
+/* Số yêu cầu cần bàn giao trên sidebar Quản lý */
+.sidebar-menu .support-nav-count{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#b42318;color:#fff;font-size:11px;line-height:20px;font-weight:700;text-align:center;flex:none}
+.sidebar-menu .support-nav-items a{display:flex;align-items:center;gap:8px}
+.sidebar-menu .support-nav-items a[aria-current=page] .support-nav-count{background:#fff;color:#b42318}
+
+/* Nút xác nhận xóa nhân viên trong hộp thoại: màu đỏ để phân biệt thao tác không hoàn tác */
+.portal-dialog #saveStaff.danger{background:#b42318;border-color:#b42318;color:#fff}
+.portal-dialog #saveStaff.danger:hover:not(:disabled){background:#912018;border-color:#912018}

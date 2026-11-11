@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tổng quan công việc của Quản lý vận hành KizunaTutor.">
+  <title>Tổng quan - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/admin.css">
+  <link rel="stylesheet" href="/styles/admin-portal.css">
+  <link rel="stylesheet" href="./manager-dashboard.css">
+</head>
+<body class="admin-dashboard manager-home-page">
+  <a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+  <main id="dashboardMain" class="dashboard-main">
+    <section class="mh-intro" aria-labelledby="pageTitle">
+      <div>
+        <span class="mh-eyebrow"><span class="mh-dot"></span>Quản lý vận hành</span>
+        <h1 id="pageTitle">Xin chào<span class="mh-name" id="greetingName"></span></h1>
+        <p class="mh-date" id="greetingDate"></p>
+      </div>
+      <a class="mh-button" href="/pages/manager-reports/"><span class="mh-icon" aria-hidden="true">monitoring</span>Báo cáo tổng hợp</a>
+    </section>
+
+    <p class="mh-alert" id="shiftAlert" role="alert" hidden></p>
+
+    <section class="mh-kpis" aria-label="Việc cần chú ý">
+      <a class="mh-kpi" href="/manager/support/tickets?group=0" data-tone="warning">
+        <span class="mh-kpi-icon mh-icon" aria-hidden="true">pending_actions</span>
+        <span class="mh-kpi-label">Yêu cầu chờ bạn quyết định</span>
+        <strong class="mh-kpi-value" id="kpiEscalated">—</strong>
+        <span class="mh-kpi-foot" id="kpiEscalatedFoot">Đang tải…</span>
+      </a>
+      <a class="mh-kpi" href="/pages/support-shifts/" data-tone="info">
+        <span class="mh-kpi-icon mh-icon" aria-hidden="true">badge</span>
+        <span class="mh-kpi-label">Nhân viên hỗ trợ trong ca</span>
+        <strong class="mh-kpi-value" id="kpiShift">—</strong>
+        <span class="mh-kpi-foot" id="kpiShiftFoot">Đang tải…</span>
+      </a>
+      <a class="mh-kpi" href="/manager/support/tickets?group=0" data-tone="danger">
+        <span class="mh-kpi-icon mh-icon" aria-hidden="true">report</span>
+        <span class="mh-kpi-label">Sự cố đã báo chưa đóng</span>
+        <strong class="mh-kpi-value" id="kpiIncidents">—</strong>
+        <span class="mh-kpi-foot" id="kpiIncidentsFoot">Đang tải…</span>
+      </a>
+      <a class="mh-kpi" href="/pages/manager-staff-roles/" data-tone="success">
+        <span class="mh-kpi-icon mh-icon" aria-hidden="true">how_to_reg</span>
+        <span class="mh-kpi-label">Đề xuất đổi vai trò chờ duyệt</span>
+        <strong class="mh-kpi-value" id="kpiProposals">—</strong>
+        <span class="mh-kpi-foot" id="kpiProposalsFoot">Đang tải…</span>
+      </a>
+    </section>
+
+    <div class="mh-grid">
+      <section class="mh-panel mh-span-2" aria-labelledby="escalatedTitle">
+        <header class="mh-panel-head">
+          <div><h2 id="escalatedTitle">Yêu cầu chờ bạn quyết định</h2><p>CS đã chuyển lên, cần bạn ghi quyết định nội bộ.</p></div>
+          <a class="mh-link" href="/manager/support/tickets?group=0">Xem tất cả <span class="mh-icon" aria-hidden="true">chevron_right</span></a>
+        </header>
+        <div id="escalatedList" class="mh-list" aria-busy="true"><p class="mh-empty">Đang tải…</p></div>
+      </section>
+
+      <section class="mh-panel" aria-labelledby="shiftTitle">
+        <header class="mh-panel-head">
+          <div><h2 id="shiftTitle">Ca trực hôm nay</h2><p id="shiftDate">Nhân viên hỗ trợ theo từng ca.</p></div>
+          <a class="mh-link" href="/pages/support-shifts/">Xếp lịch <span class="mh-icon" aria-hidden="true">chevron_right</span></a>
+        </header>
+        <div id="shiftList" class="mh-shifts" aria-busy="true"><p class="mh-empty">Đang tải…</p></div>
+      </section>
+
+      <section class="mh-panel mh-span-2" aria-labelledby="activityTitle">
+        <header class="mh-panel-head">
+          <div><h2 id="activityTitle">Hoạt động 7 ngày qua</h2><p>Người dùng mới, yêu cầu kết nối và học thử.</p></div>
+          <a class="mh-link" href="/pages/manager-reports/">Báo cáo chi tiết <span class="mh-icon" aria-hidden="true">chevron_right</span></a>
+        </header>
+        <div class="mh-stats" id="activityStats" aria-busy="true">
+          <div><span>Tài khoản mới</span><strong data-stat="newAccounts">—</strong></div>
+          <div><span>Yêu cầu kết nối</span><strong data-stat="connectionCount">—</strong></div>
+          <div><span>Học thử được tạo</span><strong data-stat="bookingCount">—</strong></div>
+          <div><span>Tỷ lệ chấp nhận kết nối</span><strong data-stat="acceptanceRatePercent">—</strong></div>
+        </div>
+      </section>
+
+      <section class="mh-panel" aria-labelledby="incidentTitle">
+        <header class="mh-panel-head">
+          <div><h2 id="incidentTitle">Sự cố đã báo gần đây</h2><p>Trạng thái xử lý bên Admin.</p></div>
+        </header>
+        <div id="incidentList" class="mh-list" aria-busy="true"><p class="mh-empty">Đang tải…</p></div>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="./manager-dashboard.js"></script>
+</body>
+</html>

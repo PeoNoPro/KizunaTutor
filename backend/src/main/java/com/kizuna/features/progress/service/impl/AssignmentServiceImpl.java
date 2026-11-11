@@ -52,6 +52,10 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final com.kizuna.features.progress.service.AssignmentAttachmentService attachmentService;
     private final Clock clock;
 
+    /** FE-12 (thêm 2026-11-10): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
     @Autowired
     public AssignmentServiceImpl(ClassroomService classroomService, AssignmentRepository assignmentRepository,
                                  AssignmentSubmissionRepository submissionRepository,
@@ -140,6 +144,11 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .build());
         // Tệp đề bài lưu trong cùng giao dịch: tệp lỗi / thiếu cả nội dung lẫn tệp → hủy toàn bộ, bài tập không được tạo
         List<FileAttachmentResponse> attachments = attachmentService.applyChanges(saved, files, null);
+        if (notificationEvents != null) {
+            notificationEvents.publish("assignment:" + saved.getAssignmentId() + ":published", "ASSIGNMENT", "Có bài tập mới",
+                    "Gia sư vừa giao bài \"" + title + "\"" + (req.dueDate() == null ? "." : ", hạn nộp " + fe12When(req.dueDate()) + "."),
+                    "/learner/my-courses", java.util.List.of(space.getLearner().getUser().getUserId()));
+        }
         return toSummary(actor, saved, List.of(), now, false, attachments);
     }
 
@@ -261,5 +270,10 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw ClassroomException.field("totalPoints", "Điểm tối đa phải từ 1 đến 999,99.");
         }
         return p;
+    }
+    /** FE-12: giờ hiển thị trong thông báo (giờ Việt Nam). */
+    private static String fe12When(java.time.OffsetDateTime time) {
+        return time == null ? "" : time.atZoneSameInstant(java.time.ZoneId.of("Asia/Ho_Chi_Minh"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
     }
 }

@@ -142,11 +142,10 @@ export function applyUserUI(user) {
   const notificationBadge = document.getElementById('notificationBadge');
   if (headerNotificationBtn && !headerNotificationBtn.hasAttribute('data-has-click')) {
     headerNotificationBtn.setAttribute('data-has-click', 'true');
-    headerNotificationBtn.addEventListener('click', () => {
-      showToast('Hiện tại chưa có thông báo mới.', 'info');
-    });
+    // FE-12: chuông mở khung xem nhanh thông báo (notification-badge.js); chấm đỏ chỉ hiện khi có thông báo chưa đọc.
   }
   if (notificationBadge) notificationBadge.classList.add('hidden');
+  if (headerNotificationBtn) import('/js/pages/notification-badge.js').then(module => module.attachNotificationBadges()).catch(() => {});
 
   // Hiển thị Avatar & Tên & Phụ đề
   let displayName = user.fullName || user.email || 'Người dùng';

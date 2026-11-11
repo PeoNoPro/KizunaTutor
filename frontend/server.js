@@ -27,7 +27,7 @@ const URL_ALIASES = {
   '/cs': '/pages/cs-dashboard/index.html',
   '/cs/dashboard': '/pages/cs-dashboard/index.html',
   '/manager/reports': '/pages/manager-reports/index.html',
-  '/manager/dashboard': '/pages/manager-reports/index.html',
+  '/manager/dashboard': '/pages/manager-dashboard/index.html',
   '/admin/profile': '/pages/admin-profile/index.html',
   '/': '/pages/home/index.html',
   '/admin/operations/logs': '/pages/operations-logs/index.html',

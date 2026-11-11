@@ -17,7 +17,7 @@ const NAV_ITEMS = [
   { key: 'verifications', label: 'Hồ sơ xác thực gia sư', icon: 'verified_user', href: '/academic/verifications?view=queue' },
   { key: 'posts', label: 'Duyệt bài đăng', icon: 'fact_check', href: '/academic/posts' },
   { key: 'history', label: 'Lịch sử xét duyệt', icon: 'history_edu', href: '/academic/history' },
-  { key: 'notifications', label: 'Thông báo', icon: 'notifications' },
+  { key: 'notifications', label: 'Thông báo', icon: 'notifications', href: '/pages/notifications/' },
   { key: 'profile', label: 'Hồ sơ cá nhân', icon: 'account_circle', href: '/academic/profile' }
 ];
 
@@ -79,13 +79,16 @@ export function mountAcademicLayout(activeKey, pageTitle) {
       <div id="academicSidebarBackdrop" class="fixed inset-0 bg-black/30 z-40 hidden lg:hidden"></div>
       <aside id="academicSidebarPanel" class="fixed left-0 top-0 bottom-0 w-72 ${STAFF_SIDEBAR} z-50 flex flex-col justify-between py-6 -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
         <div class="flex flex-col">
-          <a href="/academic/dashboard" class="px-6 mb-8 flex items-center gap-3 no-underline">
+          <div class="px-6 mb-8 flex items-center justify-between gap-2">
+          <a href="/academic/dashboard" class="flex items-center gap-3 no-underline">
             <img src="/assets/logos/kizuna-logo.png" alt="KizunaTutor" class="h-10 w-10 object-contain rounded-lg">
             <div class="flex flex-col">
               <span class="text-title-md font-bold tracking-tight text-[#0f2545]">KizunaTutor</span>
               <span class="text-caption text-[#3f4850] tracking-wider">Cổng học vụ</span>
             </div>
           </a>
+          <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
+          </div>
           <div class="px-6 mb-3"><span class="text-caption text-[#707881] tracking-wider font-semibold">Chức năng chính</span></div>
           <nav class="flex flex-col gap-1 px-4" aria-label="Điều hướng học vụ">
             ${NAV_ITEMS.map((item) => navItemHtml(item, activeKey)).join('')}
@@ -105,7 +108,8 @@ export function mountAcademicLayout(activeKey, pageTitle) {
         <button id="academicMenuButton" type="button" class="p-2 rounded-lg hover:bg-surface-container" aria-label="Mở menu">
           <span class="material-symbols-outlined">menu</span>
         </button>
-        <span class="text-label-md text-on-surface font-semibold truncate">${escapeHtml(pageTitle || 'Tổng quan học vụ')}</span>
+        <span class="text-label-md text-on-surface font-semibold truncate flex-1">${escapeHtml(pageTitle || 'Tổng quan học vụ')}</span>
+        <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
       </header>`;
   }
 
@@ -124,4 +128,6 @@ export function mountAcademicLayout(activeKey, pageTitle) {
       notifyComingSoon(link.textContent.trim());
     });
   });
+  // FE-12: số thông báo chưa đọc cạnh mục Thông báo.
+  import('/js/pages/notification-badge.js').then(module => module.attachNotificationBadges()).catch(() => {});
 }

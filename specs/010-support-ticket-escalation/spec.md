@@ -18,6 +18,10 @@
 - Q: Nếu quản lý được chọn nghỉ hoặc ngừng hoạt động khi phiếu đang chờ, nhân viên có được chuyển phiếu sang quản lý khác không? → A: Chỉ nhân viên đang phụ trách được đổi sang quản lý còn hoạt động khác; bắt buộc ghi lý do và giữ lịch sử.
 - Q: FE-10 có cần cho người gửi và nhân viên đính kèm ảnh hoặc tài liệu vào phiếu hỗ trợ không? → A: Cho đính kèm JPG, PNG hoặc PDF, tối đa 10 MB/tệp và 5 tệp mỗi lần gửi; chỉ người có quyền xem phiếu được mở tệp.
 
+### Session 2026-11-10
+
+- Q: Nhân viên chăm sóc khách hàng bị khóa tài khoản, bị xóa hoặc đổi vai trò khi còn giữ phiếu chưa xong thì ai chuyển phiếu sang người khác? → A: Quản lý bàn giao tay. Hệ thống không tự chuyển (bỏ cách tự giao cho người đang trong ca), chỉ báo cho mọi Quản lý; phiếu giữ nguyên người phụ trách cũ cho tới khi Quản lý chọn người nhận. Lý do: phiếu đang dở có bối cảnh riêng (đã hứa gì với khách, đang chờ gì), Quản lý chọn người phù hợp chứ không chỉ người đang rảnh.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Gửi và theo dõi yêu cầu hỗ trợ (Priority: P1)
@@ -104,6 +108,7 @@ Nhân viên tìm yêu cầu đặt học thử/kết nối gia sư, xem ngữ c�
 - Tệp sai loại, giả mạo định dạng, lớn hơn 10 MB hoặc nhiều hơn 5 tệp: từ chối toàn bộ lần gửi; không để phiếu, trao đổi hoặc tệp gắn kèm một phần. Tệp hỏng không đọc được theo định dạng khai báo cũng bị từ chối.
 - Ranh giới tệp: chấp nhận đúng 5 tệp và tệp đúng 10 MB; 10 MB được tính là 10.000.000 byte. Tệp không bắt buộc; có tệp vẫn phải có nội dung văn bản hợp lệ.
 - Khi quyền trên phiếu thay đổi, quyền mở tệp phải thay đổi tương ứng, kể cả khi người dùng đã biết đường truy cập tệp trước đó. Tệp không được dùng làm đường vòng để đọc nội dung nội bộ.
+- Nhân viên phụ trách bị khóa/xóa/đổi vai trò khi phiếu còn dở (bổ sung 2026-11-10): phiếu không tự chuyển, giữ người cũ và chờ Quản lý bàn giao theo FR-022; Quản lý được báo một lần cho mỗi phiếu.
 - Phiếu đã đóng: không nhận trao đổi/chuyển trạng thái; hướng dẫn tạo phiếu mới nếu còn vấn đề.
 - Đối tượng liên quan không còn khả dụng: giữ nội dung hỗ trợ đã lưu, thông báo thiếu ngữ cảnh, không dựng dữ liệu thay thế.
 
@@ -132,6 +137,7 @@ Nhân viên tìm yêu cầu đặt học thử/kết nối gia sư, xem ngữ c�
 - **FR-019**: Khi phiếu đang “Đã chuyển quản lý” và người nhận vắng mặt hoặc ngừng hoạt động, chỉ nhân viên đang phụ trách được đổi sang một quản lý khác còn hoạt động, kèm lý do 1–10.000 ký tự không chỉ chứa khoảng trắng. PHẢI giữ trạng thái đang chuyển cấp, tối đa một người nhận hiện tại và toàn bộ lịch sử; ghi người thực hiện, người nhận cũ/mới, thời điểm và lý do. Quản lý cũ mất quyền đọc/xử lý, quản lý mới phải ghi quyết định riêng trước khi trả kết quả; quyết định cũ chỉ được xem như lịch sử. Không cho chọn lại cùng người nhận. Kiểm chứng: Story 3.7–3.8 và thử đọc/trả kết quả bằng quản lý cũ.
 - **FR-020**: Chủ phiếu được đính kèm tệp khi tạo phiếu hoặc gửi trao đổi công khai; nhân viên đang phụ trách được đính kèm khi gửi phản hồi công khai. Tệp là tùy chọn, không thay thế văn bản bắt buộc. Mỗi lần gửi PHẢI giới hạn tối đa 5 tệp, mỗi tệp tối đa 10.000.000 byte, chỉ JPG (đuôi .jpg hoặc .jpeg), PNG và PDF. PHẢI kiểm tra định dạng thực tế, từ chối tệp giả mạo, hỏng hoặc không hợp lệ. Khi bất kỳ tệp nào không hợp lệ hoặc lưu thất bại, không lưu một phần phiếu/trao đổi và các tệp của lần gửi. Kiểm chứng: Story 1.5–1.6, 2.9 và ca biên số lượng/dung lượng/định dạng.
 - **FR-021**: Tệp PHẢI gắn với phiếu hoặc trao đổi nguồn, hiển thị tên, loại, dung lượng và người gửi; chỉ người hiện có quyền xem nội dung nguồn mới được mở/tải. PHẢI kiểm tra quyền mỗi lần truy cập, kể cả qua đường truy cập trực tiếp, không công khai tệp cho người ngoài và thu hồi quyền theo thay đổi quyền trên phiếu. Không được sửa/xóa tệp đã gửi qua chức năng FE-10. Không hỗ trợ đính kèm ghi chú/quyết định nội bộ trong phạm vi này. Kiểm chứng: Story 1.7, 2.9 và kiểm tra quản lý cũ mất quyền sau đổi người nhận.
+- **FR-022** *(bổ sung 2026-11-10)*: Khi người phụ trách không còn là nhân viên chăm sóc khách hàng đang hoạt động mà phiếu còn ở trạng thái đang xử lý, đã chuyển quản lý hoặc đã giải quyết, hệ thống PHẢI KHÔNG tự chuyển phiếu; PHẢI báo cho mọi Quản lý (mỗi phiếu một lần, có đường dẫn tới phiếu). Quản lý PHẢI xem được các phiếu này (nhóm "Cần bàn giao", kể cả phiếu không chuyển cho mình) và bàn giao cho một nhân viên chăm sóc khách hàng đang hoạt động, không bắt buộc người nhận đang trong ca hay còn chỗ; được ghi chú bàn giao tùy chọn. Bàn giao giữ nguyên trạng thái, trao đổi, tệp, chuyển cấp; ghi lịch sử phân công lại và báo cho người nhận. Quản lý không được bàn giao phiếu của nhân viên còn hoạt động và không được ghi quyết định/trả kết quả cho phiếu không chuyển cho mình.
 
 ### Key Entities *(include if feature involves data)*
 

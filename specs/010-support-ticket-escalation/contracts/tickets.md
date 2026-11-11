@@ -103,7 +103,26 @@ Quy tắc tự giao (không có endpoint riêng; cập nhật 2026-11-09 theo y�
 - **Mức ưu tiên ban đầu** do hệ thống đặt lúc tạo (người gửi không chọn, `SupportTicketPriorityRule`): gắn buổi học thử bắt đầu trong 24 giờ tới → Khẩn cấp; Thanh toán, Sự cố kỹ thuật → Cao; Nội dung khác → Thấp; còn lại → Bình thường. CS phụ trách vẫn đổi được sau khi nhận.
 - **Không có nhận thủ công**: CS không bấm "Tiếp nhận"; `POST /{id}/claim` trả 400. Ngoài ca hoặc ngày chưa xếp ca thì CS chỉ xem, không được giao việc mới (bỏ ngoại lệ "ngày chưa xếp ca thì nhận tự do").
 - Ca đang diễn ra không có CS nào mà còn yêu cầu chờ: gửi thông báo FE-12 cho mọi Quản lý "Chưa có nhân viên hỗ trợ trong ca" (mỗi ca một lần), link tới trang xếp ca.
-- CS bị khóa hoặc đổi vai trò: phiếu đang giữ được giao cho CS khác đang trong ca và đang rảnh, ghi `REASSIGN_CS`; không có ai rảnh thì giữ nguyên người phụ trách và lịch sử.
-- Hết ca vẫn giữ việc đang làm; kết quả Quản lý trả về luôn về người phụ trách cũ, có thể vượt mức 3 yêu cầu. Bàn giao cho CS khác chỉ được khi người nhận đang trong ca và còn chỗ (409 nếu không).
+- ~~CS bị khóa hoặc đổi vai trò: phiếu đang giữ được giao cho CS khác đang trong ca và đang rảnh~~ — **thay bằng bàn giao tay bởi Quản lý (2026-11-10)**, xem mục "Bàn giao khi CS nghỉ" bên dưới. Bộ tự giao chỉ còn giao phiếu OPEN chưa có người phụ trách.
+- Hết ca vẫn giữ việc đang làm; kết quả Quản lý trả về luôn về người phụ trách cũ, có thể vượt mức 3 yêu cầu. CS bàn giao cho CS khác chỉ được khi người nhận đang trong ca và còn chỗ (409 nếu không); Quản lý bàn giao (FR-022) không bị giới hạn này.
+- POST `/shifts` (2026-11-10): lượt tự giao sau khi xếp ca chạy nền sau commit, không giữ request của Quản lý (trước đây request vượt thời gian chờ của trình duyệt dù ca đã lưu). Trang xếp ca không còn hiện đoạn chữ mô tả quy tắc tự giao.
+
+## Bàn giao khi CS nghỉ — bổ sung 2026-11-10 (FR-022)
+
+Phiếu "cần bàn giao": `assigned_to` khác rỗng, trạng thái `IN_PROGRESS`/`ESCALATED`/`RESOLVED`, và người phụ trách không còn là CS hoạt động (khóa, xóa hoặc đổi vai trò). Hệ thống không tự chuyển.
+
+| Method/path | Quyền | Thay đổi |
+| --- | --- | --- |
+| GET `?handover=true` và GET `/counts?handover=true` | Chỉ Manager (vai trò khác 403) | Chỉ trả phiếu cần bàn giao, kể cả phiếu không chuyển cho Manager này. Không có `handover` thì Manager vẫn chỉ thấy phiếu `escalated_to` là mình |
+| GET `/{id}`, `/messages`, `/history` | Manager đọc được phiếu cần bàn giao | Summary/detail thêm `assigneeActive` (boolean) và `needsHandover` (boolean) cho nhân viên/Quản lý |
+| GET `/handover-candidates` | Chỉ Manager | `[{userId,displayName,activeTickets,onShift,maxActive}]` CS đang hoạt động; người đang trong ca rồi ít việc xếp trước |
+| GET `/assignees` | CS hoặc Manager | Manager được lấy danh sách CS (không lấy danh sách Manager) |
+| POST `/{id}/assignment` | CS như cũ; Manager chỉ với phiếu cần bàn giao | `{expectedVersion,assigneeId,reason?}`; Manager không bị kiểm ca/giới hạn 3 phiếu. Ghi `REASSIGN_CS`, ghi chú mặc định "Quản lý bàn giao vì nhân viên cũ không còn hoạt động" nếu bỏ trống; báo FE-12 cho người nhận |
+
+`allowedActions` của Manager có `assignment` khi phiếu cần bàn giao; `decision`/`return` chỉ khi `escalated_to` là chính Manager đó.
+
+Thông báo FE-12: tác vụ định kỳ 60 giây tìm phiếu cần bàn giao và gửi mọi Manager "Yêu cầu hỗ trợ cần bàn giao" (`eventKey = ticket:{id}:handover-needed:{assigneeId}`, mỗi cặp phiếu/người cũ một lần), `actionPath=/manager/support/tickets/{id}`.
+
+Giao diện Manager: sidebar "Yêu cầu chuyển lên" có thêm mục con "Cần bàn giao" (`?group=2`) kèm số đếm; danh sách hiện nhãn đỏ "Cần bàn giao". Mở phiếu cần bàn giao tự chuyển sang tab "Xử lý nội bộ" với khung "Bàn giao yêu cầu": người phụ trách cũ (nhãn "Không còn hoạt động"), chọn người nhận dạng thẻ (đang trong ca/ngoài ca, số phiếu đang xử lý trên 3), ghi chú bàn giao tùy chọn, nút "Bàn giao cho …".
 
 GET `/dashboard` (CS) bổ sung `shift: {current,next,activeTickets,maxActive}`; `current`/`next` là `{code,label,start,end,date}` hoặc `null`.

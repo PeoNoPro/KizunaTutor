@@ -40,7 +40,7 @@ public class StaffAccountService {
         var result=new LinkedHashMap<String,Object>();
         result.put("userId",a.id());result.put("fullName",a.name());result.put("email",a.email());result.put("phone",a.phone());
         result.put("roleId",a.roleId());result.put("roleLabel",ROLES.get(a.role()));result.put("status",a.status());
-        result.put("statusLabel",STATES.getOrDefault(a.status(),"Cần kiểm tra trạng thái"));result.put("updatedAt",a.updatedAt().toString());result.put("self",actor.equals(a.id()));result.put("mustChangePassword",a.mustChangePassword());result.put("emailStatus",a.emailStatus());result.put("emailStatusLabel",a.emailStatus()==null?null:EMAIL_STATES.get(a.emailStatus()));result.put("emailSentAt",a.emailSentAt());return result;
+        result.put("statusLabel",STATES.getOrDefault(a.status(),"Cần kiểm tra trạng thái"));result.put("updatedAt",a.updatedAt().toString());result.put("self",actor.equals(a.id()));result.put("deletable",!actor.equals(a.id())&&!a.role().equals("ROLE_ADMIN"));result.put("mustChangePassword",a.mustChangePassword());result.put("emailStatus",a.emailStatus());result.put("emailStatusLabel",a.emailStatus()==null?null:EMAIL_STATES.get(a.emailStatus()));result.put("emailSentAt",a.emailSentAt());return result;
     }
     @Transactional(readOnly=true,timeout=3)
     public Map<String,Object> list(String q,int page,int size) {
@@ -102,6 +102,23 @@ public class StaffAccountService {
         if(!Set.of("ACTIVE","SUSPENDED").contains(r.status()==null?"":r.status())||!Set.of("ACTIVE","SUSPENDED").contains(a.status()))throw BusinessException.invalid();
         protect(a,actor,!r.status().equals("ACTIVE"));if(r.status().equals("ACTIVE"))staff.activeRole(a.roleId());
         var time=nextTime(a);staff.changeStatus(id,r.status(),time);staff.audit(actor,id,"STATUS",r.reason().trim(),time);return view(staff.get(id,false),actor);
+    }
+    /**
+     * Xóa mềm: ẩn khỏi danh sách, chặn đăng nhập (deleted_at + Tạm khóa), giữ nguyên lịch sử, yêu cầu hỗ trợ, nhật ký, giao dịch.
+     * Không xóa chính mình và tài khoản Quản trị viên. Ca làm từ hôm nay trở đi được gỡ (có ghi lịch sử gỡ ca).
+     * Nhật ký dùng hành động STATUS (ràng buộc DB chỉ cho CREATE/UPDATE/ROLE/STATUS), lý do bắt đầu bằng "Xóa tài khoản:".
+     * Yêu cầu hỗ trợ đang dở của CS bị xóa sẽ hiện ở nhóm "Cần bàn giao" của Quản lý (FE-10 FR-022).
+     */
+    @Transactional(timeout=5)
+    public Map<String,Object> delete(UUID id,Delete r) {
+        UUID actor=beginWrite();var a=checked(id,r.expectedUpdatedAt());
+        if(actor.equals(id))throw new BusinessException(400,"Không xóa chính tài khoản đang sử dụng.");
+        if(a.role().equals("ROLE_ADMIN"))throw new BusinessException(400,"Không xóa tài khoản Quản trị viên.");
+        var time=nextTime(a);
+        staff.softDelete(id,time);
+        staff.removeUpcomingShifts(id,actor,time.atZoneSameInstant(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate());
+        staff.audit(actor,id,"STATUS","Xóa tài khoản: "+r.reason().trim(),time);
+        return Map.of("userId",id,"deleted",true);
     }
     @Transactional(readOnly=true,timeout=3)
     public Map<String,Object> history(int page,int size) {

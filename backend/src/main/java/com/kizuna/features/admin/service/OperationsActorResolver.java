@@ -52,6 +52,10 @@ public class OperationsActorResolver {
     public OperationsActor requireReporter() {
         var actor=current();if(!java.util.Set.of("ROLE_ADMIN","ROLE_MANAGER").contains(actor.role()))throw new BusinessException(403,"Bạn không có quyền xem báo cáo tổng hợp.");return actor;
     }
+    /** FE-12: Quản trị viên và Quản lý được gửi thông báo. */
+    public OperationsActor requireBroadcaster() {
+        var actor=current();if(!java.util.Set.of("ROLE_ADMIN","ROLE_MANAGER").contains(actor.role()))throw new BusinessException(403,"Chỉ Quản trị viên và Quản lý được gửi thông báo.");return actor;
+    }
     public OperationsActor requireStaff() {
         var actor=current();if(!java.util.Set.of("ROLE_ADMIN","ROLE_MANAGER","ROLE_CS_STAFF","ROLE_ACADEMIC_OFFICER").contains(actor.role()))throw new BusinessException(403,"Bạn không có quyền vào khu vực nội bộ.");return actor;
     }

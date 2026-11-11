@@ -14,7 +14,7 @@ public class SupportTicketProjection {
    var result=new LinkedHashMap<String,Object>();copy(result,row,"ticketId","ticket_id","subject","subject","category","category","priority","priority","status","status","createdAt","created_at","updatedAt","updated_at","version","version");
    result.put("categoryLabel",CATEGORY.get(row.get("category")));result.put("priorityLabel",PRIORITY.get(row.get("priority")));result.put("statusLabel",STATUS.get(row.get("status")));
    result.put("allowedActions",policy.actions(actor,row));
-   if(!actor.requester()){result.put("requesterDisplayName",row.get("requester_name"));result.put("assigneeId",row.get("assigned_to"));result.put("recipientId",row.get("escalated_to"));result.put("assigneeDisplayName",row.get("assignee_name"));result.put("recipientDisplayName",row.get("recipient_name"));}
+   if(!actor.requester()){result.put("requesterDisplayName",row.get("requester_name"));result.put("assigneeId",row.get("assigned_to"));result.put("recipientId",row.get("escalated_to"));result.put("assigneeDisplayName",row.get("assignee_name"));result.put("assigneeActive",row.get("assignee_active"));result.put("needsHandover",SupportTicketAccessPolicy.needsHandover(row));result.put("recipientDisplayName",row.get("recipient_name"));}
    return result;
  }
  public static void copy(Map<String,Object> target,Map<String,Object> source,String... fields){for(int i=0;i<fields.length;i+=2)target.put(fields[i],source.get(fields[i+1]));}

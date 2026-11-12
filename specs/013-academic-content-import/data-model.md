@@ -40,7 +40,7 @@ Thêm cùng lúc với Kanji mới: `character`, `han_viet`, `onyomi`, `kunyomi`
 
 ### 1.4 `vocabulary_kanjis` — Liên kết từ vựng ↔ Kanji
 
-Sau khi thêm từ mới: với mỗi ký tự của `word` có trong `kanjis.character`, thêm (`vocabulary_id`, `kanji_id`), `ON CONFLICT DO NOTHING`.
+Sau khi thêm từ mới: với mỗi ký tự của `word` có trong `kanjis.character`, thêm (`vocabulary_id`, `kanji_id`), `ON CONFLICT DO NOTHING`. Chỉ áp dụng cho đúng các cặp (`word`, `reading`) vừa thêm (ghép theo từng dòng, không ghép chéo từ của dòng này với cách đọc của dòng khác).
 
 ### 1.5 `grammars` — Mẫu ngữ pháp
 

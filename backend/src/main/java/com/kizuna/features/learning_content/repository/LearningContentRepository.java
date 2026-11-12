@@ -95,26 +95,40 @@ public class LearningContentRepository {
         linkVocabularyKanji(rows);
     }
 
-    /** Gắn từ mới với các chữ Hán có trong bảng kanjis (giống VocabExcelSeeder). */
+    /**
+     * Gắn từ mới với các chữ Hán có trong bảng kanjis (giống VocabExcelSeeder).
+     * Chỉ ghép đúng từng cặp (từ, cách đọc) vừa thêm: hai mảng song song được unnest cùng nhau thành từng cặp,
+     * nên một từ đã có trong kho trùng "từ" nhưng khác "cách đọc" (hoặc ngược lại) không bị gắn thêm Kanji.
+     */
     private void linkVocabularyKanji(List<Map<String, String>> rows) {
         for (int from = 0; from < rows.size(); from += BATCH) {
-            List<Map<String, String>> chunk = rows.subList(from, Math.min(rows.size(), from + BATCH));
-            String[] words = chunk.stream().map(v -> v.get("word")).distinct().toArray(String[]::new);
-            String[] readings = chunk.stream().map(v -> v.get("reading")).distinct().toArray(String[]::new);
+            String[][] pairs = wordReadingPairs(rows.subList(from, Math.min(rows.size(), from + BATCH)));
             jdbc.update(con -> {
                 var ps = con.prepareStatement("INSERT INTO vocabulary_kanjis (vocabulary_id, kanji_id) "
-                        + "SELECT DISTINCT v.id, k.id FROM vocabularies v "
+                        + "SELECT DISTINCT v.id, k.id "
+                        + "FROM unnest(?::varchar[], ?::varchar[]) AS p(word, reading) "
+                        + "JOIN vocabularies v ON v.word = p.word AND v.reading = p.reading "
                         + "CROSS JOIN LATERAL regexp_split_to_table(v.word, '') AS ch "
                         + "JOIN kanjis k ON k.\"character\" = ch "
-                        + "WHERE v.word = ANY (?) AND v.reading = ANY (?) "
                         + "ON CONFLICT (vocabulary_id, kanji_id) DO NOTHING");
-                Array w = con.createArrayOf("varchar", words);
-                Array r = con.createArrayOf("varchar", readings);
+                Array w = con.createArrayOf("varchar", pairs[0]);
+                Array r = con.createArrayOf("varchar", pairs[1]);
                 ps.setArray(1, w);
                 ps.setArray(2, r);
                 return ps;
             });
         }
+    }
+
+    /** Hai mảng song song: phần tử thứ i của mảng từ và mảng cách đọc là cùng một dòng đã thêm. */
+    static String[][] wordReadingPairs(List<Map<String, String>> rows) {
+        String[] words = new String[rows.size()];
+        String[] readings = new String[rows.size()];
+        for (int i = 0; i < rows.size(); i++) {
+            words[i] = rows.get(i).get("word");
+            readings[i] = rows.get(i).get("reading");
+        }
+        return new String[][]{words, readings};
     }
 
     // ===== Ngữ pháp: grammars (khóa grammar_code) =====

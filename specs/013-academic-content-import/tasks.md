@@ -64,6 +64,10 @@ description: "Danh sách công việc triển khai FE-13 — Kho học liệu ch
 - [X] T032 `BT/ContentImportFixturesTest.java`: chạy reader + planner trên bộ tệp thử (mục "đã có" lấy từ tệp `_1`) và so với kết quả trong README (SC-002) — **2026-11-12: đã xóa cùng bộ tệp thử; còn ContentImportTest (11 test).**
 - [X] T033 Chạy `.\mvnw.cmd test-compile`, `.\mvnw.cmd test "-Dtest=ContentImport*"`, `node --test "frontend/tests/*.test.mjs"`; khởi động lại backend sạch; kiểm tra API trả `401` khi chưa đăng nhập — 2026-11-10: test-compile qua; ContentImport* 22/22 xanh; frontend 31/31; backend chạy lại, 3 API trả 401. **Chưa kiểm chứng lại trên DB sau Phase R** (mất kết nối Supabase lúc chạy) — SQL không đổi so với lần kiểm chứng T015/T018/T019; cần chạy lại kịch bản quickstart khi có mạng.
 
+## Phase F: Sửa theo review PR (2026-11-12)
+
+- [X] T034 Liên kết `vocabulary_kanjis` chỉ ghép đúng từng cặp (từ, cách đọc) của dòng vừa thêm: `unnest(words[], readings[])` song song thay cho `word = ANY(...) AND reading = ANY(...)` (tránh gắn Kanji cho mục đã có trùng từ hoặc trùng cách đọc) trong `LC/repository/LearningContentRepository.java`; test `BT/repository/LearningContentRepositoryTest.java` (2 test); kiểm chứng trên DB bằng giao dịch rollback: mục có sẵn (会青試, よみB) không bị gắn, từ mới gắn đúng 3 Kanji.
+
 ## Dependencies
 
 - Phase 2 → Phase 3, 4, 5. T022 và T023 phải làm cùng lúc. T031 → T032. T033 cuối cùng.

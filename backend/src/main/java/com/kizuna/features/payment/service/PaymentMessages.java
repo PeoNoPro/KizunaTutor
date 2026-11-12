@@ -34,4 +34,5 @@ public final class PaymentMessages {
     public static final String INVALID_ID = "Mã không hợp lệ.";
     public static final String PAYMENT_EXPIRED = "Giao dịch đã hết hạn thanh toán. Vui lòng chọn gói để tạo giao dịch mới.";
     public static final String PAYMENT_RESUMED = "Đang chuyển tới cổng thanh toán.";
+    public static final String PAYMENT_ALREADY_FINISHED = "Giao dịch này đã có kết quả từ cổng thanh toán. Vui lòng tải lại trang để xem.";
 }

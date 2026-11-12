@@ -363,19 +363,81 @@ class MembershipServicesTest {
             assertEquals(PaymentMessages.MSG32_FAILED, view.resultMessage());
         }
 
+        // ----- Tiếp tục thanh toán: VNPay không cho mở lại mã đơn đã mở → tạo giao dịch mới cùng gói -----
+
+        private void freshPlanPurchase(MembershipPlan plan) {
+            when(tutorRepository.findWithUserByUserId(user.getUserId()))
+                    .thenReturn(Optional.of(tutor(user, TutorVerificationStatus.APPROVED, TutorState.APPROVED_UNPAID)));
+            when(planRepository.findById(plan.getPlanId())).thenReturn(Optional.of(plan));
+            when(transactionRepository.save(any())).thenAnswer(inv -> {
+                PaymentTransaction tx = inv.getArgument(0);
+                tx.setTransactionId(UUID.randomUUID());
+                return tx;
+            });
+            when(gatewayClient.paymentParams(any(), any())).thenReturn(Map.of("vnp_TxnRef", "moi"));
+            when(gatewayClient.buildPaymentUrl(any())).thenReturn("https://pay.test?moi");
+        }
+
         @Test
-        void resumeRebuildsUrlForFreshPendingOnly() {
+        void resumeCreatesNewTransactionWithNewReferenceWhenOldStillPending() {
             PaymentTransaction fresh = ownPending(OffsetDateTime.now().minusMinutes(3));
-            when(gatewayClient.paymentParams(any(), any())).thenReturn(Map.of("vnp_TxnRef", fresh.getTxnRef()));
-            when(gatewayClient.buildPaymentUrl(any())).thenReturn("https://pay.test?again");
+            freshPlanPurchase(fresh.getPlan());
+            when(gatewayClient.queryTransaction(any(), any()))
+                    .thenThrow(new ServiceUnavailableException(PaymentMessages.MSG37_GATEWAY_UNAVAILABLE));
 
-            assertEquals("https://pay.test?again",
-                    service(properties).resumePayment(user, fresh.getTransactionId().toString(), null).paymentUrl());
+            var resumed = service(properties).resumePayment(user, fresh.getTransactionId().toString(), null);
+
+            ArgumentCaptor<PaymentTransaction> saved = ArgumentCaptor.forClass(PaymentTransaction.class);
+            verify(transactionRepository).save(saved.capture());
+            assertNotEquals(fresh.getTransactionId(), resumed.transactionId());
+            assertEquals(fresh.getPlan().getPlanId(), saved.getValue().getPlan().getPlanId());
+            assertEquals(PaymentTransactionStatus.PENDING, saved.getValue().getStatus());
+            assertEquals("https://pay.test?moi", resumed.paymentUrl());
+            // Giao dịch cũ không bị đổi trạng thái: nếu vẫn được trả ở tab cũ thì vẫn ghi nhận được.
+            assertEquals(PaymentTransactionStatus.PENDING, fresh.getStatus());
+        }
+
+        @Test
+        void resumeProcessesVerifiedGatewayResultAndStopsWhenOldAlreadyFinished() {
+            PaymentTransaction fresh = ownPending(OffsetDateTime.now().minusMinutes(3));
+            GatewayResult queried = new GatewayResult(fresh.getTxnRef(), "00", "00", "7", 19_900_000L, "NCB");
+            when(gatewayClient.queryTransaction(any(), any())).thenReturn(
+                    new VnpayGatewayClient.QueryOutcome(true, 200, "00", "OK", queried, Map.of(), "{}"));
+            when(processor.process(queried)).thenAnswer(inv -> {
+                fresh.setStatus(PaymentTransactionStatus.SUCCESS);
+                return PaymentResultProcessor.Outcome.ACTIVATED;
+            });
+
+            assertEquals(PaymentMessages.PAYMENT_ALREADY_FINISHED, assertThrows(ConflictException.class,
+                    () -> service(properties).resumePayment(user, fresh.getTransactionId().toString(), null)).getMessage());
+            verify(processor).process(queried);
             verify(transactionRepository, never()).save(any());
+        }
 
+        @Test
+        void resumeOfStaleTransactionIsRejected() {
             PaymentTransaction stale = ownPending(OffsetDateTime.now().minusMinutes(30));
             assertEquals(PaymentMessages.PAYMENT_EXPIRED, assertThrows(ConflictException.class,
                     () -> service(properties).resumePayment(user, stale.getTransactionId().toString(), null)).getMessage());
+            verifyNoInteractions(gatewayClient);
+            verify(transactionRepository, never()).save(any());
+        }
+
+        @Test
+        void onlyNewestTransactionOfAPlanIsResumable() {
+            MembershipPlan plan = plan(true);
+            OffsetDateTime now = OffsetDateTime.now();
+            PaymentTransaction newer = PaymentTransaction.builder().transactionId(UUID.randomUUID()).user(user).plan(plan)
+                    .amount(new BigDecimal("199000")).status(PaymentTransactionStatus.PENDING).transactionTime(now.minusMinutes(1)).build();
+            PaymentTransaction older = PaymentTransaction.builder().transactionId(UUID.randomUUID()).user(user).plan(plan)
+                    .amount(new BigDecimal("199000")).status(PaymentTransactionStatus.PENDING).transactionTime(now.minusMinutes(3)).build();
+            when(transactionRepository.findByUserUserIdAndPlanIsNotNull(eq(user.getUserId()), any()))
+                    .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(newer, older)));
+
+            var page = service(properties).listMyPayments(user, 0, 10);
+
+            assertTrue(page.items().get(0).resumable());
+            assertFalse(page.items().get(1).resumable());
         }
 
         @Test

@@ -39,8 +39,15 @@ Gia sư tự kiểm tra một giao dịch **của chính mình** còn `PENDING` 
 `data`: như A5. Giao dịch không còn chờ → trả trạng thái hiện tại, không gọi cổng. Không phải của mình → 404. Cổng lỗi → 503 MSG37.
 
 ### A7. `POST /payments/{transactionId}/resume` *(thêm 2026-11-04)*
-Mở lại trang thanh toán cho giao dịch `PENDING` của chính gia sư **còn trong hạn 15 phút** (cùng mã đơn, cùng thời hạn — không tạo giao dịch mới).
-`data`: `{ transactionId, amount, planName, paymentUrl, expiresAt }`. Đã quá hạn hoặc không còn chờ → 409 "Giao dịch đã hết hạn thanh toán. Vui lòng chọn gói để tạo giao dịch mới.". Không phải của mình → 404.
+Tiếp tục thanh toán cho giao dịch `PENDING` của chính gia sư **còn trong hạn 15 phút**.
+
+**Sửa 2026-11-13**: VNPay không cho mở lại một mã đơn (`vnp_TxnRef`) đã từng mở — dựng lại URL cũ cho trang lỗi "Giao dịch đang được xử lý hoặc đã quá thời gian thanh toán". Vì vậy:
+1. Tra cứu giao dịch cũ với cổng (querydr). Kết quả có chữ ký hợp lệ thì xử lý như trang kết quả; giao dịch cũ không còn chờ → 409 "Giao dịch này đã có kết quả từ cổng thanh toán. Vui lòng tải lại trang để xem.".
+2. Còn chờ (hoặc cổng không trả lời) → **tạo giao dịch mới cùng gói, mã đơn mới** (cùng kiểm tra như A3). Giao dịch cũ giữ `PENDING` (nếu vẫn được trả ở tab cũ thì IPN / trang kết quả vẫn ghi nhận), quá 15 phút tự hiện "Chưa hoàn tất thanh toán".
+
+`data`: `{ transactionId, amount, planName, paymentUrl, expiresAt }` của **giao dịch mới**. Đã quá hạn hoặc không còn chờ → 409 "Giao dịch đã hết hạn thanh toán. Vui lòng chọn gói để tạo giao dịch mới.". Không phải của mình → 404.
+
+A4 `resumable`: chỉ giao dịch **mới nhất của mỗi gói** trong trang danh sách mới có `true`.
 
 ## B. IPN — công khai, xác thực bằng chữ ký
 

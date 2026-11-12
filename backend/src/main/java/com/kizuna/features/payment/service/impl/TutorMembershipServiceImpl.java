@@ -40,8 +40,11 @@ import java.time.LocalDate;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -242,7 +245,20 @@ public class TutorMembershipServiceImpl implements TutorMembershipService {
         Page<PaymentTransaction> result = transactionRepository.findByUserUserIdAndPlanIsNotNull(user.getUserId(),
                 PageRequest.of(Math.max(page, 0), safeSize, Sort.by(Sort.Direction.DESC, "transactionTime")));
         OffsetDateTime now = OffsetDateTime.now(VnpayGatewayClient.VIETNAM);
-        return new MembershipViews.PageView<>(result.getContent().stream().map(tx -> mapper.payment(tx, now)).toList(),
+        // Danh sách xếp mới nhất trước: một gói đã có giao dịch mới hơn thì giao dịch cũ không còn "Tiếp tục thanh toán".
+        Set<UUID> planWithNewer = new HashSet<>();
+        List<MembershipViews.PaymentView> items = new ArrayList<>();
+        for (PaymentTransaction tx : result.getContent()) {
+            MembershipViews.PaymentView view = mapper.payment(tx, now);
+            UUID planId = tx.getPlan() == null ? null : tx.getPlan().getPlanId();
+            if (view.resumable() && planId != null && planWithNewer.contains(planId)) {
+                view = new MembershipViews.PaymentView(view.transactionId(), view.planName(), view.amount(), view.status(),
+                        view.statusLabel(), view.transactionTime(), false);
+            }
+            if (planId != null) planWithNewer.add(planId);
+            items.add(view);
+        }
+        return new MembershipViews.PageView<>(items,
                 result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages());
     }
 
@@ -283,12 +299,32 @@ public class TutorMembershipServiceImpl implements TutorMembershipService {
                 || mapper.isStale(tx, OffsetDateTime.now(VnpayGatewayClient.VIETNAM))) {
             throw new ConflictException(PaymentMessages.PAYMENT_EXPIRED);
         }
-        // Cùng mã đơn, cùng vnp_CreateDate/vnp_ExpireDate (tính từ transaction_time) → không tạo giao dịch mới.
-        Map<String, String> params = gatewayClient.paymentParams(tx, clientIp);
-        String paymentUrl = gatewayClient.buildPaymentUrl(params);
-        audit.log(transactionId, PaymentLogWriter.TYPE_CREATE, params, Map.of("outcome", "URL_CREATED"), null);
-        return new MembershipViews.PaymentCreatedView(tx.getTransactionId(), MembershipViewMapper.money(tx.getAmount()),
-                tx.getPlan().getPlanName(), paymentUrl, tx.getTransactionTime().plusMinutes(properties.getExpireMinutes()));
+        // VNPay không cho mở lại một mã đơn đã từng mở ("Giao dịch đang được xử lý hoặc đã quá thời gian thanh toán"),
+        // nên không dựng lại URL cũ. Trước hết hỏi cổng xem giao dịch cũ đã có kết quả chưa (tránh thu tiền hai lần);
+        // còn chờ thì tạo giao dịch mới cùng gói. Giao dịch cũ giữ PENDING để nếu vẫn được trả ở tab cũ thì IPN/trang
+        // kết quả vẫn ghi nhận được; quá 15 phút nó tự hiện "Chưa hoàn tất thanh toán".
+        settleFromGateway(tx, clientIp);
+        if (requireOwnTransaction(user, transactionId).getStatus() != PaymentTransactionStatus.PENDING) {
+            throw new ConflictException(PaymentMessages.PAYMENT_ALREADY_FINISHED);
+        }
+        return createPayment(user, tx.getPlan().getPlanId().toString(), clientIp);
+    }
+
+    /** Tra cứu giao dịch với cổng; kết quả có chữ ký hợp lệ thì xử lý như trang kết quả. Cổng lỗi thì bỏ qua. */
+    private void settleFromGateway(PaymentTransaction tx, String clientIp) {
+        try {
+            VnpayGatewayClient.QueryOutcome query = gatewayClient.queryTransaction(tx, clientIp);
+            Map<String, Object> response = queryResponse(query);
+            response.put("requestedBy", "TUTOR_RESUME");
+            audit.log(tx.getTransactionId(), PaymentLogWriter.TYPE_QUERY, query.requestBody(), response, query.httpStatus());
+            if (query.verified() && "00".equals(query.queryResponseCode()) && query.result() != null) {
+                processor.process(query.result());
+            }
+        } catch (ServiceUnavailableException e) {
+            log.info("Không tra cứu được giao dịch {} trước khi tạo lại; tạo giao dịch mới", tx.getTxnRef());
+        } catch (Exception e) {
+            log.error("Lỗi xử lý kết quả tra cứu cho giao dịch {}; giao dịch giữ nguyên", tx.getTxnRef(), e);
+        }
     }
 
     private MembershipViews.PaymentResultView resultView(PaymentTransaction tx) {

@@ -61,13 +61,12 @@ class WeeklyScheduleCalculatorTest {
     }
 
     @Test
-    @DisplayName("Buổi học thử ở tuần sau cũng ẩn giờ đó ở tuần này (ca lặp lại hằng tuần)")
-    void trialLaterWeekHidesEarlierWeek() {
+    @DisplayName("Lịch bận ở tuần sau KHÔNG ảnh hưởng ngày tuần này (chỉ khóa đúng ngày)")
+    void laterWeekBusyDoesNotHideThisWeek() {
         LocalDate nextFri = WEEK.plusDays(11);
         List<DaySlots> days = WeeklyScheduleCalculator.compute(WEEK, friEvening(), List.of(),
                 List.of(new DatedRange(nextFri, m(19, 0), m(19, 30))), BEFORE_WEEK, 60);
-        assertEquals(List.of(new Range(m(18, 0), m(19, 0)), new Range(m(19, 30), m(21, 0))),
-                day(days, WEEK.plusDays(4)).freeRanges());
+        assertEquals(List.of(new Range(m(18, 0), m(21, 0))), day(days, WEEK.plusDays(4)).freeRanges());
     }
 
     @Test

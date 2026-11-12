@@ -10,6 +10,8 @@ import com.kizuna.features.tutor_search.dto.TutorBookedSlotDTO;
 import com.kizuna.features.tutor_search.dto.TutorReviewDTO;
 import com.kizuna.features.tutor_search.dto.TutorWeekScheduleDTO;
 import com.kizuna.core.exception.BadRequestException;
+import com.kizuna.features.booking.service.ConnectionBusyLoader;
+import com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyIndex;
 import com.kizuna.core.exception.ResourceNotFoundException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -71,6 +73,7 @@ public class TutorSearchServiceImpl implements TutorSearchService {
     private final TutorSearchRepository tutorSearchRepository;
     private final JdbcTemplate jdbcTemplate;
     private final TutorPostService tutorPostService;
+    private final ConnectionBusyLoader busyLoader;
 
     @Override
     public TutorSearchPageResponse searchTutors(TutorSearchCriteriaDTO criteria) {
@@ -212,7 +215,9 @@ public class TutorSearchServiceImpl implements TutorSearchService {
     // ------------------------------------------------------------------ lịch rảnh theo tuần
 
     @Override
-    public TutorWeekScheduleDTO getWeeklySchedule(UUID tutorId, LocalDate requestedWeekStart) {
+    public TutorWeekScheduleDTO getWeeklySchedule(UUID tutorId, LocalDate requestedWeekStart, Integer minDuration) {
+        // 30 = học thử (khoảng trống từ 30 phút), 60 = ca kết nối ngắn nhất
+        int minimum = minDuration != null && minDuration == 30 ? 30 : MIN_CONNECT_DURATION;
         if (!tutorSearchRepository.existsById(tutorId)) {
             throw new ResourceNotFoundException("Không tìm thấy thông tin gia sư với mã yêu cầu");
         }
@@ -226,25 +231,22 @@ public class TutorSearchServiceImpl implements TutorSearchService {
             throw new BadRequestException("Chỉ có thể xem lịch rảnh trong " + SCHEDULE_WEEKS + " tuần tính từ tuần này");
         }
 
-        TutorScheduleData data = loadScheduleData(List.of(tutorId), true).get(tutorId);
+        TutorScheduleData data = loadScheduleData(List.of(tutorId), false).get(tutorId);
         List<WeeklyScheduleCalculator.WeeklyRange> availabilities = data.availabilities().stream()
                 .map(TutorSearchServiceImpl::toWeeklyRange).toList();
-        List<WeeklyScheduleCalculator.WeeklyRange> weeklyBusy = new ArrayList<>();
-        data.classSchedules().forEach(cs -> weeklyBusy.add(toWeeklyRange(cs)));
-        data.lockedSlots().forEach(lk -> weeklyBusy.add(toWeeklyRange(lk)));
-        DateTimeFormatter dmy = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        List<WeeklyScheduleCalculator.DatedRange> trials = data.bookedSlots().stream()
-                .filter(b -> b.getDate() != null && b.getStartTime() != null && b.getEndTime() != null)
-                .map(b -> {
-                    int start = parseMinutes(b.getStartTime());
-                    int end = parseMinutes(b.getEndTime());
-                    return new WeeklyScheduleCalculator.DatedRange(LocalDate.parse(b.getDate(), dmy), start,
-                            end <= start ? WeeklyScheduleCalculator.DAY_MINUTES : end);
-                })
+        // Lịch bận theo TỪNG NGÀY trong tuần: lịch lớp (mọi tuần), buổi của khóa kết nối (đã xác nhận / đang chờ duyệt),
+        // buổi học thử (đã xác nhận / đang chờ duyệt). Đang chờ duyệt cũng giữ chỗ.
+        BusyIndex busy = busyLoader.load(tutorId, null, null, weekStart, weekStart.plusDays(6),
+                ConnectionBusyLoader.Mode.LEARNER_REQUEST);
+        List<WeeklyScheduleCalculator.WeeklyRange> weeklyBusy = busy.weekly().stream()
+                .map(w -> new WeeklyScheduleCalculator.WeeklyRange(w.dayOfWeek(), minutesOf(w.start()), minutesOf(w.end())))
+                .toList();
+        List<WeeklyScheduleCalculator.DatedRange> trials = busy.dated().stream()
+                .map(d -> new WeeklyScheduleCalculator.DatedRange(d.date(), minutesOf(d.start()), minutesOf(d.end())))
                 .toList();
 
         List<TutorWeekScheduleDTO.Day> days = WeeklyScheduleCalculator
-                .compute(weekStart, availabilities, weeklyBusy, trials, now, MIN_CONNECT_DURATION).stream()
+                .compute(weekStart, availabilities, weeklyBusy, trials, now, minimum).stream()
                 .map(d -> TutorWeekScheduleDTO.Day.builder()
                         .date(d.date())
                         .dayOfWeek(d.dayOfWeek())
@@ -265,6 +267,10 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                 .maxWeekStart(maxWeek)
                 .days(days)
                 .build();
+    }
+
+    private static int minutesOf(LocalTime t) {
+        return t.equals(LocalTime.MAX) ? WeeklyScheduleCalculator.DAY_MINUTES : t.getHour() * 60 + t.getMinute();
     }
 
     private static WeeklyScheduleCalculator.WeeklyRange toWeeklyRange(TutorAvailabilityDTO a) {
@@ -356,6 +362,8 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                .append("SELECT 'LK', cr.tutor_id, NULL, sl.day_of_week, sl.start_time::text, sl.end_time::text, NULL, NULL ")
                .append("FROM connection_request_slots sl JOIN connection_requests cr ON cr.request_id = sl.request_id ")
                .append("WHERE cr.tutor_id IN (").append(in).append(") AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED' ")
+               // Yêu cầu đã có buổi cụ thể chỉ khóa đúng những ngày đó (xem ConnectionBusyLoader), không khóa cả ca hằng tuần
+               .append("  AND NOT EXISTS (SELECT 1 FROM connection_request_sessions x WHERE x.request_id = cr.request_id) ")
                .append("  AND (EXISTS (SELECT 1 FROM learning_spaces x WHERE x.tutor_id = cr.tutor_id AND x.learner_id = cr.learner_id ")
                .append("               AND x.status IN ('ACTIVE', 'PAUSED')) ")
                .append("       OR NOT EXISTS (SELECT 1 FROM learning_spaces x WHERE x.tutor_id = cr.tutor_id AND x.learner_id = cr.learner_id)) ");

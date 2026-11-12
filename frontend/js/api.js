@@ -256,8 +256,11 @@ export const API = {
      * @param {string} tutorId
      * @param {string|null} weekStart - "YYYY-MM-DD" (Thứ Hai); null = tuần hiện tại
      */
-    async getWeeklySchedule(tutorId, weekStart = null) {
-      const qs = weekStart ? `?weekStart=${encodeURIComponent(weekStart)}` : '';
+    async getWeeklySchedule(tutorId, weekStart = null, minDuration = null) {
+      const params = new URLSearchParams();
+      if (weekStart) params.set('weekStart', weekStart);
+      if (minDuration) params.set('minDuration', minDuration);
+      const qs = params.toString() ? `?${params.toString()}` : '';
       const response = await fetch(`${API_BASE_URL}/tutors/${tutorId}/weekly-schedule${qs}`, {
         headers: { 'Accept': 'application/json' },
         signal: AbortSignal.timeout(8000)
@@ -305,6 +308,14 @@ export const API = {
     /** payload: { tutorId, slots: [{ dayOfWeek, startTime: 'HH:mm', durationMinutes }], currentLevel, learningGoals, initialMessage } */
     create(payload) {
       return this._call('', { method: 'POST', body: payload });
+    },
+
+    /**
+     * Xem trước lịch học dự kiến: { tutorId, slots, startDate: 'YYYY-MM-DD', totalSessions }
+     * → { sessions: [{ date, dayName, startTime, endTime, available, reason }], conflictCount, suggestedStartWeek, ... }
+     */
+    preview(payload) {
+      return this._call('/preview', { method: 'POST', body: payload, timeout: 8000 });
     },
 
     /** Danh sách yêu cầu kết nối trực tiếp của tôi (học viên hoặc gia sư). */

@@ -16,7 +16,9 @@ import com.kizuna.features.booking.entity.TrialBookingStatus;
 import com.kizuna.features.booking.repository.ConnectionRequestRepository;
 import com.kizuna.features.booking.repository.TrialBookingHistoryRepository;
 import com.kizuna.features.booking.repository.TrialBookingRepository;
+import com.kizuna.features.booking.service.ConnectionSchedulePlanner;
 import com.kizuna.features.booking.service.impl.TrialBookingServiceImpl;
+import java.util.List;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -57,6 +59,9 @@ class TrialBookingServiceTest {
 
     @Mock
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @Mock
+    private com.kizuna.features.booking.service.ConnectionBusyLoader busyLoader;
 
     @InjectMocks
     private TrialBookingServiceImpl trialBookingService;
@@ -99,6 +104,9 @@ class TrialBookingServiceTest {
                 .build();
 
         lenient().when(learnerRepository.save(any(Learner.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(trialBookingRepository.isWithinAvailability(eq(tutorId), anyInt(), any(), any())).thenReturn(true);
+        lenient().when(busyLoader.load(any(), any(), any(), any(), any(), any()))
+                .thenReturn(ConnectionSchedulePlanner.BusyIndex.EMPTY);
     }
 
     @Test
@@ -142,28 +150,85 @@ class TrialBookingServiceTest {
         verify(trialBookingHistoryRepository, times(1)).save(any(TrialBookingHistory.class));
     }
 
-    @Test
-    @DisplayName("Đặt lịch học thử - Không kiểm tra lịch rảnh hay trùng lịch lúc học viên gửi yêu cầu")
-    void testCreateTrialBooking_DoesNotCheckAvailabilityOrOverlap() {
-        OffsetDateTime startTime = OffsetDateTime.now().plusDays(2).withHour(3).withMinute(15);
-        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
+    private CreateTrialBookingRequestDTO offScheduleRequest(Boolean proposal) {
+        return CreateTrialBookingRequestDTO.builder()
                 .tutorId(tutorId)
-                .scheduledStartTime(startTime)
+                .scheduledStartTime(OffsetDateTime.now().plusDays(2).withHour(21).withMinute(30))
                 .durationMinutes(30)
+                .offSchedule(proposal)
                 .build();
+    }
 
+    private void stubLearnerTutorAndSave() {
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
         when(learnerRepository.findByUser(mockLearnerUser)).thenReturn(Optional.of(mockLearner));
         when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(mockTutor));
-        when(connectionRequestRepository.save(any(ConnectionRequest.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(connectionRequestRepository.save(any(ConnectionRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
+    }
 
-        TrialBookingResponseDTO response = trialBookingService.createTrialBooking("learner@test.com", request);
+    @Test
+    @DisplayName("Giờ ngoài lịch rảnh mà không dùng 'Đề xuất giờ khác' thì bị từ chối")
+    void testCreateTrialBooking_OutsideAvailabilityWithoutProposal_Rejected() {
+        stubLearnerTutorAndSave();
+        when(trialBookingRepository.isWithinAvailability(eq(tutorId), anyInt(), any(), any())).thenReturn(false);
+
+        com.kizuna.core.exception.BadRequestException ex = assertThrows(com.kizuna.core.exception.BadRequestException.class,
+                () -> trialBookingService.createTrialBooking("learner@test.com", offScheduleRequest(null)));
+        assertTrue(ex.getMessage().contains("ngoài lịch rảnh"));
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Đề xuất giờ khác (ngoài lịch rảnh) được gửi và gắn nhãn offSchedule")
+    void testCreateTrialBooking_Proposal_SavedAsOffSchedule() {
+        stubLearnerTutorAndSave();
+        when(trialBookingRepository.isWithinAvailability(eq(tutorId), anyInt(), any(), any())).thenReturn(false);
+
+        TrialBookingResponseDTO response = trialBookingService.createTrialBooking("learner@test.com", offScheduleRequest(true));
 
         assertEquals("PENDING", response.getBookingStatus());
-        verify(trialBookingRepository, never()).existsConfirmedTutorOverlap(any(), any(), any(), any());
-        verify(trialBookingRepository, never()).existsConfirmedLearnerOverlap(any(), any(), any(), any());
-        verify(trialBookingRepository, never()).findClassScheduleClash(any(), any(), anyInt(), any(), any());
+        assertTrue(response.isOffSchedule());
+    }
+
+    @Test
+    @DisplayName("Đề xuất giờ khác quá 2 lần/tuần với cùng gia sư thì bị chặn")
+    void testCreateTrialBooking_ProposalLimit() {
+        stubLearnerTutorAndSave();
+        when(trialBookingRepository.isWithinAvailability(eq(tutorId), anyInt(), any(), any())).thenReturn(false);
+        when(trialBookingRepository.countOffScheduleSince(eq(mockLearner.getLearnerId()), eq(tutorId), any())).thenReturn(2L);
+
+        com.kizuna.core.exception.ConflictException ex = assertThrows(com.kizuna.core.exception.ConflictException.class,
+                () -> trialBookingService.createTrialBooking("learner@test.com", offScheduleRequest(true)));
+        assertTrue(ex.getMessage().contains("tối đa 2 lần"));
+    }
+
+    @Test
+    @DisplayName("Giờ gia sư đang bận thật thì không đặt được, kể cả khi là đề xuất")
+    void testCreateTrialBooking_TutorBusy_Rejected() {
+        stubLearnerTutorAndSave();
+        when(trialBookingRepository.isWithinAvailability(eq(tutorId), anyInt(), any(), any())).thenReturn(false);
+        when(busyLoader.load(any(), any(), any(), any(), any(), any())).thenReturn(new ConnectionSchedulePlanner.BusyIndex(
+                List.of(new ConnectionSchedulePlanner.WeeklyBusy(1, java.time.LocalTime.MIN, java.time.LocalTime.MAX,
+                                ConnectionSchedulePlanner.BusyKind.TRIAL),
+                        new ConnectionSchedulePlanner.WeeklyBusy(2, java.time.LocalTime.MIN, java.time.LocalTime.MAX,
+                                ConnectionSchedulePlanner.BusyKind.TRIAL),
+                        new ConnectionSchedulePlanner.WeeklyBusy(3, java.time.LocalTime.MIN, java.time.LocalTime.MAX,
+                                ConnectionSchedulePlanner.BusyKind.TRIAL),
+                        new ConnectionSchedulePlanner.WeeklyBusy(4, java.time.LocalTime.MIN, java.time.LocalTime.MAX,
+                                ConnectionSchedulePlanner.BusyKind.TRIAL),
+                        new ConnectionSchedulePlanner.WeeklyBusy(5, java.time.LocalTime.MIN, java.time.LocalTime.MAX,
+                                ConnectionSchedulePlanner.BusyKind.TRIAL),
+                        new ConnectionSchedulePlanner.WeeklyBusy(6, java.time.LocalTime.MIN, java.time.LocalTime.MAX,
+                                ConnectionSchedulePlanner.BusyKind.TRIAL),
+                        new ConnectionSchedulePlanner.WeeklyBusy(7, java.time.LocalTime.MIN, java.time.LocalTime.MAX,
+                                ConnectionSchedulePlanner.BusyKind.TRIAL)),
+                List.of()));
+
+        com.kizuna.core.exception.ConflictException ex = assertThrows(com.kizuna.core.exception.ConflictException.class,
+                () -> trialBookingService.createTrialBooking("learner@test.com", offScheduleRequest(true)));
+        assertTrue(ex.getMessage().contains("đã kín"));
+        verify(trialBookingRepository, never()).save(any());
     }
 
     @Test

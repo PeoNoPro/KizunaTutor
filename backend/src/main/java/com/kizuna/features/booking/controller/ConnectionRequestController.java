@@ -40,6 +40,15 @@ public class ConnectionRequestController {
                 .body(ApiResponse.ok("Đã gửi yêu cầu kết nối. Vui lòng chờ gia sư phản hồi.", body));
     }
 
+    /** Xem trước lịch học dự kiến: từng buổi cụ thể, buổi nào đã kín, gợi ý tuần bắt đầu không vướng. */
+    @PostMapping("/preview")
+    @PreAuthorize("hasAuthority('ROLE_LEARNER')")
+    public ResponseEntity<ApiResponse<com.kizuna.features.booking.dto.response.ConnectionPreviewResponseDTO>> preview(
+            @Valid @RequestBody com.kizuna.features.booking.dto.request.ConnectionPreviewRequestDTO request) {
+        return ResponseEntity.ok(ApiResponse.ok("Lịch học dự kiến",
+                connectionRequestService.preview(currentEmail(), request)));
+    }
+
     @GetMapping("/my-requests")
     @PreAuthorize("hasAnyAuthority('ROLE_LEARNER', 'ROLE_TUTOR')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> myRequests(

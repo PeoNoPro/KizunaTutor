@@ -96,4 +96,8 @@ test('hợp đồng HTML/JS trang chủ tuân thủ component dùng chung, đầ
     assert.ok(!/\buppercase\b/.test(content), `${label} không được dùng class uppercase trên UI tiếng Việt`);
     assert.ok(!/ROLE_|BAD_CREDENTIALS|NullPointerException|450\+/.test(content), `${label} không được chứa mã nội bộ hoặc số liệu tĩnh 450+`);
   }
+
+  assert.ok(!html.includes('Chữ Hán tiêu biểu'), 'Không hiển thị thẻ chữ Hán nổi trên banner trang chủ');
+  assert.ok(!html.includes('Thử luyện viết Shodo'), 'Không hiển thị nút Thử luyện viết Shodo trên banner trang chủ');
+  assert.ok(!html.includes('Hanko Stamp'), 'Không hiển thị con dấu Hanko 絆 Kizuna trên banner trang chủ');
 });

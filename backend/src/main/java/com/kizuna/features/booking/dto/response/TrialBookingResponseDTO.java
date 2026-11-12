@@ -15,6 +15,8 @@ public class TrialBookingResponseDTO {
     private UUID bookingId;
     /** Gia sư đã bấm "Đồng ý kết nối" sau buổi học thử (kết nối ACCEPTED, có thể tạo lớp FE-06). */
     private boolean officialArrangementAgreed;
+    /** Đề xuất ngoài lịch rảnh của gia sư. */
+    private boolean offSchedule;
     private UUID requestId;
 
     // Tương thích hợp đồng API

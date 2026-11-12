@@ -42,17 +42,24 @@
           </button>
         </div>
 
-        <!-- Yêu cầu kết nối trực tiếp (học viên chọn ca hằng tuần, không cần học thử) -->
-        <section id="directSection" class="mb-8 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-            <div>
-              <h2 class="text-title-lg font-bold text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-[22px]">handshake</span>
-                Kết nối trực tiếp
-                <span id="directPendingBadge" class="hidden px-2 py-0.5 rounded-full text-caption font-bold bg-amber-100 text-amber-800"></span>
-              </h2>
-              <p class="text-body-sm text-on-surface-variant mt-1">Học viên muốn học chính thức theo các ca hằng tuần trong lịch rảnh của bạn, không qua học thử.</p>
-            </div>
+        <!-- CHỌN LOẠI YÊU CẦU (giống trang "Yêu cầu của tôi" của học viên) -->
+        <div id="typeTabs" class="inline-flex items-center gap-1 p-1 rounded-2xl bg-surface-container border border-outline-variant/40 mb-6">
+          <button type="button" class="type-btn px-4 py-2.5 rounded-xl bg-surface-container-lowest text-on-surface shadow-xs font-bold text-label-md flex items-center gap-2 cursor-pointer" data-type="trial">
+            <span class="material-symbols-outlined text-[18px]">event_available</span>
+            <span>Học thử</span>
+            <span id="typeCountTrial" class="hidden px-1.5 rounded-full text-[11px] bg-amber-100 text-amber-800"></span>
+          </button>
+          <button type="button" class="type-btn px-4 py-2.5 rounded-xl text-on-surface-variant hover:text-on-surface font-semibold text-label-md flex items-center gap-2 cursor-pointer" data-type="direct">
+            <span class="material-symbols-outlined text-[18px]">handshake</span>
+            <span>Kết nối trực tiếp</span>
+            <span id="directPendingBadge" class="hidden px-1.5 rounded-full text-[11px] bg-amber-100 text-amber-800"></span>
+          </button>
+        </div>
+
+        <!-- ===== KẾT NỐI TRỰC TIẾP (học viên chọn ca hằng tuần, không cần học thử) ===== -->
+        <section id="directPanel" class="hidden space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <p class="text-body-sm text-on-surface-variant">Học viên muốn học chính thức theo các ca hằng tuần trong lịch rảnh của bạn, không qua học thử.</p>
             <div id="directTabs" class="flex items-center gap-1.5 text-label-md font-semibold">
               <button type="button" class="direct-tab-btn px-3 py-1.5 rounded-xl bg-primary text-on-primary transition-all" data-status="PENDING">Chờ phản hồi</button>
               <button type="button" class="direct-tab-btn px-3 py-1.5 rounded-xl text-on-surface-variant hover:bg-surface-container transition-all" data-status="ACCEPTED">Đã kết nối</button>
@@ -62,12 +69,11 @@
           <div id="directList" class="space-y-4">
             <!-- Render động từ tutor-connections.js -->
           </div>
+          <div id="directPager" class="hidden"><!-- Phân trang (7 mục/trang) --></div>
         </section>
 
-        <h2 class="text-title-lg font-bold text-on-surface flex items-center gap-2 mb-4">
-          <span class="material-symbols-outlined text-primary text-[22px]">event_available</span>
-          Yêu cầu học thử
-        </h2>
+        <!-- ===== HỌC THỬ ===== -->
+        <section id="trialPanel">
 
         <!-- Thống kê nhanh 3 thẻ -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -152,6 +158,8 @@
         <div id="bookingsList" class="space-y-4 hidden">
           <!-- Render động từ tutor-connections.js -->
         </div>
+        <div id="bookingsPager" class="hidden"><!-- Phân trang (7 mục/trang) --></div>
+        </section>
 
       </div>
     </main>

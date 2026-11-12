@@ -96,22 +96,62 @@ function highlightNav(link) {
   });
 }
 
+// Kết quả kiểm gói được nhớ tạm trong phiên để chuyển trang không phải chờ API mỗi lần.
+const MEMBERSHIP_CACHE_KEY = 'kizuna_tutor_membership_lock';
+const MEMBERSHIP_CACHE_MS = 5 * 60 * 1000;
+// Chờ API kiểm gói tối đa chừng này rồi hiện trang luôn (backend vẫn chặn API nếu chưa có gói).
+const MEMBERSHIP_MAX_HIDE_MS = 1500;
+
+function readMembershipCache() {
+  // Trang gói hội viên / kết quả thanh toán luôn hỏi lại server: vừa mua gói xong thì mở khóa ngay
+  if (/membership/i.test(window.location.pathname)) return null;
+  try {
+    const raw = sessionStorage.getItem(MEMBERSHIP_CACHE_KEY);
+    if (!raw) return null;
+    const { locked, at } = JSON.parse(raw);
+    return Date.now() - at < MEMBERSHIP_CACHE_MS ? Boolean(locked) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeMembershipCache(locked) {
+  try {
+    sessionStorage.setItem(MEMBERSHIP_CACHE_KEY, JSON.stringify({ locked, at: Date.now() }));
+  } catch (e) { /* trình duyệt chặn bộ nhớ: bỏ qua */ }
+}
+
+function applyLockedUi(main, activeItem, pageLocked) {
+  document.querySelectorAll('#tutorSidebar [data-lock-icon]').forEach((el) => el.classList.remove('hidden'));
+  if (pageLocked) showMembershipGate(main, activeItem.label);
+}
+
 /** Kiểm gói hội viên: khóa các mục cần gói trên sidebar và chặn trang đang mở nếu là trang cần gói. */
 async function applyMembershipLock(activeItem) {
   const main = document.querySelector('main');
   const pageLocked = Boolean(activeItem && activeItem.member && main);
-  if (pageLocked) main.classList.add('invisible');
+
+  // Đã biết kết quả trong phiên: áp dụng ngay, không ẩn trang
+  const cached = readMembershipCache();
+  if (cached !== null) {
+    membershipLocked = cached;
+    if (membershipLocked) applyLockedUi(main, activeItem, pageLocked);
+  } else if (pageLocked) {
+    // Lần đầu: ẩn nội dung trong lúc chờ, nhưng không quá MEMBERSHIP_MAX_HIDE_MS để tránh trang trắng khi API chậm
+    main.classList.add('invisible');
+    setTimeout(() => main.classList.remove('invisible'), MEMBERSHIP_MAX_HIDE_MS);
+  }
+
   try {
     const { API } = await import('/js/api.js');
     const data = await API.tutorMembership.getMine();
-    membershipLocked = !data || !data.expiresOn;
+    const locked = !data || !data.expiresOn;
+    writeMembershipCache(locked);
+    if (locked && !membershipLocked) applyLockedUi(main, activeItem, pageLocked);
+    membershipLocked = locked;
   } catch (e) {
     // Không xác định được (lỗi mạng...): không khóa trên giao diện, backend vẫn chặn API
-    membershipLocked = false;
-  }
-  if (membershipLocked) {
-    document.querySelectorAll('#tutorSidebar [data-lock-icon]').forEach((el) => el.classList.remove('hidden'));
-    if (pageLocked) showMembershipGate(main, activeItem.label);
+    if (cached === null) membershipLocked = false;
   }
   if (pageLocked) main.classList.remove('invisible');
 }

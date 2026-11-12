@@ -34,8 +34,20 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Whitelist các tham số hợp lệ
-  const VALID_JLPT = ['N1', 'N2', 'N3', 'N4', 'N5', 'all'];
-  const VALID_GOALS = ['kaiwa', 'jlpt', 'business', 'it'];
+  // "Mục tiêu học" (gộp môn học + trình độ). jlpt_* = luyện thi đúng cấp, server tự lọc gia sư đủ trình độ.
+  const VALID_GOALS = ['kaiwa', 'jlpt', 'jlpt_n5n4', 'jlpt_n3', 'jlpt_n2', 'jlpt_n1', 'business', 'it'];
+  const GOAL_LABELS = {
+    kaiwa: 'Giao tiếp (Kaiwa)',
+    jlpt: 'Luyện thi JLPT',
+    jlpt_n5n4: 'Luyện thi N5 – N4',
+    jlpt_n3: 'Luyện thi N3',
+    jlpt_n2: 'Luyện thi N2',
+    jlpt_n1: 'Luyện thi N1',
+    business: 'Tiếng Nhật thương mại',
+    it: 'Tiếng Nhật IT & BrSE'
+  };
+  // Link cũ ?jlpt=N3 (bộ lọc "Trình độ JLPT" đã gộp vào "Mục tiêu học")
+  const LEGACY_JLPT_TO_GOAL = { N1: 'jlpt_n1', N2: 'jlpt_n2', N3: 'jlpt_n3', N4: 'jlpt_n5n4', N5: 'jlpt_n5n4' };
   const VALID_FORMATS = ['online', 'offline', 'hybrid'];
   const VALID_PRICES = ['150-250', '250-400', '400-600'];
   const VALID_SCHEDULES = ['today', 'weekend', 'evening'];
@@ -83,12 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const loc = params.get('location') || params.get('loc') || params.get('address');
     if (loc && loc.trim()) validated.location = loc.trim();
 
-    const jlpt = params.get('jlpt') || params.get('level');
-    if (jlpt && VALID_JLPT.includes(jlpt)) validated.jlptLevel = jlpt;
-    else if (jlpt) validated.jlptLevel = 'all';
-
     const goal = params.get('goal');
     if (goal && VALID_GOALS.includes(goal)) validated.goal = goal;
+
+    // Link cũ dùng ?jlpt=N3: chuyển sang mục tiêu "Luyện thi N3"
+    const jlpt = (params.get('jlpt') || params.get('level') || '').toUpperCase();
+    if (!validated.goal && LEGACY_JLPT_TO_GOAL[jlpt]) validated.goal = LEGACY_JLPT_TO_GOAL[jlpt];
+    validated.jlptLevel = 'all';
 
     const format = params.get('format');
     if (format && (VALID_FORMATS.includes(format) || format === 'all')) validated.format = format;
@@ -202,18 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchInput) searchInput.value = state.keyword;
     if (sortSelect) sortSelect.value = state.sortBy;
 
-    const goalLabels = {
-      kaiwa: 'Kaiwa',
-      jlpt: 'Luyện thi JLPT',
-      business: 'Thương mại',
-      it: 'IT & BrSE'
-    };
-    setPillStyle('goal', state.goal ? (goalLabels[state.goal] || state.goal) : 'Môn học', Boolean(state.goal));
+    setPillStyle('goal', state.goal ? (GOAL_LABELS[state.goal] || state.goal) : 'Mục tiêu học', Boolean(state.goal));
     syncOptionHighlight('goal', state.goal);
-
-    const hasJlpt = Boolean(state.jlptLevel && state.jlptLevel !== 'all');
-    setPillStyle('jlpt', hasJlpt ? `JLPT ${state.jlptLevel}` : 'Trình độ JLPT', hasJlpt);
-    syncOptionHighlight('jlpt', state.jlptLevel || 'all');
 
     const timeCount = state.selectedShifts.size + state.selectedDays.size;
     const legacyScheduleMap = { today: 'Hôm nay', weekend: 'Cuối tuần', evening: 'Buổi tối' };
@@ -663,10 +666,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (state.keyword.trim()) chips.push({ key: 'keyword', label: `Từ khóa: "${state.keyword}"` });
     if (state.location && state.location.trim()) chips.push({ key: 'location', label: `Khu vực: "${state.location}"` });
-    if (state.jlptLevel && state.jlptLevel !== 'all') chips.push({ key: 'jlptLevel', label: `JLPT: ${state.jlptLevel}` });
     if (state.goal) {
-      const map = { kaiwa: 'Luyện giao tiếp', jlpt: 'Luyện thi JLPT', business: 'Tiếng Nhật thương mại', it: 'Tiếng Nhật IT' };
-      chips.push({ key: 'goal', label: map[state.goal] || state.goal });
+      chips.push({ key: 'goal', label: GOAL_LABELS[state.goal] || state.goal });
     }
     if (state.format && state.format !== 'all') {
       const map = { online: 'Học Online', offline: 'Tại nhà', hybrid: 'Linh hoạt' };

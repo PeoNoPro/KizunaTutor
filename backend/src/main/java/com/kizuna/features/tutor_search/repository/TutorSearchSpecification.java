@@ -67,9 +67,16 @@ public class TutorSearchSpecification {
                 predicates.add(cb.like(cb.lower(addressExpr), locationPattern));
             }
 
-            // 4. Lọc theo trình độ JLPT
-            if (criteria.getJlptLevel() != null && !criteria.getJlptLevel().trim().isEmpty() && !"all".equalsIgnoreCase(criteria.getJlptLevel())) {
-                predicates.add(cb.equal(cb.upper(root.get("highestJlptLevel")), criteria.getJlptLevel().trim().toUpperCase()));
+            // 4. Trình độ của gia sư: "từ mức này trở lên" (gia sư N1 dạy được mọi mức), không so khớp đúng.
+            //    Giao diện mới lọc trình độ qua "Mục tiêu học" (goal = jlpt_n3...); tham số jlptLevel giữ cho link cũ.
+            List<String> minLevels = levelsAtLeast(criteria.getJlptLevel());
+            GoalFilter goalFilter = goalFilterOf(criteria.getGoal());
+            if (goalFilter != null && goalFilter.tutorLevels() != null) {
+                minLevels = minLevels == null ? goalFilter.tutorLevels()
+                        : minLevels.stream().filter(goalFilter.tutorLevels()::contains).toList();
+            }
+            if (minLevels != null) {
+                predicates.add(cb.upper(root.get("highestJlptLevel")).in(minLevels.isEmpty() ? List.of("-") : minLevels));
             }
 
             // 5. Hình thức học, môn học, học phí: lọc theo BÀI ĐĂNG ĐANG HIỂN THỊ (bài PUBLISHED được duyệt gần nhất),
@@ -83,12 +90,61 @@ public class TutorSearchSpecification {
         };
     }
 
-    /** Từ khóa nhận diện từng môn học trên bộ lọc (so khớp không phân biệt hoa thường trong chuyên môn, tiêu đề, nội dung bài đăng). */
-    private static final Map<String, List<String>> GOAL_KEYWORDS = Map.of(
-            "kaiwa", List.of("kaiwa", "giao tiếp", "hội thoại"),
-            "jlpt", List.of("jlpt", "luyện thi", "n1", "n2", "n3", "n4", "n5"),
-            "business", List.of("thương mại", "doanh nghiệp", "business", "công sở"),
-            "it", List.of(" it ", "công nghệ thông tin", "lập trình"));
+    /**
+     * Bộ lọc "Mục tiêu học".
+     * @param keywords    nhận diện gia sư CÓ DẠY mục tiêu này trong bài đăng đang hiển thị (chuyên môn, tiêu đề, nội dung)
+     * @param tutorLevels trình độ gia sư cần có (null = không yêu cầu)
+     *
+     * Tạm thời "có dạy" được đoán bằng từ khóa. Khi bài đăng có bảng học phí theo môn/cấp độ
+     * (tutor_posts.price_items, PR #22) thì chỉ cần đổi {@link #teachesGoal} sang đọc bảng đó.
+     */
+    private record GoalFilter(List<String> keywords, List<String> tutorLevels) {
+    }
+
+    /** Thứ tự từ cao xuống thấp. */
+    private static final List<String> JLPT_LEVELS = List.of("N1", "N2", "N3", "N4", "N5");
+
+    // Văn bản bài đăng được chuẩn hóa: chữ thường, dấu câu thành khoảng trắng, có khoảng trắng hai đầu
+    // → " n3 " khớp "Luyện thi N3," nhưng không khớp nhầm giữa một từ khác.
+    private static final List<String> JLPT_KEYWORDS =
+            List.of("jlpt", "luyện thi", "luyện đề", "ôn thi", " n1 ", " n2 ", " n3 ", " n4 ", " n5 ");
+
+    private static final Map<String, GoalFilter> GOALS = Map.of(
+            "kaiwa", new GoalFilter(List.of("kaiwa", "giao tiếp", "hội thoại"), null),
+            "business", new GoalFilter(List.of("thương mại", "doanh nghiệp", "business", "công sở"), null),
+            "it", new GoalFilter(List.of(" it ", "brse", "công nghệ thông tin", "lập trình"), null),
+            // Luyện thi JLPT: gia sư phải có trình độ cao hơn hoặc bằng mức thi
+            "jlpt", new GoalFilter(JLPT_KEYWORDS, null),
+            "jlpt_n5n4", new GoalFilter(JLPT_KEYWORDS, List.of("N1", "N2", "N3")),
+            "jlpt_n3", new GoalFilter(JLPT_KEYWORDS, List.of("N1", "N2")),
+            "jlpt_n2", new GoalFilter(JLPT_KEYWORDS, List.of("N1", "N2")),
+            "jlpt_n1", new GoalFilter(JLPT_KEYWORDS, List.of("N1")));
+
+    private static GoalFilter goalFilterOf(String goal) {
+        String g = normalize(goal);
+        return g == null ? null : GOALS.get(g);
+    }
+
+    /** "N3" → [N1, N2, N3]; null nếu không lọc hoặc giá trị không hợp lệ. */
+    static List<String> levelsAtLeast(String level) {
+        String l = normalize(level);
+        if (l == null) return null;
+        int idx = JLPT_LEVELS.indexOf(l.toUpperCase());
+        return idx < 0 ? null : JLPT_LEVELS.subList(0, idx + 1);
+    }
+
+    /** Gia sư có dạy mục tiêu này: bài đăng đang hiển thị chứa một trong các từ khóa. */
+    private static Predicate teachesGoal(CriteriaBuilder cb, Root<TutorPost> p, GoalFilter goal) {
+        // " " + chuyên môn + tiêu đề + nội dung + " ", bỏ dấu câu thành khoảng trắng để so khớp được cả từ ngắn như "IT"
+        Expression<String> text = cb.concat(cb.concat(cb.concat(cb.concat(cb.concat(
+                cb.literal(" "), cb.coalesce(p.get("specialties"), "")), cb.literal(" ")),
+                cb.coalesce(p.get("title"), "")), cb.literal(" ")), cb.coalesce(p.get("content"), ""));
+        Expression<String> normalizedText = cb.function("translate", String.class,
+                cb.lower(cb.concat(text, cb.literal(" "))), cb.literal(",.;:/()-•|"), cb.literal("          "));
+        return cb.or(goal.keywords().stream()
+                .map(k -> cb.like(normalizedText, "%" + k + "%"))
+                .toArray(Predicate[]::new));
+    }
 
     /** Hình thức dạy trong bài đăng phù hợp với từng lựa chọn trên bộ lọc. */
     private static final Map<String, List<String>> FORMAT_VALUES = Map.of(
@@ -103,10 +159,9 @@ public class TutorSearchSpecification {
     private static Predicate displayedPostMatches(Root<Tutor> root, CriteriaQuery<?> query, CriteriaBuilder cb,
                                                   TutorSearchCriteriaDTO criteria) {
         String format = normalize(criteria.getFormat());
-        String goal = normalize(criteria.getGoal());
         List<String> formatValues = format == null ? null : FORMAT_VALUES.get(format);
-        List<String> goalKeywords = goal == null ? null : GOAL_KEYWORDS.get(goal);
-        if (formatValues == null && goalKeywords == null
+        GoalFilter goal = goalFilterOf(criteria.getGoal());
+        if (formatValues == null && goal == null
                 && criteria.getMinPrice() == null && criteria.getMaxPrice() == null) {
             return null;
         }
@@ -131,16 +186,8 @@ public class TutorSearchSpecification {
             conditions.add(cb.upper(p.get("teachingFormat")).in(formatValues));
         }
 
-        if (goalKeywords != null) {
-            // " " + chuyên môn + tiêu đề + nội dung + " ", bỏ dấu câu thành khoảng trắng để so khớp được cả từ ngắn như "IT"
-            Expression<String> text = cb.concat(cb.concat(cb.concat(cb.concat(cb.concat(
-                    cb.literal(" "), cb.coalesce(p.get("specialties"), "")), cb.literal(" ")),
-                    cb.coalesce(p.get("title"), "")), cb.literal(" ")), cb.coalesce(p.get("content"), ""));
-            Expression<String> normalizedText = cb.function("translate", String.class,
-                    cb.lower(cb.concat(text, cb.literal(" "))), cb.literal(",.;:/()-•|"), cb.literal("          "));
-            conditions.add(cb.or(goalKeywords.stream()
-                    .map(k -> cb.like(normalizedText, "%" + k + "%"))
-                    .toArray(Predicate[]::new)));
+        if (goal != null) {
+            conditions.add(teachesGoal(cb, p, goal));
         }
 
         // Học phí hiển thị = học phí của bài đăng (nếu bài đăng không ghi thì dùng học phí trong hồ sơ)

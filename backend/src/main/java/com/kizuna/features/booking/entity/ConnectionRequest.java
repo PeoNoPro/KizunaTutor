@@ -9,7 +9,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,9 +57,12 @@ public class ConnectionRequest {
     @Column(name = "response_message", columnDefinition = "TEXT")
     private String responseMessage;
 
-    /** Ngày học viên muốn bắt đầu học các ca hằng tuần (chỉ có ở yêu cầu DIRECT, giờ Việt Nam). */
-    @Column(name = "start_date")
-    private LocalDate startDate;
+    /** Các buổi học cụ thể theo ngày (chỉ có ở yêu cầu DIRECT tạo từ khi có bảng connection_request_sessions). */
+    @OneToMany(mappedBy = "connectionRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sessionDate ASC, startTime ASC")
+    @BatchSize(size = 50)
+    @Builder.Default
+    private List<ConnectionRequestSession> sessions = new ArrayList<>();
 
     /** Các ca hằng tuần học viên chọn (chỉ có ở yêu cầu DIRECT). */
     @OneToMany(mappedBy = "connectionRequest", cascade = CascadeType.ALL, orphanRemoval = true)

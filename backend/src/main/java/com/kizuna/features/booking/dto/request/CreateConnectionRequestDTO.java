@@ -25,8 +25,13 @@ public class CreateConnectionRequestDTO {
     @Valid
     private List<ConnectionSlotRequestDTO> slots;
 
-    /** Ngày bắt đầu học (thường là Thứ Hai của tuần học viên đang xem). Bỏ trống = bắt đầu từ hôm nay. */
+    /** Ngày bắt đầu học (thường là Thứ Hai của tuần học viên chọn). Bỏ trống = bắt đầu từ hôm nay. */
     private java.time.LocalDate startDate;
+
+    /** Tổng số buổi học (1–12). Bỏ trống = 8 buổi. */
+    @jakarta.validation.constraints.Min(value = 1, message = "Số buổi học tối thiểu là 1")
+    @jakarta.validation.constraints.Max(value = 12, message = "Số buổi học tối đa là 12")
+    private Integer totalSessions;
 
     @Size(max = 100, message = "Trình độ hiện tại tối đa 100 ký tự")
     private String currentLevel;

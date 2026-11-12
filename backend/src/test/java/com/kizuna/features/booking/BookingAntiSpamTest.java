@@ -55,6 +55,7 @@ class BookingAntiSpamTest {
     @Mock private TrialBookingHistoryRepository trialBookingHistoryRepository;
     @Mock private TutorScheduleService tutorScheduleService;
     @Mock private JdbcTemplate jdbcTemplate;
+    @Mock private com.kizuna.features.booking.service.ConnectionBusyLoader busyLoader;
 
     private TrialBookingServiceImpl trialService;
     private ConnectionRequestServiceImpl connectionService;
@@ -68,10 +69,17 @@ class BookingAntiSpamTest {
     @BeforeEach
     void setUp() {
         trialService = new TrialBookingServiceImpl(userRepository, learnerRepository, tutorRepository,
-                connectionRequestRepository, trialBookingRepository, trialBookingHistoryRepository, jdbcTemplate);
+                connectionRequestRepository, trialBookingRepository, trialBookingHistoryRepository, jdbcTemplate, busyLoader);
+        org.mockito.Mockito.lenient().when(trialBookingRepository.isWithinAvailability(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(true);
         connectionService = new ConnectionRequestServiceImpl(userRepository, learnerRepository, tutorRepository,
                 connectionRequestRepository, slotRepository, trialBookingRepository, trialBookingHistoryRepository,
-                tutorScheduleService, jdbcTemplate);
+                tutorScheduleService, jdbcTemplate, busyLoader);
+        org.mockito.Mockito.lenient().when(busyLoader.load(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()))
+                .thenReturn(com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyIndex.EMPTY);
 
         tutorId = UUID.randomUUID();
         learnerUser = User.builder().userId(UUID.randomUUID()).email("learner@test.com").fullName("Hoc Vien")

@@ -409,7 +409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   Lịch rảnh giảng dạy
                 </h3>
                 <p class="text-xs text-on-surface-variant leading-relaxed">
-                  Chỉ hiển thị giờ còn trống trong 4 tuần tới. Bấm vào giờ bạn muốn để mở form kết nối với gia sư. Bạn không cần học thử trước.
+                  Giờ còn trống trong 4 tuần tới. Bấm vào một giờ để đặt học thử 30 phút. Muốn học lâu dài theo lịch cố định, bấm "Kết nối với gia sư".
                 </p>
               </div>
               <div class="flex items-center gap-1.5">
@@ -688,7 +688,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadWeek(weekStart = null) {
       const key = weekStart || '__current__';
       if (weekCache.has(key)) return weekCache.get(key);
-      const data = await API.tutors.getWeeklySchedule(tutor.tutorId, weekStart);
+      // Khoảng trống từ 30 phút (đủ cho một buổi học thử)
+      const data = await API.tutors.getWeeklySchedule(tutor.tutorId, weekStart, TRIAL_DURATION_MINUTES);
       weekCache.set(data.weekStart, data);
       if (!weekStart) weekCache.set(key, data);
       return data;
@@ -706,12 +707,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await loadWeek(weekStart);
         if (seq !== weekLoadSeq) return;
         weekData = data;
-        for (let i = selectedSlots.length - 1; i >= 0; i--) {
-          const s = selectedSlots[i];
-          if (!startTimesOf(s.dow, s.duration).includes(s.start)) selectedSlots.splice(i, 1);
-        }
         renderWeeklyCalendar();
         renderConnectForm();
+        renderTrialPicker();
+        schedulePreview(true); // tuần bắt đầu đổi → kiểm tra lại từng buổi
       } catch (err) {
         if (seq !== weekLoadSeq) return;
         console.error('Lỗi khi tải lịch rảnh theo tuần:', err);
@@ -733,11 +732,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function setWeekNavBusy(busy) {
       const canPrev = !!weekData && weekData.weekStart > weekData.minWeekStart;
       const canNext = !!weekData && weekData.weekStart < weekData.maxWeekStart;
-      ['week-prev-btn', 'dc-week-prev'].forEach(id => {
+      ['week-prev-btn', 'dc-week-prev', 'trial-week-prev'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.disabled = busy || !canPrev;
       });
-      ['week-next-btn', 'dc-week-next'].forEach(id => {
+      ['week-next-btn', 'dc-week-next', 'trial-week-next'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.disabled = busy || !canNext;
       });
@@ -764,7 +763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       const startLabel = document.getElementById('dc-start-label');
       if (startLabel && weekData) {
-        startLabel.textContent = `${fmtDMY(connectStartDate())} (tuần ${fmtDM(weekData.weekStart)} – ${fmtDM(weekData.weekEnd)})`;
+        startLabel.textContent = `${fmtDM(weekData.weekStart)} – ${fmtDMY(weekData.weekEnd)}`;
       }
       setWeekNavBusy(false);
     }
@@ -795,8 +794,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const date = day ? day.date : null;
         const isPast = !!date && date < today;
         const isToday = date === today;
-        // Chỉ hiện giờ còn trống (đủ cho ca ngắn nhất); giờ đã có lịch bị ẩn hẳn
-        const starts = startTimesOf(col.dow, MIN_CONNECT_DURATION);
+        // Chỉ hiện giờ còn trống đủ cho một buổi học thử; giờ đã có lịch bị ẩn hẳn
+        const starts = gridStartTimesOf(col.dow, TRIAL_DURATION_MINUTES);
         const hasFree = starts.length > 0;
         if (starts.length > MAX_PREVIEW_ITEMS) anyColumnTooLong = true;
         const shown = isWeeklySlotsExpanded ? starts : starts.slice(0, MAX_PREVIEW_ITEMS);
@@ -804,8 +803,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const itemsHtml = shown.map(start => `
             <button type="button"
               class="weekly-slot-btn w-full py-1.5 px-1 rounded-lg text-xs sm:text-sm font-semibold text-[#0F2545] hover:text-[#006194] hover:bg-sky-50 underline decoration-slate-300 hover:decoration-[#006194] underline-offset-4 transition-all text-center cursor-pointer active:scale-95"
-              data-dow="${col.dow}" data-start="${start}"
-              title="Kết nối học ${col.fullName} lúc ${toHHMM(start)} hằng tuần, bắt đầu từ ${date ? fmtDMY(date) : ''}">
+              data-date="${date || ''}" data-start="${start}"
+              title="Đặt học thử ${TRIAL_DURATION_MINUTES} phút: ${col.fullName} ${date ? fmtDMY(date) : ''} lúc ${toHHMM(start)}">
               ${toHHMM(start)}
             </button>`).join('');
 
@@ -829,12 +828,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (expandIcon) expandIcon.innerText = isWeeklySlotsExpanded ? 'expand_less' : 'expand_more';
       }
 
-      // Bấm vào một giờ → mở form kết nối với ca đó đã được chọn sẵn
+      // Bấm vào một giờ trống → mở form học thử với ngày giờ đó đã được chọn sẵn
       gridEl.querySelectorAll('.weekly-slot-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          const dow = Number(btn.dataset.dow);
+          const date = btn.dataset.date;
           const start = Number(btn.dataset.start);
-          requireLogin(() => openDirectModal({ dow, start }));
+          if (!date) return;
+          requireLogin(() => openTrialModal({ date, start }), 'connect=true');
         });
       });
     }
@@ -853,16 +853,265 @@ document.addEventListener('DOMContentLoaded', async () => {
     let connectDay = null; // dow đang xem trong form
     const selectedSlots = []; // { dow, start (phút từ 00:00), duration }
 
-    /** Các giờ bắt đầu (bước 30 phút) đủ chỗ cho một ca dài `duration` phút trong khung rảnh còn trống. */
-    function startTimesOf(dow, duration = connectDuration) {
+    /** Các giờ bắt đầu (bước 30 phút) đủ chỗ cho một ca dài `duration` phút trong các khoảng trống cho trước. */
+    function startTimesFrom(ranges, duration) {
       const starts = [];
-      freeRangesOf(dow).forEach(r => {
+      ranges.forEach(r => {
         for (let t = Math.ceil(r.start / 30) * 30; t + duration <= r.end && t + duration < 24 * 60; t += 30) {
           starts.push(t);
         }
       });
       return [...new Set(starts)].sort((a, b) => a - b);
     }
+
+    /**
+     * Danh sách giờ chia nhóm Buổi sáng / Buổi chiều / Buổi tối, mỗi nhóm một lưới 3 cột.
+     * renderItem(t) trả về HTML của một ô giờ (t = phút từ 00:00).
+     */
+    const TIME_GROUPS = [
+      { label: 'Buổi sáng', icon: 'wb_twilight', from: 0, to: 12 * 60 },
+      { label: 'Buổi chiều', icon: 'light_mode', from: 12 * 60, to: 17 * 60 },
+      { label: 'Buổi tối', icon: 'nights_stay', from: 17 * 60, to: 24 * 60 }
+    ];
+    function groupedTimesHtml(starts, renderItem) {
+      return TIME_GROUPS.map(g => {
+        const items = starts.filter(t => t >= g.from && t < g.to);
+        if (!items.length) return '';
+        return `
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-sm font-bold text-[#0F2545]">
+              <span class="material-symbols-outlined text-[20px] text-slate-600">${g.icon}</span>${g.label}
+            </div>
+            <div class="grid grid-cols-3 gap-2">${items.map(renderItem).join('')}</div>
+          </div>`;
+      }).join('');
+    }
+    const TIME_BTN = 'w-full py-2.5 px-1 rounded-xl text-sm text-center transition-all';
+    const TIME_BTN_IDLE = `${TIME_BTN} border border-slate-200 bg-white hover:border-[#006194] hover:bg-sky-50 text-slate-800 font-medium cursor-pointer`;
+    const TIME_BTN_ACTIVE = `${TIME_BTN} border-2 border-[#006194] bg-[#006194] text-white font-bold cursor-pointer`;
+    const TIME_BTN_DISABLED = `${TIME_BTN} border border-slate-100 bg-slate-50 text-slate-300 font-medium cursor-not-allowed`;
+
+    /** Bảng lịch theo ngày: giờ trống của đúng tuần đang xem. */
+    function gridStartTimesOf(dow, duration) {
+      return startTimesFrom(freeRangesOf(dow), duration);
+    }
+
+    /**
+     * Form kết nối: MẪU lịch rảnh hằng tuần (lịch rảnh trừ lịch lớp chính thức, lặp mọi tuần).
+     * Trùng lịch theo từng ngày cụ thể (học thử, buổi của khóa khác) do server kiểm tra ở "Lịch học dự kiến".
+     */
+    function patternRangesOf(dow) {
+      const busy = [...(tutor.classSchedules || []), ...(tutor.lockedSlots || [])]
+        .filter(b => Number(b.dayOfWeek) === dow && b.startTime && b.endTime)
+        .map(b => ({ start: toMinutes(b.startTime), end: toMinutes(b.endTime) }));
+      const result = [];
+      (tutor.availabilities || [])
+        .filter(a => Number(a.dayOfWeek) === dow && a.startTime && a.endTime)
+        .forEach(a => {
+          let pieces = [{ start: toMinutes(a.startTime), end: toMinutes(a.endTime) || 24 * 60 }];
+          busy.forEach(b => {
+            pieces = pieces.flatMap(p => {
+              if (!overlaps(p.start, p.end, b.start, b.end)) return [p];
+              const parts = [];
+              if (b.start > p.start) parts.push({ start: p.start, end: b.start });
+              if (b.end < p.end) parts.push({ start: b.end, end: p.end });
+              return parts;
+            });
+          });
+          result.push(...pieces);
+        });
+      return result.sort((x, y) => x.start - y.start);
+    }
+
+    function startTimesOf(dow, duration = connectDuration) {
+      return startTimesFrom(patternRangesOf(dow), duration);
+    }
+
+    // ---------------------------------------------------------------- Lịch học dự kiến (kiểm tra từng buổi)
+
+    const MAX_SESSIONS = 12;
+    let totalSessions = 8;
+    let preview = null;         // kết quả server cho lựa chọn hiện tại
+    let previewError = '';
+    let previewLoading = false;
+    let previewSeq = 0;
+    let previewTimer = null;
+    const slotKey = (dow, start) => `${dow}-${start}`;
+
+    function previewPayload() {
+      return {
+        tutorId: tutor.tutorId,
+        slots: selectedSlots.map(s => ({ dayOfWeek: s.dow, startTime: toHHMM(s.start), durationMinutes: s.duration })),
+        startDate: connectStartDate(),
+        totalSessions
+      };
+    }
+
+    /** Gọi lại server (chờ 300 ms để gộp các lần bấm liên tiếp). */
+    function schedulePreview(immediate = false) {
+      clearTimeout(previewTimer);
+      preview = null;
+      previewError = '';
+      if (!selectedSlots.length || !weekData) {
+        previewLoading = false;
+        renderPreview();
+        return;
+      }
+      previewLoading = true;
+      renderPreview();
+      const seq = ++previewSeq;
+      previewTimer = setTimeout(async () => {
+        try {
+          const data = await API.connectionRequests.preview(previewPayload());
+          if (seq !== previewSeq) return;
+          preview = data;
+        } catch (err) {
+          if (seq !== previewSeq) return;
+          previewError = friendlyError(err, 'Không kiểm tra được lịch học dự kiến. Vui lòng thử lại.');
+        } finally {
+          if (seq === previewSeq) {
+            previewLoading = false;
+            renderPreview();
+          }
+        }
+      }, immediate ? 0 : 300);
+    }
+
+    /** Các ca hằng tuần (dow-start) có ít nhất một buổi bị kín. */
+    function conflictSlotKeys() {
+      const keys = new Set();
+      if (!preview) return keys;
+      (preview.sessions || []).filter(s => !s.available).forEach(s => {
+        keys.add(slotKey(Number(s.dayOfWeek), toMinutes(s.startTime)));
+      });
+      return keys;
+    }
+
+    function renderPreview() {
+      const listEl = document.getElementById('dc-preview');
+      const summaryEl = document.getElementById('dc-preview-summary');
+      const conflictEl = document.getElementById('dc-conflict');
+      const countEl = document.getElementById('dc-sessions-count');
+      const minusBtn = document.getElementById('dc-sessions-minus');
+      const plusBtn = document.getElementById('dc-sessions-plus');
+      if (countEl) countEl.textContent = `${totalSessions} buổi`;
+      if (minusBtn) minusBtn.disabled = totalSessions <= 1;
+      if (plusBtn) plusBtn.disabled = totalSessions >= MAX_SESSIONS;
+
+      const conflicts = preview ? Number(preview.conflictCount || 0) : 0;
+      const canSubmit = selectedSlots.length > 0 && !!preview && conflicts === 0 && !previewLoading;
+      if (directSubmitBtn) directSubmitBtn.disabled = !canSubmit;
+      const submitText = document.getElementById('btn-direct-submit-text');
+      if (submitText) {
+        submitText.textContent = !selectedSlots.length ? 'Gửi yêu cầu kết nối'
+          : previewLoading ? 'Đang kiểm tra lịch...'
+          : conflicts ? `Còn ${conflicts} buổi bị kín`
+          : `Gửi yêu cầu kết nối (${totalSessions} buổi)`;
+      }
+
+      // Đánh dấu ca bị vướng trong danh sách "Ca đã chọn"
+      const badKeys = conflictSlotKeys();
+      document.querySelectorAll('#dc-selected [data-slot-key]').forEach(chip => {
+        const bad = badKeys.has(chip.dataset.slotKey);
+        chip.classList.toggle('bg-amber-50', bad);
+        chip.classList.toggle('border-amber-300', bad);
+        chip.classList.toggle('text-amber-700', bad);
+      });
+
+      if (!listEl) return;
+      if (!selectedSlots.length) {
+        listEl.innerHTML = '<div class="p-3 text-xs text-slate-500">Chọn ít nhất một ca để xem lịch học dự kiến.</div>';
+        if (summaryEl) summaryEl.textContent = '';
+        if (conflictEl) conflictEl.classList.add('hidden');
+        return;
+      }
+      if (previewLoading) {
+        listEl.innerHTML = '<div class="p-3 text-xs text-slate-500 flex items-center gap-2"><span class="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>Đang kiểm tra từng buổi với lịch của gia sư...</div>';
+        if (summaryEl) summaryEl.textContent = '';
+        if (conflictEl) conflictEl.classList.add('hidden');
+        return;
+      }
+      if (previewError) {
+        listEl.innerHTML = `<div class="p-3 text-xs text-rose-600">${escapeHtml(previewError)}</div>`;
+        if (summaryEl) summaryEl.textContent = '';
+        if (conflictEl) conflictEl.classList.add('hidden');
+        return;
+      }
+      if (!preview) return;
+
+      const sessions = preview.sessions || [];
+      if (summaryEl) {
+        summaryEl.textContent = sessions.length
+          ? `${sessions.length} buổi · ${fmtDM(preview.startDate)} – ${fmtDMY(preview.endDate)}`
+          : '';
+      }
+      listEl.innerHTML = sessions.map((s, i) => `
+          <div class="flex items-center gap-2.5 px-3 py-2 text-xs ${s.available ? '' : 'bg-amber-50'}">
+            <span class="w-5 text-right font-semibold text-slate-400">${i + 1}</span>
+            <span class="material-symbols-outlined text-[16px] ${s.available ? 'text-emerald-600' : 'text-amber-600'}">${s.available ? 'check_circle' : 'warning'}</span>
+            <span class="font-semibold text-[#0F2545] min-w-[120px]">${escapeHtml(s.dayName)} ${fmtDMY(s.date)}</span>
+            <span class="text-slate-600">${s.startTime}–${s.endTime}</span>
+            ${s.available ? '' : `<span class="ml-auto text-right text-amber-700 font-semibold">Đã kín · ${escapeHtml(s.reason || '')}</span>`}
+          </div>`).join('');
+
+      if (!conflictEl) return;
+      if (!conflicts) {
+        conflictEl.classList.add('hidden');
+        conflictEl.innerHTML = '';
+        return;
+      }
+      const busySessions = sessions.filter(s => !s.available);
+      const weeksText = [...new Set(busySessions.map(s => {
+        const monday = addDaysIso(s.date, -((new Date(`${s.date}T00:00:00Z`).getUTCDay() + 6) % 7));
+        return `${fmtDM(monday)} – ${fmtDM(addDaysIso(monday, 6))}`;
+      }))].join(', ');
+      const suggested = preview.suggestedStartWeek;
+      conflictEl.classList.remove('hidden');
+      conflictEl.innerHTML = `
+        <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-2.5">
+          <div class="flex items-start gap-2 text-xs text-amber-800">
+            <span class="material-symbols-outlined text-[18px] flex-shrink-0">event_busy</span>
+            <div>
+              <div class="font-bold">${conflicts} buổi bị kín ở tuần ${weeksText}</div>
+              <div class="mt-0.5">${busySessions.map(s => `${escapeHtml(s.dayName)} ${fmtDM(s.date)} ${s.startTime}: ${escapeHtml(s.reason || 'gia sư bận')}`).join('<br>')}</div>
+              <div class="mt-1">Bạn có thể chọn một trong các cách sau:</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button type="button" id="dc-opt-shift" ${suggested ? '' : 'disabled'}
+              class="py-2 px-2 rounded-lg bg-white border border-amber-300 text-[11px] font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              title="${suggested ? 'Tất cả các buổi đều trống nếu bắt đầu từ tuần này' : 'Không có tuần nào trong 4 tuần tới mà tất cả các buổi đều trống'}">
+              ${suggested ? `Bắt đầu từ tuần ${fmtDM(suggested)}` : 'Không có tuần trống phù hợp'}
+            </button>
+            <button type="button" id="dc-opt-other" class="py-2 px-2 rounded-lg bg-white border border-amber-300 text-[11px] font-bold text-amber-800 hover:bg-amber-100 cursor-pointer">
+              Chọn ca khác
+            </button>
+            <button type="button" id="dc-opt-propose" disabled class="py-2 px-2 rounded-lg bg-white border border-slate-200 text-[11px] font-bold text-slate-400 cursor-not-allowed" title="Tính năng đề xuất giờ ngoài lịch rảnh sẽ có trong bản cập nhật tiếp theo">
+              Đề xuất giờ khác <span class="font-medium">(sắp có)</span>
+            </button>
+          </div>
+        </div>`;
+      const shiftBtn = document.getElementById('dc-opt-shift');
+      if (shiftBtn && suggested) shiftBtn.addEventListener('click', () => showWeek(suggested));
+      const otherBtn = document.getElementById('dc-opt-other');
+      if (otherBtn) otherBtn.addEventListener('click', () => {
+        connectDay = Number(busySessions[0].dayOfWeek);
+        renderConnectForm();
+        const daysEl = document.getElementById('dc-days');
+        if (daysEl) daysEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+
+    function changeSessions(delta) {
+      const next = Math.min(MAX_SESSIONS, Math.max(1, totalSessions + delta));
+      if (next === totalSessions) return;
+      totalSessions = next;
+      schedulePreview();
+    }
+    const sessionsMinusBtn = document.getElementById('dc-sessions-minus');
+    const sessionsPlusBtn = document.getElementById('dc-sessions-plus');
+    if (sessionsMinusBtn) sessionsMinusBtn.addEventListener('click', () => changeSessions(-1));
+    if (sessionsPlusBtn) sessionsPlusBtn.addEventListener('click', () => changeSessions(1));
 
     const directErrorAlert = document.getElementById('direct-error-alert');
     const directErrorMsg = document.getElementById('direct-error-message');
@@ -928,23 +1177,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         const daySelected = selectedSlots.filter(s => s.dow === connectDay);
         const allStarts = [...new Set([...starts, ...daySelected.map(s => s.start)])].sort((a, b) => a - b);
         if (!allStarts.length) {
-          timesEl.innerHTML = `<div class="col-span-full py-4 text-center text-xs text-slate-500">${connectDay
+          timesEl.innerHTML = `<div class="py-4 text-center text-xs text-slate-500">${connectDay
             ? `Không còn khung ${connectDuration} phút trống vào ${dayNameOf(connectDay)}. Hãy chọn thứ khác hoặc thời lượng ngắn hơn.`
             : 'Gia sư chưa có khung giờ trống phù hợp.'}</div>`;
         } else {
-          timesEl.innerHTML = allStarts.map(t => {
+          timesEl.innerHTML = groupedTimesHtml(allStarts, t => {
             const chosen = daySelected.find(s => s.start === t);
             const blocked = !chosen && daySelected.some(s => overlaps(t, t + connectDuration, s.start, s.start + s.duration));
             if (chosen) {
-              return `<button type="button" data-start="${t}" class="py-2 px-1 rounded-xl border-2 border-[#006194] bg-[#006194] text-white text-xs font-bold cursor-pointer" title="Bỏ chọn">
+              return `<button type="button" data-start="${t}" class="${TIME_BTN_ACTIVE}" title="Bỏ chọn">
                 ${toHHMM(t)}–${toHHMM(t + chosen.duration)}</button>`;
             }
             if (blocked) {
-              return `<div class="py-2 px-1 rounded-xl border border-slate-100 text-slate-300 text-xs font-medium text-center cursor-not-allowed" title="Trùng với ca bạn đã chọn">${toHHMM(t)}</div>`;
+              return `<div class="${TIME_BTN_DISABLED}" title="Trùng với ca bạn đã chọn">${toHHMM(t)}</div>`;
             }
-            return `<button type="button" data-start="${t}" class="py-2 px-1 rounded-xl border border-slate-300 bg-white hover:border-[#006194] hover:bg-sky-50 text-slate-800 text-xs font-semibold cursor-pointer transition-all"
+            return `<button type="button" data-start="${t}" class="${TIME_BTN_IDLE}"
               title="${dayNameOf(connectDay)} ${toHHMM(t)}–${toHHMM(t + connectDuration)}">${toHHMM(t)}</button>`;
-          }).join('');
+          });
           timesEl.querySelectorAll('[data-start]').forEach(btn => btn.addEventListener('click', () => toggleSlot(connectDay, Number(btn.dataset.start))));
         }
       }
@@ -956,7 +1205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (selEl) {
         selEl.innerHTML = selectedSlots.length
           ? selectedSlots.map((s, i) => `
-              <span class="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-xs font-semibold text-[#006194]">
+              <span data-slot-key="${slotKey(s.dow, s.start)}" class="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-xs font-semibold text-[#006194]">
                 ${slotLabel(s)}
                 <button type="button" data-remove-index="${i}" class="w-5 h-5 rounded-full hover:bg-sky-100 flex items-center justify-center cursor-pointer" aria-label="Bỏ chọn ${slotLabel(s)}">
                   <span class="material-symbols-outlined text-[14px]">close</span>
@@ -966,16 +1215,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         selEl.querySelectorAll('[data-remove-index]').forEach(btn => btn.addEventListener('click', () => {
           selectedSlots.splice(Number(btn.dataset.removeIndex), 1);
           renderConnectForm();
+          schedulePreview();
         }));
       }
 
-      if (directSubmitBtn) directSubmitBtn.disabled = selectedSlots.length === 0;
-      const submitText = document.getElementById('btn-direct-submit-text');
-      if (submitText) {
-        submitText.textContent = selectedSlots.length
-          ? `Gửi yêu cầu kết nối (${selectedSlots.length} ca/tuần)`
-          : 'Gửi yêu cầu kết nối';
-      }
+      renderPreview();
     }
 
     function toggleSlot(dow, start) {
@@ -992,6 +1236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectedSlots.sort((a, b) => order(a.dow) - order(b.dow) || a.start - b.start);
       }
       renderConnectForm();
+      schedulePreview();
     }
 
     /** preselect: { dow, start } khi học viên bấm một giờ trên bảng lịch rảnh. */
@@ -1021,6 +1266,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       showDirectError('');
       renderConnectForm();
+      schedulePreview(true);
       openModal('direct-connect-modal');
     }
 
@@ -1031,13 +1277,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           showDirectError('Hãy chọn ít nhất một ca học hằng tuần.');
           return;
         }
+        if (!preview || Number(preview.conflictCount || 0) > 0) {
+          showDirectError('Lịch học dự kiến còn buổi bị kín. Hãy chọn tuần bắt đầu khác hoặc ca khác.');
+          return;
+        }
         const level = document.getElementById('direct-level');
         const goals = document.getElementById('direct-goals');
         const notes = document.getElementById('direct-notes');
         const payload = {
-          tutorId: tutor.tutorId,
-          slots: selectedSlots.map(s => ({ dayOfWeek: s.dow, startTime: toHHMM(s.start), durationMinutes: s.duration })),
-          startDate: connectStartDate(),
+          ...previewPayload(),
           currentLevel: level ? level.value : null,
           learningGoals: goals ? (goals.value.trim() || null) : null,
           initialMessage: notes ? (notes.value.trim() || null) : null
@@ -1047,7 +1295,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const original = directSubmitBtn.innerHTML;
         directSubmitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span><span>Đang gửi...</span>';
         try {
-          await API.connectionRequests.create(payload);
+          const created = await API.connectionRequests.create(payload);
+          const createdSessions = (created && created.sessions) || [];
           const body = document.getElementById('direct-modal-body');
           const footer = document.getElementById('direct-modal-footer');
           if (body) {
@@ -1062,8 +1311,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                   Khi gia sư đồng ý, hai bạn được kết nối và có thể bắt đầu lớp học chính thức.
                 </p>
                 <ul class="p-4 bg-[#FAF8F2] rounded-2xl border border-[#ECE8DE] text-xs text-left space-y-1.5">
-                  ${selectedSlots.map(s => `<li class="font-semibold text-[#0F2545]">${slotLabel(s)}</li>`).join('')}
-                  ${payload.startDate ? `<li class="pt-1 text-slate-500">Bắt đầu học từ ${fmtDMY(payload.startDate)}</li>` : ''}
+                  ${selectedSlots.map(s => `<li class="font-semibold text-[#0F2545]">${slotLabel(s)} · hằng tuần</li>`).join('')}
+                  ${createdSessions.length ? `<li class="pt-1 text-slate-500">${createdSessions.length} buổi · từ ${fmtDMY(createdSessions[0].date)} đến ${fmtDMY(createdSessions[createdSessions.length - 1].date)}</li>` : ''}
                 </ul>
                 <div class="grid grid-cols-2 gap-2.5 pt-2">
                   <a href="/pages/learner-requests/?tab=direct" class="py-2.5 px-3 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5">
@@ -1160,8 +1409,93 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (errorAlert) errorAlert.classList.add('hidden');
     }
 
+    // Hai cách chọn giờ học thử:
+    //  'calendar' (mặc định): chọn giờ trống trong lịch rảnh của gia sư.
+    //  'propose': "Đề xuất giờ khác" — tự chọn ngày giờ ngoài lịch rảnh, gia sư đồng ý hoặc từ chối.
+    let trialMode = 'calendar';
+    let trialDay = null;   // ngày đang xem trong lịch ("YYYY-MM-DD")
+    let trialPick = null;  // { date: "YYYY-MM-DD", start: phút từ 00:00 }
+
+    function trialStartsOfDate(date) {
+      const day = weekData ? (weekData.days || []).find(d => d.date === date) : null;
+      if (!day) return [];
+      const ranges = (day.freeRanges || []).map(r => ({ start: toMinutes(r.startTime), end: toMinutes(r.endTime) }));
+      return startTimesFrom(ranges, TRIAL_DURATION_MINUTES);
+    }
+
+    function renderTrialPicker() {
+      const calEl = document.getElementById('trial-pick-calendar');
+      const propEl = document.getElementById('trial-pick-propose');
+      if (calEl) calEl.classList.toggle('hidden', trialMode !== 'calendar');
+      if (propEl) propEl.classList.toggle('hidden', trialMode !== 'propose');
+      if (trialMode !== 'calendar' || !weekData) {
+        updateTrialSummary();
+        return;
+      }
+
+      const weekLabel = document.getElementById('trial-week-label');
+      if (weekLabel) weekLabel.textContent = `${fmtDM(weekData.weekStart)} – ${fmtDMY(weekData.weekEnd)}`;
+
+      const days = weekData.days || [];
+      if (!trialDay || !days.some(d => d.date === trialDay)) {
+        const firstFree = days.find(d => trialStartsOfDate(d.date).length > 0);
+        trialDay = firstFree ? firstFree.date : (days[0] ? days[0].date : null);
+      }
+      if (trialPick && !trialStartsOfDate(trialPick.date).includes(trialPick.start)) trialPick = null;
+
+      const daysEl = document.getElementById('trial-days');
+      if (daysEl) {
+        daysEl.innerHTML = days.map(d => {
+          const count = trialStartsOfDate(d.date).length;
+          const active = d.date === trialDay;
+          const col = WEEKDAY_COLUMNS.find(c => c.dow === Number(d.dayOfWeek));
+          const short = col ? (col.shortName === 'Chủ nhật' ? 'CN' : col.shortName.replace('Thứ ', 'T')) : '';
+          const cls = active
+            ? 'border-2 border-[#006194] bg-sky-50 text-[#006194] font-bold'
+            : count ? 'border border-slate-200 hover:bg-slate-50 text-slate-800 font-semibold' : 'border border-transparent text-slate-300';
+          return `
+            <button type="button" data-trial-day="${d.date}" ${count ? '' : 'disabled'}
+              class="py-1.5 rounded-xl text-[11px] leading-tight transition-all ${count ? 'cursor-pointer' : 'cursor-not-allowed'} ${cls}">
+              <span class="block">${short}</span><span class="block text-[10px] font-medium">${fmtDM(d.date)}</span>
+            </button>`;
+        }).join('');
+        daysEl.querySelectorAll('[data-trial-day]').forEach(btn => btn.addEventListener('click', () => {
+          trialDay = btn.dataset.trialDay;
+          clearError();
+          renderTrialPicker();
+        }));
+      }
+
+      const timesEl = document.getElementById('trial-times');
+      if (timesEl) {
+        const starts = trialDay ? trialStartsOfDate(trialDay) : [];
+        timesEl.innerHTML = starts.length ? groupedTimesHtml(starts, t => {
+          const chosen = trialPick && trialPick.date === trialDay && trialPick.start === t;
+          return `<button type="button" data-trial-start="${t}" class="${chosen ? TIME_BTN_ACTIVE : TIME_BTN_IDLE}"
+            title="${toHHMM(t)}–${toHHMM(t + TRIAL_DURATION_MINUTES)}">${toHHMM(t)}</button>`;
+        }) : `<div class="py-3 text-center text-xs text-slate-500">Tuần này gia sư không còn giờ trống. Hãy xem tuần sau hoặc đề xuất giờ khác.</div>`;
+        timesEl.querySelectorAll('[data-trial-start]').forEach(btn => btn.addEventListener('click', () => {
+          trialPick = { date: trialDay, start: Number(btn.dataset.trialStart) };
+          clearError();
+          renderTrialPicker();
+        }));
+      }
+      updateTrialSummary();
+    }
+
+    function setTrialMode(mode) {
+      trialMode = mode;
+      clearError();
+      renderTrialPicker();
+    }
+
     /** Ngày giờ học thử học viên chọn (giờ Việt Nam), hoặc null nếu chưa đủ. */
     function getTrialStart() {
+      if (trialMode === 'calendar') {
+        if (!trialPick) return null;
+        const [y, mo, d] = trialPick.date.split('-').map(Number);
+        return new Date(y, mo - 1, d, Math.floor(trialPick.start / 60), trialPick.start % 60, 0, 0);
+      }
       if (!trialDateInput || !trialTimeInput || !trialDateInput.value || !trialTimeInput.value) return null;
       const [y, mo, d] = trialDateInput.value.split('-').map(Number);
       const [h, mi] = trialTimeInput.value.split(':').map(Number);
@@ -1171,14 +1505,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateTrialSummary() {
       const start = getTrialStart();
       if (continueBtn) continueBtn.disabled = !start;
+      const btnText = continueBtn ? continueBtn.querySelector('span') : null;
+      if (btnText) btnText.textContent = trialMode === 'propose' ? 'Gửi đề xuất học thử' : 'Xác nhận gửi lịch học thử';
       if (!trialSummary) return;
       if (!start) {
-        trialSummary.textContent = 'Bạn có thể chọn bất kỳ ngày giờ nào thuận tiện. Gia sư sẽ xem và đồng ý hoặc từ chối yêu cầu của bạn.';
+        trialSummary.textContent = trialMode === 'propose'
+          ? 'Chọn ngày và giờ bạn muốn đề xuất. Gia sư sẽ xem và đồng ý hoặc từ chối.'
+          : 'Chọn một giờ trống trong lịch rảnh của gia sư.';
         return;
       }
       const end = new Date(start.getTime() + TRIAL_DURATION_MINUTES * 60000);
-      trialSummary.innerHTML = `Bạn muốn học thử vào <strong class="text-[#0F2545]">${DAY_NAMES[start.getDay()]}, ${pad(start.getDate())}/${pad(start.getMonth() + 1)}/${start.getFullYear()} · ${pad(start.getHours())}:${pad(start.getMinutes())}–${pad(end.getHours())}:${pad(end.getMinutes())}</strong>. Gia sư sẽ xác nhận lại với bạn.`;
+      const when = `${DAY_NAMES[start.getDay()]}, ${pad(start.getDate())}/${pad(start.getMonth() + 1)}/${start.getFullYear()} · ${pad(start.getHours())}:${pad(start.getMinutes())}–${pad(end.getHours())}:${pad(end.getMinutes())}`;
+      trialSummary.innerHTML = trialMode === 'propose'
+        ? `Bạn đề xuất học thử vào <strong class="text-[#0F2545]">${when}</strong> <span class="text-amber-700 font-semibold">(ngoài lịch rảnh)</span>. Gia sư sẽ đồng ý hoặc từ chối.`
+        : `Bạn muốn học thử vào <strong class="text-[#0F2545]">${when}</strong>. Gia sư sẽ xác nhận lại với bạn.`;
     }
+
+    const proposeToggle = document.getElementById('trial-propose-toggle');
+    if (proposeToggle) proposeToggle.addEventListener('click', () => setTrialMode('propose'));
+    const backToCalendar = document.getElementById('trial-back-to-calendar');
+    if (backToCalendar) backToCalendar.addEventListener('click', () => setTrialMode('calendar'));
+    [['trial-week-prev', -1], ['trial-week-next', 1]].forEach(([id, delta]) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', () => shiftWeek(delta));
+    });
 
     if (trialDateInput) {
       const today = new Date();
@@ -1190,9 +1540,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     updateTrialSummary();
 
-    function openTrialModal() {
+    /** preselect: { date: "YYYY-MM-DD", start: phút } khi học viên bấm một giờ trên bảng lịch rảnh. */
+    function openTrialModal(preselect = null) {
+      if (!weekData && (tutor.availabilities || []).length) {
+        showWeek().then(() => { if (weekData) openTrialModal(preselect); });
+        return;
+      }
       clearError();
-      updateTrialSummary();
+      // Gia sư chưa khai báo lịch rảnh thì chỉ còn cách đề xuất giờ
+      trialMode = (tutor.availabilities || []).length ? 'calendar' : 'propose';
+      if (preselect) {
+        trialDay = preselect.date;
+        trialPick = { date: preselect.date, start: preselect.start };
+      }
+      renderTrialPicker();
       openModal('connect-modal');
     }
 
@@ -1224,7 +1585,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         locationDetails: null,
         currentLevel: levelInput ? levelInput.value : 'N5',
         learningGoals: goalsInput ? (goalsInput.value.trim() || null) : null,
-        initialMessage: notesInput ? (notesInput.value.trim() || 'Đăng ký học thử trực tuyến 1–1') : 'Đăng ký học thử trực tuyến 1–1'
+        initialMessage: notesInput ? (notesInput.value.trim() || 'Đăng ký học thử trực tuyến 1–1') : 'Đăng ký học thử trực tuyến 1–1',
+        offSchedule: trialMode === 'propose'
       };
 
       continueBtn.disabled = true;
@@ -1232,7 +1594,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       continueBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span><span>Đang xử lý...</span>';
 
       try {
-        await API.trialBookings.create(payload);
+        const createdTrial = await API.trialBookings.create(payload);
+        const isProposal = !!(createdTrial && createdTrial.offSchedule) || payload.offSchedule;
         const end = new Date(start.getTime() + TRIAL_DURATION_MINUTES * 60000);
         const timeText = `${pad(start.getHours())}:${pad(start.getMinutes())}–${pad(end.getHours())}:${pad(end.getMinutes())}`;
         const dayFull = `${DAY_NAMES[start.getDay()]}, ${start.getDate()}/${start.getMonth() + 1}/${start.getFullYear()}`;
@@ -1251,6 +1614,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span class="text-slate-500 font-medium">Thời gian:</span>
                 <span class="font-bold text-[#0F2545]">${timeText} • ${dayFull}</span>
               </div>
+              ${isProposal ? `
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500 font-medium">Loại yêu cầu:</span>
+                <span class="font-semibold text-amber-700">Đề xuất ngoài lịch rảnh</span>
+              </div>` : ''}
               <div class="flex items-center justify-between">
                 <span class="text-slate-500 font-medium">Trạng thái:</span>
                 <span class="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
@@ -1287,6 +1655,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         showError(friendlyError(err, 'Không thể gửi yêu cầu lúc này. Vui lòng thử lại sau.'));
         continueBtn.disabled = false;
         continueBtn.innerHTML = origBtnHtml;
+        if (err && err.status === 409 && weekData && trialMode === 'calendar') {
+          // Giờ vừa có người đặt: tải lại lịch để bỏ giờ đã kín
+          weekCache.clear();
+          showWeek(weekData.weekStart);
+        }
       }
     }
 

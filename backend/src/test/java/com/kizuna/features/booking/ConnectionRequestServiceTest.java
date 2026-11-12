@@ -18,6 +18,11 @@ import com.kizuna.features.booking.repository.ConnectionRequestRepository;
 import com.kizuna.features.booking.repository.ConnectionRequestSlotRepository;
 import com.kizuna.features.booking.repository.TrialBookingHistoryRepository;
 import com.kizuna.features.booking.repository.TrialBookingRepository;
+import com.kizuna.features.booking.service.ConnectionBusyLoader;
+import com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyIndex;
+import com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyKind;
+import com.kizuna.features.booking.service.ConnectionSchedulePlanner.DatedBusy;
+import com.kizuna.features.booking.service.ConnectionSchedulePlanner.WeeklyBusy;
 import com.kizuna.features.booking.service.impl.ConnectionRequestServiceImpl;
 import com.kizuna.features.tutor_search.service.TutorScheduleService;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
@@ -56,6 +61,7 @@ class ConnectionRequestServiceTest {
     @Mock private TrialBookingHistoryRepository trialBookingHistoryRepository;
     @Mock private TutorScheduleService tutorScheduleService;
     @Mock private JdbcTemplate jdbcTemplate;
+    @Mock private ConnectionBusyLoader busyLoader;
 
     @InjectMocks
     private ConnectionRequestServiceImpl service;
@@ -83,8 +89,13 @@ class ConnectionRequestServiceTest {
             if (cr.getRequestId() == null) cr.setRequestId(UUID.randomUUID());
             return cr;
         });
+        lenient().when(busyLoader.load(any(), any(), any(), any(), any(), any())).thenReturn(BusyIndex.EMPTY);
         lenient().when(trialBookingRepository.findClassScheduleClash(any(), any(), anyInt(), any(), any()))
                 .thenReturn(Optional.empty());
+    }
+
+    private void stubBusy(BusyIndex busy) {
+        when(busyLoader.load(any(), any(), any(), any(), any(), any())).thenReturn(busy);
     }
 
     private void stubLearnerAndTutor() {
@@ -145,11 +156,12 @@ class ConnectionRequestServiceTest {
     void create_lockedSlot() {
         stubLearnerAndTutor();
         when(tutorScheduleService.isSlotAvailable(eq(tutorId), anyInt(), any(), any())).thenReturn(true);
-        when(slotRepository.existsLockedSlotOverlap(eq(tutorId), any(), eq(2), any(), any())).thenReturn(true);
+        stubBusy(new BusyIndex(List.of(new WeeklyBusy(2, LocalTime.of(19, 0), LocalTime.of(20, 0), BusyKind.TUTOR_COURSE)), List.of()));
 
         ConflictException ex = assertThrows(ConflictException.class,
                 () -> service.createDirectRequest("learner@test.com", request(slot(2, "19:00", 60))));
-        assertTrue(ex.getMessage().contains("đã có học viên khác nhận"));
+        assertTrue(ex.getMessage().contains("gia sư đã có buổi học với học viên khác"));
+        verify(connectionRequestRepository, never()).save(any());
     }
 
     @Test
@@ -157,27 +169,67 @@ class ConnectionRequestServiceTest {
     void create_trialClash() {
         stubLearnerAndTutor();
         when(tutorScheduleService.isSlotAvailable(eq(tutorId), anyInt(), any(), any())).thenReturn(true);
-        // Thứ Sáu (dow 6) → EXTRACT(DOW) = 5
-        when(trialBookingRepository.existsTrialClashFrom(eq(tutorId), eq(learner.getLearnerId()), any(), eq(5),
-                eq(LocalTime.of(18, 0)), eq(LocalTime.of(19, 0)))).thenReturn(true);
+        // Học viên khác có buổi học thử vào Thứ Sáu của tuần thứ 3 tính từ hôm nay → 1 trong 8 buổi bị kín
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        LocalDate friday = today.with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.FRIDAY)).plusWeeks(2);
+        stubBusy(new BusyIndex(List.of(), List.of(new DatedBusy(friday, LocalTime.of(18, 0), LocalTime.of(18, 30), BusyKind.TRIAL))));
 
         ConflictException ex = assertThrows(ConflictException.class,
                 () -> service.createDirectRequest("learner@test.com", request(slot(6, "18:00", 60))));
-        assertTrue(ex.getMessage().contains("buổi học thử"));
+        assertTrue(ex.getMessage().contains("gia sư đã có lịch học thử"));
+        assertTrue(ex.getMessage().contains(friday.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM"))));
         verify(connectionRequestRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Lưu ngày bắt đầu học; ngày trong quá khứ được đưa về hôm nay")
-    void create_savesStartDate() {
+    @DisplayName("Lưu đủ số buổi cụ thể; ngày bắt đầu trong quá khứ được đưa về hôm nay")
+    void create_savesSessions() {
         stubLearnerAndTutor();
         when(tutorScheduleService.isSlotAvailable(eq(tutorId), anyInt(), any(), any())).thenReturn(true);
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
-        CreateConnectionRequestDTO req = request(slot(2, "19:00", 60));
+        CreateConnectionRequestDTO req = request(slot(2, "19:00", 60), slot(5, "19:00", 60));
         req.setStartDate(today.minusDays(10));
+        req.setTotalSessions(5);
         ConnectionRequestResponseDTO res = service.createDirectRequest("learner@test.com", req);
-        assertEquals(today, res.getStartDate());
+
+        assertEquals(5, res.getTotalSessions());
+        assertEquals(5, res.getSessions().size());
+        assertFalse(res.getStartDate().isBefore(today));
+        assertTrue(res.getSessions().stream().allMatch(s -> s.getDayOfWeek() == 2 || s.getDayOfWeek() == 5));
+    }
+
+    @Test
+    @DisplayName("Số buổi vượt quá 12 thì bị từ chối")
+    void create_tooManySessions() {
+        stubLearnerAndTutor();
+        CreateConnectionRequestDTO req = request(slot(2, "19:00", 60));
+        req.setTotalSessions(13);
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> service.createDirectRequest("learner@test.com", req));
+        assertTrue(ex.getMessage().contains("12"));
+    }
+
+    @Test
+    @DisplayName("Xem trước: báo buổi bị kín và gợi ý tuần bắt đầu không vướng")
+    void preview_reportsConflictAndSuggestsWeek() {
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(learnerUser));
+        when(learnerRepository.findByUser(learnerUser)).thenReturn(Optional.of(learner));
+        when(tutorRepository.existsById(tutorId)).thenReturn(true);
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        LocalDate nextMonday = today.with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.MONDAY));
+        LocalDate nextWed = nextMonday.plusDays(2);
+        stubBusy(new BusyIndex(List.of(), List.of(new DatedBusy(nextWed, LocalTime.of(19, 0), LocalTime.of(19, 30), BusyKind.TRIAL))));
+
+        var res = service.preview("learner@test.com", com.kizuna.features.booking.dto.request.ConnectionPreviewRequestDTO.builder()
+                .tutorId(tutorId).slots(List.of(slot(4, "19:00", 60))).startDate(today).totalSessions(4).build());
+
+        assertEquals(1, res.getConflictCount());
+        var busySession = res.getSessions().stream().filter(s -> !s.isAvailable()).findFirst().orElseThrow();
+        assertEquals(nextWed, busySession.getDate());
+        assertEquals("gia sư đã có lịch học thử", busySession.getReason());
+        // Bắt đầu từ tuần sau tuần bị kín thì cả 4 buổi đều trống
+        assertEquals(nextMonday.plusWeeks(1), res.getSuggestedStartWeek());
     }
 
     @Test
@@ -264,6 +316,26 @@ class ConnectionRequestServiceTest {
 
         assertThrows(ConflictException.class, () -> service.respond("tutor@test.com", cr.getRequestId(),
                 RespondConnectionRequestDTO.builder().action("ACCEPT").build()));
+        assertEquals(ConnectionRequestStatus.PENDING, cr.getStatus());
+    }
+
+    @Test
+    @DisplayName("Gia sư đồng ý nhưng một buổi cụ thể trùng buổi học thử đã xác nhận thì báo rõ buổi nào")
+    void respond_accept_sessionConflict() {
+        ConnectionRequest cr = pendingRequest();
+        LocalDate day = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")).plusDays(9);
+        cr.getSessions().add(ConnectionRequestSession.builder().connectionRequest(cr).sessionDate(day)
+                .startTime(LocalTime.of(19, 0)).endTime(LocalTime.of(20, 30)).build());
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
+        when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
+        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(busyLoader.load(eq(tutorId), eq(learner.getLearnerId()), eq(cr.getRequestId()), any(), any(),
+                eq(ConnectionBusyLoader.Mode.TUTOR_ACCEPT)))
+                .thenReturn(new BusyIndex(List.of(), List.of(new DatedBusy(day, LocalTime.of(20, 0), LocalTime.of(20, 30), BusyKind.TRIAL))));
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> service.respond("tutor@test.com", cr.getRequestId(),
+                RespondConnectionRequestDTO.builder().action("ACCEPT").build()));
+        assertTrue(ex.getMessage().contains("bạn đã có lịch học thử"));
         assertEquals(ConnectionRequestStatus.PENDING, cr.getStatus());
     }
 

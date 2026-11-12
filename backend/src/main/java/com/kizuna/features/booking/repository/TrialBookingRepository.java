@@ -115,6 +115,63 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
                                  @Param("startTime") java.time.LocalTime startTime,
                                  @Param("endTime") java.time.LocalTime endTime);
 
+    /**
+     * Gia sư đã có buổi học của yêu cầu kết nối trực tiếp vào ngày/giờ này (giờ Việt Nam):
+     * buổi cụ thể của yêu cầu ACCEPTED (và PENDING còn hạn nếu includePending), hoặc ca hằng tuần kiểu cũ
+     * (yêu cầu ACCEPTED chưa có buổi cụ thể). pgDow theo EXTRACT(DOW): 0 = Chủ nhật ... 6 = Thứ Bảy.
+     */
+    @Query(value = """
+            SELECT EXISTS (
+                SELECT 1 FROM connection_request_sessions s
+                JOIN connection_requests cr ON cr.request_id = s.request_id
+                WHERE cr.tutor_id = :tutorId AND cr.request_type = 'DIRECT'
+                  AND (cr.status = 'ACCEPTED'
+                       OR (:includePending AND cr.status = 'PENDING'
+                           AND cr.created_at > CURRENT_TIMESTAMP - (:pendingHours * INTERVAL '1 hour')))
+                  AND s.session_date = :date AND s.start_time < :endTime AND s.end_time > :startTime
+            ) OR EXISTS (
+                SELECT 1 FROM connection_request_slots sl
+                JOIN connection_requests cr ON cr.request_id = sl.request_id
+                WHERE cr.tutor_id = :tutorId AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED'
+                  AND NOT EXISTS (SELECT 1 FROM connection_request_sessions x WHERE x.request_id = cr.request_id)
+                  AND sl.day_of_week = :pgDow + 1 AND sl.start_time < :endTime AND sl.end_time > :startTime
+                  AND (EXISTS (SELECT 1 FROM learning_spaces ls WHERE ls.tutor_id = cr.tutor_id
+                               AND ls.learner_id = cr.learner_id AND ls.status IN ('ACTIVE', 'PAUSED'))
+                       OR NOT EXISTS (SELECT 1 FROM learning_spaces ls WHERE ls.tutor_id = cr.tutor_id
+                                      AND ls.learner_id = cr.learner_id))
+            )
+            """, nativeQuery = true)
+    boolean existsConnectionSessionClash(@Param("tutorId") UUID tutorId,
+                                         @Param("date") java.time.LocalDate date,
+                                         @Param("pgDow") int pgDow,
+                                         @Param("startTime") java.time.LocalTime startTime,
+                                         @Param("endTime") java.time.LocalTime endTime,
+                                         @Param("includePending") boolean includePending,
+                                         @Param("pendingHours") int pendingHours);
+
+    /** Số lần học viên đề xuất học thử NGOÀI lịch rảnh với gia sư này kể từ mốc thời gian cho trước. */
+    @Query(value = """
+            SELECT COUNT(*) FROM trial_bookings
+            WHERE learner_id = :learnerId AND tutor_id = :tutorId AND is_off_schedule AND created_at > :since
+            """, nativeQuery = true)
+    long countOffScheduleSince(@Param("learnerId") UUID learnerId,
+                               @Param("tutorId") UUID tutorId,
+                               @Param("since") OffsetDateTime since);
+
+    /** Khung giờ [startTime, endTime] nằm trọn trong một ca rảnh đang bật của gia sư (dayOfWeek: 1 = Chủ nhật ... 7 = Thứ Bảy). */
+    @Query(value = """
+            SELECT EXISTS (
+                SELECT 1 FROM tutor_availabilities a
+                WHERE a.tutor_id = :tutorId AND a.is_active = TRUE AND a.day_of_week = :dayOfWeek
+                  AND a.start_time <= :startTime
+                  AND (a.end_time >= :endTime OR a.end_time = TIME '00:00')
+            )
+            """, nativeQuery = true)
+    boolean isWithinAvailability(@Param("tutorId") UUID tutorId,
+                                 @Param("dayOfWeek") int dayOfWeek,
+                                 @Param("startTime") java.time.LocalTime startTime,
+                                 @Param("endTime") java.time.LocalTime endTime);
+
     /** Cặp học viên - gia sư đang có buổi học thử ở một trong các trạng thái (dùng để chặn gửi trùng). */
     boolean existsByLearnerLearnerIdAndTutorTutorIdAndBookingStatusIn(UUID learnerId, UUID tutorId,
                                                                        java.util.Collection<TrialBookingStatus> statuses);

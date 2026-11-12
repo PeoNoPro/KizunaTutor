@@ -32,5 +32,11 @@ public class CreateTrialBookingRequestDTO {
     private String learningGoals;
 
     private String initialMessage;
+
+    /**
+     * true = học viên dùng "Đề xuất giờ khác" (giờ ngoài lịch rảnh của gia sư).
+     * false/null = chọn từ lịch rảnh; nếu giờ đó nằm ngoài lịch rảnh thì bị từ chối.
+     */
+    private Boolean offSchedule;
 }
 

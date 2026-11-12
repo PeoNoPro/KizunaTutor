@@ -184,34 +184,25 @@
               <div id="filter-pill-bar" class="flex flex-wrap lg:flex-nowrap items-center gap-2.5 pt-0.5">
                 <div class="w-full lg:flex-1 grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-nowrap items-center gap-2.5">
 
-                  <!-- 1. Môn học -->
+                  <!-- 1. Mục tiêu học (gộp "Môn học" + "Trình độ JLPT": trình độ chỉ có ý nghĩa khi luyện thi) -->
                   <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="goal">
                     <button type="button" data-dropdown-trigger="goal" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
-                      <span data-pill-label="goal" class="truncate">Môn học</span>
+                      <span data-pill-label="goal" class="truncate">Mục tiêu học</span>
                       <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
                     </button>
-                    <div data-dropdown-panel="goal" class="hidden absolute left-0 top-full mt-2 w-64 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="">Tất cả môn</button>
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="kaiwa">Kaiwa giao tiếp thực chiến</button>
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt">Luyện thi chứng chỉ JLPT</button>
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="business">Tiếng Nhật thương mại (Business)</button>
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="it">Tiếng Nhật chuyên ngành IT &amp; BrSE</button>
-                    </div>
-                  </div>
+                    <div data-dropdown-panel="goal" class="hidden absolute left-0 top-full mt-2 w-72 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="">Tất cả mục tiêu</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="kaiwa">Giao tiếp (Kaiwa)</button>
 
-                  <!-- 2. Trình độ JLPT -->
-                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="jlpt">
-                    <button type="button" data-dropdown-trigger="jlpt" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
-                      <span data-pill-label="jlpt" class="truncate">Trình độ JLPT</span>
-                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
-                    </button>
-                    <div data-dropdown-panel="jlpt" class="hidden absolute left-0 top-full mt-2 w-48 rounded-2xl bg-white border border-[#E5DECB] shadow-[0_14px_38px_rgba(15,37,69,0.14)] p-2 z-40">
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="all">Tất cả trình độ</button>
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="N1">JLPT N1</button>
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="N2">JLPT N2</button>
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="N3">JLPT N3</button>
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="N4">JLPT N4</button>
-                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="jlpt" data-value="N5">JLPT N5</button>
+                      <div class="px-3 pt-2.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-[#94A3B8]">Luyện thi JLPT</div>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt_n5n4">Luyện thi N5 – N4</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt_n3">Luyện thi N3</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt_n2">Luyện thi N2</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt_n1">Luyện thi N1</button>
+
+                      <div class="px-3 pt-2.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-[#94A3B8]">Chuyên ngành</div>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="business">Tiếng Nhật thương mại</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer" data-filter-type="goal" data-value="it">Tiếng Nhật IT &amp; BrSE</button>
                     </div>
                   </div>
 

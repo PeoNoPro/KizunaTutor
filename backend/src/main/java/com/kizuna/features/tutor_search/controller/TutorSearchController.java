@@ -103,8 +103,9 @@ public class TutorSearchController {
     @GetMapping("/{id}/weekly-schedule")
     public ResponseEntity<TutorWeekScheduleDTO> getWeeklySchedule(
             @PathVariable UUID id,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
-        return ResponseEntity.ok(tutorSearchService.getWeeklySchedule(id, weekStart));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
+            @RequestParam(required = false) Integer minDuration) {
+        return ResponseEntity.ok(tutorSearchService.getWeeklySchedule(id, weekStart, minDuration));
     }
 
     /**

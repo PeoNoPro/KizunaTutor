@@ -19,6 +19,8 @@ import com.kizuna.features.booking.repository.ConnectionRequestRepository;
 import com.kizuna.features.booking.repository.TrialBookingHistoryRepository;
 import com.kizuna.features.booking.repository.TrialBookingRepository;
 import com.kizuna.features.booking.service.BookingLimits;
+import com.kizuna.features.booking.service.ConnectionBusyLoader;
+import com.kizuna.features.booking.service.ConnectionSchedulePlanner;
 import com.kizuna.features.booking.service.TrialBookingService;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +56,7 @@ public class TrialBookingServiceImpl implements TrialBookingService {
     private final TrialBookingRepository trialBookingRepository;
     private final TrialBookingHistoryRepository trialBookingHistoryRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final ConnectionBusyLoader busyLoader;
 
     public TrialBookingServiceImpl(
             UserRepository userRepository,
@@ -62,7 +65,9 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             ConnectionRequestRepository connectionRequestRepository,
             TrialBookingRepository trialBookingRepository,
             TrialBookingHistoryRepository trialBookingHistoryRepository,
-            JdbcTemplate jdbcTemplate) {
+            JdbcTemplate jdbcTemplate,
+            ConnectionBusyLoader busyLoader) {
+        this.busyLoader = busyLoader;
         this.userRepository = userRepository;
         this.learnerRepository = learnerRepository;
         this.tutorRepository = tutorRepository;
@@ -146,6 +151,21 @@ public class TrialBookingServiceImpl implements TrialBookingService {
             throw new ConflictException("Gia sư vừa từ chối yêu cầu học thử của bạn. Bạn có thể gửi lại sau "
                     + BookingLimits.DECLINE_COOLDOWN_HOURS + " giờ, hoặc chọn gia sư khác.");
         }
+        // Giờ trong lịch rảnh = cách đặt chính; ngoài lịch rảnh = "Đề xuất giờ khác" (gia sư đồng ý hoặc từ chối)
+        boolean offSchedule = !isWithinAvailability(tutor.getTutorId(), startTime, endTime);
+        if (offSchedule && !Boolean.TRUE.equals(request.getOffSchedule())) {
+            throw new BadRequestException("Giờ bạn chọn nằm ngoài lịch rảnh của gia sư. Hãy chọn một giờ trống trên lịch, "
+                    + "hoặc dùng \"Đề xuất giờ khác\" để gửi đề xuất cho gia sư.");
+        }
+        if (offSchedule && trialBookingRepository.countOffScheduleSince(learner.getLearnerId(), tutor.getTutorId(),
+                OffsetDateTime.now().minusDays(7)) >= BookingLimits.OFF_SCHEDULE_PROPOSALS_PER_WEEK) {
+            throw new ConflictException("Bạn chỉ có thể đề xuất giờ ngoài lịch rảnh tối đa "
+                    + BookingLimits.OFF_SCHEDULE_PROPOSALS_PER_WEEK + " lần mỗi tuần với gia sư này. "
+                    + "Hãy chọn một giờ trống trên lịch của gia sư.");
+        }
+        // Dù trong hay ngoài lịch rảnh, không được đè lên giờ gia sư đang bận thật
+        // (lịch lớp, buổi của khóa kết nối, buổi học thử khác đã nhận hoặc đang chờ duyệt)
+        ensureTutorFreeAt(tutor.getTutorId(), learner.getLearnerId(), startTime, endTime);
 
         // Buổi học thử bắt buộc là học trực tuyến (ONLINE) theo quy định nền tảng
         String mode = "ONLINE";
@@ -183,6 +203,7 @@ public class TrialBookingServiceImpl implements TrialBookingService {
                 .learnerConfirmed(true)
                 .tutorConfirmed(false)
                 .officialArrangementAgreed(false)
+                .offSchedule(offSchedule)
                 .build();
         trialBooking = trialBookingRepository.save(trialBooking);
 
@@ -252,6 +273,9 @@ public class TrialBookingServiceImpl implements TrialBookingService {
                     trialBooking.getScheduledStartTime(), acceptEnd,
                     "Buổi học thử trùng với lịch dạy lớp chính thức của bạn. Hãy đề nghị học viên dời lịch hoặc từ chối yêu cầu này.",
                     "Học viên đã có lịch học lớp chính thức vào khung giờ này. Hãy đề nghị học viên dời lịch hoặc từ chối yêu cầu này.");
+            ensureNoConnectionSessionClash(trialBooking.getTutor().getTutorId(), trialBooking.getScheduledStartTime(),
+                    acceptEnd, false,
+                    "Bạn đã có buổi học kết nối với học viên khác vào khung giờ này. Hãy đề nghị học viên dời lịch hoặc từ chối yêu cầu này.");
             newStatus = TrialBookingStatus.CONFIRMED;
             trialBooking.setBookingStatus(newStatus);
             trialBooking.setTutorConfirmed(true);
@@ -501,8 +525,11 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         ensureNoClassScheduleClash(tutor.getTutorId(), trialBooking.getLearner().getLearnerId(), newStartTime, newEndTime,
                 "Gia sư đã có lịch dạy lớp chính thức vào khung giờ mới này. Vui lòng chọn khung giờ khác.",
                 "Học viên đã có lịch học lớp chính thức vào khung giờ mới này. Vui lòng chọn khung giờ khác.");
+        ensureNoConnectionSessionClash(tutor.getTutorId(), newStartTime, newEndTime, true,
+                "Gia sư đã có buổi học với học viên khác vào khung giờ mới này. Vui lòng chọn khung giờ khác.");
 
         TrialBookingStatus prevStatus = trialBooking.getBookingStatus();
+        trialBooking.setOffSchedule(!isWithinAvailability(tutor.getTutorId(), newStartTime, newEndTime));
         trialBooking.setScheduledStartTime(newStartTime);
         trialBooking.setScheduledEndTime(newEndTime);
         // Học viên đổi giờ → quay về "Chờ gia sư xác nhận" để gia sư đồng ý/từ chối giờ mới.
@@ -711,6 +738,51 @@ public class TrialBookingServiceImpl implements TrialBookingService {
                 });
     }
 
+    /**
+     * Buổi học thử không được đè lên buổi học của khóa kết nối trực tiếp (đã xác nhận, hoặc đang chờ gia sư duyệt
+     * nếu includePending — yêu cầu đang chờ giữ chỗ trong thời hạn phản hồi).
+     */
+    private void ensureNoConnectionSessionClash(UUID tutorId, OffsetDateTime start, OffsetDateTime end,
+                                                boolean includePending, String message) {
+        if (start == null || end == null) return;
+        ZonedDateTime vnStart = start.atZoneSameInstant(VN_ZONE);
+        ZonedDateTime vnEnd = end.atZoneSameInstant(VN_ZONE);
+        java.time.LocalTime endTime = vnEnd.toLocalDate().isAfter(vnStart.toLocalDate())
+                ? java.time.LocalTime.of(23, 59, 59) : vnEnd.toLocalTime();
+        if (trialBookingRepository.existsConnectionSessionClash(tutorId, vnStart.toLocalDate(),
+                vnStart.getDayOfWeek().getValue() % 7, vnStart.toLocalTime(), endTime,
+                includePending, BookingLimits.DIRECT_RESPONSE_HOURS)) {
+            throw new ConflictException(message);
+        }
+    }
+
+    /** Buổi học thử (giờ Việt Nam) nằm trọn trong một ca rảnh đang bật của gia sư. */
+    private boolean isWithinAvailability(UUID tutorId, OffsetDateTime start, OffsetDateTime end) {
+        ZonedDateTime vnStart = start.atZoneSameInstant(VN_ZONE);
+        ZonedDateTime vnEnd = end.atZoneSameInstant(VN_ZONE);
+        if (vnEnd.toLocalDate().isAfter(vnStart.toLocalDate()) && !vnEnd.toLocalTime().equals(java.time.LocalTime.MIDNIGHT)) {
+            return false; // kéo qua nửa đêm
+        }
+        int dow = vnStart.getDayOfWeek().getValue() % 7 + 1; // 1 = Chủ nhật ... 7 = Thứ Bảy
+        return trialBookingRepository.isWithinAvailability(tutorId, dow, vnStart.toLocalTime(), vnEnd.toLocalTime());
+    }
+
+    /** Giờ gia sư đang bận thật (kể cả yêu cầu đang chờ duyệt, vì chúng giữ chỗ) thì không cho đặt / đề xuất. */
+    private void ensureTutorFreeAt(UUID tutorId, UUID learnerId, OffsetDateTime start, OffsetDateTime end) {
+        if (busyLoader == null) return;
+        ZonedDateTime vnStart = start.atZoneSameInstant(VN_ZONE);
+        ZonedDateTime vnEnd = end.atZoneSameInstant(VN_ZONE);
+        java.time.LocalDate date = vnStart.toLocalDate();
+        java.time.LocalTime endTime = vnEnd.toLocalDate().isAfter(date) ? java.time.LocalTime.MAX : vnEnd.toLocalTime();
+        ConnectionSchedulePlanner.BusyIndex busy = busyLoader.load(tutorId, learnerId, null, date, date,
+                ConnectionBusyLoader.Mode.LEARNER_REQUEST);
+        busy.conflictOf(new ConnectionSchedulePlanner.PlannedSession(date, ConnectionSchedulePlanner.dayOfWeekOf(date),
+                        vnStart.toLocalTime(), endTime))
+                .ifPresent(kind -> {
+                    throw new ConflictException("Giờ này đã kín: " + kind.learnerText() + ". Vui lòng chọn giờ khác.");
+                });
+    }
+
     /** Khóa giao dịch cấp cơ sở dữ liệu theo mã gia sư, giữ tới hết transaction. */
     private void lockTutor(UUID tutorId) {
         if (jdbcTemplate == null || tutorId == null) return;
@@ -856,6 +928,7 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         return TrialBookingResponseDTO.builder()
                 .bookingId(tb.getBookingId())
                 .officialArrangementAgreed(Boolean.TRUE.equals(tb.getOfficialArrangementAgreed()))
+                .offSchedule(Boolean.TRUE.equals(tb.getOffSchedule()))
                 .requestId(tb.getConnectionRequest() != null ? tb.getConnectionRequest().getRequestId() : null)
                 .tutorId(tb.getTutor().getTutorId())
                 .tutorName(tb.getTutor().getUser().getFullName())

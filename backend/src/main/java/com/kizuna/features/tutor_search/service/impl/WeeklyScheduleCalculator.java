@@ -12,8 +12,7 @@ import java.util.List;
  * Quy ước thứ: 1 = Chủ nhật, 2 = Thứ Hai ... 7 = Thứ Bảy (giống tutor_availabilities).
  * Một khoảng giờ của ngày D bị loại khi:
  *  - trùng lịch lớp chính thức / ca hằng tuần đã có học viên (lặp lại mọi tuần);
- *  - trùng buổi học thử cùng thứ vào ngày D hoặc bất kỳ ngày nào sau D (kết nối là ca lặp lại hằng tuần,
- *    chọn ca từ ngày D thì sẽ đụng buổi học thử đó);
+ *  - trùng lịch bận đúng ngày D: buổi học thử, buổi của khóa kết nối (đã xác nhận hoặc đang chờ duyệt);
  *  - đã qua thời điểm hiện tại.
  * Chỉ giữ các khoảng đủ dài cho ca ngắn nhất ({@code minDuration} phút).
  */
@@ -29,7 +28,7 @@ public final class WeeklyScheduleCalculator {
     public record WeeklyRange(int dayOfWeek, int start, int end) {
     }
 
-    /** Buổi học thử vào một ngày cụ thể (phút tính từ 00:00, giờ Việt Nam). */
+    /** Lịch bận vào một ngày cụ thể (buổi học thử, buổi của khóa kết nối) (phút tính từ 00:00, giờ Việt Nam). */
     public record DatedRange(LocalDate date, int start, int end) {
     }
 
@@ -76,7 +75,7 @@ public final class WeeklyScheduleCalculator {
                 if (b.dayOfWeek() == dow) busy.add(new Range(b.start(), b.end()));
             }
             for (DatedRange t : trials) {
-                if (!t.date().isBefore(date) && dayOfWeekOf(t.date()) == dow) busy.add(new Range(t.start(), t.end()));
+                if (t.date().equals(date)) busy.add(new Range(t.start(), t.end()));
             }
             if (date.equals(today)) busy.add(new Range(0, nowCut));
 

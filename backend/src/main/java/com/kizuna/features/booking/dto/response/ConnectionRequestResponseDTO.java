@@ -27,8 +27,26 @@ public class ConnectionRequestResponseDTO {
     private String partnerRole;
 
     private List<SlotView> slots;
-    /** Ngày bắt đầu học các ca hằng tuần (có thể null với yêu cầu cũ). */
+    /** Các buổi học cụ thể (rỗng với yêu cầu cũ chỉ có ca hằng tuần). */
+    private List<SessionView> sessions;
+    private Integer totalSessions;
+    /** Ngày buổi đầu / buổi cuối (null với yêu cầu cũ). */
     private java.time.LocalDate startDate;
+    private java.time.LocalDate endDate;
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class SessionView {
+        private java.time.LocalDate date;
+        private Integer dayOfWeek;
+        private String dayName;
+        /** "HH:mm" */
+        private String startTime;
+        private String endTime;
+    }
 
     private String currentLevel;
     private String learningGoals;

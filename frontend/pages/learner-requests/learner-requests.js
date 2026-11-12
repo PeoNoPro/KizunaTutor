@@ -8,6 +8,8 @@
 
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { API, ApiError } from '/js/api.js';
+// Sắp xếp theo từng nhóm: chờ phản hồi (buổi học gần nhất) → đã chấp nhận (buổi gần nhất) → lịch sử (mới nhất)
+import { sortTrials, sortDirect } from '/js/request-sorting.js';
 
 initLearnerShell({
   activeMenu: 'my-requests',
@@ -29,6 +31,80 @@ const HISTORY_STATUSES = ['COMPLETED', 'REJECTED', 'DECLINED', 'CANCELLED', 'EXP
 function setVisible(el, visible) {
   if (!el) return;
   el.classList.toggle('hidden', !visible);
+}
+
+// ---------------------------------------------------------------- Phân trang (7 mục mỗi trang)
+const PAGE_SIZE = 7;
+let bookingsPage = 0;
+let directPage = 0;
+
+/** Cắt danh sách theo trang; trả về { items, page } với page đã được giới hạn trong khoảng hợp lệ. */
+function pageSlice(list, page) {
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const p = Math.min(Math.max(0, page), totalPages - 1);
+  return { items: list.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE), page: p };
+}
+
+/** Vẽ thanh phân trang: « Trước · 1 2 3 … · Sau » kèm "Hiển thị 1–8 / 20". Ẩn nếu chỉ có 1 trang. */
+function renderPager(containerId, total, page, onChange) {
+  const el = $(containerId);
+  if (!el) return;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (totalPages <= 1) {
+    el.classList.add('hidden');
+    el.innerHTML = '';
+    return;
+  }
+  el.classList.remove('hidden');
+
+  // Số trang hiển thị: trang đầu, trang cuối và 1 trang mỗi bên trang hiện tại
+  const pages = [];
+  for (let i = 0; i < totalPages; i++) {
+    if (i === 0 || i === totalPages - 1 || Math.abs(i - page) <= 1) pages.push(i);
+    else if (pages[pages.length - 1] !== '…') pages.push('…');
+  }
+  const btnBase = 'min-w-9 h-9 px-2.5 rounded-xl text-xs font-semibold inline-flex items-center justify-center transition-all';
+  const from = page * PAGE_SIZE + 1;
+  const to = Math.min(total, (page + 1) * PAGE_SIZE);
+
+  el.innerHTML = `
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+      <p class="text-xs text-[#64748B]">Hiển thị <strong class="text-[#0F172A]">${from}–${to}</strong> / ${total} yêu cầu</p>
+      <nav class="flex items-center gap-1.5" aria-label="Phân trang">
+        <button type="button" data-page="${page - 1}" ${page === 0 ? 'disabled' : ''}
+          class="${btnBase} border border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F1F5F9] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer" aria-label="Trang trước">
+          <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        </button>
+        ${pages.map(p => p === '…'
+          ? `<span class="px-1 text-xs text-[#94A3B8]">…</span>`
+          : `<button type="button" data-page="${p}" ${p === page ? 'aria-current="page"' : ''}
+              class="${btnBase} cursor-pointer ${p === page
+                ? 'bg-[#006194] text-white shadow-xs'
+                : 'border border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F1F5F9]'}">${p + 1}</button>`).join('')}
+        <button type="button" data-page="${page + 1}" ${page >= totalPages - 1 ? 'disabled' : ''}
+          class="${btnBase} border border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F1F5F9] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer" aria-label="Trang sau">
+          <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+        </button>
+      </nav>
+    </div>`;
+  el.querySelectorAll('button[data-page]').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    onChange(Number(btn.dataset.page));
+  }));
+}
+
+/** Chuyển trang rồi cuộn lên đầu danh sách. */
+function scrollToList(listId) {
+  const el = $(listId);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** " • 8 buổi (17/11 – 11/12/2026)" cho yêu cầu kết nối có buổi cụ thể; rỗng với yêu cầu cũ. */
+function courseRangeText(r) {
+  if (!r || !r.totalSessions || !r.startDate || !r.endDate) return '';
+  const [, sm, sd] = String(r.startDate).split('-');
+  const [ey, em, ed] = String(r.endDate).split('-');
+  return ` • ${r.totalSessions} buổi (${sd}/${sm} – ${ed}/${em}/${ey})`;
 }
 
 function escapeHtml(text) {
@@ -115,6 +191,7 @@ function renderBookings() {
   if (filtered.length === 0) {
     setVisible(listEl, false);
     setVisible(emptyEl, true);
+    renderPager('bookingsPager', 0, 0, () => {});
     const msgEl = $('emptyMessage');
     if (msgEl) {
       if (currentFilter === 'PENDING') {
@@ -131,7 +208,15 @@ function renderBookings() {
   setVisible(emptyEl, false);
   setVisible(listEl, true);
 
-  listEl.innerHTML = filtered.map(item => {
+  const paged = pageSlice(filtered, bookingsPage);
+  bookingsPage = paged.page;
+  renderPager('bookingsPager', filtered.length, bookingsPage, (p) => {
+    bookingsPage = p;
+    renderBookings();
+    scrollToList('bookingsList');
+  });
+
+  listEl.innerHTML = paged.items.map(item => {
     const isPending = item.bookingStatus === 'PENDING';
     const isConfirmed = item.bookingStatus === 'CONFIRMED';
     const isRescheduled = item.bookingStatus === 'RESCHEDULED';
@@ -484,8 +569,8 @@ async function loadBookings() {
   setVisible($('bookingsList'), false);
 
   try {
-    const res = await API.trialBookings.getMyRequests('ALL', 0, 50);
-    bookingsList = res?.items || res?.content || res?.data?.items || res?.data?.content || (Array.isArray(res) ? res : []);
+    const res = await API.trialBookings.getMyRequests('ALL', 0, 100);
+    bookingsList = sortTrials(res?.items || res?.content || res?.data?.items || res?.data?.content || (Array.isArray(res) ? res : []), 'learner');
     updateCounts();
     renderBookings();
   } catch (err) {
@@ -511,6 +596,7 @@ function initEvents() {
       btn.className = 'tab-btn px-4 py-2 rounded-xl bg-[#006194] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer';
 
       currentFilter = btn.dataset.status;
+      bookingsPage = 0;
       renderBookings();
     });
   });
@@ -662,6 +748,13 @@ function renderDirect() {
   const listEl = $('directList');
   if (!listEl) return;
   const filtered = directRequests.filter(directMatches);
+  const paged = pageSlice(filtered, directPage);
+  directPage = paged.page;
+  renderPager('directPager', filtered.length, directPage, (p) => {
+    directPage = p;
+    renderDirect();
+    scrollToList('directList');
+  });
 
   if (!filtered.length) {
     const msg = directFilter === 'PENDING' ? 'Bạn không có yêu cầu kết nối nào đang chờ gia sư phản hồi.'
@@ -680,7 +773,7 @@ function renderDirect() {
     return;
   }
 
-  listEl.innerHTML = filtered.map(r => {
+  listEl.innerHTML = paged.items.map(r => {
     const tutorName = escapeHtml(r.partnerName || 'Gia sư');
     const avatarSrc = r.partnerAvatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80';
     const badgeCls = r.status === 'PENDING' ? 'bg-amber-100 text-amber-800'
@@ -732,7 +825,7 @@ function renderDirect() {
                 <h3 class="text-base font-bold text-[#0F172A]">${tutorName}</h3>
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-[#006194]">Kết nối trực tiếp</span>
               </div>
-              <p class="text-xs text-[#64748B] mt-0.5">${(r.slots || []).length} ca mỗi tuần • Không qua học thử</p>
+              <p class="text-xs text-[#64748B] mt-0.5">${(r.slots || []).length} ca mỗi tuần${courseRangeText(r)} • Không qua học thử</p>
             </div>
           </div>
           <span class="self-start sm:self-center px-2.5 py-1 rounded-full text-[11px] font-bold ${badgeCls}">${escapeHtml(r.statusLabel || '')}</span>
@@ -761,8 +854,8 @@ function renderDirect() {
 
 async function loadDirect() {
   try {
-    const res = await API.connectionRequests.getMyRequests('ALL', 0, 50);
-    directRequests = res?.items || [];
+    const res = await API.connectionRequests.getMyRequests('ALL', 0, 100);
+    directRequests = sortDirect(res?.items || [], 'learner');
   } catch (err) {
     console.error('Lỗi tải yêu cầu kết nối trực tiếp:', err);
     directRequests = [];
@@ -801,6 +894,7 @@ function initDirectEvents() {
       tabBtns.forEach(b => { b.className = TAB_IDLE; });
       btn.className = TAB_ACTIVE;
       directFilter = btn.dataset.status;
+      directPage = 0;
       renderDirect();
     });
   });

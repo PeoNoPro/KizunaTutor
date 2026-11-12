@@ -5,7 +5,7 @@
 
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { API, ApiError } from '/js/api.js';
-import { renderWeekTimeGrid, trialEvent, officialEvent } from '/js/week-time-grid.js';
+import { renderWeekTimeGrid, trialEvent, officialEvent, weekRange } from '/js/week-time-grid.js';
 
 // 1. Khởi tạo khung giao diện học viên
 initLearnerShell({
@@ -29,6 +29,9 @@ const WEEKDAYS_DEF = [
 
 let bookingsList = [];
 let classTimetable = []; // Lịch học chính thức hằng tuần của các lớp (FE-06: GET /api/classrooms/schedules/me)
+let weekSessions = []; // Buổi học chính thức của tuần đang xem (FE-06: GET /api/classrooms/sessions/me)
+let weekSessionsToken = 0;
+let weekSessionsKey = ''; // Tuần của weekSessions đang vẽ ("yyyy-MM-dd" Thứ Hai)
 let currentFilter = 'ALL';
 let activeBooking = null;
 let activeCompleteBooking = null;
@@ -158,6 +161,30 @@ function updateCounts() {
 /**
  * Hiển thị thời khóa biểu tuần của Học viên (Weekly Time Grid)
  */
+/**
+ * Tải các buổi học chính thức của tuần đang xem (máy chủ đã sinh lịch cho đủ số buổi của khóa,
+ * áp dụng các buổi gia sư dời / hủy / thêm riêng trong tuần) rồi vẽ lại lưới.
+ */
+async function loadLearnerWeekSessions() {
+  const token = ++weekSessionsToken;
+  const { from, to } = weekRange(learnerCurrentWeekMonday);
+  // Chỉ xóa buổi khi sang tuần khác; tải lại cùng tuần thì giữ lịch đang hiện tới khi có dữ liệu mới
+  if (weekSessionsKey !== from) {
+    weekSessions = [];
+    weekSessionsKey = from;
+  }
+  renderLearnerWeeklyCalendar();
+  try {
+    const list = await API.classrooms.sessions(from, to);
+    if (token !== weekSessionsToken) return;
+    weekSessions = Array.isArray(list) ? list : [];
+  } catch (err) {
+    if (token !== weekSessionsToken) return;
+    console.error('Lỗi tải lịch học của tuần:', err);
+  }
+  renderLearnerWeeklyCalendar();
+}
+
 function renderLearnerWeeklyCalendar() {
   const headerRow = $('learnerGridHeaderRow');
   const bodyRows = $('learnerGridBodyRows');
@@ -173,7 +200,7 @@ function renderLearnerWeeklyCalendar() {
   // 1. Header Row
   headerRow.innerHTML = `
     <div class="p-3 text-[11px] font-bold text-[#64748B] text-center border-r border-[#E2E8F0] flex items-center justify-center sticky left-0 z-10 bg-white">
-      Giờ
+      Ca
     </div>
     ${WEEKDAYS_DEF.map((day, idx) => {
       const dayDate = new Date(learnerCurrentWeekMonday.getTime() + idx * 86400000);
@@ -201,20 +228,11 @@ function renderLearnerWeeklyCalendar() {
     return ts >= weekStartTs && ts < weekEndTs && !['CANCELLED', 'DECLINED'].includes(b.bookingStatus);
   });
 
-  // Buổi học chính thức: lặp hằng tuần theo lịch lớp (FE-06), chỉ vẽ từ tuần mở lớp trở đi
-  const weekOfficial = classTimetable.map(entry => {
-    const dayIdx = Number(entry.dayOfWeek) - 1; // 1 = Thứ Hai
-    const date = new Date(learnerCurrentWeekMonday.getTime() + dayIdx * 86400000);
-    const [sh, sm] = String(entry.startTime || '').split(':').map(Number);
-    const [eh, em] = String(entry.endTime || '').split(':').map(Number);
-    const started = entry.classStartedAt ? new Date(entry.classStartedAt) : null;
-    const endOfDay = new Date(date.getTime() + 86400000);
-    if (dayIdx < 0 || dayIdx > 6 || Number.isNaN(sh) || (started && started >= endOfDay)) return null;
-    return { ...entry, dateYmd: formatDateYMD(date), startHour: sh, timeSpan: `${pad(sh)}:${pad(sm || 0)} - ${pad(eh)}:${pad(em || 0)}` };
-  }).filter(Boolean);
+  // Buổi học chính thức: lặp hằng tuần theo lịch lớp (FE-06), từ tuần mở lớp trở đi;
+  // buổi gia sư đã dời riêng trong tuần hiện đúng ngày/giờ mới kèm ghi chú "Đã dời từ ..."
+  const weekOfficial = weekSessions;
 
-  // 2. Thân lưới 24 giờ
-  // Thân lưới: lịch theo phút (thẻ đặt đúng giờ bắt đầu, cao theo thời lượng) — js/week-time-grid.js
+  // 2. Thân lưới theo ca (Sáng / Tối) — js/week-time-grid.js
   renderWeekTimeGrid({
     bodyEl: bodyRows,
     scrollEl: $('learnerGridScroll'),
@@ -608,6 +626,7 @@ async function loadBookings() {
 
     updateCounts();
     switchViewMode(currentViewMode);
+    loadLearnerWeekSessions();
   } catch (err) {
     console.error('Lỗi tải danh sách yêu cầu học viên:', err);
     $('errorMessage').textContent = err instanceof ApiError ? err.message : 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
@@ -628,15 +647,15 @@ function initEvents() {
   // Điều hướng tuần trên Thời khóa biểu học viên
   $('btnLearnerPrevWeek')?.addEventListener('click', () => {
     learnerCurrentWeekMonday = new Date(learnerCurrentWeekMonday.getTime() - 7 * 86400000);
-    renderLearnerWeeklyCalendar();
+    loadLearnerWeekSessions();
   });
   $('btnLearnerNextWeek')?.addEventListener('click', () => {
     learnerCurrentWeekMonday = new Date(learnerCurrentWeekMonday.getTime() + 7 * 86400000);
-    renderLearnerWeeklyCalendar();
+    loadLearnerWeekSessions();
   });
   $('btnLearnerToday')?.addEventListener('click', () => {
     learnerCurrentWeekMonday = getMondayOf(new Date());
-    renderLearnerWeeklyCalendar();
+    loadLearnerWeekSessions();
   });
 
   // Tabs lọc trạng thái

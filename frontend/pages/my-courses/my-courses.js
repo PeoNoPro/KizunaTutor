@@ -11,6 +11,7 @@ import {
   formatDateVi,
   sortSchedules,
   summarizeSchedules,
+  courseCardLines,
   dayOfWeekLabel,
   shortTime,
   durationLabel,
@@ -59,7 +60,9 @@ async function loadCourses() {
       renderStateBox(stateBox, 'Bạn chưa tham gia lớp học nào. Sau khi gia sư chấp nhận kết nối và mở lớp, lớp học sẽ hiển thị tại đây.');
       return;
     }
-    grid.innerHTML = courses.map((c) => `
+    grid.innerHTML = courses.map((c) => {
+      const lines = courseCardLines(c);
+      return `
       <article class="mc-card p-4 flex flex-col gap-3">
         <div class="flex items-start justify-between gap-2">
           <h3 class="mc-heading text-[18px] leading-snug min-w-0 [overflow-wrap:anywhere]">${escapeHtml(c.title)}</h3>
@@ -67,13 +70,14 @@ async function loadCourses() {
         </div>
         <div class="text-[#333] space-y-1">
           <div>Gia sư: <strong>${escapeHtml(c.tutorName || 'Gia sư')}</strong></div>
-          <div>Ngày bắt đầu: ${escapeHtml(formatDateVi(c.createdAt))}</div>
+          <div>Thời gian học: ${escapeHtml(lines.period)}</div>
+          ${lines.progress ? `<div>Tiến độ: ${escapeHtml(lines.progress)}</div>` : ''}
           <div>Lịch học: ${c.schedules?.length ? escapeHtml(summarizeSchedules(c.schedules)) : 'Chưa có lịch học'}</div>
           <div>Tài liệu: ${Number(c.materialCount) || 0}</div>
         </div>
         <button type="button" class="mc-btn mt-auto" data-open-course="${escapeHtml(c.spaceId)}">Xem lớp học</button>
-      </article>
-    `).join('');
+      </article>`;
+    }).join('');
     grid.querySelectorAll('[data-open-course]').forEach((btn) => {
       btn.addEventListener('click', () => showCourse(btn.dataset.openCourse));
     });
@@ -125,8 +129,11 @@ async function loadCourse(spaceId) {
     badge.textContent = classroomStatusLabel(currentSpace.status);
     badge.dataset.tone = classroomStatusTone(currentSpace.status);
     $('myCourseTutor').textContent = currentSpace.tutorName || 'Gia sư';
-    $('myCourseCreated').textContent = formatDateVi(currentSpace.createdAt);
+    $('myCourseCreated').textContent = formatDateVi(currentSpace.courseStartDate || currentSpace.createdAt);
     $('myCourseReadOnlyNote').classList.toggle('hidden', !currentSpace.readOnly);
+    $('myCourseReadOnlyNote').textContent = currentSpace.status === 'COMPLETED'
+      ? 'Khóa học đã kết thúc. Bạn vẫn xem lại được tài liệu, bài tập và điểm của lớp này.'
+      : 'Lớp học đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại các tài liệu đã được chia sẻ.';
     card.classList.remove('hidden');
     renderSchedule(currentSpace.schedules);
     materialsCard.classList.remove('hidden');

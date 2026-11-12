@@ -17,6 +17,11 @@ import {
   FILE_RULES_TEXT,
   MAX_FILES_PER_UPLOAD,
   validateClassroomTitle,
+  validateCourseFields,
+  minSessionsHint,
+  courseSummaryText,
+  courseCardLines,
+  localYmd,
   validateScheduleList,
   validateScheduleSlot,
   sortSchedules,
@@ -181,7 +186,9 @@ function renderClassrooms() {
     return;
   }
   stateBox.classList.add('hidden');
-  grid.innerHTML = state.classrooms.map((c) => `
+  grid.innerHTML = state.classrooms.map((c) => {
+    const lines = courseCardLines(c);
+    return `
     <article class="kz-item flex flex-col gap-3">
       <div class="flex items-start justify-between gap-2">
         <h3 class="font-title-sm text-title-sm text-on-surface min-w-0 [overflow-wrap:anywhere]">${escapeHtml(c.title)}</h3>
@@ -189,14 +196,15 @@ function renderClassrooms() {
       </div>
       <dl class="text-on-surface-variant space-y-1">
         <div>Học viên: <strong>${escapeHtml(c.learnerName || 'Học viên')}</strong></div>
-        <div>Ngày mở lớp: ${escapeHtml(formatDateVi(c.createdAt))}</div>
+        <div>Thời gian học: ${escapeHtml(lines.period)}</div>
+        ${lines.progress ? `<div>Tiến độ: ${escapeHtml(lines.progress)}</div>` : ''}
         <div>Lịch học: ${c.schedules?.length ? escapeHtml(summarizeSchedules(c.schedules)) : '<span class="text-tertiary">Chưa có lịch học</span>'}</div>
         <div>Tài liệu: ${Number(c.materialCount) || 0}</div>
       </dl>
       ${c.readOnly ? '<p class="font-caption text-caption text-tertiary">Chế độ chỉ xem</p>' : ''}
       <button type="button" class="kz-btn kz-btn-primary mt-auto" data-open-space="${escapeHtml(c.spaceId)}">Vào lớp học</button>
-    </article>
-  `).join('');
+    </article>`;
+  }).join('');
   grid.querySelectorAll('[data-open-space]').forEach((btn) => {
     btn.addEventListener('click', () => navigateToSpace(btn.dataset.openSpace));
   });
@@ -254,6 +262,11 @@ async function openAddLearner(preselectLearnerId = null) {
   setFieldError('addLearnerFormError', '');
   setFieldError('scheduleRowsError', '');
   $('classroomTitleInput').value = '';
+  $('courseStartInput').value = localYmd();
+  $('courseStartInput').min = localYmd();
+  $('courseTotalInput').value = '';
+  setFieldError('courseStartError', '');
+  setFieldError('courseTotalError', '');
   $('scheduleRows').innerHTML = '';
   addScheduleRow();
   select.innerHTML = '';
@@ -293,24 +306,34 @@ async function submitAddLearner(event) {
   const learnerId = $('learnerSelect').value;
   const title = $('classroomTitleInput').value;
   const schedules = collectScheduleRows();
+  const startDate = $('courseStartInput').value;
+  const totalSessions = $('courseTotalInput').value;
   const titleError = validateClassroomTitle(title);
   const scheduleError = validateScheduleList(schedules);
+  const courseErrors = validateCourseFields({ startDate, totalSessions, weeklySlots: schedules.length });
   setFieldError('learnerSelectError', learnerId ? '' : 'Vui lòng chọn học viên.');
   setFieldError('classroomTitleError', titleError);
+  setFieldError('courseStartError', courseErrors.startDate);
+  setFieldError('courseTotalError', courseErrors.totalSessions);
   setFieldError('scheduleRowsError', scheduleError);
   setFieldError('addLearnerFormError', '');
-  if (!learnerId || titleError || scheduleError) return;
+  if (!learnerId || titleError || scheduleError || courseErrors.startDate || courseErrors.totalSessions) return;
 
   const submit = $('addLearnerSubmit');
   setBusy(submit, true, 'Đang tạo lớp...');
   try {
-    await API.classrooms.create({ learnerId, title: title.trim(), schedules });
+    await API.classrooms.create({
+      learnerId, title: title.trim(), schedules, startDate, totalSessions: Number(totalSessions)
+    });
     closeModal('addLearnerModal');
     showToast('Tạo lớp học thành công.');
     await loadClassrooms();
   } catch (err) {
-    if (err.fieldErrors?.title) setFieldError('classroomTitleError', err.fieldErrors.title);
-    else if (err.fieldErrors?.schedules) setFieldError('scheduleRowsError', err.fieldErrors.schedules);
+    const fe = err.fieldErrors || {};
+    if (fe.title) setFieldError('classroomTitleError', fe.title);
+    else if (fe.startDate) setFieldError('courseStartError', fe.startDate);
+    else if (fe.totalSessions) setFieldError('courseTotalError', fe.totalSessions);
+    else if (fe.schedules) setFieldError('scheduleRowsError', fe.schedules);
     else setFieldError('addLearnerFormError', friendlyErrorMessage(err));
   } finally {
     setBusy(submit, false);
@@ -369,7 +392,9 @@ function renderSpace() {
   if (c.readOnly) {
     note.textContent = c.status === 'ACTIVE'
       ? 'Bạn chưa có gói hội viên hoặc gói đã hết hạn nên lớp học đang ở chế độ chỉ xem. Vui lòng đăng ký hoặc gia hạn gói để tiếp tục quản lý lớp học.'
-      : 'Lớp học không còn hoạt động nên đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại tài liệu đã chia sẻ.';
+      : c.status === 'COMPLETED'
+        ? 'Khóa học đã học xong buổi cuối nên lớp chuyển sang chỉ xem. Bạn vẫn chấm được các bài tập còn chờ chấm và có thể mở lớp mới với học viên này.'
+        : 'Lớp học không còn hoạt động nên đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại tài liệu đã chia sẻ.';
     note.classList.remove('hidden');
   } else {
     note.classList.add('hidden');
@@ -377,7 +402,71 @@ function renderSpace() {
   $('openUploadBtn').classList.toggle('hidden', !c.canManage);
   $('openRenameBtn').classList.toggle('hidden', !c.canManage);
   $('classroomDetailCard').classList.remove('hidden');
+  renderCourseInfo();
   renderSchedules();
+}
+
+// ----------------------------------------------------------------------------
+// Khóa học: tổng số buổi + ngày bắt đầu (lịch tự sinh cho đủ số buổi rồi dừng)
+// ----------------------------------------------------------------------------
+function renderCourseInfo() {
+  const c = state.currentSpace;
+  $('courseSummary').textContent = courseSummaryText(c);
+  $('courseMissingNote').classList.toggle('hidden', !!c.totalSessions || !c.canManage);
+  $('openCourseBtn').classList.toggle('hidden', !c.canManage);
+}
+
+function openCourseModal() {
+  const c = state.currentSpace;
+  const started = c.startedSessions || 0;
+  $('courseEditStartInput').value = c.courseStartDate || localYmd();
+  $('courseEditStartInput').min = started > 0 ? '' : localYmd();
+  $('courseEditStartInput').disabled = started > 0;
+  $('courseEditStartHint').classList.toggle('hidden', started === 0);
+  $('courseEditTotalInput').value = c.totalSessions || '';
+  const weeklySlots = (c.schedules || []).length;
+  $('courseEditTotalInput').min = String(Math.max(1, started, weeklySlots));
+  $('courseEditTotalHint').textContent = `${minSessionsHint({ started, weeklySlots })} Lịch học tự sinh cho đủ số buổi này rồi dừng.`;
+  ['courseEditStartError', 'courseEditTotalError', 'courseFormError'].forEach((id) => setFieldError(id, ''));
+  openModal('courseModal');
+}
+
+async function submitCourse(event) {
+  event.preventDefault();
+  const c = state.currentSpace;
+  const started = c.startedSessions || 0;
+  const startDate = $('courseEditStartInput').value;
+  const totalSessions = $('courseEditTotalInput').value;
+  const startChanged = started === 0 && startDate !== c.courseStartDate;
+  const errors = validateCourseFields({
+    startDate, totalSessions, minTotal: started, weeklySlots: (c.schedules || []).length, checkStartDate: startChanged
+  });
+  setFieldError('courseEditStartError', errors.startDate);
+  setFieldError('courseEditTotalError', errors.totalSessions);
+  setFieldError('courseFormError', '');
+  if (errors.startDate || errors.totalSessions) return;
+
+  const submit = $('courseSubmit');
+  setBusy(submit, true, 'Đang lưu...');
+  try {
+    state.currentSpace = await API.classrooms.updateCourse(c.spaceId, {
+      startDate: startChanged ? startDate : null,
+      totalSessions: Number(totalSessions)
+    });
+    closeModal('courseModal');
+    showToast('Cập nhật khóa học thành công.');
+    renderSpace();
+  } catch (err) {
+    const fe = err.fieldErrors || {};
+    if (fe.startDate || fe.totalSessions) {
+      setFieldError('courseEditStartError', fe.startDate);
+      setFieldError('courseEditTotalError', fe.totalSessions);
+    } else {
+      setFieldError('courseFormError', friendlyErrorMessage(err));
+    }
+  } finally {
+    setBusy(submit, false);
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -390,7 +479,7 @@ function renderSchedules() {
   const schedules = sortSchedules(c.schedules);
   $('openAddScheduleBtn').classList.toggle('hidden', !c.canManage);
   $('scheduleSubtitle').textContent = c.canManage
-    ? 'Các buổi học cố định mỗi tuần. Bạn có thể thêm, sửa hoặc xóa buổi; lớp luôn cần ít nhất một buổi học.'
+    ? 'Các buổi học cố định mỗi tuần. Thêm, sửa hoặc xóa buổi áp dụng cho mọi tuần từ bây giờ (các buổi đã học vẫn được giữ); lớp luôn cần ít nhất một buổi. Muốn đổi riêng một tuần, hãy dùng Lịch giảng dạy.'
     : 'Các buổi học cố định mỗi tuần của lớp.';
   if (!schedules.length) {
     list.innerHTML = '';
@@ -765,6 +854,8 @@ function init() {
   $('openAddScheduleBtn').addEventListener('click', () => openScheduleForm(null));
   $('scheduleForm').addEventListener('submit', submitSchedule);
   $('openRenameBtn').addEventListener('click', openRename);
+  $('openCourseBtn').addEventListener('click', openCourseModal);
+  $('courseForm').addEventListener('submit', submitCourse);
   $('deleteScheduleConfirm').addEventListener('click', confirmDeleteSchedule);
   $('renameForm').addEventListener('submit', submitRename);
   $('backToListBtn').addEventListener('click', navigateToList);

@@ -75,24 +75,69 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
                                                                                List<TrialBookingStatus> statuses);
 
     /**
-     * Truy vấn CHỈ ĐỌC lịch học chính thức hằng tuần (FE-06: class_schedules + learning_spaces, lớp ACTIVE/PAUSED)
-     * của gia sư HOẶC học viên trùng khung giờ (theo giờ Việt Nam). dayOfWeek: 1 = Thứ Hai ... 7 = Chủ nhật.
+     * Truy vấn CHỈ ĐỌC lịch học chính thức (FE-06) của gia sư HOẶC học viên vào NGÀY {@code date} (giờ Việt Nam),
+     * trùng khung giờ [startTime, endTime). Sinh các buổi CỤ THỂ của khóa theo đúng quy tắc của
+     * ClassSessionCalendar (FE-06): từ ngày bắt đầu khóa, buổi hằng tuần còn hiệu lực (active_from / active_until),
+     * bỏ buổi đã hủy, áp dụng buổi đã dời (có thể sang tuần khác), thêm buổi riêng, đánh số theo thời gian thực tế
+     * và chỉ lấy tối đa total_sessions buổi.
+     * dayOfWeek: 1 = Thứ Hai ... 7 = Chủ nhật (thứ của {@code date}).
      * @return 'TUTOR' nếu trùng lịch dạy của gia sư, 'LEARNER' nếu trùng lịch học của học viên; rỗng nếu không trùng
      */
     @Query(value = """
-            SELECT CASE WHEN ls.tutor_id = :tutorId THEN 'TUTOR' ELSE 'LEARNER' END
-            FROM class_schedules cs
-            JOIN learning_spaces ls ON ls.space_id = cs.space_id
-            WHERE ls.status IN ('ACTIVE', 'PAUSED')
-              AND (ls.tutor_id = :tutorId OR ls.learner_id = :learnerId)
-              AND cs.day_of_week = :dayOfWeek
-              AND cs.start_time < :endTime
-              AND cs.end_time > :startTime
-            ORDER BY CASE WHEN ls.tutor_id = :tutorId THEN 0 ELSE 1 END
+            WITH sp AS (
+                SELECT ls.space_id, ls.tutor_id, ls.learner_id, ls.total_sessions,
+                       COALESCE(ls.course_start_date, CAST(ls.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date)) AS start_date,
+                       GREATEST(CAST(:date AS date), COALESCE((
+                           SELECT MAX(ch.original_date) FROM class_session_changes ch
+                           JOIN class_schedules cs2 ON cs2.schedule_id = ch.schedule_id
+                           WHERE cs2.space_id = ls.space_id), CAST(:date AS date))) AS horizon
+                FROM learning_spaces ls
+                WHERE ls.status IN ('ACTIVE', 'PAUSED')
+                  AND (ls.tutor_id = :tutorId OR ls.learner_id = :learnerId)
+                  AND :dayOfWeek BETWEEN 1 AND 7
+            ),
+            occ AS (
+                SELECT cs.space_id,
+                       COALESCE(ch.new_date, d.day) AS session_date,
+                       COALESCE(ch.start_time, cs.start_time) AS st,
+                       COALESCE(ch.end_time, cs.end_time) AS et
+                FROM sp
+                JOIN class_schedules cs ON cs.space_id = sp.space_id
+                CROSS JOIN LATERAL (
+                    SELECT CAST(g AS date) AS day
+                    FROM generate_series(CAST(sp.start_date AS timestamp),
+                                         CAST(sp.horizon AS timestamp), interval '1 day') g
+                ) d
+                LEFT JOIN class_session_changes ch ON ch.schedule_id = cs.schedule_id AND ch.original_date = d.day
+                WHERE EXTRACT(ISODOW FROM d.day) = cs.day_of_week
+                  AND ((d.day + cs.start_time) AT TIME ZONE 'Asia/Ho_Chi_Minh') >= cs.active_from
+                  AND (cs.active_until IS NULL OR ((d.day + cs.start_time) AT TIME ZONE 'Asia/Ho_Chi_Minh') < cs.active_until)
+                  AND COALESCE(ch.cancelled, FALSE) = FALSE
+                UNION ALL
+                SELECT e.space_id, e.session_date, e.start_time, e.end_time
+                FROM class_extra_sessions e
+                JOIN sp ON sp.space_id = e.space_id
+                WHERE e.session_date >= sp.start_date
+                  AND e.session_date <= CAST(:date AS date) + 6
+            ),
+            numbered AS (
+                SELECT occ.space_id, occ.session_date, occ.st, occ.et,
+                       ROW_NUMBER() OVER (PARTITION BY occ.space_id ORDER BY occ.session_date, occ.st) AS rn
+                FROM occ
+            )
+            SELECT CASE WHEN sp.tutor_id = :tutorId THEN 'TUTOR' ELSE 'LEARNER' END
+            FROM numbered n
+            JOIN sp ON sp.space_id = n.space_id
+            WHERE (sp.total_sessions IS NULL OR n.rn <= sp.total_sessions)
+              AND n.session_date = CAST(:date AS date)
+              AND n.st < :endTime
+              AND n.et > :startTime
+            ORDER BY CASE WHEN sp.tutor_id = :tutorId THEN 0 ELSE 1 END
             LIMIT 1
             """, nativeQuery = true)
     java.util.Optional<String> findClassScheduleClash(@Param("tutorId") UUID tutorId,
                                                       @Param("learnerId") UUID learnerId,
+                                                      @Param("date") java.time.LocalDate date,
                                                       @Param("dayOfWeek") int dayOfWeek,
                                                       @Param("startTime") java.time.LocalTime startTime,
                                                       @Param("endTime") java.time.LocalTime endTime);

@@ -48,4 +48,8 @@ public class Assignment extends BaseEntity {
 
     @Column(name = "attachment_url", length = 500)
     private String attachmentUrl;
+
+    /** Thời gian mở bài (migration 017); null = mở ngay. Trước giờ mở học viên không thấy bài. */
+    @Column(name = "opens_at")
+    private OffsetDateTime opensAt;
 }

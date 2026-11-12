@@ -83,6 +83,9 @@ public class SubmissionServiceImpl implements SubmissionService {
         loadLearnerSpace(actor, spaceId);
         Assignment assignment = findInSpace(assignmentId, spaceId);
         OffsetDateTime now = OffsetDateTime.now(clock);
+        if (!AssignmentRules.isOpen(assignment.getOpensAt(), now)) {
+            throw ClassroomException.notFound("Không tìm thấy bài tập trong lớp học này.");
+        }
 
         List<AssignmentSubmission> previous = submissionsOf(assignmentId, actor);
         if (previous.stream().anyMatch(AssignmentSubmission::isFinalized)) {
@@ -172,7 +175,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         if (!actor.isTutor()) {
             throw ClassroomException.forbidden("Chỉ gia sư của lớp mới được chấm điểm bài tập.");
         }
-        LearningSpace space = classroomService.loadManageableSpace(actor, spaceId);
+        // Khóa học đã hoàn thành vẫn chấm được bài còn chờ
+        LearningSpace space = classroomService.loadGradableSpace(actor, spaceId);
         Assignment assignment = findInSpace(assignmentId, spaceId);
         AssignmentSubmission submission = findSubmission(submissionId, assignmentId);
         OffsetDateTime now = OffsetDateTime.now(clock);

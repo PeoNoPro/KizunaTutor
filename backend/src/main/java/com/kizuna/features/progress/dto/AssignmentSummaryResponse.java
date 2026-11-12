@@ -23,6 +23,8 @@ public record AssignmentSummaryResponse(
         List<FileAttachmentResponse> attachments,
         OffsetDateTime createdAt,
         boolean dueOver,
+        OffsetDateTime opensAt,
+        boolean opened,
         SubmissionState submissionState,
         int attemptCount,
         BigDecimal grade,

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="shell-type" content="web_dashboard">
+  <title>Soạn bài làm trực tiếp - KizunaTutor</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Cấu hình giao diện giống khung dashboard gia sư (giữ nguyên tên token để ghép với dashboard) -->
+  <script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-secondary-fixed-variant":"#264191","on-tertiary-fixed":"#2f1500","surface-container":"#eaedff","secondary-fixed-dim":"#b6c4ff","outline":"#707881","on-tertiary-container":"#fffbff","on-background":"#131b2e","secondary-fixed":"#dce1ff","on-secondary-fixed":"#00164e","inverse-surface":"#283044","surface-container-lowest":"#ffffff","tertiary-container":"#b15f00","primary-fixed-dim":"#93ccff","on-error-container":"#93000a","primary-fixed":"#cce5ff","on-primary-container":"#fdfcff","tertiary-fixed-dim":"#ffb77d","on-primary":"#ffffff","on-tertiary-fixed-variant":"#6e3900","on-primary-fixed-variant":"#004b73","error-container":"#ffdad6","surface-tint":"#006398","tertiary":"#8d4b00","on-primary-fixed":"#001d31","surface-container-low":"#f2f3ff","on-secondary-container":"#1d3989","surface-bright":"#faf8ff","on-secondary":"#ffffff","surface":"#faf8ff","on-error":"#ffffff","secondary-container":"#8fa7fe","inverse-on-surface":"#eef0ff","outline-variant":"#bfc7d2","surface-container-highest":"#dae2fd","primary":"#006194","on-surface":"#131b2e","on-tertiary":"#ffffff","surface-variant":"#dae2fd","surface-dim":"#d2d9f4","surface-container-high":"#e2e7ff","secondary":"#4059aa","background":"#faf8ff","error":"#ba1a1a","on-surface-variant":"#3f4850","primary-container":"#007bb9","inverse-primary":"#93ccff","tertiary-fixed":"#ffdcc3"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"space-md":"1rem","margin":"2rem","space-xs":"0.25rem","space-lg":"1.5rem","gutter-dense":"1rem","space-sm":"0.5rem","space-xl":"2.5rem","gutter":"1.5rem","margin-mobile":"1rem"},fontFamily:{"label-sm":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"display-hero-mobile":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"title-sm":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"display-hero":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"title-md":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"caption":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"]},fontSize:{"label-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"22px","fontWeight":"400"}],"display-hero-mobile":["32px",{"lineHeight":"40px","letterSpacing":"-0.01em","fontWeight":"700"}],"body-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}],"body-lg":["16px",{"lineHeight":"26px","fontWeight":"400"}],"title-sm":["16px",{"lineHeight":"24px","fontWeight":"600"}],"headline-md":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"600"}],"display-hero":["48px",{"lineHeight":"58px","letterSpacing":"-0.02em","fontWeight":"700"}],"headline-lg-mobile":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-sm":["20px",{"lineHeight":"28px","fontWeight":"600"}],"title-md":["18px",{"lineHeight":"26px","fontWeight":"600"}],"headline-lg":["32px",{"lineHeight":"40px","letterSpacing":"-0.015em","fontWeight":"600"}],"caption":["11px",{"lineHeight":"14px","fontWeight":"500"}],"label-md":["14px",{"lineHeight":"20px","fontWeight":"500"}]}}}};</script>
+  <!-- Lớp thành phần riêng của trang lớp học (tiền tố kz- để không trùng với dashboard) -->
+  <style type="text/tailwindcss">
+    @layer components {
+      .kz-card { @apply bg-surface-container-lowest rounded-2xl shadow-sm; }
+      .kz-item { @apply p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-all; }
+      .kz-btn { @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high font-label-sm text-label-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed; }
+      .kz-item .kz-btn:not(.kz-btn-primary) { @apply bg-surface-container-lowest shadow-sm; }
+      .kz-btn-primary { @apply bg-primary text-on-primary hover:bg-primary-container shadow-sm; }
+      .kz-btn-danger { @apply bg-error text-on-error hover:opacity-90 shadow-sm; }
+      .kz-input { @apply w-full rounded-lg bg-surface-container-low px-3 py-2.5 font-body-md text-body-md text-on-surface border border-transparent focus:outline-none focus:border-primary focus:bg-surface-container-lowest transition-colors; }
+      .kz-label { @apply block font-label-md text-label-md text-on-surface mb-1.5; }
+      .kz-badge { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm text-label-sm bg-surface-container-highest text-on-surface-variant; }
+      .kz-badge[data-tone="active"] { @apply bg-primary-fixed text-on-primary-fixed-variant; }
+      .kz-badge[data-tone="paused"] { @apply bg-tertiary-fixed text-on-tertiary-fixed; }
+      .kz-badge[data-tone="done"] { @apply bg-surface-container-highest text-on-surface-variant; }
+      .field-error { @apply text-error font-body-sm text-body-sm mt-1 whitespace-pre-line [overflow-wrap:anywhere]; }
+      .kz-modal-backdrop { background: rgba(19, 27, 46, .45); }
+    }
+  </style>
+  <style type="text/tailwindcss">
+    @layer components {
+      .ex-tab { @apply px-4 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container; }
+      .ex-tab[data-active="true"] { @apply bg-primary text-on-primary; }
+    }
+  </style>
+</head>
+<body class="bg-surface font-body-md text-body-md text-on-surface">
+  <div id="editorRoot" class="min-h-screen pb-28">
+    <header class="sticky top-0 z-30 bg-surface-container-lowest shadow-sm">
+      <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+        <a id="backLink" href="/tutor/classrooms" class="kz-btn"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Quay lại lớp</a>
+        <h1 id="pageTitle" class="flex-1 min-w-0 font-title-md text-title-md text-on-surface truncate">Soạn bài làm trực tiếp</h1>
+        <span id="statusBadge" class="kz-badge hidden"></span>
+      </div>
+      <div class="max-w-5xl mx-auto px-4 pb-2 flex gap-2">
+        <button type="button" id="tabEdit" class="ex-tab" data-active="true">Đề bài</button>
+        <button type="button" id="tabAttempts" class="ex-tab hidden" data-active="false">Bài làm của học viên</button>
+      </div>
+    </header>
+
+    <main id="editorMain" class="max-w-5xl mx-auto px-4 py-6 space-y-5">
+      <div id="loadingBox" class="kz-card p-6 text-center text-on-surface-variant">Đang tải bài…</div>
+      <div id="editPanel" class="space-y-5 hidden">
+        <p id="lockedNote" class="hidden rounded-xl bg-tertiary-fixed text-on-tertiary-fixed px-4 py-3">Học viên đã bắt đầu làm bài này nên câu hỏi, đáp án, thời gian làm bài và cách chấm đã bị khóa. Bạn vẫn sửa được tiêu đề, hướng dẫn, giờ mở / đóng đề, số lượt làm và tùy chọn cho xem đáp án.</p>
+        <p id="formError" class="field-error hidden rounded-xl bg-error-container px-4 py-3"></p>
+
+        <section class="kz-card p-6 space-y-4">
+          <h2 class="font-title-md text-title-md">Cài đặt bài</h2>
+          <div>
+            <label for="exTitle" class="kz-label">Tiêu đề bài tập</label>
+            <input id="exTitle" type="text" maxlength="150" class="kz-input" placeholder="Ví dụ: Từ vựng bài 5">
+            <p id="exTitleError" class="field-error hidden"></p>
+          </div>
+          <div>
+            <label for="exInstructions" class="kz-label">Hướng dẫn làm bài <span class="font-normal text-on-surface-variant">(không bắt buộc)</span></label>
+            <textarea id="exInstructions" rows="2" maxlength="5000" class="kz-input"></textarea>
+            <p id="exInstructionsError" class="field-error hidden"></p>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="exOpens" class="kz-label">Mở đề <span class="font-normal text-on-surface-variant">(để trống = mở ngay khi giao)</span></label>
+              <input id="exOpens" type="datetime-local" class="kz-input">
+            </div>
+            <div>
+              <label for="exCloses" class="kz-label">Đóng đề <span class="font-normal text-on-surface-variant">(để trống = không đóng)</span></label>
+              <input id="exCloses" type="datetime-local" class="kz-input">
+              <p id="exClosesError" class="field-error hidden"></p>
+            </div>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="exTimeLimit" class="kz-label">Thời gian làm bài (phút)</label>
+              <div class="flex items-center gap-3">
+                <input id="exTimeLimit" type="number" min="1" max="600" step="1" class="kz-input w-32">
+                <label class="flex items-center gap-2"><input id="exUnlimited" type="checkbox" class="w-5 h-5 accent-[#006194]">Không giới hạn</label>
+              </div>
+              <p id="exTimeLimitError" class="field-error hidden"></p>
+            </div>
+            <div>
+              <label for="exAttempts" class="kz-label">Số lượt làm bài</label>
+              <input id="exAttempts" type="number" min="1" max="20" step="1" class="kz-input w-32">
+              <p class="font-caption text-caption text-on-surface-variant mt-1">Nhiều lượt: lấy điểm cao nhất. Muốn cho học viên làm lại thì tăng số lượt.</p>
+              <p id="exAttemptsError" class="field-error hidden"></p>
+            </div>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <fieldset>
+              <legend class="kz-label">Cách chấm</legend>
+              <label class="flex items-start gap-2 mb-1.5"><input type="radio" name="exMode" value="AUTO" class="w-5 h-5 mt-0.5 accent-[#006194]">
+                <span><span class="font-semibold">Hệ thống chấm tự động</span><br><span class="font-caption text-caption text-on-surface-variant">Mọi câu phải có đáp án; học viên nộp xong có điểm ngay.</span></span></label>
+              <label class="flex items-start gap-2"><input type="radio" name="exMode" value="TUTOR" class="w-5 h-5 mt-0.5 accent-[#006194]">
+                <span><span class="font-semibold">Gia sư chấm</span><br><span class="font-caption text-caption text-on-surface-variant">Có câu tự luận không có đáp án; câu có đáp án vẫn được máy chấm trước.</span></span></label>
+            </fieldset>
+            <div>
+              <span class="kz-label">Đáp án</span>
+              <label class="flex items-start gap-2"><input id="exShowAnswers" type="checkbox" class="w-5 h-5 mt-0.5 accent-[#006194]">
+                <span>Cho học viên xem đáp án đúng sau khi nộp<br><span class="font-caption text-caption text-on-surface-variant">Tắt: học viên chỉ thấy điểm và câu nào đúng, câu nào sai. Đổi được bất cứ lúc nào.</span></span></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-title-md text-title-md">Câu hỏi</h2>
+            <span id="totalsText" class="font-label-md text-label-md text-on-surface-variant"></span>
+          </div>
+          <ol id="questionList" class="flex flex-col gap-4"></ol>
+          <div id="addQuestionBar" class="kz-card p-4 flex flex-wrap items-center gap-3">
+            <label for="newQuestionType" class="font-label-md text-label-md">Thêm câu hỏi dạng</label>
+            <select id="newQuestionType" class="kz-input w-auto"></select>
+            <button type="button" id="addQuestionBtn" class="kz-btn kz-btn-primary"><span class="material-symbols-outlined text-[16px]">add</span>Thêm câu hỏi</button>
+          </div>
+        </section>
+      </div>
+
+      <div id="attemptsPanel" class="hidden"></div>
+    </main>
+
+    <div id="editorActions" class="hidden fixed bottom-0 inset-x-0 z-30 bg-surface-container-lowest shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+      <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+        <button type="button" id="deleteBtn" class="kz-btn text-error hidden">Xóa bài</button>
+        <span class="flex-1"></span>
+        <button type="button" id="previewBtn" class="kz-btn"><span class="material-symbols-outlined text-[16px]">visibility</span>Xem thử</button>
+        <button type="button" id="saveDraftBtn" class="kz-btn">Lưu nháp</button>
+        <button type="button" id="publishBtn" class="kz-btn kz-btn-primary">Giao bài</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Xem thử như học viên (không lưu, không tính lượt) -->
+  <div id="previewModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop overflow-y-auto p-4" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+    <div class="max-w-3xl mx-auto my-6 space-y-4">
+      <div class="kz-card p-5 flex flex-wrap items-center gap-3">
+        <div class="flex-1 min-w-0">
+          <p class="font-caption text-caption text-on-surface-variant">Xem thử như học viên · không lưu, không tính lượt</p>
+          <h2 id="previewTitle" class="font-title-md text-title-md truncate"></h2>
+          <p id="previewMeta" class="font-caption text-caption text-on-surface-variant"></p>
+        </div>
+        <button type="button" id="previewClose" class="kz-btn">Đóng xem thử</button>
+      </div>
+      <ol id="previewList" class="flex flex-col gap-3"></ol>
+    </div>
+  </div>
+
+  <!-- Hộp xác nhận dùng chung -->
+  <div id="confirmModal" class="fixed inset-0 z-[60] hidden kz-modal-backdrop flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+    <div class="kz-card shadow-xl w-full max-w-sm p-6 space-y-4">
+      <div class="flex flex-col items-center text-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center"><span class="material-symbols-outlined">priority_high</span></div>
+        <h2 id="confirmTitle" class="font-title-md text-title-md text-on-surface"></h2>
+        <p id="confirmText" class="text-on-surface-variant"></p>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <button type="button" id="confirmCancel" class="kz-btn">Quay lại</button>
+        <button type="button" id="confirmOk" class="kz-btn kz-btn-primary"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="editorToast" class="fixed bottom-20 right-6 z-[70] hidden max-w-sm px-4 py-3 rounded-xl shadow-lg font-semibold"></div>
+  <script type="module" src="/pages/exercise-editor/exercise-editor.js"></script>
+</body>
+</html>

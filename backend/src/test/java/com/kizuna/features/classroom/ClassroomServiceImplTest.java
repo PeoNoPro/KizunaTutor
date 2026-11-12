@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -48,7 +49,8 @@ class ClassroomServiceImplTest {
         materials = mock(LearningMaterialRepository.class);
         learners = mock(LearnerRepository.class);
         schedules = mock(ClassScheduleRepository.class);
-        service = new ClassroomServiceImpl(spaces, materials, learners, schedules, new ClassScheduleRules(schedules));
+        var cal = calendar(spaces, schedules);
+        service = new ClassroomServiceImpl(spaces, materials, learners, schedules, new ClassScheduleRules(schedules, cal), cal);
         tutor = tutor(TutorMembershipStatus.PREMIUM);
         learner = learner();
         when(spaces.save(any(LearningSpace.class))).thenAnswer(inv -> {
@@ -61,8 +63,14 @@ class ClassroomServiceImplTest {
     private static final List<ClassScheduleRequest> SLOTS =
             List.of(new ClassScheduleRequest(1, LocalTime.of(19, 0), LocalTime.of(20, 30)));
 
+    private static final LocalDate TODAY = LocalDate.now(ClassScheduleRules.VN_ZONE);
+
     private static ClassroomCreateRequest req(UUID learnerId, String title) {
-        return new ClassroomCreateRequest(learnerId, title, SLOTS);
+        return new ClassroomCreateRequest(learnerId, title, SLOTS, TODAY, 24);
+    }
+
+    private static ClassroomCreateRequest reqWith(UUID learnerId, List<ClassScheduleRequest> slots) {
+        return new ClassroomCreateRequest(learnerId, "Lớp", slots, TODAY, 24);
     }
 
     private static void assertStatus(Runnable call, HttpStatus status) {
@@ -258,18 +266,64 @@ class ClassroomServiceImplTest {
     }
 
     @Test
+    void createSavesCourseStartDateTotalSessionsAndSlotActivation() {
+        allowConnection();
+        LocalDate start = TODAY.plusDays(10);
+        ClassroomSummaryResponse r = service.create(asTutor(tutor),
+                new ClassroomCreateRequest(learner.getLearnerId(), "Lớp", SLOTS, start, 30));
+        assertThat(r.totalSessions()).isEqualTo(30);
+        assertThat(r.courseStartDate()).isEqualTo(start);
+        verify(spaces).save(argThat(s -> start.equals(s.getCourseStartDate()) && Integer.valueOf(30).equals(s.getTotalSessions())));
+        // Buổi hằng tuần bắt đầu có hiệu lực từ 00:00 ngày bắt đầu khóa (giờ Việt Nam)
+        verify(schedules).saveAll(argThat(list -> {
+            var s = list.iterator().next();
+            return s.getActiveFrom() != null
+                    && s.getActiveFrom().atZoneSameInstant(ClassScheduleRules.VN_ZONE).toLocalDate().equals(start);
+        }));
+    }
+
+    @Test
+    void createRequiresValidStartDateAndTotalSessions() {
+        allowConnection();
+        UUID id = learner.getLearnerId();
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", SLOTS, null, 24)), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", SLOTS, TODAY.minusDays(1), 24)), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", SLOTS, TODAY.plusYears(2), 24)), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", SLOTS, TODAY, null)), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", SLOTS, TODAY, 0)), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", SLOTS, TODAY, 501)), HttpStatus.BAD_REQUEST);
+        verify(spaces, never()).save(any());
+    }
+
+    @Test
+    void totalSessionsCannotBeFewerThanSessionsPerWeek() {
+        allowConnection();
+        List<ClassScheduleRequest> twoPerWeek = List.of(
+                new ClassScheduleRequest(1, LocalTime.of(19, 0), LocalTime.of(20, 0)),
+                new ClassScheduleRequest(2, LocalTime.of(19, 0), LocalTime.of(20, 0)));
+        assertThatThrownBy(() -> service.create(asTutor(tutor),
+                new ClassroomCreateRequest(learner.getLearnerId(), "Lớp", twoPerWeek, TODAY, 1)))
+                .isInstanceOfSatisfying(ClassroomException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(e.getMessage()).isEqualTo("Lịch học có 2 buổi mỗi tuần nên tổng số buổi cần từ 2 buổi trở lên.");
+                });
+        assertThat(service.create(asTutor(tutor),
+                new ClassroomCreateRequest(learner.getLearnerId(), "Lớp", twoPerWeek, TODAY, 2)).totalSessions()).isEqualTo(2);
+    }
+
+    @Test
     void createRequiresAtLeastOneValidSlot() {
         allowConnection();
         UUID id = learner.getLearnerId();
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", List.of())), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", null)), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp",
+        assertStatus(() -> service.create(asTutor(tutor), reqWith(id, List.of())), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), reqWith(id, null)), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.create(asTutor(tutor), reqWith(id,
                 List.of(new ClassScheduleRequest(8, LocalTime.of(9, 0), LocalTime.of(10, 0))))), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp",
+        assertStatus(() -> service.create(asTutor(tutor), reqWith(id,
                 List.of(new ClassScheduleRequest(2, LocalTime.of(10, 0), LocalTime.of(9, 0))))), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp",
+        assertStatus(() -> service.create(asTutor(tutor), reqWith(id,
                 List.of(new ClassScheduleRequest(2, LocalTime.of(9, 0), LocalTime.of(9, 15))))), HttpStatus.BAD_REQUEST);
-        assertStatus(() -> service.create(asTutor(tutor), new ClassroomCreateRequest(id, "Lớp", List.of(
+        assertStatus(() -> service.create(asTutor(tutor), reqWith(id, List.of(
                 new ClassScheduleRequest(3, LocalTime.of(9, 0), LocalTime.of(10, 0)),
                 new ClassScheduleRequest(3, LocalTime.of(9, 30), LocalTime.of(11, 0))))), HttpStatus.BAD_REQUEST);
         verify(spaces, never()).save(any());

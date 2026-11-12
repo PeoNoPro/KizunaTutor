@@ -75,6 +75,7 @@ class SubmissionServiceImplTest {
 
         when(classrooms.loadAccessibleSpace(any(), eq(space.getSpaceId()))).thenReturn(space);
         when(classrooms.loadManageableSpace(tutorActor, space.getSpaceId())).thenReturn(space);
+        when(classrooms.loadGradableSpace(tutorActor, space.getSpaceId())).thenReturn(space);
         when(submissions.findByAssignment_AssignmentIdAndLearner_LearnerIdOrderByAttemptNumberAsc(any(), eq(learner.getLearnerId())))
                 .thenAnswer(inv -> history);
         when(submissions.save(any(AssignmentSubmission.class))).thenAnswer(inv -> {

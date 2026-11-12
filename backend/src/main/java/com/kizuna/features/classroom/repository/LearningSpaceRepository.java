@@ -35,6 +35,18 @@ public interface LearningSpaceRepository extends JpaRepository<LearningSpace, UU
     @Query("SELECT s.spaceId FROM LearningSpace s WHERE s.spaceId = :spaceId")
     Optional<UUID> lockById(@Param("spaceId") UUID spaceId);
 
+    /** Các lớp đang mở (ACTIVE / PAUSED) mà gia sư (tutorId) HOẶC học viên (learnerId) tham gia; tham số còn lại để null. */
+    @Query("""
+            SELECT sp FROM LearningSpace sp
+            JOIN FETCH sp.tutor t JOIN FETCH t.user
+            JOIN FETCH sp.learner l JOIN FETCH l.user
+            WHERE sp.status IN :statuses
+              AND (t.tutorId = :tutorId OR l.learnerId = :learnerId)
+            """)
+    List<LearningSpace> findOpenOfParticipants(@Param("tutorId") UUID tutorId,
+                                               @Param("learnerId") UUID learnerId,
+                                               @Param("statuses") Collection<LearningSpaceStatus> statuses);
+
     boolean existsByTutor_TutorIdAndLearner_LearnerIdAndStatusIn(UUID tutorId, UUID learnerId,
                                                                  Collection<LearningSpaceStatus> statuses);
 

@@ -119,6 +119,84 @@ export function validateClassroomTitle(title) {
 }
 
 // ----------------------------------------------------------------------------
+// Khóa học: ngày bắt đầu + tổng số buổi (lịch tự sinh cho đủ số buổi rồi dừng) — khớp quy tắc máy chủ
+// ----------------------------------------------------------------------------
+export const MAX_TOTAL_SESSIONS = 500;
+
+/** "yyyy-MM-dd" theo giờ máy */
+export function localYmd(date = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+}
+
+/**
+ * Kiểm tra thông tin khóa học.
+ * @param {{startDate?: string, totalSessions?: string|number, minTotal?: number, weeklySlots?: number,
+ *          today?: string, checkStartDate?: boolean}} p
+ *   minTotal = số buổi đã học; weeklySlots = số buổi trong một tuần của lịch hằng tuần.
+ *   Tổng số buổi tối thiểu = max(minTotal, weeklySlots). checkStartDate = false khi không đổi ngày bắt đầu.
+ * @returns {{startDate?: string, totalSessions?: string}} lỗi theo từng ô
+ */
+export function validateCourseFields({ startDate, totalSessions, minTotal = 0, weeklySlots = 0, today = localYmd(), checkStartDate = true }) {
+  const errors = {};
+  if (checkStartDate) {
+    if (!startDate) errors.startDate = 'Vui lòng chọn ngày bắt đầu khóa học.';
+    else if (startDate < today) errors.startDate = 'Ngày bắt đầu khóa học phải từ hôm nay trở đi.';
+  }
+  const raw = String(totalSessions ?? '').trim();
+  const n = Number(raw);
+  const min = minCourseSessions({ started: minTotal, weeklySlots });
+  if (!raw) errors.totalSessions = 'Vui lòng nhập tổng số buổi của khóa học.';
+  else if (!Number.isInteger(n)) errors.totalSessions = 'Số buổi phải là số tròn, ví dụ 24.';
+  else if (n > MAX_TOTAL_SESSIONS) errors.totalSessions = `Mỗi khóa học có tối đa ${MAX_TOTAL_SESSIONS} buổi.`;
+  else if (n < min) errors.totalSessions = minSessionsHint({ started: minTotal, weeklySlots });
+  return errors;
+}
+
+/** Tổng số buổi tối thiểu của khóa = max(1, số buổi đã học, số buổi trong một tuần). */
+export function minCourseSessions({ started = 0, weeklySlots = 0 } = {}) {
+  return Math.max(1, started, weeklySlots);
+}
+
+/** Câu giải thích vì sao tổng số buổi phải từ mức tối thiểu trở lên. */
+export function minSessionsHint({ started = 0, weeklySlots = 0 } = {}) {
+  const min = minCourseSessions({ started, weeklySlots });
+  if (min <= 1) return 'Khóa học cần có ít nhất 1 buổi.';
+  const reason = started >= weeklySlots && started > 0
+    ? `Khóa học đã học ${started} buổi`
+    : `Lịch học có ${weeklySlots} buổi mỗi tuần`;
+  return `${reason} nên tổng số buổi cần từ ${min} buổi trở lên.`;
+}
+
+/** Dòng tóm tắt tiến độ khóa học hiển thị trong lớp. */
+export function courseSummaryText(c) {
+  if (!c) return '';
+  if (!c.totalSessions) return 'Lớp chưa có tổng số buổi nên lịch đang lặp lại hằng tuần.';
+  const parts = [`Đã học ${c.startedSessions || 0}/${c.totalSessions} buổi`];
+  if (c.courseStartDate) parts.push(`bắt đầu ${formatDateVi(c.courseStartDate)}`);
+  if (c.courseEndDate) parts.push(`dự kiến kết thúc ${formatDateVi(c.courseEndDate)}`);
+  return parts.join(' · ');
+}
+
+/**
+ * Hai dòng thời gian cho thẻ lớp ở danh sách (gia sư và học viên dùng chung):
+ * - period: "20/11/2026 → dự kiến 15/01/2027" (lớp cũ chưa có ngày bắt đầu: "Bắt đầu {ngày mở lớp}")
+ * - progress: "Đã học 3/16 buổi" (null khi lớp chưa đặt tổng số buổi)
+ */
+export function courseCardLines(c) {
+  if (!c) return { period: '', progress: null };
+  let period;
+  if (c.courseStartDate) {
+    period = formatDateVi(c.courseStartDate)
+      + (c.courseEndDate ? ` → dự kiến ${formatDateVi(c.courseEndDate)}` : '');
+  } else {
+    period = `Bắt đầu ${formatDateVi(c.createdAt)}`;
+  }
+  const progress = c.totalSessions ? `Đã học ${c.startedSessions || 0}/${c.totalSessions} buổi` : null;
+  return { period, progress };
+}
+
+// ----------------------------------------------------------------------------
 // Lịch học hằng tuần (1 = Thứ Hai ... 7 = Chủ nhật; giờ "HH:mm") — khớp quy tắc máy chủ
 // ----------------------------------------------------------------------------
 export const DAYS_OF_WEEK = [

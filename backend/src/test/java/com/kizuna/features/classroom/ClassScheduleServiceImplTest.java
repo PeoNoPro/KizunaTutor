@@ -9,6 +9,7 @@ import com.kizuna.features.classroom.entity.LearningSpace;
 import com.kizuna.features.classroom.entity.LearningSpaceStatus;
 import com.kizuna.features.classroom.exception.ClassroomException;
 import com.kizuna.features.classroom.repository.ClassScheduleRepository;
+import com.kizuna.features.classroom.repository.ClassSessionChangeRepository;
 import com.kizuna.features.classroom.repository.LearningSpaceRepository;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.service.impl.ClassScheduleServiceImpl;
@@ -36,6 +37,7 @@ class ClassScheduleServiceImplTest {
     private ClassroomService classroomService;
     private ClassScheduleRepository schedules;
     private LearningSpaceRepository spaces;
+    private ClassSessionChangeRepository changes;
     private ClassScheduleServiceImpl service;
 
     private Tutor tutor;
@@ -48,7 +50,9 @@ class ClassScheduleServiceImplTest {
         classroomService = mock(ClassroomService.class);
         schedules = mock(ClassScheduleRepository.class);
         spaces = mock(LearningSpaceRepository.class);
-        service = new ClassScheduleServiceImpl(classroomService, schedules, new ClassScheduleRules(schedules), spaces);
+        changes = mock(ClassSessionChangeRepository.class);
+        service = new ClassScheduleServiceImpl(classroomService, schedules,
+                new ClassScheduleRules(schedules, calendar(spaces, schedules)), spaces, changes);
         tutor = tutor(TutorMembershipStatus.PREMIUM);
         learner = learner();
         space = space(tutor, learner, LearningSpaceStatus.ACTIVE);
@@ -63,8 +67,10 @@ class ClassScheduleServiceImplTest {
     }
 
     private static ClassSchedule slot(LearningSpace space, int day, int sh, int sm, int eh, int em) {
+        // Buổi hằng tuần đã có hiệu lực từ 4 tuần trước (đã có buổi diễn ra)
         return ClassSchedule.builder().scheduleId(UUID.randomUUID()).space(space).dayOfWeek(day)
-                .startTime(LocalTime.of(sh, sm)).endTime(LocalTime.of(eh, em)).build();
+                .startTime(LocalTime.of(sh, sm)).endTime(LocalTime.of(eh, em))
+                .activeFrom(java.time.OffsetDateTime.now().minusWeeks(4)).build();
     }
 
     private static ClassScheduleRequest req(int day, int sh, int sm, int eh, int em) {
@@ -90,7 +96,20 @@ class ClassScheduleServiceImplTest {
         ClassScheduleResponse r = service.update(asTutor(tutor), space.getSpaceId(), monday.getScheduleId(), req(3, 18, 0, 19, 30));
 
         assertThat(r.dayOfWeek()).isEqualTo(3);
-        assertThat(monday.getStartTime()).isEqualTo(LocalTime.of(18, 0));
+        assertThat(r.startTime()).isEqualTo(LocalTime.of(18, 0));
+        // Lịch cũ đã có buổi diễn ra: giữ nguyên cho các buổi đã qua, kết thúc hiệu lực từ bây giờ
+        assertThat(monday.getStartTime()).isEqualTo(LocalTime.of(19, 0));
+        assertThat(monday.getActiveUntil()).isNotNull();
+        verify(changes).deleteBySchedule_ScheduleIdAndOriginalDateGreaterThanEqual(eq(monday.getScheduleId()), any());
+    }
+
+    @Test
+    void slotNotStartedYetIsUpdatedInPlace() {
+        monday.setActiveFrom(java.time.OffsetDateTime.now().plusDays(3));
+        ClassScheduleResponse r = service.update(asTutor(tutor), space.getSpaceId(), monday.getScheduleId(), req(3, 18, 0, 19, 30));
+        assertThat(r.scheduleId()).isEqualTo(monday.getScheduleId());
+        assertThat(monday.getDayOfWeek()).isEqualTo(3);
+        assertThat(monday.getActiveUntil()).isNull();
     }
 
     @Test
@@ -175,8 +194,19 @@ class ClassScheduleServiceImplTest {
     void tutorDeletesSlotWhenClassKeepsAtLeastOne() {
         when(schedules.countBySpace_SpaceId(space.getSpaceId())).thenReturn(2L);
         service.delete(asTutor(tutor), space.getSpaceId(), monday.getScheduleId());
-        verify(schedules).delete(monday);
+        // Xóa ở mọi tuần từ bây giờ; các buổi đã diễn ra vẫn được giữ (lịch hết hiệu lực chứ không xóa hẳn)
+        assertThat(monday.getActiveUntil()).isNotNull();
+        verify(schedules, never()).delete(monday);
+        verify(changes).deleteBySchedule_ScheduleIdAndOriginalDateGreaterThanEqual(eq(monday.getScheduleId()), any());
         verify(spaces).lockById(space.getSpaceId());
+    }
+
+    @Test
+    void slotNotStartedYetIsDeletedCompletely() {
+        when(schedules.countBySpace_SpaceId(space.getSpaceId())).thenReturn(2L);
+        monday.setActiveFrom(java.time.OffsetDateTime.now().plusDays(3));
+        service.delete(asTutor(tutor), space.getSpaceId(), monday.getScheduleId());
+        verify(schedules).delete(monday);
     }
 
     @Test
@@ -190,6 +220,18 @@ class ClassScheduleServiceImplTest {
         assertStatus(() -> service.delete(asLearner(learner), space.getSpaceId(), monday.getScheduleId()), HttpStatus.FORBIDDEN);
         assertStatus(() -> service.delete(asTutor(tutor), space.getSpaceId(), UUID.randomUUID()), HttpStatus.NOT_FOUND);
         verify(schedules, never()).delete(any(ClassSchedule.class));
+    }
+
+    @Test
+    void cannotAddMoreWeeklySlotsThanTotalSessionsOfCourse() {
+        space.setTotalSessions(1);
+        when(schedules.countBySpace_SpaceId(space.getSpaceId())).thenReturn(1L);
+        assertThatThrownBy(() -> service.add(asTutor(tutor), space.getSpaceId(), req(6, 9, 0, 10, 0)))
+                .isInstanceOfSatisfying(ClassroomException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(e.getMessage()).contains("tăng tổng số buổi");
+                });
+        verify(schedules, never()).save(any());
     }
 
     @Test

@@ -5,7 +5,7 @@
  */
 
 import { API, ApiError } from '/js/api.js';
-import { renderWeekTimeGrid, trialEvent, officialEvent } from '/js/week-time-grid.js';
+import { renderWeekTimeGrid, trialEvent, officialEvent, dayDateLabel, ymd, weekRange } from '/js/week-time-grid.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
 
 const $ = (id) => document.getElementById(id);
@@ -25,7 +25,12 @@ let currentTab = 'LESSONS'; // 'LESSONS' hoặc 'AVAILABILITY'
 let currentWeekMonday = getMondayOf(new Date());
 let bookingsList = [];
 let availabilitiesList = [];
-let classTimetable = []; // Lịch học chính thức hằng tuần từ FE-06 (GET /api/classrooms/schedules/me)
+let weekSessions = []; // Buổi học chính thức của tuần đang xem (FE-06: GET /api/classrooms/sessions/me)
+let weekSessionsToken = 0; // Bỏ kết quả cũ khi chuyển tuần nhanh
+let weekSessionsKey = ''; // Tuần của weekSessions đang vẽ ("yyyy-MM-dd" Thứ Hai)
+let manageableClasses = []; // Lớp gia sư đang quản lý được (để thêm buổi học)
+let currentSession = null; // Buổi đang mở trong hộp thoại
+let sessionModalMode = 'edit'; // 'edit' (dời / hủy buổi) hoặc 'add' (thêm buổi)
 
 function setVisible(el, visible) {
   if (!el) return;
@@ -121,7 +126,7 @@ function renderWeeklyCalendar() {
   // 1. Render Header Row (Thứ 2 -> Chủ nhật)
   const headerHtml = `
     <div class="p-3 text-caption font-bold text-on-surface-variant text-center border-r border-outline-variant/30 flex items-center justify-center sticky left-0 z-10 bg-surface-container-lowest">
-      Giờ
+      Ca
     </div>
     ${WEEKDAYS_DEF.map((day, idx) => {
       const dayDate = new Date(currentWeekMonday.getTime() + idx * 86400000);
@@ -150,31 +155,266 @@ function renderWeeklyCalendar() {
     return ts >= weekStartTs && ts < weekEndTs && !['CANCELLED', 'DECLINED'].includes(b.bookingStatus);
   });
 
-  // Buổi học chính thức: lặp hằng tuần theo lịch lớp (FE-06), chỉ vẽ từ tuần mở lớp trở đi
-  const weekOfficial = classTimetable.map(entry => {
-    const dayIdx = Number(entry.dayOfWeek) - 1; // 1 = Thứ Hai
-    const date = new Date(currentWeekMonday.getTime() + dayIdx * 86400000);
-    const [sh, sm] = String(entry.startTime || '').split(':').map(Number);
-    const [eh, em] = String(entry.endTime || '').split(':').map(Number);
-    const started = entry.classStartedAt ? new Date(entry.classStartedAt) : null;
-    const endOfDay = new Date(date.getTime() + 86400000);
-    if (dayIdx < 0 || dayIdx > 6 || Number.isNaN(sh) || (started && started >= endOfDay)) return null;
-    return { ...entry, dateYmd: formatDateYMD(date), startHour: sh, timeSpan: `${pad(sh)}:${pad(sm || 0)} - ${pad(eh)}:${pad(em || 0)}` };
-  }).filter(Boolean);
+  // Buổi học chính thức của tuần: máy chủ đã sinh lịch cho đủ số buổi của khóa (áp dụng dời / hủy / thêm buổi riêng)
+  const weekOfficial = weekSessions;
 
   $('badgeLessonsCount').textContent = weekLessons.length + weekOfficial.length;
 
-  // 2. Thân lưới 24 giờ
-  // Thân lưới: lịch theo phút (thẻ đặt đúng giờ bắt đầu, cao theo thời lượng) — js/week-time-grid.js
+  // 2. Thân lưới theo ca (Sáng / Tối) — js/week-time-grid.js. Bấm buổi học chính thức để dời riêng buổi của tuần này.
   renderWeekTimeGrid({
     bodyEl: $('gridBodyRows'),
     scrollEl: $('gridScroll'),
     monday: currentWeekMonday,
     events: [
-      ...weekOfficial.map(o => officialEvent(o, `/tutor/classrooms?space=${encodeURIComponent(o.spaceId)}`)),
+      ...weekOfficial.map(o => officialEvent(o, null, { onClick: true })),
       ...weekLessons.map(b => trialEvent(b, '/tutor/connections'))
-    ]
+    ],
+    onEventClick: openSessionModal
   });
+}
+
+// ---------------------------------------------------------------------------
+// BUỔI HỌC CỤ THỂ CỦA KHÓA (FE-06): dời / hủy / thêm riêng trong MỘT tuần — các tuần khác giữ nguyên,
+// lịch tự sinh cho đủ tổng số buổi của khóa (máy chủ tính sẵn: GET /api/classrooms/sessions/me)
+// ---------------------------------------------------------------------------
+async function loadWeekSessions() {
+  const token = ++weekSessionsToken;
+  const { from, to } = weekRange(currentWeekMonday);
+  // Sang tuần khác: xóa buổi của tuần cũ. Tải lại cùng tuần (sau khi dời / hủy / thêm): giữ lịch đang hiện tới khi có dữ liệu mới.
+  if (weekSessionsKey !== from) {
+    weekSessions = [];
+    weekSessionsKey = from;
+  }
+  renderWeeklyCalendar();
+  setWeekLoading(true);
+  try {
+    const list = await API.classrooms.sessions(from, to);
+    if (token !== weekSessionsToken) return;
+    weekSessions = Array.isArray(list) ? list : [];
+  } catch (err) {
+    if (token !== weekSessionsToken) return;
+    console.error('Lỗi tải lịch học của tuần:', err);
+    showToast(err.userMessage || 'Không thể tải lịch học của tuần này.', 'error');
+  }
+  setWeekLoading(false);
+  renderWeeklyCalendar();
+}
+
+function setWeekLoading(loading) {
+  $('weekLoadingNote')?.classList.toggle('hidden', !loading);
+}
+
+function setMoveError(message) {
+  const el = $('moveSessionError');
+  if (!el) return;
+  el.textContent = message || '';
+  el.classList.toggle('hidden', !message);
+}
+
+function ymdToDmy(value) {
+  const [y, m, d] = String(value || '').split('-');
+  return y && m && d ? `${d}/${m}/${y}` : '';
+}
+
+/** Ô chọn ngày chỉ cho chọn trong khoảng [min, max] ("yyyy-MM-dd"), kèm dòng ghi khoảng ngày được chọn. */
+function setDateRange(min, max, selected) {
+  const input = $('moveSessionDate');
+  input.min = min || '';
+  input.max = max || '';
+  input.value = selected;
+  $('moveSessionDateRange').textContent = max
+    ? `Chọn từ ${ymdToDmy(min)} đến ${ymdToDmy(max)}.`
+    : `Chọn từ ${ymdToDmy(min)} trở đi.`;
+}
+
+/** Dời buổi được chọn từ hôm nay (và không trước ngày bắt đầu khóa) tới buổi cuối của khóa; lớp cũ: tối đa 1 năm tới. */
+function courseDateRange(session) {
+  const today = formatDateYMD(new Date());
+  const min = session.courseStartDate && session.courseStartDate > today ? session.courseStartDate : today;
+  const oneYear = new Date();
+  oneYear.setFullYear(oneYear.getFullYear() + 1);
+  const max = session.courseEndDate || formatDateYMD(oneYear);
+  return { min, max };
+}
+
+/** Bấm vào một buổi trên lưới: dời sang ngày/giờ khác trong thời gian khóa học, hủy buổi, hoặc đưa về lịch gốc. */
+function openSessionModal(session) {
+  if (!session) return;
+  sessionModalMode = 'edit';
+  currentSession = session;
+  const number = session.number ? `Buổi ${session.number}${session.totalSessions ? `/${session.totalSessions}` : ''} · ` : '';
+  $('modalMoveTitle').textContent = session.extra ? 'Buổi học thêm' : 'Buổi học';
+  $('moveSessionClass').textContent = `${session.classTitle || 'Lớp học'} · ${session.partnerName || 'Học viên'}`;
+  $('moveSessionClassField').classList.add('hidden');
+  $('moveSessionOriginal').textContent = `${number}${dayDateLabel(session.date)} · ${session.startTime} – ${session.endTime}`;
+  $('moveSessionCurrent').textContent = session.moved ? `Đã dời từ lịch gốc ${dayDateLabel(session.originalDate)}.` : '';
+  $('moveSessionCurrent').classList.toggle('hidden', !session.moved);
+  $('moveSessionHint').textContent = 'Chỉ thay đổi riêng buổi này, các buổi khác giữ nguyên. Có thể dời sang bất kỳ ngày nào trong thời gian khóa học. Hủy buổi thì khóa tự bù thêm một buổi ở cuối.';
+  $('moveSessionDateLabel').textContent = 'Dời sang ngày (trong thời gian khóa học)';
+  $('moveSessionOpenClass').href = `/tutor/classrooms?space=${encodeURIComponent(session.spaceId)}`;
+  $('moveSessionOpenClass').classList.remove('hidden');
+  const range = courseDateRange(session);
+  setDateRange(range.min, range.max, session.date);
+  $('moveSessionStart').value = session.startTime;
+  $('moveSessionEnd').value = session.endTime;
+  $('btnCancelSession').classList.remove('hidden');
+  $('btnRestoreSession').classList.toggle('hidden', !session.moved);
+  $('btnSubmitMoveSessionText').textContent = 'Lưu thay đổi';
+  setMoveError('');
+  $('modalMoveSession').classList.remove('hidden');
+}
+
+/** Thêm một buổi riêng vào tuần đang xem (tính vào tổng số buổi của khóa). */
+function openAddSessionModal() {
+  if (!manageableClasses.length) {
+    showToast('Bạn chưa có lớp học nào đang hoạt động để thêm buổi học.', 'error');
+    return;
+  }
+  sessionModalMode = 'add';
+  currentSession = null;
+  $('modalMoveTitle').textContent = 'Thêm buổi học';
+  $('moveSessionClass').textContent = 'Buổi thêm chỉ thuộc tuần này';
+  $('moveSessionClassField').classList.remove('hidden');
+  $('moveSessionClassSelect').innerHTML = manageableClasses.map(c =>
+    `<option value="${escapeHtml(c.spaceId)}">${escapeHtml(c.title)} · ${escapeHtml(c.learnerName || 'Học viên')}</option>`).join('');
+  $('moveSessionOriginal').textContent = `Tuần ${formatDateDMY(currentWeekMonday)} – ${formatDateDMY(new Date(currentWeekMonday.getTime() + 6 * 86400000))}`;
+  $('moveSessionCurrent').classList.add('hidden');
+  $('moveSessionHint').textContent = 'Buổi thêm được tính vào tổng số buổi của khóa, nên khóa sẽ kết thúc sớm hơn một buổi. Các tuần khác giữ nguyên.';
+  $('moveSessionDateLabel').textContent = 'Ngày học (trong tuần này)';
+  $('moveSessionOpenClass').classList.add('hidden');
+  const today = formatDateYMD(new Date());
+  const { from, to } = weekRange(currentWeekMonday);
+  const min = today > from ? today : from;
+  setDateRange(min, to, today >= from && today <= to ? today : from);
+  $('moveSessionStart').value = '18:00';
+  $('moveSessionEnd').value = '19:30';
+  $('btnCancelSession').classList.add('hidden');
+  $('btnRestoreSession').classList.add('hidden');
+  $('btnSubmitMoveSessionText').textContent = 'Thêm buổi học';
+  setMoveError('');
+  $('modalMoveSession').classList.remove('hidden');
+}
+
+function closeMoveSessionModal() {
+  $('modalMoveSession')?.classList.add('hidden');
+  closeCancelConfirm();
+  currentSession = null;
+}
+
+function setMoveBusy(busy) {
+  ['btnSubmitMoveSession', 'btnRestoreSession', 'btnCancelSession'].forEach(id => { if ($(id)) $(id).disabled = busy; });
+  if (busy) $('btnSubmitMoveSessionText').textContent = 'Đang lưu...';
+  else $('btnSubmitMoveSessionText').textContent = sessionModalMode === 'add' ? 'Thêm buổi học' : 'Lưu thay đổi';
+}
+
+function sessionErrorMessage(err, fallback) {
+  return err.fieldErrors?.session || err.userMessage || fallback;
+}
+
+async function submitMoveSession(event) {
+  event.preventDefault();
+  const newDate = $('moveSessionDate').value;
+  const startTime = $('moveSessionStart').value;
+  const endTime = $('moveSessionEnd').value;
+  if (!newDate || !startTime || !endTime) {
+    setMoveError('Vui lòng chọn ngày, giờ bắt đầu và giờ kết thúc cho buổi học.');
+    return;
+  }
+  if (endTime <= startTime) {
+    setMoveError('Giờ kết thúc phải sau giờ bắt đầu.');
+    return;
+  }
+  const dateInput = $('moveSessionDate');
+  if ((dateInput.min && newDate < dateInput.min) || (dateInput.max && newDate > dateInput.max)) {
+    setMoveError($('moveSessionDateRange').textContent || 'Ngày đã chọn nằm ngoài khoảng cho phép.');
+    return;
+  }
+  const body = { newDate, startTime, endTime };
+  setMoveError('');
+  setMoveBusy(true);
+  try {
+    let message;
+    if (sessionModalMode === 'add') {
+      const spaceId = $('moveSessionClassSelect').value;
+      if (!spaceId) {
+        setMoveError('Vui lòng chọn lớp học.');
+        return;
+      }
+      await API.classrooms.addExtraSession(spaceId, body);
+      message = 'Đã thêm buổi học vào tuần này.';
+    } else if (currentSession?.extra) {
+      await API.classrooms.moveExtraSession(currentSession.spaceId, currentSession.extraId, body);
+      message = 'Đã dời buổi học thêm.';
+    } else if (currentSession) {
+      const s = currentSession;
+      await API.classrooms.moveSession(s.spaceId, s.scheduleId, s.originalDate, body);
+      message = 'Đã dời buổi học. Các tuần khác vẫn giữ lịch cũ.';
+    } else {
+      return;
+    }
+    closeMoveSessionModal();
+    showToast(message);
+    await loadWeekSessions();
+  } catch (err) {
+    setMoveError(sessionErrorMessage(err, 'Không thể lưu buổi học lúc này. Vui lòng thử lại.'));
+  } finally {
+    setMoveBusy(false);
+  }
+}
+
+/** Bấm "Hủy buổi này": mở hộp xác nhận riêng, nêu rõ buổi nào và hệ quả với khóa học. */
+function openCancelConfirm() {
+  const s = currentSession;
+  if (!s) return;
+  const when = `${dayDateLabel(s.date)}, ${s.startTime}–${s.endTime}`;
+  $('cancelSessionText').textContent = s.extra
+    ? `Bạn chắc chắn hủy buổi học thêm ${when}? Buổi này sẽ bị xóa khỏi lịch, khóa học sẽ kết thúc muộn hơn một buổi.`
+    : `Bạn chắc chắn hủy buổi ${when}? Chỉ buổi của tuần này bị hủy, các tuần khác giữ nguyên. Khóa học sẽ bù thêm một buổi ở cuối.`;
+  $('cancelSessionError').textContent = '';
+  $('cancelSessionError').classList.add('hidden');
+  $('modalCancelSession').classList.remove('hidden');
+}
+
+function closeCancelConfirm() {
+  $('modalCancelSession')?.classList.add('hidden');
+}
+
+async function cancelCurrentSession() {
+  if (!currentSession) return;
+  const button = $('btnConfirmCancelSession');
+  button.disabled = true;
+  button.textContent = 'Đang hủy...';
+  try {
+    const s = currentSession;
+    if (s.extra) await API.classrooms.cancelExtraSession(s.spaceId, s.extraId);
+    else await API.classrooms.cancelSession(s.spaceId, s.scheduleId, s.originalDate);
+    closeMoveSessionModal();
+    showToast(s.extra ? 'Đã hủy buổi học thêm.' : 'Đã hủy buổi học của tuần này. Khóa học tự bù thêm một buổi ở cuối.');
+    await loadWeekSessions();
+  } catch (err) {
+    $('cancelSessionError').textContent = sessionErrorMessage(err, 'Không thể hủy buổi học lúc này.');
+    $('cancelSessionError').classList.remove('hidden');
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Xác nhận hủy';
+  }
+}
+
+async function restoreMovedSession() {
+  if (!currentSession) return;
+  setMoveError('');
+  setMoveBusy(true);
+  try {
+    const s = currentSession;
+    await API.classrooms.restoreSession(s.spaceId, s.scheduleId, s.originalDate);
+    closeMoveSessionModal();
+    showToast('Buổi học đã về lại lịch gốc.');
+    await loadWeekSessions();
+  } catch (err) {
+    setMoveError(sessionErrorMessage(err, 'Không thể đưa buổi học về lịch gốc lúc này.'));
+  } finally {
+    setMoveBusy(false);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -335,10 +575,10 @@ function closeAddSlotModal() {
 // ---------------------------------------------------------------------------
 async function loadAllData() {
   try {
-    const [availData, bookingsData, timetableData] = await Promise.allSettled([
+    const [availData, bookingsData, classesData] = await Promise.allSettled([
       API.tutorSchedule.getMySchedule(),
       API.trialBookings.getMyRequests('ALL', 0, 100),
-      API.classrooms.timetable().catch(() => [])
+      API.classrooms.list().catch(() => [])
     ]);
 
     // 1. Ca rảnh
@@ -352,13 +592,14 @@ async function loadAllData() {
       bookingsList = Array.isArray(bRes) ? bRes : (bRes.content || bRes.items || bRes.data || []);
     }
 
-    // 3. Lịch học chính thức hằng tuần của các lớp (FE-06)
-    if (timetableData.status === 'fulfilled' && Array.isArray(timetableData.value)) {
-      classTimetable = timetableData.value;
+    // 3. Lớp gia sư đang quản lý được (FE-06) — để thêm buổi học riêng trong tuần
+    if (classesData.status === 'fulfilled' && Array.isArray(classesData.value)) {
+      manageableClasses = classesData.value.filter(c => c.canManage);
     }
 
-    renderWeeklyCalendar();
     renderAvailabilityGrid();
+    // 4. Buổi học chính thức của tuần đang xem (FE-06)
+    await loadWeekSessions();
   } catch (err) {
     console.error('Lỗi tải dữ liệu lịch:', err);
     showToast(err.message || 'Không thể tải toàn bộ dữ liệu lịch', 'error');
@@ -381,22 +622,35 @@ function initEvents() {
   // Điều hướng tuần
   $('btnPrevWeek')?.addEventListener('click', () => {
     currentWeekMonday = new Date(currentWeekMonday.getTime() - 7 * 86400000);
-    renderWeeklyCalendar();
+    loadWeekSessions();
   });
 
   $('btnNextWeek')?.addEventListener('click', () => {
     currentWeekMonday = new Date(currentWeekMonday.getTime() + 7 * 86400000);
-    renderWeeklyCalendar();
+    loadWeekSessions();
   });
 
   $('btnToday')?.addEventListener('click', () => {
     currentWeekMonday = getMondayOf(new Date());
-    renderWeeklyCalendar();
+    loadWeekSessions();
   });
 
   // Đóng modals
   document.querySelectorAll('.modal-add-close').forEach(btn => {
     btn.addEventListener('click', closeAddSlotModal);
+  });
+
+  // Hộp thoại dời một buổi học chính thức
+  $('formMoveSession')?.addEventListener('submit', submitMoveSession);
+  $('btnRestoreSession')?.addEventListener('click', restoreMovedSession);
+  $('btnCancelSession')?.addEventListener('click', openCancelConfirm);
+  $('btnConfirmCancelSession')?.addEventListener('click', cancelCurrentSession);
+  document.querySelectorAll('.modal-cancel-session-close').forEach(btn => {
+    btn.addEventListener('click', closeCancelConfirm);
+  });
+  $('btnOpenAddSession')?.addEventListener('click', openAddSessionModal);
+  document.querySelectorAll('.modal-move-close').forEach(btn => {
+    btn.addEventListener('click', closeMoveSessionModal);
   });
 
   // Presets ca rảnh

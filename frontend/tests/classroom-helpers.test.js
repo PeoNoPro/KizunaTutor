@@ -186,3 +186,12 @@ test('định dạng dung lượng tệp', () => {
   assert.equal(formatFileSize(350 * 1024), '350 KB');
   assert.equal(formatFileSize(1.5 * 1024 * 1024), '1,5 MB');
 });
+
+import { courseCardLines } from '../js/classroom-helpers.js';
+
+test('thẻ lớp: thời gian học theo ngày bắt đầu khóa, lớp cũ dùng ngày mở lớp', () => {
+  const c = { courseStartDate: '2026-11-20', courseEndDate: '2027-01-15', totalSessions: 16, startedSessions: 3, createdAt: '2026-11-12T08:00:00Z' };
+  assert.deepEqual(courseCardLines(c), { period: '20/11/2026 → dự kiến 15/01/2027', progress: 'Đã học 3/16 buổi' });
+  assert.deepEqual(courseCardLines({ createdAt: '2026-11-12T08:00:00Z' }), { period: 'Bắt đầu 12/11/2026', progress: null });
+  assert.equal(courseCardLines({ courseStartDate: '2026-11-20', totalSessions: 4 }).progress, 'Đã học 0/4 buổi');
+});

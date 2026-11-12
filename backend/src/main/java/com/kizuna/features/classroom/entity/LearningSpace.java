@@ -12,6 +12,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -49,4 +50,12 @@ public class LearningSpace extends BaseEntity {
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Builder.Default
     private LearningSpaceStatus status = LearningSpaceStatus.ACTIVE;
+
+    /** FE-06 (migration 016): ngày bắt đầu khóa học do gia sư chọn khi tạo lớp. */
+    @Column(name = "course_start_date")
+    private LocalDate courseStartDate;
+
+    /** FE-06 (migration 016): tổng số buổi của khóa; null = lớp tạo trước đây, lịch lặp hằng tuần. */
+    @Column(name = "total_sessions")
+    private Integer totalSessions;
 }

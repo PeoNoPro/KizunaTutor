@@ -58,9 +58,12 @@ public class AssignmentController extends ClassroomExceptionHandler {
             @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
             java.time.OffsetDateTime dueDate,
             @RequestParam(value = "totalPoints", required = false) java.math.BigDecimal totalPoints,
+            @RequestParam(value = "opensAt", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+            java.time.OffsetDateTime opensAt,
             @RequestPart(value = "file", required = false) List<MultipartFile> files) {
         CurrentActor actor = currentUserResolver.resolve(auth);
-        AssignmentRequest request = new AssignmentRequest(title, description, dueDate, totalPoints);
+        AssignmentRequest request = new AssignmentRequest(title, description, dueDate, totalPoints, opensAt);
         return ResponseEntity.status(HttpStatus.CREATED).body(ClassroomApiResponse.ok(
                 "Giao bài tập thành công.", assignmentService.create(actor, spaceId, request, files)));
     }
@@ -85,10 +88,13 @@ public class AssignmentController extends ClassroomExceptionHandler {
             @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
             java.time.OffsetDateTime dueDate,
             @RequestParam(value = "totalPoints", required = false) java.math.BigDecimal totalPoints,
+            @RequestParam(value = "opensAt", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+            java.time.OffsetDateTime opensAt,
             @RequestParam(value = "removeFileIds", required = false) List<UUID> removeFileIds,
             @RequestPart(value = "file", required = false) List<MultipartFile> files) {
         CurrentActor actor = currentUserResolver.resolve(auth);
-        AssignmentRequest request = new AssignmentRequest(title, description, dueDate, totalPoints);
+        AssignmentRequest request = new AssignmentRequest(title, description, dueDate, totalPoints, opensAt);
         return ClassroomApiResponse.ok("Cập nhật bài tập thành công.",
                 assignmentService.update(actor, spaceId, assignmentId, request, files, removeFileIds));
     }

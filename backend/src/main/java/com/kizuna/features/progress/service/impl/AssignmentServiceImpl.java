@@ -87,7 +87,10 @@ public class AssignmentServiceImpl implements AssignmentService {
         LearningSpace space = classroomService.loadAccessibleSpace(actor, spaceId);
         OffsetDateTime now = OffsetDateTime.now(clock);
         boolean readOnly = classroomService.isReadOnly(space);
-        List<Assignment> assignments = assignmentRepository.findBySpace_SpaceIdOrderByCreatedAtDesc(spaceId);
+        boolean gradeLocked = classroomService.isGradeLocked(space);
+        List<Assignment> assignments = assignmentRepository.findBySpace_SpaceIdOrderByCreatedAtDesc(spaceId).stream()
+                .filter(a -> actor.isTutor() || AssignmentRules.isOpen(a.getOpensAt(), now))
+                .toList();
         Map<UUID, List<FileAttachmentResponse>> filesByAssignment = assignments.isEmpty() ? Map.of()
                 : assignmentFileRepository.findByAssignmentIdInOrderByCreatedAtAscFileNameAsc(
                                 assignments.stream().map(Assignment::getAssignmentId).toList())
@@ -95,7 +98,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                         .collect(Collectors.groupingBy(AssignmentFile::getAssignmentId, LinkedHashMap::new,
                                 Collectors.mapping(FileAttachmentResponse::of, Collectors.toList())));
         return assignments.stream()
-                .map(a -> toSummary(actor, a, submissionsOf(a, space), now, readOnly,
+                .map(a -> toSummary(actor, a, submissionsOf(a, space), now, readOnly, gradeLocked,
                         filesByAssignment.getOrDefault(a.getAssignmentId(), List.of())))
                 .toList();
     }
@@ -105,9 +108,12 @@ public class AssignmentServiceImpl implements AssignmentService {
     public AssignmentDetailResponse detail(CurrentActor actor, UUID spaceId, UUID assignmentId) {
         LearningSpace space = classroomService.loadAccessibleSpace(actor, spaceId);
         Assignment assignment = findInSpace(assignmentId, spaceId);
+        if (!actor.isTutor() && !AssignmentRules.isOpen(assignment.getOpensAt(), OffsetDateTime.now(clock))) {
+            throw ClassroomException.notFound("Không tìm thấy bài tập trong lớp học này.");
+        }
         List<AssignmentSubmission> submissions = submissionsOf(assignment, space);
         AssignmentSummaryResponse summary = toSummary(actor, assignment, submissions, OffsetDateTime.now(clock),
-                classroomService.isReadOnly(space), filesOf(assignmentId));
+                classroomService.isReadOnly(space), classroomService.isGradeLocked(space), filesOf(assignmentId));
         // Mỗi học viên một bài nộp: chỉ trả bài nộp hiện tại (dòng mới nhất nếu dữ liệu cũ còn nhiều lần nộp)
         List<AssignmentSubmission> current = submissions.isEmpty() ? List.of()
                 : List.of(submissions.get(submissions.size() - 1));
@@ -133,6 +139,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         String title = normalizeTitle(req.title());
         String description = normalizeDescription(req.description());
         if (req.dueDate() != null) requireFuture(req.dueDate(), now);
+        requireOpensBeforeDue(req.opensAt(), req.dueDate());
         BigDecimal points = normalizePoints(req.totalPoints());
 
         Assignment saved = assignmentRepository.save(Assignment.builder()
@@ -141,6 +148,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .description(description)
                 .dueDate(req.dueDate())
                 .totalPoints(points)
+                .opensAt(req.opensAt())
                 .build());
         // Tệp đề bài lưu trong cùng giao dịch: tệp lỗi / thiếu cả nội dung lẫn tệp → hủy toàn bộ, bài tập không được tạo
         List<FileAttachmentResponse> attachments = attachmentService.applyChanges(saved, files, null);
@@ -149,7 +157,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                     "Gia sư vừa giao bài \"" + title + "\"" + (req.dueDate() == null ? "." : ", hạn nộp " + fe12When(req.dueDate()) + "."),
                     "/learner/my-courses", java.util.List.of(space.getLearner().getUser().getUserId()));
         }
-        return toSummary(actor, saved, List.of(), now, false, attachments);
+        return toSummary(actor, saved, List.of(), now, false, false, attachments);
     }
 
     @Override
@@ -172,7 +180,9 @@ public class AssignmentServiceImpl implements AssignmentService {
         BigDecimal points = normalizePoints(req.totalPoints());
         boolean dueChanged = !sameInstant(req.dueDate(), assignment.getDueDate());
         if (dueChanged && req.dueDate() != null) requireFuture(req.dueDate(), now);
+        requireOpensBeforeDue(req.opensAt(), req.dueDate());
 
+        assignment.setOpensAt(req.opensAt());
         assignment.setTitle(title);
         assignment.setDescription(description);
         assignment.setTotalPoints(points);
@@ -180,7 +190,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         Assignment saved = assignmentRepository.save(assignment);
         // Thêm / gỡ / thay tệp đề bài trong cùng giao dịch; lỗi bất kỳ → hủy toàn bộ, bài tập giữ nguyên như trước
         List<FileAttachmentResponse> attachments = attachmentService.applyChanges(saved, files, removeFileIds);
-        return toSummary(actor, saved, submissionsOf(saved, space), now, false, attachments);
+        return toSummary(actor, saved, submissionsOf(saved, space), now, false, false, attachments);
     }
 
     // ---------------------------------------------------------------------
@@ -201,7 +211,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     private AssignmentSummaryResponse toSummary(CurrentActor actor, Assignment a, List<AssignmentSubmission> subs,
-                                                OffsetDateTime now, boolean readOnly,
+                                                OffsetDateTime now, boolean readOnly, boolean gradeLocked,
                                                 List<FileAttachmentResponse> attachments) {
         AssignmentSubmission latest = subs.isEmpty() ? null : subs.get(subs.size() - 1);
         boolean graded = subs.stream().anyMatch(AssignmentSubmission::isFinalized);
@@ -214,6 +224,8 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .attachments(attachments)
                 .createdAt(a.getCreatedAt())
                 .dueOver(AssignmentRules.dueOver(a.getDueDate(), now))
+                .opensAt(a.getOpensAt())
+                .opened(AssignmentRules.isOpen(a.getOpensAt(), now))
                 .submissionState(AssignmentRules.state(a.getDueDate(), now, latest))
                 .attemptCount(subs.size())
                 .grade(subs.stream().filter(AssignmentSubmission::isFinalized).map(AssignmentSubmission::getGrade)
@@ -223,7 +235,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .canEditSubmission(actor.isLearner()
                         && AssignmentRules.canEditSubmission(a.getDueDate(), now, latest != null, graded, readOnly))
                 .canGrade(actor.isTutor()
-                        && AssignmentRules.canGrade(a.getDueDate(), now, latest != null, graded, readOnly))
+                        && AssignmentRules.canGrade(a.getDueDate(), now, latest != null, graded, gradeLocked))
                 .canEdit(actor.isTutor() && !readOnly && !graded)
                 .build();
     }
@@ -237,6 +249,13 @@ public class AssignmentServiceImpl implements AssignmentService {
     private static boolean sameInstant(OffsetDateTime a, OffsetDateTime b) {
         if (a == null || b == null) return a == b;
         return a.isEqual(b);
+    }
+
+    /** Thời gian mở bài (nếu có) phải trước hạn nộp (nếu có). */
+    private static void requireOpensBeforeDue(OffsetDateTime opensAt, OffsetDateTime dueDate) {
+        if (opensAt != null && dueDate != null && !opensAt.isBefore(dueDate)) {
+            throw ClassroomException.field("opensAt", "Thời gian mở bài phải trước hạn nộp.");
+        }
     }
 
     private static void requireFuture(OffsetDateTime dueDate, OffsetDateTime now) {

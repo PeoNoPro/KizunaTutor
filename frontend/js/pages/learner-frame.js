@@ -11,7 +11,11 @@ export function reloadIfInsideLearnerShell() {
 
 export function mountLearnerFrame(active, displayName) {
   if (document.getElementById('learnerSidebar')) return;
-  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/styles/learner-frame.css'; document.head.append(css);
+  // learner-frame-utilities.css: class Tailwind của sidebar học viên mới mà bản biên dịch sẵn chưa có (ô logo, mục đang chọn...).
+  ['/styles/learner-frame.css', '/styles/learner-frame-utilities.css'].forEach(href => {
+    if (document.querySelector(`link[href="${href}"]`)) return;
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = href; document.head.append(css);
+  });
   document.querySelectorAll('body > header, body > footer').forEach(node => node.remove());
   const main = document.querySelector('main');
   const column = document.createElement('div'); column.className = 'learner-frame-body';

@@ -28,20 +28,26 @@ public class SupportTicketServiceImpl implements SupportTicketService {
    result.put("managerFeedback",tickets.latestManagerFeedback(actor.userId()));
    result.put("shift",shifts.myShift(actor.userId()));return result;
  }
- @Override @Transactional(readOnly=true) public Map<String,Object> list(List<String> status,String category,String priority,UUID assignedTo,int page,int size){
-   SupportTicketValidation.page(page,size);var a=actors.current(false);var filter=filter(a,status,category,priority,assignedTo);
-   var rows=tickets.list(filter.where(),filter.args(),page,size);Map<UUID,String> previews=a.requester()?messages.previews(rows.stream().map(t->(UUID)t.get("ticket_id")).toList()):Map.of();
-   return SupportTicketValidation.page(rows.stream().map(t->{var item=projection.summary(a,t);if(a.requester())item.put("descriptionPreview",previews.get(t.get("ticket_id")));return item;}).toList(),page,size,tickets.count(filter.where(),filter.args()));
+ // Chỉ đọc, mỗi bước một truy vấn: không mở transaction để bớt một lượt hỏi database (COMMIT) mỗi lần tải.
+ @Override public Map<String,Object> list(List<String> status,String category,String priority,UUID assignedTo,boolean handover,int page,int size){
+   SupportTicketValidation.page(page,size);var a=actors.current(false);var filter=filter(a,status,category,priority,assignedTo,handover);
+   var result=tickets.listWithTotal(filter.where(),filter.args(),page,size,a.requester());
+   return SupportTicketValidation.page(result.rows().stream().map(t->{var item=projection.summary(a,t);if(a.requester())item.put("descriptionPreview",t.get("description_preview"));return item;}).toList(),page,size,result.total());
  }
- @Override @Transactional(readOnly=true) public Map<String,Long> counts(String category,String priority,UUID assignedTo){
-   var filter=filter(actors.current(false),null,category,priority,assignedTo);
+ @Override public Map<String,Long> counts(String category,String priority,UUID assignedTo,boolean handover){
+   var filter=filter(actors.current(false),null,category,priority,assignedTo,handover);
    var result=new LinkedHashMap<String,Long>();SupportTicketProjection.STATUS.keySet().forEach(s->result.put(s,0L));
    result.putAll(tickets.counts(filter.where(),filter.args()));return result;
  }
  private record TicketFilter(String where,List<Object> args){}
- private TicketFilter filter(SupportTicketActor a,List<String> status,String category,String priority,UUID assignedTo){
+ private TicketFilter filter(SupportTicketActor a,List<String> status,String category,String priority,UUID assignedTo,boolean handover){
    StringBuilder where=new StringBuilder("true");var args=new ArrayList<Object>();
-   if(a.requester()){where.append(" AND t.user_id=?");args.add(a.userId());}else if(a.manager()){where.append(" AND t.escalated_to=?");args.add(a.userId());}
+   if(a.requester()){where.append(" AND t.user_id=?");args.add(a.userId());}else if(a.manager()){
+     // Nhóm "Cần bàn giao": yêu cầu của nhân viên đã nghỉ/bị khóa; các nhóm khác chỉ là yêu cầu chuyển lên cho chính Quản lý này.
+     if(handover)where.append(" AND ").append(com.kizuna.features.ticket.repository.SupportTicketRepository.NEEDS_HANDOVER);
+     else{where.append(" AND t.escalated_to=?");args.add(a.userId());}
+   }
+   if(handover&&!a.manager())throw new BusinessException(403,"Chỉ Quản lý xem được nhóm yêu cầu cần bàn giao.");
    if(status!=null&&!status.isEmpty()){status.forEach(s->SupportTicketValidation.choice(s,SupportTicketProjection.STATUS.keySet()));where.append(" AND t.status::text IN (").append(String.join(",",Collections.nCopies(status.size(),"?"))).append(")");args.addAll(status);}
    String[] values={category,priority};String[] cols={"category","priority"};List<Set<String>> sets=List.of(SupportTicketProjection.CATEGORY.keySet(),SupportTicketProjection.PRIORITY.keySet());
    for(int i=0;i<2;i++)if(values[i]!=null){SupportTicketValidation.choice(values[i],sets.get(i));where.append(" AND t.").append(cols[i]).append("::text=?");args.add(values[i]);}

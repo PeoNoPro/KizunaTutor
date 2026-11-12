@@ -98,4 +98,12 @@ CREATE INDEX IF NOT EXISTS idx_tutor_posts_status ON tutor_posts(status, created
 
 **Bổ sung 2026-11-08** (`database/migrations/015_tutor_posts.sql`): thêm `specialties VARCHAR(255)`, `teaching_format VARCHAR(20)` (ONLINE | OFFLINE | BOTH), `hourly_rate NUMERIC(12,2)`. Quy ước: mỗi lần gia sư gửi bài là một dòng; bài hiển thị cho học viên là dòng `PUBLISHED` có `reviewed_at` mới nhất; mỗi gia sư tối đa một dòng `PENDING_REVIEW` (gửi lại khi đang chờ duyệt sẽ sửa dòng đó). Chỉ gia sư có gói hội viên còn hạn mới gửi được bài và mới xuất hiện ở trang Tìm gia sư.
 
+**Bổ sung 2026-11-09** (`016_tutor_posts_needs_revision.sql`, `017_tutor_post_price_items.sql` — file 017 bổ sung vào repo ngày 2026-11-12 theo review PR; trên Supabase cột đã có nên chạy lại không đổi gì): thêm trạng thái `NEEDS_REVISION` (cán bộ học vụ yêu cầu bổ sung, gia sư sửa và gửi lại cùng dòng); thêm `price_items JSONB` — bảng học phí theo môn học / cấp độ, mỗi phần tử `{"level": "JLPT_N3", "hourlyRate": 200000}`, level thuộc danh sách cố định JLPT_N5..JLPT_N1, KAIWA, BUSINESS, EJU, mỗi level tối đa một mức, mỗi mức 10.000–10.000.000 đ. `hourly_rate` lưu mức thấp nhất (trang Tìm gia sư hiển thị "Từ ..." và lọc / sắp xếp theo cột này).
+
 Lý do: BF I.2.2 yêu cầu lưu bài, trạng thái duyệt và lý do từ chối; không bảng nào hiện có đáp ứng. Phương án thay thế: gộp vào `tutors.bio` (không có luồng duyệt riêng, sai BF I.2.2) — không khuyến nghị.
+
+### Bổ sung 2026-11-10: cập nhật bài đăng đã duyệt
+
+- Bài `PUBLISHED`: gia sư bấm "Chỉnh sửa bài đăng" và gửi bản cập nhật → tạo **dòng mới** `PENDING_REVIEW`; bản `PUBLISHED` cũ vẫn hiển thị trên Tìm gia sư cho tới khi bản mới được duyệt (bản hiển thị = dòng `PUBLISHED` mới nhất).
+- Bản cập nhật bị từ chối mà vẫn còn bản `PUBLISHED`: gia sư được gửi bản cập nhật khác. Bài đầu tiên bị từ chối vẫn là quyết định cuối cùng.
+- Bài đang `PENDING_REVIEW`: không gửi được.

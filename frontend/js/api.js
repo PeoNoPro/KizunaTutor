@@ -9,7 +9,7 @@ const API_BASE_URL = API_CONFIG.BASE_URL;
 /** FE-11 transport: shared base URL, cookie session, CSRF and one bounded request budget. */
 export async function fetchAPI(path, { method = 'GET', body, csrfPath = '/admin/operations/csrf' } = {}) {
   if (!path.startsWith('/') || path.startsWith('//')) throw new Error('Đường dẫn chưa hợp lệ.');
-  const deadline = Date.now() + 4500;
+  const deadline = Date.now() + 12000;
   const headers = { 'Content-Type': 'application/json' };
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     const csrf = await request(csrfPath, { method: 'GET' }, deadline);
@@ -700,6 +700,11 @@ export const API = {
     /** Nộp hồ sơ (UC-24); commitment phải là true */
     submit(commitment) {
       return authRequest('/tutor/verification/submit', { method: 'POST', body: { commitment } });
+    },
+
+    /** Hồ sơ đã phê duyệt gửi yêu cầu cập nhật: { highestJlptLevel, note } */
+    submitProfileUpdate(payload) {
+      return authRequest('/tutor/verification/profile-update', { method: 'POST', body: payload });
     }
   },
 
@@ -741,6 +746,16 @@ export const API = {
 
     requestInfo(tutorId, message) {
       return authRequest(`/academic/verifications/${tutorId}/request-info`, { method: 'POST', body: { message } });
+    },
+
+    /** Chấp nhận yêu cầu cập nhật hồ sơ của gia sư đã phê duyệt */
+    approveProfileUpdate(tutorId) {
+      return authRequest(`/academic/verifications/${tutorId}/profile-update/approve`, { method: 'POST' });
+    },
+
+    /** Không chấp nhận yêu cầu cập nhật; feedback gửi gia sư */
+    rejectProfileUpdate(tutorId, feedback) {
+      return authRequest(`/academic/verifications/${tutorId}/profile-update/reject`, { method: 'POST', body: { feedback } });
     }
   },
 
@@ -804,6 +819,43 @@ export const API = {
     /** { fullName, phone } → { message, profile } */
     updateProfile(payload) {
       return authRequest('/academic/profile', { method: 'PUT', body: payload });
+    }
+  },
+
+  // ===== Cán bộ học vụ: nhập kho học liệu (Kanji, từ vựng, ngữ pháp) từ Excel =====
+  academicContent: {
+    // FE-13: phản hồi dạng { success, message, data } — các hàm trả về phần data
+    /** Số mục đang có + cột cần có của từng loại */
+    getSummary() {
+      return authRequest('/academic/content-imports/summary').then((res) => res.data);
+    },
+
+    /**
+     * type: kanji | vocabulary | grammar. Chỉ thêm mục mới, mục đã có giữ nguyên.
+     * dryRun = true chỉ kiểm tra, không ghi gì.
+     */
+    importFile(type, file, { dryRun = true } = {}) {
+      const form = new FormData();
+      form.append('file', file);
+      const query = new URLSearchParams({ dryRun: String(dryRun) });
+      return authRequest(`/academic/content-imports/${type}?${query.toString()}`, {
+        method: 'POST', body: form, timeoutMs: 300000
+      }).then((res) => res.data);
+    },
+
+    /** Danh sách học liệu: { keyword, jlpt, sort: LEVEL | NEWEST, page, size } */
+    getItems(type, params = {}) {
+      return authRequest(`/academic/content-imports/${type}/items?${toQuery(params)}`).then((res) => res.data);
+    },
+
+    /** Lịch sử nhập: { type, page, size } */
+    getHistory(params = {}) {
+      return authRequest(`/academic/content-imports/history?${toQuery(params)}`).then((res) => res.data);
+    },
+
+    /** Chi tiết một lần nhập, gồm các mục đã thêm */
+    getHistoryDetail(id) {
+      return authRequest(`/academic/content-imports/history/${id}`).then((res) => res.data);
     }
   },
 

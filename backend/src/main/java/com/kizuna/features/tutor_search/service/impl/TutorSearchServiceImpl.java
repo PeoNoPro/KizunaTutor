@@ -675,6 +675,7 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                 .highestJlptLevel(tutor.getHighestJlptLevel() != null ? tutor.getHighestJlptLevel() : "N1")
                 .experienceYears(tutor.getExperienceYears())
                 .hourlyRate(post != null ? post.getHourlyRate() : tutor.getHourlyRate())
+                .priceItems(TutorPostService.priceViews(post))
                 .avgRating(tutor.getAvgRating())
                 .totalReviews(tutor.getTotalReviews())
                 .studentCount(teachingStats.studentCount())

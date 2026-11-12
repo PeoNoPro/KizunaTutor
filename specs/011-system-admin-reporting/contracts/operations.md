@@ -137,6 +137,7 @@ Mọi endpoint quản lý nhân sự dưới `/api/admin/operations` yêu cầu 
 - `PUT /staff/{id}`: `{fullName,email,phone?,expectedUpdatedAt,reason}`. Lý do1..2000, timestamp phải khớp; email người đang thao tác không đổi để giữ phiên hiện tại. Không sửa trường quyền qua endpoint này.
 - `PUT /staff/{id}/role` cũ của Admin đã bỏ. Đổi vai trò chỉ qua hợp đồng `/role-changes` hiện hành; không nhầm với endpoint Manager dưới tiền tố đó.
 - `PUT /staff/{id}/status`: `{status:ACTIVE|SUSPENDED,expectedUpdatedAt,reason}`. Khóa/mở tài khoản, không khóa chính mình hoặc quản trị viên cuối; trạng thái khác bị từ chối.
+- `POST /staff/{id}/delete` *(bổ sung 2026-11-10)*: `{expectedUpdatedAt,reason}` (lý do 1..2000). Chỉ Admin; xóa mềm (`deleted_at` + `SUSPENDED`), không xóa chính mình và tài khoản Quản trị viên (400), 409 nếu timestamp lệch. Gỡ ca CS từ hôm nay (ghi `REMOVE` vào `support_shift_events`), nhật ký `STATUS` với lý do "Xóa tài khoản: …". Trả `{userId,deleted:true}`. Danh sách `GET /staff` thêm `deletable` (false với chính mình và Quản trị viên).
 - `GET /staff/history?page&size`: lịch sử thao tác với nhãn Việt, tên người thực hiện, tên đối tượng, lý do, thời gian. Không trả JSON audit thô, mật khẩu hoặc hash.
 
 Ghi account và audit cùng transaction; khóa tuần tự thao tác nhân sự và kiểm quyền hiện tại trong transaction. Email trùng400; phiên dữ liệu cũ409; sai quyền403; ngoài nhân sự/không tồn tại404. Không xóa tài khoản hay lịch sử. Migration riêng `database/seeds/fe11_operations_schema.sql`, chỉ áp dụng DB phát triển hiện tại và DB test sau kiểm tra; production theo quy trình migration của nhóm.
@@ -214,3 +215,10 @@ Không có tài liệu: danh sách rỗng, chi tiết404; chồng lấn:409 thô
 - `/admin/operations/reports`: chọn kỳ, từng chỉ số có định nghĩa/mẫu số; số0 khác missing/error.
 - `/learner/policies`, `/tutor/policies`, cùng `/{type}`: menu dẫn tới danh mục/chính sách, version/effective date, text escaped. Không editor.
 - Admin theo DESIGN chung/shell hiện có; learner/tutor mục7 DESIGN. Mọi trạng thái/nhãn Việt đúng dấu, không all-caps ngoài từ viết tắt được duyệt; focus/error/keyboard và loading/empty/error riêng; không mock khi nguồn thiếu.
+
+## Bổ sung 2026-11-11 (review PR #21)
+
+- `POST /reported-incidents` nhận thêm `supportTicketId` (không bắt buộc); phải là yêu cầu đang/đã chuyển lên cho chính Quản lý đó, sai thì 400. Lưu vào cột `technical_incidents.support_ticket_id`; `GET /reported-incidents?ticket=` lọc theo cột này (không dò chuỗi trong mô tả). Sự cố cũ được điền cột từ mô tả khi chạy SQL.
+- Xóa nhân viên ghi nhật ký hành động `DELETE` ("Xóa tài khoản"), lý do không còn tiền tố. Phiên đăng nhập cũ của người bị xóa bị từ chối ngay ở request kế tiếp vì mỗi request đọc lại `deleted_at`/trạng thái từ DB.
+- Nhật ký thao tác thêm nguồn `NOTIFY` ("Thông báo").
+- SQL: `database/seeds/fe11_fe12_review_fixes.sql`.

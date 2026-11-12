@@ -24,8 +24,8 @@ function renderShift(shift){
   const box=$('csShift');box.replaceChildren();if(!shift){box.hidden=true;return;}
   const dayLabel=value=>{const [y,m,d]=value.split('-');return `${d}/${m}`;};
   const icon=node('span',shift.current?'●':'○','cs-shift-dot'),copy=node('div',undefined,'cs-shift-copy');
-  if(shift.current){box.dataset.state='on';copy.append(node('strong',`Bạn đang trong ${shift.current.label.toLowerCase()} (${shift.current.start} – ${shift.current.end})`),node('p',shift.activeTickets>=shift.maxActive?`Bạn đang xử lý ${shift.activeTickets} yêu cầu. Chưa nhận thêm việc mới; kết quả quản lý trả về vẫn tiếp tục do bạn phụ trách.`:'Bạn đang rảnh. Yêu cầu mới sẽ được tự giao cho bạn.'));}
-  else{box.dataset.state='off';copy.append(node('strong','Bạn không trong ca làm lúc này'),node('p',(shift.next?`Ca tiếp theo: ${shift.next.label.toLowerCase()} ${dayLabel(shift.next.date)}, ${shift.next.start} – ${shift.next.end}.`:'Bạn chưa được xếp ca nào sắp tới.')+' Yêu cầu đang phụ trách vẫn được giữ để tiếp tục xử lý.'));}
+  if(shift.current){box.dataset.state='on';copy.append(node('strong',`Bạn đang trong ${shift.current.label.toLowerCase()} (${shift.current.start} – ${shift.current.end})`),node('p',shift.activeTickets>=shift.maxActive?`Bạn đang xử lý ${shift.activeTickets}/${shift.maxActive} yêu cầu (đã đủ). Hệ thống tạm chưa giao thêm; xong một yêu cầu là được giao tiếp.`:shift.activeTickets?`Bạn đang xử lý ${shift.activeTickets}/${shift.maxActive} yêu cầu. Yêu cầu mới sẽ được tự giao cho bạn.`:'Bạn đang rảnh. Yêu cầu mới sẽ được tự giao cho bạn.'));}
+  else{box.dataset.state='off';copy.append(node('strong','Bạn không trong ca làm lúc này'),node('p',(shift.next?`Ca tiếp theo: ${shift.next.label.toLowerCase()} ${dayLabel(shift.next.date)}, ${shift.next.start} – ${shift.next.end}.`:'Bạn chưa được xếp ca nào sắp tới.')+' Ngoài ca bạn chỉ xem, không được giao việc mới; yêu cầu đang phụ trách vẫn được giữ để tiếp tục xử lý.'));}
   const link=node('a','Xem lịch làm việc','cs-shift-link');link.href='/pages/support-shifts/?view=cs';
   box.append(icon,copy,link);box.hidden=false;
 }

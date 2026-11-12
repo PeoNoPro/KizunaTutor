@@ -55,7 +55,7 @@ public class OperationsApiController {
         var result=incidents.create(r); return ResponseEntity.created(URI.create("/api/admin/operations/incidents/"+result.get("incidentId"))).body(ApiResponse.ok(result));
     }
     // Quản lý báo sự cố cho Admin và theo dõi sự cố mình đã báo (chỉ xem).
-    @GetMapping("/reported-incidents") public ApiResponse<?> reported(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) { return ApiResponse.ok(incidents.reportedByMe(page,size)); }
+    @GetMapping("/reported-incidents") public ApiResponse<?> reported(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(required=false) UUID ticket) { return ApiResponse.ok(incidents.reportedByMe(page,size,ticket)); }
     @GetMapping("/reported-incidents/components") public ApiResponse<?> reportComponents() { actors.requireManager(); return ApiResponse.ok(catalog.options()); }
     @GetMapping("/reported-incidents/csrf") public ApiResponse<?> reportCsrf(org.springframework.security.web.csrf.CsrfToken token) {
         actors.requireManager(); return ApiResponse.ok(Map.of("token",token.getToken(),"headerName",token.getHeaderName()));

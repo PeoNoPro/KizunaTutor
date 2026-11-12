@@ -13,6 +13,8 @@ public class TechnicalIncident extends com.kizuna.core.entity.BaseEntity {
      @Column(name="reporter_id") private UUID reporterId;
      @Column(name="assignee_id") private UUID assigneeId;
      @Column(name="recurrence_of") private UUID recurrenceOf;
+    /** Yêu cầu hỗ trợ mà Quản lý báo sự cố từ đó (FE-10 → FE-11); null nếu Admin tự ghi nhận. */
+     @Column(name="support_ticket_id") private UUID supportTicketId;
     @Version @Column(name="version") private Long version;
     @org.hibernate.annotations.BatchSize(size=50)
     @ElementCollection(fetch=FetchType.LAZY)

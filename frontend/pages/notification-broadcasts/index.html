@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gửi thông báo - KizunaTutor</title><link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<link rel="stylesheet" href="/styles/support-utilities.css"><link rel="stylesheet" href="/styles/variables.css"><link rel="stylesheet" href="/styles/global.css">
+<script src="/js/frame-preload.js"></script>
+<link rel="stylesheet" href="/styles/notifications.css"></head>
+<body class="notifications-page"><a class="skip-link" href="#notificationsMain">Đến nội dung chính</a>
+<main id="notificationsMain"><div class="nt-page">
+  <div class="nt-head"><div><h1>Gửi thông báo</h1><p id="notificationUnread" role="status" aria-live="polite">&nbsp;</p></div><a class="nt-button" href="/pages/notifications/"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>Về hộp thông báo</a></div>
+  <form id="broadcastForm" class="nt-compose" novalidate>
+    <section class="nt-card nt-panel" aria-labelledby="composeTitle">
+      <h2 id="composeTitle">Nội dung thông báo</h2><p class="nt-muted">Người nhận thấy đúng nội dung này trong ứng dụng và qua email (nếu họ bật).</p>
+      <div class="nt-field"><label for="bcTitle">Tiêu đề</label><input id="bcTitle" name="title" type="text" maxlength="150" autocomplete="off" placeholder="Ví dụ: Bảo trì hệ thống tối 10/11"><span class="nt-count" data-count-for="bcTitle" data-max="150">0/150</span></div>
+      <div class="nt-field"><label for="bcContent">Nội dung</label><textarea id="bcContent" name="content" maxlength="10000" placeholder="Ví dụ: Hệ thống tạm dừng từ 22:00 đến 23:00 để nâng cấp. Bạn vui lòng lưu bài trước thời gian này."></textarea><span class="nt-count" data-count-for="bcContent" data-max="10000">0/10.000</span></div>
+      <div class="nt-field"><label for="bcType">Nhóm thông báo</label><select id="bcType" name="type"><option value="SYSTEM">Hệ thống</option><option value="TRIAL">Học thử</option><option value="ASSIGNMENT">Bài tập</option><option value="PAYMENT">Thanh toán</option><option value="TICKET">Hỗ trợ</option></select></div>
+    </section>
+    <section class="nt-card nt-panel" aria-labelledby="settingsTitle">
+      <h2 id="settingsTitle">Người nhận và thời điểm</h2><p class="nt-muted">Chỉ gửi cho tài khoản đang hoạt động.</p>
+      <div class="nt-field"><span class="nt-label">Gửi tới</span><div class="nt-segment">
+        <label class="nt-option"><input type="radio" name="targetMode" value="ROLES" checked><span><strong>Theo vai trò</strong><small>Chọn nhóm người nhận bên dưới</small></span></label>
+        <label class="nt-option danger"><input type="radio" name="targetMode" value="ALL"><span><strong>Khẩn, toàn hệ thống</strong><small>Mọi tài khoản, gửi ngay</small></span></label>
+      </div></div>
+      <div class="nt-field"><span class="nt-label" id="bcRolesLabel">Vai trò nhận</span><div class="nt-chips" id="bcRoles" role="group" aria-labelledby="bcRolesLabel">
+        <label class="nt-chip-toggle"><input type="checkbox" name="roles" value="ROLE_LEARNER">Học viên</label>
+        <label class="nt-chip-toggle"><input type="checkbox" name="roles" value="ROLE_TUTOR">Gia sư</label>
+        <label class="nt-chip-toggle"><input type="checkbox" name="roles" value="ROLE_ACADEMIC_OFFICER">Cán bộ học vụ</label>
+        <label class="nt-chip-toggle"><input type="checkbox" name="roles" value="ROLE_CS_STAFF">Nhân viên hỗ trợ</label>
+        <label class="nt-chip-toggle"><input type="checkbox" name="roles" value="ROLE_MANAGER">Quản lý</label>
+        <label class="nt-chip-toggle"><input type="checkbox" name="roles" value="ROLE_ADMIN">Quản trị viên</label>
+      </div></div>
+      <div class="nt-field"><span class="nt-label" id="bcChannelsLabel">Kênh gửi</span><div class="nt-chips" role="group" aria-labelledby="bcChannelsLabel">
+        <label class="nt-chip-toggle"><input type="checkbox" name="channels" value="IN_APP" checked>Trong ứng dụng</label>
+        <label class="nt-chip-toggle"><input type="checkbox" name="channels" value="EMAIL">Email</label>
+      </div><small class="nt-muted">Email chỉ gửi cho người đã bật nhận email ở nhóm này.</small></div>
+      <div class="nt-field" id="bcTiming"><span class="nt-label" id="bcTimingLabel">Thời điểm gửi</span><div class="nt-chips" id="bcTimingChips" role="radiogroup" aria-labelledby="bcTimingLabel">
+        <label class="nt-chip-toggle"><input type="radio" name="timing" value="now" checked>Gửi ngay</label>
+        <label class="nt-chip-toggle"><input type="radio" name="timing" value="later">Hẹn giờ</label>
+      </div><input id="bcScheduledAt" type="datetime-local" aria-label="Thời điểm hẹn gửi (giờ Việt Nam)" hidden></div>
+      <p id="bcUrgentNote" class="nt-warning" hidden>Thông báo khẩn gửi ngay cho mọi tài khoản đang hoạt động và luôn hiện trong ứng dụng, kể cả người đã tắt nhận. Email vẫn chỉ gửi cho người đã bật.</p>
+      <p id="bcFormError" class="nt-form-error" role="alert" tabindex="-1" hidden></p>
+      <div class="nt-compose-actions"><button id="bcPreview" class="nt-button primary" type="submit"><span class="material-symbols-outlined" aria-hidden="true">send</span>Gửi thông báo</button></div>
+    </section>
+  </form>
+  <div class="nt-history-head"><h2>Lịch sử gửi</h2>
+    <form id="bcFilters" class="nt-history-filters">
+      <label class="sr-only" for="bcFrom">Từ ngày</label><input id="bcFrom" type="date" name="fromDate" title="Từ ngày">
+      <label class="sr-only" for="bcTo">Đến ngày</label><input id="bcTo" type="date" name="toDate" title="Đến ngày">
+      <label class="sr-only" for="bcStatus">Trạng thái</label><select id="bcStatus" name="status"><option value="">Mọi trạng thái</option><option value="SCHEDULED">Đã lên lịch</option><option value="SENDING">Đang gửi</option><option value="COMPLETED">Hoàn tất</option><option value="PARTIAL">Hoàn tất một phần</option><option value="FAILED">Thất bại</option><option value="NEEDS_REVIEW">Cần kiểm tra</option><option value="NO_RECIPIENTS">Không có người nhận</option><option value="CANCELLED">Đã hủy</option></select>
+      <label class="sr-only" for="bcRole">Vai trò</label><select id="bcRole" name="role"><option value="">Mọi vai trò</option><option value="ROLE_LEARNER">Học viên</option><option value="ROLE_TUTOR">Gia sư</option><option value="ROLE_ACADEMIC_OFFICER">Cán bộ học vụ</option><option value="ROLE_CS_STAFF">Nhân viên hỗ trợ</option><option value="ROLE_MANAGER">Quản lý</option><option value="ROLE_ADMIN">Quản trị viên</option></select>
+      <label class="sr-only" for="bcTitleFilter">Tìm tiêu đề</label><input id="bcTitleFilter" type="search" name="title" maxlength="150" placeholder="Tìm tiêu đề">
+      <button class="nt-button" type="submit">Lọc</button>
+    </form>
+  </div>
+  <section class="nt-card" aria-label="Lịch sử gửi"><div id="bcHistory"><div class="nt-skeleton"></div><div class="nt-skeleton"></div></div></section>
+  <div class="nt-pagination"><button id="bcHistoryPrev" class="nt-button" type="button" hidden>Trang trước</button><span id="bcHistoryPage"></span><button id="bcHistoryNext" class="nt-button" type="button" hidden>Trang sau</button></div>
+</div></main>
+<dialog id="bcConfirm" class="nt-dialog" aria-labelledby="bcConfirmTitle"></dialog>
+<dialog id="bcDetail" class="nt-dialog" aria-labelledby="bcDetailTitle"></dialog>
+<script type="module" src="./notification-broadcasts.js"></script>
+</body></html>

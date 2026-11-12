@@ -27,7 +27,10 @@ public class TutorSummaryResponseDTO {
     private String bio;
     private String highestJlptLevel;
     private Short experienceYears;
+    /** Học phí thấp nhất ("Từ ..." khi có nhiều mức giá). */
     private BigDecimal hourlyRate;
+    /** Bảng học phí theo môn học / cấp độ từ bài đăng đã duyệt; rỗng nếu chỉ có một mức giá chung. */
+    private List<com.kizuna.features.tutor_post.dto.TutorPostDtos.PriceItemView> priceItems;
     private BigDecimal avgRating;
     private Integer totalReviews;
     private int studentCount;

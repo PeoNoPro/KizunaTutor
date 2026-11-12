@@ -40,7 +40,8 @@ export function getTutorInitials(fullName) {
   return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
 }
 
-export function formatHourlyRateInfo(amount) {
+/** fromLowest = true khi gia sư có nhiều mức học phí: hiện "Từ <giá thấp nhất>". */
+export function formatHourlyRateInfo(amount, fromLowest = false) {
   const numeric = Number(amount);
   if (!Number.isFinite(numeric) || numeric <= 0) {
     return {
@@ -50,7 +51,7 @@ export function formatHourlyRateInfo(amount) {
   }
   const formatted = new Intl.NumberFormat('vi-VN').format(Math.round(numeric));
   return {
-    primary: `${formatted}đ`,
+    primary: `${fromLowest ? 'Từ ' : ''}${formatted}đ`,
     unit: '60 phút/giờ'
   };
 }
@@ -77,6 +78,8 @@ export function normalizeTutorRecord(item) {
     teachingFormat: String(safeItem.teachingFormat || '').trim() || 'Online 1-1',
     location: String(safeItem.location || '').trim() || 'Việt Nam',
     hourlyRate: Math.max(0, Number(safeItem.hourlyRate) || 0),
+    // Bảng học phí theo môn học / cấp độ (bài đăng đã duyệt); nhiều mức thì hiện "Từ <giá thấp nhất>"
+    priceItems: Array.isArray(safeItem.priceItems) ? safeItem.priceItems : [],
     rating: safeItem.avgRating != null ? Number(safeItem.avgRating) : 0,
     reviewsCount: Math.max(0, Number(safeItem.totalReviews) || 0),
     studentCount: Math.max(0, Number(safeItem.studentCount) || 0),
@@ -196,7 +199,7 @@ function renderAvatarBlock(tutor, sizeClasses) {
 export function buildTutorCardHtml(tutor, options = {}) {
   const isSelected = Boolean(options.isSelected);
   const profileUrl = getTutorProfileUrl(tutor);
-  const priceInfo = formatHourlyRateInfo(tutor.hourlyRate);
+  const priceInfo = formatHourlyRateInfo(tutor.hourlyRate, (tutor.priceItems || []).length > 1);
   const metrics = buildMetricTriplet(tutor);
   const specialtiesText = tutor.specialties && tutor.specialties.length > 0
     ? tutor.specialties.join(', ')

@@ -33,6 +33,12 @@ Nguồn: người dùng duyệt trong hội thoại; SRS sẽ được cập nh�
 
 Nguồn: người dùng yêu cầu trong hội thoại. Bổ sung khối thống kê doanh thu trên tổng quan, trang Doanh thu, xuất Excel/PDF cho báo cáo doanh thu và báo cáo đăng ký gia sư/JLPT. Doanh thu là tổng giao dịch `SUCCESS` không gắn lịch học thử (`booking_id` rỗng), thời gian theo Asia/Ho_Chi_Minh. Admin và Manager được xem theo mô tả vai trò trong `RoleEnum`; vai trò khác bị từ chối. Chỉ đọc số liệu thật, chưa có giao dịch thì báo trống; không lộ mã hoặc payload cổng thanh toán. Luồng thanh toán chưa được xây dựng nên hiện chưa có nguồn ghi giao dịch. PDF dùng hộp thoại in của trình duyệt.
 
+Cập nhật 2026-11-10: trang Doanh thu (`/pages/operations-revenue/`: tổng quan, theo gói, bảng "Giao dịch trong kỳ" lọc trạng thái, xuất Excel/PDF) có mục riêng **"Doanh thu & giao dịch"** trên sidebar Quản lý, ngay dưới "Báo cáo tổng hợp" (trước đây trang có nhưng thiếu link). "Báo cáo tổng hợp" vẫn chỉ là người dùng/hoạt động.
+
+Cập nhật 2026-11-10 — thời gian chờ chung của `fetchAPI` (CSRF + lệnh) tăng từ 4,5 giây lên 12 giây vì DB Supabase ở xa có lúc trả lời chậm hơn 4,5 giây khiến trang báo "Chưa kết nối được hệ thống" dù thao tác đã lưu. Đây là mức tối đa trước khi báo lỗi, không làm chậm phản hồi nhanh.
+
+Cập nhật 2026-11-10 — **Xóa tài khoản nhân viên** (người dùng chọn xóa mềm, không đổi DB): Admin có nút "Xóa" trên từng dòng của Danh sách nhân viên (không có với chính mình và tài khoản Quản trị viên). POST `/api/admin/operations/staff/{id}/delete` `{expectedUpdatedAt, reason}` (lý do bắt buộc, 409 nếu dữ liệu đã đổi): đặt `deleted_at` + `SUSPENDED` (ẩn khỏi danh sách, chặn đăng nhập và phiên đang mở), giữ nguyên lịch sử/yêu cầu hỗ trợ/nhật ký/giao dịch; gỡ ca làm CS từ hôm nay trở đi (ghi `REMOVE` vào `support_shift_events`). Nhật ký ghi hành động `STATUS` với lý do "Xóa tài khoản: …" vì ràng buộc `staff_account_audit_events.action` chỉ cho CREATE/UPDATE/ROLE/STATUS. Không khôi phục trên giao diện; email đã xóa không dùng lại để tạo tài khoản mới. Yêu cầu hỗ trợ đang dở của CS bị xóa vào nhóm "Cần bàn giao" (FE-10 FR-022).
+
 ### Chốt quyền đổi vai trò ngày 2026-11-04 — ưu tiên hơn mục 2026-11-03 nếu xung đột
 
 Nguồn: người dùng chọn phương án "quản lý đề xuất, Admin duyệt" trong hội thoại.

@@ -27,7 +27,7 @@ const URL_ALIASES = {
   '/cs': '/pages/cs-dashboard/index.html',
   '/cs/dashboard': '/pages/cs-dashboard/index.html',
   '/manager/reports': '/pages/manager-reports/index.html',
-  '/manager/dashboard': '/pages/manager-reports/index.html',
+  '/manager/dashboard': '/pages/manager-dashboard/index.html',
   '/admin/profile': '/pages/admin-profile/index.html',
   '/': '/pages/home/index.html',
   '/admin/operations/logs': '/pages/operations-logs/index.html',
@@ -158,6 +158,8 @@ const URL_ALIASES = {
   '/academic/history/': '/pages/academic-review-history/index.html',
   '/academic/profile': '/pages/academic-profile/index.html',
   '/academic/profile/': '/pages/academic-profile/index.html',
+  '/academic/content-import': '/pages/academic-content-import/index.html',
+  '/academic/content-import/': '/pages/academic-content-import/index.html',
   // FE-09: gói hội viên và thanh toán
   '/tutor/membership': '/pages/tutor-membership/index.html',
   '/tutor/membership/': '/pages/tutor-membership/index.html',

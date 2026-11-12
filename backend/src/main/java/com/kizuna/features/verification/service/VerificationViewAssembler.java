@@ -3,6 +3,7 @@ package com.kizuna.features.verification.service;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.core.entity.User;
 import com.kizuna.features.verification.dto.response.LatestFeedbackDto;
+import com.kizuna.features.verification.dto.response.ProfileUpdateResponse;
 import com.kizuna.features.verification.dto.response.TutorVerificationResponse;
 import com.kizuna.features.verification.dto.response.VerificationDocumentResponse;
 import com.kizuna.features.verification.dto.response.VerificationProfileDto;
@@ -72,6 +73,15 @@ public class VerificationViewAssembler {
                 .documents(credentials.stream().map(c -> document(c, available.contains(c.getCredentialId()))).toList())
                 .latestFeedback(latestFeedback(tutor, status));
 
+        if (status == TutorVerificationStatus.APPROVED) {
+            builder.profileUpdate(ProfileUpdateTimeline.latest(historyRepository.findTimeline(tutor.getTutorId()))
+                    .map(r -> profileUpdate(r, tutor))
+                    .orElse(null));
+            if (!forOfficer) {
+                builder.updatable(true);
+            }
+        }
+
         if (forOfficer) {
             builder.tutorId(tutor.getTutorId()).email(user != null ? user.getEmail() : null);
         } else {
@@ -80,6 +90,32 @@ public class VerificationViewAssembler {
             builder.missingRequirements(editable ? check(tutor, credentials, available).labels() : List.of());
         }
         return builder.build();
+    }
+
+    public static ProfileUpdateResponse profileUpdate(ProfileUpdateTimeline.Request request, Tutor tutor) {
+        TutorVerificationHistory decision = request.decision();
+        String status = decision == null ? "PENDING"
+                : decision.getAction() == TutorVerifAction.APPROVE ? "APPROVED" : "REJECTED";
+        String label = switch (status) {
+            case "PENDING" -> "Chờ thẩm định";
+            case "APPROVED" -> "Đã chấp nhận";
+            default -> "Không được chấp nhận";
+        };
+        String requested = request.requestedJlpt();
+        String previous = request.previousJlpt();
+        return ProfileUpdateResponse.builder()
+                .updateId(request.submit().getHistoryId())
+                .status(status)
+                .statusLabel(label)
+                .currentJlptLevel(requested == null ? tutor.getHighestJlptLevel()
+                        : (previous == null || "—".equals(previous) ? null : previous))
+                .requestedJlptLevel(requested)
+                .note(request.submit().getFeedback())
+                .feedback(decision != null && decision.getAction() == TutorVerifAction.REJECT ? decision.getFeedback() : null)
+                .submittedAt(request.submit().getCreatedAt())
+                .reviewedAt(decision != null ? decision.getCreatedAt() : null)
+                .reviewedByName(decision != null && decision.getOfficer() != null ? decision.getOfficer().getFullName() : null)
+                .build();
     }
 
     public SubmissionCheck check(Tutor tutor) {

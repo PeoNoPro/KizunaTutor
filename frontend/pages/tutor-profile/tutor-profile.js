@@ -22,6 +22,25 @@ function sanitizeDisplayLocation(rawLocation) {
   return containsDetailedAddressOrGps(text) ? 'Hà Nội, Việt Nam' : text;
 }
 
+/** Bảng học phí theo môn học / cấp độ từ bài đăng đã duyệt (rỗng nếu gia sư chỉ có một mức giá chung). */
+function priceItemsOf(tutor) {
+  return Array.isArray(tutor?.priceItems) ? tutor.priceItems : [];
+}
+
+function priceTableHtml(tutor) {
+  const items = priceItemsOf(tutor);
+  if (items.length === 0) return '';
+  const safe = (text) => String(text == null ? '' : text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  return `
+    <ul class="mt-3 space-y-1.5" aria-label="Học phí theo môn học và cấp độ">
+      ${items.map((p) => `
+        <li class="flex items-center justify-between gap-3 text-sm">
+          <span class="text-on-surface-variant">${safe(p.levelLabel)}</span>
+          <span class="font-semibold text-[#006194]">${formatVND(p.hourlyRate)}</span>
+        </li>`).join('')}
+    </ul>`;
+}
+
 
 function getInitials(name) {
   if (!name) return 'HV';
@@ -536,13 +555,14 @@ document.addEventListener('DOMContentLoaded', async () => {
               <span class="text-xs font-semibold text-slate-500">Học phí</span>
               <div class="flex items-baseline gap-1">
                 ${Number(tutor.hourlyRate) > 0 ? `
-                  <span class="text-3xl font-extrabold text-[#006194]">${formatVND(tutor.hourlyRate)}</span>
+                  <span class="text-3xl font-extrabold text-[#006194]">${priceItemsOf(tutor).length > 1 ? '<span class="text-base font-semibold">Từ </span>' : ''}${formatVND(tutor.hourlyRate)}</span>
                   <span class="text-xs text-on-surface-variant font-medium">/ giờ (60 phút)</span>
                 ` : `
                   <span class="text-2xl font-extrabold text-[#006194]">Thỏa thuận</span>
                   <span class="text-xs text-on-surface-variant font-medium">(Chưa cập nhật)</span>
                 `}
               </div>
+              ${priceTableHtml(tutor)}
             </div>
 
             <!-- Hành động chính (CTA) -->

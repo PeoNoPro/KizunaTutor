@@ -18,5 +18,6 @@ public class StaffAccountController {
     @PostMapping("/staff") public ResponseEntity<?> create(@Valid @RequestBody Create request){var data=staff.create(request);return ResponseEntity.created(URI.create("/api/admin/operations/staff?created="+data.get("userId"))).body(ApiResponse.ok(data));}
     @PutMapping("/staff/{id}") public ApiResponse<?> update(@PathVariable UUID id,@Valid @RequestBody Update request){return ApiResponse.ok(staff.update(id,request));}
     @PostMapping("/staff/{id}/resend-credentials") public ApiResponse<?> resend(@PathVariable UUID id,@Valid @RequestBody Resend request){return ApiResponse.ok(staff.resendCredentials(id,request));}
+    @PostMapping("/staff/{id}/delete") public ApiResponse<?> delete(@PathVariable UUID id,@Valid @RequestBody Delete request){return ApiResponse.ok(staff.delete(id,request));}
     @PutMapping("/staff/{id}/status") public ApiResponse<?> status(@PathVariable UUID id,@Valid @RequestBody Command request){return ApiResponse.ok(staff.status(id,request));}
 }

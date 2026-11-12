@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tùy chọn nhận thông báo - KizunaTutor</title><link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<link rel="stylesheet" href="/styles/support-utilities.css"><link rel="stylesheet" href="/styles/variables.css"><link rel="stylesheet" href="/styles/global.css">
+<script src="/js/frame-preload.js"></script>
+<link rel="stylesheet" href="/styles/notifications.css"></head>
+<body class="notifications-page"><a class="skip-link" href="#notificationsMain">Đến nội dung chính</a>
+<main id="notificationsMain"><div class="nt-page">
+  <div class="nt-head"><div><h1>Tùy chọn nhận thông báo</h1><p>Chọn nhóm thông báo bạn muốn nhận trong ứng dụng và qua email.</p></div><a class="nt-button" href="/pages/notifications/"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>Về thông báo</a></div>
+  <form id="preferenceForm" class="nt-card" novalidate>
+    <table class="nt-pref-table"><caption class="sr-only">Tùy chọn theo nhóm thông báo và kênh nhận</caption>
+      <thead><tr><th scope="col" style="text-align:left">Nhóm thông báo</th><th scope="col">Trong ứng dụng</th><th scope="col">Email</th></tr></thead>
+      <tbody id="preferenceRows"><tr><td colspan="3" class="nt-muted">Đang tải tùy chọn…</td></tr></tbody>
+    </table>
+    <div class="nt-pref-actions"><button id="savePreferences" class="nt-button primary" type="submit" disabled>Lưu tùy chọn</button><button id="reloadPreferences" class="nt-button" type="button" hidden>Tải lại</button><p id="preferenceStatus" class="nt-detail-status" role="status" aria-live="polite"></p></div>
+  </form>
+  <p class="nt-help">Thông báo khẩn của hệ thống luôn hiện trong ứng dụng. Thư bảo mật (mã OTP, đặt lại mật khẩu) luôn được gửi và không phụ thuộc tùy chọn này.</p>
+</div></main>
+<script type="module">import {startPreferencesPage} from '/js/pages/notifications.js'; startPreferencesPage();</script>
+</body></html>

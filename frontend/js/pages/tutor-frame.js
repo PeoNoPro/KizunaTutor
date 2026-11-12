@@ -4,7 +4,8 @@
  */
 import {mountTutorLayout,setTutorIdentity} from '../../components/tutor-layout/tutor-layout.js';
 
-export async function mountTutorFrame(displayName) {
+/** `active` là mục sidebar được tô (mặc định Yêu cầu hỗ trợ; trang thông báo FE-12 dùng 'notifications'). */
+export async function mountTutorFrame(displayName, active = 'support') {
   if (document.getElementById('tutorSidebar')) return;
   // Utilities and tutor theme are precompiled in support-utilities.css; never wait for a runtime CDN compiler.
   if (!document.querySelector('link[href="/styles/tutor-theme.css"]')) {
@@ -18,6 +19,6 @@ export async function mountTutorFrame(displayName) {
   const main = document.querySelector('main');
   main.replaceWith(column); column.append(topbar, main);
   column.before(sidebar);
-  mountTutorLayout('support');
+  mountTutorLayout(active);
   setTutorIdentity({ fullName: displayName?.replace(/\(.*?\)/g, '').trim() });
 }

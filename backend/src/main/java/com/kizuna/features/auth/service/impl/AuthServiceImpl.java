@@ -283,8 +283,9 @@ public class AuthServiceImpl implements AuthService {
                     .highestJlptLevel("N2")
                     .avgRating(BigDecimal.valueOf(5.0))
                     .totalReviews(0)
-                    .verificationStatus(TutorVerificationStatus.APPROVED)
-                    .membershipStatus(TutorMembershipStatus.PREMIUM)
+                    // Gia sư mới chưa nộp hồ sơ xác minh và chưa mua gói hội viên
+                    .verificationStatus(TutorVerificationStatus.UNVERIFIED)
+                    .membershipStatus(TutorMembershipStatus.FREE)
                     .isFeatured(false)
                     .updatedAt(OffsetDateTime.now())
                     .build();
@@ -394,8 +395,9 @@ public class AuthServiceImpl implements AuthService {
                     .highestJlptLevel("N2")
                     .avgRating(BigDecimal.valueOf(5.0))
                     .totalReviews(0)
-                    .verificationStatus(TutorVerificationStatus.APPROVED)
-                    .membershipStatus(TutorMembershipStatus.PREMIUM)
+                    // Gia sư mới chưa nộp hồ sơ xác minh và chưa mua gói hội viên
+                    .verificationStatus(TutorVerificationStatus.UNVERIFIED)
+                    .membershipStatus(TutorMembershipStatus.FREE)
                     .isFeatured(false)
                     .updatedAt(OffsetDateTime.now())
                     .build();

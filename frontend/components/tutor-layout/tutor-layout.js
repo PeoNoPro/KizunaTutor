@@ -24,7 +24,6 @@ const NAV_ITEMS = [
   { key: 'materials', label: 'Tài liệu học tập', icon: 'menu_book', href: '/tutor/classrooms?view=materials', member: true },
   { key: 'assignments', label: 'Quản lý bài tập', icon: 'assignment', href: '/tutor/classrooms?view=assignments', member: true },
   { key: 'progress', label: 'Báo cáo tiến độ', icon: 'insights', member: true },
-  { key: 'notifications', label: 'Thông báo', icon: 'notifications' },
   { key: 'verification', label: 'Hồ sơ gia sư', icon: 'badge', href: '/tutor/verification' },
   { key: 'membership', label: 'Gói hội viên', icon: 'workspace_premium', href: '/tutor/membership' },
   { key: 'post', label: 'Bài đăng của tôi', icon: 'campaign', href: '/tutor/post', member: true },
@@ -32,6 +31,8 @@ const NAV_ITEMS = [
   { key: 'support', label: 'Yêu cầu hỗ trợ', icon: 'support_agent', href: '/tutor/support/tickets' },
   { key: 'settings', label: 'Cài đặt', icon: 'settings' }
 ];
+// "Thông báo" nằm cuối sidebar, ngay trên thẻ tài khoản (giống khung CS / Quản lý); số chưa đọc do notification-badge.js gắn vào.
+const NOTIFICATION_ITEM = { key: 'notifications', label: 'Thông báo', icon: 'notifications', href: '/pages/notifications/' };
 
 function navItemHtml(item, activeKey) {
   const active = item.key === activeKey;
@@ -186,7 +187,8 @@ export function mountTutorLayout(activeKey) {
           </nav>
         </div>
         <!-- Menu tài khoản ở góc dưới bên trái (thay cho thanh trên) -->
-        <div class="mx-4 my-4">
+        <div class="mx-4 my-4 flex flex-col gap-2">
+          <nav class="flex flex-col" aria-label="Thông báo">${navItemHtml(NOTIFICATION_ITEM, activeKey)}</nav>
           ${userMenuHtml({
             prefix: 'tutor', name: storedUserName() || 'Gia sư', roleLabel: 'Gia sư tiếng Nhật', placement: 'sidebar',
             // FE-02: thông tin cá nhân, giảng dạy và đổi mật khẩu của gia sư.
@@ -204,7 +206,8 @@ export function mountTutorLayout(activeKey) {
           <button id="tutorMenuButton" type="button" class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container" aria-label="Mở menu">
             <span class="material-symbols-outlined">menu</span>
           </button>
-          <div><span class="text-headline-sm text-brand-navy">Kizuna</span><span class="text-headline-sm text-primary">Tutor</span></div>
+          <div class="flex-1"><span class="text-headline-sm text-brand-navy">Kizuna</span><span class="text-headline-sm text-primary">Tutor</span></div>
+          <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
         </div>
       </header>`;
   }
@@ -241,6 +244,8 @@ export function mountTutorLayout(activeKey) {
   document.getElementById('tutorMenuButton')?.addEventListener('click', () => toggle(true));
   backdrop?.addEventListener('click', () => toggle(false));
   bindUserMenu('tutor');
+  // FE-12: số thông báo chưa đọc cạnh mục Thông báo.
+  import('/js/pages/notification-badge.js').then(module => module.attachNotificationBadges()).catch(() => {});
 }
 
 /**

@@ -132,6 +132,13 @@ export const LEARNER_MENU_GROUPS = [
         matcher: ['/learner/support/tickets', '/pages/support-ticket']
       },
       {
+        key: 'notifications',
+        title: 'Thông báo',
+        url: '/pages/notifications/',
+        icon: 'notifications',
+        matcher: ['/pages/notifications', '/pages/notification-preferences']
+      },
+      {
         key: 'policies',
         title: 'Chính sách',
         url: '/learner/policies',
@@ -239,7 +246,7 @@ export function getLearnerSidebarHtml(activeKey) {
       return `
         <a href="${item.url}"
            data-menu-key="${item.key}"
-           ${(item.key === 'tutors' || item.key === 'requests') ? 'data-no-spa' : 'data-spa-link'}
+           ${(item.key === 'tutors' || item.key === 'requests' || item.key === 'notifications' || item.key === 'support' || item.key === 'policies') ? 'data-no-spa' : 'data-spa-link'}
            class="${isActive ? LEARNER_NAV_ACTIVE : LEARNER_NAV_IDLE}" ${isActive ? 'aria-current="page"' : ''}>
           <span class="material-symbols-outlined text-[20px] shrink-0">${item.icon}</span>
           <span class="truncate">${item.title}</span>
@@ -263,10 +270,13 @@ export function getLearnerSidebarHtml(activeKey) {
       <div class="flex flex-col min-h-0 flex-1">
         <!-- Logo -->
         <div class="px-6 pt-6 pb-4 flex items-start justify-between">
-          ${brandLogoHtml({ href: '/home', subtitle: 'Không gian học viên' })}
+          ${brandLogoHtml({ href: '/home', subtitle: 'Không gian học viên', className: 'min-w-0' })}
+          <div class="flex items-center gap-1 shrink-0">
+          <button type="button" data-notification-bell class="p-1.5 rounded-lg text-[#3f4850] hover:text-[#131b2e] hover:bg-[#eaedff] transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
           <button type="button" id="btnCloseSidebarMobile" class="md:hidden p-1.5 rounded-lg text-[#707881] hover:text-[#131b2e] hover:bg-[#eaedff] transition-colors" title="Đóng menu" aria-label="Đóng menu">
             <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
+          </div>
         </div>
 
         <!-- Danh sách menu -->
@@ -340,6 +350,8 @@ export function getLearnerFooterHtml() {
 // 7. BIND SỰ KIỆN: MOBILE SIDEBAR & ĐĂNG XUẤT
 // =========================================================================
 export function bindLearnerLayoutEvents() {
+  // FE-12: số thông báo chưa đọc cạnh mục Thông báo.
+  import('/js/pages/notification-badge.js').then(module => module.attachNotificationBadges()).catch(() => {});
   const sidebar = document.getElementById('learnerSidebar');
   const backdrop = document.getElementById('learnerSidebarBackdrop');
   const btnOpen = document.getElementById('btnOpenSidebarMobile');

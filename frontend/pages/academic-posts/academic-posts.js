@@ -81,50 +81,122 @@ async function loadSummary() {
 function contentBlock(label, c, tone) {
   if (!c) return '';
   const tags = (c.specialties || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const prices = Array.isArray(c.prices) ? c.prices : [];
+  // Bảng học phí theo môn học / cấp độ; bài cũ chỉ có một mức giá chung
+  const priceHtml = prices.length
+    ? `<div class="mt-2 rounded-lg bg-surface-container-lowest/70 divide-y divide-surface-container">
+        ${prices.map((p) => `
+          <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-body-sm">
+            <span class="text-on-surface">${escapeHtml(p.levelLabel)}</span>
+            <span class="font-semibold text-primary">${formatMoney(p.hourlyRate)}/giờ</span>
+          </div>`).join('')}
+      </div>`
+    : '';
   return `
     <div class="rounded-xl p-4 ${tone}">
       <p class="text-caption text-on-surface-variant font-semibold mb-2">${label}</p>
       <p class="text-label-md font-semibold text-on-surface">${escapeHtml(c.title)}</p>
       <div class="flex flex-wrap items-center gap-2 mt-1.5 text-body-sm">
         <span class="px-2 py-0.5 rounded-full bg-primary-fixed text-primary text-caption font-semibold">${escapeHtml(c.teachingFormatLabel || '')}</span>
-        <span class="font-semibold text-primary">${formatMoney(c.hourlyRate)}/giờ</span>
+        <span class="font-semibold text-primary">${prices.length > 1 ? 'Từ ' : ''}${formatMoney(c.hourlyRate)}/giờ</span>
       </div>
+      ${priceHtml}
       ${tags.length ? `<div class="flex flex-wrap gap-1.5 mt-2">${tags.map((t) => `<span class="px-2 py-0.5 rounded-lg bg-surface-container text-caption">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
       <p class="text-body-sm text-on-surface mt-2 whitespace-pre-line">${escapeHtml(c.description)}</p>
     </div>`;
 }
 
-function itemHtml(p) {
-  const pending = p.reviewStatus === 'PENDING';
-  // Bản đang hiển thị chỉ đáng so sánh khi khác bản chờ duyệt
-  const showPublished = p.published && pending;
+function statusBadges(p) {
   return `
-    <li class="px-6 py-5 border-t border-surface-container first:border-t-0">
-      <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
-        <div class="min-w-0">
-          <div class="flex flex-wrap items-center gap-2">
-            <a href="/academic/verifications/detail?tutorId=${encodeURIComponent(p.tutorId)}" class="text-body-md font-bold text-on-surface hover:text-primary">${escapeHtml(p.tutorName)}</a>
-            ${p.highestJlptLevel ? `<span class="text-caption text-outline">JLPT ${escapeHtml(p.highestJlptLevel)}</span>` : ''}
-            <span class="px-2 py-0.5 rounded-full text-caption font-semibold ${STATUS_STYLE[p.reviewStatus] || ''}">${escapeHtml(p.reviewStatusLabel)}</span>
-            ${p.membershipActive ? '' : '<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-caption font-semibold">Gói đã hết hạn</span>'}
-          </div>
-          <p class="text-caption text-outline mt-0.5">${escapeHtml(p.tutorEmail)} · Gửi lúc ${formatDateTime(p.submittedAt)}
-            ${p.reviewedAt ? ` · ${escapeHtml(p.reviewStatusLabel)} bởi ${escapeHtml(p.reviewerName || '—')} lúc ${formatDateTime(p.reviewedAt)}` : ''}</p>
-          ${p.reviewStatus === 'REJECTED' && p.reviewFeedback ? `<p class="text-body-sm text-error mt-1">Lý do từ chối: ${escapeHtml(p.reviewFeedback)}</p>` : ''}
-          ${p.reviewStatus === 'NEEDS_INFO' && p.reviewFeedback ? `<p class="text-body-sm text-secondary mt-1">Đã yêu cầu bổ sung: ${escapeHtml(p.reviewFeedback)}</p>` : ''}
+    <span class="px-2 py-0.5 rounded-full text-caption font-semibold ${STATUS_STYLE[p.reviewStatus] || ''}">${escapeHtml(p.reviewStatusLabel)}</span>
+    ${p.reviewStatus === 'PENDING' && p.published ? '<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-primary text-caption font-semibold">Bản cập nhật</span>' : ''}
+    ${p.membershipActive ? '' : '<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-caption font-semibold">Gói đã hết hạn</span>'}`;
+}
+
+/** Một dòng tóm tắt trong danh sách; toàn bộ nội dung xem ở "Xem chi tiết". */
+function itemHtml(p) {
+  const c = p.draft || {};
+  const prices = Array.isArray(c.prices) ? c.prices : [];
+  return `
+    <li class="px-6 py-4 border-t border-surface-container first:border-t-0 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-surface-container-low/60 transition-colors">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-body-md font-bold text-on-surface">${escapeHtml(p.tutorName)}</span>
+          ${p.highestJlptLevel ? `<span class="text-caption text-outline">JLPT ${escapeHtml(p.highestJlptLevel)}</span>` : ''}
+          ${statusBadges(p)}
         </div>
-        ${pending ? `
-          <div class="flex flex-wrap gap-2 shrink-0">
-            <button type="button" data-dialog="reject" data-id="${p.postId}" class="px-3 py-1.5 rounded-lg bg-surface-container text-error text-label-sm hover:bg-error-container">Từ chối</button>
-            <button type="button" data-dialog="info" data-id="${p.postId}" class="px-3 py-1.5 rounded-lg bg-secondary-fixed text-on-secondary-fixed text-label-sm hover:opacity-90">Yêu cầu bổ sung</button>
-            <button type="button" data-approve="${p.postId}" class="px-3 py-1.5 rounded-lg bg-primary text-on-primary text-label-sm hover:bg-primary-container shadow-sm">Duyệt và hiển thị</button>
-          </div>` : ''}
+        <p class="text-label-md text-on-surface mt-1 truncate">${escapeHtml(c.title || '—')}</p>
+        <p class="text-caption text-outline mt-0.5">
+          ${escapeHtml(c.teachingFormatLabel || '')}${c.hourlyRate != null ? ` · ${prices.length > 1 ? 'Từ ' : ''}${formatMoney(c.hourlyRate)}/giờ` : ''}
+          · Gửi lúc ${formatDateTime(p.submittedAt)}
+        </p>
       </div>
-      <div class="mt-4 grid grid-cols-1 ${showPublished ? 'xl:grid-cols-2' : ''} gap-4">
-        ${contentBlock(pending ? (p.published ? 'Bản mới chờ duyệt' : 'Nội dung chờ duyệt') : 'Nội dung', p.draft, 'bg-surface-container-low')}
-        ${showPublished ? contentBlock('Bản đang hiển thị', p.published, 'bg-surface-container-lowest ring-1 ring-surface-container') : ''}
-      </div>
+      <button type="button" data-detail="${p.postId}" class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${p.reviewStatus === 'PENDING' ? 'bg-primary text-on-primary hover:bg-primary-container shadow-sm' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'} text-label-sm">
+        <span class="material-symbols-outlined text-[18px]">visibility</span>Xem chi tiết
+      </button>
     </li>`;
+}
+
+// ---------------------------------------------------------------------------
+// Chi tiết bài đăng
+// ---------------------------------------------------------------------------
+function openDetail(postId) {
+  const p = state.items.find((x) => x.postId === postId);
+  if (!p) return;
+  state.detailId = postId;
+  const pending = p.reviewStatus === 'PENDING';
+  // Bản đang hiển thị chỉ đáng so sánh khi đang chờ duyệt bản cập nhật
+  const showPublished = p.published && pending;
+
+  $('detailTitle').textContent = (p.draft && p.draft.title) || 'Chi tiết bài đăng';
+  $('detailHeader').innerHTML = `
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-body-md font-semibold text-on-surface">${escapeHtml(p.tutorName)}</span>
+      ${p.highestJlptLevel ? `<span class="text-caption text-outline">JLPT ${escapeHtml(p.highestJlptLevel)}</span>` : ''}
+      ${statusBadges(p)}
+    </div>`;
+
+  const facts = [
+    ['Email gia sư', escapeHtml(p.tutorEmail || '—')],
+    ['Gửi lúc', formatDateTime(p.submittedAt)],
+    ['Gói hội viên', p.membershipActive ? 'Còn hiệu lực' : 'Đã hết hạn — bài sẽ tạm ẩn khỏi trang Tìm gia sư'],
+    ...(p.reviewedAt ? [[`${escapeHtml(p.reviewStatusLabel)} lúc`, `${formatDateTime(p.reviewedAt)} bởi ${escapeHtml(p.reviewerName || '—')}`]] : [])
+  ];
+  const feedback = p.reviewFeedback && (p.reviewStatus === 'REJECTED' || p.reviewStatus === 'NEEDS_INFO')
+    ? `<div class="rounded-xl p-4 ${p.reviewStatus === 'REJECTED' ? 'bg-error-container' : 'bg-secondary-fixed'}">
+         <p class="text-caption font-semibold text-on-surface-variant">${p.reviewStatus === 'REJECTED' ? 'Lý do từ chối' : 'Nội dung yêu cầu bổ sung'}</p>
+         <p class="text-body-sm text-on-surface mt-1 whitespace-pre-line">${escapeHtml(p.reviewFeedback)}</p>
+       </div>`
+    : '';
+
+  $('detailBody').innerHTML = `
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      ${facts.map(([k, v]) => `
+        <div class="p-3 rounded-lg bg-surface-container-low">
+          <dt class="text-caption text-outline">${k}</dt>
+          <dd class="text-label-md text-on-surface mt-0.5">${v}</dd>
+        </div>`).join('')}
+    </dl>
+    ${feedback}
+    <div class="grid grid-cols-1 ${showPublished ? 'lg:grid-cols-2' : ''} gap-4">
+      ${contentBlock(pending ? (p.published ? 'Bản mới chờ duyệt' : 'Nội dung chờ duyệt') : 'Nội dung', p.draft, 'bg-surface-container-low')}
+      ${showPublished ? contentBlock('Bản đang hiển thị', p.published, 'bg-surface-container-lowest ring-1 ring-surface-container') : ''}
+    </div>
+    <a href="/academic/verifications/detail?tutorId=${encodeURIComponent(p.tutorId)}" class="self-start inline-flex items-center gap-1.5 text-label-md text-primary hover:underline">
+      <span class="material-symbols-outlined text-[18px]">badge</span>Xem hồ sơ xác minh của gia sư
+    </a>`;
+
+  $('detailActions').innerHTML = pending ? `
+    <button type="button" data-dialog="reject" data-id="${p.postId}" class="px-4 py-2 rounded-lg bg-surface-container text-error text-label-md hover:bg-error-container">Từ chối</button>
+    <button type="button" data-dialog="info" data-id="${p.postId}" class="px-4 py-2 rounded-lg bg-secondary-fixed text-on-secondary-fixed text-label-md hover:opacity-90">Yêu cầu bổ sung</button>
+    <button type="button" data-approve="${p.postId}" class="px-4 py-2 rounded-lg bg-primary text-on-primary text-label-md hover:bg-primary-container shadow-sm">Duyệt và hiển thị</button>` : '';
+  $('detailActions').classList.toggle('hidden', !pending);
+  $('detailModal').classList.remove('hidden');
+}
+
+function closeDetail() {
+  state.detailId = null;
+  $('detailModal').classList.add('hidden');
 }
 
 function showState({ icon, title, retry = false }) {
@@ -171,12 +243,13 @@ async function approve(postId, button) {
   try {
     const res = await API.academicPosts.approve(postId);
     showToast(res.message, 'success');
+    closeDetail();
     loadSummary();
     load();
   } catch (err) {
     button.disabled = false;
     showToast(err instanceof ApiError ? err.message : 'Không thể duyệt bài đăng.', 'error');
-    if (err instanceof ApiError && err.status === 409) { loadSummary(); load(); }
+    if (err instanceof ApiError && err.status === 409) { closeDetail(); loadSummary(); load(); }
   }
 }
 
@@ -214,6 +287,7 @@ async function confirmDialog() {
     const res = await d.call(state.dialog.postId, text);
     showToast(res.message, 'success');
     closeDialog();
+    closeDetail();
     loadSummary();
     load();
   } catch (err) {
@@ -239,14 +313,24 @@ document.addEventListener('DOMContentLoaded', () => {
   $('filterForm').addEventListener('submit', (e) => { e.preventDefault(); reload(); });
   $('retryButton').addEventListener('click', load);
   $('postList').addEventListener('click', (e) => {
+    const detailBtn = e.target.closest('[data-detail]');
+    if (detailBtn) openDetail(detailBtn.dataset.detail);
+  });
+  $('detailActions').addEventListener('click', (e) => {
     const approveBtn = e.target.closest('[data-approve]');
     if (approveBtn) return approve(approveBtn.dataset.approve, approveBtn);
     const dialogBtn = e.target.closest('[data-dialog]');
     if (dialogBtn) openDialog(dialogBtn.dataset.dialog, dialogBtn.dataset.id);
   });
+  $('detailClose').addEventListener('click', closeDetail);
+  $('detailModal').addEventListener('click', (e) => { if (e.target.id === 'detailModal') closeDetail(); });
   $('rejectCancel').addEventListener('click', closeDialog);
   $('rejectConfirm').addEventListener('click', confirmDialog);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDialog(); });
+  // Esc: đóng hộp thoại nhập lý do trước, rồi mới đóng chi tiết
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (state.dialog) closeDialog(); else closeDetail();
+  });
   loadSummary();
   load();
 });

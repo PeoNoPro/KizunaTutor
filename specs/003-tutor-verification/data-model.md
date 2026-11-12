@@ -116,3 +116,19 @@ Mọi chuyển trạng thái chạy trong một transaction có khóa dòng `tut
 - Đã duyệt/từ chối trong tháng: `count(history.action = APPROVE|REJECT AND created_at ∈ tháng hiện tại)` (đếm quyết định, kể cả gia sư sau đó nộp lại).
 - Hàng đợi: join `users` để lọc `lower(full_name)`/`lower(email)` LIKE `%keyword%` (≤ 100 ký tự, escape `%`/`_`), lọc `submitted_at` theo khoảng ngày; sắp xếp `submitted_at ASC NULLS LAST`; phân trang 10/trang (tối đa 50).
 - Lịch sử gần đây: 10 mục mới nhất có `action ∈ {APPROVE, REJECT, REQUEST_INFO}`.
+
+## Bổ sung 2026-11-10: cập nhật hồ sơ sau khi đã phê duyệt
+
+Quyết định của người phụ trách (chưa có trong SRS, cần nhóm xác nhận). **Không thêm bảng mới**, dùng `tutor_verification_histories` + `tutor_credentials`:
+
+- Hồ sơ `APPROVED` sửa ngay (không thẩm định lại): SĐT, địa chỉ, giới thiệu, số năm kinh nghiệm. Họ tên, ngày sinh giữ nguyên.
+- Đổi trình độ JLPT hoặc bổ sung giấy tờ: gia sư gửi **yêu cầu cập nhật**; hồ sơ vẫn `APPROVED` trong lúc chờ.
+  - Ghi một dòng `SUBMIT`: `notes` = "Yêu cầu cập nhật hồ sơ" (kèm ". Đề xuất đổi trình độ JLPT: N2 → N1" nếu đổi JLPT), `feedback` = ghi chú của gia sư.
+  - Quyết định = dòng `APPROVE` / `REJECT` kế tiếp, `notes` = "Yêu cầu cập nhật hồ sơ", `reason_code` trống; lý do từ chối ở `feedback`.
+  - Đang chờ = hồ sơ `APPROVED` và dòng lịch sử mới nhất là `SUBMIT` có `notes` như trên. Thao tác luôn khóa dòng `tutors` nên mỗi gia sư tối đa một yêu cầu chờ.
+  - Giấy tờ `VERIFIED` không sửa / gỡ được; giấy tờ mới có `verified_status = PENDING`. Đang có yêu cầu chờ thì khóa thêm / sửa / gỡ giấy tờ.
+- Cán bộ học vụ (hàng đợi lọc `status=PROFILE_UPDATE`, trang chi tiết):
+  - Chấp nhận: `highest_jlpt_level` = mức đề xuất; giấy tờ `PENDING` → `VERIFIED`.
+  - Từ chối (bắt buộc lý do): giấy tờ `PENDING` → `REJECTED`; hồ sơ vẫn `APPROVED`.
+- Hệ quả: quyết định cập nhật hiện trong "Lịch sử xét duyệt" (nhãn "Chấp nhận / Từ chối cập nhật hồ sơ") và được tính vào số duyệt / từ chối trong tháng.
+- API: `POST /api/tutor/verification/profile-update` `{highestJlptLevel, note}`; `POST /api/academic/verifications/{tutorId}/profile-update/approve`; `POST .../profile-update/reject` `{feedback}`.

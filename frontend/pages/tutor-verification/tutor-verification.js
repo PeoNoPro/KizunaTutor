@@ -6,6 +6,9 @@
 import { API, ApiError } from '/js/api.js';
 import { showToast } from '/js/main.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
+import {
+  APPROVED_EDITABLE_FIELDS, hasPendingUpdate, canUploadDocuments, documentChangeable, newDocumentCount, profileUpdateError
+} from '/js/verification-update-helpers.js';
 
 mountTutorLayout('verification');
 
@@ -26,7 +29,7 @@ const STATUS_STYLES = {
   UNVERIFIED: { css: 'tv-status-unverified', icon: 'radio_button_unchecked', hint: 'Hoàn thiện thông tin, tải lên giấy tờ và nộp hồ sơ để được thẩm định.' },
   PENDING: { css: 'tv-status-pending', icon: 'hourglass_top', hint: 'Cán bộ học vụ đang thẩm định hồ sơ. Kết quả sẽ được gửi qua email của bạn.' },
   ADDITIONAL_INFO_REQUIRED: { css: 'tv-status-needs-info', icon: 'edit_note', hint: 'Vui lòng xem phản hồi bên dưới, bổ sung thông tin và nộp lại hồ sơ.' },
-  APPROVED: { css: 'tv-status-approved', icon: 'verified', hint: 'Hồ sơ đã được phê duyệt. Bạn đã có thể nhận học viên trên Kizuna.' },
+  APPROVED: { css: 'tv-status-approved', icon: 'verified', hint: 'Hồ sơ đã được phê duyệt. Bạn có thể sửa thông tin liên hệ bất cứ lúc nào; đổi trình độ JLPT hoặc bổ sung giấy tờ thì gửi yêu cầu cập nhật để cán bộ học vụ thẩm định.' },
   REJECTED: { css: 'tv-status-rejected', icon: 'block', hint: 'Hồ sơ không được chấp nhận. Đây là quyết định cuối cùng nên hồ sơ không thể chỉnh sửa hoặc nộp lại. Vui lòng liên hệ bộ phận hỗ trợ nếu bạn cần trao đổi thêm.' }
 };
 
@@ -137,6 +140,63 @@ function render() {
   renderDocuments(data);
   renderEditMode(data);
   renderMissing(data);
+  renderProfileUpdate(data);
+}
+
+/** Mục "Yêu cầu cập nhật hồ sơ" — chỉ hiện với hồ sơ đã phê duyệt. */
+function renderProfileUpdate(data) {
+  setVisible($('updateSection'), Boolean(data.updatable));
+  if (!data.updatable) return;
+  const update = data.profileUpdate;
+  const pending = hasPendingUpdate(data);
+  setVisible($('updateStatusBox'), Boolean(update));
+  if (update) {
+    $('updateStatusLabel').textContent = update.status === 'PENDING'
+      ? 'Yêu cầu cập nhật đang chờ thẩm định'
+      : `Yêu cầu cập nhật gần nhất: ${update.statusLabel}`;
+    const when = update.status === 'PENDING' ? update.submittedAt : update.reviewedAt;
+    $('updateStatusDate').textContent = when ? ` · ${formatDate(when)}` : '';
+    const lines = [];
+    if (update.requestedJlptLevel) lines.push(`Trình độ JLPT: ${update.currentJlptLevel || '—'} → ${update.requestedJlptLevel}`);
+    if (update.note) lines.push(`Ghi chú: ${update.note}`);
+    if (update.status === 'REJECTED' && update.feedback) lines.push(`Lý do không chấp nhận: ${update.feedback}`);
+    if (pending) lines.push('Bạn chưa thể thay đổi giấy tờ hoặc trình độ JLPT cho tới khi có kết quả.');
+    $('updateStatusDetail').textContent = lines.join('\n');
+  }
+  setVisible($('updateForm'), !pending);
+  if (!pending) {
+    $('updateJlptInput').value = (data.profile && data.profile.highestJlptLevel) || 'N5';
+    const count = newDocumentCount(data);
+    $('updateNewDocuments').textContent = count > 0
+      ? `Gửi kèm ${count} giấy tờ mới đang chờ thẩm định.`
+      : 'Chưa có giấy tờ mới. Bạn có thể tải lên ở mục Giấy tờ xác minh trước khi gửi.';
+  }
+}
+
+async function submitProfileUpdate(event) {
+  event.preventDefault();
+  showFieldErrors({});
+  const highestJlptLevel = $('updateJlptInput').value;
+  const note = $('updateNoteInput').value.trim();
+  const error = profileUpdateError(state.data, highestJlptLevel, note);
+  if (error) {
+    showToast(error, 'error');
+    return;
+  }
+  const button = $('updateSubmitButton');
+  setBusy(button, true);
+  try {
+    state.data = await API.tutorVerification.submitProfileUpdate({ highestJlptLevel, note });
+    $('updateNoteInput').value = '';
+    render();
+    showToast(state.data.message, 'success');
+  } catch (err) {
+    showFieldErrors(err.fields || {});
+    showToast(messageOf(err), 'error');
+    if (['PROFILE_UPDATE_PENDING', 'VERIFICATION_LOCKED'].includes(err.code)) await refreshQuietly();
+  } finally {
+    setBusy(button, false);
+  }
 }
 
 function renderStatus(data) {
@@ -150,15 +210,10 @@ function renderStatus(data) {
 }
 
 function renderFeedback(data) {
-  const block = $('feedbackBlock');
-  if (data.status === 'UNVERIFIED') {
-    setVisible(block, false);
-    return;
-  }
-  setVisible(block, true);
+  // Chỉ hiện khung khi cán bộ học vụ đã có phản hồi
   const fb = data.latestFeedback;
+  setVisible($('feedbackBlock'), Boolean(fb));
   setVisible($('feedbackContent'), Boolean(fb));
-  setVisible($('feedbackEmpty'), !fb);
   if (!fb) return;
   $('feedbackKind').textContent = fb.kindLabel || 'Phản hồi';
   $('feedbackDate').textContent = fb.createdAt ? ` · ${formatDate(fb.createdAt)}` : '';
@@ -188,12 +243,13 @@ function renderDocuments(data) {
     const unavailable = !doc.fileAvailable
       ? '<p class="mt-1" style="color: var(--tv-warn);">Không thể hiển thị tệp này. Tệp có thể bị lỗi hoặc không được hỗ trợ.</p>'
       : '';
-    const typeSelect = data.editable ? `
+    const changeable = documentChangeable(data, doc);
+    const typeSelect = changeable ? `
         <label class="sr-only" for="docType-${doc.id}">Loại giấy tờ</label>
         <select id="docType-${doc.id}" class="tv-input !w-auto !py-1 text-sm" data-change-type="${doc.id}" title="Đổi loại giấy tờ">
           ${DOCUMENT_TYPES.map(([value, label]) => `<option value="${value}" ${value === doc.type ? 'selected' : ''}>${label}</option>`).join('')}
         </select>` : '';
-    const editButtons = data.editable ? `
+    const editButtons = changeable ? `
         ${typeSelect}
         <button type="button" class="tv-btn tv-btn-small" data-action="replace" data-id="${doc.id}">
           <span class="material-symbols-outlined text-base">swap_horiz</span>Thay tệp
@@ -221,13 +277,22 @@ function renderDocuments(data) {
 
 function renderEditMode(data) {
   const editable = Boolean(data.editable);
-  document.querySelectorAll('#profileForm .tv-input').forEach((input) => { input.disabled = !editable; });
+  const updatable = Boolean(data.updatable);
+  // Hồ sơ đã phê duyệt: chỉ mở các trường liên hệ; họ tên, ngày sinh, JLPT giữ nguyên
+  document.querySelectorAll('#profileForm .tv-input').forEach((input) => {
+    input.disabled = !(editable || (updatable && APPROVED_EDITABLE_FIELDS.includes(input.name)));
+  });
   document.querySelectorAll('[data-edit-only]').forEach((el) => setVisible(el, editable));
+  setVisible($('saveProfileButton').parentElement, editable || updatable);
+  setVisible($('uploadForm'), canUploadDocuments(data));
   setVisible($('readOnlyNote'), !editable);
-  $('readOnlyNote').textContent = data.status === 'REJECTED'
-    ? 'Chỉ xem — hồ sơ đã bị từ chối và không thể nộp lại'
-    : 'Chỉ xem — hồ sơ đang được thẩm định hoặc đã được phê duyệt';
-  const resubmit = data.status === 'ADDITIONAL_INFO_REQUIRED';
+  if (updatable) {
+    $('readOnlyNote').textContent = 'Đã phê duyệt — họ tên, ngày sinh giữ nguyên; đổi JLPT trong mục Yêu cầu cập nhật hồ sơ';
+  } else {
+    $('readOnlyNote').textContent = data.status === 'REJECTED'
+      ? 'Chỉ xem — hồ sơ đã bị từ chối và không thể nộp lại'
+      : 'Chỉ xem — hồ sơ đang được thẩm định';
+  }  const resubmit = data.status === 'ADDITIONAL_INFO_REQUIRED';
   $('submitButtonText').textContent = resubmit ? 'Nộp lại hồ sơ' : 'Nộp hồ sơ';
   $('confirmSubmitButton').textContent = resubmit ? 'Nộp lại hồ sơ' : 'Nộp hồ sơ';
 }
@@ -286,7 +351,7 @@ async function saveProfile({ silent = false } = {}) {
   try {
     state.data = await API.tutorVerification.saveProfile(readProfileForm());
     render();
-    if (!silent) showToast(state.data.message || 'Đã cập nhật thông tin xác minh. Vui lòng nộp hồ sơ khi đã sẵn sàng.', 'success');
+    if (!silent) showToast(state.data.message || 'Đã cập nhật thông tin xác minh.', 'success');
     return true;
   } catch (err) {
     showFieldErrors(err.fields || {});
@@ -500,6 +565,7 @@ function bindEvents() {
     $('bioCounter').textContent = String($('bioInput').value.length);
   });
   $('uploadForm').addEventListener('submit', uploadDocument);
+  $('updateForm').addEventListener('submit', submitProfileUpdate);
   $('documentList').addEventListener('click', (event) => {
     const button = event.target.closest('button[data-action]');
     if (!button || button.disabled) return;

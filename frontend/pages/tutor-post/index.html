@@ -62,9 +62,14 @@
             </div>
           </div>
 
-          <!-- Form soạn bài (chỉ sửa được khi chưa có bài hoặc cán bộ học vụ yêu cầu bổ sung) -->
+          <!-- Form soạn bài: chưa có bài, được yêu cầu bổ sung, hoặc bấm "Chỉnh sửa bài đăng" khi bài đã duyệt -->
             <section class="tv-card p-6">
-              <h2 class="text-title-md font-semibold">Nội dung bài đăng</h2>
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-title-md font-semibold">Nội dung bài đăng</h2>
+                <button id="editButton" type="button" class="hidden tv-btn inline-flex items-center gap-2">
+                  <span class="material-symbols-outlined text-[18px]">edit</span>Chỉnh sửa bài đăng
+                </button>
+              </div>
               <p id="formHint" class="text-body-sm text-on-surface-variant mt-1"></p>
               <form id="postForm" class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4" novalidate>
                 <div class="md:col-span-2">
@@ -90,12 +95,21 @@
                     <option value="BOTH">Trực tuyến &amp; trực tiếp</option>
                   </select>
                 </div>
-                <div>
-                  <label class="tv-label" for="rateInput">Học phí mỗi giờ (đ) <span class="text-error">*</span></label>
-                  <input id="rateInput" class="tv-input" type="number" min="10000" max="10000000" step="1000" placeholder="Ví dụ: 250000">
+                <!-- Bảng học phí: mỗi môn học / cấp độ một mức giá riêng -->
+                <div class="md:col-span-2">
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="tv-label mb-0">Học phí theo môn học / cấp độ <span class="text-error">*</span></span>
+                    <span class="text-caption text-outline">đ / giờ · từ 10.000 đ đến 10.000.000 đ</span>
+                  </div>
+                  <p class="text-caption text-on-surface-variant mt-0.5">Học viên thấy mức thấp nhất dạng "Từ ..." ở trang Tìm gia sư và cả bảng giá trong hồ sơ của bạn.</p>
+                  <div id="priceRows" class="mt-3 flex flex-col gap-2"></div>
+                  <button id="addPriceButton" type="button" class="mt-3 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-low text-primary text-label-md hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span class="material-symbols-outlined text-[18px]">add</span>Thêm mức giá
+                  </button>
                 </div>
                 <p id="formError" class="hidden md:col-span-2 text-body-sm text-error"></p>
-                <div id="submitRow" class="md:col-span-2 flex justify-end">
+                <div id="submitRow" class="md:col-span-2 flex justify-end gap-2">
+                  <button id="cancelEditButton" type="button" class="hidden tv-btn">Hủy chỉnh sửa</button>
                   <button id="submitButton" type="submit" class="tv-btn tv-btn-primary inline-flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]">send</span><span id="submitText">Gửi duyệt</span>
                   </button>

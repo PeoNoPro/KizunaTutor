@@ -8,6 +8,25 @@ import { API } from '../../js/api.js';
 import { formatVND } from '../../js/main.js';
 import { openModal, closeModal } from '../../components/modal/modal.js';
 
+/** Bảng học phí theo môn học / cấp độ từ bài đăng đã duyệt (rỗng nếu gia sư chỉ có một mức giá chung). */
+function priceItemsOf(tutor) {
+  return Array.isArray(tutor?.priceItems) ? tutor.priceItems : [];
+}
+
+function priceTableHtml(tutor) {
+  const items = priceItemsOf(tutor);
+  if (items.length === 0) return '';
+  const safe = (text) => String(text == null ? '' : text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  return `
+    <ul class="mt-3 space-y-1.5" aria-label="Học phí theo môn học và cấp độ">
+      ${items.map((p) => `
+        <li class="flex items-center justify-between gap-3 text-sm">
+          <span class="text-on-surface-variant">${safe(p.levelLabel)}</span>
+          <span class="font-semibold text-[#006194]">${formatVND(p.hourlyRate)}</span>
+        </li>`).join('')}
+    </ul>`;
+}
+
 
 function getInitials(name) {
   if (!name) return 'HV';
@@ -361,9 +380,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="space-y-1 pb-4 border-b border-[#ECE8DE]">
               <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Học phí trực tiếp</span>
               <div class="flex items-baseline gap-1">
-                <span class="text-3xl font-extrabold text-[#006194]">${formatVND(tutor.hourlyRate)}</span>
+                <span class="text-3xl font-extrabold text-[#006194]">${priceItemsOf(tutor).length > 1 ? '<span class="text-base font-semibold">Từ </span>' : ''}${formatVND(tutor.hourlyRate)}</span>
                 <span class="text-xs text-on-surface-variant font-medium">/ giờ (60 phút)</span>
               </div>
+              ${priceTableHtml(tutor)}
             </div>
 
             <!-- Hành động chính (CTA) -->

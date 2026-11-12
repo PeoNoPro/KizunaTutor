@@ -6,6 +6,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import java.util.List;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
@@ -47,8 +50,14 @@ public class TutorPost {
     @Column(name = "teaching_format", length = 20)
     private String teachingFormat;
 
+    /** Học phí thấp nhất trong bảng giá (trang Tìm gia sư lọc / sắp xếp và hiện "Từ ..." theo cột này). */
     @Column(name = "hourly_rate", precision = 12, scale = 2)
     private BigDecimal hourlyRate;
+
+    /** Bảng học phí theo môn học / cấp độ (migration 017). Bài cũ chưa có bảng giá thì null. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "price_items", columnDefinition = "jsonb")
+    private List<PostPriceItem> priceItems;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "tutor_post_status_enum", nullable = false)

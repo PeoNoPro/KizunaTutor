@@ -23,9 +23,6 @@
 
   <main class="w-full flex-1 pt-16 lg:pt-0">
     <div class="px-4 md:px-8 py-6">
-      <h1 class="tv-heading tv-h1">Xác minh hồ sơ gia sư</h1>
-      <p class="text-[var(--tv-muted)] mt-1 mb-6">Cung cấp thông tin và giấy tờ để cán bộ học vụ thẩm định. Chỉ gia sư đã được phê duyệt mới có thể nhận học viên.</p>
-
       <!-- 2. Trạng thái đang tải -->
       <section id="loadingState" class="space-y-4" aria-live="polite">
         <div class="tv-skeleton h-24"></div>
@@ -81,7 +78,6 @@
               Cập nhật hồ sơ
             </button>
           </div>
-          <p id="feedbackEmpty" class="mt-2 text-[var(--tv-muted)] hidden">Hiện chưa có phản hồi nào cho hồ sơ của bạn.</p>
         </section>
 
         <!-- Thông tin xác minh (trái) + giấy tờ, nộp hồ sơ (phải) để lấp đầy chiều ngang -->
@@ -184,6 +180,40 @@
               </div>
             </form>
             <input id="replaceFileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" class="hidden">
+          </section>
+
+          <!-- Cập nhật hồ sơ đã phê duyệt: đổi JLPT / bổ sung giấy tờ cần cán bộ học vụ thẩm định lại -->
+          <section id="updateSection" class="tv-card p-5 hidden">
+            <h2 class="tv-heading tv-h2">Yêu cầu cập nhật hồ sơ</h2>
+            <p class="mt-1 text-[var(--tv-muted)]">Đổi trình độ JLPT hoặc bổ sung giấy tờ mới cần cán bộ học vụ thẩm định. Trong lúc chờ, hồ sơ của bạn vẫn giữ trạng thái đã phê duyệt.</p>
+            <div id="updateStatusBox" class="mt-3 hidden border border-black rounded-[5px] p-3">
+              <p class="font-semibold"><span id="updateStatusLabel"></span><span id="updateStatusDate" class="tv-meta text-[var(--tv-muted)]"></span></p>
+              <p id="updateStatusDetail" class="mt-1 whitespace-pre-line"></p>
+            </div>
+            <form id="updateForm" class="mt-4 grid grid-cols-1 gap-3" novalidate>
+              <div>
+                <label class="tv-label" for="updateJlptInput">Trình độ JLPT cao nhất</label>
+                <select id="updateJlptInput" class="tv-input">
+                  <option value="N1">N1</option>
+                  <option value="N2">N2</option>
+                  <option value="N3">N3</option>
+                  <option value="N4">N4</option>
+                  <option value="N5">N5</option>
+                </select>
+                <p class="tv-field-error" data-error-for="highestJlptLevel"></p>
+              </div>
+              <p id="updateNewDocuments" class="text-[var(--tv-muted)]"></p>
+              <div>
+                <label class="tv-label" for="updateNoteInput">Ghi chú cho cán bộ học vụ</label>
+                <textarea id="updateNoteInput" rows="3" maxlength="1000" class="tv-input" placeholder="Ví dụ: Tôi vừa đỗ JLPT N1, đã tải lên chứng chỉ mới."></textarea>
+                <p class="tv-field-error" data-error-for="note"></p>
+              </div>
+              <div class="flex justify-end">
+                <button id="updateSubmitButton" type="submit" class="tv-btn tv-btn-primary">
+                  <span class="material-symbols-outlined text-base">send</span>Gửi yêu cầu cập nhật
+                </button>
+              </div>
+            </form>
           </section>
 
           <!-- 4.6 Nộp hồ sơ (UC-24) -->

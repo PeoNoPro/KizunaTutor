@@ -164,207 +164,118 @@
   <main class="w-full pt-20 bg-[#fcfbf7] flex-1 overflow-x-hidden">
     <div class="flex flex-col w-full">
 
-      <!-- 1. HERO SECTION -->
-      <section class="relative w-full pt-8 pb-16 lg:pt-12 lg:pb-20 home-hero-backdrop border-b border-[#ece7dc]">
-        <div class="max-w-[1240px] mx-auto px-4 sm:px-6 relative z-10">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      <!-- 1. HERO SECTION (Thẻ tìm kiếm nhanh bên trái + Ảnh nổi bật bên phải) -->
+      <section class="relative w-full py-6 lg:py-8 bg-gradient-to-br from-[#f3f6fb] via-[#f8fafc] to-[#fcfbf7] border-b border-slate-200/80">
+        <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+          <div class="flex flex-col lg:flex-row items-stretch gap-5 lg:gap-6">
 
-            <!-- Hero Left Column -->
-            <div class="lg:col-span-6 space-y-5">
-              <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 border border-[#e2d9c5] shadow-sm">
-                <span class="font-kanji font-bold text-[#9F1239] text-xs">『 絆 』</span>
-                <span class="h-3 w-px bg-[#d5ccb6]"></span>
-                <span class="text-xs text-[#3f4850] font-semibold">KizunaTutor • Nền tảng gia sư &amp; tự học tiếng Nhật</span>
-              </div>
-
-              <h1 class="text-3xl sm:text-4xl lg:text-[44px] font-extrabold text-[#0f2545] tracking-tight leading-[1.2]">
-                Tìm đúng gia sư. <br>
-                <span class="relative inline-block text-primary">
-                  Chinh phục tiếng Nhật
-                  <span class="absolute bottom-1 left-0 right-0 h-2.5 bg-sky-200/55 rounded-full -z-10"></span>
-                </span>
-                theo cách của bạn.
-              </h1>
-
-              <p class="text-[15px] sm:text-base text-[#3f4850] leading-relaxed max-w-xl">
-                Kết nối trực tiếp 1-1 với đội ngũ gia sư đã xác thực chứng chỉ JLPT từ N5 đến N1, kết hợp bộ công cụ luyện viết Kanji, sửa câu AI và ôn tập từ vựng mỗi ngày.
-              </p>
-
-              <!-- Primary Action Group -->
-              <div class="flex flex-wrap items-center gap-3 pt-1">
-                <a class="px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary-container font-semibold text-sm shadow-md transition-all inline-flex items-center gap-2" href="/tutors">
-                  <span>Tìm gia sư ngay</span>
-                  <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                </a>
-                <a class="px-5 py-3 rounded-xl bg-white hover:bg-[#f6f1e6] text-[#0f2545] font-semibold text-sm border border-[#dcd4c0] shadow-sm transition-colors inline-flex items-center gap-2" href="#cong-cu-hoc">
-                  <span class="material-symbols-outlined text-[18px] text-[#9F1239]">menu_book</span>
-                  <span>Kho công cụ tự học</span>
-                </a>
-                <a class="px-2 py-2 text-xs sm:text-sm font-semibold text-[#006194] hover:text-[#004b73] transition-colors inline-flex items-center gap-1" href="#tro-thanh-gia-su">
-                  <span>Trở thành gia sư</span>
-                  <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-                </a>
-              </div>
-
-              <!-- Structured Highlights Row -->
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-                <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/90 border border-[#e6decb] shadow-sm">
-                  <span class="material-symbols-outlined text-emerald-600 text-[18px] shrink-0">verified_user</span>
-                  <span class="text-xs font-semibold text-[#0f2545]">Xác thực bằng JLPT</span>
-                </div>
-                <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/90 border border-[#e6decb] shadow-sm">
-                  <span class="material-symbols-outlined text-primary text-[18px] shrink-0">handshake</span>
-                  <span class="text-xs font-semibold text-[#0f2545]">Thỏa thuận trực tiếp</span>
-                </div>
-                <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/90 border border-[#e6decb] shadow-sm">
-                  <span class="material-symbols-outlined text-[#9F1239] text-[18px] shrink-0">draw</span>
-                  <span class="text-xs font-semibold text-[#0f2545]">Luyện Kanji &amp; AI 24/7</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Hero Right Column -->
-            <div class="lg:col-span-6 relative lg:pl-4">
-              <!-- Washi dot texture backdrop -->
-              <div class="hidden sm:block absolute inset-4 -z-10 translate-x-4 translate-y-4 rounded-[28px] home-washi-grid border border-[#e2d8c3]" aria-hidden="true"></div>
-
-              <div class="relative rounded-[28px] overflow-hidden shadow-2xl ring-1 ring-black/10 aspect-[16/11] lg:aspect-[5/4] bg-[#0f2545]">
-                <img src="/assets/images/home/fuji-sakura.jpg"
-                     alt="Núi Phú Sĩ và chùa Chureito giữa mùa hoa anh đào"
-                     class="w-full h-full object-cover object-[35%_center]"
-                     fetchpriority="high">
-                <div class="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-[#0f2545]/80 via-[#0f2545]/25 to-transparent"></div>
-                <div class="absolute left-5 bottom-5 text-white">
-                  <p class="font-kanji text-xl sm:text-2xl font-bold leading-none drop-shadow">富士山と桜</p>
-                  <p class="text-xs mt-1.5 text-white/90 drop-shadow">Hành trình tiếng Nhật bền vững cùng KizunaTutor</p>
-                </div>
-              </div>
-
-              <!-- Floating Top-Left Verification Badge -->
-              <div class="absolute -left-2 sm:-left-6 top-5 bg-white/95 backdrop-blur rounded-2xl px-4 py-3 shadow-xl border border-[#ece4d3] flex items-center gap-3">
-                <span class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0">
-                  <span class="material-symbols-outlined text-[22px]">verified</span>
-                </span>
-                <div>
-                  <p id="heroTutorBadgeTitle" class="text-sm sm:text-base font-bold text-[#0f2545] leading-tight">Xác thực JLPT</p>
-                  <p id="heroTutorBadgeSubtitle" class="text-[11px] text-on-surface-variant">Kiểm duyệt bởi học vụ</p>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      <!-- 2. QUICK SEARCH DOCK -->
-      <section class="w-full -mt-8 relative z-20 px-4 sm:px-6">
-        <div class="max-w-[1240px] mx-auto bg-white rounded-2xl p-5 sm:p-6 shadow-[0_14px_38px_-14px_rgba(15,37,69,0.16)] border border-[#e5decb] space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#f0ebe0]">
-            <div class="flex items-center gap-2">
-              <span class="w-8 h-8 rounded-lg bg-sky-50 text-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-[18px]">filter_alt</span>
-              </span>
+            <!-- Hero Left Column: Thẻ Tìm kiếm nhanh gọn -->
+            <div class="w-full lg:w-[430px] shrink-0 bg-white rounded-2xl p-5 sm:p-6 shadow-[0_14px_38px_-14px_rgba(15,37,69,0.14)] border border-slate-200/90 flex flex-col justify-between">
               <div>
-                <h2 class="font-bold text-sm text-[#0f2545]">Bộ lọc tìm kiếm gia sư nhanh</h2>
-                <p class="text-[11px] text-on-surface-variant">Chọn nhanh tiêu chí hoặc nhập từ khóa để chuyển thẳng tới danh sách phù hợp</p>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span class="text-xs font-semibold text-emerald-700">Gia sư xác thực JLPT • Kết nối trực tiếp</span>
+                </div>
+
+                <h1 class="mt-3.5 text-2xl sm:text-[28px] font-extrabold text-[#0f2545] tracking-tight leading-[1.2]">
+                  Tìm gia sư tiếng Nhật, <span class="text-primary">học 1-1 trực tiếp</span>
+                </h1>
+                <p class="mt-2 text-[13px] text-slate-600 leading-relaxed">
+                  Xem hồ sơ, học phí, lịch rảnh rồi nhắn trực tiếp gia sư. Học viên không mất phí kết nối.
+                </p>
+
+                <!-- 3 tiêu chí tìm kiếm cốt lõi -->
+                <div class="mt-4 space-y-3">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col space-y-1">
+                      <label for="home-filter-jlpt" class="text-[11px] font-semibold text-slate-600">Trình độ JLPT</label>
+                      <select id="home-filter-jlpt" class="w-full h-10 px-3 rounded-xl bg-white text-xs font-semibold text-[#0f2545] border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                        <option value="">Tất cả (N5 – N1)</option>
+                        <option value="N5">Sơ cấp N5</option>
+                        <option value="N4">Cơ bản N4</option>
+                        <option value="N3">Trung cấp N3</option>
+                        <option value="N2">Trung cao cấp N2</option>
+                        <option value="N1">Cao cấp N1</option>
+                      </select>
+                    </div>
+
+                    <div class="flex flex-col space-y-1">
+                      <label for="home-filter-format" class="text-[11px] font-semibold text-slate-600">Hình thức học</label>
+                      <select id="home-filter-format" class="w-full h-10 px-3 rounded-xl bg-white text-xs font-semibold text-[#0f2545] border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                        <option value="">Tất cả</option>
+                        <option value="online">Online 1-1</option>
+                        <option value="offline">Học trực tiếp</option>
+                        <option value="hybrid">Kết hợp linh hoạt</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col space-y-1">
+                    <label for="home-filter-keyword" class="text-[11px] font-semibold text-slate-600">Từ khóa / Khu vực</label>
+                    <input id="home-filter-keyword" type="search" maxlength="80"
+                           placeholder="Vd: Kaiwa, N2, Hà Nội, tên gia sư..."
+                           class="w-full h-10 px-3.5 rounded-xl bg-white text-xs font-medium text-[#0f2545] border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                  </div>
+
+                  <a id="home-search-btn" href="/tutors" class="w-full h-11 rounded-xl bg-primary hover:bg-primary-container text-white font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">search</span>
+                    <span>Tìm gia sư</span>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Gợi ý nhanh 1 hàng gọn -->
+              <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-1.5 text-[11px]">
+                <span class="font-medium text-slate-400 mr-0.5 inline-flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[13px]">history</span>
+                  <span>Tìm nhanh:</span>
+                </span>
+                <a href="/tutors?goal=jlpt_n3" class="px-2.5 py-1 rounded-full bg-sky-50 hover:bg-sky-100 text-primary font-semibold transition-colors">JLPT N3</a>
+                <a href="/tutors?goal=kaiwa" class="px-2.5 py-1 rounded-full bg-sky-50 hover:bg-sky-100 text-primary font-semibold transition-colors">Kaiwa</a>
+                <a href="/tutors?format=online" class="px-2.5 py-1 rounded-full bg-sky-50 hover:bg-sky-100 text-primary font-semibold transition-colors">Online 1-1</a>
               </div>
             </div>
-            <a href="/tutors" class="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1 self-start sm:self-auto">
-              <span>Mở bộ lọc nâng cao (lịch rảnh, tỉnh/thành)</span>
-              <span class="material-symbols-outlined text-[15px]">tune</span>
-            </a>
-          </div>
 
-          <!-- Filter Inputs Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-            <div class="lg:col-span-3 flex flex-col space-y-1">
-              <label for="home-filter-keyword" class="text-[11px] font-bold text-[#3f4850] flex items-center gap-1">
-                <span class="material-symbols-outlined text-[14px] text-primary">search</span>
-                <span>Từ khóa / Tên gia sư</span>
-              </label>
-              <input id="home-filter-keyword" type="search" maxlength="80"
-                     placeholder="Vd: Kaiwa, JLPT N2, Hà Nội..."
-                     class="w-full h-11 px-3 rounded-xl bg-[#faf8f2] text-xs font-medium text-on-surface border border-[#e2d9c6] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+            <!-- Hero Right Column: Ảnh rộng thoáng -->
+            <div class="flex-1 relative min-h-[280px] sm:min-h-[360px] lg:min-h-0 rounded-2xl overflow-hidden shadow-[0_14px_38px_-14px_rgba(15,37,69,0.16)] ring-1 ring-slate-900/5 bg-[#0f2545]">
+              <img src="/assets/images/home/fuji-sakura.jpg"
+                   alt="Núi Phú Sĩ và chùa Chureito giữa mùa hoa anh đào"
+                   class="absolute inset-0 w-full h-full object-cover object-center"
+                   fetchpriority="high">
+              <div class="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#0f2545]/60 via-[#0f2545]/15 to-transparent"></div>
+
+              <div class="hidden sm:block absolute left-5 bottom-5 text-white">
+                <p class="font-kanji text-xl font-bold leading-none drop-shadow">富士山と桜</p>
+              </div>
+
+              <!-- 2 thẻ thông tin nhỏ góc phải dưới -->
+              <div class="absolute right-4 bottom-4 flex flex-wrap sm:flex-nowrap items-stretch gap-2.5">
+                <div class="bg-white/95 backdrop-blur-md rounded-xl px-3.5 py-2.5 shadow-lg border border-white/80 flex items-center gap-2.5">
+                  <span class="w-8 h-8 rounded-lg bg-sky-50 text-primary flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">verified</span>
+                  </span>
+                  <div>
+                    <p id="heroTutorBadgeTitle" class="text-xs sm:text-sm font-bold text-[#0f2545] leading-tight">Xác thực JLPT</p>
+                    <p id="heroTutorBadgeSubtitle" class="text-[11px] text-slate-500">Kiểm duyệt bởi học vụ</p>
+                  </div>
+                </div>
+                <a href="/tutors" class="bg-white/95 hover:bg-white backdrop-blur-md rounded-xl px-3.5 py-2.5 shadow-lg border border-white/80 flex items-center gap-2.5 transition-colors">
+                  <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">tune</span>
+                  </span>
+                  <div>
+                    <p class="text-xs sm:text-sm font-bold text-[#0f2545] leading-tight">Bộ lọc nâng cao</p>
+                    <p class="text-[11px] text-slate-500">Lịch rảnh &amp; học phí</p>
+                  </div>
+                </a>
+              </div>
             </div>
 
-            <div class="lg:col-span-2 flex flex-col space-y-1">
-              <label for="home-filter-jlpt" class="text-[11px] font-bold text-[#3f4850] flex items-center gap-1">
-                <span class="material-symbols-outlined text-[14px] text-primary">school</span>
-                <span>Trình độ JLPT</span>
-              </label>
-              <select id="home-filter-jlpt" class="w-full h-11 px-3 rounded-xl bg-[#faf8f2] text-xs font-semibold text-on-surface border border-[#e2d9c6] focus:outline-none focus:border-primary">
-                <option value="">Tất cả (N5 – N1)</option>
-                <option value="N5">Sơ cấp N5</option>
-                <option value="N4">Cơ bản N4</option>
-                <option value="N3">Trung cấp N3</option>
-                <option value="N2">Trung cao cấp N2</option>
-                <option value="N1">Cao cấp N1</option>
-              </select>
-            </div>
-
-            <div class="lg:col-span-2 flex flex-col space-y-1">
-              <label for="home-filter-goal" class="text-[11px] font-bold text-[#3f4850] flex items-center gap-1">
-                <span class="material-symbols-outlined text-[14px] text-primary">flag</span>
-                <span>Mục tiêu học</span>
-              </label>
-              <select id="home-filter-goal" class="w-full h-11 px-3 rounded-xl bg-[#faf8f2] text-xs font-semibold text-on-surface border border-[#e2d9c6] focus:outline-none focus:border-primary">
-                <option value="">Mọi mục tiêu</option>
-                <option value="kaiwa">Phản xạ Kaiwa</option>
-                <option value="jlpt">Luyện thi JLPT</option>
-                <option value="business">Phỏng vấn / Business</option>
-                <option value="it">Tiếng Nhật IT / BrSE</option>
-              </select>
-            </div>
-
-            <div class="lg:col-span-2 flex flex-col space-y-1">
-              <label for="home-filter-format" class="text-[11px] font-bold text-[#3f4850] flex items-center gap-1">
-                <span class="material-symbols-outlined text-[14px] text-primary">laptop_chromebook</span>
-                <span>Hình thức học</span>
-              </label>
-              <select id="home-filter-format" class="w-full h-11 px-3 rounded-xl bg-[#faf8f2] text-xs font-semibold text-on-surface border border-[#e2d9c6] focus:outline-none focus:border-primary">
-                <option value="">Linh hoạt tất cả</option>
-                <option value="online">Online 1-1</option>
-                <option value="offline">Học trực tiếp</option>
-                <option value="hybrid">Kết hợp linh hoạt</option>
-              </select>
-            </div>
-
-            <div class="lg:col-span-2 flex flex-col space-y-1">
-              <label for="home-filter-price" class="text-[11px] font-bold text-[#3f4850] flex items-center gap-1">
-                <span class="material-symbols-outlined text-[14px] text-primary">payments</span>
-                <span>Học phí / giờ</span>
-              </label>
-              <select id="home-filter-price" class="w-full h-11 px-3 rounded-xl bg-[#faf8f2] text-xs font-semibold text-on-surface border border-[#e2d9c6] focus:outline-none focus:border-primary">
-                <option value="">Tất cả mức phí</option>
-                <option value="150-250">150.000đ – 250.000đ</option>
-                <option value="250-400">250.000đ – 400.000đ</option>
-                <option value="400-600">Trên 400.000đ</option>
-              </select>
-            </div>
-
-            <div class="lg:col-span-1">
-              <a id="home-search-btn" href="/tutors" class="w-full h-11 px-4 rounded-xl bg-primary hover:bg-primary-container text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
-                <span class="material-symbols-outlined text-[17px]">search</span>
-                <span>Tìm</span>
-              </a>
-            </div>
-          </div>
-
-          <!-- Popular Quick Chips -->
-          <div class="pt-2 flex flex-wrap items-center gap-2 border-t border-[#f0ebe0] text-xs">
-            <span class="text-[11px] font-semibold text-[#64748B] mr-1">Tìm nhanh:</span>
-            <a href="/tutors?goal=jlpt_n3" class="px-3 py-1 rounded-full bg-[#faf8f2] hover:bg-[#E0EFF7] text-[#0f2545] hover:text-primary border border-[#e2d9c6] font-medium transition-colors">Luyện thi JLPT N3</a>
-            <a href="/tutors?goal=kaiwa" class="px-3 py-1 rounded-full bg-[#faf8f2] hover:bg-[#E0EFF7] text-[#0f2545] hover:text-primary border border-[#e2d9c6] font-medium transition-colors">Giao tiếp Kaiwa thực chiến</a>
-            <a href="/tutors?goal=it" class="px-3 py-1 rounded-full bg-[#faf8f2] hover:bg-[#E0EFF7] text-[#0f2545] hover:text-primary border border-[#e2d9c6] font-medium transition-colors">Tiếng Nhật IT / BrSE</a>
-            <a href="/tutors?format=online" class="px-3 py-1 rounded-full bg-[#faf8f2] hover:bg-[#E0EFF7] text-[#0f2545] hover:text-primary border border-[#e2d9c6] font-medium transition-colors">Online 1-1</a>
-            <a href="/tutors?location=H%C3%A0%20N%E1%BB%99i" class="px-3 py-1 rounded-full bg-[#faf8f2] hover:bg-[#E0EFF7] text-[#0f2545] hover:text-primary border border-[#e2d9c6] font-medium transition-colors">Gia sư tại Hà Nội</a>
-            <a href="/tutors?location=TP.%20H%E1%BB%93%20Ch%C3%AD%20Minh" class="px-3 py-1 rounded-full bg-[#faf8f2] hover:bg-[#E0EFF7] text-[#0f2545] hover:text-primary border border-[#e2d9c6] font-medium transition-colors">Gia sư tại TP. Hồ Chí Minh</a>
           </div>
         </div>
       </section>
 
-      <!-- 3. FEATURED TUTORS (100% Real API Data) -->
+      <!-- 2. FEATURED TUTORS (100% Real API Data) -->
       <section class="w-full py-14 sm:py-16 bg-[#fcfbf7] scroll-mt-24" id="kham-pha-gia-su">
         <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
           <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">

@@ -100,4 +100,9 @@ test('hợp đồng HTML/JS trang chủ tuân thủ component dùng chung, đầ
   assert.ok(!html.includes('Chữ Hán tiêu biểu'), 'Không hiển thị thẻ chữ Hán nổi trên banner trang chủ');
   assert.ok(!html.includes('Thử luyện viết Shodo'), 'Không hiển thị nút Thử luyện viết Shodo trên banner trang chủ');
   assert.ok(!html.includes('Hanko Stamp'), 'Không hiển thị con dấu Hanko 絆 Kizuna trên banner trang chủ');
+  assert.ok(!html.includes('Muốn tự ôn luyện?'), 'Không hiển thị thanh gợi ý Kho Kanji & AI miễn phí trong thẻ tìm kiếm nhanh');
+  assert.ok(!html.includes('QUICK SEARCH DOCK'), 'Tìm kiếm nhanh nằm trong thẻ bên trái hero thay vì dock tách rời bên dưới');
+  for (const filterId of ['id="home-filter-keyword"', 'id="home-filter-jlpt"', 'id="home-filter-format"', 'id="home-search-btn"']) {
+    assert.ok(html.includes(filterId), `Thiếu trường tìm kiếm nhanh ${filterId} trong hero`);
+  }
 });

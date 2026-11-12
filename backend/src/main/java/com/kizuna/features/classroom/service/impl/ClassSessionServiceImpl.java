@@ -91,7 +91,7 @@ public class ClassSessionServiceImpl implements ClassSessionService {
     // ------------------------------------------------------------------ xem
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ClassSessionResponse> sessions(CurrentActor actor, LocalDate from, LocalDate to) {
         UUID tutorId = actor.isTutor() ? actor.tutor().getTutorId() : null;
         UUID learnerId = actor.isLearner() ? actor.learner().getLearnerId() : null;
@@ -102,8 +102,12 @@ public class ClassSessionServiceImpl implements ClassSessionService {
             throw ClassroomException.badRequest("Khoảng ngày xem lịch không hợp lệ.");
         }
         LocalDateTime now = LocalDateTime.now(clock);
-        List<ClassSessionCalendar.SpaceData> all = calendar.loadOfParticipants(tutorId, learnerId);
+        // Lớp đã hoàn thành vẫn hiện để xem lại các buổi đã học
+        List<ClassSessionCalendar.SpaceData> all =
+                calendar.loadOfParticipants(tutorId, learnerId, ClassSessionCalendar.CALENDAR_STATUSES);
         java.util.Map<UUID, ClassSessionCalendar.Progress> progress = ClassSessionCalendar.progressOf(all, now);
+        // Lớp đã học xong buổi cuối → "Đã hoàn thành" (tính khi truy cập)
+        calendar.completeFinished(all.stream().map(ClassSessionCalendar.SpaceData::space).toList(), progress);
         return ClassSessionCalendar.sessionsIn(all, from, to).stream()
                 .map(s -> toResponse(s, actor, progress.get(s.space().getSpaceId())))
                 .toList();

@@ -20,6 +20,7 @@ import {
   validateCourseFields,
   minSessionsHint,
   courseSummaryText,
+  courseCardLines,
   localYmd,
   validateScheduleList,
   validateScheduleSlot,
@@ -184,7 +185,9 @@ function renderClassrooms() {
     return;
   }
   stateBox.classList.add('hidden');
-  grid.innerHTML = state.classrooms.map((c) => `
+  grid.innerHTML = state.classrooms.map((c) => {
+    const lines = courseCardLines(c);
+    return `
     <article class="kz-item flex flex-col gap-3">
       <div class="flex items-start justify-between gap-2">
         <h3 class="font-title-sm text-title-sm text-on-surface min-w-0 [overflow-wrap:anywhere]">${escapeHtml(c.title)}</h3>
@@ -192,14 +195,15 @@ function renderClassrooms() {
       </div>
       <dl class="text-on-surface-variant space-y-1">
         <div>Học viên: <strong>${escapeHtml(c.learnerName || 'Học viên')}</strong></div>
-        <div>Ngày mở lớp: ${escapeHtml(formatDateVi(c.createdAt))}</div>
+        <div>Thời gian học: ${escapeHtml(lines.period)}</div>
+        ${lines.progress ? `<div>Tiến độ: ${escapeHtml(lines.progress)}</div>` : ''}
         <div>Lịch học: ${c.schedules?.length ? escapeHtml(summarizeSchedules(c.schedules)) : '<span class="text-tertiary">Chưa có lịch học</span>'}</div>
         <div>Tài liệu: ${Number(c.materialCount) || 0}</div>
       </dl>
       ${c.readOnly ? '<p class="font-caption text-caption text-tertiary">Chế độ chỉ xem</p>' : ''}
       <button type="button" class="kz-btn kz-btn-primary mt-auto" data-open-space="${escapeHtml(c.spaceId)}">Vào lớp học</button>
-    </article>
-  `).join('');
+    </article>`;
+  }).join('');
   grid.querySelectorAll('[data-open-space]').forEach((btn) => {
     btn.addEventListener('click', () => navigateToSpace(btn.dataset.openSpace));
   });
@@ -386,7 +390,9 @@ function renderSpace() {
   if (c.readOnly) {
     note.textContent = c.status === 'ACTIVE'
       ? 'Bạn chưa có gói hội viên hoặc gói đã hết hạn nên lớp học đang ở chế độ chỉ xem. Vui lòng đăng ký hoặc gia hạn gói để tiếp tục quản lý lớp học.'
-      : 'Lớp học không còn hoạt động nên đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại tài liệu đã chia sẻ.';
+      : c.status === 'COMPLETED'
+        ? 'Khóa học đã học xong buổi cuối nên lớp chuyển sang chỉ xem. Bạn vẫn chấm được các bài tập còn chờ chấm và có thể mở lớp mới với học viên này.'
+        : 'Lớp học không còn hoạt động nên đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại tài liệu đã chia sẻ.';
     note.classList.remove('hidden');
   } else {
     note.classList.add('hidden');

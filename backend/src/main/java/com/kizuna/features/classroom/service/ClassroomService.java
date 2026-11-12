@@ -33,4 +33,13 @@ public interface ClassroomService {
     LearningSpace loadManageableSpace(CurrentActor actor, UUID spaceId);
 
     boolean isReadOnly(LearningSpace space);
+
+    /**
+     * Lớp mà gia sư được CHẤM ĐIỂM: lớp đang hoạt động hoặc đã hoàn thành (khóa học xong vẫn chấm được bài còn chờ),
+     * gói hội viên còn hiệu lực. Không cho thay đổi nội dung khác.
+     */
+    LearningSpace loadGradableSpace(CurrentActor actor, UUID spaceId);
+
+    /** true = không được chấm điểm trong lớp này (lớp đã đóng / tạm dừng, hoặc gia sư hết gói hội viên). */
+    boolean isGradeLocked(LearningSpace space);
 }

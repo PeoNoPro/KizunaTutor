@@ -73,23 +73,30 @@ public class ClassroomServiceImpl implements ClassroomService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ClassroomSummaryResponse> listMine(CurrentActor actor) {
         List<LearningSpace> spaces = actor.isTutor()
                 ? spaceRepository.findByTutor_TutorIdOrderByCreatedAtDesc(actor.tutor().getTutorId())
                 : spaceRepository.findByLearner_LearnerIdOrderByCreatedAtDesc(actor.learner().getLearnerId());
         java.util.Map<UUID, ClassSessionCalendar.Progress> progress =
                 ClassSessionCalendar.progressOf(calendar.load(spaces), LocalDateTime.now(clock));
-        return spaces.stream().map(space -> toSummary(space, actor, progress.get(space.getSpaceId()))).toList();
+        // Lớp đã học xong buổi cuối → "Đã hoàn thành" (tính khi truy cập)
+        calendar.completeFinished(spaces, progress);
+        // Lớp đang hoạt động / tạm dừng lên trước, lớp đã kết thúc xuống cuối (giữ thứ tự mới nhất trong từng nhóm)
+        return spaces.stream()
+                .sorted(Comparator.comparing((LearningSpace sp) -> !OPEN_STATUSES.contains(sp.getStatus())))
+                .map(space -> toSummary(space, actor, progress.get(space.getSpaceId()))).toList();
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<EligibleLearnerResponse> listEligibleLearners(CurrentActor actor) {
         Tutor tutor = requireTutor(actor);
         if (!MembershipRules.isActive(tutor)) {
             throw ClassroomException.conflict(MembershipRules.createBlockedMessage(tutor));
         }
+        // Lớp đã học xong không còn chặn việc mở lớp mới với học viên đó
+        completeFinishedOfTutor(tutor.getTutorId());
         List<UUID> ids = spaceRepository.findEligibleLearnerIds(tutor.getTutorId());
         if (ids.isEmpty()) return List.of();
         return learnerRepository.findAllById(ids).stream()
@@ -123,6 +130,7 @@ public class ClassroomServiceImpl implements ClassroomService {
         if (!spaceRepository.hasAcceptedConnection(tutor.getTutorId(), learner.getLearnerId())) {
             throw ClassroomException.forbidden("Học viên này chưa được kết nối với bạn nên chưa thể thêm vào lớp học.");
         }
+        completeFinishedOfTutor(tutor.getTutorId());
         if (spaceRepository.existsByTutor_TutorIdAndLearner_LearnerIdAndStatusIn(
                 tutor.getTutorId(), learner.getLearnerId(), OPEN_STATUSES)) {
             throw ClassroomException.conflict("Học viên này đã có lớp học đang hoạt động với bạn.");
@@ -149,9 +157,17 @@ public class ClassroomServiceImpl implements ClassroomService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public ClassroomSummaryResponse getDetail(CurrentActor actor, UUID spaceId) {
-        return toSummary(loadAccessibleSpace(actor, spaceId), actor);
+        LearningSpace space = loadAccessibleSpace(actor, spaceId);
+        ClassSessionCalendar.Progress progress = calendar.progress(space, LocalDateTime.now(clock));
+        calendar.completeFinished(List.of(space), java.util.Map.of(space.getSpaceId(), progress));
+        return toSummary(space, actor, progress);
+    }
+
+    /** Các lớp đang hoạt động của gia sư đã học xong buổi cuối → "Đã hoàn thành". */
+    private void completeFinishedOfTutor(UUID tutorId) {
+        calendar.completeFinished(spaceRepository.findByTutor_TutorIdOrderByCreatedAtDesc(tutorId), LocalDateTime.now(clock));
     }
 
     @Override
@@ -213,6 +229,28 @@ public class ClassroomServiceImpl implements ClassroomService {
             throw ClassroomException.conflict("Lớp học không còn hoạt động nên không thể thay đổi nội dung.");
         }
         return space;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public LearningSpace loadGradableSpace(CurrentActor actor, UUID spaceId) {
+        LearningSpace space = loadAccessibleSpace(actor, spaceId);
+        if (!isTutorOf(actor, space)) {
+            throw ClassroomException.forbidden("Chỉ gia sư của lớp mới được chấm điểm.");
+        }
+        if (!MembershipRules.isActive(space.getTutor())) {
+            throw ClassroomException.conflict(MembershipRules.readOnlyMessage(space.getTutor()));
+        }
+        if (isGradeLocked(space)) {
+            throw ClassroomException.conflict("Lớp học không còn hoạt động nên không thể chấm điểm.");
+        }
+        return space;
+    }
+
+    @Override
+    public boolean isGradeLocked(LearningSpace space) {
+        boolean statusOk = space.getStatus() == LearningSpaceStatus.ACTIVE || space.getStatus() == LearningSpaceStatus.COMPLETED;
+        return !statusOk || !MembershipRules.isActive(space.getTutor());
     }
 
     @Override

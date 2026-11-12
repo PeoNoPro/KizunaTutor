@@ -39,6 +39,9 @@ import java.util.stream.Collectors;
 public class ClassSessionCalendar {
 
     public static final List<LearningSpaceStatus> OPEN_STATUSES = List.of(LearningSpaceStatus.ACTIVE, LearningSpaceStatus.PAUSED);
+    /** Lớp hiện trên trang Lịch: lớp đang mở + lớp đã hoàn thành (để vẫn xem lại được các buổi đã học). */
+    public static final List<LearningSpaceStatus> CALENDAR_STATUSES =
+            List.of(LearningSpaceStatus.ACTIVE, LearningSpaceStatus.PAUSED, LearningSpaceStatus.COMPLETED);
     /** Giới hạn an toàn khi sinh lịch: tối đa ~11 năm. */
     static final int MAX_WEEKS = 600;
 
@@ -59,8 +62,12 @@ public class ClassSessionCalendar {
         }
     }
 
-    /** Tiến độ khóa học. endDate = ngày buổi cuối (null nếu khóa không giới hạn số buổi). */
-    public record Progress(Integer totalSessions, int startedSessions, LocalDate startDate, LocalDate endDate) {
+    /**
+     * Tiến độ khóa học. endDate = ngày buổi cuối (null nếu khóa không giới hạn số buổi).
+     * finished = khóa có tổng số buổi, đã xếp đủ số buổi và buổi cuối đã KẾT THÚC.
+     */
+    public record Progress(Integer totalSessions, int startedSessions, LocalDate startDate, LocalDate endDate,
+                           boolean finished) {
     }
 
     /** Dữ liệu thô của một lớp để sinh lịch. */
@@ -96,7 +103,38 @@ public class ClassSessionCalendar {
 
     /** Dữ liệu (lịch hằng tuần, buổi dời / hủy, buổi thêm) của mọi lớp đang mở mà gia sư HOẶC học viên tham gia — 4 câu truy vấn. */
     public List<SpaceData> loadOfParticipants(UUID tutorId, UUID learnerId) {
-        return load(spaceRepository.findOpenOfParticipants(tutorId, learnerId, OPEN_STATUSES));
+        return loadOfParticipants(tutorId, learnerId, OPEN_STATUSES);
+    }
+
+    public List<SpaceData> loadOfParticipants(UUID tutorId, UUID learnerId, Collection<LearningSpaceStatus> statuses) {
+        return load(spaceRepository.findOpenOfParticipants(tutorId, learnerId, statuses));
+    }
+
+    /**
+     * Lớp đang hoạt động đã học xong buổi cuối → chuyển "Đã hoàn thành" (kiểm tra khi có người truy cập, không dùng tác vụ nền).
+     * Lớp chưa đặt tổng số buổi (lịch lặp hằng tuần) không bao giờ tự hoàn thành.
+     * @return số lớp vừa được chuyển trạng thái
+     */
+    public int completeFinished(Collection<LearningSpace> spaces, Map<UUID, Progress> progress) {
+        List<LearningSpace> done = new ArrayList<>();
+        for (LearningSpace space : spaces) {
+            Progress p = progress.get(space.getSpaceId());
+            if (space.getStatus() == LearningSpaceStatus.ACTIVE && p != null && p.finished()) {
+                space.setStatus(LearningSpaceStatus.COMPLETED);
+                done.add(space);
+            }
+        }
+        if (!done.isEmpty()) spaceRepository.saveAll(done);
+        return done.size();
+    }
+
+    /** Kiểm tra và hoàn thành các lớp đang hoạt động trong danh sách (nạp lịch rồi tính tiến độ). */
+    public void completeFinished(Collection<LearningSpace> spaces, LocalDateTime now) {
+        List<LearningSpace> candidates = spaces.stream()
+                .filter(sp -> sp.getStatus() == LearningSpaceStatus.ACTIVE && sp.getTotalSessions() != null)
+                .toList();
+        if (candidates.isEmpty()) return;
+        completeFinished(candidates, progressOf(load(candidates), now));
     }
 
     /** Các buổi trong khoảng [from, to] của mọi lớp đang mở mà gia sư HOẶC học viên tham gia. */
@@ -138,8 +176,9 @@ public class ClassSessionCalendar {
         LocalDate until = total != null ? startDateOf(space).plusWeeks(MAX_WEEKS) : now.toLocalDate();
         List<Session> sessions = generate(data, until);
         int started = (int) sessions.stream().filter(s -> !s.start().isAfter(now)).count();
-        LocalDate end = total != null && !sessions.isEmpty() ? sessions.get(sessions.size() - 1).date() : null;
-        return new Progress(total, started, startDateOf(space), end);
+        Session last = total != null && !sessions.isEmpty() ? sessions.get(sessions.size() - 1) : null;
+        boolean finished = last != null && sessions.size() >= total && !last.end().isAfter(now);
+        return new Progress(total, started, startDateOf(space), last == null ? null : last.date(), finished);
     }
 
     // ------------------------------------------------------------------ sinh lịch (hàm thuần)

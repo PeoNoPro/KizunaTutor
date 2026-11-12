@@ -311,7 +311,8 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
     @Override
     @Transactional
     public AttemptView grade(CurrentActor actor, UUID spaceId, UUID exerciseId, UUID attemptId, GradeAttemptRequest request) {
-        loadTutorSpace(actor, spaceId);
+        // Khóa học đã hoàn thành vẫn chấm được câu tự luận còn chờ
+        classroomService.loadGradableSpace(actor, spaceId);
         OnlineExercise e = find(exerciseId, spaceId);
         ExerciseAttempt a = findAttempt(attemptId, exerciseId);
         OffsetDateTime now = now();

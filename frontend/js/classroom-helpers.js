@@ -178,6 +178,24 @@ export function courseSummaryText(c) {
   return parts.join(' · ');
 }
 
+/**
+ * Hai dòng thời gian cho thẻ lớp ở danh sách (gia sư và học viên dùng chung):
+ * - period: "20/11/2026 → dự kiến 15/01/2027" (lớp cũ chưa có ngày bắt đầu: "Bắt đầu {ngày mở lớp}")
+ * - progress: "Đã học 3/16 buổi" (null khi lớp chưa đặt tổng số buổi)
+ */
+export function courseCardLines(c) {
+  if (!c) return { period: '', progress: null };
+  let period;
+  if (c.courseStartDate) {
+    period = formatDateVi(c.courseStartDate)
+      + (c.courseEndDate ? ` → dự kiến ${formatDateVi(c.courseEndDate)}` : '');
+  } else {
+    period = `Bắt đầu ${formatDateVi(c.createdAt)}`;
+  }
+  const progress = c.totalSessions ? `Đã học ${c.startedSessions || 0}/${c.totalSessions} buổi` : null;
+  return { period, progress };
+}
+
 // ----------------------------------------------------------------------------
 // Lịch học hằng tuần (1 = Thứ Hai ... 7 = Chủ nhật; giờ "HH:mm") — khớp quy tắc máy chủ
 // ----------------------------------------------------------------------------

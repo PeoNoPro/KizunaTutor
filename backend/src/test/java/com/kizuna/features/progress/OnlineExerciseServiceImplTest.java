@@ -76,6 +76,9 @@ class OnlineExerciseServiceImplTest {
         learnerActor = asLearner(learner);
         when(classrooms.loadAccessibleSpace(any(), eq(space.getSpaceId()))).thenReturn(space);
         when(classrooms.loadManageableSpace(eq(tutorActor), eq(space.getSpaceId()))).thenReturn(space);
+        when(classrooms.loadGradableSpace(eq(tutorActor), eq(space.getSpaceId()))).thenReturn(space);
+        when(classrooms.loadGradableSpace(eq(learnerActor), eq(space.getSpaceId())))
+                .thenThrow(ClassroomException.forbidden("Chỉ gia sư"));
         when(classrooms.loadManageableSpace(eq(learnerActor), eq(space.getSpaceId())))
                 .thenThrow(ClassroomException.forbidden("Chỉ gia sư"));
 

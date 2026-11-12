@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thông báo - KizunaTutor</title><link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<link rel="stylesheet" href="/styles/support-utilities.css"><link rel="stylesheet" href="/styles/variables.css"><link rel="stylesheet" href="/styles/global.css">
+<script src="/js/frame-preload.js"></script>
+<link rel="stylesheet" href="/styles/notifications.css"></head>
+<body class="notifications-page"><a class="skip-link" href="#notificationsMain">Đến nội dung chính</a>
+<main id="notificationsMain"><div class="nt-page">
+  <div class="nt-head"><div><h1>Thông báo</h1><p id="notificationUnread" role="status" aria-live="polite">&nbsp;</p></div><a id="broadcastButton" class="nt-button primary" href="/pages/notification-broadcasts/" hidden><span class="material-symbols-outlined" aria-hidden="true">campaign</span>Gửi thông báo</a></div>
+  <div class="nt-toolbar">
+    <div class="nt-filters"><div class="nt-filter" role="group" aria-label="Lọc theo trạng thái đọc"><button type="button" data-read-filter="all" aria-pressed="true">Tất cả</button><button type="button" data-read-filter="unread" aria-pressed="false">Chưa đọc</button></div>
+    <label class="sr-only" for="notificationType">Nhóm thông báo</label>
+    <select id="notificationType" class="nt-select"><option value="">Tất cả nhóm</option><option value="SYSTEM">Hệ thống</option><option value="TRIAL">Học thử</option><option value="ASSIGNMENT">Bài tập</option><option value="PAYMENT">Thanh toán</option><option value="TICKET">Hỗ trợ</option></select></div>
+    <div class="nt-dates"><label for="notificationFrom">Từ ngày</label><input id="notificationFrom" type="date" class="nt-select"><label for="notificationTo">đến</label><input id="notificationTo" type="date" class="nt-select"><button id="notificationClearDates" class="nt-icon-button" type="button" title="Bỏ lọc ngày" aria-label="Bỏ lọc ngày" hidden><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+  </div>
+  <section class="nt-card" aria-label="Danh sách thông báo"><div id="notificationList" aria-busy="true"><div class="nt-skeleton"></div><div class="nt-skeleton"></div><div class="nt-skeleton"></div></div></section>
+  <div class="nt-pagination"><button id="notificationPrev" class="nt-button" type="button" hidden>Trang trước</button><span id="notificationPage"></span><button id="notificationNext" class="nt-button" type="button" hidden>Trang sau</button></div>
+  <div class="nt-foot-links"><a href="/pages/notification-preferences/"><span class="material-symbols-outlined" aria-hidden="true">tune</span>Tùy chọn nhận thông báo</a><span>Chọn nhóm thông báo muốn nhận trong ứng dụng và qua email.</span></div>
+</div></main>
+<dialog id="notificationDetail" class="nt-dialog" aria-labelledby="notificationDetailTitle"></dialog>
+<script type="module">import {startNotificationsPage} from '/js/pages/notifications.js'; startNotificationsPage();</script>
+</body></html>

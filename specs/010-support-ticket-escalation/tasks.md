@@ -219,3 +219,6 @@ Original load/human acceptance tasks T055 and T057 remain open; this dashboard e
 - Không điền dấu hoàn tất cho công việc chỉ mới lên kế hoạch. Các task test có thể tạo fixture trong DB cách ly, không chèn mock vào vận hành.
 - Ràng buộc chi tiết vẫn nằm trong data-model/contracts; task không cho phép bỏ kiểm quyền/tệp/transaction để giao diện chạy được.
 - Không tạo tasks.md thứ hai, không sửa nguồn ứng dụng hoặc tự triển khai trong lượt `$speckit-tasks` này.
+
+- 2026-11-10 — Bàn giao tay khi CS nghỉ (FR-022, theo quyết định người dùng): bỏ tự bàn giao trong `SupportShiftService.dispatch`; thêm `notifyHandoversNeeded` (60 giây) và `SupportTicketNotifier.handoverNeeded`; quyền Manager đọc/`assignment` phiếu cần bàn giao (`SupportTicketAccessPolicy.needsHandover`); `handover=true` cho list/counts; GET `/handover-candidates`; giao diện khung "Bàn giao yêu cầu" và mục sidebar "Cần bàn giao". `SupportShiftWorkflowTest` đã viết lại cho luồng mới nhưng **chưa chạy** (cần DB `*_ticket_test` cục bộ); đã kiểm giao diện bằng trình duyệt với tài khoản Quản lý, chưa bấm bàn giao trên dữ liệu thật.
+- 2026-11-10 — Xếp ca: lượt tự giao sau POST `/shifts` chạy nền; bỏ đoạn mô tả quy tắc trên trang xếp ca.

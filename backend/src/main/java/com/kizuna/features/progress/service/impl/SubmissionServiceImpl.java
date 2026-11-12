@@ -52,6 +52,10 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final MaterialFileValidator fileValidator;
     private final Clock clock;
 
+    /** FE-12 (thêm 2026-11-10): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
     @Autowired
     public SubmissionServiceImpl(ClassroomService classroomService, AssignmentRepository assignmentRepository,
                                  AssignmentSubmissionRepository submissionRepository,
@@ -108,6 +112,11 @@ public class SubmissionServiceImpl implements SubmissionService {
                 .submittedAt(now)
                 .build());
         insertFiles(saved.getSubmissionId(), prepared);
+        if (notificationEvents != null) {
+            notificationEvents.publish("assignment:" + saved.getSubmissionId() + ":submitted", "ASSIGNMENT", "Học viên đã nộp bài",
+                    "Học viên vừa nộp bài \"" + assignment.getTitle() + "\". Bạn có thể chấm điểm sau khi hết hạn nộp.",
+                    "/tutor/classrooms", java.util.List.of(assignment.getSpace().getTutor().getUser().getUserId()));
+        }
         return toResponse(saved, assignment);
     }
 
@@ -195,6 +204,11 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setStatus(AssignmentSubmissionStatus.GRADED);
         submission.setGradedAt(now);
         AssignmentSubmission saved = submissionRepository.save(submission);
+        if (notificationEvents != null) {
+            notificationEvents.publish("assignment:" + saved.getSubmissionId() + ":graded", "ASSIGNMENT", "Bài tập đã được chấm điểm",
+                    "Bài \"" + assignment.getTitle() + "\" đã có điểm: " + grade.stripTrailingZeros().toPlainString() + "/" + assignment.getTotalPoints().stripTrailingZeros().toPlainString() + ".",
+                    "/learner/my-courses", java.util.List.of(space.getLearner().getUser().getUserId()));
+        }
         return toResponse(saved, assignment);
     }
 

@@ -71,3 +71,7 @@
 /* Đường viền phân tách nhạt trong thẻ (thay cho viền đen của phong cách cũ) */
 .tv-card .border-black { border-color: var(--tv-line) !important; }
 .tv-card .rounded-\[5px\] { border-radius: 12px !important; }
+
+/* Trang gia sư dựng khung bằng tutor-frame (Thông báo, Yêu cầu hỗ trợ) có nạp global.css; bỏ khoảng chừa thanh cuộn hai bên
+   để sidebar không lệch so với các trang gia sư khác. */
+html:has(> body.tutor-frame) { scrollbar-gutter: auto; }

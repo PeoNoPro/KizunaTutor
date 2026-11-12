@@ -27,7 +27,7 @@ class ManagerIncidentReportTest {
     private final TechnicalIncidentService service = new TechnicalIncidentService(incidents, events, actors, commands, Clock.systemUTC());
 
     private static IncidentCreateRequest request(UUID recurrenceOf) {
-        return new IncidentCreateRequest("Không tải được tệp đính kèm", "Từ yêu cầu hỗ trợ của gia sư.", "HIGH", Set.of("APPLICATION"), recurrenceOf);
+        return new IncidentCreateRequest("Không tải được tệp đính kèm", "Từ yêu cầu hỗ trợ của gia sư.", "HIGH", Set.of("APPLICATION"), recurrenceOf, null);
     }
 
     @Test
@@ -63,7 +63,7 @@ class ManagerIncidentReportTest {
     void nonManagerIsRejectedBeforeAnythingIsSaved() {
         when(actors.requireManager()).thenThrow(new BusinessException(403, "Bạn không có quyền sử dụng chức năng này."));
         assertEquals(403, assertThrows(BusinessException.class, () -> service.report(request(null))).status());
-        assertEquals(403, assertThrows(BusinessException.class, () -> service.reportedByMe(0, 20)).status());
+        assertEquals(403, assertThrows(BusinessException.class, () -> service.reportedByMe(0, 20, null)).status());
         verify(incidents, never()).saveAndFlush(any());
     }
 }

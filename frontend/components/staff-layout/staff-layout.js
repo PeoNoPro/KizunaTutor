@@ -11,6 +11,10 @@
  */
 
 import { userMenuHtml, bindUserMenu } from '/components/user-menu/user-menu.js';
+// Bố cục giống Cổng học vụ, màu giống khung Quản trị viên (dùng chung hằng số với academic-layout)
+import {
+  STAFF_PAGE_BG, STAFF_NAV_ACTIVE, STAFF_NAV_IDLE, STAFF_SIDEBAR, STAFF_ACCOUNT_CARD
+} from '/components/academic-layout/academic-layout.js';
 
 const ROLE_LABELS = {
   ROLE_ADMIN: 'Quản trị viên',
@@ -82,9 +86,7 @@ function renderWrongRole(config, currentRole) {
 
 function navItemHtml(item, activeKey) {
   const active = item.key === activeKey;
-  const cls = active
-    ? 'bg-primary-container text-on-primary-container font-semibold rounded-lg shadow-sm'
-    : 'rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface';
+  const cls = active ? STAFF_NAV_ACTIVE : STAFF_NAV_IDLE;
   return `
     <a href="${item.href}" class="flex items-center gap-3 px-3 py-2.5 transition-all ${cls}" ${active ? 'aria-current="page"' : ''}>
       <span class="material-symbols-outlined text-[20px]">${item.icon}</span>
@@ -104,36 +106,40 @@ export function mountStaffLayout(role, activeKey, pageTitle) {
   const sidebar = document.getElementById('staffSidebar');
   const topbar = document.getElementById('staffTopbar');
 
+  document.body.style.backgroundColor = STAFF_PAGE_BG;
+
   if (sidebar) {
     sidebar.innerHTML = `
       <div id="staffSidebarBackdrop" class="fixed inset-0 bg-black/30 z-40 hidden lg:hidden"></div>
-      <aside id="staffSidebarPanel" class="fixed left-0 top-0 bottom-0 w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col py-6 -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
-        <div class="px-6 mb-8 flex items-center gap-3">
-          <img src="/assets/logos/kizuna-logo.png" alt="KizunaTutor" class="h-10 w-10 object-contain rounded-lg">
-          <div class="flex flex-col">
-            <span class="text-title-md font-bold tracking-tight text-on-surface">KizunaTutor</span>
-            <span class="text-caption text-on-surface-variant tracking-wider">${escapeHtml(config.portal)}</span>
-          </div>
+      <aside id="staffSidebarPanel" class="fixed left-0 top-0 bottom-0 w-72 ${STAFF_SIDEBAR} z-50 flex flex-col justify-between py-6 -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
+        <div class="flex flex-col">
+          <a href="${config.home}" class="px-6 mb-8 flex items-center gap-3 no-underline">
+            <img src="/assets/logos/kizuna-logo.png" alt="KizunaTutor" class="h-10 w-10 object-contain rounded-lg">
+            <div class="flex flex-col">
+              <span class="text-title-md font-bold tracking-tight text-[#0f2545]">KizunaTutor</span>
+              <span class="text-caption text-[#3f4850] tracking-wider">${escapeHtml(config.portal)}</span>
+            </div>
+          </a>
+          <div class="px-6 mb-3"><span class="text-caption text-[#707881] tracking-wider font-semibold">Gói hội viên và thanh toán</span></div>
+          <nav class="flex flex-col gap-1 px-4" aria-label="Điều hướng ${escapeHtml(config.portal.toLowerCase())}">
+            ${config.items.map((item) => navItemHtml(item, activeKey)).join('')}
+          </nav>
         </div>
-        <div class="px-6 mb-3"><span class="text-caption text-outline tracking-wider font-semibold">Gói hội viên và thanh toán</span></div>
-        <nav class="flex flex-col gap-1 px-4" aria-label="Điều hướng ${escapeHtml(config.portal.toLowerCase())}">
-          ${config.items.map((item) => navItemHtml(item, activeKey)).join('')}
-        </nav>
+        <!-- Menu tài khoản ở góc dưới bên trái (giống Cổng học vụ) -->
+        <div class="mx-4 mt-4">
+          ${userMenuHtml({ prefix: 'staff', name, roleLabel, showHome: false, placement: 'sidebar', cardClass: STAFF_ACCOUNT_CARD })}
+        </div>
       </aside>`;
   }
 
+  // Thanh trên chỉ còn trên màn hình nhỏ để mở sidebar
   if (topbar) {
     topbar.innerHTML = `
-      <header class="fixed top-0 left-0 lg:left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-30 flex items-center justify-between px-4 md:px-8 gap-3">
-        <div class="flex items-center gap-2 text-body-sm text-on-surface-variant min-w-0">
-          <button id="staffMenuButton" type="button" class="lg:hidden p-2 rounded-lg hover:bg-surface-container" aria-label="Mở menu">
-            <span class="material-symbols-outlined">menu</span>
-          </button>
-          <a href="${config.home}" class="text-label-md text-outline hover:text-on-surface transition-colors">${escapeHtml(config.portal)}</a>
-          <span class="material-symbols-outlined text-[16px] text-outline-variant">chevron_right</span>
-          <span class="text-label-md text-on-surface font-semibold truncate">${escapeHtml(pageTitle || '')}</span>
-        </div>
-        ${userMenuHtml({ prefix: 'staff', name, roleLabel, avatarClass: 'w-10 h-10', showHome: false })}
+      <header class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-b border-[#ece8de] z-30 flex items-center px-4 gap-2">
+        <button id="staffMenuButton" type="button" class="p-2 rounded-lg hover:bg-[#f7f4ec]" aria-label="Mở menu">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <span class="text-label-md text-[#0f2545] font-semibold truncate">${escapeHtml(pageTitle || config.portal)}</span>
       </header>`;
   }
 

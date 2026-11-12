@@ -1,0 +1,55 @@
+/*
+ * Các class Tailwind mà sidebar học viên mới (components/learner-layout, js/sidebarRouter.js) dùng nhưng
+ * styles/support-utilities.css (bản biên dịch sẵn) chưa có. Dashboard học viên chạy Tailwind lúc tải nên không thiếu;
+ * trang Yêu cầu hỗ trợ / Thông báo / Chính sách của học viên dùng bản biên dịch sẵn nên cần file này
+ * (thiếu thì mất ô logo 絆, lệch thẻ tài khoản và mục đang chọn không tô màu).
+ * Chỉ áp dụng trong khung học viên (.learner-frame).
+ */
+.learner-frame .block{display:block}
+.learner-frame .relative{position:relative}
+.learner-frame .absolute{position:absolute}
+.learner-frame .items-start{align-items:flex-start}
+.learner-frame .min-h-0{min-height:0}
+.learner-frame .h-10{height:2.5rem}
+.learner-frame .w-10{width:2.5rem}
+.learner-frame .h-px{height:1px}
+.learner-frame .p-3{padding:.75rem}
+.learner-frame .pt-1{padding-top:.25rem}
+.learner-frame .pb-1{padding-bottom:.25rem}
+.learner-frame .pb-2{padding-bottom:.5rem}
+.learner-frame .py-2\.5{padding-top:.625rem;padding-bottom:.625rem}
+.learner-frame .mt-1{margin-top:.25rem}
+.learner-frame .my-1{margin-top:.25rem;margin-bottom:.25rem}
+.learner-frame .bottom-\[calc\(100\%\+8px\)\]{bottom:calc(100% + 8px)}
+.learner-frame .text-left{text-align:left}
+.learner-frame .text-\[14px\]{font-size:14px}
+.learner-frame .leading-5{line-height:1.25rem}
+.learner-frame .leading-7{line-height:1.75rem}
+.learner-frame .leading-\[14px\]{line-height:14px}
+.learner-frame .rounded-full{border-radius:9999px}
+.learner-frame .scrollbar-none{scrollbar-width:none}
+.learner-frame .scrollbar-none::-webkit-scrollbar{display:none}
+.learner-frame .bg-white\/90{background-color:rgb(255 255 255/.9)}
+.learner-frame .bg-\[\#007bb9\]{background-color:#007bb9}
+.learner-frame .bg-\[\#cce5ff\]{background-color:#cce5ff}
+.learner-frame .bg-\[\#eaedff\]{background-color:#eaedff}
+.learner-frame .bg-\[\#f2f3ff\]{background-color:#f2f3ff}
+.learner-frame .text-\[\#fdfcff\]{color:#fdfcff}
+.learner-frame .text-\[\#004b73\]{color:#004b73}
+.learner-frame .text-\[\#0F2545\]{color:#0f2545}
+.learner-frame .text-\[\#131b2e\]{color:#131b2e}
+.learner-frame .text-\[\#3f4850\]{color:#3f4850}
+.learner-frame .text-\[\#707881\]{color:#707881}
+.learner-frame .text-\[\#ba1a1a\]{color:#ba1a1a}
+.learner-frame .hover\:bg-\[\#e2e7ff\]:hover{background-color:#e2e7ff}
+.learner-frame .hover\:bg-\[\#eaedff\]:hover{background-color:#eaedff}
+.learner-frame .hover\:bg-\[\#ffdad6\]:hover{background-color:#ffdad6}
+.learner-frame .hover\:text-\[\#131b2e\]:hover{color:#131b2e}
+.learner-frame .shadow-\[0_1px_8px_rgba\(0\,0\,0\,0\.04\)\]{box-shadow:0 1px 8px rgba(0,0,0,.04)}
+.learner-frame .ring-1{box-shadow:0 0 0 1px var(--learner-ring,rgba(0,0,0,.05))}
+.learner-frame .ring-2{box-shadow:0 0 0 2px var(--learner-ring,rgba(0,97,148,.2))}
+.learner-frame .ring-black\/5{--learner-ring:rgba(0,0,0,.05)}
+.learner-frame .ring-\[\#006194\]\/20{--learner-ring:rgba(0,97,148,.2)}
+.learner-frame #learnerSidebar .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-smoothing:antialiased}
+/* Mục "Yêu cầu hỗ trợ" mở rộng thành nhóm con (FE-10): không đóng khung, chỉ thụt lề như sidebar. */
+.learner-frame #learnerSidebar .support-nav-group{border:0;background:none;box-shadow:none}

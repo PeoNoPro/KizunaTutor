@@ -57,6 +57,10 @@ public class TrialBookingServiceImpl implements TrialBookingService {
     private final TutorScheduleService tutorScheduleService;
     private final JdbcTemplate jdbcTemplate;
 
+    /** FE-12 (thêm 2026-11-10): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
     public TrialBookingServiceImpl(
             UserRepository userRepository,
             LearnerRepository learnerRepository,
@@ -222,6 +226,11 @@ public class TrialBookingServiceImpl implements TrialBookingService {
                 .build();
         trialBookingHistoryRepository.save(history);
 
+        if (notificationEvents != null) {
+            notificationEvents.publish("trial:" + trialBooking.getBookingId() + ":created", "TRIAL", "Có yêu cầu học thử mới",
+                    learnerUser.getFullName() + " muốn học thử lúc " + fe12When(trialBooking.getScheduledStartTime()) + ". Vui lòng xác nhận hoặc từ chối.",
+                    "/tutor/connections", java.util.List.of(tutor.getUser().getUserId()));
+        }
         log.info("Learner {} created trial booking {} for tutor {}", learnerUser.getEmail(), trialBooking.getBookingId(), tutor.getTutorId());
         return mapToDTO(trialBooking, learnerUser);
     }
@@ -293,6 +302,14 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         }
 
         trialBooking = trialBookingRepository.save(trialBooking);
+        if (notificationEvents != null) {
+            boolean fe12Accepted = "ACCEPT".equalsIgnoreCase(request.getAction());
+            notificationEvents.publish("trial:" + trialBooking.getBookingId() + ":" + (fe12Accepted ? "accepted" : "declined"), "TRIAL",
+                    fe12Accepted ? "Gia sư đã nhận lịch học thử" : "Gia sư đã từ chối lịch học thử",
+                    trialBooking.getTutor().getUser().getFullName() + (fe12Accepted ? " đã nhận buổi học thử lúc " : " đã từ chối buổi học thử lúc ")
+                            + fe12When(trialBooking.getScheduledStartTime()) + ".",
+                    "/learner/connections", java.util.List.of(trialBooking.getLearner().getUser().getUserId()));
+        }
 
         // Lưu vết lịch sử
         TrialBookingHistory history = TrialBookingHistory.builder()
@@ -432,6 +449,12 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         }
 
         trialBooking = trialBookingRepository.save(trialBooking);
+        if (notificationEvents != null) {
+            notificationEvents.publish("trial:" + trialBooking.getBookingId() + ":cancelled", "TRIAL", "Buổi học thử đã bị hủy",
+                    user.getFullName() + " đã hủy buổi học thử lúc " + fe12When(trialBooking.getScheduledStartTime()) + ".",
+                    isLearner ? "/tutor/connections" : "/learner/connections",
+                    java.util.List.of((isLearner ? trialBooking.getTutor().getUser() : trialBooking.getLearner().getUser()).getUserId()));
+        }
 
         // Lưu vết lịch sử
         TrialBookingHistory history = TrialBookingHistory.builder()
@@ -536,6 +559,12 @@ public class TrialBookingServiceImpl implements TrialBookingService {
         trialBooking.setBookingStatus(TrialBookingStatus.RESCHEDULED);
 
         trialBooking = trialBookingRepository.save(trialBooking);
+        if (notificationEvents != null) {
+            notificationEvents.publish("trial:" + trialBooking.getBookingId() + ":rescheduled:" + trialBooking.getScheduledStartTime(), "TRIAL", "Buổi học thử được đổi lịch",
+                    user.getFullName() + " đã đổi buổi học thử sang " + fe12When(trialBooking.getScheduledStartTime()) + ".",
+                    isLearner ? "/tutor/connections" : "/learner/connections",
+                    java.util.List.of((isLearner ? trialBooking.getTutor().getUser() : trialBooking.getLearner().getUser()).getUserId()));
+        }
 
         String reason = (request.getRescheduleReason() != null && !request.getRescheduleReason().isBlank())
                 ? request.getRescheduleReason()
@@ -844,5 +873,10 @@ public class TrialBookingServiceImpl implements TrialBookingService {
                 .createdAt(tb.getCreatedAt())
                 .updatedAt(tb.getUpdatedAt())
                 .build();
+    }
+    /** FE-12: giờ hiển thị trong thông báo (giờ Việt Nam). */
+    private static String fe12When(java.time.OffsetDateTime time) {
+        return time == null ? "" : time.atZoneSameInstant(java.time.ZoneId.of("Asia/Ho_Chi_Minh"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
     }
 }

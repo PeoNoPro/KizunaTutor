@@ -150,6 +150,7 @@ function render(data) {
   $('actionBar').classList.toggle('hidden', !pending);
   $('processedNote').classList.toggle('hidden', pending);
   $('processedNote').textContent = pending ? '' : 'Hồ sơ không ở trạng thái chờ thẩm định nên không thể ra quyết định. Xem lịch sử thẩm định để biết chi tiết.';
+  renderProfileUpdate(data);
 
   $('fFullName').textContent = orDash(p.fullName);
   $('fPhone').textContent = orDash(p.phone);
@@ -179,6 +180,65 @@ function render(data) {
         Xem giấy tờ
       </button>
     </li>`).join('');
+}
+
+/** Yêu cầu cập nhật gần nhất của hồ sơ đã phê duyệt; chỉ ra quyết định được khi đang chờ. */
+function renderProfileUpdate(data) {
+  const update = data.status === 'APPROVED' ? data.profileUpdate : null;
+  $('updatePanel').classList.toggle('hidden', !update);
+  if (!update) return;
+  const waiting = update.status === 'PENDING';
+  $('updateBadge').textContent = update.statusLabel;
+  const newDocs = (data.documents || []).filter((d) => d.status === 'PENDING');
+  const items = [`Gửi lúc ${formatDate(update.submittedAt, true)}`];
+  if (update.requestedJlptLevel) {
+    items.push(`Trình độ JLPT: <strong>${escapeHtml(update.currentJlptLevel || '—')}</strong> → <strong>${escapeHtml(update.requestedJlptLevel)}</strong>`);
+  }
+  if (waiting) {
+    items.push(newDocs.length
+      ? `Giấy tờ mới chờ thẩm định: ${newDocs.map((d) => escapeHtml(d.title)).join(', ')} (xem ở mục giấy tờ bên dưới)`
+      : 'Không có giấy tờ mới');
+  }
+  if (update.note) items.push(`Ghi chú của gia sư: ${escapeHtml(update.note)}`);
+  if (!waiting && update.reviewedAt) {
+    items.push(`Xử lý lúc ${formatDate(update.reviewedAt, true)}${update.reviewedByName ? ` bởi ${escapeHtml(update.reviewedByName)}` : ''}`);
+  }
+  if (update.status === 'REJECTED' && update.feedback) items.push(`Lý do từ chối: ${escapeHtml(update.feedback)}`);
+  $('updateDetails').innerHTML = items.map((t) => `<li>${t}</li>`).join('');
+  $('updateActions').classList.toggle('hidden', !waiting);
+  $('updateFeedbackInput').value = '';
+}
+
+async function decideProfileUpdate(approve) {
+  const button = approve ? $('approveUpdateButton') : $('rejectUpdateButton');
+  showFieldErrors({});
+  if (approve) {
+    if (!window.confirm('Chấp nhận yêu cầu cập nhật hồ sơ này?')) return;
+  } else {
+    const feedback = $('updateFeedbackInput').value.trim();
+    if (!feedback) {
+      showFieldErrors({ updateFeedback: 'Vui lòng nhập lý do từ chối yêu cầu cập nhật.' });
+      $('updateFeedbackInput').focus();
+      return;
+    }
+  }
+  if (state.busy) return;
+  state.busy = true;
+  button.disabled = true;
+  try {
+    const result = approve
+      ? await API.academicVerification.approveProfileUpdate(tutorId)
+      : await API.academicVerification.rejectProfileUpdate(tutorId, $('updateFeedbackInput').value.trim());
+    showToast(result.message, 'success');
+    await load();
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 400) showFieldErrors({ updateFeedback: (err.fields || {}).feedback });
+    showToast(err instanceof ApiError ? err.message : 'Hệ thống đang bận, bạn vui lòng thử lại sau.', 'error');
+    if (err instanceof ApiError && err.code === 'ALREADY_PROCESSED') await load();
+  } finally {
+    state.busy = false;
+    button.disabled = false;
+  }
 }
 
 async function viewDocument(docId) {
@@ -271,6 +331,8 @@ function submitRequestInfo(event) {
 // =========================================================================
 function bindEvents() {
   $('retryButton').addEventListener('click', load);
+  $('approveUpdateButton').addEventListener('click', () => decideProfileUpdate(true));
+  $('rejectUpdateButton').addEventListener('click', () => decideProfileUpdate(false));
   $('approveButton').addEventListener('click', () => openModal('approveModal'));
   $('rejectButton').addEventListener('click', () => {
     $('rejectForm').reset();

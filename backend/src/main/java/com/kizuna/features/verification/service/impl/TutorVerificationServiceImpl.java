@@ -23,8 +23,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.kizuna.features.verification.dto.request.SubmitProfileUpdateRequest;
+import com.kizuna.features.verification.entity.TutorVerificationStatus;
+import com.kizuna.features.verification.repository.TutorVerificationHistoryRepository;
+import com.kizuna.features.verification.service.ProfileUpdateTimeline;
+
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -34,7 +43,13 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
     public static final String MSG_SAVED = "Đã cập nhật thông tin xác minh. Vui lòng nộp hồ sơ khi đã sẵn sàng.";
     public static final String MSG_SUBMITTED =
             "Đã nộp hồ sơ xác minh thành công. Cán bộ học vụ sẽ thẩm định và phản hồi cho bạn qua email.";
+    public static final String MSG_APPROVED_SAVED = "Đã lưu thông tin hồ sơ.";
+    public static final String MSG_UPDATE_SUBMITTED =
+            "Đã gửi yêu cầu cập nhật hồ sơ. Hồ sơ vẫn giữ trạng thái đã phê duyệt trong lúc cán bộ học vụ thẩm định.";
+    public static final String MSG_NO_CHANGES =
+            "Chưa có thay đổi cần thẩm định. Hãy chọn trình độ JLPT mới hoặc tải lên giấy tờ mới.";
     private static final int MAX_TITLE_LENGTH = 150;
+    private static final int MAX_NOTE_LENGTH = 1000;
 
     private final VerificationTutorRepository tutorRepository;
     private final TutorCredentialRepository credentialRepository;
@@ -42,6 +57,7 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
     private final VerificationStateMachine stateMachine;
     private final VerificationViewAssembler assembler;
     private final CurrentUserProvider currentUserProvider;
+    private final TutorVerificationHistoryRepository historyRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,7 +74,10 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
     @Override
     @Transactional
     public TutorVerificationResponse updateProfile(UpdateVerificationProfileRequest request) {
-        Tutor tutor = lockEditableTutor();
+        Tutor tutor = lockTutorForProfile();
+        if (isApproved(tutor)) {
+            return updateApprovedProfile(tutor, request);
+        }
         if (request.getDateOfBirth() != null && !VerificationViewAssembler.isAdult(request.getDateOfBirth())) {
             throw VerificationException.validation(null, Map.of("dateOfBirth", "Gia sư cần đủ 18 tuổi trở lên."));
         }
@@ -79,10 +98,82 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
         return assembler.build(tutor, false).toBuilder().message(MSG_SAVED).build();
     }
 
+    /**
+     * Hồ sơ đã phê duyệt: chỉ sửa SĐT, địa chỉ, giới thiệu, số năm kinh nghiệm và lưu ngay, không cần thẩm định lại.
+     * Họ tên, ngày sinh gắn với giấy tờ tùy thân nên giữ nguyên; đổi JLPT phải gửi yêu cầu cập nhật.
+     */
+    private TutorVerificationResponse updateApprovedProfile(Tutor tutor, UpdateVerificationProfileRequest request) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        String phone = trimToNull(request.getPhone());
+        String address = trimToNull(request.getAddress());
+        String bio = trimToNull(request.getBio());
+        if (phone == null) {
+            fields.put("phone", "Vui lòng nhập số điện thoại.");
+        }
+        if (address == null) {
+            fields.put("address", "Vui lòng nhập địa chỉ.");
+        }
+        if (bio == null || bio.length() < VerificationViewAssembler.MIN_BIO_LENGTH) {
+            fields.put("bio", "Vui lòng viết phần giới thiệu tối thiểu 20 ký tự.");
+        }
+        if (!fields.isEmpty()) {
+            throw VerificationException.validation(null, fields);
+        }
+        tutor.setPhone(phone);
+        tutor.setAddress(address);
+        tutor.setBio(bio);
+        tutor.setExperienceYears(request.getExperienceYears() != null ? request.getExperienceYears().shortValue() : (short) 0);
+        tutorRepository.save(tutor);
+        return assembler.build(tutor, false).toBuilder().message(MSG_APPROVED_SAVED).build();
+    }
+
+    /**
+     * Gia sư đã phê duyệt gửi yêu cầu cập nhật: trình độ JLPT mới và/hoặc giấy tờ mới tải lên (đang "Chờ thẩm định").
+     * Hồ sơ vẫn giữ "Đã phê duyệt"; cán bộ học vụ chấp nhận thì JLPT mới và giấy tờ mới mới có hiệu lực.
+     */
+    @Override
+    @Transactional
+    public TutorVerificationResponse submitProfileUpdate(SubmitProfileUpdateRequest request) {
+        Tutor tutor = tutorRepository.findLockedByUserId(currentUserId())
+                .orElseThrow(VerificationException::notFound);
+        if (!isApproved(tutor)) {
+            throw VerificationException.locked();
+        }
+        if (hasPendingUpdate(tutor)) {
+            throw VerificationException.updatePending();
+        }
+        String jlpt = trimToNull(request == null ? null : request.getHighestJlptLevel());
+        if (jlpt != null) {
+            jlpt = jlpt.toUpperCase(Locale.ROOT);
+            if (!jlpt.matches("N[1-5]")) {
+                throw VerificationException.validation(null, Map.of("highestJlptLevel", "Trình độ JLPT không hợp lệ."));
+            }
+        }
+        String note = trimToNull(request == null ? null : request.getNote());
+        if (note != null && note.length() > MAX_NOTE_LENGTH) {
+            throw VerificationException.validation(null, Map.of("note", "Ghi chú tối đa 1.000 ký tự."));
+        }
+        boolean jlptChanged = jlpt != null && !jlpt.equalsIgnoreCase(tutor.getHighestJlptLevel());
+        if (!jlptChanged && countNewDocuments(tutor) == 0) {
+            throw VerificationException.validation(MSG_NO_CHANGES, Map.of("highestJlptLevel", MSG_NO_CHANGES));
+        }
+        stateMachine.submitProfileUpdate(tutor, jlptChanged ? jlpt : null, note);
+        return assembler.build(tutor, false).toBuilder().message(MSG_UPDATE_SUBMITTED).build();
+    }
+
+    /** Giấy tờ mới (đang "Chờ thẩm định") còn xem được tệp. */
+    private long countNewDocuments(Tutor tutor) {
+        List<TutorCredential> credentials = credentialRepository.findByTutor_TutorIdOrderByUploadedAtAsc(tutor.getTutorId());
+        Set<UUID> available = storage.availableIds(credentials);
+        return credentials.stream()
+                .filter(c -> c.getVerifiedStatus() == TutorCredentialStatus.PENDING && available.contains(c.getCredentialId()))
+                .count();
+    }
+
     @Override
     @Transactional
     public VerificationDocumentResponse addDocument(String type, String title, MultipartFile file) {
-        Tutor tutor = lockEditableTutor();
+        Tutor tutor = lockTutorForDocuments();
         CredentialType credentialType = parseType(type, true);
         String cleanTitle = validTitle(title, true);
         VerificationDocumentStorage.ValidatedDocument document = storage.validate(file);
@@ -102,9 +193,10 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
     @Override
     @Transactional
     public VerificationDocumentResponse updateDocument(UUID documentId, String type, String title, MultipartFile file) {
-        Tutor tutor = lockEditableTutor();
+        Tutor tutor = lockTutorForDocuments();
         TutorCredential credential = credentialRepository.findByCredentialIdAndTutor_TutorId(documentId, tutor.getTutorId())
                 .orElseThrow(VerificationException::notFound);
+        requireChangeableDocument(tutor, credential);
         CredentialType credentialType = parseType(type, false);
         if (credentialType != null) {
             credential.setCredentialType(credentialType);
@@ -132,9 +224,10 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
     @Override
     @Transactional
     public void removeDocument(UUID documentId) {
-        Tutor tutor = lockEditableTutor();
+        Tutor tutor = lockTutorForDocuments();
         TutorCredential credential = credentialRepository.findByCredentialIdAndTutor_TutorId(documentId, tutor.getTutorId())
                 .orElseThrow(VerificationException::notFound);
+        requireChangeableDocument(tutor, credential);
         credentialRepository.delete(credential);
         storage.deleteLegacyAfterCommit(credential.getStorageKey());
     }
@@ -174,11 +267,39 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
                 .orElseThrow(VerificationException::notFound);
     }
 
-    private Tutor lockEditableTutor() {
+    private boolean hasPendingUpdate(Tutor tutor) {
+        return ProfileUpdateTimeline.hasPending(historyRepository.findTimeline(tutor.getTutorId()));
+    }
+
+    private static boolean isApproved(Tutor tutor) {
+        return VerificationStateMachine.currentStatus(tutor) == TutorVerificationStatus.APPROVED;
+    }
+
+    /** Sửa thông tin: hồ sơ chưa nộp / cần bổ sung, hoặc hồ sơ đã phê duyệt (chỉ các trường được phép). */
+    private Tutor lockTutorForProfile() {
         Tutor tutor = tutorRepository.findLockedByUserId(currentUserId())
                 .orElseThrow(VerificationException::notFound);
-        VerificationStateMachine.requireEditable(tutor);
+        if (!isApproved(tutor)) {
+            VerificationStateMachine.requireEditable(tutor);
+        }
         return tutor;
+    }
+
+    /** Thêm / sửa / gỡ giấy tờ: hồ sơ đã phê duyệt chỉ được khi không có yêu cầu cập nhật đang chờ. */
+    private Tutor lockTutorForDocuments() {
+        Tutor tutor = lockTutorForProfile();
+        if (isApproved(tutor)
+                && hasPendingUpdate(tutor)) {
+            throw VerificationException.updatePending();
+        }
+        return tutor;
+    }
+
+    /** Hồ sơ đã phê duyệt: giấy tờ đã xác minh giữ nguyên; chỉ sửa / gỡ giấy tờ mới hoặc không được chấp nhận. */
+    private static void requireChangeableDocument(Tutor tutor, TutorCredential credential) {
+        if (isApproved(tutor) && credential.getVerifiedStatus() == TutorCredentialStatus.VERIFIED) {
+            throw VerificationException.verifiedDocumentLocked();
+        }
     }
 
     private UUID currentUserId() {

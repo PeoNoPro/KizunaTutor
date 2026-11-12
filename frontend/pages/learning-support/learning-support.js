@@ -1,9 +1,14 @@
-﻿/**
- * KizunaTutor - Trang Học Từ Vựng Theo Chủ Đề (Learning Support)
- * Chuẩn hóa layout: Topic Pills cuộn ngang, Grid 3 cột auto-fill, không giật màn hình
+/**
+ * KizunaTutor - Trang Học & Tra Cứu Từ Vựng Theo Chủ Đề (Learning Support)
+ * Hỗ trợ 3 chế độ xem: 🎯 Chuẩn thi JLPT | 🈸 Trọng tâm Hán tự | 🔤 Trọng tâm Kana
  */
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { showToast } from '/js/main.js';
+import { apiClient } from '/js/apiClient.js';
+import { voicevoxClient } from '/js/voicevoxClient.js';
+
+let pendingVocabToSave = null;
+let lastSelectedVocabDeckId = '';
 
 let currentTopics = [
   { id: 'JLPT_N5', code: 'JLPT_N5', titleVn: 'JLPT N5 Căn bản', icon: '🌱', count: '650' },
@@ -17,16 +22,49 @@ let currentTopics = [
 
 let activeTopic = 'JLPT_N5';
 let vocabList = [];
+let currentViewMode = localStorage.getItem('kizuna_vocab_view_mode') || 'jlpt'; // 'jlpt' | 'kanji' | 'kana'
 
-document.addEventListener('DOMContentLoaded', () => {
+// Danh sách các từ vựng ưu tiên hiển thị Hiragana / Katakana ở trình độ sơ cấp (JLPT N5/N4)
+// theo đúng quy chuẩn khảo thí JLPT và giáo trình Minna no Nihongo
+const KANA_PREFER_SET = new Set([
+  // Đại từ, từ chỉ định, nghi vấn từ
+  'これ', 'それ', 'あれ', 'どれ', 'ここ', 'そこ', 'あそこ', 'どこ',
+  'こちら', 'そちら', 'あちら', 'どちら', 'こっち', 'そっち', 'あっち', 'どっち',
+  'だれ', 'どなた', 'いつ', 'いくら', 'いくつ', 'どう', 'どんな', 'どうして', 'なぜ', 'なに', 'なん',
+  'あなた', 'あの', 'この', 'その', 'どの', 'ぼく', 'わたし',
+  // Lời chào, phó từ, liên từ
+  'ありがとう', 'こんにちは', 'こんばんは', 'おはよう', 'さようなら', 'すみません', 'ごめんなさい',
+  'どうぞ', 'どうも', 'たくさん', 'あまり', 'とても', 'たいへん', 'すこし', 'ちょっと', 'ちょうど',
+  'だんだん', 'そろそろ', 'いつも', 'ときどき', 'たぶん', 'ぜんぜん', 'もっと', 'もう', 'まだ',
+  'いっしょに', 'まっすぐ', 'ゆっくり', 'よく', 'すぐ', 'また', 'そして', 'それから', 'でも',
+  // Danh từ thường viết bằng Kana ở N5/N4 (Chữ Hán thuộc N2/N1)
+  'あめ', 'つくえ', 'いす', 'くつ', 'くつした', 'めがね', 'さいふ', 'かぎ', 'かばん', 'はこ',
+  'りんご', 'みかん', 'たまご', 'ごはん', 'おちゃ', 'みず', 'くだもの', 'おかし', 'ねこ', 'いぬ',
+  'とり', 'さかな', 'へや', 'にわ', 'うち', 'いえ', 'まち', 'くるま', 'バス', 'タクシー', 'パン',
+  'テレビ', 'ラジオ', 'カメラ', 'コーヒー', 'トイレ', 'シャワー', 'ベッド', 'シャツ', 'ネクタイ',
+  // Động từ thường viết bằng Kana ở sơ cấp
+  'やる', 'くれる', 'もらう', 'あげる', 'いる', 'ある', 'あびる', 'できる',
+  // Tính từ thường viết bằng Kana ở sơ cấp
+  'いい', 'よい', 'きれい', 'きれいな', 'かわいい', 'おいしい', 'まずい', 'すごい'
+]);
+
+function boot() {
   initLearnerShell({
-    activeMenu: 'dashboard',
-    pageTitle: 'Kho từ vựng & Hỗ trợ học tập',
+    activeMenu: 'learning-support',
+    pageTitle: 'Tra cứu từ vựng',
     badge: 'Học tập & rèn luyện'
   });
 
   initPage();
-});
+  initViewModeToggles();
+  initVocabDeckModal();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
 
 async function initPage() {
   await loadTopics();
@@ -36,6 +74,76 @@ async function initPage() {
   document.getElementById('searchVocabInput')?.addEventListener('input', (e) => {
     filterVocab(e.target.value);
   });
+}
+
+/**
+ * Khởi tạo bộ nút chuyển chế độ xem: Chuẩn JLPT / Chữ Hán / Chữ Kana
+ */
+function initViewModeToggles() {
+  updateViewModeButtons();
+
+  document.querySelectorAll('[data-view-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.viewMode;
+      if (mode && mode !== currentViewMode) {
+        currentViewMode = mode;
+        try {
+          localStorage.setItem('kizuna_vocab_view_mode', mode);
+        } catch (e) {}
+        updateViewModeButtons();
+        renderVocabGrid(vocabList);
+
+        const modeNames = {
+          jlpt: '🎯 Chuẩn thi JLPT (Tự động thích ứng Kana/Kanji)',
+          kanji: '🈸 Trọng tâm Hán tự (Ưu tiên mặt chữ Hán)',
+          kana: '🔤 Trọng tâm Kana (Ưu tiên Hiragana / Katakana)'
+        };
+        showToast(`Đã chuyển chế độ: ${modeNames[mode] || mode}`, 'info');
+      }
+    });
+  });
+}
+
+function updateViewModeButtons() {
+  const modes = ['jlpt', 'kanji', 'kana'];
+  modes.forEach(m => {
+    const btn = document.querySelector(`[data-view-mode="${m}"]`);
+    if (btn) {
+      if (m === currentViewMode) {
+        btn.className = 'px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer bg-white text-[#831843] shadow-xs';
+      } else {
+        btn.className = 'px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]';
+      }
+    }
+  });
+}
+
+/**
+ * Kiểm tra xem từ vựng nên hiển thị to bằng Kana hay Kanji theo chuẩn thi JLPT
+ */
+function shouldDisplayKana(v) {
+  if (currentViewMode === 'kana') return true;
+  if (currentViewMode === 'kanji') return false;
+
+  // Chế độ 'jlpt':
+  const word = (v.word || '').trim();
+  const reading = (v.reading || v.furigana || '').trim();
+  const level = (v.level || '').toUpperCase();
+
+  // 1. Nếu từ vốn là thuần Kana (word == reading hoặc không có Hán Việt)
+  if (word === reading || !v.hanViet || v.hanViet.trim() === '') return true;
+
+  // 2. Nếu là từ mượn Katakana hoặc từ thuần Hiragana
+  if (/^[ぁ-んァ-ヶー・\s]+$/.test(word)) return true;
+
+  // 3. Nếu là N5 hoặc N4 và nằm trong tập từ vựng ưu tiên Kana
+  if (level === 'N5' || level === 'N4' || !level || level === 'JLPT') {
+    if (KANA_PREFER_SET.has(reading) || KANA_PREFER_SET.has(word)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function loadTopics() {
@@ -62,10 +170,10 @@ function renderTopicPills() {
     return `
       <button type="button"
               data-topic="${topicKey}"
-              class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition flex items-center gap-1.5 cursor-pointer ${
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition flex items-center gap-1.5 cursor-pointer ${
                 isActive
-                  ? 'bg-[#1E293B] text-white shadow-xs border border-[#1E293B]'
-                  : 'bg-[#FAF8F2] border border-[#ECE8DE] text-[#0F2545] hover:bg-white hover:border-[#CBD5E1]'
+                  ? 'bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]'
+                  : 'bg-white border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-50'
               }">
         <span>${t.icon || '📚'}</span>
         <span>${t.titleVn}</span>
@@ -81,6 +189,8 @@ function renderTopicPills() {
       if (badge && matched) {
         badge.textContent = matched.titleVn;
       }
+      const searchInput = document.getElementById('searchVocabInput');
+      if (searchInput) searchInput.value = '';
       renderTopicPills();
       loadVocabularies();
     });
@@ -100,7 +210,7 @@ async function loadVocabularies() {
   grid.innerHTML = '<div class="col-span-full py-10 text-center text-xs text-slate-400">Đang tải danh sách từ vựng...</div>';
 
   try {
-    const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}`);
+    const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}&limit=3500`);
     if (res.ok) {
       const data = await res.json();
       vocabList = Array.isArray(data) ? data : (data.content || data.items || []);
@@ -112,75 +222,10 @@ async function loadVocabularies() {
   }
 
   if (!vocabList || vocabList.length === 0) {
-    // Dữ liệu mẫu nếu API backend chưa có dữ liệu cho topic này
     vocabList = getSampleVocab(activeTopic);
   }
 
   renderVocabGrid(vocabList);
-}
-
-function speakJapanese(text) {
-  if (!text || typeof window === 'undefined') return;
-  try {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ja-JP';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    } else {
-      showToast('Trình duyệt không hỗ trợ tổng hợp giọng nói Web Speech.', 'info');
-    }
-  } catch (e) {
-    console.debug('Lỗi phát âm:', e);
-  }
-}
-
-function saveVocabToFlashcardDeck(v) {
-  if (!v) return;
-  const word = v.word || v.kanji || '';
-  const meaning = v.meaning || v.meaningVn || '';
-  const reading = v.furigana || v.reading || '';
-  const hanViet = v.hanViet || '';
-
-  try {
-    const raw = localStorage.getItem('kizuna_flashcard_decks');
-    let decks = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(decks)) decks = [];
-
-    const defaultTitle = 'Từ Vựng Chủ Đề';
-    let deck = decks.find(d => d.title === defaultTitle);
-    if (!deck) {
-      deck = {
-        id: 'deck_vocab_' + Date.now(),
-        title: defaultTitle,
-        description: 'Bộ thẻ từ vựng lưu từ góc học tập chủ đề',
-        cards: [],
-        color: 'blue'
-      };
-      decks.push(deck);
-    }
-
-    deck.cards = deck.cards || [];
-    const exists = deck.cards.some(c => (c.char || c.kanjiChar) === word);
-    if (!exists) {
-      deck.cards.push({
-        char: word,
-        kanjiChar: word,
-        hanViet: hanViet,
-        meaning: meaning + (reading ? ` (${reading})` : ''),
-        onyomi: reading || '—',
-        kunyomi: '—',
-        jlpt: v.level || 'JLPT'
-      });
-      localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
-      showToast(`Đã lưu "${word}" vào bộ thẻ "${defaultTitle}"!`, 'success');
-    } else {
-      showToast(`Từ "${word}" đã có trong bộ thẻ "${defaultTitle}".`, 'info');
-    }
-  } catch (err) {
-    showToast('Lỗi lưu thẻ: ' + err.message, 'error');
-  }
 }
 
 function renderVocabGrid(items) {
@@ -196,54 +241,318 @@ function renderVocabGrid(items) {
 
   emptyState?.classList.add('hidden');
 
-  grid.innerHTML = items.map((v, idx) => {
+  grid.innerHTML = items.map(v => {
+    const isKanaMain = shouldDisplayKana(v);
+    const mainText = isKanaMain ? (v.reading || v.furigana || v.word) : (v.word || v.kanji);
+    const hasKanji = Boolean(v.word && v.reading && v.word !== v.reading && v.hanViet && v.hanViet.trim() !== '');
+
+    let subLineHtml = '';
+    if (isKanaMain) {
+      if (hasKanji) {
+        subLineHtml = `
+          <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#64748B] font-mono truncate" title="Chữ Hán tham khảo">
+            <span class="text-slate-400">Hán tự:</span>
+            <span class="font-bold text-[#0F172A] font-japanese">${escapeHtml(v.word)}</span>
+            <span class="text-slate-300">•</span>
+            <span class="text-[#831843] font-bold uppercase">${escapeHtml(v.hanViet)}</span>
+          </div>
+        `;
+      } else {
+        subLineHtml = `
+          <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#64748B] font-mono truncate">
+            <span>${v.romaji ? escapeHtml(v.romaji) : 'Từ thuần Kana'}</span>
+          </div>
+        `;
+      }
+    } else {
+      subLineHtml = `
+        <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#64748B] font-mono truncate">
+          <span>${escapeHtml(v.furigana || v.reading || '')}</span>
+          ${v.hanViet ? `<span class="text-slate-300">•</span><span class="text-[#831843] font-bold uppercase">${escapeHtml(v.hanViet)}</span>` : ''}
+        </div>
+      `;
+    }
+
     return `
-      <div class="bg-white border border-[#ECE8DE] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full min-w-0 group">
+      <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 hover:border-[#CBD5E1] transition-all flex flex-col justify-between h-full min-w-0 group">
         <div class="space-y-2.5 flex-1 min-w-0">
-          <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#ECE8DE]">
+          <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#E2E8F0]">
             <div class="min-w-0">
-              <div class="text-xl md:text-2xl font-bold font-japanese text-[#0F2545] leading-snug truncate">
-                ${v.word || v.kanji}
+              <div class="text-xl md:text-2xl font-bold font-japanese text-[#0F172A] leading-snug truncate" title="${escapeHtml(mainText)}">
+                ${escapeHtml(mainText)}
               </div>
-              <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#68737D] font-mono truncate">
-                <span>${v.furigana || v.reading || ''}</span>
-                ${v.hanViet ? `<span class="text-slate-300">•</span><span class="text-amber-800 font-bold uppercase">${v.hanViet}</span>` : ''}
-              </div>
+              ${subLineHtml}
             </div>
             <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] shrink-0">
-              ${v.level || 'JLPT'}
+              ${escapeHtml(v.level || 'JLPT')}
             </span>
           </div>
 
-          <div class="text-xs md:text-sm font-semibold text-[#0F2545] leading-relaxed break-words">
-            ${v.meaning || v.meaningVn || 'Đang cập nhật'}
+          <div class="text-xs md:text-sm font-semibold text-[#0F172A] leading-relaxed break-words">
+            ${escapeHtml(v.meaning || v.meaningVn || 'Đang cập nhật')}
           </div>
 
           ${v.example ? `
-            <div class="p-2.5 bg-[#FAF8F2] border border-[#ECE8DE] rounded-xl text-xs space-y-1 break-words">
-              <div class="font-japanese font-medium text-[#0F2545]">${v.example}</div>
-              <div class="text-[#68737D] italic">${v.exampleMeaning || ''}</div>
+            <div class="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs space-y-1 break-words">
+              <div class="font-japanese font-medium text-[#0F172A]">${escapeHtml(v.example)}</div>
+              <div class="text-[#64748B] italic">${escapeHtml(v.exampleMeaning || '')}</div>
             </div>
           ` : ''}
         </div>
 
         <!-- Cụm nút hành động bám sát đáy (mt-auto) -->
-        <div class="pt-3 mt-auto border-t border-[#ECE8DE] flex items-center justify-between gap-2">
-          <a href="/shodo?char=${encodeURIComponent(v.kanji || v.word || '')}"
-             class="flex-1 py-1.5 px-2 rounded-xl bg-[#FAF8F2] hover:bg-[#FFE5EC] text-[#0F2545] hover:text-[#831843] border border-[#ECE8DE] hover:border-[#FBCFE8] text-xs font-bold flex items-center justify-center gap-1 transition no-underline text-center truncate">
-            <span>🖌️</span>
-            <span>Luyện viết</span>
-          </a>
+        <div class="pt-3 mt-auto border-t border-[#E2E8F0] flex items-center justify-between gap-2">
           <button type="button"
-                  onclick="navigator.clipboard?.writeText('${v.word || v.kanji}');"
-                  class="p-1.5 rounded-xl border border-[#ECE8DE] bg-white hover:bg-slate-50 text-[#68737D] hover:text-[#0F2545] transition cursor-pointer"
+                  data-action="speak-vocab"
+                  data-word="${escapeHtml(v.word || v.kanji || v.reading)}"
+                  class="flex-1 py-1.5 px-3 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FFE5EC] hover:border-[#FBCFE8] text-[#0F172A] hover:text-[#831843] text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  title="Nghe phát âm từ vựng">
+            <span class="material-symbols-outlined text-[16px] text-[#831843]">volume_up</span>
+            <span>Phát âm</span>
+          </button>
+          <button type="button"
+                  data-action="save-vocab"
+                  data-word="${escapeHtml(isKanaMain ? (v.reading || v.word) : (v.word || v.reading))}"
+                  data-reading="${escapeHtml(v.furigana || v.reading || '')}"
+                  data-meaning="${escapeHtml(v.meaning || v.meaningVn || '')}"
+                  data-level="${escapeHtml(v.level || 'JLPT')}"
+                  class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FFE5EC] text-[#64748B] hover:text-[#831843] transition cursor-pointer"
+                  title="Cất vào bộ thẻ Flashcards">
+            <span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+          </button>
+          <button type="button"
+                  onclick="navigator.clipboard?.writeText('${escapeHtml(v.word || v.kanji)}'); showToast('Đã sao chép từ vựng.', 'info');"
+                  class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#64748B] hover:text-[#0F172A] transition cursor-pointer"
                   title="Sao chép từ vựng">
-            <span class="material-symbols-outlined text-[16px]">content_copy</span>
+            <span class="material-symbols-outlined text-[18px]">content_copy</span>
           </button>
         </div>
       </div>
     `;
   }).join('');
+
+  // Gắn sự kiện cho các nút hành động
+  grid.querySelectorAll('[data-action="speak-vocab"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      speakWord(btn.dataset.word);
+    });
+  });
+
+  grid.querySelectorAll('[data-action="save-vocab"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openVocabSaveDeckModal(btn.dataset.word, btn.dataset.reading, btn.dataset.meaning, btn.dataset.level);
+    });
+  });
+}
+
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function speakWord(text) {
+  if (!text) return;
+  try {
+    voicevoxClient.speak(text);
+  } catch (e) {
+    console.debug('Lỗi phát âm từ vựng:', e);
+  }
+}
+
+function initVocabDeckModal() {
+  const modal = document.getElementById('vocabSaveToDeckModal');
+  const closeBtn = document.getElementById('btnCloseVocabDeckModal');
+  const cancelBtn = document.getElementById('btnCancelVocabDeckModal');
+  const form = document.getElementById('formSaveVocabToDeck');
+  const selectEl = document.getElementById('modalVocabDeckSelect');
+  const newWrapper = document.getElementById('newVocabDeckInputWrapper');
+  const newNameInput = document.getElementById('modalNewVocabDeckNameInput');
+
+  if (!modal || !form || !selectEl) return;
+
+  closeBtn?.addEventListener('click', closeVocabDeckModal);
+  cancelBtn?.addEventListener('click', closeVocabDeckModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeVocabDeckModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+      closeVocabDeckModal();
+    }
+  });
+
+  selectEl.addEventListener('change', () => {
+    if (selectEl.value === '__NEW__') {
+      newWrapper?.classList.remove('hidden');
+      newNameInput?.focus();
+    } else {
+      newWrapper?.classList.add('hidden');
+    }
+  });
+
+  form.addEventListener('submit', submitSaveVocabToDeck);
+}
+
+async function openVocabSaveDeckModal(word, reading, meaning, level = 'N5') {
+  if (!word) return;
+  pendingVocabToSave = { word, reading: reading || '', meaning: meaning || '', level: level || 'N5' };
+
+  const wordEl = document.getElementById('modalVocabWord');
+  const readingEl = document.getElementById('modalVocabReading');
+  const meaningEl = document.getElementById('modalVocabMeaning');
+  const levelEl = document.getElementById('modalVocabLevel');
+
+  if (wordEl) wordEl.textContent = word;
+  if (readingEl) readingEl.textContent = (reading && reading !== word) ? `(${reading})` : '';
+  if (meaningEl) meaningEl.textContent = meaning || 'Chưa cập nhật nghĩa';
+  if (levelEl) levelEl.textContent = level || 'N5';
+
+  const modal = document.getElementById('vocabSaveToDeckModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  await loadVocabDeckOptions();
+}
+
+function closeVocabDeckModal() {
+  const modal = document.getElementById('vocabSaveToDeckModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+async function loadVocabDeckOptions() {
+  const selectEl = document.getElementById('modalVocabDeckSelect');
+  const newWrapper = document.getElementById('newVocabDeckInputWrapper');
+  const newNameInput = document.getElementById('modalNewVocabDeckNameInput');
+  if (!selectEl) return;
+
+  selectEl.innerHTML = '<option value="">Đang tải danh sách bộ thẻ...</option>';
+  if (newWrapper) newWrapper.classList.add('hidden');
+  if (newNameInput) newNameInput.value = '';
+
+  let decks = [];
+  try {
+    decks = await apiClient.getDecks();
+  } catch (err) {
+    console.error('Lỗi tải danh sách bộ thẻ:', err);
+  }
+
+  if (!Array.isArray(decks) || decks.length === 0) {
+    selectEl.innerHTML = `
+      <option value="__DEFAULT_VOCAB__">Từ Vựng Sổ Tay (Tạo mặc định • 0 thẻ)</option>
+      <option value="__NEW__">➕ Tạo bộ thẻ mới...</option>
+    `;
+    return;
+  }
+
+  const optionsHtml = decks.map(d => {
+    const count = Array.isArray(d.cards) ? d.cards.length : 0;
+    return `<option value="${escapeHtml(d.id)}">${escapeHtml(d.title || 'Bộ thẻ')} (${count} thẻ)</option>`;
+  }).join('');
+
+  selectEl.innerHTML = optionsHtml + '<option value="__NEW__">➕ Tạo bộ thẻ mới...</option>';
+
+  if (lastSelectedVocabDeckId && decks.some(d => String(d.id) === String(lastSelectedVocabDeckId))) {
+    selectEl.value = lastSelectedVocabDeckId;
+  }
+}
+
+async function submitSaveVocabToDeck(e) {
+  e.preventDefault();
+  if (!pendingVocabToSave) return;
+
+  const selectEl = document.getElementById('modalVocabDeckSelect');
+  const newNameInput = document.getElementById('modalNewVocabDeckNameInput');
+  const submitBtn = document.getElementById('btnConfirmSaveVocabDeck');
+  if (!selectEl) return;
+
+  const selectedValue = selectEl.value;
+  const { word, reading, meaning, level } = pendingVocabToSave;
+
+  if (selectedValue === '__NEW__' && (!newNameInput || !newNameInput.value.trim())) {
+    showToast('Vui lòng nhập tên bộ thẻ mới.', 'error');
+    newNameInput?.focus();
+    return;
+  }
+
+  const defaultBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>Đang lưu...</span>';
+  }
+
+  try {
+    const decks = await apiClient.getDecks();
+    const backText = reading ? `${reading} • ${meaning}` : meaning;
+    const newCard = {
+      id: 'card_' + Date.now(),
+      char: word,
+      front: word,
+      meaning: backText,
+      back: backText,
+      reading: reading || '',
+      level: level || 'N5',
+      createdAt: new Date().toISOString()
+    };
+
+    if (selectedValue === '__NEW__' || selectedValue === '__DEFAULT_VOCAB__') {
+      const title = selectedValue === '__NEW__' ? newNameInput.value.trim() : 'Từ Vựng Sổ Tay';
+      const created = await apiClient.createDeck({
+        id: 'deck_vocab_' + Date.now(),
+        title,
+        description: 'Bộ thẻ từ vựng lưu từ chuyên mục Tra Cứu Từ Vựng',
+        color: 'emerald',
+        cards: [newCard]
+      });
+      lastSelectedVocabDeckId = created.id;
+      showToast(`Đã lưu "${word}" vào bộ thẻ mới "${created.title}"!`, 'success');
+    } else {
+      const targetDeck = decks.find(d => String(d.id) === String(selectedValue));
+      if (!targetDeck) {
+        showToast('Không tìm thấy bộ thẻ đã chọn.', 'error');
+        return;
+      }
+
+      const cards = Array.isArray(targetDeck.cards) ? [...targetDeck.cards] : [];
+      const exists = cards.some(c => (c.char || c.front || c.word) === word);
+      if (exists) {
+        showToast(`Từ "${word}" đã có sẵn trong bộ thẻ "${targetDeck.title}".`, 'info');
+        closeVocabDeckModal();
+        return;
+      }
+
+      cards.push(newCard);
+      await apiClient.updateDeck(targetDeck.id, {
+        title: targetDeck.title,
+        description: targetDeck.description || '',
+        color: targetDeck.color || 'blue',
+        cards
+      });
+      lastSelectedVocabDeckId = targetDeck.id;
+      showToast(`Đã lưu "${word}" vào bộ thẻ "${targetDeck.title}" thành công!`, 'success');
+    }
+
+    closeVocabDeckModal();
+  } catch (err) {
+    console.error('Lỗi lưu từ vựng vào bộ thẻ:', err);
+    showToast('Không thể lưu từ vựng vào bộ thẻ lúc này.', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = defaultBtnHtml;
+    }
+  }
 }
 
 function filterVocab(kw) {
@@ -256,7 +565,9 @@ function filterVocab(kw) {
     return (v.word && v.word.toLowerCase().includes(query)) ||
            (v.kanji && v.kanji.toLowerCase().includes(query)) ||
            (v.furigana && v.furigana.toLowerCase().includes(query)) ||
+           (v.reading && v.reading.toLowerCase().includes(query)) ||
            (v.meaning && v.meaning.toLowerCase().includes(query)) ||
+           (v.meaningVn && v.meaningVn.toLowerCase().includes(query)) ||
            (v.hanViet && v.hanViet.toLowerCase().includes(query));
   });
   renderVocabGrid(filtered);

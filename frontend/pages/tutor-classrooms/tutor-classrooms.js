@@ -41,6 +41,7 @@ import {
 } from '../../js/classroom-helpers.js';
 import { initTutorAssignments, loadTutorAssignments, hideTutorAssignments } from './tutor-assignments.js';
 import { createFileList } from '../../js/file-picker.js';
+import { mountTutorLayout } from '/components/tutor-layout/tutor-layout.js';
 
 let materialPicker = null;
 
@@ -372,6 +373,7 @@ async function loadSpace(spaceId) {
     loadTutorAssignments(state.currentSpace);
     await loadMaterials();
     focusSectionFromMuc();
+    scrollToRequestedSection();
   } catch (err) {
     renderStateBox(stateBox, friendlyErrorMessage(err), { retry: () => loadSpace(spaceId) });
   }
@@ -775,9 +777,39 @@ async function submitMaterial(event) {
 // ----------------------------------------------------------------------------
 // Điều hướng & khởi tạo
 // ----------------------------------------------------------------------------
+// Mục thanh bên đang mở: ?view=students | materials | assignments (mặc định: học viên / danh sách lớp)
+const VIEW_HINTS = {
+  materials: { icon: 'menu_book', text: 'Chọn một lớp học bên dưới để xem và quản lý tài liệu học tập của lớp đó.' },
+  assignments: { icon: 'assignment', text: 'Chọn một lớp học bên dưới để giao bài và chấm bài tập của lớp đó.' }
+};
+
+function currentView() {
+  const view = new URLSearchParams(window.location.search).get('view');
+  return ['materials', 'assignments'].includes(view) ? view : 'students';
+}
+
+function renderViewHint() {
+  // Khối "Quản lý lớp học" (kèm nút "Thêm học viên vào lớp") chỉ có ở mục "Học viên của tôi"
+  $('classroomHeaderCard').classList.toggle('hidden', currentView() !== 'students');
+  const hint = VIEW_HINTS[currentView()];
+  $('viewHint').classList.toggle('hidden', !hint);
+  if (hint) {
+    $('viewHintIcon').textContent = hint.icon;
+    $('viewHintText').textContent = hint.text;
+  }
+}
+
+/** Khi mở lớp từ mục "Tài liệu học tập" / "Quản lý bài tập", cuộn tới đúng khối. */
+function scrollToRequestedSection() {
+  const target = { materials: 'materialsSection', assignments: 'assignmentsSection' }[currentView()];
+  const el = target && $(target);
+  if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+}
+
 function renderRoute() {
   highlightSidebar();
   const spaceId = new URLSearchParams(window.location.search).get('space');
+  renderViewHint();
   $('classroomListView').classList.toggle('hidden', !!spaceId);
   $('classroomDetailView').classList.toggle('hidden', !spaceId);
   if (spaceId) {
@@ -796,32 +828,6 @@ function hasToken() {
   }
 }
 
-function renderTutorName() {
-  try {
-    const user = JSON.parse(localStorage.getItem('kizuna_user') || 'null');
-    const name = (user?.fullName || '').trim();
-    if (!name) return;
-    $('tutorNameLabel').textContent = name;
-    $('tutorNameSidebar').textContent = name;
-    // Ảnh đại diện dạng chữ cái đầu (không dùng ảnh mẫu)
-    const initials = name.split(/\s+/).slice(-2).map((w) => w.charAt(0)).join('').toUpperCase();
-    if (initials) $('tutorAvatar').textContent = initials;
-  } catch (e) {
-    /* bỏ qua thông tin hiển thị không đọc được */
-  }
-}
-
-function logout() {
-  try {
-    localStorage.removeItem('kizuna_token');
-    localStorage.removeItem('kizuna_user');
-  } catch (e) {
-    /* không có quyền truy cập bộ nhớ trình duyệt */
-  }
-  document.cookie = 'access_token=; Max-Age=0; path=/';
-  window.location.href = '/login';
-}
-
 function init() {
   const root = $('tutorClassroomsRoot');
   if (!root || root.dataset.initialized === 'true') return;
@@ -831,7 +837,8 @@ function init() {
     window.location.href = '/login';
     return;
   }
-  $('logoutBtn').addEventListener('click', logout);
+  // Sidebar + menu tài khoản dùng chung với các trang gia sư khác (tên, đăng xuất ở góc dưới trái)
+  mountTutorLayout(currentView());
 
   // Chỉ tài khoản gia sư được dùng trang Quản lý lớp học
   const role = getCurrentRole();
@@ -840,7 +847,6 @@ function init() {
     root.querySelector('[data-switch-account]')?.addEventListener('click', clearSessionAndGoToLogin);
     return;
   }
-  renderTutorName();
 
   $('openAddLearnerBtn').addEventListener('click', () => openAddLearner());
   $('addLearnerForm').addEventListener('submit', submitAddLearner);

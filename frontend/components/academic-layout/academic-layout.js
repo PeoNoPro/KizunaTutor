@@ -14,10 +14,12 @@ import { userMenuHtml, bindUserMenu } from '/components/user-menu/user-menu.js';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Tổng quan', icon: 'space_dashboard', href: '/academic/dashboard' },
-  { key: 'verifications', label: 'Hồ sơ xác thực gia sư', icon: 'verified_user', href: '/academic/verifications#queue' },
-  { key: 'history', label: 'Lịch sử xét duyệt', icon: 'history_edu' },
-  { key: 'notifications', label: 'Thông báo', icon: 'notifications' },
-  { key: 'profile', label: 'Hồ sơ cá nhân', icon: 'account_circle' }
+  { key: 'verifications', label: 'Hồ sơ xác thực gia sư', icon: 'verified_user', href: '/academic/verifications?view=queue' },
+  { key: 'posts', label: 'Duyệt bài đăng', icon: 'fact_check', href: '/academic/posts' },
+  { key: 'history', label: 'Lịch sử xét duyệt', icon: 'history_edu', href: '/academic/history' },
+  { key: 'content-import', label: 'Kho học liệu', icon: 'library_books', href: '/academic/content-import' },
+  { key: 'notifications', label: 'Thông báo', icon: 'notifications', href: '/pages/notifications/' },
+  { key: 'profile', label: 'Hồ sơ cá nhân', icon: 'account_circle', href: '/academic/profile' }
 ];
 
 function escapeHtml(text) {
@@ -45,11 +47,16 @@ async function notifyComingSoon(label) {
   }
 }
 
+// Màu theo khung Quản trị viên (styles/admin-portal.css, styles/staff-unified.css): nền kem, mục đang mở tô xanh.
+export const STAFF_PAGE_BG = '#fcfbf7';
+export const STAFF_NAV_ACTIVE = 'bg-[#006194] text-white font-semibold rounded-lg shadow-sm';
+export const STAFF_NAV_IDLE = 'rounded-lg text-[#3f4850] hover:bg-[#f7f4ec] hover:text-[#0f2545]';
+export const STAFF_SIDEBAR = 'bg-white border-r border-[#ece8de] shadow-[0_1px_8px_rgba(0,0,0,0.04)]';
+export const STAFF_ACCOUNT_CARD = 'bg-[#f7f4ec] hover:bg-[#ece8de]';
+
 function navItemHtml(item, activeKey) {
   const active = item.key === activeKey;
-  const cls = active
-    ? 'bg-primary-container text-on-primary-container font-semibold rounded-lg shadow-sm'
-    : 'rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface';
+  const cls = active ? STAFF_NAV_ACTIVE : STAFF_NAV_IDLE;
   const attrs = item.href
     ? `href="${item.href}"`
     : 'href="#" data-coming-soon="true" title="Chức năng đang được phát triển"';
@@ -65,38 +72,45 @@ export function mountAcademicLayout(activeKey, pageTitle) {
   const sidebar = document.getElementById('academicSidebar');
   const topbar = document.getElementById('academicTopbar');
 
+  // Nền trang kem giống khung Quản trị viên
+  document.body.style.backgroundColor = STAFF_PAGE_BG;
+
   if (sidebar) {
     sidebar.innerHTML = `
       <div id="academicSidebarBackdrop" class="fixed inset-0 bg-black/30 z-40 hidden lg:hidden"></div>
-      <aside id="academicSidebarPanel" class="fixed left-0 top-0 bottom-0 w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between py-6 -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
+      <aside id="academicSidebarPanel" class="fixed left-0 top-0 bottom-0 w-72 ${STAFF_SIDEBAR} z-50 flex flex-col justify-between py-6 -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
         <div class="flex flex-col">
-          <a href="/academic/dashboard" class="px-6 mb-8 flex items-center gap-3 no-underline">
+          <div class="px-6 mb-8 flex items-center justify-between gap-2">
+          <a href="/academic/dashboard" class="flex items-center gap-3 no-underline">
             <img src="/assets/logos/kizuna-logo.png" alt="KizunaTutor" class="h-10 w-10 object-contain rounded-lg">
             <div class="flex flex-col">
-              <span class="text-title-md font-bold tracking-tight text-on-surface">KizunaTutor</span>
-              <span class="text-caption text-on-surface-variant tracking-wider">Cổng học vụ</span>
+              <span class="text-title-md font-bold tracking-tight text-[#0f2545]">KizunaTutor</span>
+              <span class="text-caption text-[#3f4850] tracking-wider">Cổng học vụ</span>
             </div>
           </a>
-          <div class="px-6 mb-3"><span class="text-caption text-outline tracking-wider font-semibold">Chức năng chính</span></div>
+          <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
+          </div>
+          <div class="px-6 mb-3"><span class="text-caption text-[#707881] tracking-wider font-semibold">Chức năng chính</span></div>
           <nav class="flex flex-col gap-1 px-4" aria-label="Điều hướng học vụ">
             ${NAV_ITEMS.map((item) => navItemHtml(item, activeKey)).join('')}
           </nav>
         </div>
+        <!-- Menu tài khoản ở góc dưới bên trái (thay cho thanh trên) -->
+        <div class="mx-4 mt-4">
+          ${userMenuHtml({ prefix: 'academic', name, roleLabel: 'Cán bộ học vụ', showHome: false, placement: 'sidebar', cardClass: STAFF_ACCOUNT_CARD })}
+        </div>
       </aside>`;
   }
 
+  // Thanh trên chỉ còn trên màn hình nhỏ để mở sidebar; trên máy tính nội dung chiếm toàn bộ màn hình.
   if (topbar) {
     topbar.innerHTML = `
-      <header class="fixed top-0 left-0 lg:left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-30 flex items-center justify-between px-4 md:px-8 gap-3">
-        <div class="flex items-center gap-2 text-body-sm text-on-surface-variant min-w-0">
-          <button id="academicMenuButton" type="button" class="lg:hidden p-2 rounded-lg hover:bg-surface-container" aria-label="Mở menu">
-            <span class="material-symbols-outlined">menu</span>
-          </button>
-          <a href="/academic/dashboard" class="text-label-md text-outline hover:text-on-surface transition-colors">Học vụ</a>
-          <span class="material-symbols-outlined text-[16px] text-outline-variant">chevron_right</span>
-          <span class="text-label-md text-on-surface font-semibold truncate">${escapeHtml(pageTitle || 'Tổng quan học vụ')}</span>
-        </div>
-        ${userMenuHtml({ prefix: 'academic', name, roleLabel: 'Cán bộ học vụ', avatarClass: 'w-10 h-10', showHome: false })}
+      <header class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-b border-[#ece8de] z-30 flex items-center px-4 gap-2">
+        <button id="academicMenuButton" type="button" class="p-2 rounded-lg hover:bg-surface-container" aria-label="Mở menu">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <span class="text-label-md text-on-surface font-semibold truncate flex-1">${escapeHtml(pageTitle || 'Tổng quan học vụ')}</span>
+        <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
       </header>`;
   }
 
@@ -115,4 +129,6 @@ export function mountAcademicLayout(activeKey, pageTitle) {
       notifyComingSoon(link.textContent.trim());
     });
   });
+  // FE-12: số thông báo chưa đọc cạnh mục Thông báo.
+  import('/js/pages/notification-badge.js').then(module => module.attachNotificationBadges()).catch(() => {});
 }

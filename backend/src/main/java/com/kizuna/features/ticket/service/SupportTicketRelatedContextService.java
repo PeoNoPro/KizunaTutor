@@ -13,6 +13,8 @@ public class SupportTicketRelatedContextService {
    "membership",Map.of("ACTIVE","Đang hiệu lực","EXPIRED","Đã hết hạn","CANCELLED","Đã hủy"),
    "payment",Map.of("PENDING","Đang chờ thanh toán","SUCCESS","Thành công","FAILED","Thất bại","REFUNDED","Đã hoàn tiền"));
  private final SupportTicketContextRepository repository;
+ /** Giờ bắt đầu buổi học thử gắn với yêu cầu (đã kiểm quyền ở validate). */
+ public Optional<java.time.OffsetDateTime> bookingStart(UUID booking){return repository.bookingStart(booking);}
  public void validate(UUID owner,Create r){
    if(r.relatedBookingId()!=null)require("booking",owner,r.relatedBookingId());
    Map<String,Object> membership=r.relatedMembershipId()==null?null:require("membership",owner,r.relatedMembershipId());

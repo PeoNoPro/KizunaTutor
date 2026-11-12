@@ -27,4 +27,7 @@ public interface TutorVerificationService {
     DocumentFile loadMyDocumentFile(UUID documentId);
 
     TutorVerificationResponse submit(SubmitVerificationRequest request);
+
+    /** Hồ sơ đã phê duyệt: gửi yêu cầu cập nhật (JLPT mới, giấy tờ mới) để cán bộ học vụ thẩm định. */
+    TutorVerificationResponse submitProfileUpdate(com.kizuna.features.verification.dto.request.SubmitProfileUpdateRequest request);
 }

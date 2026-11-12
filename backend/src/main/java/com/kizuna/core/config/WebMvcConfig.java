@@ -72,5 +72,20 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addViewController("/manager/membership-plans").setViewName("forward:/pages/manager-membership-plans/index.html");
         registry.addViewController("/manager/tutor-memberships").setViewName("forward:/pages/manager-tutor-memberships/index.html");
         registry.addViewController("/admin/payments").setViewName("forward:/pages/admin-payments/index.html");
+        // Trang trả về của VNPay mở ở cổng backend: các liên kết sidebar phải mở được ở đây (giống frontend/server.js)
+        forwardWithSlash(registry, "/tutor/classrooms", "tutor-classrooms");
+        forwardWithSlash(registry, "/tutor/post", "tutor-post");
+        forwardWithSlash(registry, "/academic/posts", "academic-posts");
+        forwardWithSlash(registry, "/academic/history", "academic-review-history");
+        forwardWithSlash(registry, "/academic/profile", "academic-profile");
+        forwardWithSlash(registry, "/academic/content-import", "academic-content-import");
+        forwardWithSlash(registry, "/my-courses", "my-courses");
+        forwardWithSlash(registry, "/learner/my-courses", "my-courses");
+    }
+
+    private static void forwardWithSlash(ViewControllerRegistry registry, String path, String page) {
+        String view = "forward:/pages/" + page + "/index.html";
+        registry.addViewController(path).setViewName(view);
+        registry.addViewController(path + "/").setViewName(view);
     }
 }

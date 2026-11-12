@@ -271,3 +271,9 @@ Danh sách bao phủ công việc không chứng minh đã thực hiện. T001 g
 ## Trạng thái triển khai 2026-11-01
 
 43/48 task đã thực hiện; T011/T016/T019 chờ consumer booking thật, T042 chờ tài liệu đã duyệt và T048 chờ nghiệm thu tổng thể. T011 hiện chỉ có evaluator subset. T046 đã ghi kết quả tải và các giới hạn, không đồng nghĩa SC-006 đã chốt. Xem validation.md, validation-ui.md và validation-performance.md. Không sửa marker trong checklists.
+
+## Cập nhật 2026-11-10
+
+- Xóa tài khoản nhân viên (xóa mềm, không đổi DB): `StaffAccountService.delete`, `StaffAccountRepository.softDelete/removeUpcomingShifts`, POST `/staff/{id}/delete`, nút "Xóa" và hộp xác nhận ở `pages/admin-staff`. Đã kiểm giao diện bằng trình duyệt với Admin; chưa thực hiện xóa trên dữ liệu thật, chưa có test tự động.
+- Sidebar Quản lý thêm mục "Doanh thu & giao dịch" (`/pages/operations-revenue/`).
+- `fetchAPI` tăng thời gian chờ chung 4,5 giây → 12 giây.

@@ -14,6 +14,9 @@ import com.kizuna.features.tutor_search.repository.TutorSearchRepository;
 import com.kizuna.features.tutor_search.repository.TutorSearchSpecification;
 import com.kizuna.features.tutor_search.service.TutorSearchService;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
+import com.kizuna.features.tutor_post.entity.TutorPost;
+import com.kizuna.features.tutor_post.service.TutorPostService;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +42,7 @@ public class TutorSearchServiceImpl implements TutorSearchService {
 
     private final TutorSearchRepository tutorSearchRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final TutorPostService tutorPostService;
 
     @Override
     public TutorSearchPageResponse searchTutors(TutorSearchCriteriaDTO criteria) {
@@ -85,7 +89,11 @@ public class TutorSearchServiceImpl implements TutorSearchService {
 
     @Override
     public List<TutorSummaryResponseDTO> getFeaturedTutors() {
+        LocalDate today = LocalDate.now(TutorPostService.ZONE);
         return tutorSearchRepository.findTop6ByIsFeaturedTrueOrderByAvgRatingDesc().stream()
+                // Chỉ gia sư có bài đăng đã duyệt và gói hội viên còn hạn
+                .filter(t -> tutorPostService.publishedPost(t.getTutorId()).isPresent()
+                        && tutorPostService.hasActiveMembership(t.getTutorId(), today))
                 .map(t -> mapToSummaryDTO(t, false))
                 .collect(Collectors.toList());
     }
@@ -248,23 +256,32 @@ public class TutorSearchServiceImpl implements TutorSearchService {
             }
         }
 
+        // Bài đăng đã duyệt (nếu có) thay cho phần giới thiệu, học phí, hình thức dạy mặc định
+        TutorPost post = tutorPostService.publishedPost(tutor.getTutorId()).orElse(null);
+        if (post != null && post.getSpecialties() != null && !post.getSpecialties().isBlank()) {
+            specialties = Arrays.stream(post.getSpecialties().split("•|,"))
+                    .map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
+        }
+
         return TutorSummaryResponseDTO.builder()
+                .postTitle(post != null ? post.getTitle() : null)
                 .tutorId(tutor.getTutorId())
                 .tutorCode(tutor.getTutorCode())
                 .fullName(tutor.getUser() != null ? tutor.getUser().getFullName() : "Gia sư Kizuna")
                 .avatarUrl(tutor.getUser() != null ? tutor.getUser().getAvatarUrl() : null)
                 .headline(tutor.getHeadline())
-                .bio(tutor.getBio())
+                .bio(post != null ? post.getContent() : tutor.getBio())
                 .highestJlptLevel(tutor.getHighestJlptLevel() != null ? tutor.getHighestJlptLevel() : "N1")
                 .experienceYears(tutor.getExperienceYears())
-                .hourlyRate(tutor.getHourlyRate())
+                .hourlyRate(post != null ? post.getHourlyRate() : tutor.getHourlyRate())
+                .priceItems(TutorPostService.priceViews(post))
                 .avgRating(tutor.getAvgRating())
                 .totalReviews(tutor.getTotalReviews())
                 .location(tutor.getAddress() != null ? tutor.getAddress() : "Hà Nội, Việt Nam")
                 .isFeatured(Boolean.TRUE.equals(tutor.getIsFeatured()))
                 .isVerified(tutor.getVerificationStatus() == TutorVerificationStatus.APPROVED)
                 .specialties(specialties)
-                .teachingFormat("Online 1-1")
+                .teachingFormat(post != null ? TutorPostService.formatLabel(post.getTeachingFormat()) : "Online 1-1")
                 .credentials(credentials)
                 .availabilities(availabilities)
                 .reviews(reviews)

@@ -40,6 +40,10 @@ public class PaymentResultProcessor {
     private final MembershipPeriodCalculator periodCalculator;
     private final PaymentNotificationService notificationService;
 
+    /** FE-12 (thêm 2026-11-10): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
     public PaymentResultProcessor(PaymentTransactionRepository transactionRepository,
                                   TutorMembershipRepository membershipRepository,
                                   MembershipTutorRepository tutorRepository,
@@ -81,6 +85,11 @@ public class PaymentResultProcessor {
             return Outcome.STILL_PENDING;
         }
         tx.setStatus(PaymentTransactionStatus.FAILED);
+        if (notificationEvents != null && tx.getUser() != null) {
+            notificationEvents.publish("payment:" + tx.getTransactionId() + ":failed", "PAYMENT", "Thanh toán chưa thành công",
+                    "Giao dịch mua gói " + (tx.getPlan() == null ? "hội viên" : tx.getPlan().getPlanName()) + " chưa thành công. Bạn chưa bị trừ tiền cho gói này và có thể thử thanh toán lại.",
+                    "/tutor/membership", java.util.List.of(tx.getUser().getUserId()));
+        }
         applyGatewayNo(tx, result);
         log.info("Giao dịch {} thất bại (mã {} / {})", tx.getTxnRef(), result.responseCode(), result.transactionStatus());
         return Outcome.FAILED;
@@ -113,6 +122,12 @@ public class PaymentResultProcessor {
 
             notificationService.membershipActivatedAfterCommit(user.getEmail(), user.getFullName(), plan.getPlanName(),
                     period.startDate(), period.endDate(), VnpayGatewayClient.amountTimes100(tx.getAmount()) / 100);
+            if (notificationEvents != null) {
+                notificationEvents.publish("payment:" + reference + ":success", "PAYMENT", "Kích hoạt gói hội viên thành công",
+                        "Thanh toán gói " + plan.getPlanName() + " đã thành công. Gói có hiệu lực từ "
+                                + period.startDate().format(MembershipLabels.DATE_VN) + " đến " + period.endDate().format(MembershipLabels.DATE_VN) + ".",
+                        "/tutor/membership", java.util.List.of(user.getUserId()));
+            }
         }
 
         tx.setStatus(PaymentTransactionStatus.SUCCESS);

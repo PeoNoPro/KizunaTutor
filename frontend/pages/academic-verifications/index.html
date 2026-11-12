@@ -20,7 +20,7 @@
   <div class="lg:pl-72 flex flex-col min-h-screen">
     <div id="academicTopbar"></div>
 
-    <main class="flex-1 pt-16 w-full">
+    <main class="flex-1 pt-16 lg:pt-0 w-full">
       <div class="px-4 md:px-8 py-8 flex flex-col w-full gap-6">
 
         <!-- 1. Tiêu đề -->
@@ -30,15 +30,9 @@
               <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-primary-fixed text-primary">
                 <span class="material-symbols-outlined text-[20px]">verified</span>
               </span>
-              <h1 class="text-headline-lg text-on-surface font-bold tracking-tight">Tổng quan học vụ</h1>
+              <h1 id="pageTitle" class="text-headline-lg text-on-surface font-bold tracking-tight">Tổng quan học vụ</h1>
             </div>
-            <p class="text-body-md text-on-surface-variant">Theo dõi và xử lý hồ sơ xác thực gia sư trên hệ thống KizunaTutor.</p>
-          </div>
-          <div class="flex items-center gap-3 text-caption text-outline">
-            <span>Cập nhật lúc <span id="updatedAtText">—</span></span>
-            <button id="refreshButton" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-lowest shadow-sm text-primary text-label-sm hover:bg-surface-container">
-              <span class="material-symbols-outlined text-[16px]">refresh</span>Làm mới
-            </button>
+            <p id="pageSubtitle" class="text-body-md text-on-surface-variant">Theo dõi và xử lý hồ sơ xác thực gia sư trên hệ thống KizunaTutor.</p>
           </div>
         </div>
 
@@ -123,6 +117,7 @@
                     <option value="ADDITIONAL_INFO_REQUIRED">Cần bổ sung</option>
                     <option value="APPROVED">Đã phê duyệt</option>
                     <option value="REJECTED">Đã từ chối</option>
+                    <option value="PROFILE_UPDATE">Yêu cầu cập nhật hồ sơ</option>
                   </select>
                 </div>
                 <div class="md:col-span-3">
@@ -178,14 +173,11 @@
               <button id="queueRetryButton" type="button" class="hidden mt-3 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface text-label-sm">Thử lại</button>
             </div>
 
-            <div class="p-4 px-6 bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-3">
-              <span id="pageInfo" class="text-body-sm text-outline"></span>
-              <div id="pagination" class="flex items-center gap-1.5"></div>
-            </div>
+            <div id="pager" class="p-4 px-6 bg-surface-container-low"></div>
           </div>
 
           <!-- Cột thống kê -->
-          <aside class="xl:col-span-4 flex flex-col gap-6">
+          <aside id="statsAside" class="xl:col-span-4 flex flex-col gap-6">
             <section class="p-6 rounded-xl bg-surface-container-lowest shadow-sm">
               <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
@@ -196,7 +188,6 @@
               </div>
               <div id="distributionBar" class="flex h-3.5 w-full rounded-full overflow-hidden bg-surface-container-low p-0.5 gap-0.5"></div>
               <ul id="distributionList" class="mt-4 flex flex-col gap-2"></ul>
-              <p id="notSubmittedText" class="mt-3 text-caption text-outline"></p>
             </section>
 
             <section class="p-6 rounded-xl bg-surface-container-lowest shadow-sm">

@@ -157,71 +157,120 @@ public class AiWritingServiceImpl implements AiWritingService {
         return null;
     }
 
+    private boolean isGrammarPatternSatisfied(String text, String targetPattern) {
+        if (text == null || text.isBlank() || targetPattern == null || targetPattern.isBlank()) {
+            return true;
+        }
+
+        // 1. Làm sạch các chú thích tiếng Anh/tiếng Việt trong ngoặc
+        String cleanPattern = targetPattern
+                .replaceAll("（[^）]*）", "")
+                .replaceAll("\\([^)]*\\)", "")
+                .replaceAll("\\[[^\\]]*\\]", "")
+                .replace("〜", "")
+                .replace("~", "")
+                .trim();
+
+        if (cleanPattern.isEmpty()) {
+            return true;
+        }
+
+        // 2. Nhận diện cấu trúc tần suất: [Khoảng thời gian] + に + [Số lần]
+        String lowerTarget = targetPattern.toLowerCase();
+        if (lowerTarget.contains("tần suất") || lowerTarget.contains("frequency") || "に".equals(cleanPattern)) {
+            if (text.matches(".*[一二三四五六七八九十百千\\d]+(日|週|週間|月|か月|ヶ月|年|時間|分)に[一二三四五六七八九十百千\\d]+(回|度|時間).*")
+                    || (text.contains("に") && (text.contains("回") || text.contains("度")))) {
+                return true;
+            }
+        }
+
+        // 3. Tách các thành phần rời nhau (như 〜より〜のほうが)
+        String[] parts = cleanPattern.split("[〜~\\s]+");
+        boolean allMatched = true;
+        for (String part : parts) {
+            String p = part.trim();
+            if (!p.isEmpty() && !text.contains(p)) {
+                allMatched = false;
+                break;
+            }
+        }
+        if (allMatched && parts.length > 0) {
+            return true;
+        }
+
+        return text.contains(cleanPattern);
+    }
+
     private AiWritingCheckResponse generateFallbackEvaluation(String text, String jlpt, String formality, String targetPattern) {
         // Thuật toán kiểm tra quy tắc thông minh khi mạng ngoài chưa khả dụng
         List<AiWritingErrorItemDto> errors = new ArrayList<>();
         List<AiWritingVocabularyDto> vocabList = new ArrayList<>();
         List<String> alternatives = new ArrayList<>();
 
-        int score = 88;
-        String ratingBadge = "Khá tốt";
-        String comment = "Câu viết của bạn đã truyền đạt được ý tưởng. Hãy lưu ý cách dùng trợ từ và chia thể động từ để câu tự nhiên hơn!";
+        int score = 96;
+        String ratingBadge = "Tự nhiên xuất sắc";
+        String comment = "Tuyệt vời! Câu văn rất tự nhiên, từ vựng và ngữ pháp được áp dụng chính xác theo văn phong chuẩn Nhật.";
         String corrected = text;
 
         if (text.contains("私わ") || text.contains("わたしわ")) {
             errors.add(AiWritingErrorItemDto.builder()
                     .errorType("Trợ từ")
-                    .originalFragment("私わ")
-                    .correctedFragment("私は (わたしは)")
-                    .explanation("Trợ từ chỉ chủ ngữ 'wa' trong tiếng Nhật luôn được viết bằng chữ Hiragana は (ha), không dùng わ.")
+                    .originalFragment("わ")
+                    .correctedFragment("は (phát âm: wa)")
+                    .explanation("Trợ từ chỉ chủ đề/chủ ngữ trong tiếng Nhật luôn được viết bằng chữ Hiragana は (ha), không dùng わ.")
                     .build());
             corrected = corrected.replace("私わ", "私は").replace("わたしわ", "わたしは");
             score -= 10;
         }
 
-        if (text.contains("ご飯を食べるでした")) {
+        if (text.contains("食べるでした") || text.contains("行くでした") || text.contains("飲むでした") || text.matches(".*[るうつぬぶむくぐす]でした.*")) {
             errors.add(AiWritingErrorItemDto.builder()
                     .errorType("Chia thể động từ")
-                    .originalFragment("食べるでした")
-                    .correctedFragment("食べました / 食べた")
-                    .explanation("Động từ tiếng Nhật không kết hợp trực tiếp với 'でした'. Dạng quá khứ lịch sự là '食べました' (thể lịch sự) hoặc '食べた' (thể thường).")
+                    .originalFragment("Động từ nguyên mẫu + でした")
+                    .correctedFragment("〜ました (Lịch sự) hoặc 〜た (Thể thường)")
+                    .explanation("Động từ thể từ điển không thể kết hợp trực tiếp với 'でした'. Dạng quá khứ đúng là đuôi 〜ました (ví dụ: 食べました, 行きました).")
                     .build());
-            corrected = corrected.replace("ご飯を食べるでした", "ご飯を食べました");
+            corrected = corrected.replace("食べるでした", "食べました")
+                                 .replace("行くでした", "行きました")
+                                 .replace("飲むでした", "飲みました");
             score -= 15;
         }
 
-        if ("POLITE".equalsIgnoreCase(formality) && (corrected.endsWith("だ") || corrected.endsWith("る") || corrected.endsWith("た"))) {
-            if (!corrected.endsWith("です") && !corrected.endsWith("ます") && !corrected.endsWith("でした") && !corrected.endsWith("ました")) {
-                errors.add(AiWritingErrorItemDto.builder()
-                        .errorType("Sắc thái câu")
-                        .originalFragment("Kết thúc thể thường")
-                        .correctedFragment("Kết thúc thể lịch sự (です/ます)")
-                        .explanation("Bạn đang chọn phong cách Lịch sự (です/ます). Hãy đổi đuôi câu sang dạng lịch sự để câu văn trang nhã hơn.")
-                        .build());
-                score -= 10;
+        if ("POLITE".equalsIgnoreCase(formality)) {
+            String trimmed = corrected.replaceAll("[。！？\\s]+$", "");
+            if (trimmed.endsWith("だ") || trimmed.endsWith("る") || trimmed.endsWith("た") || trimmed.endsWith("ない")) {
+                if (!trimmed.endsWith("です") && !trimmed.endsWith("ます") && !trimmed.endsWith("でした") && !trimmed.endsWith("ました") && !trimmed.endsWith("でしょうか") && !trimmed.endsWith("ください")) {
+                    errors.add(AiWritingErrorItemDto.builder()
+                            .errorType("Sắc thái câu")
+                            .originalFragment("Đuôi câu thể thường")
+                            .correctedFragment("Đuôi câu thể lịch sự (です/ます)")
+                            .explanation("Bạn đang chọn phong cách Lịch sự. Hãy đổi đuôi câu sang dạng lịch sự (です/ます) để câu văn trang nhã hơn.")
+                            .build());
+                    score -= 10;
+                }
             }
         }
 
         if (targetPattern != null && !targetPattern.isBlank()) {
-            if (!text.contains(targetPattern.replace("〜", ""))) {
+            if (!isGrammarPatternSatisfied(text, targetPattern)) {
                 errors.add(AiWritingErrorItemDto.builder()
                         .errorType("Ngữ pháp mục tiêu")
                         .originalFragment("Chưa thấy mẫu ngữ pháp")
                         .correctedFragment(targetPattern)
-                        .explanation("Câu viết của bạn chưa lồng ghép rõ mẫu ngữ pháp mục tiêu: " + targetPattern + ". Hãy thử áp dụng công thức của mẫu này.")
+                        .explanation("Câu viết của bạn chưa lồng ghép rõ mẫu ngữ pháp mục tiêu: " + targetPattern + ". Hãy thử áp dụng công thức của mẫu này vào câu nhé.")
                         .build());
                 score -= 10;
             }
         }
 
-        if (score >= 90) {
-            ratingBadge = "Tự nhiên xuất sắc";
-            comment = "Tuyệt vời! Câu văn rất tự nhiên, từ vựng và ngữ pháp được áp dụng chính xác theo văn phong chuẩn Nhật.";
-        } else if (score >= 75) {
-            ratingBadge = "Khá tốt - Cần trau chuốt";
-        } else {
-            ratingBadge = "Cần cải thiện";
-            comment = "Cố lên bạn nhé! Hãy xem kỹ các điểm lưu ý về trợ từ và thể động từ ở bảng bên dưới để đặt câu chuẩn xác hơn.";
+        if (!errors.isEmpty()) {
+            if (score >= 80) {
+                ratingBadge = "Khá tốt - Cần trau chuốt";
+                comment = "Câu viết tương đối mượt mà. Hãy tham khảo phần lưu ý bên dưới để câu văn đạt mức hoàn hảo nhất nhé!";
+            } else {
+                ratingBadge = "Cần cải thiện";
+                comment = "Cố lên bạn nhé! Hãy xem kỹ các điểm lưu ý về trợ từ hoặc thể động từ ở bảng bên dưới để đặt câu chuẩn xác hơn.";
+            }
         }
 
         // Gợi ý từ vựng hữu ích

@@ -13,6 +13,49 @@ let hwIsDrawing = false;
 let hwDebounceTimer = null;
 let hwCurrentCandidates = [];
 let hwSelectedKanji = null;
+let hwResizeObserver = null;
+let hwCurrentDisplayW = 280;
+let hwCurrentDisplayH = 280;
+
+function handleHwResize() {
+    if (!hwCanvas || !hwCtx) return;
+    const parent = hwCanvas.parentElement;
+    const rect = parent ? parent.getBoundingClientRect() : hwCanvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    const newW = (rect.width > 0) ? Math.round(rect.width) : 280;
+    const newH = (rect.height > 0) ? Math.round(rect.height) : 280;
+
+    if (Math.abs(hwCurrentDisplayW - newW) < 2 && Math.abs(hwCurrentDisplayH - newH) < 2) {
+        return;
+    }
+
+    const scaleX = newW / (hwCurrentDisplayW || 280);
+    const scaleY = newH / (hwCurrentDisplayH || 280);
+
+    if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
+        hwStrokes = hwStrokes.map(stroke =>
+            stroke.map(p => ({
+                x: p.x * scaleX,
+                y: p.y * scaleY,
+                t: p.t
+            }))
+        );
+    }
+
+    hwCurrentDisplayW = newW;
+    hwCurrentDisplayH = newH;
+
+    hwCanvas.width = Math.round(newW * dpr);
+    hwCanvas.height = Math.round(newH * dpr);
+    hwCanvas.style.width = newW + 'px';
+    hwCanvas.style.height = newH + 'px';
+
+    hwCtx.setTransform(1, 0, 0, 1, 0, 0);
+    hwCtx.scale(dpr, dpr);
+
+    hwRedraw();
+}
 
 function escapeHtml(text) {
     if (!text) return '';
@@ -48,10 +91,14 @@ function initHandwritingSearch() {
     if (!hwCanvas) return;
     hwCtx = hwCanvas.getContext('2d');
 
-    const rect = hwCanvas.getBoundingClientRect();
+    const parent = hwCanvas.parentElement;
+    const rect = parent ? parent.getBoundingClientRect() : hwCanvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    const displayWidth = (rect.width > 0) ? rect.width : 280;
-    const displayHeight = (rect.height > 0) ? rect.height : 280;
+    const displayWidth = (rect.width > 0) ? Math.round(rect.width) : 280;
+    const displayHeight = (rect.height > 0) ? Math.round(rect.height) : 280;
+
+    hwCurrentDisplayW = displayWidth;
+    hwCurrentDisplayH = displayHeight;
 
     hwCanvas.width = Math.round(displayWidth * dpr);
     hwCanvas.height = Math.round(displayHeight * dpr);
@@ -79,6 +126,18 @@ function initHandwritingSearch() {
     hwCanvas.addEventListener('touchmove', hwOnTouchMove, { passive: false });
     window.addEventListener('touchend', hwOnTouchEnd);
 
+    // Gắn ResizeObserver và window resize listener để tự động điều chỉnh canvas
+    if (!hwResizeObserver) {
+        if (window.ResizeObserver && parent) {
+            hwResizeObserver = new ResizeObserver(() => handleHwResize());
+            hwResizeObserver.observe(parent);
+        }
+        window.addEventListener('resize', () => {
+            clearTimeout(window._hwModalResizeDebounce);
+            window._hwModalResizeDebounce = setTimeout(handleHwResize, 100);
+        });
+    }
+
     // Ủy quyền sự kiện (Event Delegation) duy nhất trên phần tử cha hwCandidateList
     const candidateContainer = document.getElementById('hwCandidateList');
     if (candidateContainer) {
@@ -102,7 +161,16 @@ function getHwCoords(e) {
     const rect = hwCanvas.getBoundingClientRect();
     const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
     const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
+
+    const scaleX = (hwCurrentDisplayW > 0 && rect.width > 0) ? (hwCurrentDisplayW / rect.width) : 1;
+    const scaleY = (hwCurrentDisplayH > 0 && rect.height > 0) ? (hwCurrentDisplayH / rect.height) : 1;
+
     return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY,
+        t: Date.now()
+    };
+}
         x: clientX - rect.left,
         y: clientY - rect.top,
         t: Date.now()
@@ -198,9 +266,8 @@ function hwDrawCurrentSegment(p1, p2) {
 
 function hwRedraw() {
     if (!hwCanvas || !hwCtx) return;
-    const rect = hwCanvas.getBoundingClientRect();
-    const w = (rect.width > 0) ? rect.width : 280;
-    const h = (rect.height > 0) ? rect.height : 280;
+    const w = hwCurrentDisplayW || 280;
+    const h = hwCurrentDisplayH || 280;
 
     // Xóa sạch canvas
     hwCtx.clearRect(0, 0, w, h);
@@ -302,9 +369,8 @@ function hwTriggerDebouncedSearch() {
 async function hwExecuteRecognition() {
     if (hwStrokes.length === 0) return;
 
-    const rect = hwCanvas ? hwCanvas.getBoundingClientRect() : null;
-    const w = (rect && rect.width > 0) ? rect.width : 280;
-    const h = w;
+    const w = hwCurrentDisplayW || 280;
+    const h = hwCurrentDisplayH || 280;
 
     // Chuẩn bị Ink format cho Google Input Tools
     const ink = hwStrokes.map(stroke => {

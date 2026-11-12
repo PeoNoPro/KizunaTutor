@@ -1,4 +1,4 @@
-﻿/**
+/**
  * KizunaTutor - Đấu trường gõ chữ Kana (Hiragana & Katakana)
  * Module Feature-Based đồng bộ giao diện và nghiệp vụ với KizunaTutor gốc.
  */
@@ -424,7 +424,7 @@ function renderSelectionMatrix() {
                       : 'bg-white text-[#1E293B] border-[#CBD5E1] hover:bg-slate-50'
                   }"
                   title="Romaji: ${it.romaji}">
-            <span class="text-xs sm:text-sm font-bold ${isChecked ? 'text-[#831843]' : 'text-[#0F172A]'}">${it.character}</span>
+            <span class="text-xs sm:text-sm font-bold font-japanese ${isChecked ? 'text-[#831843]' : 'text-[#0F172A]'}">${it.character}</span>
             <span class="text-[10px] font-mono ml-0.5 ${isChecked ? 'text-[#831843]' : 'text-slate-500'}">${it.romaji}</span>
           </button>
         `;
@@ -511,7 +511,7 @@ function renderQuizArena() {
       <div id="card-box-${idx}" 
            data-card-idx="${idx}"
            class="card-quiz-item p-1.5 sm:p-2 rounded-lg border border-[#E2E8F0] bg-white flex flex-col items-center justify-between text-center transition-all duration-200 cursor-pointer min-h-[80px] sm:min-h-[88px] select-none hover:border-slate-300">
-        <div class="card-char-display text-2xl sm:text-3xl font-bold text-[#0F172A] transition-colors">
+        <div class="card-char-display text-2xl sm:text-3xl font-bold font-japanese text-[#0F172A] transition-colors">
           ${it.character}
         </div>
         <div class="w-full mt-1 flex flex-col items-center">
@@ -775,6 +775,28 @@ function finishQuiz() {
       scoreBadgeEl.textContent = 'Cần Cố Gắng ⚡';
       scoreBadgeEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200';
     }
+  }
+
+  // Lưu lịch sử điểm số vào LocalStorage để bảo toàn kết quả qua F5 và đồng bộ Dashboard
+  try {
+    const history = JSON.parse(localStorage.getItem('kizuna_kana_stats') || '[]');
+    history.unshift({
+      timestamp: new Date().toISOString(),
+      script: currentScript,
+      total: total,
+      correct: correctCount,
+      accuracy: parseFloat(accuracy),
+      timeSpent: timeElapsed
+    });
+    localStorage.setItem('kizuna_kana_stats', JSON.stringify(history.slice(0, 30)));
+    localStorage.setItem('kizuna_kana_last_result', JSON.stringify({
+      accuracy: parseFloat(accuracy),
+      correct: correctCount,
+      total: total,
+      timestamp: new Date().toISOString()
+    }));
+  } catch (e) {
+    console.debug('Lỗi lưu thống kê kana:', e);
   }
 
   renderRowBreakdown();

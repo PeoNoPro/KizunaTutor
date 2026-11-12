@@ -10,5 +10,7 @@ module.exports={...scope.tailwind.config,content:[
   path.join(__dirname,'components/learner-layout/learner-layout.js'),
   path.join(__dirname,'components/admin-shell/admin-shell.js'),
   path.join(__dirname,'js/pages/{support-tickets,cs-ticket-detail,tutor-frame,learner-frame}.js'),
+  path.join(__dirname,'components/user-menu/user-menu.js'),
+  path.join(__dirname,'pages/notifications/index.html'),path.join(__dirname,'js/pages/notifications.js'),
   path.join(__dirname,'js/main.js')
 ]};

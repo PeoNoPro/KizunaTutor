@@ -55,17 +55,31 @@ public class SupportShiftRepository {
     }
 
     /**
-     * Nhân viên hỗ trợ đang hoạt động trong ca, chưa giữ yêu cầu nào đang xử lý;
-     * người lâu nhất chưa được giao xếp trước để chia đều.
+     * Nhân viên hỗ trợ đang hoạt động trong ca, còn chỗ nhận thêm (đang xử lý ít hơn {@code limit} yêu cầu);
+     * người đang giữ ít việc nhất xếp trước, bằng nhau thì người lâu nhất chưa được giao xếp trước để chia đều.
      */
-    public List<UUID> freeStaff(LocalDate date, String code) {
+    public List<UUID> freeStaff(LocalDate date, String code, int limit) {
         return jdbc.queryForList("""
             SELECT s.staff_id FROM support_shifts s
             JOIN users u ON u.user_id=s.staff_id JOIN roles r ON r.role_id=u.role_id
             WHERE s.shift_date=? AND s.shift_code=? AND u.account_status::text='ACTIVE' AND u.deleted_at IS NULL AND r.is_active=true AND r.role_name='ROLE_CS_STAFF'
-              AND NOT EXISTS (SELECT 1 FROM support_tickets t WHERE t.assigned_to=s.staff_id AND t.status::text='IN_PROGRESS')
-            ORDER BY (SELECT max(e.occurred_at) FROM ticket_audit_events e WHERE e.actor_user_id=s.staff_id AND e.event_type IN ('CLAIM','AUTO_ASSIGN')) NULLS FIRST, s.staff_id""",
-            UUID.class, date, code);
+              AND (SELECT count(*) FROM support_tickets t WHERE t.assigned_to=s.staff_id AND t.status::text='IN_PROGRESS')<?
+            ORDER BY (SELECT count(*) FROM support_tickets t WHERE t.assigned_to=s.staff_id AND t.status::text='IN_PROGRESS'),
+              (SELECT max(e.occurred_at) FROM ticket_audit_events e WHERE e.actor_user_id=s.staff_id AND e.event_type IN ('CLAIM','AUTO_ASSIGN')) NULLS FIRST, s.staff_id""",
+            UUID.class, date, code, limit);
+    }
+
+    /** Số nhân viên hỗ trợ còn hoạt động được xếp vào một ca. */
+    public long staffOnShift(LocalDate date, String code) {
+        return jdbc.queryForObject("""
+            SELECT count(*) FROM support_shifts s JOIN users u ON u.user_id=s.staff_id JOIN roles r ON r.role_id=u.role_id
+            WHERE s.shift_date=? AND s.shift_code=? AND u.account_status::text='ACTIVE' AND u.deleted_at IS NULL AND r.is_active=true AND r.role_name='ROLE_CS_STAFF'
+            """, Long.class, date, code);
+    }
+
+    /** Số yêu cầu mới chưa có ai nhận. */
+    public long waitingTickets() {
+        return jdbc.queryForObject("SELECT count(*) FROM support_tickets WHERE status::text='OPEN' AND assigned_to IS NULL", Long.class);
     }
 
     /** Ngày đó Quản lý đã xếp ca nào chưa; chưa xếp thì không áp dụng luật nhận theo ca. */
@@ -77,21 +91,31 @@ public class SupportShiftRepository {
         return jdbc.queryForObject("SELECT count(*) FROM support_tickets WHERE assigned_to=? AND status::text='IN_PROGRESS'", Long.class, staff);
     }
 
-    /** Yêu cầu mới cũ nhất chưa có người nhận; khóa dòng và bỏ qua dòng đang bị giao ở luồng khác. */
+    /**
+     * Yêu cầu mới chưa có người nhận cần giao tiếp theo: mức ưu tiên cao trước (Khẩn cấp, Cao, Bình thường, Thấp),
+     * cùng mức thì gửi trước giao trước. Khóa dòng và bỏ qua dòng đang bị giao ở luồng khác.
+     */
     public Optional<UUID> oldestOpenTicket() {
-        var rows = jdbc.queryForList("SELECT ticket_id FROM support_tickets WHERE status::text='OPEN' AND assigned_to IS NULL ORDER BY created_at, ticket_id LIMIT 1 FOR UPDATE SKIP LOCKED", UUID.class);
+        var rows = jdbc.queryForList("SELECT ticket_id FROM support_tickets WHERE status::text='OPEN' AND assigned_to IS NULL"
+            + " ORDER BY CASE priority::text WHEN 'URGENT' THEN 0 WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END, created_at, ticket_id LIMIT 1 FOR UPDATE SKIP LOCKED", UUID.class);
         return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
 
-    public Optional<UUID> oldestUnavailableTicket() {
+    /** Nhân viên hỗ trợ đang hoạt động kèm số yêu cầu đang xử lý và có trong ca hiện tại không (code null: ngoài giờ ca). */
+    public List<Map<String, Object>> handoverCandidates(LocalDate date, String code) {
         return jdbc.queryForList("""
-            SELECT t.ticket_id FROM support_tickets t
-            WHERE t.status::text IN ('IN_PROGRESS','ESCALATED','RESOLVED') AND t.assigned_to IS NOT NULL
-              AND NOT EXISTS (SELECT 1 FROM users u JOIN roles r ON r.role_id=u.role_id
-                WHERE u.user_id=t.assigned_to AND u.account_status::text='ACTIVE' AND u.deleted_at IS NULL
-                  AND r.is_active=true AND r.role_name='ROLE_CS_STAFF')
-            ORDER BY t.updated_at,t.ticket_id LIMIT 1 FOR UPDATE OF t SKIP LOCKED
-            """, UUID.class).stream().findFirst();
+            SELECT u.user_id, u.full_name,
+              (SELECT count(*) FROM support_tickets t WHERE t.assigned_to=u.user_id AND t.status::text='IN_PROGRESS') AS active_tickets,
+              EXISTS(SELECT 1 FROM support_shifts s WHERE s.staff_id=u.user_id AND s.shift_date=? AND s.shift_code=?) AS on_shift
+            FROM users u JOIN roles r ON r.role_id=u.role_id
+            WHERE u.account_status::text='ACTIVE' AND u.deleted_at IS NULL AND r.is_active=true AND r.role_name='ROLE_CS_STAFF'
+            ORDER BY on_shift DESC, active_tickets, u.full_name, u.user_id""", date, code == null ? "" : code);
+    }
+
+    /** Yêu cầu còn dở mà người phụ trách không còn là nhân viên hỗ trợ hoạt động (chờ Quản lý bàn giao tay). */
+    public List<Map<String, Object>> ticketsNeedingHandover() {
+        return jdbc.queryForList("SELECT t.ticket_id, t.subject, t.assigned_to, u.full_name AS assignee_name FROM support_tickets t"
+            + " JOIN users u ON u.user_id=t.assigned_to WHERE " + SupportTicketRepository.NEEDS_HANDOVER + " ORDER BY t.updated_at LIMIT 200");
     }
 
     public void lockDispatch() { jdbc.queryForList("SELECT pg_advisory_xact_lock(?)", 20261107L); }

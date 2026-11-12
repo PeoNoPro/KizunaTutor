@@ -1,0 +1,289 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bộ thẻ ghi nhớ Flashcards - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- SheetJS Client-side Parser for Excel (.xlsx, .xls) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Tailwind & Project CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/assets/css/learning-support-common.css">
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <link rel="stylesheet" href="/styles/utilities.css">
+</head>
+<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
+  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
+
+    <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
+    <div id="learnerSidebarContainer"></div>
+
+    <!-- 2. MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      
+      <!-- HEADER DÙNG CHUNG CHO HỌC VIÊN -->
+      <div id="learnerHeaderContainer"></div>
+
+      <!-- Scrollable Main Container -->
+      <main class="flex-1 overflow-y-auto p-3 sm:p-4 w-full max-w-6xl mx-auto">
+        <div class="space-y-3">
+
+          <!-- Thanh công cụ tìm kiếm và lọc bộ thẻ -->
+          <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 sm:p-4 space-y-2.5">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+              <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+                <input type="text" id="inputSearchDecks" 
+                       placeholder="Tìm kiếm bộ thẻ theo tên hoặc ghi chú..." 
+                       class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
+              </div>
+              <button type="button" id="btnOpenCreateDeck" class="px-4 py-2 rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-bold border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0">
+                <span class="material-symbols-outlined text-[16px]">add</span>
+                <span>Tạo bộ thẻ mới</span>
+              </button>
+            </div>
+
+            <div class="flex items-center gap-2 text-xs text-slate-600 pt-2 border-t border-[#E2E8F0]">
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="font-medium text-[#0F172A]">Bộ thẻ của bạn:</span>
+              <span id="deckCountBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
+                0 bộ thẻ
+              </span>
+            </div>
+          </div>
+
+          <!-- ==================== LƯỚI DANH SÁCH BỘ THẺ ==================== -->
+          <div id="deckGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch">
+            <!-- Render tự động bởi flashcards.js -->
+          </div>
+
+          <!-- ==================== EMPTY STATE (KHI CHƯA CÓ BỘ THẺ) ==================== -->
+          <div id="deckEmptyState" class="hidden p-8 sm:p-12 text-center rounded-xl border border-dashed border-[#CBD5E1] bg-white space-y-3">
+            <img src="/assets/images/stickers/sleepy-capi.png" 
+                 alt="Capybara Kizuna" 
+                 class="w-14 h-14 mx-auto object-contain pointer-events-none select-none opacity-85">
+            <h3 class="text-sm sm:text-base font-bold text-[#0F172A]">Chưa tìm thấy bộ thẻ nào phù hợp</h3>
+            <p class="text-xs text-slate-500 max-w-md mx-auto">
+              Tạo ngay một bộ thẻ mới để cất giữ những từ vựng khó nhớ và luyện tập lật thẻ mỗi ngày nhé!
+            </p>
+            <button type="button" id="btnEmptyCreateDeck" class="mt-1 px-4 py-2 rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-bold border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] inline-flex items-center gap-1.5 transition cursor-pointer">
+              <span class="material-symbols-outlined text-[16px]">add</span>
+              <span>Tạo bộ thẻ đầu tiên</span>
+            </button>
+          </div>
+
+          <!-- FOOTER DÙNG CHUNG -->
+          <footer class="mt-6 pt-3 pb-3 border-t border-[#0F172A]/10 text-center text-xs text-slate-500">
+            KizunaTutor &copy; 2026 &bull; Đồng hành cùng bạn trên từng thẻ ghi nhớ 🌸
+          </footer>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL TẠO BỘ THẺ ==================== -->
+  <div id="modalCreateDeck" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl shadow-xl max-w-md w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2.5">
+        <h3 class="font-bold text-sm text-[#0F172A] flex items-center gap-2">
+          <span>📁</span>
+          <span id="modalDeckTitle">Tạo bộ thẻ mới</span>
+        </h3>
+        <button type="button" id="btnCloseCreateDeckModal" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label for="deckNameInput" class="block text-xs font-semibold text-[#0F172A] mb-1">
+            Tên bộ thẻ *
+          </label>
+          <input type="text" id="deckNameInput" placeholder="Ví dụ: Từ Vựng N3 Chuyên Đề Thời Tiết" 
+                 class="w-full px-3 py-2 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
+        </div>
+
+        <div>
+          <label for="deckDescInput" class="block text-xs font-semibold text-[#0F172A] mb-1">
+            Mô tả ngắn gọn
+          </label>
+          <textarea id="deckDescInput" rows="2" placeholder="Ghi chú thêm về mục tiêu ôn tập của bộ thẻ này..." 
+                    class="w-full px-3 py-2 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#334155] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition"></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+        <button type="button" id="btnCancelDeck" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] text-[#0F172A] hover:bg-slate-50 transition cursor-pointer">
+          Hủy bỏ
+        </button>
+        <button type="button" id="btnSaveDeck" class="px-4 py-1.5 text-xs font-bold rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] transition cursor-pointer">
+          Lưu bộ thẻ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CHỈNH SỬA & IMPORT EXCEL 2 CỘT ==================== -->
+  <div id="editDeckModal" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl shadow-xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50 shrink-0">
+        <h2 class="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+          <span>✏️</span>
+          <span>Chỉnh Sửa Bộ Thẻ Flashcard</span>
+        </h2>
+        <button type="button" id="btnCloseEditDeckModal" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-4 overflow-y-auto space-y-3">
+        <!-- Sửa Tên & Mô Tả -->
+        <div class="space-y-2.5">
+          <div>
+            <label class="block text-xs font-semibold text-[#0F172A] mb-1">Tên bộ thẻ *</label>
+            <input type="text" id="editDeckNameInput" placeholder="Ví dụ: Từ Vựng N3 - Mimikara Oboeru" class="w-full text-xs p-2 rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843]">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-[#0F172A] mb-1">Mô tả ngắn gọn:</label>
+            <textarea id="editDeckDescInput" rows="2" placeholder="Ghi chú thêm về mục tiêu ôn tập của bộ thẻ này..." class="w-full text-xs p-2 rounded-lg border border-[#CBD5E1] bg-white text-[#334155] focus:outline-none focus:border-[#831843]"></textarea>
+          </div>
+        </div>
+
+        <!-- Khu vực Import Dữ liệu Excel 2 Cột Chuẩn -->
+        <!-- Khu vực Import Dữ liệu Excel Chuẩn Đa Cột & 2 Cột -->
+        <div class="p-3 bg-[#FFE5EC]/70 border border-[#FBCFE8] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div>
+            <div class="text-xs font-bold text-[#831843] flex items-center gap-1.5">
+              <span>📥</span>
+              <span>Nạp thẻ từ Excel (.xlsx, .xls)</span>
+            </div>
+            <div class="text-[11px] text-[#475569] mt-0.5">
+              Mẫu đa cột chuẩn: <strong>Chữ Hán | Hán-Việt | On | Kun | Nghĩa | JLPT</strong> (tự động nhận diện 2 cột)
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" id="btnDownloadSampleExcel"
+                    class="text-xs py-1 px-2.5 bg-white hover:bg-[#FFE5EC] text-[#831843] font-semibold border border-[#FBCFE8] rounded-lg cursor-pointer transition shadow-xs"
+                    title="Tải về file Excel mẫu đa cột">
+              📄 Mẫu Excel
+            </button>
+            <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden">
+            <button type="button" id="btnTriggerExcelUpload"
+                    class="text-xs py-1 px-3 bg-[#831843] hover:bg-[#9F1239] text-white font-semibold rounded-lg cursor-pointer flex items-center gap-1 transition shadow-xs">
+              <span>📂</span>
+              <span>Chọn File Excel</span>
+            </button>
+          </div>
+        </div>
+        <!-- Thêm thẻ thủ công nhanh -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
+          <div class="text-xs font-semibold text-[#0F172A]">➕ Thêm nhanh thẻ lẻ vào bộ:</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="quickAddFrontInput" placeholder="Mặt trước: Câu hỏi / Từ vựng..." class="text-xs p-2 border border-[#CBD5E1] rounded-lg bg-white text-[#0F172A] focus:outline-none focus:border-[#831843]">
+            <input type="text" id="quickAddBackInput" placeholder="Mặt sau: Đáp án / Nghĩa..." class="text-xs p-2 border border-[#CBD5E1] rounded-lg bg-white text-[#334155] focus:outline-none focus:border-[#831843]">
+          </div>
+          <div class="flex justify-end">
+            <button type="button" id="btnQuickAddCard" class="py-1 px-3 bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-bold border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] rounded-lg cursor-pointer flex items-center gap-1">
+              <span>+ Thêm thẻ</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Danh sách thẻ hiện có trong bộ -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-[#0F172A]">Danh sách thẻ học hiện có:</span>
+            <span id="deckCardCountBadge" class="text-[11px] text-slate-700 font-semibold bg-slate-100 px-2 py-0.5 rounded border border-slate-200">0 thẻ</span>
+          </div>
+
+          <div id="deckCardsListContainer" class="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+            <!-- Render động qua JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-4 py-2.5 border-t border-[#E2E8F0] bg-slate-50 flex items-center justify-end gap-2 shrink-0">
+        <button type="button" id="btnCancelEditDeck" class="py-1.5 px-3.5 text-xs font-semibold border border-[#CBD5E1] rounded-lg bg-white text-[#0F172A] hover:bg-slate-100 cursor-pointer">
+          Đóng
+        </button>
+        <button type="button" id="btnSaveDeckChanges" class="py-1.5 px-4 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer flex items-center gap-1">
+          <span>💾</span>
+          <span>Lưu Thay Đổi</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL GỘP BỘ THẺ ==================== -->
+  <div id="mergeDeckModal" class="hidden fixed inset-0 bg-[#0F2545]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-[#E2E8F0] rounded-xl shadow-xl w-full max-w-md flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50">
+        <h2 class="text-sm font-bold text-[#0F172A] flex items-center gap-1.5">
+          <span>🔗</span>
+          <span>Gộp Bộ Thẻ Flashcard</span>
+        </h2>
+        <button type="button" id="btnCloseMergeModal" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer">✕</button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-4 space-y-3 text-xs">
+        <div class="p-2.5 bg-sky-50 border border-sky-200 rounded-lg text-slate-700">
+          <div class="font-semibold text-sky-900">Bộ thẻ nguồn (chứa thẻ cần chuyển):</div>
+          <div id="mergeSourceDeckTitle" class="font-bold text-[#0F172A] text-sm mt-0.5">Tên bộ thẻ nguồn</div>
+          <div id="mergeSourceDeckCount" class="text-[11px] text-sky-700 mt-0.5">0 thẻ</div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-[#0F172A] mb-1">Chọn bộ thẻ đích để gộp vào *</label>
+          <select id="mergeTargetDeckSelect" class="w-full p-2 border border-[#CBD5E1] rounded-lg bg-white text-xs focus:outline-none">
+            <!-- Render động options -->
+          </select>
+        </div>
+
+        <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900 space-y-1">
+          <p class="font-semibold">⚠️ Lưu ý sau khi gộp:</p>
+          <p>Tất cả thẻ từ bộ nguồn sẽ được chuyển sang bộ đích. Bộ đích sẽ lưu tổng hợp thẻ của cả hai bộ.</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="checkDeleteSourceAfterMerge" class="rounded border-slate-300">
+          <label for="checkDeleteSourceAfterMerge" class="text-xs text-slate-700 cursor-pointer select-none">
+            Xóa bộ thẻ nguồn sau khi đã gộp thành công
+          </label>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-4 py-2.5 border-t border-[#E2E8F0] bg-slate-50 flex items-center justify-end gap-2">
+        <button type="button" id="btnCancelMerge" class="py-1.5 px-3.5 text-xs font-semibold border border-[#CBD5E1] rounded-lg bg-white hover:bg-slate-100 cursor-pointer">
+          Hủy bỏ
+        </button>
+        <button type="button" id="btnConfirmMerge" class="py-1.5 px-4 text-xs font-bold rounded-lg bg-[#9F1239] text-white hover:bg-[#BE185D] border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] cursor-pointer flex items-center gap-1">
+          <span>🔗</span>
+          <span>Thực Hiện Gộp</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/components/learner-layout/learner-layout.js"></script>
+  <script type="module" src="/pages/flashcards/flashcards.js"></script>
+</body>
+</html>

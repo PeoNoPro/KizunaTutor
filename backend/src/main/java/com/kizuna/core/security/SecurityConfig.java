@@ -52,7 +52,7 @@ public class SecurityConfig {
             log.warn("Đang bật phiên quản trị phát triển trên máy cục bộ và cơ sở dữ liệu riêng.");
         }
         http
-            .securityMatcher("/api/admin/operations/**", "/api/policies", "/api/policies/**", "/api/v1/tickets", "/api/v1/tickets/**")
+            .securityMatcher("/api/admin/operations/**", "/api/policies", "/api/policies/**", "/api/v1/tickets", "/api/v1/tickets/**", "/api/v1/notifications", "/api/v1/notifications/**")
             .cors(cors -> cors.configurationSource(corsConfigurationSource(origins)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -99,7 +99,12 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/tutor/verification/**").hasAuthority("ROLE_TUTOR")
-                .requestMatchers("/api/academic/verifications/**").hasAuthority("ROLE_ACADEMIC_OFFICER")
+                .requestMatchers("/api/academic/verifications/**", "/api/academic/reviews/**", "/api/academic/reviews",
+                        "/api/academic/profile/**", "/api/academic/profile",
+                        "/api/academic/posts/**", "/api/academic/posts",
+                        "/api/academic/content-imports/**").hasAuthority("ROLE_ACADEMIC_OFFICER")
+                // Bài đăng gia sư (sau khi mua gói)
+                .requestMatchers("/api/tutor/post/**", "/api/tutor/post").hasAuthority("ROLE_TUTOR")
                 // FE-05: Đặt lịch học thử & Quản lý lịch rảnh gia sư
                 .requestMatchers(HttpMethod.POST, "/api/v1/trial-bookings", "/api/trial-bookings").hasAuthority("ROLE_LEARNER")
                 .requestMatchers("/api/v1/trial-bookings/*/respond", "/api/trial-bookings/*/respond").hasAuthority("ROLE_TUTOR")

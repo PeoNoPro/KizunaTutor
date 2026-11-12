@@ -14,27 +14,35 @@ export class AgentMemoryService {
    * Lưu vết nét vẽ hoặc kết quả làm bài vào bộ nhớ dài hạn
    */
   static async recordLearningProgress({ feature, targetChar, score, mistakes, feedback, context }) {
-    const memoryRecord = {
-      userId: this.getCurrentUserId(),
+    const serverPayload = {
       timestamp: new Date().toISOString(),
-      feature: feature || 'shodo', // 'shodo', 'flashcards', 'grammar', 'ai-writing'
+      feature: feature || 'shodo',
       targetChar: targetChar || null,
       score: score || 0,
       mistakes: mistakes || [],
       feedback: feedback || '',
       context: context || {}
     };
+    const memoryRecord = {
+      ...serverPayload,
+      userId: this.getCurrentUserId()
+    };
 
     try {
-      const response = await fetch(MEMORY_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(memoryRecord),
-        signal: AbortSignal.timeout(3000)
-      });
-      if (response.ok) {
-        const json = await response.json();
-        return json;
+      const headers = { 'Content-Type': 'application/json' };
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        const response = await fetch(MEMORY_ENDPOINT, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(serverPayload),
+          signal: AbortSignal.timeout(5000)
+        });
+        if (response.ok) {
+          const json = await response.json();
+          return json;
+        }
       }
     } catch (err) {
       console.debug('[AgentMemory] Service port 8081 not reached directly, storing in resilient local memory:', err.message);

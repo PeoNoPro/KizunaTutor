@@ -1,0 +1,305 @@
+/*
+ * KizunaTutor - Khung nhân viên thống nhất (Quản trị viên, Quản lý vận hành, Chăm sóc khách hàng).
+ * Bố cục theo Cổng học vụ (components/academic-layout): sidebar trắng cao hết màn hình bên trái,
+ * logo trên cùng, menu ở giữa, thẻ tài khoản góc dưới trái, không có thanh trên trên máy tính.
+ * Màu theo khung Quản trị viên (styles/admin-portal.css): nền kem, mục đang mở tô xanh #006194.
+ *
+ * Nạp SAU admin.css / admin-portal.css / cs-workspace.css (admin-shell.js tự chèn cuối <head>),
+ * chỉ áp dụng khi body có .staff-unified. Thuộc tính bố cục dùng !important để thắng các quy tắc cũ
+ * có độ ưu tiên cao hơn (vd .admin-dashboard.admin-portal.support-page .support-main).
+ */
+.staff-unified {
+  --su-bg: #fcfbf7;
+  --su-surface: #f7f4ec;
+  --su-line: #ece8de;
+  --su-primary: #006194;
+  --su-navy: #0f2545;
+  --su-text: #3f4850;
+  --su-muted: #707881;
+  background: var(--su-bg) !important;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* ---------- Sidebar ---------- */
+.staff-unified .admin-sidebar {
+  position: fixed !important;
+  inset: 0 auto 0 0 !important;
+  width: 288px !important;
+  max-height: none !important;
+  padding: 24px 0 16px !important;
+  gap: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #fff !important;
+  border: 0 !important;
+  border-right: 1px solid var(--su-line) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04) !important;
+  overflow-y: auto;
+  z-index: 40 !important;
+}
+.staff-unified .admin-sidebar .admin-brand {
+  display: flex !important;
+  align-items: center;
+  gap: 12px !important;
+  min-height: 0 !important;
+  padding: 0 24px !important;
+  margin: 0 0 32px !important;
+  text-decoration: none;
+}
+.staff-unified .admin-sidebar .admin-brand img {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 8px !important;
+  object-fit: contain;
+}
+.staff-unified .admin-sidebar .admin-brand strong {
+  display: block;
+  font-size: 18px !important;
+  line-height: 26px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+  color: var(--su-navy) !important;
+}
+.staff-unified .admin-sidebar .admin-brand small {
+  display: block;
+  font-size: 11px !important;
+  line-height: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.05em !important;
+  color: var(--su-text) !important;
+}
+
+.staff-unified .sidebar-menu { padding: 0 16px !important; flex: 1 1 auto; }
+.staff-unified .nav-caption {
+  padding: 0 8px !important;
+  margin: 0 0 12px !important;
+  font-size: 11px !important;
+  line-height: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  color: var(--su-muted) !important;
+}
+.staff-unified .sidebar-menu nav { display: flex; flex-direction: column; gap: 4px !important; }
+
+.staff-unified .sidebar-menu a,
+.staff-unified .sidebar-menu button,
+.staff-unified .nav-group > summary {
+  display: flex !important;
+  align-items: center;
+  gap: 12px !important;
+  width: 100%;
+  min-height: 0 !important;
+  padding: 10px 12px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: none !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 500 !important;
+  color: var(--su-text) !important;
+  text-align: left;
+  text-decoration: none;
+  transition: background-color .15s, color .15s;
+}
+.staff-unified .sidebar-menu a:hover,
+.staff-unified .nav-group > summary:hover {
+  background: var(--su-surface) !important;
+  color: var(--su-navy) !important;
+}
+.staff-unified .sidebar-menu a[aria-current=page] {
+  background: var(--su-primary) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+}
+.staff-unified .sidebar-menu button:disabled { opacity: .55; cursor: not-allowed; }
+.staff-unified .sidebar-menu button:disabled:hover { background: none !important; }
+
+/* Biểu tượng: dùng Material Symbols như Cổng học vụ, ẩn ảnh icon cũ */
+.staff-unified .sidebar-menu img { display: none !important; }
+.staff-unified .su-icon {
+  font-family: 'Material Symbols Outlined';
+  font-size: 20px;
+  line-height: 1;
+  font-weight: normal;
+  font-style: normal;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Nhóm thả xuống (Quản lý nhân viên, Vận hành hệ thống...) */
+.staff-unified .nav-group > summary { list-style: none; cursor: pointer; font-weight: 500 !important; }
+.staff-unified .nav-group > summary::-webkit-details-marker { display: none; }
+.staff-unified .nav-group > summary::after {
+  content: '';
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform .15s;
+}
+.staff-unified .nav-group[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
+.staff-unified .nav-group:has(a[aria-current=page]) > summary { color: var(--su-primary) !important; }
+.staff-unified .nav-group-items,
+.staff-unified .support-nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 6px 22px !important;
+  padding-left: 10px !important;
+  border-left: 1px solid var(--su-line) !important;
+}
+.staff-unified .nav-group-items a,
+.staff-unified .support-nav-items a { padding: 8px 12px !important; font-size: 13px !important; }
+
+/* ---------- Thẻ tài khoản góc dưới trái ---------- */
+.staff-unified .sidebar-bottom {
+  margin-top: auto !important;
+  padding: 16px 16px 0 !important;
+  border-top: 0 !important;
+}
+.staff-unified .sidebar-account { position: relative; }
+.staff-unified .sidebar-account-button {
+  display: flex !important;
+  align-items: center;
+  gap: 12px !important;
+  width: 100%;
+  min-height: 0 !important;
+  padding: 12px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: var(--su-surface) !important;
+  box-shadow: none !important;
+  color: var(--su-navy) !important;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .15s;
+}
+.staff-unified .sidebar-account-button:hover { background: var(--su-line) !important; }
+.staff-unified .sidebar-account-button .admin-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #cce5ff;
+  color: #004b73;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(0, 97, 148, .2);
+}
+.staff-unified .sidebar-account-text { min-width: 0; flex: 1; }
+.staff-unified .sidebar-account-text strong {
+  display: block;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--su-navy);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.staff-unified .sidebar-account-text small {
+  display: block;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 500;
+  color: var(--su-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.staff-unified .sidebar-account-chevron { font-size: 18px; color: var(--su-muted); transition: transform .15s; }
+.staff-unified .sidebar-account.is-open .sidebar-account-chevron { transform: rotate(180deg); }
+.staff-unified .sidebar-account-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: none;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 37, 69, .12), 0 0 0 1px rgba(0, 0, 0, .05);
+  z-index: 50;
+}
+.staff-unified .sidebar-account.is-open .sidebar-account-panel { display: flex; }
+.staff-unified .sidebar-account-panel a,
+.staff-unified .sidebar-account-panel button {
+  display: flex !important;
+  align-items: center;
+  gap: 8px !important;
+  width: 100%;
+  min-height: 0 !important;
+  padding: 8px 12px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: none !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 500 !important;
+  color: var(--su-navy) !important;
+  text-align: left;
+  text-decoration: none;
+}
+.staff-unified .sidebar-account-panel a:hover,
+.staff-unified .sidebar-account-panel a[aria-current=page] { background: var(--su-surface) !important; color: var(--su-primary) !important; }
+.staff-unified .sidebar-account-panel .logout-button { color: #ba1a1a !important; }
+.staff-unified .sidebar-account-panel .logout-button:hover { background: #ffdad6 !important; }
+.staff-unified .sidebar-account-divider { height: 1px; margin: 4px 0; background: var(--su-line); }
+.staff-unified .sidebar-account-panel .su-icon { font-size: 18px; }
+
+/* ---------- Thanh trên: chỉ còn trên màn hình nhỏ để mở sidebar ---------- */
+.staff-unified .admin-topbar { display: none !important; }
+
+/* ---------- Nội dung ---------- */
+.staff-unified .dashboard-main,
+.staff-unified.support-page .support-main {
+  margin-left: 288px !important;
+  padding: 32px !important;
+  max-width: none !important;
+}
+
+@media (max-width: 760px) {
+  .staff-unified .admin-sidebar { transform: translateX(-100%); transition: transform .2s; }
+  .staff-unified .admin-sidebar.is-open { transform: translateX(0); }
+  .staff-unified .admin-topbar {
+    display: flex !important;
+    position: fixed !important;
+    top: 0; left: 0; right: 0;
+    margin: 0 !important;
+    height: 64px !important;
+    padding: 0 16px !important;
+    gap: 8px !important;
+    align-items: center;
+    justify-content: flex-start !important;
+    background: rgba(255, 255, 255, .92) !important;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--su-line) !important;
+    z-index: 30 !important;
+  }
+  .staff-unified .admin-topbar .admin-brand,
+  .staff-unified .admin-topbar .topbar-actions,
+  .staff-unified .topbar-breadcrumb > span { display: none !important; }
+  .staff-unified .topbar-breadcrumb { display: flex !important; align-items: center; gap: 8px; min-width: 0; }
+  .staff-unified .topbar-breadcrumb strong { font-size: 14px; font-weight: 600; color: var(--su-navy); overflow: hidden; text-overflow: ellipsis; }
+  .staff-unified .menu-toggle { display: block !important; font-size: 22px; padding: 4px 6px; background: none; border: 0; color: var(--su-text); }
+  .staff-unified .sidebar-backdrop { position: fixed; inset: 0; background: rgba(15, 37, 69, .38); z-index: 35; border: 0; }
+  .staff-unified .dashboard-main,
+  .staff-unified.support-page .support-main {
+    margin-left: 0 !important;
+    padding: 88px 16px 24px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-unified .admin-sidebar { transition: none; }
+}

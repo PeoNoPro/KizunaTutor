@@ -8,6 +8,8 @@ import java.util.*;
 public class SupportTicketContextRepository {
  private final JdbcTemplate jdbc;
  public SupportTicketContextRepository(@Qualifier("ticketJdbc") JdbcTemplate jdbc){this.jdbc=jdbc;}
+ /** Giờ bắt đầu buổi học thử (để đặt mức ưu tiên ban đầu); không có thì rỗng. */
+ public Optional<java.time.OffsetDateTime> bookingStart(UUID booking){if(booking==null)return Optional.empty();return jdbc.query("SELECT scheduled_start_time FROM trial_bookings WHERE booking_id=?",(rs,n)->rs.getObject(1,java.time.OffsetDateTime.class),booking).stream().findFirst();}
  private String source(String type){return switch(type){
    case "booking"->"SELECT b.booking_id AS id,to_char(b.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh','DD/MM/YYYY HH24:MI') AS label,b.booking_status::text AS state,null::uuid AS plan_id,null::text AS transaction_ref FROM trial_bookings b LEFT JOIN learners l ON l.learner_id=b.learner_id LEFT JOIN tutors t ON t.tutor_id=b.tutor_id WHERE (l.user_id=? OR t.user_id=?)";
    case "membership"->"SELECT m.membership_id AS id,p.plan_name AS label,m.status::text AS state,m.plan_id,m.transaction_ref FROM tutor_memberships m JOIN tutors t ON t.tutor_id=m.tutor_id JOIN membership_plans p ON p.plan_id=m.plan_id WHERE t.user_id=?";

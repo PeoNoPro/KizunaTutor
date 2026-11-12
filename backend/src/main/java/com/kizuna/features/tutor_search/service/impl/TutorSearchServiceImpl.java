@@ -8,6 +8,11 @@ import com.kizuna.features.tutor_search.dto.TutorCredentialDTO;
 import com.kizuna.features.tutor_search.dto.TutorAvailabilityDTO;
 import com.kizuna.features.tutor_search.dto.TutorBookedSlotDTO;
 import com.kizuna.features.tutor_search.dto.TutorReviewDTO;
+import com.kizuna.features.tutor_search.dto.TutorWeekScheduleDTO;
+import com.kizuna.core.exception.BadRequestException;
+import com.kizuna.core.exception.ResourceNotFoundException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -54,6 +59,10 @@ import java.util.stream.Collectors;
 public class TutorSearchServiceImpl implements TutorSearchService {
 
     private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    /** Số tuần học viên được xem lịch rảnh (tính cả tuần hiện tại). */
+    public static final int SCHEDULE_WEEKS = com.kizuna.features.booking.service.BookingLimits.DIRECT_SCHEDULE_WEEKS;
+    /** Ca kết nối ngắn nhất (phút): khoảng trống ngắn hơn thì không hiển thị. */
+    private static final int MIN_CONNECT_DURATION = 60;
     private static final Pattern PUBLIC_GPS_PATTERN =
             Pattern.compile("[-+]?\\d{1,3}\\.\\d{4,}");
     private static final Pattern PUBLIC_STREET_PATTERN =
@@ -198,6 +207,71 @@ public class TutorSearchServiceImpl implements TutorSearchService {
             return null;
         }
         return mapAll(List.of(tutor), true).get(0);
+    }
+
+    // ------------------------------------------------------------------ lịch rảnh theo tuần
+
+    @Override
+    public TutorWeekScheduleDTO getWeeklySchedule(UUID tutorId, LocalDate requestedWeekStart) {
+        if (!tutorSearchRepository.existsById(tutorId)) {
+            throw new ResourceNotFoundException("Không tìm thấy thông tin gia sư với mã yêu cầu");
+        }
+        LocalDateTime now = LocalDateTime.now(VN_ZONE);
+        LocalDate minWeek = now.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate maxWeek = minWeek.plusWeeks(SCHEDULE_WEEKS - 1L);
+        LocalDate weekStart = requestedWeekStart == null
+                ? minWeek
+                : requestedWeekStart.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        if (weekStart.isBefore(minWeek) || weekStart.isAfter(maxWeek)) {
+            throw new BadRequestException("Chỉ có thể xem lịch rảnh trong " + SCHEDULE_WEEKS + " tuần tính từ tuần này");
+        }
+
+        TutorScheduleData data = loadScheduleData(List.of(tutorId), true).get(tutorId);
+        List<WeeklyScheduleCalculator.WeeklyRange> availabilities = data.availabilities().stream()
+                .map(TutorSearchServiceImpl::toWeeklyRange).toList();
+        List<WeeklyScheduleCalculator.WeeklyRange> weeklyBusy = new ArrayList<>();
+        data.classSchedules().forEach(cs -> weeklyBusy.add(toWeeklyRange(cs)));
+        data.lockedSlots().forEach(lk -> weeklyBusy.add(toWeeklyRange(lk)));
+        DateTimeFormatter dmy = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        List<WeeklyScheduleCalculator.DatedRange> trials = data.bookedSlots().stream()
+                .filter(b -> b.getDate() != null && b.getStartTime() != null && b.getEndTime() != null)
+                .map(b -> {
+                    int start = parseMinutes(b.getStartTime());
+                    int end = parseMinutes(b.getEndTime());
+                    return new WeeklyScheduleCalculator.DatedRange(LocalDate.parse(b.getDate(), dmy), start,
+                            end <= start ? WeeklyScheduleCalculator.DAY_MINUTES : end);
+                })
+                .toList();
+
+        List<TutorWeekScheduleDTO.Day> days = WeeklyScheduleCalculator
+                .compute(weekStart, availabilities, weeklyBusy, trials, now, MIN_CONNECT_DURATION).stream()
+                .map(d -> TutorWeekScheduleDTO.Day.builder()
+                        .date(d.date())
+                        .dayOfWeek(d.dayOfWeek())
+                        .dayName(dayName(d.dayOfWeek()))
+                        .freeRanges(d.freeRanges().stream()
+                                .map(r -> TutorWeekScheduleDTO.TimeRange.builder()
+                                        .startTime(formatMinutes(r.start()))
+                                        .endTime(formatMinutes(r.end()))
+                                        .build())
+                                .toList())
+                        .build())
+                .toList();
+
+        return TutorWeekScheduleDTO.builder()
+                .weekStart(weekStart)
+                .weekEnd(weekStart.plusDays(6))
+                .minWeekStart(minWeek)
+                .maxWeekStart(maxWeek)
+                .days(days)
+                .build();
+    }
+
+    private static WeeklyScheduleCalculator.WeeklyRange toWeeklyRange(TutorAvailabilityDTO a) {
+        int start = parseMinutes(a.getStartTime());
+        int end = parseMinutes(a.getEndTime());
+        return new WeeklyScheduleCalculator.WeeklyRange(a.getDayOfWeek(), start,
+                end <= start ? WeeklyScheduleCalculator.DAY_MINUTES : end);
     }
 
     // ------------------------------------------------------------------ nạp dữ liệu theo lô

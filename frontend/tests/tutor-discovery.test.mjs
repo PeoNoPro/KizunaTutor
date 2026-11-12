@@ -345,4 +345,8 @@ test('trang tutor-profile tự động cuộn tới lịch rảnh tuần sau khi
   const ctaBlock = profileJs.slice(ctaBlockStart, ctaBlockEnd);
   assert.ok(!ctaBlock.includes('calendar_add_on'), 'Không hiển thị icon calendar_add_on trên nút Đặt lịch học thử 1-1');
   assert.ok(!ctaBlock.includes('handshake'), 'Không hiển thị icon handshake trên nút Kết nối với gia sư');
+  assert.ok(!profileJs.includes('<span class="w-2.5 h-2.5 rounded bg-slate-200"></span>Đã có học viên'), 'Không hiển thị chú thích Đã có học viên ở đầu khối lịch rảnh');
+  assert.ok(profileJs.includes('id="week-range-label"'), 'Vẫn giữ nhãn khoảng ngày của tuần ở khối lịch rảnh');
+  assert.ok(!profileJs.includes('week-index-label'), 'Không hiển thị nhãn số thứ tự tuần week-index-label');
+  assert.ok(!profileJs.includes('Tuần này (1/'), 'Không hiển thị nhãn Tuần này (1/...) ở khối lịch rảnh');
 });

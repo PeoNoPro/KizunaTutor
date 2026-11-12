@@ -7,7 +7,6 @@
 import { API } from '../../js/api.js';
 import { formatVND } from '../../js/main.js';
 import { openModal, closeModal } from '../../components/modal/modal.js';
-import { isSlotClashing } from '../../js/tutor-schedule-helpers.js';
 import { containsDetailedAddressOrGps, escapeHtml } from '../../js/profile-utils.js';
 
 function sanitizeDisplayLocation(rawLocation) {
@@ -407,14 +406,22 @@ document.addEventListener('DOMContentLoaded', async () => {
               <div class="space-y-1">
                 <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
                   <span class="material-symbols-outlined text-primary">calendar_month</span>
-                  Lịch rảnh giảng dạy hằng tuần
+                  Lịch rảnh giảng dạy
                 </h3>
                 <p class="text-xs text-on-surface-variant leading-relaxed">
-                  Bấm vào giờ bạn muốn để mở form kết nối với gia sư. Bạn không cần học thử trước.
+                  Chỉ hiển thị giờ còn trống trong 4 tuần tới. Bấm vào giờ bạn muốn để mở form kết nối với gia sư. Bạn không cần học thử trước.
                 </p>
               </div>
-              <div class="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
-                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-200"></span>Đã có học viên</span>
+              <div class="flex items-center gap-1.5">
+                <button type="button" id="week-prev-btn" class="w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-700 disabled:text-slate-300 disabled:hover:bg-white disabled:cursor-not-allowed cursor-pointer transition-all" aria-label="Tuần trước">
+                  <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                </button>
+                <div class="min-w-[150px] text-center">
+                  <div id="week-range-label" class="text-sm font-bold text-[#0F2545]">&nbsp;</div>
+                </div>
+                <button type="button" id="week-next-btn" class="w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-700 disabled:text-slate-300 disabled:hover:bg-white disabled:cursor-not-allowed cursor-pointer transition-all" aria-label="Tuần sau">
+                  <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                </button>
               </div>
             </div>
 
@@ -649,34 +656,117 @@ document.addEventListener('DOMContentLoaded', async () => {
       return (err && err.message) ? err.message : fallback;
     }
 
-    // ---------------------------------------------------------------- Lịch rảnh hằng tuần (chỉ hiển thị)
+    // ---------------------------------------------------------------- Lịch rảnh theo tuần (4 tuần tới)
+    // Server chỉ trả về khung giờ còn trống: đã trừ lịch lớp, ca đã có học viên, buổi học thử
+    // (ở ngày đó và các tuần sau, vì kết nối là ca lặp lại hằng tuần) và giờ đã qua.
 
-    function lockedRangesOf(dow) {
-      return (tutor.lockedSlots || [])
-        .filter(l => Number(l.dayOfWeek) === dow && l.startTime && l.endTime)
-        .map(l => ({ start: toMinutes(l.startTime), end: toMinutes(l.endTime) }));
+    const weekCache = new Map(); // weekStart "YYYY-MM-DD" -> dữ liệu tuần
+    let weekData = null;         // tuần đang xem
+    let weekLoadSeq = 0;
+
+    const fmtDM = (iso) => { const [, mo, d] = String(iso).split('-'); return `${d}/${mo}`; };
+    const fmtDMY = (iso) => { const [y, mo, d] = String(iso).split('-'); return `${d}/${mo}/${y}`; };
+    const addDaysIso = (iso, n) => {
+      const [y, mo, d] = String(iso).split('-').map(Number);
+      const dt = new Date(Date.UTC(y, mo - 1, d + n));
+      return dt.toISOString().slice(0, 10);
+    };
+    const todayIsoVN = () => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+
+    function dayOf(dow) {
+      return weekData ? (weekData.days || []).find(d => Number(d.dayOfWeek) === dow) : null;
     }
 
-    /** Khung rảnh của một ngày sau khi trừ đi các ca đã có học viên. */
+    /** Khung giờ còn trống của một thứ trong tuần đang xem (phút từ 00:00). */
     function freeRangesOf(dow) {
-      const locked = lockedRangesOf(dow);
-      const result = [];
-      (tutor.availabilities || [])
-        .filter(a => Number(a.dayOfWeek) === dow && a.startTime && a.endTime)
-        .forEach(a => {
-          let pieces = [{ start: toMinutes(a.startTime), end: toMinutes(a.endTime) }];
-          locked.forEach(l => {
-            pieces = pieces.flatMap(p => {
-              if (!overlaps(p.start, p.end, l.start, l.end)) return [p];
-              const parts = [];
-              if (l.start > p.start) parts.push({ start: p.start, end: l.start });
-              if (l.end < p.end) parts.push({ start: l.end, end: p.end });
-              return parts;
-            });
-          });
-          result.push(...pieces.filter(p => p.end - p.start >= 30));
-        });
-      return result.sort((x, y) => x.start - y.start);
+      const day = dayOf(dow);
+      return (day ? day.freeRanges || [] : [])
+        .map(r => ({ start: toMinutes(r.startTime), end: toMinutes(r.endTime) }))
+        .sort((x, y) => x.start - y.start);
+    }
+
+    async function loadWeek(weekStart = null) {
+      const key = weekStart || '__current__';
+      if (weekCache.has(key)) return weekCache.get(key);
+      const data = await API.tutors.getWeeklySchedule(tutor.tutorId, weekStart);
+      weekCache.set(data.weekStart, data);
+      if (!weekStart) weekCache.set(key, data);
+      return data;
+    }
+
+    /** Chuyển sang tuần khác: tải dữ liệu, bỏ các ca đã chọn không còn trống ở tuần mới, vẽ lại bảng và form. */
+    async function showWeek(weekStart = null) {
+      const seq = ++weekLoadSeq;
+      const gridEl = document.getElementById('weekly-calendar-grid');
+      if (gridEl && !weekData) {
+        gridEl.innerHTML = '<div class="col-span-7 py-8 text-center text-xs text-slate-500">Đang tải lịch rảnh...</div>';
+      }
+      setWeekNavBusy(true);
+      try {
+        const data = await loadWeek(weekStart);
+        if (seq !== weekLoadSeq) return;
+        weekData = data;
+        for (let i = selectedSlots.length - 1; i >= 0; i--) {
+          const s = selectedSlots[i];
+          if (!startTimesOf(s.dow, s.duration).includes(s.start)) selectedSlots.splice(i, 1);
+        }
+        renderWeeklyCalendar();
+        renderConnectForm();
+      } catch (err) {
+        if (seq !== weekLoadSeq) return;
+        console.error('Lỗi khi tải lịch rảnh theo tuần:', err);
+        if (gridEl) {
+          gridEl.innerHTML = `
+            <div class="col-span-7 py-8 text-center space-y-2">
+              <div class="text-sm font-bold text-[#0F2545]">Không tải được lịch rảnh</div>
+              <div class="text-xs text-slate-500">${escapeHtml(friendlyError(err, 'Vui lòng thử lại sau.'))}</div>
+              <button type="button" id="week-retry-btn" class="mt-1 py-1.5 px-4 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">Thử lại</button>
+            </div>`;
+          const retry = document.getElementById('week-retry-btn');
+          if (retry) retry.addEventListener('click', () => showWeek(weekStart));
+        }
+      } finally {
+        if (seq === weekLoadSeq) setWeekNavBusy(false);
+      }
+    }
+
+    function setWeekNavBusy(busy) {
+      const canPrev = !!weekData && weekData.weekStart > weekData.minWeekStart;
+      const canNext = !!weekData && weekData.weekStart < weekData.maxWeekStart;
+      ['week-prev-btn', 'dc-week-prev'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = busy || !canPrev;
+      });
+      ['week-next-btn', 'dc-week-next'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = busy || !canNext;
+      });
+    }
+
+    function shiftWeek(delta) {
+      if (!weekData) return;
+      const target = addDaysIso(weekData.weekStart, delta * 7);
+      if (target < weekData.minWeekStart || target > weekData.maxWeekStart) return;
+      showWeek(target);
+    }
+
+    /** Ngày bắt đầu học gửi lên server: hôm nay nếu đang xem tuần này, ngược lại là Thứ Hai của tuần đang xem. */
+    function connectStartDate() {
+      if (!weekData) return null;
+      const today = todayIsoVN();
+      return weekData.weekStart < today ? today : weekData.weekStart;
+    }
+
+    function renderWeekHeader() {
+      const rangeEl = document.getElementById('week-range-label');
+      if (weekData && rangeEl) {
+        rangeEl.textContent = `${fmtDM(weekData.weekStart)} – ${fmtDMY(weekData.weekEnd)}`;
+      }
+      const startLabel = document.getElementById('dc-start-label');
+      if (startLabel && weekData) {
+        startLabel.textContent = `${fmtDMY(connectStartDate())} (tuần ${fmtDM(weekData.weekStart)} – ${fmtDM(weekData.weekEnd)})`;
+      }
+      setWeekNavBusy(false);
     }
 
     function renderWeeklyCalendar() {
@@ -691,42 +781,44 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>`;
         return;
       }
+      if (!weekData) return;
+      renderWeekHeader();
 
       const expandWrapper = document.getElementById('weekly-expand-wrapper');
       const expandText = document.getElementById('toggle-weekly-slots-text');
       const expandIcon = document.getElementById('toggle-weekly-slots-icon');
+      const today = todayIsoVN();
       let anyColumnTooLong = false;
 
       gridEl.innerHTML = WEEKDAY_COLUMNS.map(col => {
-        // Giờ bắt đầu còn trống (đủ cho ca ngắn nhất) + các ca đã có học viên (mờ)
-        const items = [
-          ...startTimesOf(col.dow, MIN_CONNECT_DURATION).map(start => ({ start, locked: false })),
-          ...lockedRangesOf(col.dow).map(r => ({ ...r, locked: true }))
-        ].sort((x, y) => x.start - y.start);
-        const hasFree = items.some(i => !i.locked);
-        if (items.length > MAX_PREVIEW_ITEMS) anyColumnTooLong = true;
-        const shown = isWeeklySlotsExpanded ? items : items.slice(0, MAX_PREVIEW_ITEMS);
+        const day = dayOf(col.dow);
+        const date = day ? day.date : null;
+        const isPast = !!date && date < today;
+        const isToday = date === today;
+        // Chỉ hiện giờ còn trống (đủ cho ca ngắn nhất); giờ đã có lịch bị ẩn hẳn
+        const starts = startTimesOf(col.dow, MIN_CONNECT_DURATION);
+        const hasFree = starts.length > 0;
+        if (starts.length > MAX_PREVIEW_ITEMS) anyColumnTooLong = true;
+        const shown = isWeeklySlotsExpanded ? starts : starts.slice(0, MAX_PREVIEW_ITEMS);
 
-        const itemsHtml = shown.map(i => i.locked ? `
-            <div class="w-full py-1 px-1 rounded-lg bg-slate-100 text-slate-400 text-center select-none cursor-not-allowed" title="Ca này đã có học viên">
-              <div class="text-[11px] sm:text-xs font-semibold line-through">${toHHMM(i.start)}–${toHHMM(i.end)}</div>
-              <div class="text-[10px] font-medium">Đã có học viên</div>
-            </div>` : `
+        const itemsHtml = shown.map(start => `
             <button type="button"
               class="weekly-slot-btn w-full py-1.5 px-1 rounded-lg text-xs sm:text-sm font-semibold text-[#0F2545] hover:text-[#006194] hover:bg-sky-50 underline decoration-slate-300 hover:decoration-[#006194] underline-offset-4 transition-all text-center cursor-pointer active:scale-95"
-              data-dow="${col.dow}" data-start="${i.start}"
-              title="Kết nối học ${col.fullName} lúc ${toHHMM(i.start)} hằng tuần">
-              ${toHHMM(i.start)}
+              data-dow="${col.dow}" data-start="${start}"
+              title="Kết nối học ${col.fullName} lúc ${toHHMM(start)} hằng tuần, bắt đầu từ ${date ? fmtDMY(date) : ''}">
+              ${toHHMM(start)}
             </button>`).join('');
 
+        const emptyText = isPast ? 'Đã qua' : 'Không có ca';
         return `
-          <div class="flex flex-col items-center min-w-[76px] sm:min-w-[82px] text-center">
+          <div class="flex flex-col items-center min-w-[76px] sm:min-w-[82px] text-center ${isPast ? 'opacity-60' : ''}">
             <div class="h-1 w-full rounded-full ${hasFree ? 'bg-emerald-500' : 'bg-slate-200'} mb-2.5"></div>
             <div class="pb-2 w-full">
               <span class="block text-xs sm:text-sm font-bold ${hasFree ? 'text-slate-700' : 'text-slate-400'}">${col.shortName}</span>
+              <span class="block text-[11px] font-semibold ${isToday ? 'text-[#006194]' : 'text-slate-400'}">${date ? fmtDM(date) : ''}${isToday ? ' · Hôm nay' : ''}</span>
             </div>
             <div class="w-full flex flex-col items-center gap-1.5 pt-1 min-h-[50px]">
-              ${itemsHtml || '<span class="text-[11px] text-slate-300 pt-2">Không có ca</span>'}
+              ${itemsHtml || `<span class="text-[11px] text-slate-300 pt-2">${emptyText}</span>`}
             </div>
           </div>`;
       }).join('');
@@ -766,7 +858,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const starts = [];
       freeRangesOf(dow).forEach(r => {
         for (let t = Math.ceil(r.start / 30) * 30; t + duration <= r.end && t + duration < 24 * 60; t += 30) {
-          if (isSlotClashing(tutor, dow, null, t, duration)) continue;
           starts.push(t);
         }
       });
@@ -790,6 +881,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderConnectForm() {
+      if (weekData) renderWeekHeader();
       // Thời lượng
       const durEl = document.getElementById('dc-duration');
       if (durEl) {
@@ -904,6 +996,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     /** preselect: { dow, start } khi học viên bấm một giờ trên bảng lịch rảnh. */
     function openDirectModal(preselect = null) {
+      if (!weekData) {
+        // Lịch tuần chưa tải xong (hoặc tải lỗi): tải rồi mở lại form
+        showWeek().then(() => { if (weekData) openDirectModal(preselect); });
+        return;
+      }
       if (preselect) {
         connectDay = preselect.dow;
         const already = selectedSlots.some(s => s.dow === preselect.dow && s.start === preselect.start);
@@ -940,6 +1037,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const payload = {
           tutorId: tutor.tutorId,
           slots: selectedSlots.map(s => ({ dayOfWeek: s.dow, startTime: toHHMM(s.start), durationMinutes: s.duration })),
+          startDate: connectStartDate(),
           currentLevel: level ? level.value : null,
           learningGoals: goals ? (goals.value.trim() || null) : null,
           initialMessage: notes ? (notes.value.trim() || null) : null
@@ -965,6 +1063,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </p>
                 <ul class="p-4 bg-[#FAF8F2] rounded-2xl border border-[#ECE8DE] text-xs text-left space-y-1.5">
                   ${selectedSlots.map(s => `<li class="font-semibold text-[#0F2545]">${slotLabel(s)}</li>`).join('')}
+                  ${payload.startDate ? `<li class="pt-1 text-slate-500">Bắt đầu học từ ${fmtDMY(payload.startDate)}</li>` : ''}
                 </ul>
                 <div class="grid grid-cols-2 gap-2.5 pt-2">
                   <a href="/pages/learner-requests/?tab=direct" class="py-2.5 px-3 rounded-xl bg-[#006194] hover:bg-[#004b73] text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5">
@@ -983,6 +1082,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           showDirectError(friendlyError(err, 'Không thể gửi yêu cầu kết nối lúc này. Vui lòng thử lại sau.'));
           directSubmitBtn.disabled = false;
           directSubmitBtn.innerHTML = original;
+          if (err && err.status === 409 && weekData) {
+            // Có người vừa nhận giờ này: tải lại lịch để ẩn giờ đã kín
+            weekCache.clear();
+            showWeek(weekData.weekStart);
+          }
         }
       });
     }
@@ -1000,7 +1104,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    renderWeeklyCalendar();
+    [['week-prev-btn', -1], ['week-next-btn', 1], ['dc-week-prev', -1], ['dc-week-next', 1]].forEach(([id, delta]) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', () => shiftWeek(delta));
+    });
+
+    if ((tutor.availabilities || []).length) {
+      showWeek();
+    } else {
+      renderWeeklyCalendar();
+    }
 
     // ---------------------------------------------------------------- Modal học thử (tự chọn ngày giờ)
 

@@ -27,6 +27,8 @@ public class ConnectionRequestResponseDTO {
     private String partnerRole;
 
     private List<SlotView> slots;
+    /** Ngày bắt đầu học các ca hằng tuần (có thể null với yêu cầu cũ). */
+    private java.time.LocalDate startDate;
 
     private String currentLevel;
     private String learningGoals;

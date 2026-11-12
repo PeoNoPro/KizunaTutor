@@ -36,4 +36,10 @@ public interface TutorSearchService {
      * Lấy danh sách các tỉnh/thành phố có gia sư thực tế trong hệ thống.
      */
     List<String> getAvailableLocations();
+
+    /**
+     * Khung giờ còn trống của gia sư cho từng ngày trong một tuần (tuần hiện tại đến 3 tuần sau).
+     * @param weekStart ngày bất kỳ trong tuần cần xem (null = tuần hiện tại)
+     */
+    com.kizuna.features.tutor_search.dto.TutorWeekScheduleDTO getWeeklySchedule(UUID tutorId, java.time.LocalDate weekStart);
 }

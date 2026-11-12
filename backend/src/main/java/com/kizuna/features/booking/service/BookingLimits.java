@@ -23,6 +23,9 @@ public final class BookingLimits {
     /** Yêu cầu kết nối trực tiếp tự hết hạn nếu gia sư chưa phản hồi sau chừng này ngày. */
     public static final int DIRECT_RESPONSE_DAYS = 5;
 
+    /** Học viên được xem lịch rảnh và chọn ngày bắt đầu học trong chừng này tuần (tính cả tuần hiện tại). */
+    public static final int DIRECT_SCHEDULE_WEEKS = 4;
+
     /** Bị gia sư từ chối thì phải chờ chừng này giờ mới được gửi lại cho đúng gia sư đó. */
     public static final int DECLINE_COOLDOWN_HOURS = 24;
 }

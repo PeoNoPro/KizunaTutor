@@ -88,6 +88,33 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
                                                       @Param("startTime") java.time.LocalTime startTime,
                                                       @Param("endTime") java.time.LocalTime endTime);
 
+    /**
+     * Gia sư có buổi học thử còn hiệu lực (của học viên KHÁC) rơi vào ca hằng tuần này, tính từ ngày {@code fromDate}
+     * trở đi (theo giờ Việt Nam). pgDow theo EXTRACT(DOW): 0 = Chủ nhật ... 6 = Thứ Bảy.
+     * Buổi học thử của chính học viên không tính vì sẽ tự hủy khi gia sư đồng ý kết nối.
+     */
+    @Query(value = """
+            SELECT EXISTS (
+                SELECT 1 FROM trial_bookings tb
+                WHERE tb.tutor_id = :tutorId
+                  AND tb.learner_id <> :learnerId
+                  AND tb.booking_status IN ('PENDING', 'CONFIRMED', 'RESCHEDULED')
+                  AND tb.scheduled_end_time > CURRENT_TIMESTAMP
+                  AND CAST(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date) >= :fromDate
+                  AND EXTRACT(DOW FROM tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh') = :pgDow
+                  AND CAST(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS time) < :endTime
+                  AND (CAST(tb.scheduled_end_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS time) > :startTime
+                       OR CAST(tb.scheduled_end_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date)
+                          > CAST(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date))
+            )
+            """, nativeQuery = true)
+    boolean existsTrialClashFrom(@Param("tutorId") UUID tutorId,
+                                 @Param("learnerId") UUID learnerId,
+                                 @Param("fromDate") java.time.LocalDate fromDate,
+                                 @Param("pgDow") int pgDow,
+                                 @Param("startTime") java.time.LocalTime startTime,
+                                 @Param("endTime") java.time.LocalTime endTime);
+
     /** Cặp học viên - gia sư đang có buổi học thử ở một trong các trạng thái (dùng để chặn gửi trùng). */
     boolean existsByLearnerLearnerIdAndTutorTutorIdAndBookingStatusIn(UUID learnerId, UUID tutorId,
                                                                        java.util.Collection<TrialBookingStatus> statuses);

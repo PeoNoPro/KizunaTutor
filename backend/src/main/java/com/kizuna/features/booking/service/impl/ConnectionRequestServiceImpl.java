@@ -34,7 +34,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.DayOfWeek;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -49,6 +54,7 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
 
     /** Thời lượng một ca học chính thức được phép chọn (phút). */
     static final Set<Integer> ALLOWED_DURATIONS = Set.of(60, 90, 120);
+    private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final UUID NO_REQUEST = new UUID(0L, 0L);
     private static final DateTimeFormatter HH_MM = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -126,21 +132,24 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
             throw new ConflictException("Bạn đã gửi yêu cầu kết nối tới gia sư này và đang chờ gia sư phản hồi.");
         }
 
+        LocalDate startDate = resolveStartDate(request.getStartDate());
         List<SlotRange> ranges = normalizeSlots(request.getSlots());
         for (SlotRange r : ranges) {
             if (!tutorScheduleService.isSlotAvailable(tutorId, r.dayOfWeek(), r.start(), r.end())) {
                 throw new BadRequestException("Ca " + r.label() + " nằm ngoài lịch rảnh của gia sư. Vui lòng chọn ca khác.");
             }
-            ensureSlotFree(tutorId, learnerId, NO_REQUEST, r,
+            ensureSlotFree(tutorId, learnerId, NO_REQUEST, r, startDate,
                     "Ca " + r.label() + " đã có học viên khác nhận. Vui lòng chọn ca khác.",
                     "Ca " + r.label() + " trùng lịch dạy lớp chính thức của gia sư. Vui lòng chọn ca khác.",
-                    "Ca " + r.label() + " trùng lịch học lớp chính thức của bạn. Vui lòng chọn ca khác.");
+                    "Ca " + r.label() + " trùng lịch học lớp chính thức của bạn. Vui lòng chọn ca khác.",
+                    "Ca " + r.label() + " trùng buổi học thử gia sư đã nhận với học viên khác. Vui lòng chọn ca khác.");
         }
 
         ConnectionRequest connection = ConnectionRequest.builder()
                 .learner(learner)
                 .tutor(tutor)
                 .requestType(ConnectionRequestType.DIRECT)
+                .startDate(startDate)
                 .status(ConnectionRequestStatus.PENDING)
                 .initialMessage(composeInitialMessage(level, goals, trimToNull(request.getInitialMessage())))
                 .build();
@@ -225,12 +234,15 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         if ("ACCEPT".equals(action)) {
             lockTutor(tutor.getTutorId());
             UUID learnerId = connection.getLearner().getLearnerId();
+            LocalDate startDate = connection.getStartDate() == null || connection.getStartDate().isBefore(today())
+                    ? today() : connection.getStartDate();
             for (ConnectionRequestSlot slot : connection.getSlots()) {
                 SlotRange r = new SlotRange(slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime());
-                ensureSlotFree(tutor.getTutorId(), learnerId, connection.getRequestId(), r,
+                ensureSlotFree(tutor.getTutorId(), learnerId, connection.getRequestId(), r, startDate,
                         "Ca " + r.label() + " đã được bạn nhận cho học viên khác. Hãy từ chối và đề nghị học viên chọn ca khác.",
                         "Ca " + r.label() + " trùng lịch dạy lớp chính thức của bạn. Hãy từ chối và đề nghị học viên chọn ca khác.",
-                        "Ca " + r.label() + " trùng lịch học lớp chính thức hiện tại của học viên. Hãy từ chối và đề nghị học viên chọn ca khác.");
+                        "Ca " + r.label() + " trùng lịch học lớp chính thức hiện tại của học viên. Hãy từ chối và đề nghị học viên chọn ca khác.",
+                        "Ca " + r.label() + " trùng buổi học thử bạn đã nhận với học viên khác. Hãy từ chối hoặc dời buổi học thử đó.");
             }
             connection.setStatus(ConnectionRequestStatus.ACCEPTED);
             connection.setRespondedAt(now);
@@ -336,8 +348,9 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         return ranges;
     }
 
-    private void ensureSlotFree(UUID tutorId, UUID learnerId, UUID excludeRequestId, SlotRange r,
-                                String lockedMessage, String tutorClassMessage, String learnerClassMessage) {
+    private void ensureSlotFree(UUID tutorId, UUID learnerId, UUID excludeRequestId, SlotRange r, LocalDate startDate,
+                                String lockedMessage, String tutorClassMessage, String learnerClassMessage,
+                                String trialMessage) {
         if (slotRepository.existsLockedSlotOverlap(tutorId, excludeRequestId, r.dayOfWeek(), r.start(), r.end())) {
             throw new ConflictException(lockedMessage);
         }
@@ -347,6 +360,40 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
                 .ifPresent(who -> {
                     throw new ConflictException("TUTOR".equals(who) ? tutorClassMessage : learnerClassMessage);
                 });
+        // Ca lặp lại hằng tuần: mọi buổi học thử cùng thứ, trùng giờ, từ buổi đầu tiên trở đi đều bị đụng
+        LocalDate first = firstOccurrence(startDate, r, LocalDateTime.now(VN_ZONE));
+        if (trialBookingRepository.existsTrialClashFrom(tutorId, learnerId, first, r.dayOfWeek() - 1, r.start(), r.end())) {
+            throw new ConflictException(trialMessage);
+        }
+    }
+
+    private static LocalDate today() {
+        return LocalDate.now(VN_ZONE);
+    }
+
+    /**
+     * Ngày bắt đầu học: không sớm hơn hôm nay, không muộn hơn tuần cuối cùng học viên được xem lịch.
+     * Bỏ trống = hôm nay.
+     */
+    static LocalDate resolveStartDate(LocalDate requested) {
+        LocalDate today = today();
+        if (requested == null || requested.isBefore(today)) return today;
+        LocalDate lastViewable = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                .plusWeeks(BookingLimits.DIRECT_SCHEDULE_WEEKS).minusDays(1);
+        if (requested.isAfter(lastViewable)) {
+            throw new BadRequestException("Ngày bắt đầu học chỉ có thể trong " + BookingLimits.DIRECT_SCHEDULE_WEEKS
+                    + " tuần tính từ tuần này");
+        }
+        return requested;
+    }
+
+    /** Ngày diễn ra buổi đầu tiên của ca hằng tuần, tính từ startDate và chưa qua thời điểm hiện tại. */
+    static LocalDate firstOccurrence(LocalDate startDate, SlotRange r, LocalDateTime now) {
+        // 1 = Chủ nhật ... 7 = Thứ Bảy  →  DayOfWeek (1 = Thứ Hai ... 7 = Chủ nhật)
+        DayOfWeek target = DayOfWeek.of(r.dayOfWeek() == 1 ? 7 : r.dayOfWeek() - 1);
+        LocalDate d = startDate.with(TemporalAdjusters.nextOrSame(target));
+        if (!d.atTime(r.start()).isAfter(now)) d = d.plusWeeks(1);
+        return d;
     }
 
     /** Đã kết nối trực tiếp: các buổi học thử còn mở giữa hai người không còn cần thiết → chuyển "Đã hủy". */
@@ -473,6 +520,7 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
                 .partnerAvatarUrl(partner.getAvatarUrl())
                 .partnerRole(viewerIsLearner ? "Gia sư" : "Học viên")
                 .slots(slots)
+                .startDate(cr.getStartDate())
                 .currentLevel(extractTag(cr.getInitialMessage(), "Trình độ"))
                 .learningGoals(extractTag(cr.getInitialMessage(), "Mục tiêu"))
                 .initialMessage(stripTags(cr.getInitialMessage()))

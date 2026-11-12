@@ -32,7 +32,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -148,6 +150,45 @@ class ConnectionRequestServiceTest {
         ConflictException ex = assertThrows(ConflictException.class,
                 () -> service.createDirectRequest("learner@test.com", request(slot(2, "19:00", 60))));
         assertTrue(ex.getMessage().contains("đã có học viên khác nhận"));
+    }
+
+    @Test
+    @DisplayName("Ca trùng buổi học thử của học viên khác từ ngày bắt đầu trở đi thì bị từ chối")
+    void create_trialClash() {
+        stubLearnerAndTutor();
+        when(tutorScheduleService.isSlotAvailable(eq(tutorId), anyInt(), any(), any())).thenReturn(true);
+        // Thứ Sáu (dow 6) → EXTRACT(DOW) = 5
+        when(trialBookingRepository.existsTrialClashFrom(eq(tutorId), eq(learner.getLearnerId()), any(), eq(5),
+                eq(LocalTime.of(18, 0)), eq(LocalTime.of(19, 0)))).thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class,
+                () -> service.createDirectRequest("learner@test.com", request(slot(6, "18:00", 60))));
+        assertTrue(ex.getMessage().contains("buổi học thử"));
+        verify(connectionRequestRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Lưu ngày bắt đầu học; ngày trong quá khứ được đưa về hôm nay")
+    void create_savesStartDate() {
+        stubLearnerAndTutor();
+        when(tutorScheduleService.isSlotAvailable(eq(tutorId), anyInt(), any(), any())).thenReturn(true);
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+        CreateConnectionRequestDTO req = request(slot(2, "19:00", 60));
+        req.setStartDate(today.minusDays(10));
+        ConnectionRequestResponseDTO res = service.createDirectRequest("learner@test.com", req);
+        assertEquals(today, res.getStartDate());
+    }
+
+    @Test
+    @DisplayName("Ngày bắt đầu học vượt quá 4 tuần được xem thì bị từ chối")
+    void create_startDateTooFar() {
+        stubLearnerAndTutor();
+        CreateConnectionRequestDTO req = request(slot(2, "19:00", 60));
+        req.setStartDate(LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")).plusWeeks(5));
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> service.createDirectRequest("learner@test.com", req));
+        assertTrue(ex.getMessage().contains("4 tuần"));
     }
 
     @Test

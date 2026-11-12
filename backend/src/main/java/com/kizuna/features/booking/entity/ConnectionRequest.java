@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +57,10 @@ public class ConnectionRequest {
     /** Lời nhắn / lý do từ chối của gia sư khi phản hồi yêu cầu kết nối trực tiếp. */
     @Column(name = "response_message", columnDefinition = "TEXT")
     private String responseMessage;
+
+    /** Ngày học viên muốn bắt đầu học các ca hằng tuần (chỉ có ở yêu cầu DIRECT, giờ Việt Nam). */
+    @Column(name = "start_date")
+    private LocalDate startDate;
 
     /** Các ca hằng tuần học viên chọn (chỉ có ở yêu cầu DIRECT). */
     @OneToMany(mappedBy = "connectionRequest", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -3,6 +3,9 @@ package com.kizuna.features.tutor_search.controller;
 import com.kizuna.features.tutor_search.dto.TutorSearchCriteriaDTO;
 import com.kizuna.features.tutor_search.dto.TutorSearchPageResponse;
 import com.kizuna.features.tutor_search.dto.TutorSummaryResponseDTO;
+import com.kizuna.features.tutor_search.dto.TutorWeekScheduleDTO;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 import com.kizuna.features.tutor_search.service.TutorSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -91,6 +94,17 @@ public class TutorSearchController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(detail);
+    }
+
+    /**
+     * Khung giờ còn trống của gia sư trong một tuần (chỉ tuần hiện tại đến 3 tuần sau).
+     * GET /api/tutors/{id}/weekly-schedule?weekStart=2026-11-09
+     */
+    @GetMapping("/{id}/weekly-schedule")
+    public ResponseEntity<TutorWeekScheduleDTO> getWeeklySchedule(
+            @PathVariable UUID id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
+        return ResponseEntity.ok(tutorSearchService.getWeeklySchedule(id, weekStart));
     }
 
     /**

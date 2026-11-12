@@ -249,6 +249,30 @@ export const API = {
         console.error(`API.tutors.getDetail(${tutorId}) error:`, err);
         throw err;
       }
+    },
+
+    /**
+     * Khung giờ còn trống của gia sư trong một tuần (chỉ tuần hiện tại đến 3 tuần sau).
+     * @param {string} tutorId
+     * @param {string|null} weekStart - "YYYY-MM-DD" (Thứ Hai); null = tuần hiện tại
+     */
+    async getWeeklySchedule(tutorId, weekStart = null) {
+      const qs = weekStart ? `?weekStart=${encodeURIComponent(weekStart)}` : '';
+      const response = await fetch(`${API_BASE_URL}/tutors/${tutorId}/weekly-schedule${qs}`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!response.ok) {
+        let message = `Không tải được lịch rảnh: HTTP ${response.status}`;
+        try {
+          const body = await response.json();
+          if (body && body.message) message = body.message;
+        } catch (_) { /* giữ thông báo mặc định */ }
+        const err = new Error(message);
+        err.status = response.status;
+        throw err;
+      }
+      return response.json();
     }
   },
 

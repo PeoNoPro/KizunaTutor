@@ -25,6 +25,9 @@ public class CreateConnectionRequestDTO {
     @Valid
     private List<ConnectionSlotRequestDTO> slots;
 
+    /** Ngày bắt đầu học (thường là Thứ Hai của tuần học viên đang xem). Bỏ trống = bắt đầu từ hôm nay. */
+    private java.time.LocalDate startDate;
+
     @Size(max = 100, message = "Trình độ hiện tại tối đa 100 ký tự")
     private String currentLevel;
 

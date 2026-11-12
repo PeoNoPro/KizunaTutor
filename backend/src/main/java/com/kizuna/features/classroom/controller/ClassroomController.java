@@ -3,11 +3,13 @@ package com.kizuna.features.classroom.controller;
 import com.kizuna.features.classroom.dto.*;
 import com.kizuna.features.classroom.exception.ClassroomExceptionHandler;
 import com.kizuna.features.classroom.service.ClassScheduleService;
+import com.kizuna.features.classroom.service.ClassSessionService;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.service.LearningMaterialService;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.classroom.util.CurrentUserResolver;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,6 +37,7 @@ public class ClassroomController extends ClassroomExceptionHandler {
     private final ClassroomService classroomService;
     private final LearningMaterialService materialService;
     private final ClassScheduleService scheduleService;
+    private final ClassSessionService sessionService;
 
     // ===== Lớp học (UC-93, UC-58) =====
 
@@ -87,6 +91,92 @@ public class ClassroomController extends ClassroomExceptionHandler {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth) {
         CurrentActor actor = currentUserResolver.resolve(auth);
         return ClassroomApiResponse.ok("Tải thời khóa biểu thành công.", scheduleService.timetable(actor));
+    }
+
+    /** Gia sư sửa khóa học: tổng số buổi (không nhỏ hơn số buổi đã học) và ngày bắt đầu (khi chưa có buổi nào diễn ra). */
+    @PutMapping("/{spaceId}/course")
+    public ClassroomApiResponse<ClassroomSummaryResponse> updateCourse(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId,
+            @RequestBody ClassroomCourseRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Cập nhật khóa học thành công.", classroomService.updateCourse(actor, spaceId, request));
+    }
+
+    // ===== Buổi học cụ thể của khóa (lưới tuần): dời / hủy / thêm riêng trong một tuần =====
+
+    /** Các buổi học cụ thể trong khoảng [from, to] (tối đa 62 ngày) của mọi lớp đang mở mà người dùng tham gia. */
+    @GetMapping("/sessions/me")
+    public ClassroomApiResponse<List<ClassSessionResponse>> mySessions(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Tải lịch học thành công.", sessionService.sessions(actor, from, to));
+    }
+
+    /** Gia sư dời MỘT buổi (buổi của lịch {scheduleId} rơi vào ngày {originalDate}) sang ngày/giờ khác trong cùng tuần. */
+    @PutMapping("/{spaceId}/schedules/{scheduleId}/sessions/{originalDate}")
+    public ClassroomApiResponse<Void> moveSession(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID scheduleId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate originalDate,
+            @RequestBody ClassSessionMoveRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        sessionService.move(actor, spaceId, scheduleId, originalDate, request);
+        return ClassroomApiResponse.ok("Dời buổi học thành công.", null);
+    }
+
+    /** Gia sư hủy riêng buổi của tuần đó (khóa tự bù thêm buổi ở cuối). */
+    @PostMapping("/{spaceId}/schedules/{scheduleId}/sessions/{originalDate}/cancel")
+    public ClassroomApiResponse<Void> cancelSession(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID scheduleId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate originalDate) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        sessionService.cancel(actor, spaceId, scheduleId, originalDate);
+        return ClassroomApiResponse.ok("Đã hủy buổi học của tuần này.", null);
+    }
+
+    /** Gia sư đưa buổi đã dời về lại lịch gốc. */
+    @DeleteMapping("/{spaceId}/schedules/{scheduleId}/sessions/{originalDate}")
+    public ClassroomApiResponse<Void> restoreSession(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID scheduleId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate originalDate) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        sessionService.restore(actor, spaceId, scheduleId, originalDate);
+        return ClassroomApiResponse.ok("Đã đưa buổi học về lịch gốc.", null);
+    }
+
+    /** Gia sư thêm một buổi riêng trong một tuần (không ảnh hưởng các tuần khác, tính vào tổng số buổi). */
+    @PostMapping("/{spaceId}/extra-sessions")
+    public ResponseEntity<ClassroomApiResponse<Void>> addExtraSession(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId,
+            @RequestBody ClassSessionMoveRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        sessionService.addExtra(actor, spaceId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ClassroomApiResponse.ok("Thêm buổi học thành công.", null));
+    }
+
+    @PutMapping("/{spaceId}/extra-sessions/{extraId}")
+    public ClassroomApiResponse<Void> moveExtraSession(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID extraId,
+            @RequestBody ClassSessionMoveRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        sessionService.moveExtra(actor, spaceId, extraId, request);
+        return ClassroomApiResponse.ok("Dời buổi học thành công.", null);
+    }
+
+    @DeleteMapping("/{spaceId}/extra-sessions/{extraId}")
+    public ClassroomApiResponse<Void> cancelExtraSession(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId, @PathVariable UUID extraId) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        sessionService.cancelExtra(actor, spaceId, extraId);
+        return ClassroomApiResponse.ok("Đã hủy buổi học thêm.", null);
     }
 
     @GetMapping("/{spaceId}/schedules")

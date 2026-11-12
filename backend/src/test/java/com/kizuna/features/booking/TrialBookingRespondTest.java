@@ -188,7 +188,7 @@ class TrialBookingRespondTest {
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
         when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
         when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(mockBooking));
-        when(trialBookingRepository.findClassScheduleClash(any(), any(), anyInt(), any(), any()))
+        when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any()))
                 .thenReturn(Optional.of("TUTOR"));
 
         ConflictException ex = assertThrows(ConflictException.class,

@@ -91,18 +91,18 @@
                 Hôm nay
               </button>
               <span id="currentWeekRangeText" class="text-body-sm font-bold text-on-surface ml-2">Đang tải tuần...</span>
+              <span id="weekLoadingNote" class="hidden text-caption text-on-surface-variant ml-1">Đang cập nhật…</span>
             </div>
 
             <!-- Chú thích loại buổi học (Legend) -->
             <div class="flex items-center gap-4 text-caption text-on-surface-variant flex-wrap">
               <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded bg-emerald-600 inline-block"></span>
-                <span class="font-medium text-emerald-900">Lớp học 1-1</span>
+                <span class="material-symbols-outlined text-[16px]">touch_app</span>
+                <span>Bấm vào buổi lớp học để dời hoặc hủy riêng buổi của tuần đó</span>
               </div>
-              <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded bg-[#006194] inline-block"></span>
-                <span class="font-medium text-[#006194]">Học thử miễn phí (0đ)</span>
-              </div>
+              <button type="button" id="btnOpenAddSession" class="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-caption font-bold inline-flex items-center gap-1 cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">add</span> Thêm buổi học
+              </button>
             </div>
           </div>
 
@@ -113,7 +113,7 @@
                 <!-- Hàng tiêu đề 7 ngày trong tuần (dính khi cuộn dọc) -->
                 <div id="gridHeaderRow" class="grid grid-cols-8 border-b border-outline-variant/40 bg-surface-container-lowest sticky top-0 z-20 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
                   <div class="p-3 text-caption font-bold text-on-surface-variant text-center border-r border-outline-variant/30 flex items-center justify-center">
-                    Giờ
+                    Ca
                   </div>
                   <!-- 7 Cột ngày (Thứ 2 đến Chủ nhật) sẽ render tại đây -->
                   <div class="grid-day-header p-3 text-center border-r border-outline-variant/30">...</div>
@@ -268,6 +268,97 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ===== MODAL DỜI MỘT BUỔI HỌC CHÍNH THỨC (chỉ buổi của tuần đó) ===== -->
+  <div id="modalMoveSession" class="fixed inset-0 z-50 hidden tv-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modalMoveTitle">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[22px]">event_repeat</span>
+          </div>
+          <div class="min-w-0">
+            <h2 id="modalMoveTitle" class="text-title-md font-bold text-on-surface">Dời buổi học</h2>
+            <p id="moveSessionClass" class="text-caption text-on-surface-variant truncate"></p>
+          </div>
+        </div>
+        <button type="button" class="modal-move-close text-on-surface-variant hover:text-on-surface p-1 rounded-lg cursor-pointer" aria-label="Đóng">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-caption text-on-surface space-y-1">
+        <p id="moveSessionOriginal" class="font-semibold"></p>
+        <p id="moveSessionCurrent" class="font-semibold text-emerald-800 hidden"></p>
+        <p id="moveSessionHint" class="text-on-surface-variant"></p>
+      </div>
+
+      <form id="formMoveSession" class="space-y-4">
+        <div id="moveSessionClassField" class="space-y-1.5 hidden">
+          <label for="moveSessionClassSelect" class="text-label-md font-semibold text-on-surface">Lớp học</label>
+          <select id="moveSessionClassSelect" class="tv-input"></select>
+        </div>
+        <div class="space-y-1.5">
+          <label id="moveSessionDateLabel" for="moveSessionDate" class="text-label-md font-semibold text-on-surface">Dời sang ngày (trong thời gian khóa học)</label>
+          <input type="date" id="moveSessionDate" class="tv-input" required>
+          <p id="moveSessionDateRange" class="text-caption text-on-surface-variant"></p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label for="moveSessionStart" class="text-label-md font-semibold text-on-surface">Giờ bắt đầu</label>
+            <input type="time" id="moveSessionStart" step="300" class="tv-input" required>
+          </div>
+          <div class="space-y-1.5">
+            <label for="moveSessionEnd" class="text-label-md font-semibold text-on-surface">Giờ kết thúc</label>
+            <input type="time" id="moveSessionEnd" step="300" class="tv-input" required>
+          </div>
+        </div>
+
+        <p id="moveSessionError" class="text-caption text-error hidden"></p>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-outline-variant/30">
+          <a id="moveSessionOpenClass" href="/tutor/classrooms" class="text-caption font-semibold text-primary hover:underline">Mở lớp học</a>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="btnCancelSession" class="hidden px-4 py-2.5 rounded-xl border border-red-200 bg-white hover:bg-red-50 text-red-700 text-label-md font-semibold cursor-pointer disabled:opacity-60">
+              Hủy buổi này
+            </button>
+            <button type="button" id="btnRestoreSession" class="hidden px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md font-medium cursor-pointer disabled:opacity-60">
+              Về lịch gốc
+            </button>
+            <button type="button" class="modal-move-close px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md font-medium cursor-pointer">
+              Đóng
+            </button>
+            <button type="submit" id="btnSubmitMoveSession" class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-2 shadow-sm cursor-pointer disabled:opacity-60">
+              <span class="material-symbols-outlined text-[18px]">save</span>
+              <span id="btnSubmitMoveSessionText">Lưu thay đổi</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== HỘP XÁC NHẬN HỦY MỘT BUỔI HỌC (nằm trên hộp thoại buổi học) ===== -->
+  <div id="modalCancelSession" class="fixed inset-0 z-[60] hidden tv-modal-backdrop flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="cancelSessionTitle" aria-describedby="cancelSessionText">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-xl bg-red-50 text-red-700 flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-[22px]">event_busy</span>
+        </div>
+        <h2 id="cancelSessionTitle" class="text-title-md font-bold text-on-surface">Hủy buổi học?</h2>
+      </div>
+      <p id="cancelSessionText" class="text-body-sm text-on-surface"></p>
+      <p id="cancelSessionError" class="text-caption text-error hidden"></p>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" class="modal-cancel-session-close px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md font-medium cursor-pointer">
+          Không
+        </button>
+        <button type="button" id="btnConfirmCancelSession" class="px-4 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white text-label-md font-semibold cursor-pointer disabled:opacity-60">
+          Xác nhận hủy
+        </button>
+      </div>
     </div>
   </div>
 

@@ -180,7 +180,7 @@ class BookingAntiSpamTest {
         confirmed.setTutorConfirmed(true);
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(learnerUser));
         when(trialBookingRepository.findById(confirmed.getBookingId())).thenReturn(Optional.of(confirmed));
-        when(trialBookingRepository.findClassScheduleClash(any(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
+        when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
         when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
 
         TrialBookingResponseDTO res = trialService.rescheduleTrialBooking("learner@test.com", confirmed.getBookingId(),

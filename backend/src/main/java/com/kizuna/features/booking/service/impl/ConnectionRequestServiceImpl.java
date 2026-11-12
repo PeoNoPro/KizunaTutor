@@ -439,14 +439,15 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         if (slotRepository.existsLockedSlotOverlap(tutorId, excludeRequestId, r.dayOfWeek(), r.start(), r.end())) {
             throw new ConflictException(lockedMessage);
         }
-        // class_schedules dùng quy ước 1 = Thứ Hai ... 7 = Chủ nhật
+        // Lịch lớp chính thức được kiểm theo NGÀY cụ thể (khóa học có số buổi, buổi dời / hủy riêng):
+        // dùng buổi đầu tiên của ca hằng tuần này. class_schedules dùng quy ước 1 = Thứ Hai ... 7 = Chủ nhật.
+        LocalDate first = firstOccurrence(startDate, r, LocalDateTime.now(VN_ZONE));
         int isoDow = r.dayOfWeek() == 1 ? 7 : r.dayOfWeek() - 1;
-        trialBookingRepository.findClassScheduleClash(tutorId, learnerId, isoDow, r.start(), r.end())
+        trialBookingRepository.findClassScheduleClash(tutorId, learnerId, first, isoDow, r.start(), r.end())
                 .ifPresent(who -> {
                     throw new ConflictException("TUTOR".equals(who) ? tutorClassMessage : learnerClassMessage);
                 });
         // Ca lặp lại hằng tuần: mọi buổi học thử cùng thứ, trùng giờ, từ buổi đầu tiên trở đi đều bị đụng
-        LocalDate first = firstOccurrence(startDate, r, LocalDateTime.now(VN_ZONE));
         if (trialBookingRepository.existsTrialClashFrom(tutorId, learnerId, first, r.dayOfWeek() - 1, r.start(), r.end())) {
             throw new ConflictException(trialMessage);
         }

@@ -90,7 +90,7 @@ class ConnectionRequestServiceTest {
             return cr;
         });
         lenient().when(busyLoader.load(any(), any(), any(), any(), any(), any())).thenReturn(BusyIndex.EMPTY);
-        lenient().when(trialBookingRepository.findClassScheduleClash(any(), any(), anyInt(), any(), any()))
+        lenient().when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any()))
                 .thenReturn(Optional.empty());
     }
 

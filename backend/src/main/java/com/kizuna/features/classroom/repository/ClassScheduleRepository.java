@@ -15,11 +15,24 @@ import java.util.UUID;
 @Repository
 public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, UUID> {
 
-    List<ClassSchedule> findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(UUID spaceId);
+    /** Các buổi hằng tuần ĐANG hiệu lực của lớp. */
+    @Query("""
+            SELECT s FROM ClassSchedule s
+            WHERE s.space.spaceId = :spaceId AND s.activeUntil IS NULL
+            ORDER BY s.dayOfWeek, s.startTime
+            """)
+    List<ClassSchedule> findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(@Param("spaceId") UUID spaceId);
 
-    Optional<ClassSchedule> findByScheduleIdAndSpace_SpaceId(UUID scheduleId, UUID spaceId);
+    /** Mọi buổi hằng tuần của các lớp (kể cả đã hết hiệu lực) — dùng để sinh lịch buổi học của khóa. */
+    List<ClassSchedule> findBySpace_SpaceIdIn(Collection<UUID> spaceIds);
 
-    long countBySpace_SpaceId(UUID spaceId);
+    /** Buổi hằng tuần ĐANG hiệu lực của lớp. */
+    @Query("SELECT s FROM ClassSchedule s WHERE s.scheduleId = :scheduleId AND s.space.spaceId = :spaceId AND s.activeUntil IS NULL")
+    Optional<ClassSchedule> findByScheduleIdAndSpace_SpaceId(@Param("scheduleId") UUID scheduleId, @Param("spaceId") UUID spaceId);
+
+    /** Số buổi hằng tuần ĐANG hiệu lực của lớp. */
+    @Query("SELECT COUNT(s) FROM ClassSchedule s WHERE s.space.spaceId = :spaceId AND s.activeUntil IS NULL")
+    long countBySpace_SpaceId(@Param("spaceId") UUID spaceId);
 
     /** Thời khóa biểu: lịch các lớp đang mở của gia sư (tutorId) hoặc học viên (learnerId); tham số còn lại để null. */
     @Query("""
@@ -28,6 +41,7 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, UU
             JOIN FETCH sp.tutor t JOIN FETCH t.user
             JOIN FETCH sp.learner l JOIN FETCH l.user
             WHERE sp.status IN :statuses
+              AND s.activeUntil IS NULL
               AND (t.tutorId = :tutorId OR l.learnerId = :learnerId)
             ORDER BY s.dayOfWeek, s.startTime
             """)
@@ -58,6 +72,7 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, UU
     @Query("""
             SELECT s FROM ClassSchedule s JOIN FETCH s.space sp
             WHERE sp.status IN :statuses
+              AND s.activeUntil IS NULL
               AND (sp.tutor.tutorId = :tutorId OR sp.learner.learnerId = :learnerId)
             """)
     List<ClassSchedule> findOpenSchedulesOfParticipants(@Param("tutorId") UUID tutorId,

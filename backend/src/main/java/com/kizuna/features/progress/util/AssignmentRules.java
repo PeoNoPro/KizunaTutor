@@ -18,6 +18,11 @@ public final class AssignmentRules {
     private AssignmentRules() {
     }
 
+    /** Bài đã tới thời gian mở chưa (opensAt null = mở ngay). */
+    public static boolean isOpen(OffsetDateTime opensAt, OffsetDateTime now) {
+        return opensAt == null || !now.isBefore(opensAt);
+    }
+
     public static boolean dueOver(OffsetDateTime dueDate, OffsetDateTime now) {
         return dueDate != null && now.isAfter(dueDate);
     }

@@ -60,4 +60,23 @@ class AiWritingServiceTest {
         assertFalse(promptsN4.isEmpty());
         assertEquals("N4", promptsN4.get(0).getLevel());
     }
+
+    @Test
+    @DisplayName("UTCID03 (Abnormal): Văn bản rỗng / khoảng trắng -> Trả điểm 0 và thông báo yêu cầu nhập bài")
+    void testFallbackEvaluation_whenBlankOrEmptyText_shouldReturnScoreZero() {
+        AiWritingCheckRequest request = AiWritingCheckRequest.builder()
+                .text("   ")
+                .jlptLevel("N5")
+                .formality("POLITE")
+                .build();
+
+        AiWritingCheckResponse response = aiWritingService.checkWriting(request);
+
+        assertNotNull(response);
+        assertEquals(0, response.getScore());
+        assertTrue(response.getErrors().isEmpty());
+        assertTrue(response.getSuggestedVocabulary().isEmpty());
+        assertTrue(response.getNativeAlternatives().isEmpty());
+        assertEquals("Vui lòng nhập văn bản tiếng Nhật cần đánh giá.", response.getOverallComment());
+    }
 }

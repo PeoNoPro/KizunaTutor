@@ -36,7 +36,7 @@ public class KanjiGameServiceImpl implements KanjiGameService {
     @Override
     @Transactional(readOnly = true)
     public List<KanjiPlayDataDto> getPlayData(String jlpt, int limit) {
-        int max = (limit > 0 && limit <= 100) ? limit : 30;
+        int max = (limit <= 0) ? 10 : Math.min(limit, 100);
         List<KanjiDictionary> kanjis = kanjiRepository.findRandomPlayableKanji(jlpt, max);
 
         return kanjis.stream().map(this::mapToPlayDataDto).toList();

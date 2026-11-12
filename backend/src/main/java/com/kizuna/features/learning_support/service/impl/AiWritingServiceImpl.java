@@ -35,6 +35,19 @@ public class AiWritingServiceImpl implements AiWritingService {
         String formality = (request.getFormality() != null && !request.getFormality().isBlank()) ? request.getFormality() : "POLITE";
         String targetPattern = request.getGrammarPattern();
 
+        if (originalText.isEmpty()) {
+            return AiWritingCheckResponse.builder()
+                    .originalText("")
+                    .correctedText("")
+                    .score(0)
+                    .ratingBadge("Chưa có nội dung")
+                    .overallComment("Vui lòng nhập văn bản tiếng Nhật cần đánh giá.")
+                    .errors(List.of())
+                    .suggestedVocabulary(List.of())
+                    .nativeAlternatives(List.of())
+                    .build();
+        }
+
         // 1. Thử gọi AI theo nhà cung cấp, model và API key Admin đã chọn
         SystemSettingService.AiChoice ai = settings.aiChoice();
         if (ai.apiKey() != null && !ai.apiKey().isBlank()) {

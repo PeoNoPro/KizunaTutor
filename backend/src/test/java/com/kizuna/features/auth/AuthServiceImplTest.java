@@ -287,6 +287,26 @@ class AuthServiceImplTest {
             verify(otpService, never()).generateAndSaveOtp(anyString(), anyString(), anyString(), anyString(), anyString());
             verify(emailService, never()).sendRegistrationOtpEmail(anyString(), anyString(), anyString());
         }
+
+        @Test
+        @DisplayName("UTCID02 (Normal): ÄÄƒng kÃ½ vai trÃ² Gia sÆ° (ROLE_TUTOR) vá»›i trÃ¬nh Ä‘á»™ JLPT N1 thÃ nh cÃ´ng")
+        void initiateRegistration_whenTutorRoleWithJlptN1_shouldGenerateOtp() {
+            RegisterRequest request = RegisterRequest.builder()
+                    .fullName("Nguyen Sensei")
+                    .email("sensei@kizuna.vn")
+                    .password("TutorPass123")
+                    .role("ROLE_TUTOR")
+                    .targetJlpt("N1")
+                    .build();
+
+            when(userRepository.findByEmail("sensei@kizuna.vn")).thenReturn(Optional.empty());
+            when(passwordEncoder.encode("TutorPass123")).thenReturn("hashed-pwd-sensei");
+            when(otpService.generateAndSaveOtp(eq("sensei@kizuna.vn"), eq("Nguyen Sensei"), eq("hashed-pwd-sensei"), eq("ROLE_TUTOR"), eq("N1")))
+                    .thenReturn("987654");
+
+            assertDoesNotThrow(() -> authService.initiateRegistration(request));
+            verify(emailService, times(1)).sendRegistrationOtpEmail("sensei@kizuna.vn", "Nguyen Sensei", "987654");
+        }
     }
 
     // =========================================================================
@@ -399,6 +419,23 @@ class AuthServiceImplTest {
             assertThat(ex.getMessage()).contains("Tài khoản đã được đăng ký trước đó");
             verify(userRepository, never()).save(any());
         }
+
+        @Test
+        @DisplayName("UTCID03 (Abnormal): PhiÃªn Ä‘Äƒng kÃ½ khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ háº¿t háº¡n -> NÃ©m BadRequestException")
+        void completeRegistration_whenPendingNotFoundOrExpired_shouldThrowBadRequestException() {
+            VerifyOtpRequest request = VerifyOtpRequest.builder()
+                    .email("expired@kizuna.vn")
+                    .otp("999999")
+                    .build();
+
+            when(otpService.verifyOtp("expired@kizuna.vn", "999999"))
+                    .thenThrow(new BadRequestException("YÃªu cáº§u xÃ¡c thá»±c khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ háº¿t hiá»‡u lá»±c"));
+
+            BadRequestException ex = assertThrows(BadRequestException.class,
+                    () -> authService.completeRegistration(request));
+            assertThat(ex.getMessage()).contains("YÃªu cáº§u xÃ¡c thá»±c khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ háº¿t hiá»‡u lá»±c");
+            verify(userRepository, never()).save(any());
+        }
     }
 
     // =========================================================================
@@ -505,6 +542,23 @@ class AuthServiceImplTest {
             BadRequestException ex = assertThrows(BadRequestException.class,
                     () -> authService.changePasswordFirstTime(request, email));
             assertThat(ex.getMessage()).contains("Mật khẩu tạm thời hiện tại không chính xác");
+            verify(userRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("UTCID04 (Abnormal): TÃ i khoáº£n ngÆ°á»i dÃ¹ng khÃ´ng tá»“n táº¡i -> NÃ©m ResourceNotFoundException")
+        void changePasswordFirstTime_whenUserNotFound_shouldThrowResourceNotFoundException() {
+            String email = "notfound@kizuna.vn";
+            FirstTimePasswordChangeRequest request = FirstTimePasswordChangeRequest.builder()
+                    .currentPassword("TempPass123")
+                    .newPassword("ValidNewPass123")
+                    .confirmPassword("ValidNewPass123")
+                    .build();
+
+            when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+            assertThrows(com.kizuna.core.exception.ResourceNotFoundException.class,
+                    () -> authService.changePasswordFirstTime(request, email));
             verify(userRepository, never()).save(any());
         }
     }

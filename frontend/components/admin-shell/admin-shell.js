@@ -8,6 +8,8 @@ const ADMIN_NAV = [
   {label: 'Báo cáo tổng hợp', icon: 'monitoring', href: '/pages/manager-reports/', managerOnly: true},
   // Trang doanh thu (tổng quan, theo gói, danh sách giao dịch thanh toán) đã có nhưng trước đây thiếu link trên sidebar.
   {label: 'Doanh thu & giao dịch', icon: 'payments', href: '/pages/operations-revenue/', managerOnly: true},
+  // FE-14 (Hân): danh sách, chi tiết và trạng thái tài khoản gia sư, học viên.
+  {label: 'Quản lý người dùng', icon: 'manage_accounts', href: '/pages/manager-users/', managerOnly: true},
   {label: 'Quản lý nhân viên', icon: 'groups', items: [
     ['Danh sách nhân viên', '/pages/admin-staff/', 'Tạo, sửa, khóa tài khoản nhân viên và duyệt đề xuất thăng chức.'],
     ['Đề xuất thăng chức', '/pages/admin-roles/', 'Duyệt hoặc từ chối đề xuất thăng chức do Quản lý gửi.'],
@@ -72,7 +74,7 @@ function attachNavGroup(link, items, listId, key, forceOpen = false) {
   link.addEventListener('click', event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.button) return; event.preventDefault(); setOpen(!wrap.classList.contains('is-open')); });
 }
 const ROLE_CACHE = 'kizuna-staff-nav-role';
-const MANAGER_PATHS = ['/pages/manager-dashboard/', '/pages/manager-reports/', '/pages/manager-staff-roles/', '/pages/operations-revenue/', '/pages/support-shifts/'];
+const MANAGER_PATHS = ['/pages/manager-dashboard/', '/pages/manager-reports/', '/pages/manager-staff-roles/', '/pages/operations-revenue/', '/pages/support-shifts/', '/pages/manager-users/'];
 /** Ẩn/hiện mục menu theo vai trò: Admin không thấy mục riêng của Quản lý và ngược lại. */
 function applyRoleNavigation(account, csWorkspace) {
   document.querySelectorAll('.sidebar-menu a,.sidebar-menu button').forEach(link => {

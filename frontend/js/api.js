@@ -801,6 +801,25 @@ export const API = {
     }
   },
 
+  // ===== FE-14: Quản lý người dùng (Quản lý vận hành; phản hồi dạng { success, message, data }) =====
+
+  managerUsers: {
+    /** Danh sách gia sư / học viên: { category: TUTOR | LEARNER, keyword, status, page, size } (UC-20) */
+    list(params = {}) {
+      return authRequest(`/manager/users?${toQuery(params)}`).then((res) => res.data);
+    },
+
+    /** Chi tiết tài khoản, hồ sơ và lịch sử đổi trạng thái (UC-21) */
+    detail(userId) {
+      return authRequest(`/manager/users/${encodeURIComponent(userId)}`).then((res) => res.data);
+    },
+
+    /** { status, expectedStatus, reason, message } → { message, data } (UC-12) */
+    updateStatus(userId, payload) {
+      return authRequest(`/manager/users/${encodeURIComponent(userId)}/status`, { method: 'PUT', body: payload });
+    }
+  },
+
   // ===== FE-09: Gói hội viên và thanh toán (phản hồi dạng { success, message, data }) =====
 
   tutorMembership: {

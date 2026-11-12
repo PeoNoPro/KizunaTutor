@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quản lý người dùng - KizunaTutor</title>
+<link rel="icon" href="/assets/logos/kizuna-logo.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css">
+<link rel="stylesheet" href="./manager-users.css">
+</head><body class="admin-dashboard operations-page manager-users-page">
+<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+<main id="dashboardMain" class="dashboard-main"><div id="operationsContent" class="operations-content" aria-busy="true">
+  <div class="operations-page-heading"><span class="role-badge">Quản lý</span><h1>Quản lý người dùng</h1><p>Xem danh sách gia sư, học viên, hồ sơ chi tiết và cập nhật trạng thái tài khoản.</p></div>
+  <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite"></p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+  <section class="operations-card">
+    <h2>Gia sư và học viên</h2>
+    <form id="userSearch" class="staff-toolbar mu-toolbar">
+      <label for="userCategory">Nhóm người dùng<select id="userCategory"></select></label>
+      <label for="userQuery">Tìm theo tên hoặc email<input id="userQuery" maxlength="100" placeholder="Nhập họ tên hoặc email"></label>
+      <label for="userStatus">Trạng thái tài khoản<select id="userStatus"></select></label>
+      <button type="submit">Tìm kiếm</button><button id="clearUserSearch" type="button">Xóa bộ lọc</button>
+    </form>
+    <p id="userTotal" class="staff-help"></p>
+    <div class="table-scroll"><table class="staff-table"><caption class="sr-only">Danh sách gia sư và học viên</caption><thead><tr><th scope="col">Người dùng</th><th scope="col">Ngày đăng ký</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="userRows"></tbody></table></div>
+    <div id="userEmpty" hidden></div>
+    <div class="operations-pagination"><button id="userPrev" type="button">Trang trước</button><span id="userPage"></span><button id="userNext" type="button">Trang sau</button></div>
+  </section>
+</div></main>
+
+<!-- Chi tiết người dùng (UC-21) -->
+<dialog id="detailDialog" class="staff-dialog portal-dialog mu-detail-dialog" aria-labelledby="detailTitle">
+  <div class="portal-dialog-head"><h2 id="detailTitle">Chi tiết người dùng</h2><button id="closeDetail" class="portal-dialog-close" type="button" aria-label="Đóng chi tiết">Đóng</button></div>
+  <div id="detailBody" class="portal-dialog-body"></div>
+  <div class="portal-dialog-actions"><button id="detailStatus" class="primary" type="button" hidden>Cập nhật trạng thái</button><button id="backToList" type="button">Quay lại danh sách</button></div>
+</dialog>
+
+<!-- Cập nhật trạng thái tài khoản (UC-12) -->
+<dialog id="statusDialog" class="staff-dialog portal-dialog" aria-labelledby="statusDialogTitle">
+  <form id="statusForm" novalidate><div class="portal-dialog-head"><h2 id="statusDialogTitle">Cập nhật trạng thái tài khoản</h2><button id="closeStatus" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div>
+    <div class="portal-dialog-body">
+      <p id="statusSummary" class="staff-help"></p>
+      <div><label for="newStatus">Trạng thái mới</label><select id="newStatus"></select><p id="statusConsequence" class="portal-muted"></p><p class="mu-field-error" data-error-for="status" hidden></p></div>
+      <div data-status-detail hidden><label for="statusReason">Lý do nội bộ</label><textarea id="statusReason" maxlength="1000" placeholder="Chỉ Quản lý xem được, không gửi cho người dùng"></textarea><p class="mu-field-error" data-error-for="reason" hidden></p></div>
+      <div data-status-detail hidden><label for="statusMessage">Lời nhắn gửi người dùng (không bắt buộc)</label><textarea id="statusMessage" maxlength="1000" placeholder="Nội dung này được gửi kèm email thông báo"></textarea><p class="mu-field-error" data-error-for="message" hidden></p></div>
+      <p id="statusNotice" class="staff-dialog-notice" role="alert"></p>
+    </div>
+    <div class="portal-dialog-actions"><button id="saveStatus" class="primary" type="submit">Xác nhận thay đổi</button><button id="cancelStatus" type="button">Hủy</button></div>
+  </form>
+</dialog>
+<script type="module" src="./manager-users.js"></script>
+</body></html>

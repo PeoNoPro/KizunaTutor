@@ -116,6 +116,8 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/manager/membership-plans/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
                 .requestMatchers("/api/manager/membership-plans/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/manager/tutor-memberships/**").hasAuthority("ROLE_MANAGER")
+                // FE-14: Quản lý vận hành xem và đổi trạng thái tài khoản gia sư, học viên (UC-12, UC-20, UC-21)
+                .requestMatchers("/api/manager/users", "/api/manager/users/**").hasAuthority("ROLE_MANAGER")
                 .requestMatchers("/api/admin/payment-transactions/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/tutors/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()

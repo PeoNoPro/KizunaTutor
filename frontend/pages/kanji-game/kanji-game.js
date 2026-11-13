@@ -1,5 +1,5 @@
-/**
- * KizunaTutor - Game Mưa Chữ Hán (Kanji Rain Typing)
+﻿/**
+ * KizunaTutor - Trò Chơi Mưa Chữ Hán
  * Feature-Based Architecture: frontend/pages/kanji-game/
  * Tuân thủ nghiêm ngặt FRONTEND_RULES.md (Zero mock/fake data)
  * State Machine: 'LOBBY' | 'PLAYING' | 'GAMEOVER'
@@ -12,7 +12,7 @@ import { apiClient, extractKanaReadingsFromText } from '/js/apiClient.js';
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
   activeMenu: 'kanji-game',
-  pageTitle: 'Game Mưa chữ Hán',
+  pageTitle: 'Trò chơi mưa chữ Hán',
   badge: 'Đấu trường phản xạ'
 });
 
@@ -936,7 +936,7 @@ function gameLoop(timestamp) {
   ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
   ctx.font = 'bold 10px sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText('RANH GIỚI BẢO VỆ', width - 12, dangerY - 6);
+  ctx.fillText('Ranh giới bảo vệ', width - 12, dangerY - 6);
   ctx.restore();
 
   // 2. Cập nhật & Vẽ các chữ đang rơi (Vẽ chữ đang gõ đè lên trên cùng)
@@ -989,7 +989,7 @@ function updateHud() {
 
   if (hudComboBadge) {
     if (combo >= 2) {
-      hudComboBadge.textContent = `Combo x${combo}`;
+      hudComboBadge.textContent = `Chuỗi x${combo}`;
       hudComboBadge.classList.remove('hidden');
     } else {
       hudComboBadge.classList.add('hidden');
@@ -1242,12 +1242,12 @@ async function endGame(isWon, failedKanji = null) {
             </div>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
-            <a href="/shodo?char=${encodeURIComponent(m.char)}"
+            <a href="/shodo?char=${encodeURIComponent(m.char)}" data-spa-link
                class="px-2.5 py-1.5 rounded-lg bg-white border border-[#CBD5E1] hover:bg-slate-50 text-[#1E293B] font-semibold text-[11px] no-underline transition shadow-2xs flex items-center gap-1">
               <span>🖌️</span>
               <span>Luyện viết</span>
             </a>
-            <a href="/kanji-dictionary?q=${encodeURIComponent(m.char)}"
+            <a href="/kanji-dictionary?q=${encodeURIComponent(m.char)}" data-spa-link
                class="px-2.5 py-1.5 rounded-lg bg-white border border-[#CBD5E1] hover:bg-slate-50 text-[#1E293B] font-semibold text-[11px] no-underline transition shadow-2xs flex items-center gap-1">
               <span>📚</span>
               <span>Từ điển</span>

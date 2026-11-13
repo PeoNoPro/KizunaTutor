@@ -1,5 +1,5 @@
-/**
- * KizunaTutor - Trò Chơi Ghép Thẻ (Quizlet Match Game Engine)
+﻿/**
+ * KizunaTutor - Trò Chơi Ghép Thẻ Phản Xạ
  * URL Route: /learner/flashcards-match?id={deckId} hoặc /match?id={deckId}
  */
 
@@ -10,7 +10,7 @@ import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 // 1. Khởi tạo Shell học viên
 initLearnerShell({
   activeMenu: 'flashcards',
-  pageTitle: 'Trò Chơi Ghép Thẻ (Quizlet Match)',
+  pageTitle: 'Trò chơi ghép thẻ phản xạ',
   badge: 'Phản xạ siêu tốc'
 });
 
@@ -191,7 +191,7 @@ function renderMatchGrid(tiles) {
     const tileEl = document.createElement('div');
     const kanjiClass = tile.isKanji ? 'font-japanese text-2xl sm:text-3xl font-bold' : 'text-xs sm:text-sm font-semibold';
     
-    tileEl.className = `match-tile p-3 sm:p-4 bg-white border border-2 border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] rounded-xl shadow-xs flex items-center justify-center text-center cursor-pointer select-none transition-all duration-150 min-h-[90px] sm:min-h-[110px] text-[#0F172A] hover:bg-[#FAF8F2] hover:shadow-sm leading-relaxed break-words ${kanjiClass}`;
+    tileEl.className = `match-tile p-3 sm:p-4 bg-white border border-[#E2E8F0] shadow-sm rounded-xl flex items-center justify-center text-center cursor-pointer select-none transition-all duration-150 min-h-[90px] sm:min-h-[110px] text-[#0F172A] hover:bg-[#FAF8F2] hover:shadow-sm leading-relaxed break-words ${kanjiClass}`;
     tileEl.dataset.id = tile.id;
     tileEl.dataset.pairId = tile.pairId;
     tileEl.dataset.type = tile.type;

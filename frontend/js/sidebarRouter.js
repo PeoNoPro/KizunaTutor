@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Dynamic Shell Navigation Router (sidebarRouter.js)
  * Chuyển trang mượt mà không reload toàn bộ màn hình, loại bỏ hiện tượng giật cục & chớp trắng.
  */
@@ -186,6 +186,9 @@ export async function navigateTo(targetUrl, activeLink = null, pushHistory = tru
     }
 
     // 8. Kích hoạt sự kiện kizuna:page-mounted cho trang đích lắng nghe
+        // Bổ sung dispatch DOMContentLoaded để các trang SPA có thể khởi tạo lại các event listener
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+
     window.dispatchEvent(new CustomEvent('kizuna:page-mounted', {
       detail: { url: targetUrl }
     }));

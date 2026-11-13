@@ -395,7 +395,7 @@ function renderLearnerGrid(items) {
   window.lastRenderedDictionaryItems = items;
 
   grid.innerHTML = items.map((k, idx) => `
-    <div class="bg-white rounded-xl border-2 border-[#0F172A] shadow-[3px_3px_0px_0px_#0F172A] hover:translate-x-[-1px] hover:translate-y-[-1px] p-4 flex flex-col justify-between transition-all relative">
+    <div class="bg-white rounded-xl border border-[#E2E8F0] shadow-sm hover:border-[#CBD5E1] hover:shadow p-4 flex flex-col justify-between transition-all relative">
       <div class="space-y-3">
         <!-- Header thông tin: Cấp độ JLPT, số nét, bộ thủ -->
         <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
@@ -409,7 +409,7 @@ function renderLearnerGrid(items) {
         <!-- Nội dung chính của chữ Hán: Nằm liền mạch ngay dưới Header, không bị khoảng trống -->
         <div class="space-y-2.5">
           <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-[8px] bg-[#FAF8F2] border-2 border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center font-japanese text-3xl font-bold text-[#0F172A] shrink-0 select-none">
+            <div class="w-16 h-16 rounded-lg bg-[#FAF8F2] border border-[#E2E8F0] flex items-center justify-center font-japanese text-3xl font-bold text-[#0F172A] shrink-0 select-none">
               ${escapeHtml(k.kanjiChar)}
             </div>
             <div class="flex-1 min-w-0">
@@ -443,12 +443,12 @@ function renderLearnerGrid(items) {
                 class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer">
           <span>📁</span> Lưu Thẻ
         </button>
-        <a href="/shodo?char=${encodeURIComponent(k.kanjiChar)}" 
+        <a href="/shodo?char=${encodeURIComponent(k.kanjiChar)}" data-spa-link 
            class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
            title="Tập viết chữ này trên Canvas Shodo">
           <span>✍️</span> Shodo
         </a>
-        <a href="/kanji-game?jlpt=${encodeURIComponent(k.jlptLevel || 'N5')}" 
+        <a href="/kanji-game?jlpt=${encodeURIComponent(k.jlptLevel || 'N5')}" data-spa-link 
            class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#1E40AF] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
            title="Thử thách Game Mưa chữ Hán theo cấp độ này">
           <span>🌧️</span> Game

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8">
@@ -79,7 +79,7 @@
           </div>
 
           <!-- KHÔNG CÓ THẺ NÀO (EMPTY STATE) -->
-          <div id="emptyDeckState" class="hidden flex-1 flex flex-col items-center justify-center p-10 bg-white border-2 border-[#0F172A] rounded-xl shadow-[3px_3px_0px_0px_#0F172A] text-center space-y-3">
+          <div id="emptyDeckState" class="hidden flex-1 flex flex-col items-center justify-center p-10 bg-white border border-[#E2E8F0] rounded-xl shadow-sm text-center space-y-3">
             <span class="text-4xl">📭</span>
             <h3 class="font-bold text-base text-[#0F172A]">Bộ thẻ này chưa có thẻ học nào</h3>
             <p class="text-xs text-slate-500 max-w-sm">
@@ -99,7 +99,7 @@
               <div id="flashcardElement" class="flashcard-card">
                 
                 <!-- Mặt trước -->
-                <div class="flashcard-face bg-white border-2 border-[#0F172A] rounded-xl p-6 text-center shadow-[3px_3px_0px_0px_#0F172A]">
+                <div class="flashcard-face bg-white border border-[#E2E8F0] rounded-2xl p-6 text-center shadow-md">
                   <span class="absolute top-4 left-4 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]" id="studyCardLevel">
                     JLPT
                   </span>
@@ -119,7 +119,7 @@
                 </div>
 
                 <!-- Mặt sau -->
-                <div class="flashcard-face flashcard-face-back bg-white border-2 border-[#0F172A] rounded-xl p-5 sm:p-6 text-left shadow-[3px_3px_0px_0px_#0F172A] flex flex-col justify-between">
+                <div class="flashcard-face flashcard-face-back bg-white border border-[#E2E8F0] rounded-2xl p-5 sm:p-6 text-left shadow-md flex flex-col justify-between">
                   <div class="w-full flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
                     <div class="flex items-center gap-2 truncate">
                       <span class="text-2xl sm:text-3xl font-bold text-[#0F172A] font-japanese truncate" id="studyCardCharBack">—</span>
@@ -136,7 +136,7 @@
                   </div>
 
                   <div class="w-full pt-2 border-t border-[#E2E8F0] flex items-center justify-between">
-                    <a id="btnStudyPracticeShodo" href="#" 
+                    <a id="btnStudyPracticeShodo" href="#" data-spa-link 
                        class="text-xs font-semibold text-[#831843] hover:underline flex items-center gap-1 no-underline">
                       <span>🖌️</span>
                       <span>Luyện viết chữ này</span>

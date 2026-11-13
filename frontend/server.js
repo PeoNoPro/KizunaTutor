@@ -1,4 +1,4 @@
-const http = require('http');
+﻿const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
@@ -104,6 +104,13 @@ const URL_ALIASES = {
   '/ai-writing.html': '/pages/ai-writing/index.html',
   '/learner/ai-writing': '/pages/ai-writing/index.html',
   '/sakubun': '/pages/ai-writing/index.html',
+  '/reading': '/pages/ai-reading/index.html',
+  '/reading.html': '/pages/ai-reading/index.html',
+  '/ai-reading': '/pages/ai-reading/index.html',
+  '/ai-reading.html': '/pages/ai-reading/index.html',
+  '/learner/reading': '/pages/ai-reading/index.html',
+  '/learner/ai-reading': '/pages/ai-reading/index.html',
+  '/ai-reading.js': '/pages/ai-reading/ai-reading.js',
   '/handwriting': '/pages/handwriting-search/index.html',
   '/handwriting-search': '/pages/handwriting-search/index.html',
   '/learner/handwriting-search': '/pages/handwriting-search/index.html',
@@ -130,7 +137,7 @@ const URL_ALIASES = {
   '/learner/': '/pages/learner-dashboard/index.html',
   '/dashboard': '/pages/learner-dashboard/index.html',
   '/dashboard/': '/pages/learner-dashboard/index.html',
-  // FE-06 Lớp học & tài liệu học tập
+  // FE-06 Lá»›p há»c & tÃ i liá»‡u há»c táº­p
   '/my-courses': '/pages/my-courses/index.html',
   '/learner/my-courses': '/pages/my-courses/index.html',
   '/tutor/classrooms': '/pages/tutor-classrooms/index.html',
@@ -154,7 +161,7 @@ const URL_ALIASES = {
   '/academic/history/': '/pages/academic-review-history/index.html',
   '/academic/profile': '/pages/academic-profile/index.html',
   '/academic/profile/': '/pages/academic-profile/index.html',
-  // FE-09: gói hội viên và thanh toán
+  // FE-09: gÃ³i há»™i viÃªn vÃ  thanh toÃ¡n
   '/tutor/membership': '/pages/tutor-membership/index.html',
   '/tutor/membership/': '/pages/tutor-membership/index.html',
   '/tutor/membership/result': '/pages/tutor-membership-result/index.html',
@@ -190,7 +197,7 @@ const server = http.createServer((req, res) => {
         pReq.end();
       };
 
-      // Thử microservice 8081 trước; nếu chưa chạy thì fallback về Spring Boot Backend 8085
+      // Thá»­ microservice 8081 trÆ°á»›c; náº¿u chÆ°a cháº¡y thÃ¬ fallback vá» Spring Boot Backend 8085
       forwardMemory(AGENT_MEMORY_PORT, () => {
         forwardMemory(BACKEND_PORT, () => {
           res.writeHead(502, { 'Content-Type': 'application/json' });
@@ -206,8 +213,8 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 2. Proxy REST API & Google OAuth2 requests tới Spring Boot backend (port 8085 / 8080)
-  // 2. Proxy REST API & Google OAuth2 requests tới Spring Boot backend (port 8085 / 8080)
+  // 2. Proxy REST API & Google OAuth2 requests tá»›i Spring Boot backend (port 8085 / 8080)
+  // 2. Proxy REST API & Google OAuth2 requests tá»›i Spring Boot backend (port 8085 / 8080)
   if (req.url.startsWith('/api/') || req.url.startsWith('/oauth2/') || req.url.startsWith('/login/oauth2/')) {
     const options = {
       hostname: '127.0.0.1',
@@ -224,7 +231,7 @@ const server = http.createServer((req, res) => {
       proxyRes.pipe(res, { end: true });
     });
     proxyReq.on('error', () => {
-      // Thử fallback sang cổng 8080 nếu 8085 chưa phản hồi
+      // Thá»­ fallback sang cá»•ng 8080 náº¿u 8085 chÆ°a pháº£n há»“i
       const fallbackOptions = { ...options, port: 8080, headers: { ...req.headers, host: '127.0.0.1:8080' } };
       const fallbackReq = http.request(fallbackOptions, (fallbackRes) => {
         res.writeHead(fallbackRes.statusCode, fallbackRes.headers);
@@ -248,7 +255,7 @@ const server = http.createServer((req, res) => {
   let cleanUrl = req.url.split('?')[0];
   const queryString = req.url.slice(cleanUrl.length);
 
-  // Hỗ trợ route hồ sơ gia sư dạng rút gọn /gs/:tutorCode và các file tĩnh gọi từ trang này
+  // Há»— trá»£ route há»“ sÆ¡ gia sÆ° dáº¡ng rÃºt gá»n /gs/:tutorCode vÃ  cÃ¡c file tÄ©nh gá»i tá»« trang nÃ y
   if (cleanUrl.startsWith('/gs/')) {
     if (cleanUrl.endsWith('.js')) {
       const scriptName = path.basename(cleanUrl);
@@ -271,8 +278,8 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Ánh xạ alias URL thân thiện / tương thích ngược: chuyển hướng về thư mục trang thật
-  // để đường dẫn tương đối như ./ten-trang.js trong index.html tìm đúng file.
+  // Ãnh xáº¡ alias URL thÃ¢n thiá»‡n / tÆ°Æ¡ng thÃ­ch ngÆ°á»£c: chuyá»ƒn hÆ°á»›ng vá» thÆ° má»¥c trang tháº­t
+  // Ä‘á»ƒ Ä‘Æ°á»ng dáº«n tÆ°Æ¡ng Ä‘á»‘i nhÆ° ./ten-trang.js trong index.html tÃ¬m Ä‘Ãºng file.
   if (URL_ALIASES[cleanUrl]) {
     res.writeHead(302, { Location: URL_ALIASES[cleanUrl].replace(/index\.html$/, '') + queryString });
     res.end();
@@ -281,7 +288,7 @@ const server = http.createServer((req, res) => {
 
   let filePath = path.join(__dirname, cleanUrl);
 
-  // Xử lý truy cập thư mục -> nạp index.html (thiếu dấu / ở cuối thì chuyển hướng, cùng lý do trên)
+  // Xá»­ lÃ½ truy cáº­p thÆ° má»¥c -> náº¡p index.html (thiáº¿u dáº¥u / á»Ÿ cuá»‘i thÃ¬ chuyá»ƒn hÆ°á»›ng, cÃ¹ng lÃ½ do trÃªn)
   if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
     if (!cleanUrl.endsWith('/')) {
       res.writeHead(302, { Location: cleanUrl + '/' + queryString });
@@ -296,11 +303,11 @@ const server = http.createServer((req, res) => {
 
   const ext = path.extname(filePath).toLowerCase();
 
-  // Tránh trả về text/html cho file JS / CSS khi không tìm thấy
+  // TrÃ¡nh tráº£ vá» text/html cho file JS / CSS khi khÃ´ng tÃ¬m tháº¥y
   if (!fs.existsSync(filePath)) {
     if (ext && ext !== '.html') {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=UTF-8' });
-      res.end(`404 Không tìm thấy tài nguyên: ${cleanUrl}`);
+      res.end(`404 KhÃ´ng tÃ¬m tháº¥y tÃ i nguyÃªn: ${cleanUrl}`);
       return;
     }
     filePath = path.join(__dirname, 'index.html');
@@ -311,7 +318,7 @@ const server = http.createServer((req, res) => {
   fs.readFile(filePath, (err, content) => {
     if (err) {
       res.writeHead(500, { 'Content-Type': 'text/plain; charset=UTF-8' });
-      res.end(`Lỗi máy chủ: ${err.code}`);
+      res.end(`Lá»—i mÃ¡y chá»§: ${err.code}`);
       return;
     }
     res.writeHead(200, { 'Content-Type': contentType });
@@ -320,9 +327,9 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`[Frontend] Máy chủ dev đang chạy tại: http://localhost:${PORT}`);
-  console.log(`[Frontend] Trang tìm gia sư: http://localhost:${PORT}/pages/tutor-discovery/`);
-  console.log(`[Frontend] Xem hồ sơ ngắn: http://localhost:${PORT}/gs/10001`);
-  console.log(`Backend proxy trỏ tới cổng: ${BACKEND_PORT}`);
-  console.log(`Agent Memory proxy trỏ tới cổng: ${AGENT_MEMORY_PORT}`);
+  console.log(`[Frontend] MÃ¡y chá»§ dev Ä‘ang cháº¡y táº¡i: http://localhost:${PORT}`);
+  console.log(`[Frontend] Trang tÃ¬m gia sÆ°: http://localhost:${PORT}/pages/tutor-discovery/`);
+  console.log(`[Frontend] Xem há»“ sÆ¡ ngáº¯n: http://localhost:${PORT}/gs/10001`);
+  console.log(`Backend proxy trá» tá»›i cá»•ng: ${BACKEND_PORT}`);
+  console.log(`Agent Memory proxy trá» tá»›i cá»•ng: ${AGENT_MEMORY_PORT}`);
 });

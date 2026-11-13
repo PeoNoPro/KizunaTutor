@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Từ Điển Chữ Hán & Bút Thuận (Kanji Dictionary & Stroke Order)
  * Phục dựng 100% chuẩn giao diện & tính năng từ phiên bản gốc (legacy dictionary)
  * Giữ nguyên cấu trúc Layout dùng chung cho Học Viên (Header, Sidebar, Footer)
@@ -444,8 +444,14 @@ function renderLearnerGrid(items) {
           <span>📁</span> Lưu Thẻ
         </button>
         <a href="/shodo?char=${encodeURIComponent(k.kanjiChar)}" 
-           class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer">
-          <span>✍️</span> Luyện Nét
+           class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
+           title="Tập viết chữ này trên Canvas Shodo">
+          <span>✍️</span> Shodo
+        </a>
+        <a href="/kanji-game?jlpt=${encodeURIComponent(k.jlptLevel || 'N5')}" 
+           class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#1E40AF] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
+           title="Thử thách Game Mưa chữ Hán theo cấp độ này">
+          <span>🌧️</span> Game
         </a>
       </div>
     </div>

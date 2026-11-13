@@ -8,6 +8,11 @@ export const LEARNER_NAV_BASE = 'nav-item flex items-center gap-3 px-3 py-2.5 ro
 export const LEARNER_NAV_ACTIVE = `${LEARNER_NAV_BASE} bg-[#007bb9] text-[#fdfcff] font-semibold shadow-sm`;
 export const LEARNER_NAV_IDLE = `${LEARNER_NAV_BASE} text-[#3f4850] font-medium hover:bg-[#e2e7ff] hover:text-[#131b2e]`;
 
+// Lớp CSS mục menu con cấp 2 (Dropdown / Accordion sub-items)
+export const LEARNER_SUBNAV_BASE = 'nav-sub-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] leading-5 transition-colors no-underline';
+export const LEARNER_SUBNAV_ACTIVE = `${LEARNER_SUBNAV_BASE} bg-[#007bb9] text-[#fdfcff] font-semibold shadow-sm`;
+export const LEARNER_SUBNAV_IDLE = `${LEARNER_SUBNAV_BASE} text-[#555f6d] font-medium hover:bg-[#e2e7ff] hover:text-[#131b2e]`;
+
 let isNavigating = false;
 let currentPathname = typeof window !== 'undefined' ? window.location.pathname : '';
 
@@ -28,6 +33,9 @@ export function initSidebarRouter() {
 }
 
 async function handleSidebarLinkClick(e) {
+  // Bỏ qua nếu là nút toggle mở/đóng dropdown menu (xử lý riêng trong learner-layout.js)
+  if (e.target.closest('.nav-dropdown-toggle')) return;
+
   const link = e.target.closest('#learnerSidebar a[href], a[data-spa-link]');
   if (!link) return;
 
@@ -42,7 +50,7 @@ async function handleSidebarLinkClick(e) {
     if (!href.startsWith(currentOrigin)) return;
   }
 
-    // Bỏ qua các trang độc lập (Full-page / Đầy đủ giao diện): Tìm gia sư, Yêu cầu kết nối, Trang chủ
+  // Bỏ qua các trang độc lập (Full-page / Đầy đủ giao diện): Tìm gia sư, Yêu cầu kết nối, Trang chủ
   if (
     link.hasAttribute('data-no-spa') ||
     href.includes('/pages/tutor-discovery') ||
@@ -80,14 +88,30 @@ export async function navigateTo(targetUrl, activeLink = null, pushHistory = tru
   if (sidebar) {
     const allLinks = sidebar.querySelectorAll('a[data-menu-key]');
     allLinks.forEach(l => {
-      l.className = LEARNER_NAV_IDLE;
+      const isSub = l.classList.contains('nav-sub-item');
+      l.className = isSub ? LEARNER_SUBNAV_IDLE : LEARNER_NAV_IDLE;
       l.removeAttribute('aria-current');
     });
 
     const activeEl = activeLink || sidebar.querySelector(`a[href="${targetUrl}"], a[href="${targetUrl.split('?')[0]}"]`);
     if (activeEl) {
-      activeEl.className = LEARNER_NAV_ACTIVE;
+      const isSub = activeEl.classList.contains('nav-sub-item');
+      activeEl.className = isSub ? LEARNER_SUBNAV_ACTIVE : LEARNER_NAV_ACTIVE;
       activeEl.setAttribute('aria-current', 'page');
+
+      // Tự động mở dropdown cha nếu menu con đang active
+      const parentDropdown = activeEl.closest('.nav-dropdown-menu');
+      if (parentDropdown) {
+        parentDropdown.classList.remove('hidden');
+        const parentBtn = parentDropdown.previousElementSibling;
+        if (parentBtn && parentBtn.classList.contains('nav-dropdown-toggle')) {
+          parentBtn.setAttribute('aria-expanded', 'true');
+          parentBtn.classList.add('text-[#007bb9]', 'bg-[#f0f4ff]');
+          parentBtn.classList.remove('text-[#3f4850]');
+          const chevron = parentBtn.querySelector('[data-chevron]');
+          if (chevron) chevron.classList.add('rotate-180');
+        }
+      }
     }
 
     // Đóng sidebar nếu đang mở trên mobile
@@ -132,70 +156,46 @@ export async function navigateTo(targetUrl, activeLink = null, pushHistory = tru
       document.title = doc.title;
     }
 
-    // 5. Nạp các thẻ <style> hoặc <link rel="stylesheet"> của trang mới vào <head> nếu chưa có
-    const targetStyles = doc.querySelectorAll('head style, head link[rel="stylesheet"]');
-    targetStyles.forEach(s => {
-      if (s.tagName.toLowerCase() === 'link') {
-        const href = s.getAttribute('href');
-        if (href && !document.querySelector(`head link[href="${href}"]`)) {
-          const newLink = document.createElement('link');
-          newLink.rel = 'stylesheet';
-          newLink.href = href;
-          document.head.appendChild(newLink);
-        }
-      } else if (s.tagName.toLowerCase() === 'style') {
-        const styleId = s.id || ('page-style-' + Math.random().toString(36).substring(2, 9));
-        if (!document.getElementById(styleId)) {
-          const newStyle = document.createElement('style');
-          newStyle.id = styleId;
-          newStyle.textContent = s.textContent;
-          document.head.appendChild(newStyle);
-        }
-      }
-    });
-
-    // 6. Cập nhật URL trong History (chỉ khi do người dùng click điều hướng, không phải popstate)
-    if (pushHistory) {
-      window.history.pushState({ targetUrl }, '', targetUrl);
-    }
-    currentPathname = new URL(targetUrl, window.location.origin).pathname;
-
-    // 7. Thay thế phần ruột <main>
+    // 5. Thay thế nội dung main
     currentMain.innerHTML = newMain.innerHTML;
     currentMain.className = newMain.className;
-    currentMain.scrollTop = 0;
 
-    // 8. Đồng bộ các Modal ngoài <main> nếu trang mới có định nghĩa
-    document.querySelectorAll('body > [id*="modal"], body > [id*="Modal"]').forEach(el => {
-      if (!el.closest('#learnerSidebar')) {
-        el.remove();
-      }
-    });
-    const newModals = doc.querySelectorAll('body > [id*="modal"], body > [id*="Modal"]');
-    newModals.forEach(m => {
-      document.body.appendChild(m.cloneNode(true));
-    });
+    // 6. Cập nhật URL trình duyệt
+    if (pushHistory) {
+      window.history.pushState({ kizunaPath: targetUrl }, '', targetUrl);
+    }
+    currentPathname = targetUrl;
 
-    // 9. Chạy các module script của trang mới
-    const moduleScripts = doc.querySelectorAll('script[type="module"][src]');
-    for (const script of moduleScripts) {
-      const src = script.getAttribute('src');
-      if (src && !src.includes('main.js') && !src.includes('learner-layout.js')) {
-        const cleanSrc = src.split('?')[0];
+    // 7. Nạp và thực thi script trang đích (Dynamic Module Loading)
+    const scripts = Array.from(doc.querySelectorAll('script'));
+    for (const s of scripts) {
+      const src = s.getAttribute('src');
+      if (src && (src.includes('/pages/') || src.includes('.js'))) {
+        // Tránh nạp lại các script hệ thống dùng chung đã có trên window
+        if (src.includes('sidebarRouter.js') || src.includes('learner-layout.js')) {
+          continue;
+        }
+
         try {
-          await import(`${cleanSrc}?t=${Date.now()}`);
+          const bustSrc = src.includes('?') ? `${src}&_ts=${Date.now()}` : `${src}?_ts=${Date.now()}`;
+          await import(bustSrc);
         } catch (scriptErr) {
-          console.debug('Lỗi nạp module trang mới:', scriptErr);
+          console.debug('[SidebarRouter] Tái kích hoạt script trang đích:', src, scriptErr.message);
         }
       }
     }
 
-    // 9. Kích hoạt sự kiện để trang mới khởi tạo DOM & Event Listeners
-    document.dispatchEvent(new Event('DOMContentLoaded'));
-    window.dispatchEvent(new Event('load'));
+    // 8. Kích hoạt sự kiện kizuna:page-mounted cho trang đích lắng nghe
+    window.dispatchEvent(new CustomEvent('kizuna:page-mounted', {
+      detail: { url: targetUrl }
+    }));
+
+    // Cuộn mượt lên đầu trang
+    currentMain.scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: 'instant' });
 
   } catch (err) {
-    console.debug('Shell navigation fallback to full reload:', err);
+    console.warn('[SidebarRouter] Fallback sang điều hướng trình duyệt tiêu chuẩn:', err);
     window.location.href = targetUrl;
   } finally {
     if (currentMain) {
@@ -205,14 +205,19 @@ export async function navigateTo(targetUrl, activeLink = null, pushHistory = tru
   }
 }
 
+/**
+ * Xử lý nút Back/Forward trên trình duyệt
+ */
 function handlePopState(e) {
-  const newPathname = window.location.pathname;
-  // Nếu chỉ thay đổi query param, hash hoặc trạng thái nội bộ trong cùng một trang (pathname không đổi)
-  // thì để cho module của trang hiện tại tự xử lý điều hướng nội bộ
-  if (newPathname === currentPathname) {
-    return;
-  }
-  currentPathname = newPathname;
   const targetUrl = window.location.pathname + window.location.search;
   navigateTo(targetUrl, null, false);
 }
+
+export default {
+  initSidebarRouter,
+  navigateTo,
+  LEARNER_NAV_ACTIVE,
+  LEARNER_NAV_IDLE,
+  LEARNER_SUBNAV_ACTIVE,
+  LEARNER_SUBNAV_IDLE
+};

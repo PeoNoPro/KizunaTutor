@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8">
@@ -65,7 +65,14 @@
                 Đang nạp danh mục...
               </span>
 
-              <!-- Cụm chuyển đổi chế độ hiển thị từ vựng JLPT -->
+              <!-- Nút Luyện tập Kana & Cụm chuyển đổi chế độ hiển thị từ vựng JLPT -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <a href="/kana"
+                   class="px-2.5 py-1 text-xs font-semibold rounded-md border border-[#CBD5E1] bg-white text-[#0F172A] hover:bg-slate-50 transition flex items-center gap-1.5 no-underline shadow-2xs"
+                   title="Luyện phản xạ gõ bảng chữ cái Hiragana & Katakana">
+                  <span>⌨️</span>
+                  <span>Đấu trường Kana</span>
+                </a>
               <div class="inline-flex items-center p-0.5 bg-[#F1F5F9] rounded-lg border border-[#E2E8F0]">
                 <button type="button" id="btnModeJlpt" data-view-mode="jlpt"
                         class="px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer bg-white text-[#831843] shadow-xs"
@@ -82,6 +89,7 @@
                         title="Luôn hiển thị Hiragana / Katakana to nhất để luyện phát âm">
                   <span>🔤 Chữ Kana</span>
                 </button>
+              </div>
               </div>
             </div>
 

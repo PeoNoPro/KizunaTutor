@@ -26,6 +26,9 @@ public interface ClassroomService {
     /** Gia sư sửa khóa học: tổng số buổi (không nhỏ hơn số buổi đã học), ngày bắt đầu (khi chưa có buổi nào diễn ra). */
     ClassroomSummaryResponse updateCourse(CurrentActor actor, UUID spaceId, com.kizuna.features.classroom.dto.ClassroomCourseRequest request);
 
+    /** Gia sư đổi hình thức học của lớp (online + link phòng học, hoặc trực tiếp + địa điểm); báo cho học viên. */
+    ClassroomSummaryResponse updateDelivery(CurrentActor actor, UUID spaceId, com.kizuna.features.classroom.dto.ClassroomDeliveryRequest request);
+
     /** Lớp mà người dùng là gia sư hoặc học viên; 404 nếu không tồn tại, 403 nếu không thuộc lớp. */
     LearningSpace loadAccessibleSpace(CurrentActor actor, UUID spaceId);
 

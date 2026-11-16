@@ -44,4 +44,11 @@ public class CreateConnectionRequestDTO {
 
     @Size(max = 1000, message = "Lời nhắn tối đa 1000 ký tự")
     private String initialMessage;
+
+    /** ONLINE | OFFLINE; để trống = ONLINE. */
+    private String learningMode;
+
+    /** Bắt buộc khi học trực tiếp: khu vực / địa chỉ học. */
+    @Size(max = 500, message = "Địa điểm học tối đa 500 ký tự")
+    private String locationDetails;
 }

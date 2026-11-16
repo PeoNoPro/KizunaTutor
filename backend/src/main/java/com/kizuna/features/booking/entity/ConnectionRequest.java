@@ -67,6 +67,15 @@ public class ConnectionRequest {
     @Column(name = "contact_consent_at")
     private java.time.OffsetDateTime contactConsentAt;
 
+    /** Hình thức học học viên chọn: ONLINE | OFFLINE (migration 029). */
+    @Column(name = "learning_mode", nullable = false, length = 20)
+    @Builder.Default
+    private String learningMode = "ONLINE";
+
+    /** Địa điểm học viên đề xuất khi chọn học trực tiếp. */
+    @Column(name = "location_details", columnDefinition = "TEXT")
+    private String locationDetails;
+
     /** Các buổi học cụ thể theo ngày (chỉ có ở yêu cầu DIRECT tạo từ khi có bảng connection_request_sessions). */
     @OneToMany(mappedBy = "connectionRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sessionDate ASC, startTime ASC")

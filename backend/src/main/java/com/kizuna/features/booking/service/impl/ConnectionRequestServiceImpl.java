@@ -78,6 +78,34 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
 
+    /** Bài đăng của gia sư quyết định hình thức được nhận. Không bắt buộc (test dựng tay) → chỉ cho ONLINE. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.tutor_post.repository.TutorPostRepository tutorPostRepository;
+
+    /**
+     * Hình thức học của yêu cầu: trống = ONLINE; phải nằm trong hình thức dạy của bài đăng đang hiển thị
+     * (ONLINE | OFFLINE | BOTH). Gia sư chưa khai báo hình thức dạy chỉ nhận học online.
+     */
+    String resolveLearningMode(UUID tutorId, String requested) {
+        String mode = requested == null || requested.isBlank() ? "ONLINE" : requested.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!mode.equals("ONLINE") && !mode.equals("OFFLINE")) {
+            throw new BadRequestException("Hình thức học không hợp lệ.");
+        }
+        String format = tutorPostRepository == null ? null
+                : tutorPostRepository.findFirstByTutorTutorIdAndStatusOrderByReviewedAtDesc(
+                        tutorId, com.kizuna.features.tutor_post.entity.TutorPostStatus.PUBLISHED)
+                .map(com.kizuna.features.tutor_post.entity.TutorPost::getTeachingFormat)
+                .map(f -> f.trim().toUpperCase(java.util.Locale.ROOT))
+                .orElse(null);
+        boolean allowed = "BOTH".equals(format) || mode.equals(format == null ? "ONLINE" : format);
+        if (!allowed) {
+            throw new BadRequestException(mode.equals("OFFLINE")
+                    ? "Gia sư này chỉ dạy online. Vui lòng chọn học online."
+                    : "Gia sư này chỉ dạy trực tiếp. Vui lòng chọn học trực tiếp.");
+        }
+        return mode;
+    }
+
 
     public ConnectionRequestServiceImpl(UserRepository userRepository,
                                         LearnerRepository learnerRepository,
@@ -116,6 +144,12 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy gia sư với mã yêu cầu"));
         if (tutor.getVerificationStatus() != TutorVerificationStatus.APPROVED) {
             throw new BadRequestException("Gia sư hiện chưa sẵn sàng nhận học viên mới. Vui lòng chọn gia sư đã được phê duyệt.");
+        }
+
+        String learningMode = resolveLearningMode(tutor.getTutorId(), request.getLearningMode());
+        String location = trimToNull(request.getLocationDetails());
+        if ("OFFLINE".equals(learningMode) && location == null) {
+            throw new BadRequestException("Vui lòng nhập khu vực / địa điểm học khi chọn học trực tiếp.");
         }
 
         Learner learner = learnerRepository.findByUser(learnerUser)
@@ -169,6 +203,8 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
                 .tutor(tutor)
                 .requestType(ConnectionRequestType.DIRECT)
                 .status(ConnectionRequestStatus.PENDING)
+                .learningMode(learningMode)
+                .locationDetails("OFFLINE".equals(learningMode) ? location : null)
                 .initialMessage(composeInitialMessage(BookingLimits.levelLabel(learner.getCurrentLevel()), goals, trimToNull(request.getInitialMessage())))
                 .build();
         // Học viên đồng ý gửi hồ sơ + email + số điện thoại cho gia sư
@@ -776,6 +812,8 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
                 .partnerName(partner.getFullName() != null ? partner.getFullName() : partner.getEmail())
                 .partnerAvatarUrl(partner.getAvatarUrl())
                 .partnerRole(viewerIsLearner ? "Gia sư" : "Học viên")
+                .learningMode(cr.getLearningMode())
+                .locationDetails(cr.getLocationDetails())
                 .slots(slots)
                 .sessions(cr.getSessions().stream()
                         .map(s -> ConnectionRequestResponseDTO.SessionView.builder()

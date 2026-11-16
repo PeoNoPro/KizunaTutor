@@ -141,14 +141,25 @@ public class ClassroomServiceImpl implements ClassroomService {
         }
         scheduleRules.ensureNoConflict(tutor.getTutorId(), learner.getLearnerId(), null, null, slots);
 
-        LearningSpace saved = spaceRepository.save(LearningSpace.builder()
+        // Hình thức học: gia sư không chọn thì lấy theo yêu cầu kết nối đã nhận
+        String mode = request.learningMode();
+        String location = request.locationDetails();
+        if (mode == null || mode.isBlank()) {
+            Object[] accepted = spaceRepository.findAcceptedConnectionDelivery(tutor.getTutorId(), learner.getLearnerId())
+                    .stream().findFirst().orElse(null);
+            mode = accepted == null ? null : (String) accepted[0];
+            if (location == null || location.isBlank()) location = accepted == null ? null : (String) accepted[1];
+        }
+        LearningSpace space = LearningSpace.builder()
                 .tutor(tutor)
                 .learner(learner)
                 .title(title)
                 .status(LearningSpaceStatus.ACTIVE)
                 .courseStartDate(startDate)
                 .totalSessions(totalSessions)
-                .build());
+                .build();
+        applyDelivery(space, mode, request.meetingLink(), location);
+        LearningSpace saved = spaceRepository.save(space);
         OffsetDateTime activeFrom = ClassSessionCalendar.activeFromFor(saved, OffsetDateTime.now(clock));
         scheduleRepository.saveAll(slots.stream().map(slot -> ClassSchedule.builder()
                 .space(saved)
@@ -228,6 +239,61 @@ public class ClassroomServiceImpl implements ClassroomService {
         }
         space.setTotalSessions(total);
         return toSummary(spaceRepository.save(space), actor);
+    }
+
+    @Override
+    @Transactional
+    public ClassroomSummaryResponse updateDelivery(CurrentActor actor, UUID spaceId,
+                                                   com.kizuna.features.classroom.dto.ClassroomDeliveryRequest request) {
+        LearningSpace space = loadManageableSpace(actor, spaceId);
+        String oldMode = space.getLearningMode();
+        String oldLink = space.getMeetingLink();
+        String oldLocation = space.getLocationDetails();
+        applyDelivery(space, request == null ? null : request.learningMode(),
+                request == null ? null : request.meetingLink(), request == null ? null : request.locationDetails());
+        LearningSpace saved = spaceRepository.save(space);
+        boolean changed = !Objects.equals(oldMode, saved.getLearningMode()) || !Objects.equals(oldLink, saved.getMeetingLink())
+                || !Objects.equals(oldLocation, saved.getLocationDetails());
+        if (changed && notificationEvents != null && saved.getLearner().getUser() != null) {
+            String detail = "OFFLINE".equals(saved.getLearningMode())
+                    ? "học trực tiếp tại " + saved.getLocationDetails()
+                    : saved.getMeetingLink() == null ? "học online (gia sư sẽ gửi link phòng học)" : "học online, link phòng học: " + saved.getMeetingLink();
+            notificationEvents.publish("classroom:" + saved.getSpaceId() + ":delivery:" + System.currentTimeMillis(), "CONNECTION",
+                    "Lớp học cập nhật hình thức học",
+                    "Lớp \"" + saved.getTitle() + "\" chuyển sang " + detail + ".",
+                    "/learner/connections", List.of(saved.getLearner().getUser().getUserId()));
+        }
+        return toSummary(saved, actor);
+    }
+
+    /**
+     * Gán hình thức học cho lớp. Trống = ONLINE. Lớp online: link (nếu có) phải là http(s), tối đa 500 ký tự,
+     * địa điểm bị bỏ. Lớp trực tiếp: bắt buộc địa điểm (tối đa 500 ký tự), link bị bỏ.
+     */
+    static void applyDelivery(LearningSpace space, String rawMode, String rawLink, String rawLocation) {
+        String mode = rawMode == null || rawMode.isBlank() ? "ONLINE" : rawMode.strip().toUpperCase(java.util.Locale.ROOT);
+        if (!mode.equals("ONLINE") && !mode.equals("OFFLINE")) {
+            throw ClassroomException.field("learningMode", "Hình thức học không hợp lệ.");
+        }
+        String link = rawLink == null || rawLink.isBlank() ? null : rawLink.strip();
+        String location = rawLocation == null || rawLocation.isBlank() ? null : rawLocation.strip();
+        if (mode.equals("ONLINE")) {
+            if (link != null && (!link.matches("(?i)https?://\\S+") || link.length() > 500)) {
+                throw ClassroomException.field("meetingLink", "Link phòng học phải bắt đầu bằng http:// hoặc https:// và tối đa 500 ký tự.");
+            }
+            location = null;
+        } else {
+            if (location == null) {
+                throw ClassroomException.field("locationDetails", "Vui lòng nhập địa điểm học cho lớp học trực tiếp.");
+            }
+            if (location.length() > 500) {
+                throw ClassroomException.field("locationDetails", "Địa điểm học tối đa 500 ký tự.");
+            }
+            link = null;
+        }
+        space.setLearningMode(mode);
+        space.setMeetingLink(link);
+        space.setLocationDetails(location);
     }
 
     @Override
@@ -313,6 +379,9 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .totalSessions(space.getTotalSessions())
                 .startedSessions(progress == null ? 0 : progress.startedSessions())
                 .courseEndDate(progress == null ? null : progress.endDate())
+                .learningMode(space.getLearningMode())
+                .meetingLink(space.getMeetingLink())
+                .locationDetails(space.getLocationDetails())
                 .build();
     }
 

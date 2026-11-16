@@ -127,6 +127,14 @@
               </div>
               <button type="button" id="openCourseBtn" class="kz-btn shrink-0 hidden"><span class="material-symbols-outlined text-[16px]">edit_calendar</span>Sửa khóa học</button>
             </div>
+            <div id="deliveryInfo" class="kz-item mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div class="min-w-0">
+                <p class="font-label-md text-label-md text-on-surface">Hình thức học</p>
+                <p id="deliverySummary" class="font-body-sm text-body-sm text-on-surface-variant [overflow-wrap:anywhere]"></p>
+                <p id="deliveryMissingNote" class="hidden mt-1 font-body-sm text-body-sm font-semibold text-error">Lớp học online chưa có link phòng học. Hãy thêm link để học viên vào học.</p>
+              </div>
+              <button type="button" id="openDeliveryBtn" class="kz-btn shrink-0 hidden"><span class="material-symbols-outlined text-[16px]">edit_location_alt</span>Sửa hình thức học</button>
+            </div>
             <div id="scheduleState" class="kz-item text-center text-on-surface-variant py-6 hidden"></div>
             <ul id="scheduleList" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></ul>
           </div>
@@ -290,6 +298,33 @@
       <div class="flex justify-end gap-3 pt-1">
         <button type="button" class="kz-btn" data-close-modal="courseModal">Hủy</button>
         <button type="submit" id="courseSubmit" class="kz-btn kz-btn-primary">Lưu khóa học</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== HỘP THOẠI HÌNH THỨC HỌC (online + link / trực tiếp + địa điểm) ===== -->
+  <div id="deliveryModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="deliveryModalTitle">
+    <form id="deliveryForm" class="kz-card shadow-xl w-full max-w-[480px] p-6 space-y-4" novalidate>
+      <h2 id="deliveryModalTitle" class="font-title-md text-title-md text-on-surface">Hình thức học</h2>
+      <div class="flex gap-4">
+        <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="deliveryMode" value="ONLINE"> Học online</label>
+        <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="deliveryMode" value="OFFLINE"> Học trực tiếp</label>
+      </div>
+      <div id="deliveryLinkBox">
+        <label for="deliveryLinkInput" class="kz-label">Link phòng học (Google Meet / Zoom)</label>
+        <input id="deliveryLinkInput" type="url" maxlength="500" placeholder="https://meet.google.com/xxx-xxxx-xxx" class="kz-input">
+        <p id="deliveryLinkError" class="field-error hidden"></p>
+      </div>
+      <div id="deliveryLocationBox" class="hidden">
+        <label for="deliveryLocationInput" class="kz-label">Địa điểm học</label>
+        <input id="deliveryLocationInput" type="text" maxlength="500" placeholder="Địa chỉ buổi học" class="kz-input">
+        <p id="deliveryLocationError" class="field-error hidden"></p>
+      </div>
+      <p class="font-caption text-caption text-on-surface-variant">Học viên sẽ nhận thông báo khi bạn thay đổi.</p>
+      <p id="deliveryFormError" class="field-error hidden"></p>
+      <div class="flex justify-end gap-3 pt-1">
+        <button type="button" class="kz-btn" data-close-modal="deliveryModal">Hủy</button>
+        <button type="submit" id="deliverySubmit" class="kz-btn kz-btn-primary">Lưu</button>
       </div>
     </form>
   </div>

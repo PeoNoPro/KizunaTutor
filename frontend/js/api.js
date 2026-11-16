@@ -1118,6 +1118,11 @@ API.classrooms = {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/course`, { method: 'PUT', body: { startDate, totalSessions } });
   },
 
+  /** Gia sư đổi hình thức học: ONLINE (+ meetingLink) hoặc OFFLINE (+ locationDetails bắt buộc) */
+  updateDelivery(spaceId, { learningMode, meetingLink, locationDetails }) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/delivery`, { method: 'PUT', body: { learningMode, meetingLink, locationDetails } });
+  },
+
   /**
    * Thời khóa biểu của người đang đăng nhập: lịch hằng tuần của mọi lớp đang mở.
    * Mỗi phần tử: {scheduleId, spaceId, classTitle, partnerName, classStatus, dayOfWeek (1 = Thứ Hai), startTime, endTime, classStartedAt}

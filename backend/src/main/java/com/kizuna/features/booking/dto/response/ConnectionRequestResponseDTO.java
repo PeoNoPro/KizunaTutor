@@ -48,6 +48,10 @@ public class ConnectionRequestResponseDTO {
         private String endTime;
     }
 
+    /** ONLINE | OFFLINE */
+    private String learningMode;
+    private String locationDetails;
+
     private String currentLevel;
     private String learningGoals;
     private String initialMessage;

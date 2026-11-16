@@ -79,4 +79,13 @@ public interface LearningSpaceRepository extends JpaRepository<LearningSpace, UU
                   AND cr.status = 'ACCEPTED')
             """, nativeQuery = true)
     boolean hasAcceptedConnection(@Param("tutorId") UUID tutorId, @Param("learnerId") UUID learnerId);
+
+    /** Hình thức học + địa điểm của yêu cầu kết nối khóa học đã nhận gần nhất: [learning_mode, location_details]. */
+    @Query(value = """
+            SELECT cr.learning_mode, cr.location_details FROM connection_requests cr
+            WHERE cr.tutor_id = :tutorId AND cr.learner_id = :learnerId
+              AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED'
+            ORDER BY cr.responded_at DESC NULLS LAST LIMIT 1
+            """, nativeQuery = true)
+    List<Object[]> findAcceptedConnectionDelivery(@Param("tutorId") UUID tutorId, @Param("learnerId") UUID learnerId);
 }

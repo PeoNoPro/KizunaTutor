@@ -4,7 +4,7 @@
  */
 
 import { API, ApiError } from '/js/api.js';
-import { contactHtml } from '/js/contact-card.js';
+import { contactHtml, learningModeHtml } from '/js/contact-card.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
 // Sắp xếp theo từng nhóm: chờ phản hồi (hạn phản hồi gần nhất) → đã xác nhận (buổi gần nhất) → lịch sử (mới nhất)
 import { sortTrials, sortDirect, trialDeadline, directDeadline, responseDeadlineHtml } from '/js/request-sorting.js';
@@ -688,6 +688,7 @@ function renderDirect() {
           </div>` : ''}
         ${r.initialMessage ? `<div class="text-body-sm text-on-surface-variant bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/30 italic">"${escapeHtml(r.initialMessage)}"</div>` : ''}
         ${r.slotWarning ? `<div class="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-body-sm text-amber-900"><span class="material-symbols-outlined text-[18px] text-amber-600 shrink-0">warning</span><span>${escapeHtml(r.slotWarning)}</span></div>` : ''}
+        ${learningModeHtml(r)}
         ${contactHtml(r, 'Liên hệ học viên')}
         ${actionsHtml}
       </div>`;

@@ -1131,10 +1131,29 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       showDirectError('');
       prepareLearnerFields();
+      prepareDirectMode();
       renderConnectForm();
       updateDirectSubmit();
       openModal('direct-connect-modal');
     }
+
+    // Hình thức học theo bài đăng của gia sư: BOTH → học viên chọn; ONLINE/OFFLINE (hoặc chưa khai báo = online) → cố định.
+    const directModeFormat = String(tutor.teachingFormatCode || 'ONLINE').toUpperCase();
+    const directModeOf = () => document.querySelector('input[name="direct-mode"]:checked')?.value || 'ONLINE';
+    function syncDirectLocation() {
+      document.getElementById('direct-location-box')?.classList.toggle('hidden', directModeOf() !== 'OFFLINE');
+    }
+    // Gia sư chỉ dạy một hình thức: vẫn hiện ô chọn nhưng chỉ còn đúng lựa chọn đó (đã chọn sẵn).
+    function prepareDirectMode() {
+      const fixed = directModeFormat === 'BOTH' ? null : (directModeFormat === 'OFFLINE' ? 'OFFLINE' : 'ONLINE');
+      document.querySelectorAll('input[name="direct-mode"]').forEach((input) => {
+        input.closest('label')?.classList.toggle('hidden', Boolean(fixed) && input.value !== fixed);
+      });
+      const radio = document.querySelector(`input[name="direct-mode"][value="${fixed || directModeOf()}"]`);
+      if (radio) radio.checked = true;
+      syncDirectLocation();
+    }
+    document.querySelectorAll('input[name="direct-mode"]').forEach(r => r.addEventListener('change', syncDirectLocation));
 
     if (directSubmitBtn) {
       directSubmitBtn.addEventListener('click', async () => {
@@ -1144,6 +1163,12 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
         const notes = document.getElementById('direct-notes');
+        const learningMode = directModeOf();
+        const locationDetails = learningMode === 'OFFLINE' ? (document.getElementById('direct-location')?.value.trim() || '') : null;
+        if (learningMode === 'OFFLINE' && !locationDetails) {
+          showDirectError('Vui lòng nhập khu vực / địa điểm học khi chọn học trực tiếp.');
+          return;
+        }
         const contact = readContact('direct');
         if (contact.error) {
           showDirectError(contact.error);
@@ -1151,6 +1176,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         const payload = {
           ...connectPayload(),
+          learningMode,
+          locationDetails,
           contactPhone: contact.contactPhone,
           contactEmail: contact.contactEmail,
           shareContact: contact.shareContact,

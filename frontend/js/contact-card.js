@@ -16,6 +16,19 @@ export function formatPhone(phone) {
 }
 
 /**
+ * Nhãn hình thức học của yêu cầu kết nối / lớp: "Học online" hoặc "Học trực tiếp · <địa điểm>".
+ * @param {{ learningMode?: string, locationDetails?: string }} item
+ */
+export function learningModeHtml(item) {
+  const offline = item && item.learningMode === 'OFFLINE';
+  const text = offline ? `Học trực tiếp${item.locationDetails ? ` · ${item.locationDetails}` : ''}` : 'Học online';
+  return `
+    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${offline ? 'bg-amber-50 border border-amber-200 text-amber-900' : 'bg-emerald-50 border border-emerald-200 text-emerald-800'} text-[11px] font-semibold [overflow-wrap:anywhere]">
+      <span class="material-symbols-outlined text-[14px]">${offline ? 'home_pin' : 'videocam'}</span>${esc(text)}
+    </div>`;
+}
+
+/**
  * @param {{ partnerPhone?: string, partnerEmail?: string }} item dữ liệu yêu cầu từ server
  * @param {string} title ví dụ "Liên hệ học viên", "Liên hệ gia sư"
  * @returns {string} HTML, rỗng nếu không có liên hệ để hiện

@@ -8,7 +8,7 @@
 
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { API, ApiError } from '/js/api.js';
-import { contactHtml } from '/js/contact-card.js';
+import { contactHtml, learningModeHtml } from '/js/contact-card.js';
 // Sắp xếp theo từng nhóm: chờ phản hồi (buổi học gần nhất) → đã chấp nhận (buổi gần nhất) → lịch sử (mới nhất)
 import { sortTrials, sortDirect } from '/js/request-sorting.js';
 
@@ -833,6 +833,7 @@ function renderDirect() {
           <span class="self-start sm:self-center px-2.5 py-1 rounded-full text-[11px] font-bold ${badgeCls}">${escapeHtml(r.statusLabel || '')}</span>
         </div>
         <div class="flex flex-wrap gap-2">${slots}</div>
+        ${learningModeHtml(r)}
         ${r.initialMessage ? `<div class="text-xs text-[#64748B] bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0] italic">"Lời nhắn: ${escapeHtml(r.initialMessage)}"</div>` : ''}
         ${contactHtml(r, 'Liên hệ gia sư')}
         ${footer}

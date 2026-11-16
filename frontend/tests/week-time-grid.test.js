@@ -38,6 +38,7 @@ test('thẻ buổi học ghi số buổi của khóa', () => {
   assert.equal(ev.note, 'Buổi 3/24');
   assert.equal(ev.href, '/lop');
   assert.equal(officialEvent({ ...base, totalSessions: null }).note, 'Buổi 3');
+  assert.equal(officialEvent({ ...base, learningMode: 'OFFLINE' }).note, 'Buổi 3/24 · Trực tiếp');
 });
 
 test('buổi đã dời ghi rõ ngày gốc; buổi thêm có nhãn riêng; thẻ bấm được không có đường dẫn', () => {

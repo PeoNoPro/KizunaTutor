@@ -237,6 +237,26 @@
             <span class="w-6 h-6 rounded-full bg-[#006194] text-white text-xs flex items-center justify-center">2</span>
             Thông tin của bạn
           </div>
+          <!-- Hình thức học: một hình thức cho cả khóa; chỉ hiện lựa chọn khi gia sư dạy cả online lẫn trực tiếp -->
+          <div id="direct-mode-box" class="space-y-1.5">
+            <span class="block text-xs font-bold text-[#0F2545]">Hình thức học</span>
+            <div id="direct-mode-picker" class="grid grid-cols-2 gap-2">
+              <label class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 cursor-pointer has-[:checked]:border-[#006194] has-[:checked]:bg-[#E0EFF7] has-[:checked]:text-[#006194]">
+                <input type="radio" name="direct-mode" value="ONLINE" class="accent-[#006194]" checked>
+                <span class="material-symbols-outlined text-[18px]">videocam</span> Học online
+              </label>
+              <label class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 cursor-pointer has-[:checked]:border-[#006194] has-[:checked]:bg-[#E0EFF7] has-[:checked]:text-[#006194]">
+                <input type="radio" name="direct-mode" value="OFFLINE" class="accent-[#006194]">
+                <span class="material-symbols-outlined text-[18px]">home_pin</span> Học trực tiếp
+              </label>
+            </div>
+            <div id="direct-location-box" class="hidden space-y-1">
+              <label for="direct-location" class="block text-[11px] font-semibold text-slate-600">Khu vực / địa điểm học (*)</label>
+              <input type="text" id="direct-location" maxlength="500" placeholder="Ví dụ: Phường Dịch Vọng, Cầu Giấy, Hà Nội"
+                class="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-300 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary">
+              <p class="text-[11px] text-slate-500">Gia sư sẽ liên hệ để thống nhất địa chỉ chính xác.</p>
+            </div>
+          </div>
           <!-- Trình độ lấy từ hồ sơ học viên, không nhập lại ở đây -->
           <div data-learner-level class="text-xs text-slate-600"></div>
           <div class="space-y-1">

@@ -82,12 +82,24 @@ class SuspendedUserSecurityTest {
     }
 
     @Test
-    @DisplayName("Token của tài khoản SUSPENDED bị chặn ngay với HTTP 403 và thông báo tiếng Việt")
-    void suspendedTokenRejectedWith403() throws Exception {
+    @DisplayName("Token hết hạn / sai trên route cần đăng nhập trả 401 (không phải 403 'không có quyền')")
+    void expiredTokenRejectedWith401() throws Exception {
+        when(jwtTokenProvider.validateToken("tok-expired")).thenReturn(false);
+
+        mockMvc.perform(get("/api/profile/learner/me").header("Authorization", "Bearer tok-expired"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."));
+
+        verify(learnerProfileService, never()).getMyProfile(any());
+    }
+
+    @Test
+    @DisplayName("Token của tài khoản SUSPENDED bị chặn ngay với HTTP 401 và thông báo tiếng Việt")
+    void suspendedTokenRejectedWith401() throws Exception {
         givenBearerUser("tok-suspended", UserAccountStatus.SUSPENDED, null);
 
         mockMvc.perform(get("/api/profile/learner/me").header("Authorization", "Bearer tok-suspended"))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value(JwtAuthenticationFilter.BLOCKED_ACCOUNT_MESSAGE));
 
@@ -95,12 +107,12 @@ class SuspendedUserSecurityTest {
     }
 
     @Test
-    @DisplayName("Token của tài khoản BANNED bị chặn ngay với HTTP 403 và thông báo tiếng Việt")
-    void bannedTokenRejectedWith403() throws Exception {
+    @DisplayName("Token của tài khoản BANNED bị chặn ngay với HTTP 401 và thông báo tiếng Việt")
+    void bannedTokenRejectedWith401() throws Exception {
         givenBearerUser("tok-banned", UserAccountStatus.BANNED, null);
 
         mockMvc.perform(get("/api/profile/learner/me").header("Authorization", "Bearer tok-banned"))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value(JwtAuthenticationFilter.BLOCKED_ACCOUNT_MESSAGE));
 
@@ -108,12 +120,12 @@ class SuspendedUserSecurityTest {
     }
 
     @Test
-    @DisplayName("Token của tài khoản đã xóa mềm bị chặn ngay với HTTP 403")
-    void softDeletedTokenRejectedWith403() throws Exception {
+    @DisplayName("Token của tài khoản đã xóa mềm bị chặn ngay với HTTP 401")
+    void softDeletedTokenRejectedWith401() throws Exception {
         givenBearerUser("tok-deleted", UserAccountStatus.ACTIVE, OffsetDateTime.now().minusDays(1));
 
         mockMvc.perform(get("/api/profile/learner/me").header("Authorization", "Bearer tok-deleted"))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value(JwtAuthenticationFilter.BLOCKED_ACCOUNT_MESSAGE));
 

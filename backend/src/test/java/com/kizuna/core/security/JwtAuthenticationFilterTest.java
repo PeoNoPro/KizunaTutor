@@ -59,6 +59,26 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    void blockedAccountContinuesAsGuestAndIsMarked() throws Exception {
+        // Không trả 403 ngay: route công khai vẫn dùng được; route cần đăng nhập đọc dấu này để báo 401 "bị khóa".
+        when(tokens.validateToken("token-khoa")).thenReturn(true);
+        when(tokens.getEmailFromToken("token-khoa")).thenReturn("khoa@test.invalid");
+        when(users.findByEmail("khoa@test.invalid")).thenReturn(Optional.of(
+                User.builder().email("khoa@test.invalid").accountStatus(UserAccountStatus.BANNED).build()));
+        var request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer token-khoa");
+        var response = new MockHttpServletResponse();
+        var chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(any(), any());
+        assertEquals(200, response.getStatus());
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        assertTrue(JwtAuthenticationFilter.isBlockedAccount(request));
+    }
+
+    @Test
     void activeStaffIsStillAuthenticated() throws Exception {
         assertTrue(authenticatedWith(User.builder().email("nhanvien@test.invalid").accountStatus(UserAccountStatus.ACTIVE).build()));
     }

@@ -48,6 +48,8 @@ class TutorProfileServiceTest {
     private TutorRepository tutorRepository;
     @Mock
     private TutorSearchService tutorSearchService;
+    @Mock
+    private com.kizuna.features.profile.service.AvatarStorageService avatarStorageService;
     @InjectMocks
     private TutorProfileServiceImpl service;
 

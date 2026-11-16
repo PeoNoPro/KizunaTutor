@@ -85,16 +85,12 @@
                       <span id="avatarUploadLabel">Tải ảnh lên</span>
                       <input id="avatarFile" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="sr-only">
                     </label>
-                    <button id="btnToggleAvatarUrl" type="button" class="px-3 py-1.5 rounded-lg text-sm font-medium text-[#3F4850] hover:bg-[#F1F5F9]">Dán đường dẫn ảnh</button>
                     <button id="btnRemoveAvatar" type="button" class="px-3 py-1.5 rounded-lg text-sm font-medium text-[#BA1A1A] hover:bg-[#BA1A1A]/5">Xóa ảnh</button>
                   </div>
                   <p class="basis-full text-xs text-[#68737D]">JPG, PNG hoặc WEBP, tối đa 5MB.</p>
                 </div>
-                <div id="avatarUrlRow" class="hidden">
-                  <label for="avatarUrl" class="block text-sm text-[#0F2545] mb-1.5">Đường dẫn ảnh đại diện</label>
-                  <input id="avatarUrl" type="text" maxlength="500" placeholder="https://..."
-                         class="w-full rounded-lg border border-[#D9DEE5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/15">
-                </div>
+                <!-- Chỉ nhận ảnh tải lên từ máy (backend không nhận link ảnh ngoài); giữ giá trị hiện tại để gửi khi lưu -->
+                <input id="avatarUrl" type="hidden">
                 <p data-error-for="avatarUrl" class="hidden text-xs text-[#BA1A1A]"></p>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -149,7 +149,7 @@ class ManagerUserProfileControllerTest {
         mockMvc.perform(get("/api/profile/users").with(as("ROLE_TUTOR"))).andExpect(status().isForbidden());
         mockMvc.perform(get("/api/profile/users").with(as("ROLE_LEARNER"))).andExpect(status().isForbidden());
         mockMvc.perform(get("/api/profile/users").with(as("ROLE_CS_STAFF"))).andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/profile/users")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/profile/users")).andExpect(status().isUnauthorized());
         verify(managerUserProfileService, never()).getUsers(any(), any(), any(), any(int.class), any(int.class));
     }
 }

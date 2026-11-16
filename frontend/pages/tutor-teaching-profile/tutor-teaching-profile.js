@@ -170,7 +170,6 @@ function fillEditForm() {
   $('email').value = p.email || '';
   $('phone').value = p.phone || '';
   $('avatarUrl').value = state.avatarUrl;
-  $('avatarUrlBox').classList.add('hidden');
   $('btnRemoveAvatar').classList.toggle('hidden', !state.avatarUrl);
   renderAvatarNode($('editAvatarPreview'), state.avatarUrl, p.fullName, API_ORIGIN);
 
@@ -322,12 +321,6 @@ function bindEvents() {
     setMode('preview');
   });
   $('avatarFileInput')?.addEventListener('change', handleAvatarUpload);
-  $('btnToggleAvatarUrl')?.addEventListener('click', () => {
-    $('avatarUrlBox')?.classList.toggle('hidden');
-  });
-  $('avatarUrl')?.addEventListener('input', () => {
-    setAvatar($('avatarUrl').value.trim());
-  });
   $('btnRemoveAvatar')?.addEventListener('click', () => {
     setAvatar('');
   });

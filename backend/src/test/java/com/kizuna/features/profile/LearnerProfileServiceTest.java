@@ -40,6 +40,8 @@ class LearnerProfileServiceTest {
     private UserRepository userRepository;
     @Mock
     private LearnerRepository learnerRepository;
+    @Mock
+    private com.kizuna.features.profile.service.AvatarStorageService avatarStorageService;
     @InjectMocks
     private LearnerProfileServiceImpl service;
 

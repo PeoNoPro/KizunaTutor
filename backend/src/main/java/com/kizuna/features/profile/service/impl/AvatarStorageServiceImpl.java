@@ -8,10 +8,13 @@ import com.kizuna.features.profile.service.AvatarStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,8 +35,12 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
     private static final String INVALID_FILE_MESSAGE =
             "Ảnh đại diện chỉ nhận tệp JPG, PNG hoặc WEBP, dung lượng tối đa 5MB.";
     private static final String NOT_FOUND_MESSAGE = "Không tìm thấy ảnh đại diện.";
+    private static final String NOT_OWN_AVATAR_MESSAGE =
+            "Ảnh đại diện chỉ nhận ảnh tải lên từ máy của bạn. Vui lòng chọn ảnh và tải lên lại.";
+    private static final String UUID_REGEX = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+    /** "{ownerId}_{uuid}.ext" (từ khi gắn ảnh với người dùng) hoặc "{uuid}.ext" (ảnh tải lên trước đó). */
     private static final Pattern FILE_NAME_PATTERN =
-            Pattern.compile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|png|webp)$");
+            Pattern.compile("^(" + UUID_REGEX + "_)?" + UUID_REGEX + "\\.(jpg|png|webp)$");
 
     private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
     private static final byte[] JPG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
@@ -47,7 +54,10 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
     }
 
     @Override
-    public AvatarUploadResponseDto store(MultipartFile file) {
+    public AvatarUploadResponseDto store(MultipartFile file, UUID ownerId, String currentAvatarUrl) {
+        if (ownerId == null) {
+            throw new BadRequestException(INVALID_FILE_MESSAGE);
+        }
         if (file == null || file.isEmpty() || file.getSize() > MAX_FILE_SIZE) {
             throw new BadRequestException(INVALID_FILE_MESSAGE);
         }
@@ -56,7 +66,7 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
         if (content.length == 0 || content.length > MAX_FILE_SIZE || !matchesFormat(extension, content)) {
             throw new BadRequestException(INVALID_FILE_MESSAGE);
         }
-        String fileName = UUID.randomUUID() + "." + extension;
+        String fileName = ownerId + "_" + UUID.randomUUID() + "." + extension;
         try {
             Files.createDirectories(storageDir);
             Files.write(storageDir.resolve(fileName), content);
@@ -64,7 +74,71 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
             log.error("Không ghi được ảnh đại diện {}", fileName, e);
             throw new ServiceUnavailableException("Chưa lưu được ảnh đại diện. Vui lòng thử lại sau.");
         }
+        deleteUnusedUploads(ownerId, fileName, fileNameOf(currentAvatarUrl));
         return new AvatarUploadResponseDto(PUBLIC_PATH + fileName, fileName, content.length);
+    }
+
+    @Override
+    public void requireOwnAvatar(String newAvatarUrl, String currentAvatarUrl, UUID ownerId) {
+        String requested = newAvatarUrl == null || newAvatarUrl.isBlank() ? null : newAvatarUrl.trim();
+        if (requested == null || requested.equals(currentAvatarUrl)) {
+            return;
+        }
+        String fileName = fileNameOf(requested);
+        if (ownerId == null || fileName == null || !fileName.startsWith(ownerId + "_")
+                || !Files.isRegularFile(storageDir.resolve(fileName))) {
+            throw new BadRequestException(NOT_OWN_AVATAR_MESSAGE);
+        }
+    }
+
+    @Override
+    public void deleteReplaced(String oldAvatarUrl, String newAvatarUrl) {
+        String oldFile = fileNameOf(oldAvatarUrl);
+        if (oldFile == null || oldFile.equals(fileNameOf(newAvatarUrl))) {
+            return;
+        }
+        // Xóa sau khi lưu hồ sơ thành công: nếu transaction rollback thì hồ sơ vẫn trỏ tới ảnh cũ còn nguyên
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    deleteQuietly(oldFile);
+                }
+            });
+        } else {
+            deleteQuietly(oldFile);
+        }
+    }
+
+    /** Tên tệp của ảnh do hệ thống lưu, hoặc null nếu là link ngoài / rỗng / tên lạ. */
+    private static String fileNameOf(String avatarUrl) {
+        if (avatarUrl == null || !avatarUrl.startsWith(PUBLIC_PATH)) {
+            return null;
+        }
+        String name = avatarUrl.substring(PUBLIC_PATH.length());
+        return FILE_NAME_PATTERN.matcher(name).matches() ? name : null;
+    }
+
+    /** Xóa các ảnh người này đã tải lên mà không dùng (trừ ảnh vừa tải và ảnh đang làm ảnh đại diện). */
+    private void deleteUnusedUploads(UUID ownerId, String keepNew, String keepCurrent) {
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(storageDir, ownerId + "_*")) {
+            for (Path path : files) {
+                String name = path.getFileName().toString();
+                if (!name.equals(keepNew) && !name.equals(keepCurrent)) {
+                    deleteQuietly(name);
+                }
+            }
+        } catch (IOException e) {
+            log.warn("Không dọn được ảnh đại diện cũ của {}: {}", ownerId, e.getMessage());
+        }
+    }
+
+    private void deleteQuietly(String fileName) {
+        try {
+            Files.deleteIfExists(storageDir.resolve(fileName));
+        } catch (IOException e) {
+            log.warn("Không xóa được ảnh đại diện {}: {}", fileName, e.getMessage());
+        }
     }
 
     @Override

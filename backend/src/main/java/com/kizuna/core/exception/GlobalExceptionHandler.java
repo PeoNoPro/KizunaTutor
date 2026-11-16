@@ -34,8 +34,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> notFound(ResourceNotFoundException e) { return error(404,e.getMessage()!=null?e.getMessage():"Không tìm thấy dữ liệu yêu cầu"); }
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<?> badCredentials(BadCredentialsException e) { return error(401,"Email hoặc mật khẩu không chính xác"); }
+    /**
+     * @PreAuthorize từ chối: người chưa đăng nhập (không token / token hết hạn) hoặc tài khoản bị khóa → 401,
+     * giống route do SecurityConfig bảo vệ (RestAuthErrorHandlers); đã đăng nhập mà không đủ quyền → 403.
+     */
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<?> forbidden(AccessDeniedException e) { return error(403,"Bạn không có quyền thực hiện thao tác này."); }
+    public ResponseEntity<?> forbidden(AccessDeniedException e, jakarta.servlet.http.HttpServletRequest request) {
+        if (com.kizuna.core.security.JwtAuthenticationFilter.isBlockedAccount(request)) {
+            return error(401, com.kizuna.core.security.JwtAuthenticationFilter.BLOCKED_ACCOUNT_MESSAGE);
+        }
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()
+                || auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+            return error(401, "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        }
+        return error(403,"Bạn không có quyền thực hiện thao tác này.");
+    }
     @ExceptionHandler({HttpMessageNotReadableException.class,MethodArgumentTypeMismatchException.class,org.springframework.web.bind.MissingServletRequestParameterException.class})
     public ResponseEntity<?> input(Exception e) { return error(400,"Vui lòng kiểm tra thông tin đã nhập."); }
     @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)

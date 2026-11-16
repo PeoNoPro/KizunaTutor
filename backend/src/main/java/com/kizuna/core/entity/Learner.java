@@ -38,7 +38,7 @@ public class Learner {
     @Column(name = "learning_goals", columnDefinition = "TEXT")
     private String learningGoals;
 
-    /** Tỉnh/Thành phố (database/migrations/017_learner_address.sql). */
+    /** Tỉnh/Thành phố (database/migrations/030_learner_address.sql). */
     @Column(name = "province", length = 100)
     private String province;
 

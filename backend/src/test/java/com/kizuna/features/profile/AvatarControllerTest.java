@@ -61,9 +61,13 @@ class AvatarControllerTest {
     }
 
     @Test
-    @DisplayName("Người dùng đã đăng nhập tải ảnh lên - 201 kèm avatarUrl, fileName, size")
+    @DisplayName("Người dùng đã đăng nhập tải ảnh lên - 201 kèm avatarUrl, fileName, size; ảnh gắn với người tải lên")
     void authenticatedUserCanUpload() throws Exception {
-        when(avatarStorageService.store(any()))
+        var owner = com.kizuna.core.entity.User.builder().userId(java.util.UUID.randomUUID())
+                .email("learner@kizuna.vn").avatarUrl("/api/profile/avatar/" + FILE_NAME).build();
+        when(userRepository.findByEmail("learner@kizuna.vn")).thenReturn(java.util.Optional.of(owner));
+        when(avatarStorageService.store(any(), org.mockito.ArgumentMatchers.eq(owner.getUserId()),
+                org.mockito.ArgumentMatchers.eq(owner.getAvatarUrl())))
                 .thenReturn(new AvatarUploadResponseDto("/api/profile/avatar/" + FILE_NAME, FILE_NAME, PNG.length));
 
         mockMvc.perform(multipart("/api/profile/avatar").file(pngFile())
@@ -81,10 +85,10 @@ class AvatarControllerTest {
     @DisplayName("Chưa đăng nhập tải ảnh lên - bị từ chối, không lưu tệp")
     void anonymousCannotUpload() throws Exception {
         mockMvc.perform(multipart("/api/profile/avatar").file(pngFile()))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Bạn không có quyền thực hiện thao tác này."));
-        verify(avatarStorageService, never()).store(any());
+                .andExpect(jsonPath("$.message").value("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."));
+        verify(avatarStorageService, never()).store(any(), any(), any());
     }
 
     @Test

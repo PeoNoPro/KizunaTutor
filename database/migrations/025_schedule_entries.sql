@@ -120,6 +120,9 @@ CREATE TRIGGER schedule_sync_connection
     FOR EACH ROW EXECUTE FUNCTION trg_schedule_sync_connection();
 
 -- ---------------------------------------------------------------- dữ liệu đang có (chỉ các buổi đang giữ chỗ, chưa kết thúc)
+-- ON CONFLICT DO NOTHING KHÔNG ghi cột: bỏ qua cả dòng đã có (UNIQUE) lẫn dòng trùng giờ với dòng khác (EXCLUDE, 23P01).
+-- Dữ liệu cũ (trước khi có ràng buộc) có thể đang chồng giờ: migration không dừng giữa chừng, các dòng bị bỏ qua
+-- được đếm và báo ở cuối file để người chạy dọn.
 
 INSERT INTO schedule_entries (kind, source_id, tutor_id, learner_id, time_range, status)
 SELECT 'TRIAL', tb.booking_id, tb.tutor_id, tb.learner_id,
@@ -127,7 +130,7 @@ SELECT 'TRIAL', tb.booking_id, tb.tutor_id, tb.learner_id,
   FROM trial_bookings tb
  WHERE tb.booking_status::text IN ('PENDING', 'CONFIRMED', 'RESCHEDULED')
    AND tb.scheduled_end_time > now()
-ON CONFLICT (kind, source_id) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 INSERT INTO schedule_entries (kind, source_id, tutor_id, learner_id, time_range, status)
 SELECT 'COURSE', s.session_id, cr.tutor_id, cr.learner_id,
@@ -138,4 +141,29 @@ SELECT 'COURSE', s.session_id, cr.tutor_id, cr.learner_id,
   JOIN connection_requests cr ON cr.request_id = s.request_id
  WHERE cr.request_type::text = 'DIRECT' AND cr.status::text IN ('PENDING', 'ACCEPTED')
    AND (s.session_date + s.end_time) > (now() AT TIME ZONE 'Asia/Ho_Chi_Minh')
-ON CONFLICT (kind, source_id) DO NOTHING;
+ON CONFLICT DO NOTHING;
+
+-- Báo số buổi bị bỏ qua vì trùng giờ. Các buổi này chưa có dòng giữ chỗ: lần lưu sau (đổi lịch, đổi link học…)
+-- trigger sẽ thêm dòng và báo trùng giờ, nên cần hủy / dời một trong hai buổi. Xem danh sách bằng hai câu
+-- SELECT trong khối dưới (bỏ phần COUNT).
+DO $$
+DECLARE
+    skipped_trials   INT;
+    skipped_sessions INT;
+BEGIN
+    SELECT COUNT(*) INTO skipped_trials
+      FROM trial_bookings tb
+     WHERE tb.booking_status::text IN ('PENDING', 'CONFIRMED', 'RESCHEDULED')
+       AND tb.scheduled_end_time > now()
+       AND NOT EXISTS (SELECT 1 FROM schedule_entries e WHERE e.kind = 'TRIAL' AND e.source_id = tb.booking_id);
+    SELECT COUNT(*) INTO skipped_sessions
+      FROM connection_request_sessions s
+      JOIN connection_requests cr ON cr.request_id = s.request_id
+     WHERE cr.request_type::text = 'DIRECT' AND cr.status::text IN ('PENDING', 'ACCEPTED')
+       AND (s.session_date + s.end_time) > (now() AT TIME ZONE 'Asia/Ho_Chi_Minh')
+       AND NOT EXISTS (SELECT 1 FROM schedule_entries e WHERE e.kind = 'COURSE' AND e.source_id = s.session_id);
+    IF skipped_trials + skipped_sessions > 0 THEN
+        RAISE WARNING '025_schedule_entries: bỏ qua % buổi học thử và % buổi của khóa kết nối vì trùng giờ với lịch khác',
+            skipped_trials, skipped_sessions;
+    END IF;
+END $$;

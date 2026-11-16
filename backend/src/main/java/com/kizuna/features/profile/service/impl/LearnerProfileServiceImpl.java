@@ -27,6 +27,7 @@ public class LearnerProfileServiceImpl implements LearnerProfileService {
 
     private final UserRepository userRepository;
     private final LearnerRepository learnerRepository;
+    private final com.kizuna.features.profile.service.AvatarStorageService avatarStorageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -44,12 +45,15 @@ public class LearnerProfileServiceImpl implements LearnerProfileService {
         if (phone != null && isPhoneUsedByOther(phone, user.getUserId())) {
             throw new ConflictException(PHONE_TAKEN_MESSAGE);
         }
+        String oldAvatarUrl = user.getAvatarUrl();
+        avatarStorageService.requireOwnAvatar(request.avatarUrl(), oldAvatarUrl, user.getUserId());
         Learner learner = learnerRepository.findByUser_UserId(user.getUserId())
                 .orElseGet(() -> Learner.builder().user(user).build());
 
         LearnerProfileMapper.apply(request, user, learner);
         User savedUser = userRepository.saveAndFlush(user);
         Learner savedLearner = learnerRepository.saveAndFlush(learner);
+        avatarStorageService.deleteReplaced(oldAvatarUrl, savedUser.getAvatarUrl());
         return LearnerProfileMapper.toResponse(savedUser, savedLearner);
     }
 

@@ -28,6 +28,7 @@ public class TutorProfileServiceImpl implements TutorProfileService {
 
     private final UserRepository userRepository;
     private final TutorRepository tutorRepository;
+    private final com.kizuna.features.profile.service.AvatarStorageService avatarStorageService;
     private final TutorSearchService tutorSearchService;
 
     @Override
@@ -50,12 +51,15 @@ public class TutorProfileServiceImpl implements TutorProfileService {
             throw new ConflictException(ProfileSupport.PHONE_TAKEN_MESSAGE);
         }
 
+        String oldAvatarUrl = user.getAvatarUrl();
+        avatarStorageService.requireOwnAvatar(request.avatarUrl(), oldAvatarUrl, user.getUserId());
         Tutor tutor = tutorRepository.findByUser_UserId(user.getUserId())
                 .orElseGet(() -> Tutor.builder().user(user).build());
 
         TutorProfileMapper.apply(request, user, tutor);
         User savedUser = userRepository.saveAndFlush(user);
         Tutor savedTutor = tutorRepository.saveAndFlush(tutor);
+        avatarStorageService.deleteReplaced(oldAvatarUrl, savedUser.getAvatarUrl());
         return TutorProfileMapper.toResponse(savedUser, savedTutor);
     }
 

@@ -171,7 +171,7 @@ class TutorProfileControllerTest {
         mockMvc.perform(get("/api/profile/tutor/me").with(as("ROLE_LEARNER")))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/profile/tutor/me"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
         verify(tutorProfileService, never()).getMyProfile(any());
     }
 }

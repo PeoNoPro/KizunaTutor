@@ -1,6 +1,10 @@
 package com.kizuna.features.profile.controller;
 
 import com.kizuna.core.dto.ApiResponse;
+import com.kizuna.core.entity.User;
+import com.kizuna.core.repository.UserRepository;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import com.kizuna.features.profile.dto.response.AvatarUploadResponseDto;
 import com.kizuna.features.profile.service.AvatarStorageService;
 import lombok.RequiredArgsConstructor;
@@ -28,12 +32,21 @@ import java.util.concurrent.TimeUnit;
 public class AvatarController {
 
     private final AvatarStorageService avatarStorageService;
+    private final UserRepository userRepository;
 
-    /** Người dùng đã đăng nhập tải ảnh đại diện lên (multipart, trường "file"). */
+    /**
+     * Người dùng đã đăng nhập tải ảnh đại diện lên (multipart, trường "file").
+     * Ảnh gắn với người tải lên; ảnh tải trước đó mà chưa dùng làm ảnh đại diện bị dọn.
+     */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<AvatarUploadResponseDto>> upload(@RequestParam("file") MultipartFile file) {
-        AvatarUploadResponseDto result = avatarStorageService.store(file);
+    public ResponseEntity<ApiResponse<AvatarUploadResponseDto>> upload(Authentication authentication,
+                                                                       @RequestParam("file") MultipartFile file) {
+        User owner = authentication.getPrincipal() instanceof User user
+                ? user
+                : userRepository.findByEmail(authentication.getName())
+                        .orElseThrow(() -> new AccessDeniedException("Không tìm thấy tài khoản đang đăng nhập."));
+        AvatarUploadResponseDto result = avatarStorageService.store(file, owner.getUserId(), owner.getAvatarUrl());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Tải ảnh đại diện lên thành công.", result));
     }

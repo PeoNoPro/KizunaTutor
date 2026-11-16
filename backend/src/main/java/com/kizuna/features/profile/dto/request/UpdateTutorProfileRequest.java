@@ -25,7 +25,7 @@ public record UpdateTutorProfileRequest(
 
         @Size(max = 500, message = "Đường dẫn ảnh đại diện tối đa 500 ký tự.")
         @Pattern(regexp = "^(https?://\\S+|/api/profile/avatar/[A-Za-z0-9._-]+)?$",
-                message = "Đường dẫn ảnh đại diện phải bắt đầu bằng http:// hoặc https://.")
+                message = "Ảnh đại diện không hợp lệ. Vui lòng tải ảnh lên lại.")
         String avatarUrl,
 
         @NotBlank(message = "Vui lòng nhập tiêu đề giảng dạy.")

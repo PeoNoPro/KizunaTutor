@@ -144,13 +144,11 @@
                       Tải ảnh mới
                     </label>
                     <input id="avatarFileInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden">
-                    <button id="btnToggleAvatarUrl" type="button" class="tv-btn tv-btn-small">Nhập liên kết ảnh</button>
                     <button id="btnRemoveAvatar" type="button" class="tv-btn tv-btn-small tv-btn-danger hidden">Xóa ảnh</button>
                   </div>
                   <p class="text-xs text-on-surface-variant">Định dạng JPG, PNG hoặc WEBP, tối đa 5MB.</p>
-                  <div id="avatarUrlBox" class="hidden pt-1">
-                    <input id="avatarUrl" type="url" maxlength="500" placeholder="https://example.com/avatar.jpg" class="tv-input max-w-md">
-                  </div>
+                  <!-- Chỉ nhận ảnh tải lên từ máy (backend không nhận link ảnh ngoài); giữ giá trị hiện tại để gửi khi lưu -->
+                  <input id="avatarUrl" type="hidden">
                   <p data-error-for="avatarUrl" class="tv-field-error hidden"></p>
                 </div>
               </div>

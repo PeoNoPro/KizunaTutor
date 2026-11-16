@@ -125,7 +125,7 @@ class LearnerProfileControllerTest {
     @DisplayName("Chưa đăng nhập - bị từ chối, không gọi service")
     void anonymousIsRejected() throws Exception {
         mockMvc.perform(get("/api/profile/learner/me"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
         verify(learnerProfileService, never()).getMyProfile(any());
     }
 }

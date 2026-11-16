@@ -226,7 +226,6 @@ async function handlePersonalSubmit(event) {
   }
   if (await save(form, { fullName, avatarUrl }, 'Lưu thay đổi')) {
     fillPersonal();
-    $('avatarUrlRow').classList.add('hidden');
     setFormMessage(form, 'Cập nhật hồ sơ thành công.', 'success');
   }
 }
@@ -328,11 +327,6 @@ function bindEvents() {
   $('personalForm').addEventListener('submit', handlePersonalSubmit);
   $('fullName').addEventListener('input', updatePersonalDirty);
   $('avatarFile').addEventListener('change', handleAvatarFile);
-  $('btnToggleAvatarUrl').addEventListener('click', () => {
-    $('avatarUrlRow').classList.toggle('hidden');
-    if (!$('avatarUrlRow').classList.contains('hidden')) $('avatarUrl').focus();
-  });
-  $('avatarUrl').addEventListener('change', () => setAvatar($('avatarUrl').value.trim()));
   $('btnRemoveAvatar').addEventListener('click', () => setAvatar(''));
 
   $('learningForm').addEventListener('submit', handleLearningSubmit);

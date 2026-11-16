@@ -9,8 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Đăng ký chặn quyền cho các công cụ học yêu cầu học viên đã vào lớp:
- * bộ thẻ (flashcard), ngữ pháp, từ vựng, chữa câu AI, minigame chữ Hán.
- * Từ điển Kanji (/api/learner/kanji, /api/kanji) luôn mở nên không nằm trong danh sách.
+ * từ điển Kanji (cả tra cứu viết tay), bộ thẻ (flashcard), ngữ pháp, từ vựng, chữa câu AI, minigame chữ Hán.
  * Mỗi đường dẫn phụ (alias) của controller phải có mặt ở đây, nếu không sẽ bị lách qua.
  */
 @Configuration
@@ -18,6 +17,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class LearningToolAccessWebConfig implements WebMvcConfigurer {
 
     static final String[] LOCKED_TOOL_PATHS = {
+            // KanjiDictionaryController (kèm alias /api/kanji)
+            "/api/learner/kanji", "/api/learner/kanji/**", "/api/kanji", "/api/kanji/**",
             // FlashcardDeckController
             "/api/learner/decks", "/api/learner/decks/**",
             // GrammarController

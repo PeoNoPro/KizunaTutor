@@ -31,11 +31,9 @@ test('mọi alias trong server.js của trang công cụ bị khóa đều bị 
   }
 });
 
-test('Tra cứu chữ Hán, viết tay và Kana luôn mở', () => {
+test('Tra cứu chữ Hán, viết tay và Kana cũng bị khóa; trang ngoài khối học tập thì không', () => {
   for (const dir of ['kanji-dictionary', 'handwriting-search', 'kana-quiz']) {
-    for (const route of routesTo(dir)) {
-      assert.equal(isLockedToolPath(route), false, `"${route}" (pages/${dir}) không được bị khóa`);
-    }
+    assert.ok(LOCKED_PAGE_DIRS.includes(dir), `pages/${dir} phải bị khóa`);
   }
   assert.equal(isLockedToolPath('/learner/dashboard'), false);
 });

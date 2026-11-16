@@ -86,7 +86,7 @@ test('hợp đồng HTML/JS trang chủ tuân thủ component dùng chung, đầ
   assert.ok(!/<footer[\s>]/i.test(html), 'Không hardcode thẻ <footer> vào pages/home/index.html');
 
   // Phải có đủ các anchor mà Header & Footer trỏ tới
-  for (const anchor of ['id="kham-pha-gia-su"', 'id="chuyen-de"', 'id="cong-cu-hoc"', 'id="cach-hoat-dong"', 'id="tro-thanh-gia-su"', 'id="ho-tro"']) {
+  for (const anchor of ['id="kham-pha-gia-su"', 'id="chuyen-de"','id="cach-hoat-dong"', 'id="tro-thanh-gia-su"', 'id="ho-tro"']) {
     assert.ok(html.includes(anchor), `Thiếu anchor ${anchor} trên trang chủ`);
   }
 

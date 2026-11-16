@@ -105,12 +105,11 @@ Tất cả các trang trong `pages/` **BẮT BUỘC dùng chung một cấu trú
 - Slogan bên dưới: `Kết nối song ngữ Việt – Nhật` (font-size: 10px, màu `#68737D`).
 
 ### 3.2. Menu điều hướng (Desktop & Mobile Drawer)
-Gồm đúng 5 liên kết chuẩn:
+Gồm đúng 4 liên kết chuẩn:
 1. `Tìm gia sư` ➔ `/pages/tutor-discovery/`
 2. `Cách hoạt động` ➔ `/pages/home/#cach-hoat-dong`
 3. `Trở thành gia sư` ➔ `/pages/home/#tro-thanh-gia-su`
 4. `Yêu cầu đã gửi` ➔ `/pages/connection-requests/`
-5. `Công cụ học` ➔ `/pages/home/#cong-cu-hoc`
 
 ### 3.3. Trạng thái Active Menu
 Khi người dùng đang ở trang nào, mục menu đó được kích hoạt dạng nút xanh bo tròn:

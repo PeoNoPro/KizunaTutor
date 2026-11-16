@@ -81,7 +81,8 @@ class LearningToolAccessWebTest {
     @ParameterizedTest
     @ValueSource(strings = {"/api/learner/decks", "/api/learner/grammar", "/api/learner/ai-writing/prompts",
             "/api/learner/minigame/play-data", "/api/minigame/play-data",
-            "/api/learner/vocabularies/topics", "/api/learner/topics", "/api/learner/search", "/api/learner"})
+            "/api/learner/vocabularies/topics", "/api/learner/topics", "/api/learner/search", "/api/learner",
+            "/api/kanji/search", "/api/learner/kanji/search"})
     @DisplayName("Học viên chưa vào lớp bị chặn 403 ở mọi đường dẫn công cụ, kể cả alias")
     void lockedToolsReturn403WithoutClass(String path) throws Exception {
         when(membershipService.countOpenClasses(any())).thenReturn(0L);
@@ -97,15 +98,6 @@ class LearningToolAccessWebTest {
         when(membershipService.countOpenClasses(any())).thenReturn(1L);
 
         mockMvc.perform(get("/api/learner/decks").with(as("ROLE_LEARNER"))).andExpect(status().isOk());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"/api/kanji/search", "/api/learner/kanji/search"})
-    @DisplayName("Từ điển Kanji luôn mở, kể cả khi chưa vào lớp")
-    void kanjiDictionaryStaysFree(String path) throws Exception {
-        when(membershipService.countOpenClasses(any())).thenReturn(0L);
-
-        mockMvc.perform(get(path).with(as("ROLE_LEARNER"))).andExpect(status().isOk());
     }
 
     @Test

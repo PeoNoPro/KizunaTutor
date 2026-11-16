@@ -146,16 +146,11 @@ export function applyUserUI(user) {
 
   // FE-02: "Hồ sơ cá nhân" trong menu tài khoản mở đúng trang hồ sơ theo vai trò.
   const profileUrl = PROFILE_URL_BY_ROLE[user.role] || '/pages/learner-profile/';
-  ['dropdownProfileLink', 'mobileProfileBtn'].forEach((id) => {
-    const link = document.getElementById(id);
-    if (link) link.href = profileUrl;
-  });
+  const dropdownProfileLink = document.getElementById('dropdownProfileLink');
+  if (dropdownProfileLink) dropdownProfileLink.href = profileUrl;
 
   const dropdownSettingsLink = document.getElementById('dropdownSettingsLink');
   if (dropdownSettingsLink) dropdownSettingsLink.href = dashboardUrl;
-
-  const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
-  if (mobileSettingsBtn) mobileSettingsBtn.href = dashboardUrl;
 
   // Xử lý nút Chuông thông báo
   const headerNotificationBtn = document.getElementById('headerNotificationBtn');
@@ -205,27 +200,6 @@ export function applyUserUI(user) {
   if (dropdownFullName) dropdownFullName.textContent = displayName;
   if (dropdownEmail) dropdownEmail.textContent = user.email || '';
 
-  // Mobile Profile Info
-  const mobileUserName = document.getElementById('mobileUserName');
-  const mobileUserSubtitle = document.getElementById('mobileUserSubtitle');
-  const mobileUserAvatar = document.getElementById('mobileUserAvatar');
-  const mobileUserInitials = document.getElementById('mobileUserInitials');
-
-  if (mobileUserName) mobileUserName.textContent = displayName;
-  if (mobileUserSubtitle) mobileUserSubtitle.textContent = subtitle;
-
-  if (user.avatarUrl && mobileUserAvatar) {
-    mobileUserAvatar.src = user.avatarUrl;
-    mobileUserAvatar.classList.remove('hidden');
-    if (mobileUserInitials) mobileUserInitials.classList.add('hidden');
-  } else {
-    if (mobileUserAvatar) mobileUserAvatar.classList.add('hidden');
-    if (mobileUserInitials) {
-      mobileUserInitials.classList.remove('hidden');
-      mobileUserInitials.textContent = initials;
-    }
-  }
-
   // Xử lý đóng/mở Dropdown menu khi nhấn vào Profile Pill
   const userProfilePill = document.getElementById('userProfilePill');
   const userDropdownMenu = document.getElementById('userDropdownMenu');
@@ -262,12 +236,6 @@ export function applyUserUI(user) {
   if (headerLogoutBtn && !headerLogoutBtn.hasAttribute('data-has-logout')) {
     headerLogoutBtn.setAttribute('data-has-logout', 'true');
     headerLogoutBtn.addEventListener('click', handleLogout);
-  }
-
-  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-  if (mobileLogoutBtn && !mobileLogoutBtn.hasAttribute('data-has-logout')) {
-    mobileLogoutBtn.setAttribute('data-has-logout', 'true');
-    mobileLogoutBtn.addEventListener('click', handleLogout);
   }
 }
 

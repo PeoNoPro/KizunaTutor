@@ -3,8 +3,8 @@
  *
  * Quy tắc (backend kiểm tra lại ở LearningToolAccessWebConfig, giao diện chỉ để hướng dẫn):
  * - Mở khóa khi học viên có ít nhất một lớp ACTIVE hoặc PAUSED.
- * - Luôn mở: Tra cứu chữ Hán, Tra cứu viết tay, Đấu trường gõ Kana.
- * - Bị khóa: Từ vựng, Ngữ pháp & AI Sensei, Shodo, Chữa câu AI, Bộ thẻ (flashcard), Game Mưa chữ Hán.
+ * - Bị khóa: toàn bộ khối Học tập & Rèn luyện (Tra cứu chữ Hán, Tra cứu viết tay, Từ vựng,
+ *   Ngữ pháp & AI Sensei, Shodo, Đấu trường gõ Kana, Chữa câu AI, Bộ thẻ, Game Mưa chữ Hán).
  *
  * Được learner-layout cài một lần: khóa mục trên sidebar, chặn bấm vào link công cụ bị khóa,
  * và thay nội dung <main> bằng màn hình hướng dẫn khi mở thẳng đường dẫn công cụ.
@@ -73,12 +73,6 @@ function buildLockPanel({ compact = false, loginRequired = false } = {}) {
     <h2 class="mt-4 text-[18px] leading-7 font-semibold text-[#0F2545]"></h2>
     <p class="mt-2 text-[14px] leading-[22px] text-[#3f4850]"></p>
     <div data-lock-actions class="mt-5 flex flex-wrap justify-center gap-2"></div>
-    <p class="mt-5 pt-4 border-t border-[#eaedff] text-[13px] leading-5 text-[#3f4850]">
-      Bạn vẫn dùng được miễn phí:
-      <a href="/kanji-dictionary" class="text-[#006194] font-medium">Tra cứu chữ Hán</a>,
-      <a href="/handwriting" class="text-[#006194] font-medium">Tra cứu viết tay</a> và
-      <a href="/kana" class="text-[#006194] font-medium">Đấu trường gõ Kana</a>.
-    </p>
   `;
   panel.querySelector('h2').textContent = copy.title;
   panel.querySelector('p').textContent = copy.text;
@@ -174,7 +168,7 @@ export function renderAccessBanner(container, access) {
   } else {
     box.className = 'w-full rounded-2xl px-5 py-3.5 bg-[#eaedff] text-[#004b73] flex flex-wrap items-center gap-3';
     icon.textContent = 'lock';
-    text.textContent = 'Kết nối với gia sư để mở khóa Bộ thẻ, Ngữ pháp, Từ vựng, Shodo và Chữa câu AI.';
+    text.textContent = 'Kết nối với gia sư để mở khóa toàn bộ công cụ học tập.';
     const cta = document.createElement('a');
     cta.href = '/tutors';
     cta.setAttribute('data-no-spa', '');

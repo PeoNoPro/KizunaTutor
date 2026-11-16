@@ -1,21 +1,30 @@
 /**
  * KizunaTutor - Danh sách trang công cụ học bị khóa khi học viên chưa vào lớp (không phụ thuộc DOM/API để test được).
- * Luôn mở: Tra cứu chữ Hán, Tra cứu viết tay, Đấu trường gõ Kana.
+ * Toàn bộ khối Học tập & Rèn luyện đều bị khóa.
  * Thêm alias mới cho các trang dưới đây trong frontend/server.js thì phải thêm vào LOCKED_PATHS
  * (tests/learning-tools-access.test.mjs sẽ báo lỗi nếu quên).
  */
 
 /** Key menu sidebar (components/learner-layout) của các công cụ bị khóa. */
-export const LOCKED_MENU_KEYS = ['learning-support', 'grammar', 'shodo', 'ai-writing', 'flashcards'];
+export const LOCKED_MENU_KEYS = [
+  'kanji-dictionary', 'handwriting', 'learning-support', 'grammar', 'shodo', 'kana', 'ai-writing', 'flashcards'
+];
 
 /** Thư mục trang (frontend/pages/<tên>) của các công cụ bị khóa. */
 export const LOCKED_PAGE_DIRS = [
+  'kanji-dictionary', 'handwriting-search', 'kana-quiz',
   'learning-support', 'grammar', 'shodo-practice', 'ai-writing',
   'flashcards', 'flashcards-detail', 'flashcards-match', 'flashcards-study', 'kanji-game'
 ];
 
 /** Mọi đường dẫn (kể cả alias trong frontend/server.js) dẫn tới trang công cụ bị khóa. */
 const LOCKED_PATHS = new Set([
+  // Tra cứu chữ Hán
+  '/kanji-dictionary', '/kanji-dictionary.html', '/learner/dictionary', '/dictionary', '/kanji',
+  // Tra cứu viết tay
+  '/handwriting', '/handwriting-search', '/learner/handwriting-search', '/ohr',
+  // Đấu trường gõ Kana
+  '/kana-quiz', '/kana', '/kana-quiz.html', '/learner/kana',
   // Từ vựng
   '/learning-support', '/vocabulary', '/vocabulary.html', '/vocab', '/learner/vocabulary', '/learner/learning-support',
   // Ngữ pháp

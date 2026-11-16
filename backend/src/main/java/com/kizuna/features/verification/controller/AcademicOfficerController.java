@@ -19,7 +19,7 @@ import java.util.Map;
 @CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"})
 @RequestMapping("/api/academic")
 @RequiredArgsConstructor
-public class AcademicOfficerController {
+public class AcademicOfficerController extends VerificationErrorResponses {
 
     private final AcademicOfficerService officerService;
 

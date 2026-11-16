@@ -1,4 +1,4 @@
-package com.kizuna.operations;
+package com.kizuna.features.admin;
 
 import com.kizuna.core.security.JwtAuthenticationAdapter;
 import com.kizuna.core.security.JwtTokenVerifier;

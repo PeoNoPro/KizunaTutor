@@ -1,4 +1,4 @@
-package com.kizuna.operations;
+package com.kizuna.features.admin;
 import org.junit.jupiter.api.Test;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;

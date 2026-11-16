@@ -1,4 +1,4 @@
-package com.kizuna.operations;
+package com.kizuna.features.admin;
 import com.kizuna.features.booking.service.BookingPolicyEvaluator;
 import com.kizuna.features.admin.service.BookingPolicySnapshotProvider.Snapshot;
 import com.kizuna.core.exception.BusinessException;

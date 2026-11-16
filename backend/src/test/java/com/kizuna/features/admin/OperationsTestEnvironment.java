@@ -1,4 +1,4 @@
-package com.kizuna.operations;
+package com.kizuna.features.admin;
 
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import javax.sql.DataSource;

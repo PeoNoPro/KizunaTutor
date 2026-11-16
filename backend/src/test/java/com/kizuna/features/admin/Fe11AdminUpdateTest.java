@@ -1,4 +1,4 @@
-package com.kizuna.operations;
+package com.kizuna.features.admin;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.*;

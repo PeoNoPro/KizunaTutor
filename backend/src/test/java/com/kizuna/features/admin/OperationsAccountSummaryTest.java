@@ -1,4 +1,4 @@
-package com.kizuna.operations;
+package com.kizuna.features.admin;
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

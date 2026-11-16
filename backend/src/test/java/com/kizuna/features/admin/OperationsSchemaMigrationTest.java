@@ -1,4 +1,4 @@
-package com.kizuna.operations;
+package com.kizuna.features.admin;
 
 import org.junit.jupiter.api.Test;
 import java.sql.*;

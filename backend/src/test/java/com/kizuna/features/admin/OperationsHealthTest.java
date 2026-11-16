@@ -1,4 +1,4 @@
-package com.kizuna.operations;
+package com.kizuna.features.admin;
 import com.kizuna.core.exception.BusinessException;
 import com.kizuna.features.admin.service.*;
 import org.junit.jupiter.api.Test;

@@ -270,6 +270,97 @@ export function sessionDurationError(startTime, endTime) {
   return length < SESSION_MIN_MINUTES || length > SESSION_MAX_MINUTES ? SESSION_DURATION_MESSAGE : null;
 }
 
+// ----------------------------------------------------------------------------
+// Chọn giờ học: định dạng 24 giờ, nấc 30 phút (07:00, 07:30, 08:00…);
+// giờ kết thúc chỉ gồm các mốc cách giờ bắt đầu 60 – 120 phút.
+// ----------------------------------------------------------------------------
+export const SESSION_STEP_MINUTES = 30;
+export const FIRST_START_MINUTES = 6 * 60; // 06:00
+export const LAST_START_MINUTES = 22 * 60; // 22:00
+const LAST_END_MINUTES = 23 * 60 + 30; // 23:30 — buổi học không qua ngày hôm sau
+
+/** 450 → "07:30" */
+export function minutesToTime(total) {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * Các giờ bắt đầu được chọn (06:00 → 22:00, cách nhau 30 phút).
+ * Giờ đang có của buổi cũ (vd "18:45") được giữ trong danh sách để không bị đổi ngầm.
+ */
+export function startTimeOptions(current = '') {
+  const list = [];
+  for (let m = FIRST_START_MINUTES; m <= LAST_START_MINUTES; m += SESSION_STEP_MINUTES) list.push(minutesToTime(m));
+  const cur = timeToMinutes(current);
+  if (cur !== null && !list.includes(minutesToTime(cur))) list.push(minutesToTime(cur));
+  return list.sort();
+}
+
+/**
+ * Các giờ kết thúc hợp lệ cho một giờ bắt đầu: +60, +90, +120 phút (không quá 23:30).
+ * Giờ kết thúc cũ vẫn trong khoảng 60 – 120 phút (vd buổi 75 phút) được giữ lại.
+ */
+export function endTimeOptions(startTime, current = '') {
+  const start = timeToMinutes(startTime);
+  if (start === null) return [];
+  const list = [];
+  for (let len = SESSION_MIN_MINUTES; len <= SESSION_MAX_MINUTES; len += SESSION_STEP_MINUTES) {
+    if (start + len <= LAST_END_MINUTES) list.push(minutesToTime(start + len));
+  }
+  const cur = timeToMinutes(current);
+  if (cur !== null && cur - start >= SESSION_MIN_MINUTES && cur - start <= SESSION_MAX_MINUTES
+      && cur <= LAST_END_MINUTES && !list.includes(minutesToTime(cur))) {
+    list.push(minutesToTime(cur));
+  }
+  return list.sort();
+}
+
+/** Giờ kết thúc mặc định khi đổi giờ bắt đầu: giữ thời lượng cũ nếu còn hợp lệ, không thì 90 phút (hoặc mốc đầu tiên). */
+export function pickEndTime(startTime, previousStart = '', previousEnd = '') {
+  const options = endTimeOptions(startTime);
+  if (!options.length) return '';
+  const start = timeToMinutes(startTime);
+  const oldStart = timeToMinutes(previousStart);
+  const oldEnd = timeToMinutes(previousEnd);
+  if (oldStart !== null && oldEnd !== null) {
+    const keep = minutesToTime(start + (oldEnd - oldStart));
+    if (options.includes(keep)) return keep;
+  }
+  const ninety = minutesToTime(start + 90);
+  return options.includes(ninety) ? ninety : options[0];
+}
+
+function timeOptionsHtml(values, selected, placeholder) {
+  const head = placeholder ? `<option value="">${placeholder}</option>` : '';
+  return head + values.map((v) => `<option value="${v}"${v === selected ? ' selected' : ''}>${v}</option>`).join('');
+}
+
+/**
+ * Gắn cặp ô chọn giờ bắt đầu / kết thúc (thẻ select).
+ * Đổi giờ bắt đầu thì danh sách giờ kết thúc tự cập nhật, giữ thời lượng cũ nếu được.
+ */
+export function bindSessionTimeSelects(startEl, endEl, { start = '', end = '' } = {}) {
+  const startValue = shortTime(start);
+  startEl.innerHTML = timeOptionsHtml(startTimeOptions(startValue), startValue, 'Giờ bắt đầu');
+  const fillEnd = (selectedEnd) => {
+    const s = startEl.value;
+    const options = endTimeOptions(s, selectedEnd);
+    endEl.innerHTML = s
+      ? options.map((v) => `<option value="${v}"${v === selectedEnd ? ' selected' : ''}>${v} (${durationLabel(s, v)})</option>`).join('')
+      : '<option value="">Chọn giờ bắt đầu trước</option>';
+    endEl.disabled = !s;
+  };
+  fillEnd(startValue ? (endTimeOptions(startValue, shortTime(end)).includes(shortTime(end)) ? shortTime(end) : pickEndTime(startValue)) : '');
+  let lastStart = startEl.value;
+  startEl.onchange = () => {
+    const next = pickEndTime(startEl.value, lastStart, endEl.value);
+    lastStart = startEl.value;
+    fillEnd(next);
+  };
+}
+
 /** @returns {string|null} lỗi tiếng Việt của một buổi học */
 export function validateScheduleSlot(slot) {
   const day = Number(slot?.dayOfWeek);

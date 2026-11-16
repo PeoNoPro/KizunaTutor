@@ -122,6 +122,10 @@ import {
   summarizeSchedules,
   validateScheduleSlot,
   sessionDurationError,
+  minutesToTime,
+  startTimeOptions,
+  endTimeOptions,
+  pickEndTime,
   validateScheduleList
 } from '../js/classroom-helpers.js';
 
@@ -154,6 +158,27 @@ test('kiểm tra một buổi học khớp quy tắc máy chủ', () => {
   assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '08:00', endTime: '10:05' }), /60 phút đến 120 phút/);
   assert.equal(validateScheduleSlot({ dayOfWeek: 2, startTime: '08:00', endTime: '09:00' }), null);
   assert.equal(validateScheduleSlot({ dayOfWeek: 2, startTime: '08:00', endTime: '10:00' }), null);
+});
+
+test('chọn giờ: 24 giờ, nấc 30 phút, giờ kết thúc cách 60 – 120 phút', () => {
+  assert.equal(minutesToTime(450), '07:30');
+  const starts = startTimeOptions();
+  assert.equal(starts[0], '06:00');
+  assert.equal(starts.at(-1), '22:00');
+  assert.ok(starts.includes('07:00') && starts.includes('07:30') && !starts.includes('07:15'));
+  assert.ok(starts.every((t) => /^\d{2}:(00|30)$/.test(t)));
+  // Giờ cũ lệch nấc vẫn được giữ để không bị đổi ngầm
+  assert.ok(startTimeOptions('18:45').includes('18:45'));
+
+  assert.deepEqual(endTimeOptions('19:00'), ['20:00', '20:30', '21:00']);
+  assert.deepEqual(endTimeOptions('22:00'), ['23:00', '23:30']);
+  assert.deepEqual(endTimeOptions(''), []);
+  assert.deepEqual(endTimeOptions('18:00', '19:15'), ['19:00', '19:15', '19:30', '20:00']);
+  assert.deepEqual(endTimeOptions('18:00', '18:45'), ['19:00', '19:30', '20:00']);
+
+  assert.equal(pickEndTime('19:00'), '20:30');
+  assert.equal(pickEndTime('20:00', '18:00', '20:00'), '22:00');
+  assert.equal(pickEndTime('22:00'), '23:30');
 });
 
 test('thời lượng buổi khi dời / thêm buổi: 60 – 120 phút', () => {

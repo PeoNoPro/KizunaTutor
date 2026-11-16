@@ -24,6 +24,7 @@ import {
   localYmd,
   validateScheduleList,
   validateScheduleSlot,
+  bindSessionTimeSelects,
   sortSchedules,
   summarizeSchedules,
   dayOfWeekLabel,
@@ -217,8 +218,8 @@ function scheduleRowHtml() {
   return `
     <div class="kz-item p-3 grid grid-cols-[1fr_1fr_auto] sm:grid-cols-[1.3fr_1fr_1fr_auto] gap-2 items-center" data-schedule-row>
       <select class="kz-input bg-surface-container-lowest col-span-3 sm:col-span-1" data-field="dayOfWeek" aria-label="Thứ trong tuần">${dayOptionsHtml(null, { placeholder: true })}</select>
-      <input type="time" step="300" class="kz-input bg-surface-container-lowest" data-field="startTime" aria-label="Giờ bắt đầu" title="Giờ bắt đầu">
-      <input type="time" step="300" class="kz-input bg-surface-container-lowest" data-field="endTime" aria-label="Giờ kết thúc" title="Giờ kết thúc">
+      <select class="kz-input bg-surface-container-lowest" data-field="startTime" aria-label="Giờ bắt đầu" title="Giờ bắt đầu"></select>
+      <select class="kz-input bg-surface-container-lowest" data-field="endTime" aria-label="Giờ kết thúc" title="Giờ kết thúc"></select>
       <button type="button" class="kz-btn px-2" data-remove-row title="Bỏ buổi này" aria-label="Bỏ buổi này"><span class="material-symbols-outlined text-[18px]">close</span></button>
     </div>`;
 }
@@ -236,6 +237,7 @@ function addScheduleRow() {
   if (container.querySelectorAll('[data-schedule-row]').length >= MAX_SCHEDULE_SLOTS) return;
   container.insertAdjacentHTML('beforeend', scheduleRowHtml());
   const row = container.lastElementChild;
+  bindSessionTimeSelects(row.querySelector('[data-field="startTime"]'), row.querySelector('[data-field="endTime"]'));
   row.querySelector('[data-remove-row]').addEventListener('click', () => {
     row.remove();
     refreshScheduleRows();
@@ -576,8 +578,8 @@ function openScheduleForm(schedule = null) {
   $('scheduleModalTitle').textContent = isEdit ? 'Sửa buổi học' : 'Thêm buổi học';
   $('scheduleSubmit').textContent = isEdit ? 'Lưu thay đổi' : 'Thêm buổi học';
   $('scheduleDayInput').innerHTML = dayOptionsHtml(schedule?.dayOfWeek, { placeholder: !isEdit });
-  $('scheduleStartInput').value = isEdit ? shortTime(schedule.startTime) : '';
-  $('scheduleEndInput').value = isEdit ? shortTime(schedule.endTime) : '';
+  bindSessionTimeSelects($('scheduleStartInput'), $('scheduleEndInput'),
+    isEdit ? { start: schedule.startTime, end: schedule.endTime } : {});
   setFieldError('scheduleFormError', '');
   openModal('scheduleModal');
   $('scheduleDayInput').focus();

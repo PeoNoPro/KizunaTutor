@@ -256,6 +256,20 @@ export function summarizeSchedules(list) {
   return sorted.map((s) => `${dayOfWeekShort(s.dayOfWeek)} ${shortTime(s.startTime)}–${shortTime(s.endTime)}`).join(' · ');
 }
 
+/** Một buổi học dài 60 – 120 phút; khớp ClassScheduleRules ở máy chủ. */
+export const SESSION_MIN_MINUTES = 60;
+export const SESSION_MAX_MINUTES = 120;
+export const SESSION_DURATION_MESSAGE = 'Mỗi buổi học dài từ 60 phút đến 120 phút.';
+
+/** @returns {string|null} lỗi khi thời lượng buổi học (giờ "HH:mm") nằm ngoài 60 – 120 phút */
+export function sessionDurationError(startTime, endTime) {
+  const start = timeToMinutes(startTime);
+  const end = timeToMinutes(endTime);
+  if (start === null || end === null || end <= start) return null;
+  const length = end - start;
+  return length < SESSION_MIN_MINUTES || length > SESSION_MAX_MINUTES ? SESSION_DURATION_MESSAGE : null;
+}
+
 /** @returns {string|null} lỗi tiếng Việt của một buổi học */
 export function validateScheduleSlot(slot) {
   const day = Number(slot?.dayOfWeek);
@@ -264,7 +278,7 @@ export function validateScheduleSlot(slot) {
   const end = timeToMinutes(slot.endTime);
   if (start === null || end === null) return 'Vui lòng nhập giờ bắt đầu và giờ kết thúc của buổi học.';
   if (end <= start) return 'Giờ kết thúc phải sau giờ bắt đầu.';
-  if (end - start < 30 || end - start > 240) return 'Mỗi buổi học dài từ 30 phút đến 4 giờ.';
+  if (end - start < SESSION_MIN_MINUTES || end - start > SESSION_MAX_MINUTES) return SESSION_DURATION_MESSAGE;
   return null;
 }
 

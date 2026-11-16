@@ -20,7 +20,7 @@ import java.util.function.Predicate;
 
 /**
  * Quy tắc lịch học của lớp (FE-06):
- * - mỗi buổi có thứ (1 = Thứ Hai ... 7 = Chủ nhật), giờ bắt đầu &lt; giờ kết thúc, dài 30 phút – 4 giờ;
+ * - mỗi buổi có thứ (1 = Thứ Hai ... 7 = Chủ nhật), giờ bắt đầu &lt; giờ kết thúc, dài 60 – 120 phút (1 – 2 giờ);
  * - lớp có 1 – {@value #MAX_SLOTS} buổi hằng tuần;
  * - không trùng giờ với buổi học thử đã xác nhận, buổi khác của chính lớp, của các lớp đang mở của gia sư hoặc của học viên;
  * - tính theo các buổi CỤ THỂ của khóa (đã áp dụng dời / hủy / thêm buổi, giới hạn tổng số buổi) — {@link ClassSessionCalendar}.
@@ -33,8 +33,9 @@ public class ClassScheduleRules {
     /** Trường lỗi khi dời / hủy / thêm một buổi học cụ thể. */
     public static final String SESSION_FIELD = "session";
     public static final int MAX_SLOTS = 14;
-    static final Duration MIN_DURATION = Duration.ofMinutes(30);
-    static final Duration MAX_DURATION = Duration.ofHours(4);
+    /** Một buổi học dài 60 – 120 phút (áp dụng cho lịch hằng tuần, dời buổi và thêm buổi). */
+    static final Duration MIN_DURATION = Duration.ofMinutes(60);
+    static final Duration MAX_DURATION = Duration.ofMinutes(120);
     static final List<LearningSpaceStatus> OPEN_STATUSES = List.of(LearningSpaceStatus.ACTIVE, LearningSpaceStatus.PAUSED);
     /** Khoảng thời gian tới để kiểm tra các buổi dời / thêm riêng khi đặt lịch hằng tuần. */
     static final int LOOKAHEAD_WEEKS = 26;
@@ -77,7 +78,7 @@ public class ClassScheduleRules {
         }
         Duration length = Duration.between(slot.startTime(), slot.endTime());
         if (length.compareTo(MIN_DURATION) < 0 || length.compareTo(MAX_DURATION) > 0) {
-            throw ClassroomException.field(FIELD, "Mỗi buổi học dài từ 30 phút đến 4 giờ (" + describe(slot) + ").");
+            throw ClassroomException.field(FIELD, "Mỗi buổi học dài từ 60 phút đến 120 phút (" + describe(slot) + ").");
         }
     }
 

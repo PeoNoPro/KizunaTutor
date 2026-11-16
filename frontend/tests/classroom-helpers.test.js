@@ -121,6 +121,7 @@ import {
   sortSchedules,
   summarizeSchedules,
   validateScheduleSlot,
+  sessionDurationError,
   validateScheduleList
 } from '../js/classroom-helpers.js';
 
@@ -149,8 +150,19 @@ test('kiểm tra một buổi học khớp quy tắc máy chủ', () => {
   assert.match(validateScheduleSlot({ dayOfWeek: null, startTime: '19:00', endTime: '20:00' }), /chọn thứ/);
   assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '', endTime: '20:00' }), /giờ bắt đầu/);
   assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '20:00', endTime: '19:00' }), /sau giờ bắt đầu/);
-  assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '19:00', endTime: '19:20' }), /30 phút/);
-  assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '08:00', endTime: '12:30' }), /4 giờ/);
+  assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '19:00', endTime: '19:55' }), /60 phút đến 120 phút/);
+  assert.match(validateScheduleSlot({ dayOfWeek: 2, startTime: '08:00', endTime: '10:05' }), /60 phút đến 120 phút/);
+  assert.equal(validateScheduleSlot({ dayOfWeek: 2, startTime: '08:00', endTime: '09:00' }), null);
+  assert.equal(validateScheduleSlot({ dayOfWeek: 2, startTime: '08:00', endTime: '10:00' }), null);
+});
+
+test('thời lượng buổi khi dời / thêm buổi: 60 – 120 phút', () => {
+  assert.equal(sessionDurationError('18:00', '19:30'), null);
+  assert.equal(sessionDurationError('18:00', '19:00'), null);
+  assert.equal(sessionDurationError('18:00', '20:00'), null);
+  assert.match(sessionDurationError('18:00', '18:45'), /60 phút đến 120 phút/);
+  assert.match(sessionDurationError('18:00', '20:30'), /60 phút đến 120 phút/);
+  assert.equal(sessionDurationError('', '20:00'), null);
 });
 
 test('danh sách buổi học: bắt buộc có, không trùng giờ', () => {

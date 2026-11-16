@@ -7,6 +7,7 @@
 import { API, ApiError } from '/js/api.js';
 import { renderWeekTimeGrid, trialEvent, officialEvent, dayDateLabel, ymd, weekRange } from '/js/week-time-grid.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
+import { sessionDurationError } from '/js/classroom-helpers.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -322,6 +323,11 @@ async function submitMoveSession(event) {
   }
   if (endTime <= startTime) {
     setMoveError('Giờ kết thúc phải sau giờ bắt đầu.');
+    return;
+  }
+  const durationError = sessionDurationError(startTime, endTime);
+  if (durationError) {
+    setMoveError(durationError);
     return;
   }
   const dateInput = $('moveSessionDate');

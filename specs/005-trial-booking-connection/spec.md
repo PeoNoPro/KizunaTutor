@@ -118,6 +118,7 @@ Là một Học viên hoặc Gia sư, nếu có việc đột xuất trước bu
 - **FR-008**: Hệ thống PHẢI ghi lại lịch sử thay đổi trạng thái của buổi học thử vào bảng `trial_booking_histories` để phục vụ tra cứu và kiểm toán.
 - **FR-009**: Hệ thống PHẢI cho phép hủy buổi học thử trước thời hạn quy định, cập nhật trạng thái `CANCELLED` và giải phóng khung giờ rảnh của gia sư.
 - **FR-010**: Mọi giao diện tương tác (modal đặt lịch, danh sách yêu cầu, thông báo, badge trạng thái) PHẢI hiển thị 100% bằng tiếng Việt tự nhiên, tuân thủ `design.md` và `UI_LOCALIZATION_RULES.md`.
+- **FR-011** *(bổ sung 2026-11-16, theo FE-09)*: Gia sư PHẢI có gói hội viên còn hạn mới nhận học viên mới. Backend chặn khi học viên đặt học thử hoặc gửi yêu cầu kết nối tới gia sư không có gói (kể cả gọi thẳng API), và khi gia sư không có gói bấm Chấp nhận học thử, Đồng ý kết nối hoặc Đồng ý học chính thức sau học thử. Gia sư hết gói vẫn được Từ chối và Hủy. Điều kiện kiểm tra giống trang tìm kiếm (`TutorMembershipService.hasActiveMembership`).
 
 ### Key Entities
 

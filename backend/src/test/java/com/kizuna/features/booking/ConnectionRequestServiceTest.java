@@ -246,6 +246,44 @@ class ConnectionRequestServiceTest {
         assertTrue(ex.getMessage().contains("đang chờ gia sư phản hồi"));
     }
 
+    private void expiredMembership() {
+        var membership = mock(com.kizuna.features.payment.service.TutorMembershipService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "membershipService", membership);
+        lenient().when(membership.hasActiveMembership(eq(tutorId), any())).thenReturn(false);
+    }
+
+    @Test
+    @DisplayName("Gia sư không có gói hội viên còn hạn thì không gửi được yêu cầu kết nối (gọi thẳng API)")
+    void create_blockedWhenTutorHasNoMembership() {
+        expiredMembership();
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(learnerUser));
+        when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(tutor));
+
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> service.createDirectRequest("learner@test.com", request(slot(2, "19:00", 60))));
+        assertTrue(ex.getMessage().contains("chưa sẵn sàng nhận học viên mới"));
+        verify(connectionRequestRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Gia sư hết gói hội viên không đồng ý kết nối được; vẫn từ chối được")
+    void respond_acceptBlockedWithoutMembership_declineAllowed() {
+        expiredMembership();
+        ConnectionRequest cr = pendingRequest();
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
+        when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> service.respond("tutor@test.com",
+                cr.getRequestId(), RespondConnectionRequestDTO.builder().action("ACCEPT").build()));
+        assertTrue(ex.getMessage().contains("gói hội viên"));
+        assertEquals(ConnectionRequestStatus.PENDING, cr.getStatus());
+        verify(connectionRequestRepository, never()).save(any());
+
+        service.respond("tutor@test.com", cr.getRequestId(), RespondConnectionRequestDTO.builder().action("DECLINE").build());
+        assertEquals(ConnectionRequestStatus.DECLINED, cr.getStatus());
+    }
+
     private ConnectionRequest pendingRequest() {
         ConnectionRequest cr = ConnectionRequest.builder()
                 .requestId(UUID.randomUUID()).learner(learner).tutor(tutor)
@@ -264,7 +302,7 @@ class ConnectionRequestServiceTest {
                 .bookingStatus(TrialBookingStatus.PENDING).build();
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
         when(trialBookingRepository.findByTutorTutorIdAndLearnerLearnerIdAndBookingStatusIn(any(), any(), any()))
                 .thenReturn(List.of(openTrial));
 
@@ -284,7 +322,7 @@ class ConnectionRequestServiceTest {
         ConnectionRequest cr = pendingRequest();
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
         when(slotRepository.existsLockedSlotOverlap(eq(tutorId), eq(cr.getRequestId()), eq(2), any(), any())).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> service.respond("tutor@test.com", cr.getRequestId(),
@@ -301,7 +339,7 @@ class ConnectionRequestServiceTest {
                 .startTime(LocalTime.of(19, 0)).endTime(LocalTime.of(20, 30)).build());
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
         when(busyLoader.load(eq(tutorId), eq(learner.getLearnerId()), eq(cr.getRequestId()), any(), any()))
                 .thenReturn(new BusyIndex(List.of(), List.of(new DatedBusy(day, LocalTime.of(20, 0), LocalTime.of(20, 30), BusyKind.TRIAL))));
 
@@ -322,7 +360,7 @@ class ConnectionRequestServiceTest {
                 .startTime(LocalTime.of(19, 0)).endTime(LocalTime.of(20, 30)).build());
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
 
         BadRequestException ex = assertThrows(BadRequestException.class, () -> service.respond("tutor@test.com", cr.getRequestId(),
                 RespondConnectionRequestDTO.builder().action("ACCEPT").build()));
@@ -409,7 +447,7 @@ class ConnectionRequestServiceTest {
         ConnectionRequest cr = pendingWithSession(day, "19:00", "20:30");
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
         when(busyLoader.load(eq(tutorId), eq(learner.getLearnerId()), eq(cr.getRequestId()), any(), any()))
                 .thenReturn(new BusyIndex(List.of(), List.of(new DatedBusy(day, LocalTime.of(19, 0), LocalTime.of(20, 30), BusyKind.LEARNER_COURSE))));
 
@@ -456,7 +494,7 @@ class ConnectionRequestServiceTest {
 
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
         when(connectionRequestRepository.findByLearnerLearnerIdAndRequestTypeAndStatus(
                 learner.getLearnerId(), ConnectionRequestType.DIRECT, ConnectionRequestStatus.PENDING))
                 .thenReturn(List.of(clashing, notClashing));
@@ -481,7 +519,7 @@ class ConnectionRequestServiceTest {
                 .startTime(LocalTime.of(19, 0)).endTime(LocalTime.of(20, 30)).build());
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
 
         service.respond("tutor@test.com", cr.getRequestId(),
                 RespondConnectionRequestDTO.builder().action("DECLINE").message("Tuần này đã qua, em gửi lại giúp thầy").build());
@@ -494,7 +532,7 @@ class ConnectionRequestServiceTest {
         ConnectionRequest cr = pendingRequest();
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
 
         ConnectionRequestResponseDTO res = service.respond("tutor@test.com", cr.getRequestId(),
                 RespondConnectionRequestDTO.builder().action("DECLINE").message("Thầy đã kín lịch").build());
@@ -510,7 +548,7 @@ class ConnectionRequestServiceTest {
         Tutor other = Tutor.builder().tutorId(UUID.randomUUID()).user(tutorUser).build();
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(other));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
 
         assertThrows(AccessDeniedException.class, () -> service.respond("tutor@test.com", cr.getRequestId(),
                 RespondConnectionRequestDTO.builder().action("ACCEPT").build()));
@@ -521,7 +559,7 @@ class ConnectionRequestServiceTest {
     void cancel_pending() {
         ConnectionRequest cr = pendingRequest();
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(learnerUser));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
 
         ConnectionRequestResponseDTO res = service.cancel("learner@test.com", cr.getRequestId());
         assertEquals("CANCELLED", res.getStatus());

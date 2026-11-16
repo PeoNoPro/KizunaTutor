@@ -177,7 +177,7 @@ class BookingAntiSpamTest {
         TrialBooking pending = trial(TrialBookingStatus.PENDING, start);
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(trialBookingRepository.findById(pending.getBookingId())).thenReturn(Optional.of(pending));
+        when(trialBookingRepository.findLockedById(pending.getBookingId())).thenReturn(Optional.of(pending));
         when(busyLoader.load(eq(tutorId), eq(learner.getLearnerId()), any(), any(), any()))
                 .thenReturn(new com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyIndex(List.of(), List.of(
                         new com.kizuna.features.booking.service.ConnectionSchedulePlanner.DatedBusy(start.atZoneSameInstant(vn).toLocalDate(),
@@ -198,7 +198,7 @@ class BookingAntiSpamTest {
         stale.setUpdatedAt(OffsetDateTime.now().minusHours(49));
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(trialBookingRepository.findById(stale.getBookingId())).thenReturn(Optional.of(stale));
+        when(trialBookingRepository.findLockedById(stale.getBookingId())).thenReturn(Optional.of(stale));
 
         BadRequestException ex = assertThrows(BadRequestException.class, () -> trialService.respondTrialBooking(
                 "tutor@test.com", stale.getBookingId(),
@@ -213,7 +213,7 @@ class BookingAntiSpamTest {
         TrialBooking confirmed = trial(TrialBookingStatus.CONFIRMED, OffsetDateTime.now().plusDays(3));
         confirmed.setTutorConfirmed(true);
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(learnerUser));
-        when(trialBookingRepository.findById(confirmed.getBookingId())).thenReturn(Optional.of(confirmed));
+        when(trialBookingRepository.findLockedById(confirmed.getBookingId())).thenReturn(Optional.of(confirmed));
         when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
         when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -229,7 +229,7 @@ class BookingAntiSpamTest {
     void trial_learnerOffScheduleRescheduleCountsTowardsLimit() {
         TrialBooking pending = trial(TrialBookingStatus.PENDING, OffsetDateTime.now().plusDays(3));
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(learnerUser));
-        when(trialBookingRepository.findById(pending.getBookingId())).thenReturn(Optional.of(pending));
+        when(trialBookingRepository.findLockedById(pending.getBookingId())).thenReturn(Optional.of(pending));
         when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
         when(trialBookingRepository.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false); // giờ mới ngoài lịch rảnh
         when(trialBookingRepository.countOffScheduleSince(eq(learner.getLearnerId()), eq(tutorId), any())).thenReturn(1L);
@@ -246,7 +246,7 @@ class BookingAntiSpamTest {
     void trial_learnerOffScheduleRescheduleIsMarkedInHistory() {
         TrialBooking pending = trial(TrialBookingStatus.PENDING, OffsetDateTime.now().plusDays(3));
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(learnerUser));
-        when(trialBookingRepository.findById(pending.getBookingId())).thenReturn(Optional.of(pending));
+        when(trialBookingRepository.findLockedById(pending.getBookingId())).thenReturn(Optional.of(pending));
         when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
         when(trialBookingRepository.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false);
         when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -266,7 +266,7 @@ class BookingAntiSpamTest {
         TrialBooking confirmed = trial(TrialBookingStatus.CONFIRMED, OffsetDateTime.now().plusDays(3));
         OffsetDateTime newStart = java.time.LocalDate.now(vn).plusDays(5).atTime(19, 0).atZone(vn).toOffsetDateTime();
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
-        when(trialBookingRepository.findById(confirmed.getBookingId())).thenReturn(Optional.of(confirmed));
+        when(trialBookingRepository.findLockedById(confirmed.getBookingId())).thenReturn(Optional.of(confirmed));
         when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
         when(busyLoader.load(eq(tutorId), eq(learner.getLearnerId()), any(), any(), any()))
                 .thenReturn(new com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyIndex(List.of(), List.of(

@@ -276,6 +276,31 @@ class TrialBookingServiceTest {
     }
 
     @Test
+    @DisplayName("Đặt lịch học thử thất bại - Gia sư không có gói hội viên còn hạn (gọi thẳng API)")
+    void testCreateTrialBooking_TutorWithoutMembership_ThrowsBadRequest() {
+        var membership = mock(com.kizuna.features.payment.service.TutorMembershipService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(trialBookingService, "membershipService", membership);
+        when(membership.hasActiveMembership(eq(tutorId), any())).thenReturn(false);
+        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder().contactPhone("0912345678").shareContact(true)
+                .tutorId(tutorId)
+                .scheduledStartTime(OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0))
+                .durationMinutes(30)
+                .build();
+
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
+        when(learnerRepository.findByUser(mockLearnerUser)).thenReturn(Optional.of(mockLearner));
+        when(tutorRepository.findById(tutorId)).thenReturn(Optional.of(mockTutor));
+
+        com.kizuna.core.exception.BadRequestException ex = assertThrows(com.kizuna.core.exception.BadRequestException.class, () ->
+                trialBookingService.createTrialBooking("learner@test.com", request)
+        );
+
+        assertTrue(ex.getMessage().contains("chưa sẵn sàng nhận học viên mới"));
+        verify(trialBookingRepository, never()).save(any());
+        verify(connectionRequestRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("Đặt lịch học thử thất bại - Thời lượng khác 30 phút ném BadRequestException")
     void testCreateTrialBooking_InvalidDuration_ThrowsBadRequest() {
         OffsetDateTime startTime = OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0);
@@ -310,7 +335,7 @@ class TrialBookingServiceTest {
                 .build();
 
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
-        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(confirmedBooking));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(confirmedBooking));
 
         com.kizuna.features.booking.dto.request.CancelTrialBookingRequestDTO cancelDto =
                 com.kizuna.features.booking.dto.request.CancelTrialBookingRequestDTO.builder()
@@ -339,7 +364,7 @@ class TrialBookingServiceTest {
                 .build();
 
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
-        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(confirmedBooking));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(confirmedBooking));
         when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         TrialBookingResponseDTO response = trialBookingService.completeTrialBooking("learner@test.com", bookingId);
@@ -363,7 +388,7 @@ class TrialBookingServiceTest {
                 .build();
 
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
-        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(pendingBooking));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(pendingBooking));
 
         com.kizuna.core.exception.BadRequestException ex = assertThrows(
                 com.kizuna.core.exception.BadRequestException.class,
@@ -388,7 +413,7 @@ class TrialBookingServiceTest {
                 .build();
 
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(mockLearnerUser));
-        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(futureBooking));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(futureBooking));
 
         com.kizuna.core.exception.BadRequestException ex = assertThrows(
                 com.kizuna.core.exception.BadRequestException.class,

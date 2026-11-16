@@ -15,6 +15,26 @@ import java.util.UUID;
 @Repository
 public interface ConnectionRequestRepository extends JpaRepository<ConnectionRequest, UUID> {
 
+    /**
+     * Đọc yêu cầu và khóa dòng (SELECT ... FOR UPDATE) tới hết transaction: hai thao tác cùng lúc trên một yêu cầu
+     * (gia sư đồng ý / học viên hủy / bấm đúp) phải chờ nhau, lệnh sau đọc được trạng thái mới.
+     */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT cr FROM ConnectionRequest cr WHERE cr.requestId = :id")
+    Optional<ConnectionRequest> findLockedById(@org.springframework.data.repository.query.Param("id") UUID id);
+
+    /** Yêu cầu kết nối đang chờ đã quá hạn của một cặp học viên–gia sư (khóa dòng để tự hết hạn). */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT cr FROM ConnectionRequest cr "
+            + "WHERE cr.learner.learnerId = :learnerId AND cr.tutor.tutorId = :tutorId "
+            + "AND cr.requestType = com.kizuna.features.booking.entity.ConnectionRequestType.DIRECT "
+            + "AND cr.status = com.kizuna.features.booking.entity.ConnectionRequestStatus.PENDING "
+            + "AND cr.createdAt < :before")
+    java.util.List<ConnectionRequest> findStaleDirectOfPairLocked(
+            @org.springframework.data.repository.query.Param("learnerId") UUID learnerId,
+            @org.springframework.data.repository.query.Param("tutorId") UUID tutorId,
+            @org.springframework.data.repository.query.Param("before") java.time.OffsetDateTime before);
+
     Page<ConnectionRequest> findByLearnerLearnerIdAndStatus(UUID learnerId, ConnectionRequestStatus status, Pageable pageable);
 
     Page<ConnectionRequest> findByLearnerLearnerId(UUID learnerId, Pageable pageable);
@@ -74,16 +94,22 @@ public interface ConnectionRequestRepository extends JpaRepository<ConnectionReq
                                               @org.springframework.data.repository.query.Param("startTime") java.time.LocalTime startTime,
                                               @org.springframework.data.repository.query.Param("endTime") java.time.LocalTime endTime);
 
-    /** Yêu cầu kết nối trực tiếp đang chờ mà đã có buổi học bắt đầu (giờ Việt Nam). */
+    /**
+     * Yêu cầu kết nối trực tiếp đang chờ mà đã có buổi học bắt đầu (giờ Việt Nam).
+     * Khóa dòng (tác vụ tự hết hạn): yêu cầu vừa được gia sư/học viên xử lý xong thì không còn khớp và bị bỏ qua.
+     */
     @org.springframework.data.jpa.repository.Query(value = """
             SELECT cr.* FROM connection_requests cr
             WHERE cr.request_type = 'DIRECT' AND cr.status = 'PENDING'
               AND EXISTS (SELECT 1 FROM connection_request_sessions s
                           WHERE s.request_id = cr.request_id
                             AND (s.session_date + s.start_time) <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Ho_Chi_Minh'))
+            FOR UPDATE OF cr
             """, nativeQuery = true)
     java.util.List<ConnectionRequest> findPendingDirectWithStartedSession();
 
+    /** Khóa dòng (tác vụ tự hết hạn), như findPendingDirectWithStartedSession. */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     java.util.List<ConnectionRequest> findByRequestTypeAndStatusAndCreatedAtBefore(
             ConnectionRequestType requestType, ConnectionRequestStatus status, java.time.OffsetDateTime before);
 

@@ -110,7 +110,7 @@ class BookingNotificationTest {
     private void stubTutorResponds(ConnectionRequest cr) {
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
     }
 
     @Test
@@ -164,7 +164,7 @@ class BookingNotificationTest {
     void cancelled_notifiesTutor() {
         ConnectionRequest cr = pendingDirect();
         when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(learnerUser));
-        when(connectionRequestRepository.findById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
 
         connectionService.cancel("learner@test.com", cr.getRequestId());
 
@@ -233,7 +233,7 @@ class BookingNotificationTest {
                 .scheduledEndTime(OffsetDateTime.now().minusDays(1).plusMinutes(30)).bookingStatus(TrialBookingStatus.COMPLETED).build();
         when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
         when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
-        when(trialBookingRepository.findById(completed.getBookingId())).thenReturn(Optional.of(completed));
+        when(trialBookingRepository.findLockedById(completed.getBookingId())).thenReturn(Optional.of(completed));
 
         trialService.agreeConnectionAfterTrial("tutor@test.com", completed.getBookingId());
 

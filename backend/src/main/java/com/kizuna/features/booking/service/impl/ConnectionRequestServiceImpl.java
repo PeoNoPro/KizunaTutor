@@ -82,6 +82,22 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.kizuna.features.tutor_post.repository.TutorPostRepository tutorPostRepository;
 
+    /** Gói hội viên (FE-09): gia sư hết gói không nhận học viên mới. Không bắt buộc (test dựng tay) → bỏ qua kiểm tra. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.payment.service.TutorMembershipService membershipService;
+
+    static final String TUTOR_NO_MEMBERSHIP_FOR_LEARNER =
+            "Gia sư hiện chưa sẵn sàng nhận học viên mới. Vui lòng chọn gia sư khác.";
+    static final String TUTOR_NO_MEMBERSHIP_FOR_TUTOR =
+            "Bạn chưa có gói hội viên còn hạn nên chưa thể nhận học viên mới. Vui lòng đăng ký hoặc gia hạn gói.";
+
+    /** Cùng điều kiện với trang tìm kiếm (TutorSearchSpecification) để gia sư bị ẩn thì cũng không đặt được. */
+    private void requireActiveMembership(Tutor tutor, String message) {
+        if (membershipService != null && !membershipService.hasActiveMembership(tutor.getTutorId(), LocalDate.now(VN_ZONE))) {
+            throw new BadRequestException(message);
+        }
+    }
+
     /**
      * Hình thức học của yêu cầu: trống = ONLINE; phải nằm trong hình thức dạy của bài đăng đang hiển thị
      * (ONLINE | OFFLINE | BOTH). Gia sư chưa khai báo hình thức dạy chỉ nhận học online.
@@ -145,6 +161,7 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         if (tutor.getVerificationStatus() != TutorVerificationStatus.APPROVED) {
             throw new BadRequestException("Gia sư hiện chưa sẵn sàng nhận học viên mới. Vui lòng chọn gia sư đã được phê duyệt.");
         }
+        requireActiveMembership(tutor, TUTOR_NO_MEMBERSHIP_FOR_LEARNER);
 
         String learningMode = resolveLearningMode(tutor.getTutorId(), request.getLearningMode());
         String location = trimToNull(request.getLocationDetails());
@@ -161,10 +178,16 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         learner = learnerRepository.save(learner);
 
         lockTutor(tutor.getTutorId());
-        expireStaleDirectRequests(); // yêu cầu cũ đã quá hạn không còn tính là "đang chờ"
 
         UUID learnerId = learner.getLearnerId();
         UUID tutorId = tutor.getTutorId();
+        // Yêu cầu cũ đã quá hạn với gia sư này không còn tính là "đang chờ". Chỉ xử lý cặp này;
+        // phần còn lại do BookingExpiryScheduler quét định kỳ.
+        OffsetDateTime checkedAt = OffsetDateTime.now();
+        for (ConnectionRequest stale : connectionRequestRepository.findStaleDirectOfPairLocked(
+                learnerId, tutorId, checkedAt.minusHours(BookingLimits.DIRECT_RESPONSE_HOURS))) {
+            expireDirect(stale, NO_RESPONSE_REASON, checkedAt);
+        }
         if (connectionRequestRepository.existsByLearnerLearnerIdAndTutorTutorIdAndRequestTypeAndStatusAndRespondedAtAfter(
                 learnerId, tutorId, ConnectionRequestType.DIRECT, ConnectionRequestStatus.DECLINED,
                 OffsetDateTime.now().minusHours(BookingLimits.DECLINE_COOLDOWN_HOURS))) {
@@ -276,6 +299,8 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         Tutor tutor = tutorRepository.findByUser(tutorUser)
                 .orElseThrow(() -> new AccessDeniedException("Tài khoản của bạn chưa được liên kết với hồ sơ gia sư"));
 
+        // Khóa theo gia sư TRƯỚC khi khóa dòng yêu cầu: mọi thao tác của gia sư khóa cùng một thứ tự, tránh deadlock
+        lockTutor(tutor.getTutorId());
         ConnectionRequest connection = findDirectRequest(requestId);
         if (!connection.getTutor().getTutorId().equals(tutor.getTutorId())) {
             throw new AccessDeniedException("Bạn không có quyền thao tác trên yêu cầu kết nối này");
@@ -293,7 +318,7 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         OffsetDateTime now = OffsetDateTime.now();
 
         if ("ACCEPT".equals(action)) {
-            lockTutor(tutor.getTutorId());
+            requireActiveMembership(tutor, TUTOR_NO_MEMBERSHIP_FOR_TUTOR);
             UUID learnerId = connection.getLearner().getLearnerId();
             if (!connection.getSessions().isEmpty()) {
                 ensureSessionsFreeForAccept(connection, learnerId);
@@ -371,17 +396,36 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
                 && cr.getCreatedAt().isBefore(now.minusHours(BookingLimits.DIRECT_RESPONSE_HOURS));
     }
 
+    private static final String NO_RESPONSE_REASON =
+            "Tự động hết hạn vì gia sư chưa phản hồi trong " + BookingLimits.DIRECT_RESPONSE_HOURS + " giờ";
+
+    /** Chuyển một yêu cầu đang chờ (đã được khóa dòng khi đọc) sang "Đã hết hạn" và báo hai bên. */
+    private void expireDirect(ConnectionRequest cr, String reason, OffsetDateTime now) {
+        cr.setStatus(ConnectionRequestStatus.EXPIRED);
+        cr.setRespondedAt(now);
+        cr.setResponseMessage(reason);
+        connectionRequestRepository.save(cr);
+        notify("connection:" + cr.getRequestId() + ":expired:learner", "Yêu cầu kết nối đã hết hạn",
+                cr.getTutor().getUser().getFullName() + " chưa phản hồi kịp nên yêu cầu kết nối của bạn đã hết hạn. "
+                        + "Bạn có thể gửi lại với tuần bắt đầu mới hoặc chọn gia sư khác.",
+                LEARNER_DIRECT_PATH, cr.getLearner().getUser());
+        notify("connection:" + cr.getRequestId() + ":expired:tutor", "Yêu cầu kết nối đã hết hạn",
+                "Yêu cầu kết nối của " + cr.getLearner().getUser().getFullName() + " đã hết hạn vì chưa được phản hồi kịp.",
+                TUTOR_DIRECT_PATH, cr.getTutor().getUser());
+    }
+
     @Override
     @Transactional
     public int expireStaleDirectRequests() {
         OffsetDateTime now = OffsetDateTime.now();
+        // Các query dưới đây khóa dòng: yêu cầu vừa được gia sư đồng ý / học viên hủy thì không còn PENDING và bị bỏ qua.
         // 1) Gia sư chưa phản hồi quá DIRECT_RESPONSE_HOURS giờ
         java.util.Map<UUID, String> reasons = new java.util.LinkedHashMap<>();
         java.util.Map<UUID, ConnectionRequest> stale = new java.util.LinkedHashMap<>();
         for (ConnectionRequest cr : connectionRequestRepository.findByRequestTypeAndStatusAndCreatedAtBefore(
                 ConnectionRequestType.DIRECT, ConnectionRequestStatus.PENDING, now.minusHours(BookingLimits.DIRECT_RESPONSE_HOURS))) {
             stale.put(cr.getRequestId(), cr);
-            reasons.put(cr.getRequestId(), "Tự động hết hạn vì gia sư chưa phản hồi trong " + BookingLimits.DIRECT_RESPONSE_HOURS + " giờ");
+            reasons.put(cr.getRequestId(), NO_RESPONSE_REASON);
         }
         // 2) Đã tới buổi học đầu tiên mà gia sư chưa phản hồi: không thể đồng ý nữa (thiếu buổi) → nhả chỗ các buổi còn lại ngay
         for (ConnectionRequest cr : connectionRequestRepository.findPendingDirectWithStartedSession()) {
@@ -390,17 +434,7 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
             }
         }
         for (ConnectionRequest cr : stale.values()) {
-            cr.setStatus(ConnectionRequestStatus.EXPIRED);
-            cr.setRespondedAt(now);
-            cr.setResponseMessage(reasons.get(cr.getRequestId()));
-            connectionRequestRepository.save(cr);
-            notify("connection:" + cr.getRequestId() + ":expired:learner", "Yêu cầu kết nối đã hết hạn",
-                    cr.getTutor().getUser().getFullName() + " chưa phản hồi kịp nên yêu cầu kết nối của bạn đã hết hạn. "
-                            + "Bạn có thể gửi lại với tuần bắt đầu mới hoặc chọn gia sư khác.",
-                    LEARNER_DIRECT_PATH, cr.getLearner().getUser());
-            notify("connection:" + cr.getRequestId() + ":expired:tutor", "Yêu cầu kết nối đã hết hạn",
-                    "Yêu cầu kết nối của " + cr.getLearner().getUser().getFullName() + " đã hết hạn vì chưa được phản hồi kịp.",
-                    TUTOR_DIRECT_PATH, cr.getTutor().getUser());
+            expireDirect(cr, reasons.get(cr.getRequestId()), now);
         }
         if (!stale.isEmpty()) {
             log.info("Auto-expired {} pending direct connection request(s)", stale.size());
@@ -707,8 +741,9 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         }
     }
 
+    /** Đọc yêu cầu kết nối và khóa dòng tới hết transaction (respond / cancel không cùng lọt qua bước kiểm tra PENDING). */
     private ConnectionRequest findDirectRequest(UUID requestId) {
-        ConnectionRequest connection = connectionRequestRepository.findById(requestId)
+        ConnectionRequest connection = connectionRequestRepository.findLockedById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu kết nối"));
         if (connection.getRequestType() != ConnectionRequestType.DIRECT) {
             throw new ResourceNotFoundException("Không tìm thấy yêu cầu kết nối");
@@ -716,13 +751,13 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         return connection;
     }
 
+    /**
+     * Khóa theo gia sư tới hết transaction. Lỗi phải ném ra: PostgreSQL đã hủy transaction sau lệnh lỗi,
+     * chạy tiếp như đã khóa chỉ gây lỗi khó hiểu ở lệnh sau và mất tác dụng chống trùng lịch.
+     */
     private void lockTutor(UUID tutorId) {
         if (jdbcTemplate == null || tutorId == null) return;
-        try {
-            jdbcTemplate.execute("SELECT pg_advisory_xact_lock(" + Math.abs(tutorId.getMostSignificantBits()) + ")");
-        } catch (Exception e) {
-            log.warn("Không thể kích hoạt pg_advisory_xact_lock: {}", e.getMessage());
-        }
+        jdbcTemplate.execute("SELECT pg_advisory_xact_lock(" + Math.abs(tutorId.getMostSignificantBits()) + ")");
     }
 
     private static boolean hasRole(User user, String role) {

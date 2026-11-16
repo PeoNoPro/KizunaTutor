@@ -18,6 +18,24 @@ import java.util.UUID;
 public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID> {
 
     /**
+     * Đọc buổi học thử và khóa dòng (SELECT ... FOR UPDATE) tới hết transaction: hai thao tác cùng lúc
+     * (gia sư chấp nhận / học viên hủy / bấm đúp) phải chờ nhau, lệnh sau đọc được trạng thái mới.
+     */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT tb FROM TrialBooking tb WHERE tb.bookingId = :id")
+    java.util.Optional<TrialBooking> findLockedById(@Param("id") UUID id);
+
+    /** Yêu cầu học thử đang chờ đã quá hạn của một học viên (khóa dòng để tự hết hạn), cùng điều kiện với findStalePending. */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT tb FROM TrialBooking tb " +
+           "WHERE tb.learner.learnerId = :learnerId AND tb.bookingStatus = :status " +
+           "AND (tb.updatedAt < :staleBefore OR tb.scheduledStartTime <= :now)")
+    List<TrialBooking> findStalePendingOfLearnerLocked(@Param("learnerId") UUID learnerId,
+                                                       @Param("status") TrialBookingStatus status,
+                                                       @Param("staleBefore") OffsetDateTime staleBefore,
+                                                       @Param("now") OffsetDateTime now);
+
+    /**
      * Gia sư đã có buổi học thử ĐÃ XÁC NHẬN (CONFIRMED/RESCHEDULED) khác chồng lấn khung giờ này hay chưa.
      * Yêu cầu đang chờ (PENDING) được phép trùng nhau vì học viên tự chọn giờ; trùng lịch chỉ bị chặn
      * khi gia sư bấm đồng ý hoặc khi dời lịch.
@@ -249,7 +267,9 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
     /**
      * Yêu cầu học thử đang chờ đã quá hạn: gia sư chưa phản hồi kể từ lần gửi/đổi lịch gần nhất (updatedAt)
      * trước mốc staleBefore, hoặc đã tới giờ học.
+     * Khóa dòng (tác vụ tự hết hạn): yêu cầu vừa được gia sư/học viên xử lý xong thì không còn khớp và bị bỏ qua.
      */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT tb FROM TrialBooking tb " +
            "WHERE tb.bookingStatus = :status " +
            "AND (tb.updatedAt < :staleBefore OR tb.scheduledStartTime <= :now)")
@@ -257,6 +277,8 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
                                         @Param("staleBefore") OffsetDateTime staleBefore,
                                         @Param("now") OffsetDateTime now);
 
+    /** Khóa dòng (tác vụ tự hoàn thành): buổi vừa bị hủy / dời lịch thì không còn khớp và bị bỏ qua. */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     List<TrialBooking> findByBookingStatusInAndScheduledEndTimeBefore(List<TrialBookingStatus> statuses, OffsetDateTime time);
 }
 

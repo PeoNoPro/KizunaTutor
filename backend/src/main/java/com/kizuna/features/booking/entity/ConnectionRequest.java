@@ -57,6 +57,16 @@ public class ConnectionRequest {
     @Column(name = "response_message", columnDefinition = "TEXT")
     private String responseMessage;
 
+    /** Liên hệ học viên gửi kèm yêu cầu (học thử hoặc kết nối khóa học) và thời điểm học viên đồng ý chia sẻ. */
+    @Column(name = "contact_email", length = 255)
+    private String contactEmail;
+
+    @Column(name = "contact_phone", length = 20)
+    private String contactPhone;
+
+    @Column(name = "contact_consent_at")
+    private java.time.OffsetDateTime contactConsentAt;
+
     /** Các buổi học cụ thể theo ngày (chỉ có ở yêu cầu DIRECT tạo từ khi có bảng connection_request_sessions). */
     @OneToMany(mappedBy = "connectionRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sessionDate ASC, startTime ASC")

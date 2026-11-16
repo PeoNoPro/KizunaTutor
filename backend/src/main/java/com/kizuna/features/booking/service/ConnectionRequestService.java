@@ -18,13 +18,15 @@ public interface ConnectionRequestService {
 
     ConnectionRequestResponseDTO cancel(String learnerEmail, UUID requestId);
 
-    /** Xếp các buổi học dự kiến và kiểm tra từng buổi có bị kín không (chưa lưu gì). */
-    com.kizuna.features.booking.dto.response.ConnectionPreviewResponseDTO preview(
-            String learnerEmail, com.kizuna.features.booking.dto.request.ConnectionPreviewRequestDTO request);
-
     /**
      * Chuyển các yêu cầu kết nối trực tiếp gia sư chưa phản hồi quá 24 giờ sang EXPIRED.
      * @return số yêu cầu vừa hết hạn
      */
     int expireStaleDirectRequests();
+
+    /**
+     * Gia sư có buổi học kết nối sắp tới (đã đồng ý / đang chờ còn hạn) trong ca hằng tuần này không.
+     * dayOfWeek: 1 = Chủ nhật ... 7 = Thứ Bảy.
+     */
+    boolean hasUpcomingSessionsInSlot(UUID tutorId, Integer dayOfWeek, java.time.LocalTime startTime, java.time.LocalTime endTime);
 }

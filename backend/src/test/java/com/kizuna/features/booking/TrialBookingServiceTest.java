@@ -105,7 +105,7 @@ class TrialBookingServiceTest {
 
         lenient().when(learnerRepository.save(any(Learner.class))).thenAnswer(inv -> inv.getArgument(0));
         lenient().when(trialBookingRepository.isWithinAvailability(eq(tutorId), anyInt(), any(), any())).thenReturn(true);
-        lenient().when(busyLoader.load(any(), any(), any(), any(), any(), any()))
+        lenient().when(busyLoader.load(any(), any(), any(), any(), any()))
                 .thenReturn(ConnectionSchedulePlanner.BusyIndex.EMPTY);
     }
 
@@ -113,7 +113,7 @@ class TrialBookingServiceTest {
     @DisplayName("Đặt lịch học thử thành công - Học viên tự chọn giờ, trả về PENDING")
     void testCreateTrialBooking_Success() {
         OffsetDateTime startTime = OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0);
-        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
+        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder().contactPhone("0912345678").shareContact(true)
                 .tutorId(tutorId)
                 .scheduledStartTime(startTime)
                 .durationMinutes(30)
@@ -151,7 +151,7 @@ class TrialBookingServiceTest {
     }
 
     private CreateTrialBookingRequestDTO offScheduleRequest(Boolean proposal) {
-        return CreateTrialBookingRequestDTO.builder()
+        return CreateTrialBookingRequestDTO.builder().contactPhone("0912345678").shareContact(true)
                 .tutorId(tutorId)
                 .scheduledStartTime(OffsetDateTime.now().plusDays(2).withHour(21).withMinute(30))
                 .durationMinutes(30)
@@ -208,7 +208,7 @@ class TrialBookingServiceTest {
     void testCreateTrialBooking_TutorBusy_Rejected() {
         stubLearnerTutorAndSave();
         when(trialBookingRepository.isWithinAvailability(eq(tutorId), anyInt(), any(), any())).thenReturn(false);
-        when(busyLoader.load(any(), any(), any(), any(), any(), any())).thenReturn(new ConnectionSchedulePlanner.BusyIndex(
+        when(busyLoader.load(any(), any(), any(), any(), any())).thenReturn(new ConnectionSchedulePlanner.BusyIndex(
                 List.of(new ConnectionSchedulePlanner.WeeklyBusy(1, java.time.LocalTime.MIN, java.time.LocalTime.MAX,
                                 ConnectionSchedulePlanner.BusyKind.TRIAL),
                         new ConnectionSchedulePlanner.WeeklyBusy(2, java.time.LocalTime.MIN, java.time.LocalTime.MAX,
@@ -234,7 +234,7 @@ class TrialBookingServiceTest {
     @Test
     @DisplayName("Đặt lịch học thử thất bại - Thời gian trong quá khứ ném BadRequestException")
     void testCreateTrialBooking_PastTime_ThrowsBadRequest() {
-        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
+        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder().contactPhone("0912345678").shareContact(true)
                 .tutorId(tutorId)
                 .scheduledStartTime(OffsetDateTime.now().minusHours(1))
                 .durationMinutes(30)
@@ -257,7 +257,7 @@ class TrialBookingServiceTest {
     void testCreateTrialBooking_UnapprovedTutor_ThrowsBadRequest() {
         mockTutor.setVerificationStatus(TutorVerificationStatus.PENDING);
         OffsetDateTime startTime = OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0);
-        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
+        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder().contactPhone("0912345678").shareContact(true)
                 .tutorId(tutorId)
                 .scheduledStartTime(startTime)
                 .durationMinutes(30)
@@ -279,7 +279,7 @@ class TrialBookingServiceTest {
     @DisplayName("Đặt lịch học thử thất bại - Thời lượng khác 30 phút ném BadRequestException")
     void testCreateTrialBooking_InvalidDuration_ThrowsBadRequest() {
         OffsetDateTime startTime = OffsetDateTime.now().plusDays(1).withHour(14).withMinute(0);
-        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder()
+        CreateTrialBookingRequestDTO request = CreateTrialBookingRequestDTO.builder().contactPhone("0912345678").shareContact(true)
                 .tutorId(tutorId)
                 .scheduledStartTime(startTime)
                 .durationMinutes(50)

@@ -33,6 +33,17 @@ public class CreateTrialBookingRequestDTO {
 
     private String initialMessage;
 
+    /** Email liên hệ gửi cho gia sư (để trống = email tài khoản). */
+    @jakarta.validation.constraints.Size(max = 255, message = "Email tối đa 255 ký tự")
+    private String contactEmail;
+
+    /** Số điện thoại liên hệ gửi cho gia sư (để trống = số trong hồ sơ). */
+    @jakarta.validation.constraints.Size(max = 20, message = "Số điện thoại không hợp lệ")
+    private String contactPhone;
+
+    /** Học viên đồng ý chia sẻ hồ sơ, email, số điện thoại với gia sư (bắt buộc). */
+    private Boolean shareContact;
+
     /**
      * true = học viên dùng "Đề xuất giờ khác" (giờ ngoài lịch rảnh của gia sư).
      * false/null = chọn từ lịch rảnh; nếu giờ đó nằm ngoài lịch rảnh thì bị từ chối.

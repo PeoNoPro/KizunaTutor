@@ -27,7 +27,7 @@ public final class BookingLimits {
     public static final int DIRECT_RESPONSE_HOURS = 24;
 
     /** Học viên được xem lịch rảnh và chọn ngày bắt đầu học trong chừng này tuần (tính cả tuần hiện tại). */
-    public static final int DIRECT_SCHEDULE_WEEKS = 4;
+    public static final int DIRECT_SCHEDULE_WEEKS = 2;
 
     /** Số buổi tối đa của một yêu cầu kết nối trực tiếp. */
     public static final int MAX_CONNECTION_SESSIONS = 12;
@@ -40,4 +40,17 @@ public final class BookingLimits {
 
     /** Bị gia sư từ chối thì phải chờ chừng này giờ mới được gửi lại cho đúng gia sư đó. */
     public static final int DECLINE_COOLDOWN_HOURS = 24;
+
+    /**
+     * Một học viên chỉ được có tối đa chừng này yêu cầu học thử ĐANG CHỜ gia sư phản hồi (với các gia sư khác nhau)
+     * cùng lúc, để không giữ chỗ bừa nhiều gia sư. Buổi học thử đã được nhận không tính.
+     */
+    public static final int MAX_PENDING_TRIALS_PER_LEARNER = 2;
+
+    /** Trình độ trong hồ sơ học viên (BEGINNER, N5..N1) → nhãn hiển thị cho gia sư; null nếu chưa có. */
+    public static String levelLabel(String currentLevel) {
+        if (currentLevel == null || currentLevel.isBlank()) return null;
+        String level = currentLevel.trim();
+        return "BEGINNER".equalsIgnoreCase(level) ? "Mới bắt đầu" : level;
+    }
 }

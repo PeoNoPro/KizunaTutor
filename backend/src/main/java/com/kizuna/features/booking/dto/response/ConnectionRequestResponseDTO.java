@@ -60,6 +60,17 @@ public class ConnectionRequestResponseDTO {
     private OffsetDateTime createdAt;
     private OffsetDateTime respondedAt;
 
+
+    /** Cho gia sư: ca nào trong yêu cầu đang chờ đã bị lịch đã chấp nhận chiếm (null nếu không có). */
+    private String slotWarning;
+
+    /**
+     * Liên hệ của người bên kia: gia sư xem liên hệ học viên (trừ khi đã từ chối / hủy / hết hạn);
+     * học viên xem liên hệ gia sư khi gia sư đã đồng ý. Null nếu chưa được xem.
+     */
+    private String partnerEmail;
+    private String partnerPhone;
+
     @Getter
     @Setter
     @NoArgsConstructor

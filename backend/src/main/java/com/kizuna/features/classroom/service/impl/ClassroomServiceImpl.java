@@ -52,6 +52,10 @@ public class ClassroomServiceImpl implements ClassroomService {
     private final ClassSessionCalendar calendar;
     private final Clock clock;
 
+    /** Thông báo tự động (FE-12). Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
     @Autowired
     public ClassroomServiceImpl(LearningSpaceRepository spaceRepository, LearningMaterialRepository materialRepository,
                                 LearnerRepository learnerRepository, ClassScheduleRepository scheduleRepository,
@@ -153,7 +157,29 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .endTime(slot.endTime())
                 .activeFrom(activeFrom)
                 .build()).toList());
+        notifyLearnerClassCreated(saved, tutor, slots);
         return toSummary(saved, actor);
+    }
+
+    /**
+     * Gia sư tạo lớp sau khi hai bên thỏa thuận bên ngoài: báo cho học viên tên lớp, số buổi, lịch học, ngày bắt đầu
+     * (bằng chứng nhẹ cho thỏa thuận; sai thì học viên liên hệ gia sư).
+     */
+    private void notifyLearnerClassCreated(LearningSpace space, Tutor tutor, List<ClassScheduleRequest> slots) {
+        if (notificationEvents == null || space.getLearner() == null || space.getLearner().getUser() == null) return;
+        java.time.format.DateTimeFormatter hhmm = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+        String schedule = slots.stream()
+                .sorted(Comparator.comparing(ClassScheduleRequest::dayOfWeek).thenComparing(ClassScheduleRequest::startTime))
+                .map(sl -> ClassScheduleRules.dayLabel(sl.dayOfWeek()) + " " + sl.startTime().format(hhmm) + "–" + sl.endTime().format(hhmm))
+                .collect(java.util.stream.Collectors.joining(", "));
+        String start = space.getCourseStartDate() == null ? ""
+                : ", bắt đầu " + space.getCourseStartDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String tutorName = tutor.getUser() != null ? tutor.getUser().getFullName() : "Gia sư";
+        notificationEvents.publish("classroom:" + space.getSpaceId() + ":created", "CONNECTION",
+                "Gia sư đã tạo lớp học cho bạn",
+                tutorName + " đã tạo lớp \"" + space.getTitle() + "\": " + space.getTotalSessions() + " buổi (" + schedule + ")" + start
+                        + ". Nếu có gì chưa đúng với thỏa thuận, hãy liên hệ gia sư.",
+                "/learner/connections", List.of(space.getLearner().getUser().getUserId()));
     }
 
     @Override

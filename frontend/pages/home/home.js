@@ -124,12 +124,28 @@ function renderTutorCard(tutor) {
         </div>
       </div>
 
+      ${(() => {
+        const sessionPrices = (tutor.priceItems || [])
+          .map(p => {
+            if (!p) return null;
+            if (p.pricePerSession != null && Number(p.pricePerSession) > 0) return Number(p.pricePerSession);
+            if (p.hourlyRate != null && Number(p.hourlyRate) > 0) {
+              const mins = Number(p.sessionMinutes) || 60;
+              return Math.round(Number(p.hourlyRate) * mins / 60);
+            }
+            return null;
+          })
+          .filter(v => Number.isFinite(v) && v > 0);
+        const sessionRate = sessionPrices.length > 0 ? Math.min(...sessionPrices) : (Number(tutor.hourlyRate) || 0);
+        const isFrom = sessionPrices.length > 1 || (tutor.priceItems || []).length > 1;
+
+        return `
       <div class="pt-4 mt-4 border-t border-[#ECE8DE] flex items-center justify-between gap-3">
         <div>
           <span class="text-[11px] text-on-surface-variant block">Học phí tham khảo</span>
           <span class="font-bold text-primary text-sm">
-            ${formatVND(tutor.hourlyRate)}
-            <span class="text-[11px] font-normal text-on-surface-variant">/ giờ</span>
+            ${isFrom ? 'Từ ' : ''}${formatVND(sessionRate)}
+            <span class="text-[11px] font-normal text-on-surface-variant">/ buổi</span>
           </span>
         </div>
         <a href="${profileUrl}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-semibold shadow-sm transition-all shrink-0 inline-flex items-center gap-1">
@@ -137,6 +153,8 @@ function renderTutorCard(tutor) {
           <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
         </a>
       </div>
+        `;
+      })()}
     </article>
   `;
 }

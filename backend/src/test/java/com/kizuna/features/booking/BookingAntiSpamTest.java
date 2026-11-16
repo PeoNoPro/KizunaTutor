@@ -77,8 +77,7 @@ class BookingAntiSpamTest {
                 connectionRequestRepository, slotRepository, trialBookingRepository, trialBookingHistoryRepository,
                 tutorScheduleService, jdbcTemplate, busyLoader);
         org.mockito.Mockito.lenient().when(busyLoader.load(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any()))
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                 .thenReturn(com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyIndex.EMPTY);
 
         tutorId = UUID.randomUUID();
@@ -126,6 +125,19 @@ class BookingAntiSpamTest {
     }
 
     @Test
+    @DisplayName("Đang chờ 2 gia sư phản hồi học thử thì không gửi thêm yêu cầu học thử thứ 3 được")
+    void trial_blockWhenTwoPendingElsewhere() {
+        stubLearnerCreate();
+        when(trialBookingRepository.countByLearnerLearnerIdAndBookingStatus(learner.getLearnerId(), TrialBookingStatus.PENDING))
+                .thenReturn(2L);
+
+        ConflictException ex = assertThrows(ConflictException.class,
+                () -> trialService.createTrialBooking("learner@test.com", trialRequest()));
+        assertTrue(ex.getMessage().contains("đang chờ 2 gia sư"));
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("Vừa bị gia sư từ chối trong 24 giờ thì chưa gửi lại được")
     void trial_blockDuringDeclineCooldown() {
         stubLearnerCreate();
@@ -155,6 +167,28 @@ class BookingAntiSpamTest {
         assertEquals(ConnectionRequestStatus.EXPIRED, cr.getStatus());
         verify(trialBookingHistoryRepository).save(argThat(h ->
                 h.getNewStatus() == TrialBookingStatus.EXPIRED && h.getChangeReason().contains("tới giờ học")));
+    }
+
+    @Test
+    @DisplayName("L1 - Gia sư không nhận được buổi học thử khi học viên đã có buổi học (khóa) với gia sư khác cùng giờ")
+    void trial_acceptBlockedByLearnerCourseWithOtherTutor() {
+        java.time.ZoneId vn = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+        OffsetDateTime start = java.time.LocalDate.now(vn).plusDays(3).atTime(19, 0).atZone(vn).toOffsetDateTime();
+        TrialBooking pending = trial(TrialBookingStatus.PENDING, start);
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
+        when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
+        when(trialBookingRepository.findById(pending.getBookingId())).thenReturn(Optional.of(pending));
+        when(busyLoader.load(eq(tutorId), eq(learner.getLearnerId()), any(), any(), any()))
+                .thenReturn(new com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyIndex(List.of(), List.of(
+                        new com.kizuna.features.booking.service.ConnectionSchedulePlanner.DatedBusy(start.atZoneSameInstant(vn).toLocalDate(),
+                                LocalTime.of(18, 30), LocalTime.of(20, 0),
+                                com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyKind.LEARNER_COURSE))));
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> trialService.respondTrialBooking(
+                "tutor@test.com", pending.getBookingId(),
+                RespondTrialBookingRequestDTO.builder().action("ACCEPT").meetingLink("https://meet.google.com/abc").build()));
+        assertTrue(ex.getMessage().contains("học viên đã có buổi học với gia sư khác"));
+        assertEquals(TrialBookingStatus.PENDING, pending.getBookingStatus());
     }
 
     @Test
@@ -190,7 +224,76 @@ class BookingAntiSpamTest {
         assertEquals(Boolean.FALSE, confirmed.getTutorConfirmed());
     }
 
+    @Test
+    @DisplayName("L3 - Học viên đổi lịch sang giờ ngoài lịch rảnh bị tính vào giới hạn 2 đề xuất/tuần")
+    void trial_learnerOffScheduleRescheduleCountsTowardsLimit() {
+        TrialBooking pending = trial(TrialBookingStatus.PENDING, OffsetDateTime.now().plusDays(3));
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(learnerUser));
+        when(trialBookingRepository.findById(pending.getBookingId())).thenReturn(Optional.of(pending));
+        when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
+        when(trialBookingRepository.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false); // giờ mới ngoài lịch rảnh
+        when(trialBookingRepository.countOffScheduleSince(eq(learner.getLearnerId()), eq(tutorId), any())).thenReturn(1L);
+        when(trialBookingRepository.countOffScheduleReschedulesSince(eq(learner.getLearnerId()), eq(tutorId), any())).thenReturn(1L);
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> trialService.rescheduleTrialBooking("learner@test.com",
+                pending.getBookingId(), RescheduleTrialBookingRequestDTO.builder().newScheduledStartTime(OffsetDateTime.now().plusDays(4)).build()));
+        assertTrue(ex.getMessage().contains("ngoài lịch rảnh tối đa"));
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("L3 - Học viên đổi lịch sang giờ ngoài lịch rảnh (chưa tới giới hạn): lưu dấu đề xuất trong lịch sử")
+    void trial_learnerOffScheduleRescheduleIsMarkedInHistory() {
+        TrialBooking pending = trial(TrialBookingStatus.PENDING, OffsetDateTime.now().plusDays(3));
+        when(userRepository.findByEmail("learner@test.com")).thenReturn(Optional.of(learnerUser));
+        when(trialBookingRepository.findById(pending.getBookingId())).thenReturn(Optional.of(pending));
+        when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
+        when(trialBookingRepository.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false);
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        trialService.rescheduleTrialBooking("learner@test.com", pending.getBookingId(),
+                RescheduleTrialBookingRequestDTO.builder().newScheduledStartTime(OffsetDateTime.now().plusDays(4)).build());
+
+        assertEquals(Boolean.TRUE, pending.getOffSchedule());
+        verify(trialBookingHistoryRepository).save(argThat(h -> h.getChangeReason().startsWith(
+                TrialBookingServiceImpl.OFF_SCHEDULE_RESCHEDULE_MARK)));
+    }
+
+    @Test
+    @DisplayName("L3 - Gia sư tự dời lịch sang giờ học viên đã có khóa với gia sư khác thì bị chặn")
+    void trial_tutorRescheduleBlockedByLearnerCourseWithOtherTutor() {
+        java.time.ZoneId vn = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+        TrialBooking confirmed = trial(TrialBookingStatus.CONFIRMED, OffsetDateTime.now().plusDays(3));
+        OffsetDateTime newStart = java.time.LocalDate.now(vn).plusDays(5).atTime(19, 0).atZone(vn).toOffsetDateTime();
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
+        when(trialBookingRepository.findById(confirmed.getBookingId())).thenReturn(Optional.of(confirmed));
+        when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
+        when(busyLoader.load(eq(tutorId), eq(learner.getLearnerId()), any(), any(), any()))
+                .thenReturn(new com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyIndex(List.of(), List.of(
+                        new com.kizuna.features.booking.service.ConnectionSchedulePlanner.DatedBusy(newStart.atZoneSameInstant(vn).toLocalDate(),
+                                LocalTime.of(19, 0), LocalTime.of(20, 30),
+                                com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyKind.LEARNER_COURSE))));
+
+        assertThrows(ConflictException.class, () -> trialService.rescheduleTrialBooking("tutor@test.com",
+                confirmed.getBookingId(), RescheduleTrialBookingRequestDTO.builder().newScheduledStartTime(newStart).build()));
+        assertEquals(TrialBookingStatus.CONFIRMED, confirmed.getBookingStatus());
+    }
+
     // ------------------------------------------------------------------ kết nối trực tiếp
+
+    @Test
+    @DisplayName("L4 - Yêu cầu kết nối đang chờ mà buổi đầu đã bắt đầu thì tự hết hạn ngay (không đợi đủ 24 giờ)")
+    void direct_expireWhenFirstSessionStarted() {
+        ConnectionRequest started = ConnectionRequest.builder().requestId(UUID.randomUUID()).learner(learner).tutor(tutor)
+                .requestType(ConnectionRequestType.DIRECT).status(ConnectionRequestStatus.PENDING)
+                .createdAt(OffsetDateTime.now().minusHours(3)).build();
+        when(connectionRequestRepository.findByRequestTypeAndStatusAndCreatedAtBefore(any(), any(), any())).thenReturn(List.of());
+        when(connectionRequestRepository.findPendingDirectWithStartedSession()).thenReturn(List.of(started));
+
+        assertEquals(1, connectionService.expireStaleDirectRequests());
+        assertEquals(ConnectionRequestStatus.EXPIRED, started.getStatus());
+        assertTrue(started.getResponseMessage().contains("buổi học đầu tiên"));
+    }
 
     @Test
     @DisplayName("Kết nối trực tiếp: vừa bị từ chối trong 24 giờ thì chưa gửi lại được")
@@ -207,6 +310,38 @@ class BookingAntiSpamTest {
                 () -> connectionService.createDirectRequest("learner@test.com", req));
         assertTrue(ex.getMessage().contains("vừa từ chối"));
         verify(connectionRequestRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Kết nối trực tiếp: đang có khóa kết nối còn buổi với gia sư thì không gửi thêm được")
+    void direct_blockWhenActiveConnectionExists() {
+        stubLearnerCreate();
+        when(connectionRequestRepository.existsActiveDirectConnection(learner.getLearnerId(), tutorId)).thenReturn(true);
+
+        CreateConnectionRequestDTO req = CreateConnectionRequestDTO.builder().tutorId(tutorId)
+                .slots(List.of(ConnectionSlotRequestDTO.builder().dayOfWeek(2).startTime(LocalTime.of(19, 0)).durationMinutes(60).build()))
+                .build();
+        ConflictException ex = assertThrows(ConflictException.class,
+                () -> connectionService.createDirectRequest("learner@test.com", req));
+        assertTrue(ex.getMessage().contains("đang có khóa học kết nối"));
+        verify(connectionRequestRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Kết nối trực tiếp: buổi học thử đã nhận / đã học xong không bị coi là đã kết nối")
+    void direct_acceptedTrialDoesNotBlock() {
+        stubLearnerCreate();
+        // Chỉ có yêu cầu học thử ACCEPTED (không có khóa kết nối nào) → không bị chặn ở bước "đã kết nối"
+        when(connectionRequestRepository.existsActiveDirectConnection(learner.getLearnerId(), tutorId)).thenReturn(false);
+        when(tutorScheduleService.isSlotAvailable(any(), anyInt(), any(), any())).thenReturn(false);
+
+        CreateConnectionRequestDTO req = CreateConnectionRequestDTO.builder().tutorId(tutorId)
+                .slots(List.of(ConnectionSlotRequestDTO.builder().dayOfWeek(2).startTime(LocalTime.of(19, 0)).durationMinutes(60).build()))
+                .build();
+        // Đi qua bước kiểm tra kết nối, dừng ở bước kiểm tra lịch rảnh (do stub ở trên)
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> connectionService.createDirectRequest("learner@test.com", req));
+        assertTrue(ex.getMessage().contains("ngoài lịch rảnh"));
     }
 
     @Test

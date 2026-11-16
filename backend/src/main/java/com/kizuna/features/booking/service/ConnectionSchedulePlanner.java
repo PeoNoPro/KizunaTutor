@@ -2,11 +2,8 @@ package com.kizuna.features.booking.service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,10 +17,6 @@ public final class ConnectionSchedulePlanner {
     }
 
     /** Ca hằng tuần học viên chọn. */
-    public record WeeklySlot(int dayOfWeek, LocalTime start, LocalTime end) {
-    }
-
-    /** Một buổi học cụ thể. */
     public record PlannedSession(LocalDate date, int dayOfWeek, LocalTime start, LocalTime end) {
     }
 
@@ -33,7 +26,10 @@ public final class ConnectionSchedulePlanner {
         LEARNER_CLASS("trùng lịch học lớp chính thức của bạn", "trùng lịch học lớp chính thức của học viên"),
         TUTOR_COURSE("gia sư đã có buổi học với học viên khác", "bạn đã có buổi học với học viên khác"),
         PENDING_COURSE("đang có học viên khác chờ gia sư duyệt giờ này", "đang có yêu cầu kết nối khác chờ bạn duyệt giờ này"),
-        TRIAL("gia sư đã có lịch học thử", "bạn đã có lịch học thử với học viên khác");
+        TRIAL("gia sư đã có lịch học thử", "bạn đã có lịch học thử với học viên khác"),
+        // Lịch ĐÃ XÁC NHẬN của chính học viên với gia sư khác (yêu cầu đang chờ với gia sư khác không tính)
+        LEARNER_COURSE("bạn đã có buổi học với gia sư khác vào giờ này", "học viên đã có buổi học với gia sư khác vào giờ này"),
+        LEARNER_TRIAL("bạn đã có buổi học thử với gia sư khác vào giờ này", "học viên đã có buổi học thử với gia sư khác vào giờ này");
 
         private final String learnerText;
         private final String tutorText;
@@ -92,51 +88,12 @@ public final class ConnectionSchedulePlanner {
         return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
 
+    /** Hai khoảng giờ trong cùng một ngày có chồng lên nhau không (dùng ngoài package). */
+    public static boolean overlapsTimes(LocalTime aStart, LocalTime aEnd, LocalTime bStart, LocalTime bEnd) {
+        return overlaps(aStart, aEnd, bStart, bEnd);
+    }
+
     static boolean overlaps(LocalTime aStart, LocalTime aEnd, LocalTime bStart, LocalTime bEnd) {
         return aStart.isBefore(bEnd) && aEnd.isAfter(bStart);
-    }
-
-    /**
-     * Xếp {@code total} buổi theo thứ tự thời gian, bắt đầu từ {@code startDate}, bỏ qua buổi đã qua thời điểm {@code now}.
-     * Mỗi tuần có ít nhất một ca nên tối đa {@code total} tuần là đủ.
-     */
-    public static List<PlannedSession> plan(List<WeeklySlot> slots, LocalDate startDate, int total, LocalDateTime now) {
-        List<PlannedSession> result = new ArrayList<>();
-        if (slots == null || slots.isEmpty() || total <= 0) return result;
-        List<WeeklySlot> sorted = slots.stream()
-                .sorted(Comparator.comparing(WeeklySlot::start))
-                .toList();
-        LocalDate date = startDate;
-        LocalDate limit = startDate.plusWeeks(total + 1L);
-        while (result.size() < total && !date.isAfter(limit)) {
-            int dow = dayOfWeekOf(date);
-            for (WeeklySlot s : sorted) {
-                if (s.dayOfWeek() != dow) continue;
-                if (!date.atTime(s.start()).isAfter(now)) continue;
-                result.add(new PlannedSession(date, dow, s.start(), s.end()));
-                if (result.size() == total) break;
-            }
-            date = date.plusDays(1);
-        }
-        return result;
-    }
-
-    /**
-     * Tuần bắt đầu sớm nhất SAU tuần của {@code requestedStart} (không muộn hơn {@code lastWeekStart}) mà tất cả
-     * các buổi đều trống. Trả về Thứ Hai của tuần đó.
-     */
-    public static Optional<LocalDate> suggestStartWeek(List<WeeklySlot> slots, LocalDate requestedStart, int total,
-                                                       LocalDateTime now, LocalDate lastWeekStart, BusyIndex busy) {
-        LocalDate today = now.toLocalDate();
-        for (LocalDate monday = mondayOf(requestedStart).plusWeeks(1);
-             !monday.isAfter(lastWeekStart);
-             monday = monday.plusWeeks(1)) {
-            LocalDate from = monday.isBefore(today) ? today : monday;
-            List<PlannedSession> sessions = plan(slots, from, total, now);
-            if (sessions.size() == total && busy.allFree(sessions)) {
-                return Optional.of(monday);
-            }
-        }
-        return Optional.empty();
     }
 }

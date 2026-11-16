@@ -20,18 +20,21 @@ public class CreateConnectionRequestDTO {
     @NotNull(message = "Mã gia sư không được để trống")
     private UUID tutorId;
 
+    /** Email liên hệ gửi cho gia sư (để trống = email tài khoản). */
+    @Size(max = 255, message = "Email tối đa 255 ký tự")
+    private String contactEmail;
+
+    /** Số điện thoại liên hệ gửi cho gia sư (để trống = số trong hồ sơ). */
+    @Size(max = 20, message = "Số điện thoại không hợp lệ")
+    private String contactPhone;
+
+    /** Học viên đồng ý chia sẻ hồ sơ, email, số điện thoại với gia sư (bắt buộc). */
+    private Boolean shareContact;
+
     @NotEmpty(message = "Vui lòng chọn ít nhất một ca học hằng tuần")
-    @Size(max = 7, message = "Bạn chỉ có thể chọn tối đa 7 ca học mỗi tuần")
+    @Size(max = 50, message = "Bạn đã chọn quá nhiều ca học mỗi tuần")
     @Valid
     private List<ConnectionSlotRequestDTO> slots;
-
-    /** Ngày bắt đầu học (thường là Thứ Hai của tuần học viên chọn). Bỏ trống = bắt đầu từ hôm nay. */
-    private java.time.LocalDate startDate;
-
-    /** Tổng số buổi học (1–12). Bỏ trống = 8 buổi. */
-    @jakarta.validation.constraints.Min(value = 1, message = "Số buổi học tối thiểu là 1")
-    @jakarta.validation.constraints.Max(value = 12, message = "Số buổi học tối đa là 12")
-    private Integer totalSessions;
 
     @Size(max = 100, message = "Trình độ hiện tại tối đa 100 ký tự")
     private String currentLevel;

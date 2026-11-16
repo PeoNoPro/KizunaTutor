@@ -48,6 +48,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({OptimisticLockingFailureException.class,CannotAcquireLockException.class})
     public ResponseEntity<?> conflict(Exception e) { return error(409,"Dữ liệu đang được thay đổi. Vui lòng tải lại trước khi lưu."); }
     @ExceptionHandler(Exception.class) public ResponseEntity<?> unavailable(Exception e) {
+        // Ràng buộc chống trùng lịch trong database (schedule_entries, migration 025) bị vi phạm: báo 409 dễ hiểu
+        String overlap=scheduleOverlapMessage(e);
+        if (overlap!=null) return error(409,overlap);
         // Lỗi chuẩn của Spring MVC (sai đường dẫn, sai phương thức…) giữ đúng mã trạng thái.
         if (e instanceof ErrorResponse framework && framework.getStatusCode().is4xxClientError()) {
             int status=framework.getStatusCode().value();
@@ -59,6 +62,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ServiceUnavailableException.class)
     public ResponseEntity<?> serviceUnavailable(ServiceUnavailableException e) {
         return error(503,e.getMessage()!=null?e.getMessage():"Dịch vụ đang tạm thời không khả dụng. Vui lòng thử lại sau.");
+    }
+    /**
+     * Lỗi do ràng buộc EXCLUDE của bảng schedule_entries (SQLSTATE 23P01): hai buổi học chồng lên nhau.
+     * Trả câu thông báo cho người dùng, hoặc null nếu không phải lỗi này.
+     */
+    static String scheduleOverlapMessage(Throwable e) {
+        for (Throwable t=e; t!=null; t=t.getCause()==t?null:t.getCause()) {
+            if (t instanceof java.sql.SQLException sql && "23P01".equals(sql.getSQLState())) {
+                String text=String.valueOf(sql.getMessage());
+                if (text.contains("ex_schedule_entries_learner_overlap")) {
+                    return "Bạn đã có một buổi học khác trùng giờ này. Vui lòng chọn giờ khác.";
+                }
+                return "Giờ này vừa có lịch khác. Vui lòng tải lại lịch và chọn giờ khác.";
+            }
+        }
+        return null;
     }
     private ResponseEntity<?> error(int status,String message) {
         return ResponseEntity.status(status).body(Map.of("success",false,"message",message,"timestamp",OffsetDateTime.now()));

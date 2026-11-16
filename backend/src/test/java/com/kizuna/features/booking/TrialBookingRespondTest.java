@@ -24,11 +24,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -107,6 +109,44 @@ class TrialBookingRespondTest {
                 .scheduledEndTime(OffsetDateTime.now().plusDays(2).plusMinutes(50))
                 .bookingStatus(TrialBookingStatus.PENDING)
                 .build();
+    }
+
+    /** Yêu cầu học thử đang chờ của một học viên khác với cùng gia sư. */
+    private TrialBooking otherPending(OffsetDateTime start, int minutes) {
+        User u = User.builder().userId(UUID.randomUUID()).email("khac@test.com").fullName("Hoc Vien Khac").build();
+        Learner l = Learner.builder().learnerId(UUID.randomUUID()).user(u).build();
+        ConnectionRequest cr = ConnectionRequest.builder().requestId(UUID.randomUUID()).learner(l).tutor(mockTutor)
+                .status(ConnectionRequestStatus.PENDING).build();
+        return TrialBooking.builder().bookingId(UUID.randomUUID()).connectionRequest(cr).learner(l).tutor(mockTutor)
+                .scheduledStartTime(start).scheduledEndTime(start.plusMinutes(minutes))
+                .bookingStatus(TrialBookingStatus.PENDING).build();
+    }
+
+    @Test
+    @DisplayName("Gia sư nhận học thử: yêu cầu học thử khác đang chờ trùng giờ tự hủy và học viên được báo; không trùng thì giữ nguyên")
+    void testAccept_CancelsOverlappingPendingTrials() {
+        var events = mock(com.kizuna.features.notification.service.NotificationEvents.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(trialBookingService, "notificationEvents", events);
+        OffsetDateTime start = mockBooking.getScheduledStartTime();
+        TrialBooking overlapping = otherPending(start.plusMinutes(20), 30);   // chồng một phần
+        TrialBooking later = otherPending(start.plusHours(3), 30);           // không trùng
+
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findById(bookingId)).thenReturn(Optional.of(mockBooking));
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(trialBookingRepository.findByTutorTutorIdAndBookingStatusIn(mockTutor.getTutorId(), List.of(TrialBookingStatus.PENDING)))
+                .thenReturn(List.of(mockBooking, overlapping, later));
+
+        trialBookingService.respondTrialBooking("tutor@test.com", bookingId, RespondTrialBookingRequestDTO.builder()
+                .action("ACCEPT").meetingLink("https://meet.google.com/abc-xyz-123").build());
+
+        assertEquals(TrialBookingStatus.CONFIRMED, mockBooking.getBookingStatus());
+        assertEquals(TrialBookingStatus.CANCELLED, overlapping.getBookingStatus());
+        assertEquals(ConnectionRequestStatus.CANCELLED, overlapping.getConnectionRequest().getStatus());
+        assertEquals(TrialBookingStatus.PENDING, later.getBookingStatus());
+        verify(events).publish(eq("trial:" + overlapping.getBookingId() + ":taken"), eq("TRIAL"), any(), any(), any(),
+                eq(List.of(overlapping.getLearner().getUser().getUserId())));
     }
 
     @Test

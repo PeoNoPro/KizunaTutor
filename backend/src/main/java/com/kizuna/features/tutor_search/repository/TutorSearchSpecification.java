@@ -92,13 +92,12 @@ public class TutorSearchSpecification {
 
     /**
      * Bộ lọc "Mục tiêu học".
-     * @param keywords    nhận diện gia sư CÓ DẠY mục tiêu này trong bài đăng đang hiển thị (chuyên môn, tiêu đề, nội dung)
+     * @param priceLevels mức trong bảng học phí của bài đăng (tutor_posts.price_items, enum PriceLevel) cho biết gia sư
+     *                    CÓ DẠY mục tiêu này; khớp một trong các mức là đạt
+     * @param keywords    dự phòng cho bài đăng cũ CHƯA có bảng học phí: đoán theo chuyên môn, tiêu đề, nội dung
      * @param tutorLevels trình độ gia sư cần có (null = không yêu cầu)
-     *
-     * Tạm thời "có dạy" được đoán bằng từ khóa. Khi bài đăng có bảng học phí theo môn/cấp độ
-     * (tutor_posts.price_items, PR #22) thì chỉ cần đổi {@link #teachesGoal} sang đọc bảng đó.
      */
-    private record GoalFilter(List<String> keywords, List<String> tutorLevels) {
+    private record GoalFilter(List<String> priceLevels, List<String> keywords, List<String> tutorLevels) {
     }
 
     /** Thứ tự từ cao xuống thấp. */
@@ -109,16 +108,22 @@ public class TutorSearchSpecification {
     private static final List<String> JLPT_KEYWORDS =
             List.of("jlpt", "luyện thi", "luyện đề", "ôn thi", " n1 ", " n2 ", " n3 ", " n4 ", " n5 ");
 
+    private static final List<String> ALL_JLPT_PRICE_LEVELS = List.of("JLPT_N5", "JLPT_N4", "JLPT_N3", "JLPT_N2", "JLPT_N1");
+
+    // Bộ lọc "Tiếng Nhật IT & BrSE" đã bỏ (bảng học phí không có mức IT). Link cũ ?goal=it bị bỏ qua như giá trị lạ.
     private static final Map<String, GoalFilter> GOALS = Map.of(
-            "kaiwa", new GoalFilter(List.of("kaiwa", "giao tiếp", "hội thoại"), null),
-            "business", new GoalFilter(List.of("thương mại", "doanh nghiệp", "business", "công sở"), null),
-            "it", new GoalFilter(List.of(" it ", "brse", "công nghệ thông tin", "lập trình"), null),
-            // Luyện thi JLPT: gia sư phải có trình độ cao hơn hoặc bằng mức thi
-            "jlpt", new GoalFilter(JLPT_KEYWORDS, null),
-            "jlpt_n5n4", new GoalFilter(JLPT_KEYWORDS, List.of("N1", "N2", "N3")),
-            "jlpt_n3", new GoalFilter(JLPT_KEYWORDS, List.of("N1", "N2")),
-            "jlpt_n2", new GoalFilter(JLPT_KEYWORDS, List.of("N1", "N2")),
-            "jlpt_n1", new GoalFilter(JLPT_KEYWORDS, List.of("N1")));
+            "kaiwa", new GoalFilter(List.of("KAIWA"), List.of("kaiwa", "giao tiếp", "hội thoại"), null),
+            "business", new GoalFilter(List.of("BUSINESS"), List.of("thương mại", "doanh nghiệp", "business", "công sở"), null),
+            "eju", new GoalFilter(List.of("EJU"), List.of("eju"), null),
+            // Luyện thi JLPT: bảng học phí có đúng cấp thi; gia sư phải có trình độ cao hơn hoặc bằng mức thi
+            "jlpt", new GoalFilter(ALL_JLPT_PRICE_LEVELS, JLPT_KEYWORDS, null),
+            "jlpt_n5", new GoalFilter(List.of("JLPT_N5"), JLPT_KEYWORDS, List.of("N1", "N2", "N3")),
+            "jlpt_n4", new GoalFilter(List.of("JLPT_N4"), JLPT_KEYWORDS, List.of("N1", "N2", "N3")),
+            // Link cũ "Luyện thi N5 – N4" (trước khi tách riêng N5 / N4)
+            "jlpt_n5n4", new GoalFilter(List.of("JLPT_N5", "JLPT_N4"), JLPT_KEYWORDS, List.of("N1", "N2", "N3")),
+            "jlpt_n3", new GoalFilter(List.of("JLPT_N3"), JLPT_KEYWORDS, List.of("N1", "N2")),
+            "jlpt_n2", new GoalFilter(List.of("JLPT_N2"), JLPT_KEYWORDS, List.of("N1", "N2")),
+            "jlpt_n1", new GoalFilter(List.of("JLPT_N1"), JLPT_KEYWORDS, List.of("N1")));
 
     private static GoalFilter goalFilterOf(String goal) {
         String g = normalize(goal);
@@ -133,8 +138,23 @@ public class TutorSearchSpecification {
         return idx < 0 ? null : JLPT_LEVELS.subList(0, idx + 1);
     }
 
-    /** Gia sư có dạy mục tiêu này: bài đăng đang hiển thị chứa một trong các từ khóa. */
+    /**
+     * Gia sư có dạy mục tiêu này:
+     *  - bài đăng có bảng học phí → bảng có một trong các mức của mục tiêu (bảng học phí là nguồn chính xác);
+     *  - bài đăng cũ chưa có bảng học phí → đoán theo từ khóa trong chuyên môn, tiêu đề, nội dung.
+     */
     private static Predicate teachesGoal(CriteriaBuilder cb, Root<TutorPost> p, GoalFilter goal) {
+        // jsonb::text của PostgreSQL có dạng chuẩn [{"level": "KAIWA", "hourlyRate": 200000}, ...]
+        Expression<String> priceText = cb.function("text", String.class, p.get("priceItems"));
+        Predicate hasPriceTable = cb.and(cb.isNotNull(p.get("priceItems")), cb.notEqual(priceText, "[]"));
+        Predicate priceMatch = cb.or(goal.priceLevels().stream()
+                .map(level -> cb.like(priceText, "%\"level\": \"" + level + "\"%"))
+                .toArray(Predicate[]::new));
+        return cb.or(cb.and(hasPriceTable, priceMatch), cb.and(cb.not(hasPriceTable), teachesGoalByKeywords(cb, p, goal)));
+    }
+
+    /** Dự phòng cho bài đăng chưa có bảng học phí: bài đăng đang hiển thị chứa một trong các từ khóa. */
+    private static Predicate teachesGoalByKeywords(CriteriaBuilder cb, Root<TutorPost> p, GoalFilter goal) {
         // " " + chuyên môn + tiêu đề + nội dung + " ", bỏ dấu câu thành khoảng trắng để so khớp được cả từ ngắn như "IT"
         Expression<String> text = cb.concat(cb.concat(cb.concat(cb.concat(cb.concat(
                 cb.literal(" "), cb.coalesce(p.get("specialties"), "")), cb.literal(" ")),

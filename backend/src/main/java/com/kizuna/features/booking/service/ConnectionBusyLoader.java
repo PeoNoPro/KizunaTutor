@@ -18,35 +18,25 @@ import java.util.UUID;
 /**
  * Nạp lịch bận của gia sư (và học viên) trong một khoảng ngày bằng MỘT truy vấn (DB ở xa, mỗi query ~110 ms).
  *
- * Hai chế độ:
- *  - {@link Mode#LEARNER_REQUEST}: học viên xem trước / gửi yêu cầu. Yêu cầu kết nối đang chờ (còn hạn) và buổi
- *    học thử đang chờ đều GIỮ CHỖ.
- *  - {@link Mode#TUTOR_ACCEPT}: gia sư bấm đồng ý. Chỉ tính những gì gia sư đã xác nhận; yêu cầu đang chờ khác
- *    không chặn (gia sư tự chọn nhận ai).
+ * Chỉ tính lịch ĐÃ ĐƯỢC GIA SƯ CHẤP NHẬN (học thử đã nhận / đã dời, kết nối đã đồng ý, lịch lớp).
+ * Yêu cầu đang chờ không giữ chỗ: nhiều học viên xin cùng một giờ được, gia sư chọn nhận ai.
  */
 @Component
 @RequiredArgsConstructor
 public class ConnectionBusyLoader {
-
-    public enum Mode { LEARNER_REQUEST, TUTOR_ACCEPT }
 
     private static final UUID NONE = new UUID(0L, 0L);
 
     private final JdbcTemplate jdbcTemplate;
 
     public BusyIndex load(UUID tutorId, UUID learnerId, UUID excludeRequestId,
-                          LocalDate from, LocalDate to, Mode mode) {
+                          LocalDate from, LocalDate to) {
         UUID learner = learnerId == null ? NONE : learnerId;
         UUID exclude = excludeRequestId == null ? NONE : excludeRequestId;
-        boolean learnerMode = mode == Mode.LEARNER_REQUEST;
 
-        String sessionStatus = learnerMode
-                ? "(cr.status = 'ACCEPTED' OR (cr.status = 'PENDING' AND cr.created_at > CURRENT_TIMESTAMP - (? * INTERVAL '1 hour')))"
-                : "cr.status = 'ACCEPTED'";
-        String trialStatus = learnerMode
-                ? "tb.booking_status IN ('PENDING', 'CONFIRMED', 'RESCHEDULED') "
-                  + "AND NOT (tb.booking_status = 'PENDING' AND tb.updated_at < CURRENT_TIMESTAMP - (? * INTERVAL '1 hour'))"
-                : "tb.booking_status = 'CONFIRMED'";
+        String sessionStatus = "cr.status = 'ACCEPTED'";
+        // Đã chốt: gia sư đã xác nhận, hoặc gia sư tự dời lịch (RESCHEDULED cũng là đã chốt)
+        String trialStatus = "tb.booking_status IN ('CONFIRMED', 'RESCHEDULED')";
 
         String sql = ""
                 // Lịch lớp chính thức (class_schedules: 1 = Thứ Hai ... 7 = Chủ nhật → quy đổi sang 1 = Chủ nhật)
@@ -80,13 +70,44 @@ public class ConnectionBusyLoader {
                 + "FROM trial_bookings tb "
                 + "WHERE tb.tutor_id = ? AND tb.learner_id <> ? AND tb.scheduled_end_time > CURRENT_TIMESTAMP "
                 + "  AND CAST(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date) BETWEEN ? AND ? "
-                + "  AND " + trialStatus;
+                + "  AND " + trialStatus + " "
+                // ---- Lịch ĐÃ XÁC NHẬN của chính học viên với GIA SƯ KHÁC (cả hai chế độ).
+                //      Yêu cầu đang chờ của học viên với gia sư khác KHÔNG tính: học viên được hỏi song song nhiều gia sư;
+                //      gia sư nào đồng ý sau sẽ bị chặn ở bước đồng ý (vì lúc đó lịch kia đã thành "đã xác nhận").
+                + "UNION ALL "
+                // Buổi học cụ thể của khóa học đã được gia sư khác đồng ý
+                + "SELECT 'LA', NULL, s.session_date, s.start_time::text, s.end_time::text "
+                + "FROM connection_request_sessions s JOIN connection_requests cr ON cr.request_id = s.request_id "
+                + "WHERE cr.learner_id = ? AND cr.tutor_id <> ? AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED' "
+                + "  AND s.session_date BETWEEN ? AND ? "
+                + "UNION ALL "
+                // Ca hằng tuần kiểu cũ của khóa học đã được gia sư khác đồng ý (chưa có buổi cụ thể)
+                + "SELECT 'LW', sl.day_of_week, NULL, sl.start_time::text, sl.end_time::text "
+                + "FROM connection_request_slots sl JOIN connection_requests cr ON cr.request_id = sl.request_id "
+                + "WHERE cr.learner_id = ? AND cr.tutor_id <> ? AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED' "
+                + "  AND NOT EXISTS (SELECT 1 FROM connection_request_sessions x WHERE x.request_id = cr.request_id) "
+                + "  AND (EXISTS (SELECT 1 FROM learning_spaces x WHERE x.tutor_id = cr.tutor_id AND x.learner_id = cr.learner_id "
+                + "               AND x.status IN ('ACTIVE', 'PAUSED')) "
+                + "       OR NOT EXISTS (SELECT 1 FROM learning_spaces x WHERE x.tutor_id = cr.tutor_id AND x.learner_id = cr.learner_id)) "
+                + "UNION ALL "
+                // Buổi học thử đã được gia sư khác xác nhận (kể cả gia sư đã dời lịch)
+                + "SELECT 'LT', NULL, CAST(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date), "
+                + "       to_char(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI'), "
+                + "       CASE WHEN CAST(tb.scheduled_end_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date) "
+                + "                 > CAST(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date) THEN '23:59' "
+                + "            ELSE to_char(tb.scheduled_end_time AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI') END "
+                + "FROM trial_bookings tb "
+                + "WHERE tb.learner_id = ? AND tb.tutor_id <> ? AND tb.scheduled_end_time > CURRENT_TIMESTAMP "
+                + "  AND tb.booking_status IN ('CONFIRMED', 'RESCHEDULED') "
+                + "  AND CAST(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date) BETWEEN ? AND ?";
 
         List<Object> args = new ArrayList<>(List.of(tutorId, tutorId, learner, tutorId, exclude,
                 tutorId, exclude, Date.valueOf(from), Date.valueOf(to)));
-        if (learnerMode) args.add(BookingLimits.DIRECT_RESPONSE_HOURS);
         args.addAll(List.of(tutorId, learner, Date.valueOf(from), Date.valueOf(to)));
-        if (learnerMode) args.add(BookingLimits.TRIAL_RESPONSE_HOURS);
+        // Lịch đã xác nhận của học viên với gia sư khác (learner = NONE thì không có dòng nào)
+        args.addAll(List.of(learner, tutorId, Date.valueOf(from), Date.valueOf(to)));
+        args.addAll(List.of(learner, tutorId));
+        args.addAll(List.of(learner, tutorId, Date.valueOf(from), Date.valueOf(to)));
 
         List<WeeklyBusy> weekly = new ArrayList<>();
         List<DatedBusy> dated = new ArrayList<>();
@@ -102,6 +123,9 @@ public class ConnectionBusyLoader {
                 case "SA" -> dated.add(new DatedBusy(rs.getDate("d").toLocalDate(), start, end, BusyKind.TUTOR_COURSE));
                 case "SP" -> dated.add(new DatedBusy(rs.getDate("d").toLocalDate(), start, end, BusyKind.PENDING_COURSE));
                 case "TR" -> dated.add(new DatedBusy(rs.getDate("d").toLocalDate(), start, end, BusyKind.TRIAL));
+                case "LA" -> dated.add(new DatedBusy(rs.getDate("d").toLocalDate(), start, end, BusyKind.LEARNER_COURSE));
+                case "LW" -> weekly.add(new WeeklyBusy(rs.getInt("dow"), start, end, BusyKind.LEARNER_COURSE));
+                case "LT" -> dated.add(new DatedBusy(rs.getDate("d").toLocalDate(), start, end, BusyKind.LEARNER_TRIAL));
                 default -> { }
             }
         }, args.toArray());

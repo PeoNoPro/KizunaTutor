@@ -16,6 +16,7 @@ import {
   getTutorProfileUrl,
   matchTutorTimeFilter,
   normalizeTutorRecord,
+  resolveTutorSessionPrice,
   summarizeAvailabilities
 } from '../pages/tutor-discovery/tutor-discovery-helpers.js';
 
@@ -94,11 +95,33 @@ test('buildMetricTriplet chỉ dùng dữ liệu thật từ DB (đánh giá, s�
 test('formatHourlyRateInfo, summarizeAvailabilities và các hàm tên gia sư hoạt động chính xác', () => {
   const rate = formatHourlyRateInfo(250000);
   assert.match(rate.primary, /^250[.,]000đ$/);
-  assert.equal(rate.unit, '60 phút/giờ');
+  assert.equal(rate.unit, '/ buổi');
 
   const contactRate = formatHourlyRateInfo(0);
   assert.equal(contactRate.primary, 'Liên hệ');
   assert.equal(contactRate.unit, 'Thỏa thuận học phí');
+
+  // Ưu tiên giá theo buổi (pricePerSession), không hiển thị giá tính theo giờ
+  const tutorWithSessionPrice = {
+    hourlyRate: 100000,
+    priceItems: [
+      { level: 'JLPT_N3', hourlyRate: 100000, sessionMinutes: 90, pricePerSession: 150000 }
+    ]
+  };
+  const resolved = resolveTutorSessionPrice(tutorWithSessionPrice);
+  assert.equal(resolved.amount, 150000);
+  assert.equal(resolved.fromLowest, false);
+
+  const tutorMulti = {
+    hourlyRate: 100000,
+    priceItems: [
+      { level: 'JLPT_N5', hourlyRate: 100000, sessionMinutes: 60, pricePerSession: 100000 },
+      { level: 'JLPT_N3', hourlyRate: 160000, sessionMinutes: 90, pricePerSession: 240000 }
+    ]
+  };
+  const resolvedMulti = resolveTutorSessionPrice(tutorMulti);
+  assert.equal(resolvedMulti.amount, 100000);
+  assert.equal(resolvedMulti.fromLowest, true);
 
   assert.equal(getShortDisplayName('Nguyễn Thị Minh Anh'), 'Minh Anh');
   assert.equal(getShortDisplayName('Kenji'), 'Kenji');

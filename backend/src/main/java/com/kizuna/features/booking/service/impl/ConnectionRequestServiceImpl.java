@@ -10,10 +10,8 @@ import com.kizuna.core.repository.LearnerRepository;
 import com.kizuna.core.repository.TutorRepository;
 import com.kizuna.core.repository.UserRepository;
 import com.kizuna.features.booking.dto.request.ConnectionSlotRequestDTO;
-import com.kizuna.features.booking.dto.request.ConnectionPreviewRequestDTO;
 import com.kizuna.features.booking.dto.request.CreateConnectionRequestDTO;
 import com.kizuna.features.booking.dto.request.RespondConnectionRequestDTO;
-import com.kizuna.features.booking.dto.response.ConnectionPreviewResponseDTO;
 import com.kizuna.features.booking.dto.response.ConnectionRequestResponseDTO;
 import com.kizuna.features.booking.entity.*;
 import com.kizuna.features.booking.repository.ConnectionRequestRepository;
@@ -27,7 +25,6 @@ import com.kizuna.features.booking.service.ConnectionSchedulePlanner;
 import com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyIndex;
 import com.kizuna.features.booking.service.ConnectionSchedulePlanner.BusyKind;
 import com.kizuna.features.booking.service.ConnectionSchedulePlanner.PlannedSession;
-import com.kizuna.features.booking.service.ConnectionSchedulePlanner.WeeklySlot;
 import com.kizuna.features.tutor_search.service.TutorScheduleService;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -76,6 +73,11 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
     private final TutorScheduleService tutorScheduleService;
     private final JdbcTemplate jdbcTemplate;
     private final ConnectionBusyLoader busyLoader;
+
+    /** Thông báo tự động (FE-12). Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
 
     public ConnectionRequestServiceImpl(UserRepository userRepository,
                                         LearnerRepository learnerRepository,
@@ -135,36 +137,31 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
             throw new ConflictException("Gia sư vừa từ chối yêu cầu kết nối của bạn. Bạn có thể gửi lại sau "
                     + BookingLimits.DECLINE_COOLDOWN_HOURS + " giờ, hoặc chọn gia sư khác.");
         }
-        if (connectionRequestRepository.existsByLearnerLearnerIdAndTutorTutorIdAndStatus(learnerId, tutorId, ConnectionRequestStatus.ACCEPTED)) {
-            throw new ConflictException("Bạn đã được kết nối với gia sư này. Hãy vào lớp học để trao đổi lịch học.");
+        // Chỉ khóa kết nối (DIRECT) đã được nhận và còn buổi mới tính là "đã kết nối";
+        // buổi học thử đã nhận / đã học xong không chặn việc gửi yêu cầu kết nối.
+        if (connectionRequestRepository.existsActiveDirectConnection(learnerId, tutorId)) {
+            throw new ConflictException("Bạn đang có khóa học kết nối với gia sư này. Hãy vào lớp học để trao đổi lịch học.");
         }
         if (connectionRequestRepository.existsByLearnerLearnerIdAndTutorTutorIdAndRequestTypeAndStatus(
                 learnerId, tutorId, ConnectionRequestType.DIRECT, ConnectionRequestStatus.PENDING)) {
             throw new ConflictException("Bạn đã gửi yêu cầu kết nối tới gia sư này và đang chờ gia sư phản hồi.");
         }
 
-        LocalDate startDate = resolveStartDate(request.getStartDate());
-        int total = resolveTotalSessions(request.getTotalSessions());
+        // Yêu cầu kết nối chỉ là ĐỀ NGHỊ: học viên gửi thứ + giờ bắt đầu mong muốn. KHÔNG tạo buổi học, KHÔNG giữ chỗ;
+        // gia sư trao đổi với học viên rồi đồng ý (lúc đó ca mới "Đã có học viên") và tạo lớp học.
         List<SlotRange> ranges = normalizeSlots(request.getSlots());
         for (SlotRange r : ranges) {
-            if (!tutorScheduleService.isSlotAvailable(tutorId, r.dayOfWeek(), r.start(), r.end())) {
-                throw new BadRequestException("Ca " + r.label() + " nằm ngoài lịch rảnh của gia sư. Vui lòng chọn ca khác.");
+            // Chỉ cần GIỜ BẮT ĐẦU nằm trong lịch rảnh (gia sư sắp xếp thời lượng khi nhận yêu cầu)
+            SlotRange startOnly = new SlotRange(r.dayOfWeek(), r.start(), r.start().plusMinutes(30));
+            if (!tutorScheduleService.isSlotAvailable(tutorId, r.dayOfWeek(), startOnly.start(), startOnly.end())) {
+                throw new BadRequestException("Giờ " + dayName(r.dayOfWeek()) + " " + r.start().format(HH_MM)
+                        + " nằm ngoài lịch rảnh của gia sư. Vui lòng chọn giờ khác.");
             }
-        }
-
-        // Kiểm tra trùng lịch trên TỪNG buổi cụ thể (đã khóa theo gia sư ở trên nên hai người gửi cùng lúc không cùng lọt)
-        LocalDateTime now = LocalDateTime.now(VN_ZONE);
-        List<PlannedSession> sessions = ConnectionSchedulePlanner.plan(toWeeklySlots(ranges), startDate, total, now);
-        if (sessions.size() < total) {
-            throw new BadRequestException("Không xếp đủ " + total + " buổi học từ ngày bắt đầu đã chọn. Vui lòng chọn lại.");
-        }
-        BusyIndex busy = busyLoader.load(tutorId, learnerId, NO_REQUEST, today(),
-                sessions.get(sessions.size() - 1).date(), ConnectionBusyLoader.Mode.LEARNER_REQUEST);
-        for (PlannedSession s : sessions) {
-            busy.conflictOf(s).ifPresent(kind -> {
-                throw new ConflictException("Buổi " + sessionLabel(s) + " đã kín: " + kind.learnerText()
-                        + ". Ca vừa có người đặt hoặc lịch gia sư vừa thay đổi, hãy xem lại lịch học dự kiến.");
-            });
+            // Chỉ chặn khi giờ đó đã bị lịch ĐÃ CHẤP NHẬN chiếm (ca gia sư đã nhận cho học viên khác, lịch lớp)
+            SlotConflict taken = slotConflict(tutorId, learnerId, NO_REQUEST, startOnly, today(), false);
+            if (taken != null) {
+                throw new ConflictException(taken.learnerText(startOnly));
+            }
         }
 
         ConnectionRequest connection = ConnectionRequest.builder()
@@ -172,8 +169,11 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
                 .tutor(tutor)
                 .requestType(ConnectionRequestType.DIRECT)
                 .status(ConnectionRequestStatus.PENDING)
-                .initialMessage(composeInitialMessage(level, goals, trimToNull(request.getInitialMessage())))
+                .initialMessage(composeInitialMessage(BookingLimits.levelLabel(learner.getCurrentLevel()), goals, trimToNull(request.getInitialMessage())))
                 .build();
+        // Học viên đồng ý gửi hồ sơ + email + số điện thoại cho gia sư
+        com.kizuna.features.booking.service.ContactShare.attachLearnerContact(connection, learnerUser,
+                request.getContactEmail(), request.getContactPhone(), request.getShareContact());
         for (SlotRange r : ranges) {
             connection.getSlots().add(ConnectionRequestSlot.builder()
                     .connectionRequest(connection)
@@ -182,72 +182,15 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
                     .endTime(r.end())
                     .build());
         }
-        for (PlannedSession s : sessions) {
-            connection.getSessions().add(ConnectionRequestSession.builder()
-                    .connectionRequest(connection)
-                    .sessionDate(s.date())
-                    .startTime(s.start())
-                    .endTime(s.end())
-                    .build());
-        }
         connection = connectionRequestRepository.save(connection);
 
-        log.info("Learner {} sent direct connection request {} to tutor {} ({} slot(s), {} session(s))",
-                learnerUser.getEmail(), connection.getRequestId(), tutorId, ranges.size(), sessions.size());
+        notify("connection:" + connection.getRequestId() + ":created", "Có yêu cầu kết nối mới",
+                learnerUser.getFullName() + " muốn kết nối học với bạn vào " + startSummary(connection) + " hằng tuần. "
+                        + "Hãy liên hệ học viên để trao đổi, rồi đồng ý hoặc từ chối trong " + BookingLimits.DIRECT_RESPONSE_HOURS + " giờ.",
+                TUTOR_DIRECT_PATH, tutor.getUser());
+        log.info("Learner {} sent direct connection request {} to tutor {} ({} slot(s))",
+                learnerUser.getEmail(), connection.getRequestId(), tutorId, ranges.size());
         return toDTO(connection, learnerUser);
-    }
-
-    // ------------------------------------------------------------------ xem trước lịch học dự kiến
-
-    @Override
-    @Transactional(readOnly = true)
-    public ConnectionPreviewResponseDTO preview(String learnerEmail, ConnectionPreviewRequestDTO request) {
-        User learnerUser = userRepository.findByEmail(learnerEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản người dùng"));
-        UUID learnerId = learnerRepository.findByUser(learnerUser).map(Learner::getLearnerId).orElse(null);
-        if (!tutorRepository.existsById(request.getTutorId())) {
-            throw new ResourceNotFoundException("Không tìm thấy gia sư với mã yêu cầu");
-        }
-
-        LocalDate startDate = resolveStartDate(request.getStartDate());
-        int total = resolveTotalSessions(request.getTotalSessions());
-        List<WeeklySlot> slots = toWeeklySlots(normalizeSlots(request.getSlots()));
-        LocalDateTime now = LocalDateTime.now(VN_ZONE);
-        LocalDate lastWeekStart = lastStartWeek();
-
-        List<PlannedSession> sessions = ConnectionSchedulePlanner.plan(slots, startDate, total, now);
-        // Nạp lịch bận đủ rộng cho cả các tuần bắt đầu có thể gợi ý (tối đa `total` tuần sau tuần muộn nhất)
-        LocalDate busyTo = lastWeekStart.plusWeeks(total + 1L);
-        BusyIndex busy = busyLoader.load(request.getTutorId(), learnerId, NO_REQUEST, today(), busyTo,
-                ConnectionBusyLoader.Mode.LEARNER_REQUEST);
-
-        List<ConnectionPreviewResponseDTO.SessionCheck> checks = new ArrayList<>();
-        int conflicts = 0;
-        for (PlannedSession s : sessions) {
-            var kind = busy.conflictOf(s);
-            if (kind.isPresent()) conflicts++;
-            checks.add(ConnectionPreviewResponseDTO.SessionCheck.builder()
-                    .date(s.date())
-                    .dayOfWeek(s.dayOfWeek())
-                    .dayName(dayName(s.dayOfWeek()))
-                    .startTime(s.start().format(HH_MM))
-                    .endTime(s.end().format(HH_MM))
-                    .available(kind.isEmpty())
-                    .reason(kind.map(BusyKind::learnerText).orElse(null))
-                    .build());
-        }
-        LocalDate suggested = conflicts == 0 ? null
-                : ConnectionSchedulePlanner.suggestStartWeek(slots, startDate, total, now, lastWeekStart, busy).orElse(null);
-
-        return ConnectionPreviewResponseDTO.builder()
-                .startDate(sessions.isEmpty() ? startDate : sessions.get(0).date())
-                .endDate(sessions.isEmpty() ? null : sessions.get(sessions.size() - 1).date())
-                .totalSessions(sessions.size())
-                .conflictCount(conflicts)
-                .suggestedStartWeek(suggested)
-                .maxStartWeek(lastWeekStart)
-                .sessions(checks)
-                .build();
     }
 
     // ------------------------------------------------------------------ danh sách
@@ -334,6 +277,7 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
             connection.setResponseMessage(message);
             connection = connectionRequestRepository.save(connection);
             cancelOpenTrials(connection, tutorUser, now);
+            cancelLearnerConflictingPending(connection, tutorUser, now);
         } else if ("DECLINE".equals(action)) {
             connection.setStatus(ConnectionRequestStatus.DECLINED);
             connection.setRespondedAt(now);
@@ -343,6 +287,18 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
             throw new BadRequestException("Hành động không hợp lệ. Vui lòng chọn đồng ý hoặc từ chối.");
         }
 
+        String tutorName = tutorUser.getFullName();
+        if ("ACCEPT".equals(action)) {
+            notify("connection:" + connection.getRequestId() + ":accepted", "Gia sư đã đồng ý kết nối",
+                    tutorName + " đã đồng ý dạy bạn" + courseSummary(connection) + "."
+                            + (message != null ? " Lời nhắn: " + message : ""),
+                    LEARNER_DIRECT_PATH, connection.getLearner().getUser());
+        } else {
+            notify("connection:" + connection.getRequestId() + ":declined", "Gia sư đã từ chối yêu cầu kết nối",
+                    tutorName + " đã từ chối yêu cầu kết nối của bạn."
+                            + (message != null ? " Lý do: " + message : "") + " Bạn có thể chọn ca khác hoặc gia sư khác.",
+                    LEARNER_DIRECT_PATH, connection.getLearner().getUser());
+        }
         log.info("Tutor {} responded {} to direct connection request {}", tutorUser.getEmail(), action, requestId);
         return toDTO(connection, tutorUser);
     }
@@ -364,6 +320,9 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         connection.setStatus(ConnectionRequestStatus.CANCELLED);
         connection.setRespondedAt(OffsetDateTime.now());
         connection = connectionRequestRepository.save(connection);
+        notify("connection:" + connection.getRequestId() + ":cancelled", "Học viên đã hủy yêu cầu kết nối",
+                user.getFullName() + " đã hủy yêu cầu kết nối" + courseSummary(connection) + " gửi tới bạn.",
+                TUTOR_DIRECT_PATH, connection.getTutor().getUser());
         log.info("Learner {} cancelled direct connection request {}", user.getEmail(), requestId);
         return toDTO(connection, user);
     }
@@ -380,18 +339,44 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
     @Transactional
     public int expireStaleDirectRequests() {
         OffsetDateTime now = OffsetDateTime.now();
-        List<ConnectionRequest> stale = connectionRequestRepository.findByRequestTypeAndStatusAndCreatedAtBefore(
-                ConnectionRequestType.DIRECT, ConnectionRequestStatus.PENDING, now.minusHours(BookingLimits.DIRECT_RESPONSE_HOURS));
-        for (ConnectionRequest cr : stale) {
+        // 1) Gia sư chưa phản hồi quá DIRECT_RESPONSE_HOURS giờ
+        java.util.Map<UUID, String> reasons = new java.util.LinkedHashMap<>();
+        java.util.Map<UUID, ConnectionRequest> stale = new java.util.LinkedHashMap<>();
+        for (ConnectionRequest cr : connectionRequestRepository.findByRequestTypeAndStatusAndCreatedAtBefore(
+                ConnectionRequestType.DIRECT, ConnectionRequestStatus.PENDING, now.minusHours(BookingLimits.DIRECT_RESPONSE_HOURS))) {
+            stale.put(cr.getRequestId(), cr);
+            reasons.put(cr.getRequestId(), "Tự động hết hạn vì gia sư chưa phản hồi trong " + BookingLimits.DIRECT_RESPONSE_HOURS + " giờ");
+        }
+        // 2) Đã tới buổi học đầu tiên mà gia sư chưa phản hồi: không thể đồng ý nữa (thiếu buổi) → nhả chỗ các buổi còn lại ngay
+        for (ConnectionRequest cr : connectionRequestRepository.findPendingDirectWithStartedSession()) {
+            if (stale.putIfAbsent(cr.getRequestId(), cr) == null) {
+                reasons.put(cr.getRequestId(), "Tự động hết hạn vì đã tới buổi học đầu tiên mà gia sư chưa phản hồi");
+            }
+        }
+        for (ConnectionRequest cr : stale.values()) {
             cr.setStatus(ConnectionRequestStatus.EXPIRED);
             cr.setRespondedAt(now);
-            cr.setResponseMessage("Tự động hết hạn vì gia sư chưa phản hồi trong " + BookingLimits.DIRECT_RESPONSE_HOURS + " giờ");
+            cr.setResponseMessage(reasons.get(cr.getRequestId()));
             connectionRequestRepository.save(cr);
+            notify("connection:" + cr.getRequestId() + ":expired:learner", "Yêu cầu kết nối đã hết hạn",
+                    cr.getTutor().getUser().getFullName() + " chưa phản hồi kịp nên yêu cầu kết nối của bạn đã hết hạn. "
+                            + "Bạn có thể gửi lại với tuần bắt đầu mới hoặc chọn gia sư khác.",
+                    LEARNER_DIRECT_PATH, cr.getLearner().getUser());
+            notify("connection:" + cr.getRequestId() + ":expired:tutor", "Yêu cầu kết nối đã hết hạn",
+                    "Yêu cầu kết nối của " + cr.getLearner().getUser().getFullName() + " đã hết hạn vì chưa được phản hồi kịp.",
+                    TUTOR_DIRECT_PATH, cr.getTutor().getUser());
         }
         if (!stale.isEmpty()) {
             log.info("Auto-expired {} pending direct connection request(s)", stale.size());
         }
         return stale.size();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasUpcomingSessionsInSlot(UUID tutorId, Integer dayOfWeek, LocalTime startTime, LocalTime endTime) {
+        if (tutorId == null || dayOfWeek == null || startTime == null || endTime == null) return false;
+        return connectionRequestRepository.existsUpcomingSessionInWeeklySlot(tutorId, dayOfWeek, startTime, endTime);
     }
 
     // ------------------------------------------------------------------ hỗ trợ
@@ -436,41 +421,81 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
     private void ensureSlotFree(UUID tutorId, UUID learnerId, UUID excludeRequestId, SlotRange r, LocalDate startDate,
                                 String lockedMessage, String tutorClassMessage, String learnerClassMessage,
                                 String trialMessage) {
+        SlotConflict c = slotConflict(tutorId, learnerId, excludeRequestId, r, startDate, true);
+        if (c == null) return;
+        throw new ConflictException(switch (c) {
+            case LOCKED -> lockedMessage;
+            case TUTOR_CLASS -> tutorClassMessage;
+            case LEARNER_CLASS -> learnerClassMessage;
+            case TRIAL -> trialMessage;
+        });
+    }
+
+    /** Ca hằng tuần bị lịch ĐÃ CHẤP NHẬN chiếm (yêu cầu đang chờ không tính). */
+    enum SlotConflict {
+        LOCKED, TUTOR_CLASS, LEARNER_CLASS, TRIAL;
+
+        String learnerText(SlotRange r) {
+            String when = dayName(r.dayOfWeek()) + " " + r.start().format(HH_MM);
+            return switch (this) {
+                case LOCKED -> "Giờ " + when + " gia sư đã nhận học viên khác. Vui lòng chọn giờ khác.";
+                case TUTOR_CLASS -> "Giờ " + when + " gia sư đã có lớp học. Vui lòng chọn giờ khác.";
+                case LEARNER_CLASS -> "Giờ " + when + " trùng lớp học hiện tại của bạn. Vui lòng chọn giờ khác.";
+                case TRIAL -> "Giờ " + when + " gia sư đã có buổi học thử. Vui lòng chọn giờ khác.";
+            };
+        }
+
+        String tutorText(SlotRange r) {
+            String when = r.label();
+            return switch (this) {
+                case LOCKED -> "Ca " + when + " bạn đã nhận cho học viên khác";
+                case TUTOR_CLASS -> "Ca " + when + " trùng lịch lớp học của bạn";
+                case LEARNER_CLASS -> "Ca " + when + " trùng lớp học hiện tại của học viên";
+                case TRIAL -> "Ca " + when + " trùng buổi học thử bạn đã nhận";
+            };
+        }
+    }
+
+    /**
+     * Loại trùng của ca hằng tuần {@code r} với lịch đã chấp nhận, hoặc null nếu còn trống.
+     * includeTrials: tính cả buổi học thử đã nhận (buổi lẻ) — khi học viên chỉ GỬI yêu cầu thì không tính,
+     * vì đó là một buổi lẻ, ca hằng tuần vẫn có thể học các tuần khác.
+     */
+    private SlotConflict slotConflict(UUID tutorId, UUID learnerId, UUID excludeRequestId, SlotRange r, LocalDate startDate,
+                                      boolean includeTrials) {
         if (slotRepository.existsLockedSlotOverlap(tutorId, excludeRequestId, r.dayOfWeek(), r.start(), r.end())) {
-            throw new ConflictException(lockedMessage);
+            return SlotConflict.LOCKED;
         }
         // Lịch lớp chính thức được kiểm theo NGÀY cụ thể (khóa học có số buổi, buổi dời / hủy riêng):
         // dùng buổi đầu tiên của ca hằng tuần này. class_schedules dùng quy ước 1 = Thứ Hai ... 7 = Chủ nhật.
         LocalDate first = firstOccurrence(startDate, r, LocalDateTime.now(VN_ZONE));
         int isoDow = r.dayOfWeek() == 1 ? 7 : r.dayOfWeek() - 1;
-        trialBookingRepository.findClassScheduleClash(tutorId, learnerId, first, isoDow, r.start(), r.end())
-                .ifPresent(who -> {
-                    throw new ConflictException("TUTOR".equals(who) ? tutorClassMessage : learnerClassMessage);
-                });
-        // Ca lặp lại hằng tuần: mọi buổi học thử cùng thứ, trùng giờ, từ buổi đầu tiên trở đi đều bị đụng
-        if (trialBookingRepository.existsTrialClashFrom(tutorId, learnerId, first, r.dayOfWeek() - 1, r.start(), r.end())) {
-            throw new ConflictException(trialMessage);
+        var clash = trialBookingRepository.findClassScheduleClash(tutorId, learnerId, first, isoDow, r.start(), r.end());
+        if (clash.isPresent()) {
+            return "TUTOR".equals(clash.get()) ? SlotConflict.TUTOR_CLASS : SlotConflict.LEARNER_CLASS;
         }
+        // Ca lặp lại hằng tuần: mọi buổi học thử cùng thứ, trùng giờ, từ buổi đầu tiên trở đi đều bị đụng
+        if (includeTrials && trialBookingRepository.existsTrialClashFrom(tutorId, learnerId, first, r.dayOfWeek() - 1, r.start(), r.end())) {
+            return SlotConflict.TRIAL;
+        }
+        return null;
+    }
+
+    /** Cảnh báo cho gia sư trên yêu cầu đang chờ: ca nào đã bị lịch đã chấp nhận chiếm (null nếu không có). */
+    private String slotWarningForTutor(ConnectionRequest cr) {
+        if (cr.getStatus() != ConnectionRequestStatus.PENDING || cr.getSlots().isEmpty()) return null;
+        List<String> issues = new ArrayList<>();
+        for (ConnectionRequestSlot slot : cr.getSlots()) {
+            SlotRange r = new SlotRange(slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime());
+            SlotConflict c = slotConflict(cr.getTutor().getTutorId(), cr.getLearner().getLearnerId(), cr.getRequestId(),
+                    r, today(), true);
+            if (c != null) issues.add(c.tutorText(r));
+        }
+        return issues.isEmpty() ? null : String.join("; ", issues) + ". Hãy trao đổi giờ khác với học viên hoặc từ chối.";
     }
 
     private static LocalDate today() {
         return LocalDate.now(VN_ZONE);
-    }
-
-    /**
-     * Ngày bắt đầu học: không sớm hơn hôm nay, không muộn hơn tuần cuối cùng học viên được xem lịch.
-     * Bỏ trống = hôm nay.
-     */
-    static LocalDate resolveStartDate(LocalDate requested) {
-        LocalDate today = today();
-        if (requested == null || requested.isBefore(today)) return today;
-        LocalDate lastViewable = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                .plusWeeks(BookingLimits.DIRECT_SCHEDULE_WEEKS).minusDays(1);
-        if (requested.isAfter(lastViewable)) {
-            throw new BadRequestException("Ngày bắt đầu học chỉ có thể trong " + BookingLimits.DIRECT_SCHEDULE_WEEKS
-                    + " tuần tính từ tuần này");
-        }
-        return requested;
     }
 
     /** Ngày diễn ra buổi đầu tiên của ca hằng tuần, tính từ startDate và chưa qua thời điểm hiện tại. */
@@ -482,24 +507,44 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         return d;
     }
 
-    static int resolveTotalSessions(Integer requested) {
-        if (requested == null) return BookingLimits.DEFAULT_CONNECTION_SESSIONS;
-        if (requested < 1 || requested > BookingLimits.MAX_CONNECTION_SESSIONS) {
-            throw new BadRequestException("Số buổi học phải từ 1 đến " + BookingLimits.MAX_CONNECTION_SESSIONS);
-        }
-        return requested;
-    }
-
-    /** Thứ Hai của tuần muộn nhất học viên được chọn làm tuần bắt đầu. */
-    private static LocalDate lastStartWeek() {
-        return ConnectionSchedulePlanner.mondayOf(today()).plusWeeks(BookingLimits.DIRECT_SCHEDULE_WEEKS - 1L);
-    }
-
-    private static List<WeeklySlot> toWeeklySlots(List<SlotRange> ranges) {
-        return ranges.stream().map(r -> new WeeklySlot(r.dayOfWeek(), r.start(), r.end())).toList();
-    }
-
     private static final DateTimeFormatter DD_MM = DateTimeFormatter.ofPattern("dd/MM");
+
+    // ------------------------------------------------------------------ thông báo
+
+    /** Trang mở từ thông báo: tab Kết nối trực tiếp của gia sư / của học viên. */
+    static final String TUTOR_DIRECT_PATH = "/tutor/connections?tab=direct";
+    static final String LEARNER_DIRECT_PATH = "/pages/learner-requests/?tab=direct";
+    private static final DateTimeFormatter DMY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    private void notify(String eventKey, String title, String content, String path, User recipient) {
+        notifyAs("CONNECTION", eventKey, title, content, path, recipient);
+    }
+
+    /** Gửi thông báo cho một người; lỗi tạo thông báo không làm hỏng nghiệp vụ (NotificationEvents tự ghi log). */
+    private void notifyAs(String type, String eventKey, String title, String content, String path, User recipient) {
+        if (notificationEvents == null || recipient == null || recipient.getUserId() == null) return;
+        notificationEvents.publish(eventKey, type, title, content, path, List.of(recipient.getUserId()));
+    }
+
+    /** Ví dụ: "Thứ hai 19:00–20:30, Thứ năm 19:00–20:30" (theo ca hằng tuần của yêu cầu). */
+    private static String slotSummary(ConnectionRequest cr) {
+        return cr.getSlots().stream()
+                .map(s -> dayName(s.getDayOfWeek()) + " " + s.getStartTime().format(HH_MM) + "–" + s.getEndTime().format(HH_MM))
+                .collect(java.util.stream.Collectors.joining(", "));
+    }
+
+    /** Ví dụ: "Thứ hai 19:00, Thứ năm 19:00" (giờ bắt đầu mong muốn của học viên). */
+    private static String startSummary(ConnectionRequest cr) {
+        return cr.getSlots().stream()
+                .map(s -> dayName(s.getDayOfWeek()) + " " + s.getStartTime().format(HH_MM))
+                .collect(java.util.stream.Collectors.joining(", "));
+    }
+
+    /** Ví dụ: " 8 buổi, bắt đầu 17/11/2026"; rỗng với yêu cầu kiểu cũ chỉ có ca hằng tuần. */
+    private static String courseSummary(ConnectionRequest cr) {
+        if (cr.getSessions().isEmpty()) return "";
+        return " " + cr.getSessions().size() + " buổi, bắt đầu " + cr.getSessions().get(0).getSessionDate().format(DMY);
+    }
 
     private static String sessionLabel(PlannedSession s) {
         return dayName(s.dayOfWeek()) + " " + s.date().format(DD_MM) + " " + s.start().format(HH_MM) + "–" + s.end().format(HH_MM);
@@ -508,21 +553,94 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
     /** Gia sư bấm đồng ý: các buổi CHƯA diễn ra không được trùng những gì gia sư đã xác nhận. */
     private void ensureSessionsFreeForAccept(ConnectionRequest connection, UUID learnerId) {
         LocalDateTime now = LocalDateTime.now(VN_ZONE);
+        // Đã có buổi bắt đầu trong lúc chờ duyệt → không cho đồng ý (học viên sẽ nhận ít buổi hơn số đã đăng ký).
+        // Gia sư từ chối, học viên gửi lại yêu cầu với tuần bắt đầu mới.
+        connection.getSessions().stream()
+                .filter(s -> !s.getSessionDate().atTime(s.getStartTime()).isAfter(now))
+                .findFirst()
+                .ifPresent(started -> {
+                    throw new BadRequestException("Buổi " + sessionLabel(new PlannedSession(started.getSessionDate(),
+                            ConnectionSchedulePlanner.dayOfWeekOf(started.getSessionDate()), started.getStartTime(), started.getEndTime()))
+                            + " trong yêu cầu này đã qua. Hãy từ chối để học viên gửi lại yêu cầu với tuần bắt đầu mới.");
+                });
         List<PlannedSession> upcoming = connection.getSessions().stream()
-                .filter(s -> s.getSessionDate().atTime(s.getStartTime()).isAfter(now))
                 .map(s -> new PlannedSession(s.getSessionDate(), ConnectionSchedulePlanner.dayOfWeekOf(s.getSessionDate()),
                         s.getStartTime(), s.getEndTime()))
                 .toList();
-        if (upcoming.isEmpty()) {
-            throw new BadRequestException("Tất cả các buổi trong yêu cầu này đã qua. Hãy từ chối và đề nghị học viên gửi lại yêu cầu mới.");
-        }
         BusyIndex busy = busyLoader.load(connection.getTutor().getTutorId(), learnerId, connection.getRequestId(),
-                today(), upcoming.get(upcoming.size() - 1).date(), ConnectionBusyLoader.Mode.TUTOR_ACCEPT);
+                today(), upcoming.get(upcoming.size() - 1).date());
         for (PlannedSession s : upcoming) {
             busy.conflictOf(s).ifPresent(kind -> {
                 throw new ConflictException("Buổi " + sessionLabel(s) + " " + kind.tutorText()
                         + ". Hãy từ chối và đề nghị học viên chọn tuần bắt đầu hoặc ca khác.");
             });
+        }
+    }
+
+    /**
+     * Học viên vừa được một gia sư nhận: các yêu cầu ĐANG CHỜ của học viên với GIA SƯ KHÁC mà trùng giờ với các buổi
+     * vừa nhận không thể diễn ra nữa → tự chuyển "Đã hủy" (nhả chỗ cho gia sư kia, tránh gia sư kia bấm đồng ý vô ích).
+     * Gồm yêu cầu kết nối trực tiếp (theo buổi cụ thể) và yêu cầu học thử đang chờ.
+     */
+    private void cancelLearnerConflictingPending(ConnectionRequest accepted, User actor, OffsetDateTime now) {
+        List<ConnectionRequestSession> taken = accepted.getSessions();
+        if (taken.isEmpty()) return; // yêu cầu kiểu cũ chỉ có ca hằng tuần: không có ngày cụ thể để so
+        UUID learnerId = accepted.getLearner().getLearnerId();
+        UUID tutorId = accepted.getTutor().getTutorId();
+
+        int cancelledRequests = 0;
+        for (ConnectionRequest other : connectionRequestRepository.findByLearnerLearnerIdAndRequestTypeAndStatus(
+                learnerId, ConnectionRequestType.DIRECT, ConnectionRequestStatus.PENDING)) {
+            if (other.getRequestId().equals(accepted.getRequestId()) || other.getTutor().getTutorId().equals(tutorId)) continue;
+            boolean clash = other.getSessions().stream().anyMatch(s -> taken.stream().anyMatch(t ->
+                    t.getSessionDate().equals(s.getSessionDate())
+                            && ConnectionSchedulePlanner.overlapsTimes(s.getStartTime(), s.getEndTime(), t.getStartTime(), t.getEndTime())));
+            if (!clash) continue;
+            other.setStatus(ConnectionRequestStatus.CANCELLED);
+            other.setRespondedAt(now);
+            other.setResponseMessage("Tự động hủy vì học viên đã kết nối với gia sư khác vào cùng giờ");
+            connectionRequestRepository.save(other);
+            notify("connection:" + other.getRequestId() + ":auto-cancelled", "Yêu cầu kết nối đã tự hủy",
+                    other.getLearner().getUser().getFullName() + " đã kết nối với gia sư khác vào cùng giờ nên yêu cầu gửi bạn đã tự hủy.",
+                    TUTOR_DIRECT_PATH, other.getTutor().getUser());
+            cancelledRequests++;
+        }
+
+        int cancelledTrials = 0;
+        for (TrialBooking trial : trialBookingRepository.findByLearnerLearnerIdAndBookingStatusIn(
+                learnerId, List.of(TrialBookingStatus.PENDING))) {
+            if (trial.getTutor().getTutorId().equals(tutorId) || trial.getScheduledStartTime() == null) continue;
+            var start = trial.getScheduledStartTime().atZoneSameInstant(VN_ZONE);
+            var end = (trial.getScheduledEndTime() != null ? trial.getScheduledEndTime() : trial.getScheduledStartTime().plusMinutes(30))
+                    .atZoneSameInstant(VN_ZONE);
+            LocalTime endTime = end.toLocalDate().isAfter(start.toLocalDate()) ? LocalTime.MAX : end.toLocalTime();
+            boolean clash = taken.stream().anyMatch(t -> t.getSessionDate().equals(start.toLocalDate())
+                    && ConnectionSchedulePlanner.overlapsTimes(start.toLocalTime(), endTime, t.getStartTime(), t.getEndTime()));
+            if (!clash) continue;
+            trial.setBookingStatus(TrialBookingStatus.CANCELLED);
+            ConnectionRequest trialConnection = trial.getConnectionRequest();
+            if (trialConnection != null && trialConnection.getStatus() == ConnectionRequestStatus.PENDING) {
+                trialConnection.setStatus(ConnectionRequestStatus.CANCELLED);
+                trialConnection.setRespondedAt(now);
+            }
+            trialBookingRepository.save(trial);
+            trialBookingHistoryRepository.save(TrialBookingHistory.builder()
+                    .trialBooking(trial)
+                    .changedByUser(actor)
+                    .previousStatus(TrialBookingStatus.PENDING)
+                    .newStatus(TrialBookingStatus.CANCELLED)
+                    .changeReason("Tự động hủy vì học viên đã kết nối với gia sư khác vào cùng giờ")
+                    .build());
+            notifyAs("TRIAL", "trial:" + trial.getBookingId() + ":auto-cancelled", "Yêu cầu học thử đã tự hủy",
+                    trial.getLearner().getUser().getFullName() + " đã kết nối với gia sư khác vào cùng giờ nên yêu cầu học thử lúc "
+                            + trial.getScheduledStartTime().atZoneSameInstant(VN_ZONE).format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
+                            + " đã tự hủy.",
+                    "/tutor/connections", trial.getTutor().getUser());
+            cancelledTrials++;
+        }
+        if (cancelledRequests + cancelledTrials > 0) {
+            log.info("Connection {} accepted: auto-cancelled {} pending request(s) and {} pending trial(s) of learner {} with other tutors",
+                    accepted.getRequestId(), cancelledRequests, cancelledTrials, learnerId);
         }
     }
 
@@ -629,6 +747,15 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
             case CANCELLED -> "Đã hủy";
             case EXPIRED -> "Đã hết hạn";
         };
+        // Liên hệ: gia sư xem của học viên (trừ khi đã từ chối / hủy / hết hạn); học viên xem của gia sư khi gia sư đã đồng ý
+        var contact = com.kizuna.features.booking.service.ContactShare.Contact.NONE;
+        boolean closed = cr.getStatus() == ConnectionRequestStatus.DECLINED || cr.getStatus() == ConnectionRequestStatus.CANCELLED
+                || cr.getStatus() == ConnectionRequestStatus.EXPIRED;
+        if (!closed && !viewerIsLearner) {
+            contact = com.kizuna.features.booking.service.ContactShare.learnerContact(cr, cr.getLearner().getUser());
+        } else if (!closed && cr.getStatus() == ConnectionRequestStatus.ACCEPTED) {
+            contact = com.kizuna.features.booking.service.ContactShare.tutorContact(cr.getTutor());
+        }
 
         List<ConnectionRequestResponseDTO.SlotView> slots = cr.getSlots().stream()
                 .map(s -> ConnectionRequestResponseDTO.SlotView.builder()
@@ -670,6 +797,9 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
                 .statusLabel(statusLabel)
                 .createdAt(cr.getCreatedAt())
                 .respondedAt(cr.getRespondedAt())
+                .slotWarning(viewerIsLearner ? null : slotWarningForTutor(cr))
+                .partnerEmail(contact.email())
+                .partnerPhone(contact.phone())
                 .build();
     }
 

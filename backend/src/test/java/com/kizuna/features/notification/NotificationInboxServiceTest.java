@@ -62,7 +62,7 @@ class NotificationInboxServiceTest {
         when(inbox.preferences(OWNER)).thenReturn(Map.of());
         var view = service.preferences();
         @SuppressWarnings("unchecked") var groups = (List<Map<String, Object>>) view.get("groups");
-        assertEquals(5, groups.size());
+        assertEquals(NotificationInboxService.TYPES.size(), groups.size()); // mọi nhóm, kể cả CONNECTION (023)
         groups.forEach(group -> { assertEquals(true, group.get("inAppEnabled")); assertEquals(false, group.get("emailEnabled")); });
         assertEquals(0L, view.get("version"));
     }
@@ -93,6 +93,6 @@ class NotificationInboxServiceTest {
         when(inbox.lockPreferenceVersion(OWNER)).thenReturn(0L);
         when(inbox.preferences(OWNER)).thenReturn(Map.of());
         service.savePreferences(new PreferenceUpdate(0L, allGroups()));
-        verify(inbox).savePreferences(eq(OWNER), argThat(saved -> saved.size() == 5));
+        verify(inbox).savePreferences(eq(OWNER), argThat(saved -> saved.size() == NotificationInboxService.TYPES.size()));
     }
 }

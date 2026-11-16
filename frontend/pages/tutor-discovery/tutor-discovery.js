@@ -35,19 +35,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Whitelist các tham số hợp lệ
   // "Mục tiêu học" (gộp môn học + trình độ). jlpt_* = luyện thi đúng cấp, server tự lọc gia sư đủ trình độ.
-  const VALID_GOALS = ['kaiwa', 'jlpt', 'jlpt_n5n4', 'jlpt_n3', 'jlpt_n2', 'jlpt_n1', 'business', 'it'];
+  // Khớp với bảng học phí của bài đăng (PriceLevel: JLPT_N5..N1, KAIWA, BUSINESS, EJU). Đã bỏ "IT & BrSE".
+  // jlpt_n5n4 giữ lại cho link cũ (trước khi tách N5 / N4)
+  const VALID_GOALS = ['kaiwa', 'jlpt', 'jlpt_n5', 'jlpt_n4', 'jlpt_n5n4', 'jlpt_n3', 'jlpt_n2', 'jlpt_n1', 'business', 'eju'];
   const GOAL_LABELS = {
     kaiwa: 'Giao tiếp (Kaiwa)',
     jlpt: 'Luyện thi JLPT',
+    jlpt_n5: 'Luyện thi N5',
+    jlpt_n4: 'Luyện thi N4',
     jlpt_n5n4: 'Luyện thi N5 – N4',
     jlpt_n3: 'Luyện thi N3',
     jlpt_n2: 'Luyện thi N2',
     jlpt_n1: 'Luyện thi N1',
     business: 'Tiếng Nhật thương mại',
-    it: 'Tiếng Nhật IT & BrSE'
+    eju: 'Luyện thi EJU'
   };
   // Link cũ ?jlpt=N3 (bộ lọc "Trình độ JLPT" đã gộp vào "Mục tiêu học")
-  const LEGACY_JLPT_TO_GOAL = { N1: 'jlpt_n1', N2: 'jlpt_n2', N3: 'jlpt_n3', N4: 'jlpt_n5n4', N5: 'jlpt_n5n4' };
+  const LEGACY_JLPT_TO_GOAL = { N1: 'jlpt_n1', N2: 'jlpt_n2', N3: 'jlpt_n3', N4: 'jlpt_n4', N5: 'jlpt_n5' };
   const VALID_FORMATS = ['online', 'offline', 'hybrid'];
   const VALID_PRICES = ['150-250', '250-400', '400-600'];
   const VALID_SCHEDULES = ['today', 'weekend', 'evening'];
@@ -674,7 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
       chips.push({ key: 'format', label: map[state.format] || state.format });
     }
     if (state.priceRange) {
-      const map = { '150-250': '150k - 250k / giờ', '250-400': '250k - 400k / giờ', '400-600': 'Trên 400k / giờ' };
+      const map = { '150-250': '150k - 250k / buổi', '250-400': '250k - 400k / buổi', '400-600': 'Trên 400k / buổi' };
       chips.push({ key: 'priceRange', label: map[state.priceRange] || state.priceRange });
     }
     if (state.schedule) {

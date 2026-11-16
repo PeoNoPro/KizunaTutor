@@ -4,6 +4,7 @@
  */
 
 import { API, ApiError } from '/js/api.js';
+import { contactHtml } from '/js/contact-card.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
 // Sắp xếp theo từng nhóm: chờ phản hồi (hạn phản hồi gần nhất) → đã xác nhận (buổi gần nhất) → lịch sử (mới nhất)
 import { sortTrials, sortDirect, trialDeadline, directDeadline, responseDeadlineHtml } from '/js/request-sorting.js';
@@ -343,6 +344,7 @@ function renderBookings() {
               <span>Tạo lớp học</span>
             </a>
           </div>
+          <p class="w-full text-caption text-on-surface-variant">Đang thỏa thuận lịch học chính thức với học viên? Hãy tạm tắt khung giờ đó trong <a href="/tutor/schedule" class="text-primary font-semibold hover:underline">Lịch rảnh</a> để người khác không đặt mất trước khi bạn tạo lớp.</p>
         </div>
       ` : `
         <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-sky-50/50 p-3 rounded-xl border border-sky-200/60">
@@ -356,6 +358,7 @@ function renderBookings() {
               <span>Đồng ý kết nối</span>
             </button>
           </div>
+          <p class="w-full text-caption text-on-surface-variant">Đang thỏa thuận lịch học chính thức với học viên? Hãy tạm tắt khung giờ đó trong <a href="/tutor/schedule" class="text-primary font-semibold hover:underline">Lịch rảnh</a> để người khác không đặt mất trước khi bạn tạo lớp.</p>
         </div>
       `;
     } else if (isRejected) {
@@ -427,6 +430,7 @@ function renderBookings() {
         ` : ''}
 
         <!-- Hàng nút hành động -->
+        ${contactHtml(item, 'Liên hệ học viên')}
         ${actionsHtml}
       </div>
     `;
@@ -683,6 +687,8 @@ function renderDirect() {
             ${r.learningGoals ? `<div class="text-on-surface-variant">Mục tiêu: <span class="text-on-surface font-medium">${escapeHtml(r.learningGoals)}</span></div>` : ''}
           </div>` : ''}
         ${r.initialMessage ? `<div class="text-body-sm text-on-surface-variant bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/30 italic">"${escapeHtml(r.initialMessage)}"</div>` : ''}
+        ${r.slotWarning ? `<div class="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-body-sm text-amber-900"><span class="material-symbols-outlined text-[18px] text-amber-600 shrink-0">warning</span><span>${escapeHtml(r.slotWarning)}</span></div>` : ''}
+        ${contactHtml(r, 'Liên hệ học viên')}
         ${actionsHtml}
       </div>`;
   }).join('');
@@ -700,7 +706,7 @@ function openDirectRespond(requestId, action) {
   const accept = action === 'ACCEPT';
   $('directRespondTitle').textContent = accept ? 'Đồng ý kết nối' : 'Từ chối yêu cầu kết nối';
   $('directRespondSubtitle').textContent = accept
-    ? 'Các ca bên dưới sẽ được giữ cho học viên này'
+    ? 'Các ca bên dưới sẽ được giữ cho học viên này. Học viên sẽ thấy số điện thoại và email của bạn.'
     : 'Học viên sẽ nhận được lý do bạn gửi';
   $('directRespondIcon').textContent = accept ? 'handshake' : 'cancel';
   $('directRespondIconWrap').className = `w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accept ? 'bg-primary-fixed text-primary' : 'bg-error-container text-error'}`;

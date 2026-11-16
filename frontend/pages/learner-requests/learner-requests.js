@@ -8,6 +8,7 @@
 
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { API, ApiError } from '/js/api.js';
+import { contactHtml } from '/js/contact-card.js';
 // Sắp xếp theo từng nhóm: chờ phản hồi (buổi học gần nhất) → đã chấp nhận (buổi gần nhất) → lịch sử (mới nhất)
 import { sortTrials, sortDirect } from '/js/request-sorting.js';
 
@@ -429,6 +430,7 @@ function renderBookings() {
         ` : ''}
 
         <!-- Hàng nút hành động -->
+        ${contactHtml(item, 'Liên hệ gia sư')}
         ${actionsHtml}
       </div>
     `;
@@ -832,6 +834,7 @@ function renderDirect() {
         </div>
         <div class="flex flex-wrap gap-2">${slots}</div>
         ${r.initialMessage ? `<div class="text-xs text-[#64748B] bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0] italic">"Lời nhắn: ${escapeHtml(r.initialMessage)}"</div>` : ''}
+        ${contactHtml(r, 'Liên hệ gia sư')}
         ${footer}
       </div>`;
   }).join('');

@@ -61,6 +61,9 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
 
     List<TrialBooking> findByTutorTutorIdAndBookingStatusIn(UUID tutorId, List<TrialBookingStatus> statuses);
 
+    /** Buổi học thử của một học viên theo trạng thái (dùng để tự hủy yêu cầu đang chờ bị trùng khi học viên đã kết nối). */
+    List<TrialBooking> findByLearnerLearnerIdAndBookingStatusIn(UUID learnerId, List<TrialBookingStatus> statuses);
+
     /** Các buổi học thử của một cặp gia sư – học viên theo trạng thái (dùng khi đã đồng ý kết nối). */
     List<TrialBooking> findByTutorTutorIdAndLearnerLearnerIdAndBookingStatusIn(UUID tutorId, UUID learnerId,
                                                                                List<TrialBookingStatus> statuses);
@@ -143,7 +146,7 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
                 SELECT 1 FROM trial_bookings tb
                 WHERE tb.tutor_id = :tutorId
                   AND tb.learner_id <> :learnerId
-                  AND tb.booking_status IN ('PENDING', 'CONFIRMED', 'RESCHEDULED')
+                  AND tb.booking_status IN ('CONFIRMED', 'RESCHEDULED')
                   AND tb.scheduled_end_time > CURRENT_TIMESTAMP
                   AND CAST(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS date) >= :fromDate
                   AND EXTRACT(DOW FROM tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh') = :pgDow
@@ -203,6 +206,20 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
                                @Param("tutorId") UUID tutorId,
                                @Param("since") OffsetDateTime since);
 
+    /**
+     * Số lần học viên ĐỔI LỊCH buổi học thử sang giờ ngoài lịch rảnh với gia sư này kể từ mốc cho trước
+     * (dòng lịch sử bắt đầu bằng TrialBookingServiceImpl.OFF_SCHEDULE_RESCHEDULE_MARK).
+     */
+    @Query(value = """
+            SELECT COUNT(*) FROM trial_booking_histories h
+            JOIN trial_bookings tb ON tb.booking_id = h.booking_id
+            WHERE tb.learner_id = :learnerId AND tb.tutor_id = :tutorId
+              AND h.change_reason LIKE '[đề xuất ngoài lịch rảnh]%' AND h.created_at > :since
+            """, nativeQuery = true)
+    long countOffScheduleReschedulesSince(@Param("learnerId") UUID learnerId,
+                                          @Param("tutorId") UUID tutorId,
+                                          @Param("since") OffsetDateTime since);
+
     /** Khung giờ [startTime, endTime] nằm trọn trong một ca rảnh đang bật của gia sư (dayOfWeek: 1 = Chủ nhật ... 7 = Thứ Bảy). */
     @Query(value = """
             SELECT EXISTS (
@@ -218,6 +235,9 @@ public interface TrialBookingRepository extends JpaRepository<TrialBooking, UUID
                                  @Param("endTime") java.time.LocalTime endTime);
 
     /** Cặp học viên - gia sư đang có buổi học thử ở một trong các trạng thái (dùng để chặn gửi trùng). */
+    /** Số yêu cầu học thử của học viên đang ở trạng thái cho trước (với mọi gia sư). */
+    long countByLearnerLearnerIdAndBookingStatus(UUID learnerId, TrialBookingStatus status);
+
     boolean existsByLearnerLearnerIdAndTutorTutorIdAndBookingStatusIn(UUID learnerId, UUID tutorId,
                                                                        java.util.Collection<TrialBookingStatus> statuses);
 

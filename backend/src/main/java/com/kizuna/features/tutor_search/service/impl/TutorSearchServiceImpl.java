@@ -236,8 +236,7 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                 .map(TutorSearchServiceImpl::toWeeklyRange).toList();
         // Lịch bận theo TỪNG NGÀY trong tuần: lịch lớp (mọi tuần), buổi của khóa kết nối (đã xác nhận / đang chờ duyệt),
         // buổi học thử (đã xác nhận / đang chờ duyệt). Đang chờ duyệt cũng giữ chỗ.
-        BusyIndex busy = busyLoader.load(tutorId, null, null, weekStart, weekStart.plusDays(6),
-                ConnectionBusyLoader.Mode.LEARNER_REQUEST);
+        BusyIndex busy = busyLoader.load(tutorId, null, null, weekStart, weekStart.plusDays(6));
         List<WeeklyScheduleCalculator.WeeklyRange> weeklyBusy = busy.weekly().stream()
                 .map(w -> new WeeklyScheduleCalculator.WeeklyRange(w.dayOfWeek(), minutesOf(w.start()), minutesOf(w.end())))
                 .toList();
@@ -355,7 +354,7 @@ public class TutorSearchServiceImpl implements TutorSearchService {
                .append("       to_char(tb.scheduled_end_time AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI'), ")
                .append("       to_char(tb.scheduled_start_time AT TIME ZONE 'Asia/Ho_Chi_Minh', 'DD/MM/YYYY'), tb.scheduled_start_time ")
                .append("FROM trial_bookings tb WHERE tb.tutor_id IN (").append(in).append(") ")
-               .append("  AND tb.booking_status IN ('PENDING', 'CONFIRMED', 'RESCHEDULED') AND tb.scheduled_end_time > CURRENT_TIMESTAMP ")
+               .append("  AND tb.booking_status IN ('CONFIRMED', 'RESCHEDULED') AND tb.scheduled_end_time > CURRENT_TIMESTAMP ")
                .append("UNION ALL ")
                // Ca được nhả khi cặp gia sư - học viên chỉ còn lớp đã kết thúc (cùng điều kiện với
                // ConnectionRequestSlotRepository.existsLockedSlotOverlap)

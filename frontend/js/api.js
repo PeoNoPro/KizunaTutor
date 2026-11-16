@@ -152,6 +152,9 @@ export const API = {
       if (params.keyword) queryParams.set('keyword', params.keyword.trim());
       if (params.location && params.location.trim() && params.location !== 'all') queryParams.set('location', params.location.trim());
       if (params.jlptLevel && params.jlptLevel !== 'all') queryParams.set('jlptLevel', params.jlptLevel);
+      // Mục tiêu học / hình thức học được lọc ở server theo bài đăng đang hiển thị của gia sư
+      if (params.goal && params.goal !== 'all') queryParams.set('goal', params.goal);
+      if (params.format && params.format !== 'all') queryParams.set('format', params.format);
       if (params.minPrice) queryParams.set('minPrice', params.minPrice);
       if (params.maxPrice) queryParams.set('maxPrice', params.maxPrice);
       if (params.sortBy) queryParams.set('sortBy', params.sortBy);
@@ -310,14 +313,6 @@ export const API = {
       return this._call('', { method: 'POST', body: payload });
     },
 
-    /**
-     * Xem trước lịch học dự kiến: { tutorId, slots, startDate: 'YYYY-MM-DD', totalSessions }
-     * → { sessions: [{ date, dayName, startTime, endTime, available, reason }], conflictCount, suggestedStartWeek, ... }
-     */
-    preview(payload) {
-      return this._call('/preview', { method: 'POST', body: payload, timeout: 8000 });
-    },
-
     /** Danh sách yêu cầu kết nối trực tiếp của tôi (học viên hoặc gia sư). */
     getMyRequests(status = 'ALL', page = 0, size = 20) {
       const query = new URLSearchParams({ status, page, size });
@@ -329,7 +324,7 @@ export const API = {
       return this._call(`/${requestId}/respond`, { method: 'PUT', body: payload });
     },
 
-    /** Học viên hủy yêu cầu đang chờ. */
+    /** Học viên hủy yêu cầu đang chờ, hoặc không đồng ý lịch gia sư đã chốt. */
     cancel(requestId) {
       return this._call(`/${requestId}/cancel`, { method: 'PUT' });
     }

@@ -87,6 +87,109 @@ function reportQuery() {
   return new URLSearchParams({ startDate: start.toISOString().slice(0, 10), endDate });
 }
 
+/** 4 thẻ đầu trang luôn so sánh 30 ngày gần nhất với 30 ngày trước đó (không theo ô chọn kỳ phía dưới). */
+const KPI_DAYS = 30;
+function kpiQuery() {
+  const end = reportQuery().get('endDate'), start = new Date(end + 'T00:00:00Z');
+  start.setUTCDate(start.getUTCDate() - KPI_DAYS + 1);
+  return new URLSearchParams({startDate: start.toISOString().slice(0, 10), endDate: end});
+}
+
+/** Kỳ liền trước, cùng số ngày với kỳ truyền vào. */
+function previousQuery(current = reportQuery()) {
+  const start = new Date(current.get('startDate') + 'T00:00:00Z'), end = new Date(current.get('endDate') + 'T00:00:00Z');
+  const days = Math.round((end - start) / 86400000) + 1;
+  const prevEnd = new Date(start); prevEnd.setUTCDate(prevEnd.getUTCDate() - 1);
+  const prevStart = new Date(prevEnd); prevStart.setUTCDate(prevStart.getUTCDate() - days + 1);
+  return new URLSearchParams({startDate: prevStart.toISOString().slice(0, 10), endDate: prevEnd.toISOString().slice(0, 10)});
+}
+
+/** Nhãn tăng/giảm trên thẻ: ↗ +12% (xanh), ↘ −3% (đỏ), "Mới" khi 30 ngày trước bằng 0. Kèm chữ để không chỉ dựa vào màu. */
+const TREND_NOUN = {total: 'tài khoản', ROLE_TUTOR: 'gia sư', ROLE_LEARNER: 'học viên'};
+function showTrend(key, current, previous) {
+  const chip = document.querySelector(`[data-trend="${key}"]`), compare = document.querySelector(`[data-compare="${key}"]`);
+  if (!chip) return;
+  let text, tone, percent = null;
+  if (!previous) { text = current ? 'Mới' : 'Không đổi'; tone = current ? 'up' : 'flat'; }
+  else {
+    percent = Math.round((current - previous) * 1000 / previous) / 10;
+    tone = percent > 0 ? 'up' : percent < 0 ? 'down' : 'flat';
+    text = percent === 0 ? 'Không đổi' : (percent > 0 ? '↗ +' : '↘ −') + new Intl.NumberFormat('vi-VN', {maximumFractionDigits: 1}).format(Math.abs(percent)) + '%';
+  }
+  chip.textContent = text; chip.dataset.tone = tone; chip.hidden = false;
+  const what = key === 'revenue' ? 'Doanh thu' : 'Số ' + TREND_NOUN[key] + ' đăng ký mới';
+  chip.title = percent === null ? what + ' 30 ngày gần nhất (30 ngày trước đó: không có)'
+    : what + (percent > 0 ? ' tăng ' : percent < 0 ? ' giảm ' : ' không đổi ') + (percent ? new Intl.NumberFormat('vi-VN', {maximumFractionDigits: 1}).format(Math.abs(percent)) + '% ' : '') + 'so với 30 ngày trước đó';
+  if (compare) compare.textContent = key === 'revenue'
+    ? 'Trong 30 ngày · 30 ngày trước: ' + money(previous)
+    : number(current) + ' ' + TREND_NOUN[key] + ' đăng ký mới trong 30 ngày · 30 ngày trước: ' + number(previous);
+}
+
+/** Tỷ lệ tăng giảm của tài khoản mới (30 ngày) và doanh thu (30 ngày), cố định không theo ô chọn kỳ. */
+async function loadOverview() {
+  const query = kpiQuery();
+  const [data, revenue, previous] = await Promise.all([fetchAPI(BASE + '/dashboard/overview?' + query),
+    fetchAPI(BASE + '/reports/business/revenue?' + query), fetchAPI(BASE + '/reports/business/revenue?' + previousQuery(query)).catch(() => null)]);
+  Object.entries(data.newAccounts).forEach(([key, value]) => showTrend(key, value.current, value.previous));
+  byId('kpiRevenue').textContent = money(revenue.revenue); byId('kpiRevenueCount').textContent = number(revenue.successCount);
+  if (previous) showTrend('revenue', Number(revenue.revenue), Number(previous.revenue));
+}
+
+/** Ngày đầu tháng của 11 tháng trước → hôm nay (giờ Việt Nam): đủ 12 tháng, không quá giới hạn 366 ngày của báo cáo. */
+function monthQuery() {
+  const end = reportQuery().get('endDate'), [y, m] = end.split('-').map(Number);
+  const start = new Date(Date.UTC(y, m - 1 - 11, 1));
+  return new URLSearchParams({startDate: start.toISOString().slice(0, 10), endDate: end});
+}
+
+async function loadMonthly() {
+  const box = byId('monthlyRevenue');
+  box.setAttribute('aria-busy', 'true');
+  try {
+    const query = monthQuery(), data = await fetchAPI(BASE + '/reports/business/revenue?' + query);
+    const months = new Map(), [y, m] = query.get('startDate').split('-').map(Number);
+    for (let i = 0; i < 12; i++) { const d = new Date(Date.UTC(y, m - 1 + i, 1)); months.set(d.toISOString().slice(0, 7), 0); }
+    data.daily.forEach(day => { const key = day.date.slice(0, 7); if (months.has(key)) months.set(key, months.get(key) + Number(day.count)); });
+    const rows = [...months].map(([key, amount]) => ({key, amount, label: 'T' + Number(key.slice(5)), full: 'Tháng ' + Number(key.slice(5)) + '/' + key.slice(0, 4)}));
+    const total = rows.reduce((sum, row) => sum + row.amount, 0), max = Math.max(...rows.map(row => row.amount));
+    byId('monthTotal').textContent = money(total);
+    if (!total) { box.replaceChildren(element('div', 'Chưa có doanh thu trong 12 tháng gần nhất.', 'chart-empty')); return; }
+    // Trục y 4 vạch, số làm tròn gọn (triệu đồng) để không chồng chữ.
+    const step = niceStep(max / 4), top = step * 4;
+    const grid = element('div', null, 'month-grid');
+    for (let i = 4; i >= 0; i--) { const line = element('div', null, 'month-gridline'); line.append(element('span', shortMoney(step * i))); grid.append(line); }
+    const bars = element('div', null, 'month-bars');
+    rows.forEach((row, index) => {
+      const column = element('div', null, 'month-column'), fill = element('div', null, 'month-fill');
+      fill.style.height = (row.amount / top * 100) + '%';
+      if (index === rows.length - 1) column.dataset.current = 'true';
+      column.dataset.tip = row.full + ': ' + money(row.amount); column.tabIndex = 0;
+      column.setAttribute('aria-label', row.full + ': ' + money(row.amount));
+      column.append(fill, element('span', row.label, 'month-label'));
+      bars.append(column);
+    });
+    grid.append(bars);
+    // Bảng ẩn cho trình đọc màn hình.
+    const table = element('table', null, 'sr-only'); table.append(element('caption', 'Doanh thu theo tháng'));
+    rows.forEach(row => { const tr = element('tr'); tr.append(element('th', row.full), element('td', money(row.amount))); table.append(tr); });
+    box.replaceChildren(grid, table);
+  } catch (error) {
+    chartError(box, 'Chưa tải được doanh thu theo tháng.');
+    throw error;
+  } finally { box.setAttribute('aria-busy', 'false'); }
+}
+function niceStep(raw) {
+  if (raw <= 0) return 1;
+  const power = 10 ** Math.floor(Math.log10(raw)), unit = raw / power;
+  return (unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 5 ? 5 : 10) * power;
+}
+function shortMoney(value) {
+  if (value >= 1e9) return new Intl.NumberFormat('vi-VN', {maximumFractionDigits: 1}).format(value / 1e9) + ' tỷ';
+  if (value >= 1e6) return new Intl.NumberFormat('vi-VN', {maximumFractionDigits: 1}).format(value / 1e6) + ' tr';
+  if (value >= 1e3) return new Intl.NumberFormat('vi-VN', {maximumFractionDigits: 0}).format(value / 1e3) + 'k';
+  return number(value);
+}
+
 async function loadReport() {
   const metrics = byId('incidentMetrics');
   metrics.setAttribute('aria-busy', 'true');
@@ -223,16 +326,32 @@ async function loadIncidents() {
   }
 }
 
+const AUDIT_ICONS = {'Nhân sự': 'nav-users.svg', 'Cấu hình': 'nav-settings.svg', 'Sự cố': 'nav-incidents.svg', 'Lịch ca CS': 'calendar.svg', 'Thông báo': 'nav-notifications.svg'};
+function ago(value) {
+  const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
+  if (minutes < 1) return 'Vừa xong';
+  if (minutes < 60) return minutes + ' phút trước';
+  if (minutes < 1440) return Math.floor(minutes / 60) + ' giờ trước';
+  if (minutes < 10080) return Math.floor(minutes / 1440) + ' ngày trước';
+  return timestamp(value);
+}
+
 async function loadAudit() {
   const container = byId('auditRows');
   byId('activitySection').setAttribute('aria-busy', 'true');
   try {
-    const data = await fetchAPI(BASE + '/audit-log?page=0&size=4');
+    const data = await fetchAPI(BASE + '/audit-log?page=0&size=6');
     container.replaceChildren();
     if (!data.items.length) emptyRow(container, 4, 'Chưa có hoạt động quản trị nào được ghi nhận.');
     data.items.forEach(item => {
       const row = element('tr');
-      row.append(element('td', item.actorDisplayName), element('td', item.actionLabel), element('td', item.reason || 'Không có'), element('td', timestamp(item.occurredAt)));
+      const what = element('td'), box = element('div', null, 'activity-cell'), tile = element('span', null, 'activity-icon');
+      const img = element('img'); img.src = '/assets/icons/admin-dashboard/' + (AUDIT_ICONS[item.sourceLabel] || 'nav-logs.svg'); img.alt = ''; tile.append(img);
+      const text = element('div'); text.append(element('strong', item.actionLabel || 'Thao tác'), element('span', [item.sourceLabel, item.targetLabel].filter(Boolean).join(' · ')));
+      box.append(tile, text); what.append(box);
+      const when = element('td', ago(item.occurredAt)); when.title = timestamp(item.occurredAt);
+      const result = element('td'); result.append(element('span', item.resultLabel || 'Đã lưu', 'status-badge'));
+      row.append(what, element('td', item.actorDisplayName), result, when);
       container.append(row);
     });
   } catch (error) {
@@ -265,7 +384,9 @@ async function refreshDashboard() {
   notice.hidden = true;
   try {
     // Các nguồn độc lập: một nguồn lỗi không xóa phần khác đã tải được.
-    const results = await Promise.allSettled([loadAccounts(), loadCharts(), loadReport(), loadRevenue(), loadIncidents(), loadAudit()]);
+    const fixed = state.fixedLoaded ? [] : [loadAccounts(), loadOverview(), loadMonthly(), loadAudit()];
+    state.fixedLoaded = true;
+    const results = await Promise.allSettled([...fixed, loadCharts(), loadReport(), loadRevenue(), loadIncidents()]);
     const failed = results.filter(result => result.status === 'rejected');
     // Chỉ hiện dòng thông báo khi có lỗi; tải thành công thì không cần chữ nào.
     notice.dataset.error = 'true';
@@ -279,7 +400,8 @@ async function refreshDashboard() {
 
 byId('reportPeriod').addEventListener('change', refreshDashboard);
 byId('incidentStatus').addEventListener('change', () => { loadIncidents().catch(() => { /* Lỗi hiển thị ngay trong bảng. */ }); });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshDashboard(); });
+// Quay lại tab thì tải lại toàn bộ, kể cả 4 thẻ đầu trang.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { state.fixedLoaded = false; refreshDashboard(); } });
 bindChartTooltip();
 greet();
 refreshDashboard();

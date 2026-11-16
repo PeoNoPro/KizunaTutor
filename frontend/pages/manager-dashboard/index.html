@@ -28,8 +28,6 @@
       <a class="mh-button" href="/pages/manager-reports/"><span class="mh-icon" aria-hidden="true">monitoring</span>Báo cáo tổng hợp</a>
     </section>
 
-    <p class="mh-alert" id="shiftAlert" role="alert" hidden></p>
-
     <section class="mh-kpis" aria-label="Việc cần chú ý">
       <a class="mh-kpi" href="/manager/support/tickets?group=0" data-tone="warning">
         <span class="mh-kpi-icon mh-icon" aria-hidden="true">pending_actions</span>
@@ -37,12 +35,12 @@
         <strong class="mh-kpi-value" id="kpiEscalated">—</strong>
         <span class="mh-kpi-foot" id="kpiEscalatedFoot">Đang tải…</span>
       </a>
-      <a class="mh-kpi" href="/pages/support-shifts/" data-tone="info">
-        <span class="mh-kpi-icon mh-icon" aria-hidden="true">badge</span>
-        <span class="mh-kpi-label">Nhân viên hỗ trợ trong ca</span>
-        <strong class="mh-kpi-value" id="kpiShift">—</strong>
-        <span class="mh-kpi-foot" id="kpiShiftFoot">Đang tải…</span>
-      </a>
+      <div class="mh-kpi" data-tone="info">
+        <span class="mh-kpi-icon mh-icon" aria-hidden="true">inbox</span>
+        <span class="mh-kpi-label">Yêu cầu chưa có người nhận</span>
+        <strong class="mh-kpi-value" id="kpiUnassigned">—</strong>
+        <span class="mh-kpi-foot" id="kpiUnassignedFoot">Đang tải…</span>
+      </div>
       <a class="mh-kpi" href="/manager/support/tickets?group=0" data-tone="danger">
         <span class="mh-kpi-icon mh-icon" aria-hidden="true">report</span>
         <span class="mh-kpi-label">Sự cố đã báo chưa đóng</span>
@@ -66,12 +64,16 @@
         <div id="escalatedList" class="mh-list" aria-busy="true"><p class="mh-empty">Đang tải…</p></div>
       </section>
 
-      <section class="mh-panel" aria-labelledby="shiftTitle">
+      <section class="mh-panel" aria-labelledby="supportTitle">
         <header class="mh-panel-head">
-          <div><h2 id="shiftTitle">Ca trực hôm nay</h2><p id="shiftDate">Nhân viên hỗ trợ theo từng ca.</p></div>
-          <a class="mh-link" href="/pages/support-shifts/">Xếp lịch <span class="mh-icon" aria-hidden="true">chevron_right</span></a>
+          <div><h2 id="supportTitle">Yêu cầu hỗ trợ</h2><p>Tình hình hiện tại của bộ phận CS.</p></div>
         </header>
-        <div id="shiftList" class="mh-shifts" aria-busy="true"><p class="mh-empty">Đang tải…</p></div>
+        <div class="mh-support" id="supportPanel" aria-busy="true">
+          <div class="mh-support-hero"><strong id="supportWaiting">—</strong><span>yêu cầu đang chờ xử lý</span></div>
+          <div id="supportRows" class="mh-support-rows"></div>
+          <div class="mh-support-avg" title="Thời gian trung bình từ lúc người dùng gửi yêu cầu đến khi CS trả lời lần đầu, tính trên các yêu cầu tạo trong 7 ngày gần nhất."><span class="material-symbols-outlined" aria-hidden="true">timer</span><span>Phản hồi đầu tiên trung bình (7 ngày)</span><strong id="supportAvg">—</strong></div>
+          <p class="mh-support-sla">Quá hạn: người gửi chờ quá 1 giờ (Khẩn cấp), 4 giờ (Cao), 8 giờ (Bình thường) hoặc 24 giờ (Thấp) mà CS chưa trả lời.</p>
+        </div>
       </section>
 
       <section class="mh-panel mh-span-2" aria-labelledby="activityTitle">
@@ -87,7 +89,7 @@
         </div>
       </section>
 
-      <section class="mh-panel" aria-labelledby="incidentTitle">
+      <section class="mh-panel mh-span-3" aria-labelledby="incidentTitle">
         <header class="mh-panel-head">
           <div><h2 id="incidentTitle">Sự cố đã báo gần đây</h2><p>Trạng thái xử lý bên Admin.</p></div>
         </header>

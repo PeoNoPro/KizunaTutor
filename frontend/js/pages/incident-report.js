@@ -92,7 +92,7 @@ function openDialog(ticket, onSent) {
   dialog.showModal(); subject.focus();
 }
 
-const STATUS_STYLE = {'Chưa xử lý': '#a15c00', 'Đang xử lý': '#006194', 'Đã khắc phục, chờ đóng': '#1f7a4d', 'Đã đóng': '#6b7280'};
+const STATUS_STYLE = {'Chưa xử lý': '#a15c00', 'Đang xử lý': '#006194', 'Đã khắc phục, đang theo dõi': '#1f7a4d', 'Đã đóng': '#6b7280'};
 const when = value => value ? new Date(value).toLocaleString('vi-VN', {timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '';
 
 /**

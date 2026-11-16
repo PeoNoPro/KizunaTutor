@@ -11,7 +11,7 @@ const byId = id => document.getElementById(id);
 const number = value => new Intl.NumberFormat('vi-VN').format(value ?? 0);
 const TZ = 'Asia/Ho_Chi_Minh';
 const PRIORITY_TONE = {URGENT: 'danger', HIGH: 'warning', MEDIUM: 'info', LOW: 'neutral'};
-const INCIDENT_TONE = {'Chưa xử lý': 'warning', 'Đang xử lý': 'info', 'Đã khắc phục, chờ đóng': 'success', 'Đã đóng': 'neutral'};
+const INCIDENT_TONE = {'Chưa xử lý': 'warning', 'Đang xử lý': 'info', 'Đã khắc phục, đang theo dõi': 'success', 'Đã đóng': 'neutral'};
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -63,57 +63,6 @@ async function escalated() {
     box.removeAttribute('aria-busy');
   } catch {
     byId('kpiEscalated').textContent = '—'; byId('kpiEscalatedFoot').textContent = 'Chưa tải được';
-    failed(box);
-  }
-}
-
-/** Ca nào đang diễn ra: so giờ hiện tại (giờ Việt Nam) với giờ bắt đầu/kết thúc; ca qua đêm có giờ kết thúc nhỏ hơn giờ bắt đầu. */
-function nowMinutes() {
-  const [h, m] = new Intl.DateTimeFormat('en-GB', {hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ}).format(new Date()).split(':').map(Number);
-  return (h % 24) * 60 + m;
-}
-const minutesOf = value => { const [h, m] = String(value).split(':').map(Number); return h * 60 + (m || 0); };
-function shiftState(shift, now) {
-  const start = minutesOf(shift.start), end = minutesOf(shift.end);
-  const inside = start < end ? now >= start && now < end : now >= start || now < end;
-  if (inside) return 'current';
-  return (start < end ? now >= end : false) ? 'past' : 'upcoming';
-}
-
-async function shifts() {
-  const box = byId('shiftList');
-  try {
-    const data = await fetchAPI('/v1/tickets/shifts');
-    const today = data.days.find(day => day.date === data.today);
-    byId('shiftDate').textContent = new Intl.DateTimeFormat('vi-VN', {weekday: 'long', day: '2-digit', month: '2-digit', timeZone: TZ}).format(new Date(data.today + 'T12:00:00+07:00'));
-    const now = nowMinutes();
-    let currentCount = null, currentLabel = '';
-    const emptyUpcoming = [];
-    box.replaceChildren(...data.shiftTypes.map(shift => {
-      const people = today?.shifts?.[shift.code] || [], state = shiftState(shift, now);
-      if (state === 'current') { currentCount = people.length; currentLabel = shift.label; }
-      if (state !== 'past' && !people.length) emptyUpcoming.push(shift.label);
-      const item = element('div', null, 'mh-shift'); item.dataset.state = state;
-      const head = element('div', null, 'mh-shift-head');
-      head.append(element('strong', shift.label), element('span', String(shift.start).slice(0, 5) + ' – ' + String(shift.end).slice(0, 5), 'mh-shift-time'));
-      if (state === 'current') head.append(chip('Đang diễn ra', 'info'));
-      const names = element('div', null, 'mh-shift-people');
-      if (people.length) people.forEach(person => names.append(element('span', person.displayName, 'mh-person')));
-      else names.append(element('span', 'Chưa xếp nhân viên', 'mh-shift-empty'));
-      item.append(head, names);
-      return item;
-    }));
-    box.removeAttribute('aria-busy');
-    byId('kpiShift').textContent = currentCount == null ? '—' : number(currentCount);
-    byId('kpiShiftFoot').textContent = currentCount == null ? 'Hiện ngoài giờ làm việc' : currentLabel + (currentCount ? '' : ' chưa có ai');
-    if (emptyUpcoming.length) {
-      const alert = byId('shiftAlert');
-      alert.textContent = 'Hôm nay ' + emptyUpcoming.join(', ').toLocaleLowerCase('vi-VN') + ' chưa có nhân viên hỗ trợ. Yêu cầu mới sẽ chờ đến khi có người trong ca.';
-      const link = element('a', 'Xếp lịch ngay'); link.href = '/pages/support-shifts/'; alert.append(' ', link);
-      alert.hidden = false;
-    }
-  } catch {
-    byId('kpiShift').textContent = '—'; byId('kpiShiftFoot').textContent = 'Chưa tải được';
     failed(box);
   }
 }
@@ -170,5 +119,43 @@ async function activity() {
   box.removeAttribute('aria-busy');
 }
 
+/**
+ * Tình hình toàn bộ yêu cầu còn mở (chỉ số lượng). Dòng có trang xử lý thì bấm được:
+ * chuyển Quản lý → danh sách chờ bạn xem xét. (Bỏ phân ca 2026-11-16: không còn trang xếp ca.)
+ */
+const SUPPORT_ROWS = [
+  ['unassigned', 'Chưa có người nhận', 'neutral'],
+  ['inProgress', 'Đang xử lý', 'info'],
+  ['escalated', 'Chuyển Quản lý', 'warning', '/manager/support/tickets?group=0', 'Mở danh sách chờ xem xét'],
+  ['overdue', 'Quá hạn phản hồi', 'danger']];
+/** "25 phút", "9 giờ 33 phút", "2 ngày 4 giờ". */
+function minutes(total) {
+  const m = Math.max(0, Math.round(total)); if (m < 60) return m + ' phút';
+  const h = Math.floor(m / 60); if (h < 24) return h + ' giờ' + (m % 60 ? ' ' + m % 60 + ' phút' : '');
+  return Math.floor(h / 24) + ' ngày' + (h % 24 ? ' ' + h % 24 + ' giờ' : '');
+}
+async function support() {
+  const box = byId('supportPanel');
+  try {
+    const data = await fetchAPI('/v1/tickets/overview'), total = Math.max(1, data.waiting);
+    byId('supportWaiting').textContent = number(data.waiting);
+    byId('kpiUnassigned').textContent = number(data.unassigned || 0);
+    byId('kpiUnassignedFoot').textContent = data.unassigned ? 'Đang chờ nhân viên hỗ trợ nhận xử lý' : 'Không có yêu cầu nào đang chờ';
+    byId('supportAvg').textContent = data.avgFirstResponseMinutes == null ? 'Chưa có' : minutes(data.avgFirstResponseMinutes);
+    byId('supportRows').replaceChildren(...SUPPORT_ROWS.map(([key, label, tone, href, hint]) => {
+      const row = element(href ? 'a' : 'div', null, 'mh-support-row'); row.dataset.tone = tone;
+      if (href) { row.href = href; row.title = hint; }
+      const top = element('div', null, 'mh-support-top');
+      top.append(element('span', label), element('strong', number(data[key] || 0)));
+      const bar = element('div', null, 'mh-support-bar'), fill = element('span');
+      fill.style.width = Math.round((data[key] || 0) / total * 100) + '%'; bar.append(fill);
+      row.append(top, bar); return row;
+    }));
+  } catch {
+    byId('supportWaiting').textContent = '—';byId('kpiUnassigned').textContent = '—';byId('kpiUnassignedFoot').textContent = 'Chưa tải được';
+    failed(byId('supportRows'));
+  } finally { box.removeAttribute('aria-busy'); }
+}
+
 greeting();
-Promise.allSettled([escalated(), shifts(), incidents(), proposals(), activity()]);
+Promise.allSettled([escalated(), support(), incidents(), proposals(), activity()]);

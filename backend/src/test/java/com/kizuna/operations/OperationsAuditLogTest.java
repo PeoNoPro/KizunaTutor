@@ -25,7 +25,7 @@ class OperationsAuditLogTest extends OperationsIntegrationBase {
         mvc.perform(put("/api/admin/operations/booking-policy").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"expectedVersion\":"+version+",\"durationMinutes\":60,\"minAdvanceHours\":24,\"reason\":\""+marker+"-config\"}")).andExpect(status().isOk());
 
         var all=read("?size=50");
-        var reassign=find(all,marker);assertEquals("Sự cố",reassign.get("sourceLabel").asText());assertEquals("Trả lại danh sách chờ",reassign.get("actionLabel").asText());assertEquals("Sự cố nhật ký",reassign.get("targetLabel").asText());assertEquals("Mới ghi nhận",reassign.get("resultLabel").asText());assertEquals(incident.get("incidentId").asText(),reassign.get("incidentId").asText());
+        var reassign=find(all,marker);assertEquals("Sự cố",reassign.get("sourceLabel").asText());assertEquals("Bỏ nhận, trả về hàng chờ",reassign.get("actionLabel").asText());assertEquals("Sự cố nhật ký",reassign.get("targetLabel").asText());assertEquals("Mới ghi nhận",reassign.get("resultLabel").asText());assertEquals(incident.get("incidentId").asText(),reassign.get("incidentId").asText());
         var staff=find(all,marker+"-staff");assertEquals("Đổi trạng thái tài khoản",staff.get("actionLabel").asText());assertEquals("Nhân sự",staff.get("sourceLabel").asText());
         var config=find(all,marker+"-config");assertEquals("Cấu hình",config.get("sourceLabel").asText());assertTrue(config.get("resultLabel").asText().contains("→ 60 phút"));
         assertFalse(all.toString().contains("Mô tả nội bộ"));assertFalse(all.toString().contains("ROLE_"));

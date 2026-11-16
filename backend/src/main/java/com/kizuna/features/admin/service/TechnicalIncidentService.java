@@ -18,9 +18,9 @@ import java.util.*;
 public class TechnicalIncidentService {
     public static final Set<String> STATES=Set.of("NEW","IN_PROGRESS","RESOLVED","CLOSED");
     public static final Set<String> SEVERITIES=Set.of("LOW","NORMAL","HIGH","CRITICAL");
-    public static final Map<String,String> STATUS_LABELS=Map.of("NEW","Chưa xử lý","IN_PROGRESS","Đang xử lý","RESOLVED","Đã khắc phục, chờ đóng","CLOSED","Đã đóng");
+    public static final Map<String,String> STATUS_LABELS=Map.of("NEW","Chưa xử lý","IN_PROGRESS","Đang xử lý","RESOLVED","Đã khắc phục, đang theo dõi","CLOSED","Đã đóng");
     public static final Map<String,String> SEVERITY_LABELS=Map.of("LOW","Thấp","NORMAL","Bình thường","HIGH","Cao","CRITICAL","Nghiêm trọng");
-    public static final Map<String,String> ACTION_LABELS=Map.of("CREATE","Ghi nhận sự cố","CLAIM","Nhận xử lý","REASSIGN","Phân công lại","PROGRESS","Ghi diễn biến","RESOLVE","Giải quyết","RESUME","Tiếp tục xử lý","CLOSE","Đóng sự cố","RELEASE","Trả lại danh sách chờ");
+    public static final Map<String,String> ACTION_LABELS=Map.of("CREATE","Ghi nhận sự cố","CLAIM","Nhận xử lý","REASSIGN","Phân công lại","PROGRESS","Ghi diễn biến","RESOLVE","Giải quyết","RESUME","Xử lý tiếp (chưa khắc phục được)","CLOSE","Đóng sự cố","RELEASE","Bỏ nhận, trả về hàng chờ");
     private final TechnicalIncidentRepository incidents;
     private final TechnicalIncidentEventRepository events;
     private final OperationsActorResolver actors;

@@ -33,6 +33,9 @@ public class OperationsAuditLogRepository {
                NULL,NULL,NULL,NULL
         FROM support_shift_events e JOIN users a ON a.user_id=e.actor_id JOIN users t ON t.user_id=e.staff_id
         UNION ALL
+        SELECT 'USER',e.event_id,e.occurred_at,e.actor_user_id,a.full_name,e.action,t.full_name,e.reason,NULL,NULL,NULL
+        FROM user_account_moderation_events e JOIN users a ON a.user_id=e.actor_user_id JOIN users t ON t.user_id=e.target_user_id
+        UNION ALL
         SELECT 'NOTIFY',d.dispatch_id,d.created_at,d.creator_id,a.full_name,
                CASE WHEN d.urgent THEN 'URGENT' WHEN d.scheduled_at IS NOT NULL THEN 'SCHEDULE' ELSE 'SEND' END,d.title,NULL,
                CASE d.target_mode WHEN 'ALL' THEN 'Toàn hệ thống' ELSE 'Theo vai trò' END||' · '||replace(replace(array_to_string(d.channels,', '),'IN_APP','Trong ứng dụng'),'EMAIL','Email'),NULL,NULL

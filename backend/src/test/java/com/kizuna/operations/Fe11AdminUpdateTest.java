@@ -93,7 +93,7 @@ class Fe11AdminUpdateTest extends OperationsIntegrationBase {
         // Người chậm chân dù gửi đúng phiên bản cũ vẫn nhận thông báo đã có người xử lý.
         act(released,"claim","",admin()).andExpect(status().isConflict()).andExpect(jsonPath("$.message").value("Sự cố đã có người nhận xử lý."));
         var history=data(mvc.perform(get(OPS+"/incidents/"+next.get("incidentId").asText()+"/events").with(admin())).andExpect(status().isOk()).andReturn());
-        assertEquals(4,history.get("totalElements").asInt());assertEquals("Trả lại danh sách chờ",history.get("items").get(2).get("actionLabel").asText());
+        assertEquals(4,history.get("totalElements").asInt());assertEquals("Bỏ nhận, trả về hàng chờ",history.get("items").get(2).get("actionLabel").asText());
     }
     @Test void anotherAdminCanReleaseOnlyWhenOwnerIsNoLongerActive() throws Exception {
         var second=user("second@test.invalid");

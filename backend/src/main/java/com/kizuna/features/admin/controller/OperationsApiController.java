@@ -18,9 +18,12 @@ public class OperationsApiController {
     private final OperationsComponentCatalog catalog;
     private final OperationsAccountSummaryService accountSummary;
     private final OperationsAuditLogService auditLog;
+    private final com.kizuna.features.admin.service.OperationsDashboardService dashboardOverview;
     @GetMapping("/me") public ApiResponse<?> currentAdministrator() {
         return ApiResponse.ok(actors.administratorProfile());
     }
+    /** Tổng quan Admin: tài khoản mới so với kỳ trước (tỷ lệ tăng giảm trên thẻ). */
+    @GetMapping("/dashboard/overview") public ApiResponse<?> overview(@RequestParam(required=false) LocalDate startDate,@RequestParam(required=false) LocalDate endDate) { return ApiResponse.ok(dashboardOverview.overview(startDate,endDate)); }
     @GetMapping("/dashboard/accounts") public ApiResponse<?> accountSummary() { return ApiResponse.ok(accountSummary.read()); }
     @GetMapping("/dashboard/account-statistics") public ApiResponse<?> accountStatistics(@RequestParam(required=false) LocalDate startDate,@RequestParam(required=false) LocalDate endDate) { return ApiResponse.ok(accountSummary.statistics(startDate,endDate)); }
     @GetMapping("/csrf") public ApiResponse<?> csrf(org.springframework.security.web.csrf.CsrfToken token) {

@@ -2,7 +2,7 @@ import { OPERATIONS_BASE as base, api, byId, text, date, notice, option, paging,
 
 const incidentId = new URLSearchParams(location.search).get('id') || '';
 const state = {eventPage: 0, version: null};
-const actionLabels = {claim: 'Nhận xử lý', progress: 'Ghi diễn biến', resolve: 'Đánh dấu đã giải quyết', resume: 'Tiếp tục xử lý', close: 'Đóng sự cố', release: 'Trả lại danh sách chờ'};
+const actionLabels = {claim: 'Nhận xử lý', progress: 'Ghi diễn biến', resolve: 'Đánh dấu đã giải quyết', resume: 'Chưa khắc phục được, xử lý tiếp', close: 'Đóng sự cố', release: 'Bỏ nhận, trả về hàng chờ'};
 
 function commandFields() {
     const fields = {progress: ['detail'], resolve: ['result', 'verification'], resume: ['reason'], release: ['reason']};

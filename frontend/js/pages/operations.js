@@ -114,7 +114,7 @@ export function emptyState(title, message) {
 /** Màu nhãn theo ý nghĩa: xanh lá = tốt/xong, vàng = chờ, đỏ = lỗi/khóa, xanh dương = đang làm, xám = trung tính. */
 const TONES = {
     success: ['Đang hoạt động', 'Thành công', 'Đã duyệt', 'Đang bán', 'Đã đóng', 'Đã gửi'],
-    warning: ['Chờ duyệt', 'Đang chờ', 'Chưa kích hoạt', 'Chờ kích hoạt', 'Chưa xử lý', 'Đã khắc phục, chờ đóng', 'Cao', 'Chờ gửi'],
+    warning: ['Chờ duyệt', 'Đang chờ', 'Chưa kích hoạt', 'Chờ kích hoạt', 'Chưa xử lý', 'Đã khắc phục, đang theo dõi', 'Cao', 'Chờ gửi'],
     danger: ['Tạm khóa', 'Đã bị khóa', 'Thất bại', 'Đã từ chối', 'Nghiêm trọng', 'Ngừng bán', 'Gửi lỗi'],
     info: ['Đang xử lý']
 };
@@ -140,9 +140,9 @@ const INCIDENT_ACTIONS = {
     claim: {label: 'Nhận xử lý', primary: true},
     progress: {label: 'Ghi diễn biến', fields: [['detail', 'Diễn biến xử lý']]},
     resolve: {label: 'Đã khắc phục', primary: true, fields: [['result', 'Kết quả khắc phục'], ['verification', 'Cách đã kiểm tra lại']]},
-    resume: {label: 'Mở lại xử lý', fields: [['reason', 'Lý do mở lại']]},
+    resume: {label: 'Chưa khắc phục được, xử lý tiếp', fields: [['reason', 'Lỗi còn xuất hiện thế nào?']]},
     close: {label: 'Đóng sự cố', confirm: 'Bạn đã kiểm tra hệ thống chạy ổn và muốn đóng sự cố?'},
-    release: {label: 'Trả lại', fields: [['reason', 'Lý do trả lại danh sách chờ']]}
+    release: {label: 'Bỏ nhận, trả về hàng chờ', fields: [['reason', 'Lý do bỏ nhận (để Admin khác nhận tiếp)']]}
 };
 
 /** Hộp thoại nhập ghi chú dùng chung; trả về giá trị đã nhập, hoặc null khi người dùng hủy. */

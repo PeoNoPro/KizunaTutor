@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 
 /** Phạm vi 2026-11-05: trả lại sự cố, trạng thái email, bắt đổi mật khẩu trên API FE-11, giới hạn đính kèm. */
-class Fe11AdminUpdateTest extends OperationsIntegrationBase {
+class AdminOperationsApiTest extends OperationsIntegrationBase {
     private static final String OPS="/api/admin/operations";
     @Autowired JavaMailSender mail;
     private final List<UUID> created=new ArrayList<>();

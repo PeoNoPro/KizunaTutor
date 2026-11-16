@@ -263,6 +263,186 @@ class VerificationReviewServiceTest {
                 () -> service.approveProfileUpdate(tutor.getTutorId())).getCode());
     }
 
+    // ===== REQ-04: duyệt hồ sơ =====
+
+    @Test
+    void req04_approveTutorWithoutMembershipBecomesApprovedUnpaidAndDocumentsVerified() {
+        service.approve(tutor.getTutorId());
+
+        assertEquals(TutorVerificationStatus.APPROVED, tutor.getVerificationStatus());
+        assertEquals(TutorState.APPROVED_UNPAID, tutor.getTutorState());
+        assertNotNull(tutor.getVerifiedAt());
+        verify(credentialRepository).updateStatusForTutor(tutor.getTutorId(),
+                TutorCredentialStatus.PENDING, TutorCredentialStatus.VERIFIED);
+    }
+
+    @Test
+    void req04_approveTutorWhoAlreadyPaidKeepsActivePaid() {
+        tutor.setTutorState(TutorState.ACTIVE_PAID);
+
+        service.approve(tutor.getTutorId());
+
+        assertEquals(TutorVerificationStatus.APPROVED, tutor.getVerificationStatus());
+        assertEquals(TutorState.ACTIVE_PAID, tutor.getTutorState());
+    }
+
+    /**
+     * Hai cán bộ cùng duyệt: người thứ hai đọc lại hồ sơ dưới khóa dòng và thấy đã "Đã phê duyệt".
+     * Test đơn vị mô phỏng thứ tự này; khóa dòng thật của PostgreSQL không được kiểm chứng ở đây.
+     */
+    @Test
+    void req04_secondOfficerApprovingSameProfileGetsConflictAndNothingIsRecordedTwice() {
+        service.approve(tutor.getTutorId());
+
+        assertEquals("ALREADY_PROCESSED", assertThrows(VerificationException.class,
+                () -> service.approve(tutor.getTutorId())).getCode());
+        verify(historyRepository, times(1)).save(any());
+        verify(notificationService, times(1)).approvedAfterCommit(anyString(), anyString());
+    }
+
+    // ===== REQ-05: từ chối hồ sơ =====
+
+    private RejectVerificationRequest.RejectVerificationRequestBuilder rejectRequest() {
+        return RejectVerificationRequest.builder().reasonCode("OTHER").internalNote("Ghi chú");
+    }
+
+    @Test
+    void req05_internalNoteOf2000CharactersIsAccepted() {
+        service.reject(tutor.getTutorId(), rejectRequest().internalNote("n".repeat(2000)).build());
+
+        assertEquals(TutorVerificationStatus.REJECTED, tutor.getVerificationStatus());
+        assertEquals("n".repeat(2000), savedHistory().getInternalNote());
+    }
+
+    @Test
+    void req05_internalNoteOf2001CharactersIsRejectedWithoutLocking() {
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.reject(tutor.getTutorId(), rejectRequest().internalNote("n".repeat(2001)).build()));
+
+        assertEquals("Ghi chú nội bộ tối đa 2.000 ký tự.", ex.getFields().get("internalNote"));
+        verify(tutorRepository, never()).findLockedByTutorId(any());
+        assertEquals(TutorVerificationStatus.PENDING, tutor.getVerificationStatus());
+    }
+
+    @Test
+    void req05_feedbackOf2000CharactersIsAccepted() {
+        service.reject(tutor.getTutorId(), rejectRequest().feedback("f".repeat(2000)).build());
+
+        assertEquals("f".repeat(2000), savedHistory().getFeedback());
+    }
+
+    @Test
+    void req05_feedbackOf2001CharactersIsRejected() {
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.reject(tutor.getTutorId(), rejectRequest().feedback("f".repeat(2001)).build()));
+
+        assertEquals("Phản hồi gửi gia sư tối đa 2.000 ký tự.", ex.getFields().get("feedback"));
+        verify(historyRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
+    }
+
+    // ===== REQ-06: yêu cầu bổ sung thông tin =====
+
+    @Test
+    void req06_requestOf2000CharactersMovesToNeedsInformation() {
+        service.requestInfo(tutor.getTutorId(), new RequestInfoRequest("m".repeat(2000)));
+
+        assertEquals(TutorVerificationStatus.ADDITIONAL_INFO_REQUIRED, tutor.getVerificationStatus());
+        assertTrue(VerificationStateMachine.isEditable(tutor.getVerificationStatus()), "gia sư sửa lại được hồ sơ");
+        assertEquals(TutorVerifAction.REQUEST_INFO, savedHistory().getAction());
+    }
+
+    @Test
+    void req06_requestOf2001CharactersIsRejected() {
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.requestInfo(tutor.getTutorId(), new RequestInfoRequest("m".repeat(2001))));
+
+        assertEquals("Nội dung yêu cầu tối đa 2.000 ký tự.", ex.getFields().get("message"));
+        assertEquals(TutorVerificationStatus.PENDING, tutor.getVerificationStatus());
+        verifyNoInteractions(notificationService);
+    }
+
+    // ===== REQ-07: danh sách hồ sơ chờ duyệt =====
+
+    @SuppressWarnings("unchecked")
+    private org.springframework.data.domain.Pageable queuePageRequest(VerificationQueueQuery query) {
+        when(tutorRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class),
+                any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(org.springframework.data.domain.Page.empty());
+        service.getQueue(query);
+        ArgumentCaptor<org.springframework.data.domain.Pageable> pageable =
+                ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+        verify(tutorRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), pageable.capture());
+        return pageable.getValue();
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"0, 10", "1, 1", "49, 49", "50, 50", "51, 50"})
+    void req07_pageSizeUsesDefaultForZeroAndIsCappedAt50(int requested, int expected) {
+        var pageable = queuePageRequest(VerificationQueueQuery.builder().size(requested).build());
+
+        assertEquals(expected, pageable.getPageSize());
+    }
+
+    @Test
+    void req07_keywordOf100CharactersIsAccepted() {
+        assertDoesNotThrow(() -> queuePageRequest(VerificationQueueQuery.builder().keyword("k".repeat(100)).build()));
+    }
+
+    @Test
+    void req07_keywordOf101CharactersIsRejected() {
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.getQueue(VerificationQueueQuery.builder().keyword("k".repeat(101)).build()));
+
+        assertTrue(ex.getFields().containsKey("keyword"));
+    }
+
+    @Test
+    void req07_sameStartAndEndDateIsAcceptedButEndBeforeStartIsRejected() {
+        LocalDate day = LocalDate.of(2026, 11, 3);
+        assertDoesNotThrow(() -> queuePageRequest(VerificationQueueQuery.builder()
+                .submittedFrom(day).submittedTo(day).build()));
+
+        VerificationException ex = assertThrows(VerificationException.class, () -> service.getQueue(
+                VerificationQueueQuery.builder().submittedFrom(day).submittedTo(day.minusDays(1)).build()));
+        assertTrue(ex.getFields().containsKey("submittedTo"));
+    }
+
+    @Test
+    void req07_invalidJlptAndStatusFiltersAreRejectedWithFieldErrors() {
+        assertTrue(assertThrows(VerificationException.class,
+                () -> service.getQueue(VerificationQueueQuery.builder().jlptLevel("N6").build()))
+                .getFields().containsKey("jlptLevel"));
+        assertTrue(assertThrows(VerificationException.class,
+                () -> service.getQueue(VerificationQueueQuery.builder().status("KHONG_CO").build()))
+                .getFields().containsKey("status"));
+    }
+
+    // ===== REQ-09: duyệt / từ chối yêu cầu cập nhật hồ sơ =====
+
+    @Test
+    void req09_rejectReasonOf2000CharactersIsAccepted() {
+        pendingUpdate("N1");
+
+        service.rejectProfileUpdate(tutor.getTutorId(), new RejectProfileUpdateRequest("r".repeat(2000)));
+
+        assertEquals("r".repeat(2000), savedHistory().getFeedback());
+        assertEquals("N2", tutor.getHighestJlptLevel());
+    }
+
+    @Test
+    void req09_rejectReasonOf2001CharactersIsRejectedAndProfileUnchanged() {
+        pendingUpdate("N1");
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.rejectProfileUpdate(tutor.getTutorId(), new RejectProfileUpdateRequest("r".repeat(2001))));
+
+        assertEquals("Lý do tối đa 2.000 ký tự.", ex.getFields().get("feedback"));
+        assertEquals("N2", tutor.getHighestJlptLevel());
+        verify(historyRepository, never()).save(any());
+        verify(credentialRepository, never()).updateStatusForTutor(any(), any(), any());
+    }
+
     @Test
     void firstSubmissionIsNotAProfileUpdate() {
         List<TutorVerificationHistory> timeline = List.of(

@@ -185,4 +185,114 @@ class VerificationStateMachineTest {
                 captor.getAllValues().stream().map(TutorVerificationHistory::getAction).toList());
         assertThrows(VerificationException.class, () -> stateMachine.submit(tutor));
     }
+
+    // ===== REQ-01: trạng thái nào được sửa hồ sơ =====
+
+    @ParameterizedTest
+    @EnumSource(value = TutorVerificationStatus.class, names = {"UNVERIFIED", "ADDITIONAL_INFO_REQUIRED"})
+    void req01_onlyUnverifiedAndNeedsInformationAreEditable(TutorVerificationStatus status) {
+        assertTrue(VerificationStateMachine.isEditable(status));
+        assertDoesNotThrow(() -> VerificationStateMachine.requireEditable(tutor(status, TutorState.DRAFT_PROFILE)));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = TutorVerificationStatus.class, names = {"PENDING", "APPROVED"})
+    void req01_pendingAndApprovedProfilesAreLocked(TutorVerificationStatus status) {
+        assertFalse(VerificationStateMachine.isEditable(status));
+        assertEquals("VERIFICATION_LOCKED", assertThrows(VerificationException.class,
+                () -> VerificationStateMachine.requireEditable(tutor(status, TutorState.PENDING_VERIFICATION))).getCode());
+    }
+
+    @Test
+    void req05_rejectedProfileIsLockedWithFinalRejectionCode() {
+        assertFalse(VerificationStateMachine.isEditable(TutorVerificationStatus.REJECTED));
+        assertEquals("VERIFICATION_REJECTED", assertThrows(VerificationException.class,
+                () -> VerificationStateMachine.requireEditable(
+                        tutor(TutorVerificationStatus.REJECTED, TutorState.REJECTED))).getCode());
+    }
+
+    @Test
+    void req05_rejectMovesPendingToRejectedAndRejectsPendingDocuments() {
+        Tutor tutor = tutor(TutorVerificationStatus.PENDING, TutorState.PENDING_VERIFICATION);
+
+        stateMachine.reject(tutor, officer, RejectionReason.OTHER, null, "ghi chú");
+
+        assertEquals(TutorVerificationStatus.REJECTED, tutor.getVerificationStatus());
+        assertEquals(TutorState.REJECTED, tutor.getTutorState());
+        verify(credentialRepository).updateStatusForTutor(tutor.getTutorId(),
+                TutorCredentialStatus.PENDING, TutorCredentialStatus.REJECTED);
+    }
+
+    // ===== REQ-08, REQ-09: yêu cầu cập nhật hồ sơ đã phê duyệt =====
+
+    @Test
+    void req08_approvedTutorProfileUpdateKeepsApprovedAndRecordsOneSubmit() {
+        Tutor tutor = tutor(TutorVerificationStatus.APPROVED, TutorState.ACTIVE_PAID);
+        tutor.setHighestJlptLevel("N2");
+
+        TutorVerificationHistory history = stateMachine.submitProfileUpdate(tutor, "N1", "Đã đỗ N1");
+
+        assertEquals(TutorVerificationStatus.APPROVED, tutor.getVerificationStatus());
+        assertEquals("N2", tutor.getHighestJlptLevel(), "chưa áp dụng cho tới khi được duyệt");
+        assertEquals(TutorVerifAction.SUBMIT, history.getAction());
+        assertEquals("Đã đỗ N1", history.getFeedback());
+        verify(historyRepository, times(1)).save(any());
+        verifyNoInteractions(credentialRepository);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = TutorVerificationStatus.class, names = {"UNVERIFIED", "PENDING", "ADDITIONAL_INFO_REQUIRED", "REJECTED"})
+    void req08_profileUpdateTransitionsRequireApprovedProfile(TutorVerificationStatus status) {
+        Tutor tutor = tutor(status, TutorState.DRAFT_PROFILE);
+
+        assertEquals("ALREADY_PROCESSED", assertThrows(VerificationException.class,
+                () -> stateMachine.submitProfileUpdate(tutor, "N1", null)).getCode());
+        assertEquals("ALREADY_PROCESSED", assertThrows(VerificationException.class,
+                () -> stateMachine.approveProfileUpdate(tutor, officer, "N1")).getCode());
+        assertEquals("ALREADY_PROCESSED", assertThrows(VerificationException.class,
+                () -> stateMachine.rejectProfileUpdate(tutor, officer, "lý do")).getCode());
+        assertEquals(status, tutor.getVerificationStatus());
+        verifyNoInteractions(historyRepository, credentialRepository);
+    }
+
+    @Test
+    void req09_approveProfileUpdateAppliesRequestedJlptAndVerifiesPendingDocuments() {
+        Tutor tutor = tutor(TutorVerificationStatus.APPROVED, TutorState.ACTIVE_PAID);
+        tutor.setHighestJlptLevel("N2");
+
+        TutorVerificationHistory history = stateMachine.approveProfileUpdate(tutor, officer, "N1");
+
+        assertEquals("N1", tutor.getHighestJlptLevel());
+        assertEquals(TutorVerificationStatus.APPROVED, tutor.getVerificationStatus());
+        assertEquals(TutorVerifAction.APPROVE, history.getAction());
+        assertSame(officer, history.getOfficer());
+        verify(credentialRepository).updateStatusForTutor(tutor.getTutorId(),
+                TutorCredentialStatus.PENDING, TutorCredentialStatus.VERIFIED);
+    }
+
+    @Test
+    void req09_approveProfileUpdateWithoutJlptChangeKeepsCurrentLevel() {
+        Tutor tutor = tutor(TutorVerificationStatus.APPROVED, TutorState.ACTIVE_PAID);
+        tutor.setHighestJlptLevel("N2");
+
+        stateMachine.approveProfileUpdate(tutor, officer, null);
+
+        assertEquals("N2", tutor.getHighestJlptLevel());
+    }
+
+    @Test
+    void req09_rejectProfileUpdateKeepsOriginalProfileAndRejectsPendingDocuments() {
+        Tutor tutor = tutor(TutorVerificationStatus.APPROVED, TutorState.ACTIVE_PAID);
+        tutor.setHighestJlptLevel("N2");
+
+        TutorVerificationHistory history = stateMachine.rejectProfileUpdate(tutor, officer, " Chứng chỉ bị mờ ");
+
+        assertEquals("N2", tutor.getHighestJlptLevel());
+        assertEquals(TutorVerificationStatus.APPROVED, tutor.getVerificationStatus());
+        assertEquals(TutorState.ACTIVE_PAID, tutor.getTutorState());
+        assertEquals(TutorVerifAction.REJECT, history.getAction());
+        assertEquals("Chứng chỉ bị mờ", history.getFeedback());
+        verify(credentialRepository).updateStatusForTutor(tutor.getTutorId(),
+                TutorCredentialStatus.PENDING, TutorCredentialStatus.REJECTED);
+    }
 }

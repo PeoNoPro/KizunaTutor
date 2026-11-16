@@ -65,6 +65,13 @@ class VerificationReviewControllerTest {
     @MockBean
     private UserRepository userRepository;
 
+    /** Cấu hình FE-11 (OperationsWebConfig, chuỗi bảo mật /api/admin/operations) được nạp tự động và cần các bean này. */
+    @MockBean
+    private com.kizuna.features.admin.service.OperationsActorResolver operationsActorResolver;
+
+    @MockBean
+    private com.kizuna.core.security.JwtTokenVerifier jwtTokenVerifier;
+
     private static RequestPostProcessor as(String role) {
         User user = User.builder().userId(UUID.randomUUID()).email("u@kizuna.test").fullName("Người dùng")
                 .role(Role.builder().roleName(role).build()).accountStatus(UserAccountStatus.ACTIVE).build();

@@ -64,6 +64,9 @@ class PaymentControllersTest {
     @MockBean private PaymentIssueService issueService;
     @MockBean private JwtTokenProvider jwtTokenProvider;
     @MockBean private UserRepository userRepository;
+    // OperationsWebConfig (FE-11) được @WebMvcTest nạp tự động và cần các bean này.
+    @MockBean private com.kizuna.features.admin.service.OperationsActorResolver operationsActorResolver;
+    @MockBean private com.kizuna.core.security.JwtTokenVerifier jwtTokenVerifier;
 
     private static RequestPostProcessor as(String role) {
         User user = User.builder().userId(UUID.randomUUID()).email("u@kizuna.test").fullName("Người dùng")

@@ -47,6 +47,50 @@ class MembershipPeriodCalculatorTest {
         assertEquals(LocalDate.of(2027, 5, 3), calculator.calculate(LocalDate.of(2026, 11, 4), null, 6).endDate());
     }
 
+    // ===== REQ-15: ví dụ trong requirement =====
+
+    @Test
+    void req15_novemberPurchaseWithoutMembershipRunsToMidDecember() {
+        var period = calculator.calculate(LocalDate.of(2026, 11, 15), null, 1);
+
+        assertEquals(LocalDate.of(2026, 11, 15), period.startDate());
+        assertEquals(LocalDate.of(2026, 12, 14), period.endDate());
+    }
+
+    @Test
+    void req15_purchaseStacksAfterMembershipEndingNovember30() {
+        var period = calculator.calculate(LocalDate.of(2026, 11, 15), LocalDate.of(2026, 11, 30), 1);
+
+        assertEquals(LocalDate.of(2026, 12, 1), period.startDate());
+        assertEquals(LocalDate.of(2026, 12, 31), period.endDate());
+    }
+
+    @Test
+    void req15_januaryThirtyFirstPlusOneMonthEndsInFebruary() {
+        var period = calculator.calculate(LocalDate.of(2027, 1, 31), null, 1);
+
+        assertEquals(LocalDate.of(2027, 1, 31), period.startDate());
+        assertEquals(LocalDate.of(2027, 2, 27), period.endDate());
+    }
+
+    @Test
+    void req15_januaryThirtyFirstInLeapYearEndsOnFebruary28() {
+        assertEquals(LocalDate.of(2028, 2, 28), calculator.calculate(LocalDate.of(2028, 1, 31), null, 1).endDate());
+    }
+
+    @Test
+    void req15_stackingAfterJanuary30StartsJanuary31AndHandlesShortFebruary() {
+        var period = calculator.calculate(LocalDate.of(2027, 1, 10), LocalDate.of(2027, 1, 30), 1);
+
+        assertEquals(LocalDate.of(2027, 1, 31), period.startDate());
+        assertEquals(LocalDate.of(2027, 2, 27), period.endDate());
+    }
+
+    @Test
+    void req15_twelveMonthPlanEndsTheDayBeforeTheSameDateNextYear() {
+        assertEquals(LocalDate.of(2027, 11, 14), calculator.calculate(LocalDate.of(2026, 11, 15), null, 12).endDate());
+    }
+
     @Test
     void rejectsInvalidDuration() {
         assertThrows(IllegalArgumentException.class, () -> calculator.calculate(LocalDate.now(), null, 0));

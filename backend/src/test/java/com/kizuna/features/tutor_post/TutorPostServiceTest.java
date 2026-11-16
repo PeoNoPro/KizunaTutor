@@ -309,5 +309,163 @@ class TutorPostServiceTest {
         void unknownStatusFilterIsRejected() {
             assertThrows(BadRequestException.class, () -> service.list("KHONG_HOP_LE", null, 0, 10));
         }
+
+        // ----- REQ-12: giá trị biên khi duyệt bài -----
+
+        private TutorPost pendingPost() {
+            TutorPost pending = post(TutorPostStatus.PENDING_REVIEW);
+            when(postRepository.findLockedById(pending.getPostId())).thenReturn(Optional.of(pending));
+            return pending;
+        }
+
+        @Test
+        void req12_rejectReasonOf2000CharactersIsAccepted() {
+            TutorPost pending = pendingPost();
+
+            service.reject(pending.getPostId(), officer, new RejectPostRequest("r".repeat(2000)));
+
+            assertEquals(TutorPostStatus.REJECTED, pending.getStatus());
+            assertEquals("r".repeat(2000), pending.getRejectionReason());
+        }
+
+        @Test
+        void req12_rejectReasonOf2001CharactersIsRejectedAndPostStaysPending() {
+            TutorPost pending = pendingPost();
+
+            BadRequestException e = assertThrows(BadRequestException.class,
+                    () -> service.reject(pending.getPostId(), officer, new RejectPostRequest("r".repeat(2001))));
+
+            assertEquals("Lý do từ chối tối đa 2.000 ký tự.", e.getMessage());
+            assertEquals(TutorPostStatus.PENDING_REVIEW, pending.getStatus());
+            verify(postRepository, never()).findLockedById(any());
+            verify(postRepository, never()).save(any());
+        }
+
+        @Test
+        void req12_revisionRequestOf2000CharactersIsAcceptedAnd2001IsRejected() {
+            TutorPost pending = pendingPost();
+
+            BadRequestException e = assertThrows(BadRequestException.class,
+                    () -> service.requestInfo(pending.getPostId(), officer, new RejectPostRequest("m".repeat(2001))));
+            assertEquals("Nội dung yêu cầu tối đa 2.000 ký tự.", e.getMessage());
+            assertEquals(TutorPostStatus.PENDING_REVIEW, pending.getStatus());
+
+            service.requestInfo(pending.getPostId(), officer, new RejectPostRequest("m".repeat(2000)));
+            assertEquals(TutorPostStatus.NEEDS_REVISION, pending.getStatus());
+        }
+
+        @Test
+        void req12_alreadyRejectedPostCannotBeReviewedAgain() {
+            TutorPost rejected = post(TutorPostStatus.REJECTED);
+            when(postRepository.findLockedById(rejected.getPostId())).thenReturn(Optional.of(rejected));
+
+            assertEquals(TutorPostService.MSG_ALREADY_REVIEWED, assertThrows(ConflictException.class,
+                    () -> service.reject(rejected.getPostId(), officer, new RejectPostRequest("Lý do"))).getMessage());
+            assertEquals(TutorPostStatus.REJECTED, rejected.getStatus());
+            verify(tutorRepository, never()).save(any());
+        }
+
+        @Test
+        void req12_searchKeywordOf100CharactersIsAccepted() {
+            when(postRepository.search(any(), any(), any())).thenReturn(org.springframework.data.domain.Page.empty());
+
+            assertDoesNotThrow(() -> service.list(null, "k".repeat(100), 0, 10));
+        }
+
+        @Test
+        void req12_searchKeywordOf101CharactersIsRejected() {
+            BadRequestException e = assertThrows(BadRequestException.class,
+                    () -> service.list(null, "k".repeat(101), 0, 10));
+
+            assertEquals("Từ khóa tìm kiếm tối đa 100 ký tự.", e.getMessage());
+            verify(postRepository, never()).search(any(), any(), any());
+        }
+    }
+
+    /** REQ-10: giá trị biên của nội dung bài đăng. */
+    @Nested
+    class ContentBoundaries {
+
+        private static final String TITLE = "Luyện thi JLPT N3 cấp tốc";
+        private static final String DESCRIPTION = "Giới thiệu ".repeat(10);
+        private static final List<PriceItemRequest> PRICES =
+                List.of(new PriceItemRequest("JLPT_N3", new BigDecimal("250000")));
+
+        private void assertAccepted(SubmitPostRequest request) {
+            service.submit(user, request);
+            ArgumentCaptor<TutorPost> saved = ArgumentCaptor.forClass(TutorPost.class);
+            verify(postRepository).saveAndFlush(saved.capture());
+            assertEquals(TutorPostStatus.PENDING_REVIEW, saved.getValue().getStatus());
+        }
+
+        private void assertRejected(SubmitPostRequest request, String expectedError) {
+            BadRequestException e = assertThrows(BadRequestException.class, () -> service.submit(user, request));
+            assertTrue(e.getMessage().contains(expectedError), e.getMessage());
+            verify(postRepository, never()).saveAndFlush(any());
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(ints = {10, 11, 149, 150})
+        void req10_titleWithinTenTo150CharactersIsAccepted(int length) {
+            assertAccepted(new SubmitPostRequest("t".repeat(length), DESCRIPTION, null, "online", PRICES));
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(ints = {9, 151})
+        void req10_titleOutsideTenTo150CharactersIsRejected(int length) {
+            assertRejected(new SubmitPostRequest("t".repeat(length), DESCRIPTION, null, "online", PRICES),
+                    "Tiêu đề từ 10 đến 150 ký tự");
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(ints = {50, 51, 2999, 3000})
+        void req10_introductionWithin50To3000CharactersIsAccepted(int length) {
+            assertAccepted(new SubmitPostRequest(TITLE, "d".repeat(length), null, "online", PRICES));
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(ints = {49, 3001})
+        void req10_introductionOutside50To3000CharactersIsRejected(int length) {
+            assertRejected(new SubmitPostRequest(TITLE, "d".repeat(length), null, "online", PRICES),
+                    "Nội dung giới thiệu từ 50 đến 3.000 ký tự");
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(ints = {254, 255})
+        void req10_expertiseUpTo255CharactersIsAccepted(int length) {
+            assertAccepted(new SubmitPostRequest(TITLE, DESCRIPTION, "s".repeat(length), "online", PRICES));
+        }
+
+        @Test
+        void req10_expertiseOf256CharactersIsRejected() {
+            assertRejected(new SubmitPostRequest(TITLE, DESCRIPTION, "s".repeat(256), "online", PRICES),
+                    "Chuyên môn tối đa 255 ký tự");
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.NullAndEmptySource
+        @org.junit.jupiter.params.provider.ValueSource(strings = {"  ", "QUA_THU"})
+        void req10_teachingFormatIsRequired(String format) {
+            assertRejected(new SubmitPostRequest(TITLE, DESCRIPTION, null, format, PRICES), "Vui lòng chọn hình thức dạy");
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = {"10000", "10001", "9999999", "10000000"})
+        void req10_tuitionWithinTenThousandToTenMillionIsAccepted(String rate) {
+            assertAccepted(requestWith(List.of(new PriceItemRequest("JLPT_N3", new BigDecimal(rate)))));
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = {"9999", "10000001"})
+        void req10_tuitionOutsideTenThousandToTenMillionIsRejected(String rate) {
+            assertRejected(requestWith(List.of(new PriceItemRequest("JLPT_N3", new BigDecimal(rate)))),
+                    "Học phí mỗi giờ từ 10.000 đ đến 10.000.000 đ");
+        }
+
+        @Test
+        void req10_missingTuitionAmountIsRejected() {
+            assertRejected(requestWith(java.util.Collections.singletonList(new PriceItemRequest("JLPT_N3", null))),
+                    "Học phí mỗi giờ từ 10.000 đ đến 10.000.000 đ");
+        }
     }
 }

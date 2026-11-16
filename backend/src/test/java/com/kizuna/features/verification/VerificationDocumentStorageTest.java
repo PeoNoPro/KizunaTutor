@@ -84,6 +84,47 @@ class VerificationDocumentStorageTest {
         assertInvalid(new MockMultipartFile("file", "lon.pdf", "application/pdf", big));
     }
 
+    /** PDF hợp lệ có đúng {@code size} byte: phần đầu "%PDF-", phần cuối "%%EOF", ở giữa là khoảng trắng. */
+    private static byte[] pdfOfSize(int size) {
+        byte[] content = new byte[size];
+        java.util.Arrays.fill(content, (byte) ' ');
+        byte[] head = "%PDF-1.4\n".getBytes(StandardCharsets.US_ASCII);
+        byte[] tail = "\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
+        System.arraycopy(head, 0, content, 0, head.length);
+        System.arraycopy(tail, 0, content, size - tail.length, tail.length);
+        return content;
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {1, 0})
+    void req02_pdfJustUnderOrExactlyTenMegabytesIsAccepted(int bytesBelowLimit) {
+        int size = (int) VerificationDocumentStorage.MAX_FILE_SIZE - bytesBelowLimit;
+
+        var document = storage.validate(new MockMultipartFile("file", "dung-han.pdf", "application/pdf", pdfOfSize(size)));
+
+        assertEquals(size, document.content().length);
+        assertTrue(document.key().endsWith(".pdf"));
+    }
+
+    @Test
+    void req02_pdfOneByteOverTenMegabytesIsRejected() {
+        assertInvalid(new MockMultipartFile("file", "qua-han.pdf", "application/pdf",
+                pdfOfSize((int) VerificationDocumentStorage.MAX_FILE_SIZE + 1)));
+    }
+
+    @Test
+    void req02_missingFileIsRejected() {
+        assertEquals("INVALID_FILE", assertThrows(VerificationException.class, () -> storage.validate(null)).getCode());
+    }
+
+    @Test
+    void req02_contentMustMatchExtensionNotJustTheFileName() throws IOException {
+        assertInvalid(new MockMultipartFile("file", "anh.jpg", "image/jpeg", image("png")));
+        assertInvalid(new MockMultipartFile("file", "anh.png", "image/png", image("jpg")));
+        assertInvalid(new MockMultipartFile("file", "anh.pdf", "application/pdf", image("png")));
+        assertInvalid(new MockMultipartFile("file", "giay-to.png", "image/png", validPdf()));
+    }
+
     @Test
     void rejectsExecutableRenamedToPdf() {
         byte[] exe = new byte[]{'M', 'Z', (byte) 0x90, 0, 3, 0, 0, 0};

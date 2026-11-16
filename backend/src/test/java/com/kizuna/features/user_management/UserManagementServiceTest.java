@@ -219,6 +219,178 @@ class UserManagementServiceTest {
         verifyNoWrite();
     }
 
+    // ===== REQ-24: danh sách =====
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"10, 10", "20, 20", "50, 50", "0, 20", "9, 20", "11, 20", "49, 20", "51, 20", "100, 20"})
+    void req24_onlyPageSizes10_20_50AreUsedOtherwiseDefault20(int requested, int expected) {
+        when(repository.list(any(), any(), any(), anyInt(), anyInt())).thenReturn(new ManagedUserRepository.Page(List.of(), 0));
+
+        var page = service.list("TUTOR", null, null, 0, requested);
+
+        verify(repository).list("ROLE_TUTOR", null, null, 0, expected);
+        assertThat(page.size()).isEqualTo(expected);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"PENDING, PENDING", "active, ACTIVE", "Suspended, SUSPENDED", "BANNED, BANNED"})
+    void req24_eachAccountStatusCanBeUsedAsFilter(String filter, String expected) {
+        when(repository.list(any(), any(), any(), anyInt(), anyInt())).thenReturn(new ManagedUserRepository.Page(List.of(), 0));
+
+        service.list("LEARNER", null, filter, 0, 20);
+
+        verify(repository).list("ROLE_LEARNER", expected, null, 0, 20);
+    }
+
+    @Test
+    void req24_keywordOf100CharactersIsKeptWhole() {
+        when(repository.list(any(), any(), any(), anyInt(), anyInt())).thenReturn(new ManagedUserRepository.Page(List.of(), 0));
+
+        service.list("TUTOR", "y".repeat(100), null, 0, 20);
+
+        verify(repository).list("ROLE_TUTOR", null, "%" + "y".repeat(100) + "%", 0, 20);
+    }
+
+    @Test
+    void req24_percentAndUnderscoreAreSearchedLiterally() {
+        when(repository.list(any(), any(), any(), anyInt(), anyInt())).thenReturn(new ManagedUserRepository.Page(List.of(), 0));
+
+        service.list("TUTOR", "a_b%", null, 0, 20);
+
+        verify(repository).list("ROLE_TUTOR", null, "%a\\_b\\%%", 0, 20);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"ADMIN", "MANAGER", "CS_STAFF", "ACADEMIC_OFFICER", "ROLE_TUTOR"})
+    void req24_staffAndUnknownGroupsAreRejected(String category) {
+        assertThatThrownBy(() -> service.list(category, null, null, 0, 20))
+                .isInstanceOfSatisfying(BusinessException.class, e -> {
+                    assertThat(e.status()).isEqualTo(400);
+                    assertThat(e.getMessage()).isEqualTo("Nhóm người dùng không hợp lệ.");
+                });
+        verify(repository, never()).list(any(), any(), any(), anyInt(), anyInt());
+    }
+
+    // ===== REQ-25: chi tiết =====
+
+    @Test
+    void req25_historyIsLimitedTo20MostRecentChanges() {
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "ACTIVE")));
+
+        service.detail(USER);
+
+        verify(repository).statusHistory(USER, 20);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"ROLE_ADMIN", "ROLE_MANAGER", "ROLE_CS_STAFF", "ROLE_ACADEMIC_OFFICER"})
+    void req25_staffAccountsAreNeverReturned(String role) {
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account(role, "ACTIVE")));
+
+        assertThatThrownBy(() -> service.detail(USER))
+                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.status()).isEqualTo(404));
+        verify(repository, never()).statusHistory(any(), anyInt());
+    }
+
+    @Test
+    void req25_learnerDetailReturnsProfileAndAllowedStatuses() {
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "SUSPENDED")));
+        when(repository.learnerProfile(USER)).thenReturn(Optional.of(new LearnerRow("N5", "N3", "Giao tiếp", "Hà Nội", null)));
+
+        var d = service.detail(USER);
+
+        assertThat(d.fullName()).isEqualTo("Nguyễn Văn A");
+        assertThat(d.email()).isEqualTo("a@example.com");
+        assertThat(d.learnerProfile().currentLevel()).isEqualTo("N5");
+        assertThat(d.tutorProfile()).isNull();
+        assertThat(d.allowedStatuses()).extracting("value").containsExactly("ACTIVE", "BANNED");
+    }
+
+    // ===== REQ-26: đổi trạng thái =====
+
+    @Test
+    void req26_activeToSuspendedThenAuditThenEmailInThatOrder() {
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "ACTIVE")));
+        when(repository.updateStatus(USER, "ACTIVE", "SUSPENDED")).thenReturn(1);
+
+        service.updateStatus(USER, new UpdateUserStatusRequest("SUSPENDED", "ACTIVE", "Vi phạm", null), MANAGER);
+
+        var order = org.mockito.Mockito.inOrder(repository, mail);
+        order.verify(repository).updateStatus(USER, "ACTIVE", "SUSPENDED");
+        order.verify(repository).insertAudit(eq(MANAGER), eq(USER), anyString());
+        order.verify(mail).statusChangedAfterCommit("a@example.com", "Nguyễn Văn A", "SUSPENDED", null);
+    }
+
+    @Test
+    void req26_suspendedBackToActiveIsAllowed() {
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "SUSPENDED")));
+        when(repository.updateStatus(USER, "SUSPENDED", "ACTIVE")).thenReturn(1);
+
+        service.updateStatus(USER, new UpdateUserStatusRequest("ACTIVE", "SUSPENDED", "Đã xử lý xong", null), MANAGER);
+
+        verify(repository).updateStatus(USER, "SUSPENDED", "ACTIVE");
+        verify(repository).insertAudit(eq(MANAGER), eq(USER), anyString());
+        verify(mail).statusChangedAfterCommit(anyString(), anyString(), eq("ACTIVE"), isNull());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"   ", "\t"})
+    void req26_emptyReasonIsRejectedBeforeReadingTheAccount(String reason) {
+        assertThatThrownBy(() -> service.updateStatus(USER, new UpdateUserStatusRequest("BANNED", "ACTIVE", reason, null), MANAGER))
+                .isInstanceOfSatisfying(BusinessException.class, e -> {
+                    assertThat(e.status()).isEqualTo(400);
+                    assertThat(e.getMessage()).isEqualTo("Vui lòng nhập lý do nội bộ.");
+                });
+        verify(repository, never()).findAccount(any());
+        verifyNoWrite();
+    }
+
+    @Test
+    void req26_failedAuditWriteSendsNoEmail() {
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "ACTIVE")));
+        when(repository.updateStatus(USER, "ACTIVE", "BANNED")).thenReturn(1);
+        org.mockito.Mockito.doThrow(new IllegalStateException("db")).when(repository).insertAudit(any(), any(), any());
+
+        assertThatThrownBy(() -> service.updateStatus(USER, new UpdateUserStatusRequest("BANNED", "ACTIVE", "x", null), MANAGER))
+                .isInstanceOf(IllegalStateException.class);
+        verify(mail, never()).statusChangedAfterCommit(any(), any(), any(), any());
+    }
+
+    // ----- Giới hạn độ dài lý do và lời nhắn: khai báo trên DTO, được kiểm tra khi controller nhận @Valid -----
+
+    private static final jakarta.validation.Validator VALIDATOR =
+            jakarta.validation.Validation.buildDefaultValidatorFactory().getValidator();
+
+    private static java.util.Set<String> violatedFields(UpdateUserStatusRequest request) {
+        return VALIDATOR.validate(request).stream()
+                .map(v -> v.getPropertyPath().toString()).collect(java.util.stream.Collectors.toSet());
+    }
+
+    @Test
+    void req26_reasonAndMessageOf1000CharactersAreValid() {
+        assertThat(violatedFields(new UpdateUserStatusRequest("BANNED", "ACTIVE", "r".repeat(1000), "m".repeat(1000))))
+                .isEmpty();
+    }
+
+    @Test
+    void req26_reasonOf1001CharactersIsInvalid() {
+        assertThat(violatedFields(new UpdateUserStatusRequest("BANNED", "ACTIVE", "r".repeat(1001), null)))
+                .containsExactly("reason");
+    }
+
+    @Test
+    void req26_messageToUserOf1001CharactersIsInvalid() {
+        assertThat(violatedFields(new UpdateUserStatusRequest("BANNED", "ACTIVE", "Lý do", "m".repeat(1001))))
+                .containsExactly("message");
+    }
+
+    @Test
+    void req26_blankReasonStatusAndExpectedStatusAreInvalid() {
+        assertThat(violatedFields(new UpdateUserStatusRequest(" ", " ", " ", null)))
+                .containsExactlyInAnyOrder("status", "expectedStatus", "reason");
+    }
+
     private void verifyNoWrite() {
         verify(repository, never()).updateStatus(any(), any(), any());
         verify(repository, never()).insertAudit(any(), any(), any());

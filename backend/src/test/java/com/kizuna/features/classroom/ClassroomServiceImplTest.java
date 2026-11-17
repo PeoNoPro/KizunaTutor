@@ -150,6 +150,21 @@ class ClassroomServiceImplTest {
     // ----- Tạo lớp (UC-93) -----
 
     @Test
+    void createNotifiesLearnerWithSessionsAndSchedule() {
+        allowConnection();
+        var events = mock(com.kizuna.features.notification.service.NotificationEvents.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "notificationEvents", events);
+
+        service.create(asTutor(tutor), req(learner.getLearnerId(), "Lớp N4"));
+
+        var content = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(events).publish(argThat(k -> k.startsWith("classroom:") && k.endsWith(":created")), eq("CONNECTION"),
+                eq("Gia sư đã tạo lớp học cho bạn"), content.capture(), eq("/learner/connections"),
+                eq(List.of(learner.getUser().getUserId())));
+        assertThat(content.getValue()).contains("Lớp N4").contains("24 buổi").contains("19:00–20:30");
+    }
+
+    @Test
     void createsActiveClassroomForConnectedLearner() {
         allowConnection();
 

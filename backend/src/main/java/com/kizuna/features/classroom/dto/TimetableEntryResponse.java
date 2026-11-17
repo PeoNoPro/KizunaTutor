@@ -21,5 +21,8 @@ public record TimetableEntryResponse(
         int dayOfWeek,
         @JsonFormat(pattern = "HH:mm") LocalTime startTime,
         @JsonFormat(pattern = "HH:mm") LocalTime endTime,
-        OffsetDateTime classStartedAt) {
+        OffsetDateTime classStartedAt,
+        String learningMode,
+        String meetingLink,
+        String locationDetails) {
 }

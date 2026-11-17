@@ -20,11 +20,16 @@ public final class TutorPostDtos {
                                     String teachingFormat, List<PriceItemRequest> prices) {
     }
 
-    public record PriceItemRequest(String level, BigDecimal hourlyRate) {
+    /** Một dòng học phí gia sư nhập: môn học / cấp độ, thời lượng một buổi (60 / 90 / 120 phút), giá một buổi. */
+    public record PriceItemRequest(String level, Integer sessionMinutes, BigDecimal pricePerSession) {
     }
 
-    /** Một mức học phí kèm nhãn tiếng Việt của môn học / cấp độ. */
-    public record PriceItemView(String level, String levelLabel, BigDecimal hourlyRate) {
+    /**
+     * Một mức học phí kèm nhãn tiếng Việt của môn học / cấp độ.
+     * hourlyRate = giá quy ra một giờ (tự tính); sessionMinutes / pricePerSession null với dữ liệu rất cũ.
+     */
+    public record PriceItemView(String level, String levelLabel, BigDecimal hourlyRate,
+                                Integer sessionMinutes, BigDecimal pricePerSession) {
     }
 
     /** Một lựa chọn môn học / cấp độ cho ô chọn trên giao diện. */
@@ -50,7 +55,7 @@ public final class TutorPostDtos {
      */
     /** editable = được soạn và gửi: chưa có bài, hoặc cán bộ học vụ yêu cầu bổ sung (và gói còn hạn). */
     public record MyPostView(boolean canPost, String blockedReason, boolean editable, LocalDate membershipExpiresOn,
-                             PostView post, List<PriceLevelOption> priceLevels) {
+                             PostView post, List<PriceLevelOption> priceLevels, List<Integer> sessionMinutesOptions) {
     }
 
     public record PostView(UUID postId, String reviewStatus, String reviewStatusLabel, String reviewFeedback,

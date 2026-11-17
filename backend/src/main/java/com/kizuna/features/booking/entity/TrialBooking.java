@@ -74,6 +74,11 @@ public class TrialBooking extends BaseEntity {
     @Builder.Default
     private Boolean officialArrangementAgreed = false;
 
+    /** Học viên đề xuất giờ NGOÀI lịch rảnh của gia sư (server tự xác định khi tạo / đổi giờ). */
+    @Column(name = "is_off_schedule", nullable = false)
+    @Builder.Default
+    private Boolean offSchedule = false;
+
     @Column(name = "policy_revision_id")
     private UUID policyRevisionId;
 

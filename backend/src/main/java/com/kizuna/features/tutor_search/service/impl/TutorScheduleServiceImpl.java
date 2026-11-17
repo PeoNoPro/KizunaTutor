@@ -7,6 +7,7 @@ import com.kizuna.core.exception.ConflictException;
 import com.kizuna.core.exception.ResourceNotFoundException;
 import com.kizuna.core.repository.TutorRepository;
 import com.kizuna.core.repository.UserRepository;
+import com.kizuna.features.booking.service.ConnectionRequestService;
 import com.kizuna.features.booking.service.TrialBookingService;
 import com.kizuna.features.tutor_search.dto.CreateAvailabilityRequestDTO;
 import com.kizuna.features.tutor_search.dto.TutorAvailabilityDTO;
@@ -33,16 +34,19 @@ public class TutorScheduleServiceImpl implements TutorScheduleService {
     private final TutorRepository tutorRepository;
     private final TutorAvailabilityRepository availabilityRepository;
     private final TrialBookingService trialBookingService;
+    private final ConnectionRequestService connectionRequestService;
 
     public TutorScheduleServiceImpl(
             UserRepository userRepository,
             TutorRepository tutorRepository,
             TutorAvailabilityRepository availabilityRepository,
-            @Lazy TrialBookingService trialBookingService) {
+            @Lazy TrialBookingService trialBookingService,
+            @Lazy ConnectionRequestService connectionRequestService) {
         this.userRepository = userRepository;
         this.tutorRepository = tutorRepository;
         this.availabilityRepository = availabilityRepository;
         this.trialBookingService = trialBookingService;
+        this.connectionRequestService = connectionRequestService;
     }
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -101,11 +105,7 @@ public class TutorScheduleServiceImpl implements TutorScheduleService {
         TutorAvailability slot = availabilityRepository.findByAvailabilityIdAndTutor_TutorId(availabilityId, tutor.getTutorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ca rảnh cần xóa hoặc ca này không thuộc quyền sở hữu của bạn"));
 
-        boolean hasActiveBookings = trialBookingService != null && trialBookingService.hasActiveBookingsInSlot(
-                tutor.getTutorId(), slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime());
-        if (hasActiveBookings) {
-            throw new ConflictException("Không thể xóa ca rảnh này vì đang có lịch học thử của học viên đang chờ hoặc đã xác nhận. Vui lòng xử lý lịch học trước.");
-        }
+        ensureNoLearnerInSlot(tutor, slot, "xóa");
 
         availabilityRepository.delete(slot);
         log.info("Tutor {} deleted availability slot {}", tutor.getTutorId(), availabilityId);
@@ -130,10 +130,31 @@ public class TutorScheduleServiceImpl implements TutorScheduleService {
         TutorAvailability slot = availabilityRepository.findByAvailabilityIdAndTutor_TutorId(availabilityId, tutor.getTutorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ca rảnh cần cập nhật"));
 
+        if (!active && Boolean.TRUE.equals(slot.getIsActive())) {
+            ensureNoLearnerInSlot(tutor, slot, "tắt");
+        }
         slot.setIsActive(active);
         TutorAvailability saved = availabilityRepository.save(slot);
         log.info("Tutor {} toggled availability slot {} active={}", tutor.getTutorId(), availabilityId, active);
         return mapToDTO(saved);
+    }
+
+    /**
+     * Không cho xóa / tắt ca rảnh khi trong ca đó đang có học viên: buổi học thử đang chờ hoặc đã xác nhận,
+     * hoặc buổi học của khóa kết nối sắp tới (đã đồng ý, hoặc đang chờ gia sư duyệt và còn hạn).
+     */
+    private void ensureNoLearnerInSlot(Tutor tutor, TutorAvailability slot, String action) {
+        boolean hasTrials = trialBookingService != null && trialBookingService.hasActiveBookingsInSlot(
+                tutor.getTutorId(), slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime());
+        if (hasTrials) {
+            throw new ConflictException("Không thể " + action + " ca rảnh này vì đang có lịch học thử của học viên đang chờ hoặc đã xác nhận. Vui lòng xử lý lịch học trước.");
+        }
+        boolean hasSessions = connectionRequestService != null && connectionRequestService.hasUpcomingSessionsInSlot(
+                tutor.getTutorId(), slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime());
+        if (hasSessions) {
+            throw new ConflictException("Không thể " + action + " ca rảnh này vì đang có học viên học hoặc chờ bạn duyệt các buổi trong ca này. "
+                    + "Vui lòng xử lý yêu cầu kết nối hoặc đợi khóa học kết thúc trước.");
+        }
     }
 
     private Tutor getTutorByEmail(String email) {

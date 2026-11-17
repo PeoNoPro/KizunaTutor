@@ -335,6 +335,6 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         return new ClassSessionResponse(sp.getSpaceId(), sp.getTitle(), partner == null ? null : partner.getFullName(),
                 sp.getStatus(), s.scheduleId(), s.extraId(), s.originalDate(), s.date(), s.startTime(), s.endTime(),
                 s.moved(), s.extra(), s.number(), sp.getTotalSessions(),
-                progress.startDate(), progress.endDate());
+                progress.startDate(), progress.endDate(), sp.getLearningMode(), sp.getMeetingLink(), sp.getLocationDetails());
     }
 }

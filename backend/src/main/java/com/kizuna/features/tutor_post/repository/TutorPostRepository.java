@@ -26,6 +26,9 @@ public interface TutorPostRepository extends JpaRepository<TutorPost, UUID> {
 
     Optional<TutorPost> findFirstByTutorTutorIdAndStatusOrderByCreatedAtDesc(UUID tutorId, TutorPostStatus status);
 
+    /** Bài đăng theo trạng thái của nhiều gia sư cùng lúc (dùng cho danh sách tìm gia sư, tránh query từng gia sư). */
+    java.util.List<TutorPost> findByTutorTutorIdInAndStatus(java.util.Collection<UUID> tutorIds, TutorPostStatus status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM TutorPost p WHERE p.postId = :postId")
     Optional<TutorPost> findLockedById(@Param("postId") UUID postId);

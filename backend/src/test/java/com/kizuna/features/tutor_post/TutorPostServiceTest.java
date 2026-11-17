@@ -56,7 +56,7 @@ class TutorPostServiceTest {
     }
 
     static SubmitPostRequest validRequest() {
-        return requestWith(List.of(new PriceItemRequest("JLPT_N3", new BigDecimal("250000"))));
+        return requestWith(List.of(new PriceItemRequest("JLPT_N3", 90, new BigDecimal("250000"))));
     }
 
     TutorPost post(TutorPostStatus status) {
@@ -116,10 +116,10 @@ class TutorPostServiceTest {
         @Test
         void invalidContentIsRejectedWithFriendlyMessage() {
             SubmitPostRequest bad = new SubmitPostRequest("Ngắn", "Ngắn", null, "",
-                    List.of(new PriceItemRequest("JLPT_N3", new BigDecimal("5000"))));
+                    List.of(new PriceItemRequest("JLPT_N3", 90, new BigDecimal("5000"))));
             BadRequestException e = assertThrows(BadRequestException.class, () -> service.submit(user, bad));
             assertTrue(e.getMessage().contains("Tiêu đề từ 10 đến 150 ký tự"));
-            assertTrue(e.getMessage().contains("Học phí mỗi giờ"));
+            assertTrue(e.getMessage().contains("Học phí mỗi buổi"));
             verify(postRepository, never()).saveAndFlush(any());
         }
 
@@ -128,19 +128,45 @@ class TutorPostServiceTest {
         @Test
         void savesPriceTableSortedAndUsesLowestAsHourlyRate() {
             service.submit(user, requestWith(List.of(
-                    new PriceItemRequest("KAIWA", new BigDecimal("180000")),
-                    new PriceItemRequest("jlpt_n2", new BigDecimal("300000")),
-                    new PriceItemRequest("JLPT_N5", new BigDecimal("150000")))));
+                    new PriceItemRequest("KAIWA", 60, new BigDecimal("180000")),
+                    new PriceItemRequest("jlpt_n2", 120, new BigDecimal("300000")),
+                    new PriceItemRequest("JLPT_N5", 90, new BigDecimal("150000")))));
 
             ArgumentCaptor<TutorPost> saved = ArgumentCaptor.forClass(TutorPost.class);
             verify(postRepository).saveAndFlush(saved.capture());
             List<PostPriceItem> items = saved.getValue().getPriceItems();
             assertEquals(List.of("JLPT_N5", "JLPT_N2", "KAIWA"), items.stream().map(PostPriceItem::level).toList());
-            assertEquals(new BigDecimal("150000"), saved.getValue().getHourlyRate());
+            // Lưu đúng thời lượng + giá một buổi gia sư nhập; giá quy ra một giờ được tự tính
+            assertEquals(90, items.get(0).sessionMinutes());
+            assertEquals(new BigDecimal("150000"), items.get(0).pricePerSession());
+            assertEquals(new BigDecimal("100000"), items.get(0).hourlyRate());
+            assertEquals(new BigDecimal("150000"), items.get(1).hourlyRate());
+            assertEquals(new BigDecimal("180000"), items.get(2).hourlyRate());
+            // Cột hourly_rate = giá thấp nhất quy ra một giờ (trang Tìm gia sư lọc / sắp xếp theo cột này)
+            assertEquals(new BigDecimal("100000"), saved.getValue().getHourlyRate());
 
             var views = TutorPostService.priceViews(saved.getValue());
             assertEquals("JLPT N5", views.get(0).levelLabel());
+            assertEquals(90, views.get(0).sessionMinutes());
+            assertEquals(new BigDecimal("150000"), views.get(0).pricePerSession());
             assertEquals("Giao tiếp (Kaiwa)", views.get(2).levelLabel());
+        }
+
+        @Test
+        void rejectsMissingOrUnsupportedSessionMinutes() {
+            BadRequestException missing = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
+                    new PriceItemRequest("JLPT_N3", null, new BigDecimal("200000"))))));
+            assertTrue(missing.getMessage().contains("thời lượng mỗi buổi"));
+
+            BadRequestException odd = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
+                    new PriceItemRequest("JLPT_N3", 100, new BigDecimal("200000"))))));
+            assertTrue(odd.getMessage().contains("60, 90 hoặc 120 phút"));
+            verify(postRepository, never()).saveAndFlush(any());
+        }
+
+        @Test
+        void myPostViewListsSessionMinutesOptions() {
+            assertEquals(List.of(60, 90, 120), service.getMine(user).sessionMinutesOptions());
         }
 
         @Test
@@ -152,17 +178,17 @@ class TutorPostServiceTest {
         @Test
         void rejectsDuplicateUnknownLevelAndOutOfRangeRate() {
             BadRequestException dup = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
-                    new PriceItemRequest("JLPT_N3", new BigDecimal("200000")),
-                    new PriceItemRequest("JLPT_N3", new BigDecimal("250000"))))));
+                    new PriceItemRequest("JLPT_N3", 90, new BigDecimal("200000")),
+                    new PriceItemRequest("JLPT_N3", 90, new BigDecimal("250000"))))));
             assertTrue(dup.getMessage().contains("chỉ được đặt một mức học phí"));
 
             BadRequestException unknown = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
-                    new PriceItemRequest("TOEIC", new BigDecimal("200000"))))));
+                    new PriceItemRequest("TOEIC", 90, new BigDecimal("200000"))))));
             assertTrue(unknown.getMessage().contains("chọn môn học hoặc cấp độ"));
 
             BadRequestException rate = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
-                    new PriceItemRequest("JLPT_N1", new BigDecimal("20000000"))))));
-            assertTrue(rate.getMessage().contains("Học phí mỗi giờ từ 10.000 đ đến 10.000.000 đ"));
+                    new PriceItemRequest("JLPT_N1", 90, new BigDecimal("20000000"))))));
+            assertTrue(rate.getMessage().contains("Học phí mỗi buổi từ 10.000 đ đến 10.000.000 đ"));
             verify(postRepository, never()).saveAndFlush(any());
         }
 

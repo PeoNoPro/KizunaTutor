@@ -30,5 +30,8 @@ public record ClassSessionResponse(
         int number,
         Integer totalSessions,
         @JsonFormat(pattern = "yyyy-MM-dd") LocalDate courseStartDate,
-        @JsonFormat(pattern = "yyyy-MM-dd") LocalDate courseEndDate) {
+        @JsonFormat(pattern = "yyyy-MM-dd") LocalDate courseEndDate,
+        String learningMode,
+        String meetingLink,
+        String locationDetails) {
 }

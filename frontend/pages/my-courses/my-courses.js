@@ -130,6 +130,7 @@ async function loadCourse(spaceId) {
     badge.dataset.tone = classroomStatusTone(currentSpace.status);
     $('myCourseTutor').textContent = currentSpace.tutorName || 'Gia sư';
     $('myCourseCreated').textContent = formatDateVi(currentSpace.courseStartDate || currentSpace.createdAt);
+    renderDelivery(currentSpace);
     $('myCourseReadOnlyNote').classList.toggle('hidden', !currentSpace.readOnly);
     $('myCourseReadOnlyNote').textContent = currentSpace.status === 'COMPLETED'
       ? 'Khóa học đã kết thúc. Bạn vẫn xem lại được tài liệu, bài tập và điểm của lớp này.'
@@ -141,6 +142,19 @@ async function loadCourse(spaceId) {
     await loadMaterials();
   } catch (err) {
     renderStateBox(stateBox, friendlyErrorMessage(err), () => loadCourse(spaceId));
+  }
+}
+
+/** Hình thức học: lớp online có nút vào phòng học (khi gia sư đã gửi link), lớp trực tiếp hiện địa điểm. */
+function renderDelivery(space) {
+  const box = $('myCourseDelivery');
+  if (space.learningMode === 'OFFLINE') {
+    box.innerHTML = `<span class="material-symbols-outlined text-[18px]">home_pin</span>Học trực tiếp: <strong>${escapeHtml(space.locationDetails || '')}</strong>`;
+  } else if (space.meetingLink && /^https?:\/\//i.test(space.meetingLink)) {
+    box.innerHTML = `<span class="material-symbols-outlined text-[18px]">videocam</span>Học online ·
+      <a href="${escapeHtml(space.meetingLink)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-3 py-1 border border-black rounded-[5px] bg-[#E5F4EA] font-semibold no-underline">Vào phòng học<span class="material-symbols-outlined text-[16px]">open_in_new</span></a>`;
+  } else {
+    box.innerHTML = '<span class="material-symbols-outlined text-[18px]">videocam</span>Học online · Gia sư chưa gửi link phòng học.';
   }
 }
 

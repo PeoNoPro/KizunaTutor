@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const isLearner = (u.role === 'ROLE_LEARNER' || (u.roles && u.roles.includes('ROLE_LEARNER')));
     if (isLearner) {
-      window.location.replace('/learner/connections');
+      window.location.replace('/pages/learner-requests/');
       return;
     }
   } catch (e) {}

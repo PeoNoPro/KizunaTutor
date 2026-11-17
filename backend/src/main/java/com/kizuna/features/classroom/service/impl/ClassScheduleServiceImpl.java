@@ -53,7 +53,8 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                     User partner = actor.isTutor() ? sp.getLearner().getUser() : sp.getTutor().getUser();
                     return new TimetableEntryResponse(s.getScheduleId(), sp.getSpaceId(), sp.getTitle(),
                             partner == null ? null : partner.getFullName(), sp.getStatus(),
-                            s.getDayOfWeek(), s.getStartTime(), s.getEndTime(), sp.getCreatedAt());
+                            s.getDayOfWeek(), s.getStartTime(), s.getEndTime(), sp.getCreatedAt(),
+                            sp.getLearningMode(), sp.getMeetingLink(), sp.getLocationDetails());
                 })
                 .toList();
     }

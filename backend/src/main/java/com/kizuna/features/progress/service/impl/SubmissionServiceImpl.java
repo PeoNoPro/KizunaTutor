@@ -20,6 +20,7 @@ import com.kizuna.features.progress.repository.SubmissionFileRepository;
 import com.kizuna.features.progress.service.SubmissionService;
 import com.kizuna.features.progress.util.AssignmentRules;
 import com.kizuna.features.progress.util.SubmissionFileSupport;
+import com.kizuna.features.storage.R2FileStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +56,14 @@ public class SubmissionServiceImpl implements SubmissionService {
     /** FE-12 (thêm 2026-11-10): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
+    /** Nội dung tệp bài làm trên R2 khi bật; test dựng bằng tay thì giữ lưu DB. */
+    @Autowired(required = false)
+    private R2FileStore r2 = R2FileStore.disabled();
+
+    static String r2Key(UUID fileId) {
+        return "submissions/" + fileId;
+    }
 
     @Autowired
     public SubmissionServiceImpl(ClassroomService classroomService, AssignmentRepository assignmentRepository,
@@ -161,6 +170,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         List<SubmissionFileSupport.PreparedFile> prepared = SubmissionFileSupport.prepare(fileValidator, chosen, "bai-lam");
 
         fileRepository.deleteAll(removed);
+        r2.deleteAfterCommit(removed.stream().map(f -> r2Key(f.getFileId())).toList());
         insertFiles(submissionId, prepared);
         submission.setSubmissionContent(cleanContent);
         submission.setSubmittedAt(now);
@@ -221,7 +231,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         findSubmission(submissionId, assignmentId);
         SubmissionFile file = fileRepository.findByFileIdAndSubmissionId(fileId, submissionId)
                 .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy tệp bài làm."));
-        byte[] data = fileRepository.findFileData(file.getFileId());
+        byte[] data = r2.read(fileRepository.findFileData(file.getFileId()), r2Key(file.getFileId()));
         if (data == null || data.length == 0) {
             throw ClassroomException.notFound("Không tìm thấy tệp bài làm.");
         }
@@ -252,7 +262,10 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     private void insertFiles(UUID submissionId, List<SubmissionFileSupport.PreparedFile> prepared) {
         for (SubmissionFileSupport.PreparedFile f : prepared) {
-            fileRepository.insertFile(UUID.randomUUID(), submissionId, f.fileName(), f.data().length, f.data());
+            UUID fileId = UUID.randomUUID();
+            MaterialFileType type = SubmissionFileSupport.typeOf(f.fileName());
+            byte[] dbData = r2.put(r2Key(fileId), f.data(), type == null ? "application/octet-stream" : type.contentType);
+            fileRepository.insertFile(fileId, submissionId, f.fileName(), f.data().length, dbData);
         }
     }
 

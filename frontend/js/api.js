@@ -1455,5 +1455,20 @@ API.exercises = {
   /** Link nghe tạm của file trên R2: {url, expiresInSeconds}. Thẻ audio phát thẳng từ link này. */
   audioUrl(spaceId, audioId) {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/${encodeURIComponent(audioId)}/url`);
+  },
+
+  /**
+   * Đọc file Excel câu hỏi (.xlsx, tối đa 2 MB, 200 câu), KHÔNG lưu gì.
+   * → {total, valid, invalid, validPoints, rows: [{row, ok, error, type, prompt, points, data}]}
+   */
+  importPreview(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-import`, { method: 'POST', formData: fd, timeout: 120000 });
+  },
+
+  /** File Excel mẫu để nhập câu hỏi (Blob). */
+  importTemplate(spaceId) {
+    return assignmentBlob(`/${encodeURIComponent(spaceId)}/exercise-import/template`);
   }
 };

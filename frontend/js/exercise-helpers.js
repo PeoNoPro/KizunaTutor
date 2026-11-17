@@ -177,7 +177,15 @@ export function questionPayload(q) {
     data.distractors = (d.distractors || []).map((s) => String(s).trim()).filter(Boolean);
   }
   if (q.type === 'WRITTEN') data.accepted = (d.accepted || []).map((s) => String(s).trim()).filter(Boolean);
-  return { type: q.type, prompt: String(q.prompt || '').trim(), points: Number.isFinite(points) ? points : null, data };
+  return {
+    type: q.type,
+    prompt: String(q.prompt || '').trim(),
+    points: Number.isFinite(points) ? points : null,
+    data,
+    // File nghe của câu (null = không có); maxPlays null = nghe không giới hạn
+    audioId: q.audio?.audioId || null,
+    maxPlays: q.audio?.audioId && q.audio.maxPlays ? Number(q.audio.maxPlays) : null
+  };
 }
 
 /** Tổng điểm các câu */

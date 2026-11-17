@@ -27,6 +27,7 @@ import {
   describeCorrect
 } from '../../js/exercise-helpers.js';
 import { renderInteractive } from '../../js/exercise-player.js';
+import { mountAudioPlayer, playsKey } from '../../js/exercise-audio.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(window.location.search);
@@ -232,6 +233,7 @@ function drawTaking() {
           <span class="kz-badge">${escapeHtml(questionTypeLabel(q.type))}</span>
           <span class="font-caption text-caption text-on-surface-variant">${formatScore(q.points)} điểm</span>
         </div>
+        ${q.audio ? '<div id="questionAudio"></div>' : ''}
         ${q.prompt ? `<p class="text-[16px] whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(q.prompt)}</p>` : ''}
         <div id="questionBody"></div>
         <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/30">
@@ -243,6 +245,7 @@ function drawTaking() {
       </section>
     </div>`;
   drawNav();
+  if (q.audio) mountAudioPlayer($('questionAudio'), spaceId, q.audio, { limitKey: playsKey(a.attemptId, q.questionId) });
   renderInteractive($('questionBody'), q, {
     response: state.responses[q.questionId] || null,
     onChange: (r) => onAnswer(q, r)
@@ -432,6 +435,7 @@ async function renderResult() {
               <span class="font-semibold">${q.score === null || q.score === undefined ? '…' : formatScore(q.score)} / ${formatScore(q.points)} điểm</span>
             </div>
             ${q.prompt ? `<p class="whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(q.prompt)}</p>` : ''}
+            ${q.audio ? `<div data-result-audio="${i}"></div>` : ''}
             ${q.view?.segments ? `<p class="text-on-surface-variant [overflow-wrap:anywhere]">${escapeHtml(segmentsText(q.view))}</p>` : ''}
             <p class="[overflow-wrap:anywhere]"><span class="font-semibold">Câu trả lời của bạn:</span> ${escapeHtml(describeResponse(q.type, q.view, q.response))}</p>
             ${correctText ? `<p class="text-emerald-800 [overflow-wrap:anywhere]"><span class="font-semibold">Đáp án đúng:</span> ${escapeHtml(correctText)}</p>` : ''}
@@ -442,6 +446,10 @@ async function renderResult() {
         }).join('')}
       </ol>
     </div>`;
+  // Xem lại kết quả: nghe lại không giới hạn
+  a.questions.forEach((q, i) => {
+    if (q.audio) mountAudioPlayer($('takeMain').querySelector(`[data-result-audio="${i}"]`), spaceId, q.audio);
+  });
   $('introBtn').addEventListener('click', () => {
     const url = new URL(window.location.href);
     url.searchParams.delete('attempt');

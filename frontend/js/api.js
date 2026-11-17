@@ -1443,5 +1443,17 @@ API.exercises = {
   grade(spaceId, exerciseId, attemptId, items) {
     return classroomRequest(exercisePath(spaceId,
       `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/grade`), { method: 'PUT', body: { items } });
+  },
+
+  /** Gia sư tải file nghe lên Cloudflare R2 (MP3/M4A/WAV/OGG/WEBM, tối đa 25 MB) → {audioId, fileName, fileSize}; gửi audioId kèm câu hỏi khi lưu bài. */
+  uploadAudio(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio`, { method: 'POST', formData: fd, timeout: 300000 });
+  },
+
+  /** Link nghe tạm của file trên R2: {url, expiresInSeconds}. Thẻ audio phát thẳng từ link này. */
+  audioUrl(spaceId, audioId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/${encodeURIComponent(audioId)}/url`);
   }
 };

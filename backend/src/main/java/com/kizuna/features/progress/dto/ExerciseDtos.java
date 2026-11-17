@@ -14,8 +14,23 @@ public final class ExerciseDtos {
     private ExerciseDtos() {
     }
 
-    /** Một câu hỏi gia sư soạn. data: JSON theo dạng câu (xem ExerciseQuestionType). */
-    public record QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data) {
+    /**
+     * Một câu hỏi gia sư soạn. data: JSON theo dạng câu (xem ExerciseQuestionType).
+     * audioId: file nghe MP3 đã tải lên (null = không có); maxPlays: số lần nghe tối đa (null = không giới hạn, 1 – 5).
+     */
+    public record QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data,
+                                UUID audioId, Integer maxPlays) {
+        public QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data) {
+            this(type, prompt, points, data, null, null);
+        }
+    }
+
+    /** File nghe gắn với câu hỏi. maxPlays null = nghe không giới hạn. */
+    public record AudioInfo(UUID audioId, String fileName, long fileSize, Integer maxPlays) {
+    }
+
+    /** Link nghe tạm của file trên Cloudflare R2; hết hạn sau expiresInSeconds giây. */
+    public record AudioUrl(String url, long expiresInSeconds) {
     }
 
     /**
@@ -43,7 +58,7 @@ public final class ExerciseDtos {
 
     /** Câu hỏi đầy đủ (kèm đáp án) cho gia sư soạn / sửa. */
     public record QuestionDetail(UUID questionId, int position, ExerciseQuestionType type, String prompt,
-                                 BigDecimal points, JsonNode data) {
+                                 BigDecimal points, JsonNode data, AudioInfo audio) {
     }
 
     /** Chi tiết bài: gia sư nhận kèm câu hỏi đầy đủ; học viên nhận questions = null. */
@@ -54,11 +69,12 @@ public final class ExerciseDtos {
      * Một câu trong một lượt làm bài.
      * view: đề cho học viên (không có đáp án). response: câu trả lời đã lưu.
      * Sau khi nộp: correct / score (null khi chờ gia sư chấm); correctAnswer chỉ có khi được xem đáp án.
+     * audio: file nghe của câu (null = không có).
      */
     public record AttemptQuestion(UUID questionId, int position, ExerciseQuestionType type, String prompt,
                                   BigDecimal points, JsonNode view, JsonNode response,
                                   Boolean correct, BigDecimal score, BigDecimal autoScore, boolean needsManualGrading,
-                                  String tutorComment, JsonNode correctAnswer) {
+                                  String tutorComment, JsonNode correctAnswer, AudioInfo audio) {
     }
 
     /**

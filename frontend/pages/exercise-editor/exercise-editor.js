@@ -39,6 +39,14 @@ import {
   validateExerciseSettings
 } from '../../js/exercise-helpers.js';
 import { renderInteractive } from '../../js/exercise-player.js';
+import {
+  AUDIO_ACCEPT,
+  AUDIO_RULES_TEXT,
+  MAX_PLAYS_OPTIONS,
+  validateAudioFile,
+  playLimitLabel,
+  mountAudioPlayer
+} from '../../js/exercise-audio.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(window.location.search);
@@ -120,7 +128,7 @@ async function load() {
     state.status = s.status;
     state.locked = s.locked;
     state.questions = (state.detail.questions || []).map((q) => ({
-      type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}
+      type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: q.audio || null
     }));
     fillSettings(state.detail);
     $('loadingBox').classList.add('hidden');
@@ -199,7 +207,77 @@ function renderQuestions() {
   const list = $('questionList');
   list.innerHTML = state.questions.map((q, i) => cardHtml(q, i)).join('')
     || '<li class="kz-item text-center text-on-surface-variant py-6">Chưa có câu hỏi nào. Chọn dạng câu rồi bấm "Thêm câu hỏi".</li>';
+  list.querySelectorAll('[data-q]').forEach((card) => {
+    const q = state.questions[Number(card.dataset.q)];
+    if (q?.audio) mountAudioPlayer(card.querySelector('[data-audio-player]'), spaceId, q.audio, { showName: true });
+  });
   updateTotals();
+}
+
+/** Khối file nghe của một câu: thêm / đổi / bỏ file MP3 và số lần nghe tối đa. */
+function audioEditorHtml(q) {
+  if (!q.audio) {
+    if (state.locked) return '';
+    return `
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="${SMALL_BTN} cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">headphones</span>Thêm file nghe
+          <input type="file" data-field="audioFile" accept="${AUDIO_ACCEPT}" class="sr-only">
+        </label>
+        <span class="font-caption text-caption text-on-surface-variant">Câu nghe hiểu: ${AUDIO_RULES_TEXT}.</span>
+        <span data-audio-busy class="font-caption text-caption text-primary hidden">Đang tải file lên…</span>
+      </div>`;
+  }
+  const plays = q.audio.maxPlays || '';
+  return `
+    <div class="space-y-2">
+      <div data-audio-player></div>
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="flex items-center gap-1.5 font-caption text-caption text-on-surface-variant">Số lần nghe
+          <select data-field="maxPlays" class="${INPUT} w-auto py-1.5" ${dis()}>
+            <option value="" ${plays === '' ? 'selected' : ''}>Không giới hạn</option>
+            ${MAX_PLAYS_OPTIONS.map((n) => `<option value="${n}" ${Number(plays) === n ? 'selected' : ''}>Tối đa ${n} lần</option>`).join('')}
+          </select>
+        </label>
+        ${state.locked ? `<span class="font-caption text-caption text-on-surface-variant">${escapeHtml(playLimitLabel(q.audio.maxPlays))}</span>` : `
+          <label class="${SMALL_BTN} cursor-pointer">Đổi file
+            <input type="file" data-field="audioFile" accept="${AUDIO_ACCEPT}" class="sr-only">
+          </label>
+          <button type="button" data-act="audio-remove" class="${SMALL_BTN} text-error">Bỏ file nghe</button>
+          <span data-audio-busy class="font-caption text-caption text-primary hidden">Đang tải file lên…</span>`}
+      </div>
+    </div>`;
+}
+
+/** Gia sư chọn file nghe: kiểm tra định dạng / dung lượng, tải lên Cloudflare R2, gắn vào câu (lưu khi lưu bài). */
+async function uploadQuestionAudio(card, q, input) {
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  const errEl = card.querySelector('[data-error]');
+  const showErr = (msg) => {
+    errEl.textContent = msg;
+    errEl.classList.toggle('hidden', !msg);
+  };
+  const invalid = validateAudioFile(file);
+  if (invalid) {
+    showErr(invalid);
+    return;
+  }
+  showErr('');
+  card.querySelector('[data-audio-busy]')?.classList.remove('hidden');
+  card.querySelectorAll('input[data-field="audioFile"]').forEach((el) => { el.disabled = true; });
+  try {
+    const info = await API.exercises.uploadAudio(spaceId, file);
+    q.audio = { ...info, maxPlays: q.audio?.maxPlays ?? null };
+    state.dirty = true;
+    renderQuestions();
+    showToast('Đã tải file nghe lên. Nhớ lưu bài để giữ thay đổi.');
+  } catch (err) {
+    card.querySelector('[data-audio-busy]')?.classList.add('hidden');
+    card.querySelectorAll('input[data-field="audioFile"]').forEach((el) => { el.disabled = false; });
+    showErr(err.fieldErrors?.file || friendlyErrorMessage(err));
+  }
 }
 
 function updateTotals() {
@@ -235,6 +313,7 @@ function cardHtml(q, i) {
           <label class="kz-label">Đề bài</label>
           <textarea data-field="prompt" rows="2" maxlength="2000" class="${INPUT}" placeholder="Nhập câu hỏi..." ${dis()}>${escapeHtml(q.prompt)}</textarea>
         </div>`}
+      ${audioEditorHtml(q)}
       <div data-body>${bodyHtml(q, i)}</div>
       <p data-error class="field-error hidden"></p>
     </li>`;
@@ -382,14 +461,21 @@ async function onListChange(e) {
   const i = Number(card.dataset.q);
   const q = state.questions[i];
   const t = e.target;
+  if (t.dataset.field === 'audioFile') {
+    await uploadQuestionAudio(card, q, t);
+    return;
+  }
   state.dirty = true;
-  if (t.dataset.field === 'type') {
+  if (t.dataset.field === 'maxPlays') {
+    if (q.audio) q.audio.maxPlays = t.value ? Number(t.value) : null;
+  } else if (t.dataset.field === 'type') {
     const hasContent = JSON.stringify(q.data) !== JSON.stringify(defaultQuestion(q.type).data) || q.prompt;
     if (hasContent && !(await confirmBox('Đổi dạng câu?', 'Đáp án đã nhập của câu này sẽ bị xóa.', 'Đổi dạng câu'))) {
       t.value = q.type;
       return;
     }
-    state.questions[i] = { ...defaultQuestion(t.value), prompt: q.prompt, points: q.points };
+    // Giữ file nghe khi đổi dạng câu
+    state.questions[i] = { ...defaultQuestion(t.value), prompt: q.prompt, points: q.points, audio: q.audio || null };
     renderQuestions();
   } else if (t.dataset.correct !== undefined) {
     const j = Number(t.dataset.correct);
@@ -428,6 +514,7 @@ function onListClick(e) {
     case 'item-remove': d.items.splice(j, 1); break;
     case 'item-up': if (j > 0) swap(d.items, j, j - 1); break;
     case 'item-down': if (j < d.items.length - 1) swap(d.items, j, j + 1); break;
+    case 'audio-remove': q.audio = null; break;
     default: return;
   }
   renderQuestions();
@@ -577,9 +664,11 @@ function openPreview() {
         <span class="font-caption text-caption text-on-surface-variant">${formatScore(q.points)} điểm</span>
       </div>
       ${q.prompt && !['FILL_BLANK', 'WORD_BANK'].includes(q.type) ? `<p class="text-[16px] whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(q.prompt)}</p>` : ''}
+      ${q.audio ? `<div data-preview-audio="${i}"></div><p class="font-caption text-caption text-on-surface-variant">${escapeHtml(playLimitLabel(q.audio.maxPlays))} (khi học viên làm bài)</p>` : ''}
       <div data-preview="${i}"></div>
     </li>`).join('') || '<li class="kz-item text-center">Chưa có câu hỏi.</li>';
   state.questions.forEach((q, i) => {
+    if (q.audio) mountAudioPlayer(list.querySelector(`[data-preview-audio="${i}"]`), spaceId, q.audio);
     renderInteractive(list.querySelector(`[data-preview="${i}"]`), { type: q.type, view: previewView(q) }, { onChange: () => {} });
   });
   $('previewTitle').textContent = $('exTitle').value.trim() || 'Bài làm trực tiếp';
@@ -662,6 +751,7 @@ function renderAttemptDetail(a) {
             <span class="kz-badge" data-tone="${q.correct === true ? 'active' : q.correct === false ? 'paused' : 'done'}">${escapeHtml(status)}</span>
           </div>
           ${q.prompt ? `<p class="whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(q.prompt)}</p>` : ''}
+          ${q.audio ? '<div data-grade-audio></div>' : ''}
           <p class="[overflow-wrap:anywhere]"><span class="font-semibold">Học viên trả lời:</span> ${escapeHtml(describeResponse(q.type, q.view, q.response))}</p>
           ${describeCorrect(q.type, q.view, q.correctAnswer) ? `<p class="text-emerald-800 [overflow-wrap:anywhere]"><span class="font-semibold">Đáp án:</span> ${escapeHtml(describeCorrect(q.type, q.view, q.correctAnswer))}</p>` : ''}
           <div class="grid gap-2 sm:grid-cols-[160px_1fr]">
@@ -675,6 +765,10 @@ function renderAttemptDetail(a) {
         </li>`;
       }).join('')}
     </ol>`;
+  box.querySelectorAll('[data-grade]').forEach((li, i) => {
+    const q = a.questions[i];
+    if (q?.audio) mountAudioPlayer(li.querySelector('[data-grade-audio]'), spaceId, q.audio);
+  });
   $('saveGradeBtn').addEventListener('click', () => saveGrades(a));
 }
 

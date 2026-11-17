@@ -9,6 +9,8 @@ import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.progress.dto.ExerciseDtos.*;
 import com.kizuna.features.progress.entity.ExerciseAnswer;
+import com.kizuna.features.progress.entity.ExerciseAudio;
+import com.kizuna.features.progress.repository.ExerciseAudioRepository;
 import com.kizuna.features.progress.entity.ExerciseAttempt;
 import com.kizuna.features.progress.entity.ExerciseQuestion;
 import com.kizuna.features.progress.entity.OnlineExercise;
@@ -62,20 +64,29 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
     private final ExerciseAnswerRepository answers;
     private final LearningSpaceRepository spaces;
     private final ExerciseQuestionEngine engine;
+    /** File nghe của câu hỏi; null trong test không dùng file nghe. */
+    private final ExerciseAudioRepository audios;
     private final Clock clock;
 
     @Autowired
     public OnlineExerciseServiceImpl(ClassroomService classroomService, OnlineExerciseRepository exercises,
                                      ExerciseQuestionRepository questions, ExerciseAttemptRepository attempts,
                                      ExerciseAnswerRepository answers, LearningSpaceRepository spaces,
-                                     ExerciseQuestionEngine engine) {
-        this(classroomService, exercises, questions, attempts, answers, spaces, engine, Clock.system(VN));
+                                     ExerciseQuestionEngine engine, ExerciseAudioRepository audios) {
+        this(classroomService, exercises, questions, attempts, answers, spaces, engine, audios, Clock.system(VN));
     }
 
     public OnlineExerciseServiceImpl(ClassroomService classroomService, OnlineExerciseRepository exercises,
                                      ExerciseQuestionRepository questions, ExerciseAttemptRepository attempts,
                                      ExerciseAnswerRepository answers, LearningSpaceRepository spaces,
                                      ExerciseQuestionEngine engine, Clock clock) {
+        this(classroomService, exercises, questions, attempts, answers, spaces, engine, null, clock);
+    }
+
+    public OnlineExerciseServiceImpl(ClassroomService classroomService, OnlineExerciseRepository exercises,
+                                     ExerciseQuestionRepository questions, ExerciseAttemptRepository attempts,
+                                     ExerciseAnswerRepository answers, LearningSpaceRepository spaces,
+                                     ExerciseQuestionEngine engine, ExerciseAudioRepository audios, Clock clock) {
         this.classroomService = classroomService;
         this.exercises = exercises;
         this.questions = questions;
@@ -83,6 +94,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         this.answers = answers;
         this.spaces = spaces;
         this.engine = engine;
+        this.audios = audios;
         this.clock = clock;
     }
 
@@ -128,7 +140,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         ea.forEach(a -> finalizeIfDue(a, e, eq, now));
         ExerciseSummary summary = toSummary(e, eq, ea, tutor, classroomService.isReadOnly(space), now);
         List<QuestionDetail> details = tutor ? eq.stream().map(q -> new QuestionDetail(q.getQuestionId(), q.getPosition(),
-                q.getType(), q.getPrompt(), q.getPoints(), engine.read(q.getData()))).toList() : null;
+                q.getType(), q.getPrompt(), q.getPoints(), withoutAudio(engine.read(q.getData())), audioOf(q))).toList() : null;
         return new ExerciseDetail(summary, e.getInstructions(), details);
     }
 
@@ -144,7 +156,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         OnlineExercise e = OnlineExercise.builder().space(space).build();
         applySettings(e, req, false, 0, publish, now);
         e = exercises.save(e);
-        saveQuestions(e, req.questions(), publish);
+        saveQuestions(e, req.questions(), publish, Set.of());
         if (publish) {
             e.setStatus(OnlineExercise.Status.PUBLISHED);
             e.setPublishedAt(now);
@@ -167,9 +179,12 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         boolean strict = publishNow || e.getStatus() == OnlineExercise.Status.PUBLISHED;
         applySettings(e, req, locked, used, strict, now);
         if (!locked) {
+            // File nghe các câu cũ đang dùng: câu mới không dùng nữa thì xóa
+            Set<UUID> previousAudio = questions.findByExercise_ExerciseIdOrderByPositionAsc(exerciseId).stream()
+                    .map(this::audioOf).filter(Objects::nonNull).map(AudioInfo::audioId).collect(Collectors.toSet());
             questions.deleteByExercise_ExerciseId(exerciseId);
             questions.flush();
-            saveQuestions(e, req.questions(), strict);
+            saveQuestions(e, req.questions(), strict, previousAudio);
         }
         if (publishNow) {
             e.setStatus(OnlineExercise.Status.PUBLISHED);
@@ -452,7 +467,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
             }
             return new AttemptQuestion(q.getQuestionId(), q.getPosition(), q.getType(), q.getPrompt(), q.getPoints(),
                     engine.learnerView(q.getType(), q.getData(), seed(a, q)), response, correct, score, autoScore,
-                    manual, comment, answersVisible ? engine.correctAnswer(q.getType(), q.getData()) : null);
+                    manual, comment, answersVisible ? engine.correctAnswer(q.getType(), q.getData()) : null, audioOf(q));
         }).toList();
         Long remaining = inProgress && a.getDeadlineAt() != null
                 ? Math.max(0, Duration.between(now, a.getDeadlineAt()).getSeconds()) : null;
@@ -505,7 +520,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         e.setGradingMode(parseMode(req.gradingMode()));
     }
 
-    private void saveQuestions(OnlineExercise e, List<QuestionInput> inputs, boolean strict) {
+    private void saveQuestions(OnlineExercise e, List<QuestionInput> inputs, boolean strict, Set<UUID> previousAudio) {
         List<QuestionInput> list = inputs == null ? List.of() : inputs;
         if (list.size() > MAX_QUESTIONS) {
             throw ClassroomException.field(ExerciseQuestionEngine.FIELD, "Mỗi bài có tối đa " + MAX_QUESTIONS + " câu hỏi.");
@@ -514,12 +529,14 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
             throw ClassroomException.field(ExerciseQuestionEngine.FIELD, "Bài tập cần có ít nhất một câu hỏi.");
         }
         boolean auto = e.getGradingMode() == OnlineExercise.GradingMode.AUTO;
+        Map<UUID, ExerciseAudio> audioById = loadAudios(e, list);
         List<ExerciseQuestion> rows = new ArrayList<>();
         for (int i = 0; i < list.size(); i++) {
             QuestionInput in = list.get(i);
             String label = "Câu " + (i + 1);
             BigDecimal points = in.points() == null && !strict ? BigDecimal.ONE : in.points();
             String data = engine.validate(in.type(), in.prompt(), points, in.data(), strict, auto, label);
+            data = attachAudio(data, in, in.audioId() == null ? null : audioById.get(in.audioId()), label);
             rows.add(ExerciseQuestion.builder()
                     .exercise(e)
                     .position(i + 1)
@@ -530,6 +547,85 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
                     .build());
         }
         questions.saveAll(rows);
+        syncAudios(e, audioById.values(), previousAudio);
+    }
+
+    // ================================================================== file nghe của câu hỏi
+
+    static final int MAX_PLAYS = 5;
+
+    /** File nghe các câu đang dùng: phải thuộc lớp này và chưa gắn vào bài khác. */
+    private Map<UUID, ExerciseAudio> loadAudios(OnlineExercise e, List<QuestionInput> list) {
+        List<UUID> ids = list.stream().map(QuestionInput::audioId).filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) return Map.of();
+        if (audios == null) throw ClassroomException.field(ExerciseQuestionEngine.FIELD, "Không tìm thấy file nghe.");
+        Map<UUID, ExerciseAudio> found = audios.findByAudioIdInAndSpaceId(ids, e.getSpace().getSpaceId()).stream()
+                .filter(a -> a.getExerciseId() == null || a.getExerciseId().equals(e.getExerciseId()))
+                .collect(Collectors.toMap(ExerciseAudio::getAudioId, a -> a));
+        for (int i = 0; i < list.size(); i++) {
+            UUID id = list.get(i).audioId();
+            if (id != null && !found.containsKey(id)) {
+                throw ClassroomException.field(ExerciseQuestionEngine.FIELD,
+                        "Câu " + (i + 1) + ": không tìm thấy file nghe. Vui lòng tải lại file.");
+            }
+        }
+        return found;
+    }
+
+    /** Ghi mã file nghe + số lần nghe tối đa vào dữ liệu câu (khóa "audio"). */
+    private String attachAudio(String data, QuestionInput in, ExerciseAudio audio, String label) {
+        if (in.audioId() == null) return data;
+        Integer plays = in.maxPlays();
+        if (plays != null && (plays < 1 || plays > MAX_PLAYS)) {
+            throw ClassroomException.field(ExerciseQuestionEngine.FIELD,
+                    label + ": số lần nghe tối đa phải từ 1 đến " + MAX_PLAYS + ", hoặc không giới hạn.");
+        }
+        com.fasterxml.jackson.databind.node.ObjectNode node = (com.fasterxml.jackson.databind.node.ObjectNode) engine.read(data);
+        com.fasterxml.jackson.databind.node.ObjectNode a = node.putObject("audio");
+        a.put("id", audio.getAudioId().toString());
+        a.put("fileName", audio.getFileName());
+        a.put("fileSize", audio.getFileSize());
+        if (plays != null) a.put("maxPlays", plays);
+        return engine.write(node);
+    }
+
+    /**
+     * Gắn file đang dùng vào bài; file các câu cũ không còn câu nào dùng thì gỡ khỏi bài (exercise_id = NULL)
+     * để ExerciseAudioService dọn sau (xóa cả trên Cloudflare R2). Bài không có file nghe thì không đụng tới bảng exercise_audio.
+     */
+    private void syncAudios(OnlineExercise e, Collection<ExerciseAudio> used, Set<UUID> previousAudio) {
+        if (audios == null) return;
+        Set<UUID> usedIds = used.stream().map(ExerciseAudio::getAudioId).collect(Collectors.toSet());
+        List<ExerciseAudio> link = used.stream().filter(a -> a.getExerciseId() == null).toList();
+        link.forEach(a -> a.setExerciseId(e.getExerciseId()));
+        if (!link.isEmpty()) audios.saveAll(link);
+        List<UUID> stale = previousAudio.stream().filter(id -> !usedIds.contains(id)).toList();
+        if (stale.isEmpty()) return;
+        List<ExerciseAudio> unlink = audios.findAllById(stale);
+        unlink.forEach(a -> a.setExerciseId(null));
+        audios.saveAll(unlink);
+    }
+
+    /** File nghe của câu (null = không có). */
+    private AudioInfo audioOf(ExerciseQuestion q) {
+        JsonNode a = engine.read(q.getData()).get("audio");
+        if (a == null || !a.isObject() || !a.hasNonNull("id")) return null;
+        try {
+            return new AudioInfo(UUID.fromString(a.get("id").asText()), a.path("fileName").asText("file-nghe.mp3"),
+                    a.path("fileSize").asLong(0), a.hasNonNull("maxPlays") ? a.get("maxPlays").asInt() : null);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    /** Dữ liệu câu cho gia sư soạn: bỏ khóa "audio" (đã trả riêng trong trường audio). */
+    private static JsonNode withoutAudio(JsonNode data) {
+        if (data instanceof com.fasterxml.jackson.databind.node.ObjectNode o && o.has("audio")) {
+            com.fasterxml.jackson.databind.node.ObjectNode copy = o.deepCopy();
+            copy.remove("audio");
+            return copy;
+        }
+        return data;
     }
 
     // ================================================================== hỗ trợ

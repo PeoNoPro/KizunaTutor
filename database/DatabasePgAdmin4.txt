@@ -449,6 +449,22 @@ CREATE TABLE exercise_answers (
     CONSTRAINT uq_exercise_answer UNIQUE (attempt_id, question_id)
 );
 
+-- 6) File nghe của câu hỏi (migration 031). Nội dung file nằm trên Cloudflare R2; DB chỉ giữ storage_key.
+--    Câu hỏi giữ mã file trong data JSON (khóa "audio"). Xóa bài → exercise_id = NULL, file được dọn sau.
+DROP TABLE IF EXISTS exercise_audio CASCADE;
+CREATE TABLE exercise_audio (
+    audio_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    space_id UUID NOT NULL REFERENCES learning_spaces(space_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    exercise_id UUID REFERENCES online_exercises(exercise_id) ON DELETE SET NULL ON UPDATE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    content_type VARCHAR(100) NOT NULL,
+    storage_key VARCHAR(500) NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_exercise_audio_space ON exercise_audio(space_id);
+CREATE INDEX idx_exercise_audio_exercise ON exercise_audio(exercise_id);
+
 DROP TRIGGER IF EXISTS trg_online_exercises_updated_at ON online_exercises;
 CREATE TRIGGER trg_online_exercises_updated_at BEFORE UPDATE ON online_exercises
     FOR EACH ROW EXECUTE FUNCTION update_timestamp_column();

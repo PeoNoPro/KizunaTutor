@@ -23,6 +23,12 @@
 - Q: Điều kiện sửa bài tập (UC-95)? → A: Gia sư sửa được tiêu đề, mô tả, hạn nộp, điểm tối đa khi chưa có bài nào được chấm; hạn nộp mới (nếu có) phải ở tương lai.
 - Q: Đính kèm tài liệu vào bài tập (UC-66, tùy chọn)? → A: Không làm. Gia sư hướng dẫn trong mô tả; tài liệu đã có ở mục Tài liệu học tập (FE-06).
 
+### Session 2026-11-16
+
+- Q: Bài làm trực tiếp có phần nghe không? → A: Có. Gia sư gắn 1 file nghe vào bất kỳ câu hỏi nào (không thêm dạng câu mới, cách chấm giữ nguyên). Nhóm thống nhất lưu file trên **Cloudflare R2** (dùng `R2StorageService` chung): nhận MP3, M4A, WAV, OGG, WEBM, tối đa 25 MB/file. DB chỉ giữ thông tin + `storage_key` (bảng `exercise_audio`, migration 031); câu hỏi giữ mã file trong `exercise_questions.data` (khóa `audio`). Nghe bằng link tạm có hạn (mặc định 15 phút). File bỏ khỏi câu hỏi / bài bị xóa được gỡ khỏi bài và xóa trên R2 sau 1 ngày (khi gia sư của lớp tải file mới). Máy chưa cấu hình R2 thì tải / nghe file báo "chưa cấu hình", các phần khác vẫn chạy.
+- Q: Giới hạn số lần nghe? → A: Gia sư chọn "Không giới hạn" hoặc tối đa 1–5 lần. Chỉ canh trên trình duyệt (đếm mỗi lần bắt đầu phát, theo lượt làm bài), không phải biện pháp chống gian lận. Xem lại kết quả thì nghe không giới hạn.
+- Q: Quyền nghe? → A: Gia sư của lớp; học viên của lớp khi file thuộc bài đã giao và đã tới giờ mở. Bài đã có người làm thì khóa luôn file nghe như câu hỏi.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Gia sư tạo và giao bài tập (P1) — UC-66

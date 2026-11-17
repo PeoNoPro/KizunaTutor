@@ -127,8 +127,14 @@ async function load() {
     state.status = 'NEW';
     state.questions = [defaultQuestion('SINGLE_CHOICE')];
     fillSettings(null);
+    await prefillNewExercise();
     $('loadingBox').classList.add('hidden');
     renderAll();
+    // Mở từ hộp thoại "Giao bài tập" với nguồn "Nhập file Excel"
+    if (params.get('import') === '1') {
+      clearParams(['import']);
+      openImport();
+    }
     return;
   }
   try {
@@ -156,6 +162,47 @@ async function load() {
     $('editorMain').innerHTML = `<div class="kz-card p-6 text-center space-y-3"><p>${escapeHtml(friendlyErrorMessage(err))}</p>
       <a class="kz-btn" href="${classLink()}">Quay lại lớp học</a></div>`;
   }
+}
+
+/** Bỏ tham số một lần (import, copyFrom…) khỏi địa chỉ trang để tải lại không chạy lại. */
+function clearParams(keys) {
+  const url = new URL(window.location.href);
+  keys.forEach((k) => url.searchParams.delete(k));
+  window.history.replaceState(null, '', url);
+}
+
+/**
+ * Bài mới mở từ hộp thoại "Giao bài tập" ở trang Quản lý bài tập:
+ * - ?closes=ISO: điền sẵn giờ đóng đề (hạn nộp đã chọn);
+ * - ?copyFrom=<exerciseId>&fromSpace=<spaceId>: sao chép câu hỏi + cài đặt của bài đã có thành bài nháp mới
+ *   (không chép giờ mở / đóng đề và file nghe — file nghe thuộc bài cũ, cần tải lại).
+ */
+async function prefillNewExercise() {
+  const copyFrom = params.get('copyFrom');
+  if (copyFrom) {
+    try {
+      const src = await API.exercises.detail(params.get('fromSpace') || spaceId, copyFrom);
+      const s = src.summary;
+      const withAudio = (src.questions || []).filter((q) => q.audio).length;
+      state.questions = (src.questions || []).map((q) => ({
+        type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: null
+      }));
+      if (!state.questions.length) state.questions = [defaultQuestion('SINGLE_CHOICE')];
+      fillSettings({ summary: { ...s, title: `${s.title} (bản sao)`.slice(0, 150), opensAt: null, closesAt: null }, instructions: src.instructions });
+      state.dirty = true;
+      showToast(withAudio
+        ? `Đã sao chép ${state.questions.length} câu. ${withAudio} câu có file nghe: hãy tải lại file nghe cho bản sao.`
+        : `Đã sao chép ${state.questions.length} câu từ "${s.title}". Kiểm tra lại rồi lưu / giao bài.`);
+    } catch (err) {
+      showToast(`Không sao chép được bài: ${friendlyErrorMessage(err)}`, 'error');
+    }
+  }
+  const closes = params.get('closes');
+  if (closes) {
+    $('exCloses').value = toLocalInput(closes);
+    state.dirty = true;
+  }
+  if (copyFrom || closes) clearParams(['copyFrom', 'fromSpace', 'closes']);
 }
 
 function fillSettings(detail) {
@@ -746,6 +793,210 @@ async function removeExercise() {
   }
 }
 
+// ============================================================ nhập câu hỏi từ Excel
+
+const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
+const importState = { preview: null, filter: 'all', busy: false };
+
+function openImport() {
+  if (state.locked) {
+    showToast('Học viên đã làm bài nên không thêm câu hỏi được nữa.', 'error');
+    return;
+  }
+  importState.preview = null;
+  importState.filter = 'all';
+  $('importFile').value = '';
+  $('importFileName').textContent = 'Chưa chọn file';
+  $('importFileMeta').textContent = 'File .xlsx theo mẫu, tối đa 2 MB và 200 câu.';
+  $('importPickLabel').textContent = 'Chọn file Excel';
+  setImportError('');
+  renderImport();
+  $('importModal').classList.remove('hidden');
+}
+
+function closeImport() {
+  $('importModal').classList.add('hidden');
+}
+
+function setImportError(message) {
+  $('importError').textContent = message || '';
+  $('importError').classList.toggle('hidden', !message);
+}
+
+function renderImportSteps() {
+  const p = importState.preview;
+  const steps = [
+    ['Tải file mẫu', true],
+    ['Chọn file', !!p || importState.busy],
+    ['Kiểm tra & xem trước', !!p],
+    ['Thêm vào bài', false]
+  ];
+  const current = p ? 3 : (importState.busy ? 2 : 1);
+  $('importSteps').innerHTML = steps.map(([label], i) => {
+    const done = i < current;
+    const now = i === current;
+    const badge = done
+      ? '<span class="material-symbols-outlined text-[22px] text-[#1b6b3a]" aria-hidden="true">check_circle</span>'
+      : `<span class="w-6 h-6 rounded-full ${now ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'} text-[12px] flex items-center justify-center">${i + 1}</span>`;
+    return `${i ? '<li aria-hidden="true" class="w-8 h-0.5 bg-outline-variant"></li>' : ''}
+      <li class="flex items-center gap-2 ${done ? 'text-[#1b6b3a] font-semibold' : now ? 'text-primary font-semibold' : 'text-on-surface-variant'}" ${now ? 'aria-current="step"' : ''}>${badge}${label}</li>`;
+  }).join('');
+}
+
+/** Tóm tắt lựa chọn và đáp án của một dòng (để gia sư soát trước khi thêm). */
+function importSummary(r) {
+  const d = r.data || {};
+  const opts = d.options || [];
+  switch (r.type) {
+    case 'SINGLE_CHOICE': return [opts.join(' | '), opts[d.correct] ?? ''];
+    case 'MULTI_CHOICE': return [opts.join(' | '), (d.correct || []).map((i) => opts[i]).join(' | ')];
+    case 'TRUE_FALSE': return ['', d.correct ? 'Đúng' : 'Sai'];
+    case 'FILL_BLANK': return ['', (d.answers || []).map((a) => a.join(' / ')).join(' | ')];
+    case 'WORD_BANK': return [(d.distractors || []).length ? `Từ nhiễu: ${d.distractors.join(' | ')}` : '', (d.answers || []).join(' | ')];
+    case 'MATCHING': return [(d.pairs || []).map((p) => `${p.left} = ${p.right}`).join(' | '), 'Theo các cặp'];
+    case 'ORDERING': return [(d.items || []).join(' → '), 'Theo thứ tự trên'];
+    case 'WRITTEN': return ['', (d.accepted || []).length ? d.accepted.join(' | ') : 'Gia sư chấm'];
+    default: return ['', ''];
+  }
+}
+
+function renderImport() {
+  renderImportSteps();
+  const p = importState.preview;
+  $('importResult').classList.toggle('hidden', !p);
+  $('importApply').disabled = !p || !p.valid || importState.busy;
+  $('importApply').textContent = p && p.valid ? `Thêm ${p.valid} câu hợp lệ` : 'Thêm câu hợp lệ';
+  if (!p) return;
+  $('importValid').textContent = p.valid;
+  $('importInvalid').textContent = p.invalid;
+  $('importPoints').textContent = `${formatScore(p.validPoints)} điểm`;
+  document.querySelectorAll('[data-import-filter]').forEach((b) => { b.dataset.active = String(b.dataset.importFilter === importState.filter); });
+  const rows = p.rows.filter((r) => importState.filter === 'all' || !r.ok);
+  $('importTable').innerHTML = `
+    <table class="w-full min-w-[860px] text-left">
+      <thead class="bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide">
+        <tr><th class="px-3 py-2.5 w-16">Dòng</th><th class="px-3 py-2.5">Loại câu</th><th class="px-3 py-2.5">Đề bài</th><th class="px-3 py-2.5">Lựa chọn / mục</th><th class="px-3 py-2.5">Đáp án đúng</th><th class="px-3 py-2.5 w-16">Điểm</th></tr>
+      </thead>
+      <tbody>
+        ${rows.map((r) => {
+          if (!r.ok) {
+            return `<tr class="bg-[#fff8f7] border-t border-surface-container-high">
+              <td class="px-3 py-3 font-semibold text-error">${r.row}</td>
+              <td class="px-3 py-3">${escapeHtml(r.type ? questionTypeLabel(r.type) : '—')}</td>
+              <td class="px-3 py-3 text-error" colspan="4"><span class="inline-flex items-start gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>${escapeHtml(r.error || 'Dòng không hợp lệ.')}</span></td>
+            </tr>`;
+          }
+          const [choices, answer] = importSummary(r);
+          const prompt = r.prompt || r.data?.text || '';
+          return `<tr class="border-t border-surface-container-high align-top">
+            <td class="px-3 py-3 text-on-surface-variant">${r.row}</td>
+            <td class="px-3 py-3">${escapeHtml(questionTypeLabel(r.type))}</td>
+            <td class="px-3 py-3 [overflow-wrap:anywhere]">${escapeHtml(prompt)}</td>
+            <td class="px-3 py-3 [overflow-wrap:anywhere] text-on-surface-variant">${escapeHtml(choices || '—')}</td>
+            <td class="px-3 py-3 [overflow-wrap:anywhere]">${escapeHtml(answer || '—')}</td>
+            <td class="px-3 py-3">${formatScore(r.points)}</td>
+          </tr>`;
+        }).join('') || '<tr><td colspan="6" class="px-3 py-6 text-center text-on-surface-variant">Không có dòng lỗi.</td></tr>'}
+      </tbody>
+    </table>`;
+}
+
+async function onImportFile(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  setImportError('');
+  importState.preview = null;
+  $('importFileName').textContent = file.name;
+  $('importFileMeta').textContent = 'Đang kiểm tra file…';
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    setImportError('Chỉ nhận file Excel .xlsx. Hãy tải file mẫu, điền rồi lưu dạng .xlsx.');
+    $('importFileMeta').textContent = '';
+    renderImport();
+    return;
+  }
+  if (file.size > IMPORT_MAX_BYTES) {
+    setImportError('File Excel tối đa 2 MB.');
+    $('importFileMeta').textContent = '';
+    renderImport();
+    return;
+  }
+  importState.busy = true;
+  renderImport();
+  try {
+    importState.preview = await API.exercises.importPreview(spaceId, file);
+    const p = importState.preview;
+    $('importFileMeta').textContent = `${p.total} dòng dữ liệu · ${p.valid} hợp lệ · ${p.invalid} lỗi`;
+    $('importPickLabel').textContent = 'Chọn file khác';
+    if (p.invalid && !p.valid) importState.filter = 'error';
+  } catch (err) {
+    setImportError(err.fieldErrors?.file || friendlyErrorMessage(err));
+    $('importFileMeta').textContent = '';
+  } finally {
+    importState.busy = false;
+    e.target.value = '';
+    renderImport();
+  }
+}
+
+async function downloadImportTemplate() {
+  const btn = $('importTemplateBtn');
+  btn.disabled = true;
+  try {
+    const blob = await API.exercises.importTemplate(spaceId);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mau-nhap-cau-hoi-kizuna.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  } catch (err) {
+    setImportError(friendlyErrorMessage(err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function applyImport() {
+  const p = importState.preview;
+  if (!p || !p.valid) return;
+  const added = p.rows.filter((r) => r.ok).map((r) => ({
+    type: r.type, prompt: r.prompt || '', points: Number(r.points), data: r.data || {}, audio: null
+  }));
+  const replace = document.querySelector('input[name="importMode"]:checked')?.value === 'replace';
+  // Bài mới chỉ có 1 câu trống mặc định → coi như thay thế
+  const first = state.questions[0];
+  const onlyBlank = state.questions.length === 1 && !first.prompt && !first.audio
+    && JSON.stringify(first.data) === JSON.stringify(defaultQuestion(first.type).data);
+  const start = replace || onlyBlank ? 0 : state.questions.length;
+  state.questions = replace || onlyBlank ? added : [...state.questions, ...added];
+  if (state.questions.length > 200) {
+    state.questions = state.questions.slice(0, 200);
+    showToast('Mỗi bài tối đa 200 câu: đã bỏ bớt các câu vượt quá.', 'error');
+  }
+  state.dirty = true;
+  closeImport();
+  if (state.tab !== 'questions') switchTab('questions');
+  selectQuestion(Math.min(start, state.questions.length - 1));
+  showToast(`Đã thêm ${added.length} câu từ Excel. Kiểm tra lại rồi bấm Lưu nháp / Giao bài.`);
+}
+
+function initImport() {
+  $('importExcelBtn').addEventListener('click', openImport);
+  $('importFile').addEventListener('change', onImportFile);
+  $('importTemplateBtn').addEventListener('click', downloadImportTemplate);
+  $('importApply').addEventListener('click', applyImport);
+  document.querySelectorAll('[data-import-close]').forEach((b) => b.addEventListener('click', closeImport));
+  document.querySelectorAll('[data-import-filter]').forEach((b) => b.addEventListener('click', () => {
+    importState.filter = b.dataset.importFilter;
+    renderImport();
+  }));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('importModal').classList.contains('hidden')) closeImport();
+  });
+}
+
 // ============================================================ xem thử
 
 function openPreview() {
@@ -968,6 +1219,7 @@ function init() {
   }
   // Sidebar dùng chung của gia sư, mục "Quản lý bài tập" đang mở
   mountTutorLayout('assignments');
+  initImport();
   $('backLink').href = classLink();
   $('addTypeButtons').innerHTML = QUESTION_TYPES.map((t) => `
     <button type="button" class="ex-type-btn" data-add-type="${t.value}" title="${escapeHtml(t.hint)}">

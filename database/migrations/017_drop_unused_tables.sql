@@ -22,3 +22,9 @@ DROP TABLE IF EXISTS fe10_schema_versions;
 DROP TABLE IF EXISTS operations_schema_versions;
 
 COMMIT;
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_name IN ('technical_incidents','technical_incident_events','incident_components',
+                     'staff_role_change_requests','support_shifts','support_shift_events',
+                     'fe10_schema_versions','operations_schema_versions');
+

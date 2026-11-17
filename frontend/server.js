@@ -149,6 +149,13 @@ const URL_ALIASES = {
   '/tutor/post/': '/pages/tutor-post/index.html',
   '/academic/history': '/pages/academic-review-history/index.html',
   '/academic/history/': '/pages/academic-review-history/index.html',
+  // FE-13 (thêm 2026-11-17): Luyện đề JLPT — Ngân hàng đề (học vụ) và Luyện đề (học viên).
+  '/academic/practice': '/pages/academic-practice/index.html',
+  '/academic/practice/': '/pages/academic-practice/index.html',
+  '/academic/practice/detail': '/pages/academic-practice-detail/index.html',
+  '/learner/practice': '/pages/practice/index.html',
+  '/learner/practice/': '/pages/practice/index.html',
+  '/learner/practice/attempt': '/pages/practice-attempt/index.html',
   '/academic/profile': '/pages/academic-profile/index.html',
   '/academic/profile/': '/pages/academic-profile/index.html',
   // FE-09: gói hội viên và thanh toán

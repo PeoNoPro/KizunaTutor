@@ -7,7 +7,7 @@
 import { API, ApiError } from '/js/api.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
 import { formatDateTime, toast } from '/js/membership-format.js';
-import { validatePostDraft, submitLabel, priceRowsFromContent, isUpdateMode } from '/js/tutor-post-helpers.js';
+import { validatePostDraft, submitLabel, priceRowsFromContent, isUpdateMode, SESSION_MINUTES } from '/js/tutor-post-helpers.js';
 
 const $ = (id) => document.getElementById(id);
 const STATES = ['loadingState', 'errorState', 'blockedState', 'contentState'];
@@ -77,7 +77,8 @@ function fillForm(post) {
 // ---------------------------------------------------------------------------
 // Bảng học phí theo môn học / cấp độ (danh sách lựa chọn lấy từ backend: priceLevels)
 // ---------------------------------------------------------------------------
-const priceState = { levels: [], editable: false };
+// minutes: thời lượng một buổi được chọn (backend: sessionMinutesOptions)
+const priceState = { levels: [], minutes: [...SESSION_MINUTES], editable: false };
 // post: bài hiện tại; allowed: backend cho phép gửi; editing: đang mở form để sửa
 const pageState = { post: null, allowed: false, editing: false };
 
@@ -88,14 +89,20 @@ function escapeAttr(text) {
 function priceRowHtml(row) {
   const options = priceState.levels.map((l) =>
     `<option value="${escapeAttr(l.code)}" ${l.code === row.level ? 'selected' : ''}>${escapeAttr(l.label)}</option>`).join('');
-  const rate = row.hourlyRate != null && row.hourlyRate !== '' ? Number(row.hourlyRate) : '';
+  const minutes = Number(row.sessionMinutes) || '';
+  const minuteOptions = priceState.minutes.map((m) =>
+    `<option value="${m}" ${m === minutes ? 'selected' : ''}>${m} phút</option>`).join('');
+  const rate = row.pricePerSession != null && row.pricePerSession !== '' ? Number(row.pricePerSession) : '';
   return `
-    <div class="price-row grid grid-cols-[minmax(0,1fr)_minmax(0,11rem)_auto] gap-2 items-center">
+    <div class="price-row grid grid-cols-[minmax(0,1fr)_minmax(0,7.5rem)_minmax(0,10rem)_auto] gap-2 items-center">
       <select class="tv-input" data-price-level aria-label="Môn học / cấp độ">
         <option value="">Chọn môn học / cấp độ</option>${options}
       </select>
+      <select class="tv-input" data-price-minutes aria-label="Thời lượng mỗi buổi">
+        <option value="">Mỗi buổi</option>${minuteOptions}
+      </select>
       <input class="tv-input" data-price-rate type="number" min="10000" max="10000000" step="1000"
-             placeholder="Ví dụ: 250000" aria-label="Học phí mỗi giờ (đ)" value="${rate}">
+             placeholder="Ví dụ: 300000" aria-label="Học phí mỗi buổi (đ)" value="${rate}">
       <button type="button" data-price-remove class="p-2 rounded-lg text-on-surface-variant hover:bg-error-container hover:text-error" aria-label="Xóa mức giá">
         <span class="material-symbols-outlined text-[20px]">delete</span>
       </button>
@@ -108,11 +115,16 @@ function renderPriceRows(rows) {
 }
 
 function collectPrices() {
-  return [...$('priceRows').querySelectorAll('.price-row')].map((row) => ({
-    level: row.querySelector('[data-price-level]').value,
-    // Ô trống giữ '' để không hiện "0" khi vẽ lại; kiểm tra hợp lệ vẫn coi là sai
-    hourlyRate: row.querySelector('[data-price-rate]').value === '' ? '' : Number(row.querySelector('[data-price-rate]').value)
-  }));
+  return [...$('priceRows').querySelectorAll('.price-row')].map((row) => {
+    const minutes = row.querySelector('[data-price-minutes]').value;
+    const rate = row.querySelector('[data-price-rate]').value;
+    return {
+      level: row.querySelector('[data-price-level]').value,
+      // Ô trống giữ '' để không hiện "0" khi vẽ lại; kiểm tra hợp lệ vẫn coi là sai
+      sessionMinutes: minutes === '' ? '' : Number(minutes),
+      pricePerSession: rate === '' ? '' : Number(rate)
+    };
+  });
 }
 
 /** Khóa/mở các ô theo chế độ sửa; ẩn môn đã chọn ở dòng khác; giới hạn số dòng bằng số môn. */
@@ -125,6 +137,7 @@ function syncPriceControls() {
       opt.disabled = opt.value !== '' && chosen.some((v, i) => i !== index && v === opt.value);
     });
     select.disabled = !priceState.editable;
+    row.querySelector('[data-price-minutes]').disabled = !priceState.editable;
     row.querySelector('[data-price-rate]').disabled = !priceState.editable;
     row.querySelector('[data-price-remove]').classList.toggle('hidden', !priceState.editable || rows.length <= 1);
   });
@@ -228,6 +241,9 @@ async function load() {
       return;
     }
     priceState.levels = Array.isArray(data.priceLevels) ? data.priceLevels : [];
+    if (Array.isArray(data.sessionMinutesOptions) && data.sessionMinutesOptions.length) {
+      priceState.minutes = data.sessionMinutesOptions.map(Number);
+    }
     renderPost(data.post, data.editable);
     // Gói hết hạn nhưng đã có bài: vẫn xem được, bài tạm ẩn khỏi trang Tìm gia sư
     if (!data.canPost) {
@@ -257,7 +273,7 @@ $('retryButton').addEventListener('click', load);
 $('addPriceButton').addEventListener('click', () => {
   const rows = collectPrices();
   if (rows.length >= priceState.levels.length) return;
-  renderPriceRows(rows.concat({ level: '', hourlyRate: '' }));
+  renderPriceRows(rows.concat({ level: '', sessionMinutes: '', pricePerSession: '' }));
 });
 $('priceRows').addEventListener('click', (event) => {
   const remove = event.target.closest('[data-price-remove]');

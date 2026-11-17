@@ -103,6 +103,16 @@ public class ClassroomController extends ClassroomExceptionHandler {
         return ClassroomApiResponse.ok("Cập nhật khóa học thành công.", classroomService.updateCourse(actor, spaceId, request));
     }
 
+    /** Gia sư đổi hình thức học: online (link phòng học) hoặc trực tiếp (địa điểm). */
+    @PutMapping("/{spaceId}/delivery")
+    public ClassroomApiResponse<ClassroomSummaryResponse> updateDelivery(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String auth,
+            @PathVariable UUID spaceId,
+            @RequestBody ClassroomDeliveryRequest request) {
+        CurrentActor actor = currentUserResolver.resolve(auth);
+        return ClassroomApiResponse.ok("Cập nhật hình thức học thành công.", classroomService.updateDelivery(actor, spaceId, request));
+    }
+
     // ===== Buổi học cụ thể của khóa (lưới tuần): dời / hủy / thêm riêng trong một tuần =====
 
     /** Các buổi học cụ thể trong khoảng [from, to] (tối đa 62 ngày) của mọi lớp đang mở mà người dùng tham gia. */

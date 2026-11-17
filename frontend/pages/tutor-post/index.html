@@ -99,9 +99,12 @@
                 <div class="md:col-span-2">
                   <div class="flex items-center justify-between gap-3">
                     <span class="tv-label mb-0">Học phí theo môn học / cấp độ <span class="text-error">*</span></span>
-                    <span class="text-caption text-outline">đ / giờ · từ 10.000 đ đến 10.000.000 đ</span>
+                    <span class="text-caption text-outline">đ / buổi · từ 10.000 đ đến 10.000.000 đ</span>
                   </div>
-                  <p class="text-caption text-on-surface-variant mt-0.5">Học viên thấy mức thấp nhất dạng "Từ ..." ở trang Tìm gia sư và cả bảng giá trong hồ sơ của bạn.</p>
+                  <p class="text-caption text-on-surface-variant mt-0.5">Mỗi môn chọn thời lượng một buổi và học phí một buổi. Học viên đặt lịch theo đúng thời lượng này, và thấy cả bảng giá trong hồ sơ của bạn.</p>
+                  <div class="hidden sm:grid grid-cols-[minmax(0,1fr)_minmax(0,7.5rem)_minmax(0,10rem)_2.25rem] gap-2 mt-3 text-caption text-outline">
+                    <span>Môn học / cấp độ</span><span>Mỗi buổi</span><span>Học phí một buổi (đ)</span><span></span>
+                  </div>
                   <div id="priceRows" class="mt-3 flex flex-col gap-2"></div>
                   <button id="addPriceButton" type="button" class="mt-3 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-low text-primary text-label-md hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed">
                     <span class="material-symbols-outlined text-[18px]">add</span>Thêm mức giá

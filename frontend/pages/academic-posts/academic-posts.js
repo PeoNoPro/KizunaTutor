@@ -78,6 +78,20 @@ async function loadSummary() {
   }
 }
 
+/** Giá một dòng học phí: "90 phút · 300.000 đ/buổi"; dữ liệu cũ chưa có giá theo buổi thì hiện theo giờ. */
+function priceItemText(p) {
+  return p.pricePerSession != null
+    ? `${p.sessionMinutes} phút · ${formatMoney(p.pricePerSession)}/buổi`
+    : `${formatMoney(p.hourlyRate)}/giờ`;
+}
+
+/** Học phí tóm tắt: giá một buổi thấp nhất ("Từ ..." khi có nhiều môn); bài cũ không có bảng giá thì theo giờ. */
+function priceSummary(c, prices) {
+  const perSession = prices.map((p) => p.pricePerSession).filter((v) => v != null).map(Number);
+  if (perSession.length) return `${prices.length > 1 ? "Từ " : ""}${formatMoney(Math.min(...perSession))}/buổi`;
+  return c.hourlyRate != null ? `${prices.length > 1 ? "Từ " : ""}${formatMoney(c.hourlyRate)}/giờ` : "";
+}
+
 function contentBlock(label, c, tone) {
   if (!c) return '';
   const tags = (c.specialties || '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -88,7 +102,7 @@ function contentBlock(label, c, tone) {
         ${prices.map((p) => `
           <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-body-sm">
             <span class="text-on-surface">${escapeHtml(p.levelLabel)}</span>
-            <span class="font-semibold text-primary">${formatMoney(p.hourlyRate)}/giờ</span>
+            <span class="font-semibold text-primary">${priceItemText(p)}</span>
           </div>`).join('')}
       </div>`
     : '';
@@ -98,7 +112,7 @@ function contentBlock(label, c, tone) {
       <p class="text-label-md font-semibold text-on-surface">${escapeHtml(c.title)}</p>
       <div class="flex flex-wrap items-center gap-2 mt-1.5 text-body-sm">
         <span class="px-2 py-0.5 rounded-full bg-primary-fixed text-primary text-caption font-semibold">${escapeHtml(c.teachingFormatLabel || '')}</span>
-        <span class="font-semibold text-primary">${prices.length > 1 ? 'Từ ' : ''}${formatMoney(c.hourlyRate)}/giờ</span>
+        <span class="font-semibold text-primary">${priceSummary(c, prices)}</span>
       </div>
       ${priceHtml}
       ${tags.length ? `<div class="flex flex-wrap gap-1.5 mt-2">${tags.map((t) => `<span class="px-2 py-0.5 rounded-lg bg-surface-container text-caption">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
@@ -127,7 +141,7 @@ function itemHtml(p) {
         </div>
         <p class="text-label-md text-on-surface mt-1 truncate">${escapeHtml(c.title || '—')}</p>
         <p class="text-caption text-outline mt-0.5">
-          ${escapeHtml(c.teachingFormatLabel || '')}${c.hourlyRate != null ? ` · ${prices.length > 1 ? 'Từ ' : ''}${formatMoney(c.hourlyRate)}/giờ` : ''}
+          ${escapeHtml(c.teachingFormatLabel || '')}${priceSummary(c, prices) ? ` · ${priceSummary(c, prices)}` : ''}
           · Gửi lúc ${formatDateTime(p.submittedAt)}
         </p>
       </div>

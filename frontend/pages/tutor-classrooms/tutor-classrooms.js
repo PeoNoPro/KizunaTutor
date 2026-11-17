@@ -416,6 +416,74 @@ function renderCourseInfo() {
   $('courseSummary').textContent = courseSummaryText(c);
   $('courseMissingNote').classList.toggle('hidden', !!c.totalSessions || !c.canManage);
   $('openCourseBtn').classList.toggle('hidden', !c.canManage);
+  renderDeliveryInfo();
+}
+
+// ----------------------------------------------------------------------------
+// Hình thức học: online (link phòng học) hoặc trực tiếp (địa điểm)
+// ----------------------------------------------------------------------------
+function renderDeliveryInfo() {
+  const c = state.currentSpace;
+  const offline = c.learningMode === 'OFFLINE';
+  $('deliverySummary').textContent = offline
+    ? `Học trực tiếp · ${c.locationDetails || ''}`
+    : `Học online${c.meetingLink ? ` · ${c.meetingLink}` : ''}`;
+  $('deliveryMissingNote').classList.toggle('hidden', offline || !!c.meetingLink || !c.canManage);
+  $('openDeliveryBtn').classList.toggle('hidden', !c.canManage);
+}
+
+function syncDeliveryFields() {
+  const offline = document.querySelector('input[name="deliveryMode"]:checked')?.value === 'OFFLINE';
+  $('deliveryLinkBox').classList.toggle('hidden', offline);
+  $('deliveryLocationBox').classList.toggle('hidden', !offline);
+}
+
+function openDeliveryModal() {
+  const c = state.currentSpace;
+  const mode = c.learningMode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE';
+  document.querySelector(`input[name="deliveryMode"][value="${mode}"]`).checked = true;
+  $('deliveryLinkInput').value = c.meetingLink || '';
+  $('deliveryLocationInput').value = c.locationDetails || '';
+  ['deliveryLinkError', 'deliveryLocationError', 'deliveryFormError'].forEach((id) => setFieldError(id, ''));
+  syncDeliveryFields();
+  openModal('deliveryModal');
+}
+
+async function submitDelivery(event) {
+  event.preventDefault();
+  const learningMode = document.querySelector('input[name="deliveryMode"]:checked')?.value || 'ONLINE';
+  const meetingLink = $('deliveryLinkInput').value.trim();
+  const locationDetails = $('deliveryLocationInput').value.trim();
+  const linkError = learningMode === 'ONLINE' && meetingLink && !/^https?:\/\/\S+$/i.test(meetingLink)
+    ? 'Link phòng học phải bắt đầu bằng http:// hoặc https://' : '';
+  const locationError = learningMode === 'OFFLINE' && !locationDetails ? 'Vui lòng nhập địa điểm học.' : '';
+  setFieldError('deliveryLinkError', linkError);
+  setFieldError('deliveryLocationError', locationError);
+  setFieldError('deliveryFormError', '');
+  if (linkError || locationError) return;
+
+  const submit = $('deliverySubmit');
+  setBusy(submit, true, 'Đang lưu...');
+  try {
+    state.currentSpace = await API.classrooms.updateDelivery(state.currentSpace.spaceId, {
+      learningMode,
+      meetingLink: learningMode === 'ONLINE' ? (meetingLink || null) : null,
+      locationDetails: learningMode === 'OFFLINE' ? locationDetails : null
+    });
+    closeModal('deliveryModal');
+    showToast('Cập nhật hình thức học thành công.');
+    renderSpace();
+  } catch (err) {
+    const fe = err.fieldErrors || {};
+    if (fe.meetingLink || fe.locationDetails) {
+      setFieldError('deliveryLinkError', fe.meetingLink);
+      setFieldError('deliveryLocationError', fe.locationDetails);
+    } else {
+      setFieldError('deliveryFormError', friendlyErrorMessage(err));
+    }
+  } finally {
+    setBusy(submit, false);
+  }
 }
 
 function openCourseModal() {
@@ -858,6 +926,9 @@ function init() {
   $('openRenameBtn').addEventListener('click', openRename);
   $('openCourseBtn').addEventListener('click', openCourseModal);
   $('courseForm').addEventListener('submit', submitCourse);
+  $('openDeliveryBtn').addEventListener('click', openDeliveryModal);
+  $('deliveryForm').addEventListener('submit', submitDelivery);
+  document.querySelectorAll('input[name="deliveryMode"]').forEach((r) => r.addEventListener('change', syncDeliveryFields));
   $('deleteScheduleConfirm').addEventListener('click', confirmDeleteSchedule);
   $('renameForm').addEventListener('submit', submitRename);
   $('backToListBtn').addEventListener('click', navigateToList);

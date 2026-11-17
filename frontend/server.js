@@ -52,9 +52,13 @@ const URL_ALIASES = {
   '/tutor/connections/': '/pages/tutor-connections/index.html',
   '/tutor/schedule': '/pages/tutor-schedule/index.html',
   '/tutor/schedule/': '/pages/tutor-schedule/index.html',
+  '/tutor/profile': '/pages/tutor-teaching-profile/index.html',
+  '/tutor/profile/': '/pages/tutor-teaching-profile/index.html',
   '/learner/connections': '/pages/learner-connections/index.html',
   '/learner/connections/': '/pages/learner-connections/index.html',
   '/learner/bookings': '/pages/learner-connections/index.html',
+  '/learner/requests': '/pages/learner-requests/index.html',
+  '/learner/requests/': '/pages/learner-requests/index.html',
   '/admin/operations/booking-policy': '/pages/operations-config/index.html',
   '/admin/operations/incidents': '/pages/operations-incidents/index.html',
   '/admin/operations/reports': '/pages/operations-reports/index.html',
@@ -162,6 +166,8 @@ const URL_ALIASES = {
   '/tutor/membership/result': '/pages/tutor-membership-result/index.html',
   '/manager/membership-plans': '/pages/manager-membership-plans/index.html',
   '/manager/tutor-memberships': '/pages/manager-tutor-memberships/index.html',
+  '/manager/users': '/pages/manager-users/index.html',
+  '/manager/users/': '/pages/manager-users/index.html',
   '/admin/payments': '/pages/admin-payments/index.html'
 };
 

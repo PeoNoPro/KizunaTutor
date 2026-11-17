@@ -12,7 +12,7 @@ import {mountAcademicLayout} from '../../components/academic-layout/academic-lay
 const BASE = '/v1/notifications';
 export const notificationApi = (path = '', options = {}) => fetchAPI(BASE + path, {csrfPath: BASE + '/csrf', ...options});
 const $ = id => document.getElementById(id);
-export const TYPE_ICONS = {SYSTEM: 'campaign', TRIAL: 'event_available', ASSIGNMENT: 'assignment', PAYMENT: 'payments', TICKET: 'support_agent'};
+export const TYPE_ICONS = {SYSTEM: 'campaign', TRIAL: 'event_available', CONNECTION: 'handshake', ASSIGNMENT: 'assignment', PAYMENT: 'payments', TICKET: 'support_agent'};
 
 export function element(tag, text, className) {
   const node = document.createElement(tag);

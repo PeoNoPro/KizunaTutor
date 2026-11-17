@@ -77,7 +77,7 @@ public class TutorPostService {
         TutorPost latest = postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId()).orElse(null);
         boolean editable = blocked == null && isEditable(latest, tutor.getTutorId());
         return new MyPostView(blocked == null, blocked, editable, membershipExpiresOn(tutor.getTutorId()),
-                postView(tutor.getTutorId()), PRICE_LEVEL_OPTIONS);
+                postView(tutor.getTutorId()), PRICE_LEVEL_OPTIONS, PostPriceItem.SESSION_MINUTES);
     }
 
     /** Danh sách môn học / cấp độ cho ô chọn trên giao diện (theo thứ tự khai báo của PriceLevel). */
@@ -119,7 +119,8 @@ public class TutorPostService {
         }
         SubmitPostRequest r = validate(request);
         List<PostPriceItem> prices = r.prices().stream()
-                .map(p -> new PostPriceItem(p.level(), p.hourlyRate()))
+                .map(p -> new PostPriceItem(p.level(), PostPriceItem.hourlyOf(p.pricePerSession(), p.sessionMinutes()),
+                        p.sessionMinutes(), p.pricePerSession()))
                 .toList();
 
         // Bổ sung theo yêu cầu thì sửa đúng bài đó; chưa có bài hoặc cập nhật bài đã duyệt thì tạo bản mới.
@@ -135,7 +136,7 @@ public class TutorPostService {
         post.setSpecialties(r.specialties());
         post.setTeachingFormat(r.teachingFormat());
         post.setPriceItems(prices);
-        // Giá thấp nhất: trang Tìm gia sư lọc / sắp xếp và hiển thị "Từ ..." theo cột hourly_rate
+        // Giá thấp nhất quy ra một giờ: trang Tìm gia sư lọc / sắp xếp theo cột hourly_rate
         post.setHourlyRate(prices.stream().map(PostPriceItem::hourlyRate).min(BigDecimal::compareTo).orElseThrow());
         post.setUpdatedAt(OffsetDateTime.now(ZONE));
         postRepository.saveAndFlush(post);
@@ -227,6 +228,22 @@ public class TutorPostService {
         return postRepository.findFirstByTutorTutorIdAndStatusOrderByReviewedAtDesc(tutorId, TutorPostStatus.PUBLISHED);
     }
 
+    /**
+     * Bản đang hiển thị của nhiều gia sư trong 1 query: mỗi gia sư lấy dòng PUBLISHED được duyệt gần nhất
+     * (cùng quy tắc với publishedPost). Gia sư không có bài đăng thì không có trong kết quả.
+     */
+    public java.util.Map<UUID, TutorPost> publishedPosts(java.util.Collection<UUID> tutorIds) {
+        java.util.Map<UUID, TutorPost> result = new java.util.HashMap<>();
+        if (tutorIds == null || tutorIds.isEmpty()) return result;
+        java.util.Comparator<TutorPost> newestReviewed = java.util.Comparator.comparing(
+                TutorPost::getReviewedAt, java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder()));
+        for (TutorPost post : postRepository.findByTutorTutorIdInAndStatus(tutorIds, TutorPostStatus.PUBLISHED)) {
+            result.merge(post.getTutor().getTutorId(), post,
+                    (a, b) -> newestReviewed.compare(a, b) >= 0 ? a : b);
+        }
+        return result;
+    }
+
     public static String formatLabel(String format) {
         if (format == null) {
             return null;
@@ -309,16 +326,18 @@ public class TutorPostService {
 
     /**
      * Bảng học phí: ít nhất một mục; mỗi môn học / cấp độ thuộc danh sách cố định và chỉ xuất hiện một lần;
-     * mỗi mức giá từ 10.000 đ đến 10.000.000 đ. Trả về danh sách đã chuẩn hóa, sắp theo thứ tự PriceLevel.
+     * thời lượng một buổi là 60 / 90 / 120 phút; giá một buổi từ 10.000 đ đến 10.000.000 đ.
+     * Trả về danh sách đã chuẩn hóa, sắp theo thứ tự PriceLevel.
      */
     private static List<PriceItemRequest> validatePrices(List<PriceItemRequest> input, List<String> errors) {
         if (input == null || input.isEmpty()) {
             errors.add("Vui lòng thêm ít nhất một mức học phí theo môn học hoặc cấp độ");
             return List.of();
         }
-        java.util.EnumMap<PriceLevel, BigDecimal> byLevel = new java.util.EnumMap<>(PriceLevel.class);
+        java.util.EnumMap<PriceLevel, PriceItemRequest> byLevel = new java.util.EnumMap<>(PriceLevel.class);
         boolean badLevel = false;
         boolean duplicate = false;
+        boolean badMinutes = false;
         boolean badRate = false;
         for (PriceItemRequest item : input) {
             PriceLevel level = item == null ? null : PriceLevel.fromCode(item.level());
@@ -330,11 +349,14 @@ public class TutorPostService {
                 duplicate = true;
                 continue;
             }
-            BigDecimal rate = item.hourlyRate();
+            if (item.sessionMinutes() == null || !PostPriceItem.SESSION_MINUTES.contains(item.sessionMinutes())) {
+                badMinutes = true;
+            }
+            BigDecimal rate = item.pricePerSession();
             if (rate == null || rate.compareTo(MIN_RATE) < 0 || rate.compareTo(MAX_RATE) > 0) {
                 badRate = true;
             }
-            byLevel.put(level, rate);
+            byLevel.put(level, new PriceItemRequest(level.name(), item.sessionMinutes(), rate));
         }
         if (badLevel) {
             errors.add("Vui lòng chọn môn học hoặc cấp độ cho từng mức học phí");
@@ -342,12 +364,13 @@ public class TutorPostService {
         if (duplicate) {
             errors.add("Mỗi môn học hoặc cấp độ chỉ được đặt một mức học phí");
         }
-        if (badRate) {
-            errors.add("Học phí mỗi giờ từ 10.000 đ đến 10.000.000 đ");
+        if (badMinutes) {
+            errors.add("Vui lòng chọn thời lượng mỗi buổi (60, 90 hoặc 120 phút) cho từng môn học");
         }
-        return byLevel.entrySet().stream()
-                .map(e -> new PriceItemRequest(e.getKey().name(), e.getValue()))
-                .toList();
+        if (badRate) {
+            errors.add("Học phí mỗi buổi từ 10.000 đ đến 10.000.000 đ");
+        }
+        return List.copyOf(byLevel.values());
     }
 
     /** Bảng giá để hiển thị (kèm nhãn tiếng Việt); bài cũ chưa có bảng giá trả về danh sách rỗng. */
@@ -358,7 +381,8 @@ public class TutorPostService {
         return p.getPriceItems().stream()
                 .map(i -> {
                     PriceLevel level = PriceLevel.fromCode(i.level());
-                    return new PriceItemView(i.level(), level != null ? level.label() : i.level(), i.hourlyRate());
+                    return new PriceItemView(i.level(), level != null ? level.label() : i.level(), i.hourlyRate(),
+                            i.sessionMinutes(), i.pricePerSession());
                 })
                 .toList();
     }

@@ -114,7 +114,8 @@ export function officialEvent(o, href = null, { onClick = false } = {}) {
   if (start === null || end === null) return null;
   const kindLabel = o.extra ? 'Buổi học thêm' : (o.moved ? 'Lớp chính thức · đã dời' : 'Lớp chính thức');
   const numberLabel = o.number ? `Buổi ${o.number}${o.totalSessions ? `/${o.totalSessions}` : ''}` : '';
-  const notes = [numberLabel, o.moved && o.originalDate ? `Đã dời từ ${dayDateLabel(o.originalDate)}` : '']
+  const notes = [numberLabel, o.learningMode === 'OFFLINE' ? 'Trực tiếp' : '',
+    o.moved && o.originalDate ? `Đã dời từ ${dayDateLabel(o.originalDate)}` : '']
     .filter(Boolean).join(' · ');
   return {
     dateYmd: o.date, start, end: Math.max(end, start + 15), kind: 'official',

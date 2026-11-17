@@ -61,6 +61,12 @@ class VerificationSecurityTest {
     @MockBean
     private UserRepository userRepository;
 
+    @MockBean
+    private com.kizuna.core.security.JwtTokenVerifier jwtTokenVerifier;
+
+    @MockBean
+    private com.kizuna.features.admin.service.OperationsActorResolver operationsActorResolver;
+
     private void givenToken(String token, String roleName, UserAccountStatus accountStatus) {
         String email = token + "@kizuna.test";
         User user = User.builder()

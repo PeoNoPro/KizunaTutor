@@ -45,6 +45,8 @@ public class TutorSearchApiTest {
         assertNotNull(tutor, "Phải tìm thấy gia sư với mã 10001");
         assertEquals(10001L, tutor.getTutorCode());
         assertNotNull(tutor.getTutorId());
+        assertTrue(tutor.getStudentCount() >= 0);
+        assertTrue(tutor.getLessonCount() >= 0);
     }
 
     @Test

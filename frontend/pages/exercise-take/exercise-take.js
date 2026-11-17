@@ -28,6 +28,7 @@ import {
 } from '../../js/exercise-helpers.js';
 import { renderInteractive } from '../../js/exercise-player.js';
 import { mountAudioPlayer, playsKey } from '../../js/exercise-audio.js';
+import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(window.location.search);
@@ -62,12 +63,40 @@ function showToast(message, tone = 'success') {
   showToast.timer = setTimeout(() => t.classList.add('hidden'), 3500);
 }
 
+/**
+ * Thanh trên chỉ hiện khi đang làm bài (tên bài, tự lưu, đồng hồ, nộp bài) và lúc đó ẩn sidebar học viên để tập trung.
+ * Màn giới thiệu / kết quả dùng sidebar + đường dẫn như các trang học viên khác.
+ */
 function setHeader({ sub = '', taking = false } = {}) {
-  $('takeTitle').textContent = state.summary?.title || state.attempt?.exerciseTitle || 'Bài làm trực tiếp';
-  $('takeSub').textContent = sub;
+  const title = state.summary?.title || state.attempt?.exerciseTitle || 'Bài làm trực tiếp';
+  $('takeTitle').textContent = title;
+  document.title = `${title} - KizunaTutor`;
+  $('takeSub').textContent = [className(), sub].filter(Boolean).join(' · ');
+  $('takeBar').classList.toggle('hidden', !taking);
+  document.body.classList.toggle('ex-taking', taking);
   $('submitBtn').classList.toggle('hidden', !taking);
   $('timerBox').classList.toggle('hidden', !taking || state.deadlineMs === null);
   $('saveState').classList.toggle('hidden', !taking);
+}
+
+/** "Lớp N4 · Yamada Kenji" (tải kèm khi mở bài; thiếu thì để trống). */
+function className() {
+  const c = state.classInfo;
+  if (!c) return '';
+  return [c.title, c.tutorName ? `Gia sư ${c.tutorName.replace(/\s*\(Gia Sư\)\s*$/i, '')}` : ''].filter(Boolean).join(' · ');
+}
+
+/** Đường dẫn trên đầu màn giới thiệu / kết quả. */
+function breadcrumbHtml(last, { linkToIntro = false } = {}) {
+  const title = state.summary?.title || state.attempt?.exerciseTitle || 'Bài làm trực tiếp';
+  const sep = '<span class="material-symbols-outlined text-[16px]" aria-hidden="true">chevron_right</span>';
+  return `
+    <nav aria-label="Đường dẫn" class="flex flex-wrap items-center gap-1 font-body-sm text-body-sm text-on-surface-variant">
+      <a href="/learner/my-courses" class="text-primary hover:underline">Lớp học của tôi</a>${sep}
+      <a href="${classLink()}" class="text-primary hover:underline">${escapeHtml(state.classInfo?.title || 'Lớp học')}</a>${sep}
+      ${linkToIntro ? `<button type="button" data-crumb-intro class="text-primary hover:underline">${escapeHtml(title)}</button>${sep}<span>${escapeHtml(last)}</span>`
+        : `<span class="[overflow-wrap:anywhere]">${escapeHtml(last || title)}</span>`}
+    </nav>`;
 }
 
 /** Hộp xác nhận dùng chung: trả Promise<boolean>. */
@@ -99,7 +128,8 @@ async function showIntro() {
   try {
     const [detail, attempts] = await Promise.all([
       API.exercises.detail(spaceId, exerciseId),
-      API.exercises.attempts(spaceId, exerciseId).catch(() => [])
+      API.exercises.attempts(spaceId, exerciseId).catch(() => []),
+      loadClassInfo()
     ]);
     state.summary = detail.summary;
     state.instructions = detail.instructions || '';
@@ -110,36 +140,70 @@ async function showIntro() {
   }
 }
 
+/** Tên lớp + gia sư cho đường dẫn và thanh trên (lỗi thì bỏ qua). */
+async function loadClassInfo() {
+  if (state.classInfo) return state.classInfo;
+  try {
+    state.classInfo = await API.classrooms.detail(spaceId);
+  } catch (err) {
+    state.classInfo = null;
+  }
+  return state.classInfo;
+}
+
+const STATE_TEXT = { OPEN: 'Đang mở', NOT_OPEN: 'Chưa mở', CLOSED: 'Đã đóng', DRAFT: 'Nháp' };
+
 function renderIntro(attempts) {
   const s = state.summary;
-  setHeader({ sub: `${s.questionCount} câu · ${formatScore(s.maxScore)} điểm` });
-  const chips = [
-    ['quiz', `${s.questionCount} câu hỏi · ${formatScore(s.maxScore)} điểm`],
-    ['timer', s.timeLimitMinutes ? `Thời gian làm bài: ${s.timeLimitMinutes} phút` : 'Không giới hạn thời gian'],
-    ['replay', `Đã làm ${s.attemptsUsed}/${s.maxAttempts} lượt`],
-    ['fact_check', gradingModeLabel(s.gradingMode)],
-    ['event', s.closesAt ? `Đóng đề: ${formatDateTime(s.closesAt)}` : 'Không đóng đề']
+  setHeader();
+  // Có câu nghe: biết được qua các lượt đã làm (đề chỉ gửi cho học viên khi bắt đầu làm)
+  const listening = (attempts.find((a) => a.questions?.length)?.questions || []).filter((q) => q.audio);
+  const tiles = [
+    ['help', 'Câu hỏi', `${s.questionCount} câu · ${formatScore(s.maxScore)} điểm`],
+    ['timer', 'Thời gian làm bài', s.timeLimitMinutes ? `${s.timeLimitMinutes} phút` : 'Không giới hạn'],
+    ['replay', 'Lượt làm', `Đã làm ${s.attemptsUsed}/${s.maxAttempts} lượt`],
+    ['event', 'Đóng đề', s.closesAt ? formatDateTime(s.closesAt) : 'Không đóng đề'],
+    ['fact_check', 'Cách chấm', gradingModeLabel(s.gradingMode)]
   ];
+  if (listening.length) {
+    const plays = listening.map((q) => q.audio.maxPlays).filter(Boolean);
+    tiles.push(['headphones', 'Có câu nghe', `${listening.length} câu${plays.length ? ` · nghe tối đa ${Math.min(...plays)} lần` : ''}`, true]);
+  }
   const inProgress = s.inProgressAttemptId;
+  const btn = (label) => `<button type="button" id="startBtn" class="kz-btn kz-btn-primary h-12 px-6 text-[15px]"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">play_arrow</span>${label}</button>`;
   let action = '';
-  if (inProgress) action = '<button type="button" id="startBtn" class="kz-btn kz-btn-primary">Làm tiếp</button>';
-  else if (s.canStart) action = `<button type="button" id="startBtn" class="kz-btn kz-btn-primary">${s.attemptsUsed ? 'Làm lượt mới' : 'Bắt đầu làm bài'}</button>`;
+  if (inProgress) action = btn('Làm tiếp');
+  else if (s.canStart) action = btn(s.attemptsUsed ? `Bắt đầu lượt ${s.attemptsUsed + 1}` : 'Bắt đầu làm bài');
   else if (s.state === 'CLOSED') action = '<p class="font-semibold text-on-surface-variant">Đề đã đóng.</p>';
   else if (s.attemptsUsed >= s.maxAttempts) action = '<p class="font-semibold text-on-surface-variant">Bạn đã dùng hết lượt làm bài.</p>';
   else action = '<p class="font-semibold text-on-surface-variant">Hiện chưa thể làm bài này.</p>';
+  const stateTone = s.state === 'OPEN' ? 'active' : (s.state === 'CLOSED' ? 'done' : 'paused');
 
   $('takeMain').innerHTML = `
-    <div class="max-w-3xl mx-auto space-y-5">
-      <section class="kz-card p-6 space-y-4">
-        <h1 class="font-headline-sm text-headline-sm text-on-surface [overflow-wrap:anywhere]">${escapeHtml(s.title)}</h1>
-        ${state.instructions ? `<p class="whitespace-pre-line text-on-surface [overflow-wrap:anywhere]">${escapeHtml(state.instructions)}</p>` : ''}
-        <ul class="grid gap-2 sm:grid-cols-2">
-          ${chips.map(([icon, text]) => `<li class="flex items-center gap-2 text-on-surface-variant"><span class="material-symbols-outlined text-[18px] text-primary">${icon}</span>${escapeHtml(text)}</li>`).join('')}
+    <div class="max-w-4xl mx-auto space-y-5">
+      ${breadcrumbHtml(s.title)}
+      <section class="kz-card p-6 md:p-7 space-y-5">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-primary-fixed text-on-primary-fixed-variant flex items-center justify-center"><span class="material-symbols-outlined text-[26px]" aria-hidden="true">quiz</span></div>
+          <div class="flex-1 min-w-[220px]">
+            <h1 class="font-headline-sm text-headline-sm text-on-surface [overflow-wrap:anywhere]">${escapeHtml(s.title)}</h1>
+            <p class="text-on-surface-variant">Bài làm trực tiếp${state.classInfo?.tutorName ? ` · ${escapeHtml(className().split(' · ').slice(1).join(' · '))}` : ''}</p>
+          </div>
+          <span class="kz-badge" data-tone="${stateTone}">${escapeHtml(STATE_TEXT[s.state] || s.state)}</span>
+        </div>
+        <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          ${tiles.map(([icon, label, value, accent]) => `
+            <li class="ex-tile ${accent ? '!bg-secondary-fixed text-on-secondary-container' : ''}">
+              <p class="flex items-center gap-2 font-body-sm text-body-sm ${accent ? '' : 'text-on-surface-variant'}"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">${icon}</span>${escapeHtml(label)}</p>
+              <p class="font-title-md text-title-md mt-1 [overflow-wrap:anywhere]">${escapeHtml(value)}</p>
+            </li>`).join('')}
         </ul>
-        ${s.bestScore !== null && s.bestScore !== undefined ? `<p class="font-semibold">Điểm cao nhất: ${formatScore(s.bestScore)} / ${formatScore(s.maxScore)}</p>` : ''}
-        ${s.pendingGrading ? '<p class="text-on-surface-variant">Có lượt đang chờ gia sư chấm.</p>' : ''}
-        ${s.timeLimitMinutes && !inProgress && s.canStart ? '<p class="font-caption text-caption text-on-surface-variant">Đồng hồ bắt đầu chạy khi bạn bấm bắt đầu và vẫn chạy nếu bạn rời trang. Hết giờ bài sẽ tự nộp.</p>' : ''}
-        <div class="flex flex-wrap items-center gap-3 pt-1">${action}</div>
+        ${state.instructions ? `<div class="rounded-xl border border-surface-container-high px-4 py-3"><p class="font-semibold mb-1">Hướng dẫn của gia sư</p><p class="whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(state.instructions)}</p></div>` : ''}
+        ${s.pendingGrading ? '<p class="rounded-xl bg-tertiary-fixed text-on-tertiary-fixed px-4 py-2.5">Có lượt đang chờ gia sư chấm câu tự luận.</p>' : ''}
+        <div class="flex flex-wrap items-center gap-3 pt-1">
+          <p class="flex-1 min-w-[200px] text-on-surface-variant">${s.bestScore !== null && s.bestScore !== undefined ? `Điểm cao nhất của bạn: <b class="text-on-surface text-[16px]">${formatScore(s.bestScore)} / ${formatScore(s.maxScore)}</b>` : (s.timeLimitMinutes && !inProgress && s.canStart ? 'Đồng hồ bắt đầu chạy khi bạn bấm bắt đầu và vẫn chạy nếu bạn rời trang. Hết giờ bài sẽ tự nộp.' : '')}</p>
+          ${action}
+        </div>
       </section>
       ${attempts.length ? `
         <section class="kz-card p-6 space-y-3">
@@ -148,10 +212,10 @@ function renderIntro(attempts) {
             ${attempts.map((a) => `
               <li class="kz-item flex flex-wrap items-center gap-3">
                 <span class="font-semibold">Lượt ${a.attemptNumber}</span>
-                <span class="kz-badge">${escapeHtml(attemptStatusLabel(a.status))}</span>
+                <span class="kz-badge" data-tone="${a.status === 'GRADED' ? 'active' : a.status === 'SUBMITTED' ? 'paused' : 'done'}">${escapeHtml(attemptStatusLabel(a.status))}</span>
                 ${a.status !== 'IN_PROGRESS' ? `<span class="text-on-surface-variant">Nộp lúc ${escapeHtml(formatDateTime(a.submittedAt))}${a.late ? ' · nộp muộn' : ''}</span>` : ''}
                 <span class="flex-1"></span>
-                ${a.finalScore !== null && a.finalScore !== undefined ? `<span class="font-semibold">${formatScore(a.finalScore)} / ${formatScore(a.maxScore)} điểm</span>` : ''}
+                ${a.finalScore !== null && a.finalScore !== undefined ? `<span class="font-semibold text-[16px]">${formatScore(a.finalScore)} / ${formatScore(a.maxScore)} điểm</span>` : ''}
                 ${a.status !== 'IN_PROGRESS' ? `<button type="button" class="kz-btn" data-result="${escapeHtml(a.attemptId)}">Xem kết quả</button>` : ''}
               </li>`).join('')}
           </ul>
@@ -178,7 +242,8 @@ async function startAttempt() {
 
 async function openAttempt(attemptId) {
   try {
-    enterAttempt(await API.exercises.attempt(spaceId, exerciseId, attemptId));
+    const [attempt] = await Promise.all([API.exercises.attempt(spaceId, exerciseId, attemptId), loadClassInfo()]);
+    enterAttempt(attempt);
   } catch (err) {
     showToast(friendlyErrorMessage(err), 'error');
     if (!state.summary) showIntro();
@@ -219,18 +284,20 @@ function drawTaking() {
   const total = a.questions.length;
   $('takeMain').innerHTML = `
     <div class="grid gap-5 lg:grid-cols-[260px_1fr]">
-      <aside class="kz-card p-4 h-fit lg:sticky lg:top-20 space-y-3">
+      <aside class="kz-card p-4 h-fit lg:sticky lg:top-24 space-y-3">
         <p class="font-label-md text-label-md">Câu hỏi · đã làm <span id="answeredCount">${answeredCount()}</span>/${total}</p>
         <div class="grid grid-cols-5 gap-2" id="navGrid"></div>
         <div class="flex flex-wrap gap-3 font-caption text-caption text-on-surface-variant">
           <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-primary inline-block"></span>Đã làm</span>
           <span class="flex items-center gap-1"><span class="w-3 h-3 rounded border border-outline-variant inline-block"></span>Chưa làm</span>
+          ${a.questions.some((x) => x.audio) ? '<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-secondary" aria-hidden="true">headphones</span>Câu nghe</span>' : ''}
         </div>
       </aside>
-      <section class="kz-card p-6 space-y-4 min-w-0">
+      <section class="kz-card p-6 md:p-7 space-y-4 min-w-0">
         <div class="flex flex-wrap items-center gap-2">
           <span class="font-title-sm text-title-sm">Câu ${state.current + 1}/${total}</span>
           <span class="kz-badge">${escapeHtml(questionTypeLabel(q.type))}</span>
+          ${q.audio ? '<span class="kz-badge" style="background:#dce1ff;color:#1d3989"><span class="material-symbols-outlined text-[15px]" aria-hidden="true">headphones</span>Câu nghe</span>' : ''}
           <span class="font-caption text-caption text-on-surface-variant">${formatScore(q.points)} điểm</span>
         </div>
         ${q.audio ? '<div id="questionAudio"></div>' : ''}
@@ -260,8 +327,8 @@ function drawNav() {
   $('navGrid').innerHTML = a.questions.map((q, i) => {
     const done = isAnswered(q.type, state.responses[q.questionId]);
     const cur = i === state.current;
-    return `<button type="button" data-go="${i}" aria-label="Câu ${i + 1}"
-      class="h-9 rounded-lg text-[13px] font-bold border ${done ? 'bg-primary text-on-primary border-primary' : 'border-outline-variant text-on-surface'} ${cur ? 'ring-2 ring-offset-2 ring-primary' : ''}">${i + 1}</button>`;
+    return `<button type="button" data-go="${i}" aria-label="Câu ${i + 1}${q.audio ? ' (câu nghe)' : ''}"
+      class="relative h-9 rounded-lg text-[13px] font-bold border ${done ? 'bg-primary text-on-primary border-primary' : 'border-outline-variant text-on-surface'} ${cur ? 'ring-2 ring-offset-2 ring-primary' : ''}">${i + 1}${q.audio ? '<span class="material-symbols-outlined absolute -top-2 -right-2 text-[13px] leading-none p-0.5 rounded-full bg-secondary-fixed text-on-secondary-container" aria-hidden="true">headphones</span>' : ''}</button>`;
   }).join('');
   $('navGrid').querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => go(Number(b.dataset.go))));
   if ($('answeredCount')) $('answeredCount').textContent = answeredCount();

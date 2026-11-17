@@ -110,6 +110,18 @@ export async function loadTutorAssignments(space) {
   }
 }
 
+/** Mở form giao bài nộp tệp (từ hộp thoại "Giao bài tập" ở trang Quản lý bài tập), điền sẵn hạn nộp nếu có. */
+export function openNewFileAssignment({ due = null } = {}) {
+  if (!ctx.space?.canManage) return;
+  openForm(null);
+  if (due) $('assignmentDueInput').value = toDateTimeLocalValue(due);
+}
+
+/** Mở bảng bài nộp + chấm của một bài nộp tệp (từ tab "Cần chấm" ở trang Quản lý bài tập). */
+export function openAssignmentSubmissions(assignmentId) {
+  if (ctx.space && assignmentId) openSubmissions(assignmentId);
+}
+
 export function hideTutorAssignments() {
   $('assignmentsSection')?.classList.add('hidden');
 }

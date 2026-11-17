@@ -466,37 +466,67 @@ async function renderResult() {
   } catch (err) {
     /* vẫn hiện kết quả */
   }
-  const scoreLine = a.status === 'GRADED'
-    ? `<p class="text-[28px] font-bold">${formatScore(a.finalScore)} <span class="text-[18px] text-on-surface-variant font-semibold">/ ${formatScore(a.maxScore)} điểm</span></p>`
-    : `<p class="text-[18px] font-semibold">Chờ gia sư chấm câu tự luận</p>
+  const graded = a.status === 'GRADED';
+  const percent = graded && Number(a.maxScore) > 0 ? Math.round((Number(a.finalScore) / Number(a.maxScore)) * 100) : null;
+  // Trạng thái từng câu: chờ gia sư chấm / gia sư đã chấm (câu tự luận) / đúng / sai (máy chấm)
+  const kinds = a.questions.map((q) => {
+    const manualPending = q.needsManualGrading && (q.score === null || q.score === undefined);
+    if (manualPending) return 'pending';
+    if (q.correct === null || q.correct === undefined) return 'tutor';
+    return q.correct ? 'right' : 'wrong';
+  });
+  const n = (k) => kinds.filter((x) => x === k).length;
+  const counts = [
+    n('right') ? `${n('right')} câu đúng` : '', n('wrong') ? `${n('wrong')} câu sai` : '',
+    n('tutor') ? `${n('tutor')} câu gia sư đã chấm` : '', n('pending') ? `${n('pending')} câu chờ chấm` : ''
+  ].filter(Boolean).join(' · ');
+  const reason = a.submitReason === 'TIMEOUT' ? 'tự nộp khi hết giờ'
+    : a.submitReason === 'CLOSED' ? 'tự nộp khi đóng đề' : '';
+  const commented = a.questions.filter((q) => q.tutorComment).length;
+  const ring = percent === null
+    ? '<div class="w-24 h-24 rounded-full border-8 border-tertiary-fixed flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[30px] text-tertiary" aria-hidden="true">hourglass_top</span></div>'
+    : `<div class="w-24 h-24 rounded-full flex items-center justify-center shrink-0" style="background: conic-gradient(#006194 ${percent * 3.6}deg, #dae2fd 0deg)"><div class="w-[72px] h-[72px] rounded-full bg-surface-container-lowest flex items-center justify-center font-bold text-[20px]">${percent}%</div></div>`;
+  const scoreLine = graded
+    ? `<p class="text-[30px] font-bold leading-tight">${formatScore(a.finalScore)} <span class="text-[18px] text-on-surface-variant font-semibold">/ ${formatScore(a.maxScore)} điểm</span></p>`
+    : `<p class="text-[20px] font-semibold">Chờ gia sư chấm câu tự luận</p>
        <p class="text-on-surface-variant">Phần hệ thống đã chấm: ${formatScore(a.autoScore)} điểm</p>`;
-  const reason = a.submitReason === 'TIMEOUT' ? 'Bài được tự nộp khi hết giờ.'
-    : a.submitReason === 'CLOSED' ? 'Bài được tự nộp khi đóng đề.' : '';
   $('takeMain').innerHTML = `
-    <div class="max-w-3xl mx-auto space-y-5">
-      <section class="kz-card p-6 space-y-2">
-        <p class="font-label-md text-label-md text-on-surface-variant">Kết quả lượt ${a.attemptNumber}</p>
-        ${scoreLine}
-        <p class="font-caption text-caption text-on-surface-variant">Nộp lúc ${escapeHtml(formatDateTime(a.submittedAt))}${a.late ? ' · nộp muộn' : ''}${reason ? ` · ${reason}` : ''}</p>
-        ${a.answersVisible ? '' : '<p class="text-on-surface-variant">Gia sư không cho xem đáp án đúng của bài này. Bạn vẫn xem được câu nào đúng, câu nào sai.</p>'}
-        <div class="flex flex-wrap gap-3 pt-2">
-          <button type="button" id="introBtn" class="kz-btn">Thông tin bài</button>
-          ${summary?.canStart && !summary.inProgressAttemptId ? '<button type="button" id="againBtn" class="kz-btn kz-btn-primary">Làm lượt mới</button>' : ''}
-          <a href="${classLink()}" class="kz-btn">Quay lại lớp học</a>
+    <div class="max-w-4xl mx-auto space-y-5">
+      ${breadcrumbHtml(`Kết quả lượt ${a.attemptNumber}`, { linkToIntro: true })}
+      <section class="kz-card p-6 flex flex-wrap items-center gap-5">
+        ${ring}
+        <div class="flex-1 min-w-[240px] space-y-1">
+          <p class="font-label-md text-label-md text-on-surface-variant">Kết quả lượt ${a.attemptNumber} · ${escapeHtml(summary?.title || a.exerciseTitle || '')}</p>
+          ${scoreLine}
+          <p class="font-body-sm text-body-sm text-on-surface-variant">Nộp ${escapeHtml(formatDateTime(a.submittedAt))}${a.late ? ' · nộp muộn' : ''}${reason ? ` · ${reason}` : ''}${counts ? ` · ${counts}` : ''}</p>
+          ${a.answersVisible ? '' : '<p class="font-body-sm text-body-sm text-on-surface-variant">Gia sư không cho xem đáp án đúng của bài này. Bạn vẫn xem được câu nào đúng, câu nào sai.</p>'}
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="introBtn" class="kz-btn h-11 px-4">Về trang bài tập</button>
+          ${summary?.canStart && !summary.inProgressAttemptId ? `<button type="button" id="againBtn" class="kz-btn kz-btn-primary h-11 px-5">Làm lượt ${(summary.attemptsUsed || 0) + 1}</button>` : ''}
         </div>
       </section>
+      <div class="flex flex-wrap gap-2" role="group" aria-label="Lọc câu">
+        <button type="button" class="ex-chip" data-filter="all" data-active="true">Tất cả (${a.questions.length})</button>
+        ${n('wrong') ? `<button type="button" class="ex-chip" data-filter="wrong" data-active="false">Câu sai (${n('wrong')})</button>` : ''}
+        ${commented ? `<button type="button" class="ex-chip" data-filter="comment" data-active="false">Có nhận xét (${commented})</button>` : ''}
+      </div>
       <ol class="flex flex-col gap-3">
         ${a.questions.map((q, i) => {
-          const pending = q.correct === null || q.correct === undefined;
-          const tone = pending ? 'border-outline-variant' : (q.correct ? 'border-emerald-400' : 'border-red-300');
-          const badge = pending && q.score === null ? '<span class="kz-badge">Chờ chấm</span>'
-            : (q.correct ? '<span class="kz-badge" data-tone="active">Đúng</span>' : '<span class="kz-badge" data-tone="paused">Sai</span>');
+          const tone = { pending: 'border-l-[#e8a35c]', tutor: 'border-l-[#006194]', right: 'border-l-[#4b9d6c]', wrong: 'border-l-[#e37b7b]' }[kinds[i]];
+          const badge = {
+            pending: '<span class="kz-badge" data-tone="paused">Chờ gia sư chấm</span>',
+            tutor: '<span class="kz-badge" data-tone="active"><span class="material-symbols-outlined text-[15px]" aria-hidden="true">fact_check</span>Gia sư đã chấm</span>',
+            right: '<span class="kz-badge" style="background:#d4f0dd;color:#1b6b3a">Đúng</span>',
+            wrong: '<span class="kz-badge" style="background:#ffdad6;color:#93000a">Sai</span>'
+          }[kinds[i]];
           const correctText = a.answersVisible ? describeCorrect(q.type, q.view, q.correctAnswer) : '';
           return `
-          <li class="kz-card p-5 border-l-4 ${tone} space-y-2">
+          <li class="kz-card p-5 border-l-4 ${tone} space-y-2" data-kind="${kinds[i]}" data-comment="${q.tutorComment ? 'true' : 'false'}">
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-title-sm text-title-sm">Câu ${i + 1}</span>
               <span class="font-caption text-caption text-on-surface-variant">${escapeHtml(questionTypeLabel(q.type))}</span>
+              ${q.audio ? '<span class="kz-badge" style="background:#dce1ff;color:#1d3989"><span class="material-symbols-outlined text-[15px]" aria-hidden="true">headphones</span>Câu nghe</span>' : ''}
               ${badge}
               <span class="flex-1"></span>
               <span class="font-semibold">${q.score === null || q.score === undefined ? '…' : formatScore(q.score)} / ${formatScore(q.points)} điểm</span>
@@ -517,16 +547,45 @@ async function renderResult() {
   a.questions.forEach((q, i) => {
     if (q.audio) mountAudioPlayer($('takeMain').querySelector(`[data-result-audio="${i}"]`), spaceId, q.audio);
   });
-  $('introBtn').addEventListener('click', () => {
+  const main = $('takeMain');
+  main.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => {
+    const f = b.dataset.filter;
+    main.querySelectorAll('[data-filter]').forEach((x) => { x.dataset.active = String(x === b); });
+    main.querySelectorAll('[data-kind]').forEach((li) => {
+      const show = f === 'all' || (f === 'wrong' && li.dataset.kind === 'wrong') || (f === 'comment' && li.dataset.comment === 'true');
+      li.classList.toggle('hidden', !show);
+    });
+  }));
+  const backToIntro = () => {
     const url = new URL(window.location.href);
     url.searchParams.delete('attempt');
     window.history.replaceState(null, '', url);
     showIntro();
-  });
+  };
+  $('introBtn').addEventListener('click', backToIntro);
+  main.querySelector('[data-crumb-intro]')?.addEventListener('click', backToIntro);
   $('againBtn')?.addEventListener('click', startAttempt);
 }
 
 // ============================================================ khởi tạo
+
+/**
+ * Sidebar dùng chung của học viên với mục "Lớp học của tôi" đang mở.
+ * Chỗ đặt sidebar mang tên riêng để learner-layout không tự gắn theo địa chỉ trang (sẽ sáng nhầm "Tổng quan");
+ * đổi sang tên chuẩn rồi mới gọi initLearnerShell với mục cần sáng.
+ */
+function mountLearnerSidebar() {
+  const sidebarSlot = $('exLearnerSidebarSlot');
+  const headerSlot = $('exLearnerHeaderSlot');
+  if (!sidebarSlot) return;
+  sidebarSlot.id = 'learnerSidebarContainer';
+  if (headerSlot) headerSlot.id = 'learnerHeaderContainer';
+  try {
+    initLearnerShell({ activeMenu: 'my-courses', pageTitle: 'Lớp học của tôi', badge: 'Gia sư & lớp học' });
+  } catch (err) {
+    console.debug('Không gắn được sidebar học viên:', err);
+  }
+}
 
 function init() {
   const root = $('takeRoot');
@@ -546,6 +605,7 @@ function init() {
     root.querySelector('[data-switch-account]')?.addEventListener('click', clearSessionAndGoToLogin);
     return;
   }
+  mountLearnerSidebar();
   if (!spaceId || !exerciseId) {
     $('takeMain').innerHTML = '<div class="kz-card p-6 text-center">Không tìm thấy bài tập.</div>';
     return;

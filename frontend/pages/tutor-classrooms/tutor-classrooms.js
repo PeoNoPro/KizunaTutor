@@ -40,7 +40,14 @@ import {
   roleDeniedHtml,
   clearSessionAndGoToLogin
 } from '../../js/classroom-helpers.js';
-import { initTutorAssignments, loadTutorAssignments, hideTutorAssignments } from './tutor-assignments.js';
+import {
+  initTutorAssignments,
+  loadTutorAssignments,
+  hideTutorAssignments,
+  openNewFileAssignment,
+  openAssignmentSubmissions
+} from './tutor-assignments.js';
+import { initAssignmentOverview, showAssignmentOverview, hideAssignmentOverview } from './assignment-overview.js';
 import { createFileList } from '../../js/file-picker.js';
 import { mountTutorLayout } from '/components/tutor-layout/tutor-layout.js';
 
@@ -372,10 +379,20 @@ async function loadSpace(spaceId) {
     state.currentSpace = await API.classrooms.detail(spaceId);
     renderSpace();
     section.classList.remove('hidden');
-    loadTutorAssignments(state.currentSpace);
+    const assignmentsLoaded = loadTutorAssignments(state.currentSpace);
     await loadMaterials();
     focusSectionFromMuc();
     scrollToRequestedSection();
+    // Mở từ trang Quản lý bài tập: ?newFile=1[&due=...] giao bài nộp tệp, ?grade=<id> chấm bài nộp tệp
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('newFile') || params.get('grade')) {
+      await assignmentsLoaded;
+      if (params.get('newFile')) openNewFileAssignment({ due: params.get('due') });
+      else openAssignmentSubmissions(params.get('grade'));
+      const url = new URL(window.location.href);
+      ['newFile', 'due', 'grade'].forEach((k) => url.searchParams.delete(k));
+      window.history.replaceState(null, '', url);
+    }
   } catch (err) {
     renderStateBox(stateBox, friendlyErrorMessage(err), { retry: () => loadSpace(spaceId) });
   }
@@ -880,8 +897,16 @@ function renderRoute() {
   highlightSidebar();
   const spaceId = new URLSearchParams(window.location.search).get('space');
   renderViewHint();
-  $('classroomListView').classList.toggle('hidden', !!spaceId);
+  // Mục "Quản lý bài tập" trên thanh bên: trang bài tập chung của mọi lớp (thay cho danh sách lớp)
+  const overview = !spaceId && currentView() === 'assignments';
+  $('classroomListView').classList.toggle('hidden', !!spaceId || overview);
   $('classroomDetailView').classList.toggle('hidden', !spaceId);
+  if (overview) {
+    state.currentSpace = null;
+    showAssignmentOverview();
+    return;
+  }
+  hideAssignmentOverview();
   if (spaceId) {
     loadSpace(spaceId);
   } else {
@@ -937,6 +962,7 @@ function init() {
   materialPicker = createFileList($('materialFileList'), { accept: MATERIAL_ACCEPT_ATTR });
   $('deleteMaterialConfirm').addEventListener('click', confirmDeleteMaterial);
   initTutorAssignments({ showToast });
+  initAssignmentOverview({ showToast });
   document.querySelectorAll('[data-close-modal]').forEach((btn) => {
     btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
   });

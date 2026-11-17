@@ -36,7 +36,10 @@ public class ExerciseImportService {
     public static final long MAX_FILE_BYTES = 2L * 1024 * 1024;
     public static final int MAX_ROWS = 200;
     static final String SHEET = "CauHoi";
-    static final String[] HEADERS = {"Loại câu", "Đề bài / Câu có chỗ trống (___)", "Lựa chọn / Các mục (cách nhau bằng |)", "Đáp án đúng", "Điểm"};
+    static final String[] HEADERS = {"Loại câu", "Đề bài / Câu có chỗ trống (___)", "Lựa chọn / Các mục (cách nhau bằng |)",
+            "Đáp án đúng", "Điểm", "Câu nghe (Có / để trống)", "Số lần nghe (1–5, trống = không giới hạn)"};
+    static final int COLS = HEADERS.length;
+    static final int MAX_PLAYS = 5;
 
     /** Tên dạng câu trong file (khớp nhãn trên giao diện) — so khớp bỏ dấu, bỏ khoảng trắng và ký tự đặc biệt. */
     static final Map<ExerciseQuestionType, String> LABELS = new LinkedHashMap<>();
@@ -52,9 +55,12 @@ public class ExerciseImportService {
         LABELS.put(ExerciseQuestionType.WRITTEN, "Tự luận");
     }
 
-    /** Một dòng đã đọc: ok = hợp lệ (question có dữ liệu chuẩn hóa), ngược lại error là lý do. */
+    /**
+     * Một dòng đã đọc: ok = hợp lệ (question có dữ liệu chuẩn hóa), ngược lại error là lý do.
+     * listening = câu nghe (cần thêm file nghe trên trình soạn trước khi giao bài); maxPlays null = không giới hạn.
+     */
     public record ImportRow(int row, boolean ok, String error, ExerciseQuestionType type, String prompt,
-                            BigDecimal points, JsonNode data) {
+                            BigDecimal points, JsonNode data, boolean listening, Integer maxPlays) {
     }
 
     public record ImportPreview(int total, int valid, int invalid, BigDecimal validPoints, List<ImportRow> rows) {
@@ -98,8 +104,8 @@ public class ExerciseImportService {
         List<ImportRow> rows = new ArrayList<>();
         for (int r = 1; r <= sheet.getLastRowNum(); r++) { // dòng 1 là tiêu đề
             Row row = sheet.getRow(r);
-            String[] c = new String[5];
-            for (int i = 0; i < 5; i++) c[i] = row == null ? "" : fmt.formatCellValue(row.getCell(i)).strip();
+            String[] c = new String[COLS];
+            for (int i = 0; i < COLS; i++) c[i] = row == null ? "" : fmt.formatCellValue(row.getCell(i)).strip();
             if (Arrays.stream(c).allMatch(String::isEmpty)) continue;
             if (rows.size() >= MAX_ROWS) {
                 throw ClassroomException.field("file", "File có quá " + MAX_ROWS + " câu hỏi. Mỗi bài có tối đa " + MAX_ROWS + " câu.");
@@ -124,6 +130,25 @@ public class ExerciseImportService {
             points = c[4].isEmpty() ? BigDecimal.ONE : new BigDecimal(c[4].replace(',', '.'));
         } catch (NumberFormatException e) {
             return fail(rowNumber, label + ": điểm \"" + c[4] + "\" không phải là số.", type);
+        }
+        // Cột F: câu nghe; cột G: số lần nghe tối đa
+        String listenKey = key(c[5]);
+        boolean listening;
+        if (listenKey.isEmpty()) listening = false;
+        else if (Set.of("co", "c", "x", "yes", "y", "true", "1").contains(listenKey)) listening = true;
+        else if (Set.of("khong", "k", "no", "n", "false", "0").contains(listenKey)) listening = false;
+        else return fail(rowNumber, label + ": cột \"Câu nghe\" ghi \"Có\" hoặc để trống.", type);
+        Integer maxPlays = null;
+        if (!c[6].isEmpty()) {
+            if (!listening) return fail(rowNumber, label + ": có số lần nghe nhưng cột \"Câu nghe\" chưa ghi \"Có\".", type);
+            try {
+                maxPlays = new BigDecimal(c[6].replace(',', '.')).intValueExact();
+            } catch (ArithmeticException | NumberFormatException e) {
+                maxPlays = -1;
+            }
+            if (maxPlays < 1 || maxPlays > MAX_PLAYS) {
+                return fail(rowNumber, label + ": số lần nghe phải từ 1 đến " + MAX_PLAYS + ", hoặc để trống nếu không giới hạn.", type);
+            }
         }
         String prompt = c[1].isEmpty() ? null : c[1];
         ObjectNode data = mapper.createObjectNode();
@@ -183,7 +208,7 @@ public class ExerciseImportService {
             }
             // Cùng quy tắc khi giao bài (strict); câu tự luận được để trống đáp án (gia sư chấm)
             String normalized = engine.validate(type, prompt, points, data, true, false, label);
-            return new ImportRow(rowNumber, true, null, type, prompt, points, engine.read(normalized));
+            return new ImportRow(rowNumber, true, null, type, prompt, points, engine.read(normalized), listening, maxPlays);
         } catch (ClassroomException e) {
             return fail(rowNumber, e.getMessage(), type);
         }
@@ -213,6 +238,15 @@ public class ExerciseImportService {
                     new CellRangeAddressList(1, MAX_ROWS, 0, 0));
             list.setShowErrorBox(true);
             main.addValidationData(list);
+            // Cột F "Câu nghe": chọn "Có" hoặc để trống; cột G: số lần nghe 1–5
+            DataValidation listen = dv.createValidation(dv.createExplicitListConstraint(new String[]{"Có"}),
+                    new CellRangeAddressList(1, MAX_ROWS, 5, 5));
+            listen.setShowErrorBox(true);
+            main.addValidationData(listen);
+            DataValidation plays = dv.createValidation(dv.createExplicitListConstraint(new String[]{"1", "2", "3", "4", "5"}),
+                    new CellRangeAddressList(1, MAX_ROWS, 6, 6));
+            plays.setShowErrorBox(true);
+            main.addValidationData(plays);
 
             Sheet ex = book.createSheet("ViDu");
             header(ex, head);
@@ -224,13 +258,15 @@ public class ExerciseImportService {
                     {"Điền từ có sẵn", "私は ___ で ___ を買いました。", "学校 | 本棚", "駅 | 切符", "2"},
                     {"Nối cột", "Nối Kanji với nghĩa", "犬 = con chó | 猫 = con mèo | 鳥 = con chim", "", "3"},
                     {"Sắp xếp thứ tự", "Sắp xếp thành câu đúng", "私は | 毎日 | 日本語を | 勉強します", "", "2"},
-                    {"Tự luận", "Viết 3 câu có dùng Kanji 会 và 社.", "", "", "5"}
+                    {"Tự luận", "Viết 3 câu có dùng Kanji 会 và 社.", "", "", "5"},
+                    {"Trắc nghiệm 1 đáp án", "Nghe đoạn hội thoại. Hai người hẹn gặp ở đâu?", "駅 | 学校 | 病院", "駅", "2", "Có", "2"},
+                    {"Điền khuyết", "Nghe và điền từ: 毎朝 ___ を飲みます。", "", "牛乳;ぎゅうにゅう", "2", "Có", ""}
             };
             for (int i = 0; i < samples.length; i++) {
                 Row row = ex.createRow(i + 1);
-                for (int j = 0; j < 5; j++) {
+                for (int j = 0; j < samples[i].length; j++) {
                     Cell cell = row.createCell(j);
-                    if (j == 4) cell.setCellValue(Double.parseDouble(samples[i][j]));
+                    if ((j == 4 || j == 6) && samples[i][j].matches("\\d+")) cell.setCellValue(Double.parseDouble(samples[i][j]));
                     else cell.setCellValue(samples[i][j]);
                     cell.setCellStyle(wrap);
                 }
@@ -251,7 +287,10 @@ public class ExerciseImportService {
                     "• Nối cột: cột C ghi các cặp \"vế trái = vế phải\" cách nhau bằng |.",
                     "• Sắp xếp thứ tự: cột C ghi các mục THEO ĐÚNG THỨ TỰ, cách nhau bằng | (hệ thống tự xáo trộn khi học viên làm).",
                     "• Tự luận: cột D ghi các đáp án được chấp nhận (cách nhau | hoặc ;) — để trống nếu gia sư tự chấm.",
-                    "• Tối đa " + MAX_ROWS + " câu, file .xlsx tối đa 2 MB. File nghe không nhập bằng Excel: thêm trên trình soạn sau khi nhập."
+                    "• Cột F – Câu nghe: ghi Có nếu câu cần file nghe (để trống = câu thường). Cột G – Số lần nghe: 1–5, để trống = không giới hạn.",
+                    "  Excel không chứa được file âm thanh: sau khi nhập, câu nghe được đánh dấu \"Thiếu file nghe\" trên trình soạn,",
+                    "  bấm vào câu đó → \"Thêm file nghe\". Bài còn câu nghe thiếu file thì lưu nháp được nhưng chưa giao được.",
+                    "• Tối đa " + MAX_ROWS + " câu, file .xlsx tối đa 2 MB."
             };
             for (int i = 0; i < lines.length; i++) guide.createRow(i).createCell(0).setCellValue(lines[i]);
             guide.setColumnWidth(0, 140 * 256);
@@ -267,7 +306,7 @@ public class ExerciseImportService {
 
     private static void header(Sheet sheet, CellStyle style) {
         Row row = sheet.createRow(0);
-        int[] widths = {26, 46, 46, 30, 8};
+        int[] widths = {26, 46, 46, 30, 8, 14, 18};
         for (int i = 0; i < HEADERS.length; i++) {
             Cell cell = row.createCell(i);
             cell.setCellValue(HEADERS[i]);
@@ -332,6 +371,6 @@ public class ExerciseImportService {
     }
 
     private static ImportRow fail(int row, String message, ExerciseQuestionType type) {
-        return new ImportRow(row, false, message, type, null, null, null);
+        return new ImportRow(row, false, message, type, null, null, null, false, null);
     }
 }

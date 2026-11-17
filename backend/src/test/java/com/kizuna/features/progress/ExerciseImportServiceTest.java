@@ -146,8 +146,31 @@ class ExerciseImportServiceTest {
             book.write(out);
             ImportPreview p = service.preview(tutorActor, space.getSpaceId(), new MockMultipartFile("file", "vi-du.xlsx",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", out.toByteArray()));
-            assertThat(p.total()).isEqualTo(8);
+            assertThat(p.total()).isEqualTo(10);
             assertThat(p.invalid()).as(p.rows().toString()).isZero();
+            assertThat(p.rows().stream().filter(ImportRow::listening).count()).isEqualTo(2);
         }
+    }
+
+    @Test
+    void listeningColumnsMarkQuestionsThatNeedAudio() throws Exception {
+        ImportPreview p = service.preview(tutorActor, space.getSpaceId(), xlsx(new String[][]{
+                {"Trắc nghiệm 1 đáp án", "Nghe rồi chọn", "駅 | 学校", "駅", "2", "Có", "2"},
+                {"Đúng / Sai", "Nghe không giới hạn", "", "Đúng", "1", "có", ""},
+                {"Đúng / Sai", "Câu thường", "", "Sai", "1", "", ""},
+                {"Đúng / Sai", "Sai cột F", "", "Sai", "1", "Hình như", ""},
+                {"Đúng / Sai", "Số lần nghe quá lớn", "", "Sai", "1", "Có", "9"},
+                {"Đúng / Sai", "Có số lần mà không đánh dấu câu nghe", "", "Sai", "1", "", "2"}
+        }));
+        List<ImportRow> r = p.rows();
+        assertThat(r.get(0).listening()).isTrue();
+        assertThat(r.get(0).maxPlays()).isEqualTo(2);
+        assertThat(r.get(1).listening()).isTrue();
+        assertThat(r.get(1).maxPlays()).isNull();
+        assertThat(r.get(2).listening()).isFalse();
+        assertThat(r.get(3).error()).contains("ghi \"Có\" hoặc để trống");
+        assertThat(r.get(4).error()).contains("số lần nghe phải từ 1 đến 5");
+        assertThat(r.get(5).error()).contains("chưa ghi \"Có\"");
+        assertThat(p.valid()).isEqualTo(3);
     }
 }

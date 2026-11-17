@@ -101,11 +101,24 @@ export function defaultQuestion(type) {
   }
 }
 
+/** Lỗi của câu nghe chưa gắn file nghe (không giao bài được). */
+export const AUDIO_MISSING_MESSAGE = 'là câu nghe nhưng chưa có file nghe. Hãy thêm file nghe trước khi giao bài.';
+
+/** Câu được đánh dấu "Câu nghe" nhưng chưa có file nghe. */
+export function needsAudio(q) {
+  return !!(q?.listening && !q?.audio?.audioId);
+}
+
 /**
  * Kiểm tra một câu trước khi giao (khớp quy tắc máy chủ). Trả câu lỗi tiếng Việt hoặc null.
+ * Lỗi nội dung câu được báo trước; nội dung đủ rồi mới báo thiếu file nghe.
  * @param {boolean} autoMode bài "Hệ thống chấm tự động": câu tự luận phải có đáp án được chấp nhận
  */
 export function validateQuestion(q, { autoMode = true } = {}) {
+  return validateQuestionContent(q, { autoMode }) || (needsAudio(q) ? AUDIO_MISSING_MESSAGE : null);
+}
+
+function validateQuestionContent(q, { autoMode = true } = {}) {
   const d = q?.data || {};
   const points = Number(String(q?.points ?? '').replace(',', '.'));
   if (!q?.type) return 'chưa chọn dạng câu hỏi.';
@@ -154,7 +167,7 @@ export function validateQuestion(q, { autoMode = true } = {}) {
     }
     case 'WRITTEN':
       if (autoMode && !(d.accepted || []).some((a) => !blank(a))) {
-        return 'bài chấm tự động nên câu tự luận phải có đáp án được chấp nhận. Hãy nhập đáp án hoặc đổi cách chấm sang "Gia sư chấm".';
+        return 'bài chấm tự động nên câu tự luận phải có đáp án được chấp nhận. Hãy nhập đáp án, hoặc đổi cách chấm sang "Gia sư chấm" (tab "Cài đặt bài" → Chấm bài).';
       }
       return null;
     default:
@@ -182,9 +195,13 @@ export function questionPayload(q) {
     prompt: String(q.prompt || '').trim(),
     points: Number.isFinite(points) ? points : null,
     data,
-    // File nghe của câu (null = không có); maxPlays null = nghe không giới hạn
+    // File nghe của câu (null = không có); listening = câu nghe (kể cả khi chưa có file); maxPlays null = không giới hạn
     audioId: q.audio?.audioId || null,
-    maxPlays: q.audio?.audioId && q.audio.maxPlays ? Number(q.audio.maxPlays) : null
+    listening: !!(q.audio?.audioId || q.listening),
+    maxPlays: (() => {
+      const plays = q.audio?.audioId ? q.audio.maxPlays : q.listening?.maxPlays;
+      return plays ? Number(plays) : null;
+    })()
   };
 }
 

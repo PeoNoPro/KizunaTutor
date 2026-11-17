@@ -467,6 +467,34 @@ class OnlineExerciseServiceImplTest {
     }
 
     @Test
+    void listeningQuestionWithoutAudioCanBeDraftedButNotPublished() {
+        QuestionInput needsAudio = new QuestionInput(ExerciseQuestionType.TRUE_FALSE, "Nghe rồi chọn", new BigDecimal("1"),
+                json("{'correct':true}"), null, 2, true);
+        ExerciseDetail d = service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(needsAudio)));
+        QuestionDetail q = d.questions().get(0);
+        assertThat(q.audio()).isNull();
+        assertThat(q.listening()).isNotNull();
+        assertThat(q.listening().maxPlays()).isEqualTo(2);
+        assertThat(q.data().has("listening")).isFalse();
+
+        assertThatThrownBy(() -> service.update(tutorActor, space.getSpaceId(), d.summary().exerciseId(),
+                request("AUTO", null, 1, true, true, List.of(needsAudio))))
+                .isInstanceOf(ClassroomException.class).hasMessageContaining("Câu 1: là câu nghe nhưng chưa có file nghe");
+
+        // Gắn file nghe rồi giao bài được; số lần nghe giữ nguyên
+        ExerciseAudio audio = uploadedAudio(null);
+        ExerciseDetail published = service.update(tutorActor, space.getSpaceId(), d.summary().exerciseId(), request("AUTO", null, 1, true, true,
+                List.of(new QuestionInput(ExerciseQuestionType.TRUE_FALSE, "Nghe rồi chọn", new BigDecimal("1"),
+                        json("{'correct':true}"), audio.getAudioId(), 2, true))));
+        assertThat(published.summary().status()).isEqualTo("PUBLISHED");
+        assertThat(published.questions().get(0).listening().maxPlays()).isEqualTo(2);
+        // Câu thường: không có thông tin câu nghe
+        ExerciseDetail plain = service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, false, autoQuestions()));
+        assertThat(plain.questions().get(0).listening()).isNull();
+    }
+
+    @Test
     void audioOfAnotherExerciseUnknownAudioOrBadPlayLimitIsRejected() {
         ExerciseAudio other = uploadedAudio(UUID.randomUUID());
         assertThatThrownBy(() -> service.create(tutorActor, space.getSpaceId(),

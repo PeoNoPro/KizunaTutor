@@ -153,7 +153,7 @@ public class ExerciseQuestionEngine {
                 List<String> accepted = texts(d.get("accepted")).stream().filter(s -> !s.isBlank()).toList();
                 if (strict && autoMode && accepted.isEmpty()) {
                     throw error(label, "bài chấm tự động nên câu tự luận phải có đáp án được chấp nhận. "
-                            + "Hãy nhập đáp án hoặc đổi cách chấm sang \"Gia sư chấm\".");
+                            + "Hãy nhập đáp án, hoặc đổi cách chấm sang \"Gia sư chấm\" (tab \"Cài đặt bài\" → Chấm bài).");
                 }
                 out.set("accepted", array(accepted));
                 String sample = text(d.get("sample"));

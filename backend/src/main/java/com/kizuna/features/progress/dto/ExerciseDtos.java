@@ -19,10 +19,24 @@ public final class ExerciseDtos {
      * audioId: file nghe MP3 đã tải lên (null = không có); maxPlays: số lần nghe tối đa (null = không giới hạn, 1 – 5).
      */
     public record QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data,
-                                UUID audioId, Integer maxPlays) {
+                                UUID audioId, Integer maxPlays, Boolean listening) {
         public QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data) {
-            this(type, prompt, points, data, null, null);
+            this(type, prompt, points, data, null, null, null);
         }
+
+        public QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data,
+                             UUID audioId, Integer maxPlays) {
+            this(type, prompt, points, data, audioId, maxPlays, null);
+        }
+
+        /** Câu nghe: gia sư đánh dấu "Câu nghe" hoặc đã gắn file nghe. Câu nghe chưa có file thì không giao bài được. */
+        public boolean isListening() {
+            return Boolean.TRUE.equals(listening) || audioId != null;
+        }
+    }
+
+    /** Câu nghe (có hoặc chưa có file nghe): required = true; maxPlays null = nghe không giới hạn. */
+    public record ListeningInfo(boolean required, Integer maxPlays) {
     }
 
     /** File nghe gắn với câu hỏi. maxPlays null = nghe không giới hạn. */
@@ -58,7 +72,7 @@ public final class ExerciseDtos {
 
     /** Câu hỏi đầy đủ (kèm đáp án) cho gia sư soạn / sửa. */
     public record QuestionDetail(UUID questionId, int position, ExerciseQuestionType type, String prompt,
-                                 BigDecimal points, JsonNode data, AudioInfo audio) {
+                                 BigDecimal points, JsonNode data, AudioInfo audio, ListeningInfo listening) {
     }
 
     /** Chi tiết bài: gia sư nhận kèm câu hỏi đầy đủ; học viên nhận questions = null. */

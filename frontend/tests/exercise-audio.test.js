@@ -7,7 +7,27 @@ import {
   playsKey,
   AUDIO_MAX_BYTES
 } from '../js/exercise-audio.js';
-import { questionPayload, defaultQuestion } from '../js/exercise-helpers.js';
+import { questionPayload, defaultQuestion, validateQuestion, needsAudio, AUDIO_MISSING_MESSAGE } from '../js/exercise-helpers.js';
+
+test('câu nghe chưa có file: báo thiếu file sau khi nội dung đã đủ; gửi kèm cờ câu nghe + số lần nghe', () => {
+  const q = { ...defaultQuestion('TRUE_FALSE'), prompt: 'Nghe', points: 1, data: { correct: true }, listening: { maxPlays: 2 } };
+  assert.equal(needsAudio(q), true);
+  assert.equal(validateQuestion(q), AUDIO_MISSING_MESSAGE);
+  // Nội dung còn thiếu thì báo lỗi nội dung trước
+  assert.match(validateQuestion({ ...q, data: { correct: null } }), /Đúng hoặc Sai/);
+  const p = questionPayload(q);
+  assert.equal(p.audioId, null);
+  assert.equal(p.listening, true);
+  assert.equal(p.maxPlays, 2);
+  // Đã gắn file → hết thiếu, số lần nghe lấy theo file
+  const withFile = { ...q, audio: { audioId: 'x', maxPlays: 3 } };
+  assert.equal(needsAudio(withFile), false);
+  assert.equal(validateQuestion(withFile), null);
+  assert.equal(questionPayload(withFile).maxPlays, 3);
+  // Câu thường
+  const plain = questionPayload({ ...defaultQuestion('TRUE_FALSE'), prompt: 'x', points: 1, data: { correct: false } });
+  assert.equal(plain.listening, false);
+});
 
 test('file nghe: MP3/M4A/WAV/OGG/WEBM, tối đa 25 MB, không rỗng (khớp R2StorageService)', () => {
   assert.equal(validateAudioFile({ name: 'bai-nghe.mp3', size: 1024 }), null);

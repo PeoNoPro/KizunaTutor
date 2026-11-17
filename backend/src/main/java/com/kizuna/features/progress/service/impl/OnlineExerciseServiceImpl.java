@@ -140,7 +140,8 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         ea.forEach(a -> finalizeIfDue(a, e, eq, now));
         ExerciseSummary summary = toSummary(e, eq, ea, tutor, classroomService.isReadOnly(space), now);
         List<QuestionDetail> details = tutor ? eq.stream().map(q -> new QuestionDetail(q.getQuestionId(), q.getPosition(),
-                q.getType(), q.getPrompt(), q.getPoints(), withoutAudio(engine.read(q.getData())), audioOf(q))).toList() : null;
+                q.getType(), q.getPrompt(), q.getPoints(), withoutAudio(engine.read(q.getData())), audioOf(q),
+                listeningOf(q))).toList() : null;
         return new ExerciseDetail(summary, e.getInstructions(), details);
     }
 
@@ -536,7 +537,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
             String label = "Câu " + (i + 1);
             BigDecimal points = in.points() == null && !strict ? BigDecimal.ONE : in.points();
             String data = engine.validate(in.type(), in.prompt(), points, in.data(), strict, auto, label);
-            data = attachAudio(data, in, in.audioId() == null ? null : audioById.get(in.audioId()), label);
+            data = attachAudio(data, in, in.audioId() == null ? null : audioById.get(in.audioId()), label, strict);
             rows.add(ExerciseQuestion.builder()
                     .exercise(e)
                     .position(i + 1)
@@ -572,15 +573,27 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         return found;
     }
 
-    /** Ghi mã file nghe + số lần nghe tối đa vào dữ liệu câu (khóa "audio"). */
-    private String attachAudio(String data, QuestionInput in, ExerciseAudio audio, String label) {
-        if (in.audioId() == null) return data;
+    /**
+     * Câu nghe: ghi mã file nghe + số lần nghe tối đa vào dữ liệu câu (khóa "audio");
+     * câu đánh dấu "Câu nghe" nhưng chưa có file → khóa "listening" (giữ số lần nghe), không giao bài được.
+     */
+    private String attachAudio(String data, QuestionInput in, ExerciseAudio audio, String label, boolean strict) {
+        if (!in.isListening()) return data;
         Integer plays = in.maxPlays();
         if (plays != null && (plays < 1 || plays > MAX_PLAYS)) {
             throw ClassroomException.field(ExerciseQuestionEngine.FIELD,
                     label + ": số lần nghe tối đa phải từ 1 đến " + MAX_PLAYS + ", hoặc không giới hạn.");
         }
         com.fasterxml.jackson.databind.node.ObjectNode node = (com.fasterxml.jackson.databind.node.ObjectNode) engine.read(data);
+        if (in.audioId() == null) {
+            if (strict) {
+                throw ClassroomException.field(ExerciseQuestionEngine.FIELD,
+                        label + ": là câu nghe nhưng chưa có file nghe. Hãy thêm file nghe trước khi giao bài.");
+            }
+            com.fasterxml.jackson.databind.node.ObjectNode l = node.putObject("listening");
+            if (plays != null) l.put("maxPlays", plays);
+            return engine.write(node);
+        }
         com.fasterxml.jackson.databind.node.ObjectNode a = node.putObject("audio");
         a.put("id", audio.getAudioId().toString());
         a.put("fileName", audio.getFileName());
@@ -618,11 +631,21 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         }
     }
 
-    /** Dữ liệu câu cho gia sư soạn: bỏ khóa "audio" (đã trả riêng trong trường audio). */
+    /** Câu nghe (có hoặc chưa có file); null = câu thường. */
+    private ListeningInfo listeningOf(ExerciseQuestion q) {
+        AudioInfo audio = audioOf(q);
+        if (audio != null) return new ListeningInfo(true, audio.maxPlays());
+        JsonNode l = engine.read(q.getData()).get("listening");
+        if (l == null || !l.isObject()) return null;
+        return new ListeningInfo(true, l.hasNonNull("maxPlays") ? l.get("maxPlays").asInt() : null);
+    }
+
+    /** Dữ liệu câu cho gia sư soạn: bỏ khóa "audio" / "listening" (đã trả riêng trong trường audio / listening). */
     private static JsonNode withoutAudio(JsonNode data) {
-        if (data instanceof com.fasterxml.jackson.databind.node.ObjectNode o && o.has("audio")) {
+        if (data instanceof com.fasterxml.jackson.databind.node.ObjectNode o && (o.has("audio") || o.has("listening"))) {
             com.fasterxml.jackson.databind.node.ObjectNode copy = o.deepCopy();
             copy.remove("audio");
+            copy.remove("listening");
             return copy;
         }
         return data;

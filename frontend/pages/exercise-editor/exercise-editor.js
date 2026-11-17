@@ -29,6 +29,8 @@ import {
   splitList,
   defaultQuestion,
   validateQuestion,
+  needsAudio,
+  AUDIO_MISSING_MESSAGE,
   questionPayload,
   totalPoints,
   previewView,
@@ -150,7 +152,8 @@ async function load() {
     state.status = s.status;
     state.locked = s.locked;
     state.questions = (state.detail.questions || []).map((q) => ({
-      type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: q.audio || null
+      type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: q.audio || null,
+      listening: q.listening ? { maxPlays: q.listening.maxPlays ?? null } : null
     }));
     fillSettings(state.detail);
     $('loadingBox').classList.add('hidden');
@@ -185,13 +188,14 @@ async function prefillNewExercise() {
       const s = src.summary;
       const withAudio = (src.questions || []).filter((q) => q.audio).length;
       state.questions = (src.questions || []).map((q) => ({
-        type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: null
+        type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: null,
+        listening: q.listening || q.audio ? { maxPlays: q.listening?.maxPlays ?? q.audio?.maxPlays ?? null } : null
       }));
       if (!state.questions.length) state.questions = [defaultQuestion('SINGLE_CHOICE')];
       fillSettings({ summary: { ...s, title: `${s.title} (bản sao)`.slice(0, 150), opensAt: null, closesAt: null }, instructions: src.instructions });
       state.dirty = true;
       showToast(withAudio
-        ? `Đã sao chép ${state.questions.length} câu. ${withAudio} câu có file nghe: hãy tải lại file nghe cho bản sao.`
+        ? `Đã sao chép ${state.questions.length} câu. ${withAudio} câu có file nghe: đã đánh dấu "thiếu file nghe", hãy tải lại file nghe cho bản sao.`
         : `Đã sao chép ${state.questions.length} câu từ "${s.title}". Kiểm tra lại rồi lưu / giao bài.`);
     } catch (err) {
       showToast(`Không sao chép được bài: ${friendlyErrorMessage(err)}`, 'error');
@@ -296,7 +300,8 @@ function renderOutline() {
           <span class="material-symbols-outlined text-[18px] text-primary shrink-0" aria-hidden="true">${TYPE_ICONS[q.type] || 'help'}</span>
           <span class="flex-1 min-w-0 truncate">${escapeHtml(questionTypeLabel(q.type))}</span>
           ${q.audio ? '<span class="material-symbols-outlined text-[17px] text-secondary" title="Có file nghe" aria-label="Có file nghe">headphones</span>' : ''}
-          ${incomplete ? '<span class="material-symbols-outlined text-[17px] text-error" title="Chưa hoàn chỉnh" aria-label="Chưa hoàn chỉnh">error</span>' : ''}
+          ${needsAudio(q) ? '<span class="material-symbols-outlined text-[17px] text-error" title="Câu nghe chưa có file nghe" aria-label="Thiếu file nghe">headset_off</span>' : ''}
+          ${incomplete && incomplete !== AUDIO_MISSING_MESSAGE ? '<span class="material-symbols-outlined text-[17px] text-error" title="Chưa hoàn chỉnh" aria-label="Chưa hoàn chỉnh">error</span>' : ''}
           ${manual && !incomplete ? '<span class="kz-badge" data-tone="paused" title="Gia sư chấm">GS</span>' : ''}
           <span class="font-caption text-caption text-on-surface-variant shrink-0">${formatScore(q.points)}đ</span>
         </button>
@@ -327,7 +332,59 @@ function selectQuestion(i) {
 }
 
 /** Khối file nghe của một câu: thêm / đổi / bỏ file MP3 và số lần nghe tối đa. */
+/**
+ * Câu tự luận chưa có đáp án trong bài "Hệ thống chấm tự động": nhắc ngay tại câu, cho đổi nhanh sang "Gia sư chấm"
+ * (cách chấm nằm ở tab "Cài đặt bài" nên gia sư dễ không thấy).
+ */
+function writtenNeedsTutorHtml(q) {
+  if (state.locked || q.type !== 'WRITTEN' || !autoMode()) return '';
+  if ((q.data?.accepted || []).some((a) => String(a).trim())) return '';
+  return `
+    <div class="rounded-xl bg-tertiary-fixed/50 text-on-tertiary-fixed px-4 py-3 flex flex-wrap items-center gap-3">
+      <span class="material-symbols-outlined text-[20px]" aria-hidden="true">info</span>
+      <span class="flex-1 min-w-[240px]">Bài đang để <b>Hệ thống chấm tự động</b> nên câu tự luận cần có đáp án được chấp nhận.
+        Muốn tự chấm câu này thì chuyển cả bài sang <b>Gia sư chấm</b> (câu có đáp án vẫn được máy chấm trước).</span>
+      <button type="button" data-act="mode-tutor" class="kz-btn kz-btn-primary">Chuyển sang Gia sư chấm</button>
+    </div>`;
+}
+
+/** Ô chọn số lần nghe tối đa (dùng chung cho câu nghe có / chưa có file). */
+function playsSelectHtml(plays) {
+  const v = plays || '';
+  return `
+    <label class="flex items-center gap-1.5 font-caption text-caption text-on-surface-variant">Số lần nghe
+      <select data-field="maxPlays" class="${INPUT} w-auto py-1.5" ${dis()}>
+        <option value="" ${v === '' ? 'selected' : ''}>Không giới hạn</option>
+        ${MAX_PLAYS_OPTIONS.map((n) => `<option value="${n}" ${Number(v) === n ? 'selected' : ''}>Tối đa ${n} lần</option>`).join('')}
+      </select>
+    </label>`;
+}
+
+/**
+ * Khối file nghe của một câu, 3 trạng thái:
+ * - câu thường: nút "Thêm file nghe" + "Đánh dấu câu nghe";
+ * - câu nghe chưa có file (nhập từ Excel / đánh dấu trước): cảnh báo nổi bật, chưa giao bài được;
+ * - đã có file: trình phát, số lần nghe, đổi / bỏ file.
+ */
 function audioEditorHtml(q) {
+  if (!q.audio && q.listening) {
+    if (state.locked) return '';
+    return `
+      <div class="rounded-xl border-2 border-dashed border-[#e8a35c] bg-tertiary-fixed/40 p-4 space-y-3">
+        <p class="flex items-start gap-2 text-on-tertiary-fixed"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">headphones</span>
+          <span><b>Câu nghe – chưa có file nghe.</b> Thêm file trước khi giao bài (vẫn lưu nháp được).</span></p>
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="kz-btn kz-btn-primary cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">upload</span>Thêm file nghe
+            <input type="file" data-field="audioFile" accept="${AUDIO_ACCEPT}" class="sr-only">
+          </label>
+          ${playsSelectHtml(q.listening.maxPlays)}
+          <button type="button" data-act="listening-off" class="${SMALL_BTN}">Không phải câu nghe</button>
+          <span data-audio-busy class="font-caption text-caption text-primary hidden">Đang tải file lên…</span>
+        </div>
+        <p class="font-caption text-caption text-on-surface-variant">${AUDIO_RULES_TEXT}.</p>
+      </div>`;
+  }
   if (!q.audio) {
     if (state.locked) return '';
     return `
@@ -336,6 +393,7 @@ function audioEditorHtml(q) {
           <span class="material-symbols-outlined text-[18px]" aria-hidden="true">headphones</span>Thêm file nghe
           <input type="file" data-field="audioFile" accept="${AUDIO_ACCEPT}" class="sr-only">
         </label>
+        <button type="button" data-act="listening-on" class="${SMALL_BTN}" title="Đánh dấu là câu nghe, thêm file sau">Đánh dấu câu nghe</button>
         <span class="font-caption text-caption text-on-surface-variant">Câu nghe hiểu: ${AUDIO_RULES_TEXT}.</span>
         <span data-audio-busy class="font-caption text-caption text-primary hidden">Đang tải file lên…</span>
       </div>`;
@@ -381,7 +439,9 @@ async function uploadQuestionAudio(card, q, input) {
   card.querySelectorAll('input[data-field="audioFile"]').forEach((el) => { el.disabled = true; });
   try {
     const info = await API.exercises.uploadAudio(spaceId, file);
-    q.audio = { ...info, maxPlays: q.audio?.maxPlays ?? null };
+    const plays = q.audio?.maxPlays ?? q.listening?.maxPlays ?? null;
+    q.audio = { ...info, maxPlays: plays };
+    q.listening = { maxPlays: plays };
     state.dirty = true;
     renderQuestions();
     showToast('Đã tải file nghe lên. Nhớ lưu bài để giữ thay đổi.');
@@ -398,14 +458,16 @@ function updateTotals() {
   $('totalsText').textContent = `${qs.length} câu · ${total} điểm`;
   const auto = autoMode();
   const manual = qs.filter((q) => q.type === 'WRITTEN' && !(q.data?.accepted || []).some((a) => String(a).trim())).length;
-  const listening = qs.filter((q) => q.audio).length;
-  const incomplete = qs.filter((q) => validateQuestion(q, { autoMode: auto })).length;
+  const listening = qs.filter((q) => q.audio || q.listening).length;
+  const missing = qs.filter((q) => needsAudio(q)).length;
+  const incomplete = qs.filter((q) => { const e = validateQuestion(q, { autoMode: auto }); return e && e !== AUDIO_MISSING_MESSAGE; }).length;
   $('footerStats').innerHTML = `
     <span><b class="text-on-surface">${qs.length}</b> câu</span>
     <span><b class="text-on-surface">${total}</b> điểm</span>
     ${manual ? `<span><b class="text-on-surface">${manual}</b> câu gia sư chấm</span>` : ''}
     ${listening ? `<span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">headphones</span><b class="text-on-surface">${listening}</b> câu nghe</span>` : ''}
-    ${incomplete && !state.locked ? `<span class="inline-flex items-center gap-1 text-error"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>${incomplete} câu chưa hoàn chỉnh</span>` : ''}`;
+    ${missing && !state.locked ? `<button type="button" data-goto="missing" class="inline-flex items-center gap-1 text-error font-semibold hover:underline"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">headset_off</span>${missing} câu chưa có file nghe</button>` : ''}
+    ${incomplete && !state.locked ? `<button type="button" data-goto="incomplete" class="inline-flex items-center gap-1 text-error hover:underline"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>${incomplete} câu chưa hoàn chỉnh</button>` : ''}`;
 }
 
 function dis() {
@@ -419,6 +481,7 @@ function cardHtml(q, i) {
       <div class="flex flex-wrap items-center gap-2">
         <span class="font-title-md text-title-md">Câu ${i + 1}</span>
         ${q.audio ? '<span class="kz-badge" style="background:#dce1ff;color:#1d3989"><span class="material-symbols-outlined text-[15px]" aria-hidden="true">headphones</span>Câu nghe</span>' : ''}
+        ${needsAudio(q) ? '<span class="kz-badge" style="background:#ffdad6;color:#93000a"><span class="material-symbols-outlined text-[15px]" aria-hidden="true">headset_off</span>Câu nghe · thiếu file</span>' : ''}
         <select data-field="type" class="${INPUT} w-auto py-1.5" ${dis()} aria-label="Dạng câu">
           ${QUESTION_TYPES.map((t) => `<option value="${t.value}" ${t.value === q.type ? 'selected' : ''}>${t.label}</option>`).join('')}
         </select>
@@ -440,6 +503,7 @@ function cardHtml(q, i) {
         </div>`}
       ${audioEditorHtml(q)}
       <div data-body>${bodyHtml(q, i)}</div>
+      ${writtenNeedsTutorHtml(q)}
       <p data-error class="field-error hidden"></p>
       <div class="flex justify-between gap-3 pt-3 border-t border-surface-container-high">
         <button type="button" data-act="prev" class="kz-btn" ${i === 0 ? 'disabled' : ''}><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>Câu ${i}</button>
@@ -599,7 +663,9 @@ async function onListChange(e) {
   }
   state.dirty = true;
   if (t.dataset.field === 'maxPlays') {
-    if (q.audio) q.audio.maxPlays = t.value ? Number(t.value) : null;
+    const plays = t.value ? Number(t.value) : null;
+    if (q.audio) q.audio.maxPlays = plays;
+    if (q.listening) q.listening.maxPlays = plays;
   } else if (t.dataset.field === 'type') {
     const hasContent = JSON.stringify(q.data) !== JSON.stringify(defaultQuestion(q.type).data) || q.prompt;
     if (hasContent && !(await confirmBox('Đổi dạng câu?', 'Đáp án đã nhập của câu này sẽ bị xóa.', 'Đổi dạng câu'))) {
@@ -607,7 +673,7 @@ async function onListChange(e) {
       return;
     }
     // Giữ file nghe khi đổi dạng câu
-    state.questions[i] = { ...defaultQuestion(t.value), prompt: q.prompt, points: q.points, audio: q.audio || null };
+    state.questions[i] = { ...defaultQuestion(t.value), prompt: q.prompt, points: q.points, audio: q.audio || null, listening: q.listening || null };
     renderQuestions();
   } else if (t.dataset.correct !== undefined) {
     const j = Number(t.dataset.correct);
@@ -650,7 +716,17 @@ function onListClick(e) {
     case 'item-remove': d.items.splice(j, 1); break;
     case 'item-up': if (j > 0) swap(d.items, j, j - 1); break;
     case 'item-down': if (j < d.items.length - 1) swap(d.items, j, j + 1); break;
-    case 'audio-remove': q.audio = null; break;
+    case 'audio-remove': q.audio = null; break; // vẫn là câu nghe → hiện cảnh báo thiếu file
+    case 'listening-on': q.listening = { maxPlays: null }; break;
+    case 'listening-off': q.listening = null; break;
+    case 'mode-tutor': {
+      // Cách chấm áp dụng cho cả bài (tab "Cài đặt bài" → Chấm bài)
+      const tutor = document.querySelector('input[name="exMode"][value="TUTOR"]');
+      if (tutor && !tutor.disabled) tutor.checked = true;
+      setFieldError('formError', '');
+      showToast('Đã chuyển bài sang "Gia sư chấm". Câu tự luận không có đáp án sẽ chờ bạn chấm; đổi lại ở tab "Cài đặt bài".');
+      break;
+    }
     default: return;
   }
   renderQuestions();
@@ -875,7 +951,7 @@ function renderImport() {
   $('importTable').innerHTML = `
     <table class="w-full min-w-[860px] text-left">
       <thead class="bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide">
-        <tr><th class="px-3 py-2.5 w-16">Dòng</th><th class="px-3 py-2.5">Loại câu</th><th class="px-3 py-2.5">Đề bài</th><th class="px-3 py-2.5">Lựa chọn / mục</th><th class="px-3 py-2.5">Đáp án đúng</th><th class="px-3 py-2.5 w-16">Điểm</th></tr>
+        <tr><th class="px-3 py-2.5 w-16">Dòng</th><th class="px-3 py-2.5">Loại câu</th><th class="px-3 py-2.5">Đề bài</th><th class="px-3 py-2.5">Lựa chọn / mục</th><th class="px-3 py-2.5">Đáp án đúng</th><th class="px-3 py-2.5 w-16">Điểm</th><th class="px-3 py-2.5">Nghe</th></tr>
       </thead>
       <tbody>
         ${rows.map((r) => {
@@ -883,7 +959,7 @@ function renderImport() {
             return `<tr class="bg-[#fff8f7] border-t border-surface-container-high">
               <td class="px-3 py-3 font-semibold text-error">${r.row}</td>
               <td class="px-3 py-3">${escapeHtml(r.type ? questionTypeLabel(r.type) : '—')}</td>
-              <td class="px-3 py-3 text-error" colspan="4"><span class="inline-flex items-start gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>${escapeHtml(r.error || 'Dòng không hợp lệ.')}</span></td>
+              <td class="px-3 py-3 text-error" colspan="5"><span class="inline-flex items-start gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>${escapeHtml(r.error || 'Dòng không hợp lệ.')}</span></td>
             </tr>`;
           }
           const [choices, answer] = importSummary(r);
@@ -895,8 +971,9 @@ function renderImport() {
             <td class="px-3 py-3 [overflow-wrap:anywhere] text-on-surface-variant">${escapeHtml(choices || '—')}</td>
             <td class="px-3 py-3 [overflow-wrap:anywhere]">${escapeHtml(answer || '—')}</td>
             <td class="px-3 py-3">${formatScore(r.points)}</td>
+            <td class="px-3 py-3 whitespace-nowrap">${r.listening ? `<span class="inline-flex items-center gap-1 text-secondary"><span class="material-symbols-outlined text-[17px]" aria-hidden="true">headphones</span>${r.maxPlays ? `tối đa ${r.maxPlays} lần` : 'không giới hạn'}</span>` : '—'}</td>
           </tr>`;
-        }).join('') || '<tr><td colspan="6" class="px-3 py-6 text-center text-on-surface-variant">Không có dòng lỗi.</td></tr>'}
+        }).join('') || '<tr><td colspan="7" class="px-3 py-6 text-center text-on-surface-variant">Không có dòng lỗi.</td></tr>'}
       </tbody>
     </table>`;
 }
@@ -962,7 +1039,8 @@ function applyImport() {
   const p = importState.preview;
   if (!p || !p.valid) return;
   const added = p.rows.filter((r) => r.ok).map((r) => ({
-    type: r.type, prompt: r.prompt || '', points: Number(r.points), data: r.data || {}, audio: null
+    type: r.type, prompt: r.prompt || '', points: Number(r.points), data: r.data || {}, audio: null,
+    listening: r.listening ? { maxPlays: r.maxPlays ?? null } : null
   }));
   const replace = document.querySelector('input[name="importMode"]:checked')?.value === 'replace';
   // Bài mới chỉ có 1 câu trống mặc định → coi như thay thế
@@ -979,7 +1057,10 @@ function applyImport() {
   closeImport();
   if (state.tab !== 'questions') switchTab('questions');
   selectQuestion(Math.min(start, state.questions.length - 1));
-  showToast(`Đã thêm ${added.length} câu từ Excel. Kiểm tra lại rồi bấm Lưu nháp / Giao bài.`);
+  const needFiles = added.filter((q) => q.listening).length;
+  showToast(needFiles
+    ? `Đã thêm ${added.length} câu từ Excel. ${needFiles} câu nghe cần thêm file nghe (đánh dấu đỏ ở danh sách câu).`
+    : `Đã thêm ${added.length} câu từ Excel. Kiểm tra lại rồi bấm Lưu nháp / Giao bài.`);
 }
 
 function initImport() {
@@ -1010,6 +1091,7 @@ function openPreview() {
       </div>
       ${q.prompt && !['FILL_BLANK', 'WORD_BANK'].includes(q.type) ? `<p class="text-[16px] whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(q.prompt)}</p>` : ''}
       ${q.audio ? `<div data-preview-audio="${i}"></div><p class="font-caption text-caption text-on-surface-variant">${escapeHtml(playLimitLabel(q.audio.maxPlays))} (khi học viên làm bài)</p>` : ''}
+      ${needsAudio(q) ? '<p class="rounded-lg bg-error-container text-on-error-container px-3 py-2 font-body-sm text-body-sm">Câu nghe chưa có file nghe — cần thêm trước khi giao bài.</p>' : ''}
       <div data-preview="${i}"></div>
     </li>`).join('') || '<li class="kz-item text-center">Chưa có câu hỏi.</li>';
   state.questions.forEach((q, i) => {
@@ -1233,6 +1315,19 @@ function init() {
   $('questionOutline').addEventListener('click', (e) => {
     const b = e.target.closest('[data-select]');
     if (b) selectQuestion(Number(b.dataset.select));
+  });
+  // Thanh dưới: bấm "n câu chưa có file nghe" / "n câu chưa hoàn chỉnh" → mở câu đầu tiên bị thiếu
+  $('footerStats').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-goto]');
+    if (!b) return;
+    const auto = autoMode();
+    const idx = state.questions.findIndex((q) => (b.dataset.goto === 'missing'
+      ? needsAudio(q)
+      : (() => { const err = validateQuestion(q, { autoMode: auto }); return err && err !== AUDIO_MISSING_MESSAGE; })()));
+    if (idx < 0) return;
+    if (state.tab !== 'questions') switchTab('questions');
+    selectQuestion(idx);
+    $('questionList').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   $('questionList').addEventListener('input', onListInput);
   $('questionList').addEventListener('change', onListChange);

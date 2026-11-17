@@ -1,8 +1,10 @@
 package com.kizuna.features.verification.service;
 
+import com.kizuna.features.storage.R2FileStore;
 import com.kizuna.features.verification.entity.TutorCredential;
 import com.kizuna.features.verification.repository.TutorCredentialRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -50,11 +52,23 @@ public class VerificationDocumentStorage {
 
     private final Path legacyDir;
     private final TutorCredentialRepository credentialRepository;
+    /** Bật R2: tệp mới nằm trên R2 với khóa "verification/{file_url}", cột file_data để NULL. */
+    private final R2FileStore r2;
 
+    public VerificationDocumentStorage(String storageDir, TutorCredentialRepository credentialRepository) {
+        this(storageDir, credentialRepository, R2FileStore.disabled());
+    }
+
+    @Autowired
     public VerificationDocumentStorage(@Value("${app.verification.storage-dir}") String storageDir,
-                                       TutorCredentialRepository credentialRepository) {
+                                       TutorCredentialRepository credentialRepository, R2FileStore r2) {
         this.legacyDir = Paths.get(storageDir).toAbsolutePath().normalize();
         this.credentialRepository = credentialRepository;
+        this.r2 = r2;
+    }
+
+    static String r2Key(String storageKey) {
+        return "verification/" + storageKey;
     }
 
     /**
@@ -81,8 +95,8 @@ public class VerificationDocumentStorage {
     /**
      * Ghi nội dung tệp vào DB cho giấy tờ đã lưu; chạy trong cùng transaction với bản ghi giấy tờ.
      */
-    public void saveContent(UUID credentialId, byte[] content) {
-        if (credentialRepository.updateFileData(credentialId, content) != 1) {
+    public void saveContent(UUID credentialId, String key, byte[] content) {
+        if (credentialRepository.updateFileData(credentialId, r2.put(r2Key(key), content, contentType(key))) != 1) {
             throw new IllegalStateException("Không ghi được nội dung giấy tờ xác minh " + credentialId);
         }
     }
@@ -91,7 +105,8 @@ public class VerificationDocumentStorage {
      * Nội dung tệp của giấy tờ: ưu tiên DB, nếu chưa có thì tìm ở thư mục cũ trên máy hiện tại.
      */
     public Optional<byte[]> load(TutorCredential credential) {
-        byte[] data = credentialRepository.findFileData(credential.getCredentialId());
+        byte[] data = r2.read(credentialRepository.findFileData(credential.getCredentialId()),
+                r2Key(credential.getStorageKey()));
         if (data != null && data.length > 0) {
             return Optional.of(data);
         }
@@ -117,8 +132,10 @@ public class VerificationDocumentStorage {
         }
         credentialRepository.findIdsWithFileData(ids).forEach(id -> available.add(UUID.fromString(id)));
         for (TutorCredential credential : credentials) {
+            // shortcut: bật R2 thì coi giấy tờ có khóa hợp lệ là còn tệp (không gọi R2 cho từng dòng); tệp mất thật thì lúc tải báo không tìm thấy
             if (credential.getCredentialId() != null && !available.contains(credential.getCredentialId())
-                    && resolveExisting(credential.getStorageKey()).isPresent()) {
+                    && ((r2.enabled() && isManagedKey(credential.getStorageKey()))
+                    || resolveExisting(credential.getStorageKey()).isPresent())) {
                 available.add(credential.getCredentialId());
             }
         }
@@ -130,6 +147,9 @@ public class VerificationDocumentStorage {
      * Nội dung trong DB tự mất cùng bản ghi hoặc bị ghi đè khi thay tệp.
      */
     public void deleteLegacyAfterCommit(String key) {
+        if (isManagedKey(key)) {
+            r2.deleteAfterCommit(List.of(r2Key(key)));
+        }
         if (key == null || resolveExisting(key).isEmpty()) {
             return;
         }

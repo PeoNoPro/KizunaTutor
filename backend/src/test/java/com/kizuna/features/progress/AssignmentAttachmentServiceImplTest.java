@@ -1,5 +1,6 @@
 package com.kizuna.features.progress;
 
+import com.kizuna.features.storage.R2FileStore;
 import com.kizuna.core.entity.Learner;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.features.classroom.entity.LearningSpace;
@@ -48,7 +49,7 @@ class AssignmentAttachmentServiceImplTest {
         ClassroomService classrooms = mock(ClassroomService.class);
         AssignmentRepository assignments = mock(AssignmentRepository.class);
         fileRepo = mock(AssignmentFileRepository.class);
-        service = new AssignmentAttachmentServiceImpl(classrooms, assignments, fileRepo, new MaterialFileValidator());
+        service = new AssignmentAttachmentServiceImpl(classrooms, assignments, fileRepo, new MaterialFileValidator(), R2FileStore.disabled());
 
         Tutor tutor = tutor();
         Learner learner = learner();

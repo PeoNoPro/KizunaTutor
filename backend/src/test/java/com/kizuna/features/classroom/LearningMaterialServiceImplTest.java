@@ -1,5 +1,6 @@
 package com.kizuna.features.classroom;
 
+import com.kizuna.features.storage.R2FileStore;
 import com.kizuna.core.entity.Learner;
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.features.classroom.dto.LearningMaterialResponse;
@@ -57,7 +58,7 @@ class LearningMaterialServiceImplTest {
         classrooms = mock(ClassroomService.class);
         materials = mock(LearningMaterialRepository.class);
         files = mock(LearningMaterialFileRepository.class);
-        service = new LearningMaterialServiceImpl(classrooms, materials, files, new MaterialFileValidator());
+        service = new LearningMaterialServiceImpl(classrooms, materials, files, new MaterialFileValidator(), R2FileStore.disabled());
 
         tutor = tutor(TutorMembershipStatus.PREMIUM);
         learner = learner();

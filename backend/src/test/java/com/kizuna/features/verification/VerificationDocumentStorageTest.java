@@ -113,14 +113,14 @@ class VerificationDocumentStorageTest {
     void saveContentWritesToDatabaseColumn() {
         UUID id = UUID.randomUUID();
         when(repository.updateFileData(id, validPdf())).thenReturn(1);
-        storage.saveContent(id, validPdf());
+        storage.saveContent(id, UUID.randomUUID() + ".pdf", validPdf());
         verify(repository).updateFileData(id, validPdf());
     }
 
     @Test
     void saveContentFailsWhenRecordWasNotUpdated() {
         when(repository.updateFileData(any(), any())).thenReturn(0);
-        assertThrows(IllegalStateException.class, () -> storage.saveContent(UUID.randomUUID(), validPdf()));
+        assertThrows(IllegalStateException.class, () -> storage.saveContent(UUID.randomUUID(), UUID.randomUUID() + ".pdf", validPdf()));
     }
 
     @Test

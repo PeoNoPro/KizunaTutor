@@ -249,7 +249,7 @@ class TutorVerificationServiceTest {
                 () -> service.addDocument("IDENTITY_DOCUMENT", "  ", null));
         assertTrue(noTitle.getFields().containsKey("title"));
         verify(storage, never()).validate(any());
-        verify(storage, never()).saveContent(any(), any());
+        verify(storage, never()).saveContent(any(), any(), any());
     }
 
     @Test
@@ -267,7 +267,7 @@ class TutorVerificationServiceTest {
         var response = service.addDocument("IDENTITY_DOCUMENT", "CCCD",
                 new MockMultipartFile("file", "cccd.pdf", "application/pdf", content));
 
-        verify(storage).saveContent(savedId, content);
+        verify(storage).saveContent(savedId, key, content);
         assertTrue(response.isFileAvailable());
         assertEquals("CCCD.pdf", response.getFileName());
     }
@@ -284,7 +284,7 @@ class TutorVerificationServiceTest {
 
         assertEquals("JLPT N2", existing.getTitle());
         verify(storage, never()).validate(any());
-        verify(storage, never()).saveContent(any(), any());
+        verify(storage, never()).saveContent(any(), any(), any());
     }
 
     @Test

@@ -204,7 +204,12 @@ public class ExerciseImportService {
                     data.set("pairs", pairs);
                 }
                 case ORDERING -> data.set("items", array(split(c[2], "|")));
-                case WRITTEN -> data.set("accepted", array(splitAny(c[3])));
+                case WRITTEN -> {
+                    // Có đáp án → máy chấm; để trống → gia sư chấm câu này
+                    List<String> accepted = splitAny(c[3]);
+                    data.set("accepted", array(accepted));
+                    data.put("grader", accepted.isEmpty() ? "TUTOR" : "AUTO");
+                }
             }
             // Cùng quy tắc khi giao bài (strict); câu tự luận được để trống đáp án (gia sư chấm)
             String normalized = engine.validate(type, prompt, points, data, true, false, label);

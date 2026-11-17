@@ -47,9 +47,16 @@ test('kiểm tra câu trước khi giao: báo đúng lỗi từng dạng', () =>
   fill.data.answers = [['ăn']];
   assert.equal(validateQuestion(fill), null);
 
+  // Câu tự luận chọn người chấm riêng: mặc định gia sư chấm; chọn máy chấm thì bắt buộc có đáp án
   const essay = { ...defaultQuestion('WRITTEN'), prompt: 'Viết' };
-  assert.match(validateQuestion(essay, { autoMode: true }), /Gia sư chấm/);
-  assert.equal(validateQuestion(essay, { autoMode: false }), null);
+  assert.equal(validateQuestion(essay), null);
+  const machine = { ...essay, data: { ...essay.data, grader: 'AUTO' } };
+  assert.match(validateQuestion(machine), /Máy chấm.*đáp án/);
+  assert.equal(validateQuestion({ ...machine, data: { ...machine.data, accepted: ['せんせい'] } }), null);
+  // Dữ liệu cũ (chưa có grader): theo cách chấm cũ của bài
+  const legacy = { type: 'WRITTEN', prompt: 'Viết', points: 1, data: { accepted: [] } };
+  assert.match(validateQuestion(legacy, { autoMode: true }), /Gia sư chấm/);
+  assert.equal(validateQuestion(legacy, { autoMode: false }), null);
 
   const match = { ...defaultQuestion('MATCHING'), prompt: 'Nối' };
   assert.equal(validateQuestion(match), 'có cặp nối đang để trống.');

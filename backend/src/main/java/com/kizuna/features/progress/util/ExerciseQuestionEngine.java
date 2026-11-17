@@ -151,10 +151,19 @@ public class ExerciseQuestionEngine {
             }
             case WRITTEN -> {
                 List<String> accepted = texts(d.get("accepted")).stream().filter(s -> !s.isBlank()).toList();
-                if (strict && autoMode && accepted.isEmpty()) {
-                    throw error(label, "bài chấm tự động nên câu tự luận phải có đáp án được chấp nhận. "
-                            + "Hãy nhập đáp án, hoặc đổi cách chấm sang \"Gia sư chấm\" (tab \"Cài đặt bài\" → Chấm bài).");
+                // Ai chấm câu này: "AUTO" (máy so với đáp án, bắt buộc có đáp án) hoặc "TUTOR" (gia sư chấm, không cần đáp án).
+                // Dữ liệu cũ không có khóa grader: suy ra theo cách chấm của bài như trước.
+                String grader = text(d.get("grader")).toUpperCase(Locale.ROOT);
+                boolean explicit = grader.equals("AUTO") || grader.equals("TUTOR");
+                if (!explicit) grader = autoMode || !accepted.isEmpty() ? "AUTO" : "TUTOR";
+                if (grader.equals("TUTOR")) {
+                    accepted = List.of();
+                } else if (strict && accepted.isEmpty()) {
+                    throw error(label, explicit
+                            ? "chọn \"Máy chấm\" thì phải nhập ít nhất một đáp án được chấp nhận (hoặc chọn \"Gia sư chấm\" cho câu này)."
+                            : "bài chấm tự động nên câu tự luận phải có đáp án được chấp nhận. Hãy nhập đáp án hoặc chọn \"Gia sư chấm\" cho câu này.");
                 }
+                out.put("grader", grader);
                 out.set("accepted", array(accepted));
                 String sample = text(d.get("sample"));
                 if (!sample.isBlank()) out.put("sample", sample);

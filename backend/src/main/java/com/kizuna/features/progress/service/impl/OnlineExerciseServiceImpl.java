@@ -549,6 +549,9 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         }
         questions.saveAll(rows);
         syncAudios(e, audioById.values(), previousAudio);
+        // Cách chấm của bài suy ra từ từng câu: có câu tự luận gia sư chấm → "Gia sư chấm", ngược lại "Hệ thống chấm tự động"
+        boolean manual = rows.stream().anyMatch(r -> engine.needsManualGrading(r.getType(), r.getData()));
+        e.setGradingMode(manual ? OnlineExercise.GradingMode.TUTOR : OnlineExercise.GradingMode.AUTO);
     }
 
     // ================================================================== file nghe của câu hỏi

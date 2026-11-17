@@ -142,13 +142,7 @@
 
         <section class="kz-card p-6 space-y-4">
           <h2 class="font-title-md text-title-md">Chấm bài</h2>
-          <fieldset class="grid gap-3 sm:grid-cols-2">
-            <legend class="sr-only">Cách chấm</legend>
-            <label class="flex items-start gap-2.5 p-4 rounded-xl border border-surface-container-high has-[:checked]:border-2 has-[:checked]:border-primary has-[:checked]:bg-surface-container-low"><input type="radio" name="exMode" value="AUTO" class="w-5 h-5 mt-0.5 accent-[#006194]">
-              <span><span class="font-semibold">Hệ thống chấm tự động</span><br><span class="font-caption text-caption text-on-surface-variant">Mọi câu phải có đáp án; học viên nộp xong có điểm ngay.</span></span></label>
-            <label class="flex items-start gap-2.5 p-4 rounded-xl border border-surface-container-high has-[:checked]:border-2 has-[:checked]:border-primary has-[:checked]:bg-surface-container-low"><input type="radio" name="exMode" value="TUTOR" class="w-5 h-5 mt-0.5 accent-[#006194]">
-              <span><span class="font-semibold">Gia sư chấm</span><br><span class="font-caption text-caption text-on-surface-variant">Có câu tự luận không có đáp án; câu có đáp án vẫn được máy chấm trước.</span></span></label>
-          </fieldset>
+          <div id="gradingInfo" class="rounded-xl bg-surface-container-low px-4 py-3 flex items-start gap-2.5"></div>
           <label class="flex items-start gap-3 p-4 rounded-xl bg-surface-container-low"><input id="exShowAnswers" type="checkbox" class="w-5 h-5 mt-0.5 accent-[#006194]">
             <span><span class="font-semibold">Cho học viên xem đáp án đúng sau khi nộp</span><br><span class="font-caption text-caption text-on-surface-variant">Tắt: học viên chỉ thấy điểm và câu nào đúng, câu nào sai. Đổi được bất cứ lúc nào.</span></span></label>
         </section>

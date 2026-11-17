@@ -29,6 +29,8 @@ import {
   splitList,
   defaultQuestion,
   validateQuestion,
+  writtenGrader,
+  isTutorGraded,
   needsAudio,
   AUDIO_MISSING_MESSAGE,
   questionPayload,
@@ -155,6 +157,9 @@ async function load() {
       type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: q.audio || null,
       listening: q.listening ? { maxPlays: q.listening.maxPlays ?? null } : null
     }));
+    state.questions.filter((q) => q.type === 'WRITTEN').forEach((q) => {
+      q.data.grader = writtenGrader(q, { autoMode: s.gradingMode !== 'TUTOR' });
+    });
     fillSettings(state.detail);
     $('loadingBox').classList.add('hidden');
     renderAll();
@@ -218,12 +223,12 @@ function fillSettings(detail) {
   $('exUnlimited').checked = s ? !s.timeLimitMinutes : false;
   $('exTimeLimit').value = s?.timeLimitMinutes || (s ? '' : 30);
   $('exAttempts').value = s?.maxAttempts || 1;
-  document.querySelector(`input[name="exMode"][value="${s?.gradingMode || 'AUTO'}"]`).checked = true;
   $('exShowAnswers').checked = s ? s.showAnswers : true;
 }
 
+/** Cách chấm của bài suy ra từ câu hỏi: có câu tự luận gia sư chấm → "Gia sư chấm". */
 function autoMode() {
-  return document.querySelector('input[name="exMode"]:checked')?.value !== 'TUTOR';
+  return !state.questions.some(isTutorGraded);
 }
 
 // ============================================================ vẽ trang
@@ -247,7 +252,6 @@ function renderAll() {
   $('lockedNote').classList.toggle('hidden', !state.locked);
   $('exUnlimited').disabled = state.locked;
   $('exTimeLimit').disabled = state.locked || $('exUnlimited').checked;
-  document.querySelectorAll('input[name="exMode"]').forEach((r) => { r.disabled = state.locked; });
   $('addQuestionBar').classList.toggle('hidden', state.locked);
   $('tabAttempts').classList.toggle('hidden', !state.exerciseId);
   renderTabLabels();
@@ -292,7 +296,7 @@ function renderOutline() {
   const auto = autoMode();
   $('questionOutline').innerHTML = state.questions.map((q, i) => {
     const incomplete = validateQuestion(q, { autoMode: auto });
-    const manual = q.type === 'WRITTEN' && !(q.data?.accepted || []).some((a) => String(a).trim());
+    const manual = isTutorGraded(q);
     return `
       <li>
         <button type="button" class="ex-outline-item" data-select="${i}" data-active="${i === state.selected}" aria-current="${i === state.selected ? 'true' : 'false'}">
@@ -332,20 +336,17 @@ function selectQuestion(i) {
 }
 
 /** Khối file nghe của một câu: thêm / đổi / bỏ file MP3 và số lần nghe tối đa. */
-/**
- * Câu tự luận chưa có đáp án trong bài "Hệ thống chấm tự động": nhắc ngay tại câu, cho đổi nhanh sang "Gia sư chấm"
- * (cách chấm nằm ở tab "Cài đặt bài" nên gia sư dễ không thấy).
- */
-function writtenNeedsTutorHtml(q) {
-  if (state.locked || q.type !== 'WRITTEN' || !autoMode()) return '';
-  if ((q.data?.accepted || []).some((a) => String(a).trim())) return '';
-  return `
-    <div class="rounded-xl bg-tertiary-fixed/50 text-on-tertiary-fixed px-4 py-3 flex flex-wrap items-center gap-3">
-      <span class="material-symbols-outlined text-[20px]" aria-hidden="true">info</span>
-      <span class="flex-1 min-w-[240px]">Bài đang để <b>Hệ thống chấm tự động</b> nên câu tự luận cần có đáp án được chấp nhận.
-        Muốn tự chấm câu này thì chuyển cả bài sang <b>Gia sư chấm</b> (câu có đáp án vẫn được máy chấm trước).</span>
-      <button type="button" data-act="mode-tutor" class="kz-btn kz-btn-primary">Chuyển sang Gia sư chấm</button>
-    </div>`;
+/** Tab "Cài đặt bài" → Chấm bài: cách chấm tự suy ra từ các câu tự luận (không chọn chung cho cả bài nữa). */
+function renderGradingInfo(manualCount) {
+  const box = $('gradingInfo');
+  if (!box) return;
+  box.innerHTML = manualCount
+    ? `<span class="material-symbols-outlined text-[20px] text-tertiary" aria-hidden="true">rate_review</span>
+       <span><b>Gia sư chấm</b> — ${manualCount} câu tự luận do bạn chấm, các câu còn lại máy chấm ngay khi học viên nộp.
+       <span class="block font-caption text-caption text-on-surface-variant mt-0.5">Chọn "Máy chấm" hay "Gia sư chấm" ở từng câu tự luận (tab "Câu hỏi").</span></span>`
+    : `<span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">bolt</span>
+       <span><b>Hệ thống chấm tự động</b> — mọi câu đều có đáp án, học viên nộp xong có điểm ngay.
+       <span class="block font-caption text-caption text-on-surface-variant mt-0.5">Muốn tự chấm câu tự luận nào thì chọn "Gia sư chấm" ở câu đó (tab "Câu hỏi").</span></span>`;
 }
 
 /** Ô chọn số lần nghe tối đa (dùng chung cho câu nghe có / chưa có file). */
@@ -457,7 +458,8 @@ function updateTotals() {
   const total = formatScore(totalPoints(qs));
   $('totalsText').textContent = `${qs.length} câu · ${total} điểm`;
   const auto = autoMode();
-  const manual = qs.filter((q) => q.type === 'WRITTEN' && !(q.data?.accepted || []).some((a) => String(a).trim())).length;
+  const manual = qs.filter(isTutorGraded).length;
+  renderGradingInfo(manual);
   const listening = qs.filter((q) => q.audio || q.listening).length;
   const missing = qs.filter((q) => needsAudio(q)).length;
   const incomplete = qs.filter((q) => { const e = validateQuestion(q, { autoMode: auto }); return e && e !== AUDIO_MISSING_MESSAGE; }).length;
@@ -503,7 +505,6 @@ function cardHtml(q, i) {
         </div>`}
       ${audioEditorHtml(q)}
       <div data-body>${bodyHtml(q, i)}</div>
-      ${writtenNeedsTutorHtml(q)}
       <p data-error class="field-error hidden"></p>
       <div class="flex justify-between gap-3 pt-3 border-t border-surface-container-high">
         <button type="button" data-act="prev" class="kz-btn" ${i === 0 ? 'disabled' : ''}><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>Câu ${i}</button>
@@ -578,17 +579,33 @@ function bodyHtml(q) {
             </div>`).join('')}
         </div>
         ${state.locked ? '' : `<button type="button" data-act="item-add" class="${SMALL_BTN} mt-2" ${(d.items || []).length >= 20 ? 'disabled' : ''}>＋ Thêm mục</button>`}`;
-    case 'WRITTEN':
+    case 'WRITTEN': {
+      const grader = writtenGrader(q);
+      const opt = (value, icon, title, hint) => `
+        <label class="flex items-start gap-2.5 p-3.5 rounded-xl border cursor-pointer ${grader === value ? 'border-2 border-primary bg-surface-container-low' : 'border-surface-container-high'}">
+          <input type="radio" name="grader-${escapeHtml(String(q.__key || ''))}" data-field="grader" value="${value}" ${grader === value ? 'checked' : ''} ${dis()} class="w-5 h-5 mt-0.5 accent-[#006194]">
+          <span><span class="flex items-center gap-1.5 font-semibold"><span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">${icon}</span>${title}</span>
+          <span class="block font-caption text-caption text-on-surface-variant mt-0.5">${hint}</span></span>
+        </label>`;
       return `
+        <fieldset class="space-y-2">
+          <legend class="kz-label">Ai chấm câu này?</legend>
+          <div class="grid gap-2.5 sm:grid-cols-2">
+            ${opt('TUTOR', 'rate_review', 'Gia sư chấm', 'Học viên nộp xong, câu này chờ bạn chấm điểm và nhận xét.')}
+            ${opt('AUTO', 'bolt', 'Máy chấm', 'So với đáp án được chấp nhận — bắt buộc nhập đáp án.')}
+          </div>
+        </fieldset>
+        ${grader === 'AUTO' ? `
         <div>
-          <label class="kz-label">Đáp án được chấp nhận <span class="font-normal text-on-surface-variant">(phân cách bằng dấu ; — để trống nếu gia sư tự chấm)</span></label>
+          <label class="kz-label">Đáp án được chấp nhận <span class="text-error">*</span> <span class="font-normal text-on-surface-variant">(nhiều cách viết đúng thì phân cách bằng dấu ;)</span></label>
           <input data-field="accepted" value="${escapeHtml((d.accepted || []).join('; '))}" class="${INPUT}" placeholder="Ví dụ: ありがとう; ありがとうございます" ${dis()}>
-          <p class="font-caption text-caption text-on-surface-variant mt-1">Có đáp án: hệ thống tự chấm (bỏ qua khoảng trắng, hoa/thường, chữ toàn/nửa độ rộng). Không có đáp án: chờ gia sư chấm (cần chọn cách chấm "Gia sư chấm").</p>
-        </div>
+          <p class="font-caption text-caption text-on-surface-variant mt-1">Máy chấm bỏ qua khoảng trắng thừa, hoa/thường, chữ toàn/nửa độ rộng.</p>
+        </div>` : ''}
         <div>
-          <label class="kz-label">Đáp án mẫu <span class="font-normal text-on-surface-variant">(không bắt buộc, học viên xem sau khi nộp nếu được cho xem đáp án)</span></label>
+          <label class="kz-label">Đáp án mẫu <span class="font-normal text-on-surface-variant">(không bắt buộc, học viên xem sau khi nộp nếu được cho xem đáp án${grader === 'TUTOR' ? '; cũng là gợi ý khi bạn chấm' : ''})</span></label>
           <textarea data-field="sample" rows="2" maxlength="2000" class="${INPUT}" ${dis()}>${escapeHtml(d.sample || '')}</textarea>
         </div>`;
+    }
     default:
       return '';
   }
@@ -683,6 +700,11 @@ async function onListChange(e) {
       q.data.correct = [...set].sort((a, b) => a - b);
     } else q.data.correct = j;
   } else if (t.dataset.tf !== undefined) q.data.correct = t.dataset.tf === 'true';
+  else if (t.dataset.field === 'grader') {
+    q.data.grader = t.value;
+    renderQuestions();
+    return;
+  }
   renderOutline();
   updateTotals();
 }
@@ -719,14 +741,6 @@ function onListClick(e) {
     case 'audio-remove': q.audio = null; break; // vẫn là câu nghe → hiện cảnh báo thiếu file
     case 'listening-on': q.listening = { maxPlays: null }; break;
     case 'listening-off': q.listening = null; break;
-    case 'mode-tutor': {
-      // Cách chấm áp dụng cho cả bài (tab "Cài đặt bài" → Chấm bài)
-      const tutor = document.querySelector('input[name="exMode"][value="TUTOR"]');
-      if (tutor && !tutor.disabled) tutor.checked = true;
-      setFieldError('formError', '');
-      showToast('Đã chuyển bài sang "Gia sư chấm". Câu tự luận không có đáp án sẽ chờ bạn chấm; đổi lại ở tab "Cài đặt bài".');
-      break;
-    }
     default: return;
   }
   renderQuestions();
@@ -1332,11 +1346,6 @@ function init() {
   $('questionList').addEventListener('input', onListInput);
   $('questionList').addEventListener('change', onListChange);
   $('questionList').addEventListener('click', onListClick);
-  document.querySelectorAll('input[name="exMode"]').forEach((r) => r.addEventListener('change', () => {
-    state.dirty = true;
-    renderOutline();
-    updateTotals();
-  }));
   $('exUnlimited').addEventListener('change', () => { $('exTimeLimit').disabled = state.locked || $('exUnlimited').checked; });
   $('saveDraftBtn').addEventListener('click', () => save(false));
   $('publishBtn').addEventListener('click', () => save(true));

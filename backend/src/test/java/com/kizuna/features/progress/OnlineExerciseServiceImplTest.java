@@ -239,6 +239,26 @@ class OnlineExerciseServiceImplTest {
     }
 
     @Test
+    void eachEssayChoosesItsGraderAndExerciseModeFollowsTheQuestions() {
+        // Máy chấm: bắt buộc có đáp án
+        assertThatThrownBy(() -> service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, true,
+                List.of(q(ExerciseQuestionType.WRITTEN, "Viết cách đọc", "2", "{'grader':'AUTO','accepted':[]}")))))
+                .hasMessageContaining("chọn \"Máy chấm\" thì phải nhập ít nhất một đáp án");
+        // Câu 1 máy chấm (có đáp án), câu 2 gia sư chấm → cả bài "Gia sư chấm", câu 2 chờ gia sư
+        ExerciseDetail mixed = service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, true, List.of(
+                q(ExerciseQuestionType.WRITTEN, "Viết cách đọc 先生", "2", "{'grader':'AUTO','accepted':['せんせい']}"),
+                q(ExerciseQuestionType.WRITTEN, "Giới thiệu bản thân", "5", "{'grader':'TUTOR','accepted':['bỏ qua']}"))));
+        assertThat(mixed.summary().gradingMode()).isEqualTo("TUTOR");
+        assertThat(mixed.questions().get(0).data().get("grader").asText()).isEqualTo("AUTO");
+        assertThat(mixed.questions().get(1).data().get("grader").asText()).isEqualTo("TUTOR");
+        assertThat(mixed.questions().get(1).data().get("accepted").size()).isZero();
+        // Mọi câu tự luận đều máy chấm → cả bài "Hệ thống chấm tự động" dù gửi gradingMode TUTOR
+        ExerciseDetail allAuto = service.create(tutorActor, space.getSpaceId(), request("TUTOR", null, 1, true, true,
+                List.of(q(ExerciseQuestionType.WRITTEN, "Viết cách đọc", "2", "{'grader':'AUTO','accepted':['せんせい']}"))));
+        assertThat(allAuto.summary().gradingMode()).isEqualTo("AUTO");
+    }
+
+    @Test
     void notOpenYetIsHiddenFromLearner() {
         service.create(tutorActor, space.getSpaceId(), new ExerciseRequest("Ngày mai", null, NOW.plusDays(1), null, null, 1,
                 "AUTO", true, true, autoQuestions()));

@@ -96,9 +96,24 @@ export function defaultQuestion(type) {
     case 'WORD_BANK': return { ...base, data: { text: '', answers: [], distractors: [] } };
     case 'MATCHING': return { ...base, data: { pairs: [{ left: '', right: '' }, { left: '', right: '' }] } };
     case 'ORDERING': return { ...base, data: { items: ['', '', ''] } };
-    case 'WRITTEN': return { ...base, data: { accepted: [], sample: '' } };
+    case 'WRITTEN': return { ...base, data: { grader: 'TUTOR', accepted: [], sample: '' } };
     default: return { ...base, data: {} };
   }
+}
+
+/**
+ * Ai chấm câu tự luận: "AUTO" (máy so với đáp án được chấp nhận) hoặc "TUTOR" (gia sư chấm).
+ * Dữ liệu cũ chưa có khóa grader: có đáp án → máy chấm; không có → theo cách chấm cũ của bài.
+ */
+export function writtenGrader(q, { autoMode = false } = {}) {
+  const g = String(q?.data?.grader || '').toUpperCase();
+  if (g === 'AUTO' || g === 'TUTOR') return g;
+  return (q?.data?.accepted || []).some((a) => String(a ?? '').trim()) || autoMode ? 'AUTO' : 'TUTOR';
+}
+
+/** Câu chờ gia sư chấm (tự luận chọn "Gia sư chấm"). */
+export function isTutorGraded(q) {
+  return q?.type === 'WRITTEN' && writtenGrader(q) === 'TUTOR';
 }
 
 /** Lỗi của câu nghe chưa gắn file nghe (không giao bài được). */
@@ -166,8 +181,8 @@ function validateQuestionContent(q, { autoMode = true } = {}) {
       return null;
     }
     case 'WRITTEN':
-      if (autoMode && !(d.accepted || []).some((a) => !blank(a))) {
-        return 'bài chấm tự động nên câu tự luận phải có đáp án được chấp nhận. Hãy nhập đáp án, hoặc đổi cách chấm sang "Gia sư chấm" (tab "Cài đặt bài" → Chấm bài).';
+      if (writtenGrader(q, { autoMode }) === 'AUTO' && !(d.accepted || []).some((a) => !blank(a))) {
+        return 'chọn "Máy chấm" thì phải nhập ít nhất một đáp án được chấp nhận (hoặc chọn "Gia sư chấm" cho câu này).';
       }
       return null;
     default:
@@ -189,7 +204,10 @@ export function questionPayload(q) {
     data.answers = Array.from({ length: n }, (_, i) => String((d.answers || [])[i] || '').trim());
     data.distractors = (d.distractors || []).map((s) => String(s).trim()).filter(Boolean);
   }
-  if (q.type === 'WRITTEN') data.accepted = (d.accepted || []).map((s) => String(s).trim()).filter(Boolean);
+  if (q.type === 'WRITTEN') {
+    data.grader = writtenGrader(q);
+    data.accepted = data.grader === 'TUTOR' ? [] : (d.accepted || []).map((s) => String(s).trim()).filter(Boolean);
+  }
   return {
     type: q.type,
     prompt: String(q.prompt || '').trim(),

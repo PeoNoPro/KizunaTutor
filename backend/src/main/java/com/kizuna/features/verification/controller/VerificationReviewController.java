@@ -80,6 +80,17 @@ public class VerificationReviewController {
         return ResponseEntity.ok(reviewService.reject(tutorId, request));
     }
 
+    @PostMapping("/{tutorId}/profile-update/approve")
+    public ResponseEntity<DecisionResultResponse> approveProfileUpdate(@PathVariable UUID tutorId) {
+        return ResponseEntity.ok(reviewService.approveProfileUpdate(tutorId));
+    }
+
+    @PostMapping("/{tutorId}/profile-update/reject")
+    public ResponseEntity<DecisionResultResponse> rejectProfileUpdate(@PathVariable UUID tutorId,
+            @RequestBody(required = false) com.kizuna.features.verification.dto.request.RejectProfileUpdateRequest request) {
+        return ResponseEntity.ok(reviewService.rejectProfileUpdate(tutorId, request));
+    }
+
     @PostMapping("/{tutorId}/request-info")
     public ResponseEntity<DecisionResultResponse> requestInfo(@PathVariable UUID tutorId,
                                                               @RequestBody(required = false) RequestInfoRequest request) {

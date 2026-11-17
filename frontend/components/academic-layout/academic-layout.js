@@ -11,6 +11,7 @@
  */
 
 import { userMenuHtml, bindUserMenu } from '/components/user-menu/user-menu.js';
+import { brandLogoHtml } from '/components/brand-logo/brand-logo.js';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Tổng quan', icon: 'space_dashboard', href: '/academic/dashboard' },
@@ -19,7 +20,9 @@ const NAV_ITEMS = [
   { key: 'history', label: 'Lịch sử xét duyệt', icon: 'history_edu', href: '/academic/history' },
   // FE-13 (thêm 2026-11-17): Ngân hàng đề luyện thi JLPT.
   { key: 'practice', label: 'Ngân hàng đề', icon: 'quiz', href: '/academic/practice' },
-  { key: 'profile', label: 'Hồ sơ cá nhân', icon: 'account_circle', href: '/academic/profile' }
+  { key: 'content-import', label: 'Kho học liệu', icon: 'library_books', href: '/academic/content-import' },
+  { key: 'notifications', label: 'Thông báo', icon: 'notifications', href: '/pages/notifications/' }
+  // "Hồ sơ cá nhân" mở từ menu tài khoản ở góc dưới sidebar (đồng bộ với học viên, gia sư).
 ];
 
 function escapeHtml(text) {
@@ -81,14 +84,8 @@ export function mountAcademicLayout(activeKey, pageTitle) {
       <aside id="academicSidebarPanel" class="fixed left-0 top-0 bottom-0 w-72 ${STAFF_SIDEBAR} z-50 flex flex-col justify-between py-6 -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
         <div class="flex flex-col">
           <div class="px-6 mb-8 flex items-center justify-between gap-2">
-          <a href="/academic/dashboard" class="flex items-center gap-3 no-underline">
-            <img src="/assets/logos/kizuna-logo.png" alt="KizunaTutor" class="h-10 w-10 object-contain rounded-lg">
-            <div class="flex flex-col">
-              <span class="text-title-md font-bold tracking-tight text-[#0f2545]">KizunaTutor</span>
-              <span class="text-caption text-[#3f4850] tracking-wider">Cổng học vụ</span>
-            </div>
-          </a>
-          <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
+          ${brandLogoHtml({ href: '/academic/dashboard', subtitle: 'Cổng học vụ', className: 'min-w-0' })}
+          <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors shrink-0" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
           </div>
           <div class="px-6 mb-3"><span class="text-caption text-[#707881] tracking-wider font-semibold">Chức năng chính</span></div>
           <nav class="flex flex-col gap-1 px-4" aria-label="Điều hướng học vụ">
@@ -97,11 +94,10 @@ export function mountAcademicLayout(activeKey, pageTitle) {
         </div>
         <!-- Menu tài khoản ở góc dưới bên trái (thay cho thanh trên) -->
         <div class="mx-4 mt-4">
-          <!-- FE-12 (2026-11-13): mục "Thông báo" cuối sidebar mở trang Thông báo; chuông cạnh logo mở khung xem nhanh. -->
-          <a href="/pages/notifications/" class="academic-notification-link flex items-center gap-3 px-3 py-2.5 mb-3 transition-all ${activeKey === 'notifications' ? STAFF_NAV_ACTIVE : STAFF_NAV_IDLE}" ${activeKey === 'notifications' ? 'aria-current="page"' : ''}>
-            <span class="material-symbols-outlined text-[20px]">notifications</span><span class="text-label-md">Thông báo</span>
-          </a>
-          ${userMenuHtml({ prefix: 'academic', name, roleLabel: 'Cán bộ học vụ', showHome: false, placement: 'sidebar', cardClass: STAFF_ACCOUNT_CARD })}
+          ${userMenuHtml({
+            prefix: 'academic', name, roleLabel: 'Cán bộ học vụ', showHome: false, placement: 'sidebar', cardClass: STAFF_ACCOUNT_CARD,
+            menuItems: [{ label: 'Hồ sơ cá nhân', icon: 'account_circle', href: '/academic/profile' }]
+          })}
         </div>
       </aside>`;
   }

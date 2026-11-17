@@ -15,7 +15,9 @@ const STATUS_STYLE = {
   PENDING: { badge: 'bg-tertiary-fixed text-tertiary', dot: 'bg-tertiary' },
   ADDITIONAL_INFO_REQUIRED: { badge: 'bg-secondary-fixed text-on-secondary-fixed', dot: 'bg-secondary' },
   APPROVED: { badge: 'bg-surface-container-highest text-primary', dot: 'bg-primary' },
-  REJECTED: { badge: 'bg-error-container text-error', dot: 'bg-error' }
+  REJECTED: { badge: 'bg-error-container text-error', dot: 'bg-error' },
+  // Gia sư đã phê duyệt gửi yêu cầu đổi JLPT / bổ sung giấy tờ
+  PROFILE_UPDATE: { badge: 'bg-tertiary-fixed text-tertiary', dot: 'bg-tertiary' }
 };
 
 const state = { page: 0, size: PAGE_SIZE_OPTIONS[0] };
@@ -83,7 +85,9 @@ function renderSummary(s) {
     : `${formatNumber(s.pendingNewToday)} hồ sơ mới hôm nay`;
   $('kpiNeedsInfo').textContent = formatNumber(s.needsInfoCount);
   $('kpiApproved').textContent = formatNumber(s.approvedCount);
-  $('kpiApprovedBadge').textContent = `${formatNumber(s.approvedThisMonth)} trong tháng này`;
+  $('kpiApprovedBadge').textContent = s.profileUpdatePendingCount > 0
+    ? `${formatNumber(s.profileUpdatePendingCount)} yêu cầu cập nhật chờ thẩm định`
+    : `${formatNumber(s.approvedThisMonth)} trong tháng này`;
   $('kpiRejected').textContent = formatNumber(s.rejectedCount);
   $('kpiRejectedBadge').textContent = `${formatNumber(s.rejectedThisMonth)} trong tháng này`;
 
@@ -174,6 +178,8 @@ async function loadQueue() {
     if (!page.content || page.content.length === 0) {
       if (hasNarrowingFilters(filters)) {
         showQueueState({ icon: 'search_off', title: MSG01 });
+      } else if (filters.status === 'PROFILE_UPDATE') {
+        showQueueState({ icon: 'task_alt', title: 'Hiện không có yêu cầu cập nhật hồ sơ nào chờ thẩm định.' });
       } else if (filters.status === 'PENDING') {
         showQueueState({ icon: 'task_alt', title: 'Hiện không còn hồ sơ nào chờ thẩm định.' });
       } else {
@@ -198,7 +204,7 @@ function rowHtml(item) {
   const waitText = item.submittedAt
     ? `<span class="text-caption ${overdue ? 'text-error font-medium' : 'text-outline'}">${relativeTime(item.submittedAt)}${overdue ? ' (quá 24 giờ)' : ''}</span>`
     : '<span class="text-caption text-outline">Chưa có ngày nộp</span>';
-  const primary = item.status === 'PENDING';
+  const primary = item.status === 'PENDING' || item.status === 'PROFILE_UPDATE';
   const contact = [item.email, item.phone].filter(Boolean).map(escapeHtml).join(' • ');
   return `
     <tr class="hover:bg-surface-container-low/60 transition-colors">

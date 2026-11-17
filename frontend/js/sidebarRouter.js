@@ -27,35 +27,76 @@ export function initSidebarRouter() {
   window.addEventListener('popstate', handlePopState);
 }
 
-async function handleSidebarLinkClick(e) {
-  const link = e.target.closest('#learnerSidebar a[href], a[data-spa-link]');
-  if (!link) return;
+/**
+ * Kiểm tra xem một thẻ link <a> có hợp lệ để điều hướng SPA trong khung học viên hay không
+ */
+export function isEligibleForSpaNavigation(link, origin = (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')) {
+  if (!link) return false;
 
-  const href = link.getAttribute('href');
+  // Bỏ qua nếu có thuộc tính data-no-spa hoặc nằm trong phần tử có data-no-spa
+  if (link.hasAttribute?.('data-no-spa') || (typeof link.closest === 'function' && link.closest('[data-no-spa]'))) {
+    return false;
+  }
+
+  const href = typeof link.getAttribute === 'function' ? link.getAttribute('href') : link.href;
   if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) {
-    return;
+    return false;
   }
 
   // Bỏ qua nếu là link mở tab mới hoặc link ngoài domain
   if (link.target === '_blank' || href.startsWith('http://') || href.startsWith('https://')) {
-    const currentOrigin = window.location.origin;
-    if (!href.startsWith(currentOrigin)) return;
+    if (!href.startsWith(origin)) return false;
   }
 
-    // Bỏ qua các trang độc lập (Full-page / Đầy đủ giao diện): Tìm gia sư, Yêu cầu kết nối, Trang chủ
+  let targetPath = '';
+  try {
+    targetPath = new URL(href, origin).pathname.replace(/\/+$/, '') || '/';
+  } catch (err) {
+    return false;
+  }
+
+  // Bỏ qua các trang độc lập (Full-page / Đầy đủ giao diện): Trang chủ, Tìm gia sư, Yêu cầu kết nối, Đăng nhập, v.v.
   if (
-    link.hasAttribute('data-no-spa') ||
-    href.includes('/pages/tutor-discovery') ||
-    href.includes('/tutors') ||
-    href.includes('/pages/connection-requests') ||
-    href.includes('/connection-requests') ||
-    href.includes('/pages/home')
+    targetPath === '/' ||
+    targetPath === '/home' ||
+    targetPath === '/home.html' ||
+    targetPath.startsWith('/pages/home') ||
+    targetPath.includes('/tutor-discovery') ||
+    targetPath.startsWith('/tutors') ||
+    targetPath.includes('/connection-requests') ||
+    targetPath.startsWith('/login') ||
+    targetPath.startsWith('/register') ||
+    targetPath.startsWith('/admin') ||
+    targetPath.startsWith('/academic') ||
+    targetPath.startsWith('/manager') ||
+    targetPath.startsWith('/cs') ||
+    targetPath.startsWith('/tutor/')
   ) {
+    return false;
+  }
+
+  // Chỉ kích hoạt SPA với các link thuộc menu học viên (có data-menu-key hoặc data-spa-link)
+  const hasMenuKey = typeof link.hasAttribute === 'function' && link.hasAttribute('data-menu-key');
+  const hasSpaLink = typeof link.hasAttribute === 'function' && link.hasAttribute('data-spa-link');
+  if (!hasMenuKey && !hasSpaLink) {
+    return false;
+  }
+
+  return true;
+}
+
+async function handleSidebarLinkClick(e) {
+  const link = e.target.closest('#learnerSidebar a[href], a[data-spa-link]');
+  if (!link) return;
+
+  const origin = window.location.origin;
+  if (!isEligibleForSpaNavigation(link, origin)) {
     return;
   }
 
+  const href = link.getAttribute('href');
   const currentPath = window.location.pathname + window.location.search;
-  const targetUrl = new URL(href, window.location.origin).pathname + new URL(href, window.location.origin).search;
+  const targetUrl = new URL(href, origin).pathname + new URL(href, origin).search;
 
   if (currentPath === targetUrl) {
     e.preventDefault();
@@ -84,7 +125,9 @@ export async function navigateTo(targetUrl, activeLink = null, pushHistory = tru
       l.removeAttribute('aria-current');
     });
 
-    const activeEl = activeLink || sidebar.querySelector(`a[href="${targetUrl}"], a[href="${targetUrl.split('?')[0]}"]`);
+    const activeEl = (activeLink && activeLink.hasAttribute && activeLink.hasAttribute('data-menu-key'))
+      ? activeLink
+      : sidebar.querySelector(`a[data-menu-key][href="${targetUrl}"], a[data-menu-key][href="${targetUrl.split('?')[0]}"]`);
     if (activeEl) {
       activeEl.className = LEARNER_NAV_ACTIVE;
       activeEl.setAttribute('aria-current', 'page');

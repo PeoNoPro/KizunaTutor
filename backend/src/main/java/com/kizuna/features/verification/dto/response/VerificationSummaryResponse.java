@@ -21,4 +21,6 @@ public class VerificationSummaryResponse {
     private long rejectedCount;
     private long approvedThisMonth;
     private long rejectedThisMonth;
+    /** Yêu cầu cập nhật hồ sơ (của gia sư đã phê duyệt) đang chờ thẩm định. */
+    private long profileUpdatePendingCount;
 }

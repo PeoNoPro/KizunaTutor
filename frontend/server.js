@@ -51,9 +51,13 @@ const URL_ALIASES = {
   '/tutor/connections/': '/pages/tutor-connections/index.html',
   '/tutor/schedule': '/pages/tutor-schedule/index.html',
   '/tutor/schedule/': '/pages/tutor-schedule/index.html',
+  '/tutor/profile': '/pages/tutor-teaching-profile/index.html',
+  '/tutor/profile/': '/pages/tutor-teaching-profile/index.html',
   '/learner/connections': '/pages/learner-connections/index.html',
   '/learner/connections/': '/pages/learner-connections/index.html',
   '/learner/bookings': '/pages/learner-connections/index.html',
+  '/learner/requests': '/pages/learner-requests/index.html',
+  '/learner/requests/': '/pages/learner-requests/index.html',
   '/admin/operations/booking-policy': '/pages/operations-config/index.html',
   '/learner/policies': '/pages/policies/index.html',
   '/tutor/policies': '/pages/policies/index.html',
@@ -158,12 +162,16 @@ const URL_ALIASES = {
   '/learner/practice/attempt': '/pages/practice-attempt/index.html',
   '/academic/profile': '/pages/academic-profile/index.html',
   '/academic/profile/': '/pages/academic-profile/index.html',
+  '/academic/content-import': '/pages/academic-content-import/index.html',
+  '/academic/content-import/': '/pages/academic-content-import/index.html',
   // FE-09: gói hội viên và thanh toán
   '/tutor/membership': '/pages/tutor-membership/index.html',
   '/tutor/membership/': '/pages/tutor-membership/index.html',
   '/tutor/membership/result': '/pages/tutor-membership-result/index.html',
   '/manager/membership-plans': '/pages/manager-membership-plans/index.html',
   '/manager/tutor-memberships': '/pages/manager-tutor-memberships/index.html',
+  '/manager/users': '/pages/manager-users/index.html',
+  '/manager/users/': '/pages/manager-users/index.html',
   '/admin/payments': '/pages/admin-payments/index.html'
 };
 

@@ -120,8 +120,8 @@ export function mountAdminShell() {
   const shell = document.createElement('template');
   shell.innerHTML = `  <aside class="admin-sidebar" id="adminSidebar" aria-label="Điều hướng quản trị">
     <a class="admin-brand" href="/pages/home/">
-      <img src="/assets/logos/kizuna-logo.png" alt="KizunaTutor" width="36" height="36">
-      <span><strong>KizunaTutor</strong><small>Cổng quản trị</small></span>
+      <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" width="40" height="40">
+      <span><strong>Kizuna<span class="brand-tutor">Tutor</span></strong><small>Cổng quản trị</small></span>
     </a>
     <!-- FE-12 (2026-11-13): chuông cạnh logo mở khung xem nhanh; mục "Thông báo" cuối sidebar mở trang Thông báo. -->
     <button type="button" class="sidebar-bell" data-notification-bell aria-label="Thông báo">${icon('notifications')}</button>
@@ -163,7 +163,8 @@ export function mountAdminShell() {
     <div class="topbar-actions"><span class="security-status"><span class="status-dot"></span><span id="headerStatus">Không gian quản trị</span></span><button class="notification-button" type="button" disabled aria-label="Thông báo chưa được tích hợp"><img src="/assets/icons/admin-dashboard/bell.svg" alt=""></button><div class="admin-identity"><strong>Không gian quản trị</strong><small>Quản trị viên hệ thống</small></div></div>
   </header>`;
   if(csWorkspace){
-    const root=shell.content,brand=root.querySelector('.admin-brand'),logo=brand.querySelector('img');logo.src='/assets/cs-dashboard/logo.png';logo.width=40;logo.height=40;brand.querySelector('small').remove();
+    // Logo dùng chung logo trang chủ (không còn ảnh riêng của CSKH); chỉ đổi dòng phụ.
+    const root=shell.content,brand=root.querySelector('.admin-brand');brand.querySelector('small').remove();
     root.querySelector('.nav-caption').textContent='Nhân viên hỗ trợ';
     root.querySelector('.sidebar-menu nav').innerHTML=`
       <a href="/cs/dashboard" data-cs-navigation>${icon('space_dashboard')}Tổng quan</a>

@@ -101,7 +101,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/tutor/verification/**").hasAuthority("ROLE_TUTOR")
                 .requestMatchers("/api/academic/verifications/**", "/api/academic/reviews/**", "/api/academic/reviews",
                         "/api/academic/profile/**", "/api/academic/profile",
-                        "/api/academic/posts/**", "/api/academic/posts").hasAuthority("ROLE_ACADEMIC_OFFICER")
+                        "/api/academic/posts/**", "/api/academic/posts",
+                        "/api/academic/content-imports/**").hasAuthority("ROLE_ACADEMIC_OFFICER")
                 // FE-13 (thêm 2026-11-17): Luyện đề JLPT — học vụ quản lý ngân hàng đề, học viên luyện đề.
                 // File nghe/ảnh (/api/practice/media/**) dùng đường dẫn ký tạm thời nên không cần đăng nhập.
                 .requestMatchers("/api/academic/practice/**").hasAuthority("ROLE_ACADEMIC_OFFICER")
@@ -112,6 +113,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/trial-bookings", "/api/trial-bookings").hasAuthority("ROLE_LEARNER")
                 .requestMatchers("/api/v1/trial-bookings/*/respond", "/api/trial-bookings/*/respond").hasAuthority("ROLE_TUTOR")
                 .requestMatchers("/api/v1/tutor/availability/**", "/api/tutor/availability/**").hasAuthority("ROLE_TUTOR")
+                // Kết nối gia sư trực tiếp (không cần học thử)
+                .requestMatchers(HttpMethod.POST, "/api/v1/connection-requests", "/api/connection-requests").hasAuthority("ROLE_LEARNER")
+                .requestMatchers("/api/v1/connection-requests/*/respond", "/api/connection-requests/*/respond").hasAuthority("ROLE_TUTOR")
+                .requestMatchers("/api/v1/connection-requests/*/cancel", "/api/connection-requests/*/cancel").hasAuthority("ROLE_LEARNER")
+                .requestMatchers("/api/v1/connection-requests/**", "/api/connection-requests/**").authenticated()
                 // FE-09: gói hội viên và thanh toán
                 .requestMatchers("/api/payments/vnpay/ipn").permitAll()
                 .requestMatchers("/api/tutor/memberships/**").hasAuthority("ROLE_TUTOR")

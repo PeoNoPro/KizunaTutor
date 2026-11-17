@@ -12,6 +12,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -49,4 +50,25 @@ public class LearningSpace extends BaseEntity {
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Builder.Default
     private LearningSpaceStatus status = LearningSpaceStatus.ACTIVE;
+
+    /** FE-06 (migration 016): ngày bắt đầu khóa học do gia sư chọn khi tạo lớp. */
+    @Column(name = "course_start_date")
+    private LocalDate courseStartDate;
+
+    /** FE-06 (migration 016): tổng số buổi của khóa; null = lớp tạo trước đây, lịch lặp hằng tuần. */
+    @Column(name = "total_sessions")
+    private Integer totalSessions;
+
+    /** Migration 029: hình thức học của cả lớp, ONLINE | OFFLINE. */
+    @Column(name = "learning_mode", nullable = false, length = 20)
+    @Builder.Default
+    private String learningMode = "ONLINE";
+
+    /** Link phòng học (lớp online), gia sư nhập. */
+    @Column(name = "meeting_link", length = 500)
+    private String meetingLink;
+
+    /** Địa điểm học (lớp trực tiếp). */
+    @Column(name = "location_details", columnDefinition = "TEXT")
+    private String locationDetails;
 }

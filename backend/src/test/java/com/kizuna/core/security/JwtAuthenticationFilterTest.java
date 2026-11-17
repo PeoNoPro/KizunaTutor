@@ -35,8 +35,15 @@ class JwtAuthenticationFilterTest {
         when(users.findByEmail("nhanvien@test.invalid")).thenReturn(Optional.of(user));
         var request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer token-cu");
+        var response = new MockHttpServletResponse();
         var chain = mock(FilterChain.class);
-        filter.doFilter(request, new MockHttpServletResponse(), chain);
+        filter.doFilter(request, response, chain);
+        // Tài khoản bị khóa/xóa có thể bị chặn theo một trong hai cách: cho request đi tiếp ở trạng thái
+        // chưa xác thực, hoặc trả 403 ngay (thông báo "Tài khoản ... bị tạm khóa/cấm") — cả hai đều từ chối.
+        if (response.getStatus() == 403) {
+            verify(chain, never()).doFilter(any(), any());
+            return false;
+        }
         verify(chain).doFilter(any(), any());
         return SecurityContextHolder.getContext().getAuthentication() != null;
     }
@@ -49,6 +56,26 @@ class JwtAuthenticationFilterTest {
 
         var suspended = User.builder().email("nhanvien@test.invalid").accountStatus(UserAccountStatus.SUSPENDED).build();
         assertFalse(authenticatedWith(suspended));
+    }
+
+    @Test
+    void blockedAccountContinuesAsGuestAndIsMarked() throws Exception {
+        // Không trả 403 ngay: route công khai vẫn dùng được; route cần đăng nhập đọc dấu này để báo 401 "bị khóa".
+        when(tokens.validateToken("token-khoa")).thenReturn(true);
+        when(tokens.getEmailFromToken("token-khoa")).thenReturn("khoa@test.invalid");
+        when(users.findByEmail("khoa@test.invalid")).thenReturn(Optional.of(
+                User.builder().email("khoa@test.invalid").accountStatus(UserAccountStatus.BANNED).build()));
+        var request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer token-khoa");
+        var response = new MockHttpServletResponse();
+        var chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(any(), any());
+        assertEquals(200, response.getStatus());
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        assertTrue(JwtAuthenticationFilter.isBlockedAccount(request));
     }
 
     @Test

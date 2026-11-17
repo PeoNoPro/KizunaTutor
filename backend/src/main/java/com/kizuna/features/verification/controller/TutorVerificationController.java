@@ -67,6 +67,12 @@ public class TutorVerificationController {
         return DocumentFileResponses.inline(verificationService.loadMyDocumentFile(documentId));
     }
 
+    @PostMapping("/profile-update")
+    public ResponseEntity<TutorVerificationResponse> submitProfileUpdate(
+            @RequestBody(required = false) com.kizuna.features.verification.dto.request.SubmitProfileUpdateRequest request) {
+        return ResponseEntity.ok(verificationService.submitProfileUpdate(request));
+    }
+
     @PostMapping("/submit")
     public ResponseEntity<TutorVerificationResponse> submit(@RequestBody(required = false) SubmitVerificationRequest request) {
         return ResponseEntity.ok(verificationService.submit(request));

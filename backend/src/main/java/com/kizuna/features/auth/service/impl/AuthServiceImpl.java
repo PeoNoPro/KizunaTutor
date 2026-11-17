@@ -283,8 +283,9 @@ public class AuthServiceImpl implements AuthService {
                     .highestJlptLevel("N2")
                     .avgRating(BigDecimal.valueOf(5.0))
                     .totalReviews(0)
-                    .verificationStatus(TutorVerificationStatus.APPROVED)
-                    .membershipStatus(TutorMembershipStatus.PREMIUM)
+                    // Gia sư mới chưa nộp hồ sơ xác minh và chưa mua gói hội viên
+                    .verificationStatus(TutorVerificationStatus.UNVERIFIED)
+                    .membershipStatus(TutorMembershipStatus.FREE)
                     .isFeatured(false)
                     .updatedAt(OffsetDateTime.now())
                     .build();
@@ -333,8 +334,8 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Tài khoản hoặc mật khẩu không chính xác");
         }
 
-        if (user.getAccountStatus() != UserAccountStatus.ACTIVE) {
-            throw new BadRequestException("Tài khoản đã bị tạm khóa hoặc ngừng hoạt động. Vui lòng liên hệ ban quản trị.");
+        if (user.getDeletedAt() != null || user.getAccountStatus() != UserAccountStatus.ACTIVE) {
+            throw new BusinessException(403, "Tài khoản của bạn hiện đang bị tạm khóa/cấm. Vui lòng liên hệ bộ phận hỗ trợ.");
         }
 
         String token = tokenProvider.generateToken(user);
@@ -394,8 +395,9 @@ public class AuthServiceImpl implements AuthService {
                     .highestJlptLevel("N2")
                     .avgRating(BigDecimal.valueOf(5.0))
                     .totalReviews(0)
-                    .verificationStatus(TutorVerificationStatus.APPROVED)
-                    .membershipStatus(TutorMembershipStatus.PREMIUM)
+                    // Gia sư mới chưa nộp hồ sơ xác minh và chưa mua gói hội viên
+                    .verificationStatus(TutorVerificationStatus.UNVERIFIED)
+                    .membershipStatus(TutorMembershipStatus.FREE)
                     .isFeatured(false)
                     .updatedAt(OffsetDateTime.now())
                     .build();

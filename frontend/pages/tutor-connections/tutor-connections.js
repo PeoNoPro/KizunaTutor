@@ -4,7 +4,10 @@
  */
 
 import { API, ApiError } from '/js/api.js';
+import { contactHtml, learningModeHtml } from '/js/contact-card.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
+// Sắp xếp theo từng nhóm: chờ phản hồi (hạn phản hồi gần nhất) → đã xác nhận (buổi gần nhất) → lịch sử (mới nhất)
+import { sortTrials, sortDirect, trialDeadline, directDeadline, responseDeadlineHtml } from '/js/request-sorting.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -18,6 +21,77 @@ let openClassByLearner = new Map();
 function setVisible(el, visible) {
   if (!el) return;
   el.classList.toggle('hidden', !visible);
+}
+
+// ---------------------------------------------------------------- Phân trang (7 mục mỗi trang)
+const PAGE_SIZE = 7;
+let bookingsPage = 0;
+let directPage = 0;
+
+/** Cắt danh sách theo trang; trả về { items, page } với page đã được giới hạn trong khoảng hợp lệ. */
+function pageSlice(list, page) {
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const p = Math.min(Math.max(0, page), totalPages - 1);
+  return { items: list.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE), page: p };
+}
+
+/** Vẽ thanh phân trang: « ‹ 1 2 3 … › » kèm "Hiển thị 1–7 / 20". Ẩn nếu chỉ có 1 trang. */
+function renderPager(containerId, total, page, onChange) {
+  const el = $(containerId);
+  if (!el) return;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (totalPages <= 1) {
+    el.classList.add('hidden');
+    el.innerHTML = '';
+    return;
+  }
+  el.classList.remove('hidden');
+
+  const pages = [];
+  for (let i = 0; i < totalPages; i++) {
+    if (i === 0 || i === totalPages - 1 || Math.abs(i - page) <= 1) pages.push(i);
+    else if (pages[pages.length - 1] !== '…') pages.push('…');
+  }
+  const btnBase = 'min-w-9 h-9 px-2.5 rounded-xl text-label-md font-semibold inline-flex items-center justify-center transition-all';
+  const idle = 'border border-outline-variant/40 bg-surface-container-lowest text-on-surface hover:bg-surface-container';
+  const from = page * PAGE_SIZE + 1;
+  const to = Math.min(total, (page + 1) * PAGE_SIZE);
+
+  el.innerHTML = `
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+      <p class="text-body-sm text-on-surface-variant">Hiển thị <strong class="text-on-surface">${from}–${to}</strong> / ${total} yêu cầu</p>
+      <nav class="flex items-center gap-1.5" aria-label="Phân trang">
+        <button type="button" data-page="${page - 1}" ${page === 0 ? 'disabled' : ''}
+          class="${btnBase} ${idle} disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer" aria-label="Trang trước">
+          <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        </button>
+        ${pages.map(p => p === '…'
+          ? `<span class="px-1 text-body-sm text-on-surface-variant">…</span>`
+          : `<button type="button" data-page="${p}" ${p === page ? 'aria-current="page"' : ''}
+              class="${btnBase} cursor-pointer ${p === page ? 'bg-primary text-on-primary shadow-xs' : idle}">${p + 1}</button>`).join('')}
+        <button type="button" data-page="${page + 1}" ${page >= totalPages - 1 ? 'disabled' : ''}
+          class="${btnBase} ${idle} disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer" aria-label="Trang sau">
+          <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+        </button>
+      </nav>
+    </div>`;
+  el.querySelectorAll('button[data-page]').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    onChange(Number(btn.dataset.page));
+  }));
+}
+
+function scrollToList(listId) {
+  const el = $(listId);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** " • 8 buổi (17/11 – 11/12/2026)" cho yêu cầu kết nối có buổi cụ thể; rỗng với yêu cầu cũ. */
+function courseRangeText(r) {
+  if (!r || !r.totalSessions || !r.startDate || !r.endDate) return '';
+  const [, sm, sd] = String(r.startDate).split('-');
+  const [ey, em, ed] = String(r.endDate).split('-');
+  return ` • ${r.totalSessions} buổi (${sd}/${sm} – ${ed}/${em}/${ey})`;
 }
 
 function escapeHtml(text) {
@@ -78,6 +152,11 @@ function updateCounts() {
   const confirmed = bookingsList.filter(b => CONFIRMED_STATUSES.includes(b.bookingStatus)).length;
   const history = bookingsList.filter(b => HISTORY_STATUSES.includes(b.bookingStatus)).length;
 
+  if ($('typeCountTrial')) {
+    $('typeCountTrial').textContent = pending;
+    $('typeCountTrial').title = `${pending} yêu cầu học thử đang chờ bạn phản hồi`;
+    $('typeCountTrial').classList.toggle('hidden', pending === 0);
+  }
   if ($('statPending')) $('statPending').textContent = pending;
   if ($('statConfirmed')) $('statConfirmed').textContent = confirmed;
   if ($('statTotal')) $('statTotal').textContent = total;
@@ -108,6 +187,7 @@ function renderBookings() {
   if (filtered.length === 0) {
     setVisible(listEl, false);
     setVisible(emptyEl, true);
+    renderPager('bookingsPager', 0, 0, () => {});
     const msgEl = $('emptyMessage');
     if (msgEl) {
       if (currentFilter === 'PENDING') {
@@ -124,7 +204,15 @@ function renderBookings() {
   setVisible(emptyEl, false);
   setVisible(listEl, true);
 
-  listEl.innerHTML = filtered.map(item => {
+  const paged = pageSlice(filtered, bookingsPage);
+  bookingsPage = paged.page;
+  renderPager('bookingsPager', filtered.length, bookingsPage, (p) => {
+    bookingsPage = p;
+    renderBookings();
+    scrollToList('bookingsList');
+  });
+
+  listEl.innerHTML = paged.items.map(item => {
     const isPending = item.bookingStatus === 'PENDING';
     const isConfirmed = CONFIRMED_STATUSES.includes(item.bookingStatus);
     const isRescheduled = item.bookingStatus === 'RESCHEDULED';
@@ -155,6 +243,10 @@ function renderBookings() {
     } else if (isCompleted) {
       badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-primary-fixed text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">task_alt</span>Đã hoàn thành</span>`;
     }
+    // Học viên đề xuất giờ ngoài lịch rảnh của gia sư
+    if (item.offSchedule) {
+      badgeHtml = `<span class="flex flex-wrap items-center gap-1.5">${badgeHtml}<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1" title="Giờ này nằm ngoài lịch rảnh bạn đã khai báo"><span class="material-symbols-outlined text-[14px]">edit_calendar</span>Ngoài lịch rảnh</span></span>`;
+    }
 
     // Các nút hành động
     let actionsHtml = '';
@@ -169,6 +261,7 @@ function renderBookings() {
             <span class="material-symbols-outlined text-[18px]">cancel</span>
             <span>Từ chối</span>
           </button>
+          <span class="ml-auto">${responseDeadlineHtml(trialDeadline(item))}</span>
         </div>
       `;
     } else if (isConfirmed) {
@@ -251,6 +344,7 @@ function renderBookings() {
               <span>Tạo lớp học</span>
             </a>
           </div>
+          <p class="w-full text-caption text-on-surface-variant">Đang thỏa thuận lịch học chính thức với học viên? Hãy tạm tắt khung giờ đó trong <a href="/tutor/schedule" class="text-primary font-semibold hover:underline">Lịch rảnh</a> để người khác không đặt mất trước khi bạn tạo lớp.</p>
         </div>
       ` : `
         <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-sky-50/50 p-3 rounded-xl border border-sky-200/60">
@@ -264,6 +358,7 @@ function renderBookings() {
               <span>Đồng ý kết nối</span>
             </button>
           </div>
+          <p class="w-full text-caption text-on-surface-variant">Đang thỏa thuận lịch học chính thức với học viên? Hãy tạm tắt khung giờ đó trong <a href="/tutor/schedule" class="text-primary font-semibold hover:underline">Lịch rảnh</a> để người khác không đặt mất trước khi bạn tạo lớp.</p>
         </div>
       `;
     } else if (isRejected) {
@@ -335,6 +430,7 @@ function renderBookings() {
         ` : ''}
 
         <!-- Hàng nút hành động -->
+        ${contactHtml(item, 'Liên hệ học viên')}
         ${actionsHtml}
       </div>
     `;
@@ -472,8 +568,227 @@ function closeModals() {
   $('modalAcceptBooking')?.classList.add('hidden');
   $('modalDeclineBooking')?.classList.add('hidden');
   $('modalConfirmComplete')?.classList.add('hidden');
+  $('modalDirectRespond')?.classList.add('hidden');
   activeBooking = null;
   activeCompleteBooking = null;
+  activeDirect = null;
+  directAction = null;
+}
+
+// ====================================================================
+// Kết nối trực tiếp (không học thử): học viên chọn ca hằng tuần, gia sư đồng ý / từ chối
+// ====================================================================
+let directRequests = [];
+let directFilter = 'PENDING';
+let activeDirect = null;
+let directAction = null; // 'ACCEPT' | 'DECLINE'
+let directLoaded = false;
+
+const DIRECT_HISTORY = ['DECLINED', 'CANCELLED', 'EXPIRED'];
+
+function slotText(s) {
+  return `${s.dayName} ${s.startTime}–${s.endTime} (${s.durationMinutes} phút)`;
+}
+
+function renderDirect() {
+  const listEl = $('directList');
+  if (!listEl || !directLoaded) return;
+
+  const pending = directRequests.filter(r => r.status === 'PENDING').length;
+  const badge = $('directPendingBadge');
+  if (badge) {
+    badge.textContent = pending;
+    badge.title = `${pending} yêu cầu kết nối đang chờ bạn phản hồi`;
+    badge.classList.toggle('hidden', pending === 0);
+  }
+
+  const filtered = directRequests.filter(r =>
+    directFilter === 'HISTORY' ? DIRECT_HISTORY.includes(r.status) : r.status === directFilter);
+  const paged = pageSlice(filtered, directPage);
+  directPage = paged.page;
+  renderPager('directPager', filtered.length, directPage, (p) => {
+    directPage = p;
+    renderDirect();
+    scrollToList('directList');
+  });
+
+  if (!filtered.length) {
+    const emptyText = directFilter === 'PENDING'
+      ? 'Chưa có yêu cầu kết nối nào đang chờ bạn phản hồi.'
+      : directFilter === 'ACCEPTED' ? 'Bạn chưa đồng ý kết nối trực tiếp với học viên nào.' : 'Chưa có yêu cầu nào trong mục này.';
+    listEl.innerHTML = `
+      <div class="bg-surface-container-lowest rounded-2xl p-6 text-center shadow-sm border border-outline-variant/30 text-body-sm text-on-surface-variant">
+        ${emptyText}
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = paged.items.map(r => {
+    const name = escapeHtml(r.partnerName || 'Học viên');
+    const avatarSrc = r.partnerAvatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
+    const badgeCls = r.status === 'PENDING' ? 'bg-amber-100 text-amber-800'
+      : r.status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-800'
+      : r.status === 'DECLINED' ? 'bg-error-container text-error' : 'bg-surface-container text-on-surface-variant';
+    const slotsHtml = (r.slots || []).map(s => `
+      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-fixed text-primary text-caption font-semibold">
+        <span class="material-symbols-outlined text-[14px]">event_repeat</span>${escapeHtml(slotText(s))}
+      </span>`).join('');
+
+    let actionsHtml = '';
+    if (r.status === 'PENDING') {
+      actionsHtml = `
+        <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-outline-variant/40">
+          <button type="button" class="btn-direct-accept px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all" data-id="${r.requestId}">
+            <span class="material-symbols-outlined text-[18px]">handshake</span><span>Đồng ý kết nối</span>
+          </button>
+          <button type="button" class="btn-direct-decline px-4 py-2 rounded-xl bg-surface-container hover:bg-error-container hover:text-error text-on-surface text-label-md font-semibold inline-flex items-center gap-1.5 transition-all" data-id="${r.requestId}">
+            <span class="material-symbols-outlined text-[18px]">cancel</span><span>Từ chối</span>
+          </button>
+          <span class="ml-auto">${responseDeadlineHtml(directDeadline(r))}</span>
+        </div>`;
+    } else if (r.status === 'ACCEPTED') {
+      const openClass = openClassByLearner.get(String(r.learnerId));
+      actionsHtml = openClass ? `
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          <span class="text-body-sm text-emerald-900 font-medium [overflow-wrap:anywhere]">Đã tạo lớp học <strong>${escapeHtml(openClass.title || '')}</strong> với học viên này.</span>
+          <a href="/tutor/classrooms?space=${encodeURIComponent(openClass.spaceId)}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm no-underline">
+            <span class="material-symbols-outlined text-[18px]">arrow_forward</span><span>Vào lớp học</span>
+          </a>
+        </div>` : `
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          <span class="text-body-sm text-emerald-900 font-medium">Đã kết nối. Hãy tạo lớp học và xếp lịch theo các ca học viên đã chọn.</span>
+          <a href="/tutor/classrooms?taoLop=1&learnerId=${encodeURIComponent(r.learnerId || '')}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm no-underline">
+            <span class="material-symbols-outlined text-[18px]">add_circle</span><span>Tạo lớp học</span>
+          </a>
+        </div>`;
+    } else if (r.responseMessage) {
+      actionsHtml = `<div class="text-caption text-on-surface-variant">Lý do: ${escapeHtml(r.responseMessage)}</div>`;
+    }
+
+    return `
+      <div class="bg-surface-container-lowest rounded-2xl p-5 sm:p-6 shadow-sm border border-outline-variant/40 hover:border-primary/40 transition-all space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <img src="${avatarSrc}" alt="${name}" class="w-12 h-12 rounded-2xl object-cover ring-2 ring-surface-container shrink-0">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-title-md font-bold text-on-surface">${name}</h3>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary-fixed text-primary">Kết nối trực tiếp</span>
+              </div>
+              <p class="text-caption text-on-surface-variant mt-0.5">${(r.slots || []).length} ca mỗi tuần${courseRangeText(r)} • Không qua học thử</p>
+            </div>
+          </div>
+          <span class="self-start sm:self-center px-2.5 py-1 rounded-full text-caption font-bold ${badgeCls}">${escapeHtml(r.statusLabel || '')}</span>
+        </div>
+        <div class="flex flex-wrap gap-2">${slotsHtml}</div>
+        ${(r.currentLevel || r.learningGoals) ? `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 text-body-sm">
+            ${r.currentLevel ? `<div class="text-on-surface-variant">Trình độ hiện tại: <strong class="text-on-surface">${escapeHtml(r.currentLevel)}</strong></div>` : ''}
+            ${r.learningGoals ? `<div class="text-on-surface-variant">Mục tiêu: <span class="text-on-surface font-medium">${escapeHtml(r.learningGoals)}</span></div>` : ''}
+          </div>` : ''}
+        ${r.initialMessage ? `<div class="text-body-sm text-on-surface-variant bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/30 italic">"${escapeHtml(r.initialMessage)}"</div>` : ''}
+        ${r.slotWarning ? `<div class="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-body-sm text-amber-900"><span class="material-symbols-outlined text-[18px] text-amber-600 shrink-0">warning</span><span>${escapeHtml(r.slotWarning)}</span></div>` : ''}
+        ${learningModeHtml(r)}
+        ${contactHtml(r, 'Liên hệ học viên')}
+        ${actionsHtml}
+      </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('.btn-direct-accept').forEach(btn =>
+    btn.addEventListener('click', () => openDirectRespond(btn.dataset.id, 'ACCEPT')));
+  listEl.querySelectorAll('.btn-direct-decline').forEach(btn =>
+    btn.addEventListener('click', () => openDirectRespond(btn.dataset.id, 'DECLINE')));
+}
+
+function openDirectRespond(requestId, action) {
+  activeDirect = directRequests.find(r => String(r.requestId) === String(requestId));
+  if (!activeDirect) return;
+  directAction = action;
+  const accept = action === 'ACCEPT';
+  $('directRespondTitle').textContent = accept ? 'Đồng ý kết nối' : 'Từ chối yêu cầu kết nối';
+  $('directRespondSubtitle').textContent = accept
+    ? 'Các ca bên dưới sẽ được giữ cho học viên này. Học viên sẽ thấy số điện thoại và email của bạn.'
+    : 'Học viên sẽ nhận được lý do bạn gửi';
+  $('directRespondIcon').textContent = accept ? 'handshake' : 'cancel';
+  $('directRespondIconWrap').className = `w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accept ? 'bg-primary-fixed text-primary' : 'bg-error-container text-error'}`;
+  $('directRespondLearner').textContent = activeDirect.partnerName || 'Học viên';
+  $('directRespondSlots').innerHTML = (activeDirect.slots || []).map(s => `<li>${escapeHtml(slotText(s))}</li>`).join('')
+    + ((activeDirect.sessions || []).length
+      ? `<li class="font-semibold">${activeDirect.sessions.length} buổi: ${activeDirect.sessions.map(s => {
+          const [, m, d] = String(s.date).split('-');
+          return `${d}/${m}`;
+        }).join(', ')}</li>`
+      : '');
+  $('directRespondMessageLabel').textContent = accept ? 'Lời nhắn gửi học viên (tùy chọn)' : 'Lý do từ chối';
+  const msg = $('directRespondMessage');
+  msg.value = '';
+  msg.placeholder = accept ? 'Ví dụ: Chào em, thầy sẽ tạo lớp và gửi tài liệu trước buổi đầu tiên.' : 'Ví dụ: Ca này thầy vừa kín lịch, em có thể chọn ca khác giúp thầy nhé.';
+  const btn = $('btnSubmitDirectRespond');
+  btn.className = `px-5 py-2.5 rounded-xl text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all ${accept ? 'bg-primary hover:bg-primary-container text-on-primary' : 'bg-error hover:opacity-90 text-on-error'}`;
+  $('btnSubmitDirectRespondText').textContent = accept ? 'Xác nhận đồng ý' : 'Xác nhận từ chối';
+  $('modalDirectRespond').classList.remove('hidden');
+}
+
+async function submitDirectRespond() {
+  if (!activeDirect || !directAction) return;
+  const message = $('directRespondMessage').value.trim();
+  if (directAction === 'DECLINE' && !message) {
+    showToast('Vui lòng nhập lý do từ chối để học viên biết.', 'error');
+    $('directRespondMessage').focus();
+    return;
+  }
+  const btn = $('btnSubmitDirectRespond');
+  const btnText = $('btnSubmitDirectRespondText');
+  const original = btnText.textContent;
+  btn.disabled = true;
+  btnText.textContent = 'Đang xử lý...';
+  try {
+    await API.connectionRequests.respond(activeDirect.requestId, { action: directAction, message: message || null });
+    const accepted = directAction === 'ACCEPT';
+    closeModals();
+    showToast(accepted ? 'Đã đồng ý kết nối. Bạn có thể tạo lớp học cho học viên.' : 'Đã từ chối yêu cầu kết nối.');
+    await Promise.all([loadDirect(), loadBookings()]);
+  } catch (err) {
+    showToast(err.message || 'Không thể xử lý yêu cầu lúc này. Vui lòng thử lại.', 'error');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = original;
+  }
+}
+
+async function loadDirect() {
+  const listEl = $('directList');
+  try {
+    const res = await API.connectionRequests.getMyRequests('ALL', 0, 100);
+    directRequests = sortDirect(res?.items || [], 'tutor');
+    directLoaded = true;
+    renderDirect();
+  } catch (err) {
+    console.error('Lỗi tải yêu cầu kết nối trực tiếp:', err);
+    if (listEl) {
+      listEl.innerHTML = `
+        <div class="bg-surface-container-lowest rounded-2xl p-6 text-center shadow-sm border border-outline-variant/30 text-body-sm text-on-surface-variant">
+          ${escapeHtml(err.message || 'Không thể tải yêu cầu kết nối. Vui lòng thử lại sau.')}
+        </div>`;
+    }
+  }
+}
+
+function initDirectEvents() {
+  const tabBtns = document.querySelectorAll('#directTabs .direct-tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => {
+        b.className = 'direct-tab-btn px-3 py-1.5 rounded-xl text-on-surface-variant hover:bg-surface-container transition-all';
+      });
+      btn.className = 'direct-tab-btn px-3 py-1.5 rounded-xl bg-primary text-on-primary transition-all';
+      directFilter = btn.dataset.status;
+      directPage = 0;
+      renderDirect();
+    });
+  });
+  $('btnSubmitDirectRespond')?.addEventListener('click', submitDirectRespond);
+  $('btnRefresh')?.addEventListener('click', loadDirect);
 }
 
 /**
@@ -487,16 +802,17 @@ async function loadBookings() {
 
   try {
     const [res, classrooms] = await Promise.all([
-      API.trialBookings.getMyRequests('ALL', 0, 50),
+      API.trialBookings.getMyRequests('ALL', 0, 100),
       API.classrooms.list().catch(() => [])
     ]);
-    bookingsList = res?.items || res?.content || res?.data?.items || res?.data?.content || (Array.isArray(res) ? res : []);
+    bookingsList = sortTrials(res?.items || res?.content || res?.data?.items || res?.data?.content || (Array.isArray(res) ? res : []), 'tutor');
     openClassByLearner = new Map((Array.isArray(classrooms) ? classrooms : [])
       .filter(c => c.status === 'ACTIVE' || c.status === 'PAUSED')
       .map(c => [String(c.learnerId), c]));
 
     updateCounts();
     renderBookings();
+    renderDirect(); // cập nhật nút "Tạo lớp / Vào lớp" theo danh sách lớp mới nhất
   } catch (err) {
     console.error('Lỗi tải danh sách yêu cầu kết nối:', err);
     $('errorMessage').textContent = err instanceof ApiError ? err.message : 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
@@ -520,6 +836,7 @@ function initEvents() {
       btn.className = 'tab-btn px-4 py-2 rounded-xl bg-primary text-on-primary shadow-xs transition-all flex items-center gap-1.5';
 
       currentFilter = btn.dataset.status;
+      bookingsPage = 0;
       renderBookings();
     });
   });
@@ -660,8 +977,30 @@ API.tutorVerification.getMine()
   })
   .catch(() => {});
 
+// ---------------------------------------------------------------- Chọn loại yêu cầu: Học thử | Kết nối trực tiếp
+const TYPE_ACTIVE = 'type-btn px-4 py-2.5 rounded-xl bg-surface-container-lowest text-on-surface shadow-xs font-bold text-label-md flex items-center gap-2 cursor-pointer';
+const TYPE_IDLE = 'type-btn px-4 py-2.5 rounded-xl text-on-surface-variant hover:text-on-surface font-semibold text-label-md flex items-center gap-2 cursor-pointer';
+
+function switchType(type) {
+  const isDirect = type === 'direct';
+  document.querySelectorAll('#typeTabs .type-btn').forEach(b => {
+    b.className = b.dataset.type === type ? TYPE_ACTIVE : TYPE_IDLE;
+  });
+  setVisible($('trialPanel'), !isDirect);
+  setVisible($('directPanel'), isDirect);
+  // Ghi nhớ tab trên URL để tải lại trang vẫn mở đúng tab
+  const url = new URL(window.location.href);
+  url.searchParams.set('tab', isDirect ? 'direct' : 'trial');
+  window.history.replaceState(null, '', url);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('#typeTabs .type-btn').forEach(btn =>
+    btn.addEventListener('click', () => switchType(btn.dataset.type)));
+  switchType(new URLSearchParams(window.location.search).get('tab') === 'direct' ? 'direct' : 'trial');
   initEvents();
+  initDirectEvents();
+  loadDirect();
   loadBookings();
 });
 

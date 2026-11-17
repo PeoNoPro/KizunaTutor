@@ -1,0 +1,54 @@
+package com.kizuna.features.booking.dto.request;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.*;
+
+import java.util.List;
+import java.util.UUID;
+
+/** Học viên gửi yêu cầu kết nối trực tiếp với gia sư (không cần học thử). */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class CreateConnectionRequestDTO {
+
+    @NotNull(message = "Mã gia sư không được để trống")
+    private UUID tutorId;
+
+    /** Email liên hệ gửi cho gia sư (để trống = email tài khoản). */
+    @Size(max = 255, message = "Email tối đa 255 ký tự")
+    private String contactEmail;
+
+    /** Số điện thoại liên hệ gửi cho gia sư (để trống = số trong hồ sơ). */
+    @Size(max = 20, message = "Số điện thoại không hợp lệ")
+    private String contactPhone;
+
+    /** Học viên đồng ý chia sẻ hồ sơ, email, số điện thoại với gia sư (bắt buộc). */
+    private Boolean shareContact;
+
+    @NotEmpty(message = "Vui lòng chọn ít nhất một ca học hằng tuần")
+    @Size(max = 50, message = "Bạn đã chọn quá nhiều ca học mỗi tuần")
+    @Valid
+    private List<ConnectionSlotRequestDTO> slots;
+
+    @Size(max = 100, message = "Trình độ hiện tại tối đa 100 ký tự")
+    private String currentLevel;
+
+    @Size(max = 500, message = "Mục tiêu học tập tối đa 500 ký tự")
+    private String learningGoals;
+
+    @Size(max = 1000, message = "Lời nhắn tối đa 1000 ký tự")
+    private String initialMessage;
+
+    /** ONLINE | OFFLINE; để trống = ONLINE. */
+    private String learningMode;
+
+    /** Bắt buộc khi học trực tiếp: khu vực / địa chỉ học. */
+    @Size(max = 500, message = "Địa điểm học tối đa 500 ký tự")
+    private String locationDetails;
+}

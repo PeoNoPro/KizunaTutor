@@ -12,6 +12,7 @@
  */
 
 import { userMenuHtml, bindUserMenu, setUserMenuName, setUserMenuDetails } from '/components/user-menu/user-menu.js';
+import { brandLogoHtml } from '/components/brand-logo/brand-logo.js';
 
 // Đúng thứ tự và biểu tượng của thiết kế Stitch. "Hồ sơ gia sư" mở trang xác minh hồ sơ (FE-03).
 const NAV_ITEMS = [
@@ -96,22 +97,62 @@ function highlightNav(link) {
   });
 }
 
+// Kết quả kiểm gói được nhớ tạm trong phiên để chuyển trang không phải chờ API mỗi lần.
+const MEMBERSHIP_CACHE_KEY = 'kizuna_tutor_membership_lock';
+const MEMBERSHIP_CACHE_MS = 5 * 60 * 1000;
+// Chờ API kiểm gói tối đa chừng này rồi hiện trang luôn (backend vẫn chặn API nếu chưa có gói).
+const MEMBERSHIP_MAX_HIDE_MS = 1500;
+
+function readMembershipCache() {
+  // Trang gói hội viên / kết quả thanh toán luôn hỏi lại server: vừa mua gói xong thì mở khóa ngay
+  if (/membership/i.test(window.location.pathname)) return null;
+  try {
+    const raw = sessionStorage.getItem(MEMBERSHIP_CACHE_KEY);
+    if (!raw) return null;
+    const { locked, at } = JSON.parse(raw);
+    return Date.now() - at < MEMBERSHIP_CACHE_MS ? Boolean(locked) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeMembershipCache(locked) {
+  try {
+    sessionStorage.setItem(MEMBERSHIP_CACHE_KEY, JSON.stringify({ locked, at: Date.now() }));
+  } catch (e) { /* trình duyệt chặn bộ nhớ: bỏ qua */ }
+}
+
+function applyLockedUi(main, activeItem, pageLocked) {
+  document.querySelectorAll('#tutorSidebar [data-lock-icon]').forEach((el) => el.classList.remove('hidden'));
+  if (pageLocked) showMembershipGate(main, activeItem.label);
+}
+
 /** Kiểm gói hội viên: khóa các mục cần gói trên sidebar và chặn trang đang mở nếu là trang cần gói. */
 async function applyMembershipLock(activeItem) {
   const main = document.querySelector('main');
   const pageLocked = Boolean(activeItem && activeItem.member && main);
-  if (pageLocked) main.classList.add('invisible');
+
+  // Đã biết kết quả trong phiên: áp dụng ngay, không ẩn trang
+  const cached = readMembershipCache();
+  if (cached !== null) {
+    membershipLocked = cached;
+    if (membershipLocked) applyLockedUi(main, activeItem, pageLocked);
+  } else if (pageLocked) {
+    // Lần đầu: ẩn nội dung trong lúc chờ, nhưng không quá MEMBERSHIP_MAX_HIDE_MS để tránh trang trắng khi API chậm
+    main.classList.add('invisible');
+    setTimeout(() => main.classList.remove('invisible'), MEMBERSHIP_MAX_HIDE_MS);
+  }
+
   try {
     const { API } = await import('/js/api.js');
     const data = await API.tutorMembership.getMine();
-    membershipLocked = !data || !data.expiresOn;
+    const locked = !data || !data.expiresOn;
+    writeMembershipCache(locked);
+    if (locked && !membershipLocked) applyLockedUi(main, activeItem, pageLocked);
+    membershipLocked = locked;
   } catch (e) {
     // Không xác định được (lỗi mạng...): không khóa trên giao diện, backend vẫn chặn API
-    membershipLocked = false;
-  }
-  if (membershipLocked) {
-    document.querySelectorAll('#tutorSidebar [data-lock-icon]').forEach((el) => el.classList.remove('hidden'));
-    if (pageLocked) showMembershipGate(main, activeItem.label);
+    if (cached === null) membershipLocked = false;
   }
   if (pageLocked) main.classList.remove('invisible');
 }
@@ -139,15 +180,11 @@ export function mountTutorLayout(activeKey) {
       <aside id="tutorSidebarPanel" class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
         <div class="flex flex-col">
           <div class="px-6 pt-6 pb-4">
-            <div class="flex items-center justify-between gap-2 mb-1">
-            <a href="/home" title="Về trang chủ KizunaTutor" class="flex items-center gap-2 no-underline">
-              <div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-on-primary text-headline-sm">絆</div>
-              <div><span class="text-headline-sm text-brand-navy">Kizuna</span><span class="text-headline-sm text-primary">Tutor</span></div>
-            </a>
             <!-- FE-12 (thêm 2026-11-13): chuông cạnh logo mở khung xem nhanh, giống học viên và nhân viên. -->
-            <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
+            <div class="flex items-center justify-between gap-2">
+            ${brandLogoHtml({ href: '/home', subtitle: 'Không gian gia sư', className: 'min-w-0' })}
+            <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors shrink-0" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
             </div>
-            <p class="text-caption text-on-surface-variant tracking-wider">Kết nối song ngữ Việt - Nhật</p>
           </div>
           <nav class="flex flex-col gap-1 px-4 mt-2" aria-label="Điều hướng gia sư">
             ${NAV_ITEMS.map((item) => navItemHtml(item, activeKey)).join('')}
@@ -156,7 +193,11 @@ export function mountTutorLayout(activeKey) {
         <!-- Menu tài khoản ở góc dưới bên trái (thay cho thanh trên) -->
         <div class="mx-4 my-4 flex flex-col gap-2">
           <nav class="flex flex-col" aria-label="Thông báo">${navItemHtml(NOTIFICATION_ITEM, activeKey)}</nav>
-          ${userMenuHtml({ prefix: 'tutor', name: storedUserName() || 'Gia sư', roleLabel: 'Gia sư tiếng Nhật', placement: 'sidebar' })}
+          ${userMenuHtml({
+            prefix: 'tutor', name: storedUserName() || 'Gia sư', roleLabel: 'Gia sư tiếng Nhật', placement: 'sidebar',
+            // FE-02: thông tin cá nhân, giảng dạy và đổi mật khẩu của gia sư.
+            menuItems: [{ label: 'Hồ sơ cá nhân', icon: 'person', href: '/tutor/profile' }]
+          })}
         </div>
       </aside>`;
   }

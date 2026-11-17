@@ -27,12 +27,19 @@ import {
   validateGrade,
   parsePoints
 } from '../../js/assignment-helpers.js';
+import {
+  exerciseStateLabel,
+  exerciseStateTone,
+  formatDateTime,
+  formatScore
+} from '../../js/exercise-helpers.js';
 
 const $ = (id) => document.getElementById(id);
 
 const ctx = {
   space: null,
   assignments: [],
+  exercises: [],
   editing: null,
   detail: null,
   picker: null,
@@ -90,7 +97,12 @@ export async function loadTutorAssignments(space) {
   $('assignmentsState').classList.add('hidden');
   list.innerHTML = '<li class="text-on-surface-variant">Đang tải bài tập...</li>';
   try {
-    ctx.assignments = await API.assignments.list(space.spaceId) || [];
+    const [assignments, exercises] = await Promise.all([
+      API.assignments.list(space.spaceId),
+      API.exercises.list(space.spaceId).catch(() => [])
+    ]);
+    ctx.assignments = assignments || [];
+    ctx.exercises = exercises || [];
     render();
   } catch (err) {
     list.innerHTML = '';
@@ -102,20 +114,70 @@ export function hideTutorAssignments() {
   $('assignmentsSection')?.classList.add('hidden');
 }
 
+/** Đường dẫn trang soạn / chấm bài làm trực tiếp. */
+function exerciseEditorUrl(exerciseId = null, tab = null) {
+  const q = new URLSearchParams({ space: ctx.space.spaceId });
+  if (exerciseId) q.set('exercise', exerciseId);
+  if (tab) q.set('tab', tab);
+  return `/pages/exercise-editor/index.html?${q.toString()}`;
+}
+
+function exerciseItemHtml(e) {
+  const meta = [
+    `${e.questionCount} câu · ${formatScore(e.maxScore)} điểm`,
+    e.timeLimitMinutes ? `${e.timeLimitMinutes} phút` : 'Không giới hạn thời gian',
+    `${e.maxAttempts} lượt`,
+    e.opensAt ? `Mở ${formatDateTime(e.opensAt)}` : '',
+    e.closesAt ? `Đóng ${formatDateTime(e.closesAt)}` : ''
+  ].filter(Boolean).join(' · ');
+  const progress = e.attemptsUsed
+    ? `Học viên đã làm ${e.attemptsUsed} lượt${e.bestScore !== null && e.bestScore !== undefined ? ` · Điểm cao nhất: ${formatScore(e.bestScore)}` : ''}${e.pendingGrading ? ' · Có bài chờ chấm' : ''}`
+    : 'Học viên chưa làm';
+  return `
+    <li class="kz-item flex flex-col sm:flex-row sm:items-start gap-3" data-exercise="${escapeHtml(e.exerciseId)}">
+      <div class="flex-1 min-w-0 space-y-1.5">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="kz-badge" data-tone="active"><span class="material-symbols-outlined text-[14px]">edit_note</span>Làm trực tiếp</span>
+          <h3 class="font-title-sm text-title-sm text-on-surface min-w-0 [overflow-wrap:anywhere]">${escapeHtml(e.title)}</h3>
+          <span class="kz-badge" data-tone="${exerciseStateTone(e.state)}">${escapeHtml(exerciseStateLabel(e.state))}</span>
+        </div>
+        <p class="font-caption text-caption text-on-surface-variant">${escapeHtml(meta)}</p>
+        <p class="font-caption text-caption ${e.pendingGrading ? 'text-tertiary font-semibold' : 'text-on-surface-variant'}">${escapeHtml(progress)}</p>
+      </div>
+      <div class="flex gap-2 shrink-0">
+        ${e.attemptsUsed ? `<a class="kz-btn" href="${exerciseEditorUrl(e.exerciseId, 'bai-lam')}">${e.pendingGrading ? 'Chấm bài' : 'Xem bài làm'}</a>` : ''}
+        <a class="kz-btn" href="${exerciseEditorUrl(e.exerciseId)}">${e.state === 'DRAFT' ? 'Soạn tiếp' : 'Mở bài'}</a>
+      </div>
+    </li>`;
+}
+
 function render() {
   const list = $('assignmentsList');
-  if (!ctx.assignments.length) {
+  if (!ctx.assignments.length && !ctx.exercises.length) {
     list.innerHTML = '';
     stateBox('Hiện chưa có bài tập nào trong lớp học này.');
     return;
   }
   $('assignmentsState').classList.add('hidden');
-  list.innerHTML = ctx.assignments.map((a) => `
+  // Gộp bài nộp tệp và bài làm trực tiếp, bài mới nhất lên trên
+  const items = [
+    ...ctx.assignments.map((a) => ({ kind: 'file', at: a.createdAt, a })),
+    ...ctx.exercises.map((e) => ({ kind: 'online', at: e.createdAt, e }))
+  ].sort((x, y) => String(y.at || '').localeCompare(String(x.at || '')));
+  list.innerHTML = items.map((it) => (it.kind === 'online' ? exerciseItemHtml(it.e) : fileItemHtml(it.a))).join('');
+  bindFileItems(list);
+}
+
+function fileItemHtml(a) {
+  return `
     <li class="kz-item flex flex-col sm:flex-row sm:items-start gap-3" data-assignment="${escapeHtml(a.assignmentId)}">
       <div class="flex-1 min-w-0 space-y-1.5">
         <div class="flex flex-wrap items-center gap-2">
+          <span class="kz-badge"><span class="material-symbols-outlined text-[14px]">attach_file</span>Nộp tệp</span>
           <h3 class="font-title-sm text-title-sm text-on-surface min-w-0 [overflow-wrap:anywhere]">${escapeHtml(a.title)}</h3>
-          <span class="kz-badge" data-tone="${submissionStateTone(a.submissionState)}">${escapeHtml(submissionStateLabel(a.submissionState))}</span>
+          ${a.opened === false
+            ? `<span class="kz-badge" data-tone="paused">Chưa mở · mở lúc ${escapeHtml(formatDateTime(a.opensAt))}</span>`
+            : `<span class="kz-badge" data-tone="${submissionStateTone(a.submissionState)}">${escapeHtml(submissionStateLabel(a.submissionState))}</span>`}
         </div>
         ${a.description ? `<p class="text-on-surface-variant whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(a.description)}</p>` : ''}
         ${fileLinksHtml(a.attachments, 'data-open-attachment')}
@@ -126,8 +188,10 @@ function render() {
         <button type="button" class="kz-btn" data-view-assignment="${escapeHtml(a.assignmentId)}">${a.canGrade ? 'Xem và chấm' : 'Xem bài nộp'}</button>
         ${a.canEdit ? `<button type="button" class="kz-btn" data-edit-assignment="${escapeHtml(a.assignmentId)}">Chỉnh sửa</button>` : ''}
       </div>
-    </li>
-  `).join('');
+    </li>`;
+}
+
+function bindFileItems(list) {
   list.querySelectorAll('[data-view-assignment]').forEach((btn) => {
     btn.addEventListener('click', () => openSubmissions(btn.dataset.viewAssignment));
   });
@@ -152,12 +216,13 @@ function openForm(assignment = null) {
   $('assignmentTitleInput').value = assignment?.title || '';
   $('assignmentDescriptionInput').value = assignment?.description || '';
   $('assignmentDueInput').value = toDateTimeLocalValue(assignment?.dueDate);
+  $('assignmentOpensInput').value = toDateTimeLocalValue(assignment?.opensAt);
   $('assignmentPointsInput').value = assignment ? formatPoints(assignment.totalPoints) : '';
   ctx.picker.reset(assignment?.attachments || [], { max: MAX_FILES_PER_UPLOAD });
   $('assignmentFileHint').textContent = isEdit && assignment.attachments?.length
     ? `Bấm "Thay" để đổi đúng tệp đó, "Xóa" để bỏ tệp, "＋ Thêm tệp đề bài" để bổ sung. ${FILE_RULES_TEXT}`
     : FILE_RULES_TEXT;
-  ['assignmentTitleError', 'assignmentDescriptionError', 'assignmentDueError', 'assignmentPointsError',
+  ['assignmentTitleError', 'assignmentDescriptionError', 'assignmentDueError', 'assignmentPointsError', 'assignmentOpensError',
     'assignmentFileError', 'assignmentFormError'].forEach((id) => setFieldError(id, ''));
   open('assignmentModal');
   $('assignmentTitleInput').focus();
@@ -176,6 +241,11 @@ async function submitForm(event) {
   setFieldError('assignmentTitleError', errors.title);
   setFieldError('assignmentDescriptionError', errors.description);
   setFieldError('assignmentDueError', errors.dueDate);
+  const opensLocal = $('assignmentOpensInput').value;
+  if (opensLocal && form.dueLocal && !(new Date(opensLocal) < new Date(form.dueLocal))) {
+    errors.opensAt = 'Thời gian mở bài phải trước hạn nộp.';
+  }
+  setFieldError('assignmentOpensError', errors.opensAt);
   setFieldError('assignmentPointsError', errors.totalPoints);
   setFieldError('assignmentFormError', '');
 
@@ -193,7 +263,8 @@ async function submitForm(event) {
     title: form.title.trim(),
     description: form.description.trim(),
     dueDate: unchangedDue ? ctx.editing.dueDate : fromDateTimeLocalValue(form.dueLocal),
-    totalPoints: parsePoints(form.totalPoints)
+    totalPoints: parsePoints(form.totalPoints),
+    opensAt: fromDateTimeLocalValue($('assignmentOpensInput').value)
   };
   const button = $('assignmentSubmit');
   busy(button, true, newFiles.length
@@ -206,7 +277,8 @@ async function submitForm(event) {
     else await API.assignments.create(ctx.space.spaceId, body);
   } catch (err) {
     const fe = err.fieldErrors || {};
-    if (fe.title || fe.description || fe.dueDate || fe.totalPoints || fe.file) {
+    if (fe.title || fe.description || fe.dueDate || fe.totalPoints || fe.file || fe.opensAt) {
+      setFieldError('assignmentOpensError', fe.opensAt);
       setFieldError('assignmentTitleError', fe.title);
       setFieldError('assignmentDescriptionError', fe.description);
       setFieldError('assignmentDueError', fe.dueDate);
@@ -363,13 +435,22 @@ async function submitGrade(event) {
 export function initTutorAssignments({ showToast }) {
   ctx.toast = showToast || (() => {});
   ctx.picker = createFileList($('assignmentFileList'), { accept: MATERIAL_ACCEPT_ATTR, addLabel: 'Thêm tệp đề bài' });
-  $('openAssignmentFormBtn')?.addEventListener('click', () => openForm(null));
+  // Giao bài tập: chọn loại bài (nộp tệp → hộp thoại hiện có; làm trực tiếp → trang soạn đề)
+  $('openAssignmentFormBtn')?.addEventListener('click', () => open('assignmentTypeModal'));
+  $('chooseFileAssignment')?.addEventListener('click', () => {
+    close('assignmentTypeModal');
+    openForm(null);
+  });
+  $('chooseOnlineExercise')?.addEventListener('click', () => {
+    window.location.href = exerciseEditorUrl();
+  });
   $('assignmentForm')?.addEventListener('submit', submitForm);
   $('gradeForm')?.addEventListener('submit', submitGrade);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       close('assignmentModal');
       close('submissionsModal');
+      close('assignmentTypeModal');
     }
   });
 }

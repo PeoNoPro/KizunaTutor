@@ -33,4 +33,10 @@ public interface VerificationReviewService {
     DecisionResultResponse requestInfo(UUID tutorId, RequestInfoRequest request);
 
     List<VerificationHistoryItemResponse> getHistory(UUID tutorId);
+
+    /** Chấp nhận yêu cầu cập nhật hồ sơ đang chờ: áp dụng JLPT mới, xác minh giấy tờ mới. */
+    DecisionResultResponse approveProfileUpdate(UUID tutorId);
+
+    /** Không chấp nhận yêu cầu cập nhật: giấy tờ mới bị đánh dấu không được chấp nhận; hồ sơ vẫn đã phê duyệt. */
+    DecisionResultResponse rejectProfileUpdate(UUID tutorId, com.kizuna.features.verification.dto.request.RejectProfileUpdateRequest request);
 }

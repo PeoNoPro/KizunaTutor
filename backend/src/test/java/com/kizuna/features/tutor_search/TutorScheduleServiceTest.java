@@ -43,6 +43,9 @@ class TutorScheduleServiceTest {
     @Mock
     private com.kizuna.features.booking.service.TrialBookingService trialBookingService;
 
+    @Mock
+    private com.kizuna.features.booking.service.ConnectionRequestService connectionRequestService;
+
     @InjectMocks
     private TutorScheduleServiceImpl scheduleService;
 
@@ -179,5 +182,48 @@ class TutorScheduleServiceTest {
         assertTrue(ex.getMessage().contains("Không thể xóa ca rảnh này vì đang có lịch học thử"));
         verify(availabilityRepository, never()).delete(any());
     }
-}
 
+    private TutorAvailability slotOf(UUID slotId, boolean active) {
+        TutorAvailability slot = TutorAvailability.builder()
+                .availabilityId(slotId).tutor(mockTutor).dayOfWeek(2)
+                .startTime(LocalTime.of(19, 0)).endTime(LocalTime.of(21, 0)).build();
+        slot.setIsActive(active);
+        return slot;
+    }
+
+    @Test
+    @DisplayName("L6 - Không xóa được ca rảnh đang có buổi học kết nối sắp tới (đã nhận hoặc đang chờ duyệt)")
+    void removeAvailability_hasConnectionSessions_throwsConflict() {
+        UUID slotId = UUID.randomUUID();
+        when(userRepository.findByEmail(tutorEmail)).thenReturn(Optional.of(mockUser));
+        when(tutorRepository.findByUser(mockUser)).thenReturn(Optional.of(mockTutor));
+        when(availabilityRepository.findByAvailabilityIdAndTutor_TutorId(slotId, tutorId)).thenReturn(Optional.of(slotOf(slotId, true)));
+        when(connectionRequestService.hasUpcomingSessionsInSlot(eq(tutorId), eq(2), eq(LocalTime.of(19, 0)), eq(LocalTime.of(21, 0))))
+                .thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> scheduleService.removeAvailability(tutorEmail, slotId));
+        assertTrue(ex.getMessage().contains("đang có học viên học hoặc chờ bạn duyệt"));
+        verify(availabilityRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("L6 - Không tắt được ca rảnh đang có buổi học kết nối sắp tới; bật lại thì không kiểm tra")
+    void toggleAvailability_offBlockedByConnectionSessions_onAllowed() {
+        UUID slotId = UUID.randomUUID();
+        when(userRepository.findByEmail(tutorEmail)).thenReturn(Optional.of(mockUser));
+        when(tutorRepository.findByUser(mockUser)).thenReturn(Optional.of(mockTutor));
+        TutorAvailability active = slotOf(slotId, true);
+        when(availabilityRepository.findByAvailabilityIdAndTutor_TutorId(slotId, tutorId)).thenReturn(Optional.of(active));
+        when(connectionRequestService.hasUpcomingSessionsInSlot(any(), any(), any(), any())).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> scheduleService.toggleAvailability(tutorEmail, slotId, false));
+        assertTrue(active.getIsActive());
+        verify(availabilityRepository, never()).save(any());
+
+        TutorAvailability inactive = slotOf(slotId, false);
+        when(availabilityRepository.findByAvailabilityIdAndTutor_TutorId(slotId, tutorId)).thenReturn(Optional.of(inactive));
+        when(availabilityRepository.save(any(TutorAvailability.class))).thenAnswer(inv -> inv.getArgument(0));
+        scheduleService.toggleAvailability(tutorEmail, slotId, true);
+        assertTrue(inactive.getIsActive());
+    }
+}

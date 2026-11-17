@@ -13,6 +13,9 @@ import com.kizuna.features.verification.entity.TutorVerifAction;
 import com.kizuna.features.verification.entity.TutorVerificationHistory;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import com.kizuna.features.verification.repository.TutorCredentialRepository;
+import com.kizuna.features.verification.service.ProfileUpdateTimeline;
+import com.kizuna.features.verification.dto.request.RejectProfileUpdateRequest;
+import com.kizuna.features.verification.entity.TutorCredentialStatus;
 import com.kizuna.features.verification.repository.TutorVerificationHistoryRepository;
 import com.kizuna.features.verification.repository.VerificationTutorRepository;
 import com.kizuna.features.verification.service.CurrentUserProvider;
@@ -194,5 +197,77 @@ class VerificationReviewServiceTest {
         assertEquals("nội bộ", history.get(1).getInternalNote());
         assertEquals("Lý do khác", history.get(1).getReasonLabel());
         verify(notificationService, never()).approvedAfterCommit(anyString(), anyString());
+    }
+
+    // ===== Yêu cầu cập nhật hồ sơ của gia sư đã phê duyệt (lưu trong lịch sử thẩm định) =====
+
+    private void pendingUpdate(String jlpt) {
+        tutor.setVerificationStatus(TutorVerificationStatus.APPROVED);
+        tutor.setHighestJlptLevel("N2");
+        when(historyRepository.findTimeline(tutor.getTutorId())).thenReturn(List.of(
+                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT).build(),
+                TutorVerificationHistory.builder().action(TutorVerifAction.APPROVE).build(),
+                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT)
+                        .internalNote(ProfileUpdateTimeline.submitNotes("N2", jlpt)).build()));
+    }
+
+    private TutorVerificationHistory savedHistory() {
+        ArgumentCaptor<TutorVerificationHistory> saved = ArgumentCaptor.forClass(TutorVerificationHistory.class);
+        verify(historyRepository).save(saved.capture());
+        return saved.getValue();
+    }
+
+    @Test
+    void approveProfileUpdateAppliesJlptAndVerifiesNewDocuments() {
+        pendingUpdate("N1");
+
+        service.approveProfileUpdate(tutor.getTutorId());
+
+        assertEquals("N1", tutor.getHighestJlptLevel());
+        assertEquals(TutorVerificationStatus.APPROVED, tutor.getVerificationStatus());
+        verify(credentialRepository).updateStatusForTutor(tutor.getTutorId(),
+                TutorCredentialStatus.PENDING, TutorCredentialStatus.VERIFIED);
+        TutorVerificationHistory decision = savedHistory();
+        assertEquals(TutorVerifAction.APPROVE, decision.getAction());
+        assertTrue(ProfileUpdateTimeline.isUpdateRow(decision));
+        assertSame(officer, decision.getOfficer());
+    }
+
+    @Test
+    void rejectProfileUpdateNeedsReasonAndKeepsProfileApproved() {
+        pendingUpdate("N1");
+        assertEquals("VALIDATION_FAILED", assertThrows(VerificationException.class,
+                () -> service.rejectProfileUpdate(tutor.getTutorId(), new RejectProfileUpdateRequest(" "))).getCode());
+
+        service.rejectProfileUpdate(tutor.getTutorId(), new RejectProfileUpdateRequest("Chứng chỉ bị mờ"));
+
+        assertEquals("N2", tutor.getHighestJlptLevel());
+        assertEquals(TutorVerificationStatus.APPROVED, tutor.getVerificationStatus());
+        verify(credentialRepository).updateStatusForTutor(tutor.getTutorId(),
+                TutorCredentialStatus.PENDING, TutorCredentialStatus.REJECTED);
+        TutorVerificationHistory decision = savedHistory();
+        assertEquals(TutorVerifAction.REJECT, decision.getAction());
+        assertEquals("Chứng chỉ bị mờ", decision.getFeedback());
+        assertNull(decision.getReasonCode());
+    }
+
+    @Test
+    void profileUpdateAlreadyHandledReturnsConflict() {
+        tutor.setVerificationStatus(TutorVerificationStatus.APPROVED);
+        when(historyRepository.findTimeline(tutor.getTutorId())).thenReturn(List.of(
+                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT)
+                        .internalNote(ProfileUpdateTimeline.MARKER).build(),
+                TutorVerificationHistory.builder().action(TutorVerifAction.APPROVE)
+                        .internalNote(ProfileUpdateTimeline.MARKER).build()));
+        assertEquals("ALREADY_PROCESSED", assertThrows(VerificationException.class,
+                () -> service.approveProfileUpdate(tutor.getTutorId())).getCode());
+    }
+
+    @Test
+    void firstSubmissionIsNotAProfileUpdate() {
+        List<TutorVerificationHistory> timeline = List.of(
+                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT).build());
+        assertTrue(ProfileUpdateTimeline.latest(timeline).isEmpty());
+        assertFalse(ProfileUpdateTimeline.hasPending(timeline));
     }
 }

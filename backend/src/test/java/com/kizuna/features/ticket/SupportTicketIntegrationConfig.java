@@ -17,6 +17,7 @@ public class SupportTicketIntegrationConfig {
   return ds;
  }
  @Bean PlatformTransactionManager transactionManager(DataSource ds){return new DataSourceTransactionManager(ds);}
+ @Bean com.kizuna.features.storage.R2FileStore r2FileStore(){return com.kizuna.features.storage.R2FileStore.disabled();}
  @Bean JwtTokenVerifier jwtTokenVerifier(){return mock(JwtTokenVerifier.class);}
  // The merged dev SecurityConfig also constructs the non-ticket filter chain. Keep those dependencies test-only.
  @Bean JwtAuthenticationFilter jwtAuthenticationFilter(){return new JwtAuthenticationFilter(mock(JwtTokenProvider.class),mock(com.kizuna.core.repository.UserRepository.class));}

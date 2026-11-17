@@ -31,4 +31,8 @@ public class TutorVerificationResponse {
     @JsonInclude(JsonInclude.Include.ALWAYS)
     private LatestFeedbackDto latestFeedback;
     private String message;
+    /** Hồ sơ đã phê duyệt: gia sư được sửa thông tin cá nhân và gửi yêu cầu cập nhật (JLPT, giấy tờ). */
+    private Boolean updatable;
+    /** Yêu cầu cập nhật hồ sơ gần nhất (chỉ có với hồ sơ đã phê duyệt từng gửi yêu cầu). */
+    private ProfileUpdateResponse profileUpdate;
 }

@@ -64,6 +64,22 @@ public final class VerificationLabels {
         };
     }
 
+    /** Nhãn một dòng lịch sử; dòng thuộc yêu cầu cập nhật hồ sơ (ProfileUpdateTimeline) có nhãn riêng. */
+    public static String historyAction(com.kizuna.features.verification.entity.TutorVerificationHistory h) {
+        if (h == null || h.getAction() == null) {
+            return "";
+        }
+        if (ProfileUpdateTimeline.isUpdateRow(h)) {
+            return switch (h.getAction()) {
+                case SUBMIT -> "Gửi yêu cầu cập nhật hồ sơ";
+                case APPROVE -> "Chấp nhận cập nhật hồ sơ";
+                case REJECT -> "Từ chối cập nhật hồ sơ";
+                case REQUEST_INFO -> action(h.getAction());
+            };
+        }
+        return action(h.getAction());
+    }
+
     public static String rejectionReason(RejectionReason reason) {
         if (reason == null) {
             return null;

@@ -30,10 +30,10 @@ export function logout() {
  * HTML của nút người dùng và menu thả xuống. Các phần tử có id `${prefix}TopbarName`, `${prefix}TopbarAvatar`
  * để trang có thể cập nhật tên thật sau khi tải dữ liệu.
  */
-export function userMenuHtml({ prefix, name, roleLabel, avatarClass = 'w-9 h-9', showHome = true, placement = 'top', cardClass }) {
-  if (placement === 'sidebar') return sidebarUserMenuHtml({ prefix, name, roleLabel, showHome, cardClass });
+export function userMenuHtml({ prefix, name, roleLabel, avatarClass = 'w-9 h-9', showHome = true, placement = 'top', cardClass, menuItems = [] }) {
+  if (placement === 'sidebar') return sidebarUserMenuHtml({ prefix, name, roleLabel, showHome, cardClass, menuItems });
   const homeItem = showHome ? `
-        <a href="/home" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-label-md rounded-lg text-on-surface hover:bg-surface-container">
+        <a href="/home" data-no-spa role="menuitem" class="flex items-center gap-2 px-3 py-2 text-label-md rounded-lg text-on-surface hover:bg-surface-container">
           <span class="material-symbols-outlined text-[18px]">home</span><span>Về trang chủ</span>
         </a>
         <div class="h-px bg-surface-container my-1"></div>` : '';
@@ -65,17 +65,24 @@ export function userMenuHtml({ prefix, name, roleLabel, avatarClass = 'w-9 h-9',
 /**
  * Biến thể đặt ở góc dưới bên trái sidebar: nút chiếm hết chiều ngang, menu mở lên phía trên.
  */
-function sidebarUserMenuHtml({ prefix, name, roleLabel, showHome, cardClass = 'bg-surface-container-low hover:bg-surface-container' }) {
-  const homeItem = showHome ? `
-        <a href="/home" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-label-md rounded-lg text-on-surface hover:bg-surface-container">
+function sidebarUserMenuHtml({ prefix, name, roleLabel, showHome, cardClass = 'bg-surface-container-low hover:bg-surface-container', menuItems = [] }) {
+  // Mục bổ sung (tùy chọn) đặt trên "Về trang chủ", ví dụ "Hồ sơ cá nhân" của gia sư.
+  const extraItems = menuItems.map((item) => `
+        <a href="${escapeHtml(item.href)}" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-label-md rounded-lg text-on-surface hover:bg-surface-container">
+          <span class="material-symbols-outlined text-[18px]">${escapeHtml(item.icon)}</span><span>${escapeHtml(item.label)}</span>
+        </a>`).join('');
+  const homeItem = (showHome ? `
+        <a href="/home" data-no-spa role="menuitem" class="flex items-center gap-2 px-3 py-2 text-label-md rounded-lg text-on-surface hover:bg-surface-container">
           <span class="material-symbols-outlined text-[18px]">home</span><span>Về trang chủ</span>
-        </a>
+        </a>` : '');
+  const topItems = extraItems + homeItem;
+  const menuTop = topItems ? `${topItems}
         <div class="h-px bg-surface-container my-1"></div>` : '';
   return `
     <div class="relative" id="${prefix}UserMenu">
       <div id="${prefix}UserMenuPanel" role="menu" aria-label="Tài khoản"
            class="hidden absolute left-0 right-0 bottom-[calc(100%+8px)] rounded-xl bg-surface-container-lowest shadow-lg ring-1 ring-black/5 p-1.5 flex-col z-50">
-        ${homeItem}
+        ${menuTop}
         <button type="button" role="menuitem" data-logout class="w-full flex items-center gap-2 px-3 py-2 text-label-md rounded-lg text-error hover:bg-error-container text-left">
           <span class="material-symbols-outlined text-[18px]">logout</span><span>Đăng xuất</span>
         </button>

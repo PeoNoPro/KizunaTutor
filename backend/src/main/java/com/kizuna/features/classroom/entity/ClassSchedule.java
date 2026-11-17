@@ -5,11 +5,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
  * Một buổi học cố định hằng tuần của lớp (bảng class_schedules, migration 012).
- * dayOfWeek: 1 = Thứ Hai ... 7 = Chủ nhật. Lịch chỉ được thêm/sửa, không xóa.
+ * dayOfWeek: 1 = Thứ Hai ... 7 = Chủ nhật.
+ * activeFrom / activeUntil (migration 016): buổi hằng tuần chỉ sinh ra các buổi có giờ bắt đầu trong khoảng này.
+ * Xóa / đổi giờ một buổi hằng tuần = kết thúc hiệu lực từ thời điểm đó (activeUntil), các buổi đã diễn ra vẫn được giữ.
  */
 @Entity
 @Table(name = "class_schedules")
@@ -37,4 +40,11 @@ public class ClassSchedule extends BaseEntity {
 
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
+
+    @Column(name = "active_from", nullable = false)
+    private OffsetDateTime activeFrom;
+
+    /** null = đang hiệu lực. */
+    @Column(name = "active_until")
+    private OffsetDateTime activeUntil;
 }

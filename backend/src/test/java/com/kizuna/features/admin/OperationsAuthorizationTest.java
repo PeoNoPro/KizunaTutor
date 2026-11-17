@@ -19,10 +19,9 @@ class OperationsAuthorizationTest extends OperationsIntegrationBase {
         mvc.perform(get("/api/admin/operations/dashboard/accounts").with(admin())).andExpect(status().isForbidden());
     }
     @Test void writesRequireCsrfAndOtherFeaturesRetainTheirPolicy() throws Exception {
-        String body="{\"subject\":\"Lỗi kiểm thử\",\"description\":\"Mô tả\",\"severity\":\"NORMAL\",\"components\":[\"DATABASE\"]}";
-        mvc.perform(post("/api/admin/operations/incidents").with(admin()).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
-        mvc.perform(post("/api/admin/operations/incidents").with(admin()).with(csrf().useInvalidToken()).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
-        mvc.perform(post("/api/admin/operations/incidents").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated());
+        mvc.perform(post("/api/admin/operations/staff").with(admin()).contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/operations/staff").with(admin()).with(csrf().useInvalidToken()).contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/operations/staff").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isBadRequest());
         mvc.perform(post("/api/auth/unmapped-fe11-regression").contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isNotFound());
     }
 }

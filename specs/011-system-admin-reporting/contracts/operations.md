@@ -99,7 +99,9 @@ Tiền tố `/api/admin/operations/staff/import`, chỉ Admin. Không thêm sche
 
 Mọi dòng được tạo trong một transaction, mỗi tài khoản một dòng nhật ký "Tạo nhân viên", `must_change_password=true`.
 
-### Đổi vai trò và thăng chức — 2026-11-04
+### (Lịch sử, đã thay thế) Đổi vai trò và thăng chức — 2026-11-04
+
+> **Đã bỏ (thầy chốt với nhóm, 2026-11-16):** toàn bộ tiền tố `/api/admin/operations/role-changes` và luồng đề xuất/duyệt không còn. Admin đổi vai trò qua `PUT /staff/{id}` với trường tùy chọn `roleId` (chỉ Manager/Cán bộ học vụ/CS, không Admin, không tự đổi, lý do bắt buộc, ghi nhật ký hành động ROLE).
 
 Tiền tố `/api/admin/operations/role-changes`. Cần bảng `staff_role_change_requests` (`database/seeds/fe11_operations_schema.sql`). Mọi lệnh ghi cần CSRF và kiểm vai trò hiện tại trong DB.
 
@@ -134,7 +136,7 @@ Mọi endpoint quản lý nhân sự dưới `/api/admin/operations` yêu cầu 
 - `GET /staff?q&page&size`: tìm tên/email, page>=0, size1..50 mặc định20. Trả `{items,page,size,totalElements}`; item `{userId,fullName,email,phone,roleId,roleLabel,status,statusLabel,updatedAt,self}`. Không trả hash/mật khẩu.
 - `GET /roles`: danh mục đủ 6 vai trò từ DB `{roleId,label,active,staffAssignable,accountCount,capabilities}`. Chỉ 4 vai trò nội bộ có staffAssignable=true; learner/tutor hiển thị để tra cứu, không gán trong biểu mẫu nhân viên. Quyền mô tả quyền quản trị thực được backend FE-11 kiểm tra, không hứa quyền của module chưa triển khai.
 - `POST /staff`: `{fullName,email,phone?,roleId,appointmentReason?}`. Tên1..100, email hợp lệ tối đa254, phone<=20; Manager bắt buộc căn cứ bổ nhiệm. Không nhận mật khẩu. Tài khoản mới ACTIVE, `must_change_password=true`; gửi mật khẩu tạm riêng qua hàng đợi email sau khi lưu. Không trả mật khẩu; chỉ gán Manager/Cán bộ học vụ/CS còn hoạt động, không cấp Admin.
-- `PUT /staff/{id}`: `{fullName,email,phone?,expectedUpdatedAt,reason}`. Lý do1..2000, timestamp phải khớp; email người đang thao tác không đổi để giữ phiên hiện tại. Không sửa trường quyền qua endpoint này.
+- `PUT /staff/{id}`: `{fullName,email,phone?,roleId?,expectedUpdatedAt,reason}`. `roleId` tùy chọn để đổi vai trò nội bộ (không Admin, không tự đổi). Lý do1..2000, timestamp phải khớp; email người đang thao tác không đổi để giữ phiên hiện tại. Chỉ đổi vai trò qua `roleId` này.
 - `PUT /staff/{id}/role` cũ của Admin đã bỏ. Đổi vai trò chỉ qua hợp đồng `/role-changes` hiện hành; không nhầm với endpoint Manager dưới tiền tố đó.
 - `PUT /staff/{id}/status`: `{status:ACTIVE|SUSPENDED,expectedUpdatedAt,reason}`. Khóa/mở tài khoản, không khóa chính mình hoặc quản trị viên cuối; trạng thái khác bị từ chối.
 - `POST /staff/{id}/delete` *(bổ sung 2026-11-10)*: `{expectedUpdatedAt,reason}` (lý do 1..2000). Chỉ Admin; xóa mềm (`deleted_at` + `SUSPENDED`), không xóa chính mình và tài khoản Quản trị viên (400), 409 nếu timestamp lệch. Gỡ ca CS từ hôm nay (ghi `REMOVE` vào `support_shift_events`), nhật ký `STATUS` với lý do "Xóa tài khoản: …". Trả `{userId,deleted:true}`. Danh sách `GET /staff` thêm `deletable` (false với chính mình và Quản trị viên).

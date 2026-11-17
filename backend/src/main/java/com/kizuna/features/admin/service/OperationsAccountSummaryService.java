@@ -28,9 +28,9 @@ public class OperationsAccountSummaryService {
 
     /** Cơ cấu vai trò/trạng thái lấy tại thời điểm truy vấn; tài khoản mới lấy theo ngày tạo trong kỳ. */
     public Map<String, Object> statistics(LocalDate start, LocalDate end) {
-        actors.requireAdmin();
+        actors.requireReporter();
         var now = OffsetDateTime.now(operationsClock);
-        var period = OperationsIncidentReportService.period(start, end, now);
+        var period = ReportPeriods.period(start, end, now);
         var endExclusive = period.endDate().plusDays(1).atStartOfDay(period.start().toZonedDateTime().getZone()).toOffsetDateTime();
         List<OperationsAccountSummaryRepository.Group> rows;
         try { rows = accounts.statistics(period.start(), endExclusive); }

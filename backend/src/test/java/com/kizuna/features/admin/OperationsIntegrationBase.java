@@ -20,7 +20,7 @@ abstract class OperationsIntegrationBase {
     static final UUID ADMIN2=UUID.fromString("00000000-0000-0000-0000-000000000002");
     @BeforeEach void prepare() {
         mvc=MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
-        jdbc.execute("TRUNCATE technical_incident_events,incident_components,technical_incidents,policy_document_versions");
+        jdbc.execute("TRUNCATE policy_document_versions");
         String[] roles={"ROLE_ADMIN","ROLE_LEARNER","ROLE_TUTOR","ROLE_MANAGER","ROLE_CS_STAFF","ROLE_ACADEMIC_OFFICER"};
         for(int i=0;i<roles.length;i++) {
             jdbc.update("INSERT INTO roles(role_id,role_name,is_active) VALUES (?,?,true) ON CONFLICT(role_id) DO UPDATE SET role_name=excluded.role_name,is_active=true",i+1,roles[i]);

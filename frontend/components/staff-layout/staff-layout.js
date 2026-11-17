@@ -113,13 +113,17 @@ export function mountStaffLayout(role, activeKey, pageTitle) {
       <div id="staffSidebarBackdrop" class="fixed inset-0 bg-black/30 z-40 hidden lg:hidden"></div>
       <aside id="staffSidebarPanel" class="fixed left-0 top-0 bottom-0 w-72 ${STAFF_SIDEBAR} z-50 flex flex-col justify-between py-6 -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
         <div class="flex flex-col">
-          <a href="${config.home}" class="px-6 mb-8 flex items-center gap-3 no-underline">
+          <div class="px-6 mb-8 flex items-center justify-between gap-2">
+          <a href="${config.home}" class="flex items-center gap-3 no-underline">
             <img src="/assets/logos/kizuna-logo.png" alt="KizunaTutor" class="h-10 w-10 object-contain rounded-lg">
             <div class="flex flex-col">
               <span class="text-title-md font-bold tracking-tight text-[#0f2545]">KizunaTutor</span>
               <span class="text-caption text-[#3f4850] tracking-wider">${escapeHtml(config.portal)}</span>
             </div>
           </a>
+          <!-- FE-12 (thêm 2026-11-13): chuông mở khung xem nhanh thông báo, giống các khung khác. -->
+          <button type="button" data-notification-bell class="p-2 rounded-lg text-[#3f4850] hover:bg-[#f7f4ec] transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
+          </div>
           <div class="px-6 mb-3"><span class="text-caption text-[#707881] tracking-wider font-semibold">Gói hội viên và thanh toán</span></div>
           <nav class="flex flex-col gap-1 px-4" aria-label="Điều hướng ${escapeHtml(config.portal.toLowerCase())}">
             ${config.items.map((item) => navItemHtml(item, activeKey)).join('')}
@@ -127,6 +131,8 @@ export function mountStaffLayout(role, activeKey, pageTitle) {
         </div>
         <!-- Menu tài khoản ở góc dưới bên trái (giống Cổng học vụ) -->
         <div class="mx-4 mt-4">
+          <!-- FE-12 (thêm 2026-11-13): mục "Thông báo" mở trang Thông báo. -->
+          <a href="/pages/notifications/" class="flex items-center gap-3 px-3 py-2.5 mb-3 transition-all ${STAFF_NAV_IDLE}"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="text-label-md">Thông báo</span></a>
           ${userMenuHtml({ prefix: 'staff', name, roleLabel, showHome: false, placement: 'sidebar', cardClass: STAFF_ACCOUNT_CARD })}
         </div>
       </aside>`;
@@ -152,6 +158,8 @@ export function mountStaffLayout(role, activeKey, pageTitle) {
   document.getElementById('staffMenuButton')?.addEventListener('click', () => toggle(true));
   backdrop?.addEventListener('click', () => toggle(false));
   bindUserMenu('staff');
+  // FE-12 (thêm 2026-11-13): số thông báo chưa đọc trên chuông và mục Thông báo.
+  import('/js/pages/notification-badge.js').then(module => module.attachNotificationBadges()).catch(() => {});
 
   if (!allowed) {
     renderWrongRole(config, user.role);

@@ -214,13 +214,6 @@ html{scrollbar-gutter:stable}
 .admin-portal .staff-table td,.admin-portal .operations-content table td{vertical-align:middle}
 .admin-portal .staff-table tbody tr:hover{background:#fbfaf6}
 .admin-dashboard.admin-portal .operations-content .staff-table td p{margin:2px 0 0}
-/* Thẻ đề xuất thăng chức. */
-.promotion-list{display:grid;gap:12px}
-.promotion-card{border:1px solid var(--portal-line);border-radius:12px;padding:16px 18px;background:#fff;display:grid;gap:12px}
-.promotion-top,.promotion-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.promotion-move{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.promotion-arrow{color:#6b7580;font-weight:700}
-.admin-dashboard.admin-portal .operations-content .promotion-reason{margin:0;padding:10px 12px;border-left:3px solid var(--portal-primary);background:var(--admin-surface);border-radius:0 8px 8px 0;font-size:14px;color:var(--portal-navy)}
 @media(max-width:1100px){.admin-portal .portal-row-head,.admin-portal .portal-row{grid-template-columns:minmax(0,1fr) 160px 220px}}
 @media(max-width:760px){.admin-portal .portal-row-head{display:none}.admin-portal .portal-row{grid-template-columns:minmax(0,1fr)}.admin-dashboard.admin-portal .operations-content .operations-filters>label{flex:1 1 100%}}
 /* Nhật ký thao tác dạng dòng hoạt động. */
@@ -312,19 +305,9 @@ html{scrollbar-gutter:stable}
 .admin-dashboard ul.plan-benefits{margin:6px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.45;color:#3f4850}
 .admin-dashboard ul.plan-benefits li{display:block;position:relative;margin:2px 0;padding:0 0 0 14px;overflow-wrap:anywhere}
 .admin-dashboard ul.plan-benefits li::before{content:'';position:absolute;left:3px;top:.6em;width:5px;height:5px;border-radius:50%;background:#006194}
-/* Sự cố Quản lý đã báo: chỉ hai cột (không có thao tác); nội dung giữ xuống dòng như lúc gửi. */
-.admin-portal .portal-dialog label.incident-component{display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:10px;margin:8px 0 0;font-weight:500;color:var(--portal-navy)}
-.admin-portal .portal-dialog label.incident-component input{width:18px;height:18px;min-height:0;margin:0;flex:none}
 /* Nút tạo/nhập nhân viên nằm gọn dưới ô tìm kiếm, cỡ nhỏ. */
 .admin-dashboard.admin-portal .operations-content .staff-create-actions{margin:0 0 12px;gap:8px}
 .admin-dashboard.admin-portal .operations-content .staff-create-actions button.portal-create-action{width:auto;min-height:36px;padding:6px 14px;font-size:13px;line-height:20px}
-/* Bộ lọc sự cố gói trong một dòng: ô co giãn đều, nút cỡ nhỏ; màn hình hẹp mới xuống dòng. */
-.admin-dashboard.admin-portal .operations-content #incidentFilters{flex-wrap:nowrap;gap:8px}
-.admin-dashboard.admin-portal .operations-content #incidentFilters>label{flex:1 1 0;min-width:0;font-size:12px;line-height:18px}
-.admin-dashboard.admin-portal .operations-content #incidentFilters input,.admin-dashboard.admin-portal .operations-content #incidentFilters select{margin-top:4px;padding:7px 8px;font-size:13px;min-height:38px}
-.admin-dashboard.admin-portal .operations-content #incidentFilters>button{min-height:38px;padding:6px 12px;font-size:13px;white-space:nowrap}
-@media(max-width:1100px){.admin-dashboard.admin-portal .operations-content #incidentFilters{flex-wrap:wrap}.admin-dashboard.admin-portal .operations-content #incidentFilters>label{flex:1 1 30%}}
-@media(max-width:760px){.admin-dashboard.admin-portal .operations-content #incidentFilters>label{flex:1 1 100%}}
 /* FE-12: chuông thông báo trên thanh trên, kèm số chưa đọc. */
 .admin-dashboard .notification-button[data-bell]{position:relative;cursor:pointer}
 .admin-dashboard .notification-button .notification-count{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#b42318;color:#fff;font-size:11px;line-height:20px;font-weight:700;text-align:center}

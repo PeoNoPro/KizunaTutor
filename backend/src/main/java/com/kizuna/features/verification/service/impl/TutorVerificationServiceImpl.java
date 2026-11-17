@@ -42,6 +42,10 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
     private final VerificationStateMachine stateMachine;
     private final VerificationViewAssembler assembler;
     private final CurrentUserProvider currentUserProvider;
+    /** FE-12 (thêm 2026-11-13): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
 
     @Override
     @Transactional(readOnly = true)
@@ -162,8 +166,15 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
         if (!check.isComplete()) {
             throw VerificationException.incomplete(check.fields(), check.missingDocuments());
         }
+        boolean resubmitted = tutor.getSubmittedAt() != null;
         stateMachine.submit(tutor);
         tutorRepository.save(tutor);
+        if (notificationEvents != null) {
+            notificationEvents.publishToRole("verification:" + tutor.getTutorId() + ":submitted:" + tutor.getSubmittedAt(), "SYSTEM",
+                    resubmitted ? "Hồ sơ gia sư được nộp lại" : "Có hồ sơ gia sư mới chờ duyệt",
+                    "Gia sư " + tutor.getUser().getFullName() + (resubmitted ? " vừa nộp lại hồ sơ xác minh." : " vừa nộp hồ sơ xác minh.") + " Hồ sơ đang chờ cán bộ học vụ xét duyệt.",
+                    "/academic/verifications", "ROLE_ACADEMIC_OFFICER");
+        }
         return assembler.build(tutor, false).toBuilder().message(MSG_SUBMITTED).build();
     }
 

@@ -17,7 +17,6 @@ const NAV_ITEMS = [
   { key: 'verifications', label: 'Hồ sơ xác thực gia sư', icon: 'verified_user', href: '/academic/verifications?view=queue' },
   { key: 'posts', label: 'Duyệt bài đăng', icon: 'fact_check', href: '/academic/posts' },
   { key: 'history', label: 'Lịch sử xét duyệt', icon: 'history_edu', href: '/academic/history' },
-  { key: 'notifications', label: 'Thông báo', icon: 'notifications', href: '/pages/notifications/' },
   { key: 'profile', label: 'Hồ sơ cá nhân', icon: 'account_circle', href: '/academic/profile' }
 ];
 
@@ -96,6 +95,10 @@ export function mountAcademicLayout(activeKey, pageTitle) {
         </div>
         <!-- Menu tài khoản ở góc dưới bên trái (thay cho thanh trên) -->
         <div class="mx-4 mt-4">
+          <!-- FE-12 (2026-11-13): mục "Thông báo" cuối sidebar mở trang Thông báo; chuông cạnh logo mở khung xem nhanh. -->
+          <a href="/pages/notifications/" class="academic-notification-link flex items-center gap-3 px-3 py-2.5 mb-3 transition-all ${activeKey === 'notifications' ? STAFF_NAV_ACTIVE : STAFF_NAV_IDLE}" ${activeKey === 'notifications' ? 'aria-current="page"' : ''}>
+            <span class="material-symbols-outlined text-[20px]">notifications</span><span class="text-label-md">Thông báo</span>
+          </a>
           ${userMenuHtml({ prefix: 'academic', name, roleLabel: 'Cán bộ học vụ', showHome: false, placement: 'sidebar', cardClass: STAFF_ACCOUNT_CARD })}
         </div>
       </aside>`;

@@ -1,0 +1,34 @@
+/* CS Dashboard (đợt 2, 2026-11-12): chỉ số SLA, bộ lọc nhanh, mức ưu tiên và thời gian chờ trong hàng đợi. */
+.cs-sla{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0 0 20px}
+.cs-sla[hidden]{display:none}
+.cs-sla-card{display:flex;align-items:flex-start;gap:12px;padding:16px 18px;border:1px solid #ece8de;border-radius:14px;background:#fff}
+.cs-sla-card>.material-symbols-outlined{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:12px;font-size:22px;background:#e3f0f8;color:#006194}
+.cs-sla-card[data-tone=danger]>.material-symbols-outlined{background:#fde7e5;color:#b3261e}
+.cs-sla-card[data-tone=warning]>.material-symbols-outlined{background:#fff2dc;color:#a35c00}
+.cs-sla-card[data-tone=success]>.material-symbols-outlined{background:#e4f4ea;color:#1e7a46}
+.cs-sla-card[data-alert=true]{border-color:#f1c4bf;background:#fff8f7}
+.cs-sla-card div>span{display:block;font-size:13px;font-weight:600;color:#3f4850}
+.cs-sla-card strong{display:block;margin:2px 0;font-size:26px;line-height:1.2;color:#0f2545}
+.cs-sla-card small{display:block;font-size:12px;color:#707881}
+.cs-ticket[data-overdue=true]{box-shadow:inset 3px 0 0 #b3261e}
+.cs-ticket-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0}
+.cs-code{font:600 12px/18px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#707881;background:#f3f1ea;border-radius:6px;padding:1px 8px}
+.cs-priority{display:inline-flex;align-items:center;gap:5px;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:700;background:#eef0f2;color:#4a545e}
+.cs-priority::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.cs-priority[data-priority=URGENT]{background:#fde7e5;color:#b3261e}
+.cs-priority[data-priority=HIGH]{background:#fff2dc;color:#a35c00}
+.cs-priority[data-priority=MEDIUM]{background:#e3f0f8;color:#006194}
+.cs-wait{display:inline-flex;align-items:center;gap:4px;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:600;background:#e4f4ea;color:#1e7a46}
+.cs-wait .material-symbols-outlined{font-size:15px}
+.cs-wait[data-state=soon]{background:#fff2dc;color:#a35c00}
+.cs-wait[data-state=overdue]{background:#fde7e5;color:#b3261e}
+.cs-assignee{font-size:12px;color:#707881}
+@media(max-width:760px){.cs-sla{grid-template-columns:minmax(0,1fr)}}
+
+/* Thanh lọc hàng đợi (2026-11-13): ba ô chọn thay cho hai hàng nút. */
+.cs-queue-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin:4px 0 14px}
+.cs-queue-filters label{display:flex;flex-direction:column;gap:4px;flex:1 1 180px;min-width:150px;font:600 12px/18px 'Plus Jakarta Sans',sans-serif;color:#3f4850}
+.cs-queue-filters select{min-height:40px;padding:6px 10px;border:1px solid #d5ccb6;border-radius:10px;background:#fff;color:#0f2545;font:500 14px/20px 'Plus Jakarta Sans',sans-serif}
+.cs-queue-filters select:focus-visible{outline:2px solid #006194;outline-offset:1px}
+.cs-queue-filters button{min-height:40px;padding:6px 14px;border:1px solid #d5ccb6;border-radius:10px;background:#fff;color:#006194;font:600 13px/20px 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.cs-queue-filters button[hidden]{display:none}

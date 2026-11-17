@@ -45,12 +45,6 @@ class AdminOperationsApiTest extends OperationsIntegrationBase {
         while(System.currentTimeMillis()<end){if(expected.equals(emailStatus(account)))return;Thread.sleep(50);}
         assertEquals(expected,emailStatus(account));
     }
-    private JsonNode incident() throws Exception {
-        return data(mvc.perform(post(OPS+"/incidents").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"subject\":\"Kiểm tra trả lại\",\"description\":\"Mô tả\",\"severity\":\"HIGH\",\"components\":[\"DATABASE\"]}")).andExpect(status().isCreated()).andReturn());
-    }
-    private org.springframework.test.web.servlet.ResultActions act(JsonNode i,String action,String extra,org.springframework.test.web.servlet.request.RequestPostProcessor actor) throws Exception {
-        return mvc.perform(post(OPS+"/incidents/"+i.get("incidentId").asText()+"/"+action).with(actor).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"expectedVersion\":"+i.get("version").asLong()+extra+"}"));
-    }
 
     @Test void emailStatusSeparatesAccountCreationFromDeliveryAndRetrySendsNewPassword() throws Exception {
         var sent=staff();waitForStatus(sent,"SENT");
@@ -80,29 +74,6 @@ class AdminOperationsApiTest extends OperationsIntegrationBase {
         var data=data(mvc.perform(post(OPS+"/staff").with(admin()).with(csrf()).contentType("application/json").content(body(request))).andExpect(status().isCreated()).andReturn());
         created.add(UUID.fromString(data.get("userId").asText()));
         assertTrue(jdbc.queryForObject("SELECT reason FROM staff_account_audit_events WHERE target_user_id=?::uuid",String.class,data.get("userId").asText()).contains("Quyết định số 12"));
-    }
-    @Test void assignmentIsGoneAndOwnerCanReleaseForAnotherAdminToClaim() throws Exception {
-        var second=user("second@test.invalid");
-        var claimed=data(act(incident(),"claim","",admin()).andExpect(status().isOk()).andReturn());
-        act(claimed,"assignment",",\"assigneeId\":\""+ADMIN2+"\",\"reason\":\"Không còn\"",admin()).andExpect(status().is4xxClientError());
-        act(claimed,"release",",\"reason\":\"Không rảnh\"",second).andExpect(status().isForbidden());
-        act(claimed,"release","",admin()).andExpect(status().isBadRequest());
-        var released=data(act(claimed,"release",",\"reason\":\"Bận việc khác\"",admin()).andExpect(status().isOk()).andReturn());
-        assertEquals("Chưa xử lý",released.get("statusLabel").asText());assertEquals("Chưa phân công",released.get("assigneeLabel").asText());
-        var next=data(act(released,"claim","",second).andExpect(status().isOk()).andReturn());
-        // Người chậm chân dù gửi đúng phiên bản cũ vẫn nhận thông báo đã có người xử lý.
-        act(released,"claim","",admin()).andExpect(status().isConflict()).andExpect(jsonPath("$.message").value("Sự cố đã có người nhận xử lý."));
-        var history=data(mvc.perform(get(OPS+"/incidents/"+next.get("incidentId").asText()+"/events").with(admin())).andExpect(status().isOk()).andReturn());
-        assertEquals(4,history.get("totalElements").asInt());assertEquals("Bỏ nhận, trả về hàng chờ",history.get("items").get(2).get("actionLabel").asText());
-    }
-    @Test void anotherAdminCanReleaseOnlyWhenOwnerIsNoLongerActive() throws Exception {
-        var second=user("second@test.invalid");
-        var claimed=data(act(incident(),"claim","",second).andExpect(status().isOk()).andReturn());
-        act(claimed,"release",",\"reason\":\"Giành xử lý\"",admin()).andExpect(status().isForbidden());
-        jdbc.update("UPDATE users SET account_status='SUSPENDED' WHERE user_id=?",ADMIN2);
-        var detail=data(mvc.perform(get(OPS+"/incidents/"+claimed.get("incidentId").asText()).with(admin())).andExpect(status().isOk()).andReturn());
-        assertTrue(detail.get("allowedActions").toString().contains("release"));
-        act(claimed,"release",",\"reason\":\"Người phụ trách đã bị khóa\"",admin()).andExpect(status().isOk());
     }
     @Test void attachmentLimitIsValidatedVersionedAndAudited() throws Exception {
         String path=OPS+"/settings/attachment-limit";

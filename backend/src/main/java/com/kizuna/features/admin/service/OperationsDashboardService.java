@@ -25,7 +25,7 @@ public class OperationsDashboardService {
 
     public Map<String, Object> overview(LocalDate start, LocalDate end) {
         actors.requireAdmin();
-        var period = OperationsIncidentReportService.period(start, end, OffsetDateTime.now(operationsClock));
+        var period = ReportPeriods.period(start, end, OffsetDateTime.now(operationsClock));
         var currentStart = period.start().toLocalDate();
         long days = ChronoUnit.DAYS.between(currentStart, period.endDate()) + 1;
         var previousStart = currentStart.minusDays(days);

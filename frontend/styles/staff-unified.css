@@ -303,3 +303,16 @@
 @media (prefers-reduced-motion: reduce) {
   .staff-unified .admin-sidebar { transition: none; }
 }
+
+/* FE-12 (2026-11-13): chuông thông báo cạnh logo trong sidebar (thanh trên bị ẩn trên máy tính). */
+.staff-unified .admin-sidebar .admin-brand { padding-right: 64px !important; }
+.staff-unified .admin-sidebar .sidebar-bell {
+  position: absolute; top: 24px; right: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0; border: 0; border-radius: 10px;
+  background: transparent; color: var(--su-text); cursor: pointer;
+}
+.staff-unified .admin-sidebar .sidebar-bell:hover { background: #f7f4ec; color: var(--su-navy); }
+.staff-unified .admin-sidebar .sidebar-bell:focus-visible { outline: 2px solid #006194; outline-offset: 2px; }
+.staff-unified .admin-sidebar .sidebar-bell .su-icon,
+.staff-unified .admin-sidebar .sidebar-bell .material-symbols-outlined { font-size: 22px; }

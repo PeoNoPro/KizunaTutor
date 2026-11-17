@@ -75,6 +75,10 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
     private final VerificationViewAssembler assembler;
     private final VerificationNotificationService notificationService;
     private final CurrentUserProvider currentUserProvider;
+    /** FE-12 (thêm 2026-11-13): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
 
     @Override
     @Transactional(readOnly = true)
@@ -154,6 +158,10 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
         stateMachine.approve(tutor, currentOfficer());
         tutorRepository.save(tutor);
         notificationService.approvedAfterCommit(tutor.getUser().getEmail(), tutor.getUser().getFullName());
+        if (notificationEvents != null) {
+            notificationEvents.publish("verification:" + tutor.getTutorId() + ":" + tutor.getSubmittedAt() + ":approved", "SYSTEM", "Hồ sơ gia sư đã được phê duyệt",
+                    "Chúc mừng bạn! Hồ sơ xác minh đã được cán bộ học vụ phê duyệt, bạn đã đủ điều kiện nhận học viên.", "/tutor/verification", java.util.List.of(tutor.getUser().getUserId()));
+        }
         return result(MSG_APPROVED, tutor);
     }
 
@@ -184,6 +192,10 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
         tutorRepository.save(tutor);
         notificationService.rejectedAfterCommit(tutor.getUser().getEmail(), tutor.getUser().getFullName(),
                 VerificationLabels.rejectionReason(reason), feedback);
+        if (notificationEvents != null) {
+            notificationEvents.publish("verification:" + tutor.getTutorId() + ":" + tutor.getSubmittedAt() + ":rejected", "SYSTEM", "Hồ sơ gia sư không được chấp nhận",
+                    "Lý do: " + VerificationLabels.rejectionReason(reason) + "." + (feedback == null ? "" : " Nhận xét của cán bộ học vụ: " + feedback), "/tutor/verification", java.util.List.of(tutor.getUser().getUserId()));
+        }
         return result(MSG_REJECTED, tutor);
     }
 
@@ -201,6 +213,10 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
         stateMachine.requestInfo(tutor, currentOfficer(), message);
         tutorRepository.save(tutor);
         notificationService.infoRequestedAfterCommit(tutor.getUser().getEmail(), tutor.getUser().getFullName(), message);
+        if (notificationEvents != null) {
+            notificationEvents.publish("verification:" + tutor.getTutorId() + ":" + tutor.getSubmittedAt() + ":info-requested", "SYSTEM", "Cần bổ sung hồ sơ gia sư",
+                    "Cán bộ học vụ cần bạn bổ sung: " + message + " Vui lòng cập nhật hồ sơ và nộp lại.", "/tutor/verification", java.util.List.of(tutor.getUser().getUserId()));
+        }
         return result(MSG_INFO_REQUESTED, tutor);
     }
 

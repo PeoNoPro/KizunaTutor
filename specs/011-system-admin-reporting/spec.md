@@ -39,7 +39,19 @@ Cập nhật 2026-11-10 — thời gian chờ chung của `fetchAPI` (CSRF + l�
 
 Cập nhật 2026-11-10 — **Xóa tài khoản nhân viên** (người dùng chọn xóa mềm, không đổi DB): Admin có nút "Xóa" trên từng dòng của Danh sách nhân viên (không có với chính mình và tài khoản Quản trị viên). POST `/api/admin/operations/staff/{id}/delete` `{expectedUpdatedAt, reason}` (lý do bắt buộc, 409 nếu dữ liệu đã đổi): đặt `deleted_at` + `SUSPENDED` (ẩn khỏi danh sách, chặn đăng nhập và phiên đang mở), giữ nguyên lịch sử/yêu cầu hỗ trợ/nhật ký/giao dịch; gỡ ca làm CS từ hôm nay trở đi (ghi `REMOVE` vào `support_shift_events`). Nhật ký ghi hành động `STATUS` với lý do "Xóa tài khoản: …" vì ràng buộc `staff_account_audit_events.action` chỉ cho CREATE/UPDATE/ROLE/STATUS. Không khôi phục trên giao diện; email đã xóa không dùng lại để tạo tài khoản mới. Yêu cầu hỗ trợ đang dở của CS bị xóa vào nhóm "Cần bàn giao" (FE-10 FR-022).
 
-### Chốt quyền đổi vai trò ngày 2026-11-04 — ưu tiên hơn mục 2026-11-03 nếu xung đột
+### Chốt lại phân quyền nhân viên (thầy chốt với nhóm, ghi nhận 2026-11-16) — ưu tiên hơn mọi mục bên dưới nếu xung đột
+
+Nguồn: thầy hướng dẫn chốt với nhóm.
+
+- Manager quản lý người dùng (Học viên, Gia sư) và doanh thu; **không** quản lý nhân viên.
+- Admin quản lý nhân viên hệ thống: tạo, nhập Excel, sửa thông tin, **đổi vai trò khi sửa thông tin**, khóa/mở, xóa mềm.
+- Hệ thống chỉ có 1 nhân viên CS để hỗ trợ yêu cầu; vẫn có Manager, CS và Cán bộ học vụ.
+- **Bỏ luồng "Manager đề xuất, Admin duyệt"** và các thao tác đổi vai trò của Manager. Admin đổi vai trò chỉ giữa ba vai trò nội bộ (Manager, Cán bộ học vụ, Chăm sóc khách hàng), không cấp Admin, không tự đổi vai trò của mình, bắt buộc lý do và ghi nhật ký.
+- Bảng `staff_role_change_requests` giữ nguyên trong DB để không mất lịch sử cũ; nhật ký vẫn đọc các đề xuất cũ.
+- Mục 2026-11-04 và FR-019/SC-008 bên dưới là lịch sử, đã bị thay thế bởi phần này.
+- **Bỏ chức năng sự cố kỹ thuật** (thầy yêu cầu xóa): không còn tạo, nhận xử lý, giải quyết, đóng sự cố, báo sự cố của Quản lý, báo cáo và thống kê sự cố, xuất Excel sự cố. FR-009 và FR-010 chỉ còn nghĩa là khoảng ngày dùng chung cho tổng quan, thống kê và báo cáo doanh thu (`ReportPeriods`). Các bảng `technical_incidents`, `technical_incident_events`, `incident_components` giữ nguyên trong DB, chưa xóa.
+
+### (Lịch sử, đã thay thế) Chốt quyền đổi vai trò ngày 2026-11-04 — ưu tiên hơn mục 2026-11-03 nếu xung đột
 
 Nguồn: người dùng chọn phương án "quản lý đề xuất, Admin duyệt" trong hội thoại.
 

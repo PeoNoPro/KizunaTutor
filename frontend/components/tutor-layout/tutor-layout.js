@@ -144,6 +144,8 @@ export function mountTutorLayout(activeKey) {
               <div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-on-primary text-headline-sm">絆</div>
               <div><span class="text-headline-sm text-brand-navy">Kizuna</span><span class="text-headline-sm text-primary">Tutor</span></div>
             </a>
+            <!-- FE-12 (thêm 2026-11-13): chuông cạnh logo mở khung xem nhanh, giống học viên và nhân viên. -->
+            <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
             </div>
             <p class="text-caption text-on-surface-variant tracking-wider">Kết nối song ngữ Việt - Nhật</p>
           </div>

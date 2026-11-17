@@ -59,6 +59,23 @@ class StaffAccountManagementTest extends OperationsIntegrationBase {
         assertEquals(4,jdbc.queryForObject("SELECT count(*) FROM staff_account_audit_events WHERE target_user_id=?",Integer.class,id));
         mvc.perform(get("/api/admin/operations/staff").param("q","Tên đã cập nhật").with(admin())).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").doesNotExist()).andExpect(jsonPath("$.data.totalElements").value(1));
     }
+    /** Thầy chốt: Admin đổi vai trò nhân viên khi sửa thông tin, chỉ giữa các vai trò nội bộ và không cấp Admin. */
+    @Test void adminChangesRoleWhileEditingButNeverGrantsAdminOrNonStaffRoles() throws Exception {
+        var original=create();UUID id=UUID.fromString(original.get("userId").asText());
+        int current=original.get("roleId").asInt();
+        int other=jdbc.queryForObject("SELECT role_id FROM roles WHERE role_name IN ('ROLE_CS_STAFF','ROLE_ACADEMIC_OFFICER') AND role_id<>? ORDER BY role_id LIMIT 1",Integer.class,current);
+        var fields=new HashMap<String,Object>(Map.of("fullName","Đổi vai trò","email",original.get("email").asText(),"phone","0912345678"));
+        fields.put("roleId",other);
+        var changed=command(original,"",fields);
+        assertEquals(other,changed.get("roleId").asInt());
+        assertEquals("ROLE",jdbc.queryForObject("SELECT action FROM staff_account_audit_events WHERE target_user_id=? ORDER BY occurred_at DESC LIMIT 1",String.class,id));
+        for(String blocked:List.of("ROLE_ADMIN","ROLE_LEARNER","ROLE_TUTOR")){
+            int roleId=jdbc.queryForObject("SELECT role_id FROM roles WHERE role_name=?",Integer.class,blocked);
+            var bad=new HashMap<String,Object>(fields);bad.put("roleId",roleId);bad.put("expectedUpdatedAt",changed.get("updatedAt").asText());bad.put("reason","Thử cấp vai trò không hợp lệ");
+            mvc.perform(put("/api/admin/operations/staff/"+id).with(admin()).with(csrf()).contentType("application/json").content(body(bad))).andExpect(status().isBadRequest());
+        }
+        assertEquals(other,jdbc.queryForObject("SELECT role_id FROM users WHERE user_id=?",Integer.class,id));
+    }
     @Test void resendReplacesTemporaryPasswordOnlyBeforeFirstChange() throws Exception {
         var account=create();UUID id=UUID.fromString(account.get("userId").asText());String path="/api/admin/operations/staff/"+id+"/resend-credentials";
         String first=emailedPassword(account.get("email").asText());

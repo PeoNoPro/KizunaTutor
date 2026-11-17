@@ -39,6 +39,7 @@ import {
   validateExerciseSettings
 } from '../../js/exercise-helpers.js';
 import { renderInteractive } from '../../js/exercise-player.js';
+import { mountTutorLayout } from '/components/tutor-layout/tutor-layout.js';
 import {
   AUDIO_ACCEPT,
   AUDIO_RULES_TEXT,
@@ -60,8 +61,23 @@ const state = {
   status: 'NEW',
   attempts: [],
   selectedAttempt: null,
-  tab: params.get('tab') === 'bai-lam' ? 'attempts' : 'edit',
+  // Tab: questions (Câu hỏi) | settings (Cài đặt bài) | attempts (Bài làm của học viên)
+  tab: ({ 'bai-lam': 'attempts', 'cai-dat': 'settings' })[params.get('tab')] || 'questions',
+  selected: 0,
+  gradeFilter: 'pending',
   dirty: false
+};
+
+/** Biểu tượng cho từng dạng câu (nút thêm câu, danh sách câu). */
+const TYPE_ICONS = {
+  SINGLE_CHOICE: 'radio_button_checked',
+  MULTI_CHOICE: 'check_box',
+  TRUE_FALSE: 'rule',
+  FILL_BLANK: 'edit_note',
+  WORD_BANK: 'dataset',
+  MATCHING: 'compare_arrows',
+  ORDERING: 'format_list_numbered',
+  WRITTEN: 'notes'
 };
 
 const INPUT = 'kz-input';
@@ -163,7 +179,10 @@ function autoMode() {
 
 function renderAll() {
   const s = state.detail?.summary;
-  $('pageTitle').textContent = state.exerciseId ? 'Bài làm trực tiếp' : 'Soạn bài làm trực tiếp';
+  const title = s?.title || 'Soạn bài làm trực tiếp';
+  $('pageTitle').textContent = title;
+  $('crumbTitle').textContent = s?.title || 'Bài mới';
+  document.title = `${title} - KizunaTutor`;
   const badge = $('statusBadge');
   if (s) {
     badge.textContent = exerciseStateLabel(s.state);
@@ -180,20 +199,34 @@ function renderAll() {
   document.querySelectorAll('input[name="exMode"]').forEach((r) => { r.disabled = state.locked; });
   $('addQuestionBar').classList.toggle('hidden', state.locked);
   $('tabAttempts').classList.toggle('hidden', !state.exerciseId);
-  $('tabAttempts').textContent = `Bài làm của học viên${state.attempts.length ? ` (${state.attempts.length})` : ''}`;
+  renderTabLabels();
   switchTab(state.tab);
   renderQuestions();
 }
 
+function renderTabLabels() {
+  $('tabQuestions').textContent = `Câu hỏi (${state.questions.length})`;
+  $('tabAttempts').textContent = `Bài làm của học viên${state.attempts.length ? ` (${state.attempts.length})` : ''}`;
+}
+
+/** Đổi tab và ghi lại trên địa chỉ trang (?tab=cai-dat | bai-lam) để tải lại vẫn đúng tab. */
 function switchTab(tab) {
   state.tab = tab;
-  const edit = tab === 'edit';
-  $('editPanel').classList.toggle('hidden', !edit);
-  $('attemptsPanel').classList.toggle('hidden', edit);
-  $('tabEdit').dataset.active = String(edit);
-  $('tabAttempts').dataset.active = String(!edit);
-  $('editorActions').classList.toggle('hidden', !edit);
-  if (!edit) {
+  const editing = tab !== 'attempts';
+  $('editPanel').classList.toggle('hidden', !editing);
+  $('questionsPanel').classList.toggle('hidden', tab !== 'questions');
+  $('settingsPanel').classList.toggle('hidden', tab !== 'settings');
+  $('attemptsPanel').classList.toggle('hidden', editing);
+  $('tabQuestions').dataset.active = String(tab === 'questions');
+  $('tabSettings').dataset.active = String(tab === 'settings');
+  $('tabAttempts').dataset.active = String(tab === 'attempts');
+  $('editorActions').classList.toggle('hidden', !editing);
+  const url = new URL(window.location.href);
+  const param = { attempts: 'bai-lam', settings: 'cai-dat' }[tab];
+  if (param) url.searchParams.set('tab', param);
+  else url.searchParams.delete('tab');
+  window.history.replaceState(null, '', url);
+  if (!editing) {
     // Đã có sẵn dữ liệu bài làm (tải cùng lúc khi mở trang) thì vẽ ngay, không gọi lại máy chủ
     if (state.attemptsPreloaded) renderAttempts();
     else {
@@ -203,15 +236,47 @@ function switchTab(tab) {
   }
 }
 
+/** Danh sách câu bên trái: số câu, dạng câu, điểm, câu nghe, câu chưa hoàn chỉnh. */
+function renderOutline() {
+  const auto = autoMode();
+  $('questionOutline').innerHTML = state.questions.map((q, i) => {
+    const incomplete = validateQuestion(q, { autoMode: auto });
+    const manual = q.type === 'WRITTEN' && !(q.data?.accepted || []).some((a) => String(a).trim());
+    return `
+      <li>
+        <button type="button" class="ex-outline-item" data-select="${i}" data-active="${i === state.selected}" aria-current="${i === state.selected ? 'true' : 'false'}">
+          <b class="w-6 shrink-0 text-center">${i + 1}</b>
+          <span class="material-symbols-outlined text-[18px] text-primary shrink-0" aria-hidden="true">${TYPE_ICONS[q.type] || 'help'}</span>
+          <span class="flex-1 min-w-0 truncate">${escapeHtml(questionTypeLabel(q.type))}</span>
+          ${q.audio ? '<span class="material-symbols-outlined text-[17px] text-secondary" title="Có file nghe" aria-label="Có file nghe">headphones</span>' : ''}
+          ${incomplete ? '<span class="material-symbols-outlined text-[17px] text-error" title="Chưa hoàn chỉnh" aria-label="Chưa hoàn chỉnh">error</span>' : ''}
+          ${manual && !incomplete ? '<span class="kz-badge" data-tone="paused" title="Gia sư chấm">GS</span>' : ''}
+          <span class="font-caption text-caption text-on-surface-variant shrink-0">${formatScore(q.points)}đ</span>
+        </button>
+      </li>`;
+  }).join('') || '<li class="px-2 py-3 text-on-surface-variant font-body-sm text-body-sm">Chưa có câu hỏi. Chọn dạng câu bên dưới để thêm.</li>';
+}
+
+/** Vẽ danh sách câu (trái) và câu đang chọn (phải). */
 function renderQuestions() {
+  const n = state.questions.length;
+  if (state.selected >= n) state.selected = Math.max(0, n - 1);
+  renderOutline();
   const list = $('questionList');
-  list.innerHTML = state.questions.map((q, i) => cardHtml(q, i)).join('')
-    || '<li class="kz-item text-center text-on-surface-variant py-6">Chưa có câu hỏi nào. Chọn dạng câu rồi bấm "Thêm câu hỏi".</li>';
-  list.querySelectorAll('[data-q]').forEach((card) => {
-    const q = state.questions[Number(card.dataset.q)];
-    if (q?.audio) mountAudioPlayer(card.querySelector('[data-audio-player]'), spaceId, q.audio, { showName: true });
-  });
+  const q = state.questions[state.selected];
+  list.innerHTML = q ? cardHtml(q, state.selected)
+    : '<li class="kz-card p-8 text-center text-on-surface-variant">Chưa có câu hỏi nào. Chọn một dạng câu ở cột bên trái để bắt đầu soạn.</li>';
+  const card = list.querySelector('[data-q]');
+  if (card && q?.audio) mountAudioPlayer(card.querySelector('[data-audio-player]'), spaceId, q.audio, { showName: true });
+  renderTabLabels();
   updateTotals();
+}
+
+function selectQuestion(i) {
+  if (i < 0 || i >= state.questions.length) return;
+  state.selected = i;
+  renderQuestions();
+  if (window.innerWidth < 1024) $('questionList').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /** Khối file nghe của một câu: thêm / đổi / bỏ file MP3 và số lần nghe tối đa. */
@@ -281,7 +346,19 @@ async function uploadQuestionAudio(card, q, input) {
 }
 
 function updateTotals() {
-  $('totalsText').textContent = `${state.questions.length} câu · ${formatScore(totalPoints(state.questions))} điểm`;
+  const qs = state.questions;
+  const total = formatScore(totalPoints(qs));
+  $('totalsText').textContent = `${qs.length} câu · ${total} điểm`;
+  const auto = autoMode();
+  const manual = qs.filter((q) => q.type === 'WRITTEN' && !(q.data?.accepted || []).some((a) => String(a).trim())).length;
+  const listening = qs.filter((q) => q.audio).length;
+  const incomplete = qs.filter((q) => validateQuestion(q, { autoMode: auto })).length;
+  $('footerStats').innerHTML = `
+    <span><b class="text-on-surface">${qs.length}</b> câu</span>
+    <span><b class="text-on-surface">${total}</b> điểm</span>
+    ${manual ? `<span><b class="text-on-surface">${manual}</b> câu gia sư chấm</span>` : ''}
+    ${listening ? `<span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">headphones</span><b class="text-on-surface">${listening}</b> câu nghe</span>` : ''}
+    ${incomplete && !state.locked ? `<span class="inline-flex items-center gap-1 text-error"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>${incomplete} câu chưa hoàn chỉnh</span>` : ''}`;
 }
 
 function dis() {
@@ -291,9 +368,10 @@ function dis() {
 function cardHtml(q, i) {
   const n = state.questions.length;
   return `
-    <li class="kz-card p-5 space-y-4" data-q="${i}">
+    <li class="kz-card p-5 md:p-6 space-y-4" data-q="${i}">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="font-title-sm text-title-sm">Câu ${i + 1}</span>
+        <span class="font-title-md text-title-md">Câu ${i + 1}</span>
+        ${q.audio ? '<span class="kz-badge" style="background:#dce1ff;color:#1d3989"><span class="material-symbols-outlined text-[15px]" aria-hidden="true">headphones</span>Câu nghe</span>' : ''}
         <select data-field="type" class="${INPUT} w-auto py-1.5" ${dis()} aria-label="Dạng câu">
           ${QUESTION_TYPES.map((t) => `<option value="${t.value}" ${t.value === q.type ? 'selected' : ''}>${t.label}</option>`).join('')}
         </select>
@@ -316,6 +394,10 @@ function cardHtml(q, i) {
       ${audioEditorHtml(q)}
       <div data-body>${bodyHtml(q, i)}</div>
       <p data-error class="field-error hidden"></p>
+      <div class="flex justify-between gap-3 pt-3 border-t border-surface-container-high">
+        <button type="button" data-act="prev" class="kz-btn" ${i === 0 ? 'disabled' : ''}><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>Câu ${i}</button>
+        <button type="button" data-act="next" class="kz-btn" ${i === n - 1 ? 'disabled' : ''}>Câu ${i + 2}<span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span></button>
+      </div>
     </li>`;
 }
 
@@ -453,6 +535,9 @@ function onListInput(e) {
     d.answers[Number(t.dataset.bankword)] = t.value;
   } else if (t.dataset.pair !== undefined) d.pairs[Number(t.dataset.pair)][t.dataset.side] = t.value;
   else if (t.dataset.item !== undefined) d.items[Number(t.dataset.item)] = t.value;
+  // Cập nhật dấu "chưa hoàn chỉnh" / điểm ở danh sách câu và thanh dưới
+  renderOutline();
+  updateTotals();
 }
 
 async function onListChange(e) {
@@ -485,6 +570,8 @@ async function onListChange(e) {
       q.data.correct = [...set].sort((a, b) => a - b);
     } else q.data.correct = j;
   } else if (t.dataset.tf !== undefined) q.data.correct = t.dataset.tf === 'true';
+  renderOutline();
+  updateTotals();
 }
 
 function onListClick(e) {
@@ -498,10 +585,12 @@ function onListClick(e) {
   const swap = (arr, a, b) => { [arr[a], arr[b]] = [arr[b], arr[a]]; };
   state.dirty = true;
   switch (btn.dataset.act) {
-    case 'up': if (i > 0) swap(state.questions, i, i - 1); break;
-    case 'down': if (i < state.questions.length - 1) swap(state.questions, i, i + 1); break;
-    case 'duplicate': state.questions.splice(i + 1, 0, JSON.parse(JSON.stringify(q))); break;
-    case 'remove': state.questions.splice(i, 1); break;
+    case 'prev': selectQuestion(i - 1); return;
+    case 'next': selectQuestion(i + 1); return;
+    case 'up': if (i > 0) { swap(state.questions, i, i - 1); state.selected = i - 1; } break;
+    case 'down': if (i < state.questions.length - 1) { swap(state.questions, i, i + 1); state.selected = i + 1; } break;
+    case 'duplicate': state.questions.splice(i + 1, 0, JSON.parse(JSON.stringify(q))); state.selected = i + 1; break;
+    case 'remove': state.questions.splice(i, 1); state.selected = Math.min(i, state.questions.length - 1); break;
     case 'opt-add': d.options.push(''); break;
     case 'opt-remove':
       d.options.splice(j, 1);
@@ -520,12 +609,12 @@ function onListClick(e) {
   renderQuestions();
 }
 
-function addQuestion() {
-  state.questions.push(defaultQuestion($('newQuestionType').value));
+function addQuestion(type) {
+  state.questions.push(defaultQuestion(type));
   state.dirty = true;
-  renderQuestions();
-  const cards = $('questionList').querySelectorAll('[data-q]');
-  cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  selectQuestion(state.questions.length - 1);
+  const outline = $('questionOutline');
+  outline.scrollTop = outline.scrollHeight;
 }
 
 // ============================================================ lưu / giao bài
@@ -554,8 +643,10 @@ function clearQuestionErrors() {
   $('questionList').querySelectorAll('[data-error]').forEach((el) => { el.textContent = ''; el.classList.add('hidden'); });
 }
 
+/** Chuyển tới câu bị lỗi rồi hiện lỗi dưới câu đó. */
 function showQuestionError(index, message) {
-  const el = $('questionList').querySelectorAll('[data-q]')[index]?.querySelector('[data-error]');
+  if (index >= 0 && index < state.questions.length && index !== state.selected) selectQuestion(index);
+  const el = $('questionList').querySelector(`[data-q="${index}"]`)?.querySelector('[data-error]');
   if (el) {
     el.textContent = message;
     el.classList.remove('hidden');
@@ -573,6 +664,7 @@ async function save(publish) {
   if (Object.keys(errors).length) {
     $('formError').textContent = 'Vui lòng kiểm tra lại phần cài đặt bài.';
     $('formError').classList.remove('hidden');
+    if (state.tab !== 'settings') switchTab('settings');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
@@ -581,17 +673,14 @@ async function save(publish) {
       setFieldError('formError', 'Bài tập cần có ít nhất một câu hỏi.');
       return;
     }
-    let first = -1;
-    state.questions.forEach((q, i) => {
-      const err = validateQuestion(q, { autoMode: autoMode() });
-      if (err) {
-        showQuestionError(i, `Câu ${i + 1}: ${err}`);
-        if (first < 0) first = i;
-      }
-    });
+    const errors = state.questions.map((q) => validateQuestion(q, { autoMode: autoMode() }));
+    const first = errors.findIndex(Boolean);
     if (first >= 0) {
-      setFieldError('formError', 'Có câu hỏi chưa hoàn chỉnh. Hãy sửa các câu được đánh dấu đỏ.');
-      $('questionList').querySelectorAll('[data-q]')[first]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const count = errors.filter(Boolean).length;
+      setFieldError('formError', `Có ${count} câu hỏi chưa hoàn chỉnh (đánh dấu đỏ ở danh sách câu). Đang mở câu ${first + 1}.`);
+      if (state.tab !== 'questions') switchTab('questions');
+      showQuestionError(first, `Câu ${first + 1}: ${errors[first]}`);
+      $('questionList').scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
   }
@@ -633,7 +722,12 @@ async function save(publish) {
       timeLimitMinutes: fe.timeLimitMinutes, maxAttempts: fe.maxAttempts });
     const qErr = fe.questions;
     const m = /^Câu (\d+):/.exec(qErr || '');
-    if (m) showQuestionError(Number(m[1]) - 1, qErr);
+    if (m) {
+      if (state.tab !== 'questions') switchTab('questions');
+      showQuestionError(Number(m[1]) - 1, qErr);
+    } else if (fe.title || fe.instructions || fe.closesAt || fe.timeLimitMinutes || fe.maxAttempts) {
+      if (state.tab !== 'settings') switchTab('settings');
+    }
     setFieldError('formError', qErr || friendlyErrorMessage(err));
   } finally {
     buttons.forEach((id) => { $(id).disabled = false; });
@@ -698,20 +792,35 @@ function renderAttempts() {
     panel.innerHTML = '<div class="kz-card p-6 text-center text-on-surface-variant">Học viên chưa làm bài này.</div>';
     return;
   }
-  const sel = state.attempts.find((a) => a.attemptId === state.selectedAttempt) || state.attempts[state.attempts.length - 1];
+  // Mặc định mở lượt đang chờ chấm (nếu có), không thì lượt mới nhất
+  const sel = state.attempts.find((a) => a.attemptId === state.selectedAttempt)
+    || state.attempts.find((a) => a.status === 'SUBMITTED')
+    || state.attempts[state.attempts.length - 1];
   state.selectedAttempt = sel.attemptId;
+  const name = sel.learnerName || 'Học viên';
+  const initials = name.split(/\s+/).slice(-2).map((w) => w.charAt(0)).join('').toUpperCase();
+  const pending = state.attempts.filter((a) => a.status === 'SUBMITTED').length;
   panel.innerHTML = `
-    <div class="grid gap-5 lg:grid-cols-[280px_1fr]">
-      <aside class="kz-card p-4 space-y-2 h-fit">
-        <p class="font-label-md text-label-md">${escapeHtml(sel.learnerName || 'Học viên')}</p>
-        ${state.attempts.map((a) => `
-          <button type="button" data-attempt="${escapeHtml(a.attemptId)}" class="w-full text-left kz-item ${a.attemptId === sel.attemptId ? 'ring-2 ring-primary' : ''}">
-            <p class="font-semibold">Lượt ${a.attemptNumber} · ${escapeHtml(attemptStatusLabel(a.status))}</p>
-            <p class="font-caption text-caption text-on-surface-variant">${a.status === 'IN_PROGRESS' ? `Bắt đầu ${escapeHtml(formatDateTime(a.startedAt))}` : `Nộp ${escapeHtml(formatDateTime(a.submittedAt))}${a.late ? ' · muộn' : ''}`}</p>
-            ${a.finalScore !== null && a.finalScore !== undefined ? `<p class="font-semibold">${formatScore(a.finalScore)} / ${formatScore(a.maxScore)} điểm</p>` : ''}
-          </button>`).join('')}
+    <div class="flex flex-col lg:flex-row gap-5 items-start">
+      <aside class="kz-card p-3.5 w-full lg:w-72 shrink-0 space-y-2 lg:sticky lg:top-4">
+        <div class="flex items-center gap-2.5 px-1 pb-2">
+          <div class="w-9 h-9 rounded-full bg-primary-fixed text-on-primary-fixed-variant flex items-center justify-center font-semibold">${escapeHtml(initials || 'HV')}</div>
+          <div class="min-w-0"><p class="font-semibold truncate">${escapeHtml(name)}</p>
+            <p class="font-caption text-caption text-on-surface-variant">${state.attempts.length} lượt${pending ? ` · ${pending} chờ chấm` : ''}</p></div>
+        </div>
+        ${state.attempts.map((a) => {
+          const chosen = a.attemptId === sel.attemptId;
+          const score = a.finalScore !== null && a.finalScore !== undefined
+            ? `${formatScore(a.finalScore)} / ${formatScore(a.maxScore)}`
+            : (a.status === 'SUBMITTED' ? '<span class="kz-badge" data-tone="paused">Chờ chấm</span>' : '');
+          return `
+          <button type="button" data-attempt="${escapeHtml(a.attemptId)}" class="w-full text-left p-3 rounded-xl border ${chosen ? 'border-2 border-primary bg-surface-container-low' : 'border-surface-container-high bg-surface-container-lowest hover:bg-surface-container-low'}">
+            <span class="flex items-center justify-between gap-2 font-semibold"><span>Lượt ${a.attemptNumber}</span><span>${score}</span></span>
+            <span class="block font-caption text-caption text-on-surface-variant mt-0.5">${escapeHtml(attemptStatusLabel(a.status))} · ${a.status === 'IN_PROGRESS' ? `bắt đầu ${escapeHtml(formatDateTime(a.startedAt))}` : `nộp ${escapeHtml(formatDateTime(a.submittedAt))}${a.late ? ' · muộn' : ''}`}</span>
+          </button>`;
+        }).join('')}
       </aside>
-      <section id="attemptDetail" class="space-y-3 min-w-0"></section>
+      <section id="attemptDetail" class="flex-1 min-w-0 w-full space-y-3"></section>
     </div>`;
   panel.querySelectorAll('[data-attempt]').forEach((b) => b.addEventListener('click', () => {
     state.selectedAttempt = b.dataset.attempt;
@@ -726,29 +835,47 @@ function renderAttemptDetail(a) {
     box.innerHTML = `<div class="kz-card p-6 text-on-surface-variant">Học viên đang làm lượt này${a.deadlineAt ? `, hạn chót ${escapeHtml(formatDateTime(a.deadlineAt))}` : ''}. Khi học viên nộp bài (hoặc hết giờ) bạn mới chấm được.</div>`;
     return;
   }
+  // Phân loại từng câu để lọc: cần chấm (tự luận chưa có điểm), sai (máy chấm sai), còn lại
+  const kinds = a.questions.map((q) => {
+    if (q.needsManualGrading && (q.score === null || q.score === undefined)) return 'pending';
+    if (q.correct === false) return 'wrong';
+    return 'ok';
+  });
+  const count = (k) => kinds.filter((x) => x === k).length;
+  if (state.gradeFilter === 'pending' && !count('pending')) state.gradeFilter = count('wrong') ? 'wrong' : 'all';
+  if (state.gradeFilter === 'wrong' && !count('wrong')) state.gradeFilter = 'all';
+  const nextPending = state.attempts.find((x) => x.status === 'SUBMITTED' && x.attemptId !== a.attemptId);
+  const chip = (key, label, n) => `<button type="button" class="ex-chip" data-filter="${key}" data-active="${state.gradeFilter === key}">${label} (${n})</button>`;
   box.innerHTML = `
     <div class="kz-card p-5 flex flex-wrap items-center gap-3">
-      <div class="flex-1 min-w-0">
-        <p class="font-title-sm text-title-sm">Lượt ${a.attemptNumber} · ${escapeHtml(attemptStatusLabel(a.status))}</p>
-        <p class="font-caption text-caption text-on-surface-variant">Máy chấm: ${formatScore(a.autoScore)} điểm${a.finalScore !== null && a.finalScore !== undefined ? ` · Điểm cuối: ${formatScore(a.finalScore)} / ${formatScore(a.maxScore)}` : ' · còn câu chờ chấm'}${a.submitReason === 'TIMEOUT' ? ' · tự nộp khi hết giờ' : ''}${a.submitReason === 'CLOSED' ? ' · tự nộp khi đóng đề' : ''}</p>
+      <div class="flex-1 min-w-[240px]">
+        <p class="font-title-md text-title-md">Lượt ${a.attemptNumber} · ${escapeHtml(attemptStatusLabel(a.status))}</p>
+        <p class="font-body-sm text-body-sm text-on-surface-variant">Máy chấm: ${formatScore(a.autoScore)} điểm${a.finalScore !== null && a.finalScore !== undefined ? ` · Điểm cuối: ${formatScore(a.finalScore)} / ${formatScore(a.maxScore)}` : ` · còn ${count('pending')} câu chờ chấm`}${a.submitReason === 'TIMEOUT' ? ' · tự nộp khi hết giờ' : ''}${a.submitReason === 'CLOSED' ? ' · tự nộp khi đóng đề' : ''}</p>
       </div>
-      <button type="button" id="saveGradeBtn" class="kz-btn kz-btn-primary">Lưu điểm</button>
+      <button type="button" id="saveGradeBtn" class="kz-btn ${nextPending ? '' : 'kz-btn-primary'}">Lưu điểm</button>
+      ${nextPending ? `<button type="button" id="saveNextBtn" class="kz-btn kz-btn-primary">Lưu &amp; chấm lượt ${nextPending.attemptNumber}<span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span></button>` : ''}
     </div>
     <p id="gradeError" class="field-error hidden"></p>
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Lọc câu">
+      ${chip('pending', 'Cần chấm', count('pending'))}${chip('wrong', 'Câu sai', count('wrong'))}${chip('all', 'Tất cả', a.questions.length)}
+    </div>
     <ol class="flex flex-col gap-3">
       ${a.questions.map((q, i) => {
-        const status = q.needsManualGrading && (q.score === null || q.score === undefined) ? 'Chờ chấm'
-          : (q.correct === true ? 'Máy chấm: đúng' : q.correct === false ? 'Máy chấm: sai' : 'Tự luận');
+        const status = kinds[i] === 'pending' ? 'Chờ chấm'
+          : (q.correct === true ? 'Máy chấm: đúng' : q.correct === false ? 'Máy chấm: sai' : 'Gia sư đã chấm');
+        const border = { pending: 'border-l-[#e8a35c]', wrong: 'border-l-[#e37b7b]', ok: 'border-l-[#4b9d6c]' }[kinds[i]];
+        const shown = state.gradeFilter === 'all' || state.gradeFilter === kinds[i];
         // Ô điểm chỉ hiện điểm gia sư đã sửa; để trống = giữ điểm máy (hiện mờ trong ô).
         const tutorEdited = !q.needsManualGrading && q.score !== null && q.score !== undefined
           && Number(q.score) !== Number(q.autoScore);
         const scoreValue = q.needsManualGrading ? q.score : (tutorEdited ? q.score : null);
         return `
-        <li class="kz-card p-5 space-y-2" data-grade="${escapeHtml(q.questionId)}">
+        <li class="kz-card p-5 space-y-2 border-l-4 ${border} ${shown ? '' : 'hidden'}" data-grade="${escapeHtml(q.questionId)}">
           <div class="flex flex-wrap items-center gap-2">
             <span class="font-title-sm text-title-sm">Câu ${i + 1}</span>
             <span class="font-caption text-caption text-on-surface-variant">${escapeHtml(questionTypeLabel(q.type))} · ${formatScore(q.points)} điểm</span>
-            <span class="kz-badge" data-tone="${q.correct === true ? 'active' : q.correct === false ? 'paused' : 'done'}">${escapeHtml(status)}</span>
+            ${q.audio ? '<span class="kz-badge" style="background:#dce1ff;color:#1d3989"><span class="material-symbols-outlined text-[15px]" aria-hidden="true">headphones</span>Câu nghe</span>' : ''}
+            <span class="kz-badge" data-tone="${kinds[i] === 'pending' ? 'paused' : q.correct === false ? 'paused' : 'active'}">${escapeHtml(status)}</span>
           </div>
           ${q.prompt ? `<p class="whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(q.prompt)}</p>` : ''}
           ${q.audio ? '<div data-grade-audio></div>' : ''}
@@ -764,15 +891,27 @@ function renderAttemptDetail(a) {
           </div>
         </li>`;
       }).join('')}
-    </ol>`;
+    </ol>
+    ${kinds.some((k, i) => state.gradeFilter === 'all' || state.gradeFilter === k) ? ''
+      : '<p class="kz-card p-6 text-center text-on-surface-variant">Không có câu nào trong mục này.</p>'}`;
   box.querySelectorAll('[data-grade]').forEach((li, i) => {
     const q = a.questions[i];
     if (q?.audio) mountAudioPlayer(li.querySelector('[data-grade-audio]'), spaceId, q.audio);
   });
+  // Lọc chỉ ẩn / hiện thẻ câu (mọi câu vẫn được gửi khi lưu điểm, giữ nguyên điểm đã nhập)
+  box.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => {
+    state.gradeFilter = b.dataset.filter;
+    box.querySelectorAll('[data-filter]').forEach((x) => { x.dataset.active = String(x === b); });
+    box.querySelectorAll('[data-grade]').forEach((li, i) => {
+      li.classList.toggle('hidden', !(state.gradeFilter === 'all' || state.gradeFilter === kinds[i]));
+    });
+  }));
   $('saveGradeBtn').addEventListener('click', () => saveGrades(a));
+  $('saveNextBtn')?.addEventListener('click', () => saveGrades(a, nextPending?.attemptId));
 }
 
-async function saveGrades(a) {
+/** Lưu điểm lượt a; nextAttemptId: chuyển sang chấm lượt đó sau khi lưu xong. */
+async function saveGrades(a, nextAttemptId = null) {
   const items = [...$('attemptDetail').querySelectorAll('[data-grade]')].map((li) => {
     const raw = li.querySelector('[data-score]').value.trim();
     return {
@@ -791,6 +930,11 @@ async function saveGrades(a) {
     const updated = await API.exercises.grade(spaceId, state.exerciseId, a.attemptId, items);
     state.attempts = state.attempts.map((x) => (x.attemptId === updated.attemptId ? updated : x));
     showToast(updated.status === 'GRADED' ? 'Đã lưu điểm. Học viên đã thấy điểm.' : 'Đã lưu. Còn câu tự luận chưa chấm.');
+    if (nextAttemptId) {
+      state.selectedAttempt = nextAttemptId;
+      state.gradeFilter = 'pending';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     renderAttempts();
   } catch (err) {
     setFieldError('gradeError', err.fieldErrors?.grade || friendlyErrorMessage(err));
@@ -822,19 +966,38 @@ function init() {
     $('editorMain').innerHTML = '<div class="kz-card p-6 text-center">Không tìm thấy lớp học.</div>';
     return;
   }
+  // Sidebar dùng chung của gia sư, mục "Quản lý bài tập" đang mở
+  mountTutorLayout('assignments');
   $('backLink').href = classLink();
-  $('newQuestionType').innerHTML = QUESTION_TYPES.map((t) => `<option value="${t.value}">${t.label}</option>`).join('');
+  $('addTypeButtons').innerHTML = QUESTION_TYPES.map((t) => `
+    <button type="button" class="ex-type-btn" data-add-type="${t.value}" title="${escapeHtml(t.hint)}">
+      <span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">${TYPE_ICONS[t.value] || 'help'}</span>
+      <span class="truncate">${escapeHtml(t.label)}</span>
+    </button>`).join('');
+  $('addTypeButtons').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-add-type]');
+    if (b) addQuestion(b.dataset.addType);
+  });
+  $('questionOutline').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-select]');
+    if (b) selectQuestion(Number(b.dataset.select));
+  });
   $('questionList').addEventListener('input', onListInput);
   $('questionList').addEventListener('change', onListChange);
   $('questionList').addEventListener('click', onListClick);
-  $('addQuestionBtn').addEventListener('click', addQuestion);
+  document.querySelectorAll('input[name="exMode"]').forEach((r) => r.addEventListener('change', () => {
+    state.dirty = true;
+    renderOutline();
+    updateTotals();
+  }));
   $('exUnlimited').addEventListener('change', () => { $('exTimeLimit').disabled = state.locked || $('exUnlimited').checked; });
   $('saveDraftBtn').addEventListener('click', () => save(false));
   $('publishBtn').addEventListener('click', () => save(true));
   $('previewBtn').addEventListener('click', openPreview);
   $('previewClose').addEventListener('click', () => $('previewModal').classList.add('hidden'));
   $('deleteBtn').addEventListener('click', removeExercise);
-  $('tabEdit').addEventListener('click', () => switchTab('edit'));
+  $('tabQuestions').addEventListener('click', () => switchTab('questions'));
+  $('tabSettings').addEventListener('click', () => switchTab('settings'));
   $('tabAttempts').addEventListener('click', () => switchTab('attempts'));
   ['exTitle', 'exInstructions', 'exOpens', 'exCloses', 'exTimeLimit', 'exAttempts'].forEach((id) => $(id).addEventListener('input', () => { state.dirty = true; }));
   $('backLink').addEventListener('click', async (e) => {

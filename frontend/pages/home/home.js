@@ -1,27 +1,27 @@
 /**
  * KizunaTutor - Home Page Logic
- * Tải danh sách gia sư thực tế từ REST API Backend, điều hướng bộ lọc nhanh,
- * quản lý lộ trình JLPT N5-N1 tương tác và khối câu hỏi thường gặp.
+ * Tải danh sách gia sư thực tế từ REST API Backend và khối câu hỏi thường gặp.
  */
 
 import { API } from '../../js/api.js';
 import {
-  buildDiscoveryUrl,
   escapeHtml,
-  getJlptTrackData,
   getTutorInitials,
   selectDisplayTutors
 } from './home-helpers.js';
 
-/** Thẻ gia sư nổi bật: chỉ ảnh lớn và tên bên dưới; cả thẻ là liên kết tới hồ sơ. */
-const TUTOR_CARDS_CLASS = 'flex flex-wrap justify-center gap-5 sm:gap-6';
-const TUTOR_CARD_WIDTH = 'w-[calc(50%-10px)] sm:w-44 lg:w-52';
+/** Thẻ gia sư nổi bật: ảnh vuông lớn, tên và môn dạy bên dưới; 5 thẻ một hàng trên màn hình rộng */
+const FEATURED_COUNT = 5;
+/* Flex căn giữa: đủ 5 thẻ thì lấp hàng, ít hơn thì dồn vào giữa thay vì để trống bên phải */
+const TUTOR_CARDS_CLASS = 'flex flex-wrap justify-center gap-6';
+const TUTOR_CARD_WIDTH = 'w-[calc(50%-0.75rem)] sm:w-[calc(33.333%-1rem)] lg:w-[calc(20%-1.2rem)]';
 
-function renderTutorSkeletonCards(count = 4) {
+function renderTutorSkeletonCards(count = FEATURED_COUNT) {
   return Array.from({ length: count }, () => `
-    <div class="${TUTOR_CARD_WIDTH} flex flex-col items-center animate-pulse">
-      <div class="w-full aspect-square rounded-2xl bg-[#ECE7DC]"></div>
-      <div class="h-4 bg-[#ECE7DC] rounded w-2/3 mt-3"></div>
+    <div class="animate-pulse ${TUTOR_CARD_WIDTH}">
+      <div class="aspect-square rounded-element bg-line"></div>
+      <div class="h-4 bg-line rounded-inner w-3/4 mt-3"></div>
+      <div class="h-3 bg-line rounded-inner w-1/2 mt-2"></div>
     </div>
   `).join('');
 }
@@ -32,79 +32,83 @@ function renderTutorCard(tutor) {
     : `/pages/tutor-profile/?id=${encodeURIComponent(tutor.tutorId)}`;
   const fullName = escapeHtml(tutor.fullName || 'Gia sư KizunaTutor');
   const initials = escapeHtml(getTutorInitials(tutor.fullName));
+  // Dòng phụ: môn dạy đầu tiên; chưa khai báo thì dùng trình độ JLPT
+  const firstSubject = Array.isArray(tutor.specialties) && tutor.specialties.length ? tutor.specialties[0] : '';
+  const subtitle = escapeHtml(firstSubject
+    || (tutor.highestJlptLevel ? `Tiếng Nhật ${tutor.highestJlptLevel}` : 'Gia sư tiếng Nhật'));
 
-  // alt rỗng: tên đã hiển thị ngay bên dưới ảnh, trình đọc màn hình không cần đọc hai lần
   return `
-    <a href="${profileUrl}" class="${TUTOR_CARD_WIDTH} group flex flex-col items-center text-center focus:outline-none">
-      <div class="w-full aspect-square rounded-2xl overflow-hidden bg-[#E0EFF7] border border-[#E5DECB] shadow-sm transition-all group-hover:-translate-y-1 group-hover:shadow-[0_14px_30px_-14px_rgba(15,37,69,0.35)] group-focus-visible:ring-2 group-focus-visible:ring-[#006194]">
+    <a href="${profileUrl}" class="group block ${TUTOR_CARD_WIDTH} focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-element">
+      <div class="aspect-square rounded-element overflow-hidden bg-primary-light border border-line">
         ${tutor.avatarUrl
-          ? `<img class="w-full h-full object-cover" src="${escapeHtml(tutor.avatarUrl)}" alt="" loading="lazy">`
-          : `<div class="w-full h-full flex items-center justify-center text-[#006194] font-bold text-4xl">${initials}</div>`}
+          ? `<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-medium" src="${escapeHtml(tutor.avatarUrl)}" alt="${fullName}" loading="lazy">`
+          : `<div class="w-full h-full flex items-center justify-center text-primary text-display-2">${initials}</div>`}
       </div>
-      <h3 class="mt-3 w-full font-bold text-[#0F2545] text-sm sm:text-base truncate group-hover:text-primary transition-colors">${fullName}</h3>
+      <h3 class="mt-3 px-2.5 text-heading-2 text-fg truncate group-hover:text-primary transition-colors duration-fast">${fullName}</h3>
+      <p class="mt-1 px-2.5 text-body text-fg-muted truncate">${subtitle}</p>
     </a>
   `;
 }
 
 function renderEmptyOrErrorState({ isError = false } = {}) {
   return `
-    <div class="col-span-full bg-white rounded-3xl border border-[#E5DECB] shadow-sm p-6 sm:p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+    <div class="col-span-full bg-card rounded-container border border-line shadow-low p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
       <div class="lg:col-span-8 space-y-3">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full ${isError ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-sky-50 text-[#006194] border-sky-200'} border text-xs font-semibold">
-          <span class="material-symbols-outlined text-[16px]">${isError ? 'cloud_off' : 'person_search'}</span>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full ${isError ? 'bg-warning-muted text-warning' : 'bg-primary-light text-primary'} text-caption font-semibold">
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">${isError ? 'cloud_off' : 'person_search'}</span>
           <span>${isError ? 'Tạm thời chưa tải được danh sách gia sư trực tuyến' : 'Chưa có hồ sơ gia sư tiêu biểu công khai'}</span>
         </div>
-        <h3 class="text-xl font-bold text-[#0F2545]">
+        <h3 class="text-heading-2 text-fg">
           ${isError
             ? 'Kết nối tới danh sách gia sư đang gián đoạn'
             : 'Hệ thống đang sẵn sàng đón nhận những gia sư đầu tiên'}
         </h3>
-        <p class="text-sm text-on-surface-variant leading-relaxed max-w-2xl">
+        <p class="text-body text-fg-muted max-w-2xl">
           ${isError
             ? 'Bạn có thể thử tải lại danh sách gia sư ngay bên dưới, chuyển sang trang tìm kiếm gia sư hoặc trải nghiệm ngay kho công cụ luyện viết Kanji, từ vựng và ngữ pháp JLPT.'
             : 'Khi gia sư hoàn tất xác thực chứng chỉ và được cán bộ học vụ duyệt bài đăng, hồ sơ sẽ hiển thị trực tiếp tại đây. Trong lúc chờ đợi, bạn có thể khám phá kho công cụ tự học hoặc đăng ký làm gia sư.'}
         </p>
         <div class="flex flex-wrap items-center gap-3 pt-1">
           ${isError ? `
-            <button type="button" id="retry-featured-tutors-btn" class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer">
-              <span class="material-symbols-outlined text-[16px]">refresh</span>
+            <button type="button" id="retry-featured-tutors-btn" class="px-5 py-2.5 rounded-element bg-primary hover:bg-primary-hover text-on-primary text-body font-semibold inline-flex items-center gap-1.5 transition-colors duration-fast cursor-pointer">
+              <span class="material-symbols-outlined text-[16px]" aria-hidden="true">refresh</span>
               <span>Thử tải lại danh sách</span>
             </button>
           ` : ''}
-          <a href="/tutors" class="px-5 py-2.5 rounded-xl bg-[#FAF8F2] hover:bg-[#F1ECE0] text-[#0F2545] border border-[#DFD6C2] text-xs font-semibold inline-flex items-center gap-1.5 transition-colors">
-            <span class="material-symbols-outlined text-[16px]">search</span>
+          <a href="/tutors" class="px-5 py-2.5 rounded-element bg-card hover:bg-surface-muted text-fg border border-line-strong text-body font-semibold inline-flex items-center gap-1.5 transition-colors duration-fast">
+            <span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">search</span>
             <span>Mở trang Tìm gia sư</span>
           </a>
-          <a href="/register" class="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-[#006194] border border-[#CFE2EE] text-xs font-semibold inline-flex items-center gap-1.5 transition-colors">
-            <span class="material-symbols-outlined text-[16px]">school</span>
+          <a href="/register" class="px-5 py-2.5 rounded-element bg-card hover:bg-surface-muted text-primary border border-line-strong text-body font-semibold inline-flex items-center gap-1.5 transition-colors duration-fast">
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">school</span>
             <span>Ứng tuyển làm gia sư</span>
           </a>
         </div>
       </div>
 
-      <div class="lg:col-span-4 bg-[#FAF8F2] rounded-2xl border border-[#ECE4D0] p-5 space-y-3">
-        <p class="text-xs font-bold text-[#0F2545]">Gợi ý bắt đầu ngay không cần chờ:</p>
-        <div class="space-y-2">
-          <a href="/shodo" class="flex items-center justify-between p-3 rounded-xl bg-white border border-[#E5DECB] hover:border-[#006194] transition-colors text-xs font-semibold text-[#0F2545]">
+      <div class="lg:col-span-4 bg-surface-muted rounded-element p-5 space-y-3">
+        <p class="text-caption font-semibold text-fg">Gợi ý bắt đầu ngay không cần chờ:</p>
+        <div class="divide-y divide-line">
+          <a href="/shodo" class="flex items-center justify-between py-2.5 text-body font-semibold text-fg hover:text-primary transition-colors duration-fast">
             <span class="flex items-center gap-2">
-              <span class="font-kanji text-base text-[#9F1239]">筆</span>
+              <span class="font-kanji text-primary" aria-hidden="true">筆</span>
               <span>Phòng luyện viết Shodo</span>
             </span>
-            <span class="material-symbols-outlined text-[16px] text-[#006194]">arrow_forward</span>
+            <span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">arrow_forward</span>
           </a>
-          <a href="/handwriting" class="flex items-center justify-between p-3 rounded-xl bg-white border border-[#E5DECB] hover:border-[#006194] transition-colors text-xs font-semibold text-[#0F2545]">
+          <a href="/handwriting" class="flex items-center justify-between py-2.5 text-body font-semibold text-fg hover:text-primary transition-colors duration-fast">
             <span class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[17px] text-[#006194]">draw</span>
+              <span class="material-symbols-outlined text-[17px] text-primary" aria-hidden="true">draw</span>
               <span>Tra Kanji viết tay AI</span>
             </span>
-            <span class="material-symbols-outlined text-[16px] text-[#006194]">arrow_forward</span>
+            <span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">arrow_forward</span>
           </a>
-          <a href="/grammar" class="flex items-center justify-between p-3 rounded-xl bg-white border border-[#E5DECB] hover:border-[#006194] transition-colors text-xs font-semibold text-[#0F2545]">
+          <a href="/grammar" class="flex items-center justify-between py-2.5 text-body font-semibold text-fg hover:text-primary transition-colors duration-fast">
             <span class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[17px] text-[#006194]">menu_book</span>
+              <span class="material-symbols-outlined text-[17px] text-primary" aria-hidden="true">menu_book</span>
               <span>Cẩm nang ngữ pháp JLPT</span>
             </span>
-            <span class="material-symbols-outlined text-[16px] text-[#006194]">arrow_forward</span>
+            <span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">arrow_forward</span>
           </a>
         </div>
       </div>
@@ -121,8 +125,8 @@ function updateHeroVerifiedBadge(totalElements) {
     titleEl.textContent = `${totalElements} hồ sơ gia sư`;
     subtitleEl.textContent = 'Đã duyệt & sẵn sàng dạy';
   } else {
-    titleEl.textContent = 'Xác thực JLPT';
-    subtitleEl.textContent = 'Kiểm duyệt bởi học vụ';
+    titleEl.textContent = 'Gia sư tiếng Nhật 1-kèm-1';
+    subtitleEl.textContent = 'Kiểm duyệt bởi cán bộ học vụ';
   }
 }
 
@@ -132,11 +136,11 @@ async function loadFeaturedTutors() {
   if (!featuredContainer) return;
 
   featuredContainer.className = TUTOR_CARDS_CLASS;
-  featuredContainer.innerHTML = renderTutorSkeletonCards(4);
+  featuredContainer.innerHTML = renderTutorSkeletonCards();
 
   const [featuredRes, searchRes] = await Promise.allSettled([
     API.tutors.getFeatured(),
-    API.tutors.search({ page: 0, size: 4, sortBy: 'rating' })
+    API.tutors.search({ page: 0, size: FEATURED_COUNT, sortBy: 'rating' })
   ]);
 
   const featuredOk = featuredRes.status === 'fulfilled';
@@ -159,7 +163,7 @@ async function loadFeaturedTutors() {
 
   updateHeroVerifiedBadge(totalVerified);
 
-  const { tutors, hasFeatured, usedFallbackSearch } = selectDisplayTutors(featuredList, searchList, 4);
+  const { tutors, hasFeatured, usedFallbackSearch } = selectDisplayTutors(featuredList, searchList, FEATURED_COUNT);
 
   if (tutors.length === 0) {
     featuredContainer.className = 'grid grid-cols-1 gap-5';
@@ -180,95 +184,6 @@ async function loadFeaturedTutors() {
 
   featuredContainer.className = TUTOR_CARDS_CLASS;
   featuredContainer.innerHTML = tutors.map(renderTutorCard).join('');
-}
-
-function initQuickSearchDock() {
-  const keywordInput = document.getElementById('home-filter-keyword');
-  const jlptSelect = document.getElementById('home-filter-jlpt');
-  const goalSelect = document.getElementById('home-filter-goal');
-  const formatSelect = document.getElementById('home-filter-format');
-  const priceSelect = document.getElementById('home-filter-price');
-  const searchBtn = document.getElementById('home-search-btn');
-
-  const navigateWithFilters = () => {
-    window.location.href = buildDiscoveryUrl({
-      keyword: keywordInput ? keywordInput.value : '',
-      jlpt: jlptSelect ? jlptSelect.value : '',
-      goal: goalSelect ? goalSelect.value : '',
-      format: formatSelect ? formatSelect.value : '',
-      price: priceSelect ? priceSelect.value : ''
-    });
-  };
-
-  if (searchBtn) {
-    searchBtn.addEventListener('click', (event) => {
-      event.preventDefault();
-      navigateWithFilters();
-    });
-  }
-
-  if (keywordInput) {
-    keywordInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        navigateWithFilters();
-      }
-    });
-  }
-}
-
-function initJlptRoadmapTabs() {
-  const tabButtons = document.querySelectorAll('[data-jlpt-tab]');
-  if (tabButtons.length === 0) return;
-
-  const markEl = document.getElementById('jlpt-detail-mark');
-  const titleEl = document.getElementById('jlpt-detail-title');
-  const summaryEl = document.getElementById('jlpt-detail-summary');
-  const kanjiEl = document.getElementById('jlpt-detail-kanji');
-  const vocabEl = document.getElementById('jlpt-detail-vocab');
-  const outcomeEl = document.getElementById('jlpt-detail-outcome');
-  const focusEl = document.getElementById('jlpt-detail-focus');
-  const findTutorBtn = document.getElementById('jlpt-detail-tutor-btn');
-  const practiceBtn = document.getElementById('jlpt-detail-tool-btn');
-
-  const renderLevel = (level) => {
-    const data = getJlptTrackData(level);
-    tabButtons.forEach((btn) => {
-      const isSelected = btn.getAttribute('data-jlpt-tab') === data.level;
-      btn.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-      if (isSelected) {
-        btn.className = 'jlpt-roadmap-tab px-4 py-2 rounded-xl bg-[#006194] text-white font-bold text-xs sm:text-sm shadow-sm transition-all cursor-pointer';
-      } else {
-        btn.className = 'jlpt-roadmap-tab px-4 py-2 rounded-xl bg-white text-[#0F2545] border border-[#E5DECB] hover:border-[#006194] hover:text-[#006194] font-semibold text-xs sm:text-sm transition-all cursor-pointer';
-      }
-    });
-
-    if (markEl) markEl.textContent = data.kanjiMark;
-    if (titleEl) titleEl.textContent = data.title;
-    if (summaryEl) summaryEl.textContent = data.summary;
-    if (kanjiEl) kanjiEl.textContent = data.kanjiCount;
-    if (vocabEl) vocabEl.textContent = data.vocabCount;
-    if (outcomeEl) outcomeEl.textContent = data.outcome;
-    if (focusEl) focusEl.textContent = data.recommendedFocus;
-    if (findTutorBtn) {
-      findTutorBtn.href = buildDiscoveryUrl({ jlpt: data.level });
-      const labelSpan = findTutorBtn.querySelector('[data-tutor-cta-text]');
-      if (labelSpan) labelSpan.textContent = `Tìm gia sư luyện ${data.level}`;
-    }
-    if (practiceBtn) {
-      practiceBtn.href = data.toolHref;
-      const toolSpan = practiceBtn.querySelector('[data-tool-cta-text]');
-      if (toolSpan) toolSpan.textContent = data.toolLabel;
-    }
-  };
-
-  tabButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      renderLevel(btn.getAttribute('data-jlpt-tab'));
-    });
-  });
-
-  renderLevel('N3');
 }
 
 function initFaqAccordion() {
@@ -323,8 +238,6 @@ function initScrollReveal() {
 
 function initHome() {
   initScrollReveal();
-  initQuickSearchDock();
-  initJlptRoadmapTabs();
   initFaqAccordion();
   loadFeaturedTutors();
 }

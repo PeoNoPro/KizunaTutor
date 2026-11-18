@@ -4,129 +4,27 @@
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <meta content="web_standard" name="shell-type">
-  <title>KizunaTutor - Kết nối Gia sư Tiếng Nhật &amp; Luyện tập thông minh</title>
+  <title>KizunaTutor - Nền tảng kết nối Gia sư Tiếng Nhật 1-kèm-1 &amp; Luyện tập thông minh</title>
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
 
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Serif+JP:wght@400;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;family=Noto+Serif+JP:wght@400;600;700&amp;display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
-  <!-- Tailwind CSS CDN -->
+  <!-- Tailwind CSS CDN + cấu hình màu dùng chung -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "error": "#ba1a1a",
-            "on-tertiary": "#ffffff",
-            "surface-dim": "#d2d9f4",
-            "on-primary-container": "#fdfcff",
-            "surface-container-highest": "#dae2fd",
-            "surface-container-low": "#f2f3ff",
-            "on-secondary-fixed": "#00164e",
-            "outline": "#707881",
-            "secondary": "#4059aa",
-            "on-primary": "#ffffff",
-            "on-primary-fixed": "#001d31",
-            "primary": "#006194",
-            "surface-variant": "#dae2fd",
-            "on-tertiary-fixed-variant": "#6e3900",
-            "surface-bright": "#faf8ff",
-            "error-container": "#ffdad6",
-            "surface-container-high": "#e2e7ff",
-            "background": "#faf8ff",
-            "on-secondary-fixed-variant": "#264191",
-            "inverse-primary": "#93ccff",
-            "surface-tint": "#006398",
-            "surface-container-lowest": "#ffffff",
-            "primary-container": "#007bb9",
-            "inverse-on-surface": "#eef0ff",
-            "on-tertiary-fixed": "#2f1500",
-            "on-surface": "#131b2e",
-            "on-surface-variant": "#3f4850",
-            "tertiary-fixed-dim": "#ffb77d",
-            "tertiary-container": "#b15f00",
-            "on-primary-fixed-variant": "#004b73",
-            "on-error": "#ffffff",
-            "surface-container": "#eaedff",
-            "primary-fixed-dim": "#93ccff",
-            "surface": "#faf8ff",
-            "primary-fixed": "#cce5ff",
-            "on-background": "#131b2e",
-            "secondary-fixed-dim": "#b6c4ff",
-            "outline-variant": "#bfc7d2",
-            "on-secondary": "#ffffff",
-            "tertiary": "#8d4b00",
-            "on-tertiary-container": "#fffbff",
-            "on-secondary-container": "#1d3989",
-            "tertiary-fixed": "#ffdcc3",
-            "secondary-fixed": "#dce1ff",
-            "secondary-container": "#8fa7fe",
-            "inverse-surface": "#1a2238",
-            "on-error-container": "#93000a"
-          },
-          borderRadius: {
-            "DEFAULT": "0.25rem",
-            "lg": "0.5rem",
-            "xl": "0.75rem",
-            "2xl": "1rem",
-            "3xl": "1.5rem",
-            "full": "9999px"
-          },
-          spacing: {
-            "gutter-dense": "1rem",
-            "space-xs": "0.25rem",
-            "space-xl": "2.5rem",
-            "space-md": "1rem",
-            "margin": "2rem",
-            "space-sm": "0.5rem",
-            "gutter": "1.5rem",
-            "margin-mobile": "1rem",
-            "space-lg": "1.5rem"
-          },
-          fontFamily: {
-            "sans": ["Plus Jakarta Sans", "sans-serif"],
-            "label-md": ["Plus Jakarta Sans", "sans-serif"],
-            "label-sm": ["Plus Jakarta Sans", "sans-serif"],
-            "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
-            "headline-md": ["Plus Jakarta Sans", "sans-serif"],
-            "title-md": ["Plus Jakarta Sans", "sans-serif"],
-            "display-hero-mobile": ["Plus Jakarta Sans", "sans-serif"],
-            "body-sm": ["Plus Jakarta Sans", "sans-serif"],
-            "title-sm": ["Plus Jakarta Sans", "sans-serif"],
-            "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
-            "caption": ["Plus Jakarta Sans", "sans-serif"],
-            "body-lg": ["Plus Jakarta Sans", "sans-serif"],
-            "body-md": ["Plus Jakarta Sans", "sans-serif"],
-            "display-hero": ["Plus Jakarta Sans", "sans-serif"],
-            "headline-sm": ["Plus Jakarta Sans", "sans-serif"],
-            "kanji": ["Noto Serif JP", "serif"]
-          }
-        }
-      }
-    };
-  </script>
+  <script src="/js/tailwind-theme.js"></script>
 
-  <!-- Base & Home Styles (aligned with portal pages like tutor-discovery) -->
   <style type="text/tailwindcss">
     @layer base {
       html, body {
         margin: 0;
         padding: 0;
-        font-family: "Plus Jakarta Sans", sans-serif;
       }
       body {
         overscroll-behavior: none;
-      }
-      main > :first-child {
-        margin-top: 0 !important;
-      }
-      main > :last-child {
-        margin-bottom: 0 !important;
       }
     }
   </style>
@@ -142,600 +40,472 @@
       font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
 
-    /* Hiện dần khi cuộn: chỉ ẩn khi JS đã bật (html.js-reveal) để trang vẫn hiển thị nếu JS lỗi */
+    /* Thẻ bấm được: nổi nhẹ khi hover */
+    .home-lift {
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+    }
+    .home-lift:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(15, 23, 42, 0.08);
+    }
+
     .js-reveal .reveal {
       opacity: 0;
-      transform: translateY(28px);
-      transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1);
+      transform: translateY(16px);
+      transition: opacity 400ms cubic-bezier(0.16, 1, 0.3, 1), transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .js-reveal .reveal.is-visible { opacity: 1; transform: none; }
-    .js-reveal .reveal-d1 { transition-delay: .1s; }
-    .js-reveal .reveal-d2 { transition-delay: .2s; }
-    .js-reveal .reveal-d3 { transition-delay: .3s; }
-
-    .home-lift { transition: transform .3s ease, box-shadow .3s ease, background-color .3s ease, border-color .3s ease; }
-    .home-lift:hover { transform: translateY(-6px); box-shadow: 0 22px 40px -18px rgba(15, 37, 69, .28); }
-
-    @keyframes home-float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-14px) scale(1.04); } }
-    .home-blob { animation: home-float 9s ease-in-out infinite; }
-    .home-blob-alt { animation-duration: 12s; animation-direction: reverse; }
-
-    @keyframes home-kenburns { from { transform: scale(1); } to { transform: scale(1.1); } }
-    .home-kenburns { animation: home-kenburns 22s ease-in-out infinite alternate; }
+    .js-reveal .reveal.is-visible {
+      opacity: 1;
+      transform: none;
+    }
+    .js-reveal .reveal-d1 { transition-delay: 80ms; }
+    .js-reveal .reveal-d2 { transition-delay: 160ms; }
+    .js-reveal .reveal-d3 { transition-delay: 240ms; }
 
     @media (prefers-reduced-motion: reduce) {
       .js-reveal .reveal { opacity: 1; transform: none; transition: none; }
-      .home-blob, .home-kenburns { animation: none; }
       .home-lift:hover { transform: none; }
-    }
-
-    .home-washi-grid {
-      background-image: radial-gradient(rgba(15, 37, 69, 0.08) 1px, transparent 1px);
-      background-size: 18px 18px;
-    }
-
-    .home-hero-backdrop {
-      background:
-        radial-gradient(circle at 86% 18%, rgba(254, 205, 211, 0.42) 0%, transparent 42%),
-        radial-gradient(circle at 14% 72%, rgba(186, 230, 253, 0.36) 0%, transparent 46%),
-        linear-gradient(180deg, #faf5ea 0%, #fcfbf7 100%);
     }
   </style>
 </head>
-<body class="bg-[#fcfbf7] font-body-md text-on-surface antialiased min-h-screen flex flex-col selection:bg-primary-fixed selection:text-primary">
+<body class="bg-surface text-fg font-sans antialiased min-h-screen flex flex-col selection:bg-primary-light selection:text-primary">
 
   <!-- Header dùng chung (Nạp tự động từ /components/header/header.html) -->
   <div id="header-placeholder"></div>
 
-  <!-- MAIN CONTENT -->
-  <main class="w-full pt-20 bg-[#fcfbf7] flex-1 overflow-x-hidden">
-    <div class="flex flex-col w-full">
+  <main class="w-full pt-20 bg-surface flex-1 overflow-x-hidden">
 
-      <!-- 1. HERO: tiêu đề căn giữa + 4 nhu cầu + thanh tìm kiếm ngang -->
-      <section class="relative w-full overflow-hidden bg-[#0f2545]">
-        <img src="/assets/images/home/fuji-sakura.jpg"
-             alt="Núi Phú Sĩ và chùa Chureito giữa mùa hoa anh đào"
-             class="home-kenburns absolute inset-0 w-full h-full object-cover object-center"
-             fetchpriority="high">
-        <div class="absolute inset-0 bg-gradient-to-b from-[#0f2545]/80 via-[#0f2545]/60 to-[#0f2545]/85"></div>
-        <span class="home-blob absolute -top-16 -left-16 w-64 h-64 rounded-full bg-sky-400/20 blur-3xl" aria-hidden="true"></span>
-        <span class="home-blob home-blob-alt absolute -bottom-20 -right-10 w-72 h-72 rounded-full bg-rose-300/20 blur-3xl" aria-hidden="true"></span>
+    <!-- ① HERO: ảnh lớp học tràn ngang, chữ trắng trên lớp phủ navy -->
+    <section class="relative w-full bg-navy overflow-hidden">
+      <img src="/assets/images/home/hero-classroom.jpg"
+           alt="Cô giáo hướng dẫn học viên học bảng chữ cái Hiragana trong lớp"
+           class="absolute inset-0 w-full h-full object-cover object-[75%_center]">
+      <div class="absolute inset-0 bg-gradient-to-r from-navy via-navy/85 to-navy/20" aria-hidden="true"></div>
 
-        <div class="relative max-w-[1100px] mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
-          <div class="reveal inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur">
-            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span class="text-xs font-semibold text-white">Gia sư xác thực JLPT • Kết nối trực tiếp</span>
-          </div>
-
-          <h1 class="reveal reveal-d1 mt-5 text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.15] max-w-3xl mx-auto">
-            Tìm gia sư tiếng Nhật theo <span class="text-sky-300">mục tiêu và lịch học</span> của bạn
-          </h1>
-          <p class="reveal reveal-d2 mt-4 text-sm sm:text-base text-slate-200 max-w-2xl mx-auto leading-relaxed">
-            Xem hồ sơ, học phí, lịch rảnh rồi nhắn trực tiếp gia sư. Học viên không mất phí kết nối.
+      <div class="relative max-w-[1240px] mx-auto px-4 sm:px-6 py-16 sm:py-20 lg:py-24">
+        <div class="max-w-2xl space-y-6">
+          <p class="reveal inline-flex flex-wrap items-center gap-x-2 gap-y-1 px-3.5 py-1.5 rounded-full bg-white/15 text-on-dark text-caption font-semibold backdrop-blur">
+            <span class="material-symbols-outlined text-[16px] text-accent" aria-hidden="true">verified</span>
+            <span id="heroTutorBadgeTitle">Gia sư tiếng Nhật 1-kèm-1</span>
+            <span aria-hidden="true">·</span>
+            <span id="heroTutorBadgeSubtitle" class="font-normal text-white/80">Xác thực JLPT bởi Cán bộ học vụ</span>
           </p>
 
-          <!-- 4 nhu cầu học -->
-          <div class="reveal reveal-d2 mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
-            <a href="/tutors?goal=kaiwa" class="home-lift group flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur text-white">
-              <span class="material-symbols-outlined text-[26px] text-sky-300">record_voice_over</span>
-              <span class="text-xs sm:text-sm font-semibold">Giao tiếp Kaiwa</span>
-            </a>
-            <a href="/tutors?goal=jlpt" class="home-lift group flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur text-white">
-              <span class="material-symbols-outlined text-[26px] text-rose-300">workspace_premium</span>
-              <span class="text-xs sm:text-sm font-semibold">Luyện thi JLPT</span>
-            </a>
-            <a href="/tutors?goal=business" class="home-lift group flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur text-white">
-              <span class="material-symbols-outlined text-[26px] text-amber-300">work</span>
-              <span class="text-xs sm:text-sm font-semibold">Tiếng Nhật công việc</span>
-            </a>
-            <a href="/tutors?goal=eju" class="home-lift group flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur text-white">
-              <span class="material-symbols-outlined text-[26px] text-emerald-300">school</span>
-              <span class="text-xs sm:text-sm font-semibold">Du học &amp; EJU</span>
-            </a>
-          </div>
+          <h1 class="reveal reveal-d1 text-display-3 sm:text-display-2 lg:text-display-1 font-extrabold text-on-dark">
+            Tìm đúng gia sư tiếng Nhật, <span class="text-accent">chinh phục mục tiêu</span> của bạn
+          </h1>
 
-          <!-- Thanh tìm kiếm ngang -->
-          <div class="reveal reveal-d3 mt-8 bg-white rounded-2xl p-3 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)] grid grid-cols-1 md:grid-cols-[1fr_1fr_1.4fr_auto] gap-2 text-left">
-            <div class="flex flex-col px-2">
-              <label for="home-filter-jlpt" class="text-[11px] font-semibold text-slate-500 pt-1">Trình độ JLPT</label>
-              <select id="home-filter-jlpt" class="h-10 px-0 border-0 bg-transparent text-sm font-semibold text-[#0f2545] focus:ring-0">
-                <option value="">Tất cả (N5 – N1)</option>
-                <option value="N5">Sơ cấp N5</option>
-                <option value="N4">Cơ bản N4</option>
-                <option value="N3">Trung cấp N3</option>
-                <option value="N2">Trung cao cấp N2</option>
-                <option value="N1">Cao cấp N1</option>
-              </select>
-            </div>
-            <div class="flex flex-col px-2 md:border-l border-slate-200">
-              <label for="home-filter-format" class="text-[11px] font-semibold text-slate-500 pt-1">Hình thức học</label>
-              <select id="home-filter-format" class="h-10 px-0 border-0 bg-transparent text-sm font-semibold text-[#0f2545] focus:ring-0">
-                <option value="">Tất cả</option>
-                <option value="online">Online 1-1</option>
-                <option value="offline">Học trực tiếp</option>
-                <option value="hybrid">Kết hợp linh hoạt</option>
-              </select>
-            </div>
-            <div class="flex flex-col px-2 md:border-l border-slate-200">
-              <label for="home-filter-keyword" class="text-[11px] font-semibold text-slate-500 pt-1">Từ khóa / Khu vực</label>
-              <input id="home-filter-keyword" type="search" maxlength="80"
-                     placeholder="Vd: Kaiwa, N2, Hà Nội, tên gia sư..."
-                     class="h-10 px-0 border-0 bg-transparent text-sm font-medium text-[#0f2545] focus:ring-0">
-            </div>
-            <a id="home-search-btn" href="/tutors" class="h-12 md:h-auto px-7 rounded-xl bg-primary hover:bg-primary-container text-white font-bold text-sm shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
-              <span class="material-symbols-outlined text-[20px]">search</span>
-              <span>Tìm gia sư</span>
+          <p class="reveal reveal-d1 text-lead text-white/85 max-w-xl">
+            Kết nối trực tiếp với đội ngũ gia sư đã được xác thực chứng chỉ JLPT và năng lực sư phạm. Học 1-kèm-1 theo lộ trình riêng, kèm bộ công cụ luyện Kanji, ngữ pháp và Flashcards ngay trên hệ thống.
+          </p>
+
+          <div class="reveal reveal-d2 flex flex-wrap gap-3 pt-2">
+            <a href="/tutors" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-element bg-primary hover:bg-primary-hover text-on-primary font-semibold text-body shadow-high transition-colors duration-fast">
+              <span>Tìm gia sư ngay</span>
+              <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
+            </a>
+            <a href="/register" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-element border border-white/60 hover:bg-white/10 text-on-dark font-semibold text-body transition-colors duration-fast">
+              <span>Trở thành gia sư</span>
             </a>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- 2. GIA SƯ TIÊU BIỂU (dữ liệu API thật) -->
-      <section class="w-full py-16 sm:py-20 bg-[#fcfbf7] scroll-mt-24" id="kham-pha-gia-su">
-        <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
-          <div class="reveal text-center max-w-2xl mx-auto mb-10">
-            <h2 class="text-2xl md:text-4xl font-extrabold text-[#0f2545]">Học theo cách của riêng bạn</h2>
-            <p class="text-sm md:text-base text-on-surface-variant mt-3">
-              Hồ sơ công khai được cán bộ học vụ kiểm duyệt văn bằng JLPT, bài đăng giảng dạy và lịch rảnh trước khi hiển thị.
+
+    <!-- ② KIZUNATUTOR CUNG CẤP GÌ: 3 cột minh hoạ (linh vật capybara) -->
+    <section class="w-full py-16 sm:py-20 bg-surface">
+      <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+
+        <h2 class="reveal text-center text-heading-1 sm:text-display-3 text-navy mb-12 sm:mb-16">Xem KizunaTutor cung cấp những gì</h2>
+
+        <ul class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+          <li class="reveal flex flex-col items-center text-center">
+            <div class="relative w-56 h-56 mb-8">
+              <span class="absolute inset-0 rounded-full bg-primary-light" aria-hidden="true"></span>
+              <img src="/assets/images/home/offer-happy-capi.png" alt="Linh vật capybara samurai vui vẻ chào học viên" class="relative w-full h-full object-contain mix-blend-multiply rounded-full" loading="lazy">
+              <span class="absolute top-4 -left-2 w-12 h-12 rounded-full bg-accent text-on-accent flex items-center justify-center shadow-low" aria-hidden="true"><span class="material-symbols-outlined text-[24px]">forum</span></span>
+              <span class="absolute bottom-6 -right-2 w-11 h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-low" aria-hidden="true"><span class="material-symbols-outlined text-[22px]">verified</span></span>
+            </div>
+            <h3 class="text-heading-2 text-navy">Học 1 kèm 1 với gia sư</h3>
+            <p class="text-body text-fg-muted mt-2 max-w-xs">Gia sư tiếng Nhật đã xác thực JLPT, dạy theo lộ trình riêng của bạn, online hoặc trực tiếp.</p>
+            <a href="/tutors" class="mt-4 inline-flex items-center gap-1 text-body font-semibold text-primary hover:underline">Tìm gia sư của tôi <span class="material-symbols-outlined text-[18px]" aria-hidden="true">chevron_right</span></a>
+          </li>
+
+          <li class="reveal reveal-d1 flex flex-col items-center text-center">
+            <div class="relative w-56 h-56 mb-8">
+              <span class="absolute inset-0 rounded-full bg-accent-light" aria-hidden="true"></span>
+              <img src="/assets/images/home/offer-thinking-capi.png" alt="Linh vật capybara samurai đang suy nghĩ khi luyện tập" class="relative w-full h-full object-contain mix-blend-multiply rounded-full" loading="lazy">
+              <span class="absolute top-4 -right-2 w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-low" aria-hidden="true"><span class="material-symbols-outlined text-[24px]">brush</span></span>
+              <span class="absolute bottom-6 -left-2 w-11 h-11 rounded-full bg-success text-on-dark flex items-center justify-center shadow-low" aria-hidden="true"><span class="material-symbols-outlined text-[22px]">style</span></span>
+            </div>
+            <h3 class="text-heading-2 text-navy">Luyện tập mỗi ngày</h3>
+            <p class="text-body text-fg-muted mt-2 max-w-xs">8 công cụ luyện Kanji, ngữ pháp, Flashcards và chữa câu bằng AI giúp bạn tự ôn giữa các buổi học.</p>
+            <a href="#cong-cu-hoc-tap" class="mt-4 inline-flex items-center gap-1 text-body font-semibold text-primary hover:underline">Xem công cụ học tập <span class="material-symbols-outlined text-[18px]" aria-hidden="true">chevron_right</span></a>
+          </li>
+
+          <li class="reveal reveal-d2 flex flex-col items-center text-center">
+            <div class="relative w-56 h-56 mb-8">
+              <span class="absolute inset-0 rounded-full bg-success-muted" aria-hidden="true"></span>
+              <img src="/assets/images/home/offer-thumbs-up-capi.png" alt="Linh vật capybara samurai giơ ngón cái khích lệ gia sư" class="relative w-full h-full object-contain mix-blend-multiply rounded-full" loading="lazy">
+              <span class="absolute top-4 -left-2 w-12 h-12 rounded-full bg-navy text-on-dark flex items-center justify-center shadow-low" aria-hidden="true"><span class="material-symbols-outlined text-[24px]">school</span></span>
+              <span class="absolute bottom-6 -right-2 w-11 h-11 rounded-full bg-accent text-on-accent flex items-center justify-center shadow-low" aria-hidden="true"><span class="material-symbols-outlined text-[22px]">calendar_month</span></span>
+            </div>
+            <h3 class="text-heading-2 text-navy">Trở thành gia sư</h3>
+            <p class="text-body text-fg-muted mt-2 max-w-xs">Chia sẻ kiến thức tiếng Nhật, tự đặt học phí và lịch dạy, kết nối trực tiếp với học viên.</p>
+            <a href="/register" class="mt-4 inline-flex items-center gap-1 text-body font-semibold text-primary hover:underline">Đăng ký làm gia sư <span class="material-symbols-outlined text-[18px]" aria-hidden="true">chevron_right</span></a>
+          </li>
+        </ul>
+
+      </div>
+    </section>
+
+
+    <!-- ②b KHÔNG GIAN HỖ TRỢ HỌC TẬP: 8 công cụ luyện tập có sẵn trên hệ thống -->
+    <section class="w-full py-16 sm:py-20 bg-surface border-t border-line scroll-mt-24" id="cong-cu-hoc-tap">
+      <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+
+        <div class="reveal text-center max-w-2xl mx-auto mb-10">
+          <p class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-light text-navy text-caption font-semibold mb-3">
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">auto_awesome</span>
+            <span>Học cùng gia sư, luyện tập mỗi ngày</span>
+          </p>
+          <h2 class="text-heading-1 sm:text-display-3 text-navy">Không gian hỗ trợ học tập</h2>
+          <p class="text-lead text-fg-muted mt-2">
+            Ngoài giờ học với gia sư, bạn tự luyện tiếp với 8 công cụ tiếng Nhật được tích hợp sẵn trên KizunaTutor.
+          </p>
+        </div>
+
+        <ul class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <li class="reveal"><a href="/shodo" class="home-lift group h-full flex flex-col gap-3 p-5 bg-card rounded-container border border-line shadow-low hover:border-primary">
+            <span class="w-12 h-12 rounded-element bg-primary-light text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[26px]" aria-hidden="true">brush</span></span>
+            <span class="text-heading-4 text-navy group-hover:text-primary">Phòng luyện viết Shodo</span>
+            <span class="text-caption text-fg-muted">Tập viết chữ Hán theo thứ tự nét, AI chấm từng nét vẽ.</span>
+          </a></li>
+          <li class="reveal reveal-d1"><a href="/handwriting" class="home-lift group h-full flex flex-col gap-3 p-5 bg-card rounded-container border border-line shadow-low hover:border-primary">
+            <span class="w-12 h-12 rounded-element bg-primary-light text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[26px]" aria-hidden="true">draw</span></span>
+            <span class="text-heading-4 text-navy group-hover:text-primary">Tra chữ Hán viết tay</span>
+            <span class="text-caption text-fg-muted">Vẽ chữ không biết cách đọc, AI nhận diện và tra nghĩa.</span>
+          </a></li>
+          <li class="reveal reveal-d2"><a href="/kanji-dictionary" class="home-lift group h-full flex flex-col gap-3 p-5 bg-card rounded-container border border-line shadow-low hover:border-primary">
+            <span class="w-12 h-12 rounded-element bg-primary-light text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[26px]" aria-hidden="true">auto_stories</span></span>
+            <span class="text-heading-4 text-navy group-hover:text-primary">Từ điển Kanji</span>
+            <span class="text-caption text-fg-muted">Âm On/Kun, âm Hán Việt, số nét và ví dụ theo cấp JLPT.</span>
+          </a></li>
+          <li class="reveal reveal-d3"><a href="/grammar" class="home-lift group h-full flex flex-col gap-3 p-5 bg-card rounded-container border border-line shadow-low hover:border-primary">
+            <span class="w-12 h-12 rounded-element bg-primary-light text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[26px]" aria-hidden="true">menu_book</span></span>
+            <span class="text-heading-4 text-navy group-hover:text-primary">Ngữ pháp &amp; AI Sensei</span>
+            <span class="text-caption text-fg-muted">Cẩm nang mẫu ngữ pháp N5 – N1, hỏi thêm AI khi chưa hiểu.</span>
+          </a></li>
+          <li class="reveal"><a href="/ai-writing" class="home-lift group h-full flex flex-col gap-3 p-5 bg-card rounded-container border border-line shadow-low hover:border-primary">
+            <span class="w-12 h-12 rounded-element bg-primary-light text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[26px]" aria-hidden="true">edit_note</span></span>
+            <span class="text-heading-4 text-navy group-hover:text-primary">Chữa câu viết bằng AI</span>
+            <span class="text-caption text-fg-muted">Viết đoạn Sakubun, nhận gợi ý sửa lỗi và câu tự nhiên hơn.</span>
+          </a></li>
+          <li class="reveal reveal-d1"><a href="/flashcards" class="home-lift group h-full flex flex-col gap-3 p-5 bg-card rounded-container border border-line shadow-low hover:border-primary">
+            <span class="w-12 h-12 rounded-element bg-primary-light text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[26px]" aria-hidden="true">style</span></span>
+            <span class="text-heading-4 text-navy group-hover:text-primary">Bộ thẻ Flashcards</span>
+            <span class="text-caption text-fg-muted">Tạo bộ thẻ từ vựng riêng, lật thẻ và chơi ghép cặp để nhớ lâu.</span>
+          </a></li>
+          <li class="reveal reveal-d2"><a href="/kana" class="home-lift group h-full flex flex-col gap-3 p-5 bg-card rounded-container border border-line shadow-low hover:border-primary">
+            <span class="w-12 h-12 rounded-element bg-primary-light text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[26px]" aria-hidden="true">keyboard</span></span>
+            <span class="text-heading-4 text-navy group-hover:text-primary">Đấu trường Kana</span>
+            <span class="text-caption text-fg-muted">Luyện nhận mặt Hiragana, Katakana qua lượt gõ tính giờ.</span>
+          </a></li>
+          <li class="reveal reveal-d3"><a href="/kanji-game" class="home-lift group h-full flex flex-col gap-3 p-5 bg-card rounded-container border border-line shadow-low hover:border-primary">
+            <span class="w-12 h-12 rounded-element bg-primary-light text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[26px]" aria-hidden="true">sports_esports</span></span>
+            <span class="text-heading-4 text-navy group-hover:text-primary">Game Mưa chữ Hán</span>
+            <span class="text-caption text-fg-muted">Gõ cách đọc trước khi chữ Hán rơi chạm đất, ôn bài mà như chơi.</span>
+          </a></li>
+        </ul>
+
+        <div class="reveal mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
+          <p class="inline-flex items-center gap-2 text-body text-fg-muted">
+            <span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">lock_open</span>
+            Công cụ được mở khi bạn kết nối với gia sư và được thêm vào lớp học.
+          </p>
+          <a href="/tutors" class="inline-flex items-center gap-1 text-body font-semibold text-primary hover:underline">
+            Tìm gia sư để bắt đầu
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ③ GIA SƯ NỔI BẬT (dữ liệu API thật qua home.js) -->
+    <section class="w-full py-16 sm:py-20 bg-surface-muted scroll-mt-24" id="kham-pha-gia-su">
+      <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+
+        <div class="reveal text-center max-w-2xl mx-auto mb-10">
+          <h2 class="text-heading-1 sm:text-display-3 text-navy">Gia sư nổi bật</h2>
+          <p class="text-lead text-fg-muted mt-2">
+            Kết nối theo nhu cầu, thời gian, hình thức học và trình độ JLPT.
+          </p>
+        </div>
+
+        <div id="featured-tutors-grid" class="w-full"></div>
+
+        <div class="reveal text-center mt-10">
+          <a href="/tutors" class="inline-flex items-center gap-2 px-6 py-3 rounded-element bg-primary hover:bg-primary-hover text-on-primary text-body font-semibold transition-colors duration-fast">
+            <span>Khám phá các gia sư</span>
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ④ VÌ SAO CHỌN KIZUNA: thẻ trắng, icon tròn nổi trên mép -->
+    <section class="w-full py-16 sm:py-20 bg-surface">
+      <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+
+        <div class="reveal text-center max-w-2xl mx-auto mb-16">
+          <h2 class="text-heading-1 sm:text-display-3 text-navy">Tại sao chọn KizunaTutor?</h2>
+          <p class="text-lead text-fg-muted mt-2">
+            Nền tảng kết nối trực tiếp giúp học viên tối ưu hoá lộ trình học tiếng Nhật và đạt hiệu quả cao nhất.
+          </p>
+        </div>
+
+        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-14">
+          <li class="reveal relative bg-card rounded-container shadow-med border border-line px-6 pt-14 pb-7 text-center">
+            <span class="absolute -top-9 left-1/2 -translate-x-1/2 w-[72px] h-[72px] rounded-full bg-primary text-on-primary flex items-center justify-center ring-8 ring-surface">
+              <span class="material-symbols-outlined text-[34px]" aria-hidden="true">verified_user</span>
+            </span>
+            <h3 class="text-heading-3 text-navy">Gia sư được xác minh</h3>
+            <p class="text-body text-fg-muted mt-2">
+              Cán bộ học vụ trực tiếp đối soát chứng chỉ JLPT N1-N2, bằng cấp sư phạm và kinh nghiệm trước khi hiển thị hồ sơ.
             </p>
-            <p id="featured-tutors-note" class="text-xs font-medium text-[#64748B] mt-2">Đang tải danh sách gia sư thực tế</p>
-          </div>
+          </li>
+          <li class="reveal reveal-d1 relative bg-card rounded-container shadow-med border border-line px-6 pt-14 pb-7 text-center">
+            <span class="absolute -top-9 left-1/2 -translate-x-1/2 w-[72px] h-[72px] rounded-full bg-accent text-on-dark flex items-center justify-center ring-8 ring-surface">
+              <span class="material-symbols-outlined text-[34px]" aria-hidden="true">manage_search</span>
+            </span>
+            <h3 class="text-heading-3 text-navy">Tìm kiếm gia sư phù hợp</h3>
+            <p class="text-body text-fg-muted mt-2">
+              Bộ lọc theo trình độ, mục tiêu học tập, mức học phí và lịch rảnh giúp bạn nhanh chóng chọn đúng người đồng hành.
+            </p>
+          </li>
+          <li class="reveal reveal-d2 relative bg-card rounded-container shadow-med border border-line px-6 pt-14 pb-7 text-center">
+            <span class="absolute -top-9 left-1/2 -translate-x-1/2 w-[72px] h-[72px] rounded-full bg-navy text-on-dark flex items-center justify-center ring-8 ring-surface">
+              <span class="material-symbols-outlined text-[34px]" aria-hidden="true">handshake</span>
+            </span>
+            <h3 class="text-heading-3 text-navy">Kết nối trực tiếp với gia sư</h3>
+            <p class="text-body text-fg-muted mt-2">
+              Trao đổi và thoả thuận lộ trình trực tiếp, thanh toán theo từng buổi học, không thu phí hoa hồng hay ràng buộc hợp đồng.
+            </p>
+          </li>
+          <li class="reveal reveal-d3 relative bg-card rounded-container shadow-med border border-line px-6 pt-14 pb-7 text-center">
+            <span class="absolute -top-9 left-1/2 -translate-x-1/2 w-[72px] h-[72px] rounded-full bg-success text-on-dark flex items-center justify-center ring-8 ring-surface">
+              <span class="material-symbols-outlined text-[34px]" aria-hidden="true">school</span>
+            </span>
+            <h3 class="text-heading-3 text-navy">Hỗ trợ học tập trên hệ thống</h3>
+            <p class="text-body text-fg-muted mt-2">
+              Tích hợp phòng luyện viết Shodo, tra cứu chữ Hán viết tay, cẩm nang ngữ pháp và bộ thẻ Flashcards.
+            </p>
+          </li>
+        </ul>
 
-          <div id="featured-tutors-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"></div>
+      </div>
+    </section>
 
-          <div class="text-center mt-8">
-            <a class="inline-flex items-center gap-1.5 px-6 py-3 rounded-full bg-white border border-[#e5decb] hover:border-primary hover:shadow-md text-sm font-bold text-primary transition-all" href="/tutors">
-              <span>Khám phá các gia sư</span>
-              <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-            </a>
-          </div>
+
+    <!-- ⑤ CHƯƠNG TRÌNH THEO MỤC TIÊU -->
+    <section class="w-full py-16 sm:py-20 bg-surface-muted scroll-mt-24" id="chuyen-de">
+      <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+
+        <div class="reveal text-center max-w-2xl mx-auto mb-10">
+          <h2 class="text-heading-1 sm:text-display-3 text-navy">Học tiếng Nhật theo mục tiêu</h2>
+          <p class="text-lead text-fg-muted mt-2">
+            Chọn mục tiêu để hệ thống lọc danh sách gia sư có kinh nghiệm chuyên sâu tương ứng.
+          </p>
         </div>
-      </section>
 
-      <!-- 3. VÌ SAO CHỌN KIZUNATUTOR -->
-      <section class="w-full py-16 sm:py-20 bg-white">
-        <div class="max-w-[1240px] mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div class="reveal relative flex justify-center">
-            <span class="home-blob absolute inset-6 rounded-[40%] bg-gradient-to-br from-sky-100 to-rose-100" aria-hidden="true"></span>
-            <img src="/assets/images/stickers/happy-capi.png" alt="Linh vật Capi vui vẻ" loading="lazy" class="relative w-64 sm:w-80 h-auto object-contain">
-          </div>
-          <div>
-            <h2 class="reveal text-2xl md:text-4xl font-extrabold text-[#0f2545]">Vì sao chọn KizunaTutor?</h2>
-            <ul class="mt-6 space-y-3.5 text-sm sm:text-base text-[#3f4850]">
-              <li class="reveal flex items-start gap-3"><span class="material-symbols-outlined filled text-emerald-600 text-[22px] shrink-0">check_circle</span><span>Gia sư được cán bộ học vụ thẩm định chứng chỉ JLPT trước khi công khai</span></li>
-              <li class="reveal reveal-d1 flex items-start gap-3"><span class="material-symbols-outlined filled text-emerald-600 text-[22px] shrink-0">check_circle</span><span>Đánh giá thực tế từ học viên trước hiển thị ngay trên hồ sơ</span></li>
-              <li class="reveal reveal-d1 flex items-start gap-3"><span class="material-symbols-outlined filled text-emerald-600 text-[22px] shrink-0">check_circle</span><span>Học online 1-1 hoặc học trực tiếp tại khu vực phù hợp</span></li>
-              <li class="reveal reveal-d2 flex items-start gap-3"><span class="material-symbols-outlined filled text-emerald-600 text-[22px] shrink-0">check_circle</span><span>Lịch rảnh và học phí tham khảo rõ ràng trước khi kết nối</span></li>
-              <li class="reveal reveal-d2 flex items-start gap-3"><span class="material-symbols-outlined filled text-emerald-600 text-[22px] shrink-0">check_circle</span><span>Kho Kanji, Flashcards và AI luyện tập khi vào lớp cùng gia sư</span></li>
-              <li class="reveal reveal-d3 flex items-start gap-3"><span class="material-symbols-outlined filled text-emerald-600 text-[22px] shrink-0">check_circle</span><span>Đội ngũ hỗ trợ tiếp nhận phản hồi từ 8:00 – 22:00</span></li>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <a href="/tutors?goal=jlpt" class="reveal home-lift group bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+            <span class="h-28 bg-primary flex items-center justify-between px-5">
+              <span class="material-symbols-outlined text-[44px] text-on-primary" aria-hidden="true">workspace_premium</span>
+              <span class="font-kanji text-[40px] text-white/30" aria-hidden="true">試験</span>
+            </span>
+            <span class="p-5 flex-1 flex flex-col">
+              <span class="text-heading-3 text-navy group-hover:text-primary">Luyện thi JLPT</span>
+              <span class="text-body text-fg-muted mt-2 flex-1">Củng cố ngữ pháp, rèn đọc hiểu và chiến thuật giải đề các cấp độ từ N5 đến N1.</span>
+              <span class="mt-4 pt-4 border-t border-line inline-flex items-center gap-1 text-body font-semibold text-primary">Tìm gia sư JLPT <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform duration-fast" aria-hidden="true">arrow_forward</span></span>
+            </span>
+          </a>
+          <a href="/tutors?goal=kaiwa" class="reveal reveal-d1 home-lift group bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+            <span class="h-28 bg-accent flex items-center justify-between px-5">
+              <span class="material-symbols-outlined text-[44px] text-on-dark" aria-hidden="true">record_voice_over</span>
+              <span class="font-kanji text-[40px] text-white/40" aria-hidden="true">会話</span>
+            </span>
+            <span class="p-5 flex-1 flex flex-col">
+              <span class="text-heading-3 text-navy group-hover:text-primary">Giao tiếp tiếng Nhật</span>
+              <span class="text-body text-fg-muted mt-2 flex-1">Luyện phản xạ hội thoại Kaiwa, chỉnh phát âm và khẩu hình chuẩn người bản xứ.</span>
+              <span class="mt-4 pt-4 border-t border-line inline-flex items-center gap-1 text-body font-semibold text-primary">Tìm gia sư Kaiwa <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform duration-fast" aria-hidden="true">arrow_forward</span></span>
+            </span>
+          </a>
+          <a href="/tutors?goal=business" class="reveal reveal-d2 home-lift group bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+            <span class="h-28 bg-navy flex items-center justify-between px-5">
+              <span class="material-symbols-outlined text-[44px] text-on-dark" aria-hidden="true">work</span>
+              <span class="font-kanji text-[40px] text-white/25" aria-hidden="true">仕事</span>
+            </span>
+            <span class="p-5 flex-1 flex flex-col">
+              <span class="text-heading-3 text-navy group-hover:text-primary">Tiếng Nhật công việc</span>
+              <span class="text-body text-fg-muted mt-2 flex-1">Thực hành kính ngữ Keigo, email doanh nghiệp và mô phỏng phỏng vấn xin việc.</span>
+              <span class="mt-4 pt-4 border-t border-line inline-flex items-center gap-1 text-body font-semibold text-primary">Tìm gia sư công việc <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform duration-fast" aria-hidden="true">arrow_forward</span></span>
+            </span>
+          </a>
+          <a href="/tutors?goal=beginner" class="reveal reveal-d3 home-lift group bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+            <span class="h-28 bg-success flex items-center justify-between px-5">
+              <span class="material-symbols-outlined text-[44px] text-on-dark" aria-hidden="true">draw</span>
+              <span class="font-kanji text-[40px] text-white/30" aria-hidden="true">あいう</span>
+            </span>
+            <span class="p-5 flex-1 flex flex-col">
+              <span class="text-heading-3 text-navy group-hover:text-primary">Học tiếng Nhật từ đầu</span>
+              <span class="text-body text-fg-muted mt-2 flex-1">Bắt đầu vững chắc từ Hiragana/Katakana, ngữ pháp vỡ lòng và phát âm chuẩn.</span>
+              <span class="mt-4 pt-4 border-t border-line inline-flex items-center gap-1 text-body font-semibold text-primary">Tìm gia sư vỡ lòng <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform duration-fast" aria-hidden="true">arrow_forward</span></span>
+            </span>
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ⑥ 3 BƯỚC: thẻ xanh đậm chữ trắng, số tròn vàng nổi trên mép -->
+    <section class="w-full py-16 sm:py-20 bg-surface scroll-mt-24" id="cach-hoat-dong">
+      <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+
+        <div class="reveal text-center max-w-2xl mx-auto mb-16">
+          <h2 class="text-heading-1 sm:text-display-3 text-navy">Bắt đầu chỉ với 3 bước</h2>
+          <p class="text-lead text-fg-muted mt-2">
+            Quy trình kết nối minh bạch, nhanh chóng và không qua trung gian phức tạp.
+          </p>
+        </div>
+
+        <ol class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-14">
+          <li class="reveal relative bg-card border border-line rounded-container px-7 pt-14 pb-8 text-fg shadow-med">
+            <span class="absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-accent text-navy text-heading-1 font-extrabold flex items-center justify-center ring-8 ring-surface">1</span>
+            <h3 class="text-heading-2 text-center">Tìm kiếm gia sư</h3>
+            <ul class="text-body text-fg-muted mt-4 space-y-2">
+              <li class="flex items-start gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Chọn trình độ và mục tiêu học tập.</span></li>
+              <li class="flex items-start gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Khám phá hồ sơ gia sư phù hợp với thời gian rảnh và ngân sách của bạn.</span></li>
+            </ul>
+            <a href="/tutors" class="mt-6 inline-flex items-center gap-1 text-body font-semibold text-primary hover:underline">Khám phá gia sư <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span></a>
+          </li>
+          <li class="reveal reveal-d1 relative bg-card border border-line rounded-container px-7 pt-14 pb-8 text-fg shadow-med">
+            <span class="absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-accent text-navy text-heading-1 font-extrabold flex items-center justify-center ring-8 ring-surface">2</span>
+            <h3 class="text-heading-2 text-center">Kết nối với gia sư</h3>
+            <ul class="text-body text-fg-muted mt-4 space-y-2">
+              <li class="flex items-start gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Gửi yêu cầu kết nối hoàn toàn miễn phí.</span></li>
+              <li class="flex items-start gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Trao đổi với gia sư thông qua hệ thống về mục tiêu và tài liệu học.</span></li>
+            </ul>
+            <a href="/pages/connection-requests/" class="mt-6 inline-flex items-center gap-1 text-body font-semibold text-primary hover:underline">Theo dõi yêu cầu <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span></a>
+          </li>
+          <li class="reveal reveal-d2 relative bg-card border border-line rounded-container px-7 pt-14 pb-8 text-fg shadow-med">
+            <span class="absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-accent text-navy text-heading-1 font-extrabold flex items-center justify-center ring-8 ring-surface">3</span>
+            <h3 class="text-heading-2 text-center">Bắt đầu học tập</h3>
+            <ul class="text-body text-fg-muted mt-4 space-y-2">
+              <li class="flex items-start gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Gia sư chấp nhận kết nối và thống nhất lịch học.</span></li>
+              <li class="flex items-start gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Học viên được cấp quyền truy cập Learning Space.</span></li>
+              <li class="flex items-start gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Bắt đầu sử dụng các công cụ hỗ trợ học tập và luyện tập.</span></li>
+            </ul>
+            <a href="/tutors" class="mt-6 inline-flex items-center gap-1 text-body font-semibold text-primary hover:underline">Bắt đầu ngay <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span></a>
+          </li>
+        </ol>
+
+      </div>
+    </section>
+
+
+    <!-- ⑦ TRỞ THÀNH GIA SƯ: dải navy -->
+    <section class="w-full py-16 sm:py-20 bg-surface-muted scroll-mt-24" id="tro-thanh-gia-su">
+      <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+        <div class="reveal bg-card border border-line shadow-med rounded-page p-8 sm:p-12 space-y-6 text-fg">
+
+          <div class="space-y-4">
+            <p class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-on-accent text-caption font-semibold">
+              <span class="material-symbols-outlined text-[16px]" aria-hidden="true">school</span>
+              <span>Cộng đồng gia sư Kizuna</span>
+            </p>
+            <h2 class="text-heading-1 sm:text-display-3">Bạn muốn trở thành gia sư tiếng Nhật?</h2>
+            <p class="text-lead text-fg-muted max-w-2xl">
+              Chia sẻ kiến thức, kết nối với học viên và phát triển hoạt động giảng dạy của bạn cùng KizunaTutor.
+            </p>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 text-body">
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]" aria-hidden="true">check_circle</span><span>Tự do thiết lập học phí theo từng buổi học</span></li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]" aria-hidden="true">check_circle</span><span>Chủ động sắp xếp lịch dạy theo tuần</span></li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]" aria-hidden="true">check_circle</span><span>Xác thực văn bằng uy tín bởi Cán bộ học vụ</span></li>
             </ul>
           </div>
-        </div>
-      </section>
 
-      <!-- 4. HAI HÌNH THỨC HỌC -->
-      <section class="w-full py-16 sm:py-20 bg-[#fcfbf7]">
-        <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
-          <div class="reveal text-center max-w-2xl mx-auto mb-10">
-            <h2 class="text-2xl md:text-4xl font-extrabold text-[#0f2545]">Tìm đúng gia sư. Học đúng cách.</h2>
-            <p class="text-sm md:text-base text-on-surface-variant mt-3">Chọn hình thức học hợp với lịch sinh hoạt và mục tiêu của bạn.</p>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="reveal home-lift bg-white rounded-3xl p-7 sm:p-8 border border-[#e5decb] shadow-sm flex flex-col gap-4">
-              <div class="flex items-center justify-between">
-                <span class="w-12 h-12 rounded-2xl bg-sky-50 text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[26px]">laptop_chromebook</span></span>
-                <span class="px-3 py-1 rounded-full bg-sky-50 text-primary text-xs font-bold">Linh hoạt</span>
-              </div>
-              <h3 class="text-xl font-bold text-[#0f2545]">Học online 1-1</h3>
-              <p class="text-sm text-on-surface-variant leading-relaxed">Học mọi lúc mọi nơi qua buổi học trực tuyến, phù hợp khi lịch bận hoặc ở xa gia sư.</p>
-              <a href="/tutors?format=online" class="mt-auto self-start inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-sm font-semibold transition-colors">
-                <span>Tìm gia sư online</span><span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </a>
-            </div>
-            <div class="reveal reveal-d1 home-lift bg-white rounded-3xl p-7 sm:p-8 border border-[#e5decb] shadow-sm flex flex-col gap-4">
-              <div class="flex items-center justify-between">
-                <span class="w-12 h-12 rounded-2xl bg-rose-50 text-[#9F1239] flex items-center justify-center"><span class="material-symbols-outlined text-[26px]">location_on</span></span>
-                <span class="px-3 py-1 rounded-full bg-rose-50 text-[#9F1239] text-xs font-bold">Tận nơi</span>
-              </div>
-              <h3 class="text-xl font-bold text-[#0f2545]">Học trực tiếp</h3>
-              <p class="text-sm text-on-surface-variant leading-relaxed">Gặp gia sư tại khu vực đã thống nhất, phù hợp khi cần kèm sát và luyện phản xạ trực tiếp.</p>
-              <a href="/tutors?format=offline" class="mt-auto self-start inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0f2545] hover:bg-[#18355c] text-white text-sm font-semibold transition-colors">
-                <span>Tìm gia sư trực tiếp</span><span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 5. KHỐI CHỮ / ẢNH XEN KẼ -->
-      <section class="w-full py-16 sm:py-20 bg-white">
-        <div class="max-w-[1240px] mx-auto px-4 sm:px-6 space-y-16">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div class="reveal">
-              <h2 class="text-2xl md:text-3xl font-extrabold text-[#0f2545]">Khi nào nên học online?</h2>
-              <p class="mt-4 text-sm font-bold text-primary">Phù hợp khi</p>
-              <ul class="mt-3 space-y-2.5 text-sm sm:text-base text-[#3f4850]">
-                <li class="flex items-start gap-3"><span class="material-symbols-outlined text-primary text-[20px] shrink-0">arrow_right</span><span>Lịch học, lịch làm thay đổi liên tục</span></li>
-                <li class="flex items-start gap-3"><span class="material-symbols-outlined text-primary text-[20px] shrink-0">arrow_right</span><span>Bạn ở xa thành phố hoặc đang ở Nhật</span></li>
-                <li class="flex items-start gap-3"><span class="material-symbols-outlined text-primary text-[20px] shrink-0">arrow_right</span><span>Muốn ôn luyện đề JLPT theo từng kỹ năng</span></li>
-                <li class="flex items-start gap-3"><span class="material-symbols-outlined text-primary text-[20px] shrink-0">arrow_right</span><span>Cần buổi học ngắn, đều đặn mỗi tuần</span></li>
-              </ul>
-              <a href="/tutors?format=online" class="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-sm font-semibold transition-colors">
-                <span>Xem gia sư online</span><span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </a>
-            </div>
-            <div class="reveal reveal-d1 relative flex justify-center">
-              <span class="home-blob absolute inset-8 rounded-[45%] bg-sky-100" aria-hidden="true"></span>
-              <img src="/assets/images/stickers/thinking-capi.png" alt="Linh vật Capi đang suy nghĩ" loading="lazy" class="relative w-56 sm:w-72 h-auto object-contain">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div class="reveal relative flex justify-center lg:order-1 order-2">
-              <span class="home-blob home-blob-alt absolute inset-8 rounded-[45%] bg-rose-100" aria-hidden="true"></span>
-              <img src="/assets/images/stickers/thumbs-up-capi.png" alt="Linh vật Capi giơ ngón cái" loading="lazy" class="relative w-56 sm:w-72 h-auto object-contain">
-            </div>
-            <div class="reveal reveal-d1 lg:order-2 order-1">
-              <h2 class="text-2xl md:text-3xl font-extrabold text-[#0f2545]">Khi nào nên học trực tiếp?</h2>
-              <p class="mt-4 text-sm font-bold text-[#9F1239]">Phù hợp khi</p>
-              <ul class="mt-3 space-y-2.5 text-sm sm:text-base text-[#3f4850]">
-                <li class="flex items-start gap-3"><span class="material-symbols-outlined text-[#9F1239] text-[20px] shrink-0">arrow_right</span><span>Mới bắt đầu, cần gia sư kèm sát cách viết Kana, Kanji</span></li>
-                <li class="flex items-start gap-3"><span class="material-symbols-outlined text-[#9F1239] text-[20px] shrink-0">arrow_right</span><span>Muốn luyện Kaiwa, phát âm có phản hồi tức thì</span></li>
-                <li class="flex items-start gap-3"><span class="material-symbols-outlined text-[#9F1239] text-[20px] shrink-0">arrow_right</span><span>Chuẩn bị phỏng vấn, cần mô phỏng tình huống thật</span></li>
-                <li class="flex items-start gap-3"><span class="material-symbols-outlined text-[#9F1239] text-[20px] shrink-0">arrow_right</span><span>Học tập trung tốt hơn khi gặp mặt</span></li>
-              </ul>
-              <a href="/tutors?format=offline" class="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0f2545] hover:bg-[#18355c] text-white text-sm font-semibold transition-colors">
-                <span>Xem gia sư trực tiếp</span><span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 6. DẢI TAGLINE -->
-      <section class="w-full py-14 sm:py-16 bg-gradient-to-r from-[#0f2545] via-[#18355c] to-[#006194] text-center text-white">
-        <div class="reveal max-w-3xl mx-auto px-4 sm:px-6">
-          <p class="text-sm sm:text-base font-semibold text-sky-200">Đúng mục tiêu. Đúng lịch học. Đúng gia sư.</p>
-          <h2 class="mt-2 text-2xl md:text-4xl font-extrabold">Gia sư phù hợp tạo nên sự khác biệt</h2>
-        </div>
-      </section>
-
-      <!-- 7. BẠN ĐANG CẦN HỖ TRỢ GÌ? + LỘ TRÌNH JLPT (#chuyen-de) -->
-      <section class="w-full py-16 sm:py-20 bg-[#fcfbf7] scroll-mt-24" id="chuyen-de">
-        <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
-          <div class="reveal text-center max-w-2xl mx-auto mb-10">
-            <h2 class="text-2xl md:text-4xl font-extrabold text-[#0f2545]">Bạn đang cần hỗ trợ gì?</h2>
-            <p class="text-sm md:text-base text-on-surface-variant mt-3">Dù mới bắt đầu Kana hay chuẩn bị phỏng vấn doanh nghiệp Nhật, chọn nhu cầu để xem gia sư phù hợp.</p>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
-            <a href="/tutors?goal=kaiwa" class="reveal home-lift group bg-white rounded-3xl p-6 border border-[#e5decb] shadow-sm flex flex-col gap-3">
-              <span class="w-14 h-14 rounded-2xl bg-sky-50 text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[28px]">record_voice_over</span></span>
-              <h3 class="font-bold text-lg text-[#0f2545] group-hover:text-primary transition-colors">Phản xạ Kaiwa</h3>
-              <p class="text-xs sm:text-sm text-on-surface-variant leading-relaxed">Luyện nghe nói theo tình huống đời sống và chỉnh ngữ điệu trực tiếp cùng gia sư.</p>
-              <span class="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-primary">Tìm gia sư <span class="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span></span>
-            </a>
-            <a href="/tutors?goal=jlpt" class="reveal reveal-d1 home-lift group bg-white rounded-3xl p-6 border border-[#e5decb] shadow-sm flex flex-col gap-3">
-              <span class="w-14 h-14 rounded-2xl bg-rose-50 text-[#9F1239] flex items-center justify-center"><span class="material-symbols-outlined text-[28px]">workspace_premium</span></span>
-              <h3 class="font-bold text-lg text-[#0f2545] group-hover:text-primary transition-colors">Luyện thi JLPT</h3>
-              <p class="text-xs sm:text-sm text-on-surface-variant leading-relaxed">Hệ thống hóa ngữ pháp, đọc hiểu và chiến lược làm bài thi N5–N1.</p>
-              <span class="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-primary">Tìm gia sư <span class="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span></span>
-            </a>
-            <a href="/tutors?goal=business" class="reveal reveal-d2 home-lift group bg-white rounded-3xl p-6 border border-[#e5decb] shadow-sm flex flex-col gap-3">
-              <span class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center"><span class="material-symbols-outlined text-[28px]">work</span></span>
-              <h3 class="font-bold text-lg text-[#0f2545] group-hover:text-primary transition-colors">Tiếng Nhật doanh nghiệp</h3>
-              <p class="text-xs sm:text-sm text-on-surface-variant leading-relaxed">Thực hành kính ngữ Keigo, viết email công việc và mô phỏng phỏng vấn.</p>
-              <span class="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-primary">Tìm gia sư <span class="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span></span>
-            </a>
-            <a href="/tutors?goal=eju" class="reveal reveal-d3 home-lift group bg-white rounded-3xl p-6 border border-[#e5decb] shadow-sm flex flex-col gap-3">
-              <span class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><span class="material-symbols-outlined text-[28px]">school</span></span>
-              <h3 class="font-bold text-lg text-[#0f2545] group-hover:text-primary transition-colors">Du học &amp; EJU</h3>
-              <p class="text-xs sm:text-sm text-on-surface-variant leading-relaxed">Ôn đọc hiểu, nghe hiểu và viết luận để chuẩn bị vào đại học Nhật Bản.</p>
-              <span class="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-primary">Tìm gia sư <span class="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span></span>
+          <div>
+            <a href="/register" class="inline-flex items-center gap-2 px-7 py-3.5 rounded-element bg-accent hover:bg-accent-hover text-on-accent font-bold text-body transition-colors duration-fast">
+              <span>Đăng ký trở thành gia sư</span>
+              <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
             </a>
           </div>
 
-          <!-- Lộ trình JLPT tương tác -->
-          <div class="reveal bg-white rounded-3xl p-6 sm:p-8 border border-[#e5decb] shadow-sm space-y-6">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <span class="text-xs font-bold text-[#9F1239] block mb-1">Lộ trình JLPT</span>
-                <h3 class="text-xl font-bold text-[#0f2545]">Chọn đúng mục tiêu từ N5 đến N1</h3>
-              </div>
-              <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Chọn cấp độ JLPT">
-                <button type="button" role="tab" aria-selected="false" data-jlpt-tab="N5" class="jlpt-roadmap-tab px-4 py-2 rounded-xl bg-white text-[#0F2545] border border-[#E5DECB] text-xs sm:text-sm font-semibold">N5</button>
-                <button type="button" role="tab" aria-selected="false" data-jlpt-tab="N4" class="jlpt-roadmap-tab px-4 py-2 rounded-xl bg-white text-[#0F2545] border border-[#E5DECB] text-xs sm:text-sm font-semibold">N4</button>
-                <button type="button" role="tab" aria-selected="true" data-jlpt-tab="N3" class="jlpt-roadmap-tab px-4 py-2 rounded-xl bg-[#006194] text-white text-xs sm:text-sm font-bold shadow-sm">N3</button>
-                <button type="button" role="tab" aria-selected="false" data-jlpt-tab="N2" class="jlpt-roadmap-tab px-4 py-2 rounded-xl bg-white text-[#0F2545] border border-[#E5DECB] text-xs sm:text-sm font-semibold">N2</button>
-                <button type="button" role="tab" aria-selected="false" data-jlpt-tab="N1" class="jlpt-roadmap-tab px-4 py-2 rounded-xl bg-white text-[#0F2545] border border-[#E5DECB] text-xs sm:text-sm font-semibold">N1</button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ⑧ CÂU HỎI THƯỜNG GẶP (căn giữa) -->
+    <section class="w-full py-16 sm:py-20 bg-surface scroll-mt-24" id="ho-tro">
+      <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+
+        <!-- Câu hỏi thường gặp (logic trong home.js) -->
+        <div class="max-w-3xl mx-auto">
+          <div class="reveal text-center mb-8">
+            <h2 class="text-heading-1 sm:text-display-3 text-navy">Câu hỏi thường gặp</h2>
+            <p class="text-lead text-fg-muted mt-2">Giải đáp nhanh trước khi bạn gửi yêu cầu kết nối hoặc đăng ký làm gia sư.</p>
+          </div>
+          <div id="home-faq-list" class="bg-card rounded-container border border-line shadow-low divide-y divide-line overflow-hidden">
+            <div data-faq-item>
+              <button type="button" data-faq-trigger aria-expanded="true" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-muted transition-colors duration-fast">
+                <span class="text-heading-4 text-fg">Tôi có mất phí khi tìm kiếm hoặc gửi yêu cầu kết nối gia sư không?</span>
+                <span data-faq-icon class="material-symbols-outlined text-[20px] text-primary transition-transform duration-fast rotate-180 shrink-0" aria-hidden="true">expand_more</span>
+              </button>
+              <div data-faq-panel class="px-5 pb-4 text-body text-fg-muted">
+                Học viên được tìm kiếm, lọc hồ sơ và gửi yêu cầu kết nối hoàn toàn miễn phí trên KizunaTutor.
               </div>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div class="lg:col-span-7 space-y-4">
-                <div class="flex items-center gap-3">
-                  <h4 id="jlpt-detail-title" class="text-lg sm:text-xl font-bold text-[#0F2545]">N3 — Cầu nối trung cấp &amp; Làm việc thực tế</h4>
-                  <span id="jlpt-detail-mark" class="px-3 py-1 rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] text-xs font-bold font-kanji shrink-0">中級 • N3</span>
-                </div>
-                <p id="jlpt-detail-summary" class="text-sm text-[#3f4850] leading-relaxed">
-                  Bước chuyển quan trọng từ tiếng Nhật sách giáo khoa sang đọc báo ngắn, nghe hiểu ý chính và giao tiếp công sở.
-                </p>
-                <div class="space-y-2 text-sm text-[#3f4850]">
-                  <div class="flex items-start gap-2">
-                    <span class="material-symbols-outlined text-emerald-600 text-[18px] shrink-0 mt-0.5">check_circle</span>
-                    <p><strong class="text-[#0F2545]">Năng lực đầu ra:</strong> <span id="jlpt-detail-outcome">Đủ nền tảng ứng tuyển các vị trí thực tập, kỹ sư IT hoặc du học bậc chuyên môn.</span></p>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">lightbulb</span>
-                    <p><strong class="text-[#0F2545]">Gợi ý phương pháp:</strong> <span id="jlpt-detail-focus">Ưu tiên gia sư luyện đề đọc hiểu N3 kết hợp sửa lỗi câu tự do Sakubun.</span></p>
-                  </div>
-                </div>
+            <div data-faq-item>
+              <button type="button" data-faq-trigger aria-expanded="false" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-muted transition-colors duration-fast">
+                <span class="text-heading-4 text-fg">Học phí được thống nhất và chi trả như thế nào?</span>
+                <span data-faq-icon class="material-symbols-outlined text-[20px] text-primary transition-transform duration-fast shrink-0" aria-hidden="true">expand_more</span>
+              </button>
+              <div data-faq-panel class="hidden px-5 pb-4 text-body text-fg-muted">
+                Mức học phí hiển thị trên hồ sơ là mức tham khảo do gia sư đề xuất. Nền tảng không thu hộ hay trích phần trăm học phí; bạn và gia sư chủ động trao đổi, thống nhất trực tiếp lịch học và hình thức chi trả phù hợp.
               </div>
-              <div class="lg:col-span-5 flex flex-col gap-3">
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="p-4 rounded-2xl bg-[#FAF8F2] border border-[#ece4d0]">
-                    <span class="text-[11px] font-semibold text-[#64748B] block">Mốc chữ Hán tham khảo</span>
-                    <span id="jlpt-detail-kanji" class="text-sm font-bold text-[#0F2545] mt-0.5 block">Khoảng 650 chữ Hán</span>
-                  </div>
-                  <div class="p-4 rounded-2xl bg-[#FAF8F2] border border-[#ece4d0]">
-                    <span class="text-[11px] font-semibold text-[#64748B] block">Mốc từ vựng tham khảo</span>
-                    <span id="jlpt-detail-vocab" class="text-sm font-bold text-[#0F2545] mt-0.5 block">Khoảng 3.700 từ vựng</span>
-                  </div>
-                </div>
-                <div class="flex flex-wrap items-center gap-3">
-                  <a id="jlpt-detail-tutor-btn" href="/tutors?goal=jlpt_n3" class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-xs sm:text-sm font-semibold inline-flex items-center gap-1.5 shadow-sm transition-colors">
-                    <span data-tutor-cta-text>Tìm gia sư luyện N3</span>
-                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                  </a>
-                  <a id="jlpt-detail-tool-btn" href="/grammar" class="px-5 py-2.5 rounded-xl bg-white hover:bg-[#f2ecdf] text-[#0F2545] border border-[#dcd4c0] text-xs sm:text-sm font-semibold inline-flex items-center gap-1.5 transition-colors">
-                    <span class="material-symbols-outlined text-[16px] text-[#9F1239]">auto_stories</span>
-                    <span data-tool-cta-text>Tra cẩm nang ngữ pháp</span>
-                  </a>
-                </div>
+            </div>
+            <div data-faq-item>
+              <button type="button" data-faq-trigger aria-expanded="false" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-muted transition-colors duration-fast">
+                <span class="text-heading-4 text-fg">Hồ sơ gia sư được xác thực những thông tin gì?</span>
+                <span data-faq-icon class="material-symbols-outlined text-[20px] text-primary transition-transform duration-fast shrink-0" aria-hidden="true">expand_more</span>
+              </button>
+              <div data-faq-panel class="hidden px-5 pb-4 text-body text-fg-muted">
+                Cán bộ học vụ kiểm duyệt minh chứng bằng cấp JLPT, kinh nghiệm giảng dạy và nội dung bài đăng trước khi hồ sơ gia sư được phép hiển thị công khai trên hệ thống.
+              </div>
+            </div>
+            <div data-faq-item>
+              <button type="button" data-faq-trigger aria-expanded="false" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-muted transition-colors duration-fast">
+                <span class="text-heading-4 text-fg">Tôi chưa tìm gia sư ngay thì có sử dụng được kho luyện viết Kanji và Flashcards không?</span>
+                <span data-faq-icon class="material-symbols-outlined text-[20px] text-primary transition-transform duration-fast shrink-0" aria-hidden="true">expand_more</span>
+              </button>
+              <div data-faq-panel class="hidden px-5 pb-4 text-body text-fg-muted">
+                Các công cụ tự học như Từ điển Kanji, Phòng luyện viết Shodo, Tra chữ viết tay AI, Đấu trường Kana và Bộ thẻ Flashcards sẽ được mở khi bạn kết nối với gia sư và được thêm vào lớp học.
               </div>
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- 6. HOW KIZUNATUTOR WORKS (#cach-hoat-dong) -->
-      <section class="w-full py-14 sm:py-16 bg-[#fcfbf7] scroll-mt-24" id="cach-hoat-dong">
-        <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
-          <div class="reveal text-center max-w-2xl mx-auto mb-12">
-            <span class="text-xs font-bold text-primary block mb-1">Quy trình tinh giản</span>
-            <h2 class="text-2xl md:text-3xl font-bold text-[#0f2545]">Cách KizunaTutor hoạt động</h2>
-            <p class="text-sm md:text-base text-on-surface-variant mt-2 leading-relaxed">
-              Không trung gian rườm rà. Học viên và gia sư chủ động kết nối, kiểm chứng năng lực và thống nhất lộ trình học rõ ràng.
-            </p>
-          </div>
+      </div>
+    </section>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-            <div class="reveal home-lift bg-white rounded-2xl p-6 border border-[#e5decb] shadow-sm relative space-y-3">
-              <span class="font-kanji font-bold text-3xl text-primary/20 absolute top-5 right-5 select-none">01</span>
-              <div class="w-10 h-10 rounded-xl bg-sky-50 text-primary flex items-center justify-center border border-sky-100">
-                <span class="material-symbols-outlined text-[22px]">search</span>
-              </div>
-              <h3 class="font-bold text-base text-[#0f2545]">Tìm kiếm theo tiêu chí</h3>
-              <p class="text-xs text-on-surface-variant leading-relaxed">
-                Lọc gia sư theo trình độ JLPT, mục tiêu học tập, hình thức Online/trực tiếp, khung giờ rảnh và mức học phí dự kiến.
-              </p>
-            </div>
-
-            <div class="reveal home-lift bg-white rounded-2xl p-6 border border-[#e5decb] shadow-sm relative space-y-3">
-              <span class="font-kanji font-bold text-3xl text-primary/20 absolute top-5 right-5 select-none">02</span>
-              <div class="w-10 h-10 rounded-xl bg-sky-50 text-primary flex items-center justify-center border border-sky-100">
-                <span class="material-symbols-outlined text-[22px]">verified</span>
-              </div>
-              <h3 class="font-bold text-base text-[#0f2545]">Xem hồ sơ đã xác thực</h3>
-              <p class="text-xs text-on-surface-variant leading-relaxed">
-                Kiểm tra chứng chỉ JLPT, kinh nghiệm giảng dạy, đánh giá thực tế từ học viên trước và khu vực giảng dạy an toàn.
-              </p>
-            </div>
-
-            <div class="reveal home-lift bg-white rounded-2xl p-6 border border-[#e5decb] shadow-sm relative space-y-3">
-              <span class="font-kanji font-bold text-3xl text-primary/20 absolute top-5 right-5 select-none">03</span>
-              <div class="w-10 h-10 rounded-xl bg-sky-50 text-primary flex items-center justify-center border border-sky-100">
-                <span class="material-symbols-outlined text-[22px]">event_available</span>
-              </div>
-              <h3 class="font-bold text-base text-[#0f2545]">Gửi yêu cầu &amp; Làm quen</h3>
-              <p class="text-xs text-on-surface-variant leading-relaxed">
-                Gửi yêu cầu kết nối hoặc đặt buổi gặp mặt làm quen để trao đổi trình độ hiện tại, giáo trình và kỳ vọng trước khi học.
-              </p>
-            </div>
-
-            <div class="reveal home-lift bg-white rounded-2xl p-6 border border-[#e5decb] shadow-sm relative space-y-3">
-              <span class="font-kanji font-bold text-3xl text-primary/20 absolute top-5 right-5 select-none">04</span>
-              <div class="w-10 h-10 rounded-xl bg-sky-50 text-primary flex items-center justify-center border border-sky-100">
-                <span class="material-symbols-outlined text-[22px]">school</span>
-              </div>
-              <h3 class="font-bold text-base text-[#0f2545]">Đồng hành 1-1 mỗi ngày</h3>
-              <p class="text-xs text-on-surface-variant leading-relaxed">
-                Chủ động thống nhất lịch học và học phí trực tiếp với gia sư, kết hợp kho tự luyện Kanji, Flashcard và AI giữa các buổi học.
-              </p>
-            </div>
-          </div>
-
-          <!-- 3 Operational Trust Pillars -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="flex items-center gap-3 p-4 rounded-2xl bg-white border border-[#e8dfcb] text-xs text-[#0f2545] shadow-sm">
-              <span class="material-symbols-outlined text-emerald-600 text-[22px] shrink-0">verified_user</span>
-              <span><strong class="block">Kiểm duyệt hồ sơ chặt chẽ</strong>Chứng chỉ của gia sư được cán bộ học vụ thẩm định trước khi công khai.</span>
-            </div>
-            <div class="flex items-center gap-3 p-4 rounded-2xl bg-white border border-[#e8dfcb] text-xs text-[#0f2545] shadow-sm">
-              <span class="material-symbols-outlined text-primary text-[22px] shrink-0">handshake</span>
-              <span><strong class="block">Chủ động thỏa thuận minh bạch</strong>Học viên và gia sư trao đổi trực tiếp, không thu phí trung gian học phí.</span>
-            </div>
-            <div class="flex items-center gap-3 p-4 rounded-2xl bg-white border border-[#e8dfcb] text-xs text-[#0f2545] shadow-sm">
-              <span class="material-symbols-outlined text-amber-600 text-[22px] shrink-0">support_agent</span>
-              <span><strong class="block">Hỗ trợ kết nối tận tâm</strong>Đội ngũ chăm sóc khách hàng sẵn sàng tiếp nhận phản hồi từ 8:00 – 22:00.</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 7. DUAL CTA SECTION (#tro-thanh-gia-su) -->
-      <section class="w-full py-14 sm:py-16 bg-white border-t border-[#ece4d0] scroll-mt-24" id="tro-thanh-gia-su">
-        <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Left Card: Dành cho Người học -->
-            <div class="reveal home-lift bg-gradient-to-br from-[#faf6ee] to-white rounded-3xl p-7 sm:p-8 border border-[#e2d9c4] shadow-md flex flex-col justify-between space-y-6">
-              <div class="space-y-4">
-                <span class="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold text-xs inline-block">
-                  Dành cho người học
-                </span>
-                <h3 class="text-2xl font-bold text-[#0f2545]">
-                  Bạn muốn bứt phá tiếng Nhật?
-                </h3>
-                <p class="text-sm text-on-surface-variant leading-relaxed">
-                  Đừng để nỗi sợ ngữ pháp hay chữ Hán cản bước bạn. Hãy chọn gia sư phù hợp để tự tin giao tiếp và đạt mục tiêu JLPT đúng hạn.
-                </p>
-                <ul class="space-y-2.5 text-xs sm:text-sm text-on-surface pt-1">
-                  <li class="flex items-center gap-2.5">
-                    <span class="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
-                    <span>Miễn phí tìm kiếm và gửi yêu cầu kết nối tới gia sư</span>
-                  </li>
-                  <li class="flex items-center gap-2.5">
-                    <span class="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
-                    <span>Xem rõ chứng chỉ JLPT, lịch dạy rảnh và khu vực giảng dạy</span>
-                  </li>
-                  <li class="flex items-center gap-2.5">
-                    <span class="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
-                    <span>Sử dụng miễn phí kho luyện viết Shodo, Flashcards và ngữ pháp</span>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <a class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary-container font-semibold text-sm shadow-sm transition-all" href="/tutors">
-                  <span>Bắt đầu tìm gia sư</span>
-                  <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                </a>
-              </div>
-            </div>
-
-            <!-- Right Card: Dành cho Gia sư -->
-            <div class="reveal reveal-d1 home-lift bg-gradient-to-br from-[#0f2545] to-[#18355c] rounded-3xl p-7 sm:p-8 text-white shadow-xl flex flex-col justify-between space-y-6">
-              <div class="space-y-4">
-                <span class="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 font-bold text-xs inline-block border border-amber-300/30">
-                  Dành cho gia sư
-                </span>
-                <h3 class="text-2xl font-bold text-white">
-                  Bạn có chuyên môn và muốn đồng hành giảng dạy?
-                </h3>
-                <p class="text-sm text-slate-300 leading-relaxed">
-                  Tham gia mạng lưới gia sư tiếng Nhật được xác thực uy tín, tự do thiết lập học phí mong muốn và quản lý lịch dạy chủ động.
-                </p>
-                <ul class="space-y-2.5 text-xs sm:text-sm text-slate-200 pt-1">
-                  <li class="flex items-center gap-2.5">
-                    <span class="material-symbols-outlined text-amber-400 text-[18px]">check_circle</span>
-                    <span>Nhận 100% học phí đã thống nhất trực tiếp cùng học viên</span>
-                  </li>
-                  <li class="flex items-center gap-2.5">
-                    <span class="material-symbols-outlined text-amber-400 text-[18px]">check_circle</span>
-                    <span>Tự do thiết lập giáo án, khu vực dạy và lịch rảnh theo tuần</span>
-                  </li>
-                  <li class="flex items-center gap-2.5">
-                    <span class="material-symbols-outlined text-amber-400 text-[18px]">check_circle</span>
-                    <span>Xây dựng hồ sơ uy tín với huy hiệu xác thực từ cán bộ học vụ</span>
-                  </li>
-                  <li class="flex items-center gap-2.5">
-                    <span class="material-symbols-outlined text-amber-400 text-[18px]">check_circle</span>
-                    <span>Quản lý lớp học, bài tập và tiến độ học viên tập trung</span>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <a class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-[#0f2545] font-bold text-sm shadow-md transition-all" href="/register">
-                  <span>Đăng ký làm gia sư</span>
-                  <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 8. QUICK SUPPORT & FAQ (#ho-tro) -->
-      <section class="w-full py-14 sm:py-16 bg-[#fcfbf7] border-t border-[#ece4d0] scroll-mt-24" id="ho-tro">
-        <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div class="lg:col-span-5 space-y-5">
-              <div>
-                <span class="text-xs font-bold text-primary block mb-1">Giải đáp nhanh</span>
-                <h2 class="text-2xl font-bold text-[#0f2545]">Câu hỏi thường gặp &amp; Hỗ trợ</h2>
-                <p class="text-sm text-on-surface-variant mt-1.5 leading-relaxed">
-                  Tổng hợp nhanh các thắc mắc phổ biến trước khi bạn gửi yêu cầu kết nối hoặc ứng tuyển trở thành gia sư.
-                </p>
-              </div>
-
-              <div class="bg-white rounded-2xl p-5 border border-[#e5decb] shadow-sm space-y-3">
-                <div class="flex items-center gap-3">
-                  <span class="w-10 h-10 rounded-xl bg-sky-50 text-primary flex items-center justify-center shrink-0">
-                    <span class="material-symbols-outlined text-[20px]">support_agent</span>
-                  </span>
-                  <div>
-                    <p class="text-xs font-bold text-[#0f2545]">Tổng đài hỗ trợ KizunaTutor</p>
-                    <p class="text-sm font-bold text-primary">1900 6886 <span class="text-xs font-medium text-[#64748B]">(8:00 – 22:00)</span></p>
-                  </div>
-                </div>
-                <div class="pt-3 border-t border-[#f0ebe0] flex flex-wrap gap-2.5">
-                  <a href="/pages/connection-requests/" class="px-3.5 py-2 rounded-xl bg-[#FAF8F2] hover:bg-[#F1ECE0] border border-[#e2d9c4] text-xs font-semibold text-[#0f2545] inline-flex items-center gap-1.5 transition-colors">
-                    <span class="material-symbols-outlined text-[15px] text-primary">receipt_long</span>
-                    <span>Theo dõi yêu cầu đã gửi</span>
-                  </a>
-                  <a href="/learner/policies" class="px-3.5 py-2 rounded-xl bg-[#FAF8F2] hover:bg-[#F1ECE0] border border-[#e2d9c4] text-xs font-semibold text-[#0f2545] inline-flex items-center gap-1.5 transition-colors">
-                    <span class="material-symbols-outlined text-[15px] text-primary">policy</span>
-                    <span>Xem quy định nền tảng</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div id="home-faq-list" class="lg:col-span-7 space-y-3">
-              <div data-faq-item class="bg-white rounded-2xl border border-[#e5decb] shadow-sm overflow-hidden">
-                <button type="button" data-faq-trigger aria-expanded="true" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 cursor-pointer">
-                  <span class="text-sm font-bold text-[#0f2545]">Tôi có mất phí khi tìm kiếm hoặc gửi yêu cầu kết nối gia sư không?</span>
-                  <span data-faq-icon class="material-symbols-outlined text-[20px] text-primary transition-transform rotate-180 shrink-0">expand_more</span>
-                </button>
-                <div data-faq-panel class="px-5 pb-4 text-xs sm:text-sm text-[#3f4850] leading-relaxed border-t border-[#f3eee3] pt-3">
-                  Học viên được tìm kiếm, lọc hồ sơ và gửi yêu cầu kết nối hoàn toàn miễn phí trên KizunaTutor.
-                </div>
-              </div>
-
-              <div data-faq-item class="bg-white rounded-2xl border border-[#e5decb] shadow-sm overflow-hidden">
-                <button type="button" data-faq-trigger aria-expanded="false" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 cursor-pointer">
-                  <span class="text-sm font-bold text-[#0f2545]">Học phí được thống nhất và chi trả như thế nào?</span>
-                  <span data-faq-icon class="material-symbols-outlined text-[20px] text-primary transition-transform shrink-0">expand_more</span>
-                </button>
-                <div data-faq-panel class="hidden px-5 pb-4 text-xs sm:text-sm text-[#3f4850] leading-relaxed border-t border-[#f3eee3] pt-3">
-                  Mức học phí hiển thị trên hồ sơ là mức tham khảo do gia sư đề xuất. Nền tảng không thu hộ hay trích phần trăm học phí; bạn và gia sư chủ động trao đổi, thống nhất trực tiếp lịch học và hình thức chi trả phù hợp.
-                </div>
-              </div>
-
-              <div data-faq-item class="bg-white rounded-2xl border border-[#e5decb] shadow-sm overflow-hidden">
-                <button type="button" data-faq-trigger aria-expanded="false" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 cursor-pointer">
-                  <span class="text-sm font-bold text-[#0f2545]">Hồ sơ gia sư được xác thực những thông tin gì?</span>
-                  <span data-faq-icon class="material-symbols-outlined text-[20px] text-primary transition-transform shrink-0">expand_more</span>
-                </button>
-                <div data-faq-panel class="hidden px-5 pb-4 text-xs sm:text-sm text-[#3f4850] leading-relaxed border-t border-[#f3eee3] pt-3">
-                  Cán bộ học vụ kiểm duyệt minh chứng bằng cấp JLPT, kinh nghiệm giảng dạy và nội dung bài đăng trước khi hồ sơ gia sư được phép hiển thị công khai trên hệ thống.
-                </div>
-              </div>
-
-              <div data-faq-item class="bg-white rounded-2xl border border-[#e5decb] shadow-sm overflow-hidden">
-                <button type="button" data-faq-trigger aria-expanded="false" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 cursor-pointer">
-                  <span class="text-sm font-bold text-[#0f2545]">Tôi chưa tìm gia sư ngay thì có sử dụng được kho luyện viết Kanji và Flashcards không?</span>
-                  <span data-faq-icon class="material-symbols-outlined text-[20px] text-primary transition-transform shrink-0">expand_more</span>
-                </button>
-                <div data-faq-panel class="hidden px-5 pb-4 text-xs sm:text-sm text-[#3f4850] leading-relaxed border-t border-[#f3eee3] pt-3">
-                  Chưa. Các công cụ tự học như Từ điển Kanji, Phòng luyện viết Shodo, Tra chữ viết tay AI, Đấu trường Kana và Bộ thẻ Flashcards sẽ được mở khi bạn kết nối với gia sư và được thêm vào lớp học.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-    </div>
   </main>
 
   <!-- Footer dùng chung (Nạp tự động từ /components/footer/footer.html) -->

@@ -102,7 +102,7 @@ test('hợp đồng HTML/JS trang chủ tuân thủ component dùng chung, đầ
   assert.ok(!html.includes('Hanko Stamp'), 'Không hiển thị con dấu Hanko 絆 Kizuna trên banner trang chủ');
   assert.ok(!html.includes('Muốn tự ôn luyện?'), 'Không hiển thị thanh gợi ý Kho Kanji & AI miễn phí trong thẻ tìm kiếm nhanh');
   assert.ok(!html.includes('QUICK SEARCH DOCK'), 'Tìm kiếm nhanh nằm trong thẻ bên trái hero thay vì dock tách rời bên dưới');
-  for (const filterId of ['id="home-filter-keyword"', 'id="home-filter-jlpt"', 'id="home-filter-format"', 'id="home-search-btn"']) {
-    assert.ok(html.includes(filterId), `Thiếu trường tìm kiếm nhanh ${filterId} trong hero`);
-  }
+  // Ngay dưới hero là khối giới thiệu công cụ hỗ trợ học tập (đã thay khung tìm kiếm nhanh)
+  assert.ok(html.includes('id="cong-cu-hoc-tap"'), 'Thiếu khối Không gian hỗ trợ học tập trên trang chủ');
+  assert.ok(html.indexOf('id="cong-cu-hoc-tap"') < html.indexOf('id="kham-pha-gia-su"'), 'Khối công cụ học tập phải nằm trên Gia sư nổi bật');
 });

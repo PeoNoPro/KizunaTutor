@@ -44,7 +44,7 @@ function attachSupportGroups(link, labels, base) {
   attachNavGroup(link, labels.map((label, index) => ({label, href: base + '?group=' + index, current: onList && index === current})), 'supportNavItems', 'kizuna-support-nav-open', onList || location.pathname === '/pages/support-ticket/');
 }
 /** Các phần của trang Cấu hình hệ thống, mỗi phần là một mục con trên sidebar (tham số ?section=, mặc định phần đầu). */
-export const CONFIG_SECTIONS = [['ai', 'AI hỗ trợ học tập'], ['plans', 'Gói hội viên gia sư'], ['mail', 'Email gửi thư'], ['attachment', 'Giới hạn tệp đính kèm']];
+export const CONFIG_SECTIONS = [['ai', 'AI hỗ trợ học tập'], ['plans', 'Gói hội viên gia sư'], ['mail', 'Email gửi thư'], ['attachment', 'Giới hạn tệp đính kèm'], ['storage', 'Lưu trữ đám mây']];
 export function currentConfigSection() {
   const requested = new URLSearchParams(location.search).get('section');
   return CONFIG_SECTIONS.some(([key]) => key === requested) ? requested : CONFIG_SECTIONS[0][0];

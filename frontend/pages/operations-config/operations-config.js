@@ -80,7 +80,7 @@ async function loadPlans() {
 
 async function load() {
     showSection();
-    const [data, sender, ai, history] = await Promise.all([api(PATH), api(SENDER_PATH), api(AI_PATH), api(base + '/settings/history?page=' + state.historyPage)]);
+    const [data, sender, ai, history, storage, copy] = await Promise.all([api(PATH), api(SENDER_PATH), api(AI_PATH), api(base + '/settings/history?page=' + state.historyPage), api(STORAGE_PATH), api(STORAGE_PATH + '/copy')]);
     state.version = data.version; state.current = data.maxMegabytes;
     byId('attachmentLimit').max = data.ceilingMegabytes;
     byId('attachmentCeiling').textContent = 'Từ 1 đến ' + data.ceilingMegabytes + ' MB.';
@@ -100,6 +100,7 @@ async function load() {
         ? 'Đang gửi bằng: ' + sender.senderEmail
         : 'Đang gửi bằng tài khoản thư của server' + (sender.senderEmail ? ' (' + sender.senderEmail + ')' : '') + '. Nhập email và mật khẩu ứng dụng để gửi bằng email của bạn.';
     renderAi(ai);
+    renderStorage(storage); renderCopy(copy);
     await loadPlans();
 
     byId('configHistory').replaceChildren();
@@ -268,11 +269,148 @@ async function togglePlan(plan) {
     });
 }
 
+async function testAi() {
+    const box = byId('aiTestResult'), button = byId('testAi');
+    const provider = byId('aiProvider').value;
+    const payload = {provider, model: byId('aiModel').value.trim(), apiKey: byId('aiApiKey').value.trim(), baseUrl: provider === 'CUSTOM' ? byId('aiBaseUrl').value.trim() : ''};
+    box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang gửi câu hỏi thử tới AI…'; button.disabled = true;
+    try {
+        showResult(box, await slowPost(AI_PATH + '/test', payload));
+    } catch (error) {
+        box.dataset.tone = 'danger'; box.textContent = '✗ ' + (error.name === 'TimeoutError' ? 'AI không phản hồi sau 45 giây.' : error.message);
+    } finally { button.disabled = false; }
+}
+
+// ----- Lưu trữ đám mây (chuẩn S3). Khóa không bao giờ hiện lại; để trống = giữ khóa đang dùng. -----
+const STORAGE_PATH = base + '/settings/cloud-storage';
+/** Gợi ý endpoint và vùng theo nhà cung cấp; Admin vẫn sửa được. */
+const STORAGE_HINTS = {
+    R2: {endpoint: 'https://<account-id>.r2.cloudflarestorage.com', region: 'auto', note: 'Cloudflare: R2 › Manage R2 API Tokens, tạo token quyền Object Read & Write. Account ID nằm trên trang tổng quan R2.'},
+    S3: {endpoint: 'https://s3.ap-southeast-1.amazonaws.com', region: 'ap-southeast-1', note: 'Amazon S3: IAM › Users › Security credentials › Create access key. Endpoint và vùng phải khớp vùng của bucket.'},
+    B2: {endpoint: 'https://s3.us-west-004.backblazeb2.com', region: 'us-west-004', note: 'Backblaze B2: App Keys › Add a New Application Key. Endpoint ghi ở trang chi tiết bucket.'},
+    WASABI: {endpoint: 'https://s3.ap-southeast-1.wasabisys.com', region: 'ap-southeast-1', note: 'Wasabi: Access Keys › Create new access key. Endpoint theo vùng của bucket.'},
+    OTHER: {endpoint: 'https://', region: 'auto', note: 'Dịch vụ bất kỳ hỗ trợ API chuẩn S3 (MinIO, DigitalOcean Spaces…). Nhập endpoint theo tài liệu của dịch vụ.'}
+};
+let storageDirty = false, copyTimer = null;
+
+function renderStorage(data) {
+    state.storage = data;
+    const select = byId('storageProvider');
+    if (!storageDirty) {
+        select.replaceChildren(...data.providers.map(item => { const option = text('option', item.label); option.value = item.code; return option; }));
+        select.value = data.provider; byId('storageEndpoint').value = data.endpoint; byId('storageRegion').value = data.region;
+        byId('storageBucket').value = data.bucket; byId('storageAccessKey').value = ''; byId('storageSecretKey').value = '';
+    }
+    const where = data.providerLabel + ' · bucket ' + data.bucket;
+    let current = !data.configured ? 'Chưa dùng lưu trữ đám mây: tệp đang lưu trên máy chủ.'
+        : data.source === 'server' ? 'Đang dùng: ' + where + ' (cấu hình server, biến môi trường R2_*).' : 'Đang dùng: ' + where + '.';
+    if (data.configured && !data.active) current += ' Cần khởi động lại backend một lần để bật lưu trữ đám mây.';
+    byId('storageCurrent').textContent = current;
+    const reset = byId('resetStorage');
+    reset.hidden = !(data.source === 'admin' && data.serverDefault);
+    reset.title = data.serverDefault ? 'Dùng lại ' + data.serverDefault + ' như lúc nhóm cài đặt (biến môi trường R2_*).' : '';
+    byId('storageCopyBox').hidden = !data.previous;
+    byId('storageCopyInfo').textContent = data.previous ? 'Kho trước đó: ' + data.previous + '. Tệp cũ vẫn nằm ở kho này; chép sang để hệ thống mở được trên kho mới. Không xóa gì ở kho cũ, tệp đã có thì bỏ qua.' : '';
+    syncStorageNote();
+}
+
+function syncStorageNote() {
+    const hint = STORAGE_HINTS[byId('storageProvider').value] || STORAGE_HINTS.OTHER;
+    byId('storageEndpoint').placeholder = hint.endpoint;
+    const has = state.storage?.configured;
+    byId('storageAccessKey').placeholder = has ? 'Đã có ' + state.storage.maskedAccessKey + ', để trống nếu giữ nguyên' : 'Dán access key ID';
+    byId('storageSecretKey').placeholder = has ? 'Để trống nếu giữ nguyên' : 'Dán secret access key';
+    byId('storageNote').textContent = hint.note + ' Đổi sang kho khác thì nhập khóa của kho mới.';
+}
+
+function storagePayload() {
+    return {provider: byId('storageProvider').value, endpoint: byId('storageEndpoint').value.trim(), region: byId('storageRegion').value.trim(),
+        bucket: byId('storageBucket').value.trim(), accessKey: byId('storageAccessKey').value.trim(), secretKey: byId('storageSecretKey').value.trim()};
+}
+
+async function testStorage() {
+    const box = byId('storageResult'), button = byId('testStorage');
+    box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang thử ghi, đọc và xóa một tệp nhỏ trên kho…'; button.disabled = true;
+    try { showResult(box, await slowPost(STORAGE_PATH + '/test', storagePayload())); }
+    catch (error) {
+        if (error.status === 401) throw error;
+        box.dataset.tone = 'danger'; box.textContent = '✗ ' + (error.name === 'TimeoutError' ? 'Kho lưu trữ không phản hồi sau 45 giây.' : error.message);
+    } finally { button.disabled = false; }
+}
+
+async function saveStorage() {
+    const payload = storagePayload(), box = byId('storageResult');
+    const label = state.storage.providers.find(item => item.code === payload.provider)?.label || payload.provider;
+    if (!confirm('Chuyển lưu trữ sang ' + label + ' · bucket ' + payload.bucket + '? Tệp tải lên từ giờ sẽ lưu ở kho này; tệp cũ cần chép sang bằng nút "Chép tệp sang kho mới".')) return;
+    const button = document.querySelector('#storageForm [type="submit"]'); if (button) button.disabled = true;
+    box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang thử kết nối kho mới và lưu…';
+    try { await slowPost(STORAGE_PATH, {...payload, expectedVersion: state.storage.version, reason: byId('storageReason').value}, 'PUT'); }
+    catch (error) {
+        if (error.status === 401) throw error;
+        box.dataset.tone = 'danger'; box.textContent = '✗ ' + (error.name === 'TimeoutError' ? 'Kho lưu trữ không phản hồi sau 45 giây. Chưa lưu cấu hình.' : error.message);
+        return;
+    } finally { if (button) button.disabled = false; }
+    storageDirty = false; byId('storageReason').value = ''; byId('storageAccessKey').value = ''; byId('storageSecretKey').value = '';
+    box.dataset.tone = 'success'; box.textContent = '✓ Đã lưu. Tệp tải lên từ giờ lưu ở ' + label + ' · ' + payload.bucket + '.';
+    showToast('Đã chuyển kho lưu trữ đám mây.', 'success');
+    refreshAfterSave();
+}
+
+async function resetStorage() {
+    const box = byId('storageResult'), reason = byId('storageReason').value.trim();
+    if (!reason) { box.hidden = false; box.dataset.tone = 'danger'; box.textContent = '✗ Vui lòng nhập lý do thay đổi.'; byId('storageReason').focus(); return; }
+    if (!confirm('Quay về kho mặc định ' + state.storage.serverDefault + '? Tệp tải lên trong thời gian dùng kho kia có thể chép về bằng nút "Chép tệp sang kho mới".')) return;
+    const button = byId('resetStorage'); button.disabled = true;
+    try { await slowPost(STORAGE_PATH + '/reset', {expectedVersion: state.storage.version, reason}); }
+    catch (error) {
+        if (error.status === 401) throw error;
+        box.hidden = false; box.dataset.tone = 'danger'; box.textContent = '✗ ' + error.message; return;
+    } finally { button.disabled = false; }
+    storageDirty = false; byId('storageReason').value = '';
+    box.hidden = false; box.dataset.tone = 'success'; box.textContent = '✓ Đã quay về kho mặc định ' + state.storage.serverDefault + '.';
+    showToast('Đã quay về kho lưu trữ mặc định.', 'success');
+    refreshAfterSave();
+}
+
+function renderCopy(status) {
+    const box = byId('storageCopyResult'), button = byId('startStorageCopy');
+    clearTimeout(copyTimer);
+    if (!status || status.state === 'IDLE') { box.hidden = true; button.disabled = false; return; }
+    box.hidden = false;
+    const counts = 'Đã xem ' + status.scanned + ' tệp · chép ' + status.copied + ' · bỏ qua (đã có) ' + status.skipped + (status.failed ? ' · lỗi ' + status.failed : '');
+    const ok = status.state === 'DONE' && !status.failed;
+    box.dataset.tone = status.state === 'RUNNING' ? '' : ok ? 'success' : 'danger';
+    box.replaceChildren(text('strong', status.state === 'RUNNING' ? 'Đang chép từ ' + status.from + ' sang ' + status.to + '…' : (ok ? '✓ ' : '✗ ') + (status.message || '')), text('p', counts));
+    button.disabled = status.state === 'RUNNING';
+    if (status.state === 'RUNNING') copyTimer = setTimeout(() => api(STORAGE_PATH + '/copy').then(renderCopy).catch(() => { button.disabled = false; }), 2000);
+}
+
+async function startCopy() {
+    if (!confirm('Chép toàn bộ tệp từ kho cũ sang kho đang dùng? Việc này chạy nền, có thể mất vài phút; không xóa gì ở kho cũ.')) return;
+    try { renderCopy(await api(STORAGE_PATH + '/copy', 'POST')); }
+    catch (error) { const box = byId('storageCopyResult'); box.hidden = false; box.dataset.tone = 'danger'; box.textContent = '✗ ' + error.message; }
+}
+
 const page = createOperationsPage(load);
 page.bind('configForm', 'submit', save);
 page.bind('senderForm', 'submit', saveSender);
 page.bind('aiForm', 'submit', saveAi);
 byId('testAi').addEventListener('click', testAi);
+page.bind('storageForm', 'submit', saveStorage);
+byId('testStorage').addEventListener('click', testStorage);
+byId('startStorageCopy').addEventListener('click', startCopy);
+byId('resetStorage').addEventListener('click', resetStorage);
+// Endpoint dạng s3.<vùng>.backblazeb2.com / wasabisys.com / amazonaws.com thì tự điền vùng cho khớp (sai vùng sẽ bị từ chối khóa).
+byId('storageEndpoint').addEventListener('input', () => {
+    const match = byId('storageEndpoint').value.trim().match(/s3[.-]([a-z0-9-]+)\.(?:backblazeb2|wasabisys|amazonaws)\.com/i);
+    if (match) byId('storageRegion').value = match[1].toLowerCase();
+});
+byId('storageForm').addEventListener('input', () => { storageDirty = true; byId('storageResult').hidden = true; });
+byId('storageProvider').addEventListener('change', () => {
+    const hint = STORAGE_HINTS[byId('storageProvider').value] || STORAGE_HINTS.OTHER;
+    if (byId('storageProvider').value !== state.storage?.provider) { byId('storageEndpoint').value = ''; byId('storageRegion').value = hint.region; }
+    syncStorageNote();
+});
 byId('configForm').addEventListener('input', () => { state.dirty = true; });
 byId('senderForm').addEventListener('input', () => { state.senderDirty = true; byId('senderResult').hidden = true; });
 // Gõ email Gmail/Outlook thì tự điền máy chủ SMTP tương ứng.

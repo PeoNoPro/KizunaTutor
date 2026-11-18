@@ -23,7 +23,8 @@ public class LocalPracticeFileStorage implements PracticeFileStorage {
         this.root = Paths.get(dir).toAbsolutePath().normalize();
     }
 
-    private Path resolve(String key) {
+    /** Đường dẫn thật của khóa trên máy chủ (lớp lưu R2 dùng thư mục này làm bộ nhớ đệm). */
+    Path resolve(String key) {
         Path path = root.resolve(key).normalize();
         if (!path.startsWith(root)) throw new IllegalArgumentException("Khóa file không hợp lệ.");
         return path;

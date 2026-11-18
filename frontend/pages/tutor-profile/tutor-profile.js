@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!tutor) {
       container.innerHTML = `
-        <div class="p-12 text-center bg-white rounded-2xl border border-[#E5DECB] space-y-4 max-w-lg mx-auto my-12 shadow-sm">
+        <div class="p-12 text-center bg-white rounded-2xl border border-[#E5E7EB] space-y-4 max-w-lg mx-auto my-12 shadow-sm">
           <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
             <span class="material-symbols-outlined text-[32px]">person_off</span>
           </div>
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const initials = getInitials(r.learnerName);
       const isExtra = index >= 3;
       return `
-        <div class="p-5 rounded-2xl border border-[#E5DECB] bg-white space-y-3 hover:shadow-xs transition-shadow review-item ${isExtra ? 'extra-review hidden' : ''}" data-has-comment="${r.comment ? 'true' : 'false'}">
+        <div class="p-5 rounded-2xl border border-[#E5E7EB] bg-white space-y-3 hover:shadow-xs transition-shadow review-item ${isExtra ? 'extra-review hidden' : ''}" data-has-comment="${r.comment ? 'true' : 'false'}">
           <!-- Top: Thông tin học viên & Đánh giá sao -->
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-3">
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <!-- Lời nhận xét -->
           ${r.comment ? `
-            <p class="text-xs md:text-sm text-[#2D3748] leading-relaxed italic bg-[#FCFBF7] p-3.5 rounded-xl border border-[#F0ECE1]">
+            <p class="text-xs md:text-sm text-[#2D3748] leading-relaxed italic bg-[#F3F4F6] p-3.5 rounded-xl border border-[#F3F4F6]">
               “${r.comment}”
             </p>
           ` : ''}
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const reviewsCardsHtml = reviewList.length > 0
       ? reviewList.map((r, i) => renderSingleReview(r, i)).join('')
       : `
-        <div class="p-8 text-center bg-white rounded-2xl border border-[#E5DECB] space-y-2">
+        <div class="p-8 text-center bg-white rounded-2xl border border-[#E5E7EB] space-y-2">
           <p class="text-xs text-slate-500">Chưa có đánh giá nào từ học viên. Hãy là người đầu tiên đặt lịch học thử!</p>
         </div>
       `;
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       return `
         <!-- Môn dạy & học phí -->
-        <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5">
+        <div class="bg-white border border-[#E5E7EB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5">
           <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
             <span class="material-symbols-outlined text-primary">menu_book</span>
             Môn dạy & học phí
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="lg:col-span-2 space-y-6">
           
           <!-- Profile Header Card -->
-          <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+          <div class="bg-white border border-[#E5E7EB] rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
               <div class="relative shrink-0">
                 ${tutorAvatarImgHtml}
@@ -310,12 +310,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <span>Chưa có đánh giá</span>
                   </div>
                   `}
-                  <span class="text-[#E5DECB]">|</span>
+                  <span class="text-[#E5E7EB]">|</span>
                   <div class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-[16px] text-primary">school</span>
                     <span>${tutor.experienceYears || 0} năm kinh nghiệm</span>
                   </div>
-                  <span class="text-[#E5DECB]">|</span>
+                  <span class="text-[#E5E7EB]">|</span>
                   <div class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-[16px] text-primary">location_on</span>
                     <span>${escapeHtml(sanitizeDisplayLocation(tutor.location))}</span>
@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
 
             <!-- Tags Chuyên môn & Trình độ -->
-            <div class="pt-4 border-t border-[#ECE8DE] flex flex-wrap gap-2 items-center">
+            <div class="pt-4 border-t border-[#E5E7EB] flex flex-wrap gap-2 items-center">
               <span class="text-xs font-bold text-[#0F2545] mr-2">Chuyên môn:</span>
               <span class="px-3 py-1 rounded-lg bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">Trình độ JLPT ${tutor.highestJlptLevel || 'N1'}</span>
               ${(tutor.specialties || []).map(s => `
@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
 
           <!-- Bio / Giới thiệu chi tiết -->
-          <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-4">
+          <div class="bg-white border border-[#E5E7EB] rounded-2xl p-6 md:p-8 shadow-sm space-y-4">
             <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
               <span class="material-symbols-outlined text-primary">person</span>
               Giới thiệu bản thân
@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           ${renderSubjectsAndPricingHtml(tutor)}
 
           <!-- Lịch rảnh hằng tuần (chỉ hiển thị). Muốn kết nối: bấm "Kết nối với gia sư" để mở form chọn ca. -->
-          <div id="weekly-booking-calendar-section" class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5 scroll-mt-28 transition-all duration-300">
+          <div id="weekly-booking-calendar-section" class="bg-white border border-[#E5E7EB] rounded-2xl p-6 md:p-8 shadow-sm space-y-5 scroll-mt-28 transition-all duration-300">
 
             <div class="flex items-start justify-between flex-wrap gap-3 pb-3 border-b border-slate-100">
               <div class="space-y-1">
@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
 
           <!-- Đánh giá từ học viên (UC-31) -->
-          <div class="bg-white border border-[#E5DECB] rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+          <div class="bg-white border border-[#E5E7EB] rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
             <!-- Header khối đánh giá -->
             <div class="flex items-center justify-between flex-wrap gap-2 pb-1">
               <h3 class="text-lg font-bold text-[#0F2545] flex items-center gap-2">
@@ -402,9 +402,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
 
             <!-- Hộp tổng quan điểm đánh giá & Biểu đồ sao -->
-            <div class="bg-[#FAF8F5] border border-[#ECE8DE] rounded-2xl p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+            <div class="bg-[#F9FAFB] border border-[#E5E7EB] rounded-2xl p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
               <!-- Cột trái: Điểm số trung bình -->
-              <div class="md:col-span-4 flex flex-col items-center justify-center text-center space-y-2 border-b md:border-b-0 md:border-r border-[#ECE8DE] pb-4 md:pb-0 md:pr-4">
+              <div class="md:col-span-4 flex flex-col items-center justify-center text-center space-y-2 border-b md:border-b-0 md:border-r border-[#E5E7EB] pb-4 md:pb-0 md:pr-4">
                 <div class="text-4xl md:text-5xl font-black text-[#0F2545] tracking-tight">
                   ${avgRating}
                 </div>
@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <!-- Nút Xem toàn bộ đánh giá (Tự động ẩn nếu <= 3, chỉ hiện khi > 3) -->
             ${totalReviews > 3 ? `
               <div class="pt-1 text-center">
-                <button type="button" id="toggle-more-reviews-btn" class="w-full py-3 px-4 rounded-xl bg-white border border-[#E5DECB] hover:bg-[#FAF8F5] text-xs font-semibold text-[#0F2545] transition-colors flex items-center justify-center gap-1.5 shadow-2xs">
+                <button type="button" id="toggle-more-reviews-btn" class="w-full py-3 px-4 rounded-xl bg-white border border-[#E5E7EB] hover:bg-[#F9FAFB] text-xs font-semibold text-[#0F2545] transition-colors flex items-center justify-center gap-1.5 shadow-2xs">
                   <span id="toggle-more-text">Xem toàn bộ ${totalReviews} đánh giá</span>
                   <span class="material-symbols-outlined text-[16px]" id="toggle-more-icon">expand_more</span>
                 </button>
@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
 
             <!-- Cam kết đảm bảo quyền lợi -->
-            <div class="pt-4 border-t border-[#ECE8DE] space-y-3 text-xs text-on-surface-variant">
+            <div class="pt-4 border-t border-[#E5E7EB] space-y-3 text-xs text-on-surface-variant">
               <div class="flex items-center gap-2.5">
                 <span class="material-symbols-outlined text-emerald-600 text-[18px]">verified_user</span>
                 <span>Hồ sơ, bằng cấp JLPT đã được kiểm tra nghiêm ngặt</span>
@@ -712,7 +712,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     console.error('Lỗi khi tải chi tiết gia sư:', err);
     container.innerHTML = `
-      <div class="p-12 text-center bg-white rounded-2xl border border-[#E5DECB] space-y-3">
+      <div class="p-12 text-center bg-white rounded-2xl border border-[#E5E7EB] space-y-3">
         <h3 class="text-lg font-bold text-[#0F2545]">Không thể tải hồ sơ gia sư</h3>
         <p class="text-sm text-on-surface-variant">Vui lòng kiểm tra lại đường truyền hoặc quay lại danh sách tìm kiếm.</p>
         <a href="/pages/tutor-discovery/" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold">Quay lại danh sách</a>

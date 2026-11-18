@@ -290,35 +290,11 @@ export function buildTutorCardHtml(tutor, options = {}) {
         <!-- Cột giữa: Thông tin chuyên môn & giới thiệu -->
         <div class="flex-1 min-w-0 flex flex-col justify-between gap-2.5">
           <div class="space-y-2">
-            <!-- Tên + Huy hiệu xác thực + JLPT -->
+            <!-- Tên + hình thức dạy -->
             <div class="flex flex-wrap items-center gap-2">
               <h3 class="text-[19px] font-bold text-[#0F2545] leading-snug group-hover:text-[#006194] transition-colors">
                 <a href="${profileUrl}">${escapeHtml(tutor.fullName)}</a>
               </h3>
-              ${tutor.verified ? `
-                <span class="inline-flex items-center text-[#006194]" title="Hồ sơ đã xác thực">
-                  <span class="material-symbols-outlined filled text-[18px]">verified</span>
-                </span>
-              ` : ''}
-              <span class="px-2 py-0.5 rounded-[5px] bg-[#EAF4FA] border border-[#E5EAF0] text-[#006194] text-[11px] font-bold">
-                JLPT ${escapeHtml(tutor.jlptLevel)}
-              </span>
-            </div>
-
-            <!-- Nhóm thẻ vai trò thực tế -->
-            <div class="flex flex-wrap items-center gap-1.5">
-              ${tutor.verified ? `
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[6px] bg-[#EAF4FA] text-[#006194] text-[11px] font-semibold border border-[#CCE5FF]">
-                  <span class="material-symbols-outlined text-[13px]">shield</span>
-                  <span>Đã xác thực</span>
-                </span>
-              ` : ''}
-              ${tutor.isFeatured ? `
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[6px] bg-[#FFE5EC] text-[#9F1239] text-[11px] font-semibold border border-[#FBCFE8]">
-                  <span class="material-symbols-outlined filled text-[13px]">auto_awesome</span>
-                  <span>Gia sư tiêu biểu</span>
-                </span>
-              ` : ''}
               <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[6px] bg-[#F6F9FB] text-[#475569] text-[11px] font-medium border border-[#E5EAF0]">
                 ${escapeHtml(tutor.teachingFormat)}
               </span>
@@ -336,11 +312,8 @@ export function buildTutorCardHtml(tutor, options = {}) {
               </div>
             </div>
 
-            <!-- Tiêu đề bài đăng + Mô tả ngắn có thể mở rộng -->
+            <!-- Mô tả ngắn có thể mở rộng -->
             <div class="pt-0.5 space-y-1">
-              <p class="text-[13.5px] font-semibold text-[#1F2937] leading-snug line-clamp-1">
-                ${escapeHtml(tutor.headline)}
-              </p>
               <p class="tutor-bio-text text-[13px] text-[#64748B] leading-relaxed line-clamp-2" data-bio-text>
                 ${escapeHtml(rawBio)}
               </p>

@@ -228,13 +228,13 @@ function renderAvatarBlock(tutor, sizeClasses) {
       <img
         src="${escapeHtml(tutor.avatarUrl)}"
         alt="Ảnh đại diện gia sư ${safeName}"
-        class="${sizeClasses} rounded-[10px] object-cover border border-[#E5DECB] bg-[#F7F4EC]"
+        class="${sizeClasses} rounded-[10px] object-cover border border-[#E5EAF0] bg-[#F6F9FB]"
         loading="lazy"
       />
     `;
   }
   return `
-    <div class="${sizeClasses} rounded-[10px] bg-gradient-to-br from-[#F7F4EC] to-[#EFE7D6] border border-[#E5DECB] text-[#0F2545] font-bold text-2xl flex items-center justify-center select-none">
+    <div class="${sizeClasses} rounded-[10px] bg-[#EAF4FA] border border-[#E5EAF0] text-[#006194] font-bold text-2xl flex items-center justify-center select-none">
       ${escapeHtml(getTutorInitials(tutor.fullName))}
     </div>
   `;
@@ -264,8 +264,8 @@ export function buildTutorCardHtml(tutor, options = {}) {
   }
 
   const cardHighlightClass = isSelected
-    ? 'tutor-card-selected border-[#0F2545] shadow-[0_10px_28px_rgba(15,37,69,0.10)] ring-1 ring-[#0F2545]/15'
-    : 'border-[#E5DECB] hover:border-[#0F2545] hover:shadow-[0_10px_28px_rgba(15,37,69,0.08)]';
+    ? 'tutor-card-selected border-[#006194] shadow-[0_10px_28px_rgba(0,97,148,0.12)] ring-1 ring-[#006194]/20'
+    : 'border-[#E5EAF0] hover:border-[#006194] hover:shadow-[0_10px_28px_rgba(0,97,148,0.08)]';
 
   return `
     <article
@@ -300,7 +300,7 @@ export function buildTutorCardHtml(tutor, options = {}) {
                   <span class="material-symbols-outlined filled text-[18px]">verified</span>
                 </span>
               ` : ''}
-              <span class="px-2 py-0.5 rounded-[5px] bg-[#FAF8F2] border border-[#E5DECB] text-[#0F2545] text-[11px] font-bold">
+              <span class="px-2 py-0.5 rounded-[5px] bg-[#EAF4FA] border border-[#E5EAF0] text-[#006194] text-[11px] font-bold">
                 JLPT ${escapeHtml(tutor.jlptLevel)}
               </span>
             </div>
@@ -308,7 +308,7 @@ export function buildTutorCardHtml(tutor, options = {}) {
             <!-- Nhóm thẻ vai trò thực tế -->
             <div class="flex flex-wrap items-center gap-1.5">
               ${tutor.verified ? `
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[6px] bg-[#EBF4FF] text-[#004B73] text-[11px] font-semibold border border-[#CCE5FF]">
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[6px] bg-[#EAF4FA] text-[#006194] text-[11px] font-semibold border border-[#CCE5FF]">
                   <span class="material-symbols-outlined text-[13px]">shield</span>
                   <span>Đã xác thực</span>
                 </span>
@@ -319,16 +319,16 @@ export function buildTutorCardHtml(tutor, options = {}) {
                   <span>Gia sư tiêu biểu</span>
                 </span>
               ` : ''}
-              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[6px] bg-[#F7F4EC] text-[#334155] text-[11px] font-medium border border-[#E5DECB]">
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[6px] bg-[#F6F9FB] text-[#475569] text-[11px] font-medium border border-[#E5EAF0]">
                 ${escapeHtml(tutor.teachingFormat)}
               </span>
             </div>
 
             <!-- Dòng metadata thực tế từ DB -->
-            <div class="space-y-1 text-[13px] text-[#334155]">
+            <div class="space-y-1 text-[13px] text-[#475569]">
               <div class="flex items-start gap-1.5">
                 <span class="material-symbols-outlined text-[16px] text-[#006194] shrink-0 mt-0.5">translate</span>
-                <span class="line-clamp-1"><span class="font-semibold text-[#0F2545]">Chuyên môn:</span> ${escapeHtml(specialtiesText)}</span>
+                <span class="line-clamp-1"><span class="font-semibold text-[#1F2937]">Chuyên môn:</span> ${escapeHtml(specialtiesText)}</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[16px] text-[#006194] shrink-0">location_on</span>
@@ -338,10 +338,10 @@ export function buildTutorCardHtml(tutor, options = {}) {
 
             <!-- Tiêu đề bài đăng + Mô tả ngắn có thể mở rộng -->
             <div class="pt-0.5 space-y-1">
-              <p class="text-[13.5px] font-semibold text-[#0F2545] leading-snug line-clamp-1">
+              <p class="text-[13.5px] font-semibold text-[#1F2937] leading-snug line-clamp-1">
                 ${escapeHtml(tutor.headline)}
               </p>
-              <p class="tutor-bio-text text-[13px] text-[#475569] leading-relaxed line-clamp-2" data-bio-text>
+              <p class="tutor-bio-text text-[13px] text-[#64748B] leading-relaxed line-clamp-2" data-bio-text>
                 ${escapeHtml(rawBio)}
               </p>
               ${isLongBio ? `
@@ -349,7 +349,7 @@ export function buildTutorCardHtml(tutor, options = {}) {
                   type="button"
                   data-action="toggle-bio"
                   aria-expanded="false"
-                  class="text-[12.5px] font-semibold text-[#0F2545] underline underline-offset-2 hover:text-[#006194] cursor-pointer"
+                  class="text-[12.5px] font-semibold text-[#1F2937] underline underline-offset-2 hover:text-[#006194] cursor-pointer"
                 >
                   Xem thêm
                 </button>
@@ -358,26 +358,26 @@ export function buildTutorCardHtml(tutor, options = {}) {
           </div>
 
           <!-- Tín hiệu lịch trống / uy tín thực tế -->
-          <div class="flex items-center gap-1.5 pt-1 text-[12px] text-[#334155] font-medium">
+          <div class="flex items-center gap-1.5 pt-1 text-[12px] text-[#64748B] font-medium">
             <span class="material-symbols-outlined text-[16px] text-[#006194]">${activityIcon}</span>
             <span>${escapeHtml(activityNote)}</span>
           </div>
         </div>
 
         <!-- Cột phải: Học phí, 3 chỉ số thật và nút hành động -->
-        <div class="md:w-56 shrink-0 flex flex-col justify-between gap-3 md:border-l md:border-[#EFECE4] md:pl-5 pt-3 md:pt-0 border-t md:border-t-0 border-[#EFECE4]">
+        <div class="md:w-56 shrink-0 flex flex-col justify-between gap-3 md:border-l md:border-[#E5EAF0] md:pl-5 pt-3 md:pt-0 border-t md:border-t-0 border-[#E5EAF0]">
           <!-- Học phí -->
           <div class="hidden md:block">
-            <div class="text-[22px] font-bold text-[#0F2545] leading-none tracking-tight">${escapeHtml(priceInfo.primary)}</div>
-            <div class="text-[12px] text-[#475569] mt-1">${escapeHtml(priceInfo.unit)}</div>
+            <div class="text-[22px] font-bold text-[#1F2937] leading-none tracking-tight">${escapeHtml(priceInfo.primary)}</div>
+            <div class="text-[12px] text-[#64748B] mt-1">${escapeHtml(priceInfo.unit)}</div>
           </div>
 
           <!-- 3 chỉ số thực tế từ DB -->
-          <div class="grid grid-cols-3 gap-1 py-2.5 border-y border-[#F1EDE4] text-center">
+          <div class="grid grid-cols-3 gap-1 py-2.5 border-y border-[#E5EAF0] text-center">
             ${metrics.map(m => `
               <div class="px-0.5">
-                <div class="text-[14px] font-bold text-[#0F2545] leading-tight truncate">${escapeHtml(m.value)}</div>
-                <div class="text-[11px] text-[#475569] leading-tight mt-0.5 truncate">${escapeHtml(m.label)}</div>
+                <div class="text-[14px] font-bold text-[#1F2937] leading-tight truncate">${escapeHtml(m.value)}</div>
+                <div class="text-[11px] text-[#64748B] leading-tight mt-0.5 truncate">${escapeHtml(m.label)}</div>
               </div>
             `).join('')}
           </div>
@@ -394,7 +394,7 @@ export function buildTutorCardHtml(tutor, options = {}) {
             </button>
             <a
               href="${profileUrl}"
-              class="w-full py-2 px-3 rounded-[8px] bg-white hover:bg-[#F7F4EC] text-[#0F2545] border border-[#CBD5E1] hover:border-[#0F2545] font-semibold text-[13px] transition-all flex items-center justify-center gap-1.5"
+              class="w-full py-2 px-3 rounded-[8px] bg-white hover:bg-[#F6F9FB] text-[#1F2937] border border-[#E5EAF0] hover:border-[#006194] hover:text-[#006194] font-semibold text-[13px] transition-all flex items-center justify-center gap-1.5"
             >
               <span>Kết nối với gia sư</span>
             </a>
@@ -430,25 +430,25 @@ export function buildPreviewPanelHtml(tutor) {
   const safeName = escapeHtml(tutor.fullName);
 
   return `
-    <div class="bg-white border border-[#E5DECB] rounded-[12px] p-3.5 shadow-[0_8px_24px_rgba(15,37,69,0.08)] space-y-3">
+    <div class="bg-white border border-[#E5EAF0] rounded-[12px] p-3.5 shadow-md space-y-3">
       <!-- Chỉ hiển thị ảnh đại diện sạch của gia sư từ DB -->
-      <div class="w-full aspect-[16/10] rounded-[8px] overflow-hidden border border-[#EFECE4] bg-[#F7F4EC]">
+      <div class="w-full aspect-[16/10] rounded-[8px] overflow-hidden border border-[#E5EAF0] bg-[#F6F9FB]">
         ${tutor.avatarUrl
           ? `<img src="${escapeHtml(tutor.avatarUrl)}" alt="Ảnh gia sư ${safeName}" class="w-full h-full object-cover" />`
-          : `<div class="w-full h-full bg-gradient-to-br from-[#F7F4EC] to-[#EFE7D6] text-[#0F2545] font-bold text-3xl flex items-center justify-center select-none">${escapeHtml(getTutorInitials(tutor.fullName))}</div>`}
+          : `<div class="w-full h-full bg-[#EAF4FA] text-[#006194] font-bold text-3xl flex items-center justify-center select-none">${escapeHtml(getTutorInitials(tutor.fullName))}</div>`}
       </div>
 
       <!-- Chỉ 2 nút: Xem lịch & Xem hồ sơ gia sư -->
       <div class="grid grid-cols-2 gap-2.5">
         <a
           href="${scheduleUrl}"
-          class="py-2.5 px-3 rounded-[8px] border border-[#E5DECB] bg-white hover:bg-[#F7F4EC] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-semibold text-center transition-colors"
+          class="py-2.5 px-3 rounded-[8px] border border-[#E5EAF0] bg-white hover:bg-[#F6F9FB] hover:border-[#006194] hover:text-[#006194] text-[#1F2937] text-[13px] font-semibold text-center transition-colors"
         >
           Xem lịch
         </a>
         <a
           href="${profileUrl}"
-          class="py-2.5 px-3 rounded-[8px] border border-[#E5DECB] bg-white hover:bg-[#F7F4EC] hover:border-[#0F2545] text-[#0F2545] text-[13px] font-semibold text-center transition-colors"
+          class="py-2.5 px-3 rounded-[8px] border border-[#E5EAF0] bg-white hover:bg-[#F6F9FB] hover:border-[#006194] hover:text-[#006194] text-[#1F2937] text-[13px] font-semibold text-center transition-colors"
         >
           Xem hồ sơ gia sư
         </a>

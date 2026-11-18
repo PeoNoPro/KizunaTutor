@@ -783,7 +783,7 @@ function renderDirect() {
       : r.status === 'DECLINED' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600';
     const slots = (r.slots || []).map(s => `
       <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-100 text-[11px] font-semibold text-[#006194]">
-        <span class="material-symbols-outlined text-[14px]">event_repeat</span>${escapeHtml(`${s.dayName} ${s.startTime}–${s.endTime}`)}
+        <span class="material-symbols-outlined text-[14px]">event_repeat</span>${escapeHtml(`${s.dayName} ${s.startTime}${s.durationMinutes ? ` · ${s.durationMinutes} phút` : ''}`)}
       </span>`).join('');
 
     let footer = '';

@@ -128,7 +128,8 @@ class ConnectionRequestServiceTest {
         assertEquals(ConnectionRequestType.DIRECT, saved.getRequestType());
         assertEquals(ConnectionRequestStatus.PENDING, saved.getStatus());
         assertEquals(2, saved.getSlots().size());
-        assertEquals(LocalTime.of(20, 30), saved.getSlots().get(0).getEndTime());
+        // Học viên chỉ gửi giờ bắt đầu: độ dài ca (giờ kết thúc) để gia sư chọn khi đồng ý
+        assertNull(saved.getSlots().get(0).getEndTime());
 
         assertEquals("PENDING", res.getStatus());
         assertEquals("Chờ gia sư xác nhận", res.getStatusLabel());
@@ -136,7 +137,72 @@ class ConnectionRequestServiceTest {
         assertEquals("Thi JLPT N3", res.getLearningGoals());
         assertEquals("Em chào thầy", res.getInitialMessage());
         assertEquals("Thứ hai", res.getSlots().get(0).getDayName());
-        assertEquals(90, res.getSlots().get(0).getDurationMinutes());
+        assertNull(res.getSlots().get(0).getDurationMinutes());
+        assertNull(res.getSlots().get(0).getEndTime());
+    }
+
+    @Test
+    @DisplayName("Học viên chọn trùng cùng một giờ bắt đầu thì báo lỗi")
+    void create_duplicateStart() {
+        stubLearnerAndTutor();
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> service.createDirectRequest("learner@test.com", request(slot(2, "19:00", 60), slot(2, "19:00", 90))));
+        assertTrue(ex.getMessage().contains("bị chọn trùng"));
+    }
+
+    private ConnectionRequest pendingStartOnlyRequest() {
+        ConnectionRequest cr = ConnectionRequest.builder()
+                .requestId(UUID.randomUUID()).learner(learner).tutor(tutor)
+                .requestType(ConnectionRequestType.DIRECT).status(ConnectionRequestStatus.PENDING).build();
+        cr.getSlots().add(ConnectionRequestSlot.builder().slotId(UUID.randomUUID()).connectionRequest(cr).dayOfWeek(2)
+                .startTime(LocalTime.of(19, 0)).build());
+        cr.getSlots().add(ConnectionRequestSlot.builder().slotId(UUID.randomUUID()).connectionRequest(cr).dayOfWeek(2)
+                .startTime(LocalTime.of(20, 0)).build());
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(tutorUser));
+        when(tutorRepository.findByUser(tutorUser)).thenReturn(Optional.of(tutor));
+        when(connectionRequestRepository.findLockedById(cr.getRequestId())).thenReturn(Optional.of(cr));
+        return cr;
+    }
+
+    private static RespondConnectionRequestDTO acceptWith(ConnectionRequest cr, Integer... minutes) {
+        List<RespondConnectionRequestDTO.SlotDuration> list = new java.util.ArrayList<>();
+        for (int i = 0; i < minutes.length; i++) {
+            list.add(new RespondConnectionRequestDTO.SlotDuration(cr.getSlots().get(i).getSlotId(), minutes[i]));
+        }
+        return RespondConnectionRequestDTO.builder().action("ACCEPT").slotDurations(list).build();
+    }
+
+    @Test
+    @DisplayName("Gia sư đồng ý phải chọn độ dài cho ca chưa có giờ kết thúc")
+    void respond_accept_requiresTutorDuration() {
+        ConnectionRequest cr = pendingStartOnlyRequest();
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> service.respond("tutor@test.com",
+                cr.getRequestId(), RespondConnectionRequestDTO.builder().action("ACCEPT").build()));
+        assertTrue(ex.getMessage().contains("chọn độ dài"));
+        assertEquals(ConnectionRequestStatus.PENDING, cr.getStatus());
+    }
+
+    @Test
+    @DisplayName("Gia sư chọn độ dài từng ca: server điền giờ kết thúc rồi mới đồng ý")
+    void respond_accept_appliesTutorDurations() {
+        ConnectionRequest cr = pendingStartOnlyRequest();
+        service.respond("tutor@test.com", cr.getRequestId(), acceptWith(cr, 60, 120));
+        assertEquals(ConnectionRequestStatus.ACCEPTED, cr.getStatus());
+        assertEquals(LocalTime.of(20, 0), cr.getSlots().get(0).getEndTime());
+        assertEquals(LocalTime.of(22, 0), cr.getSlots().get(1).getEndTime());
+    }
+
+    @Test
+    @DisplayName("Độ dài gia sư chọn làm hai ca chồng nhau thì báo lỗi; độ dài ngoài 60/90/120 bị từ chối")
+    void respond_accept_rejectsOverlapAndBadDuration() {
+        ConnectionRequest cr = pendingStartOnlyRequest();
+        BadRequestException overlap = assertThrows(BadRequestException.class,
+                () -> service.respond("tutor@test.com", cr.getRequestId(), acceptWith(cr, 90, 60)));
+        assertTrue(overlap.getMessage().contains("chồng giờ"));
+        BadRequestException bad = assertThrows(BadRequestException.class,
+                () -> service.respond("tutor@test.com", cr.getRequestId(), acceptWith(cr, 45, 60)));
+        assertTrue(bad.getMessage().contains("60, 90 hoặc 120"));
+        assertEquals(ConnectionRequestStatus.PENDING, cr.getStatus());
     }
 
     @Test
@@ -217,21 +283,12 @@ class ConnectionRequestServiceTest {
     }
 
     @Test
-    @DisplayName("Thời lượng ca không thuộc 60/90/120 phút thì bị từ chối")
-    void create_invalidDuration() {
+    @DisplayName("Độ dài ca học viên gửi kèm (client cũ) bị bỏ qua: hai giờ bắt đầu gần nhau vẫn gửi được")
+    void create_learnerDurationIgnored() {
         stubLearnerAndTutor();
-        BadRequestException ex = assertThrows(BadRequestException.class,
-                () -> service.createDirectRequest("learner@test.com", request(slot(2, "19:00", 45))));
-        assertTrue(ex.getMessage().contains("60, 90 hoặc 120"));
-    }
-
-    @Test
-    @DisplayName("Hai ca cùng ngày chồng giờ nhau thì bị từ chối")
-    void create_overlappingSlots() {
-        stubLearnerAndTutor();
-        BadRequestException ex = assertThrows(BadRequestException.class,
-                () -> service.createDirectRequest("learner@test.com", request(slot(3, "18:00", 120), slot(3, "19:00", 60))));
-        assertTrue(ex.getMessage().contains("chồng giờ"));
+        when(tutorScheduleService.isSlotAvailable(eq(tutorId), anyInt(), any(), any())).thenReturn(true);
+        service.createDirectRequest("learner@test.com", request(slot(3, "18:00", 120), slot(3, "19:00", 45)));
+        verify(connectionRequestRepository).save(any());
     }
 
     @Test

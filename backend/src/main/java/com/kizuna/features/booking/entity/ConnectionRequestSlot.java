@@ -34,6 +34,7 @@ public class ConnectionRequestSlot {
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime;
 
-    @Column(name = "end_time", nullable = false)
+    /** Trống khi đang chờ: gia sư chọn độ dài ca lúc đồng ý (yêu cầu ACCEPTED luôn có giá trị). */
+    @Column(name = "end_time")
     private LocalTime endTime;
 }

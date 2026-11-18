@@ -81,11 +81,14 @@ public class ConnectionRequestResponseDTO {
     @AllArgsConstructor
     @Builder
     public static class SlotView {
+        /** Gia sư gửi kèm khi đồng ý để chọn độ dài từng ca */
+        private java.util.UUID slotId;
         /** 1 = Chủ nhật, 2 = Thứ Hai ... 7 = Thứ Bảy */
         private Integer dayOfWeek;
         private String dayName;
         /** "HH:mm" */
         private String startTime;
+        /** null khi gia sư chưa đồng ý (chưa chọn độ dài ca) */
         private String endTime;
         private Integer durationMinutes;
     }

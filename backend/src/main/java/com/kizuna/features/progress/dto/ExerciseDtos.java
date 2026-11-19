@@ -61,8 +61,23 @@ public final class ExerciseDtos {
     }
 
     /**
+     * Học viên bắt đầu nghe câu nghe trong lượt đang làm. resume = true: xin lại link giữa lúc đang nghe (link cũ hết hạn),
+     * không tính thêm lần nghe.
+     */
+    public record ListenRequest(UUID attemptId, UUID questionId, Boolean resume) {
+    }
+
+    /** Số lần nghe của một câu trong lượt làm bài (máy chủ đếm). maxPlays / remaining null = không giới hạn. */
+    public record ListenStatus(UUID questionId, int plays, Integer maxPlays, Integer remaining) {
+    }
+
+    /** Link nghe tạm cấp cho một lần nghe, kèm số lần nghe sau khi cộng. */
+    public record ListenGrant(String url, long expiresInSeconds, int plays, Integer maxPlays, Integer remaining) {
+    }
+
+    /**
      * Tạo / sửa bài. publish = true: giao bài (kiểm tra đủ đáp án); false: lưu nháp (bài đã giao thì giữ nguyên trạng thái đã giao).
-     * gradingMode: "AUTO" (hệ thống chấm tự động) hoặc "TUTOR" (gia sư chấm).
+     * gradingMode: không dùng nữa (giữ để tương thích) — cách chấm của bài máy chủ tự suy ra từ các câu hỏi.
      */
     public record ExerciseRequest(String title, String instructions, OffsetDateTime opensAt, OffsetDateTime closesAt,
                                   Integer timeLimitMinutes, Integer maxAttempts, String gradingMode, Boolean showAnswers,

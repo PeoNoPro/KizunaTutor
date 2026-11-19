@@ -4,7 +4,6 @@ import {
   validateAudioFile,
   playLimitLabel,
   remainingPlays,
-  playsKey,
   AUDIO_MAX_BYTES
 } from '../js/exercise-audio.js';
 import { questionPayload, defaultQuestion, validateQuestion, needsAudio, AUDIO_MISSING_MESSAGE } from '../js/exercise-helpers.js';
@@ -48,7 +47,6 @@ test('số lần nghe tối đa và số lần còn lại', () => {
   assert.equal(remainingPlays(2, 0), 2);
   assert.equal(remainingPlays(2, 1), 1);
   assert.equal(remainingPlays(2, 5), 0);
-  assert.equal(playsKey('a1', 'q1'), 'kz_listen_a1_q1');
 });
 
 test('câu có file nghe gửi kèm audioId và số lần nghe; câu không có file gửi null', () => {

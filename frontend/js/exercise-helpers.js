@@ -111,6 +111,12 @@ export function isTutorGraded(q) {
 }
 
 /** Điền từ có sẵn kiểu mới: chọn 1 phương án (bộ từ cho đủ các chỗ trống). Dạng cũ có answers + distractors. */
+/** Đáp án cũ của câu tự luận (bài soạn trước khi bỏ đáp án tự luận); lưu lại câu thì các đáp án này bị bỏ. */
+export function legacyWrittenAnswers(q) {
+  if (q?.type !== 'WRITTEN') return [];
+  return (q.data?.accepted || []).map((a) => String(a).trim()).filter(Boolean);
+}
+
 export function isOptionSet(data) {
   return Array.isArray(data?.options);
 }

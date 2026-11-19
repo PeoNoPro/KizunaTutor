@@ -41,7 +41,8 @@ import {
   describeCorrect,
   toLocalInput,
   fromLocalInput,
-  validateExerciseSettings
+  validateExerciseSettings,
+  legacyWrittenAnswers
 } from '../../js/exercise-helpers.js';
 import { renderInteractive } from '../../js/exercise-player.js';
 import { mountTutorLayout } from '/components/tutor-layout/tutor-layout.js';
@@ -710,12 +711,19 @@ function bodyHtml(q) {
             </div>`).join('')}
         </div>
         ${state.locked ? '' : `<button type="button" data-act="item-add" class="${SMALL_BTN} mt-2" ${(d.items || []).length >= 20 ? 'disabled' : ''}>＋ Thêm mục</button>`}`;
-    case 'WRITTEN':
-      return `
+    case 'WRITTEN': {
+      const old = state.locked ? [] : legacyWrittenAnswers(q);
+      const oldNote = old.length ? `
+        <p class="mb-2 flex items-start gap-2.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+          <span class="material-symbols-outlined text-[20px]" aria-hidden="true">warning</span>
+          <span>Câu này có đáp án cũ: <b>${escapeHtml(old.join(' / '))}</b>. Khi lưu, đáp án cũ sẽ bị bỏ và câu chuyển sang <b>AI gợi ý, gia sư duyệt</b>.</span>
+        </p>` : '';
+      return `${oldNote}
         <p class="flex items-start gap-2.5 rounded-xl bg-surface-container-low px-4 py-3 text-on-surface-variant">
           <span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">auto_awesome</span>
           <span>Không cần đáp án. Khi học viên nộp bài, <b class="text-on-surface">AI gợi ý điểm và nhận xét</b>, bạn duyệt lại ở tab "Bài làm của học viên".</span>
         </p>`;
+    }
     default:
       return '';
   }
@@ -933,6 +941,14 @@ async function save(publish) {
       return;
     }
   }
+  // Câu tự luận soạn từ trước còn đáp án cũ: báo trước khi lưu làm mất đáp án
+  const legacy = state.locked ? [] : state.questions.map((q, i) => (legacyWrittenAnswers(q).length ? i + 1 : null)).filter(Boolean);
+  if (legacy.length) {
+    const ok = await confirmBox('Bỏ đáp án cũ của câu tự luận?',
+      `Câu ${legacy.join(', ')} có đáp án cũ. Tự luận không dùng đáp án nữa: khi lưu, đáp án cũ bị bỏ và các câu này do AI gợi ý, gia sư duyệt.`,
+      'Vẫn lưu');
+    if (!ok) return;
+  }
   if (publish && state.status !== 'PUBLISHED') {
     const ok = await confirmBox('Giao bài cho học viên?',
       $('exOpens').value ? `Học viên sẽ thấy bài từ ${formatDateTime(fromLocalInput($('exOpens').value))}.` : 'Học viên sẽ thấy bài ngay.', 'Giao bài');
@@ -950,7 +966,6 @@ async function save(publish) {
     closesAt: fromLocalInput(f.closesLocal),
     timeLimitMinutes: f.unlimited ? null : Number(f.timeLimit),
     maxAttempts: Number(f.maxAttempts),
-    gradingMode: autoMode() ? 'AUTO' : 'TUTOR',
     showAnswers: $('exShowAnswers').checked,
     publish,
     questions: state.questions.map(questionPayload)

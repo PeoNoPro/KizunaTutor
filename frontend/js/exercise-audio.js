@@ -2,7 +2,8 @@
  * KizunaTutor - FE-07 File nghe của câu hỏi bài làm trực tiếp (lưu trên Cloudflare R2).
  * - Máy chủ trả link nghe tạm (có hạn) của R2; thẻ <audio> phát thẳng từ link đó (tua được, không phải tải hết trước).
  *   Link hết hạn giữa chừng thì tự xin link mới.
- * - Số lần nghe tối đa chỉ được canh trên trình duyệt (đếm mỗi lần bắt đầu phát, lưu trong localStorage theo lượt làm bài).
+ * - Câu có giới hạn số lần nghe (lúc làm bài): máy chủ đếm, mỗi lần bấm "Nghe" máy chủ cộng 1 lần rồi mới cấp link;
+ *   đổi máy / trình duyệt hay xóa dữ liệu trình duyệt không nghe thêm được. Xem lại sau khi nộp: không giới hạn.
  */
 
 import { API } from './api.js';
@@ -54,37 +55,15 @@ function audioUrl(spaceId, audioId, { fresh = false } = {}) {
   return entry.promise;
 }
 
-function readPlays(key) {
-  if (!key) return 0;
-  try {
-    return Number(localStorage.getItem(key)) || 0;
-  } catch (e) {
-    return 0;
-  }
-}
-
-function writePlays(key, value) {
-  if (!key) return;
-  try {
-    localStorage.setItem(key, String(value));
-  } catch (e) {
-    /* không lưu được thì chỉ đếm trong lần mở trang này */
-  }
-}
-
-/** Khóa đếm số lần nghe của một câu trong một lượt làm bài */
-export function playsKey(attemptId, questionId) {
-  return `kz_listen_${attemptId}_${questionId}`;
-}
-
 /**
  * Gắn trình phát vào container.
  * @param {{audioId:string, fileName?:string, fileSize?:number, maxPlays?:number|null}} audio
- * @param {{limitKey?:string|null, showName?:boolean}} options limitKey: bật đếm số lần nghe (học viên đang làm bài)
+ * @param {{listen?:{attemptId:string, questionId:string}|null, showName?:boolean}} options
+ *   listen: học viên đang làm bài — câu có giới hạn số lần nghe thì máy chủ đếm (mỗi lần bấm nghe tính 1 lần).
  */
-export function mountAudioPlayer(container, spaceId, audio, { limitKey = null, showName = false } = {}) {
+export function mountAudioPlayer(container, spaceId, audio, { listen = null, showName = false } = {}) {
   if (!container || !audio?.audioId) return;
-  const maxPlays = limitKey ? audio.maxPlays || null : null;
+  const counted = !!(listen && audio.maxPlays);
   container.innerHTML = `
     <div class="rounded-xl bg-surface-container-low px-4 py-3 space-y-2">
       <div class="flex flex-wrap items-center gap-2 font-label-md text-label-md">
@@ -95,50 +74,30 @@ export function mountAudioPlayer(container, spaceId, audio, { limitKey = null, s
         <span data-plays class="font-caption text-caption text-on-surface-variant"></span>
       </div>
       <p data-audio-status class="font-caption text-caption text-on-surface-variant">Đang tải file nghe…</p>
+      ${counted ? `<button type="button" data-listen class="kz-btn kz-btn-primary hidden">
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">play_arrow</span><span data-listen-label>Nghe</span></button>` : ''}
       <audio data-audio class="w-full hidden" controls controlsList="nodownload noplaybackrate" preload="metadata"></audio>
     </div>`;
   const el = container.querySelector('[data-audio]');
   const status = container.querySelector('[data-audio-status]');
   const playsEl = container.querySelector('[data-plays]');
-  let used = readPlays(limitKey);
-  let playing = false;
 
-  const refresh = () => {
-    const left = remainingPlays(maxPlays, used);
-    playsEl.textContent = maxPlays ? `Còn ${left}/${maxPlays} lần nghe` : (limitKey ? 'Nghe không giới hạn' : '');
-    if (maxPlays && left === 0 && !playing) {
-      el.pause();
-      el.classList.add('hidden');
-      status.textContent = `Bạn đã nghe hết ${maxPlays} lần cho câu này.`;
-      status.classList.remove('hidden');
-    }
+  const showStatus = (message, isError = false) => {
+    status.textContent = message;
+    status.classList.toggle('text-error', isError);
+    status.classList.remove('hidden');
   };
-
-  el.addEventListener('play', () => {
-    if (playing || !maxPlays) return;
-    if (remainingPlays(maxPlays, used) === 0) {
-      el.pause();
-      refresh();
-      return;
-    }
-    playing = true;
-    used += 1;
-    writePlays(limitKey, used);
-    refresh();
-  });
-  el.addEventListener('ended', () => {
-    playing = false;
-    el.currentTime = 0;
-    refresh();
-  });
-
   const showError = (message) => {
     el.classList.add('hidden');
-    status.textContent = message;
-    status.classList.remove('hidden');
-    status.classList.add('text-error');
+    showStatus(message, true);
   };
 
+  if (counted) {
+    mountCountedPlayer({ container, spaceId, audio, listen, el, status, playsEl, showStatus });
+    return;
+  }
+
+  playsEl.textContent = listen ? 'Nghe không giới hạn' : '';
   // Link tạm hết hạn (để trang mở lâu) → xin link mới một lần rồi phát tiếp từ vị trí cũ
   let retried = false;
   el.addEventListener('error', () => {
@@ -153,13 +112,103 @@ export function mountAudioPlayer(container, spaceId, audio, { limitKey = null, s
       el.currentTime = at;
     }).catch((err) => showError(`Không tải được file nghe. ${friendlyErrorMessage(err)}`));
   });
+  el.addEventListener('ended', () => { el.currentTime = 0; });
 
   audioUrl(spaceId, audio.audioId).then((url) => {
     if (!container.isConnected) return;
     el.src = url;
     el.classList.remove('hidden');
     status.classList.add('hidden');
-    refresh();
   }).catch((err) => showError(`Không tải được file nghe. ${friendlyErrorMessage(err)}`));
-  refresh();
+}
+
+/**
+ * Câu có giới hạn số lần nghe trong lúc làm bài: chưa có link cho tới khi bấm "Nghe";
+ * mỗi lần bấm, máy chủ cộng 1 lần nghe rồi mới cấp link. Nghe xong thì đóng trình phát, còn lượt thì hiện lại nút.
+ */
+function mountCountedPlayer({ container, spaceId, audio, listen, el, status, playsEl, showStatus }) {
+  const btn = container.querySelector('[data-listen]');
+  const btnLabel = container.querySelector('[data-listen-label]');
+  const max = audio.maxPlays;
+  let left = null;
+  let playing = false;
+  let resumed = false;
+
+  const render = () => {
+    playsEl.textContent = left === null ? playLimitLabel(max) : `Còn ${left}/${max} lần nghe`;
+    if (playing) {
+      btn.classList.add('hidden');
+      return;
+    }
+    el.classList.add('hidden');
+    if (left === 0) {
+      btn.classList.add('hidden');
+      showStatus(`Bạn đã nghe hết ${max} lần cho câu này.`);
+      return;
+    }
+    btnLabel.textContent = left === null ? 'Nghe' : `Nghe (còn ${left} lần)`;
+    btn.classList.remove('hidden');
+  };
+
+  const stop = () => {
+    playing = false;
+    el.pause();
+    el.removeAttribute('src');
+    el.load();
+    render();
+  };
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try {
+      const grant = await API.exercises.listen(spaceId, listen.attemptId, listen.questionId, false);
+      left = grant?.remaining ?? left;
+      playing = true;
+      resumed = false;
+      status.classList.add('hidden');
+      el.src = grant.url;
+      el.classList.remove('hidden');
+      render();
+      el.play().catch(() => { /* trình duyệt chặn tự phát: học viên bấm nút phát của trình phát */ });
+    } catch (err) {
+      if (err?.status === 409 && /nghe hết/.test(String(err?.userMessage || ''))) left = 0;
+      render();
+      if (left !== 0) showStatus(friendlyErrorMessage(err), true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  el.addEventListener('ended', stop);
+  // Link hết hạn giữa lúc đang nghe: xin lại link không tính thêm lần (máy chủ cho tối đa 2 lần)
+  el.addEventListener('error', async () => {
+    if (!playing || !el.getAttribute('src')) return;
+    if (resumed) {
+      stop();
+      showStatus('Không phát tiếp được. Bấm Nghe để nghe lại (tính thêm 1 lần).', true);
+      return;
+    }
+    resumed = true;
+    const at = el.currentTime;
+    try {
+      const grant = await API.exercises.listen(spaceId, listen.attemptId, listen.questionId, true);
+      el.src = grant.url;
+      el.currentTime = at;
+      el.play().catch(() => {});
+    } catch (err) {
+      stop();
+      showStatus(friendlyErrorMessage(err), true);
+    }
+  });
+
+  API.exercises.listenStatus(spaceId, listen.attemptId).then((list) => {
+    if (!container.isConnected) return;
+    const mine = (list || []).find((x) => x.questionId === listen.questionId);
+    left = mine ? (mine.remaining ?? null) : remainingPlays(max, 0);
+    status.classList.add('hidden');
+    render();
+  }).catch((err) => {
+    render();
+    showStatus(`Không tải được số lần nghe. ${friendlyErrorMessage(err)}`, true);
+  });
 }

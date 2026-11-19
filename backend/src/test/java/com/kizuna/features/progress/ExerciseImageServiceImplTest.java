@@ -89,6 +89,18 @@ class ExerciseImageServiceImplTest {
     }
 
     @Test
+    void databaseIsWrittenBeforeR2SoAFailedInsertLeavesNoFileOnR2() {
+        S3Client s3 = mock(S3Client.class);
+        doThrow(new IllegalStateException("db down")).when(images)
+                .insertImage(any(), any(), any(), anyLong(), any(), any());
+
+        assertThatThrownBy(() -> service(new R2FileStore(s3, "kizunatutor-storage"))
+                .upload(tutorActor, space.getSpaceId(), new MockMultipartFile("file", "a.png", "image/png", PNG)))
+                .isInstanceOf(IllegalStateException.class);
+        verify(s3, never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    }
+
+    @Test
     void onlyRealImagesUpTo5MbFromTheClassTutorAreAccepted() {
         ExerciseImageServiceImpl service = service(R2FileStore.disabled());
         // Đuôi .png nhưng nội dung không phải ảnh

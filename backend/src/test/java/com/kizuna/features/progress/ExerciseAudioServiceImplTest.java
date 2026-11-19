@@ -13,6 +13,7 @@ import com.kizuna.features.progress.entity.ExerciseAudio;
 import com.kizuna.features.progress.entity.OnlineExercise;
 import com.kizuna.features.progress.repository.ExerciseAudioRepository;
 import com.kizuna.features.progress.repository.OnlineExerciseRepository;
+import com.kizuna.features.progress.service.ExerciseListenService;
 import com.kizuna.features.progress.service.impl.ExerciseAudioServiceImpl;
 import com.kizuna.features.storage.R2StorageService;
 import org.junit.jupiter.api.BeforeEach;
@@ -111,7 +112,56 @@ class ExerciseAudioServiceImplTest {
 
         verify(s3).deleteObject(argThat((DeleteObjectRequest r) ->
                 "kizunatutor-storage".equals(r.bucket()) && old.getStorageKey().equals(r.key())));
-        verify(audios).delete(old);
+        verify(audios).deleteAll(List.of(old));
+    }
+
+    @Test
+    void learnerCannotGetADirectLinkForALimitedQuestionWhileDoingTheExercise() {
+        UUID exId = UUID.randomUUID();
+        ExerciseAudio audio = stored(exId);
+        OnlineExercise ex = OnlineExercise.builder().exerciseId(exId).space(space).status(OnlineExercise.Status.PUBLISHED).build();
+        when(audios.findByAudioIdAndSpaceId(audio.getAudioId(), space.getSpaceId())).thenReturn(Optional.of(audio));
+        when(exercises.findByExerciseIdAndSpace_SpaceId(exId, space.getSpaceId())).thenReturn(Optional.of(ex));
+        when(r2.presignedGetUrl(audio.getStorageKey())).thenReturn("https://r2/signed");
+        ExerciseListenService listen = mock(ExerciseListenService.class);
+        ExerciseAudioServiceImpl guarded = new ExerciseAudioServiceImpl(classrooms, audios, exercises, r2Provider, s3Provider,
+                "kizunatutor-storage", 900, CLOCK, listen);
+
+        when(listen.requiresCounting(any(), eq(exId), eq(audio.getAudioId()))).thenReturn(true);
+        assertStatus(() -> guarded.url(learnerActor, space.getSpaceId(), audio.getAudioId()), HttpStatus.FORBIDDEN);
+        // Gia sư vẫn nghe được; học viên đã nộp xong thì xem lại được
+        assertThat(guarded.url(tutorActor, space.getSpaceId(), audio.getAudioId()).url()).isEqualTo("https://r2/signed");
+        when(listen.requiresCounting(any(), eq(exId), eq(audio.getAudioId()))).thenReturn(false);
+        assertThat(guarded.url(learnerActor, space.getSpaceId(), audio.getAudioId()).url()).isEqualTo("https://r2/signed");
+    }
+
+    @Test
+    void fileThatIsNotReallyAudioIsRejectedBeforeUploading() {
+        MockMultipartFile fake = new MockMultipartFile("file", "bai.mp3", "audio/mpeg", "<html>not audio</html>".getBytes());
+        assertThatThrownBy(() -> service.upload(tutorActor, space.getSpaceId(), fake))
+                .isInstanceOfSatisfying(ClassroomException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(e.getFieldErrors()).containsKey("file");
+                });
+        verify(r2, never()).uploadAudio(any());
+        verify(audios, never()).save(any());
+    }
+
+    @Test
+    void audioFormatsAreDetectedFromFileHeader() {
+        assertThat(ExerciseAudioServiceImpl.detectAudio(MP3, MP3.length)).isEqualTo("audio/mpeg");
+        byte[] frame = {(byte) 0xFF, (byte) 0xFB, 0x50, 0x00};
+        assertThat(ExerciseAudioServiceImpl.detectAudio(frame, frame.length)).isEqualTo("audio/mpeg");
+        byte[] wav = "RIFF    WAVE".getBytes();
+        assertThat(ExerciseAudioServiceImpl.detectAudio(wav, wav.length)).isEqualTo("audio/wav");
+        byte[] ogg = "OggS  ".getBytes();
+        assertThat(ExerciseAudioServiceImpl.detectAudio(ogg, ogg.length)).isEqualTo("audio/ogg");
+        byte[] m4a = "    ftypM4A ".getBytes();
+        assertThat(ExerciseAudioServiceImpl.detectAudio(m4a, m4a.length)).isEqualTo("audio/mp4");
+        byte[] webm = {0x1A, 0x45, (byte) 0xDF, (byte) 0xA3, 0x01};
+        assertThat(ExerciseAudioServiceImpl.detectAudio(webm, webm.length)).isEqualTo("audio/webm");
+        byte[] png = {(byte) 0x89, 'P', 'N', 'G', 0, 0, 0, 0};
+        assertThat(ExerciseAudioServiceImpl.detectAudio(png, png.length)).isNull();
     }
 
     @Test

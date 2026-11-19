@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  legacyWrittenAnswers,
   countBlanks,
   splitSegments,
   splitList,
@@ -128,4 +129,10 @@ test('cài đặt bài: đóng đề sau mở đề, thời gian làm bài, số
   assert.deepEqual(validateExerciseSettings({ ...ok, unlimited: true, timeLimit: '' }, { now }), {});
   assert.ok(validateExerciseSettings({ ...ok, maxAttempts: '21' }, { now }).maxAttempts);
   assert.ok(validateExerciseSettings({ ...ok, title: '  ' }, { now }).title);
+});
+
+test('câu tự luận cũ còn đáp án: báo để gia sư biết đáp án sẽ bị bỏ', () => {
+  assert.deepEqual(legacyWrittenAnswers({ type: 'WRITTEN', data: { accepted: ['食べます', ' ', 'たべます'] } }), ['食べます', 'たべます']);
+  assert.deepEqual(legacyWrittenAnswers({ type: 'WRITTEN', data: {} }), []);
+  assert.deepEqual(legacyWrittenAnswers({ type: 'FILL_BLANK', data: { accepted: ['x'] } }), []);
 });

@@ -347,7 +347,7 @@ public class SystemSettingService {
     }
 
     /** Lấy câu báo lỗi của nhà cung cấp AI (error.message) để Admin biết nguyên nhân; bỏ key nếu lỡ bị nhắc lại, cắt ngắn. */
-    static String providerError(String body,String key) {
+    public static String providerError(String body,String key) {
         if(body==null||body.isBlank())return "";
         try {
             var node=new com.fasterxml.jackson.databind.ObjectMapper().readTree(body).path("error");

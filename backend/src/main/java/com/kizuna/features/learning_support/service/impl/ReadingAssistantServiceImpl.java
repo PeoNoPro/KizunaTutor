@@ -115,9 +115,16 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
                             }
                         }
                     }
+                    result.setProvider(ai.provider());
+                    result.setModel(ai.model());
+                    result.setFallback(false);
                     cacheResult(cacheKey, result);
                     return result;
                 }
+            } catch (org.springframework.web.client.HttpStatusCodeException ex) {
+                String detail = SystemSettingService.providerError(ex.getResponseBodyAsString(), ai.apiKey());
+                log.warn("Lỗi máy chủ AI {} model {} (mã {}): {}. Chuyển sang bộ bóc tách dự phòng.",
+                        ai.provider(), ai.model(), ex.getStatusCode().value(), detail.isBlank() ? ex.getMessage() : detail);
             } catch (Exception ex) {
                 log.warn("Không thể gọi AI {} cho bóc tách đọc hiểu ({}), chuyển sang bộ bóc tách dự phòng: {}",
                         ai.provider(), ex.getClass().getSimpleName(), ex.getMessage());
@@ -182,7 +189,12 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
     }
 
     private static String stripFence(String jsonText) {
+        if (jsonText == null) return "{}";
         jsonText = jsonText.trim();
+        // Lọc bỏ khối reasoning / suy nghĩ <think>...</think> của model lý luận (DeepSeek-R1, ...)
+        if (jsonText.contains("</think>")) {
+            jsonText = jsonText.substring(jsonText.indexOf("</think>") + 8).trim();
+        }
         if (jsonText.startsWith("```json")) jsonText = jsonText.substring(7);
         if (jsonText.startsWith("```")) jsonText = jsonText.substring(3);
         if (jsonText.endsWith("```")) jsonText = jsonText.substring(0, jsonText.length() - 3);
@@ -201,8 +213,8 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
         }
 
         var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000);
-        factory.setReadTimeout(30000);
+        factory.setConnectTimeout(8000);
+        factory.setReadTimeout(45000);
         RestTemplate restTemplate = new RestTemplate(factory);
 
         HttpHeaders headers = new HttpHeaders();
@@ -249,17 +261,22 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
         String base = (baseUrl != null && !baseUrl.isBlank()) ? baseUrl.replaceAll("/+$", "") : "https://api.openai.com/v1";
         String url = base + "/chat/completions";
 
-        Map<String, Object> systemMsg = Map.of("role", "system", "content", "You are an expert Japanese teacher. Always output valid JSON.");
+        Map<String, Object> systemMsg = Map.of("role", "system", "content", "You are an expert Japanese teacher. Always output valid JSON without markdown wrapping.");
         Map<String, Object> userMsg = Map.of("role", "user", "content", prompt);
         Map<String, Object> reqBody = new LinkedHashMap<>();
         reqBody.put("model", model);
         reqBody.put("messages", List.of(systemMsg, userMsg));
         reqBody.put("temperature", 0.2);
+        reqBody.put("max_tokens", 4000); // Đảm bảo bóc tách toàn diện không bị cắt ngắn
         if (isOpenAiOfficial) {
             reqBody.put("response_format", Map.of("type", "json_object"));
         }
 
-        RestTemplate restTemplate = new RestTemplate();
+        var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(8000);
+        factory.setReadTimeout(45000);
+        RestTemplate restTemplate = new RestTemplate(factory);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
@@ -585,6 +602,9 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
                 .detectedGrammars(detectedGrammars)
                 .vocabularies(vocabularies)
                 .sentenceTranslations(translations)
+                .provider("SYSTEM_FALLBACK")
+                .model("RuleEngine-v1")
+                .fallback(true)
                 .build();
     }
 

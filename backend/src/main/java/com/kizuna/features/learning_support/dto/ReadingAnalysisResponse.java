@@ -23,6 +23,11 @@ public class ReadingAnalysisResponse {
     /** Cấp độ ước tính của toàn bài (N5 - N1) */
     private String estimatedLevel;
 
+    /** Nhà cung cấp AI và model đã phân tích */
+    private String provider;
+    private String model;
+    private boolean fallback;
+
     /** Danh sách các cấu trúc ngữ pháp được bóc tách */
     @Builder.Default
     private List<ReadingGrammarItemDto> detectedGrammars = new ArrayList<>();

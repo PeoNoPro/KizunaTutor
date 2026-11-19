@@ -218,8 +218,8 @@ class AuthServiceImplTest {
         }
 
         @Test
-        @DisplayName("Abnormal Case: Tài khoản bị khóa (BANNED/INACTIVE) -> Chặn đăng nhập với thông báo rõ ràng")
-        void login_whenAccountNotActive_shouldThrowBadRequestException() {
+        @DisplayName("Abnormal Case: Tài khoản bị khóa (BANNED/INACTIVE) -> Chặn đăng nhập với mã 403 Forbidden")
+        void login_whenAccountNotActive_shouldThrowBusinessException() {
             // [Arrange] Given user with status BANNED
             String email = "banned@kizuna.vn";
             User user = buildUser(email, "ROLE_LEARNER", UserAccountStatus.BANNED, false);
@@ -228,10 +228,11 @@ class AuthServiceImplTest {
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
             when(passwordEncoder.matches("Pass123", user.getPasswordHash())).thenReturn(true);
 
-            // [Act & Assert] When calling login -> Throws BadRequestException
-            BadRequestException ex = assertThrows(BadRequestException.class,
+            // [Act & Assert] When calling login -> Throws BusinessException (403)
+            BusinessException ex = assertThrows(BusinessException.class,
                     () -> authService.login(request, httpServletResponse));
-            assertThat(ex.getMessage()).contains("Tài khoản đã bị tạm khóa");
+            assertThat(ex.status()).isEqualTo(403);
+            assertThat(ex.getMessage()).contains("Tài khoản của bạn hiện đang bị tạm khóa/cấm");
             verify(tokenProvider, never()).generateToken(any());
         }
     }

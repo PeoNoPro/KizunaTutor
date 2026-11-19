@@ -258,6 +258,30 @@ function renderStandbyState() {
 // =========================================================================
 // 5. TRUY VẤN DỮ LIỆU TỪ BACKEND API
 // =========================================================================
+function renderKanjiSkeleton(grid) {
+  if (!grid) return;
+  grid.innerHTML = Array(6).fill(0).map(() => `
+    <div class="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3 animate-pulse">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <div class="h-4 w-12 bg-slate-200 rounded-full"></div>
+        <div class="h-4 w-16 bg-slate-200 rounded-full"></div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 bg-slate-200 rounded-lg shrink-0"></div>
+        <div class="flex-1 space-y-2">
+          <div class="h-4 bg-slate-200 rounded w-2/3"></div>
+          <div class="h-3 bg-slate-100 rounded w-1/2"></div>
+        </div>
+      </div>
+      <div class="h-8 bg-slate-50 border border-slate-100 rounded-lg"></div>
+      <div class="pt-2 border-t border-slate-100 flex gap-2">
+        <div class="h-7 bg-slate-200 rounded-lg flex-1"></div>
+        <div class="h-7 bg-slate-200 rounded-lg flex-1"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
 async function loadLearnerDictionary(page = 0) {
   currentLearnerPage = page;
   const inputEl = document.getElementById('learnerSearchInput') || document.getElementById('kanjiSearchInput');
@@ -306,7 +330,7 @@ async function loadLearnerDictionary(page = 0) {
 
   const grid = document.getElementById('learnerKanjiGrid');
   if (grid) {
-    grid.innerHTML = '<div class="col-span-full py-12 text-center text-[#64748B] font-meta text-xs">Đang lật mở các trang từ điển Kanji... 🔍</div>';
+    renderKanjiSkeleton(grid);
   }
 
   isSearching = true;
@@ -335,6 +359,42 @@ async function loadLearnerDictionary(page = 0) {
       if (err.name === 'AbortError') throw err;
       return null;
     });
+
+    if (res && res.status === 401) {
+      if (grid) {
+        grid.innerHTML = `
+          <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+              <span class="material-symbols-outlined text-[24px]">lock</span>
+            </div>
+            <h3 class="text-base font-bold text-[#0F2545]">Vui lòng đăng nhập</h3>
+            <p class="text-xs text-[#64748B]">Đăng nhập để xem danh mục từ điển Hán tự của bạn.</p>
+            <a href="/pages/login/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+              <span>Đăng nhập ngay</span>
+            </a>
+          </div>
+        `;
+      }
+      renderLearnerPagination(0, 1, 0);
+      return;
+    } else if (res && res.status === 403) {
+      if (grid) {
+        grid.innerHTML = `
+          <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+              <span class="material-symbols-outlined text-[24px]">school</span>
+            </div>
+            <h3 class="text-base font-bold text-[#0F2545]">Chưa vào lớp học</h3>
+            <p class="text-xs text-[#64748B]">Bạn cần được gia sư thêm vào ít nhất một lớp học để mở khóa toàn bộ từ điển Hán tự.</p>
+            <a href="/pages/tutor-discovery/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+              <span>Tìm gia sư</span>
+            </a>
+          </div>
+        `;
+      }
+      renderLearnerPagination(0, 1, 0);
+      return;
+    }
 
     if (!res || !res.ok) {
       // Fallback endpoint công khai

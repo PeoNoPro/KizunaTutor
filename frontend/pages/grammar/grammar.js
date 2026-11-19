@@ -157,11 +157,75 @@ function getAuthHeaders(customHeaders = {}) {
   return headers;
 }
 
+function renderGrammarSkeleton(grid) {
+  if (!grid) return;
+  grid.innerHTML = Array(6).fill(0).map(() => `
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-3 animate-pulse">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <div class="h-5 w-16 bg-slate-200 rounded-full"></div>
+        <div class="h-4 w-20 bg-slate-100 rounded"></div>
+      </div>
+      <div class="space-y-1.5">
+        <div class="h-6 w-32 bg-slate-200 rounded"></div>
+        <div class="h-4 w-48 bg-slate-100 rounded"></div>
+      </div>
+      <div class="p-3 bg-slate-50 border border-slate-100 rounded-lg space-y-1.5">
+        <div class="h-3.5 bg-slate-200 rounded w-full"></div>
+        <div class="h-3 bg-slate-100 rounded w-2/3"></div>
+      </div>
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <div class="h-3.5 w-24 bg-slate-100 rounded"></div>
+        <div class="h-6 w-20 bg-slate-200 rounded-lg"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
 async function loadGrammarData() {
+  const grid = document.getElementById('grammarGrid');
+  renderGrammarSkeleton(grid);
+
   try {
     let res = await fetch('/api/learner/grammar?level=ALL&size=1000', {
       headers: getAuthHeaders()
     });
+
+    if (res.status === 401) {
+      if (grid) {
+        document.getElementById('grammarPagination')?.classList.add('hidden');
+        grid.innerHTML = `
+          <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+              <span class="material-symbols-outlined text-[24px]">lock</span>
+            </div>
+            <h3 class="text-base font-bold text-[#0F2545]">Vui lòng đăng nhập</h3>
+            <p class="text-xs text-[#64748B]">Đăng nhập để xem danh mục mẫu câu ngữ pháp tuyển chọn của bạn.</p>
+            <a href="/pages/login/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+              <span>Đăng nhập ngay</span>
+            </a>
+          </div>
+        `;
+      }
+      return;
+    } else if (res.status === 403) {
+      if (grid) {
+        document.getElementById('grammarPagination')?.classList.add('hidden');
+        grid.innerHTML = `
+          <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+              <span class="material-symbols-outlined text-[24px]">school</span>
+            </div>
+            <h3 class="text-base font-bold text-[#0F2545]">Chưa vào lớp học</h3>
+            <p class="text-xs text-[#64748B]">Bạn cần được gia sư thêm vào ít nhất một lớp học để mở khóa toàn bộ kho ngữ pháp.</p>
+            <a href="/pages/tutor-discovery/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+              <span>Tìm gia sư</span>
+            </a>
+          </div>
+        `;
+      }
+      return;
+    }
+
     if (!res.ok) {
       // Fallback nạp trực tiếp từ file dữ liệu đồng bộ database
       res = await fetch('/data/grammars.json');

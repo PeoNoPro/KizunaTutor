@@ -254,12 +254,36 @@ function renderTopicPills() {
   }
 }
 
+function renderVocabSkeleton(grid) {
+  if (!grid) return;
+  grid.innerHTML = Array(6).fill(0).map(() => `
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 flex flex-col justify-between h-48 animate-pulse">
+      <div class="space-y-2.5">
+        <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
+          <div class="space-y-1.5 flex-1">
+            <div class="h-6 w-28 bg-slate-200 rounded"></div>
+            <div class="h-3 w-36 bg-slate-100 rounded"></div>
+          </div>
+          <div class="h-4 w-12 bg-slate-200 rounded-full"></div>
+        </div>
+        <div class="h-4 bg-slate-200 rounded w-4/5 mt-2"></div>
+        <div class="h-8 bg-slate-50 border border-slate-100 rounded-lg"></div>
+      </div>
+      <div class="pt-2 border-t border-slate-100 flex gap-2">
+        <div class="h-7 bg-slate-100 rounded-lg flex-1"></div>
+        <div class="h-7 bg-slate-100 rounded-lg w-8"></div>
+        <div class="h-7 bg-slate-100 rounded-lg w-8"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
 async function loadVocabularies() {
   const grid = document.getElementById('vocabGrid');
   const emptyState = document.getElementById('vocabEmptyState');
   if (!grid) return;
 
-  grid.innerHTML = '<div class="col-span-full py-10 text-center text-xs text-slate-400">Đang tải danh sách từ vựng...</div>';
+  renderVocabSkeleton(grid);
 
   try {
     const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}&limit=3500`, {

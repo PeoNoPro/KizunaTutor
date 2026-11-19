@@ -11,6 +11,7 @@ import {
   LEARNER_SUBNAV_ACTIVE,
   LEARNER_SUBNAV_IDLE
 } from '/js/sidebarRouter.js';
+import { initLearningToolsGuard } from '/js/learning-tools-access.js';
 
 // =========================================================================
 // 1. CẤU HÌNH DANH MỤC MENU HỌC VIÊN (4 TRỤ CỘT TRI THỨC CỐT LÕI)
@@ -590,6 +591,7 @@ export function injectGlobalLayoutStyles() {
 export function initLearnerShell(options = {}) {
   injectGlobalLayoutStyles();
   initSidebarRouter();
+  initLearningToolsGuard();
 
   if (document.getElementById('learnerSidebar')) {
     return;
@@ -700,6 +702,7 @@ if (typeof customElements !== 'undefined' && !customElements.get('kizuna-learner
 
       this.appendChild(wrapper);
       bindLearnerLayoutEvents();
+      initLearningToolsGuard();
     }
   }
 

@@ -322,6 +322,10 @@ async function loadLearnerDictionary(page = 0) {
       'Cache-Control': 'no-cache',
       'Pragma': 'no-cache'
     };
+    try {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+      if (token) fetchHeaders['Authorization'] = `Bearer ${token}`;
+    } catch (e) {}
 
     let res = await fetch(url, {
       method: 'GET',

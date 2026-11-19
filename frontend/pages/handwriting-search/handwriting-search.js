@@ -388,11 +388,15 @@ async function pageHwExecuteRecognition() {
     limit: 15
   };
 
+  const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+  const authHeaders = { 'Content-Type': 'application/json' };
+  if (token) authHeaders['Authorization'] = `Bearer ${token}`;
+
   let matches = [];
   try {
     const bRes = await fetch('/api/kanji/search-by-strokes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders,
       body: JSON.stringify(backendPayload)
     }).catch(() => null);
 
@@ -409,7 +413,9 @@ async function pageHwExecuteRecognition() {
     const enrichedList = await Promise.all(topChars.map(async (char, i) => {
       let detail = null;
       try {
-        const resp = await fetch(`/api/learner/kanji/search?page=0&size=1&keyword=${encodeURIComponent(char)}`).catch(() => null);
+        const resp = await fetch(`/api/learner/kanji/search?page=0&size=1&keyword=${encodeURIComponent(char)}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } : { 'Accept': 'application/json' }
+        }).catch(() => null);
         if (resp && resp.ok) {
           const data = await resp.json();
           if (data.items && data.items.length > 0) {

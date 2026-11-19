@@ -146,9 +146,20 @@ function shouldDisplayKana(v) {
   return false;
 }
 
+function getAuthHeaders(customHeaders = {}) {
+  const headers = { 'Accept': 'application/json', ...customHeaders };
+  try {
+    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  } catch (e) {}
+  return headers;
+}
+
 async function loadTopics() {
   try {
-    const res = await fetch('/api/learner/topics');
+    const res = await fetch('/api/learner/topics', {
+      headers: getAuthHeaders()
+    });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -210,10 +221,40 @@ async function loadVocabularies() {
   grid.innerHTML = '<div class="col-span-full py-10 text-center text-xs text-slate-400">Đang tải danh sách từ vựng...</div>';
 
   try {
-    const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}&limit=3500`);
+    const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}&limit=3500`, {
+      headers: getAuthHeaders()
+    });
     if (res.ok) {
       const data = await res.json();
       vocabList = Array.isArray(data) ? data : (data.content || data.items || []);
+    } else if (res.status === 401) {
+      grid.innerHTML = `
+        <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+          <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+            <span class="material-symbols-outlined text-[24px]">lock</span>
+          </div>
+          <h3 class="text-base font-bold text-[#0F2545]">Vui lòng đăng nhập</h3>
+          <p class="text-xs text-[#64748B]">Đăng nhập để xem danh mục từ vựng học tập của bạn.</p>
+          <a href="/pages/login/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+            <span>Đăng nhập ngay</span>
+          </a>
+        </div>
+      `;
+      return;
+    } else if (res.status === 403) {
+      grid.innerHTML = `
+        <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+          <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+            <span class="material-symbols-outlined text-[24px]">school</span>
+          </div>
+          <h3 class="text-base font-bold text-[#0F2545]">Chưa vào lớp học</h3>
+          <p class="text-xs text-[#64748B]">Bạn cần được gia sư thêm vào ít nhất một lớp học để mở khóa toàn bộ kho từ vựng.</p>
+          <a href="/pages/tutor-discovery/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+            <span>Tìm gia sư</span>
+          </a>
+        </div>
+      `;
+      return;
     } else {
       vocabList = [];
     }

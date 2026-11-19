@@ -148,9 +148,20 @@ function detectGrammarDomains(item) {
 // =========================================================================
 // 3. TẢI DỮ LIỆU NGỮ PHÁP TỪ REST API BACKEND
 // =========================================================================
+function getAuthHeaders(customHeaders = {}) {
+  const headers = { 'Accept': 'application/json', ...customHeaders };
+  try {
+    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  } catch (e) {}
+  return headers;
+}
+
 async function loadGrammarData() {
   try {
-    let res = await fetch('/api/learner/grammar?level=ALL&size=1000');
+    let res = await fetch('/api/learner/grammar?level=ALL&size=1000', {
+      headers: getAuthHeaders()
+    });
     if (!res.ok) {
       // Fallback nạp trực tiếp từ file dữ liệu đồng bộ database
       res = await fetch('/data/grammars.json');

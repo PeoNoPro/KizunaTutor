@@ -452,7 +452,7 @@ function renderLearnerGrid(items) {
            title="Tập viết chữ này trên Canvas Shodo">
           <span>✍️</span> Shodo
         </a>
-        <a href="/kanji-game?jlpt=${encodeURIComponent(k.jlptLevel || 'N5')}" data-spa-link 
+        <a href="/kanji-game?jlpt=${encodeURIComponent(k.jlpt || k.jlptLevel || 'N5')}" data-spa-link 
            class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#1E40AF] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
            title="Thử thách Game Mưa chữ Hán theo cấp độ này">
           <span>🌧️</span> Game
@@ -561,7 +561,11 @@ async function loadDeckOptions() {
     options = [{ id: 'deck_default', name: 'Bộ Thẻ Cá Nhân', count: 0 }];
   }
 
-  let htmlOptions = options.map(f => `<option value="${escapeHtml(f.id || f.name)}" data-id="${escapeHtml(f.id || '')}" data-name="${escapeHtml(f.name)}">${escapeHtml(f.name)} (${f.count} chữ)</option>`).join('');
+  const lastDeckId = localStorage.getItem('kizuna_last_selected_deck_id');
+  let htmlOptions = options.map(f => {
+    const isSelected = lastDeckId && (String(f.id) === String(lastDeckId) || f.name === lastDeckId);
+    return `<option value="${escapeHtml(f.id || f.name)}" data-id="${escapeHtml(f.id || '')}" data-name="${escapeHtml(f.name)}" ${isSelected ? 'selected' : ''}>${escapeHtml(f.name)} (${f.count} chữ)</option>`;
+  }).join('');
   htmlOptions += '<option value="__NEW__">➕ Tạo bộ thẻ mới...</option>';
   select.innerHTML = htmlOptions;
 
@@ -744,6 +748,9 @@ async function submitSaveToDeck(e) {
       deck.cards.push(newCard);
     }
     localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+    if (deck.id) {
+      localStorage.setItem('kizuna_last_selected_deck_id', String(deck.id));
+    }
 
     // 2. Đồng bộ trực tiếp đến API Backend /api/learner/decks
     let synced = false;

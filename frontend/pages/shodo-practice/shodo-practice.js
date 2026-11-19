@@ -606,6 +606,13 @@ async function selectKanji(char) {
 
   currentChar = targetChar;
 
+  // Cập nhật nút shortcut liên kết chéo sang Từ điển Kanji
+  const dictBtn = document.getElementById('btnShodoOpenDict');
+  if (dictBtn) {
+    dictBtn.href = `/kanji-dictionary?keyword=${encodeURIComponent(targetChar)}`;
+    dictBtn.classList.remove('hidden');
+  }
+
   // Cập nhật ngay ký tự lên thanh tiêu đề Canvas
   setElementText('canvasActiveChar', targetChar);
   setElementText('kanjiDisplayChar', targetChar);
@@ -719,7 +726,9 @@ function saveShodoCurrentCharToDeck() {
     let decks = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(decks)) decks = [];
 
-    let deck = decks.find(d => d.title === 'Bộ Thẻ Cá Nhân' || d.title === 'Bộ Thẻ Shodo');
+    const lastId = localStorage.getItem('kizuna_last_selected_deck_id');
+    let deck = (lastId && decks.find(d => String(d.id) === String(lastId))) ||
+               decks.find(d => d.title === 'Bộ Thẻ Cá Nhân' || d.title === 'Bộ Thẻ Shodo');
     if (!deck && decks.length > 0) {
       deck = decks[0];
     }
@@ -753,6 +762,9 @@ function saveShodoCurrentCharToDeck() {
     }
 
     localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+    if (deck.id) {
+      localStorage.setItem('kizuna_last_selected_deck_id', String(deck.id));
+    }
     showToast(`Đã cất chữ "${currentChar}" vào bộ thẻ "${deck.title}" thành công! 🗂️`, 'success');
   } catch (err) {
     console.error('Lỗi lưu thẻ từ Shodo:', err);

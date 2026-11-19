@@ -10,6 +10,9 @@ import { renderPagination } from '/components/pagination/pagination.js';
 
 let pendingVocabToSave = null;
 let lastSelectedVocabDeckId = '';
+try {
+  lastSelectedVocabDeckId = localStorage.getItem('kizuna_last_selected_deck_id') || '';
+} catch (e) {}
 
 let currentTopics = [
   { id: 'JLPT_N5', code: 'JLPT_N5', titleVn: 'JLPT N5 Căn bản', icon: '🌱', count: '650' },
@@ -662,6 +665,7 @@ async function submitSaveVocabToDeck(e) {
         cards: [newCard]
       });
       lastSelectedVocabDeckId = created.id;
+      try { localStorage.setItem('kizuna_last_selected_deck_id', String(created.id)); } catch (e) {}
       showToast(`Đã lưu "${word}" vào bộ thẻ mới "${created.title}"!`, 'success');
     } else {
       const targetDeck = decks.find(d => String(d.id) === String(selectedValue));
@@ -686,6 +690,7 @@ async function submitSaveVocabToDeck(e) {
         cards
       });
       lastSelectedVocabDeckId = targetDeck.id;
+      try { localStorage.setItem('kizuna_last_selected_deck_id', String(targetDeck.id)); } catch (e) {}
       showToast(`Đã lưu "${word}" vào bộ thẻ "${targetDeck.title}" thành công!`, 'success');
     }
 

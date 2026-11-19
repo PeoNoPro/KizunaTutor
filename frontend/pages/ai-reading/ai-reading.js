@@ -955,12 +955,22 @@ function populateDeckSelect() {
     return;
   }
 
+  const lastDeckId = localStorage.getItem('kizuna_last_selected_deck_id');
+
   userDecksList.forEach(deck => {
     const opt = document.createElement('option');
-    opt.value = deck.id || deck.deckId;
+    const val = String(deck.id || deck.deckId);
+    opt.value = val;
     opt.textContent = `${deck.name || 'Bộ thẻ'} (${deck.cardCount || 0} thẻ)`;
+    if (lastDeckId && (val === String(lastDeckId) || deck.name === lastDeckId)) {
+      opt.selected = true;
+    }
     selectTargetDeckEl.appendChild(opt);
   });
+
+  if (lastDeckId && userDecksList.some(d => String(d.id || d.deckId) === String(lastDeckId))) {
+    selectTargetDeckEl.value = lastDeckId;
+  }
 }
 
 function openSaveModal(vocab) {
@@ -1015,6 +1025,9 @@ async function saveWordToDeck() {
     }
 
     showToast(`Đã thêm từ「${cardPayload.frontText}」vào bộ thẻ thành công!`, 'success');
+    if (cardPayload.deckId) {
+      try { localStorage.setItem('kizuna_last_selected_deck_id', String(cardPayload.deckId)); } catch (e) {}
+    }
     closeModal();
   } catch (err) {
     console.error('[AI Reading] Lỗi lưu Flashcard:', err);

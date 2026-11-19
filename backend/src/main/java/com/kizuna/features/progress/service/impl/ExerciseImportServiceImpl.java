@@ -8,6 +8,7 @@ import com.kizuna.features.classroom.exception.ClassroomException;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.progress.entity.ExerciseQuestionType;
+import com.kizuna.features.progress.service.ExerciseImportService;
 import com.kizuna.features.progress.util.ExerciseQuestionEngine;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddressList;
@@ -31,7 +32,7 @@ import java.util.*;
  * Cột: A Loại câu · B Đề bài (câu điền: đoạn có chỗ trống ___) · C Lựa chọn / các mục (cách nhau bằng |) · D Đáp án đúng · E Điểm.
  */
 @Service
-public class ExerciseImportService {
+public class ExerciseImportServiceImpl implements ExerciseImportService {
 
     public static final long MAX_FILE_BYTES = 2L * 1024 * 1024;
     public static final int MAX_ROWS = 200;
@@ -55,22 +56,11 @@ public class ExerciseImportService {
         LABELS.put(ExerciseQuestionType.WRITTEN, "Tự luận");
     }
 
-    /**
-     * Một dòng đã đọc: ok = hợp lệ (question có dữ liệu chuẩn hóa), ngược lại error là lý do.
-     * listening = câu nghe (cần thêm file nghe trên trình soạn trước khi giao bài); maxPlays null = không giới hạn.
-     */
-    public record ImportRow(int row, boolean ok, String error, ExerciseQuestionType type, String prompt,
-                            BigDecimal points, JsonNode data, boolean listening, Integer maxPlays) {
-    }
-
-    public record ImportPreview(int total, int valid, int invalid, BigDecimal validPoints, List<ImportRow> rows) {
-    }
-
     private final ClassroomService classroomService;
     private final ExerciseQuestionEngine engine;
     private final ObjectMapper mapper;
 
-    public ExerciseImportService(ClassroomService classroomService, ExerciseQuestionEngine engine, ObjectMapper mapper) {
+    public ExerciseImportServiceImpl(ClassroomService classroomService, ExerciseQuestionEngine engine, ObjectMapper mapper) {
         this.classroomService = classroomService;
         this.engine = engine;
         this.mapper = mapper;
@@ -78,6 +68,7 @@ public class ExerciseImportService {
 
     // ================================================================== xem trước
 
+    @Override
     public ImportPreview preview(CurrentActor actor, UUID spaceId, MultipartFile file) {
         requireTutor(actor);
         classroomService.loadManageableSpace(actor, spaceId);
@@ -229,6 +220,7 @@ public class ExerciseImportService {
 
     // ================================================================== file mẫu
 
+    @Override
     public byte[] template(CurrentActor actor, UUID spaceId) {
         requireTutor(actor);
         classroomService.loadAccessibleSpace(actor, spaceId);

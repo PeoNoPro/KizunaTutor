@@ -1457,6 +1457,17 @@ API.exercises = {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/${encodeURIComponent(audioId)}/url`);
   },
 
+  /** Học viên: số lần đã nghe các câu nghe của lượt đang làm → [{questionId, plays, maxPlays, remaining}] (máy chủ đếm). */
+  listenStatus(spaceId, attemptId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/listen?attemptId=${encodeURIComponent(attemptId)}`);
+  },
+
+  /** Học viên bắt đầu một lần nghe (resume = xin lại link giữa chừng, không tính thêm) → {url, expiresInSeconds, plays, maxPlays, remaining}. */
+  listen(spaceId, attemptId, questionId, resume = false) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/listen`,
+      { method: 'POST', body: { attemptId, questionId, resume: !!resume } });
+  },
+
   /** Gia sư tải ảnh minh họa cho câu hỏi (PNG/JPG/WEBP/GIF ≤ 5 MB) → {imageId, fileName, fileSize}. */
   uploadImage(spaceId, file) {
     const fd = new FormData();

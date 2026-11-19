@@ -28,7 +28,7 @@ import {
   describeCorrect
 } from '../../js/exercise-helpers.js';
 import { renderInteractive } from '../../js/exercise-player.js';
-import { mountAudioPlayer, playsKey } from '../../js/exercise-audio.js';
+import { mountAudioPlayer } from '../../js/exercise-audio.js';
 import { mountQuestionImage } from '../../js/exercise-image.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 
@@ -321,7 +321,7 @@ function drawTaking() {
       </section>
     </div>`;
   drawNav();
-  if (q.audio) mountAudioPlayer($('questionAudio'), spaceId, q.audio, { limitKey: playsKey(a.attemptId, q.questionId) });
+  if (q.audio) mountAudioPlayer($('questionAudio'), spaceId, q.audio, { listen: { attemptId: a.attemptId, questionId: q.questionId } });
   if (q.image) mountQuestionImage($('questionImage'), spaceId, q.image, { maxHeight: 420 });
   renderInteractive($('questionBody'), q, {
     response: state.responses[q.questionId] || null,

@@ -552,7 +552,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
             throw ClassroomException.field("timeLimitMinutes", "Thời gian làm bài phải từ 1 đến " + MAX_TIME_LIMIT + " phút, hoặc để trống nếu không giới hạn.");
         }
         e.setTimeLimitMinutes(limit);
-        e.setGradingMode(parseMode(req.gradingMode()));
+        // Cách chấm không lấy từ request: suy ra từ các câu hỏi trong saveQuestions
     }
 
     private void saveQuestions(OnlineExercise e, List<QuestionInput> inputs, boolean strict, Set<UUID> previousAudio,
@@ -790,12 +790,6 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         if (e.getOpensAt() != null && now.isBefore(e.getOpensAt())) return "NOT_OPEN";
         if (e.getClosesAt() != null && !now.isBefore(e.getClosesAt())) return "CLOSED";
         return "OPEN";
-    }
-
-    private static OnlineExercise.GradingMode parseMode(String raw) {
-        if (raw == null || raw.isBlank() || "AUTO".equalsIgnoreCase(raw)) return OnlineExercise.GradingMode.AUTO;
-        if ("TUTOR".equalsIgnoreCase(raw)) return OnlineExercise.GradingMode.TUTOR;
-        throw ClassroomException.field("gradingMode", "Cách chấm không hợp lệ.");
     }
 
     private static BigDecimal maxScore(List<ExerciseQuestion> eq) {

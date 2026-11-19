@@ -83,8 +83,9 @@ public class ExerciseImageServiceImpl implements ExerciseImageService {
         UUID imageId = UUID.randomUUID();
         String name = ExerciseAudioServiceImpl.cleanName(file.getOriginalFilename());
         if (name.equals("file-nghe")) name = "anh";
-        byte[] dbData = r2.put(r2Key(imageId), data, contentType);
-        images.insertImage(imageId, space.getSpaceId(), name, data.length, contentType, dbData);
+        // Ghi DB trước, R2 sau: ghi DB lỗi thì chưa có tệp nào trên R2; ghi R2 lỗi thì transaction rollback bản ghi
+        images.insertImage(imageId, space.getSpaceId(), name, data.length, contentType, r2.enabled() ? null : data);
+        if (r2.enabled()) r2.put(r2Key(imageId), data, contentType);
         return new ImageInfo(imageId, name, data.length);
     }
 

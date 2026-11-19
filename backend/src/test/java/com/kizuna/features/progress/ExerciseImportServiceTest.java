@@ -7,9 +7,9 @@ import com.kizuna.features.classroom.exception.ClassroomException;
 import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.progress.entity.ExerciseQuestionType;
-import com.kizuna.features.progress.service.impl.ExerciseImportService;
-import com.kizuna.features.progress.service.impl.ExerciseImportService.ImportPreview;
-import com.kizuna.features.progress.service.impl.ExerciseImportService.ImportRow;
+import com.kizuna.features.progress.service.impl.ExerciseImportServiceImpl;
+import com.kizuna.features.progress.service.ExerciseImportService.ImportPreview;
+import com.kizuna.features.progress.service.ExerciseImportService.ImportRow;
 import com.kizuna.features.progress.util.ExerciseQuestionEngine;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -36,7 +36,7 @@ import static org.mockito.Mockito.*;
 class ExerciseImportServiceTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private ExerciseImportService service;
+    private ExerciseImportServiceImpl service;
     private LearningSpace space;
     private CurrentActor tutorActor;
     private CurrentActor learnerActor;
@@ -44,7 +44,7 @@ class ExerciseImportServiceTest {
     @BeforeEach
     void setUp() {
         ClassroomService classrooms = mock(ClassroomService.class);
-        service = new ExerciseImportService(classrooms, new ExerciseQuestionEngine(mapper), mapper);
+        service = new ExerciseImportServiceImpl(classrooms, new ExerciseQuestionEngine(mapper), mapper);
         Tutor tutor = tutor();
         space = space(tutor, learner());
         tutorActor = asTutor(tutor);

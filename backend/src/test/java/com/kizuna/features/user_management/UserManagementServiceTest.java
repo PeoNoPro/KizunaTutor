@@ -391,9 +391,220 @@ class UserManagementServiceTest {
                 .containsExactlyInAnyOrder("status", "expectedStatus", "reason");
     }
 
+    // ===== REQ-24/25/26: câu thông báo lỗi đúng như requirement =====
+
+    private static void assertBusiness(org.assertj.core.api.ThrowableAssert.ThrowingCallable call, int status, String message) {
+        assertThatThrownBy(call).isInstanceOfSatisfying(BusinessException.class, e -> {
+            assertThat(e.status()).isEqualTo(status);
+            assertThat(e.getMessage()).isEqualTo(message);
+        });
+    }
+
+    @Test
+    void req24_invalidStatusFilterMessage() {
+        assertBusiness(() -> service.list("TUTOR", null, "LOCKED", 0, 20), 400, "Trạng thái lọc không hợp lệ.");
+    }
+
+    @Test
+    void req25_notFoundMessageForMissingAndStaffAccounts() {
+        when(repository.findAccount(USER)).thenReturn(Optional.empty());
+        assertBusiness(() -> service.detail(USER), 404, "Không tìm thấy tài khoản gia sư hoặc học viên này.");
+
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_ADMIN", "ACTIVE")));
+        assertBusiness(() -> service.detail(USER), 404, "Không tìm thấy tài khoản gia sư hoặc học viên này.");
+    }
+
+    @Test
+    void req26_pendingTargetStatusMessage() {
+        assertBusiness(() -> service.updateStatus(USER, new UpdateUserStatusRequest("PENDING", "ACTIVE", "x", null), MANAGER),
+                400, "Trạng thái mới không hợp lệ.");
+        verifyNoWrite();
+    }
+
+    @Test
+    void req26_pendingAccountMessage() {
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "PENDING")));
+        assertBusiness(() -> service.updateStatus(USER, new UpdateUserStatusRequest("ACTIVE", "PENDING", "x", null), MANAGER),
+                400, "Tài khoản chưa hoàn tất đăng ký nên chưa thể đổi trạng thái.");
+        verifyNoWrite();
+    }
+
+    @Test
+    void req26_changedElsewhereMessageForStaleExpectedStatusAndLostUpdate() {
+        String changed = "Trạng thái tài khoản vừa được thay đổi. Vui lòng tải lại trước khi cập nhật.";
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "SUSPENDED")));
+        assertBusiness(() -> service.updateStatus(USER, new UpdateUserStatusRequest("BANNED", "ACTIVE", "x", null), MANAGER),
+                409, changed);
+
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "ACTIVE")));
+        when(repository.updateStatus(USER, "ACTIVE", "SUSPENDED")).thenReturn(0);
+        assertBusiness(() -> service.updateStatus(USER, new UpdateUserStatusRequest("SUSPENDED", "ACTIVE", "x", null), MANAGER),
+                409, changed);
+        verify(mail, never()).statusChangedAfterCommit(any(), any(), any(), any());
+    }
+
     private void verifyNoWrite() {
         verify(repository, never()).updateStatus(any(), any(), any());
         verify(repository, never()).insertAudit(any(), any(), any());
         verify(mail, never()).statusChangedAfterCommit(any(), any(), any(), any());
+    }
+
+    /**
+     * REQ-26: email báo đổi trạng thái chỉ gửi sau khi giao dịch commit, trên luồng nền;
+     * lỗi gửi không lan ra ngoài; nội dung đúng theo trạng thái và lời nhắn được escape.
+     */
+    @org.junit.jupiter.api.Nested
+    class StatusMail {
+
+        private static final long WAIT_MS = 3000;
+
+        private org.springframework.mail.javamail.JavaMailSender sender;
+        private UserStatusMailService realMail;
+
+        @BeforeEach
+        void setUpMail() {
+            sender = mock(org.springframework.mail.javamail.JavaMailSender.class);
+            when(sender.createMimeMessage()).thenAnswer(inv ->
+                    new jakarta.mail.internet.MimeMessage((jakarta.mail.Session) null));
+            realMail = new UserStatusMailService(sender, "noreply@kizuna.test");
+        }
+
+        @org.junit.jupiter.api.AfterEach
+        void clearTransaction() {
+            if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+                org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+            }
+        }
+
+        private jakarta.mail.internet.MimeMessage sentMessage() {
+            ArgumentCaptor<jakarta.mail.internet.MimeMessage> sent =
+                    ArgumentCaptor.forClass(jakarta.mail.internet.MimeMessage.class);
+            verify(sender, org.mockito.Mockito.timeout(WAIT_MS)).send(sent.capture());
+            try {
+                // Header Content-Type của từng phần chỉ được ghi khi lưu thư, như lúc JavaMailSender gửi thật
+                sent.getValue().saveChanges();
+            } catch (jakarta.mail.MessagingException e) {
+                throw new IllegalStateException(e);
+            }
+            return sent.getValue();
+        }
+
+        private String html(jakarta.mail.Part part) throws Exception {
+            Object content = part.getContent();
+            if (content instanceof jakarta.mail.Multipart multipart) {
+                for (int i = 0; i < multipart.getCount(); i++) {
+                    String found = html(multipart.getBodyPart(i));
+                    if (found != null) {
+                        return found;
+                    }
+                }
+                return null;
+            }
+            return part.isMimeType("text/html") ? (String) content : null;
+        }
+
+        @Test
+        void req26_missingEmailSendsNothing() {
+            realMail.statusChangedAfterCommit(null, "A", "SUSPENDED", null);
+            realMail.statusChangedAfterCommit("  ", "A", "SUSPENDED", null);
+
+            verify(sender, org.mockito.Mockito.after(300).never()).createMimeMessage();
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.CsvSource({
+                "ACTIVE, Tài khoản KizunaTutor của bạn đã được mở lại",
+                "SUSPENDED, Tài khoản KizunaTutor của bạn đã bị tạm khóa",
+                "BANNED, Tài khoản KizunaTutor của bạn đã bị khóa vĩnh viễn"
+        })
+        void req26_subjectAndRecipientFollowNewStatus(String status, String subject) throws Exception {
+            realMail.statusChangedAfterCommit("a@example.com", "Nguyễn Văn A", status, null);
+
+            jakarta.mail.internet.MimeMessage message = sentMessage();
+            assertThat(message.getSubject()).isEqualTo(subject);
+            assertThat(message.getAllRecipients()).extracting(Object::toString).containsExactly("a@example.com");
+            assertThat(((jakarta.mail.internet.InternetAddress) message.getFrom()[0]).getAddress())
+                    .isEqualTo("noreply@kizuna.test");
+            assertThat(html(message)).contains("Xin chào Nguyễn Văn A,");
+        }
+
+        @Test
+        void req26_reactivationMailHasNoSupportContactLine() throws Exception {
+            realMail.statusChangedAfterCommit("a@example.com", "A", "ACTIVE", null);
+
+            assertThat(html(sentMessage()))
+                    .contains("đã được khôi phục quyền truy cập")
+                    .doesNotContain("phản hồi email này");
+        }
+
+        @Test
+        void req26_lockMailHasSupportContactLine() throws Exception {
+            realMail.statusChangedAfterCommit("a@example.com", "A", "BANNED", null);
+
+            assertThat(html(sentMessage()))
+                    .contains("khóa vĩnh viễn")
+                    .contains("phản hồi email này");
+        }
+
+        @Test
+        void req26_managerMessageIsEscapedAndKeepsLineBreaks() throws Exception {
+            realMail.statusChangedAfterCommit("a@example.com", "<b>A</b>", "SUSPENDED",
+                    "Line 1\n<script>alert(1)</script>");
+
+            String body = html(sentMessage());
+            // Ghi chú: HtmlUtils.htmlEscape còn đổi chữ Latin-1 có dấu (ò, á…) thành entity (&ograve;…); hộp thư vẫn hiển thị đúng.
+            assertThat(body)
+                    .contains("Lời nhắn từ Quản lý vận hành")
+                    .contains("Line 1<br>&lt;script&gt;alert(1)&lt;/script&gt;")
+                    .contains("Xin chào &lt;b&gt;A&lt;/b&gt;,")
+                    .doesNotContain("<script>");
+        }
+
+        @Test
+        void req26_noMessageMeansNoMessageBlockAndBlankNameIsGeneric() throws Exception {
+            realMail.statusChangedAfterCommit("a@example.com", " ", "SUSPENDED", "   ");
+
+            assertThat(html(sentMessage()))
+                    .contains("Xin chào bạn,")
+                    .doesNotContain("Lời nhắn từ Quản lý vận hành");
+        }
+
+        @Test
+        void req26_insideTransactionMailWaitsForCommit() {
+            org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+
+            realMail.statusChangedAfterCommit("a@example.com", "A", "SUSPENDED", null);
+
+            verify(sender, org.mockito.Mockito.after(300).never()).send(any(jakarta.mail.internet.MimeMessage.class));
+            var syncs = org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations();
+            assertThat(syncs).hasSize(1);
+            syncs.forEach(org.springframework.transaction.support.TransactionSynchronization::afterCommit);
+
+            sentMessage();
+        }
+
+        @Test
+        void req26_rolledBackTransactionSendsNoMail() {
+            org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+
+            realMail.statusChangedAfterCommit("a@example.com", "A", "SUSPENDED", null);
+            org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(s -> s.afterCompletion(
+                            org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK));
+
+            verify(sender, org.mockito.Mockito.after(300).never()).send(any(jakarta.mail.internet.MimeMessage.class));
+        }
+
+        @Test
+        void req26_sendFailureDoesNotPropagateAndLaterMailsStillGo() {
+            org.mockito.Mockito.doThrow(new org.springframework.mail.MailSendException("smtp down"))
+                    .doNothing()
+                    .when(sender).send(any(jakarta.mail.internet.MimeMessage.class));
+
+            realMail.statusChangedAfterCommit("a@example.com", "A", "SUSPENDED", null);
+            realMail.statusChangedAfterCommit("b@example.com", "B", "ACTIVE", null);
+
+            verify(sender, org.mockito.Mockito.timeout(WAIT_MS).times(2)).send(any(jakarta.mail.internet.MimeMessage.class));
+        }
     }
 }

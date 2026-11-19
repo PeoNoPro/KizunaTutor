@@ -70,8 +70,34 @@ const state = {
   tab: ({ 'bai-lam': 'attempts', 'cai-dat': 'settings' })[params.get('tab')] || 'questions',
   selected: 0,
   gradeFilter: 'pending',
-  dirty: false
+  saving: false,
+  _dirty: false,
+  // Có thay đổi chưa lưu: cập nhật luôn thanh dưới (bài đã giao chỉ bật nút "Cập nhật cho học viên" khi có thay đổi)
+  get dirty() { return this._dirty; },
+  set dirty(v) {
+    this._dirty = !!v;
+    updateSaveState();
+  }
 };
+
+/** Thanh dưới của bài đã giao: trạng thái lưu + nút "Cập nhật cho học viên" (mờ khi chưa sửa gì). */
+function updateSaveState() {
+  const box = document.getElementById('saveState');
+  const btn = document.getElementById('publishBtn');
+  if (!box || !btn) return;
+  const published = state.status === 'PUBLISHED';
+  box.classList.toggle('hidden', !published);
+  box.classList.toggle('flex', published);
+  if (!published) {
+    btn.disabled = state.saving;
+    return;
+  }
+  box.innerHTML = state.dirty
+    ? '<span class="w-2 h-2 rounded-full bg-tertiary" aria-hidden="true"></span><span class="text-on-surface">Có thay đổi chưa gửi cho học viên</span>'
+    : '<span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">check_circle</span><span class="text-on-surface-variant">Đang giao cho học viên · đã lưu hết</span>';
+  btn.disabled = state.saving || !state.dirty;
+  btn.title = state.dirty ? 'Gửi các thay đổi tới học viên' : 'Chưa có thay đổi nào để cập nhật';
+}
 
 /** Biểu tượng cho từng dạng câu (nút thêm câu, danh sách câu). */
 const TYPE_ICONS = {
@@ -251,7 +277,8 @@ function renderAll() {
   } else badge.classList.add('hidden');
   const published = state.status === 'PUBLISHED';
   $('saveDraftBtn').classList.toggle('hidden', published);
-  $('publishBtn').textContent = published ? 'Lưu thay đổi' : 'Giao bài';
+  $('publishBtn').textContent = published ? 'Cập nhật cho học viên' : 'Giao bài';
+  updateSaveState();
   $('deleteBtn').classList.toggle('hidden', !state.exerciseId || state.locked);
   $('lockedNote').classList.toggle('hidden', !state.locked);
   $('exUnlimited').disabled = state.locked;
@@ -894,6 +921,11 @@ async function save(publish) {
     const ok = await confirmBox('Giao bài cho học viên?',
       $('exOpens').value ? `Học viên sẽ thấy bài từ ${formatDateTime(fromLocalInput($('exOpens').value))}.` : 'Học viên sẽ thấy bài ngay.', 'Giao bài');
     if (!ok) return;
+  } else if (state.status === 'PUBLISHED') {
+    const ok = await confirmBox('Cập nhật bài đã giao?', state.locked
+      ? 'Học viên đã làm bài nên chỉ cập nhật tiêu đề, hướng dẫn, giờ mở / đóng đề và số lượt. Câu hỏi giữ nguyên.'
+      : 'Học viên sẽ thấy nội dung mới ngay.', 'Cập nhật');
+    if (!ok) return;
   }
   const body = {
     title: f.title.trim(),
@@ -909,6 +941,7 @@ async function save(publish) {
   };
   const buttons = ['saveDraftBtn', 'publishBtn'];
   buttons.forEach((id) => { $(id).disabled = true; });
+  state.saving = true;
   try {
     const saved = state.exerciseId
       ? await API.exercises.update(spaceId, state.exerciseId, body)
@@ -919,8 +952,9 @@ async function save(publish) {
     url.searchParams.set('exercise', state.exerciseId);
     window.history.replaceState(null, '', url);
     showToast(saved.summary.status === 'PUBLISHED'
-      ? (publish && state.status !== 'PUBLISHED' ? 'Đã giao bài cho học viên.' : 'Đã lưu thay đổi.')
+      ? (publish && state.status !== 'PUBLISHED' ? 'Đã giao bài cho học viên.' : 'Đã cập nhật bài cho học viên.')
       : 'Đã lưu nháp. Học viên chưa thấy bài này.');
+    state.saving = false;
     await load();
   } catch (err) {
     const fe = err.fieldErrors || {};
@@ -936,7 +970,9 @@ async function save(publish) {
     }
     setFieldError('formError', qErr || friendlyErrorMessage(err));
   } finally {
+    state.saving = false;
     buttons.forEach((id) => { $(id).disabled = false; });
+    updateSaveState();
   }
 }
 
@@ -1420,6 +1456,10 @@ function init() {
   $('questionList').addEventListener('change', onListChange);
   $('questionList').addEventListener('click', onListClick);
   $('exUnlimited').addEventListener('change', () => { $('exTimeLimit').disabled = state.locked || $('exUnlimited').checked; });
+  // Mọi chỉnh sửa ở tab Câu hỏi / Cài đặt bài (gõ, chọn, tải tệp) đều tính là có thay đổi chưa lưu
+  ['questionsPanel', 'settingsPanel'].forEach((id) => {
+    ['input', 'change'].forEach((type) => $(id).addEventListener(type, () => { if (!state.locked || id === 'settingsPanel') state.dirty = true; }, true));
+  });
   $('saveDraftBtn').addEventListener('click', () => save(false));
   $('publishBtn').addEventListener('click', () => save(true));
   $('previewBtn').addEventListener('click', openPreview);

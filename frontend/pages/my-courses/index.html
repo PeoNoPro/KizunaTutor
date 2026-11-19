@@ -47,6 +47,11 @@
       .mc-file { @apply inline-flex items-center gap-1.5 max-w-full h-9 px-3 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-[13px] transition-all disabled:opacity-50; }
     }
   </style>
+  <!-- Phần nội dung FE-06/07 dùng cùng font với trang gia sư (Plus Jakarta Sans). styles/components.css của nhóm ép font Inter
+       cho mọi trang học viên nên chữ trông to hơn bên gia sư; chỉ ghi đè trong vùng nội dung, sidebar giữ nguyên. -->
+  <style id="fe0607-font">
+    #myCoursesRoot, #myCoursesRoot *:not(.material-symbols-outlined):not(.ms) { font-family: 'Plus Jakarta Sans', 'Noto Sans JP', system-ui, sans-serif !important; }
+  </style>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased">
   <div class="flex h-screen overflow-hidden bg-surface">
@@ -70,6 +75,42 @@
             </div>
             <div id="myCoursesState" class="kz-card p-6 text-center text-on-surface-variant hidden"></div>
             <div id="myCoursesGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+          </section>
+
+          <!-- ===== TRANG CHUNG MỌI LỚP: Tài liệu học tập (?view=materials) / Bài tập của tôi (?view=assignments) ===== -->
+          <section id="myHubView" class="space-y-5 hidden">
+            <div class="kz-card p-5 sm:p-6 flex flex-wrap items-center gap-4">
+              <div id="myHubIcon" class="mc-icon w-14 h-14 rounded-2xl bg-secondary-fixed text-on-secondary-container" aria-hidden="true"><span class="material-symbols-outlined text-[28px]">menu_book</span></div>
+              <div class="flex-1 min-w-[220px]">
+                <h1 id="myHubTitle" class="font-headline-md text-headline-md text-on-surface"></h1>
+                <p id="myHubSummary" class="text-on-surface-variant mt-0.5"></p>
+              </div>
+            </div>
+            <div class="kz-card p-5 sm:p-6 space-y-4">
+              <div class="flex flex-wrap items-center gap-3">
+                <label class="flex-1 min-w-[220px] flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low text-on-surface-variant focus-within:ring-2 focus-within:ring-primary">
+                  <span class="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
+                  <input id="myHubSearch" type="search" aria-label="Tìm kiếm" class="flex-1 min-w-0 bg-transparent border-0 outline-none text-on-surface">
+                </label>
+                <label class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low">
+                  <span class="text-on-surface-variant">Lớp</span>
+                  <select id="myHubClass" aria-label="Lọc theo lớp" class="bg-transparent border-0 outline-none font-semibold text-on-surface max-w-[240px]"></select>
+                </label>
+                <label class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low">
+                  <span class="text-on-surface-variant">Trạng thái lớp</span>
+                  <select id="myHubStatus" aria-label="Lọc theo trạng thái lớp" class="bg-transparent border-0 outline-none font-semibold text-on-surface"></select>
+                </label>
+                <label id="myHubKindBox" class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low hidden">
+                  <span class="text-on-surface-variant">Loại</span>
+                  <select id="myHubKind" aria-label="Lọc theo loại bài" class="bg-transparent border-0 outline-none font-semibold text-on-surface">
+                    <option value="">Tất cả</option><option value="file">Nộp tệp</option><option value="online">Làm trực tiếp</option>
+                  </select>
+                </label>
+              </div>
+              <div id="myHubChips" class="flex flex-wrap gap-2" role="group" aria-label="Lọc"></div>
+              <div id="myHubState" class="text-center text-on-surface-variant py-6 hidden"></div>
+              <div id="myHubList" class="flex flex-col gap-4"></div>
+            </div>
           </section>
 
           <!-- ===== CHI TIẾT LỚP (UC-58 bước 4–7, UC-61) ===== -->

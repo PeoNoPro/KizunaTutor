@@ -35,6 +35,7 @@ import {
 import { mapLink } from '../../js/address-helpers.js';
 import { ymdLocal } from '../../js/assignment-overview-helpers.js';
 import { loadLearnerAssignments, hideLearnerAssignments } from './my-assignments.js';
+import { showLearnerHub } from './my-hub.js';
 
 const $ = (id) => document.getElementById(id);
 let currentSpace = null;
@@ -442,7 +443,10 @@ function init() {
     head.querySelector('.material-symbols-outlined').textContent = open ? 'chevron_right' : 'expand_more';
     head.nextElementSibling.classList.toggle('hidden', open);
   });
-  const spaceId = new URLSearchParams(window.location.search).get('space');
+  const params = new URLSearchParams(window.location.search);
+  const spaceId = params.get('space');
+  // Mục "Tài liệu học tập" / "Bài tập của tôi" trên thanh bên: trang chung mọi lớp
+  if (!spaceId && showLearnerHub(params.get('view'), { notify: showError })) return;
   if (spaceId) showCourse(spaceId);
   else showList();
 }

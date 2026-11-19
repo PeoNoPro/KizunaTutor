@@ -133,6 +133,7 @@ export async function loadLearnerAssignments(space, { notify } = {}) {
     ctx.assignments = assignments || [];
     ctx.exercises = exercises || [];
     renderList();
+    openAssignmentFromLink();
   } catch (err) {
     list.innerHTML = '';
     stateBox(friendlyErrorMessage(err), () => loadLearnerAssignments(ctx.space));
@@ -268,6 +269,17 @@ function renderList() {
       <div class="flex justify-center"><button type="button" class="kz-btn" data-more-assignments>Xem thêm ${Math.min(PAGE_SIZE, shown.length - visible.length)} bài (còn ${shown.length - visible.length})</button></div>` : '');
   }
   bindOpenButtons(list);
+}
+
+/** Mở thẳng một bài nộp tệp khi vào lớp bằng ?assignment=<id> (từ trang "Bài tập của tôi"); bỏ tham số để tải lại không mở lần nữa. */
+function openAssignmentFromLink() {
+  const url = new URL(window.location.href);
+  const id = url.searchParams.get('assignment');
+  if (!id) return;
+  url.searchParams.delete('assignment');
+  window.history.replaceState(window.history.state, '', url);
+  const a = ctx.assignments.find((x) => String(x.assignmentId) === id);
+  if (a) openDetail(a.assignmentId, a.title);
 }
 
 /** Gắn sự kiện bộ lọc tab Bài tập (một lần). */

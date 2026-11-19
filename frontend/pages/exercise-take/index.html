@@ -40,6 +40,13 @@
     /* Đang làm bài: ẩn sidebar học viên để tập trung, tránh bấm nhầm rời bài */
     body.ex-taking #learnerSidebar { display: none !important; }
   </style>
+  <!-- Phần nội dung FE-06/07 dùng cùng font với trang gia sư (Plus Jakarta Sans). styles/components.css của nhóm ép font Inter
+       cho mọi trang học viên nên chữ trông to hơn bên gia sư; chỉ ghi đè trong vùng nội dung, sidebar giữ nguyên. -->
+  <style id="fe0607-font">
+    #takeMain, #takeMain *:not(.material-symbols-outlined):not(.ms),
+    #takeBar, #takeBar *:not(.material-symbols-outlined):not(.ms),
+    #confirmModal, #confirmModal *:not(.material-symbols-outlined):not(.ms) { font-family: 'Plus Jakarta Sans', 'Noto Sans JP', system-ui, sans-serif !important; }
+  </style>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface">
   <div class="flex h-screen overflow-hidden bg-surface">

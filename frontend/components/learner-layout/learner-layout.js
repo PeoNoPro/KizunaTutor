@@ -71,6 +71,7 @@ export const LEARNER_MENU_GROUPS = [
         url: '/pages/my-courses/?view=materials',
         icon: 'menu_book',
         query: { view: 'materials' },
+        paths: ['/pages/my-courses', '/learner/my-courses', '/my-courses'],
         noSpa: true
       },
       {
@@ -80,6 +81,7 @@ export const LEARNER_MENU_GROUPS = [
         url: '/pages/my-courses/?view=assignments',
         icon: 'assignment',
         query: { view: 'assignments' },
+        paths: ['/pages/my-courses', '/learner/my-courses', '/my-courses'],
         noSpa: true
       }
     ]
@@ -277,7 +279,7 @@ export function detectActiveMenu(customKey = null) {
   for (const group of LEARNER_MENU_GROUPS) {
     for (const item of group.items) {
       if (!item.query) continue;
-      const samePage = item.url.split('?')[0].replace(/\/+$/, '') === currentPath;
+      const samePage = (item.paths || [item.url.split('?')[0].replace(/\/+$/, '')]).includes(currentPath);
       if (samePage && Object.entries(item.query).every(([k, v]) => params.get(k) === v)) return item.key;
     }
   }

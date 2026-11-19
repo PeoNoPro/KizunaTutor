@@ -952,12 +952,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. Tìm kiếm mẫu câu (Debounce)
   const searchInput = document.getElementById('searchGrammarInput');
+  const clearBtn = document.getElementById('btnClearGrammarSearch');
   if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (clearBtn) {
+        if (val && val.trim().length > 0) {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+      }
+    });
+
     searchInput.addEventListener('input', debounce((e) => {
       currentSearchKeyword = e.target.value;
       currentGrammarPage = 1;
       renderGrammarCards();
-    }, 200));
+    }, 250));
+
+    clearBtn?.addEventListener('click', () => {
+      searchInput.value = '';
+      clearBtn.classList.add('hidden');
+      searchInput.focus();
+      currentSearchKeyword = '';
+      currentGrammarPage = 1;
+      renderGrammarCards();
+    });
   }
 
   // 5. Nút quay lại danh sách

@@ -71,14 +71,46 @@ if (document.readyState === 'loading') {
   boot();
 }
 
+function debounce(fn, delay = 250) {
+  let timer = null;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 async function initPage() {
   await loadTopics();
   renderTopicPills();
   await loadVocabularies();
 
-  document.getElementById('searchVocabInput')?.addEventListener('input', (e) => {
-    filterVocab(e.target.value);
-  });
+  const searchInput = document.getElementById('searchVocabInput');
+  const clearBtn = document.getElementById('btnClearVocabSearch');
+
+  const debouncedFilter = debounce((val) => {
+    filterVocab(val);
+  }, 250);
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (clearBtn) {
+        if (val && val.trim().length > 0) {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+      }
+      debouncedFilter(val);
+    });
+
+    clearBtn?.addEventListener('click', () => {
+      searchInput.value = '';
+      clearBtn.classList.add('hidden');
+      searchInput.focus();
+      filterVocab('');
+    });
+  }
 }
 
 /**
@@ -207,6 +239,7 @@ function renderTopicPills() {
       }
       const searchInput = document.getElementById('searchVocabInput');
       if (searchInput) searchInput.value = '';
+      document.getElementById('btnClearVocabSearch')?.classList.add('hidden');
       renderTopicPills();
       loadVocabularies();
     });

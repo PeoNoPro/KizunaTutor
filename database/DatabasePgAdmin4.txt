@@ -449,7 +449,7 @@ CREATE TABLE exercise_answers (
     CONSTRAINT uq_exercise_answer UNIQUE (attempt_id, question_id)
 );
 
--- 6) File nghe của câu hỏi (migration 031). Nội dung file nằm trên Cloudflare R2; DB chỉ giữ storage_key.
+-- 6) File nghe của câu hỏi (migration 033). Nội dung file nằm trên Cloudflare R2; DB chỉ giữ storage_key.
 --    Câu hỏi giữ mã file trong data JSON (khóa "audio"). Xóa bài → exercise_id = NULL, file được dọn sau.
 DROP TABLE IF EXISTS exercise_audio CASCADE;
 CREATE TABLE exercise_audio (

@@ -29,6 +29,24 @@ Nhóm đã thống nhất bổ sung sau cuộc họp. Chỉ Admin còn hoạt đ
 | `GET /settings/history` | Bổ sung các khóa email gửi thư và AI; giá trị bí mật chỉ ghi "đổi mật khẩu ứng dụng"/"đổi API key" |
 | `GET /audit-log?source=SHIFT` | Nhật ký thao tác thêm nhóm `SHIFT` ("Lịch ca CS") đọc từ `support_shift_events` của FE-10: hành động "Xếp ca"/"Gỡ ca", đối tượng "Ca sáng 07/11/2026 · tên nhân viên", kết quả "Đã lưu". Chỉ đọc |
 
+### Quản lý người dùng và lưu trữ đám mây — bổ sung 2026-11-19
+
+Theo FR-030, FR-031, FR-034 trong `spec.md`.
+
+| Endpoint | Hợp đồng |
+| --- | --- |
+| `GET /users?q&role&status&page&size` | Chỉ Quản lý. `role` thuộc `LEARNER,TUTOR`; `status` thuộc `ACTIVE,SUSPENDED,PENDING,BANNED`; `q` tối đa 200 ký tự. Trả `items[{userId,fullName,email,phone,role,roleLabel,status,statusLabel,createdAt,version,verificationLabel?}],page,size,totalElements,summary` |
+| `GET /users/{id}` | Chỉ Quản lý. Như một dòng danh sách, thêm `membershipLabel,avgRating,totalReviews` (Gia sư) hoặc `currentLevel,targetLevel` (Học viên), `activity`, `ticketCount`, `historyReady`, `history[{action,actionLabel,reason,occurredAt,actorName}]` (10 mục gần nhất). 404 nếu không phải Học viên/Gia sư |
+| `PUT /users/{id}/status` | Chỉ Quản lý, cần CSRF. Body `status(ACTIVE|SUSPENDED),reason(1–500),expectedVersion`. 400 dữ liệu sai; 404 không thấy; 409 sai phiên bản hoặc chuyển trạng thái không hợp lệ; 503 chưa có bảng lịch sử. Trả chi tiết mới |
+| `GET /settings/cloud-storage` | Chỉ Admin. Trả `providers[{code,label}],configured,source(admin|server|none),provider,providerLabel,endpoint,region,bucket,maskedAccessKey,active,previous,serverDefault,version`; không bao giờ trả khóa |
+| `POST /settings/cloud-storage/test` | Body `provider,endpoint,region?,bucket,accessKey?,secretKey?`, chưa lưu. Ghi–đọc–xóa tệp `kizuna-connection-test/<uuid>.txt`; trả `{ok,message,latencyMs}` |
+| `PUT /settings/cloud-storage` | Body như `/test` thêm `expectedVersion,reason`. Thử kết nối trước; lỗi → 400 "Chưa lưu: …"; trùng → 400; phiên bản cũ → 409. Trả như `GET` |
+| `POST /settings/cloud-storage/reset` | Body `expectedVersion,reason`. Quay về kho cấu hình server; 400 nếu đang dùng kho mặc định hoặc server chưa có kho |
+| `GET /settings/cloud-storage/copy` | Tiến độ chép: `state(IDLE|RUNNING|DONE|FAILED),from,to,scanned,copied,skipped,failed,updatedAt,message?` |
+| `POST /settings/cloud-storage/copy` | Bắt đầu chép từ kho cũ sang kho đang dùng; 400 nếu chưa có kho cũ hoặc hai kho là một; 409 nếu đang chép |
+
+Bộ S3 dùng chung (`CloudStorageConfiguration`, bean `@Primary S3Client`/`S3Presigner`): mỗi lệnh gửi tới kho Admin đang chọn và tự thay tên bucket; các chức năng tải tệp khác không phải sửa code. Lúc khởi động chưa có kho nào thì không tạo bean; bật lần đầu cần khởi động lại backend.
+
 Bộ gửi thư dùng chung (`AdminMailConfiguration`, bean `@Primary JavaMailSender`): mọi thư của hệ thống (mật khẩu nhân viên, OTP, xác minh gia sư, thanh toán) gửi bằng tài khoản Admin đã cấu hình; chưa cấu hình thì dùng `spring.mail.*`. Nếu tài khoản Admin không đăng nhập hoặc không kết nối được lúc gửi, thư được gửi lại bằng `spring.mail.*` và ghi cảnh báo vào log máy chủ, để thư của các phân hệ khác không bị chặn.
 
 ### Quản lý báo sự cố cho Admin — bổ sung 2026-11-08
@@ -99,7 +117,9 @@ Tiền tố `/api/admin/operations/staff/import`, chỉ Admin. Không thêm sche
 
 Mọi dòng được tạo trong một transaction, mỗi tài khoản một dòng nhật ký "Tạo nhân viên", `must_change_password=true`.
 
-### Đổi vai trò và thăng chức — 2026-11-04
+### (Lịch sử, đã thay thế) Đổi vai trò và thăng chức — 2026-11-04
+
+> **Đã bỏ (thầy chốt với nhóm, 2026-11-16):** toàn bộ tiền tố `/api/admin/operations/role-changes` và luồng đề xuất/duyệt không còn. Admin đổi vai trò qua `PUT /staff/{id}` với trường tùy chọn `roleId` (chỉ Manager/Cán bộ học vụ/CS, không Admin, không tự đổi, lý do bắt buộc, ghi nhật ký hành động ROLE).
 
 Tiền tố `/api/admin/operations/role-changes`. Cần bảng `staff_role_change_requests` (`database/seeds/fe11_operations_schema.sql`). Mọi lệnh ghi cần CSRF và kiểm vai trò hiện tại trong DB.
 
@@ -134,7 +154,7 @@ Mọi endpoint quản lý nhân sự dưới `/api/admin/operations` yêu cầu 
 - `GET /staff?q&page&size`: tìm tên/email, page>=0, size1..50 mặc định20. Trả `{items,page,size,totalElements}`; item `{userId,fullName,email,phone,roleId,roleLabel,status,statusLabel,updatedAt,self}`. Không trả hash/mật khẩu.
 - `GET /roles`: danh mục đủ 6 vai trò từ DB `{roleId,label,active,staffAssignable,accountCount,capabilities}`. Chỉ 4 vai trò nội bộ có staffAssignable=true; learner/tutor hiển thị để tra cứu, không gán trong biểu mẫu nhân viên. Quyền mô tả quyền quản trị thực được backend FE-11 kiểm tra, không hứa quyền của module chưa triển khai.
 - `POST /staff`: `{fullName,email,phone?,roleId,appointmentReason?}`. Tên1..100, email hợp lệ tối đa254, phone<=20; Manager bắt buộc căn cứ bổ nhiệm. Không nhận mật khẩu. Tài khoản mới ACTIVE, `must_change_password=true`; gửi mật khẩu tạm riêng qua hàng đợi email sau khi lưu. Không trả mật khẩu; chỉ gán Manager/Cán bộ học vụ/CS còn hoạt động, không cấp Admin.
-- `PUT /staff/{id}`: `{fullName,email,phone?,expectedUpdatedAt,reason}`. Lý do1..2000, timestamp phải khớp; email người đang thao tác không đổi để giữ phiên hiện tại. Không sửa trường quyền qua endpoint này.
+- `PUT /staff/{id}`: `{fullName,email,phone?,roleId?,expectedUpdatedAt,reason}`. `roleId` tùy chọn để đổi vai trò nội bộ (không Admin, không tự đổi). Lý do1..2000, timestamp phải khớp; email người đang thao tác không đổi để giữ phiên hiện tại. Chỉ đổi vai trò qua `roleId` này.
 - `PUT /staff/{id}/role` cũ của Admin đã bỏ. Đổi vai trò chỉ qua hợp đồng `/role-changes` hiện hành; không nhầm với endpoint Manager dưới tiền tố đó.
 - `PUT /staff/{id}/status`: `{status:ACTIVE|SUSPENDED,expectedUpdatedAt,reason}`. Khóa/mở tài khoản, không khóa chính mình hoặc quản trị viên cuối; trạng thái khác bị từ chối.
 - `POST /staff/{id}/delete` *(bổ sung 2026-11-10)*: `{expectedUpdatedAt,reason}` (lý do 1..2000). Chỉ Admin; xóa mềm (`deleted_at` + `SUSPENDED`), không xóa chính mình và tài khoản Quản trị viên (400), 409 nếu timestamp lệch. Gỡ ca CS từ hôm nay (ghi `REMOVE` vào `support_shift_events`), nhật ký `STATUS` với lý do "Xóa tài khoản: …". Trả `{userId,deleted:true}`. Danh sách `GET /staff` thêm `deletable` (false với chính mình và Quản trị viên).

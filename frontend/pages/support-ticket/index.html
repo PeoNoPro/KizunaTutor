@@ -8,17 +8,14 @@
 <div class="support-sheet-head"><h1>Chi tiết yêu cầu hỗ trợ</h1><a id="backToTickets" class="support-back-link" href="/pages/support-tickets/">← Danh sách yêu cầu</a></div>
 <div id="supportContent" class="support-sheet-body" hidden aria-busy="true">
   <div id="ticketDetail"></div>
-  <div id="detailTabs" class="support-tabs" role="tablist" aria-label="Nội dung yêu cầu hỗ trợ" hidden>
-    <button id="publicTab" type="button" role="tab" aria-selected="true" aria-controls="publicPanel" tabindex="0">Trao đổi với người gửi</button>
-    <button id="internalTab" type="button" role="tab" aria-selected="false" aria-controls="internalPanel" tabindex="-1">Xử lý nội bộ</button>
-  </div>
-  <section id="publicPanel" role="tabpanel" aria-labelledby="publicTab" tabindex="0">
+  <section id="publicPanel">
     <div id="publicLayout" class="support-detail-grid">
       <section class="support-card support-thread"><h2>Trao đổi về yêu cầu</h2><p>Chỉ nội dung trong phần trao đổi này được gửi cho người yêu cầu.</p><div id="ticketThread"></div><nav id="threadPaging" aria-label="Phân trang trao đổi"></nav><div id="replyArea"></div></section>
       <aside id="ticketActions" aria-label="Kết quả gửi cho người yêu cầu"></aside>
     </div>
   </section>
-  <section id="internalPanel" role="tabpanel" aria-labelledby="internalTab" tabindex="0" hidden>
+  <!-- Phần nội bộ: CS và Quản lý được chuyển sang cột phải (arrangeCsDetail); người gửi không thấy. -->
+  <section id="internalPanel" hidden>
     <p class="support-internal-hint">Chỉ bộ phận xử lý và quản lý tiếp nhận được xem. Nội dung tại đây không gửi cho người yêu cầu.</p>
     <div id="internalLayout" class="support-detail-grid">
       <div id="internalArea"></div><aside id="internalActions" aria-label="Thao tác xử lý nội bộ"></aside>

@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Ảnh minh họa của câu hỏi bài làm trực tiếp (bảng exercise_image, migration 032).
+ * Ảnh minh họa của câu hỏi bài làm trực tiếp (bảng exercise_image, migration 034).
  * Nội dung ảnh: trên Cloudflare R2 (khóa "exercise-images/&lt;image_id&gt;") khi bật R2, hoặc cột image_data (BYTEA).
  * Cột image_data cố ý KHÔNG ánh xạ để không tải dữ liệu nhị phân; ghi/đọc qua truy vấn native trong ExerciseImageRepository.
  * exercise_id NULL = gia sư vừa tải lên chưa lưu bài, hoặc câu hỏi đã bỏ ảnh / bài đã bị xóa (sẽ được dọn).

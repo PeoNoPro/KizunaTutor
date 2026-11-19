@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * File nghe của câu hỏi bài làm trực tiếp (bảng exercise_audio, migration 031).
+ * File nghe của câu hỏi bài làm trực tiếp (bảng exercise_audio, migration 033).
  * Nội dung file nằm trên Cloudflare R2 (storageKey, vd "audio/&lt;uuid&gt;.mp3"); DB không lưu dữ liệu nhị phân.
  * exercise_id NULL = gia sư vừa tải lên chưa lưu bài, hoặc câu hỏi đã bỏ file / bài đã bị xóa (sẽ được dọn).
  */

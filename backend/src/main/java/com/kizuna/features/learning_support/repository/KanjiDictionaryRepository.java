@@ -23,28 +23,50 @@ public interface KanjiDictionaryRepository extends JpaRepository<KanjiDictionary
     boolean existsByKanjiCharacter(String kanjiCharacter);
 
     @Query(value = "SELECT * FROM kanji_dictionary k WHERE " +
+           "k.kanji_character = :kanjiChar AND " +
+           "(:jlpt IS NULL OR :jlpt = '' OR :jlpt = 'ALL' OR UPPER(CAST(k.jlpt_level AS text)) = UPPER(:jlpt)) AND " +
+           "(:strokeCount IS NULL OR k.stroke_count = :strokeCount) AND " +
+           "(:minStroke IS NULL OR k.stroke_count >= :minStroke) AND " +
+           "(:maxStroke IS NULL OR k.stroke_count <= :maxStroke)",
+           countQuery = "SELECT count(*) FROM kanji_dictionary k WHERE " +
+           "k.kanji_character = :kanjiChar AND " +
+           "(:jlpt IS NULL OR :jlpt = '' OR :jlpt = 'ALL' OR UPPER(CAST(k.jlpt_level AS text)) = UPPER(:jlpt)) AND " +
+           "(:strokeCount IS NULL OR k.stroke_count = :strokeCount) AND " +
+           "(:minStroke IS NULL OR k.stroke_count >= :minStroke) AND " +
+           "(:maxStroke IS NULL OR k.stroke_count <= :maxStroke)",
+           nativeQuery = true)
+    Page<KanjiDictionary> searchByExactCharacter(
+            @Param("kanjiChar") String kanjiChar,
+            @Param("jlpt") String jlpt,
+            @Param("strokeCount") Short strokeCount,
+            @Param("minStroke") Short minStroke,
+            @Param("maxStroke") Short maxStroke,
+            Pageable pageable
+    );
+
+    @Query(value = "SELECT * FROM kanji_dictionary k WHERE " +
            "(:jlpt IS NULL OR :jlpt = '' OR :jlpt = 'ALL' OR UPPER(CAST(k.jlpt_level AS text)) = UPPER(:jlpt)) AND " +
            "(:strokeCount IS NULL OR k.stroke_count = :strokeCount) AND " +
            "(:keyword IS NULL OR :keyword = '' OR " +
-           " k.kanji_character ILIKE CONCAT('%', :keyword, '%') OR " +
+           " k.kanji_character = :keyword OR " +
            " k.han_viet ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.meaning ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.onyomi ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.kunyomi ILIKE CONCAT('%', :keyword, '%') OR " +
-           " k.radical ILIKE CONCAT('%', :keyword, '%') OR " +
-           " k.unicode_hex ILIKE CONCAT('%', :keyword, '%')) " +
-           "ORDER BY k.stroke_count ASC, k.unicode_hex ASC",
+           " k.radical = :keyword OR " +
+           " k.unicode_hex = :keyword) " +
+           "ORDER BY (CASE WHEN k.kanji_character = :keyword THEN 0 WHEN k.han_viet ILIKE :keyword THEN 1 ELSE 2 END), k.stroke_count ASC, k.unicode_hex ASC",
            countQuery = "SELECT count(*) FROM kanji_dictionary k WHERE " +
            "(:jlpt IS NULL OR :jlpt = '' OR :jlpt = 'ALL' OR UPPER(CAST(k.jlpt_level AS text)) = UPPER(:jlpt)) AND " +
            "(:strokeCount IS NULL OR k.stroke_count = :strokeCount) AND " +
            "(:keyword IS NULL OR :keyword = '' OR " +
-           " k.kanji_character ILIKE CONCAT('%', :keyword, '%') OR " +
+           " k.kanji_character = :keyword OR " +
            " k.han_viet ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.meaning ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.onyomi ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.kunyomi ILIKE CONCAT('%', :keyword, '%') OR " +
-           " k.radical ILIKE CONCAT('%', :keyword, '%') OR " +
-           " k.unicode_hex ILIKE CONCAT('%', :keyword, '%'))",
+           " k.radical = :keyword OR " +
+           " k.unicode_hex = :keyword)",
            nativeQuery = true)
     Page<KanjiDictionary> searchKanjiPaginated(
             @Param("keyword") String keyword,
@@ -58,26 +80,26 @@ public interface KanjiDictionaryRepository extends JpaRepository<KanjiDictionary
            "(:minStroke IS NULL OR k.stroke_count >= :minStroke) AND " +
            "(:maxStroke IS NULL OR k.stroke_count <= :maxStroke) AND " +
            "(:keyword IS NULL OR :keyword = '' OR " +
-           " k.kanji_character ILIKE CONCAT('%', :keyword, '%') OR " +
+           " k.kanji_character = :keyword OR " +
            " k.han_viet ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.meaning ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.onyomi ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.kunyomi ILIKE CONCAT('%', :keyword, '%') OR " +
-           " k.radical ILIKE CONCAT('%', :keyword, '%') OR " +
-           " k.unicode_hex ILIKE CONCAT('%', :keyword, '%')) " +
-           "ORDER BY k.stroke_count ASC, k.unicode_hex ASC",
+           " k.radical = :keyword OR " +
+           " k.unicode_hex = :keyword) " +
+           "ORDER BY (CASE WHEN k.kanji_character = :keyword THEN 0 WHEN k.han_viet ILIKE :keyword THEN 1 ELSE 2 END), k.stroke_count ASC, k.unicode_hex ASC",
            countQuery = "SELECT count(*) FROM kanji_dictionary k WHERE " +
            "(:jlpt IS NULL OR :jlpt = '' OR :jlpt = 'ALL' OR UPPER(CAST(k.jlpt_level AS text)) = UPPER(:jlpt)) AND " +
            "(:minStroke IS NULL OR k.stroke_count >= :minStroke) AND " +
            "(:maxStroke IS NULL OR k.stroke_count <= :maxStroke) AND " +
            "(:keyword IS NULL OR :keyword = '' OR " +
-           " k.kanji_character ILIKE CONCAT('%', :keyword, '%') OR " +
+           " k.kanji_character = :keyword OR " +
            " k.han_viet ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.meaning ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.onyomi ILIKE CONCAT('%', :keyword, '%') OR " +
            " k.kunyomi ILIKE CONCAT('%', :keyword, '%') OR " +
-           " k.radical ILIKE CONCAT('%', :keyword, '%') OR " +
-           " k.unicode_hex ILIKE CONCAT('%', :keyword, '%'))",
+           " k.radical = :keyword OR " +
+           " k.unicode_hex = :keyword)",
            nativeQuery = true)
     Page<KanjiDictionary> searchKanjiByStrokeRange(
             @Param("keyword") String keyword,

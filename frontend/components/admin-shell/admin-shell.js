@@ -8,17 +8,15 @@ const ADMIN_NAV = [
   {label: 'Báo cáo tổng hợp', icon: 'monitoring', href: '/pages/manager-reports/', managerOnly: true},
   // Trang doanh thu (tổng quan, theo gói, danh sách giao dịch thanh toán) đã có nhưng trước đây thiếu link trên sidebar.
   {label: 'Doanh thu & giao dịch', icon: 'payments', href: '/pages/operations-revenue/', managerOnly: true},
+  // FE-11 (2026-11-13): Quản lý xem và tạm khóa / mở lại tài khoản Học viên, Gia sư.
+  {label: 'Quản lý người dùng', icon: 'manage_accounts', href: '/pages/manager-users/', managerOnly: true},
   {label: 'Quản lý nhân viên', icon: 'groups', items: [
-    ['Danh sách nhân viên', '/pages/admin-staff/', 'Tạo, sửa, khóa tài khoản nhân viên và duyệt đề xuất thăng chức.'],
-    ['Đề xuất thăng chức', '/pages/admin-roles/', 'Duyệt hoặc từ chối đề xuất thăng chức do Quản lý gửi.'],
-    ['Đề xuất đổi vai trò', '/pages/manager-staff-roles/', 'Đề xuất thăng chức hoặc chuyển vai trò cho nhân viên do bạn quản lý.', true],
-    ['Xếp lịch làm việc CS', '/pages/support-shifts/', 'Xếp nhân viên hỗ trợ vào ca làm; yêu cầu mới tự giao cho người đang trong ca.', true]]},
+    ['Danh sách nhân viên', '/pages/admin-staff/', 'Tạo, sửa thông tin và vai trò, khóa tài khoản nhân viên.']]},
   {label: 'Vận hành hệ thống', icon: 'settings_suggest', items: [
-    ['Sự cố kỹ thuật', '/pages/operations-incidents/', 'Ghi nhận, nhận xử lý và theo dõi các sự cố kỹ thuật.'],
     ['Nhật ký thao tác', '/pages/operations-logs/', 'Ai đã thay đổi gì trong khu quản trị và vào lúc nào.'],
     ['Cấu hình hệ thống', '/pages/operations-config/', 'AI hỗ trợ học tập, gói hội viên, email gửi thư cho nhân viên và giới hạn tệp đính kèm.']]}
 ];
-const PAGE_ALIASES = {'/pages/notification-broadcasts/': '/pages/notifications/', '/pages/notification-preferences/': '/pages/notifications/', '/pages/operations-incident/': '/pages/operations-incidents/', '/pages/support-ticket/': '/pages/support-tickets/'};
+const PAGE_ALIASES = {'/pages/notification-broadcasts/': '/pages/notifications/', '/pages/notification-preferences/': '/pages/notifications/', '/pages/support-ticket/': '/pages/support-tickets/'};
 const escapeHtml = value => value.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[c]);
 /** Biểu tượng Material Symbols của sidebar (styles/staff-unified.css). */
 const icon = name => name ? '<span class="su-icon" aria-hidden="true">' + name + '</span>' : '';
@@ -38,7 +36,7 @@ function decoratePortalPage(path) {
   document.title = item[0] + ' - KizunaTutor';
 }
 /** Nhóm yêu cầu hỗ trợ hiện thành mục con dưới "Yêu cầu hỗ trợ" (cùng thứ tự với trang danh sách, tham số ?group=). */
-const SUPPORT_GROUPS = {cs: ['Cần xử lý', 'Chờ người dùng xác nhận', 'Đã chuyển Quản lý', 'Đã đóng'], manager: ['Chờ xem xét', 'Đã phản hồi', 'Cần bàn giao']};
+const SUPPORT_GROUPS = {cs: ['Cần xử lý', 'Chờ người dùng xác nhận', 'Đã chuyển Quản lý', 'Đã đóng'], manager: ['Chờ xem xét', 'Đã phản hồi']};
 /** Bọc link "Yêu cầu hỗ trợ" cùng danh sách nhóm; đóng sẵn, bấm mới mở, nhớ trạng thái mở khi chuyển trang. */
 function attachSupportGroups(link, labels, base) {
   const params = new URLSearchParams(location.search);
@@ -46,7 +44,7 @@ function attachSupportGroups(link, labels, base) {
   attachNavGroup(link, labels.map((label, index) => ({label, href: base + '?group=' + index, current: onList && index === current})), 'supportNavItems', 'kizuna-support-nav-open', onList || location.pathname === '/pages/support-ticket/');
 }
 /** Các phần của trang Cấu hình hệ thống, mỗi phần là một mục con trên sidebar (tham số ?section=, mặc định phần đầu). */
-export const CONFIG_SECTIONS = [['ai', 'AI hỗ trợ học tập'], ['plans', 'Gói hội viên gia sư'], ['mail', 'Email gửi thư'], ['attachment', 'Giới hạn tệp đính kèm']];
+export const CONFIG_SECTIONS = [['ai', 'AI hỗ trợ học tập'], ['plans', 'Gói hội viên gia sư'], ['mail', 'Email gửi thư'], ['attachment', 'Giới hạn tệp đính kèm'], ['storage', 'Lưu trữ đám mây']];
 export function currentConfigSection() {
   const requested = new URLSearchParams(location.search).get('section');
   return CONFIG_SECTIONS.some(([key]) => key === requested) ? requested : CONFIG_SECTIONS[0][0];
@@ -72,7 +70,7 @@ function attachNavGroup(link, items, listId, key, forceOpen = false) {
   link.addEventListener('click', event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.button) return; event.preventDefault(); setOpen(!wrap.classList.contains('is-open')); });
 }
 const ROLE_CACHE = 'kizuna-staff-nav-role';
-const MANAGER_PATHS = ['/pages/manager-dashboard/', '/pages/manager-reports/', '/pages/manager-staff-roles/', '/pages/operations-revenue/', '/pages/support-shifts/'];
+const MANAGER_PATHS = ['/pages/manager-dashboard/', '/pages/manager-reports/', '/pages/manager-users/', '/pages/operations-revenue/'];
 /** Ẩn/hiện mục menu theo vai trò: Admin không thấy mục riêng của Quản lý và ngược lại. */
 function applyRoleNavigation(account, csWorkspace) {
   document.querySelectorAll('.sidebar-menu a,.sidebar-menu button').forEach(link => {
@@ -125,20 +123,19 @@ export function mountAdminShell() {
       <img src="/assets/logos/kizuna-logo.png" alt="Kizuna Logo" width="40" height="40">
       <span><strong>Kizuna<span class="brand-tutor">Tutor</span></strong><small>Cổng quản trị</small></span>
     </a>
+    <!-- FE-12 (2026-11-13): chuông cạnh logo mở khung xem nhanh; mục "Thông báo" cuối sidebar mở trang Thông báo. -->
+    <button type="button" class="sidebar-bell" data-notification-bell aria-label="Thông báo">${icon('notifications')}</button>
     <div class="sidebar-menu">
       <p class="nav-caption">Hệ thống quản trị</p>
       <nav>
         <a href="/pages/admin-dashboard/"><img src="/assets/icons/admin-dashboard/nav-overview.svg" alt="">Tổng quan hệ thống</a>
         <a href="/pages/admin-staff/"><img src="/assets/icons/admin-dashboard/nav-users.svg" alt="">Quản lý tài khoản nhân viên</a>
-        <a href="/pages/admin-roles/"><img src="/assets/icons/admin-dashboard/nav-roles.svg" alt="">Quản lý vai trò và quyền hạn</a>
         <a href="/pages/operations-logs/"><img src="/assets/icons/admin-dashboard/nav-logs.svg" alt="">Nhật ký hệ thống</a>
         <a href="/pages/operations-config/"><img src="/assets/icons/admin-dashboard/nav-settings.svg" alt="">Cấu hình hệ thống</a>
         <a href="/pages/operations-statistics/"><img src="/assets/icons/admin-dashboard/nav-statistics.svg" alt="">Thống kê hệ thống</a>
-        <a href="/pages/operations-reports/"><img src="/assets/icons/admin-dashboard/nav-reports.svg" alt="">Báo cáo và xuất dữ liệu</a>
         <a href="/pages/manager-reports/"><img src="/assets/icons/admin-dashboard/nav-statistics.svg" alt="">Báo cáo tổng hợp</a>
         <a href="/pages/support-tickets/" data-support-link hidden><img src="/assets/icons/admin-dashboard/nav-incidents.svg" alt="">Yêu cầu hỗ trợ</a>
         <button type="button" disabled title="Chức năng chưa được tích hợp"><img src="/assets/icons/admin-dashboard/nav-notifications.svg" alt="">Quản lý thông báo</button>
-        <a href="/pages/operations-incidents/"><img src="/assets/icons/admin-dashboard/nav-incidents.svg" alt="">Quản lý sự cố kỹ thuật</a>
         <button type="button" disabled title="Nội dung chính sách dành cho học viên và gia sư"><img src="/assets/icons/admin-dashboard/nav-policies.svg" alt="">Điều khoản và chính sách</button>
       </nav>
     </div>
@@ -171,8 +168,7 @@ export function mountAdminShell() {
     root.querySelector('.nav-caption').textContent='Nhân viên hỗ trợ';
     root.querySelector('.sidebar-menu nav').innerHTML=`
       <a href="/cs/dashboard" data-cs-navigation>${icon('space_dashboard')}Tổng quan</a>
-      <a href="/cs/support/tickets" data-cs-navigation data-support-link>${icon('support_agent')}Yêu cầu hỗ trợ</a>
-      <a href="/pages/support-shifts/?view=cs" data-cs-navigation>${icon('calendar_month')}Lịch làm việc</a>`;
+      <a href="/cs/support/tickets" data-cs-navigation data-support-link>${icon('support_agent')}Yêu cầu hỗ trợ</a>`;
     // "Thông báo" chỉ còn ở nút chuông cuối sidebar (giống các vai trò khác), không lặp lại trong menu.
     brand.querySelector('span').insertAdjacentHTML('beforeend', '<small>Chăm sóc khách hàng</small>');
     root.querySelector('.topbar-breadcrumb>span').textContent='Không gian làm việc';
@@ -204,7 +200,7 @@ export function mountAdminShell() {
   // Cấu hình hệ thống chỉ dành cho Quản trị viên: chia từng phần ngay trên sidebar.
   if (!csWorkspace) attachConfigGroups(document.querySelector('.sidebar-menu a[href="/pages/operations-config/"]'));
   if(csWorkspace){
-    const selected=path.startsWith('/pages/notification')?'/pages/notifications/':path==='/pages/cs-dashboard/'?'/cs/dashboard':path==='/pages/support-shifts/'?'/pages/support-shifts/?view=cs':'/cs/support/tickets';
+    const selected=path.startsWith('/pages/notification')?'/pages/notifications/':path==='/pages/cs-dashboard/'?'/cs/dashboard':'/cs/support/tickets';
     document.querySelectorAll('[data-cs-navigation]').forEach(link=>{const url=new URL(link.href);if(url.pathname+url.search===selected)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   }
   const title = document.querySelector('h1')?.textContent;
@@ -235,18 +231,6 @@ export function mountAdminShell() {
     if (account.canSupport) supportLink.href = account.canReport ? '/manager/support/tickets' : '/cs/support/tickets';
     if (account.canSupport && account.canReport) supportLink.lastChild.textContent = 'Yêu cầu chuyển lên';
     if (account.canSupport) attachSupportGroups(supportLink, account.canReport ? SUPPORT_GROUPS.manager : SUPPORT_GROUPS.cs, account.canReport ? '/manager/support/tickets' : '/cs/support/tickets');
-    // Quản lý: số yêu cầu đang chờ bàn giao (nhân viên phụ trách đã nghỉ/bị khóa) hiện cạnh mục "Cần bàn giao".
-    if (account.canSupport && account.canReport) fetchAPI('/v1/tickets/counts?handover=true').then(data => {
-      const total = Object.values(data || {}).reduce((sum, value) => sum + Number(value || 0), 0);
-      if (!total) return;
-      const label = total > 99 ? '99+' : String(total);
-      // Chỉ gắn vào mục con: mục cha bị đổi chữ (lastChild) khi vai trò được áp lại.
-      [document.querySelector('#supportNavItems a[href$="?group=2"]')].forEach(link => {
-        if (!link || link.querySelector('.support-nav-count')) return;
-        const count = document.createElement('span'); count.className = 'support-nav-count'; count.textContent = label;
-        count.title = total + ' yêu cầu cần bàn giao'; link.append(count);
-      });
-    }).catch(() => { /* Không tải được thì chỉ không hiện số. */ });
     const avatar = document.createElement('span');
     avatar.className = 'admin-avatar';
     avatar.textContent = account.displayName.trim().split(/\s+/).slice(-2).map(word => word[0]).join('').toLocaleUpperCase('vi-VN');
@@ -277,7 +261,8 @@ export function mountAdminShell() {
   import('/js/pages/date-input-vi.js').then(module => module.watchDateInputs()).catch(() => {});
   // FE-12: chuông mở khung xem nhanh thông báo (dùng chung với các khung khác).
   const bell = document.querySelector('.notification-button');
-  if (bell) { bell.dataset.notificationBell = ''; import('/js/pages/notification-badge.js').then(module => module.attachNotificationBadges()).catch(() => {}); }
+  if (bell) bell.dataset.notificationBell = '';
+  import('/js/pages/notification-badge.js').then(module => module.attachNotificationBadges()).catch(() => {});
   document.querySelector('.logout-button')?.addEventListener('click', logout);
   const sidebar = document.getElementById('adminSidebar');
   const toggle = document.getElementById('sidebarToggle');

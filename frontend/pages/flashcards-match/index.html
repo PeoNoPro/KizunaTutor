@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trò Chơi Ghép Thẻ (Match Game) - KizunaTutor</title>
+  <title>Trò Chơi Ghép Thẻ Phản Xạ - KizunaTutor</title>
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
 
   <!-- Fonts & Icons -->
@@ -61,7 +61,7 @@
         <div class="space-y-4 flex-1 flex flex-col">
 
           <!-- KHÔNG ĐỦ THẺ ĐỂ CHƠI (EMPTY / MINIMUM STATE) -->
-          <div id="matchNotEnoughState" class="hidden flex-1 flex flex-col items-center justify-center p-10 bg-white border-2 border-[#0F172A] rounded-xl text-center space-y-3 shadow-[3px_3px_0px_0px_#0F172A]">
+          <div id="matchNotEnoughState" class="hidden flex-1 flex flex-col items-center justify-center p-10 bg-white border border-[#E2E8F0] rounded-xl text-center space-y-3 shadow-sm">
             <span class="text-4xl">📭</span>
             <h3 class="font-bold text-base text-[#0F172A]">Bộ thẻ chưa đủ số lượng để chơi ghép thẻ</h3>
             <p class="text-xs text-slate-500 max-w-sm">
@@ -95,7 +95,7 @@
 
   <!-- 3. DIALOG HOÀN THÀNH VÁN ĐẤU (VICTORY MODAL) -->
   <div id="matchVictoryModal" class="hidden fixed inset-0 bg-[#0F172A]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white border-2 border-[#0F172A] rounded-xl p-6 max-w-sm w-full text-center shadow-[3px_3px_0px_0px_#0F172A] space-y-4 animate-in fade-in zoom-in-95 duration-200">
+    <div class="bg-white border border-[#E2E8F0] rounded-2xl p-6 max-w-sm w-full text-center shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
       <div class="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 mx-auto flex items-center justify-center text-3xl">
         🎉
       </div>

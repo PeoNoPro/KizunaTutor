@@ -121,10 +121,37 @@ class ExerciseQuestionEngineTest {
     }
 
     @Test
-    void wordBankNeedsAtLeastTwoWordsToDrag() {
-        assertThatThrownBy(() -> valid(WORD_BANK, "{'text':'___ です','answers':['これ'],'distractors':[]}"))
-                .isInstanceOf(ClassroomException.class).hasMessageContaining("ít nhất 2 từ");
-        assertThat(valid(WORD_BANK, "{'text':'___ です','answers':['これ'],'distractors':['あれ']}")).contains("あれ");
+    void wordBankChoosesOneSetOfWordsForAllBlanks() {
+        // Câu 3 chỗ trống: mỗi phương án là bộ 3 từ cách nhau bằng /
+        String data = "{'text':'私は ___ 学校 ___ 日本語 ___ 勉強します。','options':['は / で / を','が/に/を','は/を/で'],'correct':0}";
+        String v = valid(WORD_BANK, data);
+        assertThat(engine.read(v).get("options").get(0).asText()).isEqualTo("は/で/を");
+        assertThat(grade(WORD_BANK, data, "{'choice':0}").correct()).isTrue();
+        assertThat(grade(WORD_BANK, data, "{'choice':2}").correct()).isFalse();
+        // Đề cho học viên có các phương án nhưng không lộ phương án đúng
+        JsonNode view = engine.learnerView(WORD_BANK, v, 1L);
+        assertThat(view.get("options")).hasSize(3);
+        assertThat(view.has("correct")).isFalse();
+        assertThat(view.get("segments")).hasSize(4);
+        assertThat(engine.correctAnswer(WORD_BANK, v).get("correct").asInt()).isZero();
+        assertThat(engine.mayNeedReview(WORD_BANK, v)).isFalse();
+    }
+
+    @Test
+    void wordBankRules() {
+        assertThatThrownBy(() -> valid(WORD_BANK, "{'text':'___ は ___','options':['a/b'],'correct':0}"))
+                .hasMessageContaining("ít nhất 2 phương án");
+        assertThatThrownBy(() -> valid(WORD_BANK, "{'text':'___ は ___','options':['a/b','c'],'correct':0}"))
+                .hasMessageContaining("phương án B phải có đủ 2 từ, cách nhau bằng dấu /");
+        assertThatThrownBy(() -> valid(WORD_BANK, "{'text':'___ は ___','options':['a/b','a / b'],'correct':0}"))
+                .hasMessageContaining("trùng");
+        assertThatThrownBy(() -> valid(WORD_BANK, "{'text':'___ は ___','options':['a/b','c/d']}"))
+                .hasMessageContaining("chưa chọn phương án đúng");
+        // Lưu nháp: chưa đủ vẫn lưu được
+        assertThat(engine.validate(WORD_BANK, null, TWO, json("{'text':'___','options':['a']}"), false, true, "Câu 1")).contains("options");
+        // Dạng cũ (bộ từ để kéo) vẫn chấm như trước
+        assertThat(engine.grade(WORD_BANK, "{\"text\":\"___ です\",\"answers\":[\"これ\"],\"distractors\":[\"あれ\"]}",
+                TWO, json("{'blanks':['これ']}")).correct()).isTrue();
     }
 
     @Test

@@ -74,7 +74,7 @@ class ExerciseImportServiceTest {
                 {"trac nghiem nhieu dap an", "Chọn động từ", "食べる | 赤い | 行く", "1 | 3", "2"},
                 {"Đúng / Sai", "「右」 nghĩa là bên phải.", "", "Đúng", ""},
                 {"Điền khuyết", "毎朝 ___ を飲みます。", "", "牛乳;ぎゅうにゅう", "2"},
-                {"WORD_BANK", "私は ___ で ___ を買いました。", "学校", "駅 | 切符", "2"},
+                {"WORD_BANK", "私は ___ で ___ を買いました。", "駅/切符 | 学校/本", "駅 / 切符", "2"},
                 {"Nối cột", "Nối", "犬 = con chó | 猫 = con mèo", "", "3"},
                 {"Sắp xếp thứ tự", "Sắp xếp", "私は | 毎日 | 勉強します", "", "2"},
                 {"Tự luận", "Viết 3 câu.", "", "", "5"}
@@ -91,7 +91,8 @@ class ExerciseImportServiceTest {
         assertThat(r.get(2).points()).isEqualByComparingTo("1");
         assertThat(r.get(3).prompt()).isNull();
         assertThat(r.get(3).data().get("answers").toString()).isEqualTo("[[\"牛乳\",\"ぎゅうにゅう\"]]");
-        assertThat(r.get(4).data().get("distractors").toString()).isEqualTo("[\"学校\"]");
+        assertThat(r.get(4).data().get("options").toString()).isEqualTo("[\"駅/切符\",\"学校/本\"]");
+        assertThat(r.get(4).data().get("correct").asInt()).isZero();
         assertThat(r.get(5).data().get("pairs").get(1).get("right").asText()).isEqualTo("con mèo");
         assertThat(r.get(6).data().get("items").size()).isEqualTo(3);
         // Tự luận: không có đáp án, chờ chấm (AI gợi ý, gia sư duyệt)
@@ -104,15 +105,16 @@ class ExerciseImportServiceTest {
         ImportPreview p = service.preview(tutorActor, space.getSpaceId(), xlsx(new String[][]{
                 {"Điền khuyết", "昨日、友達 ___ 映画を見ました。", "", "", "1"},
                 {"Điền khuyết", "A ___ B ___", "", "x", "1"},
-                {"Điền từ có sẵn", "___ です", "あれ", "これ", "1"},
-                {"Điền từ có sẵn", "___ です", "", "これ", "1"}
+                {"Điền từ có sẵn", "___ は ___ です", "これ/ペン | あれ/本", "2", "1"},
+                {"Điền từ có sẵn", "___ は ___ です", "これ/ペン | あれ", "1", "1"}
         }));
         assertThat(p.rows().get(0).ok()).isTrue();
         assertThat(p.rows().get(0).data().get("answers").toString()).isEqualTo("[[]]");
         assertThat(p.rows().get(1).error()).contains("2 chỗ trống").contains("1 đáp án");
-        // Điền từ có sẵn cần ít nhất 2 từ để chọn
+        // Điền từ có sẵn: mỗi phương án đủ từ cho các chỗ trống, đáp án theo số thứ tự
         assertThat(p.rows().get(2).ok()).isTrue();
-        assertThat(p.rows().get(3).error()).contains("ít nhất 2 từ");
+        assertThat(p.rows().get(2).data().get("correct").asInt()).isEqualTo(1);
+        assertThat(p.rows().get(3).error()).contains("phương án B phải có đủ 2 từ");
     }
 
     @Test

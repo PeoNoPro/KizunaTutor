@@ -251,4 +251,25 @@ class AssignmentServiceImplTest {
         service.update(tutorActor, space.getSpaceId(), a.getAssignmentId(), new AssignmentRequest("Bài", null, null, null));
         assertThat(a.getDueDate()).isNull();
     }
+
+    // ----- FE-12: thông báo khi sửa bài tập -----
+
+    @Test
+    void updateNotifiesLearnerOnlyWhenSomethingChanged() {
+        var events = mock(com.kizuna.features.notification.service.NotificationEvents.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "notificationEvents", events);
+        Assignment a = stored(NOW.plusDays(2));
+
+        service.update(tutorActor, space.getSpaceId(), a.getAssignmentId(),
+                new AssignmentRequest(a.getTitle(), a.getDescription(), a.getDueDate(), a.getTotalPoints()));
+        verifyNoInteractions(events);
+
+        service.update(tutorActor, space.getSpaceId(), a.getAssignmentId(),
+                new AssignmentRequest(a.getTitle(), a.getDescription(), NOW.plusDays(5), a.getTotalPoints()));
+        verify(events).publish(org.mockito.ArgumentMatchers.startsWith("assignment:" + a.getAssignmentId() + ":updated:"),
+                org.mockito.ArgumentMatchers.eq("ASSIGNMENT"), org.mockito.ArgumentMatchers.eq("Bài tập được cập nhật"),
+                org.mockito.ArgumentMatchers.contains("hạn nộp đổi thành"), org.mockito.ArgumentMatchers.eq("/learner/my-courses"),
+                org.mockito.ArgumentMatchers.eq(List.of(learner.getUser().getUserId())));
+    }
+
 }

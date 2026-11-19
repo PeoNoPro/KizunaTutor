@@ -1,8 +1,9 @@
 import { mountAdminShell } from '../../components/admin-shell/admin-shell.js';
 import { fetchAPI } from '../../js/api.js';
+import { barChart, columnChart, chartError, bindChartTooltip } from '../../js/pages/admin-charts.js';
 
 /**
- * Tổng quan của Quản lý vận hành: việc đang chờ (yêu cầu chuyển lên, ca trực trống, sự cố đã báo, đề xuất đổi vai trò)
+ * Tổng quan của Quản lý vận hành: việc đang chờ (yêu cầu chuyển lên)
  * và số liệu 7 ngày. Chỉ đọc dữ liệu từ các API đã có; mỗi khối tải riêng nên một khối lỗi không làm hỏng cả trang.
  */
 mountAdminShell();
@@ -11,7 +12,6 @@ const byId = id => document.getElementById(id);
 const number = value => new Intl.NumberFormat('vi-VN').format(value ?? 0);
 const TZ = 'Asia/Ho_Chi_Minh';
 const PRIORITY_TONE = {URGENT: 'danger', HIGH: 'warning', MEDIUM: 'info', LOW: 'neutral'};
-const INCIDENT_TONE = {'Chưa xử lý': 'warning', 'Đang xử lý': 'info', 'Đã khắc phục, chờ đóng': 'success', 'Đã đóng': 'neutral'};
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -67,95 +67,6 @@ async function escalated() {
   }
 }
 
-/** Ca nào đang diễn ra: so giờ hiện tại (giờ Việt Nam) với giờ bắt đầu/kết thúc; ca qua đêm có giờ kết thúc nhỏ hơn giờ bắt đầu. */
-function nowMinutes() {
-  const [h, m] = new Intl.DateTimeFormat('en-GB', {hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ}).format(new Date()).split(':').map(Number);
-  return (h % 24) * 60 + m;
-}
-const minutesOf = value => { const [h, m] = String(value).split(':').map(Number); return h * 60 + (m || 0); };
-function shiftState(shift, now) {
-  const start = minutesOf(shift.start), end = minutesOf(shift.end);
-  const inside = start < end ? now >= start && now < end : now >= start || now < end;
-  if (inside) return 'current';
-  return (start < end ? now >= end : false) ? 'past' : 'upcoming';
-}
-
-async function shifts() {
-  const box = byId('shiftList');
-  try {
-    const data = await fetchAPI('/v1/tickets/shifts');
-    const today = data.days.find(day => day.date === data.today);
-    byId('shiftDate').textContent = new Intl.DateTimeFormat('vi-VN', {weekday: 'long', day: '2-digit', month: '2-digit', timeZone: TZ}).format(new Date(data.today + 'T12:00:00+07:00'));
-    const now = nowMinutes();
-    let currentCount = null, currentLabel = '';
-    const emptyUpcoming = [];
-    box.replaceChildren(...data.shiftTypes.map(shift => {
-      const people = today?.shifts?.[shift.code] || [], state = shiftState(shift, now);
-      if (state === 'current') { currentCount = people.length; currentLabel = shift.label; }
-      if (state !== 'past' && !people.length) emptyUpcoming.push(shift.label);
-      const item = element('div', null, 'mh-shift'); item.dataset.state = state;
-      const head = element('div', null, 'mh-shift-head');
-      head.append(element('strong', shift.label), element('span', String(shift.start).slice(0, 5) + ' – ' + String(shift.end).slice(0, 5), 'mh-shift-time'));
-      if (state === 'current') head.append(chip('Đang diễn ra', 'info'));
-      const names = element('div', null, 'mh-shift-people');
-      if (people.length) people.forEach(person => names.append(element('span', person.displayName, 'mh-person')));
-      else names.append(element('span', 'Chưa xếp nhân viên', 'mh-shift-empty'));
-      item.append(head, names);
-      return item;
-    }));
-    box.removeAttribute('aria-busy');
-    byId('kpiShift').textContent = currentCount == null ? '—' : number(currentCount);
-    byId('kpiShiftFoot').textContent = currentCount == null ? 'Hiện ngoài giờ làm việc' : currentLabel + (currentCount ? '' : ' chưa có ai');
-    if (emptyUpcoming.length) {
-      const alert = byId('shiftAlert');
-      alert.textContent = 'Hôm nay ' + emptyUpcoming.join(', ').toLocaleLowerCase('vi-VN') + ' chưa có nhân viên hỗ trợ. Yêu cầu mới sẽ chờ đến khi có người trong ca.';
-      const link = element('a', 'Xếp lịch ngay'); link.href = '/pages/support-shifts/'; alert.append(' ', link);
-      alert.hidden = false;
-    }
-  } catch {
-    byId('kpiShift').textContent = '—'; byId('kpiShiftFoot').textContent = 'Chưa tải được';
-    failed(box);
-  }
-}
-
-async function incidents() {
-  const box = byId('incidentList');
-  try {
-    const data = await fetchAPI('/admin/operations/reported-incidents?page=0&size=50');
-    const more = data.totalElements > data.items.length ? '+' : '';
-    const open = data.items.filter(item => item.statusLabel !== 'Đã đóng').length;
-    byId('kpiIncidents').textContent = number(open) + more;
-    byId('kpiIncidentsFoot').textContent = data.totalElements ? 'Tổng đã báo: ' + number(data.totalElements) : 'Chưa báo sự cố nào';
-    if (!data.items.length) return empty(box, 'Bạn chưa báo sự cố nào cho Admin.');
-    box.replaceChildren(...data.items.slice(0, 4).map(incident => {
-      // Mở yêu cầu hỗ trợ gốc (tab Xử lý nội bộ hiện trạng thái sự cố).
-      const ticketId = incident.supportTicketId;
-      const row = element(ticketId ? 'a' : 'div', null, 'mh-row');
-      if (ticketId) row.href = '/pages/support-ticket/?role=manager&tab=internal&id=' + encodeURIComponent(ticketId);
-      const main = element('div', null, 'mh-row-main');
-      main.append(element('strong', incident.subject, 'mh-row-title'), element('span', 'Báo ' + relative(incident.createdAt) + ' · ' + incident.assigneeLabel, 'mh-row-meta'));
-      const side = element('div', null, 'mh-row-side'); side.append(chip(incident.statusLabel, INCIDENT_TONE[incident.statusLabel]));
-      row.append(main, side);
-      return row;
-    }));
-    box.removeAttribute('aria-busy');
-  } catch {
-    byId('kpiIncidents').textContent = '—'; byId('kpiIncidentsFoot').textContent = 'Chưa tải được';
-    failed(box);
-  }
-}
-
-async function proposals() {
-  try {
-    const data = await fetchAPI('/admin/operations/role-changes/promotions?status=PENDING&page=0&size=1');
-    const pending = data.totalElements ?? data.items.length;
-    byId('kpiProposals').textContent = number(pending);
-    byId('kpiProposalsFoot').textContent = pending ? 'Đang chờ Admin duyệt' : 'Không có đề xuất đang chờ';
-  } catch {
-    byId('kpiProposals').textContent = '—'; byId('kpiProposalsFoot').textContent = 'Chưa tải được';
-  }
-}
-
 async function activity() {
   const box = byId('activityStats');
   try {
@@ -170,5 +81,77 @@ async function activity() {
   box.removeAttribute('aria-busy');
 }
 
+/**
+ * Tình hình toàn bộ yêu cầu còn mở (chỉ số lượng). Dòng có trang xử lý thì bấm được:
+ * chuyển Quản lý → danh sách chờ bạn xem xét. (Bỏ phân ca 2026-11-16: không còn trang xếp ca.)
+ */
+const SUPPORT_ROWS = [
+  ['unassigned', 'Chưa có người nhận', 'neutral'],
+  ['inProgress', 'Đang xử lý', 'info'],
+  ['escalated', 'Chuyển Quản lý', 'warning', '/manager/support/tickets?group=0', 'Mở danh sách chờ xem xét'],
+  ['overdue', 'Quá hạn phản hồi', 'danger']];
+/** "25 phút", "9 giờ 33 phút", "2 ngày 4 giờ". */
+function minutes(total) {
+  const m = Math.max(0, Math.round(total)); if (m < 60) return m + ' phút';
+  const h = Math.floor(m / 60); if (h < 24) return h + ' giờ' + (m % 60 ? ' ' + m % 60 + ' phút' : '');
+  return Math.floor(h / 24) + ' ngày' + (h % 24 ? ' ' + h % 24 + ' giờ' : '');
+}
+async function support() {
+  const box = byId('supportPanel');
+  try {
+    const data = await fetchAPI('/v1/tickets/overview'), total = Math.max(1, data.waiting);
+    byId('supportWaiting').textContent = number(data.waiting);
+    byId('supportAvg').textContent = data.avgFirstResponseMinutes == null ? 'Chưa có' : minutes(data.avgFirstResponseMinutes);
+    byId('supportRows').replaceChildren(...SUPPORT_ROWS.map(([key, label, tone, href, hint]) => {
+      const row = element(href ? 'a' : 'div', null, 'mh-support-row'); row.dataset.tone = tone;
+      if (href) { row.href = href; row.title = hint; }
+      const top = element('div', null, 'mh-support-top');
+      top.append(element('span', label), element('strong', number(data[key] || 0)));
+      const bar = element('div', null, 'mh-support-bar'), fill = element('span');
+      fill.style.width = Math.round((data[key] || 0) / total * 100) + '%'; bar.append(fill);
+      row.append(top, bar); return row;
+    }));
+  } catch {
+    byId('supportWaiting').textContent = '—';
+    failed(byId('supportRows'));
+  } finally { box.removeAttribute('aria-busy'); }
+}
+
+const money = value => number(value) + ' ₫';
+const dateKey = date => new Intl.DateTimeFormat('en-CA', {timeZone: TZ}).format(date);
+const NO_TABLE = {table: false};
+
+/** Doanh thu và người dùng 30 ngày gần nhất: phần việc của Quản lý (doanh thu, quản lý học viên và gia sư). */
+async function overview() {
+  const end = new Date(), start = new Date(end.getTime() - 29 * 86400000);
+  const range = '?startDate=' + dateKey(start) + '&endDate=' + dateKey(end);
+  const [revenue, people] = await Promise.allSettled([
+    fetchAPI('/admin/operations/reports/business/revenue' + range),
+    fetchAPI('/admin/operations/dashboard/account-statistics' + range)]);
+  if (revenue.status === 'fulfilled') {
+    const data = revenue.value;
+    byId('kpiRevenue').textContent = money(data.revenue);
+    byId('kpiRevenueFoot').textContent = number(data.successCount) + ' giao dịch thành công';
+    columnChart(byId('chartRevenue'), data.daily, {headline: 'doanh thu 30 ngày gần nhất', empty: 'Chưa có doanh thu trong 30 ngày gần nhất.', caption: 'Doanh thu theo ngày', format: money, table: false});
+    barChart(byId('chartPlans'), 'Số giao dịch theo gói', (data.byPlan || []).map(plan => ({label: plan.label, count: plan.count})), 'Chưa có giao dịch gói hội viên.', NO_TABLE);
+  } else {
+    byId('kpiRevenue').textContent = '—'; byId('kpiRevenueFoot').textContent = 'Chưa tải được';
+    ['chartRevenue', 'chartPlans'].forEach(id => chartError(byId(id), 'Chưa tải được số liệu doanh thu.'));
+  }
+  if (people.status === 'fulfilled') {
+    const data = people.value, count = label => data.roles.find(item => item.label === label)?.count ?? 0;
+    byId('kpiLearners').textContent = number(count('Học viên')); byId('kpiLearnersFoot').textContent = 'Xem và quản lý tài khoản';
+    byId('kpiTutors').textContent = number(count('Gia sư')); byId('kpiTutorsFoot').textContent = 'Xem và quản lý tài khoản';
+    columnChart(byId('chartNewAccounts'), data.newAccounts, {headline: 'tài khoản mới 30 ngày gần nhất', empty: 'Không có tài khoản mới trong 30 ngày gần nhất.', caption: 'Tài khoản mới theo ngày', table: false});
+    barChart(byId('chartUsers'), 'Học viên và gia sư', data.roles.filter(item => ['Học viên', 'Gia sư'].includes(item.label)), 'Chưa có học viên hay gia sư.', NO_TABLE);
+    barChart(byId('chartStatuses'), 'Trạng thái tài khoản', data.statuses, 'Chưa có tài khoản trong hệ thống.', NO_TABLE);
+  } else {
+    ['kpiLearners', 'kpiTutors'].forEach(id => { byId(id).textContent = '—'; byId(id + 'Foot').textContent = 'Chưa tải được'; });
+    ['chartNewAccounts', 'chartUsers', 'chartStatuses'].forEach(id => chartError(byId(id), 'Chưa tải được số liệu người dùng.'));
+  }
+  byId('managerCharts').removeAttribute('aria-busy');
+}
+
+bindChartTooltip();
 greeting();
-Promise.allSettled([escalated(), shifts(), incidents(), proposals(), activity()]);
+Promise.allSettled([escalated(), support(), activity(), overview()]);

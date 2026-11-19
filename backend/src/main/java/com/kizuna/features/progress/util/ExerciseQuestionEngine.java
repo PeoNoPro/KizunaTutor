@@ -112,6 +112,11 @@ public class ExerciseQuestionEngine {
             case WORD_BANK -> {
                 String text = text(d.get("text"));
                 int blanks = countBlanks(text);
+                if (isOptionSet(d)) {
+                    validateOptionSets(d, text, blanks, strict, label, out);
+                    break;
+                }
+                // Dạng cũ (bộ từ để kéo vào từng chỗ trống): giữ nguyên cho bài đã soạn trước đây
                 List<String> answers = texts(d.get("answers"));
                 List<String> distractors = texts(d.get("distractors")).stream().filter(s -> !s.isBlank()).toList();
                 if (strict) {
@@ -202,6 +207,10 @@ public class ExerciseQuestionEngine {
             case FILL_BLANK -> out.set("segments", array(segments(text(d.get("text")))));
             case WORD_BANK -> {
                 out.set("segments", array(segments(text(d.get("text")))));
+                if (isOptionSet(d)) {
+                    out.set("options", d.get("options"));
+                    break;
+                }
                 List<String> bank = new ArrayList<>(texts(d.get("answers")));
                 bank.addAll(texts(d.get("distractors")));
                 out.set("bank", array(shuffled(bank, seed)));
@@ -228,7 +237,15 @@ public class ExerciseQuestionEngine {
         ObjectNode out = mapper.createObjectNode();
         switch (type) {
             case SINGLE_CHOICE, MULTI_CHOICE, TRUE_FALSE -> { if (d.has("correct")) out.set("correct", d.get("correct")); }
-            case FILL_BLANK, WORD_BANK -> out.set("answers", d.get("answers") == null ? mapper.createArrayNode() : d.get("answers"));
+            case FILL_BLANK -> out.set("answers", d.get("answers") == null ? mapper.createArrayNode() : d.get("answers"));
+            case WORD_BANK -> {
+                if (isOptionSet(d)) {
+                    out.set("options", d.get("options"));
+                    out.set("correct", d.get("correct"));
+                } else {
+                    out.set("answers", d.get("answers") == null ? mapper.createArrayNode() : d.get("answers"));
+                }
+            }
             case MATCHING -> out.set("pairs", d.get("pairs") == null ? mapper.createArrayNode() : d.get("pairs"));
             case ORDERING -> out.set("items", d.get("items") == null ? mapper.createArrayNode() : d.get("items"));
             case WRITTEN -> out.set("accepted", d.get("accepted") == null ? mapper.createArrayNode() : d.get("accepted"));
@@ -260,7 +277,10 @@ public class ExerciseQuestionEngine {
                     correct = !g.isEmpty() && texts(answers.get(i)).stream().anyMatch(a -> normalize(a).equals(g));
                 }
             }
-            case WORD_BANK -> correct = sameTexts(texts(r.get("blanks")), texts(d.get("answers")));
+            case WORD_BANK -> correct = isOptionSet(d)
+                    ? d.hasNonNull("correct") && r.hasNonNull("choice") && r.get("choice").canConvertToInt()
+                        && r.get("choice").asInt() == d.get("correct").asInt()
+                    : sameTexts(texts(r.get("blanks")), texts(d.get("answers")));
             case MATCHING -> {
                 List<String> rights = new ArrayList<>();
                 JsonNode p = d.get("pairs");
@@ -293,6 +313,49 @@ public class ExerciseQuestionEngine {
             allMatched = !g.isEmpty() && accepted.stream().anyMatch(a -> normalize(a).equals(g));
         }
         return allMatched ? new Grade(true, points) : new Grade(null, BigDecimal.ZERO);
+    }
+
+    /**
+     * Điền từ có sẵn kiểu đề JLPT: mỗi phương án là một bộ từ cho đủ các chỗ trống, cách nhau bằng "/"
+     * (vd "は/で/を" cho câu 3 chỗ trống); học viên chọn 1 phương án. Dạng cũ (answers + distractors) không có khóa options.
+     */
+    static boolean isOptionSet(JsonNode d) {
+        return d != null && d.has("options");
+    }
+
+    /** Tách một phương án thành các từ theo dấu "/" (bỏ khoảng trắng hai đầu từng từ). */
+    public static List<String> optionWords(String option) {
+        if (option == null) return List.of();
+        return java.util.Arrays.stream(option.split("/", -1)).map(String::strip).toList();
+    }
+
+    private void validateOptionSets(JsonNode d, String text, int blanks, boolean strict, String label, ObjectNode out) {
+        List<String> options = new ArrayList<>();
+        for (String o : texts(d.get("options"))) {
+            List<String> words = optionWords(o);
+            options.add(words.stream().allMatch(String::isBlank) ? "" : String.join("/", words));
+        }
+        Integer correct = d.hasNonNull("correct") && d.get("correct").canConvertToInt() ? d.get("correct").asInt() : null;
+        if (options.size() > MAX_ITEMS) throw error(label, "tối đa " + MAX_ITEMS + " phương án.");
+        if (strict) {
+            if (blanks == 0) throw error(label, "câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).");
+            if (options.size() < 2) throw error(label, "cần ít nhất 2 phương án để chọn.");
+            for (int i = 0; i < options.size(); i++) {
+                List<String> words = optionWords(options.get(i));
+                if (words.size() != blanks || words.stream().anyMatch(String::isBlank)) {
+                    throw error(label, "phương án " + (char) ('A' + i) + " phải có đủ " + blanks + " từ"
+                            + (blanks > 1 ? ", cách nhau bằng dấu /" : "") + ".");
+                }
+            }
+            if (new java.util.HashSet<>(options.stream().map(ExerciseQuestionEngine::normalize).toList()).size() != options.size()) {
+                throw error(label, "có phương án bị trùng nhau.");
+            }
+            if (correct == null || correct < 0 || correct >= options.size()) throw error(label, "chưa chọn phương án đúng.");
+        }
+        out.put("text", text);
+        out.set("options", array(options));
+        if (correct == null) out.putNull("correct");
+        else out.put("correct", correct);
     }
 
     /** Chuẩn hóa chữ khi so sánh: NFKC (toàn/nửa độ rộng), bỏ khoảng trắng đầu cuối, gộp khoảng trắng, chữ thường. */

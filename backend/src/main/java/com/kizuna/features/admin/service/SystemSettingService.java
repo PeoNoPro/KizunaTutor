@@ -28,7 +28,7 @@ public class SystemSettingService {
     public static final int ATTACHMENT_CEILING_MB=10;
     /** Cột before/after của lịch sử cấu hình dài 100 ký tự. */
     public static final int SENDER_MAX_LENGTH=100;
-    private static final Map<String,String> LABELS=Map.of(ATTACHMENT_KEY,"Giới hạn tệp đính kèm hỗ trợ",SENDER_KEY,"Tài khoản email gửi thư hệ thống",AI_KEY,"AI hỗ trợ học tập");
+    private static final Map<String,String> LABELS=Map.of(ATTACHMENT_KEY,"Giới hạn tệp đính kèm hỗ trợ",SENDER_KEY,"Tài khoản email gửi thư hệ thống",AI_KEY,"AI hỗ trợ học tập",CloudStorageSettingService.AUDIT_KEY,"Lưu trữ đám mây");
     private final EntityManager em;
     private final OperationsActorResolver actors;
     private final OperationsCommandExecutor locks;
@@ -84,7 +84,7 @@ public class SystemSettingService {
         @Size(max=400,message="API key tối đa 400 ký tự.") String apiKey,
         @Size(max=200,message="Địa chỉ máy chủ AI tối đa 200 ký tự.") String baseUrl) { }
 
-    private Optional<String> value(String key) {
+    Optional<String> value(String key) {
         var rows=em.createNativeQuery("SELECT config_value FROM system_configurations WHERE config_key=:key").setParameter("key",key).getResultList();
         return rows.isEmpty()||rows.get(0)==null?Optional.empty():Optional.of(rows.get(0).toString().trim()).filter(text->!text.isEmpty());
     }
@@ -96,12 +96,12 @@ public class SystemSettingService {
     }
     private String fallbackSender() {return defaultSender==null?"":defaultSender.trim();}
     private String currentSender() {return value(SENDER_KEY).orElse(fallbackSender());}
-    private long version(String key) {
+    long version(String key) {
         return ((Number)em.createNativeQuery("SELECT count(*) FROM system_setting_audit_events WHERE setting_key=:key").setParameter("key",key).getSingleResult()).longValue();
     }
 
     /** Khóa chung cho mọi lần lưu cấu hình, rồi so phiên bản để không ghi đè thay đổi của người khác. */
-    private com.kizuna.features.admin.dto.OperationsActor lockFor(String key,long expectedVersion) {
+    com.kizuna.features.admin.dto.OperationsActor lockFor(String key,long expectedVersion) {
         var actor=actors.requireAdmin();locks.lockAdmin(actor.userId());
         em.createNativeQuery("SELECT pg_advisory_xact_lock(11380492)").getSingleResult();
         if(version(key)!=expectedVersion)throw new BusinessException(409,"Cấu hình đã được người khác thay đổi. Vui lòng tải lại trước khi lưu.");
@@ -111,7 +111,7 @@ public class SystemSettingService {
         save(key,type,description,before,after,actor,reason,key,before,after);
     }
     /** Ghi giá trị vào khóa cấu hình và một dòng lịch sử (khóa lịch sử và nội dung trước/sau có thể khác khóa cấu hình). */
-    private void save(String key,String type,String description,String before,String after,UUID actor,String reason,String auditKey,String auditBefore,String auditAfter) {
+    void save(String key,String type,String description,String before,String after,UUID actor,String reason,String auditKey,String auditBefore,String auditAfter) {
         var now=OffsetDateTime.now(operationsClock);
         em.createNativeQuery("INSERT INTO system_configurations(config_key,config_value,data_type,description,updated_at) VALUES (:key,:value,:type,:description,:now) ON CONFLICT(config_key) DO UPDATE SET config_value=excluded.config_value,updated_at=excluded.updated_at")
             .setParameter("key",key).setParameter("value",after).setParameter("type",type).setParameter("description",description).setParameter("now",now).executeUpdate();
@@ -262,7 +262,7 @@ public class SystemSettingService {
         var model=value(AI_MODEL_KEY).filter(text->text.matches(MODEL_PATTERN)).orElse(defaultModel(provider));
         return new AiChoice(provider,model,apiKey(provider),baseUrl(provider));
     }
-    private static String mask(String key) {return key.isBlank()?"":"••••"+key.substring(Math.max(0,key.length()-4));}
+    static String mask(String key) {return key.isBlank()?"":"••••"+key.substring(Math.max(0,key.length()-4));}
 
     // ---- Mã hóa API key bằng AES-GCM; không ghi key ra log, lịch sử hay phản hồi API. ----
     private javax.crypto.spec.SecretKeySpec cipherKey() {
@@ -270,7 +270,7 @@ public class SystemSettingService {
         try {return new javax.crypto.spec.SecretKeySpec(java.security.MessageDigest.getInstance("SHA-256").digest(("kizuna-settings:"+settingsSecret).getBytes(java.nio.charset.StandardCharsets.UTF_8)),"AES");}
         catch(java.security.GeneralSecurityException exception) {throw new IllegalStateException(exception);}
     }
-    private String encrypt(String plain) {
+    String encrypt(String plain) {
         try {
             var iv=new byte[12];new java.security.SecureRandom().nextBytes(iv);
             var cipher=javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");cipher.init(javax.crypto.Cipher.ENCRYPT_MODE,cipherKey(),new javax.crypto.spec.GCMParameterSpec(128,iv));
@@ -280,7 +280,7 @@ public class SystemSettingService {
         } catch(java.security.GeneralSecurityException exception) {throw new IllegalStateException("Không mã hóa được API key.",exception);}
     }
     /** Không giải mã được (ví dụ server đổi khóa) thì coi như chưa có key, AI sẽ dùng key server hoặc bộ chấm dự phòng. */
-    private String decrypt(String stored) {
+    String decrypt(String stored) {
         try {
             if(!stored.startsWith("enc:"))return "";
             var all=Base64.getDecoder().decode(stored.substring(4));
@@ -288,7 +288,7 @@ public class SystemSettingService {
             return new String(cipher.doFinal(all,12,all.length-12),java.nio.charset.StandardCharsets.UTF_8);
         } catch(RuntimeException|java.security.GeneralSecurityException exception) {return "";}
     }
-    private void upsert(String key,String value,String description) {
+    void upsert(String key,String value,String description) {
         em.createNativeQuery("INSERT INTO system_configurations(config_key,config_value,data_type,description,updated_at) VALUES (:key,:value,'STRING',:description,:now) ON CONFLICT(config_key) DO UPDATE SET config_value=excluded.config_value,updated_at=excluded.updated_at")
             .setParameter("key",key).setParameter("value",value).setParameter("description",description).setParameter("now",OffsetDateTime.now(operationsClock)).executeUpdate();
     }
@@ -327,7 +327,7 @@ public class SystemSettingService {
                 reply=mapper.readTree(response.getBody()).path("candidates").path(0).path("content").path("parts").path(0).path("text").asText("");
             } else {
                 headers.setBearerAuth(key);
-                var body=Map.of("model",model,"messages",List.of(Map.of("role","user","content",question)),"max_tokens",30);
+                var body=Map.of("model",model,"messages",List.of(Map.of("role","user","content",question)),"max_tokens",500); // model suy luận (gpt-oss, deepseek-r1...) cần chỗ để nghĩ trước khi trả lời
                 var response=rest.postForEntity(url+"/chat/completions",new org.springframework.http.HttpEntity<>(body,headers),String.class);
                 reply=mapper.readTree(response.getBody()).path("choices").path(0).path("message").path("content").asText("");
             }
@@ -337,12 +337,25 @@ public class SystemSettingService {
         } catch(org.springframework.web.client.HttpStatusCodeException exception) {
             int status=exception.getStatusCode().value();
             var reason=status==400?"Yêu cầu không hợp lệ, thường do tên model sai.":status==401||status==403?"API key sai, hết hạn hoặc không có quyền dùng model này.":status==404?"Không tìm thấy model hoặc địa chỉ máy chủ AI sai.":status==429?"Đã hết hạn mức hoặc gửi quá nhiều yêu cầu. Thử lại sau ít phút.":status>=500?"Máy chủ AI đang lỗi. Thử lại sau.":"Máy chủ AI từ chối yêu cầu (mã "+status+").";
-            return Map.of("ok",false,"message",reason,"latencyMs",(System.nanoTime()-started)/1_000_000);
+            var detail=providerError(exception.getResponseBodyAsString(),key);
+            return Map.of("ok",false,"message",detail.isEmpty()?reason:reason+" Nhà cung cấp báo: "+detail,"latencyMs",(System.nanoTime()-started)/1_000_000);
         } catch(org.springframework.web.client.ResourceAccessException exception) {
             return Map.of("ok",false,"message","Không kết nối được tới máy chủ AI. Kiểm tra địa chỉ và kết nối mạng của server.","latencyMs",(System.nanoTime()-started)/1_000_000);
         } catch(Exception exception) {
             return Map.of("ok",false,"message","Không đọc được phản hồi của AI. Kiểm tra lại nhà cung cấp và model.","latencyMs",(System.nanoTime()-started)/1_000_000);
         }
+    }
+
+    /** Lấy câu báo lỗi của nhà cung cấp AI (error.message) để Admin biết nguyên nhân; bỏ key nếu lỡ bị nhắc lại, cắt ngắn. */
+    public static String providerError(String body,String key) {
+        if(body==null||body.isBlank())return "";
+        try {
+            var node=new com.fasterxml.jackson.databind.ObjectMapper().readTree(body).path("error");
+            var message=(node.isTextual()?node.asText():node.path("message").asText("")).trim();
+            if(key!=null&&!key.isBlank())message=message.replace(key,"***");
+            message=message.replaceAll("(?i)(sk|gsk|AIza)[-_A-Za-z0-9]{12,}","***");
+            return message.length()>300?message.substring(0,300)+"…":message;
+        } catch(Exception exception) {return "";}
     }
 
     /** Dùng khi gọi AI: lỗi đọc DB thì quay về cấu hình server để học viên vẫn dùng được. */

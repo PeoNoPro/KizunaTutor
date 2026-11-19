@@ -6,9 +6,13 @@ import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { showToast } from '/js/main.js';
 import { apiClient } from '/js/apiClient.js';
 import { voicevoxClient } from '/js/voicevoxClient.js';
+import { renderPagination } from '/components/pagination/pagination.js';
 
 let pendingVocabToSave = null;
 let lastSelectedVocabDeckId = '';
+try {
+  lastSelectedVocabDeckId = localStorage.getItem('kizuna_last_selected_deck_id') || '';
+} catch (e) {}
 
 let currentTopics = [
   { id: 'JLPT_N5', code: 'JLPT_N5', titleVn: 'JLPT N5 Căn bản', icon: '🌱', count: '650' },
@@ -22,6 +26,10 @@ let currentTopics = [
 
 let activeTopic = 'JLPT_N5';
 let vocabList = [];
+let currentFilteredList = [];
+let currentPage = 0;
+let pageSize = 18;
+const VOCAB_PAGE_SIZES = [18, 36, 72];
 let currentViewMode = localStorage.getItem('kizuna_vocab_view_mode') || 'jlpt'; // 'jlpt' | 'kanji' | 'kana'
 
 // Danh sách các từ vựng ưu tiên hiển thị Hiragana / Katakana ở trình độ sơ cấp (JLPT N5/N4)
@@ -66,14 +74,46 @@ if (document.readyState === 'loading') {
   boot();
 }
 
+function debounce(fn, delay = 250) {
+  let timer = null;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 async function initPage() {
   await loadTopics();
   renderTopicPills();
   await loadVocabularies();
 
-  document.getElementById('searchVocabInput')?.addEventListener('input', (e) => {
-    filterVocab(e.target.value);
-  });
+  const searchInput = document.getElementById('searchVocabInput');
+  const clearBtn = document.getElementById('btnClearVocabSearch');
+
+  const debouncedFilter = debounce((val) => {
+    filterVocab(val);
+  }, 250);
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (clearBtn) {
+        if (val && val.trim().length > 0) {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+      }
+      debouncedFilter(val);
+    });
+
+    clearBtn?.addEventListener('click', () => {
+      searchInput.value = '';
+      clearBtn.classList.add('hidden');
+      searchInput.focus();
+      filterVocab('');
+    });
+  }
 }
 
 /**
@@ -91,7 +131,7 @@ function initViewModeToggles() {
           localStorage.setItem('kizuna_vocab_view_mode', mode);
         } catch (e) {}
         updateViewModeButtons();
-        renderVocabGrid(vocabList);
+        renderVocabPage();
 
         const modeNames = {
           jlpt: '🎯 Chuẩn thi JLPT (Tự động thích ứng Kana/Kanji)',
@@ -146,9 +186,20 @@ function shouldDisplayKana(v) {
   return false;
 }
 
+function getAuthHeaders(customHeaders = {}) {
+  const headers = { 'Accept': 'application/json', ...customHeaders };
+  try {
+    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  } catch (e) {}
+  return headers;
+}
+
 async function loadTopics() {
   try {
-    const res = await fetch('/api/learner/topics');
+    const res = await fetch('/api/learner/topics', {
+      headers: getAuthHeaders()
+    });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -191,6 +242,7 @@ function renderTopicPills() {
       }
       const searchInput = document.getElementById('searchVocabInput');
       if (searchInput) searchInput.value = '';
+      document.getElementById('btnClearVocabSearch')?.classList.add('hidden');
       renderTopicPills();
       loadVocabularies();
     });
@@ -202,18 +254,76 @@ function renderTopicPills() {
   }
 }
 
+function renderVocabSkeleton(grid) {
+  if (!grid) return;
+  grid.innerHTML = Array(6).fill(0).map(() => `
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 flex flex-col justify-between h-48 animate-pulse">
+      <div class="space-y-2.5">
+        <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
+          <div class="space-y-1.5 flex-1">
+            <div class="h-6 w-28 bg-slate-200 rounded"></div>
+            <div class="h-3 w-36 bg-slate-100 rounded"></div>
+          </div>
+          <div class="h-4 w-12 bg-slate-200 rounded-full"></div>
+        </div>
+        <div class="h-4 bg-slate-200 rounded w-4/5 mt-2"></div>
+        <div class="h-8 bg-slate-50 border border-slate-100 rounded-lg"></div>
+      </div>
+      <div class="pt-2 border-t border-slate-100 flex gap-2">
+        <div class="h-7 bg-slate-100 rounded-lg flex-1"></div>
+        <div class="h-7 bg-slate-100 rounded-lg w-8"></div>
+        <div class="h-7 bg-slate-100 rounded-lg w-8"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
 async function loadVocabularies() {
   const grid = document.getElementById('vocabGrid');
   const emptyState = document.getElementById('vocabEmptyState');
   if (!grid) return;
 
-  grid.innerHTML = '<div class="col-span-full py-10 text-center text-xs text-slate-400">Đang tải danh sách từ vựng...</div>';
+  renderVocabSkeleton(grid);
 
   try {
-    const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}&limit=3500`);
+    const res = await fetch(`/api/learner/vocabularies?topic=${encodeURIComponent(activeTopic)}&limit=3500`, {
+      headers: getAuthHeaders()
+    });
     if (res.ok) {
       const data = await res.json();
       vocabList = Array.isArray(data) ? data : (data.content || data.items || []);
+    } else if (res.status === 401) {
+      const pager = document.getElementById('vocabPagination');
+      if (pager) pager.innerHTML = '';
+      grid.innerHTML = `
+        <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+          <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+            <span class="material-symbols-outlined text-[24px]">lock</span>
+          </div>
+          <h3 class="text-base font-bold text-[#0F2545]">Vui lòng đăng nhập</h3>
+          <p class="text-xs text-[#64748B]">Đăng nhập để xem danh mục từ vựng học tập của bạn.</p>
+          <a href="/pages/login/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+            <span>Đăng nhập ngay</span>
+          </a>
+        </div>
+      `;
+      return;
+    } else if (res.status === 403) {
+      const pager = document.getElementById('vocabPagination');
+      if (pager) pager.innerHTML = '';
+      grid.innerHTML = `
+        <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+          <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+            <span class="material-symbols-outlined text-[24px]">school</span>
+          </div>
+          <h3 class="text-base font-bold text-[#0F2545]">Chưa vào lớp học</h3>
+          <p class="text-xs text-[#64748B]">Bạn cần được gia sư thêm vào ít nhất một lớp học để mở khóa toàn bộ kho từ vựng.</p>
+          <a href="/pages/tutor-discovery/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+            <span>Tìm gia sư</span>
+          </a>
+        </div>
+      `;
+      return;
     } else {
       vocabList = [];
     }
@@ -225,7 +335,67 @@ async function loadVocabularies() {
     vocabList = getSampleVocab(activeTopic);
   }
 
-  renderVocabGrid(vocabList);
+  currentFilteredList = [...vocabList];
+  currentPage = 0;
+  renderVocabPage();
+}
+
+/**
+ * Hiển thị trang dữ liệu hiện tại kết hợp cùng thanh phân trang dùng chung
+ */
+function renderVocabPage() {
+  const grid = document.getElementById('vocabGrid');
+  const emptyState = document.getElementById('vocabEmptyState');
+  const paginationContainer = document.getElementById('vocabPagination');
+  if (!grid) return;
+
+  const total = currentFilteredList.length;
+  if (total === 0) {
+    grid.innerHTML = '';
+    emptyState?.classList.remove('hidden');
+    if (paginationContainer) paginationContainer.innerHTML = '';
+    return;
+  }
+
+  emptyState?.classList.add('hidden');
+
+  const totalPages = Math.ceil(total / pageSize) || 1;
+  if (currentPage >= totalPages) {
+    currentPage = totalPages - 1;
+  }
+  if (currentPage < 0) {
+    currentPage = 0;
+  }
+
+  const startIdx = currentPage * pageSize;
+  const pageItems = currentFilteredList.slice(startIdx, startIdx + pageSize);
+
+  renderVocabGrid(pageItems);
+
+  if (paginationContainer) {
+    renderPagination(
+      paginationContainer,
+      {
+        page: currentPage,
+        size: pageSize,
+        totalElements: total
+      },
+      {
+        sizes: VOCAB_PAGE_SIZES,
+        onPage: (p) => {
+          currentPage = p;
+          renderVocabPage();
+          const topAnchor = document.getElementById('activeTopicBadge') || grid;
+          topAnchor?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+        onSize: (s) => {
+          pageSize = s;
+          currentPage = 0;
+          renderVocabPage();
+        }
+      }
+    );
+  }
 }
 
 function renderVocabGrid(items) {
@@ -333,9 +503,9 @@ function renderVocabGrid(items) {
 
   // Gắn sự kiện cho các nút hành động
   grid.querySelectorAll('[data-action="speak-vocab"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
-      speakWord(btn.dataset.word);
+      await voicevoxClient.speakWithButton(btn.dataset.word, btn);
     });
   });
 
@@ -357,10 +527,13 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
-function speakWord(text) {
+async function speakWord(text, btn = null) {
   if (!text) return;
+  if (btn) {
+    return voicevoxClient.speakWithButton(text, btn);
+  }
   try {
-    voicevoxClient.speak(text);
+    await voicevoxClient.speak(text);
   } catch (e) {
     console.debug('Lỗi phát âm từ vựng:', e);
   }
@@ -516,6 +689,7 @@ async function submitSaveVocabToDeck(e) {
         cards: [newCard]
       });
       lastSelectedVocabDeckId = created.id;
+      try { localStorage.setItem('kizuna_last_selected_deck_id', String(created.id)); } catch (e) {}
       showToast(`Đã lưu "${word}" vào bộ thẻ mới "${created.title}"!`, 'success');
     } else {
       const targetDeck = decks.find(d => String(d.id) === String(selectedValue));
@@ -540,6 +714,7 @@ async function submitSaveVocabToDeck(e) {
         cards
       });
       lastSelectedVocabDeckId = targetDeck.id;
+      try { localStorage.setItem('kizuna_last_selected_deck_id', String(targetDeck.id)); } catch (e) {}
       showToast(`Đã lưu "${word}" vào bộ thẻ "${targetDeck.title}" thành công!`, 'success');
     }
 
@@ -557,11 +732,13 @@ async function submitSaveVocabToDeck(e) {
 
 function filterVocab(kw) {
   const query = (kw || '').trim().toLowerCase();
+  currentPage = 0;
   if (!query) {
-    renderVocabGrid(vocabList);
+    currentFilteredList = [...vocabList];
+    renderVocabPage();
     return;
   }
-  const filtered = vocabList.filter(v => {
+  currentFilteredList = vocabList.filter(v => {
     return (v.word && v.word.toLowerCase().includes(query)) ||
            (v.kanji && v.kanji.toLowerCase().includes(query)) ||
            (v.furigana && v.furigana.toLowerCase().includes(query)) ||
@@ -570,7 +747,7 @@ function filterVocab(kw) {
            (v.meaningVn && v.meaningVn.toLowerCase().includes(query)) ||
            (v.hanViet && v.hanViet.toLowerCase().includes(query));
   });
-  renderVocabGrid(filtered);
+  renderVocabPage();
 }
 
 function getSampleVocab(topic) {

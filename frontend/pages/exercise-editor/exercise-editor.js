@@ -30,6 +30,7 @@ import {
   defaultQuestion,
   validateQuestion,
   isTutorGraded,
+  upgradeWordBank,
   needsAudio,
   AUDIO_MISSING_MESSAGE,
   questionPayload,
@@ -154,7 +155,7 @@ async function load() {
     state.status = s.status;
     state.locked = s.locked;
     state.questions = (state.detail.questions || []).map((q) => ({
-      type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: q.audio || null,
+      type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.type === 'WORD_BANK' ? upgradeWordBank(q.data) : (q.data || {}), audio: q.audio || null,
       image: q.image || null,
       listening: q.listening ? { maxPlays: q.listening.maxPlays ?? null } : null
     }));
@@ -192,7 +193,7 @@ async function prefillNewExercise() {
       const withAudio = (src.questions || []).filter((q) => q.audio).length;
       const withImage = (src.questions || []).filter((q) => q.image).length;
       state.questions = (src.questions || []).map((q) => ({
-        type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: null, image: null,
+        type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.type === 'WORD_BANK' ? upgradeWordBank(q.data) : (q.data || {}), audio: null, image: null,
         listening: q.listening || q.audio ? { maxPlays: q.listening?.maxPlays ?? q.audio?.maxPlays ?? null } : null
       }));
       if (!state.questions.length) state.questions = [defaultQuestion('SINGLE_CHOICE')];
@@ -608,8 +609,30 @@ function bodyHtml(q) {
             <label class="flex items-center gap-2"><input type="radio" name="${group}" data-tf="${v}" ${d.correct === v ? 'checked' : ''} ${dis()} class="w-5 h-5 accent-[#006194]">${l}</label>`).join('')}
         </div>`;
     }
+    case 'WORD_BANK': {
+      const n = countBlanks(d.text);
+      const group = `wb-${Math.random().toString(36).slice(2)}`;
+      return `
+        <div>
+          <label class="kz-label">Câu có chỗ trống <span class="font-normal text-on-surface-variant">(gõ ___ ở mỗi chỗ trống)</span></label>
+          <textarea data-field="text" rows="3" maxlength="2000" class="${INPUT}" placeholder="Ví dụ: 私は ___ 学校 ___ 日本語 ___ 勉強します。" ${dis()}>${escapeHtml(d.text || '')}</textarea>
+        </div>
+        <div>
+          <p class="kz-label">Các phương án <span class="font-normal text-on-surface-variant">(chọn một phương án đúng)</span></p>
+          <p data-blanks class="font-caption text-caption text-on-surface-variant mb-2">${wordBankHint(n)}</p>
+          <div class="flex flex-col gap-2">
+            ${(d.options || []).map((o, j) => `
+              <div class="flex items-center gap-2">
+                <input type="radio" name="${group}" data-correct="${j}" ${d.correct === j ? 'checked' : ''} ${dis()} aria-label="Phương án đúng ${String.fromCharCode(65 + j)}" class="w-5 h-5 accent-[#006194]">
+                <span class="w-6 text-center font-bold text-on-surface-variant">${String.fromCharCode(65 + j)}</span>
+                <input data-opt="${j}" value="${escapeHtml(o)}" class="${INPUT}" placeholder="${n > 1 ? Array.from({ length: n }, (_, i) => `từ ${i + 1}`).join(' / ') : 'Từ cần điền'}" ${dis()}>
+                ${state.locked ? '' : `<button type="button" data-act="opt-remove" data-j="${j}" class="${SMALL_BTN}" ${(d.options || []).length <= 2 ? 'disabled' : ''} aria-label="Xóa phương án">✕</button>`}
+              </div>`).join('')}
+          </div>
+          ${state.locked ? '' : `<button type="button" data-act="opt-add" class="${SMALL_BTN} mt-2" ${(d.options || []).length >= 10 ? 'disabled' : ''}>＋ Thêm phương án</button>`}
+        </div>`;
+    }
     case 'FILL_BLANK':
-    case 'WORD_BANK':
       return `
         <div>
           <label class="kz-label">Câu có chỗ trống <span class="font-normal text-on-surface-variant">(gõ ___ ở mỗi chỗ trống)</span></label>
@@ -655,6 +678,13 @@ function bodyHtml(q) {
   }
 }
 
+/** Hướng dẫn nhập phương án theo số chỗ trống của câu "Điền từ có sẵn". */
+function wordBankHint(n) {
+  if (!n) return 'Gõ ___ vào câu để tạo chỗ trống trước.';
+  const sample = Array.from({ length: n }, (_, i) => ['は', 'で', 'を', 'に', 'が'][i % 5]).join('/');
+  return `Câu có <b>${n}</b> chỗ trống: mỗi phương án ghi đủ ${n} từ${n > 1 ? ` theo thứ tự, cách nhau bằng dấu / (ví dụ: ${sample})` : ''}.`;
+}
+
 function blanksHtml(q) {
   const d = q.data || {};
   const n = countBlanks(d.text);
@@ -669,15 +699,7 @@ function blanksHtml(q) {
             <input data-blank="${i}" value="${escapeHtml(((d.answers || [])[i] || []).join('; '))}" class="${INPUT}" placeholder="Để trống = AI chấm · ví dụ: たべます; 食べます" ${dis()}></label>`).join('')}
       </div>`;
   }
-  return `
-    <p class="kz-label">Từ đúng của từng chỗ trống</p>
-    <div class="flex flex-col gap-2">
-      ${Array.from({ length: n }, (_, i) => `
-        <label class="flex items-center gap-2"><span class="w-10 font-bold text-on-surface-variant">(${i + 1})</span>
-          <input data-bankword="${i}" value="${escapeHtml((d.answers || [])[i] || '')}" class="${INPUT}" ${dis()}></label>`).join('')}
-    </div>
-    <label class="kz-label mt-3">Từ gây nhiễu <span class="font-normal text-on-surface-variant">(phân cách bằng ;; tổng số từ để kéo phải từ 2 trở lên)</span></label>
-    <input data-field="distractors" value="${escapeHtml((d.distractors || []).join('; '))}" class="${INPUT}" placeholder="Ví dụ: あれ; それ" ${dis()}>`;
+  return '';
 }
 
 // ============================================================ sửa câu hỏi
@@ -695,7 +717,10 @@ function onListInput(e) {
   else if (t.dataset.field === 'text') {
     const before = countBlanks(d.text);
     d.text = t.value;
-    if (countBlanks(d.text) !== before) card.querySelector('[data-blanks]').innerHTML = blanksHtml(q);
+    const after = countBlanks(d.text);
+    if (after !== before) {
+      card.querySelector('[data-blanks]').innerHTML = q.type === 'WORD_BANK' ? wordBankHint(after) : blanksHtml(q);
+    }
   } else if (t.dataset.field === 'distractors') d.distractors = splitList(t.value);
   else if (t.dataset.opt !== undefined) d.options[Number(t.dataset.opt)] = t.value;
   else if (t.dataset.blank !== undefined) {
@@ -772,7 +797,7 @@ function onListClick(e) {
     case 'opt-add': d.options.push(''); break;
     case 'opt-remove':
       d.options.splice(j, 1);
-      if (q.type === 'SINGLE_CHOICE') d.correct = d.correct === j ? null : (d.correct > j ? d.correct - 1 : d.correct);
+      if (q.type !== 'MULTI_CHOICE') d.correct = d.correct === j ? null : (d.correct > j ? d.correct - 1 : d.correct);
       else d.correct = (d.correct || []).filter((c) => c !== j).map((c) => (c > j ? c - 1 : c));
       break;
     case 'pair-add': d.pairs.push({ left: '', right: '' }); break;
@@ -986,7 +1011,7 @@ function importSummary(r) {
     case 'MULTI_CHOICE': return [opts.join(' | '), (d.correct || []).map((i) => opts[i]).join(' | ')];
     case 'TRUE_FALSE': return ['', d.correct ? 'Đúng' : 'Sai'];
     case 'FILL_BLANK': return ['', (d.answers || []).map((a) => a.join(' / ')).join(' | ')];
-    case 'WORD_BANK': return [(d.distractors || []).length ? `Từ nhiễu: ${d.distractors.join(' | ')}` : '', (d.answers || []).join(' | ')];
+    case 'WORD_BANK': return [opts.map((o) => o.split('/').map((w) => w.trim()).join(' / ')).join(' | '), (opts[d.correct] ?? '').split('/').map((w) => w.trim()).join(' / ')];
     case 'MATCHING': return [(d.pairs || []).map((p) => `${p.left} = ${p.right}`).join(' | '), 'Theo các cặp'];
     case 'ORDERING': return [(d.items || []).join(' → '), 'Theo thứ tự trên'];
     case 'WRITTEN': return ['', (d.accepted || []).length ? d.accepted.join(' | ') : 'Gia sư chấm'];

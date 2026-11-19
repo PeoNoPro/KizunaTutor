@@ -25,12 +25,32 @@ class VoicevoxService {
     this.CHECK_INTERVAL = 20000; // 20 giây kiểm tra lại một lần
     this.defaultSpeaker = 2; // Shikoku Metan
     this.hasNotifiedOffline = false;
+    this.cachedJaVoice = null;
 
     // Đọc cài đặt speaker từ localStorage nếu có
     try {
       const saved = localStorage.getItem('kizuna_voicevox_speaker');
       if (saved) this.defaultSpeaker = parseInt(saved, 10) || 2;
     } catch (e) {}
+
+    this.initBrowserVoices();
+  }
+
+  /**
+   * Khởi tạo và lưu cache giọng tiếng Nhật chuẩn của trình duyệt (Web Speech API)
+   */
+  initBrowserVoices() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const findVoice = () => {
+      try {
+        const voices = window.speechSynthesis.getVoices() || [];
+        this.cachedJaVoice = voices.find(v => v.lang === 'ja-JP' || v.lang.startsWith('ja') || v.lang.includes('JP')) || null;
+      } catch (e) {}
+    };
+    findVoice();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = findVoice;
+    }
   }
 
   /**
@@ -150,17 +170,26 @@ class VoicevoxService {
   }
 
   /**
-   * Gọi API VOICEVOX để tổng hợp âm thanh (audio_query -> synthesis)
+   * Gọi API VOICEVOX để tổng hợp âm thanh (audio_query -> synthesis) với Timeout 1.5s
    */
   async synthesizeVoicevox(text, speaker, options = {}) {
     const baseUrl = this.primaryUrl; // Dùng proxy tránh CORS
 
-    // Bước 1: audio_query
+    // Bước 1: audio_query với Timeout 1500ms
+    const controller1 = new AbortController();
+    const timer1 = setTimeout(() => controller1.abort(), 1500);
+
     const queryUrl = `${baseUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${encodeURIComponent(speaker)}`;
-    const queryRes = await fetch(queryUrl, {
-      method: 'POST',
-      headers: { 'Accept': 'application/json' }
-    });
+    let queryRes;
+    try {
+      queryRes = await fetch(queryUrl, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        signal: controller1.signal
+      });
+    } finally {
+      clearTimeout(timer1);
+    }
 
     if (!queryRes.ok) {
       throw new Error(`audio_query failed with status ${queryRes.status}`);
@@ -175,16 +204,25 @@ class VoicevoxService {
       queryData.speedScale = 0.95; // Tốc độ hơi chậm nhẹ cho học viên dễ nghe
     }
 
-    // Bước 2: synthesis
+    // Bước 2: synthesis với Timeout 1500ms
+    const controller2 = new AbortController();
+    const timer2 = setTimeout(() => controller2.abort(), 1500);
+
     const synthUrl = `${baseUrl}/synthesis?speaker=${encodeURIComponent(speaker)}`;
-    const synthRes = await fetch(synthUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'audio/wav'
-      },
-      body: JSON.stringify(queryData)
-    });
+    let synthRes;
+    try {
+      synthRes = await fetch(synthUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'audio/wav'
+        },
+        body: JSON.stringify(queryData),
+        signal: controller2.signal
+      });
+    } finally {
+      clearTimeout(timer2);
+    }
 
     if (!synthRes.ok) {
       throw new Error(`synthesis failed with status ${synthRes.status}`);
@@ -198,7 +236,7 @@ class VoicevoxService {
    * Phát file Audio từ Blob URL
    */
   playAudioUrl(url) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       try {
         this.currentAudio = new Audio(url);
         this.currentAudio.onended = () => {
@@ -211,41 +249,92 @@ class VoicevoxService {
         };
         this.currentAudio.play().catch(err => {
           console.debug('Autoplay hoặc audio error:', err);
+          this.currentAudio = null;
           resolve(false);
         });
       } catch (e) {
+        this.currentAudio = null;
         resolve(false);
       }
     });
   }
 
   /**
-   * Phát âm thanh qua Web Speech API (Fallback)
+   * Phát âm thanh qua Web Speech API (Fallback) - Trả về Promise hoàn thành khi âm thanh dứt
    */
   fallbackBrowserSpeech(text) {
-    if (!('speechSynthesis' in window)) {
-      console.warn('Trình duyệt không hỗ trợ Web Speech API.');
-      return false;
-    }
-
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ja-JP';
-      utterance.rate = 0.88;
-
-      // Tìm giọng tiếng Nhật chuẩn nếu có
-      const voices = window.speechSynthesis.getVoices();
-      const jaVoice = voices.find(v => v.lang.startsWith('ja') || v.lang.includes('JP'));
-      if (jaVoice) {
-        utterance.voice = jaVoice;
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+        console.warn('Trình duyệt không hỗ trợ Web Speech API.');
+        resolve(false);
+        return;
       }
 
-      window.speechSynthesis.speak(utterance);
-      return true;
-    } catch (e) {
-      console.debug('Lỗi phát âm Web Speech API:', e);
-      return false;
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ja-JP';
+        utterance.rate = 0.9;
+
+        if (this.cachedJaVoice) {
+          utterance.voice = this.cachedJaVoice;
+        } else {
+          const voices = window.speechSynthesis.getVoices() || [];
+          const jaVoice = voices.find(v => v.lang === 'ja-JP' || v.lang.startsWith('ja') || v.lang.includes('JP'));
+          if (jaVoice) {
+            utterance.voice = jaVoice;
+            this.cachedJaVoice = jaVoice;
+          }
+        }
+
+        let finished = false;
+        const finish = (result) => {
+          if (!finished) {
+            finished = true;
+            clearTimeout(safetyTimer);
+            resolve(result);
+          }
+        };
+
+        utterance.onend = () => finish(true);
+        utterance.onerror = (e) => {
+          console.debug('Lỗi phát âm Web Speech API:', e);
+          finish(false);
+        };
+
+        const maxDuration = Math.max(2500, text.length * 350);
+        const safetyTimer = setTimeout(() => finish(true), maxDuration);
+
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.debug('Lỗi phát âm Web Speech API:', e);
+        resolve(false);
+      }
+    });
+  }
+
+  /**
+   * Tiện ích phát âm gắn liền với nút bấm (hiển thị trạng thái đang đọc, chống spam click)
+   */
+  async speakWithButton(text, btn, options = {}) {
+    if (!btn || !text) return this.speak(text, options);
+
+    const icon = btn.querySelector('.material-symbols-outlined') || btn.querySelector('svg');
+    const label = btn.querySelector('span:not(.material-symbols-outlined)');
+    const prevText = label ? label.textContent : '';
+
+    btn.disabled = true;
+    btn.classList.add('opacity-80', 'cursor-wait');
+    if (icon) icon.classList.add('animate-pulse', 'text-[#BE185D]');
+    if (label && label.textContent.trim().length > 0) label.textContent = 'Đang phát...';
+
+    try {
+      return await this.speak(text, options);
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('opacity-80', 'cursor-wait');
+      if (icon) icon.classList.remove('animate-pulse', 'text-[#BE185D]');
+      if (label && prevText) label.textContent = prevText;
     }
   }
 

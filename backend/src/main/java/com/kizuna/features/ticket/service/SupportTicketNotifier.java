@@ -45,8 +45,6 @@ public class SupportTicketNotifier {
         switch (action) {
             case "resolve" -> send(ticket, action, "Yêu cầu hỗ trợ đã được giải quyết",
                     "Yêu cầu \"" + subject(ticket) + "\" đã có kết quả xử lý. Nếu vấn đề vẫn còn, bạn có thể trả lời để mở lại.", requesterPath(ticket), (UUID) ticket.get("user_id"));
-            case "assignment" -> send(ticket, action, "Bạn được giao một yêu cầu hỗ trợ",
-                    "Yêu cầu \"" + subject(ticket) + "\" vừa được chuyển cho bạn phụ trách.", csPath(ticket), (UUID) ticket.get("assigned_to"));
             case "escalate" -> send(ticket, action, "Có yêu cầu hỗ trợ được chuyển lên",
                     "Nhân viên hỗ trợ đã chuyển yêu cầu \"" + subject(ticket) + "\" cho bạn xem xét.", managerPath(ticket), (UUID) ticket.get("escalated_to"));
             case "recipient" -> {
@@ -60,25 +58,15 @@ public class SupportTicketNotifier {
         }
     }
 
-    /** Ca đang diễn ra chưa có nhân viên hỗ trợ nào mà có yêu cầu chờ: nhắc mọi Quản lý xếp ca (mỗi ca một lần). */
-    public void missingShift(java.time.LocalDate date, String shiftCode, String shiftLabel, long waiting) {
-        var day = date.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-        events.publishToRole("support-shift-missing:" + date + ":" + shiftCode, "TICKET", "Chưa có nhân viên hỗ trợ trong ca",
-                shiftLabel + " " + day + " chưa xếp nhân viên hỗ trợ nào, đang có " + waiting + " yêu cầu chờ người nhận. Vui lòng xếp ca để hệ thống tự giao.",
-                "/pages/support-shifts/", "ROLE_MANAGER");
+    /** Yêu cầu mới vào hàng chờ: báo mọi nhân viên hỗ trợ đang hoạt động (bỏ phân ca 2026-11-16). */
+    public void created(Map<String, Object> ticket) {
+        events.publishToRole("ticket:" + id(ticket) + ":created", "TICKET", "Có yêu cầu hỗ trợ mới",
+                "Yêu cầu \"" + subject(ticket) + "\" đang chờ nhân viên hỗ trợ nhận xử lý.", csPath(ticket), "ROLE_CS_STAFF");
     }
 
-    /** Người phụ trách không còn hoạt động: báo mọi Quản lý để chọn người tiếp nhận (một lần cho mỗi yêu cầu và người cũ). */
-    public void handoverNeeded(Map<String, Object> row) {
-        events.publishToRole("ticket:" + row.get("ticket_id") + ":handover-needed:" + row.get("assigned_to"), "TICKET", "Yêu cầu hỗ trợ cần bàn giao",
-                row.get("assignee_name") + " không còn là nhân viên hỗ trợ đang hoạt động nhưng đang phụ trách yêu cầu \"" + row.get("subject")
-                        + "\". Vui lòng mở yêu cầu và chọn nhân viên tiếp nhận.",
-                "/manager/support/tickets/" + row.get("ticket_id"), "ROLE_MANAGER");
-    }
-
-    /** Hệ thống tự giao yêu cầu cho nhân viên đang trong ca. */
-    public void autoAssigned(Map<String, Object> ticket, UUID staff) {
-        send(ticket, "auto-assign", "Bạn được giao một yêu cầu hỗ trợ mới",
-                "Hệ thống vừa giao cho bạn yêu cầu \"" + subject(ticket) + "\" theo ca làm việc.", csPath(ticket), staff);
+    /** Nhân viên hỗ trợ đã nhận xử lý: báo người gửi biết yêu cầu đã được tiếp nhận. */
+    public void claimed(Map<String, Object> ticket) {
+        send(ticket, "claim", "Yêu cầu hỗ trợ đã được tiếp nhận",
+                "Nhân viên hỗ trợ đã nhận xử lý yêu cầu \"" + subject(ticket) + "\" của bạn và sẽ phản hồi sớm.", requesterPath(ticket), (UUID) ticket.get("user_id"));
     }
 }

@@ -65,6 +65,10 @@ public class TutorPostService {
     private final TutorRepository tutorRepository;
     private final TutorMembershipService membershipService;
     private final UserRepository userRepository;
+    /** FE-12 (thêm 2026-11-13): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
 
     // =====================================================================
     // Gia sư
@@ -126,6 +130,7 @@ public class TutorPostService {
         // Bổ sung theo yêu cầu thì sửa đúng bài đó; chưa có bài hoặc cập nhật bài đã duyệt thì tạo bản mới.
         // Bản đã duyệt giữ nguyên PUBLISHED nên học viên vẫn thấy cho tới khi bản mới được duyệt.
         boolean reuse = latest != null && latest.getStatus() == TutorPostStatus.NEEDS_REVISION;
+        boolean resubmitted = reuse; // FE-12: nội dung thông báo cho học vụ (gửi lại hay bài mới)
         TutorPost post = reuse ? latest : TutorPost.builder().tutor(tutor).build();
         post.setStatus(TutorPostStatus.PENDING_REVIEW);
         post.setRejectionReason(null);
@@ -140,6 +145,12 @@ public class TutorPostService {
         post.setHourlyRate(prices.stream().map(PostPriceItem::hourlyRate).min(BigDecimal::compareTo).orElseThrow());
         post.setUpdatedAt(OffsetDateTime.now(ZONE));
         postRepository.saveAndFlush(post);
+        if (notificationEvents != null) {
+            notificationEvents.publishToRole("tutor-post:" + post.getPostId() + ":submitted:" + post.getUpdatedAt(), "SYSTEM",
+                    resubmitted ? "Bài đăng gia sư được gửi lại" : "Có bài đăng gia sư mới chờ duyệt",
+                    "Gia sư " + tutor.getUser().getFullName() + (resubmitted ? " vừa sửa và gửi lại bài đăng \"" : " vừa gửi bài đăng \"") + r.title() + "\". Bài đang chờ cán bộ học vụ duyệt.",
+                    "/academic/posts", "ROLE_ACADEMIC_OFFICER");
+        }
         return postView(tutor.getTutorId());
     }
 
@@ -182,6 +193,7 @@ public class TutorPostService {
             tutor.setHeadline(post.getSpecialties().length() > 200 ? post.getSpecialties().substring(0, 200) : post.getSpecialties());
         }
         tutorRepository.save(tutor);
+        notifyTutorReviewed(post, "Bài đăng đã được duyệt", "Bài đăng \"" + post.getTitle() + "\" đã hiển thị trên trang Tìm gia sư.");
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }
 
@@ -191,6 +203,7 @@ public class TutorPostService {
         String reason = requireText(request, "Vui lòng nhập lý do từ chối.", "Lý do từ chối tối đa 2.000 ký tự.");
         TutorPost post = lockPending(postId);
         markReviewed(post, officer, TutorPostStatus.REJECTED, reason);
+        notifyTutorReviewed(post, "Bài đăng không được duyệt", "Bài đăng \"" + post.getTitle() + "\" bị từ chối. Lý do: " + reason);
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }
 
@@ -200,6 +213,7 @@ public class TutorPostService {
         String message = requireText(request, "Vui lòng nêu rõ thông tin gia sư cần bổ sung.", "Nội dung yêu cầu tối đa 2.000 ký tự.");
         TutorPost post = lockPending(postId);
         markReviewed(post, officer, TutorPostStatus.NEEDS_REVISION, message);
+        notifyTutorReviewed(post, "Cần bổ sung bài đăng", "Cán bộ học vụ cần bạn sửa bài đăng \"" + post.getTitle() + "\": " + message + " Sửa xong hãy gửi lại.");
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }
 
@@ -286,6 +300,15 @@ public class TutorPostService {
             throw new ConflictException(MSG_ALREADY_REVIEWED);
         }
         return post;
+    }
+
+    /** FE-12 (thêm 2026-11-13): báo kết quả duyệt bài đăng cho gia sư; mỗi lần duyệt (reviewedAt) chỉ một thông báo. */
+    private void notifyTutorReviewed(TutorPost post, String title, String content) {
+        if (notificationEvents == null) {
+            return;
+        }
+        notificationEvents.publish("tutor-post:" + post.getPostId() + ":reviewed:" + post.getReviewedAt(), "SYSTEM", title, content,
+                "/tutor/post", java.util.List.of(post.getTutor().getUser().getUserId()));
     }
 
     private void markReviewed(TutorPost post, User officer, TutorPostStatus status, String reason) {

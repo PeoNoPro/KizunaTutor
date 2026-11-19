@@ -5,8 +5,7 @@ import {mountLearnerFrame} from './learner-frame.js';
 import {mountTutorFrame} from './tutor-frame.js';
 import {showToast} from '../main.js';
 import {createTicketCountsLoader,countTicketStatuses} from './support-counts.js';
-import {incidentReportCard} from './incident-report.js';
-import {loadAttachmentLimit,attachmentBytes,attachmentMegabytes,arrangeCsDetail,renderCsHeader,renderCsInformation,renderCsThread,createCsReplyForm,finishCsActions,timestamp} from './cs-ticket-detail.js';
+import {loadAttachmentLimit,attachmentBytes,attachmentMegabytes,arrangeCsDetail,renderCsHeader,renderCsInformation,renderCsThread,createCsReplyForm,finishCsActions,timestamp,renderCsRequester,createNoteForm} from './cs-ticket-detail.js';
 
 const base = '/v1/tickets';
 const statuses = {OPEN:'Chưa nhận xử lý', IN_PROGRESS:'Đang xử lý', ESCALATED:'Chờ quản lý xem xét', RESOLVED:'Đã giải quyết', CLOSED:'Đã đóng'};
@@ -27,7 +26,7 @@ const events = {CREATE:'Tạo yêu cầu', CLAIM:'Tiếp nhận yêu cầu', AUT
 const tabGroups = {
   requester:[{label:'Đang theo dõi',statuses:['OPEN','IN_PROGRESS','ESCALATED']},{label:'Đã giải quyết',statuses:['RESOLVED','CLOSED']}],
   cs:[{label:'Cần xử lý',statuses:['OPEN','IN_PROGRESS']},{label:'Chờ người dùng xác nhận',statuses:['RESOLVED']},{label:'Đã chuyển Quản lý',statuses:['ESCALATED']},{label:'Đã đóng',statuses:['CLOSED']}],
-  manager:[{label:'Chờ xem xét',statuses:['ESCALATED']},{label:'Đã phản hồi',statuses:['IN_PROGRESS','RESOLVED','CLOSED']},{label:'Cần bàn giao',statuses:['IN_PROGRESS','ESCALATED','RESOLVED'],handover:true}]
+  manager:[{label:'Chờ xem xét',statuses:['ESCALATED']},{label:'Đã phản hồi',statuses:['IN_PROGRESS','RESOLVED','CLOSED']}]
 };
 const pageCopy = {
   requester:{title:'Hỗ trợ của tôi',lead:'Theo dõi trao đổi và kết quả hỗ trợ về việc sử dụng nền tảng.',list:'Các yêu cầu liên quan',empty:'Chưa có yêu cầu hỗ trợ phù hợp',back:['/pages/home/','← Về trang chủ'],hint:'Chọn “Gửi yêu cầu hỗ trợ” khi bạn cần được giúp đỡ.'},
@@ -56,11 +55,15 @@ function loadStaffStyles() {
 
 export async function startSupportPage(isDetail) {
   let account,role,ticket,page=0,threadPage=0,historyPage=0,busy=false,initialized=false,listGeneration=0,countGeneration=0;
-  let activeDetailTab='public',historyLoaded=false,historyLoading=false,historyGeneration=0,activeListTab=0;
+  let historyLoaded=false,historyLoading=false,historyGeneration=0,activeListTab=0;
   // Nhóm yêu cầu đang xem (Đang theo dõi, Đã giải quyết...) chọn từ mục con ở sidebar, giữ trên đường dẫn (?group=).
   const audience=()=>account.canCreate?'requester':account.canHandle?'cs':'manager';
-  const csDetail=()=>isDetail&&account?.canHandle;
-  let handoverTabOpened=false;
+  // Trang chi tiết 2 cột dùng cho CS và (từ 2026-11-13) cho Quản lý; managerDetail() để rẽ các chỗ khác nhau.
+  const csDetail=()=>isDetail&&(account?.canHandle||account?.canDecide);
+  const managerDetail=()=>isDetail&&account?.canDecide&&!account?.canHandle;
+  // Ghi chú nội bộ (đợt 3): tải cùng chi tiết; CS xem xen trong trao đổi, Quản lý xem ở tab Xử lý nội bộ.
+  let prefilledDecision=null,notes=[],notesError='',notesRequest=Promise.resolve(),threadCache=null,composerMode='';
+  const THREAD_SIZE=50;
   const query=new URLSearchParams(location.search),id=query.get('id');
   const content=$('supportContent');
   const route=(ticketId='')=>`/${role}/support/tickets${ticketId?'/'+ticketId:''}`;
@@ -96,7 +99,7 @@ export async function startSupportPage(isDetail) {
       mountSupportGroups();
       content.hidden=false;
       $('supportLoading')?.remove();
-      if(isDetail){$('backToTickets').href=route();if(csDetail())arrangeCsDetail();initDetailTabs();if(!account.canCreate&&query.get('tab')==='internal')selectDetailTab('internal');const mainDetail=loadDetail();loadAttachmentLimit();await mainDetail;}else await initList();
+      if(isDetail){$('backToTickets').href=route();if(csDetail())arrangeCsDetail(managerDetail());initDetailTabs();const mainDetail=loadDetail();loadAttachmentLimit();await mainDetail;}else await initList();
     }catch(error){fail(error);}
     finally {content.setAttribute('aria-busy','false');}
   }
@@ -116,6 +119,8 @@ export async function startSupportPage(isDetail) {
   async function initList() {
     options($('ticketFilters').elements.category,categories);options($('ticketFilters').elements.priority,priorities);
     for(const [key,choices] of [['category',categories],['priority',priorities]]){const value=query.get(key);if(value&&Object.hasOwn(choices,value))$('ticketFilters').elements[key].value=value;}
+    if(query.get('q'))$('ticketFilters').elements.q.value=query.get('q').slice(0,100);
+    if(query.get('overdue')==='true'&&!account.canCreate)$('ticketFilters').elements.overdue.checked=true;
     const groups=tabGroups[audience()],requested=query.get('status');
     activeListTab=Math.min(groups.length-1,Math.max(0,Number(query.get('group'))||0));
     if(!query.has('group')&&requested){const found=groups.findIndex(group=>group.statuses.includes(requested));if(found>=0)activeListTab=found;}
@@ -125,13 +130,19 @@ export async function startSupportPage(isDetail) {
     $('priorityFilter').hidden=Boolean(account.canCreate);
     $('ticketFilters').onsubmit=event=>{event.preventDefault();loadList(0);};
     // Chọn xong là lọc ngay, không cần bấm nút.
-    $('ticketFilters').onchange=()=>{syncClearFilter();loadList(0);loadStatusCounts();};
+    $('ticketFilters').onchange=event=>{if(event.target.name==='q')return;syncClearFilter();loadList(0);loadStatusCounts();};
+    let searchTimer=0;
+    $('ticketFilters').elements.q.placeholder=account.canCreate?'Tìm theo tiêu đề yêu cầu':'Tìm theo tiêu đề, tên người gửi hoặc mã (#a1b2c3d4)';
+    $('ticketFilters').elements.q.oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{syncClearFilter();loadList(0);loadStatusCounts();},300);};
+    $('ticketFilters').onsubmit=event=>{event.preventDefault();clearTimeout(searchTimer);loadList(0);loadStatusCounts();};
+    // Nhân viên hỗ trợ và quản lý lọc được yêu cầu quá hạn phản hồi.
+    $('overdueFilter').hidden=Boolean(account.canCreate);
     $('clearFilters').onclick=()=>{$('ticketFilters').reset();syncClearFilter();loadList(0);loadStatusCounts();};
     if(account.canCreate){$('createTicket').hidden=false;initCreate();buildRequesterHeader();}
     // Gọi song song: danh sách, số lượng từng trạng thái và danh sách nhân viên (cho bộ lọc).
     // Give the primary list the first connection. Counters and secondary controls must not delay its rendering.
     const mainList=loadList(0);
-    const secondary=()=>{loadStatusCounts();if(account.canCreate)loadRequesterStats();if(account.canHandle)api('/assignees').then(people=>{$('assigneeFilter').hidden=false;people.forEach(p=>option($('ticketFilters').elements.assignedTo,p.userId,p.displayName));}).catch(()=>{});};
+    const secondary=()=>{loadStatusCounts();if(account.canCreate)loadRequesterStats();};
     setTimeout(secondary,0);
     await mainList;
   }
@@ -177,7 +188,7 @@ export async function startSupportPage(isDetail) {
     const group=tabGroups[audience()][activeListTab];
     const choices=statusChoices(group);
     statusChoice=choices.find(([value])=>value.split(',').includes(selected))?.[0]||'';
-    const bar=$('statusChips');bar.replaceChildren();bar.hidden=choices.length<2||Boolean(group.handover);
+    const bar=$('statusChips');bar.replaceChildren();bar.hidden=choices.length<2;
     [['',  'Tất cả'],...choices].forEach(([value,label])=>{
       const chip=element('button',undefined,'support-chip');chip.type='button';chip.dataset.status=value;
       chip.append(element('span',label),element('span','','support-chip-count'));
@@ -192,7 +203,6 @@ export async function startSupportPage(isDetail) {
     const generation=++countGeneration;
     const group=tabGroups[audience()][activeListTab],extra=new URLSearchParams();
     for(const [key,value] of new FormData($('ticketFilters')))if(value)extra.set(key,value);
-    if(group.handover)extra.set('handover','true');
     if($('statusChips').hidden)return;
     const chips=[...$('statusChips').querySelectorAll('.support-chip')];
     try{const data=await counts(extra);if(generation!==countGeneration)return;chips.forEach(chip=>{chip.querySelector('.support-chip-count').textContent=countTicketStatuses(data,(chip.dataset.status||group.statuses.join(',')).split(','));});}
@@ -203,7 +213,7 @@ export async function startSupportPage(isDetail) {
   }
   function syncClearFilter() {
     const form=$('ticketFilters').elements;
-    $('clearFilters').hidden=!form.category.value&&!form.priority.value&&!form.assignedTo?.value;
+    $('clearFilters').hidden=!form.category.value&&!form.priority.value&&!form.assignedTo?.value&&!form.q.value.trim()&&!form.overdue?.checked;
   }
   /** Đầu trang học viên/gia sư: tiêu đề bên trái, nút "Gửi yêu cầu hỗ trợ" bên phải. */
   function buildRequesterHeader() {
@@ -222,33 +232,48 @@ export async function startSupportPage(isDetail) {
   }
   function ticketRow(t) {
     const row=element('article',undefined,'support-row support-row-card'),info=element('div',undefined,'support-row-info'),link=element('a',t.subject,'support-row-title'),status=element('div'),open=element('span','›','support-row-arrow');
-    link.href=route(t.ticketId);open.setAttribute('aria-hidden','true');status.append(account.canDecide&&t.needsHandover?badge('Cần bàn giao','handover'):badge(statusLabel(t.status,t.statusLabel),t.status));
+    link.href=route(t.ticketId);open.setAttribute('aria-hidden','true');status.append(badge(statusLabel(t.status,t.statusLabel),t.status));
+    // Nhận xử lý ngay trên danh sách (bỏ phân ca 2026-11-16): người gửi được báo đã tiếp nhận, rồi mở yêu cầu.
+    if(account.canHandle&&t.allowedActions?.includes('claim')){const claim=element('button','Nhận xử lý','primary support-claim');claim.type='button';
+      claim.onclick=async event=>{event.stopPropagation();claim.disabled=true;claim.textContent='Đang nhận…';
+        try{await api(`/${t.ticketId}/claim`,{method:'POST',body:{expectedVersion:t.version}});showToast('Đã nhận xử lý. Người gửi đã được báo.','success');location.assign(link.href);}
+        catch(error){claim.disabled=false;claim.textContent='Nhận xử lý';fail(error);if(error.status===409)loadList(page);}};
+      status.append(claim);}
     // Bấm vào bất kỳ đâu trên thẻ cũng mở yêu cầu (trừ khi đang bôi đen chữ).
     row.onclick=event=>{if(event.target.closest('a')||String(getSelection()))return;location.assign(link.href);};
     const meta=account.canCreate?`${t.categoryLabel} · Gửi ${date(t.createdAt)} · Cập nhật ${date(t.updatedAt)}`:account.canHandle?`Người gửi: ${t.requesterDisplayName} · ${t.categoryLabel} · Ưu tiên ${t.priorityLabel.toLocaleLowerCase('vi-VN')} · Phụ trách: ${t.assigneeDisplayName||'chưa có ai'}`:`Người gửi: ${t.requesterDisplayName} · CS phụ trách: ${t.assigneeDisplayName||'chưa có ai'} · Cập nhật ${date(t.updatedAt)}`;
     info.append(link,element('p',meta));
+    if(!account.canCreate)info.append(ticketChips(t));
     row.dataset.ticketId=t.ticketId;
     if(account.canHandle&&t.assigneeId===account.userId){row.classList.add('support-row-mine');status.prepend(badge('Của bạn','mine'));}if(t.descriptionPreview)info.append(element('p',t.descriptionPreview,'support-preview'));
     if(account.canCreate){row.classList.add('support-row-icon');row.append(icon(categoryIcons[t.category]||'help','support-row-symbol'));}
     row.append(info,status,open);return row;
   }
-  /** Quản lý: đánh dấu các yêu cầu đã báo sự cố kỹ thuật cho Admin (mô tả sự cố có "Mã yêu cầu hỗ trợ: <mã>"). */
-  async function markReportedTickets(){
-    if(!account.canDecide||account.canHandle)return;
-    try{const data=await fetchAPI('/admin/operations/reported-incidents?page=0&size=50');const reported=new Map();
-      data.items.forEach(item=>{const match=/Mã yêu cầu hỗ trợ: ([0-9a-f-]{36})/i.exec(item.description||'');if(match&&!reported.has(match[1]))reported.set(match[1],item);});
-      document.querySelectorAll('.support-row[data-ticket-id]').forEach(row=>{const item=reported.get(row.dataset.ticketId);if(!item||row.querySelector('[data-reported]'))return;
-        const tag=badge('Đã báo Admin · '+item.statusLabel,'reported');tag.dataset.reported='';tag.title='Sự cố kỹ thuật đã báo cho Admin: '+item.subject;row.querySelector('.support-row-info p')?.after(tag);});
-    }catch{/* Không tải được thì chỉ không có nhãn. */}
+  /** Mã ngắn hiển thị (8 ký tự đầu), tìm được bằng ô tìm kiếm. */
+  const ticketCode=id=>'#'+String(id).slice(0,8);
+  /** "Chờ 25 phút", "Chờ 3 giờ 10 phút", "2 ngày"… */
+  function duration(ms){const minutes=Math.max(0,Math.round(ms/60000));if(minutes<60)return minutes+' phút';const hours=Math.floor(minutes/60);if(hours<24)return hours+' giờ'+(minutes%60?' '+minutes%60+' phút':'');const days=Math.floor(hours/24);return days+' ngày'+(hours%24?' '+hours%24+' giờ':'');}
+  /** Mã, mức ưu tiên và thời gian chờ phản hồi (đang chờ: vàng/xanh, quá hạn: đỏ). */
+  function ticketChips(t){
+    const row=element('div',undefined,'support-row-chips');
+    const code=element('span',ticketCode(t.ticketId),'support-code');code.title='Mã yêu cầu: '+t.ticketId;row.append(code);
+    const priority=element('span',t.priorityLabel,'support-priority');priority.dataset.priority=t.priority;row.append(priority);
+    if(t.waitingSince){
+      const now=Date.now(),due=new Date(t.responseDueAt).getTime(),wait=element('span',undefined,'support-wait');
+      wait.dataset.state=t.overdue?'overdue':due-now<30*60000?'soon':'ok';
+      wait.append(icon(t.overdue?'alarm':'schedule'),document.createTextNode(t.overdue?'Quá hạn '+duration(now-due):'Chờ phản hồi '+duration(now-new Date(t.waitingSince).getTime())));
+      wait.title='Người gửi chờ từ '+date(t.waitingSince)+' · hạn phản hồi '+date(t.responseDueAt);row.append(wait);
+    }
+    return row;
   }
   async function loadList(next=page) {
     const generation=++listGeneration;
     page=next;content.setAttribute('aria-busy','true');notice('Đang tải yêu cầu…');
     try {const params=new URLSearchParams({page:String(page),size:'20'});for(const [key,value] of new FormData($('ticketFilters')))if(value&&key!=='status')params.set(key,value);
-      params.set('status',statusParam());if(tabGroups[audience()][activeListTab].handover)params.set('handover','true');
+      params.set('status',statusParam());
       const data=await api('?'+params);if(generation!==listGeneration)return;const target=$('ticketList');
       if(!data.items.length){empty(target,pageCopy[audience()].hint,pageCopy[audience()].empty);if(account.canCreate){const cta=element('button',undefined,'primary');cta.type='button';cta.append(icon('add'),document.createTextNode('Gửi yêu cầu hỗ trợ'));cta.onclick=()=>$('createTicket').click();target.querySelector('.support-empty').append(cta);}}
-      else {const rows=[];if(account.canDecide){const head=element('div',undefined,'support-row-head');['Thông tin','Trạng thái','Thao tác'].forEach(label=>head.append(element('span',label)));rows.push(head);}rows.push(...data.items.map(ticketRow));target.replaceChildren(...rows);markReportedTickets();}
+      else {const rows=[];if(account.canDecide){const head=element('div',undefined,'support-row-head');['Thông tin','Trạng thái','Thao tác'].forEach(label=>head.append(element('span',label)));rows.push(head);}rows.push(...data.items.map(ticketRow));target.replaceChildren(...rows);}
       paging($('ticketPaging'),data,loadList);$('ticketCount').textContent=data.totalElements+' yêu cầu';notice('');$('reloadSupport').hidden=true;
     }catch(error){if(generation===listGeneration)fail(error);}finally{if(generation===listGeneration)content.setAttribute('aria-busy','false');}
   }
@@ -269,26 +294,16 @@ export async function startSupportPage(isDetail) {
         await loadAttachmentLimit();const created=await fetchMultipartAPI(base,payload,validFiles(form.elements.files));location.assign(route(created.ticketId)+'?created=1');
       }catch(error){if(await accountChanged(error))return;notice(error.message,true,'createNotice');}finally{submit.disabled=false;}};
   }
+  /** Trang chi tiết không chia tab; CS và Quản lý dùng bố cục 2 cột, lịch sử chỉ tải khi mở. */
   function initDetailTabs() {
-    if(account.canCreate){$('publicPanel').removeAttribute('role');$('publicPanel').removeAttribute('tabindex');return;}
-    $('detailTabs').hidden=false;
-    for(const name of ['public','internal']){
-      const tab=$(name+'Tab');tab.onclick=()=>selectDetailTab(name);
-      tab.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const next=event.key==='Home'?'public':event.key==='End'?'internal':name==='public'?'internal':'public';selectDetailTab(next);$(next+'Tab').focus();};
-    }
-    $('historyDetails').ontoggle=()=>{if($('historyDetails').open&&activeDetailTab==='internal')ensureHistory();};
-  }
-  function selectDetailTab(name) {
-    activeDetailTab=name;
-    for(const tabName of ['public','internal']){const selected=tabName===name;$(tabName+'Tab').setAttribute('aria-selected',String(selected));$(tabName+'Tab').tabIndex=selected?0:-1;$(tabName+'Panel').hidden=!selected;}
-    if(name==='internal'&&$('historyDetails').open)ensureHistory();
+    if(csDetail())$('historyDetails').ontoggle=()=>{if($('historyDetails').open)ensureHistory();};
   }
   function ensureHistory(){if(!historyLoaded&&!historyLoading)loadHistory(historyPage);}
-  function drafts() {return [...document.querySelectorAll('#replyArea form,#ticketActions form,#internalActions form,#csInformationControls form')].map(form=>({key:form.dataset.action,values:[...form.elements].filter(e=>e.name&&e.type!=='file').map(e=>[e.name,e.value])}));}
+  function drafts() {return [...document.querySelectorAll('#replyArea form,#ticketActions form,#internalActions form,#csInformationControls form,#noteArea form')].map(form=>({key:form.dataset.action,values:[...form.elements].filter(e=>e.name&&e.type!=='file').map(e=>[e.name,e.value])}));}
   async function loadDetail(preserve=false) {
     const saved=preserve?drafts():[];content.setAttribute('aria-busy','true');notice('Đang tải nội dung yêu cầu…');
-    try {ticket=await api('/'+id);renderDetail();renderInternalCurrent();await Promise.all([loadThread(threadPage),renderActions()]);
-      if(!account.canCreate&&activeDetailTab==='internal'&&$('historyDetails').open)ensureHistory();
+    try {if(!account.canCreate)notesRequest=loadNotes();ticket=await api('/'+id);renderDetail();renderInternalCurrent();await Promise.all([loadThread(threadPage),renderActions(),notesRequest]);
+      if(csDetail()&&$('historyDetails').open)ensureHistory();
       saved.forEach(d=>{const form=[...document.querySelectorAll('form[data-action]')].find(f=>f.dataset.action===d.key);d.values.forEach(([key,value])=>{if(form?.elements[key])form.elements[key].value=value;});});
       notice(preserve?'Đã tải bản mới nhất và giữ nội dung đang soạn. Vui lòng chọn lại tệp nếu cần.':'Đã tải nội dung yêu cầu.');$('reloadSupport').hidden=true;return true;
     }catch(error){fail(error);return false;}finally{content.setAttribute('aria-busy','false');}
@@ -313,128 +328,175 @@ export async function startSupportPage(isDetail) {
   }
   function renderDetail() {
     document.querySelector('#supportMain h1').textContent=ticket.subject;
-    if(csDetail()){renderCsHeader(ticket);renderCsInformation(ticket);return;}
+    if(csDetail()){renderCsHeader({...ticket,statusLabel:statusLabel(ticket.status,ticket.statusLabel)});renderCsInformation(ticket);renderCsRequester(ticket,ticketId=>route(ticketId));return;}
     const meta=element('p',undefined,'support-ticket-meta');
     if(account.canCreate){
       meta.append(badge(statusLabel(ticket.status,ticket.statusLabel),ticket.status));
       const category=element('span',undefined,'support-meta-chip');category.append(icon(categoryIcons[ticket.category]||'help'),document.createTextNode(ticket.categoryLabel));
       const sent=element('span',undefined,'support-meta-chip');sent.append(icon('schedule'),document.createTextNode('Gửi '+date(ticket.createdAt)));
       meta.append(category,sent);
+      if(ticket.assigneeDisplayName){const staff=element('span',undefined,'support-meta-chip');staff.append(icon('support_agent'),document.createTextNode('Nhân viên hỗ trợ: '+ticket.assigneeDisplayName));meta.append(staff);}
       const head=document.querySelector('.support-sheet-head');if(head&&!head.querySelector('.support-head-symbol'))head.querySelector('h1').before(icon(categoryIcons[ticket.category]||'help','support-head-symbol'));
-    } else meta.append(account.canDecide&&ticket.needsHandover?badge('Cần bàn giao','handover'):badge(statusLabel(ticket.status,ticket.statusLabel),ticket.status),` · ${ticket.requesterDisplayName} · Nhân viên hỗ trợ ${ticket.assigneeDisplayName||'chưa phân công'} · ${ticket.categoryLabel}`);
+    } else meta.append(badge(statusLabel(ticket.status,ticket.statusLabel),ticket.status),` · ${ticket.requesterDisplayName} · Nhân viên hỗ trợ ${ticket.assigneeDisplayName||'chưa phân công'} · ${ticket.categoryLabel}`);
     const parts=[meta];
     if(account.canCreate)parts.push(requesterGuide());
     if(ticket.relatedContext?.length){const contexts=element('div',undefined,'support-context');ticket.relatedContext.forEach(c=>contexts.append(element('p',(c.available?'Liên quan: ':'')+c.label)));parts.push(contexts);}
     $('ticketDetail').replaceChildren(...parts);
   }
+  /** Ghi chú nội bộ của yêu cầu; lỗi (ví dụ chưa chạy SQL ghi chú) không chặn phần còn lại của trang. */
+  async function loadNotes() {
+    try{notes=await api(`/${id}/notes`);notesError='';}catch(error){notes=[];notesError=error.message||'Chưa tải được ghi chú nội bộ.';}
+    // Chưa dùng được ghi chú (ví dụ DB chưa có bảng): ẩn hẳn tab Ghi chú thay vì hiện khung lỗi đỏ.
+    if(csDetail()&&notesError&&ticket&&$('csComposerTabs')?.childElementCount)renderComposer();
+  }
+  /** Ghi chú nằm giữa tin đầu trang này và tin đầu trang sau (trang đầu nhận cả ghi chú trước tin đầu tiên). */
+  function notesForPage(data,nextFirst) {
+    const first=data.page===0||!data.items.length?-Infinity:new Date(data.items[0].sentAt).getTime(),until=nextFirst?new Date(nextFirst).getTime():Infinity;
+    return notes.filter(note=>{const time=new Date(note.createdAt).getTime();return time>=first&&time<until;});
+  }
+  function renderCachedThread() {
+    if(!threadCache)return;const {data,nextFirst}=threadCache;
+    renderCsThread($('ticketThread'),data.items,notesForPage(data,nextFirst));paging($('threadPaging'),data,page=>loadThread(page).catch(fail));
+  }
   async function loadThread(next=0) {
+    if(csDetail()){
+      threadPage=next;const data=await api(`/${id}/messages?page=${next}&size=${THREAD_SIZE}`);
+      // Trang chưa phải cuối: lấy tin đầu trang sau để biết ghi chú nào thuộc trang này.
+      const nextFirst=data.page+1<data.totalPages?(await api(`/${id}/messages?page=${(next+1)*THREAD_SIZE}&size=1`)).items[0]?.sentAt:null;
+      await notesRequest;threadCache={data,nextFirst};renderCachedThread();return;
+    }
     threadPage=next;const data=await api(`/${id}/messages?page=${next}`);const target=$('ticketThread');target.replaceChildren();if(!data.items.length)empty(target,'Chưa có trao đổi.');
-    if(csDetail()){renderCsThread(target,data.items);paging($('threadPaging'),data,page=>loadThread(page).catch(fail));return;}
     data.items.forEach(m=>{const article=element('article',undefined,'support-message'+(account.canCreate&&m.fromRequester?' support-message-mine':' support-message-staff')),heading=element('div',undefined,'support-message-heading');const time=element('time',date(m.sentAt));if(m.sentAt)time.dateTime=new Date(m.sentAt).toISOString();const author=element('div');author.append(element('h3',m.fromRequester?(account.canCreate?'Bạn':m.senderDisplayName):(account.canCreate?'Nhân viên hỗ trợ':m.senderRoleLabel)));if(!m.fromRequester)author.append(element('small',m.senderDisplayName));heading.append(author,time);article.append(heading,element('p',m.message,'support-message-text'));m.attachments.forEach(f=>{const link=element('a',`${f.originalName} · ${{'image/jpeg':'Ảnh JPG','image/png':'Ảnh PNG','application/pdf':'Tài liệu PDF'}[f.contentType]||'Tệp đính kèm'} · ${(f.sizeBytes/1000000).toLocaleString('vi-VN',{maximumFractionDigits:2})} MB`);link.href=API_CONFIG.BASE_URL.replace(/\/api\/?$/,'')+f.downloadPath;link.target='_blank';link.rel='noopener';article.append(link);});target.append(article);});paging($('threadPaging'),data,next=>loadThread(next).catch(fail));
   }
   async function perform(action,payload,form,multipart=false,selectedFiles) {
     if(busy)return;if(action==='close'&&!confirm('Bạn xác nhận vấn đề đã được giải quyết và muốn đóng yêu cầu?'))return;
     busy=true;const controls=[...document.querySelectorAll(csDetail()?'form button,form input,form textarea,form select':'form button')].map(control=>[control,control.disabled]);controls.forEach(([control])=>control.disabled=true);
-    const submit=form.querySelector('[type=submit]'),submitText=submit?.textContent;if(csDetail()){form.setAttribute('aria-busy','true');if(submit)submit.textContent=action==='messages'||action==='resolve'?'Đang gửi…':'Đang xử lý…';if(action==='messages')$('csReplyNotice').textContent='';}
+    const submit=form.querySelector('[type=submit]'),submitText=submit?.textContent;if(csDetail()){form.setAttribute('aria-busy','true');if(submit)submit.textContent=['messages','resolve','decisionReturn'].includes(action)?'Đang gửi…':'Đang xử lý…';if(action==='messages')$('csReplyNotice').textContent='';}
     try {payload.expectedVersion=ticket.version;
       const endpoint={escalate:'escalations',recipient:'escalations/current/recipient',decision:'escalations/current/decision',return:'escalations/current/return'}[action]||action;
-      if(multipart)await fetchMultipartAPI(`${base}/${id}/messages`,payload,selectedFiles??validFiles(form.elements.files));else await api(`/${id}/${endpoint}`,{method:'POST',body:payload});
+      if(action==='decisionReturn'){
+        // Quản lý (2026-11-13): một nút "Gửi kết quả cho nhân viên hỗ trợ" = lưu quyết định rồi trả kết quả ngay.
+        await api(`/${id}/escalations/current/decision`,{method:'POST',body:payload});
+        const fresh=await api('/'+id);await api(`/${id}/escalations/current/return`,{method:'POST',body:{expectedVersion:fresh.version}});
+      }
+      else if(multipart)await fetchMultipartAPI(`${base}/${id}/messages`,payload,selectedFiles??validFiles(form.elements.files));else await api(`/${id}/${endpoint}`,{method:'POST',body:payload});
       document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());
-      if(await loadDetail()){const done=csDetail()&&action==='messages'?'Đã gửi phản hồi.':csDetail()&&action==='resolve'?'Đã gửi kết quả và đánh dấu đã giải quyết.':'Đã lưu thay đổi.';notice(done);showToast(done,'success');}else notice('Đã lưu thay đổi, nhưng chưa tải được bản mới. Vui lòng tải lại dữ liệu trước khi tiếp tục.',true);
+      if(await loadDetail()){const done=action==='claim'?'Đã nhận xử lý. Người gửi đã được báo.':action==='decisionReturn'?'Đã gửi kết quả cho nhân viên hỗ trợ.':csDetail()&&action==='messages'?'Đã gửi phản hồi.':csDetail()&&action==='resolve'?'Đã gửi kết quả và đánh dấu đã giải quyết.':'Đã lưu thay đổi.';notice(done);showToast(done,'success');if(csDetail())confirmDone(done,action);}else notice('Đã lưu thay đổi, nhưng chưa tải được bản mới. Vui lòng tải lại dữ liệu trước khi tiếp tục.',true);
     }catch(error){fail(error);const dialogError=form.closest('dialog')?.querySelector('.support-dialog-error');if(dialogError){dialogError.textContent=error.message;dialogError.focus();}if(csDetail()&&action==='messages'){$('csReplyNotice').textContent=error.message;$('csReplyNotice').focus();}}
     finally{busy=false;controls.forEach(([control,disabled])=>{if(control.isConnected)control.disabled=disabled;});if(submit?.isConnected)submit.textContent=submitText;form.setAttribute('aria-busy','false');}
+  }
+  /**
+   * Dòng xác nhận giữ lại trên trang (2026-11-13): thông báo nổi tự tắt sau vài giây nên dễ bị bỏ lỡ.
+   * Gửi tin / ghi nhận giải quyết: hiện trên ô soạn. Quản lý gửi kết quả: hiện đầu cột phải.
+   */
+  function confirmDone(message,action) {
+    document.getElementById('csDoneBanner')?.remove();
+    const banner=element('p',undefined,'cs-done-banner');banner.id='csDoneBanner';banner.setAttribute('role','status');
+    const time=new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+    banner.append(icon('check_circle'),document.createTextNode(`${message.replace(/\.$/,'')} lúc ${time}.`));
+    const sidebar=document.querySelector('.cs-detail-sidebar');
+    if(['messages','resolve'].includes(action)||!sidebar)$('csComposer')?.before(banner);else sidebar.prepend(banner);
   }
   const initials=name=>String(name||'?').trim().split(/\s+/).slice(-2).map(word=>word[0]).join('').toLocaleUpperCase('vi-VN');
   /**
    * Quản lý bàn giao tay yêu cầu của nhân viên đã nghỉ/bị khóa: chọn người nhận dạng thẻ (đang trong ca, số việc đang giữ),
    * kèm ghi chú bàn giao để người nhận nắm bối cảnh. Tin nhắn và lịch sử giữ nguyên.
    */
-  async function handoverCard() {
-    const card=element('section',undefined,'support-card handover-card');
-    const head=element('div',undefined,'handover-head');head.append(icon('swap_horiz','handover-icon'));
-    const title=element('div');title.append(element('h3','Bàn giao yêu cầu'),element('p','Nhân viên phụ trách đã nghỉ hoặc bị khóa tài khoản. Chọn người phù hợp để tiếp tục xử lý — trao đổi và lịch sử được giữ nguyên.'));
-    head.append(title);card.append(head);
-    const from=element('div',undefined,'handover-from');const fromAvatar=element('span',initials(ticket.assigneeDisplayName),'handover-avatar is-off');
-    const fromText=element('div');fromText.append(element('small','Đang phụ trách'),element('strong',ticket.assigneeDisplayName||'Không rõ'));
-    from.append(fromAvatar,fromText,element('span','Không còn hoạt động','handover-tag'));card.append(from);
-    const form=element('form',undefined,'support-form handover-form');form.dataset.action='assignment';
-    const people=element('fieldset',undefined,'handover-people');people.append(element('legend','Chọn người tiếp nhận'));
-    let list=[];try{list=await api('/handover-candidates');}catch(error){people.append(element('p',error.message,'handover-empty'));}
-    list=list.filter(p=>p.userId!==ticket.assigneeId);
-    if(!list.length&&!people.querySelector('.handover-empty'))people.append(element('p','Chưa có nhân viên hỗ trợ nào đang hoạt động để nhận.','handover-empty'));
-    const submit=element('button','Chọn người tiếp nhận','primary handover-submit');submit.type='submit';submit.disabled=true;
-    list.forEach(person=>{
-      const option=element('label',undefined,'handover-person');const radio=element('input');radio.type='radio';radio.name='assigneeId';radio.value=person.userId;
-      const text=element('span',undefined,'handover-person-text');text.append(element('strong',person.displayName));
-      const meta=element('span',undefined,'handover-person-meta');
-      meta.append(element('span',person.onShift?'Đang trong ca':'Ngoài ca',person.onShift?'handover-chip is-on':'handover-chip'));
-      const full=person.activeTickets>=person.maxActive;meta.append(element('span',`${person.activeTickets}/${person.maxActive} yêu cầu đang xử lý`,full?'handover-load is-full':'handover-load'));
-      text.append(meta);option.append(radio,element('span',initials(person.displayName),'handover-avatar'),text);
-      radio.onchange=()=>{people.querySelectorAll('.handover-person').forEach(item=>item.classList.toggle('is-selected',item===option));submit.disabled=false;submit.textContent='Bàn giao cho '+person.displayName;};
-      people.append(option);
-    });
-    form.append(people);
-    const note=element('label',undefined,'handover-note');note.append(element('span','Ghi chú bàn giao (không bắt buộc)'));
-    const textarea=element('textarea');textarea.name='reason';textarea.rows=3;textarea.maxLength=1000;textarea.placeholder='Ví dụ: Khách đang chờ phản hồi về hoàn tiền, đã hẹn trả lời trước 17:00.';note.append(textarea);
-    form.append(note,submit);
-    form.onsubmit=event=>{event.preventDefault();const chosen=form.elements.assigneeId?.value;if(!chosen)return;
-      try{const reason=textarea.value.trim();perform('assignment',{assigneeId:chosen,reason:reason?validText(reason,1000):null},form);}catch(error){fail(error);}};
-    card.append(form);return card;
-  }
   function commandForm(action,title,buttonLabel,fields=[],choices={}) {
     const card=element('section',undefined,'support-card support-action-card'),form=element('form',undefined,'support-form');form.dataset.action=action;card.append(element('h3',title));
-    fields.forEach(([name,label,kind])=>field(form,label,name,kind,choices[name]));const submit=element('button',buttonLabel,['claim','return'].includes(action)?'primary':undefined);submit.type='submit';form.append(submit);card.append(form);
+    fields.forEach(([name,label,kind])=>field(form,label,name,kind,choices[name]));const submit=element('button',buttonLabel,['claim','return','decisionReturn'].includes(action)?'primary':undefined);submit.type='submit';form.append(submit);card.append(form);
     form.onsubmit=event=>{event.preventDefault();try{const payload={};fields.forEach(([name,,kind])=>payload[name]=kind==='textarea'?validText(form.elements[name].value,10000):form.elements[name].value);perform(action,payload,form);}catch(error){fail(error);}};
     return card;
   }
   async function renderActions() {
     $('replyArea').replaceChildren();$('ticketActions').replaceChildren();$('internalActions').replaceChildren();const actions=ticket.allowedActions;
-    if(csDetail()){$('csInformationControls').replaceChildren();$('csResolveBody').replaceChildren();}
-    if(actions.includes('message')&&csDetail()){$('replyArea').append(createCsReplyForm((form,files)=>{try{perform('messages',{message:validText(form.elements.message.value,10000)},form,true,files);}catch(error){$('csReplyNotice').textContent=error.message;$('csReplyNotice').focus();}}));}
+    if(csDetail())$('csInformationControls').replaceChildren();
+    if(actions.includes('claim')&&csDetail()){
+      const card=commandForm('claim','Yêu cầu chưa có người nhận','Nhận xử lý');card.classList.add('cs-claim-card');
+      card.querySelector('h3').after(element('p','Bấm “Nhận xử lý” để người gửi biết yêu cầu đã được tiếp nhận. Trả lời luôn cũng được tính là đã nhận.','support-card-hint'));
+      $('replyArea').append(card);}
+    if(actions.includes('message')&&csDetail()){
+      // Đánh dấu đã giải quyết: dùng nội dung đang viết làm kết quả; để trống thì gửi câu mặc định.
+      const DEFAULT_RESOLUTION='Yêu cầu của bạn đã được xử lý xong. Vui lòng kiểm tra lại và bấm xác nhận để đóng yêu cầu. Nếu vẫn còn vấn đề, bạn có thể trả lời ngay trong yêu cầu này.';
+      const resolve=actions.includes('resolve')?form=>{try{const typed=form.elements.message.value.trim(),text=typed?validText(typed,10000):DEFAULT_RESOLUTION;
+        if(!confirm(typed?'Đánh dấu đã giải quyết và gửi nội dung đang viết cho người gửi? Người gửi sẽ được mời xác nhận đóng yêu cầu.':'Đánh dấu đã giải quyết? Người gửi sẽ nhận câu báo: “'+DEFAULT_RESOLUTION+'”'))return;
+        perform('resolve',{resolutionText:text},form);}catch(error){$('csReplyNotice').textContent=error.message;$('csReplyNotice').focus();}}:null;
+      const replyForm=createCsReplyForm((form,files)=>{try{perform('messages',{message:validText(form.elements.message.value,10000)},form,true,files);}catch(error){$('csReplyNotice').textContent=error.message;$('csReplyNotice').focus();}},resolve?{button:'Gửi',resolve}:{});
+      // Quản lý vừa trả kết quả: điền sẵn nội dung quyết định (một lần) để CS sửa lại rồi gửi cho người gửi.
+      const decision=!ticket.escalation?.pending&&ticket.escalation?.decisionText,key=decision?ticket.escalation.decidedAt||decision:null;
+      if(decision&&resolve&&prefilledDecision!==key){prefilledDecision=key;replyForm.elements.message.value=decision;const hint=element('p','Đã điền sẵn kết quả từ Quản lý. Sửa lại cho phù hợp rồi bấm “Đánh dấu đã giải quyết”.','cs-prefill-hint');replyForm.prepend(hint);}
+      $('replyArea').append(replyForm);}
     else if(actions.includes('message')){
       // Ô trả lời giống khung chat: gõ nội dung, bấm "Đính kèm" để chọn ảnh/PDF, bấm "Gửi".
       const form=createCsReplyForm((replyForm,files)=>{try{perform('messages',{message:validText(replyForm.elements.message.value,10000)},replyForm,true,files);}catch(error){$('csReplyNotice').textContent=error.message;$('csReplyNotice').focus();}},
         {label:account.canCreate?'Trả lời nhân viên hỗ trợ':'Phản hồi',help:'',button:'Gửi',placeholder:account.canCreate?'Nhập câu trả lời hoặc thông tin bổ sung…':'Nhập phản hồi…'});
       form.classList.add('support-reply');$('replyArea').append(form);}
-    else $('replyArea').append(element('p',ticket.status==='CLOSED'?(account.canCreate?'Yêu cầu đã đóng, không thể thêm trao đổi. Nếu vẫn còn vấn đề, vui lòng tạo yêu cầu mới.':'Yêu cầu đã đóng, không thể thêm trao đổi.'):account.canDecide&&ticket.needsHandover?'Nhân viên phụ trách đã nghỉ. Mở tab “Xử lý nội bộ” để chọn người tiếp nhận.':account.canDecide?'Mở tab “Xử lý nội bộ” để ghi quyết định và trả kết quả cho nhân viên.':ticket.status==='OPEN'&&!ticket.assigneeId?'Yêu cầu đang chờ hệ thống tự giao cho nhân viên đang trong ca và còn chỗ nhận việc.':'Chỉ người phụ trách hiện tại được gửi phản hồi.'));
+    else $('replyArea').append(element('p',ticket.status==='CLOSED'?(account.canCreate?'Yêu cầu đã đóng, không thể thêm trao đổi. Nếu vẫn còn vấn đề, vui lòng tạo yêu cầu mới.':'Yêu cầu đã đóng, không thể thêm trao đổi.'):ticket.status==='OPEN'&&!ticket.assigneeId?'Yêu cầu đang chờ nhân viên hỗ trợ nhận xử lý.':'Chỉ người phụ trách hiện tại được gửi phản hồi.'));
     const target=$('internalActions'),publicActions=$('ticketActions');
     const informationActions=csDetail()?$('csInformationControls'):target;
-    // Người phụ trách đã bị khóa/đổi vai trò: hệ thống không tự bàn giao, Quản lý chọn người tiếp nhận.
-    if(account.canDecide&&ticket.needsHandover&&actions.includes('assignment'))informationActions.append(await handoverCard());
-    else if(actions.includes('assignment')){const people=await api('/assignees');informationActions.append(commandForm('assignment','Đổi người phụ trách','Chuyển nhân viên',[['assigneeId','Nhân viên tiếp nhận','select']],{assigneeId:Object.fromEntries(people.filter(p=>p.userId!==ticket.assigneeId).map(p=>[p.userId,p.displayName]))}));}
     if(actions.includes('priority')){const card=commandForm('priority','Mức ưu tiên','Cập nhật ưu tiên',[['priority','Ưu tiên','select']],{priority:priorities});card.querySelector('select').value=ticket.priority;informationActions.append(card);}
-    if(actions.includes('resolve'))publicActions.append(commandForm('resolve','Kết quả xử lý','Gửi kết quả hỗ trợ',[['resolutionText','Phản hồi tới người dùng','textarea']]));
     if(actions.includes('close')){const card=commandForm('close','Xác nhận hoàn tất','Xác nhận đóng yêu cầu');card.prepend(element('p','Nếu cần hỗ trợ thêm, bạn có thể gửi bổ sung để mở lại yêu cầu.'));publicActions.append(card);}
     if(actions.includes('escalate')||actions.includes('recipient')){const people=await api('/managers'),choices={managerId:Object.fromEntries(people.filter(p=>p.userId!==ticket.recipientId||actions.includes('escalate')).map(p=>[p.userId,p.displayName]))};
       if(actions.includes('escalate'))target.append(commandForm('escalate','Chuyển yêu cầu tới Quản lý','Chuyển yêu cầu',[['managerId','Quản lý tiếp nhận','select'],['reason','Lý do chuyển cấp (nội bộ)','textarea'],['handlingSummary','Tóm tắt đã xử lý (nội bộ)','textarea']],choices));
       if(actions.includes('recipient'))target.append(commandForm('recipient','Đổi quản lý tiếp nhận','Đổi quản lý',[['managerId','Quản lý mới','select'],['reason','Lý do đổi người nhận (nội bộ)','textarea']],choices));}
-    if(actions.includes('decision')){const card=commandForm('decision','Quyết định nội bộ','Lưu quyết định',[['decisionText','Kết quả gửi cho Nhân viên hỗ trợ','textarea']]);card.querySelector('h3').after(element('p','CS dùng nội dung này để trả lời người gửi. Lưu xong bấm “Trả kết quả cho nhân viên”.','support-card-hint'));const box=card.querySelector('textarea');box.value=ticket.escalation?.decisionText||'';box.placeholder='Ví dụ: Đồng ý hoàn tiền buổi học thử, CS báo người dùng chờ 3–5 ngày làm việc.';target.append(card);}
-    if(actions.includes('return')&&ticket.escalation?.decisionText)target.append(commandForm('return','Trả kết quả cho nhân viên','Gửi kết quả cho Nhân viên hỗ trợ'));
-    // Quản lý thấy yêu cầu là lỗi hệ thống thì báo sự cố kỹ thuật cho Admin (FE-11).
-    if(account.canDecide&&isDetail)target.append(incidentReportCard(ticket));
+    if(actions.includes('decision')){
+      // Quản lý: một thẻ duy nhất, gửi là CS nhận lại yêu cầu kèm kết quả để trả lời người gửi.
+      const card=commandForm('decisionReturn','Kết quả gửi cho nhân viên hỗ trợ','Gửi kết quả cho nhân viên hỗ trợ',[['decisionText','Kết quả xử lý','textarea']]);
+      card.querySelector('h3').after(element('p','Nhân viên hỗ trợ dùng nội dung này để trả lời người gửi. Gửi xong, yêu cầu quay về cho nhân viên hỗ trợ.','support-card-hint'));
+      const box=card.querySelector('textarea');box.value=ticket.escalation?.decisionText||'';box.placeholder='Ví dụ: Đồng ý hoàn tiền buổi học thử, CS báo người dùng chờ 3–5 ngày làm việc.';target.append(card);}
     $('publicLayout').classList.toggle('support-detail-single',!publicActions.childElementCount);
     $('internalLayout').classList.toggle('support-detail-single',!target.childElementCount);
-    if(csDetail())finishCsActions(ticket);
-    // Quản lý mở yêu cầu cần bàn giao (từ thông báo): đưa thẳng tới form chọn người tiếp nhận, chỉ lần đầu.
-    if(account.canDecide&&ticket.needsHandover&&!handoverTabOpened){handoverTabOpened=true;selectDetailTab('internal');}
+    if(csDetail()){finishCsActions(ticket,managerDetail());renderComposer();}
+  }
+  /** Lưu ghi chú nội bộ (không cần số phiên bản: ghi chú không đổi trạng thái yêu cầu). */
+  async function saveNote(form,errorBox) {
+    if(busy)return;let text;
+    try{text=validText(form.elements.note.value,5000);}catch(error){errorBox.textContent=error.message;errorBox.focus();return;}
+    busy=true;const submit=form.querySelector('[type=submit]'),label=submit.textContent;submit.disabled=true;submit.textContent='Đang lưu…';errorBox.textContent='';
+    try{const result=await api(`/${id}/notes`,{method:'POST',body:{note:text}});notes=result.items;notesError='';form.reset();
+      renderCachedThread();showToast('Đã lưu ghi chú nội bộ.','success');
+    }catch(error){if(await accountChanged(error))return;errorBox.textContent=error.message;errorBox.focus();}
+    finally{busy=false;if(submit.isConnected){submit.disabled=false;submit.textContent=label;}}
+  }
+  /** CS: một ô soạn hai chế độ. Không được trả lời (không phụ trách, đã đóng…) thì vẫn ghi chú được, trừ khi yêu cầu đã đóng. */
+  function renderComposer() {
+    const canReply=ticket.allowedActions.includes('message'),canNote=ticket.status!=='CLOSED'&&!notesError,tabs=$('csComposerTabs');
+    $('noteArea').replaceChildren();if(canNote)$('noteArea').append(createNoteForm(saveNote));
+    if(managerDetail()){
+      const composer=$('csComposer'),form=$('noteArea').querySelector('form');composer.hidden=!canNote;$('replyArea').hidden=true;tabs.hidden=true;
+      if(!form)return;const draft=form.elements.note.value;
+      const toggle=element('button',undefined,'cs-note-toggle');toggle.type='button';toggle.append(icon('add'),document.createTextNode('Thêm ghi chú nội bộ'));
+      const open=show=>{form.hidden=!show;toggle.hidden=show;composer.dataset.mode=show?'note':'';if(show)form.elements.note.focus();};
+      toggle.onclick=()=>open(true);
+      const cancel=element('button','Hủy');cancel.type='button';cancel.onclick=()=>{form.reset();open(false);};form.querySelector('.cs-reply-footer').prepend(cancel);
+      $('noteArea').prepend(toggle);$('noteArea').hidden=false;open(Boolean(draft));return;
+    }
+    const modes=[...(canReply?[['reply','Trả lời người gửi','reply']]:[]),...(canNote?[['note','Ghi chú nội bộ','lock']]:[])];
+    if(!modes.some(([mode])=>mode===composerMode))composerMode=modes[0]?.[0]||'';
+    // Chỉ một chế độ thì không cần thanh tab.
+    tabs.replaceChildren();tabs.hidden=modes.length<2;
+    modes.forEach(([mode,label,symbol])=>{const button=element('button',undefined,'cs-composer-tab');button.type='button';button.dataset.mode=mode;button.append(icon(symbol),document.createTextNode(label));
+      button.onclick=()=>{composerMode=mode;showComposer();(mode==='note'?$('csNoteText'):$('csReplyText'))?.focus();};tabs.append(button);});
+    showComposer();
+    function showComposer(){
+      tabs.querySelectorAll('button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.mode===composerMode)));
+      $('csComposer').dataset.mode=composerMode;
+      // Không trả lời được: vẫn hiện lời giải thích phía trên ô ghi chú.
+      $('replyArea').hidden=canReply?composerMode!=='reply':false;$('noteArea').hidden=composerMode!=='note';
+    }
   }
   function renderInternalCurrent() {
     if(account.canCreate)return;
     historyGeneration++;historyLoaded=false;historyLoading=false;$('historyList').replaceChildren();$('historyPaging').replaceChildren();$('historyNotice').textContent='Mở lịch sử để xem các bước trước.';
-    // Tình trạng xử lý: tiêu đề + nhãn trạng thái, người phụ trách/quản lý dạng thẻ nhỏ, nội dung chuyển cấp chia từng ô.
+    // Thẻ chuyển cấp ở cột phải (chỉ khi yêu cầu đã từng chuyển Quản lý). Người phụ trách nằm ở thẻ "Phân công".
+    if(!ticket.escalation){$('internalArea').replaceChildren();return;}
     const section=element('section',undefined,'support-card support-internal support-current');
-    const head=element('div',undefined,'support-status-head');head.append(element('h2','Tình trạng xử lý'),badge(ticket.statusLabel,ticket.status));section.append(head);
-    const people=element('div',undefined,'support-people');
-    const person=(symbol,label,value)=>{const item=element('div',undefined,'support-person');item.append(icon(symbol));const text=element('div');text.append(element('span',label),element('strong',value));item.append(text);return item;};
-    people.append(person('support_agent','Nhân viên phụ trách',ticket.assigneeDisplayName||'Chưa phân công'));
-    if(ticket.recipientDisplayName)people.append(person('manage_accounts','Quản lý tiếp nhận',ticket.recipientDisplayName));
-    section.append(people);
-    if(account.canDecide&&ticket.escalation?.pending){const next=element('div',undefined,'support-next-step');next.append(icon('assignment_late'));const text=element('div');text.append(element('strong','Việc của bạn'),element('p','Ghi “Quyết định nội bộ” rồi bấm “Trả kết quả cho nhân viên” để CS trả lời người gửi. Báo sự cố cho Admin không tự trả kết quả hay đóng yêu cầu này.'));next.append(text);section.append(next);}
+    const head=element('div',undefined,'support-status-head');head.append(element('h2',managerDetail()?'Yêu cầu chuyển lên':'Chuyển Quản lý'));section.append(head);
+    if(account.canDecide&&ticket.escalation.pending){const next=element('div',undefined,'support-next-step');next.append(icon('assignment_late'));const text=element('div');text.append(element('strong','Việc của bạn'),element('p','Viết kết quả rồi bấm “Gửi kết quả cho nhân viên hỗ trợ” để CS trả lời người gửi.'));next.append(text);section.append(next);}
     if(ticket.escalation){const e=ticket.escalation;section.append(element('h3',e.pending?'Lần chuyển cấp hiện tại':'Kết quả chuyển cấp gần nhất','support-section-title'));
       const facts=element('div',undefined,'support-facts');
       [['Lý do chuyển cấp',e.reason],['Tóm tắt CS đã xử lý',e.handlingSummary],['Quyết định của quản lý',e.decisionText]].forEach(([label,value])=>{const fact=element('div',undefined,'support-fact');fact.append(element('span',label),value?element('p',value,'support-preserve'):element('p','Chưa có quyết định cho người nhận hiện tại.','support-fact-empty'));facts.append(fact);});
       section.append(facts);}
-    else section.append(element('p','Yêu cầu chưa được chuyển cấp. Các bước đã thực hiện nằm trong lịch sử xử lý.','support-fact-empty'));
     $('internalArea').replaceChildren(section);
   }
   async function loadHistory(next=0) {

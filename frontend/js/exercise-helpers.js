@@ -11,7 +11,7 @@ export const QUESTION_TYPES = [
   { value: 'MULTI_CHOICE', label: 'Trắc nghiệm nhiều đáp án', hint: 'Chọn tất cả đáp án đúng' },
   { value: 'TRUE_FALSE', label: 'Đúng / Sai', hint: 'Chọn Đúng hoặc Sai' },
   { value: 'FILL_BLANK', label: 'Điền khuyết', hint: 'Học viên gõ chữ vào chỗ trống. Đáp án không bắt buộc: ô có đáp án máy chấm ngay, còn lại AI gợi ý điểm và bạn duyệt' },
-  { value: 'WORD_BANK', label: 'Điền từ có sẵn', hint: 'Học viên kéo hoặc bấm chọn từ có sẵn (từ đúng + từ gây nhiễu) vào chỗ trống' },
+  { value: 'WORD_BANK', label: 'Điền từ có sẵn', hint: 'Kiểu đề JLPT: mỗi phương án là bộ từ cho đủ các chỗ trống, cách nhau bằng / (vd は/で/を); học viên chọn 1 phương án' },
   { value: 'MATCHING', label: 'Nối cột', hint: 'Chọn vế phải tương ứng với từng vế trái' },
   { value: 'ORDERING', label: 'Sắp xếp thứ tự', hint: 'Sắp xếp các mục theo thứ tự đúng' },
   { value: 'WRITTEN', label: 'Tự luận', hint: 'Học viên viết câu trả lời. Không cần đáp án: AI gợi ý điểm và nhận xét, bạn duyệt lại' }
@@ -93,7 +93,7 @@ export function defaultQuestion(type) {
     case 'MULTI_CHOICE': return { ...base, data: { options: ['', '', ''], correct: [] } };
     case 'TRUE_FALSE': return { ...base, data: { correct: null } };
     case 'FILL_BLANK': return { ...base, data: { text: '', answers: [] } };
-    case 'WORD_BANK': return { ...base, data: { text: '', answers: [], distractors: [] } };
+    case 'WORD_BANK': return { ...base, data: { text: '', options: ['', ''], correct: null } };
     case 'MATCHING': return { ...base, data: { pairs: [{ left: '', right: '' }, { left: '', right: '' }] } };
     case 'ORDERING': return { ...base, data: { items: ['', '', ''] } };
     case 'WRITTEN': return { ...base, data: {} };
@@ -107,6 +107,28 @@ export function defaultQuestion(type) {
  */
 export function isTutorGraded(q) {
   return q?.type === 'WRITTEN' || q?.type === 'FILL_BLANK';
+}
+
+/** Điền từ có sẵn kiểu mới: chọn 1 phương án (bộ từ cho đủ các chỗ trống). Dạng cũ có answers + distractors. */
+export function isOptionSet(data) {
+  return Array.isArray(data?.options);
+}
+
+/** "は / で /を" → ['は', 'で', 'を'] */
+export function optionWords(option) {
+  return String(option ?? '').split('/').map((w) => w.trim());
+}
+
+/** Phương án hiển thị: "は / で / を" */
+export function formatOption(option) {
+  return optionWords(option).join(' / ');
+}
+
+/** Dạng cũ (bộ từ để kéo) → dạng mới: các từ đúng thành phương án A (đúng), gia sư thêm phương án khác. */
+export function upgradeWordBank(data) {
+  if (isOptionSet(data)) return data;
+  const first = (data?.answers || []).map((a) => String(a ?? '').trim()).join('/');
+  return { text: data?.text || '', options: [first, ''], correct: first ? 0 : null };
 }
 
 /** Câu điền khuyết có chỗ trống chưa nhập đáp án (chỗ đó luôn chờ chấm). */
@@ -164,9 +186,17 @@ function validateQuestionContent(q, { autoMode = true } = {}) {
     case 'WORD_BANK': {
       const n = countBlanks(d.text);
       if (!n) return 'câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).';
-      for (let i = 0; i < n; i += 1) if (blank((d.answers || [])[i])) return 'có chỗ trống chưa có từ đúng.';
-      const words = n + (d.distractors || []).filter((w) => !blank(w)).length;
-      if (words < 2) return 'cần ít nhất 2 từ để kéo thả (thêm từ gây nhiễu).';
+      const options = d.options || [];
+      if (options.length < 2) return 'cần ít nhất 2 phương án để chọn.';
+      for (let i = 0; i < options.length; i += 1) {
+        const words = optionWords(options[i]);
+        if (words.length !== n || words.some(blank)) {
+          return `phương án ${String.fromCharCode(65 + i)} phải có đủ ${n} từ${n > 1 ? ', cách nhau bằng dấu /' : ''}.`;
+        }
+      }
+      const keys = options.map((o) => optionWords(o).join('/').toLowerCase());
+      if (new Set(keys).size !== keys.length) return 'có phương án bị trùng nhau.';
+      if (!(Number.isInteger(d.correct) && d.correct >= 0 && d.correct < options.length)) return 'chưa chọn phương án đúng.';
       return null;
     }
     case 'MATCHING': {
@@ -198,9 +228,11 @@ export function questionPayload(q) {
     data.answers = Array.from({ length: n }, (_, i) => ((d.answers || [])[i] || []).map((a) => String(a).trim()).filter(Boolean));
   }
   if (q.type === 'WORD_BANK') {
-    const n = countBlanks(d.text);
-    data.answers = Array.from({ length: n }, (_, i) => String((d.answers || [])[i] || '').trim());
-    data.distractors = (d.distractors || []).map((s) => String(s).trim()).filter(Boolean);
+    const up = upgradeWordBank(d);
+    Object.keys(data).forEach((k) => delete data[k]);
+    data.text = up.text;
+    data.options = (up.options || []).map((o) => (optionWords(o).every((w) => !w) ? '' : optionWords(o).join('/')));
+    data.correct = Number.isInteger(up.correct) ? up.correct : null;
   }
   if (q.type === 'WRITTEN') {
     // Tự luận không có đáp án / bài mẫu: bỏ dữ liệu cũ nếu có
@@ -248,7 +280,9 @@ export function previewView(q) {
     case 'SINGLE_CHOICE':
     case 'MULTI_CHOICE': return { options: d.options || [] };
     case 'FILL_BLANK': return { segments: splitSegments(d.text) };
-    case 'WORD_BANK': return { segments: splitSegments(d.text), bank: shuffle([...(d.answers || []), ...(d.distractors || [])].filter(Boolean)) };
+    case 'WORD_BANK': return isOptionSet(d)
+      ? { segments: splitSegments(d.text), options: d.options || [] }
+      : { segments: splitSegments(d.text), bank: shuffle([...(d.answers || []), ...(d.distractors || [])].filter(Boolean)) };
     case 'MATCHING': return { lefts: (d.pairs || []).map((p) => p.left), rights: shuffle((d.pairs || []).map((p) => p.right)) };
     case 'ORDERING': return { items: shuffle(d.items || []) };
     default: return {};
@@ -263,8 +297,8 @@ export function isAnswered(type, response) {
     case 'SINGLE_CHOICE': return Number.isInteger(response.choice);
     case 'MULTI_CHOICE': return Array.isArray(response.choices) && response.choices.length > 0;
     case 'TRUE_FALSE': return typeof response.value === 'boolean';
-    case 'FILL_BLANK':
-    case 'WORD_BANK': return filled(response.blanks);
+    case 'FILL_BLANK': return filled(response.blanks);
+    case 'WORD_BANK': return Number.isInteger(response.choice) || filled(response.blanks);
     case 'MATCHING': return filled(response.matches);
     case 'ORDERING': return Array.isArray(response.order) && response.order.length > 0;
     case 'WRITTEN': return String(response.text || '').trim() !== '';
@@ -280,8 +314,10 @@ export function describeResponse(type, view, response) {
     case 'SINGLE_CHOICE': return options[response.choice] ?? '';
     case 'MULTI_CHOICE': return response.choices.map((i) => options[i]).filter((x) => x !== undefined).join(' · ');
     case 'TRUE_FALSE': return response.value ? 'Đúng' : 'Sai';
-    case 'FILL_BLANK':
-    case 'WORD_BANK': return response.blanks.map((b, i) => `(${i + 1}) ${b}`).join('   ');
+    case 'FILL_BLANK': return response.blanks.map((b, i) => `(${i + 1}) ${b}`).join('   ');
+    case 'WORD_BANK': return Number.isInteger(response.choice)
+      ? formatOption(options[response.choice] ?? '')
+      : response.blanks.map((b, i) => `(${i + 1}) ${b}`).join('   ');
     case 'MATCHING': return (view?.lefts || []).map((l, i) => `${l} → ${response.matches[i] || '…'}`).join('   ');
     case 'ORDERING': return response.order.join(' → ');
     case 'WRITTEN': return response.text;
@@ -300,7 +336,9 @@ export function describeCorrect(type, view, correct) {
     case 'FILL_BLANK':
       // Chỉ hiện các chỗ trống gia sư có nhập đáp án
       return (correct.answers || []).map((a, i) => ((a || []).length ? `(${i + 1}) ${a.join(' / ')}` : '')).filter(Boolean).join('   ');
-    case 'WORD_BANK': return (correct.answers || []).map((a, i) => `(${i + 1}) ${a}`).join('   ');
+    case 'WORD_BANK': return Array.isArray(correct.options)
+      ? formatOption(correct.options[correct.correct] ?? '')
+      : (correct.answers || []).map((a, i) => `(${i + 1}) ${a}`).join('   ');
     case 'MATCHING': return (correct.pairs || []).map((p) => `${p.left} → ${p.right}`).join('   ');
     case 'ORDERING': return (correct.items || []).join(' → ');
     case 'WRITTEN': return (correct.accepted || []).join(' / ');

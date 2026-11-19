@@ -192,9 +192,14 @@ public class ExerciseImportService {
                     prompt = null;
                 }
                 case WORD_BANK -> {
+                    // Mỗi phương án là bộ từ cho đủ các chỗ trống, cách nhau bằng / ; các phương án cách nhau bằng |
                     data.put("text", c[1]);
-                    data.set("answers", array(split(c[3], "|")));
-                    data.set("distractors", array(split(c[2], "|")));
+                    List<String> options = split(c[2], "|");
+                    data.set("options", array(options));
+                    Integer idx = optionIndex(options, c[3]);
+                    if (idx == null) idx = optionIndex(options, c[3] == null ? "" : String.join("/", ExerciseQuestionEngine.optionWords(c[3])));
+                    if (idx == null) return fail(rowNumber, label + ": phương án đúng \"" + c[3] + "\" không có trong cột C (ghi đúng nội dung phương án hoặc số thứ tự 1, 2, 3…).", type);
+                    data.put("correct", idx);
                     prompt = null;
                 }
                 case MATCHING -> {
@@ -263,7 +268,7 @@ public class ExerciseImportService {
                     {"Trắc nghiệm nhiều đáp án", "Chọn các từ là động từ", "食べる | 赤い | 行く | 本", "食べる | 行く", "2"},
                     {"Đúng / Sai", "「右」 nghĩa là bên phải.", "", "Đúng", "1"},
                     {"Điền khuyết", "毎朝 ___ を飲みます。", "", "牛乳;ぎゅうにゅう", "2"},
-                    {"Điền từ có sẵn", "私は ___ で ___ を買いました。", "学校 | 本棚", "駅 | 切符", "2"},
+                    {"Điền từ có sẵn", "私は ___ 学校 ___ 日本語 ___ 勉強します。", "は/で/を | が/に/を | は/を/で | を/で/が", "は/で/を", "2"},
                     {"Nối cột", "Nối Kanji với nghĩa", "犬 = con chó | 猫 = con mèo | 鳥 = con chim", "", "3"},
                     {"Sắp xếp thứ tự", "Sắp xếp thành câu đúng", "私は | 毎日 | 日本語を | 勉強します", "", "2"},
                     {"Tự luận", "Viết 3 câu có dùng Kanji 会 và 社.", "", "", "5"},
@@ -293,8 +298,9 @@ public class ExerciseImportService {
                     "• Điền khuyết: cột B ghi câu có chỗ trống ___ (3 dấu gạch dưới). Cột D – đáp án KHÔNG bắt buộc:",
                     "  ghi đáp án từng chỗ trống cách nhau bằng |, nhiều cách viết đúng thì cách nhau bằng ; (vd 牛乳;ぎゅうにゅう).",
                     "  Học viên điền khớp đáp án → máy chấm đúng ngay; ô không có đáp án hoặc điền khác → AI gợi ý điểm, gia sư duyệt.",
-                    "• Điền từ có sẵn: cột B câu có ___; cột D từ đúng từng chỗ trống (cách nhau |);",
-                    "  cột C các từ gây nhiễu (cách nhau |). Tổng số từ (từ đúng + từ nhiễu) phải từ 2 trở lên.",
+                    "• Điền từ có sẵn (kiểu đề JLPT): cột B câu có ___; cột C các phương án cách nhau bằng |, mỗi phương án",
+                    "  là bộ từ cho đủ các chỗ trống cách nhau bằng / (vd câu 3 chỗ trống: は/で/を | が/に/を | は/を/で).",
+                    "  Cột D ghi đúng phương án đúng (vd は/で/を) hoặc số thứ tự 1, 2, 3… Cần ít nhất 2 phương án.",
                     "• Nối cột: cột C ghi các cặp \"vế trái = vế phải\" cách nhau bằng |.",
                     "• Sắp xếp thứ tự: cột C ghi các mục THEO ĐÚNG THỨ TỰ, cách nhau bằng | (hệ thống tự xáo trộn khi học viên làm).",
                     "• Tự luận: chỉ cần cột B (đề bài), không có đáp án. Bài nộp được AI gợi ý điểm, gia sư duyệt.",

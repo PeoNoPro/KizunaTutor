@@ -33,9 +33,10 @@ function escapeHtml(text) {
 }
 
 // 3. Phát âm từ vựng tiếng Nhật (VOICEVOX AI & Web Speech API)
-function speakWord(text) {
+async function speakWord(text, btn = null) {
   if (!text) return;
-  voicevoxClient.speak(text);
+  if (btn) return voicevoxClient.speakWithButton(text, btn);
+  return voicevoxClient.speak(text);
 }
 
 // 4. Tải dữ liệu bộ thẻ
@@ -168,9 +169,9 @@ function renderCardsList(filterQuery = '') {
 
   // Gắn sự kiện phát âm
   container.querySelectorAll('[data-action="speak-card"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      speakWord(btn.dataset.text);
+      await voicevoxClient.speakWithButton(btn.dataset.text, btn);
     });
   });
 

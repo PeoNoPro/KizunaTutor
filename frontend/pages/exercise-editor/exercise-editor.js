@@ -52,6 +52,7 @@ import {
   playLimitLabel,
   mountAudioPlayer
 } from '../../js/exercise-audio.js';
+import { IMAGE_ACCEPT, IMAGE_RULES_TEXT, validateImageFile, mountQuestionImage } from '../../js/exercise-image.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(window.location.search);
@@ -155,6 +156,7 @@ async function load() {
     state.locked = s.locked;
     state.questions = (state.detail.questions || []).map((q) => ({
       type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: q.audio || null,
+      image: q.image || null,
       listening: q.listening ? { maxPlays: q.listening.maxPlays ?? null } : null
     }));
     state.questions.filter((q) => q.type === 'WRITTEN').forEach((q) => {
@@ -192,15 +194,20 @@ async function prefillNewExercise() {
       const src = await API.exercises.detail(params.get('fromSpace') || spaceId, copyFrom);
       const s = src.summary;
       const withAudio = (src.questions || []).filter((q) => q.audio).length;
+      const withImage = (src.questions || []).filter((q) => q.image).length;
       state.questions = (src.questions || []).map((q) => ({
-        type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: null,
+        type: q.type, prompt: q.prompt || '', points: Number(q.points), data: q.data || {}, audio: null, image: null,
         listening: q.listening || q.audio ? { maxPlays: q.listening?.maxPlays ?? q.audio?.maxPlays ?? null } : null
       }));
       if (!state.questions.length) state.questions = [defaultQuestion('SINGLE_CHOICE')];
       fillSettings({ summary: { ...s, title: `${s.title} (bản sao)`.slice(0, 150), opensAt: null, closesAt: null }, instructions: src.instructions });
       state.dirty = true;
-      showToast(withAudio
-        ? `Đã sao chép ${state.questions.length} câu. ${withAudio} câu có file nghe: đã đánh dấu "thiếu file nghe", hãy tải lại file nghe cho bản sao.`
+      const notes = [
+        withAudio ? `${withAudio} câu có file nghe: đã đánh dấu "thiếu file nghe", hãy tải lại file nghe` : '',
+        withImage ? `${withImage} câu có ảnh: ảnh không được sao chép, hãy thêm lại ảnh nếu cần` : ''
+      ].filter(Boolean);
+      showToast(notes.length
+        ? `Đã sao chép ${state.questions.length} câu. ${notes.join('; ')}.`
         : `Đã sao chép ${state.questions.length} câu từ "${s.title}". Kiểm tra lại rồi lưu / giao bài.`);
     } catch (err) {
       showToast(`Không sao chép được bài: ${friendlyErrorMessage(err)}`, 'error');
@@ -303,6 +310,7 @@ function renderOutline() {
           <b class="w-6 shrink-0 text-center">${i + 1}</b>
           <span class="material-symbols-outlined text-[18px] text-primary shrink-0" aria-hidden="true">${TYPE_ICONS[q.type] || 'help'}</span>
           <span class="flex-1 min-w-0 truncate">${escapeHtml(questionTypeLabel(q.type))}</span>
+          ${q.image ? '<span class="material-symbols-outlined text-[17px] text-secondary" title="Có ảnh" aria-label="Có ảnh">image</span>' : ''}
           ${q.audio ? '<span class="material-symbols-outlined text-[17px] text-secondary" title="Có file nghe" aria-label="Có file nghe">headphones</span>' : ''}
           ${needsAudio(q) ? '<span class="material-symbols-outlined text-[17px] text-error" title="Câu nghe chưa có file nghe" aria-label="Thiếu file nghe">headset_off</span>' : ''}
           ${incomplete && incomplete !== AUDIO_MISSING_MESSAGE ? '<span class="material-symbols-outlined text-[17px] text-error" title="Chưa hoàn chỉnh" aria-label="Chưa hoàn chỉnh">error</span>' : ''}
@@ -324,6 +332,7 @@ function renderQuestions() {
     : '<li class="kz-card p-8 text-center text-on-surface-variant">Chưa có câu hỏi nào. Chọn một dạng câu ở cột bên trái để bắt đầu soạn.</li>';
   const card = list.querySelector('[data-q]');
   if (card && q?.audio) mountAudioPlayer(card.querySelector('[data-audio-player]'), spaceId, q.audio, { showName: true });
+  if (card && q?.image) mountQuestionImage(card.querySelector('[data-image-view]'), spaceId, q.image, { maxHeight: 280 });
   renderTabLabels();
   updateTotals();
 }
@@ -420,6 +429,65 @@ function audioEditorHtml(q) {
     </div>`;
 }
 
+/** Khối ảnh minh họa của câu: thêm / đổi / bỏ một ảnh. Bài đã có người làm thì chỉ xem. */
+function imageEditorHtml(q) {
+  if (!q.image) {
+    if (state.locked) return '';
+    return `
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="${SMALL_BTN} cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">add_photo_alternate</span>Thêm ảnh
+          <input type="file" data-field="imageFile" accept="${IMAGE_ACCEPT}" class="sr-only">
+        </label>
+        <span class="font-caption text-caption text-on-surface-variant">Ảnh minh họa cho đề (tranh, bảng, chữ viết tay…): ${IMAGE_RULES_TEXT}</span>
+        <span data-image-busy class="font-caption text-caption text-primary hidden">Đang tải ảnh lên…</span>
+      </div>`;
+  }
+  return `
+    <div class="space-y-2">
+      <div data-image-view></div>
+      ${state.locked ? '' : `
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="font-caption text-caption text-on-surface-variant min-w-0 truncate max-w-[260px]" title="${escapeHtml(q.image.fileName || '')}">${escapeHtml(q.image.fileName || 'Ảnh')}</span>
+          <label class="${SMALL_BTN} cursor-pointer">Đổi ảnh
+            <input type="file" data-field="imageFile" accept="${IMAGE_ACCEPT}" class="sr-only">
+          </label>
+          <button type="button" data-act="image-remove" class="${SMALL_BTN} text-error">Bỏ ảnh</button>
+          <span data-image-busy class="font-caption text-caption text-primary hidden">Đang tải ảnh lên…</span>
+        </div>`}
+    </div>`;
+}
+
+/** Gia sư chọn ảnh: kiểm tra định dạng / dung lượng, tải lên máy chủ (R2 hoặc DB), gắn vào câu (lưu khi lưu bài). */
+async function uploadQuestionImage(card, q, input) {
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  const errEl = card.querySelector('[data-error]');
+  const showErr = (msg) => {
+    errEl.textContent = msg;
+    errEl.classList.toggle('hidden', !msg);
+  };
+  const invalid = validateImageFile(file);
+  if (invalid) {
+    showErr(invalid);
+    return;
+  }
+  showErr('');
+  card.querySelector('[data-image-busy]')?.classList.remove('hidden');
+  card.querySelectorAll('input[data-field="imageFile"]').forEach((el) => { el.disabled = true; });
+  try {
+    q.image = await API.exercises.uploadImage(spaceId, file);
+    state.dirty = true;
+    renderQuestions();
+    showToast('Đã tải ảnh lên. Nhớ lưu bài để giữ thay đổi.');
+  } catch (err) {
+    card.querySelector('[data-image-busy]')?.classList.add('hidden');
+    card.querySelectorAll('input[data-field="imageFile"]').forEach((el) => { el.disabled = false; });
+    showErr(err.fieldErrors?.file || friendlyErrorMessage(err));
+  }
+}
+
 /** Gia sư chọn file nghe: kiểm tra định dạng / dung lượng, tải lên Cloudflare R2, gắn vào câu (lưu khi lưu bài). */
 async function uploadQuestionAudio(card, q, input) {
   const file = input.files?.[0];
@@ -484,6 +552,7 @@ function cardHtml(q, i) {
         <span class="font-title-md text-title-md">Câu ${i + 1}</span>
         ${q.audio ? '<span class="kz-badge" style="background:#dce1ff;color:#1d3989"><span class="material-symbols-outlined text-[15px]" aria-hidden="true">headphones</span>Câu nghe</span>' : ''}
         ${needsAudio(q) ? '<span class="kz-badge" style="background:#ffdad6;color:#93000a"><span class="material-symbols-outlined text-[15px]" aria-hidden="true">headset_off</span>Câu nghe · thiếu file</span>' : ''}
+        ${q.image ? '<span class="kz-badge"><span class="material-symbols-outlined text-[15px]" aria-hidden="true">image</span>Có ảnh</span>' : ''}
         <select data-field="type" class="${INPUT} w-auto py-1.5" ${dis()} aria-label="Dạng câu">
           ${QUESTION_TYPES.map((t) => `<option value="${t.value}" ${t.value === q.type ? 'selected' : ''}>${t.label}</option>`).join('')}
         </select>
@@ -503,6 +572,7 @@ function cardHtml(q, i) {
           <label class="kz-label">Đề bài</label>
           <textarea data-field="prompt" rows="2" maxlength="2000" class="${INPUT}" placeholder="Nhập câu hỏi..." ${dis()}>${escapeHtml(q.prompt)}</textarea>
         </div>`}
+      ${imageEditorHtml(q)}
       ${audioEditorHtml(q)}
       <div data-body>${bodyHtml(q, i)}</div>
       <p data-error class="field-error hidden"></p>
@@ -678,6 +748,10 @@ async function onListChange(e) {
     await uploadQuestionAudio(card, q, t);
     return;
   }
+  if (t.dataset.field === 'imageFile') {
+    await uploadQuestionImage(card, q, t);
+    return;
+  }
   state.dirty = true;
   if (t.dataset.field === 'maxPlays') {
     const plays = t.value ? Number(t.value) : null;
@@ -689,8 +763,9 @@ async function onListChange(e) {
       t.value = q.type;
       return;
     }
-    // Giữ file nghe khi đổi dạng câu
-    state.questions[i] = { ...defaultQuestion(t.value), prompt: q.prompt, points: q.points, audio: q.audio || null, listening: q.listening || null };
+    // Giữ file nghe và ảnh khi đổi dạng câu
+    state.questions[i] = { ...defaultQuestion(t.value), prompt: q.prompt, points: q.points, audio: q.audio || null,
+      image: q.image || null, listening: q.listening || null };
     renderQuestions();
   } else if (t.dataset.correct !== undefined) {
     const j = Number(t.dataset.correct);
@@ -739,6 +814,7 @@ function onListClick(e) {
     case 'item-up': if (j > 0) swap(d.items, j, j - 1); break;
     case 'item-down': if (j < d.items.length - 1) swap(d.items, j, j + 1); break;
     case 'audio-remove': q.audio = null; break; // vẫn là câu nghe → hiện cảnh báo thiếu file
+    case 'image-remove': q.image = null; break;
     case 'listening-on': q.listening = { maxPlays: null }; break;
     case 'listening-off': q.listening = null; break;
     default: return;
@@ -1053,13 +1129,13 @@ function applyImport() {
   const p = importState.preview;
   if (!p || !p.valid) return;
   const added = p.rows.filter((r) => r.ok).map((r) => ({
-    type: r.type, prompt: r.prompt || '', points: Number(r.points), data: r.data || {}, audio: null,
+    type: r.type, prompt: r.prompt || '', points: Number(r.points), data: r.data || {}, audio: null, image: null,
     listening: r.listening ? { maxPlays: r.maxPlays ?? null } : null
   }));
   const replace = document.querySelector('input[name="importMode"]:checked')?.value === 'replace';
   // Bài mới chỉ có 1 câu trống mặc định → coi như thay thế
   const first = state.questions[0];
-  const onlyBlank = state.questions.length === 1 && !first.prompt && !first.audio
+  const onlyBlank = state.questions.length === 1 && !first.prompt && !first.audio && !first.image
     && JSON.stringify(first.data) === JSON.stringify(defaultQuestion(first.type).data);
   const start = replace || onlyBlank ? 0 : state.questions.length;
   state.questions = replace || onlyBlank ? added : [...state.questions, ...added];
@@ -1104,12 +1180,14 @@ function openPreview() {
         <span class="font-caption text-caption text-on-surface-variant">${formatScore(q.points)} điểm</span>
       </div>
       ${q.prompt && !['FILL_BLANK', 'WORD_BANK'].includes(q.type) ? `<p class="text-[16px] whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(q.prompt)}</p>` : ''}
+      ${q.image ? `<div data-preview-image="${i}"></div>` : ''}
       ${q.audio ? `<div data-preview-audio="${i}"></div><p class="font-caption text-caption text-on-surface-variant">${escapeHtml(playLimitLabel(q.audio.maxPlays))} (khi học viên làm bài)</p>` : ''}
       ${needsAudio(q) ? '<p class="rounded-lg bg-error-container text-on-error-container px-3 py-2 font-body-sm text-body-sm">Câu nghe chưa có file nghe — cần thêm trước khi giao bài.</p>' : ''}
       <div data-preview="${i}"></div>
     </li>`).join('') || '<li class="kz-item text-center">Chưa có câu hỏi.</li>';
   state.questions.forEach((q, i) => {
     if (q.audio) mountAudioPlayer(list.querySelector(`[data-preview-audio="${i}"]`), spaceId, q.audio);
+    if (q.image) mountQuestionImage(list.querySelector(`[data-preview-image="${i}"]`), spaceId, q.image);
     renderInteractive(list.querySelector(`[data-preview="${i}"]`), { type: q.type, view: previewView(q) }, { onChange: () => {} });
   });
   $('previewTitle').textContent = $('exTitle').value.trim() || 'Bài làm trực tiếp';
@@ -1225,6 +1303,7 @@ function renderAttemptDetail(a) {
             <span class="kz-badge" data-tone="${kinds[i] === 'pending' ? 'paused' : q.correct === false ? 'paused' : 'active'}">${escapeHtml(status)}</span>
           </div>
           ${q.prompt ? `<p class="whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(q.prompt)}</p>` : ''}
+          ${q.image ? '<div data-grade-image></div>' : ''}
           ${q.audio ? '<div data-grade-audio></div>' : ''}
           <p class="[overflow-wrap:anywhere]"><span class="font-semibold">Học viên trả lời:</span> ${escapeHtml(describeResponse(q.type, q.view, q.response))}</p>
           ${describeCorrect(q.type, q.view, q.correctAnswer) ? `<p class="text-emerald-800 [overflow-wrap:anywhere]"><span class="font-semibold">Đáp án:</span> ${escapeHtml(describeCorrect(q.type, q.view, q.correctAnswer))}</p>` : ''}
@@ -1244,6 +1323,7 @@ function renderAttemptDetail(a) {
   box.querySelectorAll('[data-grade]').forEach((li, i) => {
     const q = a.questions[i];
     if (q?.audio) mountAudioPlayer(li.querySelector('[data-grade-audio]'), spaceId, q.audio);
+    if (q?.image) mountQuestionImage(li.querySelector('[data-grade-image]'), spaceId, q.image, { maxHeight: 240 });
   });
   // Lọc chỉ ẩn / hiện thẻ câu (mọi câu vẫn được gửi khi lưu điểm, giữ nguyên điểm đã nhập)
   box.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => {

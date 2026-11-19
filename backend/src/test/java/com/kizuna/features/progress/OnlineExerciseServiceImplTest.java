@@ -13,6 +13,8 @@ import com.kizuna.features.progress.dto.ExerciseDtos.*;
 import com.kizuna.features.progress.entity.*;
 import com.kizuna.features.progress.repository.ExerciseAnswerRepository;
 import com.kizuna.features.progress.repository.ExerciseAudioRepository;
+import com.kizuna.features.progress.repository.ExerciseImageRepository;
+import com.kizuna.features.progress.entity.ExerciseImage;
 import com.kizuna.features.progress.repository.ExerciseAttemptRepository;
 import com.kizuna.features.progress.repository.ExerciseQuestionRepository;
 import com.kizuna.features.progress.repository.OnlineExerciseRepository;
@@ -49,6 +51,8 @@ class OnlineExerciseServiceImplTest {
     private LearningSpaceRepository spaces;
     private ExerciseAudioRepository audios;
     private final List<ExerciseAudio> audioStore = new ArrayList<>();
+    private ExerciseImageRepository images;
+    private final List<ExerciseImage> imageStore = new ArrayList<>();
     private OffsetDateTime now = NOW;
     private OnlineExerciseServiceImpl service;
 
@@ -78,6 +82,15 @@ class OnlineExerciseServiceImplTest {
             List<UUID> ids = new ArrayList<>();
             inv.<Iterable<UUID>>getArgument(0).forEach(ids::add);
             return audioStore.stream().filter(a -> ids.contains(a.getAudioId())).toList();
+        });
+        images = mock(ExerciseImageRepository.class);
+        when(images.findByImageIdInAndSpaceId(any(), any())).thenAnswer(inv -> imageStore.stream()
+                .filter(i -> inv.<Collection<UUID>>getArgument(0).contains(i.getImageId())
+                        && i.getSpaceId().equals(inv.getArgument(1))).toList());
+        when(images.findAllById(any())).thenAnswer(inv -> {
+            List<UUID> ids = new ArrayList<>();
+            inv.<Iterable<UUID>>getArgument(0).forEach(ids::add);
+            return imageStore.stream().filter(i -> ids.contains(i.getImageId())).toList();
         });
         build();
 
@@ -159,7 +172,7 @@ class OnlineExerciseServiceImplTest {
 
     private void build() {
         service = new OnlineExerciseServiceImpl(classrooms, exercises, questions, attempts, answers, spaces,
-                new ExerciseQuestionEngine(mapper), audios, Clock.fixed(now.toInstant(), now.getOffset()));
+                new ExerciseQuestionEngine(mapper), audios, images, Clock.fixed(now.toInstant(), now.getOffset()));
     }
 
     private void clockAt(OffsetDateTime t) {
@@ -441,6 +454,52 @@ class OnlineExerciseServiceImplTest {
     private QuestionInput listening(UUID audioId, Integer maxPlays) {
         return new QuestionInput(ExerciseQuestionType.SINGLE_CHOICE, "Nghe và chọn đáp án đúng", new BigDecimal("2"),
                 json("{'options':['駅','学校','病院'],'correct':1}"), audioId, maxPlays);
+    }
+
+    @Test
+    void questionImageIsShownToTutorAndLearnerAndUnlinkedWhenRemoved() {
+        ExerciseImage img = ExerciseImage.builder().imageId(UUID.randomUUID()).spaceId(space.getSpaceId())
+                .fileName("tranh-1.png").fileSize(2048L).contentType("image/png").build();
+        imageStore.add(img);
+        QuestionInput withImage = new QuestionInput(ExerciseQuestionType.SINGLE_CHOICE, "Nhìn tranh và chọn từ đúng",
+                new BigDecimal("1"), json("{'options':['犬','猫'],'correct':0}"), null, null, null, img.getImageId());
+        ExerciseDetail d = service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, true, List.of(withImage)));
+        UUID ex = d.summary().exerciseId();
+
+        QuestionDetail q = d.questions().get(0);
+        assertThat(q.image().imageId()).isEqualTo(img.getImageId());
+        assertThat(q.image().fileName()).isEqualTo("tranh-1.png");
+        assertThat(q.data().has("image")).isFalse();
+        assertThat(img.getExerciseId()).isEqualTo(ex);
+
+        AttemptView a = service.start(learnerActor, space.getSpaceId(), ex);
+        assertThat(a.questions().get(0).image().imageId()).isEqualTo(img.getImageId());
+        assertThat(a.questions().get(0).view().has("image")).isFalse();
+
+        // Ảnh của lớp khác / không tồn tại bị từ chối
+        QuestionInput unknown = new QuestionInput(ExerciseQuestionType.SINGLE_CHOICE, "x", new BigDecimal("1"),
+                json("{'options':['a','b'],'correct':0}"), null, null, null, UUID.randomUUID());
+        assertThatThrownBy(() -> service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(unknown)))).hasMessageContaining("không tìm thấy ảnh");
+    }
+
+    @Test
+    void savingADraftWithoutTheImageUnlinksItForCleanup() {
+        ExerciseImage img = ExerciseImage.builder().imageId(UUID.randomUUID()).spaceId(space.getSpaceId())
+                .fileName("a.png").fileSize(1L).contentType("image/png").build();
+        imageStore.add(img);
+        QuestionInput withImage = new QuestionInput(ExerciseQuestionType.SINGLE_CHOICE, "Chọn", new BigDecimal("1"),
+                json("{'options':['a','b'],'correct':0}"), null, null, null, img.getImageId());
+        UUID ex = service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(withImage))).summary().exerciseId();
+        assertThat(img.getExerciseId()).isEqualTo(ex);
+
+        QuestionInput without = new QuestionInput(ExerciseQuestionType.SINGLE_CHOICE, "Chọn", new BigDecimal("1"),
+                json("{'options':['a','b'],'correct':0}"));
+        service.update(tutorActor, space.getSpaceId(), ex, request("AUTO", null, 1, true, false, List.of(without)));
+        assertThat(service.detail(tutorActor, space.getSpaceId(), ex).questions().get(0).image()).isNull();
+        assertThat(img.getExerciseId()).isNull();
     }
 
     @Test

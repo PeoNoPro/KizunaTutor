@@ -49,9 +49,26 @@ import {
 } from './tutor-assignments.js';
 import { initAssignmentOverview, showAssignmentOverview, hideAssignmentOverview } from './assignment-overview.js';
 import { createFileList } from '../../js/file-picker.js';
+import { mountAddressPicker } from '../../js/address-picker.js';
+import {
+  normalizeTab,
+  groupByWeek,
+  FILE_KINDS,
+  fileKindIcon,
+  filterMaterials,
+  countMaterialKinds,
+  isRecent,
+  nextSessionOf
+} from '../../js/class-tabs-helpers.js';
+import { ymdLocal } from '../../js/assignment-overview-helpers.js';
 import { mountTutorLayout } from '/components/tutor-layout/tutor-layout.js';
 
 let materialPicker = null;
+/** Khối nhập địa chỉ học trực tiếp của form Tạo lớp và hộp Sửa hình thức học. */
+let createAddress = null;
+let deliveryAddress = null;
+/** Học viên đủ điều kiện tạo lớp (kèm hình thức học trong yêu cầu kết nối) để điền sẵn. */
+let eligibleLearners = [];
 
 /** Thay một tài liệu trong danh sách đang hiển thị (không tải lại cả danh sách). */
 function upsertMaterialLocally(material, { prepend = false } = {}) {
@@ -71,8 +88,42 @@ const state = {
   editingMaterial: null,
   deletingMaterial: null,
   editingSchedule: null,
-  deletingSchedule: null
+  deletingSchedule: null,
+  tab: 'tong-quan',
+  materialFilter: { kind: '', keyword: '' },
+  collapsedGroups: new Set()
 };
+
+// ----------------------------------------------------------------------------
+// Tab của lớp: Tổng quan · Bài tập · Tài liệu (?tab=tong-quan|bai-tap|tai-lieu)
+// ----------------------------------------------------------------------------
+const TAB_PANELS = { 'tong-quan': 'tabOverview', 'bai-tap': 'tabAssignments', 'tai-lieu': 'tabMaterials' };
+
+/** Tab mở đầu: ?tab=, hoặc theo mục thanh bên (Tài liệu học tập / Quản lý bài tập), mặc định Tổng quan. */
+function initialTab() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('tab')) return normalizeTab(params.get('tab'));
+  if (params.get('newFile') || params.get('grade')) return 'bai-tap';
+  const muc = currentMuc();
+  if (muc === 'tai-lieu' || currentView() === 'materials') return 'tai-lieu';
+  if (muc === 'bai-tap' || currentView() === 'assignments') return 'bai-tap';
+  return 'tong-quan';
+}
+
+function setTab(key, { updateUrl = true } = {}) {
+  state.tab = normalizeTab(key);
+  Object.entries(TAB_PANELS).forEach(([k, id]) => $(id)?.classList.toggle('hidden', k !== state.tab));
+  document.querySelectorAll('#classTabs [data-tab]').forEach((b) => {
+    b.setAttribute('aria-selected', String(b.dataset.tab === state.tab));
+    b.tabIndex = b.dataset.tab === state.tab ? 0 : -1;
+  });
+  if (updateUrl) {
+    const url = new URL(window.location.href);
+    if (state.tab === 'tong-quan') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', state.tab);
+    window.history.replaceState(window.history.state, '', url);
+  }
+}
 
 // ----------------------------------------------------------------------------
 // Sidebar: "Học viên của tôi" / "Tài liệu học tập" / "Quản lý bài tập" cùng mở trang lớp học,
@@ -98,18 +149,6 @@ function highlightSidebar() {
     if (active) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
-}
-
-/** Khi vào một lớp từ mục "Tài liệu học tập" / "Quản lý bài tập": cuộn tới đúng phần (chờ phần đó tải xong). */
-function focusSectionFromMuc(attempt = 0) {
-  const target = SECTION_BY_MUC[currentMuc()];
-  if (!target) return;
-  const el = $(target.sectionId);
-  if (el && !el.classList.contains('hidden')) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } else if (attempt < 20) {
-    setTimeout(() => focusSectionFromMuc(attempt + 1), 150);
-  }
 }
 
 function dayOptionsHtml(selected, { placeholder = false } = {}) {
@@ -260,6 +299,59 @@ function collectScheduleRows() {
   }));
 }
 
+// ----------------------------------------------------------------------------
+// Hình thức học khi tạo lớp: online (link, không bắt buộc) hoặc trực tiếp (tỉnh → phường → địa chỉ cụ thể)
+// ----------------------------------------------------------------------------
+function checkedMode(name) {
+  return document.querySelector(`input[name="${name}"]:checked`)?.value || 'ONLINE';
+}
+
+function setMode(name, mode) {
+  const radio = document.querySelector(`input[name="${name}"][value="${mode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE'}"]`);
+  if (radio) radio.checked = true;
+}
+
+function syncCreateMode() {
+  const offline = checkedMode('createMode') === 'OFFLINE';
+  $('createLinkBox').classList.toggle('hidden', offline);
+  $('createAddressBox').classList.toggle('hidden', !offline);
+}
+
+/** Chọn học viên → điền sẵn hình thức học + địa điểm theo yêu cầu kết nối học viên đã gửi. */
+function prefillCreateMode() {
+  const learner = eligibleLearners.find((l) => String(l.learnerId) === $('learnerSelect').value);
+  const note = $('createModeNote');
+  const mode = learner?.learningMode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE';
+  setMode('createMode', mode);
+  $('createLinkInput').value = '';
+  setFieldError('createLinkError', '');
+  createAddress.setValue(mode === 'OFFLINE' ? (learner?.locationDetails || '') : '',
+    { sourceNote: 'Học viên ghi khi gửi yêu cầu kết nối' });
+  if (learner?.learningMode) {
+    note.querySelector('[data-text]').textContent = `Điền sẵn theo yêu cầu kết nối: học viên chọn ${mode === 'OFFLINE' ? 'học trực tiếp' : 'học online'}. Bạn vẫn đổi được.`;
+    note.classList.remove('hidden');
+  } else {
+    note.classList.add('hidden');
+  }
+  syncCreateMode();
+}
+
+/** @returns {{payload?: object, ok: boolean}} hình thức học đã kiểm tra của form tạo lớp */
+function readCreateDelivery() {
+  const learningMode = checkedMode('createMode');
+  if (learningMode === 'OFFLINE') {
+    const { value, errors } = createAddress.read();
+    createAddress.showErrors(errors);
+    setFieldError('createLinkError', '');
+    return Object.keys(errors).length ? { ok: false } : { ok: true, payload: { learningMode, locationDetails: value } };
+  }
+  const link = $('createLinkInput').value.trim();
+  const linkError = link && !/^https?:\/\/\S+$/i.test(link) ? 'Link phòng học phải bắt đầu bằng http:// hoặc https://' : '';
+  setFieldError('createLinkError', linkError);
+  createAddress.showErrors({});
+  return linkError ? { ok: false } : { ok: true, payload: { learningMode, meetingLink: link || null } };
+}
+
 /** @param {string|null} preselectLearnerId học viên chọn sẵn (khi mở từ trang Yêu cầu kết nối / Lịch giảng dạy) */
 async function openAddLearner(preselectLearnerId = null) {
   const select = $('learnerSelect');
@@ -278,6 +370,13 @@ async function openAddLearner(preselectLearnerId = null) {
   setFieldError('courseTotalError', '');
   $('scheduleRows').innerHTML = '';
   addScheduleRow();
+  eligibleLearners = [];
+  setMode('createMode', 'ONLINE');
+  $('createLinkInput').value = '';
+  setFieldError('createLinkError', '');
+  $('createModeNote').classList.add('hidden');
+  createAddress.setValue('');
+  syncCreateMode();
   select.innerHTML = '';
   eligibleState.textContent = 'Đang tải danh sách học viên...';
   eligibleState.classList.remove('hidden');
@@ -287,6 +386,7 @@ async function openAddLearner(preselectLearnerId = null) {
 
   try {
     const learners = await API.classrooms.eligibleLearners() || [];
+    eligibleLearners = learners;
     if (!learners.length) {
       eligibleState.textContent = 'Hiện chưa có học viên nào đủ điều kiện. Học viên cần được bạn chấp nhận kết nối và chưa có lớp đang hoạt động với bạn.';
       return;
@@ -300,6 +400,7 @@ async function openAddLearner(preselectLearnerId = null) {
     if (preselectLearnerId) {
       if (learners.some((l) => String(l.learnerId) === String(preselectLearnerId))) {
         select.value = preselectLearnerId;
+        prefillCreateMode();
         $('classroomTitleInput').focus();
       } else {
         setFieldError('learnerSelectError', 'Học viên bạn chọn chưa đủ điều kiện tạo lớp (chưa đồng ý kết nối hoặc đã có lớp đang hoạt động với bạn).');
@@ -326,13 +427,14 @@ async function submitAddLearner(event) {
   setFieldError('courseTotalError', courseErrors.totalSessions);
   setFieldError('scheduleRowsError', scheduleError);
   setFieldError('addLearnerFormError', '');
-  if (!learnerId || titleError || scheduleError || courseErrors.startDate || courseErrors.totalSessions) return;
+  const delivery = readCreateDelivery();
+  if (!learnerId || titleError || scheduleError || courseErrors.startDate || courseErrors.totalSessions || !delivery.ok) return;
 
   const submit = $('addLearnerSubmit');
   setBusy(submit, true, 'Đang tạo lớp...');
   try {
     await API.classrooms.create({
-      learnerId, title: title.trim(), schedules, startDate, totalSessions: Number(totalSessions)
+      learnerId, title: title.trim(), schedules, startDate, totalSessions: Number(totalSessions), ...delivery.payload
     });
     closeModal('addLearnerModal');
     showToast('Tạo lớp học thành công.');
@@ -343,6 +445,8 @@ async function submitAddLearner(event) {
     else if (fe.startDate) setFieldError('courseStartError', fe.startDate);
     else if (fe.totalSessions) setFieldError('courseTotalError', fe.totalSessions);
     else if (fe.schedules) setFieldError('scheduleRowsError', fe.schedules);
+    else if (fe.meetingLink) setFieldError('createLinkError', fe.meetingLink);
+    else if (fe.locationDetails) setFieldError('addLearnerFormError', fe.locationDetails);
     else setFieldError('addLearnerFormError', friendlyErrorMessage(err));
   } finally {
     setBusy(submit, false);
@@ -375,18 +479,23 @@ async function loadSpace(spaceId) {
   section.classList.add('hidden');
   $('scheduleSection').classList.add('hidden');
   hideTutorAssignments();
+  Object.values(TAB_PANELS).forEach((id) => $(id)?.classList.add('hidden'));
+  state.materialFilter = { kind: '', keyword: '' };
+  state.collapsedGroups = new Set();
+  if ($('materialSearch')) $('materialSearch').value = '';
   try {
     state.currentSpace = await API.classrooms.detail(spaceId);
     renderSpace();
     section.classList.remove('hidden');
+    setTab(initialTab());
+    loadNextSession();
     const assignmentsLoaded = loadTutorAssignments(state.currentSpace);
     await loadMaterials();
-    focusSectionFromMuc();
-    scrollToRequestedSection();
     // Mở từ trang Quản lý bài tập: ?newFile=1[&due=...] giao bài nộp tệp, ?grade=<id> chấm bài nộp tệp
     const params = new URLSearchParams(window.location.search);
     if (params.get('newFile') || params.get('grade')) {
       await assignmentsLoaded;
+      setTab('bai-tap');
       if (params.get('newFile')) openNewFileAssignment({ due: params.get('due') });
       else openAssignmentSubmissions(params.get('grade'));
       const url = new URL(window.location.href);
@@ -419,10 +528,38 @@ function renderSpace() {
     note.classList.add('hidden');
   }
   $('openUploadBtn').classList.toggle('hidden', !c.canManage);
+  $('overviewUploadBtn').classList.toggle('hidden', !c.canManage);
+  $('overviewAssignBtn').classList.toggle('hidden', !c.canManage);
   $('openRenameBtn').classList.toggle('hidden', !c.canManage);
+  const progress = courseCardLines(c).progress;
+  $('detailProgress').innerHTML = progress
+    ? `<span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">trending_up</span>${escapeHtml(progress)}` : '';
+  $('detailProgress').classList.toggle('hidden', !progress);
+  $('detailProgressDot').classList.toggle('hidden', !progress);
   $('classroomDetailCard').classList.remove('hidden');
   renderCourseInfo();
   renderSchedules();
+}
+
+/** "Buổi tới: Thứ Năm 20/11 · 19:00" — lấy từ các buổi cụ thể của lớp (đã tính buổi dời / buổi thêm). */
+async function loadNextSession() {
+  const line = $('nextSessionLine');
+  line.classList.add('hidden');
+  const space = state.currentSpace;
+  if (!space || space.readOnly) return;
+  try {
+    const from = new Date();
+    const to = new Date(from.getTime() + 45 * 24 * 60 * 60 * 1000);
+    const next = nextSessionOf(await API.classrooms.sessions(ymdLocal(from), ymdLocal(to)), space.spaceId);
+    if (!next || state.currentSpace?.spaceId !== space.spaceId) return;
+    const d = new Date(`${next.date}T00:00:00`);
+    const day = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'][d.getDay()];
+    line.innerHTML = `<span class="font-semibold">Buổi tới:</span> ${day} ${escapeHtml(formatDateVi(next.date).slice(0, 5))} · ${escapeHtml(String(next.startTime).slice(0, 5))}`
+      + `${next.number ? ` <span class="text-on-surface-variant">(buổi ${next.number}${next.totalSessions ? `/${next.totalSessions}` : ''})</span>` : ''}`;
+    line.classList.remove('hidden');
+  } catch (err) {
+    // Không có lịch / lỗi mạng: chỉ bỏ dòng "Buổi tới", phần còn lại vẫn dùng được
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -450,7 +587,7 @@ function renderDeliveryInfo() {
 }
 
 function syncDeliveryFields() {
-  const offline = document.querySelector('input[name="deliveryMode"]:checked')?.value === 'OFFLINE';
+  const offline = checkedMode('deliveryMode') === 'OFFLINE';
   $('deliveryLinkBox').classList.toggle('hidden', offline);
   $('deliveryLocationBox').classList.toggle('hidden', !offline);
 }
@@ -460,7 +597,7 @@ function openDeliveryModal() {
   const mode = c.learningMode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE';
   document.querySelector(`input[name="deliveryMode"][value="${mode}"]`).checked = true;
   $('deliveryLinkInput').value = c.meetingLink || '';
-  $('deliveryLocationInput').value = c.locationDetails || '';
+  deliveryAddress.setValue(c.learningMode === 'OFFLINE' ? (c.locationDetails || '') : '', { sourceNote: 'Địa điểm đang lưu' });
   ['deliveryLinkError', 'deliveryLocationError', 'deliveryFormError'].forEach((id) => setFieldError(id, ''));
   syncDeliveryFields();
   openModal('deliveryModal');
@@ -470,12 +607,14 @@ async function submitDelivery(event) {
   event.preventDefault();
   const learningMode = document.querySelector('input[name="deliveryMode"]:checked')?.value || 'ONLINE';
   const meetingLink = $('deliveryLinkInput').value.trim();
-  const locationDetails = $('deliveryLocationInput').value.trim();
+  const address = learningMode === 'OFFLINE' ? deliveryAddress.read() : { value: '', errors: {} };
+  deliveryAddress.showErrors(address.errors);
+  const locationDetails = address.value;
   const linkError = learningMode === 'ONLINE' && meetingLink && !/^https?:\/\/\S+$/i.test(meetingLink)
     ? 'Link phòng học phải bắt đầu bằng http:// hoặc https://' : '';
-  const locationError = learningMode === 'OFFLINE' && !locationDetails ? 'Vui lòng nhập địa điểm học.' : '';
+  const locationError = Object.keys(address.errors).length > 0;
   setFieldError('deliveryLinkError', linkError);
-  setFieldError('deliveryLocationError', locationError);
+  setFieldError('deliveryLocationError', '');
   setFieldError('deliveryFormError', '');
   if (linkError || locationError) return;
 
@@ -714,34 +853,105 @@ async function loadMaterials() {
   }
 }
 
+/** Nút mở một tệp: biểu tượng theo loại, tên tệp. */
+function materialFileButton(m, f) {
+  return `<button type="button" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface font-label-md text-[13px] text-left max-w-full"
+    data-open-material="${escapeHtml(m.materialId)}" data-file="${escapeHtml(f.fileId)}" title="${escapeHtml(fileTypeLabel(f.fileType))} · ${escapeHtml(formatFileSize(f.fileSize))}">
+    <span class="material-symbols-outlined text-[18px] text-primary shrink-0" aria-hidden="true">${fileKindIcon(f)}</span><span class="min-w-0 truncate">${escapeHtml(f.fileName)}</span></button>`;
+}
+
+function materialItemHtml(m, canManage) {
+  return `
+    <li class="kz-item flex flex-wrap items-start gap-3">
+      <div class="w-10 h-10 rounded-xl bg-surface-container-lowest text-primary flex items-center justify-center shrink-0" aria-hidden="true">
+        <span class="material-symbols-outlined text-[22px]">folder_open</span></div>
+      <div class="flex-1 min-w-[200px] space-y-1.5">
+        <div class="flex flex-wrap items-center gap-2">
+          <h3 class="font-title-sm text-title-sm text-on-surface [overflow-wrap:anywhere]">${escapeHtml(m.title)}</h3>
+          ${isRecent(m.createdAt) ? '<span class="kz-badge" data-tone="active">Mới</span>' : ''}
+        </div>
+        ${m.description ? `<p class="text-on-surface-variant whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(m.description)}</p>` : ''}
+        <div class="flex flex-wrap gap-1.5">${(m.files || []).map((f) => materialFileButton(m, f)).join('')}</div>
+        <p class="font-caption text-caption text-on-surface-variant">${(m.files || []).length} tệp · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
+      </div>
+      ${canManage ? `<div class="flex gap-2 shrink-0">
+        <button type="button" class="kz-btn" data-edit-material="${escapeHtml(m.materialId)}">Chỉnh sửa</button>
+        <button type="button" class="kz-btn text-error" data-delete-material="${escapeHtml(m.materialId)}">Xóa</button>
+      </div>` : ''}
+    </li>`;
+}
+
+/** Chip lọc loại tệp (kèm số lượng). */
+function renderMaterialChips() {
+  const counts = countMaterialKinds(state.materials);
+  const kinds = [{ key: '', label: 'Tất cả', icon: '' }, ...FILE_KINDS.filter((k) => counts[k.key])];
+  $('materialKindChips').innerHTML = kinds.map((k) => `
+    <button type="button" class="kz-chip" data-kind="${k.key}" aria-pressed="${state.materialFilter.kind === k.key}">
+      ${k.icon ? `<span class="material-symbols-outlined text-[16px]" aria-hidden="true">${k.icon}</span>` : ''}${k.label} · ${k.key ? counts[k.key] : counts.all}</button>`).join('');
+}
+
+/** Thẻ "Tài liệu mới nhất" ở tab Tổng quan + số trên tab. */
+function renderMaterialsOverview() {
+  const n = state.materials.length;
+  const badge = $('tabBadgeMaterials');
+  badge.textContent = String(n);
+  badge.classList.toggle('hidden', !n);
+  $('overviewMaterialsMore').textContent = n ? `Xem tất cả ${n} tài liệu` : 'Mở tab Tài liệu';
+  const recent = [...state.materials].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, 3);
+  $('overviewMaterials').innerHTML = recent.length ? recent.map((m) => `
+    <li class="kz-item flex items-center gap-3 py-3">
+      <span class="material-symbols-outlined text-[22px] text-primary shrink-0" aria-hidden="true">${fileKindIcon((m.files || [])[0])}</span>
+      <div class="flex-1 min-w-0">
+        <p class="font-label-md text-label-md text-on-surface truncate">${escapeHtml(m.title)}</p>
+        <p class="font-caption text-caption text-on-surface-variant">${(m.files || []).length} tệp · ${escapeHtml(formatDateVi(m.createdAt))}</p>
+      </div>
+      ${isRecent(m.createdAt) ? '<span class="kz-badge" data-tone="active">Mới</span>' : ''}
+    </li>`).join('')
+    : '<li class="kz-item text-center text-on-surface-variant">Chưa có tài liệu nào.</li>';
+}
+
 function renderMaterials() {
   const list = $('materialsList');
   const stateBox = $('materialsState');
+  renderMaterialsOverview();
+  renderMaterialChips();
   if (!state.materials.length) {
     list.innerHTML = '';
     renderStateBox(stateBox, 'Hiện chưa có tài liệu nào trong lớp học này.');
     return;
   }
-  stateBox.classList.add('hidden');
   const canManage = !!state.currentSpace?.canManage;
-  list.innerHTML = state.materials.map((m) => `
-    <li class="kz-item flex flex-col sm:flex-row sm:items-start gap-3">
-      <div class="flex-1 min-w-0 space-y-1">
-        <h3 class="font-title-sm text-title-sm text-on-surface [overflow-wrap:anywhere]">${escapeHtml(m.title)}</h3>
-        ${m.description ? `<p class="text-on-surface-variant whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(m.description)}</p>` : ''}
-        <div class="flex flex-wrap gap-1.5 pt-0.5">${(m.files || []).map((f) => `
-          <button type="button" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-container-lowest text-primary font-semibold hover:underline text-left max-w-full"
-            data-open-material="${escapeHtml(m.materialId)}" data-file="${escapeHtml(f.fileId)}" title="${escapeHtml(fileTypeLabel(f.fileType))} · ${escapeHtml(formatFileSize(f.fileSize))}">
-            <span class="material-symbols-outlined text-[16px] shrink-0">attach_file</span><span class="min-w-0 [overflow-wrap:anywhere]">${escapeHtml(f.fileName)}</span>
-          </button>`).join('')}</div>
-        <p class="font-caption text-caption text-on-surface-variant">${(m.files || []).length} tệp · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
-      </div>
-      <div class="flex gap-2 shrink-0">
-        ${canManage ? `<button type="button" class="kz-btn" data-edit-material="${escapeHtml(m.materialId)}">Chỉnh sửa</button>` : ''}
-        ${canManage ? `<button type="button" class="kz-btn text-error" data-delete-material="${escapeHtml(m.materialId)}">Xóa</button>` : ''}
-      </div>
-    </li>
-  `).join('');
+  const filtered = filterMaterials(state.materials, state.materialFilter);
+  if (!filtered.length) {
+    list.innerHTML = '';
+    stateBox.innerHTML = '<p class="text-on-surface-variant">Không tìm thấy tài liệu phù hợp.</p><button type="button" class="kz-btn mt-4" data-clear-material-filter>Xóa bộ lọc</button>';
+    stateBox.classList.remove('hidden');
+    stateBox.querySelector('[data-clear-material-filter]').addEventListener('click', () => {
+      state.materialFilter = { kind: '', keyword: '' };
+      $('materialSearch').value = '';
+      renderMaterials();
+    });
+    return;
+  }
+  stateBox.classList.add('hidden');
+  const searching = !!(state.materialFilter.keyword.trim() || state.materialFilter.kind);
+  if (searching) {
+    // Đang tìm / lọc: bỏ nhóm tuần, hiện thẳng kết quả (mới nhất trước)
+    const sorted = [...filtered].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    list.innerHTML = `<p class="font-caption text-caption text-on-surface-variant">${sorted.length} tài liệu phù hợp</p>
+      <ul class="flex flex-col gap-3">${sorted.map((m) => materialItemHtml(m, canManage)).join('')}</ul>`;
+  } else {
+    const groups = groupByWeek(filtered, (m) => m.createdAt);
+    list.innerHTML = groups.map((g, gi) => {
+      const collapsed = state.collapsedGroups.has(`m:${g.key}`) || (gi > 0 && !state.collapsedGroups.has(`m:${g.key}:open`));
+      return `
+        <section>
+          <button type="button" class="kz-group-head" data-group="m:${g.key}" aria-expanded="${!collapsed}">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">${collapsed ? 'chevron_right' : 'expand_more'}</span>${escapeHtml(g.label)}<span class="normal-case font-normal">· ${g.items.length} tài liệu</span></button>
+          <ul class="flex flex-col gap-3 mt-2 ${collapsed ? 'hidden' : ''}">${g.items.map((m) => materialItemHtml(m, canManage)).join('')}</ul>
+        </section>`;
+    }).join('');
+  }
   list.querySelectorAll('[data-open-material]').forEach((btn) => {
     btn.addEventListener('click', () => openMaterial(btn.dataset.openMaterial, btn.dataset.file, btn));
   });
@@ -886,13 +1096,6 @@ function renderViewHint() {
   }
 }
 
-/** Khi mở lớp từ mục "Tài liệu học tập" / "Quản lý bài tập", cuộn tới đúng khối. */
-function scrollToRequestedSection() {
-  const target = { materials: 'materialsSection', assignments: 'assignmentsSection' }[currentView()];
-  const el = target && $(target);
-  if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
-}
-
 function renderRoute() {
   highlightSidebar();
   const spaceId = new URLSearchParams(window.location.search).get('space');
@@ -943,6 +1146,10 @@ function init() {
     return;
   }
 
+  createAddress = mountAddressPicker($('createAddressBox'), { idPrefix: 'createAddr' });
+  deliveryAddress = mountAddressPicker($('deliveryLocationBox'), { idPrefix: 'deliveryAddr' });
+  $('learnerSelect').addEventListener('change', prefillCreateMode);
+  document.querySelectorAll('input[name="createMode"]').forEach((r) => r.addEventListener('change', syncCreateMode));
   $('openAddLearnerBtn').addEventListener('click', () => openAddLearner());
   $('addLearnerForm').addEventListener('submit', submitAddLearner);
   $('addScheduleRowBtn').addEventListener('click', addScheduleRow);
@@ -958,6 +1165,43 @@ function init() {
   $('renameForm').addEventListener('submit', submitRename);
   $('backToListBtn').addEventListener('click', navigateToList);
   $('openUploadBtn').addEventListener('click', () => openMaterialForm(null));
+  $('overviewUploadBtn').addEventListener('click', () => openMaterialForm(null));
+  $('overviewAssignBtn').addEventListener('click', () => $('openAssignmentFormBtn').click());
+  document.querySelectorAll('#classTabs [data-tab]').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  $('classTabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const tabs = [...document.querySelectorAll('#classTabs [data-tab]')];
+    const i = tabs.findIndex((t) => t.dataset.tab === state.tab);
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    setTab(next.dataset.tab);
+    next.focus();
+  });
+  document.querySelectorAll('[data-goto-tab]').forEach((b) => b.addEventListener('click', () => {
+    setTab(b.dataset.gotoTab);
+    $('classroomDetailCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+  $('materialSearch').addEventListener('input', (e) => {
+    state.materialFilter.keyword = e.target.value;
+    renderMaterials();
+  });
+  $('materialKindChips').addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-kind]');
+    if (!chip) return;
+    state.materialFilter.kind = chip.dataset.kind;
+    renderMaterials();
+  });
+  $('materialsList').addEventListener('click', (e) => {
+    const head = e.target.closest('[data-group]');
+    if (!head) return;
+    const key = head.dataset.group;
+    const open = head.getAttribute('aria-expanded') === 'true';
+    state.collapsedGroups.delete(key);
+    state.collapsedGroups.delete(`${key}:open`);
+    state.collapsedGroups.add(open ? key : `${key}:open`);
+    head.setAttribute('aria-expanded', String(!open));
+    head.querySelector('.material-symbols-outlined').textContent = open ? 'chevron_right' : 'expand_more';
+    head.nextElementSibling.classList.toggle('hidden', open);
+  });
   $('materialForm').addEventListener('submit', submitMaterial);
   materialPicker = createFileList($('materialFileList'), { accept: MATERIAL_ACCEPT_ATTR });
   $('deleteMaterialConfirm').addEventListener('click', confirmDeleteMaterial);
@@ -969,6 +1213,7 @@ function init() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeModal('addLearnerModal');
+      closeModal('deliveryModal');
       closeModal('materialModal');
       closeModal('scheduleModal');
       closeModal('renameModal');

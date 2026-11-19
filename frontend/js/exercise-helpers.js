@@ -215,6 +215,8 @@ export function questionPayload(q) {
     data,
     // File nghe của câu (null = không có); listening = câu nghe (kể cả khi chưa có file); maxPlays null = không giới hạn
     audioId: q.audio?.audioId || null,
+    // Ảnh minh họa của câu (null = không có); lưu R2 hoặc DB tùy máy chủ
+    imageId: q.image?.imageId || null,
     listening: !!(q.audio?.audioId || q.listening),
     maxPlays: (() => {
       const plays = q.audio?.audioId ? q.audio.maxPlays : q.listening?.maxPlays;

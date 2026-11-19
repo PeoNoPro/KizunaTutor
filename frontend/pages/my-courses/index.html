@@ -39,6 +39,11 @@
       .mc-section-title { @apply flex items-center gap-2.5 font-title-md text-title-md text-on-surface; }
       .mc-section-title::before { content: ""; @apply block w-1 h-5 rounded bg-primary shrink-0; }
       .mc-icon { @apply w-11 h-11 shrink-0 rounded-xl flex items-center justify-center; }
+      .kz-tab { @apply inline-flex items-center gap-2 px-4 py-3.5 -mb-px border-b-[3px] border-transparent font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors; }
+      .kz-tab[aria-selected="true"] { @apply border-primary text-primary font-bold; }
+      .kz-chip { @apply inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border border-surface-container-high bg-surface-container-lowest font-label-md text-[13px] text-on-surface hover:bg-surface-container-low transition-colors; }
+      .kz-chip[aria-pressed="true"] { @apply bg-on-surface text-surface border-on-surface; }
+      .kz-group-head { @apply flex items-center gap-2 py-1.5 font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant hover:text-on-surface; }
       .mc-file { @apply inline-flex items-center gap-1.5 max-w-full h-9 px-3 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-[13px] transition-all disabled:opacity-50; }
     }
   </style>
@@ -81,51 +86,93 @@
 
             <!-- Nội dung lớp: ẩn khi đang mở một bài tập nộp tệp -->
             <div id="myCourseMain" class="space-y-5">
-              <div id="myCourseDetailCard" class="kz-card p-5 sm:p-6 flex flex-wrap items-center gap-4 hidden">
-                <div class="mc-icon w-14 h-14 rounded-2xl bg-primary-fixed text-on-primary-fixed-variant" aria-hidden="true"><span class="material-symbols-outlined text-[30px]">school</span></div>
-                <div class="flex-1 min-w-[240px] space-y-1.5">
-                  <div class="flex flex-wrap items-center gap-2.5">
-                    <h1 id="myCourseTitle" class="font-headline-md text-headline-md text-on-surface min-w-0 [overflow-wrap:anywhere]"></h1>
-                    <span id="myCourseStatus" class="kz-badge"></span>
+              <div id="myCourseDetailCard" class="kz-card px-5 sm:px-6 pt-5 sm:pt-6 hidden">
+                <div class="flex flex-wrap items-center gap-4 pb-4">
+                  <div class="mc-icon w-14 h-14 rounded-2xl bg-primary-fixed text-on-primary-fixed-variant" aria-hidden="true"><span class="material-symbols-outlined text-[30px]">school</span></div>
+                  <div class="flex-1 min-w-[240px] space-y-1.5">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                      <h1 id="myCourseTitle" class="font-headline-md text-headline-md text-on-surface min-w-0 [overflow-wrap:anywhere]"></h1>
+                      <span id="myCourseStatus" class="kz-badge"></span>
+                    </div>
+                    <div class="flex flex-wrap gap-x-5 gap-y-1 text-on-surface-variant">
+                      <span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">person</span>Gia sư <strong id="myCourseTutor" class="font-semibold text-on-surface"></strong></span>
+                      <span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">event</span>Bắt đầu <span id="myCourseCreated"></span></span>
+                      <span id="myCourseProgress" class="inline-flex items-center gap-1.5 hidden"></span>
+                    </div>
                   </div>
-                  <div class="flex flex-wrap gap-x-5 gap-y-1 text-on-surface-variant">
-                    <span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">person</span>Gia sư <strong id="myCourseTutor" class="font-semibold text-on-surface"></strong></span>
-                    <span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">event</span>Bắt đầu <span id="myCourseCreated"></span></span>
-                    <span id="myCourseDelivery" class="inline-flex flex-wrap items-center gap-1.5 [overflow-wrap:anywhere]"></span>
-                  </div>
+                  <div id="myCourseJoin" class="empty:hidden"></div>
                 </div>
-                <div id="myCourseJoin" class="empty:hidden"></div>
+                <nav id="myCourseTabs" class="flex flex-wrap gap-1 border-t border-surface-container-high" role="tablist" aria-label="Các phần của lớp">
+                  <button type="button" class="kz-tab" role="tab" data-tab="tong-quan" aria-controls="myTabOverview"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">dashboard</span>Tổng quan</button>
+                  <button type="button" class="kz-tab" role="tab" data-tab="bai-tap" aria-controls="myTabAssignments"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">assignment</span>Bài tập<span id="myAssignmentsTodo" class="kz-badge hidden" data-tone="paused"></span></button>
+                  <button type="button" class="kz-tab" role="tab" data-tab="tai-lieu" aria-controls="myTabMaterials"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">folder_open</span>Tài liệu<span id="myMaterialsBadge" class="kz-badge hidden"></span></button>
+                </nav>
               </div>
 
               <p id="myCourseReadOnlyNote" class="hidden flex items-start gap-2.5 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed-variant px-4 py-3">Lớp học đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại các tài liệu đã được chia sẻ.</p>
 
-              <!-- Lịch học hằng tuần (học viên chỉ xem) -->
-              <div id="myCourseSchedule" class="kz-card p-5 sm:p-6 space-y-4 hidden">
-                <div class="flex flex-wrap items-baseline gap-x-2">
-                  <h2 class="mc-section-title">Lịch học hằng tuần</h2>
-                  <p class="text-on-surface-variant">· do gia sư xếp, bạn chỉ xem</p>
+              <!-- ===== TAB TỔNG QUAN ===== -->
+              <div id="myTabOverview" role="tabpanel" class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start hidden">
+                <div class="lg:col-span-7 flex flex-col gap-5 min-w-0">
+                  <div class="kz-card p-5 sm:p-6 space-y-3">
+                    <h2 class="mc-section-title">Bài tập cần làm</h2>
+                    <ul id="myOverviewAssignments" class="flex flex-col gap-2.5"></ul>
+                    <button type="button" class="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline" data-goto-tab="bai-tap"><span id="myOverviewAssignmentsMore">Xem tất cả bài tập</span><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span></button>
+                  </div>
+                  <div class="kz-card p-5 sm:p-6 space-y-3">
+                    <h2 class="mc-section-title">Tài liệu mới nhất</h2>
+                    <ul id="myOverviewMaterials" class="flex flex-col gap-2.5"></ul>
+                    <button type="button" class="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline" data-goto-tab="tai-lieu"><span id="myOverviewMaterialsMore">Xem tất cả tài liệu</span><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span></button>
+                  </div>
                 </div>
-                <div id="myCourseScheduleState" class="text-center text-on-surface-variant py-4 hidden"></div>
-                <ul id="myCourseScheduleList" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></ul>
+                <div class="lg:col-span-5 flex flex-col gap-5 min-w-0">
+                  <div class="kz-card p-5 sm:p-6 space-y-3">
+                    <h2 class="mc-section-title">Hình thức học</h2>
+                    <div id="myCourseDelivery" class="space-y-2 [overflow-wrap:anywhere]"></div>
+                  </div>
+                  <!-- Lịch học hằng tuần (học viên chỉ xem) -->
+                  <div id="myCourseSchedule" class="kz-card p-5 sm:p-6 space-y-3 hidden">
+                    <h2 class="mc-section-title">Lịch học hằng tuần</h2>
+                    <div id="myCourseScheduleState" class="text-center text-on-surface-variant py-4 hidden"></div>
+                    <ul id="myCourseScheduleList" class="flex flex-col gap-2.5"></ul>
+                    <p id="myNextSession" class="font-body-sm text-body-sm text-on-surface hidden"></p>
+                  </div>
+                </div>
               </div>
 
-              <!-- FE-07: Bài tập (UC-63, UC-64, UC-96) -->
-              <div id="myCourseAssignments" class="kz-card p-5 sm:p-6 space-y-4 hidden">
-                <div class="flex flex-wrap items-center gap-2.5">
-                  <h2 class="mc-section-title">Bài tập</h2>
-                  <span id="myAssignmentsTodo" class="kz-badge hidden" data-tone="paused"></span>
+              <!-- ===== TAB BÀI TẬP (FE-07: UC-63, UC-64, UC-96) ===== -->
+              <div id="myTabAssignments" role="tabpanel" class="hidden">
+                <div id="myCourseAssignments" class="kz-card p-5 sm:p-6 space-y-4 hidden">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <label class="flex-1 min-w-[220px] flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low text-on-surface-variant focus-within:ring-2 focus-within:ring-primary">
+                      <span class="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
+                      <input id="myAssignmentSearch" type="search" placeholder="Tìm theo tên bài tập" aria-label="Tìm bài tập" class="flex-1 min-w-0 bg-transparent border-0 outline-none text-on-surface">
+                    </label>
+                    <label class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low">
+                      <span class="text-on-surface-variant">Loại</span>
+                      <select id="myAssignmentKind" aria-label="Lọc theo loại bài" class="bg-transparent border-0 outline-none font-semibold text-on-surface">
+                        <option value="">Tất cả</option><option value="file">Nộp tệp</option><option value="online">Làm trực tiếp</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div id="myAssignmentChips" class="flex flex-wrap gap-2" role="group" aria-label="Lọc theo trạng thái"></div>
+                  <div id="myAssignmentsState" class="text-center text-on-surface-variant py-6 hidden"></div>
+                  <div id="myAssignmentsList" class="flex flex-col gap-4"></div>
                 </div>
-                <div id="myAssignmentsState" class="text-center text-on-surface-variant py-6 hidden"></div>
-                <ul id="myAssignmentsList" class="space-y-3"></ul>
               </div>
 
-              <div id="myCourseMaterials" class="kz-card p-5 sm:p-6 space-y-4 hidden">
-                <div class="flex flex-wrap items-baseline gap-x-2">
-                  <h2 class="mc-section-title">Tài liệu học tập</h2>
-                  <p id="myCourseMaterialsCount" class="text-on-surface-variant"></p>
+              <!-- ===== TAB TÀI LIỆU (UC-61) ===== -->
+              <div id="myTabMaterials" role="tabpanel" class="hidden">
+                <div id="myCourseMaterials" class="kz-card p-5 sm:p-6 space-y-4 hidden">
+                  <label class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low text-on-surface-variant focus-within:ring-2 focus-within:ring-primary">
+                    <span class="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
+                    <input id="myMaterialSearch" type="search" placeholder="Tìm theo tên tài liệu hoặc tên tệp" aria-label="Tìm tài liệu" class="flex-1 min-w-0 bg-transparent border-0 outline-none text-on-surface">
+                  </label>
+                  <div id="myMaterialChips" class="flex flex-wrap gap-2" role="group" aria-label="Lọc theo loại tệp"></div>
+                  <p id="myCourseMaterialsCount" class="hidden"></p>
+                  <div id="myCourseMaterialsState" class="text-center text-on-surface-variant py-6 hidden"></div>
+                  <div id="myCourseMaterialsList" class="flex flex-col gap-4"></div>
                 </div>
-                <div id="myCourseMaterialsState" class="text-center text-on-surface-variant py-6 hidden"></div>
-                <ul id="myCourseMaterialsList" class="space-y-3"></ul>
               </div>
             </div>
 

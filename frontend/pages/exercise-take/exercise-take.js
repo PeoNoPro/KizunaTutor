@@ -28,6 +28,7 @@ import {
 } from '../../js/exercise-helpers.js';
 import { renderInteractive } from '../../js/exercise-player.js';
 import { mountAudioPlayer, playsKey } from '../../js/exercise-audio.js';
+import { mountQuestionImage } from '../../js/exercise-image.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 
 const $ = (id) => document.getElementById(id);
@@ -302,6 +303,7 @@ function drawTaking() {
         </div>
         ${q.audio ? '<div id="questionAudio"></div>' : ''}
         ${q.prompt ? `<p class="text-[16px] whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(q.prompt)}</p>` : ''}
+        ${q.image ? '<div id="questionImage"></div>' : ''}
         <div id="questionBody"></div>
         <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/30">
           <button type="button" id="prevBtn" class="kz-btn" ${state.current === 0 ? 'disabled' : ''}>← Câu trước</button>
@@ -313,6 +315,7 @@ function drawTaking() {
     </div>`;
   drawNav();
   if (q.audio) mountAudioPlayer($('questionAudio'), spaceId, q.audio, { limitKey: playsKey(a.attemptId, q.questionId) });
+  if (q.image) mountQuestionImage($('questionImage'), spaceId, q.image, { maxHeight: 420 });
   renderInteractive($('questionBody'), q, {
     response: state.responses[q.questionId] || null,
     onChange: (r) => onAnswer(q, r)
@@ -532,6 +535,7 @@ async function renderResult() {
               <span class="font-semibold">${q.score === null || q.score === undefined ? '…' : formatScore(q.score)} / ${formatScore(q.points)} điểm</span>
             </div>
             ${q.prompt ? `<p class="whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(q.prompt)}</p>` : ''}
+            ${q.image ? `<div data-result-image="${i}"></div>` : ''}
             ${q.audio ? `<div data-result-audio="${i}"></div>` : ''}
             ${q.view?.segments ? `<p class="text-on-surface-variant [overflow-wrap:anywhere]">${escapeHtml(segmentsText(q.view))}</p>` : ''}
             <p class="[overflow-wrap:anywhere]"><span class="font-semibold">Câu trả lời của bạn:</span> ${escapeHtml(describeResponse(q.type, q.view, q.response))}</p>
@@ -546,6 +550,7 @@ async function renderResult() {
   // Xem lại kết quả: nghe lại không giới hạn
   a.questions.forEach((q, i) => {
     if (q.audio) mountAudioPlayer($('takeMain').querySelector(`[data-result-audio="${i}"]`), spaceId, q.audio);
+    if (q.image) mountQuestionImage($('takeMain').querySelector(`[data-result-image="${i}"]`), spaceId, q.image, { maxHeight: 240 });
   });
   const main = $('takeMain');
   main.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => {

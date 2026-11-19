@@ -6,13 +6,27 @@ import com.kizuna.core.exception.ServiceUnavailableException;
 import com.kizuna.features.profile.dto.response.AvatarUploadResponseDto;
 import com.kizuna.features.profile.service.AvatarStorageService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -47,10 +61,28 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
     private static final byte[] RIFF = "RIFF".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] WEBP = "WEBP".getBytes(StandardCharsets.US_ASCII);
 
-    private final Path storageDir;
+    static final String R2_PREFIX = "avatars/";
 
-    public AvatarStorageServiceImpl(@Value("${app.profile.avatar-storage-dir}") String storageDir) {
+    private final Path storageDir;
+    /** Có R2 (app.r2.enabled=true) thì ảnh nằm trên R2 để không mất khi server đổi máy; null thì lưu ổ đĩa. */
+    private final S3Client r2;
+    private final String bucket;
+
+    public AvatarStorageServiceImpl(String storageDir) {
+        this(storageDir, (S3Client) null, null);
+    }
+
+    @Autowired
+    public AvatarStorageServiceImpl(@Value("${app.profile.avatar-storage-dir}") String storageDir,
+                                    ObjectProvider<S3Client> r2,
+                                    @Value("${app.r2.bucket:}") String bucket) {
+        this(storageDir, r2.getIfAvailable(), bucket);
+    }
+
+    public AvatarStorageServiceImpl(String storageDir, S3Client r2, String bucket) {
         this.storageDir = Paths.get(storageDir).toAbsolutePath().normalize();
+        this.r2 = r2;
+        this.bucket = bucket;
     }
 
     @Override
@@ -68,9 +100,14 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
         }
         String fileName = ownerId + "_" + UUID.randomUUID() + "." + extension;
         try {
-            Files.createDirectories(storageDir);
-            Files.write(storageDir.resolve(fileName), content);
-        } catch (IOException e) {
+            if (r2 != null) {
+                r2.putObject(PutObjectRequest.builder().bucket(bucket).key(R2_PREFIX + fileName)
+                        .contentType(contentType(fileName)).build(), RequestBody.fromBytes(content));
+            } else {
+                Files.createDirectories(storageDir);
+                Files.write(storageDir.resolve(fileName), content);
+            }
+        } catch (IOException | SdkException e) {
             log.error("Không ghi được ảnh đại diện {}", fileName, e);
             throw new ServiceUnavailableException("Chưa lưu được ảnh đại diện. Vui lòng thử lại sau.");
         }
@@ -86,7 +123,7 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
         }
         String fileName = fileNameOf(requested);
         if (ownerId == null || fileName == null || !fileName.startsWith(ownerId + "_")
-                || !Files.isRegularFile(storageDir.resolve(fileName))) {
+                || !exists(fileName)) {
             throw new BadRequestException(NOT_OWN_AVATAR_MESSAGE);
         }
     }
@@ -121,22 +158,61 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
 
     /** Xóa các ảnh người này đã tải lên mà không dùng (trừ ảnh vừa tải và ảnh đang làm ảnh đại diện). */
     private void deleteUnusedUploads(UUID ownerId, String keepNew, String keepCurrent) {
-        try (DirectoryStream<Path> files = Files.newDirectoryStream(storageDir, ownerId + "_*")) {
-            for (Path path : files) {
-                String name = path.getFileName().toString();
+        try {
+            for (String name : ownerFileNames(ownerId)) {
                 if (!name.equals(keepNew) && !name.equals(keepCurrent)) {
                     deleteQuietly(name);
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | SdkException e) {
             log.warn("Không dọn được ảnh đại diện cũ của {}: {}", ownerId, e.getMessage());
+        }
+    }
+
+    private List<String> ownerFileNames(UUID ownerId) throws IOException {
+        List<String> names = new ArrayList<>();
+        if (r2 != null) {
+            r2.listObjectsV2Paginator(ListObjectsV2Request.builder().bucket(bucket)
+                            .prefix(R2_PREFIX + ownerId + "_").build())
+                    .contents().forEach(object -> names.add(object.key().substring(R2_PREFIX.length())));
+            return names;
+        }
+        if (!Files.isDirectory(storageDir)) {
+            return names;
+        }
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(storageDir, ownerId + "_*")) {
+            files.forEach(path -> names.add(path.getFileName().toString()));
+        }
+        return names;
+    }
+
+    private boolean exists(String fileName) {
+        if (r2 == null) {
+            return Files.isRegularFile(storageDir.resolve(fileName));
+        }
+        try {
+            r2.headObject(HeadObjectRequest.builder().bucket(bucket).key(R2_PREFIX + fileName).build());
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
+            throw new ServiceUnavailableException("Chưa kiểm tra được ảnh đại diện. Vui lòng thử lại sau.");
+        } catch (SdkException e) {
+            throw new ServiceUnavailableException("Chưa kiểm tra được ảnh đại diện. Vui lòng thử lại sau.");
         }
     }
 
     private void deleteQuietly(String fileName) {
         try {
-            Files.deleteIfExists(storageDir.resolve(fileName));
-        } catch (IOException e) {
+            if (r2 != null) {
+                r2.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(R2_PREFIX + fileName).build());
+            } else {
+                Files.deleteIfExists(storageDir.resolve(fileName));
+            }
+        } catch (IOException | SdkException e) {
             log.warn("Không xóa được ảnh đại diện {}: {}", fileName, e.getMessage());
         }
     }
@@ -145,6 +221,18 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
     public AvatarFile load(String fileName) {
         if (fileName == null || !FILE_NAME_PATTERN.matcher(fileName).matches()) {
             throw new ResourceNotFoundException(NOT_FOUND_MESSAGE);
+        }
+        if (r2 != null) {
+            try {
+                byte[] content = r2.getObjectAsBytes(GetObjectRequest.builder().bucket(bucket)
+                        .key(R2_PREFIX + fileName).build()).asByteArray();
+                return new AvatarFile(content, contentType(fileName));
+            } catch (NoSuchKeyException e) {
+                throw new ResourceNotFoundException(NOT_FOUND_MESSAGE);
+            } catch (SdkException e) {
+                log.warn("Không đọc được ảnh đại diện {} từ R2: {}", fileName, e.getMessage());
+                throw new ResourceNotFoundException(NOT_FOUND_MESSAGE);
+            }
         }
         Path path = storageDir.resolve(fileName).normalize();
         if (!path.startsWith(storageDir) || !Files.isRegularFile(path)) {

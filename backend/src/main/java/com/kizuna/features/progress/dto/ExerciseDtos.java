@@ -19,14 +19,19 @@ public final class ExerciseDtos {
      * audioId: file nghe MP3 đã tải lên (null = không có); maxPlays: số lần nghe tối đa (null = không giới hạn, 1 – 5).
      */
     public record QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data,
-                                UUID audioId, Integer maxPlays, Boolean listening) {
+                                UUID audioId, Integer maxPlays, Boolean listening, UUID imageId) {
         public QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data) {
-            this(type, prompt, points, data, null, null, null);
+            this(type, prompt, points, data, null, null, null, null);
         }
 
         public QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data,
                              UUID audioId, Integer maxPlays) {
-            this(type, prompt, points, data, audioId, maxPlays, null);
+            this(type, prompt, points, data, audioId, maxPlays, null, null);
+        }
+
+        public QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data,
+                             UUID audioId, Integer maxPlays, Boolean listening) {
+            this(type, prompt, points, data, audioId, maxPlays, listening, null);
         }
 
         /** Câu nghe: gia sư đánh dấu "Câu nghe" hoặc đã gắn file nghe. Câu nghe chưa có file thì không giao bài được. */
@@ -41,6 +46,14 @@ public final class ExerciseDtos {
 
     /** File nghe gắn với câu hỏi. maxPlays null = nghe không giới hạn. */
     public record AudioInfo(UUID audioId, String fileName, long fileSize, Integer maxPlays) {
+    }
+
+    /** Ảnh minh họa gắn với câu hỏi (một ảnh mỗi câu). */
+    public record ImageInfo(UUID imageId, String fileName, long fileSize) {
+    }
+
+    /** Nội dung ảnh để trả về trình duyệt. */
+    public record ImageContent(byte[] data, String contentType, String fileName) {
     }
 
     /** Link nghe tạm của file trên Cloudflare R2; hết hạn sau expiresInSeconds giây. */
@@ -72,7 +85,12 @@ public final class ExerciseDtos {
 
     /** Câu hỏi đầy đủ (kèm đáp án) cho gia sư soạn / sửa. */
     public record QuestionDetail(UUID questionId, int position, ExerciseQuestionType type, String prompt,
-                                 BigDecimal points, JsonNode data, AudioInfo audio, ListeningInfo listening) {
+                                 BigDecimal points, JsonNode data, AudioInfo audio, ListeningInfo listening,
+                                 ImageInfo image) {
+        public QuestionDetail(UUID questionId, int position, ExerciseQuestionType type, String prompt,
+                              BigDecimal points, JsonNode data, AudioInfo audio, ListeningInfo listening) {
+            this(questionId, position, type, prompt, points, data, audio, listening, null);
+        }
     }
 
     /** Chi tiết bài: gia sư nhận kèm câu hỏi đầy đủ; học viên nhận questions = null. */
@@ -83,12 +101,19 @@ public final class ExerciseDtos {
      * Một câu trong một lượt làm bài.
      * view: đề cho học viên (không có đáp án). response: câu trả lời đã lưu.
      * Sau khi nộp: correct / score (null khi chờ gia sư chấm); correctAnswer chỉ có khi được xem đáp án.
-     * audio: file nghe của câu (null = không có).
+     * audio: file nghe của câu (null = không có). image: ảnh minh họa của câu (null = không có).
      */
     public record AttemptQuestion(UUID questionId, int position, ExerciseQuestionType type, String prompt,
                                   BigDecimal points, JsonNode view, JsonNode response,
                                   Boolean correct, BigDecimal score, BigDecimal autoScore, boolean needsManualGrading,
-                                  String tutorComment, JsonNode correctAnswer, AudioInfo audio) {
+                                  String tutorComment, JsonNode correctAnswer, AudioInfo audio, ImageInfo image) {
+        public AttemptQuestion(UUID questionId, int position, ExerciseQuestionType type, String prompt,
+                               BigDecimal points, JsonNode view, JsonNode response,
+                               Boolean correct, BigDecimal score, BigDecimal autoScore, boolean needsManualGrading,
+                               String tutorComment, JsonNode correctAnswer, AudioInfo audio) {
+            this(questionId, position, type, prompt, points, view, response, correct, score, autoScore,
+                    needsManualGrading, tutorComment, correctAnswer, audio, null);
+        }
     }
 
     /**

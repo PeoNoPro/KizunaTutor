@@ -14,6 +14,7 @@ import com.kizuna.features.classroom.service.LearningMaterialService;
 import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.classroom.util.MaterialFileValidator;
 import com.kizuna.features.classroom.util.MaterialFileValidator.MaterialFileType;
+import com.kizuna.features.storage.R2FileStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,11 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
     private final LearningMaterialRepository materialRepository;
     private final LearningMaterialFileRepository fileRepository;
     private final MaterialFileValidator fileValidator;
+    private final R2FileStore r2;
+
+    static String r2Key(UUID fileId) {
+        return "materials/" + fileId;
+    }
 
     /** Tệp đã kiểm tra, sẵn sàng ghi. */
     private record Prepared(MaterialFileType type, String fileName, byte[] bytes) {
@@ -71,7 +77,7 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
         LearningMaterial material = findInSpace(materialId, spaceId);
         LearningMaterialFile file = fileRepository.findByFileIdAndMaterialId(fileId, material.getMaterialId())
                 .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy tệp trong tài liệu này."));
-        byte[] data = fileRepository.findFileData(file.getFileId());
+        byte[] data = r2.read(fileRepository.findFileData(file.getFileId()), r2Key(file.getFileId()));
         if (data == null || data.length == 0) {
             throw ClassroomException.notFound("Tệp của tài liệu này hiện không còn trên hệ thống.");
         }
@@ -129,6 +135,7 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
         List<Prepared> prepared = prepare(chosen);
 
         fileRepository.deleteAll(removed);
+        r2.deleteAfterCommit(removed.stream().map(f -> r2Key(f.getFileId())).toList());
         insertFiles(materialId, prepared);
         List<LearningMaterialFile> after = filesOf(materialId);
         material.setTitle(cleanTitle);
@@ -145,7 +152,10 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
     @Transactional
     public void delete(CurrentActor actor, UUID spaceId, UUID materialId) {
         classroomService.loadManageableSpace(actor, spaceId);
-        materialRepository.delete(findInSpace(materialId, spaceId));
+        LearningMaterial material = findInSpace(materialId, spaceId);
+        // Tệp trong DB tự xóa theo ON DELETE CASCADE; tệp trên R2 phải xóa riêng
+        r2.deleteAfterCommit(filesOf(materialId).stream().map(f -> r2Key(f.getFileId())).toList());
+        materialRepository.delete(material);
     }
 
     // ---------------------------------------------------------------------
@@ -178,7 +188,9 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
 
     private void insertFiles(UUID materialId, List<Prepared> prepared) {
         for (Prepared p : prepared) {
-            fileRepository.insertFile(UUID.randomUUID(), materialId, p.fileName(), p.bytes().length, p.bytes());
+            UUID fileId = UUID.randomUUID();
+            byte[] dbData = r2.put(r2Key(fileId), p.bytes(), p.type().contentType);
+            fileRepository.insertFile(fileId, materialId, p.fileName(), p.bytes().length, dbData);
         }
     }
 

@@ -10,7 +10,9 @@ import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.progress.dto.ExerciseDtos.*;
 import com.kizuna.features.progress.entity.ExerciseAnswer;
 import com.kizuna.features.progress.entity.ExerciseAudio;
+import com.kizuna.features.progress.entity.ExerciseImage;
 import com.kizuna.features.progress.repository.ExerciseAudioRepository;
+import com.kizuna.features.progress.repository.ExerciseImageRepository;
 import com.kizuna.features.progress.entity.ExerciseAttempt;
 import com.kizuna.features.progress.entity.ExerciseQuestion;
 import com.kizuna.features.progress.entity.OnlineExercise;
@@ -66,27 +68,45 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
     private final ExerciseQuestionEngine engine;
     /** File nghe của câu hỏi; null trong test không dùng file nghe. */
     private final ExerciseAudioRepository audios;
+    /** Ảnh minh họa của câu hỏi; null trong test không dùng ảnh. */
+    private final ExerciseImageRepository images;
     private final Clock clock;
 
     @Autowired
     public OnlineExerciseServiceImpl(ClassroomService classroomService, OnlineExerciseRepository exercises,
                                      ExerciseQuestionRepository questions, ExerciseAttemptRepository attempts,
                                      ExerciseAnswerRepository answers, LearningSpaceRepository spaces,
+                                     ExerciseQuestionEngine engine, ExerciseAudioRepository audios,
+                                     ExerciseImageRepository images) {
+        this(classroomService, exercises, questions, attempts, answers, spaces, engine, audios, images, Clock.system(VN));
+    }
+
+    public OnlineExerciseServiceImpl(ClassroomService classroomService, OnlineExerciseRepository exercises,
+                                     ExerciseQuestionRepository questions, ExerciseAttemptRepository attempts,
+                                     ExerciseAnswerRepository answers, LearningSpaceRepository spaces,
                                      ExerciseQuestionEngine engine, ExerciseAudioRepository audios) {
-        this(classroomService, exercises, questions, attempts, answers, spaces, engine, audios, Clock.system(VN));
+        this(classroomService, exercises, questions, attempts, answers, spaces, engine, audios, null, Clock.system(VN));
     }
 
     public OnlineExerciseServiceImpl(ClassroomService classroomService, OnlineExerciseRepository exercises,
                                      ExerciseQuestionRepository questions, ExerciseAttemptRepository attempts,
                                      ExerciseAnswerRepository answers, LearningSpaceRepository spaces,
                                      ExerciseQuestionEngine engine, Clock clock) {
-        this(classroomService, exercises, questions, attempts, answers, spaces, engine, null, clock);
+        this(classroomService, exercises, questions, attempts, answers, spaces, engine, null, null, clock);
     }
 
     public OnlineExerciseServiceImpl(ClassroomService classroomService, OnlineExerciseRepository exercises,
                                      ExerciseQuestionRepository questions, ExerciseAttemptRepository attempts,
                                      ExerciseAnswerRepository answers, LearningSpaceRepository spaces,
                                      ExerciseQuestionEngine engine, ExerciseAudioRepository audios, Clock clock) {
+        this(classroomService, exercises, questions, attempts, answers, spaces, engine, audios, null, clock);
+    }
+
+    public OnlineExerciseServiceImpl(ClassroomService classroomService, OnlineExerciseRepository exercises,
+                                     ExerciseQuestionRepository questions, ExerciseAttemptRepository attempts,
+                                     ExerciseAnswerRepository answers, LearningSpaceRepository spaces,
+                                     ExerciseQuestionEngine engine, ExerciseAudioRepository audios,
+                                     ExerciseImageRepository images, Clock clock) {
         this.classroomService = classroomService;
         this.exercises = exercises;
         this.questions = questions;
@@ -95,6 +115,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         this.spaces = spaces;
         this.engine = engine;
         this.audios = audios;
+        this.images = images;
         this.clock = clock;
     }
 
@@ -141,7 +162,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         ExerciseSummary summary = toSummary(e, eq, ea, tutor, classroomService.isReadOnly(space), now);
         List<QuestionDetail> details = tutor ? eq.stream().map(q -> new QuestionDetail(q.getQuestionId(), q.getPosition(),
                 q.getType(), q.getPrompt(), q.getPoints(), withoutAudio(engine.read(q.getData())), audioOf(q),
-                listeningOf(q))).toList() : null;
+                listeningOf(q), imageOf(q))).toList() : null;
         return new ExerciseDetail(summary, e.getInstructions(), details);
     }
 
@@ -157,7 +178,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         OnlineExercise e = OnlineExercise.builder().space(space).build();
         applySettings(e, req, false, 0, publish, now);
         e = exercises.save(e);
-        saveQuestions(e, req.questions(), publish, Set.of());
+        saveQuestions(e, req.questions(), publish, Set.of(), Set.of());
         if (publish) {
             e.setStatus(OnlineExercise.Status.PUBLISHED);
             e.setPublishedAt(now);
@@ -181,11 +202,14 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         applySettings(e, req, locked, used, strict, now);
         if (!locked) {
             // File nghe các câu cũ đang dùng: câu mới không dùng nữa thì xóa
-            Set<UUID> previousAudio = questions.findByExercise_ExerciseIdOrderByPositionAsc(exerciseId).stream()
+            List<ExerciseQuestion> old = questions.findByExercise_ExerciseIdOrderByPositionAsc(exerciseId);
+            Set<UUID> previousAudio = old.stream()
                     .map(this::audioOf).filter(Objects::nonNull).map(AudioInfo::audioId).collect(Collectors.toSet());
+            Set<UUID> previousImages = old.stream()
+                    .map(this::imageOf).filter(Objects::nonNull).map(ImageInfo::imageId).collect(Collectors.toSet());
             questions.deleteByExercise_ExerciseId(exerciseId);
             questions.flush();
-            saveQuestions(e, req.questions(), strict, previousAudio);
+            saveQuestions(e, req.questions(), strict, previousAudio, previousImages);
         }
         if (publishNow) {
             e.setStatus(OnlineExercise.Status.PUBLISHED);
@@ -468,7 +492,8 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
             }
             return new AttemptQuestion(q.getQuestionId(), q.getPosition(), q.getType(), q.getPrompt(), q.getPoints(),
                     engine.learnerView(q.getType(), q.getData(), seed(a, q)), response, correct, score, autoScore,
-                    manual, comment, answersVisible ? engine.correctAnswer(q.getType(), q.getData()) : null, audioOf(q));
+                    manual, comment, answersVisible ? engine.correctAnswer(q.getType(), q.getData()) : null, audioOf(q),
+                    imageOf(q));
         }).toList();
         Long remaining = inProgress && a.getDeadlineAt() != null
                 ? Math.max(0, Duration.between(now, a.getDeadlineAt()).getSeconds()) : null;
@@ -521,7 +546,8 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         e.setGradingMode(parseMode(req.gradingMode()));
     }
 
-    private void saveQuestions(OnlineExercise e, List<QuestionInput> inputs, boolean strict, Set<UUID> previousAudio) {
+    private void saveQuestions(OnlineExercise e, List<QuestionInput> inputs, boolean strict, Set<UUID> previousAudio,
+                               Set<UUID> previousImages) {
         List<QuestionInput> list = inputs == null ? List.of() : inputs;
         if (list.size() > MAX_QUESTIONS) {
             throw ClassroomException.field(ExerciseQuestionEngine.FIELD, "Mỗi bài có tối đa " + MAX_QUESTIONS + " câu hỏi.");
@@ -531,6 +557,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         }
         boolean auto = e.getGradingMode() == OnlineExercise.GradingMode.AUTO;
         Map<UUID, ExerciseAudio> audioById = loadAudios(e, list);
+        Map<UUID, ExerciseImage> imageById = loadImages(e, list);
         List<ExerciseQuestion> rows = new ArrayList<>();
         for (int i = 0; i < list.size(); i++) {
             QuestionInput in = list.get(i);
@@ -538,6 +565,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
             BigDecimal points = in.points() == null && !strict ? BigDecimal.ONE : in.points();
             String data = engine.validate(in.type(), in.prompt(), points, in.data(), strict, auto, label);
             data = attachAudio(data, in, in.audioId() == null ? null : audioById.get(in.audioId()), label, strict);
+            data = attachImage(data, in.imageId() == null ? null : imageById.get(in.imageId()));
             rows.add(ExerciseQuestion.builder()
                     .exercise(e)
                     .position(i + 1)
@@ -549,6 +577,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         }
         questions.saveAll(rows);
         syncAudios(e, audioById.values(), previousAudio);
+        syncImages(e, imageById.values(), previousImages);
         // Cách chấm của bài suy ra từ từng câu: có câu tự luận gia sư chấm → "Gia sư chấm", ngược lại "Hệ thống chấm tự động"
         boolean manual = rows.stream().anyMatch(r -> engine.needsManualGrading(r.getType(), r.getData()));
         e.setGradingMode(manual ? OnlineExercise.GradingMode.TUTOR : OnlineExercise.GradingMode.AUTO);
@@ -643,15 +672,74 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         return new ListeningInfo(true, l.hasNonNull("maxPlays") ? l.get("maxPlays").asInt() : null);
     }
 
-    /** Dữ liệu câu cho gia sư soạn: bỏ khóa "audio" / "listening" (đã trả riêng trong trường audio / listening). */
+    /** Dữ liệu câu cho gia sư soạn: bỏ khóa "audio" / "listening" / "image" (đã trả riêng trong các trường tương ứng). */
     private static JsonNode withoutAudio(JsonNode data) {
-        if (data instanceof com.fasterxml.jackson.databind.node.ObjectNode o && (o.has("audio") || o.has("listening"))) {
+        if (data instanceof com.fasterxml.jackson.databind.node.ObjectNode o
+                && (o.has("audio") || o.has("listening") || o.has("image"))) {
             com.fasterxml.jackson.databind.node.ObjectNode copy = o.deepCopy();
             copy.remove("audio");
             copy.remove("listening");
+            copy.remove("image");
             return copy;
         }
         return data;
+    }
+
+    // ================================================================== ảnh minh họa của câu hỏi
+
+    /** Ảnh các câu đang dùng: phải thuộc lớp này và chưa gắn vào bài khác. */
+    private Map<UUID, ExerciseImage> loadImages(OnlineExercise e, List<QuestionInput> list) {
+        List<UUID> ids = list.stream().map(QuestionInput::imageId).filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) return Map.of();
+        if (images == null) throw ClassroomException.field(ExerciseQuestionEngine.FIELD, "Không tìm thấy ảnh.");
+        Map<UUID, ExerciseImage> found = images.findByImageIdInAndSpaceId(ids, e.getSpace().getSpaceId()).stream()
+                .filter(i -> i.getExerciseId() == null || i.getExerciseId().equals(e.getExerciseId()))
+                .collect(Collectors.toMap(ExerciseImage::getImageId, i -> i));
+        for (int i = 0; i < list.size(); i++) {
+            UUID id = list.get(i).imageId();
+            if (id != null && !found.containsKey(id)) {
+                throw ClassroomException.field(ExerciseQuestionEngine.FIELD,
+                        "Câu " + (i + 1) + ": không tìm thấy ảnh. Vui lòng tải lại ảnh.");
+            }
+        }
+        return found;
+    }
+
+    /** Ghi mã ảnh vào dữ liệu câu (khóa "image"). */
+    private String attachImage(String data, ExerciseImage image) {
+        if (image == null) return data;
+        com.fasterxml.jackson.databind.node.ObjectNode node = (com.fasterxml.jackson.databind.node.ObjectNode) engine.read(data);
+        com.fasterxml.jackson.databind.node.ObjectNode i = node.putObject("image");
+        i.put("id", image.getImageId().toString());
+        i.put("fileName", image.getFileName());
+        i.put("fileSize", image.getFileSize());
+        return engine.write(node);
+    }
+
+    /** Gắn ảnh đang dùng vào bài; ảnh các câu cũ không còn dùng thì gỡ (exercise_id = NULL) để dọn sau. */
+    private void syncImages(OnlineExercise e, Collection<ExerciseImage> used, Set<UUID> previousImages) {
+        if (images == null) return;
+        Set<UUID> usedIds = used.stream().map(ExerciseImage::getImageId).collect(Collectors.toSet());
+        List<ExerciseImage> link = used.stream().filter(i -> i.getExerciseId() == null).toList();
+        link.forEach(i -> i.setExerciseId(e.getExerciseId()));
+        if (!link.isEmpty()) images.saveAll(link);
+        List<UUID> stale = previousImages.stream().filter(id -> !usedIds.contains(id)).toList();
+        if (stale.isEmpty()) return;
+        List<ExerciseImage> unlink = images.findAllById(stale);
+        unlink.forEach(i -> i.setExerciseId(null));
+        images.saveAll(unlink);
+    }
+
+    /** Ảnh của câu (null = không có). */
+    private ImageInfo imageOf(ExerciseQuestion q) {
+        JsonNode i = engine.read(q.getData()).get("image");
+        if (i == null || !i.isObject() || !i.hasNonNull("id")) return null;
+        try {
+            return new ImageInfo(UUID.fromString(i.get("id").asText()), i.path("fileName").asText("anh"),
+                    i.path("fileSize").asLong(0));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     // ================================================================== hỗ trợ

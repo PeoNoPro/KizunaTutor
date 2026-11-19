@@ -22,10 +22,32 @@ import {
   validateSubmission
 } from '../../js/assignment-helpers.js';
 import { fileChipHtml, RETRY_BUTTON_HTML } from './my-courses-ui.js';
+import {
+  groupByWeek,
+  matchesKeyword,
+  learnerStatus,
+  countStatuses,
+  sortByDeadline,
+  deadlineOf,
+  timeLeftLabel,
+  LEARNER_STATUSES
+} from '../../js/class-tabs-helpers.js';
+
+const PAGE_SIZE = 10;
 
 const $ = (id) => document.getElementById(id);
 
-const ctx = { space: null, assignments: [], detail: null, notify: () => {} };
+const ctx = {
+  space: null,
+  assignments: [],
+  detail: null,
+  notify: () => {},
+  // Bộ lọc tab Bài tập: status null = mặc định ("Cần làm" nếu có, ngược lại "Tất cả")
+  filter: { status: null, kind: '', keyword: '' },
+  limit: PAGE_SIZE,
+  openGroups: new Set(),
+  bound: false
+};
 
 function stateBox(message, retry) {
   const box = $('myAssignmentsState');
@@ -83,8 +105,16 @@ function bindCrumb() {
 }
 
 export async function loadLearnerAssignments(space, { notify } = {}) {
+  if (ctx.space?.spaceId !== space?.spaceId) {
+    ctx.filter = { status: null, kind: '', keyword: '' };
+    ctx.limit = PAGE_SIZE;
+    ctx.openGroups = new Set();
+    if ($('myAssignmentSearch')) $('myAssignmentSearch').value = '';
+    if ($('myAssignmentKind')) $('myAssignmentKind').value = '';
+  }
   ctx.space = space;
   if (notify) ctx.notify = notify;
+  bindFilters();
   const card = $('myCourseAssignments');
   const list = $('myAssignmentsList');
   if (!card || !space) return;
@@ -92,7 +122,9 @@ export async function loadLearnerAssignments(space, { notify } = {}) {
   card.classList.remove('hidden');
   $('myAssignmentsTodo')?.classList.add('hidden');
   $('myAssignmentsState').classList.add('hidden');
-  list.innerHTML = '<li class="text-on-surface-variant">Đang tải bài tập...</li>';
+  list.innerHTML = '<p class="text-on-surface-variant">Đang tải bài tập...</p>';
+  const overview = $('myOverviewAssignments');
+  if (overview) overview.innerHTML = '<li class="text-on-surface-variant">Đang tải bài tập...</li>';
   try {
     const [assignments, exercises] = await Promise.all([
       API.assignments.list(space.spaceId),
@@ -124,6 +156,7 @@ function exerciseItemHtml(e) {
     `Đã làm ${e.attemptsUsed}/${e.maxAttempts} lượt`,
     e.closesAt ? `Đóng đề ${formatDateTime(e.closesAt)}` : ''
   ].filter(Boolean).join(' · ');
+  const left = primary ? timeLeftLabel(e.closesAt) : '';
   return `
     <li class="flex flex-wrap items-center gap-3.5 p-4 rounded-xl ${primary ? 'border border-surface-container-high' : 'bg-surface-container-low'}">
       <div class="mc-icon ${primary ? 'bg-primary-fixed text-on-primary-fixed-variant' : 'bg-surface-container-lowest text-on-surface-variant'}" aria-hidden="true">
@@ -134,35 +167,143 @@ function exerciseItemHtml(e) {
           <span class="kz-badge ${primary ? '' : 'bg-surface-container-lowest'}">Làm trực tiếp</span>
           <span class="kz-badge" data-tone="${tone}">${escapeHtml(status)}</span>
         </div>
-        <p class="font-body-sm text-body-sm text-on-surface-variant">${escapeHtml(meta)}</p>
+        <p class="font-body-sm text-body-sm text-on-surface-variant">${escapeHtml(meta)}${left ? ` · <b class="text-tertiary">${escapeHtml(left)}</b>` : ''}</p>
       </div>
       <a class="kz-btn ${primary ? 'kz-btn-primary' : 'bg-surface-container-lowest shadow-sm'} h-11 px-4 no-underline shrink-0" href="${url}">${primary ? '<span class="material-symbols-outlined text-[18px]" aria-hidden="true">play_arrow</span>' : ''}${button}</a>
     </li>`;
 }
 
+const itemHtml = (it) => (it.kind === 'online' ? exerciseItemHtml(it.e) : fileItemHtml(it.a));
+
+function bindOpenButtons(root) {
+  root.querySelectorAll('[data-open-assignment]').forEach((btn) => {
+    btn.addEventListener('click', () => openDetail(btn.dataset.openAssignment, btn.dataset.title));
+  });
+}
+
+/** Thẻ "Bài tập cần làm" ở tab Tổng quan: bài cần làm hạn gần nhất trước, rồi bài mới có điểm. */
+function renderOverview(items) {
+  const box = $('myOverviewAssignments');
+  if (!box) return;
+  $('myOverviewAssignmentsMore').textContent = items.length ? `Xem tất cả ${items.length} bài tập` : 'Mở tab Bài tập';
+  const todo = sortByDeadline(items.filter((it) => learnerStatus(it) === 'todo')).slice(0, 3);
+  const graded = items.filter((it) => learnerStatus(it) === 'graded').slice(0, Math.max(0, 3 - todo.length) || 1);
+  const rows = [...todo, ...(todo.length < 3 ? graded : [])];
+  if (!rows.length) {
+    box.innerHTML = `<li class="text-on-surface-variant">${items.length ? 'Bạn đã làm hết bài tập. ' : ''}Chưa có bài tập nào cần làm.</li>`;
+    return;
+  }
+  box.innerHTML = rows.map((it) => {
+    const isTodo = learnerStatus(it) === 'todo';
+    const isOnline = it.kind === 'online';
+    const left = timeLeftLabel(deadlineOf(it));
+    const sub = isOnline
+      ? (isTodo ? `Làm trực tiếp${it.e.closesAt ? ` · đóng ${escapeHtml(formatDateTime(it.e.closesAt))}` : ''}` : `Điểm ${formatScore(it.e.bestScore)} / ${formatScore(it.e.maxScore)}`)
+      : (isTodo ? `Nộp tệp · hạn ${escapeHtml(formatDueDate(it.a.dueDate))}` : `Điểm ${escapeHtml(formatPoints(it.a.grade))} / ${escapeHtml(formatPoints(it.a.totalPoints))}`);
+    const action = isOnline
+      ? `<a class="kz-btn ${isTodo ? 'kz-btn-primary' : ''} shrink-0 no-underline" href="/pages/exercise-take/index.html?space=${encodeURIComponent(ctx.space.spaceId)}&exercise=${encodeURIComponent(it.e.exerciseId)}">${isTodo ? (it.e.inProgressAttemptId ? 'Làm tiếp' : 'Làm bài') : 'Xem kết quả'}</a>`
+      : `<button type="button" class="kz-btn ${isTodo ? 'kz-btn-primary' : ''} shrink-0" data-open-assignment="${escapeHtml(it.a.assignmentId)}" data-title="${escapeHtml(it.a.title)}">${isTodo ? 'Nộp bài' : 'Xem'}</button>`;
+    return `
+      <li class="flex items-center gap-3 px-3.5 py-3 rounded-xl ${isTodo ? 'border border-surface-container-high' : 'bg-surface-container-low'}">
+        <span class="material-symbols-outlined text-[22px] ${isTodo ? (isOnline ? 'text-primary' : 'text-secondary') : 'text-primary'} shrink-0" aria-hidden="true">${isTodo ? (isOnline ? 'quiz' : 'upload_file') : 'task_alt'}</span>
+        <div class="flex-1 min-w-0">
+          ${isTodo ? '' : '<p class="font-body-sm text-[12px] text-on-surface-variant">Mới có điểm</p>'}
+          <p class="font-label-md text-label-md text-on-surface truncate">${escapeHtml(it.title)}</p>
+          <p class="font-body-sm text-[12px] text-on-surface-variant truncate">${sub}${isTodo && left ? ` · <b class="text-tertiary">${escapeHtml(left)}</b>` : ''}</p>
+        </div>
+        ${action}
+      </li>`;
+  }).join('');
+  bindOpenButtons(box);
+}
+
 function renderList() {
   const list = $('myAssignmentsList');
   const exercises = ctx.exercises || [];
-  if (!ctx.assignments.length && !exercises.length) {
+  const items = [
+    ...ctx.assignments.map((a) => ({ kind: 'file', at: a.createdAt, a, title: a.title })),
+    ...exercises.map((e) => ({ kind: 'online', at: e.createdAt, e, title: e.title }))
+  ].sort((x, y) => String(y.at || '').localeCompare(String(x.at || '')));
+  const counts = countStatuses(items, learnerStatus);
+  const todoBadge = $('myAssignmentsTodo');
+  if (todoBadge) {
+    todoBadge.textContent = `${counts.todo || 0} cần làm`;
+    todoBadge.classList.toggle('hidden', !counts.todo);
+  }
+  renderOverview(items);
+  if (ctx.filter.status === null || (ctx.filter.status !== 'all' && !counts[ctx.filter.status])) {
+    ctx.filter.status = counts.todo ? 'todo' : 'all';
+  }
+  $('myAssignmentChips').innerHTML = items.length ? LEARNER_STATUSES.filter((st) => st.key === 'all' || counts[st.key]).map((st) => `
+    <button type="button" class="kz-chip" data-status="${st.key}" aria-pressed="${ctx.filter.status === st.key}">${st.label} · ${counts[st.key] || 0}</button>`).join('') : '';
+  if (!items.length) {
     list.innerHTML = '';
     stateBox('Hiện chưa có bài tập nào trong lớp học này.');
     return;
   }
-  $('myAssignmentsState').classList.add('hidden');
-  const todo = exercises.filter((e) => e.inProgressAttemptId || (e.canStart && !e.attemptsUsed)).length
-    + ctx.assignments.filter((a) => a.submissionState === 'NOT_SUBMITTED').length;
-  const todoBadge = $('myAssignmentsTodo');
-  if (todoBadge) {
-    todoBadge.textContent = `${todo} cần làm`;
-    todoBadge.classList.toggle('hidden', !todo);
+  const shown = items.filter((it) => (ctx.filter.status === 'all' || learnerStatus(it) === ctx.filter.status)
+    && (!ctx.filter.kind || it.kind === ctx.filter.kind)
+    && matchesKeyword(it.title, ctx.filter.keyword));
+  if (!shown.length) {
+    list.innerHTML = '';
+    stateBox('Không có bài tập nào khớp bộ lọc.');
+    return;
   }
-  const items = [
-    ...ctx.assignments.map((a) => ({ kind: 'file', at: a.createdAt, a })),
-    ...exercises.map((e) => ({ kind: 'online', at: e.createdAt, e }))
-  ].sort((x, y) => String(y.at || '').localeCompare(String(x.at || '')));
-  list.innerHTML = items.map((it) => (it.kind === 'online' ? exerciseItemHtml(it.e) : fileItemHtml(it.a))).join('');
-  list.querySelectorAll('[data-open-assignment]').forEach((btn) => {
-    btn.addEventListener('click', () => openDetail(btn.dataset.openAssignment, btn.dataset.title));
+  $('myAssignmentsState').classList.add('hidden');
+  if (ctx.filter.status === 'todo') {
+    // Cần làm: hạn gần nhất trước, không nhóm
+    list.innerHTML = `<p class="font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant">Hạn gần nhất trước</p>
+      <ul class="flex flex-col gap-3">${sortByDeadline(shown).map(itemHtml).join('')}</ul>`;
+  } else {
+    const visible = shown.slice(0, ctx.limit);
+    list.innerHTML = groupByWeek(visible, (it) => it.at).map((g, gi) => {
+      const open = gi === 0 || ctx.openGroups.has(g.key) || ctx.filter.keyword.trim() !== '';
+      return `
+        <section>
+          <button type="button" class="kz-group-head" data-agroup="${escapeHtml(g.key)}" aria-expanded="${open}">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">${open ? 'expand_more' : 'chevron_right'}</span>${escapeHtml(g.label)}<span class="normal-case font-normal">· ${g.items.length} bài</span></button>
+          <ul class="flex flex-col gap-3 mt-2 ${open ? '' : 'hidden'}">${g.items.map(itemHtml).join('')}</ul>
+        </section>`;
+    }).join('') + (shown.length > visible.length ? `
+      <div class="flex justify-center"><button type="button" class="kz-btn" data-more-assignments>Xem thêm ${Math.min(PAGE_SIZE, shown.length - visible.length)} bài (còn ${shown.length - visible.length})</button></div>` : '');
+  }
+  bindOpenButtons(list);
+}
+
+/** Gắn sự kiện bộ lọc tab Bài tập (một lần). */
+function bindFilters() {
+  if (ctx.bound) return;
+  ctx.bound = true;
+  $('myAssignmentSearch')?.addEventListener('input', (e) => {
+    ctx.filter.keyword = e.target.value;
+    ctx.limit = PAGE_SIZE;
+    renderList();
+  });
+  $('myAssignmentKind')?.addEventListener('change', (e) => {
+    ctx.filter.kind = e.target.value;
+    ctx.limit = PAGE_SIZE;
+    renderList();
+  });
+  $('myAssignmentChips')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-status]');
+    if (!chip) return;
+    ctx.filter.status = chip.dataset.status;
+    ctx.limit = PAGE_SIZE;
+    renderList();
+  });
+  $('myAssignmentsList')?.addEventListener('click', (e) => {
+    if (e.target.closest('[data-more-assignments]')) {
+      ctx.limit += PAGE_SIZE;
+      renderList();
+      return;
+    }
+    const head = e.target.closest('[data-agroup]');
+    if (!head) return;
+    const open = head.getAttribute('aria-expanded') === 'true';
+    if (open) ctx.openGroups.delete(head.dataset.agroup); else ctx.openGroups.add(head.dataset.agroup);
+    head.setAttribute('aria-expanded', String(!open));
+    head.querySelector('.material-symbols-outlined').textContent = open ? 'chevron_right' : 'expand_more';
+    head.nextElementSibling.classList.toggle('hidden', open);
   });
 }
 
@@ -178,7 +319,7 @@ function fileItemHtml(a) {
           <span class="kz-badge ${todo ? '' : 'bg-surface-container-lowest'}">Nộp tệp</span>
           <span class="kz-badge" data-tone="${todo ? 'paused' : submissionStateTone(a.submissionState)}">${escapeHtml(submissionStateLabel(a.submissionState))}</span>
         </div>
-        <p class="font-body-sm text-body-sm text-on-surface-variant">Hạn nộp: ${escapeHtml(formatDueDate(a.dueDate))} · Điểm tối đa: ${escapeHtml(formatPoints(a.totalPoints))}
+        <p class="font-body-sm text-body-sm text-on-surface-variant">Hạn nộp: ${escapeHtml(formatDueDate(a.dueDate))}${todo && timeLeftLabel(a.dueDate) ? ` · <b class="text-tertiary">${escapeHtml(timeLeftLabel(a.dueDate))}</b>` : ''} · Điểm tối đa: ${escapeHtml(formatPoints(a.totalPoints))}
           ${a.grade !== null && a.grade !== undefined ? ` · Điểm của bạn: ${escapeHtml(formatPoints(a.grade))}` : ''}</p>
       </div>
       <button type="button" class="kz-btn ${todo ? 'kz-btn-primary' : 'bg-surface-container-lowest shadow-sm'} h-11 px-4 shrink-0" data-open-assignment="${escapeHtml(a.assignmentId)}" data-title="${escapeHtml(a.title)}">${todo ? 'Xem &amp; nộp bài' : 'Xem bài tập'}</button>

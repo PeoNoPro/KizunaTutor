@@ -186,7 +186,7 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
                 .uploadedAt(OffsetDateTime.now())
                 .build();
         TutorCredential saved = credentialRepository.save(credential);
-        storage.saveContent(saved.getCredentialId(), document.content());
+        storage.saveContent(saved.getCredentialId(), document.key(), document.content());
         return assembler.document(saved);
     }
 
@@ -216,7 +216,7 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
         }
         TutorCredential saved = credentialRepository.save(credential);
         if (document != null) {
-            storage.saveContent(saved.getCredentialId(), document.content());
+            storage.saveContent(saved.getCredentialId(), document.key(), document.content());
         }
         return assembler.document(saved);
     }

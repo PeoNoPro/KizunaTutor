@@ -5,42 +5,23 @@
  */
 
 import { API } from '../../js/api.js';
-import { formatVND } from '../../js/main.js';
 import {
   buildDiscoveryUrl,
   escapeHtml,
-  getGridColumnsClass,
   getJlptTrackData,
   getTutorInitials,
-  sanitizePublicLocation,
   selectDisplayTutors
 } from './home-helpers.js';
 
+/** Thẻ gia sư nổi bật: chỉ ảnh lớn và tên bên dưới; cả thẻ là liên kết tới hồ sơ. */
+const TUTOR_CARDS_CLASS = 'flex flex-wrap justify-center gap-5 sm:gap-6';
+const TUTOR_CARD_WIDTH = 'w-[calc(50%-10px)] sm:w-44 lg:w-52';
+
 function renderTutorSkeletonCards(count = 4) {
   return Array.from({ length: count }, () => `
-    <div class="bg-white rounded-2xl p-6 border border-[#E5DECB] shadow-sm flex flex-col justify-between space-y-4 animate-pulse">
-      <div class="space-y-4">
-        <div class="flex items-start gap-3.5">
-          <div class="w-14 h-14 rounded-2xl bg-[#ECE7DC] shrink-0"></div>
-          <div class="flex-1 space-y-2 pt-1">
-            <div class="h-4 bg-[#ECE7DC] rounded w-3/4"></div>
-            <div class="h-3 bg-[#F2EDE2] rounded w-1/2"></div>
-            <div class="h-3 bg-[#F2EDE2] rounded w-2/3"></div>
-          </div>
-        </div>
-        <div class="flex gap-2">
-          <div class="h-6 bg-[#F2EDE2] rounded-full w-16"></div>
-          <div class="h-6 bg-[#F2EDE2] rounded-full w-24"></div>
-        </div>
-        <div class="space-y-2 pt-1">
-          <div class="h-3 bg-[#F2EDE2] rounded w-full"></div>
-          <div class="h-3 bg-[#F2EDE2] rounded w-5/6"></div>
-        </div>
-      </div>
-      <div class="pt-4 border-t border-[#F0EBE0] flex items-center justify-between">
-        <div class="h-5 bg-[#ECE7DC] rounded w-24"></div>
-        <div class="h-9 bg-[#ECE7DC] rounded-xl w-24"></div>
-      </div>
+    <div class="${TUTOR_CARD_WIDTH} flex flex-col items-center animate-pulse">
+      <div class="w-full aspect-square rounded-2xl bg-[#ECE7DC]"></div>
+      <div class="h-4 bg-[#ECE7DC] rounded w-2/3 mt-3"></div>
     </div>
   `).join('');
 }
@@ -50,138 +31,18 @@ function renderTutorCard(tutor) {
     ? `/gs/${encodeURIComponent(tutor.tutorCode)}`
     : `/pages/tutor-profile/?id=${encodeURIComponent(tutor.tutorId)}`;
   const fullName = escapeHtml(tutor.fullName || 'Gia sư KizunaTutor');
-  const headline = escapeHtml(tutor.postTitle || tutor.headline || 'Gia sư tiếng Nhật 1-1');
-  const bio = escapeHtml(
-    tutor.bio || 'Lộ trình cá nhân hóa theo mục tiêu JLPT và giao tiếp thực tế cùng học viên.'
-  );
-  const jlpt = escapeHtml(tutor.highestJlptLevel || 'N2');
-  const safeLocation = escapeHtml(sanitizePublicLocation(tutor.location));
-  const expYears = Number(tutor.experienceYears || 0);
-  const reviewCount = Number(tutor.totalReviews || 0);
-  const avgRating = Number(tutor.avgRating || 0).toFixed(1);
   const initials = escapeHtml(getTutorInitials(tutor.fullName));
-  const isFeatured = tutor._sourceTag === 'featured';
 
+  // alt rỗng: tên đã hiển thị ngay bên dưới ảnh, trình đọc màn hình không cần đọc hai lần
   return `
-    <article class="bg-white border border-[#E5DECB] rounded-2xl p-6 shadow-sm hover:shadow-[0_14px_30px_-14px_rgba(15,37,69,0.2)] hover:border-[#006194]/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
-      <div class="space-y-4">
-        <div class="flex items-start gap-3.5">
-          ${tutor.avatarUrl
-            ? `<img class="w-14 h-14 rounded-2xl object-cover border border-[#E5DECB] shrink-0 bg-[#FAF8F2]" src="${escapeHtml(tutor.avatarUrl)}" alt="${fullName}">`
-            : `<div class="w-14 h-14 rounded-2xl bg-[#E0EFF7] text-[#006194] font-bold text-base flex items-center justify-center border border-[#CFE2EE] shrink-0">${initials}</div>`}
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2">
-              <h3 class="font-bold text-[#0F2545] text-[15px] group-hover:text-primary transition-colors truncate">
-                <a href="${profileUrl}">${fullName}</a>
-              </h3>
-              ${reviewCount > 0 ? `
-                <div class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-bold text-[11px] shrink-0">
-                  <span class="material-symbols-outlined filled text-[14px] text-amber-500">star</span>
-                  <span>${avgRating}</span>
-                </div>
-              ` : ''}
-            </div>
-            <p class="text-xs text-primary font-semibold truncate mt-0.5">${headline}</p>
-            <div class="flex flex-wrap items-center gap-1.5 mt-2">
-              <span class="px-2 py-0.5 rounded-md bg-sky-50 text-sky-900 text-[11px] font-bold border border-sky-200">
-                JLPT ${jlpt}
-              </span>
-              ${tutor.verified || tutor.isVerified ? `
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-semibold border border-emerald-200">
-                  <span class="material-symbols-outlined text-[13px]">verified</span>
-                  <span>Đã xác thực</span>
-                </span>
-              ` : ''}
-              ${isFeatured ? `
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-[#9F1239] text-[11px] font-semibold border border-rose-200">
-                  Tiêu biểu
-                </span>
-              ` : ''}
-            </div>
-          </div>
-        </div>
-
-        <p class="text-xs text-on-surface-variant line-clamp-2 leading-relaxed bg-[#FAF8F2] p-3.5 rounded-xl border border-[#ECE8DE]">
-          ${bio}
-        </p>
-
-        <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#52606D]">
-          <span class="inline-flex items-center gap-1 font-medium">
-            <span class="material-symbols-outlined text-[15px] text-[#006194]">work_history</span>
-            <span>${expYears} năm kinh nghiệm</span>
-          </span>
-          ${safeLocation ? `
-            <span class="inline-flex items-center gap-1 font-medium truncate max-w-[165px]">
-              <span class="material-symbols-outlined text-[15px] text-[#006194]">location_on</span>
-              <span class="truncate">${safeLocation}</span>
-            </span>
-          ` : `
-            <span class="inline-flex items-center gap-1 font-medium">
-              <span class="material-symbols-outlined text-[15px] text-[#006194]">laptop_chromebook</span>
-              <span>Học 1-1 linh hoạt</span>
-            </span>
-          `}
-        </div>
+    <a href="${profileUrl}" class="${TUTOR_CARD_WIDTH} group flex flex-col items-center text-center focus:outline-none">
+      <div class="w-full aspect-square rounded-2xl overflow-hidden bg-[#E0EFF7] border border-[#E5DECB] shadow-sm transition-all group-hover:-translate-y-1 group-hover:shadow-[0_14px_30px_-14px_rgba(15,37,69,0.35)] group-focus-visible:ring-2 group-focus-visible:ring-[#006194]">
+        ${tutor.avatarUrl
+          ? `<img class="w-full h-full object-cover" src="${escapeHtml(tutor.avatarUrl)}" alt="" loading="lazy">`
+          : `<div class="w-full h-full flex items-center justify-center text-[#006194] font-bold text-4xl">${initials}</div>`}
       </div>
-
-      ${(() => {
-        const sessionPrices = (tutor.priceItems || [])
-          .map(p => {
-            if (!p) return null;
-            if (p.pricePerSession != null && Number(p.pricePerSession) > 0) return Number(p.pricePerSession);
-            if (p.hourlyRate != null && Number(p.hourlyRate) > 0) {
-              const mins = Number(p.sessionMinutes) || 60;
-              return Math.round(Number(p.hourlyRate) * mins / 60);
-            }
-            return null;
-          })
-          .filter(v => Number.isFinite(v) && v > 0);
-        const sessionRate = sessionPrices.length > 0 ? Math.min(...sessionPrices) : (Number(tutor.hourlyRate) || 0);
-        const isFrom = sessionPrices.length > 1 || (tutor.priceItems || []).length > 1;
-
-        return `
-      <div class="pt-4 mt-4 border-t border-[#ECE8DE] flex items-center justify-between gap-3">
-        <div>
-          <span class="text-[11px] text-on-surface-variant block">Học phí tham khảo</span>
-          <span class="font-bold text-primary text-sm">
-            ${isFrom ? 'Từ ' : ''}${formatVND(sessionRate)}
-            <span class="text-[11px] font-normal text-on-surface-variant">/ buổi</span>
-          </span>
-        </div>
-        <a href="${profileUrl}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-semibold shadow-sm transition-all shrink-0 inline-flex items-center gap-1">
-          <span>Xem hồ sơ</span>
-          <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
-        </a>
-      </div>
-        `;
-      })()}
-    </article>
-  `;
-}
-
-function renderSingleTutorCompanionCard() {
-  return `
-    <article class="bg-gradient-to-br from-[#0F2545] to-[#18355C] text-white rounded-2xl p-6 shadow-md flex flex-col justify-between space-y-5">
-      <div class="space-y-3">
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-sky-200 text-xs font-semibold border border-white/15">
-          <span class="material-symbols-outlined text-[15px]">explore</span>
-          <span>Mở rộng tìm kiếm</span>
-        </span>
-        <h3 class="text-xl font-bold leading-snug">Khám phá toàn bộ hồ sơ gia sư hoặc đăng ký giảng dạy</h3>
-        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
-          Sử dụng bộ lọc chi tiết theo tỉnh/thành, chứng chỉ JLPT, khung giờ rảnh thực tế hoặc gia nhập đội ngũ gia sư KizunaTutor.
-        </p>
-      </div>
-      <div class="flex flex-wrap items-center gap-3 pt-2">
-        <a href="/tutors" class="px-4 py-2.5 rounded-xl bg-white text-[#0F2545] hover:bg-slate-100 text-xs font-bold inline-flex items-center gap-1.5 transition-colors">
-          <span>Mở bộ lọc đầy đủ</span>
-          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-        </a>
-        <a href="/register" class="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0F2545] text-xs font-bold inline-flex items-center gap-1.5 transition-colors">
-          <span>Trở thành gia sư</span>
-        </a>
-      </div>
-    </article>
+      <h3 class="mt-3 w-full font-bold text-[#0F2545] text-sm sm:text-base truncate group-hover:text-primary transition-colors">${fullName}</h3>
+    </a>
   `;
 }
 
@@ -270,7 +131,7 @@ async function loadFeaturedTutors() {
   const noteEl = document.getElementById('featured-tutors-note');
   if (!featuredContainer) return;
 
-  featuredContainer.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5';
+  featuredContainer.className = TUTOR_CARDS_CLASS;
   featuredContainer.innerHTML = renderTutorSkeletonCards(4);
 
   const [featuredRes, searchRes] = await Promise.allSettled([
@@ -317,12 +178,8 @@ async function loadFeaturedTutors() {
     }
   }
 
-  featuredContainer.className = `grid ${getGridColumnsClass(tutors.length)} gap-5 items-stretch`;
-  let cardsHtml = tutors.map(renderTutorCard).join('');
-  if (tutors.length === 1) {
-    cardsHtml += renderSingleTutorCompanionCard();
-  }
-  featuredContainer.innerHTML = cardsHtml;
+  featuredContainer.className = TUTOR_CARDS_CLASS;
+  featuredContainer.innerHTML = tutors.map(renderTutorCard).join('');
 }
 
 function initQuickSearchDock() {
@@ -448,7 +305,24 @@ function initFaqAccordion() {
   });
 }
 
+function initScrollReveal() {
+  const items = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window) || items.length === 0) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('is-visible');
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  document.documentElement.classList.add('js-reveal');
+  items.forEach((el) => observer.observe(el));
+}
+
 function initHome() {
+  initScrollReveal();
   initQuickSearchDock();
   initJlptRoadmapTabs();
   initFaqAccordion();

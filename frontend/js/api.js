@@ -1457,6 +1457,18 @@ API.exercises = {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/${encodeURIComponent(audioId)}/url`);
   },
 
+  /** Gia sư tải ảnh minh họa cho câu hỏi (PNG/JPG/WEBP/GIF ≤ 5 MB) → {imageId, fileName, fileSize}. */
+  uploadImage(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-images`, { method: 'POST', formData: fd, timeout: 120000 });
+  },
+
+  /** Nội dung ảnh của câu hỏi (Blob, có kiểm quyền bằng token). */
+  imageBlob(spaceId, imageId) {
+    return assignmentBlob(`/${encodeURIComponent(spaceId)}/exercise-images/${encodeURIComponent(imageId)}`);
+  },
+
   /**
    * Đọc file Excel câu hỏi (.xlsx, tối đa 2 MB, 200 câu), KHÔNG lưu gì.
    * → {total, valid, invalid, validPoints, rows: [{row, ok, error, type, prompt, points, data}]}

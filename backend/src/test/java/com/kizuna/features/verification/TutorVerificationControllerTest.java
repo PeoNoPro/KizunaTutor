@@ -6,6 +6,8 @@ import com.kizuna.core.entity.UserAccountStatus;
 import com.kizuna.core.repository.UserRepository;
 import com.kizuna.core.security.JwtAuthenticationFilter;
 import com.kizuna.core.security.JwtTokenProvider;
+import com.kizuna.core.security.JwtTokenVerifier;
+import com.kizuna.features.admin.service.OperationsActorResolver;
 import com.kizuna.core.security.RestAuthErrorHandlers;
 import com.kizuna.core.security.SecurityConfig;
 import com.kizuna.features.verification.controller.TutorVerificationController;
@@ -65,12 +67,11 @@ class TutorVerificationControllerTest {
     @MockBean
     private UserRepository userRepository;
 
-    /** Cấu hình FE-11 (OperationsWebConfig, chuỗi bảo mật /api/admin/operations) được nạp tự động và cần các bean này. */
     @MockBean
-    private com.kizuna.features.admin.service.OperationsActorResolver operationsActorResolver;
+    private JwtTokenVerifier jwtTokenVerifier;
 
     @MockBean
-    private com.kizuna.core.security.JwtTokenVerifier jwtTokenVerifier;
+    private OperationsActorResolver operationsActorResolver;
 
     private static RequestPostProcessor asTutor() {
         User user = User.builder().userId(UUID.randomUUID()).email("gs@kizuna.test").fullName("Gia sư")

@@ -8,6 +8,11 @@ export const LEARNER_NAV_BASE = 'nav-item flex items-center gap-3 px-3 py-2.5 ro
 export const LEARNER_NAV_ACTIVE = `${LEARNER_NAV_BASE} bg-[#007bb9] text-[#fdfcff] font-semibold shadow-sm`;
 export const LEARNER_NAV_IDLE = `${LEARNER_NAV_BASE} text-[#3f4850] font-medium hover:bg-[#e2e7ff] hover:text-[#131b2e]`;
 
+// Lớp CSS mục menu con cấp 2 (Dropdown / Accordion sub-items)
+export const LEARNER_SUBNAV_BASE = 'nav-sub-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] leading-5 transition-colors no-underline';
+export const LEARNER_SUBNAV_ACTIVE = `${LEARNER_SUBNAV_BASE} bg-[#007bb9] text-[#fdfcff] font-semibold shadow-sm`;
+export const LEARNER_SUBNAV_IDLE = `${LEARNER_SUBNAV_BASE} text-[#555f6d] font-medium hover:bg-[#e2e7ff] hover:text-[#131b2e]`;
+
 let isNavigating = false;
 let currentPathname = typeof window !== 'undefined' ? window.location.pathname : '';
 
@@ -27,35 +32,79 @@ export function initSidebarRouter() {
   window.addEventListener('popstate', handlePopState);
 }
 
-async function handleSidebarLinkClick(e) {
-  const link = e.target.closest('#learnerSidebar a[href], a[data-spa-link]');
-  if (!link) return;
+/**
+ * Kiểm tra xem một thẻ link <a> có hợp lệ để điều hướng SPA trong khung học viên hay không
+ */
+export function isEligibleForSpaNavigation(link, origin = (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')) {
+  if (!link) return false;
 
-  const href = link.getAttribute('href');
+  // Bỏ qua nếu có thuộc tính data-no-spa hoặc nằm trong phần tử có data-no-spa
+  if (link.hasAttribute?.('data-no-spa') || (typeof link.closest === 'function' && link.closest('[data-no-spa]'))) {
+    return false;
+  }
+
+  const href = typeof link.getAttribute === 'function' ? link.getAttribute('href') : link.href;
   if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) {
-    return;
+    return false;
   }
 
   // Bỏ qua nếu là link mở tab mới hoặc link ngoài domain
   if (link.target === '_blank' || href.startsWith('http://') || href.startsWith('https://')) {
-    const currentOrigin = window.location.origin;
-    if (!href.startsWith(currentOrigin)) return;
+    if (!href.startsWith(origin)) return false;
   }
 
-    // Bỏ qua các trang độc lập (Full-page / Đầy đủ giao diện): Tìm gia sư, Yêu cầu kết nối, Trang chủ
+  let targetPath = '';
+  try {
+    targetPath = new URL(href, origin).pathname.replace(/\/+$/, '') || '/';
+  } catch (err) {
+    return false;
+  }
+
+  // Bỏ qua các trang độc lập (Full-page / Đầy đủ giao diện): Trang chủ, Tìm gia sư, Yêu cầu kết nối, Đăng nhập, v.v.
   if (
-    link.hasAttribute('data-no-spa') ||
-    href.includes('/pages/tutor-discovery') ||
-    href.includes('/tutors') ||
-    href.includes('/pages/connection-requests') ||
-    href.includes('/connection-requests') ||
-    href.includes('/pages/home')
+    targetPath === '/' ||
+    targetPath === '/home' ||
+    targetPath === '/home.html' ||
+    targetPath.startsWith('/pages/home') ||
+    targetPath.includes('/tutor-discovery') ||
+    targetPath.startsWith('/tutors') ||
+    targetPath.includes('/connection-requests') ||
+    targetPath.startsWith('/login') ||
+    targetPath.startsWith('/register') ||
+    targetPath.startsWith('/admin') ||
+    targetPath.startsWith('/academic') ||
+    targetPath.startsWith('/manager') ||
+    targetPath.startsWith('/cs') ||
+    targetPath.startsWith('/tutor/')
   ) {
+    return false;
+  }
+
+  // Chỉ kích hoạt SPA với các link thuộc menu học viên (có data-menu-key hoặc data-spa-link)
+  const hasMenuKey = typeof link.hasAttribute === 'function' && link.hasAttribute('data-menu-key');
+  const hasSpaLink = typeof link.hasAttribute === 'function' && link.hasAttribute('data-spa-link');
+  if (!hasMenuKey && !hasSpaLink) {
+    return false;
+  }
+
+  return true;
+}
+
+async function handleSidebarLinkClick(e) {
+  // Bỏ qua nếu là nút toggle mở/đóng dropdown menu (xử lý riêng trong learner-layout.js)
+  if (e.target.closest('.nav-dropdown-toggle')) return;
+
+  const link = e.target.closest('#learnerSidebar a[href], a[data-spa-link]');
+  if (!link) return;
+
+  const origin = window.location.origin;
+  if (!isEligibleForSpaNavigation(link, origin)) {
     return;
   }
 
+  const href = link.getAttribute('href');
   const currentPath = window.location.pathname + window.location.search;
-  const targetUrl = new URL(href, window.location.origin).pathname + new URL(href, window.location.origin).search;
+  const targetUrl = new URL(href, origin).pathname + new URL(href, origin).search;
 
   if (currentPath === targetUrl) {
     e.preventDefault();
@@ -80,14 +129,32 @@ export async function navigateTo(targetUrl, activeLink = null, pushHistory = tru
   if (sidebar) {
     const allLinks = sidebar.querySelectorAll('a[data-menu-key]');
     allLinks.forEach(l => {
-      l.className = LEARNER_NAV_IDLE;
+      const isSub = l.classList.contains('nav-sub-item');
+      l.className = isSub ? LEARNER_SUBNAV_IDLE : LEARNER_NAV_IDLE;
       l.removeAttribute('aria-current');
     });
 
-    const activeEl = activeLink || sidebar.querySelector(`a[href="${targetUrl}"], a[href="${targetUrl.split('?')[0]}"]`);
+    const activeEl = (activeLink && activeLink.hasAttribute && activeLink.hasAttribute('data-menu-key'))
+      ? activeLink
+      : sidebar.querySelector(`a[data-menu-key][href="${targetUrl}"], a[data-menu-key][href="${targetUrl.split('?')[0]}"]`);
     if (activeEl) {
-      activeEl.className = LEARNER_NAV_ACTIVE;
+      const isSub = activeEl.classList.contains('nav-sub-item');
+      activeEl.className = isSub ? LEARNER_SUBNAV_ACTIVE : LEARNER_NAV_ACTIVE;
       activeEl.setAttribute('aria-current', 'page');
+
+      // Tự động mở dropdown cha nếu menu con đang active
+      const parentDropdown = activeEl.closest('.nav-dropdown-menu');
+      if (parentDropdown) {
+        parentDropdown.classList.remove('hidden');
+        const parentBtn = parentDropdown.previousElementSibling;
+        if (parentBtn && parentBtn.classList.contains('nav-dropdown-toggle')) {
+          parentBtn.setAttribute('aria-expanded', 'true');
+          parentBtn.classList.add('text-[#007bb9]', 'bg-[#f0f4ff]');
+          parentBtn.classList.remove('text-[#3f4850]');
+          const chevron = parentBtn.querySelector('[data-chevron]');
+          if (chevron) chevron.classList.add('rotate-180');
+        }
+      }
     }
 
     // Đóng sidebar nếu đang mở trên mobile
@@ -156,46 +223,62 @@ export async function navigateTo(targetUrl, activeLink = null, pushHistory = tru
 
     // 6. Cập nhật URL trong History (chỉ khi do người dùng click điều hướng, không phải popstate)
     if (pushHistory) {
-      window.history.pushState({ targetUrl }, '', targetUrl);
+      window.history.pushState({ kizunaPath: targetUrl }, '', targetUrl);
     }
     currentPathname = new URL(targetUrl, window.location.origin).pathname;
 
     // 7. Thay thế phần ruột <main>
     currentMain.innerHTML = newMain.innerHTML;
     currentMain.className = newMain.className;
-    currentMain.scrollTop = 0;
 
     // 8. Đồng bộ các Modal ngoài <main> nếu trang mới có định nghĩa
+    document.querySelectorAll('[data-spa-modal="true"]').forEach(el => el.remove());
     document.querySelectorAll('body > [id*="modal"], body > [id*="Modal"]').forEach(el => {
       if (!el.closest('#learnerSidebar')) {
         el.remove();
       }
     });
-    const newModals = doc.querySelectorAll('body > [id*="modal"], body > [id*="Modal"]');
+    const newModals = doc.querySelectorAll('body > [id*="modal" i], body > [id*="Modal"], body > .modal-overlay, body > [role="dialog"]');
     newModals.forEach(m => {
-      document.body.appendChild(m.cloneNode(true));
+      const existing = document.getElementById(m.id);
+      if (existing) existing.remove();
+      const clone = m.cloneNode(true);
+      clone.setAttribute('data-spa-modal', 'true');
+      document.body.appendChild(clone);
     });
 
-    // 9. Chạy các module script của trang mới
-    const moduleScripts = doc.querySelectorAll('script[type="module"][src]');
-    for (const script of moduleScripts) {
-      const src = script.getAttribute('src');
-      if (src && !src.includes('main.js') && !src.includes('learner-layout.js')) {
-        const cleanSrc = src.split('?')[0];
+    // 9. Nạp và thực thi script trang đích (Dynamic Module Loading)
+    const scripts = Array.from(doc.querySelectorAll('script'));
+    for (const s of scripts) {
+      const src = s.getAttribute('src');
+      if (src && (src.includes('/pages/') || src.includes('.js'))) {
+        // Tránh nạp lại các script hệ thống dùng chung đã có trên window
+        if (src.includes('sidebarRouter.js') || src.includes('learner-layout.js')) {
+          continue;
+        }
+
         try {
-          await import(`${cleanSrc}?t=${Date.now()}`);
+          const bustSrc = src.includes('?') ? `${src}&_ts=${Date.now()}` : `${src}?_ts=${Date.now()}`;
+          await import(bustSrc);
         } catch (scriptErr) {
-          console.debug('Lỗi nạp module trang mới:', scriptErr);
+          console.debug('[SidebarRouter] Tái kích hoạt script trang đích:', src, scriptErr.message);
         }
       }
     }
 
-    // 9. Kích hoạt sự kiện để trang mới khởi tạo DOM & Event Listeners
+    // 10. Kích hoạt sự kiện để trang mới khởi tạo DOM & Event Listeners
     document.dispatchEvent(new Event('DOMContentLoaded'));
     window.dispatchEvent(new Event('load'));
+    window.dispatchEvent(new CustomEvent('kizuna:page-mounted', {
+      detail: { url: targetUrl }
+    }));
+
+    // Cuộn mượt lên đầu trang
+    currentMain.scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: 'instant' });
 
   } catch (err) {
-    console.debug('Shell navigation fallback to full reload:', err);
+    console.warn('[SidebarRouter] Fallback sang điều hướng trình duyệt tiêu chuẩn:', err);
     window.location.href = targetUrl;
   } finally {
     if (currentMain) {
@@ -205,14 +288,20 @@ export async function navigateTo(targetUrl, activeLink = null, pushHistory = tru
   }
 }
 
+/**
+ * Xử lý nút Back/Forward trên trình duyệt
+ */
 function handlePopState(e) {
-  const newPathname = window.location.pathname;
-  // Nếu chỉ thay đổi query param, hash hoặc trạng thái nội bộ trong cùng một trang (pathname không đổi)
-  // thì để cho module của trang hiện tại tự xử lý điều hướng nội bộ
-  if (newPathname === currentPathname) {
-    return;
-  }
-  currentPathname = newPathname;
   const targetUrl = window.location.pathname + window.location.search;
   navigateTo(targetUrl, null, false);
 }
+
+export default {
+  initSidebarRouter,
+  navigateTo,
+  isEligibleForSpaNavigation,
+  LEARNER_NAV_ACTIVE,
+  LEARNER_NAV_IDLE,
+  LEARNER_SUBNAV_ACTIVE,
+  LEARNER_SUBNAV_IDLE
+};

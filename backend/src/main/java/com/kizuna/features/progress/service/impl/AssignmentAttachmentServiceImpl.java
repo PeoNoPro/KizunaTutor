@@ -13,6 +13,7 @@ import com.kizuna.features.progress.repository.AssignmentFileRepository;
 import com.kizuna.features.progress.repository.AssignmentRepository;
 import com.kizuna.features.progress.service.AssignmentAttachmentService;
 import com.kizuna.features.progress.util.SubmissionFileSupport;
+import com.kizuna.features.storage.R2FileStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,11 @@ public class AssignmentAttachmentServiceImpl implements AssignmentAttachmentServ
     private final AssignmentRepository assignmentRepository;
     private final AssignmentFileRepository fileRepository;
     private final MaterialFileValidator validator;
+    private final R2FileStore r2;
+
+    static String r2Key(UUID fileId) {
+        return "assignments/" + fileId;
+    }
 
     @Override
     @Transactional
@@ -56,8 +62,12 @@ public class AssignmentAttachmentServiceImpl implements AssignmentAttachmentServ
         // Kiểm tra hết các tệp trước khi ghi: một tệp lỗi → báo lỗi kèm tên tệp, không lưu tệp nào
         List<SubmissionFileSupport.PreparedFile> prepared = SubmissionFileSupport.prepare(validator, chosen, "de-bai");
         if (!removed.isEmpty()) fileRepository.deleteAll(removed);
+        r2.deleteAfterCommit(removed.stream().map(f -> r2Key(f.getFileId())).toList());
         for (SubmissionFileSupport.PreparedFile f : prepared) {
-            fileRepository.insertFile(UUID.randomUUID(), assignmentId, f.fileName(), f.data().length, f.data());
+            UUID fileId = UUID.randomUUID();
+            MaterialFileType type = SubmissionFileSupport.typeOf(f.fileName());
+            byte[] dbData = r2.put(r2Key(fileId), f.data(), type == null ? "application/octet-stream" : type.contentType);
+            fileRepository.insertFile(fileId, assignmentId, f.fileName(), f.data().length, dbData);
         }
         return list(assignmentId);
     }
@@ -77,7 +87,7 @@ public class AssignmentAttachmentServiceImpl implements AssignmentAttachmentServ
                 .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy bài tập trong lớp học này."));
         AssignmentFile file = fileRepository.findByFileIdAndAssignmentId(fileId, assignmentId)
                 .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy tệp đề bài."));
-        byte[] data = fileRepository.findFileData(file.getFileId());
+        byte[] data = r2.read(fileRepository.findFileData(file.getFileId()), r2Key(file.getFileId()));
         if (data == null || data.length == 0) {
             throw ClassroomException.notFound("Không tìm thấy tệp đề bài.");
         }

@@ -35,6 +35,19 @@ public class AiWritingServiceImpl implements AiWritingService {
         String formality = (request.getFormality() != null && !request.getFormality().isBlank()) ? request.getFormality() : "POLITE";
         String targetPattern = request.getGrammarPattern();
 
+        if (originalText.isEmpty()) {
+            return AiWritingCheckResponse.builder()
+                    .originalText("")
+                    .correctedText("")
+                    .score(0)
+                    .ratingBadge("Chưa có nội dung")
+                    .overallComment("Vui lòng nhập văn bản tiếng Nhật cần đánh giá.")
+                    .errors(List.of())
+                    .suggestedVocabulary(List.of())
+                    .nativeAlternatives(List.of())
+                    .build();
+        }
+
         // 1. Thử gọi AI theo nhà cung cấp, model và API key Admin đã chọn
         SystemSettingService.AiChoice ai = settings.aiChoice();
         if (ai.apiKey() != null && !ai.apiKey().isBlank()) {
@@ -43,11 +56,18 @@ public class AiWritingServiceImpl implements AiWritingService {
                 String jsonText = "GEMINI".equals(ai.provider())
                         ? callGemini(prompt, ai.model(), ai.apiKey())
                         : callOpenAiCompatible(prompt, ai.model(), ai.apiKey(), ai.baseUrl(), "OPENAI".equals(ai.provider()));
-                if (jsonText != null) {
+                if (jsonText != null && !jsonText.isBlank()) {
                     AiWritingCheckResponse result = objectMapper.readValue(stripFence(jsonText), AiWritingCheckResponse.class);
                     result.setOriginalText(originalText);
+                    result.setProvider(ai.provider());
+                    result.setModel(ai.model());
+                    result.setFallback(false);
                     return result;
                 }
+            } catch (org.springframework.web.client.HttpStatusCodeException ex) {
+                String detail = SystemSettingService.providerError(ex.getResponseBodyAsString(), ai.apiKey());
+                log.warn("Lỗi máy chủ AI {} model {} (mã {}): {}. Kích hoạt đánh giá dự phòng.",
+                        ai.provider(), ai.model(), ex.getStatusCode().value(), detail.isBlank() ? ex.getMessage() : detail);
             } catch (Exception ex) {
                 log.warn("Không thể gọi AI {} ({}), kích hoạt bộ đánh giá dự phòng: {}", ai.provider(), ex.getClass().getSimpleName(), ex.getMessage());
             }
@@ -100,7 +120,12 @@ public class AiWritingServiceImpl implements AiWritingService {
     }
 
     private static String stripFence(String jsonText) {
+        if (jsonText == null) return "{}";
         jsonText = jsonText.trim();
+        // Cắt bỏ thẻ suy luận <think>...</think> nếu có (từ DeepSeek-R1, reasoning models)
+        if (jsonText.contains("</think>")) {
+            jsonText = jsonText.substring(jsonText.indexOf("</think>") + 8).trim();
+        }
         if (jsonText.startsWith("```json")) jsonText = jsonText.substring(7);
         if (jsonText.startsWith("```")) jsonText = jsonText.substring(3);
         if (jsonText.endsWith("```")) jsonText = jsonText.substring(0, jsonText.length() - 3);
@@ -122,7 +147,11 @@ public class AiWritingServiceImpl implements AiWritingService {
                 "generationConfig", genConfig
         );
 
-        RestTemplate restTemplate = new RestTemplate();
+        var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(8000);
+        factory.setReadTimeout(45000);
+        RestTemplate restTemplate = new RestTemplate(factory);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("x-goog-api-key", apiKey);
@@ -136,20 +165,29 @@ public class AiWritingServiceImpl implements AiWritingService {
         return null;
     }
 
-    /** OpenAI và các dịch vụ theo chuẩn OpenAI (Groq, DeepSeek, OpenRouter...) cùng gọi {baseUrl}/chat/completions. */
+    /** OpenAI và các dịch vụ theo chuẩn OpenAI (Groq, DeepSeek, OpenRouter, Ollama...) cùng gọi {baseUrl}/chat/completions. */
     private String callOpenAiCompatible(String prompt, String model, String apiKey, String baseUrl, boolean jsonMode) throws Exception {
-        if (baseUrl == null || baseUrl.isBlank()) return null;
-        Map<String, Object> reqBody = new HashMap<>(Map.of(
-                "model", model,
-                "temperature", 0.3,
-                "messages", List.of(Map.of("role", "user", "content", prompt))
+        String base = (baseUrl != null && !baseUrl.isBlank()) ? baseUrl.replaceAll("/+$", "") : "https://api.openai.com/v1";
+        Map<String, Object> reqBody = new HashMap<>();
+        reqBody.put("model", model);
+        reqBody.put("temperature", 0.3);
+        reqBody.put("max_tokens", 3500); // Tăng max_tokens cho cả reasoning models và đoạn văn phân tích dài
+        reqBody.put("messages", List.of(
+                Map.of("role", "system", "content", "You are an expert Japanese teacher. Always output valid JSON without markdown formatting."),
+                Map.of("role", "user", "content", prompt)
         ));
         // Không phải dịch vụ nào cũng hỗ trợ response_format nên chỉ bật cho OpenAI.
         if (jsonMode) reqBody.put("response_format", Map.of("type", "json_object"));
+
+        var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(8000);
+        factory.setReadTimeout(45000);
+        RestTemplate restTemplate = new RestTemplate(factory);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
-        ResponseEntity<String> response = new RestTemplate().exchange(baseUrl + "/chat/completions", HttpMethod.POST, new HttpEntity<>(reqBody, headers), String.class);
+        ResponseEntity<String> response = restTemplate.exchange(base + "/chat/completions", HttpMethod.POST, new HttpEntity<>(reqBody, headers), String.class);
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             JsonNode content = objectMapper.readTree(response.getBody()).path("choices").path(0).path("message").path("content");
             if (!content.isMissingNode() && !content.asText().isBlank()) return content.asText();
@@ -296,6 +334,9 @@ public class AiWritingServiceImpl implements AiWritingService {
                 .errors(errors)
                 .suggestedVocabulary(vocabList)
                 .nativeAlternatives(alternatives)
+                .provider("SYSTEM_FALLBACK")
+                .model("RuleEngine-v1")
+                .fallback(true)
                 .build();
     }
 

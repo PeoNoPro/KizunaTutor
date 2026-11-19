@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Từ Điển Chữ Hán & Bút Thuận (Kanji Dictionary & Stroke Order)
  * Phục dựng 100% chuẩn giao diện & tính năng từ phiên bản gốc (legacy dictionary)
  * Giữ nguyên cấu trúc Layout dùng chung cho Học Viên (Header, Sidebar, Footer)
@@ -258,6 +258,30 @@ function renderStandbyState() {
 // =========================================================================
 // 5. TRUY VẤN DỮ LIỆU TỪ BACKEND API
 // =========================================================================
+function renderKanjiSkeleton(grid) {
+  if (!grid) return;
+  grid.innerHTML = Array(6).fill(0).map(() => `
+    <div class="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3 animate-pulse">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <div class="h-4 w-12 bg-slate-200 rounded-full"></div>
+        <div class="h-4 w-16 bg-slate-200 rounded-full"></div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 bg-slate-200 rounded-lg shrink-0"></div>
+        <div class="flex-1 space-y-2">
+          <div class="h-4 bg-slate-200 rounded w-2/3"></div>
+          <div class="h-3 bg-slate-100 rounded w-1/2"></div>
+        </div>
+      </div>
+      <div class="h-8 bg-slate-50 border border-slate-100 rounded-lg"></div>
+      <div class="pt-2 border-t border-slate-100 flex gap-2">
+        <div class="h-7 bg-slate-200 rounded-lg flex-1"></div>
+        <div class="h-7 bg-slate-200 rounded-lg flex-1"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
 async function loadLearnerDictionary(page = 0) {
   currentLearnerPage = page;
   const inputEl = document.getElementById('learnerSearchInput') || document.getElementById('kanjiSearchInput');
@@ -306,7 +330,7 @@ async function loadLearnerDictionary(page = 0) {
 
   const grid = document.getElementById('learnerKanjiGrid');
   if (grid) {
-    grid.innerHTML = '<div class="col-span-full py-12 text-center text-[#64748B] font-meta text-xs">Đang lật mở các trang từ điển Kanji... 🔍</div>';
+    renderKanjiSkeleton(grid);
   }
 
   isSearching = true;
@@ -322,6 +346,10 @@ async function loadLearnerDictionary(page = 0) {
       'Cache-Control': 'no-cache',
       'Pragma': 'no-cache'
     };
+    try {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+      if (token) fetchHeaders['Authorization'] = `Bearer ${token}`;
+    } catch (e) {}
 
     let res = await fetch(url, {
       method: 'GET',
@@ -331,6 +359,42 @@ async function loadLearnerDictionary(page = 0) {
       if (err.name === 'AbortError') throw err;
       return null;
     });
+
+    if (res && res.status === 401) {
+      if (grid) {
+        grid.innerHTML = `
+          <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+              <span class="material-symbols-outlined text-[24px]">lock</span>
+            </div>
+            <h3 class="text-base font-bold text-[#0F2545]">Vui lòng đăng nhập</h3>
+            <p class="text-xs text-[#64748B]">Đăng nhập để xem danh mục từ điển Hán tự của bạn.</p>
+            <a href="/pages/login/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+              <span>Đăng nhập ngay</span>
+            </a>
+          </div>
+        `;
+      }
+      renderLearnerPagination(0, 1, 0);
+      return;
+    } else if (res && res.status === 403) {
+      if (grid) {
+        grid.innerHTML = `
+          <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+              <span class="material-symbols-outlined text-[24px]">school</span>
+            </div>
+            <h3 class="text-base font-bold text-[#0F2545]">Chưa vào lớp học</h3>
+            <p class="text-xs text-[#64748B]">Bạn cần được gia sư thêm vào ít nhất một lớp học để mở khóa toàn bộ từ điển Hán tự.</p>
+            <a href="/pages/tutor-discovery/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+              <span>Tìm gia sư</span>
+            </a>
+          </div>
+        `;
+      }
+      renderLearnerPagination(0, 1, 0);
+      return;
+    }
 
     if (!res || !res.ok) {
       // Fallback endpoint công khai
@@ -395,7 +459,7 @@ function renderLearnerGrid(items) {
   window.lastRenderedDictionaryItems = items;
 
   grid.innerHTML = items.map((k, idx) => `
-    <div class="bg-white rounded-xl border-2 border-[#0F172A] shadow-[3px_3px_0px_0px_#0F172A] hover:translate-x-[-1px] hover:translate-y-[-1px] p-4 flex flex-col justify-between transition-all relative">
+    <div class="bg-white rounded-xl border border-[#E2E8F0] shadow-sm hover:border-[#CBD5E1] hover:shadow p-4 flex flex-col justify-between transition-all relative">
       <div class="space-y-3">
         <!-- Header thông tin: Cấp độ JLPT, số nét, bộ thủ -->
         <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
@@ -409,7 +473,7 @@ function renderLearnerGrid(items) {
         <!-- Nội dung chính của chữ Hán: Nằm liền mạch ngay dưới Header, không bị khoảng trống -->
         <div class="space-y-2.5">
           <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-[8px] bg-[#FAF8F2] border-2 border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center font-japanese text-3xl font-bold text-[#0F172A] shrink-0 select-none">
+            <div class="w-16 h-16 rounded-lg bg-[#FAF8F2] border border-[#E2E8F0] flex items-center justify-center font-japanese text-3xl font-bold text-[#0F172A] shrink-0 select-none">
               ${escapeHtml(k.kanjiChar)}
             </div>
             <div class="flex-1 min-w-0">
@@ -443,9 +507,15 @@ function renderLearnerGrid(items) {
                 class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer">
           <span>📁</span> Lưu Thẻ
         </button>
-        <a href="/shodo?char=${encodeURIComponent(k.kanjiChar)}" 
-           class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer">
-          <span>✍️</span> Luyện Nét
+        <a href="/shodo?char=${encodeURIComponent(k.kanjiChar)}" data-spa-link 
+           class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
+           title="Tập viết chữ này trên Canvas Shodo">
+          <span>✍️</span> Shodo
+        </a>
+        <a href="/kanji-game?jlpt=${encodeURIComponent(k.jlpt || k.jlptLevel || 'N5')}" data-spa-link 
+           class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#1E40AF] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
+           title="Thử thách Game Mưa chữ Hán theo cấp độ này">
+          <span>🌧️</span> Game
         </a>
       </div>
     </div>
@@ -453,13 +523,11 @@ function renderLearnerGrid(items) {
 
   // Gắn sự kiện click phát âm bằng VOICEVOX
   grid.querySelectorAll('[data-action="speak-kanji"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const char = btn.getAttribute('data-char');
-      btn.classList.add('scale-110');
-      voicevoxClient.speak(char).finally(() => {
-        setTimeout(() => btn.classList.remove('scale-110'), 300);
-      });
+      if (!char) return;
+      await voicevoxClient.speakWithButton(char, btn);
     });
   });
 
@@ -553,7 +621,11 @@ async function loadDeckOptions() {
     options = [{ id: 'deck_default', name: 'Bộ Thẻ Cá Nhân', count: 0 }];
   }
 
-  let htmlOptions = options.map(f => `<option value="${escapeHtml(f.id || f.name)}" data-id="${escapeHtml(f.id || '')}" data-name="${escapeHtml(f.name)}">${escapeHtml(f.name)} (${f.count} chữ)</option>`).join('');
+  const lastDeckId = localStorage.getItem('kizuna_last_selected_deck_id');
+  let htmlOptions = options.map(f => {
+    const isSelected = lastDeckId && (String(f.id) === String(lastDeckId) || f.name === lastDeckId);
+    return `<option value="${escapeHtml(f.id || f.name)}" data-id="${escapeHtml(f.id || '')}" data-name="${escapeHtml(f.name)}" ${isSelected ? 'selected' : ''}>${escapeHtml(f.name)} (${f.count} chữ)</option>`;
+  }).join('');
   htmlOptions += '<option value="__NEW__">➕ Tạo bộ thẻ mới...</option>';
   select.innerHTML = htmlOptions;
 
@@ -736,6 +808,9 @@ async function submitSaveToDeck(e) {
       deck.cards.push(newCard);
     }
     localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+    if (deck.id) {
+      localStorage.setItem('kizuna_last_selected_deck_id', String(deck.id));
+    }
 
     // 2. Đồng bộ trực tiếp đến API Backend /api/learner/decks
     let synced = false;

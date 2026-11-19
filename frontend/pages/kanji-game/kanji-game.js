@@ -1,5 +1,5 @@
 /**
- * KizunaTutor - Game Mưa Chữ Hán (Kanji Rain Typing)
+ * KizunaTutor - Trò Chơi Mưa Chữ Hán
  * Feature-Based Architecture: frontend/pages/kanji-game/
  * Tuân thủ nghiêm ngặt FRONTEND_RULES.md (Zero mock/fake data)
  * State Machine: 'LOBBY' | 'PLAYING' | 'GAMEOVER'
@@ -12,7 +12,7 @@ import { apiClient, extractKanaReadingsFromText } from '/js/apiClient.js';
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
   activeMenu: 'kanji-game',
-  pageTitle: 'Game Mưa chữ Hán',
+  pageTitle: 'Trò chơi mưa chữ Hán',
   badge: 'Đấu trường phản xạ'
 });
 
@@ -239,7 +239,8 @@ class FallingKanji {
     this.y = -this.height;
     
     // Tốc độ cơ bản: 35 đến 60 px/giây nhân theo hệ số người chơi chọn
-    this.baseSpeed = (Math.random() * 25 + 35) * speedMultiplier;
+    // Tốc độ cơ bản: 14 đến 22 px/giây (rơi chậm rãi, êm dịu, phù hợp luyện tập)
+    this.baseSpeed = (Math.random() * 8 + 14) * speedMultiplier;
 
     // Tổng hợp tất cả các chìa khóa tìm kiếm (Hiragana, Katakana, Romaji, Hán-Việt có/không dấu)
     this.searchKeys = [];
@@ -394,7 +395,6 @@ const deckInfoCount = document.getElementById('deckInfoCount');
 const durationBtns = document.querySelectorAll('.duration-btn');
 const speedBtns = document.querySelectorAll('.speed-btn');
 const hintBtns = document.querySelectorAll('.hint-btn');
-const leaderboardList = document.getElementById('leaderboardList');
 
 // DOM References - Screen 2: Gameplay
 const canvas = document.getElementById('kanjiRainCanvas');
@@ -443,11 +443,11 @@ let fallingItems = [];
 let particles = [];
 let lastTimestamp = 0;
 let spawnTimer = 0;
-let spawnInterval = 2.4; // giây
+let spawnInterval = 3.6; // giây
 
 let selectedDuration = 60; // giây (60, 180, 300)
 let remainingTime = 60;
-let speedMultiplier = 1; // 1 (chill), 1.5 (standard), 2.2 (blitz)
+let speedMultiplier = 0.6; // Mặc định tốc độ Luyện tập chậm rãi (0.6: Luyện tập, 1.0: Thư thái, 1.5: Tiêu chuẩn) // 1 (chill), 1.5 (standard), 2.2 (blitz)
 let showAnswerHint = false; // Máº·c Ä‘á»‹nh khÃ´ng hiá»ƒn thá»‹ Ä‘Ã¡p Ã¡n (theo yÃªu cáº§u thá»­ thÃ¡ch)
 
 let score = 0;
@@ -483,7 +483,6 @@ function setGameState(state) {
     }, 60);
   } else if (state === 'LOBBY') {
     isRunning = false;
-    loadLeaderboard();
   }
 }
 
@@ -908,7 +907,7 @@ function gameLoop(timestamp) {
 
   // Cập nhật sinh chữ rơi theo nhịp
   spawnTimer += dt;
-  const currentInterval = Math.max(1.2, spawnInterval - (wordsTyped / 30) * 0.8);
+  const currentInterval = Math.max(2.2, (spawnInterval / Math.max(0.6, speedMultiplier)) - (wordsTyped / 30) * 0.4);
   if (spawnTimer >= currentInterval) {
     spawnTimer = 0;
     spawnKanji();
@@ -936,7 +935,7 @@ function gameLoop(timestamp) {
   ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
   ctx.font = 'bold 10px sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText('RANH GIỚI BẢO VỆ', width - 12, dangerY - 6);
+  ctx.fillText('Ranh giới bảo vệ', width - 12, dangerY - 6);
   ctx.restore();
 
   // 2. Cập nhật & Vẽ các chữ đang rơi (Vẽ chữ đang gõ đè lên trên cùng)
@@ -989,7 +988,7 @@ function updateHud() {
 
   if (hudComboBadge) {
     if (combo >= 2) {
-      hudComboBadge.textContent = `Combo x${combo}`;
+      hudComboBadge.textContent = `Chuỗi x${combo}`;
       hudComboBadge.classList.remove('hidden');
     } else {
       hudComboBadge.classList.add('hidden');
@@ -1242,12 +1241,12 @@ async function endGame(isWon, failedKanji = null) {
             </div>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
-            <a href="/shodo?char=${encodeURIComponent(m.char)}"
+            <a href="/shodo?char=${encodeURIComponent(m.char)}" data-spa-link
                class="px-2.5 py-1.5 rounded-lg bg-white border border-[#CBD5E1] hover:bg-slate-50 text-[#1E293B] font-semibold text-[11px] no-underline transition shadow-2xs flex items-center gap-1">
               <span>🖌️</span>
               <span>Luyện viết</span>
             </a>
-            <a href="/kanji-dictionary?q=${encodeURIComponent(m.char)}"
+            <a href="/kanji-dictionary?q=${encodeURIComponent(m.char)}" data-spa-link
                class="px-2.5 py-1.5 rounded-lg bg-white border border-[#CBD5E1] hover:bg-slate-50 text-[#1E293B] font-semibold text-[11px] no-underline transition shadow-2xs flex items-center gap-1">
               <span>📚</span>
               <span>Từ điển</span>
@@ -1288,59 +1287,17 @@ async function endGame(isWon, failedKanji = null) {
       body: JSON.stringify(payload)
     });
 
-    // Cập nhật lại Bảng xếp hạng
-    loadLeaderboard();
   } catch (err) {
     console.debug('Lỗi khi lưu phiên chơi lên backend:', err);
   }
 }
 
-// =========================================================================
-// 12. TẢI BẢNG XẾP HẠNG TỪ BACKEND
-// =========================================================================
-async function loadLeaderboard() {
-  if (!leaderboardList) return;
-  try {
-    const res = await fetch('/api/learner/minigame/leaderboard');
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        leaderboardList.innerHTML = data.slice(0, 5).map((item, idx) => {
-          const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `#${idx + 1}`));
-          return `
-            <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF8F2] border border-[#ECE8DE] text-xs">
-              <div class="flex items-center gap-2.5">
-                <span class="w-6 text-center font-bold text-sm">${medal}</span>
-                <div>
-                  <div class="font-bold text-[#0F172A]">${item.titleRank || 'Chiến Binh'}</div>
-                  <div class="text-[10px] text-[#64748B]">${item.wordsTypedCount} chữ • Chính xác ${item.accuracy}%</div>
-                </div>
-              </div>
-              <span class="font-extrabold text-[#831843] text-sm">${item.score} đ</span>
-            </div>
-          `;
-        }).join('');
-        return;
-      }
-    }
-  } catch (e) {
-    console.debug('Lỗi fetch leaderboard:', e);
-  }
-
-  leaderboardList.innerHTML = `
-    <div class="py-6 text-center text-xs text-[#64748B] space-y-2">
-      <span class="material-symbols-outlined text-3xl text-slate-300">hourglass_empty</span>
-      <p>Chưa có phiên chơi nào được lưu.</p>
-    </div>
-  `;
-}
 
 // =========================================================================
 // 13. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN
 // =========================================================================
 document.addEventListener('DOMContentLoaded', async () => {
   await populatePersonalDecksDropdown();
-  loadLeaderboard();
 
   // Tự động chọn bộ thẻ từ URL param (?deckId=... hoặc ?id=...)
   const urlParams = new URLSearchParams(window.location.search);
@@ -1459,7 +1416,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       btn.classList.add('active', 'bg-[#9F1239]', 'text-white', 'shadow-xs');
       btn.classList.remove('bg-white', 'text-[#1E293B]', 'border-[#CBD5E1]');
-      speedMultiplier = parseFloat(btn.dataset.speed) || 1;
+      speedMultiplier = parseFloat(btn.dataset.speed) || 0.6;
     });
   });
 

@@ -71,7 +71,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addViewController("/tutor/membership/result").setViewName("forward:/pages/tutor-membership-result/index.html");
         registry.addViewController("/manager/membership-plans").setViewName("forward:/pages/manager-membership-plans/index.html");
         registry.addViewController("/manager/tutor-memberships").setViewName("forward:/pages/manager-tutor-memberships/index.html");
-        registry.addViewController("/manager/users").setViewName("forward:/pages/manager-users/index.html");
+        registry.addViewController("/manager/accounts").setViewName("forward:/pages/manager-accounts/index.html");
         registry.addViewController("/admin/payments").setViewName("forward:/pages/admin-payments/index.html");
         // Trang trả về của VNPay mở ở cổng backend: các liên kết sidebar phải mở được ở đây (giống frontend/server.js)
         forwardWithSlash(registry, "/tutor/classrooms", "tutor-classrooms");
@@ -79,6 +79,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         forwardWithSlash(registry, "/academic/posts", "academic-posts");
         forwardWithSlash(registry, "/academic/history", "academic-review-history");
         forwardWithSlash(registry, "/academic/profile", "academic-profile");
+        forwardWithSlash(registry, "/tutor/profile", "tutor-teaching-profile");
+        forwardWithSlash(registry, "/manager/users", "manager-users");
         forwardWithSlash(registry, "/academic/content-import", "academic-content-import");
         forwardWithSlash(registry, "/my-courses", "my-courses");
         forwardWithSlash(registry, "/learner/my-courses", "my-courses");

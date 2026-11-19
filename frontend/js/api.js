@@ -55,11 +55,12 @@ const DEFAULT_ERROR_MESSAGE = 'Không thể kết nối đến máy chủ. Vui l
  * Lỗi API đã được ánh xạ sang thông điệp tiếng Việt từ backend (code, message, fields, missingDocuments).
  */
 export class ApiError extends Error {
-  constructor({ status = 0, code = 'NETWORK_ERROR', message = DEFAULT_ERROR_MESSAGE, fields = {}, missingDocuments = [] } = {}) {
+  constructor({ status = 0, code = 'NETWORK_ERROR', message = DEFAULT_ERROR_MESSAGE, fields = {}, fieldErrors = [], missingDocuments = [] } = {}) {
     super(message);
     this.status = status;
     this.code = code;
     this.fields = fields || {};
+    this.fieldErrors = fieldErrors || [];
     this.missingDocuments = missingDocuments || [];
   }
 }
@@ -129,6 +130,7 @@ export async function authRequest(path, { method = 'GET', body, responseType = '
         ? 'Tệp không hợp lệ. Vui lòng chọn tệp PDF, PNG hoặc JPG có dung lượng tối đa 10MB.'
         : 'Hệ thống đang bận, bạn vui lòng thử lại sau.'),
       fields: data.fields || data.details,
+      fieldErrors: Array.isArray(data.fieldErrors) ? data.fieldErrors : [],
       missingDocuments: data.missingDocuments
     });
   }
@@ -150,6 +152,9 @@ export const API = {
       if (params.keyword) queryParams.set('keyword', params.keyword.trim());
       if (params.location && params.location.trim() && params.location !== 'all') queryParams.set('location', params.location.trim());
       if (params.jlptLevel && params.jlptLevel !== 'all') queryParams.set('jlptLevel', params.jlptLevel);
+      // Mục tiêu học / hình thức học được lọc ở server theo bài đăng đang hiển thị của gia sư
+      if (params.goal && params.goal !== 'all') queryParams.set('goal', params.goal);
+      if (params.format && params.format !== 'all') queryParams.set('format', params.format);
       if (params.minPrice) queryParams.set('minPrice', params.minPrice);
       if (params.maxPrice) queryParams.set('maxPrice', params.maxPrice);
       if (params.sortBy) queryParams.set('sortBy', params.sortBy);
@@ -247,33 +252,81 @@ export const API = {
         console.error(`API.tutors.getDetail(${tutorId}) error:`, err);
         throw err;
       }
+    },
+
+    /**
+     * Khung giờ còn trống của gia sư trong một tuần (chỉ tuần hiện tại đến 3 tuần sau).
+     * @param {string} tutorId
+     * @param {string|null} weekStart - "YYYY-MM-DD" (Thứ Hai); null = tuần hiện tại
+     */
+    async getWeeklySchedule(tutorId, weekStart = null, minDuration = null) {
+      const params = new URLSearchParams();
+      if (weekStart) params.set('weekStart', weekStart);
+      if (minDuration) params.set('minDuration', minDuration);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const response = await fetch(`${API_BASE_URL}/tutors/${tutorId}/weekly-schedule${qs}`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!response.ok) {
+        let message = `Không tải được lịch rảnh: HTTP ${response.status}`;
+        try {
+          const body = await response.json();
+          if (body && body.message) message = body.message;
+        } catch (_) { /* giữ thông báo mặc định */ }
+        const err = new Error(message);
+        err.status = response.status;
+        throw err;
+      }
+      return response.json();
     }
   },
 
+  /**
+   * Kết nối gia sư trực tiếp (không cần học thử): học viên chọn các ca hằng tuần trong lịch rảnh, gia sư duyệt.
+   */
   connectionRequests: {
-    /**
-     * Gửi yêu cầu kết nối học thử với gia sư (UC-30)
-     */
-    async create(requestData) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/bookings/trial`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestData),
-          signal: AbortSignal.timeout(10000)
-        });
-
-        if (!response.ok) {
-          throw new Error(`Không thể gửi yêu cầu kết nối: HTTP ${response.status}`);
-        }
-
-        return await response.json();
-      } catch (err) {
-        console.error('API.connectionRequests.create error:', err);
+    async _call(path, { method = 'GET', body, timeout = 10000 } = {}) {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/v1/connection-requests${path}`, {
+        method,
+        headers: {
+          'Accept': 'application/json',
+          ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        signal: AbortSignal.timeout(timeout)
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = new Error(resData.message || `Lỗi máy chủ (${response.status})`);
+        err.status = response.status;
+        err.data = resData;
         throw err;
       }
+      return resData.data || resData;
+    },
+
+    /** payload: { tutorId, slots: [{ dayOfWeek, startTime: 'HH:mm', durationMinutes }], currentLevel, learningGoals, initialMessage } */
+    create(payload) {
+      return this._call('', { method: 'POST', body: payload });
+    },
+
+    /** Danh sách yêu cầu kết nối trực tiếp của tôi (học viên hoặc gia sư). */
+    getMyRequests(status = 'ALL', page = 0, size = 20) {
+      const query = new URLSearchParams({ status, page, size });
+      return this._call(`/my-requests?${query.toString()}`, { timeout: 8000 });
+    },
+
+    /** Gia sư phản hồi: { action: 'ACCEPT' | 'DECLINE', message } */
+    respond(requestId, payload) {
+      return this._call(`/${requestId}/respond`, { method: 'PUT', body: payload });
+    },
+
+    /** Học viên hủy yêu cầu đang chờ, hoặc không đồng ý lịch gia sư đã chốt. */
+    cancel(requestId) {
+      return this._call(`/${requestId}/cancel`, { method: 'PUT' });
     }
   },
 
@@ -906,6 +959,78 @@ export const API = {
     addNote(transactionId, note) {
       return authRequest(`/admin/payment-transactions/${transactionId}/notes`, { method: 'POST', body: { note } });
     }
+  },
+
+  // FE-02: Quản lý hồ sơ (specs/002-profile-management/contracts/profile-api.md)
+  learningTools: {
+    /**
+     * Trạng thái mở khóa công cụ học: { allowed, openClassCount, message, loginRequired }.
+     * Không tự chuyển về trang đăng nhập (khác authRequest) vì được gọi ngầm cả ở trang chủ:
+     * chưa đăng nhập hoặc phiên hết hạn thì trả loginRequired = true.
+     */
+    async getAccess() {
+      const loginRequired = { allowed: false, openClassCount: 0, loginRequired: true };
+      const token = getStoredToken();
+      if (!token) return loginRequired;
+      const response = await fetch(`${API_BASE_URL}/learner/learning-tools/access`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (response.status === 401) return loginRequired;
+      if (!response.ok) throw new ApiError({ status: response.status });
+      const json = await response.json();
+      return { ...json.data, loginRequired: false };
+    }
+  },
+
+  profile: {
+    /** Tải ảnh đại diện (JPG, PNG, WEBP, tối đa 5MB); trả { avatarUrl, fileName, size } */
+    uploadAvatar(file) {
+      const form = new FormData();
+      form.append('file', file);
+      return authRequest('/profile/avatar', { method: 'POST', body: form, timeoutMs: 60000 }).then((res) => res.data);
+    },
+
+    /** Hồ sơ của học viên đang đăng nhập */
+    getLearnerProfile() {
+      return authRequest('/profile/learner/me').then((res) => res.data);
+    },
+
+    /** data: fullName, phone, avatarUrl, currentLevel, targetLevel, learningGoals (email chỉ đọc) */
+    updateLearnerProfile(data) {
+      return authRequest('/profile/learner/me', { method: 'PUT', body: data }).then((res) => res.data);
+    },
+
+    /** Học viên hoặc gia sư đổi mật khẩu: currentPassword, newPassword, confirmPassword */
+    changePassword(data) {
+      return authRequest('/profile/password', { method: 'PUT', body: data });
+    },
+
+    /** Hồ sơ cá nhân và giảng dạy của gia sư đang đăng nhập */
+    getTutorProfile() {
+      return authRequest('/profile/tutor/me').then((res) => res.data);
+    },
+
+    /** Gia sư cập nhật hồ sơ cá nhân và giảng dạy (email chỉ đọc) */
+    updateTutorProfile(data) {
+      return authRequest('/profile/tutor/me', { method: 'PUT', body: data }).then((res) => res.data);
+    },
+
+    /** Quản lý / Quản trị viên tra cứu danh sách người dùng phân trang */
+    getUsers(params = {}) {
+      const q = toQuery(params);
+      return authRequest(`/profile/users${q ? `?${q}` : ''}`).then((res) => res.data);
+    },
+
+    /** Quản lý / Quản trị viên xem chi tiết một tài khoản Học viên hoặc Gia sư */
+    getUserDetail(userId) {
+      return authRequest(`/profile/users/${userId}`).then((res) => res.data);
+    },
+
+    /** Quản lý / Quản trị viên cập nhật trạng thái tài khoản kèm lý do bắt buộc */
+    updateUserStatus(userId, data) {
+      return authRequest(`/profile/users/${userId}/status`, { method: 'PUT', body: data }).then((res) => res.data);
+    }
   }
 };
 
@@ -999,8 +1124,22 @@ API.classrooms = {
   },
 
   /** Gia sư tạo lớp cho học viên đã kết nối, kèm lịch học hằng tuần (UC-93) */
-  create({ learnerId, title, schedules }) {
-    return classroomRequest('', { method: 'POST', body: { learnerId, title, schedules } });
+  /**
+   * Gia sư tạo lớp: học viên, tên lớp, lịch hằng tuần, ngày bắt đầu khóa ("yyyy-MM-dd") và tổng số buổi của khóa.
+   * Lịch tự sinh cho đủ số buổi rồi dừng.
+   */
+  create({ learnerId, title, schedules, startDate, totalSessions }) {
+    return classroomRequest('', { method: 'POST', body: { learnerId, title, schedules, startDate, totalSessions } });
+  },
+
+  /** Gia sư sửa khóa học: tổng số buổi (không nhỏ hơn số buổi đã học), ngày bắt đầu (khi chưa có buổi nào diễn ra) */
+  updateCourse(spaceId, { startDate, totalSessions }) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/course`, { method: 'PUT', body: { startDate, totalSessions } });
+  },
+
+  /** Gia sư đổi hình thức học: ONLINE (+ meetingLink) hoặc OFFLINE (+ locationDetails bắt buộc) */
+  updateDelivery(spaceId, { learningMode, meetingLink, locationDetails }) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/delivery`, { method: 'PUT', body: { learningMode, meetingLink, locationDetails } });
   },
 
   /**
@@ -1025,6 +1164,49 @@ API.classrooms = {
   updateSchedule(spaceId, scheduleId, slot) {
     return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}`,
       { method: 'PUT', body: slot });
+  },
+
+  /**
+   * Các buổi học cụ thể trong khoảng ngày [from, to] ("yyyy-MM-dd", tối đa 62 ngày) của mọi lớp đang mở mà người dùng tham gia.
+   * Mỗi phần tử: {spaceId, classTitle, partnerName, classStatus, scheduleId, extraId, originalDate, date,
+   *               startTime "HH:mm", endTime "HH:mm", moved, extra, number, totalSessions}
+   */
+  sessions(from, to) {
+    return classroomRequest(`/sessions/me?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+  },
+
+  /** Gia sư hủy riêng buổi của tuần đó (khóa tự bù thêm buổi ở cuối) */
+  cancelSession(spaceId, scheduleId, originalDate) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}/sessions/${encodeURIComponent(originalDate)}/cancel`,
+      { method: 'POST' });
+  },
+
+  /** Gia sư thêm một buổi riêng trong một tuần (tính vào tổng số buổi) */
+  addExtraSession(spaceId, { newDate, startTime, endTime }) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/extra-sessions`, { method: 'POST', body: { newDate, startTime, endTime } });
+  },
+
+  /** Gia sư dời buổi thêm sang ngày/giờ khác trong cùng tuần */
+  moveExtraSession(spaceId, extraId, { newDate, startTime, endTime }) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/extra-sessions/${encodeURIComponent(extraId)}`,
+      { method: 'PUT', body: { newDate, startTime, endTime } });
+  },
+
+  /** Gia sư hủy buổi thêm */
+  cancelExtraSession(spaceId, extraId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/extra-sessions/${encodeURIComponent(extraId)}`, { method: 'DELETE' });
+  },
+
+  /** Gia sư dời MỘT buổi (buổi của lịch scheduleId rơi vào ngày originalDate) sang ngày/giờ khác trong cùng tuần */
+  moveSession(spaceId, scheduleId, originalDate, { newDate, startTime, endTime }) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}/sessions/${encodeURIComponent(originalDate)}`,
+      { method: 'PUT', body: { newDate, startTime, endTime } });
+  },
+
+  /** Gia sư đưa buổi đã dời về lại lịch gốc */
+  restoreSession(spaceId, scheduleId, originalDate) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/schedules/${encodeURIComponent(scheduleId)}/sessions/${encodeURIComponent(originalDate)}`,
+      { method: 'DELETE' });
   },
 
   detail(spaceId) {
@@ -1099,11 +1281,12 @@ API.classrooms = {
 // FE-07: BÀI TẬP, NỘP BÀI & CHẤM ĐIỂM (Homework, Assessment & Progress Tracking)
 // Bổ sung riêng cho FE-07, dùng lại classroomRequest/classroomAuthHeaders của FE-06.
 // =========================================================================
-function assignmentFormData({ title, description, dueDate, totalPoints, files, removeFileIds }) {
+function assignmentFormData({ title, description, dueDate, totalPoints, opensAt, files, removeFileIds }) {
   const fd = new FormData();
   fd.append('title', title ?? '');
   fd.append('description', description ?? '');
   if (dueDate) fd.append('dueDate', dueDate);
+  if (opensAt) fd.append('opensAt', opensAt);
   if (totalPoints !== null && totalPoints !== undefined && totalPoints !== '') fd.append('totalPoints', String(totalPoints));
   Array.from(files || []).forEach((f) => fd.append('file', f));
   (removeFileIds || []).forEach((id) => fd.append('removeFileIds', id));
@@ -1129,17 +1312,17 @@ API.assignments = {
    * Gia sư giao bài tập (UC-66) — MỘT lần gửi: thông tin bài tập + tệp đề bài (tối đa 5).
    * Máy chủ kiểm tra tất cả; lỗi bất kỳ (kể cả một tệp) thì không lưu gì.
    */
-  create(spaceId, { title, description, dueDate, totalPoints, files }) {
+  create(spaceId, { title, description, dueDate, totalPoints, opensAt, files }) {
     return classroomRequest(assignmentPath(spaceId), {
-      method: 'POST', formData: assignmentFormData({ title, description, dueDate, totalPoints, files }), timeout: 300000
+      method: 'POST', formData: assignmentFormData({ title, description, dueDate, totalPoints, opensAt, files }), timeout: 300000
     });
   },
 
   /** Gia sư sửa bài tập (UC-95) — MỘT lần gửi: thông tin + tệp thêm (`files`) + tệp gỡ (`removeFileIds`). */
-  update(spaceId, assignmentId, { title, description, dueDate, totalPoints, files, removeFileIds }) {
+  update(spaceId, assignmentId, { title, description, dueDate, totalPoints, opensAt, files, removeFileIds }) {
     return classroomRequest(assignmentPath(spaceId, `/${encodeURIComponent(assignmentId)}`), {
       method: 'PUT',
-      formData: assignmentFormData({ title, description, dueDate, totalPoints, files, removeFileIds }),
+      formData: assignmentFormData({ title, description, dueDate, totalPoints, opensAt, files, removeFileIds }),
       timeout: 300000
     });
   },
@@ -1217,3 +1400,117 @@ async function assignmentBlob(path) {
   }
   return await response.blob();
 }
+
+// =========================================================================
+// FE-07: BÀI LÀM TRỰC TIẾP TRÊN WEB (online exercise) — /api/classrooms/{spaceId}/exercises
+// Đề do gia sư soạn từng câu; học viên làm trên web; hệ thống chấm tự động hoặc gia sư chấm. Điểm riêng với bài nộp tệp.
+// =========================================================================
+function exercisePath(spaceId, rest = '') {
+  return `/${encodeURIComponent(spaceId)}/exercises${rest}`;
+}
+
+API.exercises = {
+  /** Gia sư: mọi bài (kể cả nháp). Học viên: bài đã giao và đã tới giờ mở. */
+  list(spaceId) {
+    return classroomRequest(exercisePath(spaceId));
+  },
+
+  /** Gia sư nhận kèm câu hỏi đầy đủ (có đáp án); học viên chỉ nhận thông tin bài. */
+  detail(spaceId, exerciseId) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}`));
+  },
+
+  /** body: {title, instructions, opensAt, closesAt, timeLimitMinutes, maxAttempts, gradingMode, showAnswers, publish, questions} */
+  create(spaceId, body) {
+    return classroomRequest(exercisePath(spaceId), { method: 'POST', body, timeout: 60000 });
+  },
+
+  update(spaceId, exerciseId, body) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}`), { method: 'PUT', body, timeout: 60000 });
+  },
+
+  remove(spaceId, exerciseId) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}`), { method: 'DELETE' });
+  },
+
+  /** Học viên bắt đầu lượt mới, hoặc nhận lại lượt đang làm dở. */
+  start(spaceId, exerciseId) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}/attempts`), { method: 'POST' });
+  },
+
+  attempts(spaceId, exerciseId) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}/attempts`));
+  },
+
+  attempt(spaceId, exerciseId, attemptId) {
+    return classroomRequest(exercisePath(spaceId, `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}`));
+  },
+
+  /** Tự lưu câu trả lời một câu trong lúc làm bài. */
+  saveAnswer(spaceId, exerciseId, attemptId, questionId, response) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/answers/${encodeURIComponent(questionId)}`),
+    { method: 'PUT', body: response ?? null });
+  },
+
+  submit(spaceId, exerciseId, attemptId) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/submit`), { method: 'POST', timeout: 60000 });
+  },
+
+  /** Gia sư chấm / sửa điểm: items = [{questionId, score, comment}] (score null = dùng điểm máy chấm). */
+  grade(spaceId, exerciseId, attemptId, items) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/grade`), { method: 'PUT', body: { items } });
+  },
+
+  /** Gia sư tải file nghe lên Cloudflare R2 (MP3/M4A/WAV/OGG/WEBM, tối đa 25 MB) → {audioId, fileName, fileSize}; gửi audioId kèm câu hỏi khi lưu bài. */
+  uploadAudio(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio`, { method: 'POST', formData: fd, timeout: 300000 });
+  },
+
+  /** Link nghe tạm của file trên R2: {url, expiresInSeconds}. Thẻ audio phát thẳng từ link này. */
+  audioUrl(spaceId, audioId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/${encodeURIComponent(audioId)}/url`);
+  },
+
+  /** Học viên: số lần đã nghe các câu nghe của lượt đang làm → [{questionId, plays, maxPlays, remaining}] (máy chủ đếm). */
+  listenStatus(spaceId, attemptId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/listen?attemptId=${encodeURIComponent(attemptId)}`);
+  },
+
+  /** Học viên bắt đầu một lần nghe (resume = xin lại link giữa chừng, không tính thêm) → {url, expiresInSeconds, plays, maxPlays, remaining}. */
+  listen(spaceId, attemptId, questionId, resume = false) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/listen`,
+      { method: 'POST', body: { attemptId, questionId, resume: !!resume } });
+  },
+
+  /** Gia sư tải ảnh minh họa cho câu hỏi (PNG/JPG/WEBP/GIF ≤ 5 MB) → {imageId, fileName, fileSize}. */
+  uploadImage(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-images`, { method: 'POST', formData: fd, timeout: 120000 });
+  },
+
+  /** Nội dung ảnh của câu hỏi (Blob, có kiểm quyền bằng token). */
+  imageBlob(spaceId, imageId) {
+    return assignmentBlob(`/${encodeURIComponent(spaceId)}/exercise-images/${encodeURIComponent(imageId)}`);
+  },
+
+  /**
+   * Đọc file Excel câu hỏi (.xlsx, tối đa 2 MB, 200 câu), KHÔNG lưu gì.
+   * → {total, valid, invalid, validPoints, rows: [{row, ok, error, type, prompt, points, data}]}
+   */
+  importPreview(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-import`, { method: 'POST', formData: fd, timeout: 120000 });
+  },
+
+  /** File Excel mẫu để nhập câu hỏi (Blob). */
+  importTemplate(spaceId) {
+    return assignmentBlob(`/${encodeURIComponent(spaceId)}/exercise-import/template`);
+  }
+};

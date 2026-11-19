@@ -1,6 +1,7 @@
 /** Đặt trang hỗ trợ và chính sách của học viên vào cùng khung sidebar với dashboard học viên. */
 import {fetchAPI} from '../api.js';
 import {getLearnerSidebarHtml,getLearnerHeaderHtml,bindLearnerLayoutEvents} from '../../components/learner-layout/learner-layout.js';
+import {initLearningToolsGuard} from '../learning-tools-access.js';
 
 /** Router của dashboard chỉ thay ruột <main>, nên trang có script khởi tạo riêng phải tải lại đầy đủ. */
 export function reloadIfInsideLearnerShell() {
@@ -30,6 +31,7 @@ export function mountLearnerFrame(active, displayName) {
     document.getElementById('sidebarUserAvatar').textContent = name.split(/\s+/).slice(-2).map(word => word[0]).join('').toLocaleUpperCase('vi-VN');
   }
   bindLearnerLayoutEvents();
+  initLearningToolsGuard();
 }
 
 /** Khách và gia sư giữ nguyên header công khai của trang chính sách. */

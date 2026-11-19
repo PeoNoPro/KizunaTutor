@@ -76,5 +76,4 @@ public class OperationsActorResolver {
     }
     public java.util.Map<String,Object> personalProfile() {var actor=requireStaff();return identities.personalProfile(actor.userId(),(String)administratorProfile().get("roleLabel"));}
     public java.util.Map<UUID,String> names(java.util.Collection<UUID> ids) { return identities.names(ids); }
-    public java.util.List<java.util.Map<String,Object>> admins() { requireAdmin(); return identities.admins(); }
 }

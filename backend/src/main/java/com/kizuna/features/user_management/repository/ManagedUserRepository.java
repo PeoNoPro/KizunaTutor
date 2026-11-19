@@ -18,7 +18,8 @@ import java.util.UUID;
  * FE-14: đọc tài khoản gia sư / học viên trên các bảng lõi (users, roles, tutors, learners), đổi đúng cột
  * users.account_status và ghi nhật ký vào system_audit_logs. Không tạo bảng, không sửa cột nào khác.
  */
-@Repository
+// Tên bean riêng: phân hệ admin (FE-11) cũng có class ManagedUserRepository; trùng tên bean mặc định làm ứng dụng không khởi động được
+@Repository("userManagementRepository")
 @RequiredArgsConstructor
 public class ManagedUserRepository {
 

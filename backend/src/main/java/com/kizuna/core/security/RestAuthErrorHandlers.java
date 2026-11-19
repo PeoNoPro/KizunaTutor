@@ -26,8 +26,13 @@ public class RestAuthErrorHandlers {
     }
 
     public AuthenticationEntryPoint authenticationEntryPoint() {
-        return (request, response, ex) -> write(response, HttpStatus.UNAUTHORIZED,
-                "UNAUTHENTICATED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        return (request, response, ex) -> {
+            if (JwtAuthenticationFilter.isBlockedAccount(request)) {
+                write(response, HttpStatus.UNAUTHORIZED, "ACCOUNT_BLOCKED", JwtAuthenticationFilter.BLOCKED_ACCOUNT_MESSAGE);
+            } else {
+                write(response, HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+            }
+        };
     }
 
     public AccessDeniedHandler accessDeniedHandler() {

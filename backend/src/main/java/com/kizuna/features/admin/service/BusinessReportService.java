@@ -28,7 +28,7 @@ public class BusinessReportService {
 
     private record Range(LocalDate startDate,LocalDate endDate,OffsetDateTime start,OffsetDateTime end) { }
     private Range range(LocalDate start,LocalDate end) {
-        var period=OperationsIncidentReportService.period(start,end,OffsetDateTime.now(operationsClock));
+        var period=ReportPeriods.period(start,end,OffsetDateTime.now(operationsClock));
         return new Range(period.start().toLocalDate(),period.endDate(),period.start(),period.endDate().plusDays(1).atStartOfDay(ZONE).toOffsetDateTime());
     }
 

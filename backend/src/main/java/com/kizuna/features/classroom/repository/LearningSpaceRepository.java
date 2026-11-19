@@ -35,8 +35,23 @@ public interface LearningSpaceRepository extends JpaRepository<LearningSpace, UU
     @Query("SELECT s.spaceId FROM LearningSpace s WHERE s.spaceId = :spaceId")
     Optional<UUID> lockById(@Param("spaceId") UUID spaceId);
 
+    /** Các lớp đang mở (ACTIVE / PAUSED) mà gia sư (tutorId) HOẶC học viên (learnerId) tham gia; tham số còn lại để null. */
+    @Query("""
+            SELECT sp FROM LearningSpace sp
+            JOIN FETCH sp.tutor t JOIN FETCH t.user
+            JOIN FETCH sp.learner l JOIN FETCH l.user
+            WHERE sp.status IN :statuses
+              AND (t.tutorId = :tutorId OR l.learnerId = :learnerId)
+            """)
+    List<LearningSpace> findOpenOfParticipants(@Param("tutorId") UUID tutorId,
+                                               @Param("learnerId") UUID learnerId,
+                                               @Param("statuses") Collection<LearningSpaceStatus> statuses);
+
     boolean existsByTutor_TutorIdAndLearner_LearnerIdAndStatusIn(UUID tutorId, UUID learnerId,
                                                                  Collection<LearningSpaceStatus> statuses);
+
+    /** Số lớp của học viên (theo user_id) đang ở các trạng thái cho trước; dùng để mở khóa công cụ học. */
+    long countByLearner_User_UserIdAndStatusIn(UUID userId, Collection<LearningSpaceStatus> statuses);
 
     /**
      * Truy vấn CHỈ ĐỌC bảng connection_requests (thuộc tutor_search, không import entity của feature đó):
@@ -64,4 +79,23 @@ public interface LearningSpaceRepository extends JpaRepository<LearningSpace, UU
                   AND cr.status = 'ACCEPTED')
             """, nativeQuery = true)
     boolean hasAcceptedConnection(@Param("tutorId") UUID tutorId, @Param("learnerId") UUID learnerId);
+
+    /** Hình thức học + địa điểm của yêu cầu kết nối khóa học đã nhận gần nhất: [learning_mode, location_details]. */
+    @Query(value = """
+            SELECT cr.learning_mode, cr.location_details FROM connection_requests cr
+            WHERE cr.tutor_id = :tutorId AND cr.learner_id = :learnerId
+              AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED'
+            ORDER BY cr.responded_at DESC NULLS LAST LIMIT 1
+            """, nativeQuery = true)
+    List<Object[]> findAcceptedConnectionDelivery(@Param("tutorId") UUID tutorId, @Param("learnerId") UUID learnerId);
+
+    /** Như {@link #findAcceptedConnectionDelivery} cho nhiều học viên trong 1 query: [learner_id, learning_mode, location_details]. */
+    @Query(value = """
+            SELECT DISTINCT ON (cr.learner_id) cr.learner_id, cr.learning_mode, cr.location_details
+            FROM connection_requests cr
+            WHERE cr.tutor_id = :tutorId AND cr.learner_id IN (:learnerIds)
+              AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED'
+            ORDER BY cr.learner_id, cr.responded_at DESC NULLS LAST
+            """, nativeQuery = true)
+    List<Object[]> findAcceptedConnectionDeliveries(@Param("tutorId") UUID tutorId, @Param("learnerIds") Collection<UUID> learnerIds);
 }

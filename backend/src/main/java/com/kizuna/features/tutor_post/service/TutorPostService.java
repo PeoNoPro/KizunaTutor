@@ -65,6 +65,10 @@ public class TutorPostService {
     private final TutorRepository tutorRepository;
     private final TutorMembershipService membershipService;
     private final UserRepository userRepository;
+    /** FE-12 (thêm 2026-11-13): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
 
     // =====================================================================
     // Gia sư
@@ -77,7 +81,7 @@ public class TutorPostService {
         TutorPost latest = postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId()).orElse(null);
         boolean editable = blocked == null && isEditable(latest, tutor.getTutorId());
         return new MyPostView(blocked == null, blocked, editable, membershipExpiresOn(tutor.getTutorId()),
-                postView(tutor.getTutorId()), PRICE_LEVEL_OPTIONS);
+                postView(tutor.getTutorId()), PRICE_LEVEL_OPTIONS, PostPriceItem.SESSION_MINUTES);
     }
 
     /** Danh sách môn học / cấp độ cho ô chọn trên giao diện (theo thứ tự khai báo của PriceLevel). */
@@ -119,12 +123,14 @@ public class TutorPostService {
         }
         SubmitPostRequest r = validate(request);
         List<PostPriceItem> prices = r.prices().stream()
-                .map(p -> new PostPriceItem(p.level(), p.hourlyRate()))
+                .map(p -> new PostPriceItem(p.level(), PostPriceItem.hourlyOf(p.pricePerSession(), p.sessionMinutes()),
+                        p.sessionMinutes(), p.pricePerSession()))
                 .toList();
 
         // Bổ sung theo yêu cầu thì sửa đúng bài đó; chưa có bài hoặc cập nhật bài đã duyệt thì tạo bản mới.
         // Bản đã duyệt giữ nguyên PUBLISHED nên học viên vẫn thấy cho tới khi bản mới được duyệt.
         boolean reuse = latest != null && latest.getStatus() == TutorPostStatus.NEEDS_REVISION;
+        boolean resubmitted = reuse; // FE-12: nội dung thông báo cho học vụ (gửi lại hay bài mới)
         TutorPost post = reuse ? latest : TutorPost.builder().tutor(tutor).build();
         post.setStatus(TutorPostStatus.PENDING_REVIEW);
         post.setRejectionReason(null);
@@ -135,10 +141,16 @@ public class TutorPostService {
         post.setSpecialties(r.specialties());
         post.setTeachingFormat(r.teachingFormat());
         post.setPriceItems(prices);
-        // Giá thấp nhất: trang Tìm gia sư lọc / sắp xếp và hiển thị "Từ ..." theo cột hourly_rate
+        // Giá thấp nhất quy ra một giờ: trang Tìm gia sư lọc / sắp xếp theo cột hourly_rate
         post.setHourlyRate(prices.stream().map(PostPriceItem::hourlyRate).min(BigDecimal::compareTo).orElseThrow());
         post.setUpdatedAt(OffsetDateTime.now(ZONE));
         postRepository.saveAndFlush(post);
+        if (notificationEvents != null) {
+            notificationEvents.publishToRole("tutor-post:" + post.getPostId() + ":submitted:" + post.getUpdatedAt(), "SYSTEM",
+                    resubmitted ? "Bài đăng gia sư được gửi lại" : "Có bài đăng gia sư mới chờ duyệt",
+                    "Gia sư " + tutor.getUser().getFullName() + (resubmitted ? " vừa sửa và gửi lại bài đăng \"" : " vừa gửi bài đăng \"") + r.title() + "\". Bài đang chờ cán bộ học vụ duyệt.",
+                    "/academic/posts", "ROLE_ACADEMIC_OFFICER");
+        }
         return postView(tutor.getTutorId());
     }
 
@@ -181,6 +193,7 @@ public class TutorPostService {
             tutor.setHeadline(post.getSpecialties().length() > 200 ? post.getSpecialties().substring(0, 200) : post.getSpecialties());
         }
         tutorRepository.save(tutor);
+        notifyTutorReviewed(post, "Bài đăng đã được duyệt", "Bài đăng \"" + post.getTitle() + "\" đã hiển thị trên trang Tìm gia sư.");
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }
 
@@ -190,6 +203,7 @@ public class TutorPostService {
         String reason = requireText(request, "Vui lòng nhập lý do từ chối.", "Lý do từ chối tối đa 2.000 ký tự.");
         TutorPost post = lockPending(postId);
         markReviewed(post, officer, TutorPostStatus.REJECTED, reason);
+        notifyTutorReviewed(post, "Bài đăng không được duyệt", "Bài đăng \"" + post.getTitle() + "\" bị từ chối. Lý do: " + reason);
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }
 
@@ -199,6 +213,7 @@ public class TutorPostService {
         String message = requireText(request, "Vui lòng nêu rõ thông tin gia sư cần bổ sung.", "Nội dung yêu cầu tối đa 2.000 ký tự.");
         TutorPost post = lockPending(postId);
         markReviewed(post, officer, TutorPostStatus.NEEDS_REVISION, message);
+        notifyTutorReviewed(post, "Cần bổ sung bài đăng", "Cán bộ học vụ cần bạn sửa bài đăng \"" + post.getTitle() + "\": " + message + " Sửa xong hãy gửi lại.");
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }
 
@@ -225,6 +240,22 @@ public class TutorPostService {
     /** Bản bài đăng đang hiển thị cho học viên. */
     public Optional<TutorPost> publishedPost(UUID tutorId) {
         return postRepository.findFirstByTutorTutorIdAndStatusOrderByReviewedAtDesc(tutorId, TutorPostStatus.PUBLISHED);
+    }
+
+    /**
+     * Bản đang hiển thị của nhiều gia sư trong 1 query: mỗi gia sư lấy dòng PUBLISHED được duyệt gần nhất
+     * (cùng quy tắc với publishedPost). Gia sư không có bài đăng thì không có trong kết quả.
+     */
+    public java.util.Map<UUID, TutorPost> publishedPosts(java.util.Collection<UUID> tutorIds) {
+        java.util.Map<UUID, TutorPost> result = new java.util.HashMap<>();
+        if (tutorIds == null || tutorIds.isEmpty()) return result;
+        java.util.Comparator<TutorPost> newestReviewed = java.util.Comparator.comparing(
+                TutorPost::getReviewedAt, java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder()));
+        for (TutorPost post : postRepository.findByTutorTutorIdInAndStatus(tutorIds, TutorPostStatus.PUBLISHED)) {
+            result.merge(post.getTutor().getTutorId(), post,
+                    (a, b) -> newestReviewed.compare(a, b) >= 0 ? a : b);
+        }
+        return result;
     }
 
     public static String formatLabel(String format) {
@@ -271,6 +302,15 @@ public class TutorPostService {
         return post;
     }
 
+    /** FE-12 (thêm 2026-11-13): báo kết quả duyệt bài đăng cho gia sư; mỗi lần duyệt (reviewedAt) chỉ một thông báo. */
+    private void notifyTutorReviewed(TutorPost post, String title, String content) {
+        if (notificationEvents == null) {
+            return;
+        }
+        notificationEvents.publish("tutor-post:" + post.getPostId() + ":reviewed:" + post.getReviewedAt(), "SYSTEM", title, content,
+                "/tutor/post", java.util.List.of(post.getTutor().getUser().getUserId()));
+    }
+
     private void markReviewed(TutorPost post, User officer, TutorPostStatus status, String reason) {
         post.setStatus(status);
         post.setRejectionReason(reason);
@@ -309,16 +349,18 @@ public class TutorPostService {
 
     /**
      * Bảng học phí: ít nhất một mục; mỗi môn học / cấp độ thuộc danh sách cố định và chỉ xuất hiện một lần;
-     * mỗi mức giá từ 10.000 đ đến 10.000.000 đ. Trả về danh sách đã chuẩn hóa, sắp theo thứ tự PriceLevel.
+     * thời lượng một buổi là 60 / 90 / 120 phút; giá một buổi từ 10.000 đ đến 10.000.000 đ.
+     * Trả về danh sách đã chuẩn hóa, sắp theo thứ tự PriceLevel.
      */
     private static List<PriceItemRequest> validatePrices(List<PriceItemRequest> input, List<String> errors) {
         if (input == null || input.isEmpty()) {
             errors.add("Vui lòng thêm ít nhất một mức học phí theo môn học hoặc cấp độ");
             return List.of();
         }
-        java.util.EnumMap<PriceLevel, BigDecimal> byLevel = new java.util.EnumMap<>(PriceLevel.class);
+        java.util.EnumMap<PriceLevel, PriceItemRequest> byLevel = new java.util.EnumMap<>(PriceLevel.class);
         boolean badLevel = false;
         boolean duplicate = false;
+        boolean badMinutes = false;
         boolean badRate = false;
         for (PriceItemRequest item : input) {
             PriceLevel level = item == null ? null : PriceLevel.fromCode(item.level());
@@ -330,11 +372,14 @@ public class TutorPostService {
                 duplicate = true;
                 continue;
             }
-            BigDecimal rate = item.hourlyRate();
+            if (item.sessionMinutes() == null || !PostPriceItem.SESSION_MINUTES.contains(item.sessionMinutes())) {
+                badMinutes = true;
+            }
+            BigDecimal rate = item.pricePerSession();
             if (rate == null || rate.compareTo(MIN_RATE) < 0 || rate.compareTo(MAX_RATE) > 0) {
                 badRate = true;
             }
-            byLevel.put(level, rate);
+            byLevel.put(level, new PriceItemRequest(level.name(), item.sessionMinutes(), rate));
         }
         if (badLevel) {
             errors.add("Vui lòng chọn môn học hoặc cấp độ cho từng mức học phí");
@@ -342,12 +387,13 @@ public class TutorPostService {
         if (duplicate) {
             errors.add("Mỗi môn học hoặc cấp độ chỉ được đặt một mức học phí");
         }
-        if (badRate) {
-            errors.add("Học phí mỗi giờ từ 10.000 đ đến 10.000.000 đ");
+        if (badMinutes) {
+            errors.add("Vui lòng chọn thời lượng mỗi buổi (60, 90 hoặc 120 phút) cho từng môn học");
         }
-        return byLevel.entrySet().stream()
-                .map(e -> new PriceItemRequest(e.getKey().name(), e.getValue()))
-                .toList();
+        if (badRate) {
+            errors.add("Học phí mỗi buổi từ 10.000 đ đến 10.000.000 đ");
+        }
+        return List.copyOf(byLevel.values());
     }
 
     /** Bảng giá để hiển thị (kèm nhãn tiếng Việt); bài cũ chưa có bảng giá trả về danh sách rỗng. */
@@ -358,7 +404,8 @@ public class TutorPostService {
         return p.getPriceItems().stream()
                 .map(i -> {
                     PriceLevel level = PriceLevel.fromCode(i.level());
-                    return new PriceItemView(i.level(), level != null ? level.label() : i.level(), i.hourlyRate());
+                    return new PriceItemView(i.level(), level != null ? level.label() : i.level(), i.hourlyRate(),
+                            i.sessionMinutes(), i.pricePerSession());
                 })
                 .toList();
     }

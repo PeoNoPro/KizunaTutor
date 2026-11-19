@@ -33,12 +33,20 @@ public class TutorSummaryResponseDTO {
     private List<com.kizuna.features.tutor_post.dto.TutorPostDtos.PriceItemView> priceItems;
     private BigDecimal avgRating;
     private Integer totalReviews;
+    private int studentCount;
+    private int lessonCount;
     private String location;
     private boolean isFeatured;
     private boolean isVerified;
     private List<String> specialties;
     private String teachingFormat;
+    /** Mã hình thức dạy gốc trong DB (tutor_posts.teaching_format): ONLINE | OFFLINE | BOTH; null khi chưa có bài đăng / chưa khai báo. */
+    private String teachingFormatCode;
     private List<TutorCredentialDTO> credentials;
     private List<TutorAvailabilityDTO> availabilities;
+    private List<TutorAvailabilityDTO> classSchedules;
+    private List<TutorBookedSlotDTO> bookedSlots;
+    /** Ca hằng tuần đã có học viên nhận qua kết nối trực tiếp (dayOfWeek: 1 = Chủ nhật ... 7 = Thứ Bảy). */
+    private List<TutorAvailabilityDTO> lockedSlots;
     private List<TutorReviewDTO> reviews;
 }

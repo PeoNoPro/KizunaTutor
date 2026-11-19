@@ -28,7 +28,7 @@ import java.util.*;
  * <ul>
  *   <li>{@code eventKey} cố định cho đúng một lần chuyển trạng thái (không dùng số ngẫu nhiên): xử lý lại cùng sự kiện
  *       không tạo thêm thông báo.</li>
- *   <li>{@code type}: SYSTEM, TRIAL, ASSIGNMENT, PAYMENT hoặc TICKET (người nhận bật/tắt theo nhóm này).</li>
+ *   <li>{@code type}: SYSTEM, TRIAL, CONNECTION, ASSIGNMENT, PAYMENT hoặc TICKET (người nhận bật/tắt theo nhóm này).</li>
  *   <li>Nội dung chỉ là chữ thường, không chứa ghi chú nội bộ, mật khẩu, mã OTP hay dữ liệu cổng thanh toán.</li>
  *   <li>{@code actionPath}: đường dẫn nội bộ bắt đầu bằng "/" để mở đúng trang liên quan; trang đó tự kiểm quyền.</li>
  *   <li>Người nhận do module nguồn chọn; tài khoản không còn hoạt động bị bỏ qua. Luôn có bản trong ứng dụng (nếu người

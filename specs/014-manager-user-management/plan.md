@@ -81,11 +81,11 @@ backend/src/test/java/com/kizuna/features/user_management/UserManagementServiceT
 backend/src/main/java/com/kizuna/core/security/SecurityConfig.java   (+1 matcher)
 backend/src/main/java/com/kizuna/core/config/WebMvcConfig.java       (+1 route)
 
-frontend/pages/manager-users/{index.html, manager-users.js, manager-users.css}   (khung admin-shell qua js/pages/operations.js)
+frontend/pages/manager-accounts/{index.html, manager-accounts.js, manager-accounts.css}   (khung admin-shell qua js/pages/operations.js; đổi từ manager-users ngày 2026-11-17)
 frontend/js/manager-users-helpers.js
 frontend/tests/manager-users-helpers.test.mjs
 frontend/js/api.js                                  (+ nhóm managerUsers)
-frontend/server.js                                  (+ route /manager/users)
+frontend/server.js                                  (+ route /manager/accounts)
 frontend/components/admin-shell/admin-shell.js      (+ 1 mục sidebar Quản lý, + 1 đường dẫn MANAGER_PATHS)
 ```
 

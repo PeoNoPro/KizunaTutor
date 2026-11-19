@@ -119,6 +119,84 @@ export function validateClassroomTitle(title) {
 }
 
 // ----------------------------------------------------------------------------
+// Khóa học: ngày bắt đầu + tổng số buổi (lịch tự sinh cho đủ số buổi rồi dừng) — khớp quy tắc máy chủ
+// ----------------------------------------------------------------------------
+export const MAX_TOTAL_SESSIONS = 500;
+
+/** "yyyy-MM-dd" theo giờ máy */
+export function localYmd(date = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+}
+
+/**
+ * Kiểm tra thông tin khóa học.
+ * @param {{startDate?: string, totalSessions?: string|number, minTotal?: number, weeklySlots?: number,
+ *          today?: string, checkStartDate?: boolean}} p
+ *   minTotal = số buổi đã học; weeklySlots = số buổi trong một tuần của lịch hằng tuần.
+ *   Tổng số buổi tối thiểu = max(minTotal, weeklySlots). checkStartDate = false khi không đổi ngày bắt đầu.
+ * @returns {{startDate?: string, totalSessions?: string}} lỗi theo từng ô
+ */
+export function validateCourseFields({ startDate, totalSessions, minTotal = 0, weeklySlots = 0, today = localYmd(), checkStartDate = true }) {
+  const errors = {};
+  if (checkStartDate) {
+    if (!startDate) errors.startDate = 'Vui lòng chọn ngày bắt đầu khóa học.';
+    else if (startDate < today) errors.startDate = 'Ngày bắt đầu khóa học phải từ hôm nay trở đi.';
+  }
+  const raw = String(totalSessions ?? '').trim();
+  const n = Number(raw);
+  const min = minCourseSessions({ started: minTotal, weeklySlots });
+  if (!raw) errors.totalSessions = 'Vui lòng nhập tổng số buổi của khóa học.';
+  else if (!Number.isInteger(n)) errors.totalSessions = 'Số buổi phải là số tròn, ví dụ 24.';
+  else if (n > MAX_TOTAL_SESSIONS) errors.totalSessions = `Mỗi khóa học có tối đa ${MAX_TOTAL_SESSIONS} buổi.`;
+  else if (n < min) errors.totalSessions = minSessionsHint({ started: minTotal, weeklySlots });
+  return errors;
+}
+
+/** Tổng số buổi tối thiểu của khóa = max(1, số buổi đã học, số buổi trong một tuần). */
+export function minCourseSessions({ started = 0, weeklySlots = 0 } = {}) {
+  return Math.max(1, started, weeklySlots);
+}
+
+/** Câu giải thích vì sao tổng số buổi phải từ mức tối thiểu trở lên. */
+export function minSessionsHint({ started = 0, weeklySlots = 0 } = {}) {
+  const min = minCourseSessions({ started, weeklySlots });
+  if (min <= 1) return 'Khóa học cần có ít nhất 1 buổi.';
+  const reason = started >= weeklySlots && started > 0
+    ? `Khóa học đã học ${started} buổi`
+    : `Lịch học có ${weeklySlots} buổi mỗi tuần`;
+  return `${reason} nên tổng số buổi cần từ ${min} buổi trở lên.`;
+}
+
+/** Dòng tóm tắt tiến độ khóa học hiển thị trong lớp. */
+export function courseSummaryText(c) {
+  if (!c) return '';
+  if (!c.totalSessions) return 'Lớp chưa có tổng số buổi nên lịch đang lặp lại hằng tuần.';
+  const parts = [`Đã học ${c.startedSessions || 0}/${c.totalSessions} buổi`];
+  if (c.courseStartDate) parts.push(`bắt đầu ${formatDateVi(c.courseStartDate)}`);
+  if (c.courseEndDate) parts.push(`dự kiến kết thúc ${formatDateVi(c.courseEndDate)}`);
+  return parts.join(' · ');
+}
+
+/**
+ * Hai dòng thời gian cho thẻ lớp ở danh sách (gia sư và học viên dùng chung):
+ * - period: "20/11/2026 → dự kiến 15/01/2027" (lớp cũ chưa có ngày bắt đầu: "Bắt đầu {ngày mở lớp}")
+ * - progress: "Đã học 3/16 buổi" (null khi lớp chưa đặt tổng số buổi)
+ */
+export function courseCardLines(c) {
+  if (!c) return { period: '', progress: null };
+  let period;
+  if (c.courseStartDate) {
+    period = formatDateVi(c.courseStartDate)
+      + (c.courseEndDate ? ` → dự kiến ${formatDateVi(c.courseEndDate)}` : '');
+  } else {
+    period = `Bắt đầu ${formatDateVi(c.createdAt)}`;
+  }
+  const progress = c.totalSessions ? `Đã học ${c.startedSessions || 0}/${c.totalSessions} buổi` : null;
+  return { period, progress };
+}
+
+// ----------------------------------------------------------------------------
 // Lịch học hằng tuần (1 = Thứ Hai ... 7 = Chủ nhật; giờ "HH:mm") — khớp quy tắc máy chủ
 // ----------------------------------------------------------------------------
 export const DAYS_OF_WEEK = [
@@ -178,6 +256,111 @@ export function summarizeSchedules(list) {
   return sorted.map((s) => `${dayOfWeekShort(s.dayOfWeek)} ${shortTime(s.startTime)}–${shortTime(s.endTime)}`).join(' · ');
 }
 
+/** Một buổi học dài 60 – 120 phút; khớp ClassScheduleRules ở máy chủ. */
+export const SESSION_MIN_MINUTES = 60;
+export const SESSION_MAX_MINUTES = 120;
+export const SESSION_DURATION_MESSAGE = 'Mỗi buổi học dài từ 60 phút đến 120 phút.';
+
+/** @returns {string|null} lỗi khi thời lượng buổi học (giờ "HH:mm") nằm ngoài 60 – 120 phút */
+export function sessionDurationError(startTime, endTime) {
+  const start = timeToMinutes(startTime);
+  const end = timeToMinutes(endTime);
+  if (start === null || end === null || end <= start) return null;
+  const length = end - start;
+  return length < SESSION_MIN_MINUTES || length > SESSION_MAX_MINUTES ? SESSION_DURATION_MESSAGE : null;
+}
+
+// ----------------------------------------------------------------------------
+// Chọn giờ học: định dạng 24 giờ, nấc 30 phút (07:00, 07:30, 08:00…);
+// giờ kết thúc chỉ gồm các mốc cách giờ bắt đầu 60 – 120 phút.
+// ----------------------------------------------------------------------------
+export const SESSION_STEP_MINUTES = 30;
+export const FIRST_START_MINUTES = 6 * 60; // 06:00
+export const LAST_START_MINUTES = 22 * 60; // 22:00
+const LAST_END_MINUTES = 23 * 60 + 30; // 23:30 — buổi học không qua ngày hôm sau
+
+/** 450 → "07:30" */
+export function minutesToTime(total) {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * Các giờ bắt đầu được chọn (06:00 → 22:00, cách nhau 30 phút).
+ * Giờ đang có của buổi cũ (vd "18:45") được giữ trong danh sách để không bị đổi ngầm.
+ */
+export function startTimeOptions(current = '') {
+  const list = [];
+  for (let m = FIRST_START_MINUTES; m <= LAST_START_MINUTES; m += SESSION_STEP_MINUTES) list.push(minutesToTime(m));
+  const cur = timeToMinutes(current);
+  if (cur !== null && !list.includes(minutesToTime(cur))) list.push(minutesToTime(cur));
+  return list.sort();
+}
+
+/**
+ * Các giờ kết thúc hợp lệ cho một giờ bắt đầu: +60, +90, +120 phút (không quá 23:30).
+ * Giờ kết thúc cũ vẫn trong khoảng 60 – 120 phút (vd buổi 75 phút) được giữ lại.
+ */
+export function endTimeOptions(startTime, current = '') {
+  const start = timeToMinutes(startTime);
+  if (start === null) return [];
+  const list = [];
+  for (let len = SESSION_MIN_MINUTES; len <= SESSION_MAX_MINUTES; len += SESSION_STEP_MINUTES) {
+    if (start + len <= LAST_END_MINUTES) list.push(minutesToTime(start + len));
+  }
+  const cur = timeToMinutes(current);
+  if (cur !== null && cur - start >= SESSION_MIN_MINUTES && cur - start <= SESSION_MAX_MINUTES
+      && cur <= LAST_END_MINUTES && !list.includes(minutesToTime(cur))) {
+    list.push(minutesToTime(cur));
+  }
+  return list.sort();
+}
+
+/** Giờ kết thúc mặc định khi đổi giờ bắt đầu: giữ thời lượng cũ nếu còn hợp lệ, không thì 90 phút (hoặc mốc đầu tiên). */
+export function pickEndTime(startTime, previousStart = '', previousEnd = '') {
+  const options = endTimeOptions(startTime);
+  if (!options.length) return '';
+  const start = timeToMinutes(startTime);
+  const oldStart = timeToMinutes(previousStart);
+  const oldEnd = timeToMinutes(previousEnd);
+  if (oldStart !== null && oldEnd !== null) {
+    const keep = minutesToTime(start + (oldEnd - oldStart));
+    if (options.includes(keep)) return keep;
+  }
+  const ninety = minutesToTime(start + 90);
+  return options.includes(ninety) ? ninety : options[0];
+}
+
+function timeOptionsHtml(values, selected, placeholder) {
+  const head = placeholder ? `<option value="">${placeholder}</option>` : '';
+  return head + values.map((v) => `<option value="${v}"${v === selected ? ' selected' : ''}>${v}</option>`).join('');
+}
+
+/**
+ * Gắn cặp ô chọn giờ bắt đầu / kết thúc (thẻ select).
+ * Đổi giờ bắt đầu thì danh sách giờ kết thúc tự cập nhật, giữ thời lượng cũ nếu được.
+ */
+export function bindSessionTimeSelects(startEl, endEl, { start = '', end = '' } = {}) {
+  const startValue = shortTime(start);
+  startEl.innerHTML = timeOptionsHtml(startTimeOptions(startValue), startValue, 'Giờ bắt đầu');
+  const fillEnd = (selectedEnd) => {
+    const s = startEl.value;
+    const options = endTimeOptions(s, selectedEnd);
+    endEl.innerHTML = s
+      ? options.map((v) => `<option value="${v}"${v === selectedEnd ? ' selected' : ''}>${v} (${durationLabel(s, v)})</option>`).join('')
+      : '<option value="">Chọn giờ bắt đầu trước</option>';
+    endEl.disabled = !s;
+  };
+  fillEnd(startValue ? (endTimeOptions(startValue, shortTime(end)).includes(shortTime(end)) ? shortTime(end) : pickEndTime(startValue)) : '');
+  let lastStart = startEl.value;
+  startEl.onchange = () => {
+    const next = pickEndTime(startEl.value, lastStart, endEl.value);
+    lastStart = startEl.value;
+    fillEnd(next);
+  };
+}
+
 /** @returns {string|null} lỗi tiếng Việt của một buổi học */
 export function validateScheduleSlot(slot) {
   const day = Number(slot?.dayOfWeek);
@@ -186,7 +369,7 @@ export function validateScheduleSlot(slot) {
   const end = timeToMinutes(slot.endTime);
   if (start === null || end === null) return 'Vui lòng nhập giờ bắt đầu và giờ kết thúc của buổi học.';
   if (end <= start) return 'Giờ kết thúc phải sau giờ bắt đầu.';
-  if (end - start < 30 || end - start > 240) return 'Mỗi buổi học dài từ 30 phút đến 4 giờ.';
+  if (end - start < SESSION_MIN_MINUTES || end - start > SESSION_MAX_MINUTES) return SESSION_DURATION_MESSAGE;
   return null;
 }
 

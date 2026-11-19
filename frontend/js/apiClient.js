@@ -175,7 +175,8 @@ export const apiClient = {
             saveStoredDecks(merged);
             return merged;
           }
-        } else {
+        } else if (res.status !== 401 && res.status !== 403) {
+          // 401/403: chưa đăng nhập hoặc chưa vào lớp; màn hình khóa (js/learning-tools-access.js) đã giải thích.
           KizunaToast.warning(`Máy chủ bộ thẻ phản hồi mã ${res.status}. Đang hiển thị bản lưu cục bộ.`);
         }
       } else {

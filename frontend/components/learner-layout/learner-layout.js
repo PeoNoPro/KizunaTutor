@@ -1,13 +1,21 @@
 /**
  * KizunaTutor - Khung Giao Diện Học Viên Dùng Chung (Learner Shared Layout)
- * Cung cấp Sidebar, Header và Footer đồng bộ cho toàn bộ các màn hình của Học Viên
+ * Cung cấp Sidebar Dropdown/Accordion, Header và Footer đồng bộ cho toàn bộ màn hình Học Viên
  * Tuân thủ nghiêm ngặt FRONTEND_RULES.md
  */
 
-import { initSidebarRouter, LEARNER_NAV_ACTIVE, LEARNER_NAV_IDLE } from '/js/sidebarRouter.js';
+import {
+  initSidebarRouter,
+  LEARNER_NAV_ACTIVE,
+  LEARNER_NAV_IDLE,
+  LEARNER_SUBNAV_ACTIVE,
+  LEARNER_SUBNAV_IDLE
+} from '/js/sidebarRouter.js';
+import { brandLogoHtml } from '/components/brand-logo/brand-logo.js';
+import { initLearningToolsGuard } from '/js/learning-tools-access.js';
 
 // =========================================================================
-// 1. CẤU HÌNH DANH MỤC MENU HỌC VIÊN
+// 1. CẤU HÌNH DANH MỤC MENU HỌC VIÊN (4 TRỤ CỘT TRI THỨC CỐT LÕI)
 // =========================================================================
 export const LEARNER_MENU_GROUPS = [
   {
@@ -19,6 +27,15 @@ export const LEARNER_MENU_GROUPS = [
         url: '/learner/dashboard',
         icon: 'grid_view',
         matcher: ['/learner/dashboard', '/learner', '/dashboard']
+      },
+      {
+        // FE-02: học viên xem và cập nhật hồ sơ cá nhân. Mở từ menu tài khoản, không hiện trong danh sách sidebar.
+        key: 'profile',
+        title: 'Hồ sơ cá nhân',
+        url: '/pages/learner-profile/',
+        icon: 'person',
+        matcher: ['/pages/learner-profile'],
+        hiddenInSidebar: true
       }
     ]
   },
@@ -27,10 +44,18 @@ export const LEARNER_MENU_GROUPS = [
     items: [
       {
         key: 'requests',
-        title: 'Thời khóa biểu & Lịch học',
+        title: 'Lịch học của tôi',
         url: '/learner/connections',
         icon: 'calendar_month',
         matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests', '/pages/learner-connections']
+      },
+      {
+        // Yêu cầu học thử và kết nối trực tiếp học viên đã gửi tới gia sư
+        key: 'my-requests',
+        title: 'Yêu cầu của tôi',
+        url: '/pages/learner-requests/',
+        icon: 'pending_actions',
+        matcher: ['/learner/requests', '/pages/learner-requests', '/connection-requests', '/pages/connection-requests']
       },
       {
         key: 'my-courses',
@@ -38,80 +63,159 @@ export const LEARNER_MENU_GROUPS = [
         url: '/pages/my-courses/',
         icon: 'school',
         matcher: ['/my-courses', '/pages/my-courses']
+      },
+      {
+        // FE-06: tài liệu học tập của mọi lớp (cùng trang Lớp học của tôi, ?view=materials)
+        key: 'my-materials',
+        title: 'Tài liệu học tập',
+        url: '/pages/my-courses/?view=materials',
+        icon: 'menu_book',
+        query: { view: 'materials' },
+        paths: ['/pages/my-courses', '/learner/my-courses', '/my-courses'],
+        noSpa: true
+      },
+      {
+        // FE-07: bài tập của mọi lớp (cùng trang Lớp học của tôi, ?view=assignments)
+        key: 'my-assignments',
+        title: 'Bài tập của tôi',
+        url: '/pages/my-courses/?view=assignments',
+        icon: 'assignment',
+        query: { view: 'assignments' },
+        paths: ['/pages/my-courses', '/learner/my-courses', '/my-courses'],
+        noSpa: true
       }
     ]
   },
   {
-    groupTitle: 'Học tập & rèn luyện',
+    groupTitle: 'Hỗ trợ học tập',
     items: [
+      // 1. Dropdown: Từ vựng & Chữ Hán (Hub trung tâm tri thức từ & chữ)
       {
-        key: 'kanji-dictionary',
-        title: 'Tra cứu chữ Hán',
-        url: '/kanji-dictionary',
-        icon: 'menu_book',
-        matcher: ['/kanji-dictionary', '/dictionary', '/kanji']
-      },
-      {
-        key: 'handwriting',
-        title: 'Tra cứu viết tay',
-        url: '/handwriting',
-        icon: 'draw',
-        matcher: ['/handwriting', '/handwriting-search', '/ohr']
-      },
-      {
-        key: 'learning-support',
-        title: 'Tra cứu từ vựng',
-        url: '/vocabulary',
+        key: 'group-vocab',
+        title: 'Từ vựng & Chữ Hán',
         icon: 'translate',
-        matcher: ['/vocabulary', '/vocab', '/learning-support', '/learner/learning-support', '/learner/vocabulary']
+        isDropdown: true,
+        children: [
+          {
+            key: 'learning-support',
+            title: 'Tra cứu từ vựng',
+            url: '/vocabulary',
+            icon: 'search',
+            matcher: ['/vocabulary', '/vocab', '/learning-support', '/learner/learning-support', '/learner/vocabulary']
+          },
+          {
+            key: 'kanji-dictionary',
+            title: 'Từ điển chữ Hán',
+            url: '/kanji-dictionary',
+            icon: 'menu_book',
+            matcher: ['/kanji-dictionary', '/dictionary', '/kanji']
+          },
+          {
+            key: 'handwriting',
+            title: 'Tra cứu viết tay AI',
+            url: '/handwriting',
+            icon: 'draw',
+            matcher: ['/handwriting', '/handwriting-search', '/ohr']
+          }
+        ]
       },
+
+      // 2. Dropdown: Ngữ pháp & Luyện viết (Hub ngữ pháp & viết câu)
       {
-        key: 'grammar',
-        title: 'Ngữ pháp & AI Sensei',
-        url: '/grammar',
+        key: 'group-grammar',
+        title: 'Ngữ pháp & Luyện viết',
         icon: 'auto_stories',
-        matcher: ['/grammar', '/openjlpt']
+        isDropdown: true,
+        children: [
+          {
+            key: 'grammar',
+            title: 'Kho ngữ pháp JLPT',
+            url: '/grammar',
+            icon: 'library_books',
+            matcher: ['/grammar', '/openjlpt']
+          },
+          {
+            key: 'ai-writing',
+            title: 'Chữa câu & Viết AI',
+            url: '/ai-writing',
+            icon: 'edit_note',
+            matcher: ['/ai-writing', '/sakubun']
+          }
+        ]
       },
+
+      // 3. Đọc hiểu Dokkai AI (Hub đọc hiểu độc lập)
       {
-        key: 'shodo',
-        title: 'Phòng luyện viết Shodo',
-        url: '/shodo',
-        icon: 'brush',
-        matcher: ['/shodo', '/shodo-practice', '/kanji-practice']
+        key: 'ai-reading',
+        title: 'Đọc hiểu Dokkai AI',
+        url: '/reading',
+        icon: 'chrome_reader_mode',
+        matcher: ['/reading', '/ai-reading', '/learner/reading', '/learner/ai-reading']
       },
+
+      // 4. Dropdown: Thực hành & Luyện đề (Hub rèn luyện & thi thử JLPT)
       {
-        key: 'kana',
-        title: 'Đấu trường gõ Kana',
-        url: '/kana',
-        icon: 'keyboard',
-        matcher: ['/kana', '/kana-quiz']
+        key: 'group-practice',
+        title: 'Thực hành & Luyện đề',
+        icon: 'psychology',
+        isDropdown: true,
+        children: [
+          // FE-13 (thêm 2026-11-17): Luyện đề JLPT.
+          {
+            key: 'practice',
+            title: 'Luyện đề thi JLPT',
+            url: '/learner/practice',
+            icon: 'quiz',
+            matcher: ['/learner/practice', '/learner/practice/', '/pages/practice', '/pages/practice-attempt', '/pages/practice-history']
+          },
+          {
+            key: 'shodo',
+            title: 'Phòng luyện viết Shodo',
+            url: '/shodo',
+            icon: 'brush',
+            matcher: ['/shodo', '/shodo-practice', '/kanji-practice']
+          },
+          {
+            key: 'kana',
+            title: 'Đấu trường gõ Kana',
+            url: '/kana',
+            icon: 'keyboard',
+            matcher: ['/kana', '/kana-quiz']
+          },
+          {
+            key: 'kanji-game',
+            title: 'Game hứng chữ Hán',
+            url: '/kanji-game',
+            icon: 'videogame_asset',
+            matcher: ['/kanji-game', '/game', '/rain']
+          }
+        ]
       },
-      {
-        key: 'ai-writing',
-        title: 'Chữa câu & Viết AI',
-        url: '/ai-writing',
-        icon: 'edit_note',
-        matcher: ['/ai-writing', '/sakubun']
-      },
+
+      // 5. Bộ thẻ của tôi (Hub Flashcards độc lập)
       {
         key: 'flashcards',
         title: 'Bộ thẻ của tôi',
         url: '/flashcards',
-        icon: '🗂️',
-        matcher: ['/flashcards', '/decks', '/learner/flashcards', '/learner/deck-detail', '/deck-detail']
+        icon: 'style',
+        matcher: [
+          '/flashcards',
+          '/decks',
+          '/learner/flashcards',
+          '/learner/deck-detail',
+          '/deck-detail',
+          '/pages/flashcards',
+          '/flashcards-study',
+          '/learner/flashcards-study',
+          '/flashcards-match',
+          '/learner/flashcards-match'
+        ]
       }
     ]
   },
   {
-    groupTitle: 'Hỗ trợ',
+    groupTitle: 'Hệ thống & trợ giúp',
     items: [
-      {
-        key: 'support',
-        title: 'Yêu cầu hỗ trợ',
-        url: '/learner/support/tickets',
-        icon: 'support_agent',
-        matcher: ['/learner/support/tickets', '/pages/support-ticket']
-      },
       {
         key: 'notifications',
         title: 'Thông báo',
@@ -120,50 +224,92 @@ export const LEARNER_MENU_GROUPS = [
         matcher: ['/pages/notifications', '/pages/notification-preferences']
       },
       {
+        key: 'support',
+        title: 'Yêu cầu hỗ trợ',
+        url: '/learner/support/tickets',
+        icon: 'support_agent',
+        matcher: ['/learner/support/tickets', '/pages/support-ticket']
+      },
+      {
         key: 'policies',
         title: 'Chính sách',
         url: '/learner/policies',
         icon: 'policy',
-        matcher: ['/learner/policies', '/pages/polic']
+        matcher: ['/learner/policies', '/pages/policies', '/pages/policy-document']
       }
     ]
   }
 ];
 
 // =========================================================================
-// 2. HELPER: XÁC ĐỊNH MENU ACTIVE DỰA VÀO ĐƯỜNG DẪN HIỆN TẠI
+// 2. HELPER: XÁC ĐỊNH MENU ACTIVE DỰA VÀO ĐƯỜNG DẪN
 // =========================================================================
 export const PAGE_META_MAP = {
   'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
-  'tutors': { title: 'Tìm gia sư Kizuna', badge: 'Gia sư & lớp học' },
-  'requests': { title: 'Thời khóa biểu & Lịch học', badge: 'Gia sư & lớp học' },
+  'profile': { title: 'Hồ sơ cá nhân', badge: 'Bàn học tập' },
+  'requests': { title: 'Lịch học của tôi', badge: 'Gia sư & lớp học' },
+  'my-requests': { title: 'Yêu cầu của tôi', badge: 'Gia sư & lớp học' },
   'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },
-  'kanji-dictionary': { title: 'Tra cứu chữ Hán', badge: 'Học tập & rèn luyện' },
-  'handwriting': { title: 'Tra cứu chữ Hán (Viết tay)', badge: 'Học tập & rèn luyện' },
-  'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Học tập & rèn luyện' },
-  'kana': { title: 'Đấu trường gõ Kana', badge: 'Học tập & rèn luyện' },
-  'flashcards': { title: 'Bộ thẻ của tôi', badge: 'Học tập & rèn luyện' },
-  'grammar': { title: 'Ngữ pháp & AI Sensei', badge: 'Học tập & rèn luyện' },
-  'ai-writing': { title: 'Luyện viết & Chữa câu AI', badge: 'Học tập & rèn luyện' },
-  'learning-support': { title: 'Tra cứu từ vựng', badge: 'Học tập & rèn luyện' },
-  'vocabulary': { title: 'Tra cứu từ vựng', badge: 'Học tập & rèn luyện' },
-  'kanji-game': { title: 'Game Mưa chữ Hán', badge: 'Học tập & rèn luyện' }
+  'my-materials': { title: 'Tài liệu học tập', badge: 'Gia sư & lớp học' },
+  'my-assignments': { title: 'Bài tập của tôi', badge: 'Gia sư & lớp học' },
+  'learning-support': { title: 'Tra cứu từ vựng', badge: 'Hỗ trợ học tập' },
+  'vocabulary': { title: 'Tra cứu từ vựng', badge: 'Hỗ trợ học tập' },
+  'kanji-dictionary': { title: 'Từ điển chữ Hán', badge: 'Hỗ trợ học tập' },
+  'handwriting': { title: 'Tra cứu viết tay AI', badge: 'Hỗ trợ học tập' },
+  'grammar': { title: 'Kho ngữ pháp JLPT', badge: 'Hỗ trợ học tập' },
+  'ai-writing': { title: 'Chữa câu & Viết AI', badge: 'Hỗ trợ học tập' },
+  'ai-reading': { title: 'Đọc hiểu Dokkai AI', badge: 'Hỗ trợ học tập' },
+  'reading': { title: 'Đọc hiểu Dokkai AI', badge: 'Hỗ trợ học tập' },
+  'practice': { title: 'Luyện đề thi JLPT', badge: 'Hỗ trợ học tập' },
+  'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Hỗ trợ học tập' },
+  'kana': { title: 'Đấu trường gõ Kana', badge: 'Hỗ trợ học tập' },
+  'kanji-game': { title: 'Game hứng chữ Hán', badge: 'Hỗ trợ học tập' },
+  'flashcards': { title: 'Bộ thẻ Flashcards', badge: 'Hỗ trợ học tập' },
+  'notifications': { title: 'Thông báo', badge: 'Hệ thống & trợ giúp' },
+  'support': { title: 'Trung tâm hỗ trợ', badge: 'Hệ thống & trợ giúp' },
+  'policies': { title: 'Chính sách & Điều khoản', badge: 'Hệ thống & trợ giúp' }
 };
 
 export function detectActiveMenu(customKey = null) {
   if (customKey) return customKey;
   const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
-  
+
+  // Mục dùng chung trang với mục khác, phân biệt bằng tham số (vd /pages/my-courses/?view=materials): xét trước
+  const params = new URLSearchParams(window.location.search);
   for (const group of LEARNER_MENU_GROUPS) {
     for (const item of group.items) {
-      if (item.key === customKey) return item.key;
-      if (item.url.replace(/\/+$/, '') === currentPath) return item.key;
-      if (item.matcher && item.matcher.some(m => currentPath.startsWith(m))) {
-        return item.key;
+      if (!item.query) continue;
+      const samePage = (item.paths || [item.url.split('?')[0].replace(/\/+$/, '')]).includes(currentPath);
+      if (samePage && Object.entries(item.query).every(([k, v]) => params.get(k) === v)) return item.key;
+    }
+  }
+
+  for (const group of LEARNER_MENU_GROUPS) {
+    for (const item of group.items) {
+      if (item.isDropdown && item.children) {
+        for (const child of item.children) {
+          if (child.key === customKey) return child.key;
+          if (child.url.replace(/\/+$/, '') === currentPath) return child.key;
+          if (child.matcher && child.matcher.some(m => currentPath.startsWith(m))) {
+            return child.key;
+          }
+        }
+      } else {
+        if (item.key === customKey) return item.key;
+        if (item.query) continue;
+        if (item.url.replace(/\/+$/, '') === currentPath) return item.key;
+        if (item.matcher && item.matcher.some(m => currentPath.startsWith(m))) {
+          return item.key;
+        }
       }
     }
   }
   return 'dashboard';
+}
+
+function isDropdownGroupActive(dropdownItem, currentActive) {
+  if (!dropdownItem.children) return false;
+  return dropdownItem.children.some(child => child.key === currentActive);
 }
 
 // =========================================================================
@@ -186,47 +332,83 @@ export function getLearnerProfile() {
   }
 }
 
-// =========================================================================
-// 4. RENDER HTML SIDEBAR HỌC VIÊN (ĐỒNG BỘ KIỂU SIDEBAR GIA SƯ — components/tutor-layout)
-// =========================================================================
-// Màu viết bằng mã hex (khớp components/tutor-layout/tailwind-theme.js) vì các trang học viên
-// không nạp theme Tailwind của gia sư; nhờ vậy sidebar hiển thị giống nhau trên mọi trang.
-
 function escapeAttr(text) {
-  return String(text == null ? '' : text)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(text || '').replace(/"/g, '&quot;');
 }
 
-/** Nạp phông Plus Jakarta Sans và bộ icon Material Symbols nếu trang chưa có (sidebar cần cả hai). */
-export function ensureLearnerLayoutAssets() {
+// =========================================================================
+// 4. TỰ ĐỘNG NẠP ASSETS
+// =========================================================================
+function ensureLearnerLayoutAssets() {
   if (typeof document === 'undefined') return;
-  const fonts = [
-    ['learnerFontJakarta', 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap'],
-    ['learnerFontSymbols', 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200']
-  ];
-  fonts.forEach(([id, href]) => {
-    if (document.getElementById(id)) return;
-    if (id === 'learnerFontSymbols' && document.querySelector('link[href*="Material+Symbols+Outlined"]')) return;
-    const link = document.createElement('link');
-    link.id = id;
-    link.rel = 'stylesheet';
-    link.href = href;
-    document.head.appendChild(link);
-  });
+
+  if (!document.querySelector('link[href*="material-symbols"]')) {
+    const iconLink = document.createElement('link');
+    iconLink.rel = 'stylesheet';
+    iconLink.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200';
+    document.head.appendChild(iconLink);
+  }
+
+  if (!document.querySelector('script[src*="tailwindcss"]') && !window.tailwind) {
+    const twScript = document.createElement('script');
+    twScript.src = 'https://cdn.tailwindcss.com';
+    document.head.appendChild(twScript);
+  }
 }
 
+// =========================================================================
+// 5. RENDER SIDEBAR HỌC VIÊN
+// =========================================================================
 export function getLearnerSidebarHtml(activeKey) {
   ensureLearnerLayoutAssets();
   const currentActive = detectActiveMenu(activeKey);
   const profile = getLearnerProfile();
 
   const menuSectionsHtml = LEARNER_MENU_GROUPS.map(group => {
-    const itemsHtml = group.items.map(item => {
+    const itemsHtml = group.items.filter(item => !item.hiddenInSidebar).map(item => {
+      // Trường hợp 1: Menu cha dạng Dropdown / Accordion (Từ vựng, Ngữ pháp, Thực hành & Luyện đề)
+      if (item.isDropdown && item.children) {
+        const isGroupOpen = isDropdownGroupActive(item, currentActive);
+
+        const subItemsHtml = item.children.map(child => {
+          const isChildActive = child.key === currentActive;
+          return `
+            <a href="${child.url}"
+               data-menu-key="${child.key}"
+               data-spa-link
+               class="${isChildActive ? LEARNER_SUBNAV_ACTIVE : LEARNER_SUBNAV_IDLE}"
+               ${isChildActive ? 'aria-current="page"' : ''}>
+              <span class="material-symbols-outlined text-[16px] shrink-0 text-slate-500">${child.icon}</span>
+              <span class="truncate">${child.title}</span>
+            </a>
+          `;
+        }).join('');
+
+        return `
+          <div class="nav-dropdown-group flex flex-col gap-0.5" data-dropdown-key="${item.key}">
+            <button type="button"
+                    class="nav-dropdown-toggle w-full flex items-center justify-between px-3 py-2 rounded-lg text-[13.5px] leading-5 font-semibold transition-colors cursor-pointer select-none text-left ${isGroupOpen ? 'text-[#007bb9] bg-[#f0f4ff]' : 'text-[#3f4850] hover:bg-[#e2e7ff] hover:text-[#131b2e]'}"
+                    aria-expanded="${isGroupOpen ? 'true' : 'false'}"
+                    aria-controls="menu-${item.key}">
+              <span class="flex items-center gap-2.5 truncate">
+                <span class="material-symbols-outlined text-[19px] shrink-0 ${isGroupOpen ? 'text-[#007bb9]' : 'text-[#555f6d]'}">${item.icon}</span>
+                <span class="truncate">${item.title}</span>
+              </span>
+              <span class="material-symbols-outlined text-[18px] text-[#707881] transition-transform duration-200 shrink-0 ${isGroupOpen ? 'rotate-180' : ''}" data-chevron>expand_more</span>
+            </button>
+            <div id="menu-${item.key}" class="nav-dropdown-menu flex flex-col gap-1 pl-2.5 ml-3 my-0.5 border-l-2 border-[#CBD5E1] transition-all duration-200 ${isGroupOpen ? '' : 'hidden'}">
+              ${subItemsHtml}
+            </div>
+          </div>
+        `;
+      }
+
+      // Trường hợp 2: Menu đơn lẻ độc lập (Dashboard, Lớp học, Đọc hiểu, Bộ thẻ của tôi)
       const isActive = item.key === currentActive;
       return `
         <a href="${item.url}"
            data-menu-key="${item.key}"
-           ${(item.key === 'tutors' || item.key === 'requests' || item.key === 'notifications' || item.key === 'support' || item.key === 'policies') ? 'data-no-spa' : 'data-spa-link'}
+           ${(item.noSpa || item.key === 'tutors' || item.key === 'requests' || item.key === 'my-requests' || item.key === 'notifications' || item.key === 'support' || item.key === 'policies') ? 'data-no-spa' : 'data-spa-link'}
            class="${isActive ? LEARNER_NAV_ACTIVE : LEARNER_NAV_IDLE}" ${isActive ? 'aria-current="page"' : ''}>
           <span class="material-symbols-outlined text-[20px] shrink-0">${item.icon}</span>
           <span class="truncate">${item.title}</span>
@@ -235,106 +417,113 @@ export function getLearnerSidebarHtml(activeKey) {
     }).join('');
 
     return `
-      <div class="flex flex-col gap-1">
-        <div class="px-3 pt-1 pb-1 text-[11px] leading-[14px] font-semibold text-[#707881] uppercase tracking-wider">${group.groupTitle}</div>
-        ${itemsHtml}
+      <div class="mb-4">
+        <p class="px-3 mb-1.5 text-[11px] font-semibold text-[#707881] uppercase tracking-wider select-none">${group.groupTitle}</p>
+        <div class="space-y-1">
+          ${itemsHtml}
+        </div>
       </div>
     `;
   }).join('');
 
   return `
-    <!-- Learner Sidebar (cùng kiểu sidebar khu vực gia sư) -->
-    <aside id="learnerSidebar" style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif;"
-           class="w-[270px] min-w-[260px] max-w-[280px] bg-white shadow-[0_1px_8px_rgba(0,0,0,0.04)] h-screen sticky top-0 flex flex-col justify-between shrink-0 z-40 transition-transform duration-200 ease-in-out -translate-x-full md:translate-x-0 select-none fixed md:static inset-y-0 left-0 overflow-hidden">
-
+    <aside id="learnerSidebar"
+           class="w-64 bg-[#f8f9ff] border-r border-[#d9e3f6] flex flex-col shrink-0 fixed inset-y-0 left-0 z-40
+                  transition-transform duration-200 md:static md:translate-x-0 -translate-x-full"
+           aria-label="Thanh điều hướng chính">
       <div class="flex flex-col min-h-0 flex-1">
         <!-- Logo -->
         <div class="px-6 pt-6 pb-4 flex items-start justify-between">
-          <a href="/home" title="Về trang chủ KizunaTutor" class="no-underline">
-            <div class="flex items-center gap-2 mb-1">
-              <div class="w-8 h-8 rounded-lg bg-[#007bb9] flex items-center justify-center text-white text-[20px] leading-7 font-semibold">絆</div>
-              <div class="text-[20px] leading-7 font-semibold"><span class="text-[#0F2545]">Kizuna</span><span class="text-[#006194]">Tutor</span></div>
-            </div>
-            <p class="text-[11px] leading-[14px] font-medium text-[#3f4850] tracking-wider">Không gian học viên</p>
-          </a>
+          ${brandLogoHtml({ href: '/home', subtitle: 'Không gian học viên', className: 'min-w-0' })}
           <div class="flex items-center gap-1">
-          <button type="button" data-notification-bell class="p-1.5 rounded-lg text-[#3f4850] hover:text-[#131b2e] hover:bg-[#eaedff] transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
-          <button type="button" id="btnCloseSidebarMobile" class="md:hidden p-1.5 rounded-lg text-[#707881] hover:text-[#131b2e] hover:bg-[#eaedff] transition-colors" title="Đóng menu" aria-label="Đóng menu">
-            <span class="material-symbols-outlined text-[20px]">close</span>
-          </button>
+            <button type="button" data-notification-bell class="p-1.5 rounded-lg text-[#3f4850] hover:text-[#131b2e] hover:bg-[#eaedff] transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
+            <button type="button" id="btnCloseSidebarMobile" class="md:hidden p-1.5 rounded-lg text-[#707881] hover:text-[#131b2e] hover:bg-[#eaedff] transition-colors" title="Đóng menu" aria-label="Đóng menu">
+              <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
           </div>
         </div>
 
         <!-- Danh sách menu -->
-        <nav class="flex flex-col gap-3 px-4 mt-1 pb-2 flex-1 overflow-y-auto scrollbar-none" aria-label="Điều hướng học viên">
+        <nav class="flex-1 px-4 py-2 overflow-y-auto space-y-4">
           ${menuSectionsHtml}
         </nav>
       </div>
 
-      <!-- Menu tài khoản ở góc dưới bên trái (giống gia sư) -->
+      <!-- Menu người dùng dưới cùng -->
       <div class="mx-4 my-4 relative" id="learnerUserMenu">
         <div id="learnerUserMenuPanel" role="menu" aria-label="Tài khoản"
              class="hidden absolute left-0 right-0 bottom-[calc(100%+8px)] rounded-xl bg-white shadow-lg ring-1 ring-black/5 p-1.5 flex-col z-50">
-          <a href="/home" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#131b2e] hover:bg-[#eaedff] no-underline">
+          <a href="/pages/learner-profile/" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#131b2e] hover:bg-[#eaedff] no-underline">
+            <span class="material-symbols-outlined text-[18px]">person</span><span>Hồ sơ cá nhân</span>
+          </a>
+          <a href="/home" data-no-spa role="menuitem" class="flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#131b2e] hover:bg-[#eaedff] no-underline">
             <span class="material-symbols-outlined text-[18px]">home</span><span>Về trang chủ</span>
           </a>
           <div class="h-px bg-[#eaedff] my-1"></div>
-          <button type="button" role="menuitem" id="btnLogoutSidebar" class="w-full flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#ba1a1a] hover:bg-[#ffdad6] text-left">
+          <button type="button" id="btnLogoutSidebar" role="menuitem"
+                  class="w-full flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#ba1a1a] hover:bg-[#ffdad6]/40 transition-colors text-left">
             <span class="material-symbols-outlined text-[18px]">logout</span><span>Đăng xuất</span>
           </button>
         </div>
-        <button id="learnerUserMenuButton" type="button" aria-haspopup="menu" aria-expanded="false"
-                class="w-full flex items-center gap-3 p-3 rounded-xl bg-[#f2f3ff] hover:bg-[#eaedff] transition-colors text-left">
-          <span id="sidebarUserAvatar" class="w-10 h-10 shrink-0 rounded-full bg-[#cce5ff] text-[#004b73] flex items-center justify-center text-[12px] font-semibold ring-2 ring-[#006194]/20">${escapeAttr(profile.initials)}</span>
-          <span class="min-w-0 flex-1">
-            <span id="sidebarLearnerName" class="block text-[14px] font-semibold text-[#131b2e] leading-tight truncate" title="${escapeAttr(profile.name)}">${escapeAttr(profile.name)}</span>
-            <span class="block text-[11px] leading-[14px] font-medium text-[#3f4850] truncate">Học viên</span>
-          </span>
-          <span class="material-symbols-outlined text-[18px] text-[#707881] transition-transform" data-chevron>expand_less</span>
+
+        <button type="button" id="btnUserMenuToggle" aria-haspopup="menu" aria-expanded="false"
+                class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-[#eaedff] transition-colors text-left">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-full bg-[#007bb9] flex items-center justify-center text-white font-semibold text-sm shrink-0">
+              ${escapeAttr(profile.initials)}
+            </div>
+            <div class="min-w-0">
+              <p class="text-[14px] font-semibold text-[#131b2e] truncate">${escapeAttr(profile.name)}</p>
+              <p class="text-[12px] text-[#707881] truncate">${escapeAttr(profile.roleName)}</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-[20px] text-[#707881] shrink-0" data-user-menu-chevron>unfold_more</span>
         </button>
       </div>
     </aside>
-
-    <!-- Mobile Sidebar Backdrop Overlay -->
-    <div id="learnerSidebarBackdrop" class="fixed inset-0 bg-black/30 z-30 hidden md:hidden transition-opacity"></div>
+    <div id="learnerSidebarBackdrop"
+         class="fixed inset-0 bg-black/40 z-30 hidden md:hidden transition-opacity"
+         aria-hidden="true"></div>
   `;
 }
 
 // =========================================================================
-// 5. RENDER HTML HEADER HỌC VIÊN
+// 6. RENDER HEADER VÀ FOOTER
 // =========================================================================
-export function getLearnerHeaderHtml(options = {}) {
-  ensureLearnerLayoutAssets();
+export function getLearnerHeaderHtml({ pageTitle = '', badge = '', rightContent = '' }) {
   return `
-    <!-- Thanh trên chỉ hiện trên màn hình nhỏ để mở sidebar (giống khu vực gia sư) -->
-    <header class="md:hidden h-14 bg-white/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)] sticky top-0 z-30 px-4 flex items-center gap-3" style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif;">
-      <button type="button" id="btnOpenSidebarMobile" class="p-2 rounded-lg text-[#3f4850] hover:bg-[#eaedff] transition-colors cursor-pointer" title="Mở menu" aria-label="Mở menu">
-        <span class="material-symbols-outlined text-[22px]">menu</span>
-      </button>
-      <a href="/learner/dashboard" class="text-[20px] leading-7 font-semibold no-underline">
-        <span class="text-[#0F2545]">Kizuna</span><span class="text-[#006194]">Tutor</span>
-      </a>
+    <header class="h-16 border-b border-[#d9e3f6] bg-white flex items-center justify-between px-4 sm:px-6 shrink-0 z-10">
+      <div class="flex items-center gap-3">
+        <button type="button" id="btnOpenSidebarMobile" class="md:hidden p-2 rounded-lg text-[#3f4850] hover:bg-[#eaedff]" title="Mở menu" aria-label="Mở menu">
+          <span class="material-symbols-outlined text-[24px]">menu</span>
+        </button>
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold text-[#131b2e] leading-tight">${pageTitle}</h1>
+          ${badge ? `<span class="inline-block text-[11px] font-medium text-[#006194] bg-[#d3e4ff] px-2 py-0.5 rounded-full mt-0.5">${badge}</span>` : ''}
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        ${rightContent}
+      </div>
     </header>
   `;
 }
 
-// =========================================================================
-// 6. RENDER HTML FOOTER HỌC VIÊN
-// =========================================================================
 export function getLearnerFooterHtml() {
   return `
-    <footer class="mt-auto pt-6 pb-6 border-t border-[#E2E8F0] text-center text-[13px] text-[#64748B] font-sans">
-      KizunaTutor &copy; 2026 &bull; Đồng hành cùng bạn trên từng nét vẽ Kanji 🌸
+    <footer class="mt-auto py-6 border-t border-[#e2e7ff] text-center text-[12px] text-[#707881]">
+      <p>© 2026 KizunaTutor. Đồng hành cùng giấc mơ Nhật ngữ của bạn.</p>
     </footer>
   `;
 }
 
 // =========================================================================
-// 7. BIND SỰ KIỆN: MOBILE SIDEBAR & ĐĂNG XUẤT
+// 7. BIND SỰ KIỆN: MOBILE SIDEBAR, DROPDOWNS & ĐĂNG XUẤT
 // =========================================================================
 export function bindLearnerLayoutEvents() {
   // FE-12: số thông báo chưa đọc cạnh mục Thông báo.
   import('/js/pages/notification-badge.js').then(module => module.attachNotificationBadges()).catch(() => {});
+
   const sidebar = document.getElementById('learnerSidebar');
   const backdrop = document.getElementById('learnerSidebarBackdrop');
   const btnOpen = document.getElementById('btnOpenSidebarMobile');
@@ -364,51 +553,79 @@ export function bindLearnerLayoutEvents() {
     }
   });
 
-  // Menu tài khoản góc dưới trái: bấm để mở/đóng (giống sidebar gia sư)
-  const menuRoot = document.getElementById('learnerUserMenu');
-  const menuButton = document.getElementById('learnerUserMenuButton');
-  const menuPanel = document.getElementById('learnerUserMenuPanel');
-  if (menuRoot && menuButton && menuPanel) {
-    const setMenuOpen = (open) => {
-      menuPanel.classList.toggle('hidden', !open);
-      menuPanel.classList.toggle('flex', open);
-      menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
-      menuButton.querySelector('[data-chevron]')?.classList.toggle('rotate-180', open);
-    };
-    menuButton.addEventListener('click', (e) => {
+  // Bắt sự kiện click các nút Dropdown Toggle trên Sidebar
+  const dropdownToggles = document.querySelectorAll('#learnerSidebar .nav-dropdown-toggle');
+  dropdownToggles.forEach(btn => {
+    if (btn.__kizunaDropdownBound) return;
+    btn.__kizunaDropdownBound = true;
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      setMenuOpen(menuPanel.classList.contains('hidden'));
+      const parentGroup = btn.closest('.nav-dropdown-group');
+      if (!parentGroup) return;
+
+      const menu = parentGroup.querySelector('.nav-dropdown-menu');
+      const chevron = btn.querySelector('[data-chevron]');
+      if (!menu) return;
+
+      const isExpanded = !menu.classList.contains('hidden');
+
+      if (isExpanded) {
+        menu.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.classList.remove('text-[#007bb9]', 'bg-[#f0f4ff]');
+        btn.classList.add('text-[#3f4850]');
+        chevron?.classList.remove('rotate-180');
+      } else {
+        menu.classList.remove('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        btn.classList.add('text-[#007bb9]', 'bg-[#f0f4ff]');
+        btn.classList.remove('text-[#3f4850]');
+        chevron?.classList.add('rotate-180');
+      }
     });
+  });
+
+  // User menu panel toggle
+  const userMenuBtn = document.getElementById('btnUserMenuToggle');
+  const userMenuPanel = document.getElementById('learnerUserMenuPanel');
+  if (userMenuBtn && userMenuPanel && !userMenuBtn.__kizunaBound) {
+    userMenuBtn.__kizunaBound = true;
+    userMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = userMenuPanel.classList.toggle('hidden');
+      userMenuBtn.setAttribute('aria-expanded', String(!isHidden));
+    });
+
     document.addEventListener('click', (e) => {
-      if (!menuRoot.contains(e.target)) setMenuOpen(false);
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (!userMenuPanel.classList.contains('hidden') && !e.target.closest('#learnerUserMenu')) {
+        userMenuPanel.classList.add('hidden');
+        userMenuBtn.setAttribute('aria-expanded', 'false');
+      }
     });
   }
 
-  // Xử lý Đăng xuất tập trung
-  btnLogout?.addEventListener('click', () => {
-    localStorage.removeItem('kizuna_token');
-    localStorage.removeItem('kizuna_user');
-    sessionStorage.clear();
-    window.location.href = '/login';
-  });
+  // Logout handler
+  if (btnLogout && !btnLogout.__kizunaBound) {
+    btnLogout.__kizunaBound = true;
+    btnLogout.addEventListener('click', () => {
+      localStorage.removeItem('kizuna_token');
+      localStorage.removeItem('kizuna_user');
+      window.location.href = '/pages/login/';
+    });
+  }
 }
 
 // =========================================================================
-// 8. TỰ ĐỘNG KHỞI TẠO KHUNG BẢO VỆ TOÀN DIỆN (WRAPPER SHELL)
+// 8. GLOBAL LAYOUT STYLES & INITIALIZATION
 // =========================================================================
-/**
- * Khóa rung giật thanh cuộn toàn cục và chống tràn màn hình ngang
- */
 export function injectGlobalLayoutStyles() {
   if (typeof document === 'undefined') return;
   if (document.getElementById('kizunaGlobalLayoutStyles')) return;
   const styleEl = document.createElement('style');
   styleEl.id = 'kizunaGlobalLayoutStyles';
   styleEl.textContent = `
-    /* 1. Khóa ổn định diện tích thanh cuộn - Chống giật khung ngang khi đổi trang */
     html {
       scrollbar-gutter: stable both-edges;
       box-sizing: border-box;
@@ -424,7 +641,6 @@ export function injectGlobalLayoutStyles() {
       min-height: 100vh;
     }
 
-    /* 2. Dự trù diện tích cho Sidebar trước khi JS chạy để triệt tiêu 100% Layout Shift (CLS = 0) */
     #learnerSidebarContainer {
       width: 270px;
       min-width: 260px;
@@ -438,19 +654,16 @@ export function injectGlobalLayoutStyles() {
       }
     }
 
-    /* 3. Ép trình duyệt tối ưu vẽ đồ họa GPU cho Sidebar */
     #learnerSidebar {
       transform: translateZ(0);
       backface-visibility: hidden;
       will-change: transform;
     }
 
-    /* 4. Vùng nội dung chính cuộn độc lập, không làm ảnh hưởng thanh cuộn ngoài */
     main {
       contain: paint;
     }
 
-    /* 5. Khử chớp nháy font chữ (FOIT) */
     * {
       font-display: swap;
     }
@@ -468,21 +681,12 @@ export function injectGlobalLayoutStyles() {
 
 /**
  * Tự động bọc toàn bộ nội dung của trang học viên vào bộ khung chung
- * @param {Object} options
- * @param {string} options.activeMenu - Key của menu đang mở (vd: 'kanji-dictionary', 'shodo', 'flashcards', 'kanji-game')
- * @param {string} options.pageTitle - Tiêu đề trang hiển thị trên header
- * @param {string} options.badge - Nhãn phụ (vd: 'Công cụ rèn luyện')
- * @param {string} options.containerId - ID vùng nội dung (mặc định 'learner-content' hoặc bọc body)
- * @param {string} options.rightContent - Nội dung HTML tùy biến bổ sung ở góc phải header
  */
 export function initLearnerShell(options = {}) {
-  // 0. Bổ sung style chống rung giật thanh cuộn & chống tràn ngay lập tức
   injectGlobalLayoutStyles();
-
-  // Khởi tạo router điều hướng mượt mà không reload trang (Dynamic Shell Router)
   initSidebarRouter();
+  initLearningToolsGuard();
 
-  // Kiểm tra chống trùng lặp: Nếu sidebar đã được render, tuyệt đối không tạo thêm
   if (document.getElementById('learnerSidebar')) {
     return;
   }
@@ -492,7 +696,6 @@ export function initLearnerShell(options = {}) {
   const badge = options.badge || '';
   const rightContent = options.rightContent || '';
 
-  // 1. Nếu trang đã có vùng placeholder cấu trúc sẵn
   const sidebarContainer = document.getElementById('learnerSidebarContainer');
   const headerContainer = document.getElementById('learnerHeaderContainer');
   const footerContainer = document.getElementById('learnerFooterContainer');
@@ -529,7 +732,6 @@ export function initLearnerShell(options = {}) {
     return;
   }
 
-  // 2. Chỉ tự động bọc nếu được chỉ định rõ ràng qua wrapBody
   if (options.wrapBody) {
     const targetEl = document.getElementById(options.containerId) || document.querySelector('main') || document.body;
     const originalHtml = targetEl.innerHTML;
@@ -553,7 +755,6 @@ export function initLearnerShell(options = {}) {
   }
 }
 
-// Alias thân thiện
 export const mountLearnerLayout = initLearnerShell;
 
 // =========================================================================
@@ -570,13 +771,11 @@ if (typeof customElements !== 'undefined' && !customElements.get('kizuna-learner
       const badge = this.getAttribute('badge') || '';
       const rightContent = this.getAttribute('right-content') || '';
 
-      // Thu gom toàn bộ child nodes hiện có để bảo toàn DOM & Event Listener
       const fragment = document.createDocumentFragment();
       while (this.firstChild) {
         fragment.appendChild(this.firstChild);
       }
 
-      // Tạo cấu trúc shell
       const wrapper = document.createElement('div');
       wrapper.className = 'flex h-screen overflow-hidden bg-white';
       wrapper.innerHTML = `
@@ -590,7 +789,6 @@ if (typeof customElements !== 'undefined' && !customElements.get('kizuna-learner
         </div>
       `;
 
-      // Đưa các child nodes vào vùng slot
       const slot = wrapper.querySelector('#learnerContentSlot');
       if (slot) {
         slot.appendChild(fragment);
@@ -598,6 +796,7 @@ if (typeof customElements !== 'undefined' && !customElements.get('kizuna-learner
 
       this.appendChild(wrapper);
       bindLearnerLayoutEvents();
+      initLearningToolsGuard();
     }
   }
 
@@ -628,5 +827,3 @@ if (document.readyState === 'loading') {
 } else {
   autoInitLearnerLayout();
 }
-
-

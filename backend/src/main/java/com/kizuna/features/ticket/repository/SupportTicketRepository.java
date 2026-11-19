@@ -9,8 +9,6 @@ public class SupportTicketRepository {
  public SupportTicketRepository(@Qualifier("ticketJdbc") JdbcTemplate jdbc){this.jdbc=jdbc;}
  /** Người phụ trách còn là nhân viên hỗ trợ đang hoạt động (bị khóa, xóa hoặc đổi vai trò thì false). */
  public static final String ASSIGNEE_ACTIVE="EXISTS(SELECT 1 FROM users au JOIN roles ar ON ar.role_id=au.role_id WHERE au.user_id=t.assigned_to AND au.account_status::text='ACTIVE' AND au.deleted_at IS NULL AND ar.is_active=true AND ar.role_name='ROLE_CS_STAFF')";
- /** Yêu cầu đang dở mà người phụ trách không còn hoạt động: chờ Quản lý bàn giao tay. */
- public static final String NEEDS_HANDOVER="(t.assigned_to IS NOT NULL AND t.status::text IN ('IN_PROGRESS','ESCALATED','RESOLVED') AND NOT "+ASSIGNEE_ACTIVE+")";
  private static final String COLUMNS="t.ticket_id,t.user_id,t.assigned_to,t.escalated_to,t.is_escalated,t.subject,t.category::text,t.priority::text,t.status::text,t.related_booking_id,t.related_membership_id,t.related_transaction_id,t.created_at,t.updated_at,t.version,a.full_name AS assignee_name,e.full_name AS recipient_name,r.full_name AS requester_name,rr.role_name AS requester_role,"+ASSIGNEE_ACTIVE+" AS assignee_active";
  private static final String SOURCE=" FROM support_tickets t JOIN users r ON r.user_id=t.user_id JOIN roles rr ON rr.role_id=r.role_id LEFT JOIN users a ON a.user_id=t.assigned_to LEFT JOIN users e ON e.user_id=t.escalated_to";
  public List<Map<String,Object>> activeCounts(){return jdbc.queryForList("SELECT category::text,count(*) AS total FROM support_tickets WHERE status IN ('OPEN','IN_PROGRESS','ESCALATED') GROUP BY category");}
@@ -34,14 +32,52 @@ public class SupportTicketRepository {
   * Trang trống (vượt quá số trang) thì vẫn đếm riêng để trả đúng tổng.
   */
  public record Page(List<Map<String,Object>> rows,long total){}
- public Page listWithTotal(String where,List<Object> args,int page,int size,boolean withPreview){
+ public Page listWithTotal(String where,List<Object> args,int page,int size,boolean withPreview){return listWithTotal(where,args,page,size,withPreview,false);}
+ /** withSla: thêm cột waiting_since (đang chờ nhân viên trả lời từ lúc nào) để tính thời gian chờ và quá hạn (SupportTicketSla). */
+ public Page listWithTotal(String where,List<Object> args,int page,int size,boolean withPreview,boolean withSla){
    var params=new ArrayList<>(args);params.add(size);params.add((long)page*size);
    String preview=withPreview?",(SELECT left(m.message_text,160) FROM ticket_messages m WHERE m.ticket_id=t.ticket_id AND m.sequence_no=1) AS description_preview":"";
-   var rows=jdbc.queryForList("SELECT "+COLUMNS+",count(*) OVER() AS total_count"+preview+SOURCE+" WHERE "+where+" ORDER BY t.updated_at DESC,t.ticket_id DESC LIMIT ? OFFSET ?",params.toArray());
+   String sla=withSla?","+com.kizuna.features.ticket.service.SupportTicketSla.WAITING_SINCE_SQL+" AS waiting_since":"";
+   var rows=jdbc.queryForList("SELECT "+COLUMNS+",count(*) OVER() AS total_count"+preview+sla+SOURCE+" WHERE "+where+" ORDER BY t.updated_at DESC,t.ticket_id DESC LIMIT ? OFFSET ?",params.toArray());
    long total=rows.isEmpty()?(page==0?0:count(where,args)):((Number)rows.get(0).get("total_count")).longValue();
    return new Page(rows,total);
  }
  public long count(String where,List<Object> args){return jdbc.queryForObject("SELECT count(*) FROM support_tickets t WHERE "+where,Long.class,args.toArray());}
+ /** Toàn bộ yêu cầu còn mở: chờ tiếp nhận, chưa phân công, đang xử lý, chuyển Quản lý, quá hạn phản hồi (SupportTicketSla). */
+ /**
+  * Chỉ số SLA cho CS Dashboard: của nhân viên này (đang chờ trả lời, quá hạn) và toàn hàng đợi quá hạn.
+  */
+ public Map<String,Object> slaMetrics(UUID staff){
+   var W=com.kizuna.features.ticket.service.SupportTicketSla.WAITING_SINCE_SQL;var O=com.kizuna.features.ticket.service.SupportTicketSla.OVERDUE_SQL;
+   var result=new LinkedHashMap<String,Object>();
+   jdbc.query("SELECT count(*) FILTER (WHERE t.assigned_to=? AND "+W+" IS NOT NULL),count(*) FILTER (WHERE t.assigned_to=? AND "+O+"),count(*) FILTER (WHERE "+O+")"
+     +" FROM support_tickets t WHERE t.status::text IN "+com.kizuna.features.ticket.service.SupportTicketSla.ACTIVE_STATUSES,rs->{
+     result.put("myWaiting",rs.getLong(1));result.put("myOverdue",rs.getLong(2));result.put("queueOverdue",rs.getLong(3));},staff,staff);
+   return result;
+ }
+ public Map<String,Long> overview(){
+   var result=new LinkedHashMap<String,Long>();
+   jdbc.query("SELECT count(*) FILTER (WHERE t.status::text='OPEN'),count(*) FILTER (WHERE t.status::text='OPEN' AND t.assigned_to IS NULL),"
+     +"count(*) FILTER (WHERE t.status::text='IN_PROGRESS'),count(*) FILTER (WHERE t.status::text='ESCALATED'),"
+     +"count(*) FILTER (WHERE "+com.kizuna.features.ticket.service.SupportTicketSla.OVERDUE_SQL+") FROM support_tickets t WHERE t.status::text IN "+com.kizuna.features.ticket.service.SupportTicketSla.ACTIVE_STATUSES,rs->{
+     result.put("open",rs.getLong(1));result.put("unassigned",rs.getLong(2));result.put("inProgress",rs.getLong(3));result.put("escalated",rs.getLong(4));result.put("overdue",rs.getLong(5));});
+   result.put("waiting",result.getOrDefault("open",0L)+result.getOrDefault("inProgress",0L)+result.getOrDefault("escalated",0L));
+   jdbc.query("SELECT round(avg(extract(epoch FROM f.first_reply-t.created_at)/60))"
+     +" FROM support_tickets t CROSS JOIN LATERAL (SELECT min(s.sent_at) AS first_reply FROM ticket_messages s WHERE s.ticket_id=t.ticket_id AND s.sender_id<>t.user_id"
+     +com.kizuna.features.ticket.service.SupportTicketSla.STAFF_REPLY_FILTER+") f WHERE t.created_at>=now()-interval '7 days' AND f.first_reply IS NOT NULL",rs->{
+     result.put("avgFirstResponseMinutes",rs.getObject(1)==null?null:rs.getLong(1));});
+   return result;
+ }
+ /** Thời điểm người gửi bắt đầu chờ phản hồi (SupportTicketSla), null nếu không chờ. */
+ public Object waitingSince(UUID ticket){
+   var rows=jdbc.queryForList("SELECT "+com.kizuna.features.ticket.service.SupportTicketSla.WAITING_SINCE_SQL+" AS waiting_since FROM support_tickets t WHERE t.ticket_id=?",ticket);
+   return rows.isEmpty()?null:rows.get(0).get("waiting_since");
+ }
+ /** Các yêu cầu khác của cùng người gửi (mới nhất trước) và tổng số yêu cầu người đó đã gửi. */
+ public List<Map<String,Object>> requesterTickets(UUID user,UUID exclude,int limit){
+   return jdbc.queryForList("SELECT t.ticket_id,t.subject,t.status::text AS status,t.created_at FROM support_tickets t WHERE t.user_id=? AND t.ticket_id<>? ORDER BY t.created_at DESC,t.ticket_id LIMIT ?",user,exclude,limit);
+ }
+ public long requesterTicketCount(UUID user){return jdbc.queryForObject("SELECT count(*) FROM support_tickets WHERE user_id=?",Long.class,user);}
  public Map<String,Long> counts(String where,List<Object> args){
    var result=new LinkedHashMap<String,Long>();
    jdbc.query("SELECT t.status::text AS status,count(*) AS total FROM support_tickets t WHERE "+where+" GROUP BY t.status",rs->{result.put(rs.getString("status"),rs.getLong("total"));},args.toArray());

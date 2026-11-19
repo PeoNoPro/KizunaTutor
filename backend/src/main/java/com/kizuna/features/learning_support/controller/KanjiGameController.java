@@ -53,13 +53,4 @@ public class KanjiGameController {
         List<MinigameSessionResponse> sessions = gameService.getUserSessions(userId);
         return ResponseEntity.ok(sessions);
     }
-
-    /**
-     * Bảng xếp hạng điểm cao minigame.
-     */
-    @GetMapping("/leaderboard")
-    public ResponseEntity<List<MinigameSessionResponse>> getLeaderboard() {
-        List<MinigameSessionResponse> leaderboard = gameService.getLeaderboard();
-        return ResponseEntity.ok(leaderboard);
-    }
 }

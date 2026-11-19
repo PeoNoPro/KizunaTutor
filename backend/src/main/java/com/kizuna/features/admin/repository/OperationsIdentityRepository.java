@@ -38,8 +38,4 @@ public class OperationsIdentityRepository {
         },ids.toArray());
         return result;
     }
-    public List<Map<String,Object>> admins() {
-        return jdbc.query("SELECT u.user_id,u.full_name FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.deleted_at IS NULL AND u.account_status::text='ACTIVE' AND r.role_name='ROLE_ADMIN' AND r.is_active=true ORDER BY u.full_name,u.user_id",
-                (rs,n) -> Map.of("value",rs.getObject(1),"label",rs.getString(2)));
-    }
 }

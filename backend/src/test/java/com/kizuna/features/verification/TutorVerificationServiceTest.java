@@ -249,7 +249,7 @@ class TutorVerificationServiceTest {
                 () -> service.addDocument("IDENTITY_DOCUMENT", "  ", null));
         assertTrue(noTitle.getFields().containsKey("title"));
         verify(storage, never()).validate(any());
-        verify(storage, never()).saveContent(any(), any());
+        verify(storage, never()).saveContent(any(), any(), any());
     }
 
     @Test
@@ -267,7 +267,7 @@ class TutorVerificationServiceTest {
         var response = service.addDocument("IDENTITY_DOCUMENT", "CCCD",
                 new MockMultipartFile("file", "cccd.pdf", "application/pdf", content));
 
-        verify(storage).saveContent(savedId, content);
+        verify(storage).saveContent(savedId, key, content);
         assertTrue(response.isFileAvailable());
         assertEquals("CCCD.pdf", response.getFileName());
     }
@@ -284,7 +284,7 @@ class TutorVerificationServiceTest {
 
         assertEquals("JLPT N2", existing.getTitle());
         verify(storage, never()).validate(any());
-        verify(storage, never()).saveContent(any(), any());
+        verify(storage, never()).saveContent(any(), any(), any());
     }
 
     @Test
@@ -564,7 +564,7 @@ class TutorVerificationServiceTest {
         assertEquals(title, saved.getValue().getTitle());
         assertEquals(CredentialType.JLPT_CERTIFICATE, saved.getValue().getCredentialType());
         assertEquals(TutorCredentialStatus.PENDING, saved.getValue().getVerifiedStatus());
-        verify(storage).saveContent(eq(saved.getValue().getCredentialId()), any());
+        verify(storage).saveContent(eq(saved.getValue().getCredentialId()), any(), any());
     }
 
     @Test
@@ -593,7 +593,7 @@ class TutorVerificationServiceTest {
         assertThrows(VerificationException.class, () -> service.addDocument("IDENTITY_DOCUMENT", "CCCD", pdf()));
 
         verify(credentialRepository, never()).save(any());
-        verify(storage, never()).saveContent(any(), any());
+        verify(storage, never()).saveContent(any(), any(), any());
     }
 
     /**
@@ -605,7 +605,7 @@ class TutorVerificationServiceTest {
     void req02_failedFileDataWritePropagatesSoTransactionRollsBack() {
         storageAcceptsAnyFile();
         doThrow(new IllegalStateException("Không ghi được nội dung giấy tờ xác minh"))
-                .when(storage).saveContent(any(), any());
+                .when(storage).saveContent(any(), any(), any());
 
         assertThrows(IllegalStateException.class, () -> service.addDocument("IDENTITY_DOCUMENT", "CCCD", pdf()));
 

@@ -66,3 +66,9 @@ description: "Danh sách công việc triển khai FE-14 — Quản lý người
 
 - Phase 1 → Phase 2 → US1 → US2 → US3 (US3 dùng hộp thoại trên trang của US1, US2).
 - T019 viết song song với T015–T016.
+
+## 2026-11-17 — Đổi đường dẫn trang khi merge `dev` (tránh trùng với trang FE-02 của nhóm)
+
+- `dev` (PR #24) đã có trang FE-02 "Quản lý người dùng" ở `frontend/pages/manager-users/` (gọi `/api/profile/users`, menu `staff-layout`). Để giữ cả hai chức năng, trang FE-14 chuyển sang `frontend/pages/manager-accounts/{index.html, manager-accounts.js, manager-accounts.css}`, nội dung không đổi.
+- Đường dẫn trang FE-14: `/manager/accounts` (và `/pages/manager-accounts/`). Đã sửa các dòng do FE-14 thêm: `WebMvcConfig` (`/manager/accounts`), `admin-shell.js` (link menu và `MANAGER_PATHS`), `frontend/server.js` (+ route `/manager/accounts`). Không sửa trang, route hay menu của FE-02.
+- API FE-14 giữ nguyên `/api/manager/users`; `frontend/js/manager-users-helpers.js` và test của nó giữ nguyên.

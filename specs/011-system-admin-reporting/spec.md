@@ -39,7 +39,19 @@ Cập nhật 2026-11-10 — thời gian chờ chung của `fetchAPI` (CSRF + l�
 
 Cập nhật 2026-11-10 — **Xóa tài khoản nhân viên** (người dùng chọn xóa mềm, không đổi DB): Admin có nút "Xóa" trên từng dòng của Danh sách nhân viên (không có với chính mình và tài khoản Quản trị viên). POST `/api/admin/operations/staff/{id}/delete` `{expectedUpdatedAt, reason}` (lý do bắt buộc, 409 nếu dữ liệu đã đổi): đặt `deleted_at` + `SUSPENDED` (ẩn khỏi danh sách, chặn đăng nhập và phiên đang mở), giữ nguyên lịch sử/yêu cầu hỗ trợ/nhật ký/giao dịch; gỡ ca làm CS từ hôm nay trở đi (ghi `REMOVE` vào `support_shift_events`). Nhật ký ghi hành động `STATUS` với lý do "Xóa tài khoản: …" vì ràng buộc `staff_account_audit_events.action` chỉ cho CREATE/UPDATE/ROLE/STATUS. Không khôi phục trên giao diện; email đã xóa không dùng lại để tạo tài khoản mới. Yêu cầu hỗ trợ đang dở của CS bị xóa vào nhóm "Cần bàn giao" (FE-10 FR-022).
 
-### Chốt quyền đổi vai trò ngày 2026-11-04 — ưu tiên hơn mục 2026-11-03 nếu xung đột
+### Chốt lại phân quyền nhân viên (thầy chốt với nhóm, ghi nhận 2026-11-16) — ưu tiên hơn mọi mục bên dưới nếu xung đột
+
+Nguồn: thầy hướng dẫn chốt với nhóm.
+
+- Manager quản lý người dùng (Học viên, Gia sư) và doanh thu; **không** quản lý nhân viên.
+- Admin quản lý nhân viên hệ thống: tạo, nhập Excel, sửa thông tin, **đổi vai trò khi sửa thông tin**, khóa/mở, xóa mềm.
+- Hệ thống chỉ có 1 nhân viên CS để hỗ trợ yêu cầu; vẫn có Manager, CS và Cán bộ học vụ.
+- **Bỏ luồng "Manager đề xuất, Admin duyệt"** và các thao tác đổi vai trò của Manager. Admin đổi vai trò chỉ giữa ba vai trò nội bộ (Manager, Cán bộ học vụ, Chăm sóc khách hàng), không cấp Admin, không tự đổi vai trò của mình, bắt buộc lý do và ghi nhật ký.
+- Bảng `staff_role_change_requests` giữ nguyên trong DB để không mất lịch sử cũ; nhật ký vẫn đọc các đề xuất cũ.
+- Mục 2026-11-04 và FR-019/SC-008 bên dưới là lịch sử, đã bị thay thế bởi phần này.
+- **Bỏ chức năng sự cố kỹ thuật** (thầy yêu cầu xóa): không còn tạo, nhận xử lý, giải quyết, đóng sự cố, báo sự cố của Quản lý, báo cáo và thống kê sự cố, xuất Excel sự cố. FR-009 và FR-010 chỉ còn nghĩa là khoảng ngày dùng chung cho tổng quan, thống kê và báo cáo doanh thu (`ReportPeriods`). Các bảng `technical_incidents`, `technical_incident_events`, `incident_components` giữ nguyên trong DB, chưa xóa.
+
+### (Lịch sử, đã thay thế) Chốt quyền đổi vai trò ngày 2026-11-04 — ưu tiên hơn mục 2026-11-03 nếu xung đột
 
 Nguồn: người dùng chọn phương án "quản lý đề xuất, Admin duyệt" trong hội thoại.
 
@@ -149,6 +161,32 @@ Mục này và phạm vi hiện hành ở trên là nguồn triển khai. Các s
 - **FR-028:** Tạo tài khoản không nhận mật khẩu từ Admin. Có trạng thái gửi email chờ/đã gửi/thất bại và hàng đợi bền vững; không lưu mật khẩu rõ trong hàng đợi. API FE-11 chặn người chưa đổi mật khẩu lần đầu; việc chặn API feature khác thuộc FE-01. Tạo Manager cần căn cứ bổ nhiệm. Ghi rõ tạo tài khoản và gửi thư là hai kết quả riêng.
 - **FR-029:** Báo cáo học thử offline chỉ dùng trạng thái có nguồn ghi nhận; không tự suy ra hoàn thành từ giờ hẹn đã qua. Báo cáo tiền mua gói chỉ cộng giao dịch mua gói thành công; không có chỉ số/bộ lọc/biểu đồ hoàn tiền. FE-11 không chỉnh gói. Phân biệt kỳ rỗng, chưa tích hợp và lỗi nguồn.
 - **SC-014:** Kiểm API/UI không còn phân công, nhận đồng thời, trả lại đúng quyền, phiếu đóng và lịch sử cũ. Kiểm đăng nhập thật bằng mật khẩu tạm, retry email và thay đổi quyền trong phiên đang dùng.
+
+### Quản lý người dùng, cấu hình AI, email gửi thư và lưu trữ đám mây — bổ sung 2026-11-19
+
+Bổ sung để đặc tả khớp các chức năng đã triển khai (người dùng duyệt ngày 2026-11-19). Mục này là căn cứ cho bảng unit test của các hàm tương ứng.
+
+- **FR-030 — Quản lý người dùng (Quản lý vận hành):** Chỉ Quản lý còn hoạt động được xem danh sách, tìm kiếm (từ khóa tối đa 200 ký tự), lọc theo vai trò (Học viên, Gia sư) và trạng thái, xem chi tiết và tóm tắt hoạt động của tài khoản Học viên/Gia sư; vai trò khác bị từ chối (403). Không sửa hồ sơ, không xóa, không đổi vai trò; tài khoản nhân viên vẫn do Admin quản lý.
+- **FR-031 — Tạm khóa / mở lại tài khoản người dùng:** Quản lý đổi trạng thái giữa *Đang hoạt động* (`ACTIVE`) và *Tạm khóa* (`SUSPENDED`):
+  - Trạng thái đích chỉ nhận `ACTIVE` hoặc `SUSPENDED`; giá trị khác bị từ chối (400).
+  - Lý do bắt buộc, 1–500 ký tự sau khi bỏ khoảng trắng đầu/cuối: trống → "Vui lòng nhập lý do."; quá 500 → "Lý do tối đa 500 ký tự.".
+  - Chỉ tạm khóa được tài khoản đang hoạt động ("Chỉ tạm khóa được tài khoản đang hoạt động.", 409); chỉ mở lại được tài khoản đang tạm khóa ("Chỉ mở lại được tài khoản đang tạm khóa.", 409).
+  - Phải gửi phiên bản dữ liệu đang xem; dữ liệu đã bị người khác đổi trước → 409, không ghi gì. Tài khoản không tồn tại hoặc không phải Học viên/Gia sư → 404.
+  - Bảng lịch sử khóa/mở chưa được tạo trong cơ sở dữ liệu → 503 "Chưa bật được chức năng khóa tài khoản…", không đổi trạng thái.
+  - Thành công: đổi trạng thái, ghi lịch sử (người thao tác, hành động, lý do, thời điểm) trong cùng giao dịch; tài khoản bị khóa bị từ chối ngay ở các request sau. Mở lại thì gửi thông báo FE-12 "Tài khoản đã được mở lại" cho người đó.
+- **FR-032 — Cấu hình AI hỗ trợ học tập:** Admin chọn nhà cung cấp `GEMINI`, `OPENAI` hoặc `CUSTOM` (máy chủ tương thích OpenAI), tên model theo mẫu `[A-Za-z0-9._:/-]{1,80}` (Gemini không chứa `/`), API key tùy chọn (trống = giữ key đang có của nhà cung cấp đó, chưa có key nào thì bắt buộc nhập), địa chỉ API chỉ dùng cho `CUSTOM` và phải là `https://` (hoặc `http://localhost`). Cấu hình trùng hiện hành bị từ chối. Có nút thử kết nối không lưu; thông báo lỗi nêu nguyên nhân và câu báo lỗi của nhà cung cấp nhưng không chứa key. Áp dụng ngay cho lần gọi AI tiếp theo. Tuân theo FR-026.
+- **FR-033 — Email gửi thư:** Admin nhập email gửi, mật khẩu ứng dụng, máy chủ SMTP và cổng (1–65535, mặc định 587). Trước khi lưu, hệ thống đăng nhập thử máy chủ SMTP; sai mật khẩu hoặc không kết nối được thì không lưu. Đổi email mà đã có mật khẩu cũ thì bắt buộc nhập mật khẩu mới. Mật khẩu lưu mã hóa, không trả lại giao diện. Tài khoản Admin lỗi lúc gửi thì thư được gửi lại bằng tài khoản SMTP của server. Tuân theo FR-026.
+- **FR-034 — Lưu trữ đám mây:** Admin đổi kho lưu tệp chuẩn S3 dùng chung cho mọi chức năng tải tệp, có hiệu lực ngay, không cần khởi động lại:
+  - Nhà cung cấp thuộc `R2` (Cloudflare R2), `S3` (Amazon S3), `B2` (Backblaze B2), `WASABI`, `OTHER` (dịch vụ chuẩn S3 khác).
+  - Endpoint dạng `https://tên-miền[:cổng]` (cho phép `http://localhost` / `http://127.0.0.1` khi chạy thử); tên bucket 3–63 ký tự gồm chữ, số, dấu `.` hoặc `-`, bắt đầu và kết thúc bằng chữ hoặc số; vùng (region) tùy chọn, tối đa 40 ký tự chữ thường, số và `-`, trống = `auto`; access key / secret key tối đa 200 ký tự, không có khoảng trắng.
+  - Để trống khóa thì giữ khóa đang dùng; đổi sang endpoint khác thì bắt buộc nhập cả hai khóa của tài khoản mới. Cấu hình trùng hiện hành bị từ chối ("Cấu hình mới trùng với cấu hình hiện hành.").
+  - Trước khi lưu, hệ thống thử ghi, đọc rồi xóa một tệp nhỏ trên kho mới; thất bại thì không lưu và báo nguyên nhân (sai khóa / không có quyền, không tìm thấy bucket, sai vùng, không kết nối được) với tiền tố "Chưa lưu:". Có nút thử kết nối không lưu.
+  - Khóa lưu mã hóa, không trả lại giao diện (chỉ 4 ký tự cuối của access key). Chưa có cấu hình của Admin thì dùng kho trong cấu hình server (biến môi trường `R2_*`).
+  - Khi đổi sang kho khác endpoint hoặc bucket, kho trước được giữ làm *kho cũ*. Admin bấm chép tệp: chép nền toàn bộ tệp từ kho cũ sang kho đang dùng, bỏ qua tệp đã có cùng tên và dung lượng, **không xóa gì ở kho cũ**, báo tiến độ (đã xem, đã chép, bỏ qua, lỗi); chỉ một lượt chép chạy cùng lúc.
+  - *Quay về kho mặc định*: bỏ cấu hình của Admin, dùng lại kho server; từ chối khi đang dùng kho mặc định rồi hoặc server chưa có kho mặc định.
+  - Tuân theo FR-026 (chỉ Admin, phiên bản, lý do 1–2.000 ký tự, lịch sử "Lưu trữ đám mây").
+- **SC-015:** Khóa rồi mở lại một Học viên và một Gia sư thật: tài khoản bị khóa không gọi được API, mở lại nhận thông báo; kiểm lý do trống/501 ký tự, trạng thái sai, phiên bản cũ, người gọi không phải Quản lý.
+- **SC-016:** Chuyển sang một kho khác (ví dụ Backblaze B2), tải tệp mới và mở tệp cũ sau khi chép; kiểm sai khóa, sai bucket, sai vùng, cấu hình trùng, phiên bản cũ; quay về kho mặc định và chép tệp về lại.
 
 **Hoãn/phụ thuộc:** bảo trì chờ code mới; AI/chính sách tiếp tục hoãn; kiểm tra bàn giao công việc chờ hợp đồng feature sở hữu. Không đánh dấu các phần này hoàn thành. Giới hạn 100/254/20 ký tự là ràng buộc triển khai của bản đặc tả này, không khẳng định trích nguyên văn SRS.
 

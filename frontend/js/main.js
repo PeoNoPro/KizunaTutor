@@ -4,6 +4,7 @@
  * Cung cấp cơ chế nạp Header / Footer từ components/ để đồng bộ toàn dự án.
  */
 import {fetchAPI} from './api.js';
+import { initLearningToolsGuard } from './learning-tools-access.js';
 
 // 1. Định dạng tiền tệ VND
 export function formatVND(amount) {
@@ -106,6 +107,16 @@ export function initNavigation() {
   }
 }
 
+// Trang hồ sơ cá nhân của từng vai trò (FE-02 và các cổng nhân sự).
+const PROFILE_URL_BY_ROLE = {
+  ROLE_LEARNER: '/pages/learner-profile/',
+  ROLE_TUTOR: '/tutor/profile',
+  ROLE_ACADEMIC_OFFICER: '/academic/profile',
+  ROLE_ADMIN: '/pages/admin-profile/',
+  ROLE_MANAGER: '/pages/admin-profile/',
+  ROLE_CS_STAFF: '/pages/admin-profile/'
+};
+
 // 5. Cập nhật giao diện người dùng đã đăng nhập (Đồng bộ tức thì 0ms từ đối tượng User)
 export function applyUserUI(user) {
   if (!user) return;
@@ -128,14 +139,18 @@ export function applyUserUI(user) {
   const mobileDashboardBtn = document.getElementById('mobileDashboardBtn');
   if (mobileDashboardBtn) mobileDashboardBtn.href = dashboardUrl;
 
-  const dropdownDashboardLink = document.getElementById('dropdownDashboardLink');
-  if (dropdownDashboardLink) dropdownDashboardLink.href = dashboardUrl;
+  // Gia sư vào không gian giảng dạy; học viên (và vai trò khác) giữ nhãn "Không gian học tập".
+  if (isTutor) {
+    document.querySelectorAll('[data-workspace-label]').forEach((el) => { el.textContent = 'Không gian giảng dạy'; });
+  }
+
+  // FE-02: "Hồ sơ cá nhân" trong menu tài khoản mở đúng trang hồ sơ theo vai trò.
+  const profileUrl = PROFILE_URL_BY_ROLE[user.role] || '/pages/learner-profile/';
+  const dropdownProfileLink = document.getElementById('dropdownProfileLink');
+  if (dropdownProfileLink) dropdownProfileLink.href = profileUrl;
 
   const dropdownSettingsLink = document.getElementById('dropdownSettingsLink');
   if (dropdownSettingsLink) dropdownSettingsLink.href = dashboardUrl;
-
-  const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
-  if (mobileSettingsBtn) mobileSettingsBtn.href = dashboardUrl;
 
   // Xử lý nút Chuông thông báo
   const headerNotificationBtn = document.getElementById('headerNotificationBtn');
@@ -185,27 +200,6 @@ export function applyUserUI(user) {
   if (dropdownFullName) dropdownFullName.textContent = displayName;
   if (dropdownEmail) dropdownEmail.textContent = user.email || '';
 
-  // Mobile Profile Info
-  const mobileUserName = document.getElementById('mobileUserName');
-  const mobileUserSubtitle = document.getElementById('mobileUserSubtitle');
-  const mobileUserAvatar = document.getElementById('mobileUserAvatar');
-  const mobileUserInitials = document.getElementById('mobileUserInitials');
-
-  if (mobileUserName) mobileUserName.textContent = displayName;
-  if (mobileUserSubtitle) mobileUserSubtitle.textContent = subtitle;
-
-  if (user.avatarUrl && mobileUserAvatar) {
-    mobileUserAvatar.src = user.avatarUrl;
-    mobileUserAvatar.classList.remove('hidden');
-    if (mobileUserInitials) mobileUserInitials.classList.add('hidden');
-  } else {
-    if (mobileUserAvatar) mobileUserAvatar.classList.add('hidden');
-    if (mobileUserInitials) {
-      mobileUserInitials.classList.remove('hidden');
-      mobileUserInitials.textContent = initials;
-    }
-  }
-
   // Xử lý đóng/mở Dropdown menu khi nhấn vào Profile Pill
   const userProfilePill = document.getElementById('userProfilePill');
   const userDropdownMenu = document.getElementById('userDropdownMenu');
@@ -242,12 +236,6 @@ export function applyUserUI(user) {
   if (headerLogoutBtn && !headerLogoutBtn.hasAttribute('data-has-logout')) {
     headerLogoutBtn.setAttribute('data-has-logout', 'true');
     headerLogoutBtn.addEventListener('click', handleLogout);
-  }
-
-  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-  if (mobileLogoutBtn && !mobileLogoutBtn.hasAttribute('data-has-logout')) {
-    mobileLogoutBtn.setAttribute('data-has-logout', 'true');
-    mobileLogoutBtn.addEventListener('click', handleLogout);
   }
 }
 
@@ -523,6 +511,9 @@ export async function loadSharedComponents() {
 // Khởi chạy tự động khi DOM sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
   loadSharedComponents();
+  // Trang công khai (trang chủ, tìm gia sư, chính sách…): khách hoặc học viên chưa vào lớp
+  // bấm vào công cụ học bị khóa thì hiện hộp thoại hướng dẫn thay vì vào trang.
+  initLearningToolsGuard();
 });
 
 // Gắn toàn cục

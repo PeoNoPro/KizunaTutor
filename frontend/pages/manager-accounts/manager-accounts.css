@@ -1,0 +1,37 @@
+/* FE-14: phần riêng của trang Quản lý người dùng; khung và bảng dùng lớp chung của khu quản trị (admin-portal.css). */
+
+.manager-users-page .mu-toolbar { flex-wrap: wrap; }
+
+.manager-users-page .mu-skeleton {
+  display: block;
+  height: 16px;
+  border-radius: 6px;
+  background: #ece8de;
+  animation: mu-pulse 1.2s ease-in-out infinite;
+}
+.manager-users-page .mu-skeleton-short { width: 40%; margin-top: 8px; }
+@keyframes mu-pulse { 50% { opacity: .45; } }
+
+.manager-users-page .mu-field-error { margin: 6px 0 0; font-size: 13px; color: #ba1a1a; }
+
+.mu-detail-dialog { width: min(720px, calc(100vw - 32px)); }
+.mu-detail-head { display: flex; align-items: center; gap: 16px; }
+.mu-detail-head img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 1px solid #ece8de; }
+.mu-detail-head strong { display: block; font-size: 18px; color: #0f2545; overflow-wrap: anywhere; }
+.mu-detail-head .portal-muted { overflow-wrap: anywhere; }
+.mu-detail-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+
+.mu-section-title { margin: 0; font-size: 16px; font-weight: 700; color: #0f2545; }
+.mu-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; margin: 0; }
+.mu-fields div { min-width: 0; }
+.mu-fields .mu-wide { grid-column: 1 / -1; }
+.mu-fields dt { font-size: 13px; color: #6b7580; }
+.mu-fields dd { margin: 2px 0 0; font-size: 15px; color: #1b1c19; overflow-wrap: anywhere; white-space: pre-line; }
+
+.mu-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.mu-history li { border: 1px solid #ece8de; border-radius: 12px; padding: 12px 14px; }
+.mu-history p { margin: 2px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+  .mu-fields { grid-template-columns: 1fr; }
+}

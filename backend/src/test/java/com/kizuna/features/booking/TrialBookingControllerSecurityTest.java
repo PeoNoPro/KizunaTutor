@@ -111,7 +111,7 @@ class TrialBookingControllerSecurityTest {
         CreateTrialBookingRequestDTO dto = CreateTrialBookingRequestDTO.builder()
                 .tutorId(tutorId)
                 .scheduledStartTime(OffsetDateTime.now().plusDays(1))
-                .durationMinutes(50)
+                .durationMinutes(30)
                 .build();
 
         TrialBookingResponseDTO responseDTO = TrialBookingResponseDTO.builder()

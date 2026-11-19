@@ -93,6 +93,37 @@ class MembershipServicesTest {
         }
 
         @Test
+        void tutorIsNotifiedOnceWhenLastMembershipExpires() {
+            var events = mock(com.kizuna.features.notification.service.NotificationEvents.class);
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "notificationEvents", events);
+            TutorMembership ended = TutorMembership.builder().status(TutorMembershipState.ACTIVE)
+                    .startDate(TODAY.minusMonths(1)).endDate(TODAY.minusDays(1)).build();
+            when(membershipRepository.countEndedBefore(any(), any(), any())).thenReturn(1L);
+            when(membershipRepository.countValidOn(any(), any(), any())).thenReturn(0L);
+            when(membershipRepository.findEndedBefore(any(), any(), any())).thenReturn(List.of(ended));
+
+            service.refresh(tutor.getTutorId(), TODAY);
+
+            verify(events).publish(eq("membership:" + tutor.getTutorId() + ":expired:" + TODAY.minusDays(1)), eq("PAYMENT"),
+                    eq("Gói hội viên đã hết hạn"), anyString(), eq("/tutor/membership"), eq(List.of(tutor.getUser().getUserId())));
+        }
+
+        @Test
+        void noExpiryNotificationWhenStackedMembershipStillValid() {
+            var events = mock(com.kizuna.features.notification.service.NotificationEvents.class);
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "notificationEvents", events);
+            TutorMembership ended = TutorMembership.builder().status(TutorMembershipState.ACTIVE)
+                    .startDate(TODAY.minusMonths(1)).endDate(TODAY.minusDays(1)).build();
+            when(membershipRepository.countEndedBefore(any(), any(), any())).thenReturn(1L);
+            when(membershipRepository.countValidOn(any(), any(), any())).thenReturn(1L);
+            when(membershipRepository.findEndedBefore(any(), any(), any())).thenReturn(List.of(ended));
+
+            service.refresh(tutor.getTutorId(), TODAY);
+
+            verifyNoInteractions(events);
+        }
+
+        @Test
         void keepsActiveWhenStackedMembershipStillValid() {
             TutorMembership ended = TutorMembership.builder().status(TutorMembershipState.ACTIVE)
                     .startDate(TODAY.minusMonths(1)).endDate(TODAY.minusDays(1)).build();
@@ -866,4 +897,5 @@ class MembershipServicesTest {
             verify(planRepository, never()).updateActive(any(), anyBoolean());
         }
     }
+
 }

@@ -26,6 +26,7 @@ public class NotificationInboxService {
         var types = new LinkedHashMap<String, String>();
         types.put("SYSTEM", "Hệ thống");
         types.put("TRIAL", "Học thử");
+        types.put("CONNECTION", "Kết nối gia sư");
         types.put("ASSIGNMENT", "Bài tập");
         types.put("PAYMENT", "Thanh toán");
         types.put("TICKET", "Hỗ trợ");

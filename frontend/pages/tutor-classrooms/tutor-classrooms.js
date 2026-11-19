@@ -17,8 +17,14 @@ import {
   FILE_RULES_TEXT,
   MAX_FILES_PER_UPLOAD,
   validateClassroomTitle,
+  validateCourseFields,
+  minSessionsHint,
+  courseSummaryText,
+  courseCardLines,
+  localYmd,
   validateScheduleList,
   validateScheduleSlot,
+  bindSessionTimeSelects,
   sortSchedules,
   summarizeSchedules,
   dayOfWeekLabel,
@@ -34,11 +40,35 @@ import {
   roleDeniedHtml,
   clearSessionAndGoToLogin
 } from '../../js/classroom-helpers.js';
-import { initTutorAssignments, loadTutorAssignments, hideTutorAssignments } from './tutor-assignments.js';
+import {
+  initTutorAssignments,
+  loadTutorAssignments,
+  hideTutorAssignments,
+  openNewFileAssignment,
+  openAssignmentSubmissions
+} from './tutor-assignments.js';
+import { initAssignmentOverview, showAssignmentOverview, hideAssignmentOverview } from './assignment-overview.js';
 import { createFileList } from '../../js/file-picker.js';
+import { mountAddressPicker } from '../../js/address-picker.js';
+import {
+  normalizeTab,
+  groupByWeek,
+  FILE_KINDS,
+  fileKindIcon,
+  filterMaterials,
+  countMaterialKinds,
+  isRecent,
+  nextSessionOf
+} from '../../js/class-tabs-helpers.js';
+import { ymdLocal } from '../../js/assignment-overview-helpers.js';
 import { mountTutorLayout } from '/components/tutor-layout/tutor-layout.js';
 
 let materialPicker = null;
+/** Khối nhập địa chỉ học trực tiếp của form Tạo lớp và hộp Sửa hình thức học. */
+let createAddress = null;
+let deliveryAddress = null;
+/** Học viên đủ điều kiện tạo lớp (kèm hình thức học trong yêu cầu kết nối) để điền sẵn. */
+let eligibleLearners = [];
 
 /** Thay một tài liệu trong danh sách đang hiển thị (không tải lại cả danh sách). */
 function upsertMaterialLocally(material, { prepend = false } = {}) {
@@ -58,8 +88,62 @@ const state = {
   editingMaterial: null,
   deletingMaterial: null,
   editingSchedule: null,
-  deletingSchedule: null
+  deletingSchedule: null,
+  tab: 'tong-quan',
+  materialFilter: { kind: '', keyword: '' },
+  materialLimit: 10,
+  // Trang "Tài liệu học tập" chung mọi lớp (?view=materials, không có ?space=)
+  // status: 'active' | 'ended' | 'all'; null = mặc định (đang hoạt động, nếu không có lớp đang hoạt động thì tất cả)
+  hub: { active: false, classes: [], materials: [], filter: { kind: '', keyword: '', spaceId: '', status: null }, limit: 10, openGroups: new Set() },
+  collapsedGroups: new Set()
 };
+
+// ----------------------------------------------------------------------------
+// Tab của lớp: Tổng quan · Bài tập · Tài liệu (?tab=tong-quan|bai-tap|tai-lieu)
+// ----------------------------------------------------------------------------
+/** Số tài liệu hiện mỗi lần ("Xem thêm" để hiện tiếp). */
+const MATERIAL_PAGE = 10;
+const TAB_PANELS = { 'tong-quan': 'tabOverview', 'bai-tap': 'tabAssignments', 'tai-lieu': 'tabMaterials' };
+
+/** Tab mở đầu: ?tab=, hoặc theo mục thanh bên (Tài liệu học tập / Quản lý bài tập), mặc định Tổng quan. */
+/**
+ * Vào lớp từ mục "Tài liệu học tập" / "Quản lý bài tập" trên thanh bên: chỉ hiện đúng phần đó (khóa tab, ẩn thanh tab).
+ * Vào từ "Học viên của tôi": đủ 3 tab. Trả null khi không khóa.
+ */
+function lockedTab() {
+  const muc = currentMuc();
+  if (muc === 'tai-lieu' || currentView() === 'materials') return 'tai-lieu';
+  if (muc === 'bai-tap' || currentView() === 'assignments') return 'bai-tap';
+  return null;
+}
+
+function initialTab() {
+  const params = new URLSearchParams(window.location.search);
+  if (lockedTab()) return lockedTab();
+  if (params.get('tab')) return normalizeTab(params.get('tab'));
+  if (params.get('newFile') || params.get('grade')) return 'bai-tap';
+  const muc = currentMuc();
+  if (muc === 'tai-lieu' || currentView() === 'materials') return 'tai-lieu';
+  if (muc === 'bai-tap' || currentView() === 'assignments') return 'bai-tap';
+  return 'tong-quan';
+}
+
+function setTab(key, { updateUrl = true } = {}) {
+  const locked = lockedTab();
+  state.tab = locked || normalizeTab(key);
+  $('classTabs').classList.toggle('hidden', !!locked);
+  Object.entries(TAB_PANELS).forEach(([k, id]) => $(id)?.classList.toggle('hidden', k !== state.tab));
+  document.querySelectorAll('#classTabs [data-tab]').forEach((b) => {
+    b.setAttribute('aria-selected', String(b.dataset.tab === state.tab));
+    b.tabIndex = b.dataset.tab === state.tab ? 0 : -1;
+  });
+  if (updateUrl) {
+    const url = new URL(window.location.href);
+    if (state.tab === 'tong-quan' || locked) url.searchParams.delete('tab');
+    else url.searchParams.set('tab', state.tab);
+    window.history.replaceState(window.history.state, '', url);
+  }
+}
 
 // ----------------------------------------------------------------------------
 // Sidebar: "Học viên của tôi" / "Tài liệu học tập" / "Quản lý bài tập" cùng mở trang lớp học,
@@ -85,18 +169,6 @@ function highlightSidebar() {
     if (active) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
-}
-
-/** Khi vào một lớp từ mục "Tài liệu học tập" / "Quản lý bài tập": cuộn tới đúng phần (chờ phần đó tải xong). */
-function focusSectionFromMuc(attempt = 0) {
-  const target = SECTION_BY_MUC[currentMuc()];
-  if (!target) return;
-  const el = $(target.sectionId);
-  if (el && !el.classList.contains('hidden')) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } else if (attempt < 20) {
-    setTimeout(() => focusSectionFromMuc(attempt + 1), 150);
-  }
 }
 
 function dayOptionsHtml(selected, { placeholder = false } = {}) {
@@ -181,7 +253,9 @@ function renderClassrooms() {
     return;
   }
   stateBox.classList.add('hidden');
-  grid.innerHTML = state.classrooms.map((c) => `
+  grid.innerHTML = state.classrooms.map((c) => {
+    const lines = courseCardLines(c);
+    return `
     <article class="kz-item flex flex-col gap-3">
       <div class="flex items-start justify-between gap-2">
         <h3 class="font-title-sm text-title-sm text-on-surface min-w-0 [overflow-wrap:anywhere]">${escapeHtml(c.title)}</h3>
@@ -189,14 +263,15 @@ function renderClassrooms() {
       </div>
       <dl class="text-on-surface-variant space-y-1">
         <div>Học viên: <strong>${escapeHtml(c.learnerName || 'Học viên')}</strong></div>
-        <div>Ngày mở lớp: ${escapeHtml(formatDateVi(c.createdAt))}</div>
+        <div>Thời gian học: ${escapeHtml(lines.period)}</div>
+        ${lines.progress ? `<div>Tiến độ: ${escapeHtml(lines.progress)}</div>` : ''}
         <div>Lịch học: ${c.schedules?.length ? escapeHtml(summarizeSchedules(c.schedules)) : '<span class="text-tertiary">Chưa có lịch học</span>'}</div>
         <div>Tài liệu: ${Number(c.materialCount) || 0}</div>
       </dl>
       ${c.readOnly ? '<p class="font-caption text-caption text-tertiary">Chế độ chỉ xem</p>' : ''}
       <button type="button" class="kz-btn kz-btn-primary mt-auto" data-open-space="${escapeHtml(c.spaceId)}">Vào lớp học</button>
-    </article>
-  `).join('');
+    </article>`;
+  }).join('');
   grid.querySelectorAll('[data-open-space]').forEach((btn) => {
     btn.addEventListener('click', () => navigateToSpace(btn.dataset.openSpace));
   });
@@ -209,8 +284,8 @@ function scheduleRowHtml() {
   return `
     <div class="kz-item p-3 grid grid-cols-[1fr_1fr_auto] sm:grid-cols-[1.3fr_1fr_1fr_auto] gap-2 items-center" data-schedule-row>
       <select class="kz-input bg-surface-container-lowest col-span-3 sm:col-span-1" data-field="dayOfWeek" aria-label="Thứ trong tuần">${dayOptionsHtml(null, { placeholder: true })}</select>
-      <input type="time" step="300" class="kz-input bg-surface-container-lowest" data-field="startTime" aria-label="Giờ bắt đầu" title="Giờ bắt đầu">
-      <input type="time" step="300" class="kz-input bg-surface-container-lowest" data-field="endTime" aria-label="Giờ kết thúc" title="Giờ kết thúc">
+      <select class="kz-input bg-surface-container-lowest" data-field="startTime" aria-label="Giờ bắt đầu" title="Giờ bắt đầu"></select>
+      <select class="kz-input bg-surface-container-lowest" data-field="endTime" aria-label="Giờ kết thúc" title="Giờ kết thúc"></select>
       <button type="button" class="kz-btn px-2" data-remove-row title="Bỏ buổi này" aria-label="Bỏ buổi này"><span class="material-symbols-outlined text-[18px]">close</span></button>
     </div>`;
 }
@@ -228,6 +303,7 @@ function addScheduleRow() {
   if (container.querySelectorAll('[data-schedule-row]').length >= MAX_SCHEDULE_SLOTS) return;
   container.insertAdjacentHTML('beforeend', scheduleRowHtml());
   const row = container.lastElementChild;
+  bindSessionTimeSelects(row.querySelector('[data-field="startTime"]'), row.querySelector('[data-field="endTime"]'));
   row.querySelector('[data-remove-row]').addEventListener('click', () => {
     row.remove();
     refreshScheduleRows();
@@ -243,6 +319,59 @@ function collectScheduleRows() {
   }));
 }
 
+// ----------------------------------------------------------------------------
+// Hình thức học khi tạo lớp: online (link, không bắt buộc) hoặc trực tiếp (tỉnh → phường → địa chỉ cụ thể)
+// ----------------------------------------------------------------------------
+function checkedMode(name) {
+  return document.querySelector(`input[name="${name}"]:checked`)?.value || 'ONLINE';
+}
+
+function setMode(name, mode) {
+  const radio = document.querySelector(`input[name="${name}"][value="${mode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE'}"]`);
+  if (radio) radio.checked = true;
+}
+
+function syncCreateMode() {
+  const offline = checkedMode('createMode') === 'OFFLINE';
+  $('createLinkBox').classList.toggle('hidden', offline);
+  $('createAddressBox').classList.toggle('hidden', !offline);
+}
+
+/** Chọn học viên → điền sẵn hình thức học + địa điểm theo yêu cầu kết nối học viên đã gửi. */
+function prefillCreateMode() {
+  const learner = eligibleLearners.find((l) => String(l.learnerId) === $('learnerSelect').value);
+  const note = $('createModeNote');
+  const mode = learner?.learningMode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE';
+  setMode('createMode', mode);
+  $('createLinkInput').value = '';
+  setFieldError('createLinkError', '');
+  createAddress.setValue(mode === 'OFFLINE' ? (learner?.locationDetails || '') : '',
+    { sourceNote: 'Học viên ghi khi gửi yêu cầu kết nối' });
+  if (learner?.learningMode) {
+    note.querySelector('[data-text]').textContent = `Điền sẵn theo yêu cầu kết nối: học viên chọn ${mode === 'OFFLINE' ? 'học trực tiếp' : 'học online'}. Bạn vẫn đổi được.`;
+    note.classList.remove('hidden');
+  } else {
+    note.classList.add('hidden');
+  }
+  syncCreateMode();
+}
+
+/** @returns {{payload?: object, ok: boolean}} hình thức học đã kiểm tra của form tạo lớp */
+function readCreateDelivery() {
+  const learningMode = checkedMode('createMode');
+  if (learningMode === 'OFFLINE') {
+    const { value, errors } = createAddress.read();
+    createAddress.showErrors(errors);
+    setFieldError('createLinkError', '');
+    return Object.keys(errors).length ? { ok: false } : { ok: true, payload: { learningMode, locationDetails: value } };
+  }
+  const link = $('createLinkInput').value.trim();
+  const linkError = link && !/^https?:\/\/\S+$/i.test(link) ? 'Link phòng học phải bắt đầu bằng http:// hoặc https://' : '';
+  setFieldError('createLinkError', linkError);
+  createAddress.showErrors({});
+  return linkError ? { ok: false } : { ok: true, payload: { learningMode, meetingLink: link || null } };
+}
+
 /** @param {string|null} preselectLearnerId học viên chọn sẵn (khi mở từ trang Yêu cầu kết nối / Lịch giảng dạy) */
 async function openAddLearner(preselectLearnerId = null) {
   const select = $('learnerSelect');
@@ -254,8 +383,20 @@ async function openAddLearner(preselectLearnerId = null) {
   setFieldError('addLearnerFormError', '');
   setFieldError('scheduleRowsError', '');
   $('classroomTitleInput').value = '';
+  $('courseStartInput').value = localYmd();
+  $('courseStartInput').min = localYmd();
+  $('courseTotalInput').value = '';
+  setFieldError('courseStartError', '');
+  setFieldError('courseTotalError', '');
   $('scheduleRows').innerHTML = '';
   addScheduleRow();
+  eligibleLearners = [];
+  setMode('createMode', 'ONLINE');
+  $('createLinkInput').value = '';
+  setFieldError('createLinkError', '');
+  $('createModeNote').classList.add('hidden');
+  createAddress.setValue('');
+  syncCreateMode();
   select.innerHTML = '';
   eligibleState.textContent = 'Đang tải danh sách học viên...';
   eligibleState.classList.remove('hidden');
@@ -265,6 +406,7 @@ async function openAddLearner(preselectLearnerId = null) {
 
   try {
     const learners = await API.classrooms.eligibleLearners() || [];
+    eligibleLearners = learners;
     if (!learners.length) {
       eligibleState.textContent = 'Hiện chưa có học viên nào đủ điều kiện. Học viên cần được bạn chấp nhận kết nối và chưa có lớp đang hoạt động với bạn.';
       return;
@@ -278,6 +420,7 @@ async function openAddLearner(preselectLearnerId = null) {
     if (preselectLearnerId) {
       if (learners.some((l) => String(l.learnerId) === String(preselectLearnerId))) {
         select.value = preselectLearnerId;
+        prefillCreateMode();
         $('classroomTitleInput').focus();
       } else {
         setFieldError('learnerSelectError', 'Học viên bạn chọn chưa đủ điều kiện tạo lớp (chưa đồng ý kết nối hoặc đã có lớp đang hoạt động với bạn).');
@@ -293,24 +436,37 @@ async function submitAddLearner(event) {
   const learnerId = $('learnerSelect').value;
   const title = $('classroomTitleInput').value;
   const schedules = collectScheduleRows();
+  const startDate = $('courseStartInput').value;
+  const totalSessions = $('courseTotalInput').value;
   const titleError = validateClassroomTitle(title);
   const scheduleError = validateScheduleList(schedules);
+  const courseErrors = validateCourseFields({ startDate, totalSessions, weeklySlots: schedules.length });
   setFieldError('learnerSelectError', learnerId ? '' : 'Vui lòng chọn học viên.');
   setFieldError('classroomTitleError', titleError);
+  setFieldError('courseStartError', courseErrors.startDate);
+  setFieldError('courseTotalError', courseErrors.totalSessions);
   setFieldError('scheduleRowsError', scheduleError);
   setFieldError('addLearnerFormError', '');
-  if (!learnerId || titleError || scheduleError) return;
+  const delivery = readCreateDelivery();
+  if (!learnerId || titleError || scheduleError || courseErrors.startDate || courseErrors.totalSessions || !delivery.ok) return;
 
   const submit = $('addLearnerSubmit');
   setBusy(submit, true, 'Đang tạo lớp...');
   try {
-    await API.classrooms.create({ learnerId, title: title.trim(), schedules });
+    await API.classrooms.create({
+      learnerId, title: title.trim(), schedules, startDate, totalSessions: Number(totalSessions), ...delivery.payload
+    });
     closeModal('addLearnerModal');
     showToast('Tạo lớp học thành công.');
     await loadClassrooms();
   } catch (err) {
-    if (err.fieldErrors?.title) setFieldError('classroomTitleError', err.fieldErrors.title);
-    else if (err.fieldErrors?.schedules) setFieldError('scheduleRowsError', err.fieldErrors.schedules);
+    const fe = err.fieldErrors || {};
+    if (fe.title) setFieldError('classroomTitleError', fe.title);
+    else if (fe.startDate) setFieldError('courseStartError', fe.startDate);
+    else if (fe.totalSessions) setFieldError('courseTotalError', fe.totalSessions);
+    else if (fe.schedules) setFieldError('scheduleRowsError', fe.schedules);
+    else if (fe.meetingLink) setFieldError('createLinkError', fe.meetingLink);
+    else if (fe.locationDetails) setFieldError('addLearnerFormError', fe.locationDetails);
     else setFieldError('addLearnerFormError', friendlyErrorMessage(err));
   } finally {
     setBusy(submit, false);
@@ -343,14 +499,30 @@ async function loadSpace(spaceId) {
   section.classList.add('hidden');
   $('scheduleSection').classList.add('hidden');
   hideTutorAssignments();
+  Object.values(TAB_PANELS).forEach((id) => $(id)?.classList.add('hidden'));
+  state.materialFilter = { kind: '', keyword: '' };
+  state.materialLimit = MATERIAL_PAGE;
+  state.collapsedGroups = new Set();
+  if ($('materialSearch')) $('materialSearch').value = '';
   try {
     state.currentSpace = await API.classrooms.detail(spaceId);
     renderSpace();
     section.classList.remove('hidden');
-    loadTutorAssignments(state.currentSpace);
+    setTab(initialTab());
+    loadNextSession();
+    const assignmentsLoaded = loadTutorAssignments(state.currentSpace);
     await loadMaterials();
-    focusSectionFromMuc();
-    scrollToRequestedSection();
+    // Mở từ trang Quản lý bài tập: ?newFile=1[&due=...] giao bài nộp tệp, ?grade=<id> chấm bài nộp tệp
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('newFile') || params.get('grade')) {
+      await assignmentsLoaded;
+      setTab('bai-tap');
+      if (params.get('newFile')) openNewFileAssignment({ due: params.get('due') });
+      else openAssignmentSubmissions(params.get('grade'));
+      const url = new URL(window.location.href);
+      ['newFile', 'due', 'grade'].forEach((k) => url.searchParams.delete(k));
+      window.history.replaceState(null, '', url);
+    }
   } catch (err) {
     renderStateBox(stateBox, friendlyErrorMessage(err), { retry: () => loadSpace(spaceId) });
   }
@@ -369,15 +541,179 @@ function renderSpace() {
   if (c.readOnly) {
     note.textContent = c.status === 'ACTIVE'
       ? 'Bạn chưa có gói hội viên hoặc gói đã hết hạn nên lớp học đang ở chế độ chỉ xem. Vui lòng đăng ký hoặc gia hạn gói để tiếp tục quản lý lớp học.'
-      : 'Lớp học không còn hoạt động nên đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại tài liệu đã chia sẻ.';
+      : c.status === 'COMPLETED'
+        ? 'Khóa học đã học xong buổi cuối nên lớp chuyển sang chỉ xem. Bạn vẫn chấm được các bài tập còn chờ chấm và có thể mở lớp mới với học viên này.'
+        : 'Lớp học không còn hoạt động nên đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại tài liệu đã chia sẻ.';
     note.classList.remove('hidden');
   } else {
     note.classList.add('hidden');
   }
   $('openUploadBtn').classList.toggle('hidden', !c.canManage);
+  $('overviewUploadBtn').classList.toggle('hidden', !c.canManage);
+  $('overviewAssignBtn').classList.toggle('hidden', !c.canManage);
   $('openRenameBtn').classList.toggle('hidden', !c.canManage);
+  const progress = courseCardLines(c).progress;
+  $('detailProgress').innerHTML = progress
+    ? `<span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">trending_up</span>${escapeHtml(progress)}` : '';
+  $('detailProgress').classList.toggle('hidden', !progress);
+  $('detailProgressDot').classList.toggle('hidden', !progress);
   $('classroomDetailCard').classList.remove('hidden');
+  renderCourseInfo();
   renderSchedules();
+}
+
+/** "Buổi tới: Thứ Năm 20/11 · 19:00" — lấy từ các buổi cụ thể của lớp (đã tính buổi dời / buổi thêm). */
+async function loadNextSession() {
+  const line = $('nextSessionLine');
+  line.classList.add('hidden');
+  const space = state.currentSpace;
+  if (!space || space.readOnly) return;
+  try {
+    const from = new Date();
+    const to = new Date(from.getTime() + 45 * 24 * 60 * 60 * 1000);
+    const next = nextSessionOf(await API.classrooms.sessions(ymdLocal(from), ymdLocal(to)), space.spaceId);
+    if (!next || state.currentSpace?.spaceId !== space.spaceId) return;
+    const d = new Date(`${next.date}T00:00:00`);
+    const day = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'][d.getDay()];
+    line.innerHTML = `<span class="font-semibold">Buổi tới:</span> ${day} ${escapeHtml(formatDateVi(next.date).slice(0, 5))} · ${escapeHtml(String(next.startTime).slice(0, 5))}`
+      + `${next.number ? ` <span class="text-on-surface-variant">(buổi ${next.number}${next.totalSessions ? `/${next.totalSessions}` : ''})</span>` : ''}`;
+    line.classList.remove('hidden');
+  } catch (err) {
+    // Không có lịch / lỗi mạng: chỉ bỏ dòng "Buổi tới", phần còn lại vẫn dùng được
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Khóa học: tổng số buổi + ngày bắt đầu (lịch tự sinh cho đủ số buổi rồi dừng)
+// ----------------------------------------------------------------------------
+function renderCourseInfo() {
+  const c = state.currentSpace;
+  $('courseSummary').textContent = courseSummaryText(c);
+  $('courseMissingNote').classList.toggle('hidden', !!c.totalSessions || !c.canManage);
+  $('openCourseBtn').classList.toggle('hidden', !c.canManage);
+  renderDeliveryInfo();
+}
+
+// ----------------------------------------------------------------------------
+// Hình thức học: online (link phòng học) hoặc trực tiếp (địa điểm)
+// ----------------------------------------------------------------------------
+function renderDeliveryInfo() {
+  const c = state.currentSpace;
+  const offline = c.learningMode === 'OFFLINE';
+  $('deliverySummary').textContent = offline
+    ? `Học trực tiếp · ${c.locationDetails || ''}`
+    : `Học online${c.meetingLink ? ` · ${c.meetingLink}` : ''}`;
+  $('deliveryMissingNote').classList.toggle('hidden', offline || !!c.meetingLink || !c.canManage);
+  $('openDeliveryBtn').classList.toggle('hidden', !c.canManage);
+}
+
+function syncDeliveryFields() {
+  const offline = checkedMode('deliveryMode') === 'OFFLINE';
+  $('deliveryLinkBox').classList.toggle('hidden', offline);
+  $('deliveryLocationBox').classList.toggle('hidden', !offline);
+}
+
+function openDeliveryModal() {
+  const c = state.currentSpace;
+  const mode = c.learningMode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE';
+  document.querySelector(`input[name="deliveryMode"][value="${mode}"]`).checked = true;
+  $('deliveryLinkInput').value = c.meetingLink || '';
+  deliveryAddress.setValue(c.learningMode === 'OFFLINE' ? (c.locationDetails || '') : '', { sourceNote: 'Địa điểm đang lưu' });
+  ['deliveryLinkError', 'deliveryLocationError', 'deliveryFormError'].forEach((id) => setFieldError(id, ''));
+  syncDeliveryFields();
+  openModal('deliveryModal');
+}
+
+async function submitDelivery(event) {
+  event.preventDefault();
+  const learningMode = document.querySelector('input[name="deliveryMode"]:checked')?.value || 'ONLINE';
+  const meetingLink = $('deliveryLinkInput').value.trim();
+  const address = learningMode === 'OFFLINE' ? deliveryAddress.read() : { value: '', errors: {} };
+  deliveryAddress.showErrors(address.errors);
+  const locationDetails = address.value;
+  const linkError = learningMode === 'ONLINE' && meetingLink && !/^https?:\/\/\S+$/i.test(meetingLink)
+    ? 'Link phòng học phải bắt đầu bằng http:// hoặc https://' : '';
+  const locationError = Object.keys(address.errors).length > 0;
+  setFieldError('deliveryLinkError', linkError);
+  setFieldError('deliveryLocationError', '');
+  setFieldError('deliveryFormError', '');
+  if (linkError || locationError) return;
+
+  const submit = $('deliverySubmit');
+  setBusy(submit, true, 'Đang lưu...');
+  try {
+    state.currentSpace = await API.classrooms.updateDelivery(state.currentSpace.spaceId, {
+      learningMode,
+      meetingLink: learningMode === 'ONLINE' ? (meetingLink || null) : null,
+      locationDetails: learningMode === 'OFFLINE' ? locationDetails : null
+    });
+    closeModal('deliveryModal');
+    showToast('Cập nhật hình thức học thành công.');
+    renderSpace();
+  } catch (err) {
+    const fe = err.fieldErrors || {};
+    if (fe.meetingLink || fe.locationDetails) {
+      setFieldError('deliveryLinkError', fe.meetingLink);
+      setFieldError('deliveryLocationError', fe.locationDetails);
+    } else {
+      setFieldError('deliveryFormError', friendlyErrorMessage(err));
+    }
+  } finally {
+    setBusy(submit, false);
+  }
+}
+
+function openCourseModal() {
+  const c = state.currentSpace;
+  const started = c.startedSessions || 0;
+  $('courseEditStartInput').value = c.courseStartDate || localYmd();
+  $('courseEditStartInput').min = started > 0 ? '' : localYmd();
+  $('courseEditStartInput').disabled = started > 0;
+  $('courseEditStartHint').classList.toggle('hidden', started === 0);
+  $('courseEditTotalInput').value = c.totalSessions || '';
+  const weeklySlots = (c.schedules || []).length;
+  $('courseEditTotalInput').min = String(Math.max(1, started, weeklySlots));
+  $('courseEditTotalHint').textContent = `${minSessionsHint({ started, weeklySlots })} Lịch học tự sinh cho đủ số buổi này rồi dừng.`;
+  ['courseEditStartError', 'courseEditTotalError', 'courseFormError'].forEach((id) => setFieldError(id, ''));
+  openModal('courseModal');
+}
+
+async function submitCourse(event) {
+  event.preventDefault();
+  const c = state.currentSpace;
+  const started = c.startedSessions || 0;
+  const startDate = $('courseEditStartInput').value;
+  const totalSessions = $('courseEditTotalInput').value;
+  const startChanged = started === 0 && startDate !== c.courseStartDate;
+  const errors = validateCourseFields({
+    startDate, totalSessions, minTotal: started, weeklySlots: (c.schedules || []).length, checkStartDate: startChanged
+  });
+  setFieldError('courseEditStartError', errors.startDate);
+  setFieldError('courseEditTotalError', errors.totalSessions);
+  setFieldError('courseFormError', '');
+  if (errors.startDate || errors.totalSessions) return;
+
+  const submit = $('courseSubmit');
+  setBusy(submit, true, 'Đang lưu...');
+  try {
+    state.currentSpace = await API.classrooms.updateCourse(c.spaceId, {
+      startDate: startChanged ? startDate : null,
+      totalSessions: Number(totalSessions)
+    });
+    closeModal('courseModal');
+    showToast('Cập nhật khóa học thành công.');
+    renderSpace();
+  } catch (err) {
+    const fe = err.fieldErrors || {};
+    if (fe.startDate || fe.totalSessions) {
+      setFieldError('courseEditStartError', fe.startDate);
+      setFieldError('courseEditTotalError', fe.totalSessions);
+    } else {
+      setFieldError('courseFormError', friendlyErrorMessage(err));
+    }
+  } finally {
+    setBusy(submit, false);
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -390,7 +726,7 @@ function renderSchedules() {
   const schedules = sortSchedules(c.schedules);
   $('openAddScheduleBtn').classList.toggle('hidden', !c.canManage);
   $('scheduleSubtitle').textContent = c.canManage
-    ? 'Các buổi học cố định mỗi tuần. Bạn có thể thêm, sửa hoặc xóa buổi; lớp luôn cần ít nhất một buổi học.'
+    ? 'Các buổi học cố định mỗi tuần. Thêm, sửa hoặc xóa buổi áp dụng cho mọi tuần từ bây giờ (các buổi đã học vẫn được giữ); lớp luôn cần ít nhất một buổi. Muốn đổi riêng một tuần, hãy dùng Lịch giảng dạy.'
     : 'Các buổi học cố định mỗi tuần của lớp.';
   if (!schedules.length) {
     list.innerHTML = '';
@@ -487,8 +823,8 @@ function openScheduleForm(schedule = null) {
   $('scheduleModalTitle').textContent = isEdit ? 'Sửa buổi học' : 'Thêm buổi học';
   $('scheduleSubmit').textContent = isEdit ? 'Lưu thay đổi' : 'Thêm buổi học';
   $('scheduleDayInput').innerHTML = dayOptionsHtml(schedule?.dayOfWeek, { placeholder: !isEdit });
-  $('scheduleStartInput').value = isEdit ? shortTime(schedule.startTime) : '';
-  $('scheduleEndInput').value = isEdit ? shortTime(schedule.endTime) : '';
+  bindSessionTimeSelects($('scheduleStartInput'), $('scheduleEndInput'),
+    isEdit ? { start: schedule.startTime, end: schedule.endTime } : {});
   setFieldError('scheduleFormError', '');
   openModal('scheduleModal');
   $('scheduleDayInput').focus();
@@ -538,34 +874,271 @@ async function loadMaterials() {
   }
 }
 
+/** Nút mở một tệp: biểu tượng theo loại, tên tệp. */
+function materialFileButton(m, f) {
+  return `<button type="button" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface font-label-md text-[13px] text-left max-w-full"
+    data-open-material="${escapeHtml(m.materialId)}" data-file="${escapeHtml(f.fileId)}" title="${escapeHtml(fileTypeLabel(f.fileType))} · ${escapeHtml(formatFileSize(f.fileSize))}">
+    <span class="material-symbols-outlined text-[18px] text-primary shrink-0" aria-hidden="true">${fileKindIcon(f)}</span><span class="min-w-0 truncate">${escapeHtml(f.fileName)}</span></button>`;
+}
+
+function materialItemHtml(m, canManage, cls = null) {
+  return `
+    <li class="kz-item flex flex-wrap items-start gap-3" ${cls ? `data-space-id="${escapeHtml(cls.spaceId)}"` : ''}>
+      <div class="w-10 h-10 rounded-xl bg-surface-container-lowest text-primary flex items-center justify-center shrink-0" aria-hidden="true">
+        <span class="material-symbols-outlined text-[22px]">folder_open</span></div>
+      <div class="flex-1 min-w-[200px] space-y-1.5">
+        <div class="flex flex-wrap items-center gap-2">
+          <h3 class="font-title-sm text-title-sm text-on-surface [overflow-wrap:anywhere]">${escapeHtml(m.title)}</h3>
+          ${isRecent(m.createdAt) ? '<span class="kz-badge" data-tone="active">Mới</span>' : ''}
+          ${cls ? `<button type="button" class="kz-badge hover:underline" data-open-class="${escapeHtml(cls.spaceId)}" title="Mở lớp học">
+            <span class="material-symbols-outlined text-[14px]" aria-hidden="true">school</span>${escapeHtml(cls.title)}</button>` : ''}
+        </div>
+        ${m.description ? `<p class="text-on-surface-variant whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(m.description)}</p>` : ''}
+        <div class="flex flex-wrap gap-1.5">${(m.files || []).map((f) => materialFileButton(m, f)).join('')}</div>
+        <p class="font-caption text-caption text-on-surface-variant">${(m.files || []).length} tệp · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
+      </div>
+      ${canManage ? `<div class="flex gap-2 shrink-0">
+        <button type="button" class="kz-btn" data-edit-material="${escapeHtml(m.materialId)}">Chỉnh sửa</button>
+        <button type="button" class="kz-btn text-error" data-delete-material="${escapeHtml(m.materialId)}">Xóa</button>
+      </div>` : ''}
+    </li>`;
+}
+
+// ----------------------------------------------------------------------------
+// Trang "Tài liệu học tập" chung mọi lớp (mục trên thanh bên): tìm, lọc theo lớp / loại tệp, nhóm theo tuần
+// ----------------------------------------------------------------------------
+const hubClassOf = (m) => state.hub.classes.find((c) => c.spaceId === m.__spaceId) || null;
+
+/**
+ * Trạng thái lớp cho bộ lọc. Thực tế lớp chỉ có ACTIVE (lúc tạo) và COMPLETED (tự chuyển khi học xong buổi cuối);
+ * PAUSED / CLOSED còn trong enum nhưng không chỗ nào đặt, nếu có thì vẫn tính vào "Đã hoàn thành".
+ */
+const HUB_STATUSES = [
+  { key: 'active', label: 'Đang hoạt động' },
+  { key: 'ended', label: 'Đã hoàn thành' },
+  { key: 'all', label: 'Tất cả' }
+];
+const classMatchesStatus = (c, status) => status === 'all' || (status === 'active' ? c.status === 'ACTIVE' : c.status !== 'ACTIVE');
+
+async function loadMaterialsHub() {
+  const list = $('hubList');
+  const stateBox = $('hubState');
+  stateBox.classList.add('hidden');
+  list.innerHTML = '<p class="text-on-surface-variant">Đang tải tài liệu...</p>';
+  try {
+    const classes = await API.classrooms.list() || [];
+    // Tải tài liệu các lớp song song; lớp nào lỗi thì bỏ qua lớp đó, vẫn hiện các lớp còn lại
+    const results = await Promise.all(classes.map((c) => API.classrooms.materials(c.spaceId)
+      .then((ms) => (ms || []).map((m) => ({ ...m, __spaceId: c.spaceId })))
+      .catch(() => null)));
+    state.hub.classes = classes;
+    state.hub.materials = results.filter(Boolean).flat();
+    const failed = results.filter((r) => r === null).length;
+    if (failed) showToast(`Không tải được tài liệu của ${failed} lớp. Vui lòng tải lại trang.`, 'error');
+    if (state.hub.filter.spaceId && !classes.some((c) => c.spaceId === state.hub.filter.spaceId)) state.hub.filter.spaceId = '';
+    renderMaterialsHub();
+  } catch (err) {
+    list.innerHTML = '';
+    renderStateBox(stateBox, friendlyErrorMessage(err), { retry: loadMaterialsHub });
+  }
+}
+
+function renderMaterialsHub() {
+  const hub = state.hub;
+  const list = $('hubList');
+  const stateBox = $('hubState');
+  const manageable = hub.classes.filter((c) => c.canManage);
+  $('hubUploadBtn').classList.toggle('hidden', !manageable.length);
+  $('hubSummary').textContent = hub.classes.length
+    ? `${hub.materials.length} tài liệu · ${hub.classes.length} lớp học`
+    : 'Bạn chưa có lớp học nào. Tạo lớp ở mục "Học viên của tôi" rồi chia sẻ tài liệu cho học viên.';
+  // Trạng thái lớp: mặc định "Đang hoạt động"; chưa có lớp nào đang hoạt động thì "Tất cả"
+  if (!hub.filter.status) hub.filter.status = hub.classes.some((c) => c.status === 'ACTIVE') ? 'active' : 'all';
+  const countOf = (key) => hub.materials.filter((m) => { const c = hubClassOf(m); return c && classMatchesStatus(c, key); }).length;
+  $('hubStatusFilter').innerHTML = HUB_STATUSES.map((st) => `
+    <option value="${st.key}" ${hub.filter.status === st.key ? 'selected' : ''}>${st.label} (${countOf(st.key)})</option>`).join('');
+  const classes = hub.classes.filter((c) => classMatchesStatus(c, hub.filter.status));
+  if (hub.filter.spaceId && !classes.some((c) => c.spaceId === hub.filter.spaceId)) hub.filter.spaceId = '';
+  $('hubClassFilter').innerHTML = '<option value="">Tất cả lớp</option>' + classes.map((c) => {
+    const n = hub.materials.filter((m) => m.__spaceId === c.spaceId).length;
+    return `<option value="${escapeHtml(c.spaceId)}" ${hub.filter.spaceId === c.spaceId ? 'selected' : ''}>${escapeHtml(c.title)} (${n})</option>`;
+  }).join('');
+  const shownClassIds = new Set(classes.map((c) => c.spaceId));
+  const inClass = hub.materials.filter((m) => shownClassIds.has(m.__spaceId) && (!hub.filter.spaceId || m.__spaceId === hub.filter.spaceId));
+  const counts = countMaterialKinds(inClass);
+  const kinds = [{ key: '', label: 'Tất cả', icon: '' }, ...FILE_KINDS.filter((k) => counts[k.key])];
+  $('hubKindChips').innerHTML = inClass.length ? kinds.map((k) => `
+    <button type="button" class="kz-chip" data-kind="${k.key}" aria-pressed="${hub.filter.kind === k.key}">
+      ${k.icon ? `<span class="material-symbols-outlined text-[16px]" aria-hidden="true">${k.icon}</span>` : ''}${k.label} · ${k.key ? counts[k.key] || 0 : counts.all}</button>`).join('') : '';
+  if (!hub.materials.length) {
+    list.innerHTML = '';
+    renderStateBox(stateBox, hub.classes.length ? 'Chưa có tài liệu nào. Bấm "Tải lên tài liệu" để chia sẻ tài liệu cho học viên.' : 'Chưa có lớp học nào.');
+    return;
+  }
+  if (!inClass.length && !hub.filter.keyword.trim() && !hub.filter.kind) {
+    list.innerHTML = '';
+    stateBox.innerHTML = `<p class="text-on-surface-variant">${hub.filter.status === 'active'
+      ? 'Các lớp đang hoạt động chưa có tài liệu nào.' : 'Không có tài liệu nào ở các lớp này.'}</p>
+      ${hub.filter.status !== 'all' ? '<button type="button" class="kz-btn mt-4" data-hub-all>Xem tài liệu của tất cả lớp</button>' : ''}`;
+    stateBox.classList.remove('hidden');
+    stateBox.querySelector('[data-hub-all]')?.addEventListener('click', () => {
+      hub.filter.status = 'all';
+      hub.limit = MATERIAL_PAGE;
+      renderMaterialsHub();
+    });
+    return;
+  }
+  const filtered = filterMaterials(inClass, hub.filter);
+  if (!filtered.length) {
+    list.innerHTML = '';
+    stateBox.innerHTML = '<p class="text-on-surface-variant">Không tìm thấy tài liệu phù hợp.</p><button type="button" class="kz-btn mt-4" data-hub-clear>Xóa bộ lọc</button>';
+    stateBox.classList.remove('hidden');
+    stateBox.querySelector('[data-hub-clear]').addEventListener('click', () => {
+      hub.filter = { kind: '', keyword: '', spaceId: '', status: 'all' };
+      $('hubSearch').value = '';
+      hub.limit = MATERIAL_PAGE;
+      renderMaterialsHub();
+    });
+    return;
+  }
+  stateBox.classList.add('hidden');
+  const visible = [...filtered].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, hub.limit);
+  const item = (m) => { const c = hubClassOf(m); return materialItemHtml(m, !!c?.canManage, c); };
+  const more = filtered.length > visible.length ? `
+    <div class="flex justify-center"><button type="button" class="kz-btn" data-hub-more>Xem thêm ${Math.min(MATERIAL_PAGE, filtered.length - visible.length)} tài liệu (còn ${filtered.length - visible.length})</button></div>` : '';
+  if (hub.filter.keyword.trim() || hub.filter.kind) {
+    list.innerHTML = `<p class="font-caption text-caption text-on-surface-variant">${filtered.length} tài liệu phù hợp</p>
+      <ul class="flex flex-col gap-3">${visible.map(item).join('')}</ul>` + more;
+  } else {
+    list.innerHTML = groupByWeek(visible, (m) => m.createdAt).map((g, gi) => {
+      const open = gi === 0 || hub.openGroups.has(g.key);
+      return `
+        <section>
+          <button type="button" class="kz-group-head" data-hub-group="${escapeHtml(g.key)}" aria-expanded="${open}">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">${open ? 'expand_more' : 'chevron_right'}</span>${escapeHtml(g.label)}<span class="normal-case font-normal">· ${g.items.length} tài liệu</span></button>
+          <ul class="flex flex-col gap-3 mt-2 ${open ? '' : 'hidden'}">${g.items.map(item).join('')}</ul>
+        </section>`;
+    }).join('') + more;
+  }
+}
+
+/** Sự kiện của trang chung (gắn một lần). */
+function bindMaterialsHub() {
+  const hub = state.hub;
+  $('hubUploadBtn').addEventListener('click', () => openMaterialForm(null));
+  $('hubSearch').addEventListener('input', (e) => { hub.filter.keyword = e.target.value; hub.limit = MATERIAL_PAGE; renderMaterialsHub(); });
+  $('hubClassFilter').addEventListener('change', (e) => { hub.filter.spaceId = e.target.value; hub.filter.kind = ''; hub.limit = MATERIAL_PAGE; renderMaterialsHub(); });
+  $('hubStatusFilter').addEventListener('change', (e) => { hub.filter.status = e.target.value; hub.filter.kind = ''; hub.limit = MATERIAL_PAGE; renderMaterialsHub(); });
+  $('hubKindChips').addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-kind]');
+    if (!chip) return;
+    hub.filter.kind = chip.dataset.kind;
+    hub.limit = MATERIAL_PAGE;
+    renderMaterialsHub();
+  });
+  $('hubList').addEventListener('click', (e) => {
+    if (e.target.closest('[data-hub-more]')) { hub.limit += MATERIAL_PAGE; renderMaterialsHub(); return; }
+    const head = e.target.closest('[data-hub-group]');
+    if (head) {
+      const open = head.getAttribute('aria-expanded') === 'true';
+      if (open) hub.openGroups.delete(head.dataset.hubGroup); else hub.openGroups.add(head.dataset.hubGroup);
+      head.setAttribute('aria-expanded', String(!open));
+      head.querySelector('.material-symbols-outlined').textContent = open ? 'chevron_right' : 'expand_more';
+      head.nextElementSibling.classList.toggle('hidden', open);
+      return;
+    }
+    const li = e.target.closest('[data-space-id]');
+    if (!li) return;
+    const cls = hub.classes.find((c) => c.spaceId === li.dataset.spaceId);
+    const classBtn = e.target.closest('[data-open-class]');
+    if (classBtn) { navigateToSpace(classBtn.dataset.openClass); return; }
+    if (!cls) return;
+    const fileBtn = e.target.closest('[data-open-material]');
+    const editBtn = e.target.closest('[data-edit-material]');
+    const delBtn = e.target.closest('[data-delete-material]');
+    const material = (id) => hub.materials.find((m) => m.materialId === id && m.__spaceId === cls.spaceId);
+    // Các hộp thoại tài liệu dùng lớp đang chọn
+    state.currentSpace = cls;
+    if (fileBtn) openMaterial(fileBtn.dataset.openMaterial, fileBtn.dataset.file, fileBtn);
+    else if (editBtn) openMaterialForm(material(editBtn.dataset.editMaterial));
+    else if (delBtn) openDeleteMaterial(material(delBtn.dataset.deleteMaterial));
+  });
+}
+
+/** Chip lọc loại tệp (kèm số lượng). */
+function renderMaterialChips() {
+  const counts = countMaterialKinds(state.materials);
+  const kinds = [{ key: '', label: 'Tất cả', icon: '' }, ...FILE_KINDS.filter((k) => counts[k.key])];
+  $('materialKindChips').innerHTML = kinds.map((k) => `
+    <button type="button" class="kz-chip" data-kind="${k.key}" aria-pressed="${state.materialFilter.kind === k.key}">
+      ${k.icon ? `<span class="material-symbols-outlined text-[16px]" aria-hidden="true">${k.icon}</span>` : ''}${k.label} · ${k.key ? counts[k.key] : counts.all}</button>`).join('');
+}
+
+/** Thẻ "Tài liệu mới nhất" ở tab Tổng quan + số trên tab. */
+function renderMaterialsOverview() {
+  const n = state.materials.length;
+  const badge = $('tabBadgeMaterials');
+  badge.textContent = String(n);
+  badge.classList.toggle('hidden', !n);
+  $('overviewMaterialsMore').textContent = n ? `Xem tất cả ${n} tài liệu` : 'Mở tab Tài liệu';
+  const recent = [...state.materials].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, 3);
+  $('overviewMaterials').innerHTML = recent.length ? recent.map((m) => `
+    <li class="kz-item flex items-center gap-3 py-3">
+      <span class="material-symbols-outlined text-[22px] text-primary shrink-0" aria-hidden="true">${fileKindIcon((m.files || [])[0])}</span>
+      <div class="flex-1 min-w-0">
+        <p class="font-label-md text-label-md text-on-surface truncate">${escapeHtml(m.title)}</p>
+        <p class="font-caption text-caption text-on-surface-variant">${(m.files || []).length} tệp · ${escapeHtml(formatDateVi(m.createdAt))}</p>
+      </div>
+      ${isRecent(m.createdAt) ? '<span class="kz-badge" data-tone="active">Mới</span>' : ''}
+    </li>`).join('')
+    : '<li class="kz-item text-center text-on-surface-variant">Chưa có tài liệu nào.</li>';
+}
+
 function renderMaterials() {
   const list = $('materialsList');
   const stateBox = $('materialsState');
+  renderMaterialsOverview();
+  renderMaterialChips();
   if (!state.materials.length) {
     list.innerHTML = '';
     renderStateBox(stateBox, 'Hiện chưa có tài liệu nào trong lớp học này.');
     return;
   }
-  stateBox.classList.add('hidden');
   const canManage = !!state.currentSpace?.canManage;
-  list.innerHTML = state.materials.map((m) => `
-    <li class="kz-item flex flex-col sm:flex-row sm:items-start gap-3">
-      <div class="flex-1 min-w-0 space-y-1">
-        <h3 class="font-title-sm text-title-sm text-on-surface [overflow-wrap:anywhere]">${escapeHtml(m.title)}</h3>
-        ${m.description ? `<p class="text-on-surface-variant whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(m.description)}</p>` : ''}
-        <div class="flex flex-wrap gap-1.5 pt-0.5">${(m.files || []).map((f) => `
-          <button type="button" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-container-lowest text-primary font-semibold hover:underline text-left max-w-full"
-            data-open-material="${escapeHtml(m.materialId)}" data-file="${escapeHtml(f.fileId)}" title="${escapeHtml(fileTypeLabel(f.fileType))} · ${escapeHtml(formatFileSize(f.fileSize))}">
-            <span class="material-symbols-outlined text-[16px] shrink-0">attach_file</span><span class="min-w-0 [overflow-wrap:anywhere]">${escapeHtml(f.fileName)}</span>
-          </button>`).join('')}</div>
-        <p class="font-caption text-caption text-on-surface-variant">${(m.files || []).length} tệp · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
-      </div>
-      <div class="flex gap-2 shrink-0">
-        ${canManage ? `<button type="button" class="kz-btn" data-edit-material="${escapeHtml(m.materialId)}">Chỉnh sửa</button>` : ''}
-        ${canManage ? `<button type="button" class="kz-btn text-error" data-delete-material="${escapeHtml(m.materialId)}">Xóa</button>` : ''}
-      </div>
-    </li>
-  `).join('');
+  const filtered = filterMaterials(state.materials, state.materialFilter);
+  if (!filtered.length) {
+    list.innerHTML = '';
+    stateBox.innerHTML = '<p class="text-on-surface-variant">Không tìm thấy tài liệu phù hợp.</p><button type="button" class="kz-btn mt-4" data-clear-material-filter>Xóa bộ lọc</button>';
+    stateBox.classList.remove('hidden');
+    stateBox.querySelector('[data-clear-material-filter]').addEventListener('click', () => {
+      state.materialFilter = { kind: '', keyword: '' };
+      $('materialSearch').value = '';
+      renderMaterials();
+    });
+    return;
+  }
+  stateBox.classList.add('hidden');
+  // Đang tìm / lọc: bỏ nhóm tuần, hiện thẳng kết quả (mới nhất trước). Mỗi lần hiện 10 tài liệu.
+  const searching = !!(state.materialFilter.keyword.trim() || state.materialFilter.kind);
+  const visible = [...filtered].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    .slice(0, state.materialLimit);
+  if (searching) {
+    list.innerHTML = `<p class="font-caption text-caption text-on-surface-variant">${filtered.length} tài liệu phù hợp</p>
+      <ul class="flex flex-col gap-3">${visible.map((m) => materialItemHtml(m, canManage)).join('')}</ul>` + (filtered.length > visible.length ? `
+      <div class="flex justify-center"><button type="button" class="kz-btn" data-more-materials>Xem thêm ${Math.min(MATERIAL_PAGE, filtered.length - visible.length)} tài liệu (còn ${filtered.length - visible.length})</button></div>` : '');
+  } else {
+    const groups = groupByWeek(visible, (m) => m.createdAt);
+    list.innerHTML = groups.map((g, gi) => {
+      const collapsed = state.collapsedGroups.has(`m:${g.key}`) || (gi > 0 && !state.collapsedGroups.has(`m:${g.key}:open`));
+      return `
+        <section>
+          <button type="button" class="kz-group-head" data-group="m:${g.key}" aria-expanded="${!collapsed}">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">${collapsed ? 'chevron_right' : 'expand_more'}</span>${escapeHtml(g.label)}<span class="normal-case font-normal">· ${g.items.length} tài liệu</span></button>
+          <ul class="flex flex-col gap-3 mt-2 ${collapsed ? 'hidden' : ''}">${g.items.map((m) => materialItemHtml(m, canManage)).join('')}</ul>
+        </section>`;
+    }).join('') + (filtered.length > visible.length ? `
+      <div class="flex justify-center"><button type="button" class="kz-btn" data-more-materials>Xem thêm ${Math.min(MATERIAL_PAGE, filtered.length - visible.length)} tài liệu (còn ${filtered.length - visible.length})</button></div>` : '');
+  }
   list.querySelectorAll('[data-open-material]').forEach((btn) => {
     btn.addEventListener('click', () => openMaterial(btn.dataset.openMaterial, btn.dataset.file, btn));
   });
@@ -595,8 +1168,12 @@ async function confirmDeleteMaterial() {
     closeModal('deleteMaterialModal');
     state.deletingMaterial = null;
     showToast('Xóa tài liệu thành công.');
-    state.materials = state.materials.filter((m) => m.materialId !== material.materialId);
-    renderMaterials();
+    if (state.hub.active) {
+      await loadMaterialsHub();
+    } else {
+      state.materials = state.materials.filter((m) => m.materialId !== material.materialId);
+      renderMaterials();
+    }
   } catch (err) {
     setFieldError('deleteMaterialError', friendlyErrorMessage(err));
   } finally {
@@ -618,7 +1195,7 @@ async function openMaterial(materialId, fileId, button) {
     if (tab) tab.close();
     showToast(friendlyErrorMessage(err), 'error');
   } finally {
-    setBusy(button, false);
+    button.disabled = false; // giữ nguyên biểu tượng + tên tệp (setBusy ghi đè textContent làm vỡ nút)
   }
 }
 
@@ -634,6 +1211,18 @@ function openMaterialForm(material = null) {
   $('materialDescriptionInput').value = material?.description || '';
   // Một tài liệu = tiêu đề + mô tả + 1–5 tệp. Sửa: "Thay" / "Xóa" đúng tệp muốn đổi, "＋ Thêm tệp" để bổ sung.
   materialPicker.reset(isEdit ? (material.files || []) : [], { max: MAX_FILES_PER_UPLOAD, addLabel: 'Thêm tệp' });
+  // Tải lên từ trang chung: chọn lớp nhận tài liệu (sửa thì giữ lớp của tài liệu)
+  const chooseClass = state.hub.active && !isEdit;
+  $('materialClassBox').classList.toggle('hidden', !chooseClass);
+  setFieldError('materialClassError', '');
+  if (chooseClass) {
+    const manageable = state.hub.classes.filter((c) => c.canManage);
+    $('materialClassSelect').innerHTML = (manageable.length > 1 ? '<option value="">Chọn lớp học</option>' : '')
+      + manageable.map((c) => `<option value="${escapeHtml(c.spaceId)}">${escapeHtml(c.title)} · ${escapeHtml(c.learnerName || 'Học viên')}</option>`).join('');
+    if (state.hub.filter.spaceId && manageable.some((c) => c.spaceId === state.hub.filter.spaceId)) {
+      $('materialClassSelect').value = state.hub.filter.spaceId;
+    }
+  }
   $('materialFileHint').textContent = isEdit
     ? `Bấm "Thay" để đổi đúng tệp đó, "Xóa" để bỏ tệp, "＋ Thêm tệp" để bổ sung. ${FILE_RULES_TEXT}`
     : FILE_RULES_TEXT;
@@ -656,7 +1245,11 @@ async function submitMaterial(event) {
   setFieldError('materialDescriptionError', fieldErrors.description);
   setFieldError('materialFileError', fileError);
   setFieldError('materialFormError', '');
-  if (fieldErrors.title || fieldErrors.description || fileError) return;
+  const chooseClass = state.hub.active && !isEdit;
+  const hubClass = chooseClass ? state.hub.classes.find((c) => c.spaceId === $('materialClassSelect').value) : null;
+  setFieldError('materialClassError', chooseClass && !hubClass ? 'Vui lòng chọn lớp học.' : '');
+  if (fieldErrors.title || fieldErrors.description || fileError || (chooseClass && !hubClass)) return;
+  if (hubClass) state.currentSpace = hubClass;
 
   const submit = $('materialSubmit');
   setBusy(submit, true, isEdit ? 'Đang lưu...' : 'Đang tải lên...');
@@ -669,7 +1262,8 @@ async function submitMaterial(event) {
     closeModal('materialModal');
     showToast(isEdit ? 'Cập nhật tài liệu thành công.' : 'Tải lên tài liệu thành công.');
     // Chỉ cập nhật đúng tài liệu vừa lưu, không tải lại cả danh sách
-    if (saved && saved.materialId) upsertMaterialLocally(saved, { prepend: !isEdit });
+    if (state.hub.active) await loadMaterialsHub();
+    else if (saved && saved.materialId) upsertMaterialLocally(saved, { prepend: !isEdit });
     else await loadMaterials();
   } catch (err) {
     const fe = err.fieldErrors || {};
@@ -710,19 +1304,32 @@ function renderViewHint() {
   }
 }
 
-/** Khi mở lớp từ mục "Tài liệu học tập" / "Quản lý bài tập", cuộn tới đúng khối. */
-function scrollToRequestedSection() {
-  const target = { materials: 'materialsSection', assignments: 'assignmentsSection' }[currentView()];
-  const el = target && $(target);
-  if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
-}
-
 function renderRoute() {
   highlightSidebar();
+  // Nút quay lại ở chi tiết lớp về đúng mục đang mở trên thanh bên
+  const backLabel = { materials: 'Tài liệu học tập', assignments: 'Quản lý bài tập' }[currentView()] || 'Danh sách lớp học';
+  $('backToListBtn').innerHTML = `<span class="material-symbols-outlined text-[16px]">arrow_back</span>${backLabel}`;
   const spaceId = new URLSearchParams(window.location.search).get('space');
   renderViewHint();
-  $('classroomListView').classList.toggle('hidden', !!spaceId);
+  // Mục "Quản lý bài tập" / "Tài liệu học tập" trên thanh bên: trang chung của mọi lớp (thay cho danh sách lớp)
+  const overview = !spaceId && currentView() === 'assignments';
+  const materialsHub = !spaceId && currentView() === 'materials';
+  state.hub.active = materialsHub;
+  $('classroomListView').classList.toggle('hidden', !!spaceId || overview || materialsHub);
   $('classroomDetailView').classList.toggle('hidden', !spaceId);
+  $('materialsHub').classList.toggle('hidden', !materialsHub);
+  if (materialsHub) {
+    state.currentSpace = null;
+    hideAssignmentOverview();
+    loadMaterialsHub();
+    return;
+  }
+  if (overview) {
+    state.currentSpace = null;
+    showAssignmentOverview();
+    return;
+  }
+  hideAssignmentOverview();
   if (spaceId) {
     loadSpace(spaceId);
   } else {
@@ -759,26 +1366,82 @@ function init() {
     return;
   }
 
+  createAddress = mountAddressPicker($('createAddressBox'), { idPrefix: 'createAddr' });
+  deliveryAddress = mountAddressPicker($('deliveryLocationBox'), { idPrefix: 'deliveryAddr' });
+  $('learnerSelect').addEventListener('change', prefillCreateMode);
+  document.querySelectorAll('input[name="createMode"]').forEach((r) => r.addEventListener('change', syncCreateMode));
   $('openAddLearnerBtn').addEventListener('click', () => openAddLearner());
   $('addLearnerForm').addEventListener('submit', submitAddLearner);
   $('addScheduleRowBtn').addEventListener('click', addScheduleRow);
   $('openAddScheduleBtn').addEventListener('click', () => openScheduleForm(null));
   $('scheduleForm').addEventListener('submit', submitSchedule);
   $('openRenameBtn').addEventListener('click', openRename);
+  $('openCourseBtn').addEventListener('click', openCourseModal);
+  $('courseForm').addEventListener('submit', submitCourse);
+  $('openDeliveryBtn').addEventListener('click', openDeliveryModal);
+  $('deliveryForm').addEventListener('submit', submitDelivery);
+  document.querySelectorAll('input[name="deliveryMode"]').forEach((r) => r.addEventListener('change', syncDeliveryFields));
   $('deleteScheduleConfirm').addEventListener('click', confirmDeleteSchedule);
   $('renameForm').addEventListener('submit', submitRename);
   $('backToListBtn').addEventListener('click', navigateToList);
   $('openUploadBtn').addEventListener('click', () => openMaterialForm(null));
+  $('overviewUploadBtn').addEventListener('click', () => openMaterialForm(null));
+  $('overviewAssignBtn').addEventListener('click', () => $('openAssignmentFormBtn').click());
+  document.querySelectorAll('#classTabs [data-tab]').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  $('classTabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const tabs = [...document.querySelectorAll('#classTabs [data-tab]')];
+    const i = tabs.findIndex((t) => t.dataset.tab === state.tab);
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    setTab(next.dataset.tab);
+    next.focus();
+  });
+  document.querySelectorAll('[data-goto-tab]').forEach((b) => b.addEventListener('click', () => {
+    setTab(b.dataset.gotoTab);
+    $('classroomDetailCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+  $('materialSearch').addEventListener('input', (e) => {
+    state.materialFilter.keyword = e.target.value;
+    state.materialLimit = MATERIAL_PAGE;
+    renderMaterials();
+  });
+  $('materialKindChips').addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-kind]');
+    if (!chip) return;
+    state.materialFilter.kind = chip.dataset.kind;
+    state.materialLimit = MATERIAL_PAGE;
+    renderMaterials();
+  });
+  $('materialsList').addEventListener('click', (e) => {
+    if (e.target.closest('[data-more-materials]')) {
+      state.materialLimit += MATERIAL_PAGE;
+      renderMaterials();
+      return;
+    }
+    const head = e.target.closest('[data-group]');
+    if (!head) return;
+    const key = head.dataset.group;
+    const open = head.getAttribute('aria-expanded') === 'true';
+    state.collapsedGroups.delete(key);
+    state.collapsedGroups.delete(`${key}:open`);
+    state.collapsedGroups.add(open ? key : `${key}:open`);
+    head.setAttribute('aria-expanded', String(!open));
+    head.querySelector('.material-symbols-outlined').textContent = open ? 'chevron_right' : 'expand_more';
+    head.nextElementSibling.classList.toggle('hidden', open);
+  });
   $('materialForm').addEventListener('submit', submitMaterial);
+  bindMaterialsHub();
   materialPicker = createFileList($('materialFileList'), { accept: MATERIAL_ACCEPT_ATTR });
   $('deleteMaterialConfirm').addEventListener('click', confirmDeleteMaterial);
   initTutorAssignments({ showToast });
+  initAssignmentOverview({ showToast });
   document.querySelectorAll('[data-close-modal]').forEach((btn) => {
     btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeModal('addLearnerModal');
+      closeModal('deliveryModal');
       closeModal('materialModal');
       closeModal('scheduleModal');
       closeModal('renameModal');

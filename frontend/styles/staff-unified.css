@@ -47,23 +47,29 @@
   margin: 0 0 32px !important;
   text-decoration: none;
 }
+/* Logo đồng bộ với trang chủ (components/header/header.html, components/brand-logo): ảnh tròn có viền,
+   chữ "Kizuna" navy + "Tutor" xanh, dòng phụ nhỏ. */
 .staff-unified .admin-sidebar .admin-brand img {
   width: 40px !important;
   height: 40px !important;
-  border-radius: 8px !important;
+  border-radius: 9999px !important;
+  border: 1px solid #E5DECB !important;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
   object-fit: contain;
 }
+.staff-unified .admin-sidebar .admin-brand .brand-tutor { color: #006194 !important; }
 .staff-unified .admin-sidebar .admin-brand strong {
   display: block;
-  font-size: 18px !important;
-  line-height: 26px !important;
+  font-size: 20px !important;
+  line-height: 24px !important;
   font-weight: 700 !important;
   letter-spacing: -0.01em;
   color: var(--su-navy) !important;
 }
 .staff-unified .admin-sidebar .admin-brand small {
   display: block;
-  font-size: 11px !important;
+  font-size: 10px !important;
   line-height: 14px !important;
   font-weight: 500 !important;
   letter-spacing: 0.05em !important;
@@ -303,3 +309,16 @@
 @media (prefers-reduced-motion: reduce) {
   .staff-unified .admin-sidebar { transition: none; }
 }
+
+/* FE-12 (2026-11-13): chuông thông báo cạnh logo trong sidebar (thanh trên bị ẩn trên máy tính). */
+.staff-unified .admin-sidebar .admin-brand { padding-right: 64px !important; }
+.staff-unified .admin-sidebar .sidebar-bell {
+  position: absolute; top: 24px; right: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0; border: 0; border-radius: 10px;
+  background: transparent; color: var(--su-text); cursor: pointer;
+}
+.staff-unified .admin-sidebar .sidebar-bell:hover { background: #f7f4ec; color: var(--su-navy); }
+.staff-unified .admin-sidebar .sidebar-bell:focus-visible { outline: 2px solid #006194; outline-offset: 2px; }
+.staff-unified .admin-sidebar .sidebar-bell .su-icon,
+.staff-unified .admin-sidebar .sidebar-bell .material-symbols-outlined { font-size: 22px; }

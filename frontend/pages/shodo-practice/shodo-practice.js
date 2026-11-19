@@ -80,8 +80,19 @@ async function loadKanjiSvg(char) {
     }
   } catch (e) {}
 
-  // 3. Dự phòng tải từ KanjiVG CDN theo mã Hex
+  // 3. Ưu tiên tải trực tiếp từ kho tài nguyên tĩnh nội bộ (/kanjivg/)
   if (hex) {
+    try {
+      const localRes = await fetch(`/kanjivg/${hex}.svg`);
+      if (localRes.ok) {
+        const svgText = await localRes.text();
+        if (svgText && svgText.includes('<path')) {
+          return parseKanjiSvgPaths(svgText);
+        }
+      }
+    } catch (e) {}
+
+    // 4. Dự phòng tải từ KanjiVG CDN theo mã Hex nếu file nội bộ không có
     const cdnUrl = `https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/${hex}.svg`;
     try {
       const res = await fetch(cdnUrl);
@@ -595,6 +606,13 @@ async function selectKanji(char) {
 
   currentChar = targetChar;
 
+  // Cập nhật nút shortcut liên kết chéo sang Từ điển Kanji
+  const dictBtn = document.getElementById('btnShodoOpenDict');
+  if (dictBtn) {
+    dictBtn.href = `/kanji-dictionary?keyword=${encodeURIComponent(targetChar)}`;
+    dictBtn.classList.remove('hidden');
+  }
+
   // Cập nhật ngay ký tự lên thanh tiêu đề Canvas
   setElementText('canvasActiveChar', targetChar);
   setElementText('kanjiDisplayChar', targetChar);
@@ -708,7 +726,9 @@ function saveShodoCurrentCharToDeck() {
     let decks = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(decks)) decks = [];
 
-    let deck = decks.find(d => d.title === 'Bộ Thẻ Cá Nhân' || d.title === 'Bộ Thẻ Shodo');
+    const lastId = localStorage.getItem('kizuna_last_selected_deck_id');
+    let deck = (lastId && decks.find(d => String(d.id) === String(lastId))) ||
+               decks.find(d => d.title === 'Bộ Thẻ Cá Nhân' || d.title === 'Bộ Thẻ Shodo');
     if (!deck && decks.length > 0) {
       deck = decks[0];
     }
@@ -742,6 +762,9 @@ function saveShodoCurrentCharToDeck() {
     }
 
     localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
+    if (deck.id) {
+      localStorage.setItem('kizuna_last_selected_deck_id', String(deck.id));
+    }
     showToast(`Đã cất chữ "${currentChar}" vào bộ thẻ "${deck.title}" thành công! 🗂️`, 'success');
   } catch (err) {
     console.error('Lỗi lưu thẻ từ Shodo:', err);
@@ -752,7 +775,9 @@ function saveShodoCurrentCharToDeck() {
 // =========================================================================
 // 8. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================
-document.addEventListener('DOMContentLoaded', async () => {
+let isShodoInitialized = false;
+
+async function initShodoPractice() {
   setupCanvas();
   renderStrokeStepBadges();
 
@@ -816,6 +841,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     strokePaths = [];
     renderGuidelineSvg();
     renderStrokeStepBadges();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initShodoPractice);
+window.addEventListener('kizuna:page-mounted', () => {
+  if (window.location.pathname.includes('shodo')) {
+    initShodoPractice();
   }
 });
 

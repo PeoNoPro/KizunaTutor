@@ -1,6 +1,9 @@
-/* Bố cục chi tiết phiếu CS theo Figma: bối cảnh bên trái, phản hồi và thao tác bên phải. Màu và nút dùng chung từ support-tickets.css. */
-.cs-detail-columns{display:grid;grid-template-columns:minmax(0,1fr) 452px;gap:24px;align-items:start}
-.cs-detail-conversation,.cs-detail-sidebar{min-width:0}
+/* Chi tiết yêu cầu của CS, 2 cột (gọn lại 2026-11-13): trao đổi + ô soạn | thao tác, người gửi, phân công, lịch sử. Màu và nút dùng chung từ support-tickets.css. */
+.cs-detail-columns{display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:"main side";gap:20px;align-items:start}
+.cs-detail-requester{min-width:0}
+.cs-detail-conversation{grid-area:main;display:flex;flex-direction:column;gap:16px;min-width:0}
+.cs-detail-sidebar{grid-area:side;min-width:0}
+@media(max-width:960px){.cs-detail-columns{grid-template-columns:minmax(0,1fr);grid-template-areas:"main" "side"}}
 .cs-detail-sidebar{display:flex;flex-direction:column;gap:16px}
 .cs-ticket-detail #publicLayout,.cs-ticket-detail #internalLayout{display:block}
 .cs-ticket-detail #publicPanel .support-thread{background:var(--support-sand);border-color:var(--support-field)}
@@ -73,5 +76,116 @@
 .cs-selected-files small{font-size:11px;color:var(--support-text)}
 .cs-ticket-detail .cs-selected-files button{min-height:30px;padding:4px 8px;font-size:12px;flex-shrink:0}
 
-@media(max-width:1200px){.cs-detail-columns{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:650px){.cs-message-header{flex-direction:column;gap:5px}.cs-message-header time{text-align:left}.cs-message-body{padding:10px}.cs-thread-message{gap:8px}.cs-file-limit{flex-basis:100%;order:3}.cs-ticket-detail .support-history>summary span{display:block;margin-left:0}.cs-action-dialog .support-dialog-actions{margin:4px -16px -18px}}
+
+/* ---- Đợt 3: tiêu đề + thời hạn phản hồi ---- */
+.cs-ticket-detail #ticketDetail.cs-ticket-head{margin:0;padding:20px 22px;display:flex;flex-direction:column;gap:10px}
+.cs-head-top{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.support-page .cs-head-title{font-size:20px;line-height:28px;margin:0;overflow-wrap:anywhere}
+.cs-head-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cs-ticket-detail .cs-code{font:600 12px/18px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--support-muted);background:#f3f1ea;border-radius:6px;padding:2px 8px}
+.cs-ticket-detail .cs-priority{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#eef0f2;color:#4a545e}
+.cs-ticket-detail .cs-priority::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.cs-ticket-detail .cs-priority[data-priority=URGENT]{background:#fde7e5;color:#b3261e}
+.cs-ticket-detail .cs-priority[data-priority=HIGH]{background:#fff2dc;color:#a35c00}
+.cs-ticket-detail .cs-priority[data-priority=MEDIUM]{background:#e3f0f8;color:#006194}
+.cs-head-category{font-size:12px;color:var(--support-text);padding:2px 4px}
+.cs-head-sla{display:flex;align-items:center;gap:10px;border-radius:10px;padding:10px 12px;background:#e4f4ea;color:#1e7a46;font-size:13px;line-height:19px}
+.cs-head-sla>.material-symbols-outlined{font-size:22px;flex-shrink:0}
+.cs-head-sla strong{display:block;font-size:14px}
+.cs-head-sla div>span{display:block;color:var(--support-text);font-size:12px}
+.cs-head-sla[data-state=soon]{background:#fff2dc;color:#a35c00}
+.cs-head-sla[data-state=overdue]{background:#fde7e5;color:#b3261e}
+.cs-head-sla[data-state=none]{background:#f3f1ea;color:var(--support-text)}
+.support-page .cs-head-meta{font-size:12px;color:var(--support-muted);margin:0}
+
+/* ---- Cột trái: người gửi ---- */
+.cs-ticket-detail .cs-requester-card{padding:18px}
+.support-page .cs-requester-card h3{font-size:14px;line-height:21px;margin:0 0 10px}
+.cs-requester-who{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.cs-requester-avatar{display:flex;align-items:center;justify-content:center;flex:0 0 44px;height:44px;border-radius:50%;background:var(--support-primary);color:#fff;font-weight:700;font-size:14px}
+.cs-requester-who strong{display:block;font-size:15px;line-height:21px;overflow-wrap:anywhere}
+.cs-requester-role{font-size:12px;color:var(--support-text)}
+.cs-other-tickets{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cs-other-tickets a{display:grid;gap:4px;padding:9px 10px;border:1px solid var(--support-line);border-radius:8px;text-decoration:none;color:var(--support-navy)}
+.cs-other-tickets a:hover{border-color:var(--support-primary)}
+.cs-other-tickets strong{font-size:13px;line-height:18px;overflow-wrap:anywhere}
+.cs-other-date{font-size:11px;color:var(--support-muted)}
+.cs-other-tickets .support-badge{justify-self:start;font-size:11px}
+.support-page .cs-requester-empty{font-size:12px;color:var(--support-text);margin:0}
+
+/* ---- Giữa: ô soạn Trả lời / Ghi chú nội bộ ---- */
+.cs-ticket-detail .cs-composer{margin:0;padding:16px 18px}
+.cs-composer-tabs{display:flex;gap:4px;margin:-4px 0 12px;border-bottom:1px solid var(--support-line)}
+.cs-composer-tabs[hidden]{display:none}
+.cs-ticket-detail .cs-composer-tab{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:6px 14px;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--support-text);font-weight:600;font-size:13px}
+.cs-composer-tab .material-symbols-outlined{font-size:18px}
+.cs-ticket-detail .cs-composer-tab[aria-pressed=true]{color:var(--support-primary);border-bottom-color:var(--support-primary)}
+.cs-ticket-detail .cs-composer-tab[data-mode=note][aria-pressed=true]{color:#8a5a00;border-bottom-color:#d9a300}
+.cs-ticket-detail .cs-composer[data-mode=note]{background:#fffbea;border-color:#f0dc9a}
+.cs-composer .cs-reply-footer .primary{flex:0 0 auto;margin-left:auto}
+.cs-note-area[hidden],.cs-ticket-detail #replyArea[hidden]{display:none}
+.cs-note-form{gap:8px}
+.cs-note-form label{font-size:14px;font-weight:600}
+.cs-ticket-detail .cs-note-form textarea{min-height:96px;background:#fff}
+.support-page .cs-note-help{display:flex;align-items:center;gap:6px;font-size:12px;color:#8a5a00;margin:0}
+.cs-note-help .material-symbols-outlined{font-size:15px}
+.support-page .cs-note-submit{margin-left:auto;background:#d9a300;border-color:#d9a300;color:#1f1600;font-weight:700}
+.support-page .cs-note-submit:hover{background:#c49300}
+.cs-ticket-detail #replyArea>p{font-size:13px;color:var(--support-text);margin:0 0 10px}
+
+.cs-thread-note .cs-message-body{background:#fffbea;border-color:#f0dc9a}
+.cs-thread-note .cs-message-avatar{background:#d9a300;color:#1f1600}
+.cs-note-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#8a5a00;margin-bottom:4px}
+.cs-note-tag .material-symbols-outlined{font-size:14px}
+
+/* ---- Cột phải: lịch sử xử lý dạng dòng thời gian ---- */
+.cs-ticket-detail .cs-detail-sidebar .support-history{margin:0;padding:18px}
+.cs-ticket-detail .cs-detail-sidebar .support-history>summary{font-size:16px}
+.cs-ticket-detail #historyList{position:relative;padding-left:20px}
+.cs-ticket-detail #historyList::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:2px;background:var(--support-line)}
+.cs-ticket-detail #historyList .support-message{position:relative;border:0;background:none;box-shadow:none;padding:0 0 14px;margin:0}
+.cs-ticket-detail #historyList .support-message::before{content:"";position:absolute;left:-20px;top:4px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--support-primary)}
+.cs-ticket-detail #historyList .support-message strong{font-size:13px;line-height:19px}
+.cs-ticket-detail #historyList .support-message p{font-size:12px;line-height:18px;margin:2px 0 0;color:var(--support-text)}
+.cs-ticket-detail #historyNotice{font-size:11px;color:var(--support-muted)}
+.cs-ticket-detail #internalArea:empty{display:none}
+.cs-ticket-detail #internalArea .support-current{padding:18px}
+
+/* ---- Gọn lại 2026-11-13 ---- */
+.cs-ticket-detail .cs-detail-sidebar{display:flex;flex-direction:column;gap:16px}
+.cs-ticket-detail .cs-detail-sidebar>.support-card,.cs-ticket-detail .cs-detail-sidebar>*>.support-card{margin:0}
+.cs-ticket-detail .cs-head-meta{font-size:12px;color:var(--support-muted);padding:2px 4px}
+.cs-requester-card .cs-requester-who{margin-bottom:8px}
+.cs-other-details{border-top:1px solid var(--support-line);padding-top:10px;margin-top:4px}
+.cs-other-details>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--support-primary);list-style:revert}
+.cs-other-details[open]>summary{margin-bottom:10px}
+.cs-ticket-detail .cs-detail-sidebar .support-history:not([open]){padding-bottom:18px}
+
+/* Quản lý (2026-11-13): các thẻ quyết định ở cột phải. */
+.cs-manager-decisions,.cs-manager-decisions #internalActions{display:flex;flex-direction:column;gap:16px;min-width:0}
+.cs-manager-decisions[hidden]{display:none}
+.cs-ticket-detail .cs-manager-decisions .support-card{margin:0;padding:18px}
+.cs-ticket-detail .cs-manager-decisions textarea{min-height:96px}
+
+/* Quản lý (2026-11-13): ô ghi chú nội bộ thu gọn thành một dòng. */
+.cs-ticket-detail .cs-note-toggle{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:4px 10px;border:1px dashed #d9a300;border-radius:10px;background:#fffbea;color:#8a5a00;font-weight:600;font-size:13px;cursor:pointer}
+.cs-ticket-detail .cs-note-toggle[hidden],.cs-ticket-detail #noteArea form[hidden]{display:none}
+.cs-ticket-detail .cs-note-form .cs-reply-footer{gap:8px}
+
+/* Xác nhận gửi thành công, giữ lại trên trang (2026-11-13). */
+.cs-ticket-detail .cs-done-banner{display:flex;align-items:center;gap:8px;margin:0;padding:10px 14px;border-radius:12px;background:#e4f4ea;color:#1e7a46;font-size:14px;font-weight:600;border:1px solid #bfe3cc}
+.cs-ticket-detail .cs-done-banner .material-symbols-outlined{font-size:20px}
+
+/* Ô soạn CS có hai nút gửi (2026-11-13). */
+.cs-ticket-detail .cs-reply-footer{flex-wrap:wrap;gap:8px}
+.cs-ticket-detail .cs-reply-footer .cs-resolve-submit{margin-left:0}
+.cs-ticket-detail .cs-reply-footer .cs-resolve-submit:only-of-type{margin-left:auto}
+.cs-ticket-detail .cs-reply-footer button[type=submit]:not(.cs-resolve-submit){margin-left:auto}
+.support-page .cs-prefill-hint{margin:0 0 8px;padding:8px 10px;border-radius:8px;background:#e3f0f8;color:#0b4f78;font-size:13px}
+
+/* Hàng "Chuyển Quản lý" dưới ô soạn (2026-11-13). */
+.cs-ticket-detail .cs-escalate-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 18px;border:1px dashed #d5ccb6;border-radius:14px;background:#fff}
+.cs-ticket-detail .cs-escalate-row[hidden]{display:none}
+.cs-escalate-text{font-size:13px;color:var(--support-text)}
+.cs-ticket-detail .cs-escalate-row #csEscalateOpen{min-height:40px;margin:0;padding:6px 18px;width:auto}

@@ -11,8 +11,6 @@ import java.util.*;
 public class SupportTicketCommandExecutor {
  private final SupportTicketRepository tickets;private final TicketMessageRepository messages;private final TicketAttachmentRepository attachments;
  private final TicketAuditEventRepository audit;private final SupportTicketActorResolver actors;private final SupportTicketAccessPolicy policy;private final SupportTicketRelatedContextService contexts;
- /** Sau khi tạo yêu cầu hoặc khi nhân viên xong việc, giao tiếp yêu cầu đang chờ cho người rảnh trong ca. */
- private final SupportShiftService shifts;
  /** FE-12: thông báo tự động cho người liên quan, lưu cùng transaction với thay đổi. */
  private final SupportTicketNotifier notifier;
  @Transactional public UUID create(Create r,List<TicketAttachmentValidator.ValidatedFile> files){
@@ -23,22 +21,25 @@ public class SupportTicketCommandExecutor {
    // Mức ưu tiên ban đầu do hệ thống đặt theo nhóm và buổi học liên quan (người gửi không tự chọn).
    String priority=SupportTicketPriorityRule.initial(r.category(),contexts.bookingStart(r.relatedBookingId()).orElse(null),java.time.OffsetDateTime.now());
    tickets.create(id,actor.userId(),subject,r.category(),priority,r.relatedBookingId(),r.relatedMembershipId(),r.relatedTransactionId());
-   append(id,actor.userId(),text,files);audit.append(id,actor.userId(),"CREATE",0,Map.of(),snapshot(tickets.find(id,false)),null);shifts.dispatchAfterCommit();return id;
+   append(id,actor.userId(),text,files);audit.append(id,actor.userId(),"CREATE",0,Map.of(),snapshot(tickets.find(id,false)),null);
+   // Bỏ phân ca (2026-11-16): không tự giao; báo nhân viên hỗ trợ có yêu cầu mới trong hàng chờ.
+   notifier.created(tickets.find(id,false));return id;
  }
  @Transactional public void message(UUID id,Message r,List<TicketAttachmentValidator.ValidatedFile> files){
-   shifts.lockAssignments();
    var ticket=locked(id,r.expectedVersion());var actor=actors.current(true);policy.command(actor,ticket,"message");
    var before=snapshot(ticket);append(id,actor.userId(),SupportTicketValidation.text(r.message(),10000),files);
    if(actor.requester()&&ticket.get("status").equals("RESOLVED"))ticket.put("status","IN_PROGRESS");
-   finish(ticket,actor,"MESSAGE_SENT",before,null);
+   // CS trả lời yêu cầu chưa ai nhận: tự tính là đã nhận xử lý (người gửi vẫn được báo đã tiếp nhận).
+   boolean claimed=actor.cs()&&ticket.get("status").equals("OPEN");
+   if(claimed)claim(ticket,actor);else if(actor.cs()&&ticket.get("assigned_to")==null)ticket.put("assigned_to",actor.userId());
+   finish(ticket,actor,"MESSAGE_SENT",before,claimed?"Tự nhận xử lý khi trả lời":null);
+   // Người gửi nhận một thông báo "Có phản hồi mới" là đủ, không báo thêm "đã tiếp nhận".
    notifier.message(ticket,actor.requester());
  }
  @Transactional public void command(UUID id,String action,Command r){
-   shifts.lockAssignments();
    var t=locked(id,r.expectedVersion());var a=actors.current(true);policy.command(a,t,action);var before=snapshot(t);String note=null;
    switch(action){
-     case "claim"->throw new BusinessException(400,"Yêu cầu được hệ thống tự giao cho nhân viên đang trong ca; không cần nhận thủ công.");
-     case "assignment"->{actors.recipient(r.assigneeId(),"ROLE_CS_STAFF");if(Objects.equals(t.get("assigned_to"),r.assigneeId()))throw invalid();if(!a.manager())shifts.requireNewAssignment(r.assigneeId());t.put("assigned_to",r.assigneeId());note=r.reason()==null||r.reason().isBlank()?(a.manager()?"Quản lý bàn giao vì nhân viên cũ không còn hoạt động":"Bàn giao yêu cầu cho nhân viên khác"):SupportTicketValidation.text(r.reason(),10000);}
+     case "claim"->claim(t,a);
      case "priority"->t.put("priority",SupportTicketValidation.choice(r.priority(),SupportTicketProjection.PRIORITY.keySet()));
      case "resolve"->{append(id,a.userId(),SupportTicketValidation.text(r.resolutionText(),10000),List.of());t.put("status","RESOLVED");}
      case "close"->t.put("status","CLOSED");
@@ -46,10 +47,13 @@ public class SupportTicketCommandExecutor {
      case "recipient","decision","return"->note=escalation(t,a,action,r,before);
      default->throw invalid();
    }
+   // CS xử lý yêu cầu chưa ghi người phụ trách (ví dụ dữ liệu cũ): ghi luôn người đang thao tác.
+   if(a.cs()&&t.get("assigned_to")==null)t.put("assigned_to",a.userId());
    finish(t,a,event(action),before,note);
-   notifier.command(t,action,(UUID)before.get("escalated_to"));
-   if(Set.of("resolve","escalate","close","assignment","return").contains(action))shifts.dispatchAfterCommit();
+   if(action.equals("claim"))notifier.claimed(t);else notifier.command(t,action,(UUID)before.get("escalated_to"));
  }
+ /** Nhận xử lý: ghi người phụ trách và chuyển sang Đang xử lý (chỉ khi còn Mới tiếp nhận, policy đã kiểm). */
+ private void claim(Map<String,Object> t,SupportTicketActor a){t.put("assigned_to",a.userId());t.put("status","IN_PROGRESS");}
  private String escalation(Map<String,Object> t,SupportTicketActor a,String action,Command r,Map<String,Object> before){
    var rows=tickets.escalation((UUID)t.get("ticket_id"),true);if(rows.isEmpty()||!Boolean.TRUE.equals(rows.get(0).get("pending")))throw conflict();var e=rows.get(0);UUID eid=(UUID)e.get("escalation_id");
    before.put("escalation",new LinkedHashMap<>(e));
@@ -69,7 +73,7 @@ public class SupportTicketCommandExecutor {
    audit.append((UUID)t.get("ticket_id"),a.userId(),event,next,before,after,note);
  }
  private Map<String,Object> snapshot(Map<String,Object> t){var result=new LinkedHashMap<String,Object>();for(String key:List.of("status","priority","assigned_to","escalated_to","version","related_booking_id","related_membership_id","related_transaction_id"))result.put(key,t.get(key));return result;}
- private String event(String a){return switch(a){case "claim"->"CLAIM";case "assignment"->"REASSIGN_CS";case "priority"->"PRIORITY_CHANGE";case "resolve"->"STATUS_CHANGE";case "close"->"CLOSE";case "escalate"->"ESCALATE";case "recipient"->"REASSIGN_MANAGER";case "decision"->"SAVE_DECISION";case "return"->"RETURN_RESOLUTION";default->throw invalid();};}
+ private String event(String a){return switch(a){case "claim"->"CLAIM";case "priority"->"PRIORITY_CHANGE";case "resolve"->"STATUS_CHANGE";case "close"->"CLOSE";case "escalate"->"ESCALATE";case "recipient"->"REASSIGN_MANAGER";case "decision"->"SAVE_DECISION";case "return"->"RETURN_RESOLUTION";default->throw invalid();};}
  private BusinessException conflict(){return new BusinessException(409,"Yêu cầu đã thay đổi hoặc chưa đủ điều kiện xử lý. Vui lòng tải lại trước khi gửi.");}
  private BusinessException invalid(){return new BusinessException(400,"Vui lòng kiểm tra lựa chọn và thông tin đã nhập.");}
 }

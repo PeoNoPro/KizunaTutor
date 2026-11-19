@@ -7,42 +7,54 @@
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Itim&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/styles/variables.css">
   <link rel="stylesheet" href="/styles/global.css">
   <link rel="stylesheet" href="/styles/components.css">
   <link rel="stylesheet" href="/styles/utilities.css">
-  <style id="my-courses-retro-style">
-    .mc-heading { font-family: 'Itim', cursive; }
-    .mc-body { font-family: 'Segoe UI', 'Noto Sans JP', system-ui, sans-serif; font-size: 14px; color: #000; }
-    .mc-meta { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; }
-    .mc-card {
-      background: #FFFFFF; border: 1px solid #000000; border-radius: 5px;
-      box-shadow: 4px 4px 0 0 #000000;
+  <script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-secondary-fixed-variant":"#264191","on-tertiary-fixed":"#2f1500","surface-container":"#eaedff","secondary-fixed-dim":"#b6c4ff","outline":"#707881","on-tertiary-container":"#fffbff","on-background":"#131b2e","secondary-fixed":"#dce1ff","on-secondary-fixed":"#00164e","inverse-surface":"#283044","surface-container-lowest":"#ffffff","tertiary-container":"#b15f00","primary-fixed-dim":"#93ccff","on-error-container":"#93000a","primary-fixed":"#cce5ff","on-primary-container":"#fdfcff","tertiary-fixed-dim":"#ffb77d","on-primary":"#ffffff","on-tertiary-fixed-variant":"#6e3900","on-primary-fixed-variant":"#004b73","error-container":"#ffdad6","surface-tint":"#006398","tertiary":"#8d4b00","on-primary-fixed":"#001d31","surface-container-low":"#f2f3ff","on-secondary-container":"#1d3989","surface-bright":"#faf8ff","on-secondary":"#ffffff","surface":"#faf8ff","on-error":"#ffffff","secondary-container":"#8fa7fe","inverse-on-surface":"#eef0ff","outline-variant":"#bfc7d2","surface-container-highest":"#dae2fd","primary":"#006194","on-surface":"#131b2e","on-tertiary":"#ffffff","surface-variant":"#dae2fd","surface-dim":"#d2d9f4","surface-container-high":"#e2e7ff","secondary":"#4059aa","background":"#faf8ff","error":"#ba1a1a","on-surface-variant":"#3f4850","primary-container":"#007bb9","inverse-primary":"#93ccff","tertiary-fixed":"#ffdcc3"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"space-md":"1rem","margin":"2rem","space-xs":"0.25rem","space-lg":"1.5rem","gutter-dense":"1rem","space-sm":"0.5rem","space-xl":"2.5rem","gutter":"1.5rem","margin-mobile":"1rem"},fontFamily:{"label-sm":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"display-hero-mobile":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"title-sm":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"display-hero":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"title-md":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"caption":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"]},fontSize:{"label-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"22px","fontWeight":"400"}],"display-hero-mobile":["32px",{"lineHeight":"40px","letterSpacing":"-0.01em","fontWeight":"700"}],"body-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}],"body-lg":["16px",{"lineHeight":"26px","fontWeight":"400"}],"title-sm":["16px",{"lineHeight":"24px","fontWeight":"600"}],"headline-md":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"600"}],"display-hero":["48px",{"lineHeight":"58px","letterSpacing":"-0.02em","fontWeight":"700"}],"headline-lg-mobile":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-sm":["20px",{"lineHeight":"28px","fontWeight":"600"}],"title-md":["18px",{"lineHeight":"26px","fontWeight":"600"}],"headline-lg":["32px",{"lineHeight":"40px","letterSpacing":"-0.015em","fontWeight":"600"}],"caption":["11px",{"lineHeight":"14px","fontWeight":"500"}],"label-md":["14px",{"lineHeight":"20px","fontWeight":"500"}]}}}};</script>
+  <!-- Lớp thành phần riêng của trang lớp học (tiền tố kz- để không trùng với dashboard) -->
+  <style type="text/tailwindcss">
+    @layer components {
+      .kz-card { @apply bg-surface-container-lowest rounded-2xl shadow-sm; }
+      .kz-item { @apply p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-all; }
+      .kz-btn { @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high font-label-sm text-label-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed; }
+      .kz-item .kz-btn:not(.kz-btn-primary) { @apply bg-surface-container-lowest shadow-sm; }
+      .kz-btn-primary { @apply bg-primary text-on-primary hover:bg-primary-container shadow-sm; }
+      .kz-btn-danger { @apply bg-error text-on-error hover:opacity-90 shadow-sm; }
+      .kz-input { @apply w-full rounded-lg bg-surface-container-low px-3 py-2.5 font-body-md text-body-md text-on-surface border border-transparent focus:outline-none focus:border-primary focus:bg-surface-container-lowest transition-colors; }
+      .kz-label { @apply block font-label-md text-label-md text-on-surface mb-1.5; }
+      .kz-badge { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm text-label-sm bg-surface-container-highest text-on-surface-variant; }
+      .kz-badge[data-tone="active"] { @apply bg-primary-fixed text-on-primary-fixed-variant; }
+      .kz-badge[data-tone="paused"] { @apply bg-tertiary-fixed text-on-tertiary-fixed; }
+      .kz-badge[data-tone="done"] { @apply bg-surface-container-highest text-on-surface-variant; }
+      .field-error { @apply text-error font-body-sm text-body-sm mt-1 whitespace-pre-line [overflow-wrap:anywhere]; }
+      .kz-modal-backdrop { background: rgba(19, 27, 46, .45); }
     }
-    .mc-btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      border: 1px solid #000; border-radius: 5px; padding: 8px 14px; font-weight: 600; font-size: 14px;
-      background: #fff; color: #000; box-shadow: 3px 3px 0 0 #000; cursor: pointer;
-      transition: transform .15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow .15s cubic-bezier(0.4, 0, 0.2, 1);
+  </style>
+  <style type="text/tailwindcss">
+    @layer components {
+      .mc-section-title { @apply flex items-center gap-2.5 font-title-md text-title-md text-on-surface; }
+      .mc-section-title::before { content: ""; @apply block w-1 h-5 rounded bg-primary shrink-0; }
+      .mc-icon { @apply w-11 h-11 shrink-0 rounded-xl flex items-center justify-center; }
+      .kz-tab { @apply inline-flex items-center gap-2 px-4 py-3.5 -mb-px border-b-[3px] border-transparent font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors; }
+      .kz-tab[aria-selected="true"] { @apply border-primary text-primary font-bold; }
+      .kz-chip { @apply inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border border-surface-container-high bg-surface-container-lowest font-label-md text-[13px] text-on-surface hover:bg-surface-container-low transition-colors; }
+      .kz-chip[aria-pressed="true"] { @apply bg-on-surface text-surface border-on-surface; }
+      .kz-group-head { @apply flex items-center gap-2 py-1.5 font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant hover:text-on-surface; }
+      .mc-file { @apply inline-flex items-center gap-1.5 max-w-full h-9 px-3 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-[13px] transition-all disabled:opacity-50; }
     }
-    .mc-btn:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 0 #000; }
-    .mc-btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 0 #000; }
-    .mc-btn:disabled { opacity: .5; cursor: not-allowed; }
-    .mc-btn-primary { background: #2A5A1A; color: #fff; }
-    .mc-badge {
-      display: inline-flex; align-items: center; border: 1px solid #000; border-radius: 5px;
-      padding: 2px 8px; font-size: 11px; font-weight: 600; background: #fff;
-    }
-    .mc-badge[data-tone="active"] { background: #E5F4EA; color: #1E8B3F; }
-    .mc-badge[data-tone="paused"] { background: #FDEDE8; color: #BF360C; }
-    .mc-badge[data-tone="done"] { background: #F1F1F1; color: #333; }
+  </style>
+  <!-- Phần nội dung FE-06/07 dùng cùng font với trang gia sư (Plus Jakarta Sans). styles/components.css của nhóm ép font Inter
+       cho mọi trang học viên nên chữ trông to hơn bên gia sư; chỉ ghi đè trong vùng nội dung, sidebar giữ nguyên. -->
+  <style id="fe0607-font">
+    #myCoursesRoot, #myCoursesRoot *:not(.material-symbols-outlined):not(.ms) { font-family: 'Plus Jakarta Sans', 'Noto Sans JP', system-ui, sans-serif !important; }
   </style>
 </head>
-<body class="bg-[#F8FAFC] text-[#1E293B] font-sans antialiased">
-  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
+<body class="bg-surface font-body-md text-body-md text-on-surface antialiased">
+  <div class="flex h-screen overflow-hidden bg-surface">
 
     <!-- Sidebar dùng chung cho học viên -->
     <div id="learnerSidebarContainer"></div>
@@ -51,60 +63,168 @@
       <!-- Header dùng chung cho học viên -->
       <div id="learnerHeaderContainer"></div>
 
-      <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] flex flex-col min-w-0">
-        <div id="myCoursesRoot" class="max-w-[1100px] w-full mx-auto flex-1 space-y-6 mc-body">
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-surface flex flex-col min-w-0">
+        <div id="myCoursesRoot" class="max-w-[1100px] w-full mx-auto flex-1 space-y-5">
 
           <!-- ===== DANH SÁCH LỚP (UC-58 bước 1–3) ===== -->
           <section id="myCoursesListView" class="space-y-5">
             <div>
-              <h1 class="mc-heading text-[30px] leading-tight">Lớp học của tôi</h1>
-              <p class="text-[#444]">Các lớp học gia sư đã mở cho bạn cùng tài liệu học tập được chia sẻ.</p>
+              <p class="font-body-sm text-body-sm text-on-surface-variant">Gia sư &amp; lớp học</p>
+              <h1 class="font-headline-md text-headline-md sm:font-headline-lg sm:text-headline-lg text-on-surface mt-1">Lớp học của tôi</h1>
+              <p class="text-on-surface-variant mt-1">Các lớp gia sư đã mở cho bạn, cùng lịch học, tài liệu và bài tập.</p>
             </div>
-            <div id="myCoursesState" class="mc-card p-6 text-center hidden"></div>
+            <div id="myCoursesState" class="kz-card p-6 text-center text-on-surface-variant hidden"></div>
             <div id="myCoursesGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+          </section>
+
+          <!-- ===== TRANG CHUNG MỌI LỚP: Tài liệu học tập (?view=materials) / Bài tập của tôi (?view=assignments) ===== -->
+          <section id="myHubView" class="space-y-5 hidden">
+            <div class="kz-card p-5 sm:p-6 flex flex-wrap items-center gap-4">
+              <div id="myHubIcon" class="mc-icon w-14 h-14 rounded-2xl bg-secondary-fixed text-on-secondary-container" aria-hidden="true"><span class="material-symbols-outlined text-[28px]">menu_book</span></div>
+              <div class="flex-1 min-w-[220px]">
+                <h1 id="myHubTitle" class="font-headline-md text-headline-md text-on-surface"></h1>
+                <p id="myHubSummary" class="text-on-surface-variant mt-0.5"></p>
+              </div>
+            </div>
+            <div class="kz-card p-5 sm:p-6 space-y-4">
+              <div class="flex flex-wrap items-center gap-3">
+                <label class="flex-1 min-w-[220px] flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low text-on-surface-variant focus-within:ring-2 focus-within:ring-primary">
+                  <span class="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
+                  <input id="myHubSearch" type="search" aria-label="Tìm kiếm" class="flex-1 min-w-0 bg-transparent border-0 outline-none text-on-surface">
+                </label>
+                <label class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low">
+                  <span class="text-on-surface-variant">Lớp</span>
+                  <select id="myHubClass" aria-label="Lọc theo lớp" class="bg-transparent border-0 outline-none font-semibold text-on-surface max-w-[240px]"></select>
+                </label>
+                <label class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low">
+                  <span class="text-on-surface-variant">Trạng thái lớp</span>
+                  <select id="myHubStatus" aria-label="Lọc theo trạng thái lớp" class="bg-transparent border-0 outline-none font-semibold text-on-surface"></select>
+                </label>
+                <label id="myHubKindBox" class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low hidden">
+                  <span class="text-on-surface-variant">Loại</span>
+                  <select id="myHubKind" aria-label="Lọc theo loại bài" class="bg-transparent border-0 outline-none font-semibold text-on-surface">
+                    <option value="">Tất cả</option><option value="file">Nộp tệp</option><option value="online">Làm trực tiếp</option>
+                  </select>
+                </label>
+              </div>
+              <div id="myHubChips" class="flex flex-wrap gap-2" role="group" aria-label="Lọc"></div>
+              <div id="myHubState" class="text-center text-on-surface-variant py-6 hidden"></div>
+              <div id="myHubList" class="flex flex-col gap-4"></div>
+            </div>
           </section>
 
           <!-- ===== CHI TIẾT LỚP (UC-58 bước 4–7, UC-61) ===== -->
           <section id="myCourseDetailView" class="space-y-5 hidden">
-            <button type="button" id="myCoursesBackBtn" class="text-[#1F6FB4] font-semibold hover:underline">← Danh sách lớp học</button>
+            <!-- Vào lớp từ trang "Tài liệu học tập" / "Bài tập của tôi": nút quay lại đúng trang đó -->
+            <a id="myCourseBackPrev" href="#" class="hidden inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline">
+              <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span><span data-label></span></a>
+            <nav id="myCourseBreadcrumb" class="flex flex-wrap items-center gap-1.5 font-body-sm text-body-sm text-on-surface-variant" aria-label="Đường dẫn">
+              <button type="button" id="myCoursesBackBtn" class="text-primary hover:underline font-medium">Lớp học của tôi</button>
+              <span class="material-symbols-outlined text-[16px]" aria-hidden="true">chevron_right</span>
+              <button type="button" id="myCourseCrumbClass" class="text-on-surface-variant [overflow-wrap:anywhere] text-left" disabled></button>
+              <span id="myCourseCrumbSep" class="material-symbols-outlined text-[16px] hidden" aria-hidden="true">chevron_right</span>
+              <span id="myCourseCrumbAssignment" class="text-on-surface-variant [overflow-wrap:anywhere] hidden"></span>
+            </nav>
 
-            <div id="myCourseDetailState" class="mc-card p-6 text-center hidden"></div>
+            <div id="myCourseDetailState" class="kz-card p-6 text-center text-on-surface-variant hidden"></div>
 
-            <div id="myCourseDetailCard" class="mc-card p-5 space-y-2 hidden">
-              <div class="flex flex-wrap items-center gap-3">
-                <h1 id="myCourseTitle" class="mc-heading text-[30px] leading-tight min-w-0 [overflow-wrap:anywhere]"></h1>
-                <span id="myCourseStatus" class="mc-badge"></span>
+            <!-- Nội dung lớp: ẩn khi đang mở một bài tập nộp tệp -->
+            <div id="myCourseMain" class="space-y-5">
+              <div id="myCourseDetailCard" class="kz-card px-5 sm:px-6 pt-5 sm:pt-6 hidden">
+                <div class="flex flex-wrap items-center gap-4 pb-4">
+                  <div class="mc-icon w-14 h-14 rounded-2xl bg-primary-fixed text-on-primary-fixed-variant" aria-hidden="true"><span class="material-symbols-outlined text-[30px]">school</span></div>
+                  <div class="flex-1 min-w-[240px] space-y-1.5">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                      <h1 id="myCourseTitle" class="font-headline-md text-headline-md text-on-surface min-w-0 [overflow-wrap:anywhere]"></h1>
+                      <span id="myCourseStatus" class="kz-badge"></span>
+                    </div>
+                    <div class="flex flex-wrap gap-x-5 gap-y-1 text-on-surface-variant">
+                      <span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">person</span>Gia sư <strong id="myCourseTutor" class="font-semibold text-on-surface"></strong></span>
+                      <span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">event</span>Bắt đầu <span id="myCourseCreated"></span></span>
+                      <span id="myCourseProgress" class="inline-flex items-center gap-1.5 hidden"></span>
+                    </div>
+                  </div>
+                  <div id="myCourseJoin" class="empty:hidden"></div>
+                </div>
+                <nav id="myCourseTabs" class="flex flex-wrap gap-1 border-t border-surface-container-high" role="tablist" aria-label="Các phần của lớp">
+                  <button type="button" class="kz-tab" role="tab" data-tab="tong-quan" aria-controls="myTabOverview"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">dashboard</span>Tổng quan</button>
+                  <button type="button" class="kz-tab" role="tab" data-tab="bai-tap" aria-controls="myTabAssignments"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">assignment</span>Bài tập<span id="myAssignmentsTodo" class="kz-badge hidden" data-tone="paused"></span></button>
+                  <button type="button" class="kz-tab" role="tab" data-tab="tai-lieu" aria-controls="myTabMaterials"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">folder_open</span>Tài liệu<span id="myMaterialsBadge" class="kz-badge hidden"></span></button>
+                </nav>
               </div>
-              <p class="text-[#333]">Gia sư: <strong id="myCourseTutor"></strong> · Ngày bắt đầu: <span id="myCourseCreated"></span></p>
-              <p id="myCourseReadOnlyNote" class="hidden border border-black rounded-[5px] bg-[#FDEDE8] text-[#BF360C] px-3 py-2">Lớp học đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại các tài liệu đã được chia sẻ.</p>
-            </div>
 
-            <!-- Lịch học hằng tuần (học viên chỉ xem) -->
-            <div id="myCourseSchedule" class="mc-card p-5 space-y-4 hidden">
-              <div>
-                <h2 class="mc-heading text-[20px]">Lịch học hằng tuần</h2>
-                <p class="text-[#444]">Các buổi học cố định mỗi tuần do gia sư xếp cho lớp.</p>
+              <p id="myCourseReadOnlyNote" class="hidden flex items-start gap-2.5 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed-variant px-4 py-3">Lớp học đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại các tài liệu đã được chia sẻ.</p>
+
+              <!-- ===== TAB TỔNG QUAN ===== -->
+              <div id="myTabOverview" role="tabpanel" class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start hidden">
+                <div class="lg:col-span-7 flex flex-col gap-5 min-w-0">
+                  <div class="kz-card p-5 sm:p-6 space-y-3">
+                    <h2 class="mc-section-title">Bài tập cần làm</h2>
+                    <ul id="myOverviewAssignments" class="flex flex-col gap-2.5"></ul>
+                    <button type="button" class="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline" data-goto-tab="bai-tap"><span id="myOverviewAssignmentsMore">Xem tất cả bài tập</span><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span></button>
+                  </div>
+                  <div class="kz-card p-5 sm:p-6 space-y-3">
+                    <h2 class="mc-section-title">Tài liệu mới nhất</h2>
+                    <ul id="myOverviewMaterials" class="flex flex-col gap-2.5"></ul>
+                    <button type="button" class="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline" data-goto-tab="tai-lieu"><span id="myOverviewMaterialsMore">Xem tất cả tài liệu</span><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span></button>
+                  </div>
+                </div>
+                <div class="lg:col-span-5 flex flex-col gap-5 min-w-0">
+                  <div class="kz-card p-5 sm:p-6 space-y-3">
+                    <h2 class="mc-section-title">Hình thức học</h2>
+                    <div id="myCourseDelivery" class="space-y-2 [overflow-wrap:anywhere]"></div>
+                  </div>
+                  <!-- Lịch học hằng tuần (học viên chỉ xem) -->
+                  <div id="myCourseSchedule" class="kz-card p-5 sm:p-6 space-y-3 hidden">
+                    <h2 class="mc-section-title">Lịch học hằng tuần</h2>
+                    <div id="myCourseScheduleState" class="text-center text-on-surface-variant py-4 hidden"></div>
+                    <ul id="myCourseScheduleList" class="flex flex-col gap-2.5"></ul>
+                    <p id="myNextSession" class="font-body-sm text-body-sm text-on-surface hidden"></p>
+                  </div>
+                </div>
               </div>
-              <div id="myCourseScheduleState" class="text-center text-[#444] py-4 hidden"></div>
-              <ul id="myCourseScheduleList" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></ul>
+
+              <!-- ===== TAB BÀI TẬP (FE-07: UC-63, UC-64, UC-96) ===== -->
+              <div id="myTabAssignments" role="tabpanel" class="hidden">
+                <div id="myCourseAssignments" class="kz-card p-5 sm:p-6 space-y-4 hidden">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <label class="flex-1 min-w-[220px] flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low text-on-surface-variant focus-within:ring-2 focus-within:ring-primary">
+                      <span class="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
+                      <input id="myAssignmentSearch" type="search" placeholder="Tìm theo tên bài tập" aria-label="Tìm bài tập" class="flex-1 min-w-0 bg-transparent border-0 outline-none text-on-surface">
+                    </label>
+                    <label class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low">
+                      <span class="text-on-surface-variant">Loại</span>
+                      <select id="myAssignmentKind" aria-label="Lọc theo loại bài" class="bg-transparent border-0 outline-none font-semibold text-on-surface">
+                        <option value="">Tất cả</option><option value="file">Nộp tệp</option><option value="online">Làm trực tiếp</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div id="myAssignmentChips" class="flex flex-wrap gap-2" role="group" aria-label="Lọc theo trạng thái"></div>
+                  <div id="myAssignmentsState" class="text-center text-on-surface-variant py-6 hidden"></div>
+                  <div id="myAssignmentsList" class="flex flex-col gap-4"></div>
+                </div>
+              </div>
+
+              <!-- ===== TAB TÀI LIỆU (UC-61) ===== -->
+              <div id="myTabMaterials" role="tabpanel" class="hidden">
+                <div id="myCourseMaterials" class="kz-card p-5 sm:p-6 space-y-4 hidden">
+                  <label class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low text-on-surface-variant focus-within:ring-2 focus-within:ring-primary">
+                    <span class="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
+                    <input id="myMaterialSearch" type="search" placeholder="Tìm theo tên tài liệu hoặc tên tệp" aria-label="Tìm tài liệu" class="flex-1 min-w-0 bg-transparent border-0 outline-none text-on-surface">
+                  </label>
+                  <div id="myMaterialChips" class="flex flex-wrap gap-2" role="group" aria-label="Lọc theo loại tệp"></div>
+                  <p id="myCourseMaterialsCount" class="hidden"></p>
+                  <div id="myCourseMaterialsState" class="text-center text-on-surface-variant py-6 hidden"></div>
+                  <div id="myCourseMaterialsList" class="flex flex-col gap-4"></div>
+                </div>
+              </div>
             </div>
 
-            <div id="myCourseMaterials" class="mc-card p-5 space-y-4 hidden">
-              <h2 class="mc-heading text-[20px]">Tài liệu học tập</h2>
-              <div id="myCourseMaterialsState" class="text-center text-[#444] py-6 hidden"></div>
-              <ul id="myCourseMaterialsList" class="space-y-3"></ul>
-            </div>
-
-            <!-- FE-07: Bài tập (UC-63, UC-64, UC-96) -->
-            <div id="myCourseAssignments" class="mc-card p-5 space-y-4 hidden">
-              <h2 class="mc-heading text-[20px]">Bài tập</h2>
-              <div id="myAssignmentsState" class="text-center text-[#444] py-6 hidden"></div>
-              <ul id="myAssignmentsList" class="space-y-3"></ul>
-            </div>
-            <div id="myAssignmentDetail" class="mc-card p-5 space-y-4 hidden"></div>
+            <!-- Chi tiết bài tập nộp tệp (màn riêng trong lớp) -->
+            <div id="myAssignmentDetail" class="space-y-5 hidden"></div>
           </section>
 
-          <p id="myCoursesToast" class="hidden mc-card px-4 py-3 font-semibold text-[#BF360C] bg-[#FDEDE8]" role="status" aria-live="polite"></p>
+          <p id="myCoursesToast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[90vw] rounded-xl bg-inverse-surface text-inverse-on-surface px-4 py-3 shadow-xl font-label-md text-label-md" role="status" aria-live="polite"></p>
         </div>
 
         <!-- Footer dùng chung cho học viên -->
@@ -112,6 +232,7 @@
       </main>
     </div>
   </div>
+
 
   <script type="module" src="/js/main.js"></script>
   <script type="module" src="/components/learner-layout/learner-layout.js"></script>

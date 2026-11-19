@@ -20,6 +20,7 @@ import com.kizuna.features.progress.repository.SubmissionFileRepository;
 import com.kizuna.features.progress.service.SubmissionService;
 import com.kizuna.features.progress.util.AssignmentRules;
 import com.kizuna.features.progress.util.SubmissionFileSupport;
+import com.kizuna.features.storage.R2FileStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,6 +57,14 @@ public class SubmissionServiceImpl implements SubmissionService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
 
+    /** Nội dung tệp bài làm trên R2 khi bật; test dựng bằng tay thì giữ lưu DB. */
+    @Autowired(required = false)
+    private R2FileStore r2 = R2FileStore.disabled();
+
+    static String r2Key(UUID fileId) {
+        return "submissions/" + fileId;
+    }
+
     @Autowired
     public SubmissionServiceImpl(ClassroomService classroomService, AssignmentRepository assignmentRepository,
                                  AssignmentSubmissionRepository submissionRepository,
@@ -83,6 +92,9 @@ public class SubmissionServiceImpl implements SubmissionService {
         loadLearnerSpace(actor, spaceId);
         Assignment assignment = findInSpace(assignmentId, spaceId);
         OffsetDateTime now = OffsetDateTime.now(clock);
+        if (!AssignmentRules.isOpen(assignment.getOpensAt(), now)) {
+            throw ClassroomException.notFound("Không tìm thấy bài tập trong lớp học này.");
+        }
 
         List<AssignmentSubmission> previous = submissionsOf(assignmentId, actor);
         if (previous.stream().anyMatch(AssignmentSubmission::isFinalized)) {
@@ -158,10 +170,18 @@ public class SubmissionServiceImpl implements SubmissionService {
         List<SubmissionFileSupport.PreparedFile> prepared = SubmissionFileSupport.prepare(fileValidator, chosen, "bai-lam");
 
         fileRepository.deleteAll(removed);
+        r2.deleteAfterCommit(removed.stream().map(f -> r2Key(f.getFileId())).toList());
         insertFiles(submissionId, prepared);
         submission.setSubmissionContent(cleanContent);
         submission.setSubmittedAt(now);
         AssignmentSubmission saved = submissionRepository.save(submission);
+        if (notificationEvents != null) {
+            // Mã sự kiện gắn với thời điểm nộp lại đã lưu (không dùng giờ hệ thống lúc gọi): xử lý lại không báo trùng.
+            notificationEvents.publish("assignment:" + saved.getSubmissionId() + ":resubmitted:" + now.toInstant().toEpochMilli(), "ASSIGNMENT",
+                    "Học viên đã cập nhật bài nộp",
+                    learnerLabel(assignment) + " vừa chỉnh sửa bài nộp \"" + assignment.getTitle() + "\" (lớp \"" + assignment.getSpace().getTitle() + "\"). Bạn có thể xem lại bản mới nhất khi chấm điểm.",
+                    "/tutor/classrooms", java.util.List.of(assignment.getSpace().getTutor().getUser().getUserId()));
+        }
         return toResponse(saved, assignment);
     }
 
@@ -172,7 +192,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         if (!actor.isTutor()) {
             throw ClassroomException.forbidden("Chỉ gia sư của lớp mới được chấm điểm bài tập.");
         }
-        LearningSpace space = classroomService.loadManageableSpace(actor, spaceId);
+        // Khóa học đã hoàn thành vẫn chấm được bài còn chờ
+        LearningSpace space = classroomService.loadGradableSpace(actor, spaceId);
         Assignment assignment = findInSpace(assignmentId, spaceId);
         AssignmentSubmission submission = findSubmission(submissionId, assignmentId);
         OffsetDateTime now = OffsetDateTime.now(clock);
@@ -217,7 +238,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         findSubmission(submissionId, assignmentId);
         SubmissionFile file = fileRepository.findByFileIdAndSubmissionId(fileId, submissionId)
                 .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy tệp bài làm."));
-        byte[] data = fileRepository.findFileData(file.getFileId());
+        byte[] data = r2.read(fileRepository.findFileData(file.getFileId()), r2Key(file.getFileId()));
         if (data == null || data.length == 0) {
             throw ClassroomException.notFound("Không tìm thấy tệp bài làm.");
         }
@@ -248,8 +269,18 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     private void insertFiles(UUID submissionId, List<SubmissionFileSupport.PreparedFile> prepared) {
         for (SubmissionFileSupport.PreparedFile f : prepared) {
-            fileRepository.insertFile(UUID.randomUUID(), submissionId, f.fileName(), f.data().length, f.data());
+            UUID fileId = UUID.randomUUID();
+            MaterialFileType type = SubmissionFileSupport.typeOf(f.fileName());
+            byte[] dbData = r2.put(r2Key(fileId), f.data(), type == null ? "application/octet-stream" : type.contentType);
+            fileRepository.insertFile(fileId, submissionId, f.fileName(), f.data().length, dbData);
         }
+    }
+
+    /** Tên học viên của lớp để ghi vào thông báo; thiếu tên thì dùng chữ "Học viên". */
+    private static String learnerLabel(Assignment assignment) {
+        var learner = assignment.getSpace().getLearner();
+        var user = learner == null ? null : learner.getUser();
+        return user == null || user.getFullName() == null || user.getFullName().isBlank() ? "Học viên" : "Học viên " + user.getFullName();
     }
 
     private SubmissionResponse toResponse(AssignmentSubmission s, Assignment assignment) {

@@ -35,7 +35,7 @@ Gia sư → lớp của mình; học viên → lớp mình tham gia. Sắp xếp
 
 Tạo lớp = chọn học viên đã kết nối + tên lớp + lịch học hằng tuần. Chấp nhận kết nối KHÔNG tự tạo lớp.
 Body `{ "learnerId": "uuid", "title": "string 1–150", "schedules": [ { "dayOfWeek": 1, "startTime": "19:00", "endTime": "20:30" } ] }` → 201, message "Tạo lớp học thành công.", `data` = ClassroomSummary.
-Quy tắc lịch: 1–14 buổi/tuần; mỗi buổi 30 phút – 4 giờ, giờ bắt đầu < giờ kết thúc; không trùng giờ nhau, không trùng lịch các lớp ACTIVE/PAUSED của gia sư hoặc của học viên (không lộ tên lớp của gia sư khác); không trùng buổi học thử `CONFIRMED`/`RESCHEDULED` chưa diễn ra của gia sư hoặc học viên (đọc `trial_bookings`, giờ Việt Nam).
+Quy tắc lịch: 1–14 buổi/tuần; mỗi buổi 60 – 120 phút, giờ bắt đầu < giờ kết thúc; không trùng giờ nhau, không trùng lịch các lớp ACTIVE/PAUSED của gia sư hoặc của học viên (không lộ tên lớp của gia sư khác); không trùng buổi học thử `CONFIRMED`/`RESCHEDULED` chưa diễn ra của gia sư hoặc học viên (đọc `trial_bookings`, giờ Việt Nam).
 Lỗi: 400 tên lớp / lịch không hợp lệ (`fieldErrors.schedules`); 403 học viên chưa kết nối; 409 đã có lớp đang hoạt động; 409 trùng lịch; 409 hội viên hết hạn.
 
 ## GET /classrooms/schedules/me

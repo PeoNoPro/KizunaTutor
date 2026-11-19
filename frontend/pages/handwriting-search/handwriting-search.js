@@ -1,5 +1,5 @@
-/**
- * KizunaTutor - Tra Cứu Chữ Hán Bằng Nét Vẽ Viết Tay AI (Real-time Handwriting OHR)
+﻿/**
+ * KizunaTutor - Tra Cứu Chữ Hán Bằng Nét Vẽ Viết Tay AI (Nhận diện nét viết tay AI thời gian thực)
  * Phục dựng 100% chuẩn giao diện & tính năng từ phiên bản gốc (legacy handwriting-search.html)
  * Giữ nguyên cấu trúc Layout dùng chung cho Học Viên (Header, Sidebar, Footer)
  * Tuân thủ FRONTEND_RULES: Zero mock data, Zero exception leak
@@ -388,11 +388,15 @@ async function pageHwExecuteRecognition() {
     limit: 15
   };
 
+  const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+  const authHeaders = { 'Content-Type': 'application/json' };
+  if (token) authHeaders['Authorization'] = `Bearer ${token}`;
+
   let matches = [];
   try {
     const bRes = await fetch('/api/kanji/search-by-strokes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders,
       body: JSON.stringify(backendPayload)
     }).catch(() => null);
 
@@ -409,7 +413,9 @@ async function pageHwExecuteRecognition() {
     const enrichedList = await Promise.all(topChars.map(async (char, i) => {
       let detail = null;
       try {
-        const resp = await fetch(`/api/learner/kanji/search?page=0&size=1&keyword=${encodeURIComponent(char)}`).catch(() => null);
+        const resp = await fetch(`/api/learner/kanji/search?page=0&size=1&keyword=${encodeURIComponent(char)}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } : { 'Accept': 'application/json' }
+        }).catch(() => null);
         if (resp && resp.ok) {
           const data = await resp.json();
           if (data.items && data.items.length > 0) {
@@ -465,7 +471,7 @@ function renderPageHwCandidates(matches) {
     const kChar = m.character || m.kanjiChar || '';
 
     return `
-      <div class="p-3.5 bg-white border-2 border-[#0F172A] rounded-xl shadow-[3px_3px_0px_0px_#0F172A] hover:translate-x-[-1px] hover:translate-y-[-1px] transition flex flex-col justify-between gap-3">
+      <div class="p-3.5 bg-white border border-[#E2E8F0] rounded-xl shadow-sm hover:border-[#CBD5E1] hover:shadow transition flex flex-col justify-between gap-3">
         <div class="flex items-start justify-between gap-2">
           <span class="text-3xl font-bold text-[#0F172A] font-japanese">${escapeHtml(kChar)}</span>
           <span class="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">${percent}% khớp</span>
@@ -479,7 +485,7 @@ function renderPageHwCandidates(matches) {
           <p class="text-xs text-slate-500 line-clamp-2 m-0 leading-relaxed" title="${escapeHtml(m.meaning || '')}">${escapeHtml(m.meaning || 'Chữ Hán tra cứu')}</p>
         </div>
         <div class="flex items-center gap-2 pt-2 border-t border-[#F1F5F9]">
-          <a href="/shodo?char=${encodeURIComponent(kChar)}" 
+          <a href="/shodo?char=${encodeURIComponent(kChar)}" data-spa-link 
              class="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] border border-[#FBCFE8] no-underline transition cursor-pointer">
             ✍️ Luyện Viết
           </a>

@@ -171,11 +171,6 @@ function getHwCoords(e) {
         t: Date.now()
     };
 }
-        x: clientX - rect.left,
-        y: clientY - rect.top,
-        t: Date.now()
-    };
-}
 
 function hwOnMouseDown(e) {
     if (e.button !== undefined && e.button !== 0) return;
@@ -836,6 +831,7 @@ if (document.readyState === 'loading') {
 } else {
     setupHwSearchDomBindings();
 }
+window.addEventListener('kizuna:page-mounted', setupHwSearchDomBindings);
 
 // Xuất các hàm điều khiển ra Window toàn cục
 window.initHandwritingSearch = initHandwritingSearch;

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Cẩm Nang Ngữ Pháp OpenJLPT
  * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * Hỗ trợ Bộ lọc kép: Cấp độ JLPT (N5 - N1) & Khối Ứng dụng Thực tế (Đời thường, Nhà hàng, Du lịch, Công việc, Sức khỏe, Học thuật)
@@ -148,9 +148,84 @@ function detectGrammarDomains(item) {
 // =========================================================================
 // 3. TẢI DỮ LIỆU NGỮ PHÁP TỪ REST API BACKEND
 // =========================================================================
-async function loadGrammarData() {
+function getAuthHeaders(customHeaders = {}) {
+  const headers = { 'Accept': 'application/json', ...customHeaders };
   try {
-    let res = await fetch('/api/learner/grammar?level=ALL&size=1000');
+    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  } catch (e) {}
+  return headers;
+}
+
+function renderGrammarSkeleton(grid) {
+  if (!grid) return;
+  grid.innerHTML = Array(6).fill(0).map(() => `
+    <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-3 animate-pulse">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <div class="h-5 w-16 bg-slate-200 rounded-full"></div>
+        <div class="h-4 w-20 bg-slate-100 rounded"></div>
+      </div>
+      <div class="space-y-1.5">
+        <div class="h-6 w-32 bg-slate-200 rounded"></div>
+        <div class="h-4 w-48 bg-slate-100 rounded"></div>
+      </div>
+      <div class="p-3 bg-slate-50 border border-slate-100 rounded-lg space-y-1.5">
+        <div class="h-3.5 bg-slate-200 rounded w-full"></div>
+        <div class="h-3 bg-slate-100 rounded w-2/3"></div>
+      </div>
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <div class="h-3.5 w-24 bg-slate-100 rounded"></div>
+        <div class="h-6 w-20 bg-slate-200 rounded-lg"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadGrammarData() {
+  const grid = document.getElementById('grammarGrid');
+  renderGrammarSkeleton(grid);
+
+  try {
+    let res = await fetch('/api/learner/grammar?level=ALL&size=1000', {
+      headers: getAuthHeaders()
+    });
+
+    if (res.status === 401) {
+      if (grid) {
+        document.getElementById('grammarPagination')?.classList.add('hidden');
+        grid.innerHTML = `
+          <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+              <span class="material-symbols-outlined text-[24px]">lock</span>
+            </div>
+            <h3 class="text-base font-bold text-[#0F2545]">Vui lòng đăng nhập</h3>
+            <p class="text-xs text-[#64748B]">Đăng nhập để xem danh mục mẫu câu ngữ pháp tuyển chọn của bạn.</p>
+            <a href="/pages/login/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+              <span>Đăng nhập ngay</span>
+            </a>
+          </div>
+        `;
+      }
+      return;
+    } else if (res.status === 403) {
+      if (grid) {
+        document.getElementById('grammarPagination')?.classList.add('hidden');
+        grid.innerHTML = `
+          <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-[#eaedff] text-[#006194] flex items-center justify-center">
+              <span class="material-symbols-outlined text-[24px]">school</span>
+            </div>
+            <h3 class="text-base font-bold text-[#0F2545]">Chưa vào lớp học</h3>
+            <p class="text-xs text-[#64748B]">Bạn cần được gia sư thêm vào ít nhất một lớp học để mở khóa toàn bộ kho ngữ pháp.</p>
+            <a href="/pages/tutor-discovery/" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006194] text-white text-xs font-semibold hover:bg-[#007bb9] no-underline">
+              <span>Tìm gia sư</span>
+            </a>
+          </div>
+        `;
+      }
+      return;
+    }
+
     if (!res.ok) {
       // Fallback nạp trực tiếp từ file dữ liệu đồng bộ database
       res = await fetch('/data/grammars.json');
@@ -334,7 +409,7 @@ function renderGrammarCards() {
     }).join('');
 
     html += `
-      <div class="bg-white border-2 border-[#0F172A] rounded-[12px] p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0F172A] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] flex flex-col justify-between group cursor-pointer"
+      <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 shadow-sm hover:border-[#CBD5E1] hover:shadow transition-all flex flex-col justify-between group cursor-pointer"
            data-action="view-detail" data-id="${rule.id}">
         
         <div>
@@ -347,7 +422,7 @@ function renderGrammarCards() {
               ${rule.romaji ? `<span class="text-sm text-[#64748B] font-mono mt-0.5">(${rule.romaji})</span>` : ''}
             </div>
             <!-- Duy nhất huy hiệu Cấp độ JLPT chuẩn hóa phong cách Shodo -->
-            <span class="px-2.5 py-0.5 text-xs font-bold text-[#0F172A] bg-[#FEF3C7] border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] shrink-0 mt-0.5">
+            <span class="px-2.5 py-0.5 text-xs font-bold text-[#0F172A] bg-[#FEF3C7] border border-amber-300 rounded-md shadow-xs shrink-0 mt-0.5">
               ${rule.level}
             </span>
           </div>
@@ -674,15 +749,12 @@ function openGrammarDetail(ruleId, pushHistory = true) {
 
   // Gắn sự kiện phát âm câu ví dụ
   container.querySelectorAll('[data-action="speak-grammar-example"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
       const text = btn.getAttribute('data-text');
       if (!text) return;
-      btn.classList.add('scale-110');
-      voicevoxClient.speak(text).finally(() => {
-        setTimeout(() => btn.classList.remove('scale-110'), 300);
-      });
+      await voicevoxClient.speakWithButton(text, btn);
     });
   });
 
@@ -941,12 +1013,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. Tìm kiếm mẫu câu (Debounce)
   const searchInput = document.getElementById('searchGrammarInput');
+  const clearBtn = document.getElementById('btnClearGrammarSearch');
   if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (clearBtn) {
+        if (val && val.trim().length > 0) {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+      }
+    });
+
     searchInput.addEventListener('input', debounce((e) => {
       currentSearchKeyword = e.target.value;
       currentGrammarPage = 1;
       renderGrammarCards();
-    }, 200));
+    }, 250));
+
+    clearBtn?.addEventListener('click', () => {
+      searchInput.value = '';
+      clearBtn.classList.add('hidden');
+      searchInput.focus();
+      currentSearchKeyword = '';
+      currentGrammarPage = 1;
+      renderGrammarCards();
+    });
   }
 
   // 5. Nút quay lại danh sách

@@ -7,7 +7,7 @@
 
 /** Key menu sidebar (components/learner-layout) của các công cụ bị khóa. */
 export const LOCKED_MENU_KEYS = [
-  'kanji-dictionary', 'handwriting', 'learning-support', 'grammar', 'shodo', 'kana', 'ai-writing', 'flashcards',
+  'kanji-dictionary', 'handwriting', 'learning-support', 'grammar', 'shodo', 'kana', 'ai-writing', 'ai-reading', 'flashcards',
   // FE-13 Luyện đề JLPT (thêm 2026-11-19): chỉ học viên đã có gia sư (đã vào lớp) mới làm được.
   'practice'
 ];
@@ -15,7 +15,7 @@ export const LOCKED_MENU_KEYS = [
 /** Thư mục trang (frontend/pages/<tên>) của các công cụ bị khóa. */
 export const LOCKED_PAGE_DIRS = [
   'kanji-dictionary', 'handwriting-search', 'kana-quiz',
-  'learning-support', 'grammar', 'shodo-practice', 'ai-writing',
+  'learning-support', 'grammar', 'shodo-practice', 'ai-writing', 'ai-reading',
   'flashcards', 'flashcards-detail', 'flashcards-match', 'flashcards-study', 'kanji-game',
   'practice', 'practice-attempt', 'practice-history'
 ];
@@ -36,6 +36,8 @@ const LOCKED_PATHS = new Set([
   '/shodo', '/shodo-practice', '/learner/practice-canvas', '/practice', '/kanji-practice',
   // Chữa câu AI
   '/ai-writing', '/ai-writing.html', '/learner/ai-writing', '/sakubun',
+  // Đọc hiểu Dokkai AI
+  '/reading', '/reading.html', '/ai-reading', '/ai-reading.html', '/learner/reading', '/learner/ai-reading',
   // Bộ thẻ
   '/flashcards', '/flashcards.html', '/decks', '/learner/flashcards', '/learner/decks',
   '/flashcards-study', '/flashcards-study.html', '/flashcards-practice', '/learner/flashcards-study',

@@ -25,6 +25,8 @@ public class LearningToolAccessWebConfig implements WebMvcConfigurer {
             "/api/learner/grammar", "/api/learner/grammar/**",
             // AiWritingController
             "/api/learner/ai-writing/**",
+            // ReadingAssistantController (Đọc hiểu Dokkai AI)
+            "/api/learner/reading", "/api/learner/reading/**", "/api/reading", "/api/reading/**",
             // KanjiGameController (kèm alias /api/minigame)
             "/api/learner/minigame/**", "/api/minigame/**",
             // VocabularyController (kèm alias /api/learner, /api/learner/topics, /api/learner/search)

@@ -13,6 +13,4 @@ public interface MinigameSessionRepository extends JpaRepository<MinigameSession
     List<MinigameSession> findByUserUserIdOrderByPlayedAtDesc(UUID userId);
 
     List<MinigameSession> findTop20ByOrderByPlayedAtDesc();
-
-    List<MinigameSession> findTop10ByOrderByScoreDesc();
 }

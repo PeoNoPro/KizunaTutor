@@ -17,6 +17,10 @@ public class AiWritingCheckResponse {
     private String ratingBadge;
     private String overallComment;
 
+    private String provider;
+    private String model;
+    private boolean fallback;
+
     @Builder.Default
     private List<AiWritingErrorItemDto> errors = new ArrayList<>();
 

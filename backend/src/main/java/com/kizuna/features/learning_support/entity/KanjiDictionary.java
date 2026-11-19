@@ -18,7 +18,11 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "kanji_dictionary")
+@Table(name = "kanji_dictionary", indexes = {
+    @Index(name = "idx_kanji_character", columnList = "kanji_character"),
+    @Index(name = "idx_kanji_han_viet", columnList = "han_viet"),
+    @Index(name = "idx_kanji_stroke_count", columnList = "stroke_count")
+})
 @Getter
 @Setter
 @NoArgsConstructor

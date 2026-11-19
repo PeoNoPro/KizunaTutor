@@ -27,6 +27,15 @@ public class KanjiDictionaryServiceImpl implements KanjiDictionaryService {
         String jlptParam = (jlpt != null && !jlpt.isBlank() && !jlpt.equalsIgnoreCase("ALL")) ? jlpt.trim().toUpperCase() : null;
         String kwParam = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
 
+        // Tối ưu hóa: Nếu người dùng tìm kiếm đích danh 1 ký tự Hán tự CJK (vd: 日, 学, 人, 水...)
+        // Tận dụng Unique B-Tree Index trên cột kanji_character để phản hồi tức thì (< 1ms)
+        if (kwParam != null && kwParam.length() == 1 && kwParam.matches("[\\u4E00-\\u9FAF]")) {
+            Page<KanjiDictionary> exactPage = kanjiRepository.searchByExactCharacter(kwParam, jlptParam, strokeCount, minStroke, maxStroke, pageable);
+            if (exactPage.hasContent()) {
+                return exactPage.map(this::toDto);
+            }
+        }
+
         Page<KanjiDictionary> paged;
         if (minStroke != null || maxStroke != null) {
             paged = kanjiRepository.searchKanjiByStrokeRange(kwParam, jlptParam, minStroke, maxStroke, pageable);

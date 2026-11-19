@@ -272,7 +272,7 @@ function fillSettings(detail) {
   $('exShowAnswers').checked = s ? s.showAnswers : true;
 }
 
-/** Cách chấm của bài suy ra từ câu hỏi: có câu tự luận gia sư chấm → "Gia sư chấm". */
+/** Cách chấm của bài suy ra từ câu hỏi: có câu tự luận / điền khuyết → "AI gợi ý, gia sư duyệt" (TUTOR), còn lại máy chấm (AUTO). */
 function autoMode() {
   return !state.questions.some(isTutorGraded);
 }
@@ -1066,7 +1066,7 @@ function importSummary(r) {
     case 'WORD_BANK': return [opts.map((o) => o.split('/').map((w) => w.trim()).join(' / ')).join(' | '), (opts[d.correct] ?? '').split('/').map((w) => w.trim()).join(' / ')];
     case 'MATCHING': return [(d.pairs || []).map((p) => `${p.left} = ${p.right}`).join(' | '), 'Theo các cặp'];
     case 'ORDERING': return [(d.items || []).join(' → '), 'Theo thứ tự trên'];
-    case 'WRITTEN': return ['', (d.accepted || []).length ? d.accepted.join(' | ') : 'Gia sư chấm'];
+    case 'WRITTEN': return ['', 'Không cần đáp án · AI gợi ý, gia sư duyệt'];
     default: return ['', ''];
   }
 }

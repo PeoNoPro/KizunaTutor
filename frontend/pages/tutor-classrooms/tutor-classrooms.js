@@ -1195,7 +1195,7 @@ async function openMaterial(materialId, fileId, button) {
     if (tab) tab.close();
     showToast(friendlyErrorMessage(err), 'error');
   } finally {
-    setBusy(button, false);
+    button.disabled = false; // giữ nguyên biểu tượng + tên tệp (setBusy ghi đè textContent làm vỡ nút)
   }
 }
 

@@ -207,7 +207,7 @@ function renderIntro(attempts) {
             </li>`).join('')}
         </ul>
         ${state.instructions ? `<div class="rounded-xl border border-surface-container-high px-4 py-3"><p class="font-semibold mb-1">Hướng dẫn của gia sư</p><p class="whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(state.instructions)}</p></div>` : ''}
-        ${s.pendingGrading ? '<p class="rounded-xl bg-tertiary-fixed text-on-tertiary-fixed px-4 py-2.5">Có lượt đang chờ gia sư chấm câu tự luận.</p>' : ''}
+        ${s.pendingGrading ? '<p class="rounded-xl bg-tertiary-fixed text-on-tertiary-fixed px-4 py-2.5">Có lượt đang chờ chấm câu tự luận / điền khuyết: AI gợi ý điểm, gia sư duyệt rồi mới có điểm.</p>' : ''}
         <div class="flex flex-wrap items-center gap-3 pt-1">
           <p class="flex-1 min-w-[200px] text-on-surface-variant">${s.bestScore !== null && s.bestScore !== undefined ? `Điểm cao nhất của bạn: <b class="text-on-surface text-[16px]">${formatScore(s.bestScore)} / ${formatScore(s.maxScore)}</b>` : (s.timeLimitMinutes && !inProgress && s.canStart ? 'Đồng hồ bắt đầu chạy khi bạn bấm bắt đầu và vẫn chạy nếu bạn rời trang. Hết giờ bài sẽ tự nộp.' : '')}</p>
           ${action}
@@ -498,8 +498,8 @@ async function renderResult() {
     : `<div class="w-24 h-24 rounded-full flex items-center justify-center shrink-0" style="background: conic-gradient(#006194 ${percent * 3.6}deg, #dae2fd 0deg)"><div class="w-[72px] h-[72px] rounded-full bg-surface-container-lowest flex items-center justify-center font-bold text-[20px]">${percent}%</div></div>`;
   const scoreLine = graded
     ? `<p class="text-[30px] font-bold leading-tight">${formatScore(a.finalScore)} <span class="text-[18px] text-on-surface-variant font-semibold">/ ${formatScore(a.maxScore)} điểm</span></p>`
-    : `<p class="text-[20px] font-semibold">Chờ gia sư chấm câu tự luận</p>
-       <p class="text-on-surface-variant">Phần hệ thống đã chấm: ${formatScore(a.autoScore)} điểm</p>`;
+    : `<p class="text-[20px] font-semibold">Đang chờ chấm câu tự luận / điền khuyết</p>
+       <p class="text-on-surface-variant">AI gợi ý điểm, gia sư duyệt xong bạn sẽ thấy điểm cả bài. Phần máy đã chấm: ${formatScore(a.autoScore)} điểm.</p>`;
   $('takeMain').innerHTML = `
     <div class="max-w-4xl mx-auto space-y-5">
       ${breadcrumbHtml(`Kết quả lượt ${a.attemptNumber}`, { linkToIntro: true })}

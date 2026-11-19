@@ -40,8 +40,9 @@ export function attemptStatusLabel(status) {
   return { IN_PROGRESS: 'Đang làm', SUBMITTED: 'Chờ gia sư chấm', GRADED: 'Đã có điểm' }[status] || 'Không xác định';
 }
 
+/** Cách chấm của bài (hiện cho học viên): có câu tự luận / điền khuyết thì AI gợi ý điểm, gia sư duyệt; còn lại máy chấm ngay. */
 export function gradingModeLabel(mode) {
-  return mode === 'TUTOR' ? 'Gia sư chấm' : 'Hệ thống chấm tự động';
+  return mode === 'TUTOR' ? 'AI gợi ý, gia sư duyệt' : 'Máy chấm ngay khi nộp';
 }
 
 /** "10/11/2026 08:00" */

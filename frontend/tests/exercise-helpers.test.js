@@ -16,6 +16,9 @@ import {
   formatScore,
   validateExerciseSettings,
   exerciseStateLabel,
+  isTutorGraded,
+  fillBlankMissingAnswers,
+  upgradeWordBank,
   QUESTION_TYPES
 } from '../js/exercise-helpers.js';
 
@@ -42,14 +45,28 @@ test('kiểm tra câu trước khi giao: báo đúng lỗi từng dạng', () =>
 
   const fill = defaultQuestion('FILL_BLANK');
   assert.match(validateQuestion(fill), /___/);
+  // Điền khuyết: đáp án không bắt buộc (ô để trống → AI gợi ý, gia sư duyệt)
   fill.data.text = 'Tôi ___ cơm';
-  assert.equal(validateQuestion(fill), 'chỗ trống 1 chưa có đáp án.');
+  assert.equal(validateQuestion(fill), null);
+  assert.equal(fillBlankMissingAnswers(fill), 1);
   fill.data.answers = [['ăn']];
   assert.equal(validateQuestion(fill), null);
+  assert.equal(fillBlankMissingAnswers(fill), 0);
 
+  // Tự luận: chỉ cần đề, không có đáp án / bài mẫu / người chấm
   const essay = { ...defaultQuestion('WRITTEN'), prompt: 'Viết' };
-  assert.match(validateQuestion(essay, { autoMode: true }), /Gia sư chấm/);
-  assert.equal(validateQuestion(essay, { autoMode: false }), null);
+  assert.deepEqual(essay.data, {});
+  assert.equal(validateQuestion(essay), null);
+  assert.ok(isTutorGraded(essay) && isTutorGraded(fill));
+  assert.deepEqual(questionPayload({ ...essay, data: { grader: 'AUTO', accepted: ['x'], sample: 'y' } }).data, {});
+
+  // Điền từ có sẵn (kiểu JLPT): mỗi phương án đủ từ cho các chỗ trống, cách nhau bằng /
+  const bank = { ...defaultQuestion('WORD_BANK'), data: { text: '私は ___ 学校 ___ 日本語 ___ 勉強します。', options: ['は/で/を'], correct: 0 } };
+  assert.match(validateQuestion(bank), /ít nhất 2 phương án/);
+  assert.match(validateQuestion({ ...bank, data: { ...bank.data, options: ['は/で/を', 'が/に'] } }), /phương án B phải có đủ 3 từ, cách nhau bằng dấu \//);
+  assert.match(validateQuestion({ ...bank, data: { ...bank.data, options: ['は/で/を', 'は / で / を'] } }), /trùng/);
+  assert.match(validateQuestion({ ...bank, data: { ...bank.data, options: ['は/で/を', 'が/に/を'], correct: null } }), /chưa chọn phương án đúng/);
+  assert.equal(validateQuestion({ ...bank, data: { ...bank.data, options: ['は/で/を', 'が/に/を'] } }), null);
 
   const match = { ...defaultQuestion('MATCHING'), prompt: 'Nối' };
   assert.equal(validateQuestion(match), 'có cặp nối đang để trống.');
@@ -57,11 +74,13 @@ test('kiểm tra câu trước khi giao: báo đúng lỗi từng dạng', () =>
 });
 
 test('dữ liệu gửi máy chủ khớp số chỗ trống, tổng điểm', () => {
-  const q = { type: 'WORD_BANK', prompt: '', points: '1,5', data: { text: '___ は ___', answers: ['これ', 'ペン', 'thừa'], distractors: [' あれ ', ''] } };
+  const q = { type: 'WORD_BANK', prompt: '', points: '1,5', data: { text: '___ は ___', options: [' これ / ペン ', 'あれ/本'], correct: 1 } };
   const p = questionPayload(q);
-  assert.deepEqual(p.data.answers, ['これ', 'ペン']);
-  assert.deepEqual(p.data.distractors, ['あれ']);
+  assert.deepEqual(p.data, { text: '___ は ___', options: ['これ/ペン', 'あれ/本'], correct: 1 });
   assert.equal(p.points, 1.5);
+  // Câu "Điền từ có sẵn" dạng cũ (bộ từ để kéo) được nâng lên: các từ đúng thành phương án A
+  assert.deepEqual(upgradeWordBank({ text: '___ は ___', answers: ['これ', 'ペン'], distractors: ['あれ'] }),
+    { text: '___ は ___', options: ['これ/ペン', ''], correct: 0 });
   assert.equal(totalPoints([{ points: 2 }, { points: '1,5' }, { points: '' }]), 3.5);
 });
 
@@ -85,6 +104,10 @@ test('đã trả lời chưa và mô tả câu trả lời / đáp án', () => {
   assert.equal(describeResponse('MULTI_CHOICE', view, {}), 'Chưa trả lời');
   assert.equal(describeCorrect('SINGLE_CHOICE', view, { correct: 0 }), 'ほん');
   assert.equal(describeCorrect('FILL_BLANK', {}, { answers: [['たべます', '食べます']] }), '(1) たべます / 食べます');
+  const wb = { segments: ['', ' は ', ''], options: ['これ/ペン', 'あれ/本'] };
+  assert.equal(describeResponse('WORD_BANK', wb, { choice: 1 }), 'あれ / 本');
+  assert.equal(describeCorrect('WORD_BANK', wb, { options: ['これ/ペン', 'あれ/本'], correct: 0 }), 'これ / ペン');
+  assert.deepEqual(previewView({ type: 'WORD_BANK', data: { text: '___ は ___', options: ['a/b', 'c/d'], correct: 0 } }).options, ['a/b', 'c/d']);
   assert.equal(describeCorrect('MATCHING', {}, { pairs: [{ left: '犬', right: 'dog' }] }), '犬 → dog');
 });
 

@@ -63,6 +63,26 @@ export const LEARNER_MENU_GROUPS = [
         url: '/pages/my-courses/',
         icon: 'school',
         matcher: ['/my-courses', '/pages/my-courses']
+      },
+      {
+        // FE-06: tài liệu học tập của mọi lớp (cùng trang Lớp học của tôi, ?view=materials)
+        key: 'my-materials',
+        title: 'Tài liệu học tập',
+        url: '/pages/my-courses/?view=materials',
+        icon: 'menu_book',
+        query: { view: 'materials' },
+        paths: ['/pages/my-courses', '/learner/my-courses', '/my-courses'],
+        noSpa: true
+      },
+      {
+        // FE-07: bài tập của mọi lớp (cùng trang Lớp học của tôi, ?view=assignments)
+        key: 'my-assignments',
+        title: 'Bài tập của tôi',
+        url: '/pages/my-courses/?view=assignments',
+        icon: 'assignment',
+        query: { view: 'assignments' },
+        paths: ['/pages/my-courses', '/learner/my-courses', '/my-courses'],
+        noSpa: true
       }
     ]
   },
@@ -230,6 +250,8 @@ export const PAGE_META_MAP = {
   'requests': { title: 'Lịch học của tôi', badge: 'Gia sư & lớp học' },
   'my-requests': { title: 'Yêu cầu của tôi', badge: 'Gia sư & lớp học' },
   'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },
+  'my-materials': { title: 'Tài liệu học tập', badge: 'Gia sư & lớp học' },
+  'my-assignments': { title: 'Bài tập của tôi', badge: 'Gia sư & lớp học' },
   'learning-support': { title: 'Tra cứu từ vựng', badge: 'Hỗ trợ học tập' },
   'vocabulary': { title: 'Tra cứu từ vựng', badge: 'Hỗ trợ học tập' },
   'kanji-dictionary': { title: 'Từ điển chữ Hán', badge: 'Hỗ trợ học tập' },
@@ -252,6 +274,16 @@ export function detectActiveMenu(customKey = null) {
   if (customKey) return customKey;
   const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 
+  // Mục dùng chung trang với mục khác, phân biệt bằng tham số (vd /pages/my-courses/?view=materials): xét trước
+  const params = new URLSearchParams(window.location.search);
+  for (const group of LEARNER_MENU_GROUPS) {
+    for (const item of group.items) {
+      if (!item.query) continue;
+      const samePage = (item.paths || [item.url.split('?')[0].replace(/\/+$/, '')]).includes(currentPath);
+      if (samePage && Object.entries(item.query).every(([k, v]) => params.get(k) === v)) return item.key;
+    }
+  }
+
   for (const group of LEARNER_MENU_GROUPS) {
     for (const item of group.items) {
       if (item.isDropdown && item.children) {
@@ -264,6 +296,7 @@ export function detectActiveMenu(customKey = null) {
         }
       } else {
         if (item.key === customKey) return item.key;
+        if (item.query) continue;
         if (item.url.replace(/\/+$/, '') === currentPath) return item.key;
         if (item.matcher && item.matcher.some(m => currentPath.startsWith(m))) {
           return item.key;
@@ -375,7 +408,7 @@ export function getLearnerSidebarHtml(activeKey) {
       return `
         <a href="${item.url}"
            data-menu-key="${item.key}"
-           ${(item.key === 'tutors' || item.key === 'requests' || item.key === 'my-requests' || item.key === 'notifications' || item.key === 'support' || item.key === 'policies') ? 'data-no-spa' : 'data-spa-link'}
+           ${(item.noSpa || item.key === 'tutors' || item.key === 'requests' || item.key === 'my-requests' || item.key === 'notifications' || item.key === 'support' || item.key === 'policies') ? 'data-no-spa' : 'data-spa-link'}
            class="${isActive ? LEARNER_NAV_ACTIVE : LEARNER_NAV_IDLE}" ${isActive ? 'aria-current="page"' : ''}>
           <span class="material-symbols-outlined text-[20px] shrink-0">${item.icon}</span>
           <span class="truncate">${item.title}</span>

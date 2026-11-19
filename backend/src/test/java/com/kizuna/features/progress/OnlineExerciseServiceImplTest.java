@@ -12,6 +12,9 @@ import com.kizuna.features.classroom.util.CurrentActor;
 import com.kizuna.features.progress.dto.ExerciseDtos.*;
 import com.kizuna.features.progress.entity.*;
 import com.kizuna.features.progress.repository.ExerciseAnswerRepository;
+import com.kizuna.features.progress.repository.ExerciseAudioRepository;
+import com.kizuna.features.progress.repository.ExerciseImageRepository;
+import com.kizuna.features.progress.entity.ExerciseImage;
 import com.kizuna.features.progress.repository.ExerciseAttemptRepository;
 import com.kizuna.features.progress.repository.ExerciseQuestionRepository;
 import com.kizuna.features.progress.repository.OnlineExerciseRepository;
@@ -46,6 +49,10 @@ class OnlineExerciseServiceImplTest {
     private ExerciseAttemptRepository attempts;
     private ExerciseAnswerRepository answers;
     private LearningSpaceRepository spaces;
+    private ExerciseAudioRepository audios;
+    private final List<ExerciseAudio> audioStore = new ArrayList<>();
+    private ExerciseImageRepository images;
+    private final List<ExerciseImage> imageStore = new ArrayList<>();
     private OffsetDateTime now = NOW;
     private OnlineExerciseServiceImpl service;
 
@@ -67,6 +74,24 @@ class OnlineExerciseServiceImplTest {
         attempts = mock(ExerciseAttemptRepository.class);
         answers = mock(ExerciseAnswerRepository.class);
         spaces = mock(LearningSpaceRepository.class);
+        audios = mock(ExerciseAudioRepository.class);
+        when(audios.findByAudioIdInAndSpaceId(any(), any())).thenAnswer(inv -> audioStore.stream()
+                .filter(a -> inv.<Collection<UUID>>getArgument(0).contains(a.getAudioId())
+                        && a.getSpaceId().equals(inv.getArgument(1))).toList());
+        when(audios.findAllById(any())).thenAnswer(inv -> {
+            List<UUID> ids = new ArrayList<>();
+            inv.<Iterable<UUID>>getArgument(0).forEach(ids::add);
+            return audioStore.stream().filter(a -> ids.contains(a.getAudioId())).toList();
+        });
+        images = mock(ExerciseImageRepository.class);
+        when(images.findByImageIdInAndSpaceId(any(), any())).thenAnswer(inv -> imageStore.stream()
+                .filter(i -> inv.<Collection<UUID>>getArgument(0).contains(i.getImageId())
+                        && i.getSpaceId().equals(inv.getArgument(1))).toList());
+        when(images.findAllById(any())).thenAnswer(inv -> {
+            List<UUID> ids = new ArrayList<>();
+            inv.<Iterable<UUID>>getArgument(0).forEach(ids::add);
+            return imageStore.stream().filter(i -> ids.contains(i.getImageId())).toList();
+        });
         build();
 
         Tutor tutor = tutor();
@@ -147,7 +172,7 @@ class OnlineExerciseServiceImplTest {
 
     private void build() {
         service = new OnlineExerciseServiceImpl(classrooms, exercises, questions, attempts, answers, spaces,
-                new ExerciseQuestionEngine(mapper), Clock.fixed(now.toInstant(), now.getOffset()));
+                new ExerciseQuestionEngine(mapper), audios, images, Clock.fixed(now.toInstant(), now.getOffset()));
     }
 
     private void clockAt(OffsetDateTime t) {
@@ -218,12 +243,50 @@ class OnlineExerciseServiceImplTest {
     }
 
     @Test
-    void autoModeRequiresAnswersForEveryQuestionAndTutorModeAllowsEssay() {
-        List<QuestionInput> withEssay = List.of(q(ExerciseQuestionType.WRITTEN, "Viết 3 câu", "5", "{}"));
-        assertThatThrownBy(() -> service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, true, withEssay)))
-                .hasMessageContaining("Gia sư chấm");
-        assertThat(service.create(tutorActor, space.getSpaceId(), request("TUTOR", null, 1, true, true, withEssay))
-                .summary().gradingMode()).isEqualTo("TUTOR");
+    void essayNeedsNoAnswerAndExerciseModeFollowsTheQuestions() {
+        // Tự luận: gia sư chỉ ra đề, đáp án / bài mẫu gửi lên bị bỏ; có câu tự luận → cả bài "Gia sư chấm"
+        ExerciseDetail essay = service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, true, List.of(
+                q(ExerciseQuestionType.WRITTEN, "Giới thiệu bản thân", "5", "{'grader':'AUTO','accepted':['x'],'sample':'...'}"))));
+        assertThat(essay.summary().gradingMode()).isEqualTo("TUTOR");
+        assertThat(essay.questions().get(0).data().has("accepted")).isFalse();
+        assertThat(essay.questions().get(0).data().has("sample")).isFalse();
+        // Điền khuyết không có đáp án vẫn giao được
+        ExerciseDetail fill = service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, true, List.of(
+                q(ExerciseQuestionType.FILL_BLANK, null, "1", "{'text':'友達 ___ 行きました'}"))));
+        assertThat(fill.summary().gradingMode()).isEqualTo("TUTOR");
+        // Chỉ trắc nghiệm → cả bài "Hệ thống chấm tự động" dù gửi gradingMode TUTOR
+        ExerciseDetail allAuto = service.create(tutorActor, space.getSpaceId(), request("TUTOR", null, 1, true, true,
+                List.of(q(ExerciseQuestionType.TRUE_FALSE, "Đúng?", "1", "{'correct':true}"))));
+        assertThat(allAuto.summary().gradingMode()).isEqualTo("AUTO");
+    }
+
+    @Test
+    void fillBlankMatchingAnswerIsGradedAtOnceOtherAnswersWaitForReview() {
+        UUID ex = service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 2, true, true, List.of(
+                q(ExerciseQuestionType.FILL_BLANK, null, "2", "{'text':'毎朝 ___ を飲みます。','answers':[['牛乳']]}")))).summary().exerciseId();
+
+        // Lượt 1: điền khớp đáp án → có điểm ngay
+        AttemptView a1 = service.start(learnerActor, space.getSpaceId(), ex);
+        service.saveAnswer(learnerActor, space.getSpaceId(), ex, a1.attemptId(), a1.questions().get(0).questionId(), json("{'blanks':['牛乳']}"));
+        AttemptView done1 = service.submit(learnerActor, space.getSpaceId(), ex, a1.attemptId());
+        assertThat(done1.status()).isEqualTo("GRADED");
+        assertThat(done1.finalScore()).isEqualByComparingTo("2");
+
+        // Lượt 2: điền khác đáp án → chờ chấm (AI gợi ý, gia sư duyệt), chưa có điểm
+        AttemptView a2 = service.start(learnerActor, space.getSpaceId(), ex);
+        UUID qid = a2.questions().get(0).questionId();
+        service.saveAnswer(learnerActor, space.getSpaceId(), ex, a2.attemptId(), qid, json("{'blanks':['ミルク']}"));
+        AttemptView done2 = service.submit(learnerActor, space.getSpaceId(), ex, a2.attemptId());
+        assertThat(done2.status()).isEqualTo("SUBMITTED");
+        assertThat(done2.finalScore()).isNull();
+        assertThat(done2.questions().get(0).needsManualGrading()).isTrue();
+        assertThat(done2.questions().get(0).score()).isNull();
+
+        // Gia sư duyệt: cho 0 điểm vẫn tính là đã chấm (không bị coi là "giữ điểm máy")
+        AttemptView graded = service.grade(tutorActor, space.getSpaceId(), ex, a2.attemptId(),
+                new GradeAttemptRequest(List.of(new GradeItem(qid, BigDecimal.ZERO, "Dùng 牛乳 theo bài học"))));
+        assertThat(graded.status()).isEqualTo("GRADED");
+        assertThat(graded.finalScore()).isEqualByComparingTo("0");
     }
 
     @Test
@@ -394,5 +457,152 @@ class OnlineExerciseServiceImplTest {
     private ExerciseAnswer answerRows(UUID attemptId, UUID questionId) {
         return answers.findByAttempt_AttemptId(attemptId).stream()
                 .filter(x -> x.getQuestionId().equals(questionId)).findFirst().orElseThrow();
+    }
+
+    // ---------------------------------------------------------------- câu nghe (file MP3)
+
+    private ExerciseAudio uploadedAudio(UUID exerciseId) {
+        ExerciseAudio a = ExerciseAudio.builder().audioId(UUID.randomUUID()).spaceId(space.getSpaceId())
+                .exerciseId(exerciseId).fileName("bai-nghe-1.mp3").fileSize(123_456L)
+                .contentType("audio/mpeg").storageKey("audio/" + UUID.randomUUID() + ".mp3").build();
+        audioStore.add(a);
+        return a;
+    }
+
+    private QuestionInput listening(UUID audioId, Integer maxPlays) {
+        return new QuestionInput(ExerciseQuestionType.SINGLE_CHOICE, "Nghe và chọn đáp án đúng", new BigDecimal("2"),
+                json("{'options':['駅','学校','病院'],'correct':1}"), audioId, maxPlays);
+    }
+
+    @Test
+    void questionImageIsShownToTutorAndLearnerAndUnlinkedWhenRemoved() {
+        ExerciseImage img = ExerciseImage.builder().imageId(UUID.randomUUID()).spaceId(space.getSpaceId())
+                .fileName("tranh-1.png").fileSize(2048L).contentType("image/png").build();
+        imageStore.add(img);
+        QuestionInput withImage = new QuestionInput(ExerciseQuestionType.SINGLE_CHOICE, "Nhìn tranh và chọn từ đúng",
+                new BigDecimal("1"), json("{'options':['犬','猫'],'correct':0}"), null, null, null, img.getImageId());
+        ExerciseDetail d = service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, true, List.of(withImage)));
+        UUID ex = d.summary().exerciseId();
+
+        QuestionDetail q = d.questions().get(0);
+        assertThat(q.image().imageId()).isEqualTo(img.getImageId());
+        assertThat(q.image().fileName()).isEqualTo("tranh-1.png");
+        assertThat(q.data().has("image")).isFalse();
+        assertThat(img.getExerciseId()).isEqualTo(ex);
+
+        AttemptView a = service.start(learnerActor, space.getSpaceId(), ex);
+        assertThat(a.questions().get(0).image().imageId()).isEqualTo(img.getImageId());
+        assertThat(a.questions().get(0).view().has("image")).isFalse();
+
+        // Ảnh của lớp khác / không tồn tại bị từ chối
+        QuestionInput unknown = new QuestionInput(ExerciseQuestionType.SINGLE_CHOICE, "x", new BigDecimal("1"),
+                json("{'options':['a','b'],'correct':0}"), null, null, null, UUID.randomUUID());
+        assertThatThrownBy(() -> service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(unknown)))).hasMessageContaining("không tìm thấy ảnh");
+    }
+
+    @Test
+    void savingADraftWithoutTheImageUnlinksItForCleanup() {
+        ExerciseImage img = ExerciseImage.builder().imageId(UUID.randomUUID()).spaceId(space.getSpaceId())
+                .fileName("a.png").fileSize(1L).contentType("image/png").build();
+        imageStore.add(img);
+        QuestionInput withImage = new QuestionInput(ExerciseQuestionType.SINGLE_CHOICE, "Chọn", new BigDecimal("1"),
+                json("{'options':['a','b'],'correct':0}"), null, null, null, img.getImageId());
+        UUID ex = service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(withImage))).summary().exerciseId();
+        assertThat(img.getExerciseId()).isEqualTo(ex);
+
+        QuestionInput without = new QuestionInput(ExerciseQuestionType.SINGLE_CHOICE, "Chọn", new BigDecimal("1"),
+                json("{'options':['a','b'],'correct':0}"));
+        service.update(tutorActor, space.getSpaceId(), ex, request("AUTO", null, 1, true, false, List.of(without)));
+        assertThat(service.detail(tutorActor, space.getSpaceId(), ex).questions().get(0).image()).isNull();
+        assertThat(img.getExerciseId()).isNull();
+    }
+
+    @Test
+    void listeningQuestionKeepsAudioForTutorAndLearner() {
+        ExerciseAudio audio = uploadedAudio(null);
+        ExerciseDetail d = service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(listening(audio.getAudioId(), 2))));
+        UUID ex = d.summary().exerciseId();
+
+        QuestionDetail q = d.questions().get(0);
+        assertThat(q.audio()).isNotNull();
+        assertThat(q.audio().audioId()).isEqualTo(audio.getAudioId());
+        assertThat(q.audio().fileName()).isEqualTo("bai-nghe-1.mp3");
+        assertThat(q.audio().maxPlays()).isEqualTo(2);
+        assertThat(q.data().has("audio")).isFalse();
+        assertThat(audio.getExerciseId()).isEqualTo(ex);
+
+        // Giao bài: học viên thấy file nghe và số lần nghe, không thấy đáp án
+        service.update(tutorActor, space.getSpaceId(), ex,
+                request("AUTO", null, 1, true, true, List.of(listening(audio.getAudioId(), 2))));
+        AttemptView a = service.start(learnerActor, space.getSpaceId(), ex);
+        AttemptQuestion item = a.questions().get(0);
+        assertThat(item.audio().audioId()).isEqualTo(audio.getAudioId());
+        assertThat(item.audio().maxPlays()).isEqualTo(2);
+        assertThat(item.correctAnswer()).isNull();
+        // Câu nghe vẫn chấm như câu trắc nghiệm thường
+        service.saveAnswer(learnerActor, space.getSpaceId(), ex, a.attemptId(), item.questionId(), json("{'choice':1}"));
+        AttemptView done = service.submit(learnerActor, space.getSpaceId(), ex, a.attemptId());
+        assertThat(done.finalScore()).isEqualByComparingTo("2");
+    }
+
+    @Test
+    void savingWithoutTheAudioUnlinksItForCleanupAndUnlimitedPlaysIsAllowed() {
+        ExerciseAudio audio = uploadedAudio(null);
+        UUID ex = service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(listening(audio.getAudioId(), null)))).summary().exerciseId();
+        assertThat(service.detail(tutorActor, space.getSpaceId(), ex).questions().get(0).audio().maxPlays()).isNull();
+
+        service.update(tutorActor, space.getSpaceId(), ex, request("AUTO", null, 1, true, false, List.of(listening(null, null))));
+        assertThat(service.detail(tutorActor, space.getSpaceId(), ex).questions().get(0).audio()).isNull();
+        // Gỡ khỏi bài (exercise_id = NULL) để dịch vụ file nghe dọn sau, xóa cả trên R2
+        assertThat(audio.getExerciseId()).isNull();
+        assertThat(audioStore).contains(audio);
+    }
+
+    @Test
+    void listeningQuestionWithoutAudioCanBeDraftedButNotPublished() {
+        QuestionInput needsAudio = new QuestionInput(ExerciseQuestionType.TRUE_FALSE, "Nghe rồi chọn", new BigDecimal("1"),
+                json("{'correct':true}"), null, 2, true);
+        ExerciseDetail d = service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(needsAudio)));
+        QuestionDetail q = d.questions().get(0);
+        assertThat(q.audio()).isNull();
+        assertThat(q.listening()).isNotNull();
+        assertThat(q.listening().maxPlays()).isEqualTo(2);
+        assertThat(q.data().has("listening")).isFalse();
+
+        assertThatThrownBy(() -> service.update(tutorActor, space.getSpaceId(), d.summary().exerciseId(),
+                request("AUTO", null, 1, true, true, List.of(needsAudio))))
+                .isInstanceOf(ClassroomException.class).hasMessageContaining("Câu 1: là câu nghe nhưng chưa có file nghe");
+
+        // Gắn file nghe rồi giao bài được; số lần nghe giữ nguyên
+        ExerciseAudio audio = uploadedAudio(null);
+        ExerciseDetail published = service.update(tutorActor, space.getSpaceId(), d.summary().exerciseId(), request("AUTO", null, 1, true, true,
+                List.of(new QuestionInput(ExerciseQuestionType.TRUE_FALSE, "Nghe rồi chọn", new BigDecimal("1"),
+                        json("{'correct':true}"), audio.getAudioId(), 2, true))));
+        assertThat(published.summary().status()).isEqualTo("PUBLISHED");
+        assertThat(published.questions().get(0).listening().maxPlays()).isEqualTo(2);
+        // Câu thường: không có thông tin câu nghe
+        ExerciseDetail plain = service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, false, autoQuestions()));
+        assertThat(plain.questions().get(0).listening()).isNull();
+    }
+
+    @Test
+    void audioOfAnotherExerciseUnknownAudioOrBadPlayLimitIsRejected() {
+        ExerciseAudio other = uploadedAudio(UUID.randomUUID());
+        assertThatThrownBy(() -> service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(listening(other.getAudioId(), null)))))
+                .isInstanceOf(ClassroomException.class).hasMessageContaining("Câu 1: không tìm thấy file nghe");
+        assertStatus(() -> service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(listening(UUID.randomUUID(), null)))), HttpStatus.BAD_REQUEST);
+
+        ExerciseAudio mine = uploadedAudio(null);
+        assertThatThrownBy(() -> service.create(tutorActor, space.getSpaceId(),
+                request("AUTO", null, 1, true, false, List.of(listening(mine.getAudioId(), 6)))))
+                .isInstanceOf(ClassroomException.class).hasMessageContaining("số lần nghe tối đa phải từ 1 đến 5");
     }
 }

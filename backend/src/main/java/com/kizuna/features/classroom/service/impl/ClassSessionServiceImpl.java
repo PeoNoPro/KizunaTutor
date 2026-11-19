@@ -45,7 +45,7 @@ import static com.kizuna.features.classroom.util.ClassScheduleRules.VN_ZONE;
  * - mỗi thao tác chỉ ảnh hưởng đúng một buổi, các buổi khác giữ nguyên;
  * - dời: sang ngày bất kỳ trong thời gian khóa học (từ ngày bắt đầu tới buổi cuối của khóa; lớp cũ không giới hạn số buổi: tối đa 1 năm tới);
  * - buổi phải chưa bắt đầu, thời gian mới ở tương lai, không trước ngày bắt đầu khóa,
- *   tuân thủ quy tắc giờ học (30 phút – 4 giờ) và không trùng giờ với buổi học thử / buổi học khác của gia sư hoặc học viên;
+ *   tuân thủ quy tắc giờ học (60 – 120 phút) và không trùng giờ với buổi học thử / buổi học khác của gia sư hoặc học viên;
  * - lịch tự sinh cho đủ tổng số buổi: hủy buổi thì khóa bù thêm buổi ở cuối, thêm buổi thì khóa kết thúc sớm hơn.
  * Mọi thời điểm tính theo giờ Việt Nam.
  */
@@ -318,7 +318,7 @@ public class ClassSessionServiceImpl implements ClassSessionService {
     }
 
     /**
-     * Ngày/giờ mới khi dời: đủ thông tin, đúng quy tắc giờ học (30 phút – 4 giờ), ở tương lai và nằm trong thời gian khóa học:
+     * Ngày/giờ mới khi dời: đủ thông tin, đúng quy tắc giờ học (60 – 120 phút), ở tương lai và nằm trong thời gian khóa học:
      * từ ngày bắt đầu khóa tới ngày buổi cuối của khóa (lớp cũ không giới hạn số buổi: tối đa 1 năm tới).
      */
     private static void validateNewTime(ClassSessionCalendar.SpaceData data, LocalDate newDate, LocalTime start, LocalTime end,

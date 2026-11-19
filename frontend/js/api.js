@@ -1443,5 +1443,44 @@ API.exercises = {
   grade(spaceId, exerciseId, attemptId, items) {
     return classroomRequest(exercisePath(spaceId,
       `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/grade`), { method: 'PUT', body: { items } });
+  },
+
+  /** Gia sư tải file nghe lên Cloudflare R2 (MP3/M4A/WAV/OGG/WEBM, tối đa 25 MB) → {audioId, fileName, fileSize}; gửi audioId kèm câu hỏi khi lưu bài. */
+  uploadAudio(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio`, { method: 'POST', formData: fd, timeout: 300000 });
+  },
+
+  /** Link nghe tạm của file trên R2: {url, expiresInSeconds}. Thẻ audio phát thẳng từ link này. */
+  audioUrl(spaceId, audioId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/${encodeURIComponent(audioId)}/url`);
+  },
+
+  /** Gia sư tải ảnh minh họa cho câu hỏi (PNG/JPG/WEBP/GIF ≤ 5 MB) → {imageId, fileName, fileSize}. */
+  uploadImage(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-images`, { method: 'POST', formData: fd, timeout: 120000 });
+  },
+
+  /** Nội dung ảnh của câu hỏi (Blob, có kiểm quyền bằng token). */
+  imageBlob(spaceId, imageId) {
+    return assignmentBlob(`/${encodeURIComponent(spaceId)}/exercise-images/${encodeURIComponent(imageId)}`);
+  },
+
+  /**
+   * Đọc file Excel câu hỏi (.xlsx, tối đa 2 MB, 200 câu), KHÔNG lưu gì.
+   * → {total, valid, invalid, validPoints, rows: [{row, ok, error, type, prompt, points, data}]}
+   */
+  importPreview(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-import`, { method: 'POST', formData: fd, timeout: 120000 });
+  },
+
+  /** File Excel mẫu để nhập câu hỏi (Blob). */
+  importTemplate(spaceId) {
+    return assignmentBlob(`/${encodeURIComponent(spaceId)}/exercise-import/template`);
   }
 };

@@ -10,11 +10,11 @@ export const QUESTION_TYPES = [
   { value: 'SINGLE_CHOICE', label: 'Trắc nghiệm 1 đáp án', hint: 'Chọn một đáp án đúng' },
   { value: 'MULTI_CHOICE', label: 'Trắc nghiệm nhiều đáp án', hint: 'Chọn tất cả đáp án đúng' },
   { value: 'TRUE_FALSE', label: 'Đúng / Sai', hint: 'Chọn Đúng hoặc Sai' },
-  { value: 'FILL_BLANK', label: 'Điền khuyết', hint: 'Gõ từ vào chỗ trống' },
-  { value: 'WORD_BANK', label: 'Điền từ có sẵn', hint: 'Kéo hoặc bấm chọn từ vào chỗ trống' },
+  { value: 'FILL_BLANK', label: 'Điền khuyết', hint: 'Học viên gõ chữ vào chỗ trống. Đáp án không bắt buộc: ô có đáp án máy chấm ngay, còn lại AI gợi ý điểm và bạn duyệt' },
+  { value: 'WORD_BANK', label: 'Điền từ có sẵn', hint: 'Kiểu đề JLPT: mỗi phương án là bộ từ cho đủ các chỗ trống, cách nhau bằng / (vd は/で/を); học viên chọn 1 phương án' },
   { value: 'MATCHING', label: 'Nối cột', hint: 'Chọn vế phải tương ứng với từng vế trái' },
   { value: 'ORDERING', label: 'Sắp xếp thứ tự', hint: 'Sắp xếp các mục theo thứ tự đúng' },
-  { value: 'WRITTEN', label: 'Tự luận', hint: 'Viết câu trả lời' }
+  { value: 'WRITTEN', label: 'Tự luận', hint: 'Học viên viết câu trả lời. Không cần đáp án: AI gợi ý điểm và nhận xét, bạn duyệt lại' }
 ];
 
 export function questionTypeLabel(type) {
@@ -40,8 +40,9 @@ export function attemptStatusLabel(status) {
   return { IN_PROGRESS: 'Đang làm', SUBMITTED: 'Chờ gia sư chấm', GRADED: 'Đã có điểm' }[status] || 'Không xác định';
 }
 
+/** Cách chấm của bài (hiện cho học viên): có câu tự luận / điền khuyết thì AI gợi ý điểm, gia sư duyệt; còn lại máy chấm ngay. */
 export function gradingModeLabel(mode) {
-  return mode === 'TUTOR' ? 'Gia sư chấm' : 'Hệ thống chấm tự động';
+  return mode === 'TUTOR' ? 'AI gợi ý, gia sư duyệt' : 'Máy chấm ngay khi nộp';
 }
 
 /** "10/11/2026 08:00" */
@@ -93,19 +94,73 @@ export function defaultQuestion(type) {
     case 'MULTI_CHOICE': return { ...base, data: { options: ['', '', ''], correct: [] } };
     case 'TRUE_FALSE': return { ...base, data: { correct: null } };
     case 'FILL_BLANK': return { ...base, data: { text: '', answers: [] } };
-    case 'WORD_BANK': return { ...base, data: { text: '', answers: [], distractors: [] } };
+    case 'WORD_BANK': return { ...base, data: { text: '', options: ['', ''], correct: null } };
     case 'MATCHING': return { ...base, data: { pairs: [{ left: '', right: '' }, { left: '', right: '' }] } };
     case 'ORDERING': return { ...base, data: { items: ['', '', ''] } };
-    case 'WRITTEN': return { ...base, data: { accepted: [], sample: '' } };
+    case 'WRITTEN': return { ...base, data: {} };
     default: return { ...base, data: {} };
   }
 }
 
 /**
+ * Câu học viên tự viết chữ (tự luận, điền khuyết): bài nộp được AI gợi ý điểm, gia sư duyệt.
+ * Tự luận luôn chờ chấm; điền khuyết chỉ chờ chấm khi ô không có đáp án hoặc học viên điền khác đáp án.
+ */
+export function isTutorGraded(q) {
+  return q?.type === 'WRITTEN' || q?.type === 'FILL_BLANK';
+}
+
+/** Điền từ có sẵn kiểu mới: chọn 1 phương án (bộ từ cho đủ các chỗ trống). Dạng cũ có answers + distractors. */
+export function isOptionSet(data) {
+  return Array.isArray(data?.options);
+}
+
+/** "は / で /を" → ['は', 'で', 'を'] */
+export function optionWords(option) {
+  return String(option ?? '').split('/').map((w) => w.trim());
+}
+
+/** Phương án hiển thị: "は / で / を" */
+export function formatOption(option) {
+  return optionWords(option).join(' / ');
+}
+
+/** Dạng cũ (bộ từ để kéo) → dạng mới: các từ đúng thành phương án A (đúng), gia sư thêm phương án khác. */
+export function upgradeWordBank(data) {
+  if (isOptionSet(data)) return data;
+  const first = (data?.answers || []).map((a) => String(a ?? '').trim()).join('/');
+  return { text: data?.text || '', options: [first, ''], correct: first ? 0 : null };
+}
+
+/** Câu điền khuyết có chỗ trống chưa nhập đáp án (chỗ đó luôn chờ chấm). */
+export function fillBlankMissingAnswers(q) {
+  if (q?.type !== 'FILL_BLANK') return 0;
+  const n = countBlanks(q.data?.text);
+  let missing = 0;
+  for (let i = 0; i < n; i += 1) {
+    if (!((q.data?.answers || [])[i] || []).some((a) => String(a ?? '').trim())) missing += 1;
+  }
+  return missing;
+}
+
+/** Lỗi của câu nghe chưa gắn file nghe (không giao bài được). */
+export const AUDIO_MISSING_MESSAGE = 'là câu nghe nhưng chưa có file nghe. Hãy thêm file nghe trước khi giao bài.';
+
+/** Câu được đánh dấu "Câu nghe" nhưng chưa có file nghe. */
+export function needsAudio(q) {
+  return !!(q?.listening && !q?.audio?.audioId);
+}
+
+/**
  * Kiểm tra một câu trước khi giao (khớp quy tắc máy chủ). Trả câu lỗi tiếng Việt hoặc null.
- * @param {boolean} autoMode bài "Hệ thống chấm tự động": câu tự luận phải có đáp án được chấp nhận
+ * Lỗi nội dung câu được báo trước; nội dung đủ rồi mới báo thiếu file nghe.
+ * @param {boolean} autoMode không còn dùng (giữ để tương thích)
  */
 export function validateQuestion(q, { autoMode = true } = {}) {
+  return validateQuestionContent(q, { autoMode }) || (needsAudio(q) ? AUDIO_MISSING_MESSAGE : null);
+}
+
+function validateQuestionContent(q, { autoMode = true } = {}) {
   const d = q?.data || {};
   const points = Number(String(q?.points ?? '').replace(',', '.'));
   if (!q?.type) return 'chưa chọn dạng câu hỏi.';
@@ -126,18 +181,23 @@ export function validateQuestion(q, { autoMode = true } = {}) {
     }
     case 'TRUE_FALSE':
       return typeof d.correct === 'boolean' ? null : 'chưa chọn Đúng hoặc Sai.';
-    case 'FILL_BLANK': {
-      const n = countBlanks(d.text);
-      if (!n) return 'câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).';
-      for (let i = 0; i < n; i += 1) {
-        if (!((d.answers || [])[i] || []).some((a) => !blank(a))) return `chỗ trống ${i + 1} chưa có đáp án.`;
-      }
-      return null;
-    }
+    case 'FILL_BLANK':
+      // Đáp án từng chỗ trống không bắt buộc
+      return countBlanks(d.text) ? null : 'câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).';
     case 'WORD_BANK': {
       const n = countBlanks(d.text);
       if (!n) return 'câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).';
-      for (let i = 0; i < n; i += 1) if (blank((d.answers || [])[i])) return 'có chỗ trống chưa có từ đúng.';
+      const options = d.options || [];
+      if (options.length < 2) return 'cần ít nhất 2 phương án để chọn.';
+      for (let i = 0; i < options.length; i += 1) {
+        const words = optionWords(options[i]);
+        if (words.length !== n || words.some(blank)) {
+          return `phương án ${String.fromCharCode(65 + i)} phải có đủ ${n} từ${n > 1 ? ', cách nhau bằng dấu /' : ''}.`;
+        }
+      }
+      const keys = options.map((o) => optionWords(o).join('/').toLowerCase());
+      if (new Set(keys).size !== keys.length) return 'có phương án bị trùng nhau.';
+      if (!(Number.isInteger(d.correct) && d.correct >= 0 && d.correct < options.length)) return 'chưa chọn phương án đúng.';
       return null;
     }
     case 'MATCHING': {
@@ -153,9 +213,6 @@ export function validateQuestion(q, { autoMode = true } = {}) {
       return null;
     }
     case 'WRITTEN':
-      if (autoMode && !(d.accepted || []).some((a) => !blank(a))) {
-        return 'bài chấm tự động nên câu tự luận phải có đáp án được chấp nhận. Hãy nhập đáp án hoặc đổi cách chấm sang "Gia sư chấm".';
-      }
       return null;
     default:
       return 'dạng câu hỏi không hợp lệ.';
@@ -172,12 +229,31 @@ export function questionPayload(q) {
     data.answers = Array.from({ length: n }, (_, i) => ((d.answers || [])[i] || []).map((a) => String(a).trim()).filter(Boolean));
   }
   if (q.type === 'WORD_BANK') {
-    const n = countBlanks(d.text);
-    data.answers = Array.from({ length: n }, (_, i) => String((d.answers || [])[i] || '').trim());
-    data.distractors = (d.distractors || []).map((s) => String(s).trim()).filter(Boolean);
+    const up = upgradeWordBank(d);
+    Object.keys(data).forEach((k) => delete data[k]);
+    data.text = up.text;
+    data.options = (up.options || []).map((o) => (optionWords(o).every((w) => !w) ? '' : optionWords(o).join('/')));
+    data.correct = Number.isInteger(up.correct) ? up.correct : null;
   }
-  if (q.type === 'WRITTEN') data.accepted = (d.accepted || []).map((s) => String(s).trim()).filter(Boolean);
-  return { type: q.type, prompt: String(q.prompt || '').trim(), points: Number.isFinite(points) ? points : null, data };
+  if (q.type === 'WRITTEN') {
+    // Tự luận không có đáp án / bài mẫu: bỏ dữ liệu cũ nếu có
+    Object.keys(data).forEach((k) => delete data[k]);
+  }
+  return {
+    type: q.type,
+    prompt: String(q.prompt || '').trim(),
+    points: Number.isFinite(points) ? points : null,
+    data,
+    // File nghe của câu (null = không có); listening = câu nghe (kể cả khi chưa có file); maxPlays null = không giới hạn
+    audioId: q.audio?.audioId || null,
+    // Ảnh minh họa của câu (null = không có); lưu R2 hoặc DB tùy máy chủ
+    imageId: q.image?.imageId || null,
+    listening: !!(q.audio?.audioId || q.listening),
+    maxPlays: (() => {
+      const plays = q.audio?.audioId ? q.audio.maxPlays : q.listening?.maxPlays;
+      return plays ? Number(plays) : null;
+    })()
+  };
 }
 
 /** Tổng điểm các câu */
@@ -205,7 +281,9 @@ export function previewView(q) {
     case 'SINGLE_CHOICE':
     case 'MULTI_CHOICE': return { options: d.options || [] };
     case 'FILL_BLANK': return { segments: splitSegments(d.text) };
-    case 'WORD_BANK': return { segments: splitSegments(d.text), bank: shuffle([...(d.answers || []), ...(d.distractors || [])].filter(Boolean)) };
+    case 'WORD_BANK': return isOptionSet(d)
+      ? { segments: splitSegments(d.text), options: d.options || [] }
+      : { segments: splitSegments(d.text), bank: shuffle([...(d.answers || []), ...(d.distractors || [])].filter(Boolean)) };
     case 'MATCHING': return { lefts: (d.pairs || []).map((p) => p.left), rights: shuffle((d.pairs || []).map((p) => p.right)) };
     case 'ORDERING': return { items: shuffle(d.items || []) };
     default: return {};
@@ -220,8 +298,8 @@ export function isAnswered(type, response) {
     case 'SINGLE_CHOICE': return Number.isInteger(response.choice);
     case 'MULTI_CHOICE': return Array.isArray(response.choices) && response.choices.length > 0;
     case 'TRUE_FALSE': return typeof response.value === 'boolean';
-    case 'FILL_BLANK':
-    case 'WORD_BANK': return filled(response.blanks);
+    case 'FILL_BLANK': return filled(response.blanks);
+    case 'WORD_BANK': return Number.isInteger(response.choice) || filled(response.blanks);
     case 'MATCHING': return filled(response.matches);
     case 'ORDERING': return Array.isArray(response.order) && response.order.length > 0;
     case 'WRITTEN': return String(response.text || '').trim() !== '';
@@ -237,8 +315,10 @@ export function describeResponse(type, view, response) {
     case 'SINGLE_CHOICE': return options[response.choice] ?? '';
     case 'MULTI_CHOICE': return response.choices.map((i) => options[i]).filter((x) => x !== undefined).join(' · ');
     case 'TRUE_FALSE': return response.value ? 'Đúng' : 'Sai';
-    case 'FILL_BLANK':
-    case 'WORD_BANK': return response.blanks.map((b, i) => `(${i + 1}) ${b}`).join('   ');
+    case 'FILL_BLANK': return response.blanks.map((b, i) => `(${i + 1}) ${b}`).join('   ');
+    case 'WORD_BANK': return Number.isInteger(response.choice)
+      ? formatOption(options[response.choice] ?? '')
+      : response.blanks.map((b, i) => `(${i + 1}) ${b}`).join('   ');
     case 'MATCHING': return (view?.lefts || []).map((l, i) => `${l} → ${response.matches[i] || '…'}`).join('   ');
     case 'ORDERING': return response.order.join(' → ');
     case 'WRITTEN': return response.text;
@@ -254,14 +334,15 @@ export function describeCorrect(type, view, correct) {
     case 'SINGLE_CHOICE': return options[correct.correct] ?? '';
     case 'MULTI_CHOICE': return (correct.correct || []).map((i) => options[i]).join(' · ');
     case 'TRUE_FALSE': return correct.correct ? 'Đúng' : 'Sai';
-    case 'FILL_BLANK': return (correct.answers || []).map((a, i) => `(${i + 1}) ${(a || []).join(' / ')}`).join('   ');
-    case 'WORD_BANK': return (correct.answers || []).map((a, i) => `(${i + 1}) ${a}`).join('   ');
+    case 'FILL_BLANK':
+      // Chỉ hiện các chỗ trống gia sư có nhập đáp án
+      return (correct.answers || []).map((a, i) => ((a || []).length ? `(${i + 1}) ${a.join(' / ')}` : '')).filter(Boolean).join('   ');
+    case 'WORD_BANK': return Array.isArray(correct.options)
+      ? formatOption(correct.options[correct.correct] ?? '')
+      : (correct.answers || []).map((a, i) => `(${i + 1}) ${a}`).join('   ');
     case 'MATCHING': return (correct.pairs || []).map((p) => `${p.left} → ${p.right}`).join('   ');
     case 'ORDERING': return (correct.items || []).join(' → ');
-    case 'WRITTEN': {
-      const accepted = (correct.accepted || []).join(' / ');
-      return [accepted, correct.sample ? `Đáp án mẫu: ${correct.sample}` : ''].filter(Boolean).join(' · ');
-    }
+    case 'WRITTEN': return (correct.accepted || []).join(' / ');
     default: return '';
   }
 }

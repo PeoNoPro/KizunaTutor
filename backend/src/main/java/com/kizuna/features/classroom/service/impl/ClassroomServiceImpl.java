@@ -110,7 +110,11 @@ public class ClassroomServiceImpl implements ClassroomService {
         return learnerRepository.findAllById(ids).stream()
                 .map(learner -> {
                     User u = learner.getUser();
-                    return new EligibleLearnerResponse(learner.getLearnerId(), u.getFullName(), u.getEmail(), u.getAvatarUrl());
+                    Object[] delivery = spaceRepository.findAcceptedConnectionDelivery(tutor.getTutorId(), learner.getLearnerId())
+                            .stream().findFirst().orElse(null);
+                    return new EligibleLearnerResponse(learner.getLearnerId(), u.getFullName(), u.getEmail(), u.getAvatarUrl(),
+                            delivery == null ? null : (String) delivery[0],
+                            delivery == null ? null : (String) delivery[1]);
                 })
                 .sorted(Comparator.comparing(EligibleLearnerResponse::fullName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .toList();

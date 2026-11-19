@@ -92,6 +92,9 @@ const state = {
   tab: 'tong-quan',
   materialFilter: { kind: '', keyword: '' },
   materialLimit: 10,
+  // Trang "Tài liệu học tập" chung mọi lớp (?view=materials, không có ?space=)
+  // status: 'active' | 'ended' | 'all'; null = mặc định (đang hoạt động, nếu không có lớp đang hoạt động thì tất cả)
+  hub: { active: false, classes: [], materials: [], filter: { kind: '', keyword: '', spaceId: '', status: null }, limit: 10, openGroups: new Set() },
   collapsedGroups: new Set()
 };
 
@@ -878,15 +881,17 @@ function materialFileButton(m, f) {
     <span class="material-symbols-outlined text-[18px] text-primary shrink-0" aria-hidden="true">${fileKindIcon(f)}</span><span class="min-w-0 truncate">${escapeHtml(f.fileName)}</span></button>`;
 }
 
-function materialItemHtml(m, canManage) {
+function materialItemHtml(m, canManage, cls = null) {
   return `
-    <li class="kz-item flex flex-wrap items-start gap-3">
+    <li class="kz-item flex flex-wrap items-start gap-3" ${cls ? `data-space-id="${escapeHtml(cls.spaceId)}"` : ''}>
       <div class="w-10 h-10 rounded-xl bg-surface-container-lowest text-primary flex items-center justify-center shrink-0" aria-hidden="true">
         <span class="material-symbols-outlined text-[22px]">folder_open</span></div>
       <div class="flex-1 min-w-[200px] space-y-1.5">
         <div class="flex flex-wrap items-center gap-2">
           <h3 class="font-title-sm text-title-sm text-on-surface [overflow-wrap:anywhere]">${escapeHtml(m.title)}</h3>
           ${isRecent(m.createdAt) ? '<span class="kz-badge" data-tone="active">Mới</span>' : ''}
+          ${cls ? `<button type="button" class="kz-badge hover:underline" data-open-class="${escapeHtml(cls.spaceId)}" title="Mở lớp học">
+            <span class="material-symbols-outlined text-[14px]" aria-hidden="true">school</span>${escapeHtml(cls.title)}</button>` : ''}
         </div>
         ${m.description ? `<p class="text-on-surface-variant whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(m.description)}</p>` : ''}
         <div class="flex flex-wrap gap-1.5">${(m.files || []).map((f) => materialFileButton(m, f)).join('')}</div>
@@ -897,6 +902,167 @@ function materialItemHtml(m, canManage) {
         <button type="button" class="kz-btn text-error" data-delete-material="${escapeHtml(m.materialId)}">Xóa</button>
       </div>` : ''}
     </li>`;
+}
+
+// ----------------------------------------------------------------------------
+// Trang "Tài liệu học tập" chung mọi lớp (mục trên thanh bên): tìm, lọc theo lớp / loại tệp, nhóm theo tuần
+// ----------------------------------------------------------------------------
+const hubClassOf = (m) => state.hub.classes.find((c) => c.spaceId === m.__spaceId) || null;
+
+/**
+ * Trạng thái lớp cho bộ lọc. Thực tế lớp chỉ có ACTIVE (lúc tạo) và COMPLETED (tự chuyển khi học xong buổi cuối);
+ * PAUSED / CLOSED còn trong enum nhưng không chỗ nào đặt, nếu có thì vẫn tính vào "Đã hoàn thành".
+ */
+const HUB_STATUSES = [
+  { key: 'active', label: 'Đang hoạt động' },
+  { key: 'ended', label: 'Đã hoàn thành' },
+  { key: 'all', label: 'Tất cả' }
+];
+const classMatchesStatus = (c, status) => status === 'all' || (status === 'active' ? c.status === 'ACTIVE' : c.status !== 'ACTIVE');
+
+async function loadMaterialsHub() {
+  const list = $('hubList');
+  const stateBox = $('hubState');
+  stateBox.classList.add('hidden');
+  list.innerHTML = '<p class="text-on-surface-variant">Đang tải tài liệu...</p>';
+  try {
+    const classes = await API.classrooms.list() || [];
+    // Tải tài liệu các lớp song song; lớp nào lỗi thì bỏ qua lớp đó, vẫn hiện các lớp còn lại
+    const results = await Promise.all(classes.map((c) => API.classrooms.materials(c.spaceId)
+      .then((ms) => (ms || []).map((m) => ({ ...m, __spaceId: c.spaceId })))
+      .catch(() => null)));
+    state.hub.classes = classes;
+    state.hub.materials = results.filter(Boolean).flat();
+    const failed = results.filter((r) => r === null).length;
+    if (failed) showToast(`Không tải được tài liệu của ${failed} lớp. Vui lòng tải lại trang.`, 'error');
+    if (state.hub.filter.spaceId && !classes.some((c) => c.spaceId === state.hub.filter.spaceId)) state.hub.filter.spaceId = '';
+    renderMaterialsHub();
+  } catch (err) {
+    list.innerHTML = '';
+    renderStateBox(stateBox, friendlyErrorMessage(err), { retry: loadMaterialsHub });
+  }
+}
+
+function renderMaterialsHub() {
+  const hub = state.hub;
+  const list = $('hubList');
+  const stateBox = $('hubState');
+  const manageable = hub.classes.filter((c) => c.canManage);
+  $('hubUploadBtn').classList.toggle('hidden', !manageable.length);
+  $('hubSummary').textContent = hub.classes.length
+    ? `${hub.materials.length} tài liệu · ${hub.classes.length} lớp học`
+    : 'Bạn chưa có lớp học nào. Tạo lớp ở mục "Học viên của tôi" rồi chia sẻ tài liệu cho học viên.';
+  // Trạng thái lớp: mặc định "Đang hoạt động"; chưa có lớp nào đang hoạt động thì "Tất cả"
+  if (!hub.filter.status) hub.filter.status = hub.classes.some((c) => c.status === 'ACTIVE') ? 'active' : 'all';
+  const countOf = (key) => hub.materials.filter((m) => { const c = hubClassOf(m); return c && classMatchesStatus(c, key); }).length;
+  $('hubStatusFilter').innerHTML = HUB_STATUSES.map((st) => `
+    <option value="${st.key}" ${hub.filter.status === st.key ? 'selected' : ''}>${st.label} (${countOf(st.key)})</option>`).join('');
+  const classes = hub.classes.filter((c) => classMatchesStatus(c, hub.filter.status));
+  if (hub.filter.spaceId && !classes.some((c) => c.spaceId === hub.filter.spaceId)) hub.filter.spaceId = '';
+  $('hubClassFilter').innerHTML = '<option value="">Tất cả lớp</option>' + classes.map((c) => {
+    const n = hub.materials.filter((m) => m.__spaceId === c.spaceId).length;
+    return `<option value="${escapeHtml(c.spaceId)}" ${hub.filter.spaceId === c.spaceId ? 'selected' : ''}>${escapeHtml(c.title)} (${n})</option>`;
+  }).join('');
+  const shownClassIds = new Set(classes.map((c) => c.spaceId));
+  const inClass = hub.materials.filter((m) => shownClassIds.has(m.__spaceId) && (!hub.filter.spaceId || m.__spaceId === hub.filter.spaceId));
+  const counts = countMaterialKinds(inClass);
+  const kinds = [{ key: '', label: 'Tất cả', icon: '' }, ...FILE_KINDS.filter((k) => counts[k.key])];
+  $('hubKindChips').innerHTML = inClass.length ? kinds.map((k) => `
+    <button type="button" class="kz-chip" data-kind="${k.key}" aria-pressed="${hub.filter.kind === k.key}">
+      ${k.icon ? `<span class="material-symbols-outlined text-[16px]" aria-hidden="true">${k.icon}</span>` : ''}${k.label} · ${k.key ? counts[k.key] || 0 : counts.all}</button>`).join('') : '';
+  if (!hub.materials.length) {
+    list.innerHTML = '';
+    renderStateBox(stateBox, hub.classes.length ? 'Chưa có tài liệu nào. Bấm "Tải lên tài liệu" để chia sẻ tài liệu cho học viên.' : 'Chưa có lớp học nào.');
+    return;
+  }
+  if (!inClass.length && !hub.filter.keyword.trim() && !hub.filter.kind) {
+    list.innerHTML = '';
+    stateBox.innerHTML = `<p class="text-on-surface-variant">${hub.filter.status === 'active'
+      ? 'Các lớp đang hoạt động chưa có tài liệu nào.' : 'Không có tài liệu nào ở các lớp này.'}</p>
+      ${hub.filter.status !== 'all' ? '<button type="button" class="kz-btn mt-4" data-hub-all>Xem tài liệu của tất cả lớp</button>' : ''}`;
+    stateBox.classList.remove('hidden');
+    stateBox.querySelector('[data-hub-all]')?.addEventListener('click', () => {
+      hub.filter.status = 'all';
+      hub.limit = MATERIAL_PAGE;
+      renderMaterialsHub();
+    });
+    return;
+  }
+  const filtered = filterMaterials(inClass, hub.filter);
+  if (!filtered.length) {
+    list.innerHTML = '';
+    stateBox.innerHTML = '<p class="text-on-surface-variant">Không tìm thấy tài liệu phù hợp.</p><button type="button" class="kz-btn mt-4" data-hub-clear>Xóa bộ lọc</button>';
+    stateBox.classList.remove('hidden');
+    stateBox.querySelector('[data-hub-clear]').addEventListener('click', () => {
+      hub.filter = { kind: '', keyword: '', spaceId: '', status: 'all' };
+      $('hubSearch').value = '';
+      hub.limit = MATERIAL_PAGE;
+      renderMaterialsHub();
+    });
+    return;
+  }
+  stateBox.classList.add('hidden');
+  const visible = [...filtered].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, hub.limit);
+  const item = (m) => { const c = hubClassOf(m); return materialItemHtml(m, !!c?.canManage, c); };
+  const more = filtered.length > visible.length ? `
+    <div class="flex justify-center"><button type="button" class="kz-btn" data-hub-more>Xem thêm ${Math.min(MATERIAL_PAGE, filtered.length - visible.length)} tài liệu (còn ${filtered.length - visible.length})</button></div>` : '';
+  if (hub.filter.keyword.trim() || hub.filter.kind) {
+    list.innerHTML = `<p class="font-caption text-caption text-on-surface-variant">${filtered.length} tài liệu phù hợp</p>
+      <ul class="flex flex-col gap-3">${visible.map(item).join('')}</ul>` + more;
+  } else {
+    list.innerHTML = groupByWeek(visible, (m) => m.createdAt).map((g, gi) => {
+      const open = gi === 0 || hub.openGroups.has(g.key);
+      return `
+        <section>
+          <button type="button" class="kz-group-head" data-hub-group="${escapeHtml(g.key)}" aria-expanded="${open}">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">${open ? 'expand_more' : 'chevron_right'}</span>${escapeHtml(g.label)}<span class="normal-case font-normal">· ${g.items.length} tài liệu</span></button>
+          <ul class="flex flex-col gap-3 mt-2 ${open ? '' : 'hidden'}">${g.items.map(item).join('')}</ul>
+        </section>`;
+    }).join('') + more;
+  }
+}
+
+/** Sự kiện của trang chung (gắn một lần). */
+function bindMaterialsHub() {
+  const hub = state.hub;
+  $('hubUploadBtn').addEventListener('click', () => openMaterialForm(null));
+  $('hubSearch').addEventListener('input', (e) => { hub.filter.keyword = e.target.value; hub.limit = MATERIAL_PAGE; renderMaterialsHub(); });
+  $('hubClassFilter').addEventListener('change', (e) => { hub.filter.spaceId = e.target.value; hub.filter.kind = ''; hub.limit = MATERIAL_PAGE; renderMaterialsHub(); });
+  $('hubStatusFilter').addEventListener('change', (e) => { hub.filter.status = e.target.value; hub.filter.kind = ''; hub.limit = MATERIAL_PAGE; renderMaterialsHub(); });
+  $('hubKindChips').addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-kind]');
+    if (!chip) return;
+    hub.filter.kind = chip.dataset.kind;
+    hub.limit = MATERIAL_PAGE;
+    renderMaterialsHub();
+  });
+  $('hubList').addEventListener('click', (e) => {
+    if (e.target.closest('[data-hub-more]')) { hub.limit += MATERIAL_PAGE; renderMaterialsHub(); return; }
+    const head = e.target.closest('[data-hub-group]');
+    if (head) {
+      const open = head.getAttribute('aria-expanded') === 'true';
+      if (open) hub.openGroups.delete(head.dataset.hubGroup); else hub.openGroups.add(head.dataset.hubGroup);
+      head.setAttribute('aria-expanded', String(!open));
+      head.querySelector('.material-symbols-outlined').textContent = open ? 'chevron_right' : 'expand_more';
+      head.nextElementSibling.classList.toggle('hidden', open);
+      return;
+    }
+    const li = e.target.closest('[data-space-id]');
+    if (!li) return;
+    const cls = hub.classes.find((c) => c.spaceId === li.dataset.spaceId);
+    const classBtn = e.target.closest('[data-open-class]');
+    if (classBtn) { navigateToSpace(classBtn.dataset.openClass); return; }
+    if (!cls) return;
+    const fileBtn = e.target.closest('[data-open-material]');
+    const editBtn = e.target.closest('[data-edit-material]');
+    const delBtn = e.target.closest('[data-delete-material]');
+    const material = (id) => hub.materials.find((m) => m.materialId === id && m.__spaceId === cls.spaceId);
+    // Các hộp thoại tài liệu dùng lớp đang chọn
+    state.currentSpace = cls;
+    if (fileBtn) openMaterial(fileBtn.dataset.openMaterial, fileBtn.dataset.file, fileBtn);
+    else if (editBtn) openMaterialForm(material(editBtn.dataset.editMaterial));
+    else if (delBtn) openDeleteMaterial(material(delBtn.dataset.deleteMaterial));
+  });
 }
 
 /** Chip lọc loại tệp (kèm số lượng). */
@@ -1002,8 +1168,12 @@ async function confirmDeleteMaterial() {
     closeModal('deleteMaterialModal');
     state.deletingMaterial = null;
     showToast('Xóa tài liệu thành công.');
-    state.materials = state.materials.filter((m) => m.materialId !== material.materialId);
-    renderMaterials();
+    if (state.hub.active) {
+      await loadMaterialsHub();
+    } else {
+      state.materials = state.materials.filter((m) => m.materialId !== material.materialId);
+      renderMaterials();
+    }
   } catch (err) {
     setFieldError('deleteMaterialError', friendlyErrorMessage(err));
   } finally {
@@ -1041,6 +1211,18 @@ function openMaterialForm(material = null) {
   $('materialDescriptionInput').value = material?.description || '';
   // Một tài liệu = tiêu đề + mô tả + 1–5 tệp. Sửa: "Thay" / "Xóa" đúng tệp muốn đổi, "＋ Thêm tệp" để bổ sung.
   materialPicker.reset(isEdit ? (material.files || []) : [], { max: MAX_FILES_PER_UPLOAD, addLabel: 'Thêm tệp' });
+  // Tải lên từ trang chung: chọn lớp nhận tài liệu (sửa thì giữ lớp của tài liệu)
+  const chooseClass = state.hub.active && !isEdit;
+  $('materialClassBox').classList.toggle('hidden', !chooseClass);
+  setFieldError('materialClassError', '');
+  if (chooseClass) {
+    const manageable = state.hub.classes.filter((c) => c.canManage);
+    $('materialClassSelect').innerHTML = (manageable.length > 1 ? '<option value="">Chọn lớp học</option>' : '')
+      + manageable.map((c) => `<option value="${escapeHtml(c.spaceId)}">${escapeHtml(c.title)} · ${escapeHtml(c.learnerName || 'Học viên')}</option>`).join('');
+    if (state.hub.filter.spaceId && manageable.some((c) => c.spaceId === state.hub.filter.spaceId)) {
+      $('materialClassSelect').value = state.hub.filter.spaceId;
+    }
+  }
   $('materialFileHint').textContent = isEdit
     ? `Bấm "Thay" để đổi đúng tệp đó, "Xóa" để bỏ tệp, "＋ Thêm tệp" để bổ sung. ${FILE_RULES_TEXT}`
     : FILE_RULES_TEXT;
@@ -1063,7 +1245,11 @@ async function submitMaterial(event) {
   setFieldError('materialDescriptionError', fieldErrors.description);
   setFieldError('materialFileError', fileError);
   setFieldError('materialFormError', '');
-  if (fieldErrors.title || fieldErrors.description || fileError) return;
+  const chooseClass = state.hub.active && !isEdit;
+  const hubClass = chooseClass ? state.hub.classes.find((c) => c.spaceId === $('materialClassSelect').value) : null;
+  setFieldError('materialClassError', chooseClass && !hubClass ? 'Vui lòng chọn lớp học.' : '');
+  if (fieldErrors.title || fieldErrors.description || fileError || (chooseClass && !hubClass)) return;
+  if (hubClass) state.currentSpace = hubClass;
 
   const submit = $('materialSubmit');
   setBusy(submit, true, isEdit ? 'Đang lưu...' : 'Đang tải lên...');
@@ -1076,7 +1262,8 @@ async function submitMaterial(event) {
     closeModal('materialModal');
     showToast(isEdit ? 'Cập nhật tài liệu thành công.' : 'Tải lên tài liệu thành công.');
     // Chỉ cập nhật đúng tài liệu vừa lưu, không tải lại cả danh sách
-    if (saved && saved.materialId) upsertMaterialLocally(saved, { prepend: !isEdit });
+    if (state.hub.active) await loadMaterialsHub();
+    else if (saved && saved.materialId) upsertMaterialLocally(saved, { prepend: !isEdit });
     else await loadMaterials();
   } catch (err) {
     const fe = err.fieldErrors || {};
@@ -1121,10 +1308,19 @@ function renderRoute() {
   highlightSidebar();
   const spaceId = new URLSearchParams(window.location.search).get('space');
   renderViewHint();
-  // Mục "Quản lý bài tập" trên thanh bên: trang bài tập chung của mọi lớp (thay cho danh sách lớp)
+  // Mục "Quản lý bài tập" / "Tài liệu học tập" trên thanh bên: trang chung của mọi lớp (thay cho danh sách lớp)
   const overview = !spaceId && currentView() === 'assignments';
-  $('classroomListView').classList.toggle('hidden', !!spaceId || overview);
+  const materialsHub = !spaceId && currentView() === 'materials';
+  state.hub.active = materialsHub;
+  $('classroomListView').classList.toggle('hidden', !!spaceId || overview || materialsHub);
   $('classroomDetailView').classList.toggle('hidden', !spaceId);
+  $('materialsHub').classList.toggle('hidden', !materialsHub);
+  if (materialsHub) {
+    state.currentSpace = null;
+    hideAssignmentOverview();
+    loadMaterialsHub();
+    return;
+  }
   if (overview) {
     state.currentSpace = null;
     showAssignmentOverview();
@@ -1231,6 +1427,7 @@ function init() {
     head.nextElementSibling.classList.toggle('hidden', open);
   });
   $('materialForm').addEventListener('submit', submitMaterial);
+  bindMaterialsHub();
   materialPicker = createFileList($('materialFileList'), { accept: MATERIAL_ACCEPT_ATTR });
   $('deleteMaterialConfirm').addEventListener('click', confirmDeleteMaterial);
   initTutorAssignments({ showToast });

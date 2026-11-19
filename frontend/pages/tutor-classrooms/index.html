@@ -57,6 +57,38 @@
         <!-- ===== QUẢN LÝ BÀI TẬP CHUNG MỌI LỚP (?view=assignments) — vẽ bởi assignment-overview.js ===== -->
         <section id="assignmentOverview" class="hidden flex flex-col gap-5"></section>
 
+        <!-- ===== TÀI LIỆU HỌC TẬP CHUNG MỌI LỚP (?view=materials) ===== -->
+        <section id="materialsHub" class="hidden flex flex-col gap-5">
+          <div class="kz-card p-6 flex flex-wrap items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-secondary-fixed text-on-secondary-container flex items-center justify-center shrink-0" aria-hidden="true">
+              <span class="material-symbols-outlined text-[28px]">menu_book</span></div>
+            <div class="flex-1 min-w-[220px]">
+              <h1 class="font-headline-md text-headline-md text-on-surface tracking-tight">Tài liệu học tập</h1>
+              <p id="hubSummary" class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Tài liệu chia sẻ cho học viên của mọi lớp.</p>
+            </div>
+            <button type="button" id="hubUploadBtn" class="kz-btn kz-btn-primary h-11 px-4 shrink-0 hidden"><span class="material-symbols-outlined text-[18px]">cloud_upload</span>Tải lên tài liệu</button>
+          </div>
+          <div class="kz-card p-6">
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+              <label class="flex-1 min-w-[220px] flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low text-on-surface-variant focus-within:ring-2 focus-within:ring-primary">
+                <span class="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
+                <input id="hubSearch" type="search" placeholder="Tìm theo tên tài liệu hoặc tên tệp" aria-label="Tìm tài liệu" class="flex-1 min-w-0 bg-transparent border-0 outline-none text-on-surface">
+              </label>
+              <label class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low">
+                <span class="text-on-surface-variant">Lớp</span>
+                <select id="hubClassFilter" aria-label="Lọc theo lớp" class="bg-transparent border-0 outline-none font-semibold text-on-surface max-w-[260px]"></select>
+              </label>
+              <label class="flex items-center gap-2 h-11 px-3.5 rounded-xl bg-surface-container-low">
+                <span class="text-on-surface-variant">Trạng thái lớp</span>
+                <select id="hubStatusFilter" aria-label="Lọc theo trạng thái lớp" class="bg-transparent border-0 outline-none font-semibold text-on-surface"></select>
+              </label>
+            </div>
+            <div id="hubKindChips" class="flex flex-wrap gap-2 mb-4" role="group" aria-label="Lọc theo loại tệp"></div>
+            <div id="hubState" class="kz-item text-center text-on-surface-variant py-6 hidden"></div>
+            <div id="hubList" class="flex flex-col gap-4"></div>
+          </div>
+        </section>
+
         <!-- ===== DANH SÁCH LỚP (UC-93) ===== -->
         <section id="classroomListView" class="flex flex-col gap-6">
           <!-- Gợi ý khi mở từ mục "Tài liệu học tập" / "Quản lý bài tập" trên thanh bên -->
@@ -438,6 +470,12 @@
   <div id="materialModal" class="fixed inset-0 z-50 hidden kz-modal-backdrop flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="materialModalTitle">
     <form id="materialForm" class="kz-card shadow-xl w-full max-w-[520px] p-6 space-y-4 max-h-[90vh] overflow-y-auto" novalidate>
       <h2 id="materialModalTitle" class="font-title-md text-title-md text-on-surface">Tải lên tài liệu</h2>
+      <!-- Chỉ hiện khi tải lên từ trang Tài liệu học tập chung: chọn lớp nhận tài liệu -->
+      <div id="materialClassBox" class="hidden">
+        <label for="materialClassSelect" class="kz-label">Lớp học</label>
+        <select id="materialClassSelect" class="kz-input"></select>
+        <p id="materialClassError" class="field-error hidden"></p>
+      </div>
       <div>
         <label for="materialTitleInput" class="kz-label">Tiêu đề tài liệu</label>
         <input id="materialTitleInput" type="text" maxlength="150" class="kz-input">

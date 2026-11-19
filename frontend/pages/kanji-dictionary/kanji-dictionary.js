@@ -463,13 +463,11 @@ function renderLearnerGrid(items) {
 
   // Gắn sự kiện click phát âm bằng VOICEVOX
   grid.querySelectorAll('[data-action="speak-kanji"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const char = btn.getAttribute('data-char');
-      btn.classList.add('scale-110');
-      voicevoxClient.speak(char).finally(() => {
-        setTimeout(() => btn.classList.remove('scale-110'), 300);
-      });
+      if (!char) return;
+      await voicevoxClient.speakWithButton(char, btn);
     });
   });
 

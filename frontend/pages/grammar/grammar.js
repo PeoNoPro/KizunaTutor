@@ -685,15 +685,12 @@ function openGrammarDetail(ruleId, pushHistory = true) {
 
   // Gắn sự kiện phát âm câu ví dụ
   container.querySelectorAll('[data-action="speak-grammar-example"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
       const text = btn.getAttribute('data-text');
       if (!text) return;
-      btn.classList.add('scale-110');
-      voicevoxClient.speak(text).finally(() => {
-        setTimeout(() => btn.classList.remove('scale-110'), 300);
-      });
+      await voicevoxClient.speakWithButton(text, btn);
     });
   });
 

@@ -464,9 +464,9 @@ function renderAnalysisResult(data) {
         // Gắn sự kiện nghe phát âm
         const btnSpeak = card.querySelector('.btn-speak-grammar');
         if (btnSpeak) {
-          btnSpeak.addEventListener('click', (e) => {
+          btnSpeak.addEventListener('click', async (e) => {
             e.stopPropagation();
-            voicevoxClient.speak(g.matchedText || g.pattern);
+            await voicevoxClient.speakWithButton(g.matchedText || g.pattern, btnSpeak);
           });
         }
 
@@ -527,9 +527,9 @@ function renderAnalysisResult(data) {
         // Gắn sự kiện nghe phát âm
         const btnSpeak = card.querySelector('.btn-speak-vocab');
         if (btnSpeak) {
-          btnSpeak.addEventListener('click', (e) => {
+          btnSpeak.addEventListener('click', async (e) => {
             e.stopPropagation();
-            voicevoxClient.speak(v.surfaceText || v.kanji || v.reading);
+            await voicevoxClient.speakWithButton(v.surfaceText || v.kanji || v.reading, btnSpeak);
           });
         }
 

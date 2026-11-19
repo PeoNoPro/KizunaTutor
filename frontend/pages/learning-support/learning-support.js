@@ -476,9 +476,9 @@ function renderVocabGrid(items) {
 
   // Gắn sự kiện cho các nút hành động
   grid.querySelectorAll('[data-action="speak-vocab"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
-      speakWord(btn.dataset.word);
+      await voicevoxClient.speakWithButton(btn.dataset.word, btn);
     });
   });
 
@@ -500,10 +500,13 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
-function speakWord(text) {
+async function speakWord(text, btn = null) {
   if (!text) return;
+  if (btn) {
+    return voicevoxClient.speakWithButton(text, btn);
+  }
   try {
-    voicevoxClient.speak(text);
+    await voicevoxClient.speak(text);
   } catch (e) {
     console.debug('Lỗi phát âm từ vựng:', e);
   }

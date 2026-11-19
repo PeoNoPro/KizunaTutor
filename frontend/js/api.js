@@ -1514,3 +1514,21 @@ API.exercises = {
     return assignmentBlob(`/${encodeURIComponent(spaceId)}/exercise-import/template`);
   }
 };
+
+// =========================================================================
+// FE-15: GỢI Ý CHẤM CỦA AI cho câu tự luận của bài làm trực tiếp (chỉ gia sư của lớp)
+// .../exercises/{exerciseId}/attempts/{attemptId}/ai-reviews
+// =========================================================================
+API.exerciseAiReviews = {
+  /** Gợi ý từng câu: [{questionId, status, statusLabel, suggestedScore, feedback, updatedAt}] */
+  list(spaceId, exerciseId, attemptId) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/ai-reviews`));
+  },
+
+  /** Cho AI chấm lại các câu chưa chấm được */
+  retry(spaceId, exerciseId, attemptId) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/ai-reviews/retry`), { method: 'POST' });
+  }
+};

@@ -45,6 +45,7 @@ import {
   legacyWrittenAnswers
 } from '../../js/exercise-helpers.js';
 import { renderInteractive } from '../../js/exercise-player.js';
+import { attachAiSuggestions } from '../../js/exercise-ai-review.js'; // FE-15 (Hân): gợi ý chấm của AI
 import { mountTutorLayout } from '/components/tutor-layout/tutor-layout.js';
 import {
   AUDIO_ACCEPT,
@@ -1395,6 +1396,7 @@ function renderAttemptDetail(a) {
   }));
   $('saveGradeBtn').addEventListener('click', () => saveGrades(a));
   $('saveNextBtn')?.addEventListener('click', () => saveGrades(a, nextPending?.attemptId));
+  attachAiSuggestions(box, spaceId, state.exerciseId, a); // FE-15 (Hân): gợi ý chấm của AI cho câu chờ chấm
 }
 
 /** Lưu điểm lượt a; nextAttemptId: chuyển sang chấm lượt đó sau khi lưu xong. */

@@ -2,17 +2,16 @@ import { OPERATIONS_BASE as base, api, byId, text, date, option, paging, query, 
 
 const state = {page: 0, catalogLoaded: false};
 
-const SOURCE_TONES = {'Nhân sự': 'info', 'Sự cố': 'warning', 'Cấu hình': 'success'};
+const SOURCE_TONES = {'Nhân sự': 'info', 'Cấu hình': 'success'};
 
 /** Mỗi dòng nhật ký là một câu: "<Người> <hành động> <đối tượng>", kèm nhóm, kết quả, thời gian; lý do (nếu có) ở dưới. */
 function row(event) {
     const item = text('li', '', 'log-item'), body = text('div', '', 'log-body'), sentence = text('p', '', 'log-sentence');
-    const target = event.incidentId ? text('a', event.targetLabel) : text('strong', event.targetLabel || '');
-    if (event.incidentId) target.href = '/pages/operations-incident/?id=' + encodeURIComponent(event.incidentId);
+    const target = text('strong', event.targetLabel || '');
     sentence.append(text('strong', event.actorDisplayName), document.createTextNode(' · ' + event.actionLabel + (event.targetLabel ? ': ' : '')), target);
     const tags = text('div', '', 'log-tags');
     tags.append(badge(event.sourceLabel, SOURCE_TONES[event.sourceLabel] || 'neutral'));
-    // Cấu hình ghi "trước → sau" nên hiện dạng chữ; sự cố hiện trạng thái dạng nhãn màu.
+    // Cấu hình ghi "trước → sau" nên hiện dạng chữ; các kết quả khác hiện dạng nhãn.
     if (event.resultLabel && event.resultLabel.includes('→')) tags.append(text('span', event.resultLabel, 'log-change'));
     else if (event.resultLabel && event.resultLabel !== 'Đã lưu') tags.append(badge(event.resultLabel));
     body.append(sentence, tags);

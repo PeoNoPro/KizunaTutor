@@ -20,9 +20,9 @@
     <p id="aiCurrent"></p>
     <div class="config-grid">
       <div><label for="aiProvider">Nhà cung cấp AI</label><select id="aiProvider" required></select></div>
-      <div><label for="aiModel">Model</label><input id="aiModel" maxlength="80" required placeholder="Ví dụ: gemini-2.5-flash"></div>
-      <div id="aiBaseUrlField" hidden><label for="aiBaseUrl">Địa chỉ máy chủ AI (Base URL)</label><input id="aiBaseUrl" type="url" maxlength="200" placeholder="https://api.groq.com/openai/v1"></div>
-      <div><label for="aiApiKey">API key</label><input id="aiApiKey" type="password" maxlength="400" autocomplete="off" spellcheck="false"></div>
+      <div><label for="aiModel">Model</label><input id="aiModel" maxlength="80" required autocomplete="off" spellcheck="false" placeholder="Ví dụ: gemini-2.5-flash"></div>
+      <div id="aiBaseUrlField" hidden><label for="aiBaseUrl">Địa chỉ máy chủ AI (Base URL)</label><input id="aiBaseUrl" type="url" maxlength="200" autocomplete="off" placeholder="https://api.groq.com/openai/v1"></div>
+      <div><label for="aiApiKey">API key</label><input id="aiApiKey" type="password" maxlength="400" autocomplete="new-password" spellcheck="false"></div>
     </div>
     <p id="aiKeyNote" class="staff-help"></p>
     <label for="aiReason">Lý do thay đổi</label><textarea id="aiReason" required maxlength="2000"></textarea>
@@ -56,6 +56,28 @@
     <label for="senderReason">Lý do thay đổi</label><textarea id="senderReason" required maxlength="2000"></textarea>
     <div class="portal-actions ai-buttons"><button class="primary" type="submit">Lưu email gửi thư</button></div>
     <div id="senderResult" class="ai-test-result" role="status" hidden></div>
+</form>
+<form id="storageForm" class="operations-card" data-config-section="storage">
+    <h2>Lưu trữ đám mây</h2>
+    <p id="storageCurrent"></p>
+    <div class="config-grid">
+      <div><label for="storageProvider">Nhà cung cấp</label><select id="storageProvider" required></select></div>
+      <div><label for="storageBucket">Tên bucket</label><input id="storageBucket" maxlength="63" required spellcheck="false" autocomplete="off" placeholder="kizunatutor-storage"></div>
+      <div><label for="storageEndpoint">Endpoint</label><input id="storageEndpoint" maxlength="200" required spellcheck="false" autocomplete="off"></div>
+      <div><label for="storageRegion">Vùng (region)</label><input id="storageRegion" maxlength="40" spellcheck="false" autocomplete="off" placeholder="auto"></div>
+      <div><label for="storageAccessKey">Access key ID</label><input id="storageAccessKey" type="password" maxlength="200" autocomplete="new-password" spellcheck="false"></div>
+      <div><label for="storageSecretKey">Secret access key</label><input id="storageSecretKey" type="password" maxlength="200" autocomplete="new-password" spellcheck="false"></div>
+    </div>
+    <p id="storageNote" class="staff-help"></p>
+    <label for="storageReason">Lý do thay đổi</label><textarea id="storageReason" required maxlength="2000"></textarea>
+    <div class="portal-actions ai-buttons"><button id="testStorage" type="button">Thử kết nối</button><button class="primary" type="submit">Lưu và chuyển sang kho này</button><button id="resetStorage" type="button" hidden>Quay về kho mặc định</button></div>
+    <div id="storageResult" class="ai-test-result" role="status" hidden></div>
+    <div id="storageCopyBox" hidden>
+      <h3>Chép tệp từ kho cũ</h3>
+      <p id="storageCopyInfo"></p>
+      <div class="portal-actions"><button id="startStorageCopy" type="button">Chép tệp sang kho mới</button></div>
+      <div id="storageCopyResult" class="ai-test-result" role="status" hidden></div>
+    </div>
 </form>
 <details class="operations-card"><summary>Lịch sử thay đổi cấu hình</summary><div id="configHistory"></div><div class="operations-pagination"><button id="configHistoryPrev" type="button">Trang trước</button><button id="configHistoryNext" type="button">Trang sau</button></div></details>
 </div>

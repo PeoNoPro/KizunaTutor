@@ -105,6 +105,14 @@ export const LEARNER_MENU_GROUPS = [
         icon: 'keyboard',
         matcher: ['/kana', '/kana-quiz']
       },
+      // FE-13 (thêm 2026-11-17): Luyện đề JLPT. Không dùng tiền tố '/learner/practice' vì trùng '/learner/practice-canvas' (Shodo).
+      {
+        key: 'practice',
+        title: 'Luyện đề',
+        url: '/learner/practice',
+        icon: 'quiz',
+        matcher: ['/learner/practice/', '/pages/practice']
+      },
       {
         key: 'ai-writing',
         title: 'Chữa câu & Viết AI',
@@ -167,7 +175,8 @@ export const PAGE_META_MAP = {
   'ai-writing': { title: 'Luyện viết & Chữa câu AI', badge: 'Học tập & rèn luyện' },
   'learning-support': { title: 'Tra cứu từ vựng', badge: 'Học tập & rèn luyện' },
   'vocabulary': { title: 'Tra cứu từ vựng', badge: 'Học tập & rèn luyện' },
-  'kanji-game': { title: 'Game Mưa chữ Hán', badge: 'Học tập & rèn luyện' }
+  'kanji-game': { title: 'Game Mưa chữ Hán', badge: 'Học tập & rèn luyện' },
+  'practice': { title: 'Luyện đề', badge: 'Học tập & rèn luyện' }
 };
 
 export function detectActiveMenu(customKey = null) {

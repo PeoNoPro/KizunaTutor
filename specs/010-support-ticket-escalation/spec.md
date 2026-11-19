@@ -22,6 +22,15 @@
 
 - Q: Nhân viên chăm sóc khách hàng bị khóa tài khoản, bị xóa hoặc đổi vai trò khi còn giữ phiếu chưa xong thì ai chuyển phiếu sang người khác? → A: Quản lý bàn giao tay. Hệ thống không tự chuyển (bỏ cách tự giao cho người đang trong ca), chỉ báo cho mọi Quản lý; phiếu giữ nguyên người phụ trách cũ cho tới khi Quản lý chọn người nhận. Lý do: phiếu đang dở có bối cảnh riêng (đã hứa gì với khách, đang chờ gì), Quản lý chọn người phù hợp chứ không chỉ người đang rảnh.
 
+### Session 2026-11-16 — Bỏ phân ca (theo ý kiến giảng viên hướng dẫn)
+
+Nguồn: buổi họp với giảng viên ngày 2026-11-16. Nhóm chỉ có **một** nhân viên chăm sóc khách hàng; yêu cầu hỗ trợ là phần phụ, nhóm tập trung vào hỗ trợ học tập. Mục này **thay thế** các quy tắc về ca làm, tự giao theo ca, giới hạn 3 yêu cầu và bàn giao tay ở Session 2026-11-10 và các ghi chú cũ khác; nội dung cũ giữ lại chỉ để truy vết.
+
+- **Bỏ hoàn toàn phân ca**: không còn trang "Xếp lịch làm việc CS" (Quản lý), mục "Lịch làm việc" (CS), khung "đang trong ca", khối ca trực ở tổng quan Quản lý, thông báo "chưa có nhân viên trong ca", xuất Excel lịch ca, tác vụ tự giao chạy nền và giới hạn số yêu cầu mỗi người. Dữ liệu ca cũ trong DB (`support_shifts`, `support_shift_events`) giữ nguyên, không xóa; lịch sử xếp ca cũ vẫn xem được trong Nhật ký hệ thống.
+- **Hàng chờ chung + "Nhận xử lý"**: yêu cầu mới ở trạng thái Mới tiếp nhận (OPEN), mọi nhân viên hỗ trợ được báo có yêu cầu mới. Nhân viên bấm "Nhận xử lý" (ở danh sách hoặc trang chi tiết) → yêu cầu chuyển Đang xử lý, ghi người phụ trách, **người gửi được thông báo đã tiếp nhận** và thấy tên nhân viên hỗ trợ. Nhân viên trả lời luôn mà chưa bấm nhận thì hệ thống tự tính là đã nhận (người gửi nhận một thông báo "Có phản hồi mới").
+- **Nhân viên hỗ trợ nào đang hoạt động cũng xử lý được mọi yêu cầu** (trả lời, đổi mức ưu tiên, đánh dấu đã giải quyết, chuyển Quản lý). Người phụ trách chỉ để ghi lại và hiển thị, không dùng để chặn quyền; vì vậy **bỏ "Đổi người phụ trách" và nhóm "Cần bàn giao"** của Quản lý (đổi người CS thì người mới làm tiếp được ngay).
+- Giữ nguyên: mức ưu tiên tự đặt và thời hạn phản hồi, chuyển Quản lý / quyết định / trả kết quả, ghi chú nội bộ, báo sự cố kỹ thuật cho Admin, người gửi xác nhận đóng.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Gửi và theo dõi yêu cầu hỗ trợ (Priority: P1)

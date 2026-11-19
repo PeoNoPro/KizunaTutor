@@ -2,13 +2,8 @@ import {api, byId, text, date, notice, paging, emptyState, badge, avatar, action
 import {showToast} from '../../js/main.js';
 
 const base = '/admin/operations';
-// Trang admin-roles dùng chung file này ở chế độ "Đề xuất thăng chức": chỉ hiện danh sách đề xuất.
-const roleMode = document.body.dataset.staffMode === 'roles';
-const state = {page: 0, historyPage: 0, roles: [], rows: [], action: '', selected: null, saving: false, promotion: null, decision: 'approve'};
+const state = {page: 0, historyPage: 0, roles: [], rows: [], action: '', selected: null, saving: false};
 const dialog = byId('staffDialog');
-if (roleMode) {
-  ['createStaff', 'staffSection', 'staffHistorySection', 'staffImportSection'].forEach(id => { if (byId(id)) byId(id).hidden = true; });
-}
 
 function cell(value) { return text('td', value); }
 function button(label, action) {
@@ -54,7 +49,7 @@ async function checkEmails() {
     } catch { /* Lỗi mạng tạm thời: lần kiểm tra sau thử lại. */ }
   }
   // Có kết quả mới thì vẽ lại danh sách để nhãn email đổi theo.
-  if (finished.length && !roleMode) page.run(load);
+  if (finished.length) page.run(load);
   if (mailTrack.items.size && ++mailTrack.tries < 30) mailTrack.timer = setTimeout(checkEmails, 3000);
   else if (mailTrack.items.size) {
     mailTrack.items.forEach(email => showToast('Email tới ' + email + ' vẫn đang chờ gửi. Bạn có thể tải lại trang sau ít phút để xem kết quả.', 'info'));
@@ -63,7 +58,6 @@ async function checkEmails() {
 }
 
 async function load() {
-  if (roleMode) { await loadPromotions(); return; }
   const params = new URLSearchParams({q: byId('staffQuery').value.trim(), page: state.page, size: 20});
   const [roles, data, history] = await Promise.all([api(base + '/roles'), api(base + '/staff?' + params), api(base + '/staff/history?page=' + state.historyPage + '&size=10')]);
   state.roles = roles; state.rows = data.items;
@@ -100,63 +94,16 @@ async function load() {
   byId('staffHistoryPage').textContent = 'Trang ' + (state.historyPage + 1); paging('staffHistory', history, state.historyPage);
 }
 
-/** Lỗi riêng phần đề xuất (ví dụ DB chưa có bảng) không làm hỏng danh sách nhân viên. */
-async function loadPromotions() {
-  const box = byId('promotionList');
-  try {
-    const status = byId('promotionStatus')?.value ?? 'PENDING';
-    const data = await api(base + '/role-changes/promotions?size=50' + (status ? '&status=' + status : ''));
-    box.replaceChildren();
-    if (!data.items.length) { box.append(emptyState(status === 'PENDING' ? 'Chưa có đề xuất chờ duyệt' : 'Chưa có đề xuất phù hợp', 'Đề xuất thăng chức do Quản lý gửi sẽ xuất hiện tại đây.')); return; }
-    const list = text('div', '', 'promotion-list');
-    data.items.forEach(request => {
-      const card = text('article', '', 'promotion-card'), top = text('div', '', 'promotion-top'), person = text('div', '', 'portal-person'), who = text('div');
-      who.append(text('strong', request.targetName, 'staff-identity-name'), text('p', request.targetEmail, 'staff-email'));
-      person.append(avatar(request.targetName), who); top.append(person, badge(request.statusLabel));
-      const move = text('div', '', 'promotion-move');
-      move.append(text('span', request.fromRoleLabel, 'portal-chip'), text('span', '→', 'promotion-arrow'), text('span', request.toRoleLabel, 'portal-chip portal-chip-strong'));
-      const reason = text('p', request.reason, 'promotion-reason');
-      const foot = text('div', '', 'promotion-foot'), actions = text('div', '', 'portal-actions');
-      foot.append(text('span', request.requesterName + ' · ' + date(request.createdAt), 'portal-muted'));
-      if (request.status === 'PENDING') actions.append(actionButton('Duyệt', () => openPromotion(request, 'approve'), 'primary'), actionButton('Từ chối', () => openPromotion(request, 'reject'), 'danger'));
-      else if (request.decisionNote) actions.append(text('span', 'Ghi chú: ' + request.decisionNote, 'portal-muted'));
-      foot.append(actions);
-      card.append(top, move, reason, foot); list.append(card);
-    });
-    box.append(list);
-  } catch (error) {
-    if (error.status === 401) throw error;
-    box.replaceChildren(emptyState('Chưa tải được đề xuất thăng chức', error.message));
-  }
-}
-
-function openPromotion(request, decision = 'approve') {
-  state.promotion = request; state.decision = decision; byId('promotionForm').reset(); byId('promotionNotice').textContent = '';
-  byId('promotionDialogTitle').textContent = decision === 'approve' ? 'Duyệt đề xuất thăng chức' : 'Từ chối đề xuất thăng chức';
-  byId('promotionSubmit').textContent = decision === 'approve' ? 'Xác nhận duyệt' : 'Xác nhận từ chối';
-  byId('promotionNote').required = decision === 'reject';
-  byId('promotionSummary').textContent = request.targetName + ' · ' + request.fromRoleLabel + ' → ' + request.toRoleLabel;
-  byId('promotionReason').textContent = 'Lý do của ' + request.requesterName + ': ' + request.reason;
-  byId('promotionDialog').showModal();
-}
-
-async function decidePromotion(action) {
-  if (state.saving) return;
-  state.saving = true; byId('promotionNotice').textContent = 'Đang lưu quyết định…';
-  try {
-    await api(base + '/role-changes/promotions/' + encodeURIComponent(state.promotion.requestId) + '/' + action, 'POST', {note: byId('promotionNote').value.trim()});
-    byId('promotionDialog').close(); await page.run(load);
-    notice(action === 'approve' ? 'Đã duyệt: tài khoản được chuyển sang vai trò mới và ghi nhật ký.' : 'Đã từ chối đề xuất. Vai trò của nhân viên giữ nguyên.');
-  } catch (error) {
-    byId('promotionNotice').textContent = error.message || 'Chưa lưu được quyết định. Vui lòng thử lại.';
-  } finally { state.saving = false; }
-}
-
 /** Tạo tài khoản Quản lý phải có căn cứ bổ nhiệm; vai trò khác không cần. */
 function syncAppointment() {
   const box = document.querySelector('[data-staff-field=appointment]'); if (!box) return;
   const needed = state.action === 'create' && byId('staffRole').selectedOptions[0]?.textContent === 'Quản lý vận hành';
   box.hidden = !needed; byId('staffAppointment').disabled = !needed; byId('staffAppointment').required = needed;
+}
+
+/** Chỉ đổi vai trò cho nhân viên nội bộ khác mình; Quản trị viên, Học viên và Gia sư không nằm trong nhóm này. */
+function canChangeRole(account) {
+  return Boolean(account && !account.self && state.roles.some(role => role.roleId === account.roleId && role.staffAssignable));
 }
 
 function open(action, selected = null) {
@@ -172,7 +119,7 @@ function open(action, selected = null) {
   // Khóa/mở và cấp lại mật khẩu đã có nút riêng trên từng dòng.
   byId('staffExtraActions').hidden = true;
   if (action === 'delete') byId('staffDialogDescription').textContent = 'Xóa ' + selected.fullName + ' (' + selected.email + '). Tài khoản sẽ biến mất khỏi danh sách và không đăng nhập được nữa; lịch sử xử lý, nhật ký và dữ liệu liên quan vẫn được giữ. Ca làm từ hôm nay trở đi sẽ bị gỡ; yêu cầu hỗ trợ đang dở chuyển sang nhóm "Cần bàn giao" của Quản lý. Không hoàn tác được trên giao diện, email này cũng không dùng lại để tạo tài khoản mới.';
-  const fields = {create: ['name', 'email', 'phone', 'role', 'appointment'], edit: ['name', 'email', 'phone', 'reason'], status: ['reason'], delete: ['reason']}[action];
+  const fields = {create: ['name', 'email', 'phone', 'role', 'appointment'], edit: ['name', 'email', 'phone', ...(canChangeRole(selected) ? ['role'] : []), 'reason'], status: ['reason'], delete: ['reason']}[action];
   document.querySelectorAll('[data-staff-field]').forEach(wrapper => {
     wrapper.hidden = !fields.includes(wrapper.dataset.staffField);
     wrapper.querySelectorAll('input,textarea,select').forEach(input => { input.disabled = wrapper.hidden; input.required = !wrapper.hidden && wrapper.dataset.staffField !== 'phone'; });
@@ -182,6 +129,7 @@ function open(action, selected = null) {
   state.roles.filter(role => role.active && role.staffAssignable).forEach(role => {
     const option = text('option', role.label); option.value = role.roleId; byId('staffRole').append(option);
   });
+  if (action === 'edit' && canChangeRole(selected)) byId('staffRole').value = String(selected.roleId);
   byId('staffFullName').value = selected?.fullName || ''; byId('staffEmail').value = selected?.email || '';
   byId('staffEmail').readOnly = Boolean(selected?.self);
   byId('staffPhone').value = selected?.phone || '';
@@ -201,6 +149,7 @@ async function save(event) {
       method = 'PUT'; path += '/' + encodeURIComponent(account.userId);
       payload = {expectedUpdatedAt: account.updatedAt, reason: byId('staffReason').value.trim()};
       if (action === 'edit') Object.assign(payload, {fullName: byId('staffFullName').value.trim(), email: byId('staffEmail').value.trim(), phone: byId('staffPhone').value.trim()});
+      if (action === 'edit' && canChangeRole(account)) payload.roleId = Number(byId('staffRole').value);
       if (action === 'status') { path += '/status'; payload.status = account.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'; }
       if (action === 'delete') { path += '/delete'; method = 'POST'; }
     }
@@ -238,17 +187,6 @@ async function resendCredentials(account) {
 dialog.addEventListener('cancel', event => { if (state.saving) event.preventDefault(); });
 byId('staffForm').addEventListener('submit', save);
 byId('staffRole').addEventListener('change', syncAppointment);
-if (roleMode) {
-  byId('promotionSection').hidden = false;
-  byId('promotionForm').addEventListener('submit', event => {
-    event.preventDefault();
-    if (state.decision === 'reject' && !byId('promotionNote').value.trim()) { byId('promotionNotice').textContent = 'Vui lòng nhập lý do từ chối.'; byId('promotionNote').focus(); return; }
-    decidePromotion(state.decision);
-  });
-  byId('cancelPromotion').addEventListener('click', () => { if (!state.saving) byId('promotionDialog').close(); });
-  page.bind('promotionStatus', 'change', loadPromotions);
-  byId('closePromotion').addEventListener('click', () => { if (!state.saving) byId('promotionDialog').close(); });
-}
 byId('reloadStaffItem').addEventListener('click', async () => {
   await page.run(load); const latest = state.rows.find(account => account.userId === state.selected.userId);
   if (latest) {
@@ -265,6 +203,6 @@ page.bind('staffNext', 'click', async () => { state.page++; await load(); });
 page.bind('staffHistoryPrev', 'click', async () => { state.historyPage = Math.max(0, state.historyPage - 1); await load(); });
 page.bind('staffHistoryNext', 'click', async () => { state.historyPage++; await load(); });
 page.start();
-if (!roleMode && new URLSearchParams(location.search).get('create') === 'true') {
+if (new URLSearchParams(location.search).get('create') === 'true') {
   window.addEventListener('operations-rendered', () => open('create'), {once: true});
 }

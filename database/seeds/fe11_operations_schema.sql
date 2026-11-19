@@ -1,11 +1,11 @@
--- FE-11: schema quản trị, nhân sự, đổi vai trò, email và audit cấu hình.
+-- FE-11: schema quản trị, nhân sự, email và audit cấu hình.
 -- Một transaction cho toàn bộ thay đổi; không chứa tài khoản hoặc giao dịch mẫu.
 BEGIN;
 
 -- ====================================================================================================
 -- FE-11: QUẢN TRỊ HỆ THỐNG & BÁO CÁO VẬN HÀNH
--- (Cấu hình học thử, sự cố kỹ thuật, điều khoản & chính sách)
--- Không DROP các bảng dưới đây: chạy lại file không làm mất lịch sử cấu hình và sự cố.
+-- (Cấu hình học thử, điều khoản & chính sách)
+-- Không DROP các bảng dưới đây: chạy lại file không làm mất lịch sử cấu hình.
 -- Cần có sẵn: users, system_configurations (2 khóa TRIAL_DEFAULT_DURATION_MINUTES,
 -- BOOKING_MIN_HOURS_IN_ADVANCE là số nguyên hợp lệ), trial_bookings.
 -- Đây là nguồn schema FE-11 duy nhất; test FE-11 chạy toàn bộ file này.
@@ -13,17 +13,11 @@ BEGIN;
 
 SELECT pg_advisory_xact_lock(11001001);
 
--- 1. BẢNG ĐÁNH DẤU PHIÊN BẢN SCHEMA FE-11
-CREATE TABLE IF NOT EXISTS operations_schema_versions (
-    version VARCHAR(50) PRIMARY KEY,
-    applied_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
-);
-
 -- Kiểm tra cấu hình học thử hiện có trước khi tạo bản cấu hình gốc
 DO $$
 DECLARE duration_text TEXT; advance_text TEXT;
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM operations_schema_versions WHERE version = 'fe11_001') THEN
+    IF NOT EXISTS (SELECT 1 FROM booking_policy_revisions) THEN
         SELECT config_value INTO duration_text FROM system_configurations WHERE config_key = 'TRIAL_DEFAULT_DURATION_MINUTES';
         SELECT config_value INTO advance_text FROM system_configurations WHERE config_key = 'BOOKING_MIN_HOURS_IN_ADVANCE';
         IF duration_text IS NULL OR advance_text IS NULL OR duration_text !~ '^[0-9]{1,3}$' OR advance_text !~ '^[0-9]{1,3}$' THEN
@@ -72,8 +66,7 @@ SELECT gen_random_uuid(), 1,
     (SELECT config_value::INTEGER FROM system_configurations WHERE config_key = 'TRIAL_DEFAULT_DURATION_MINUTES'),
     (SELECT config_value::INTEGER FROM system_configurations WHERE config_key = 'BOOKING_MIN_HOURS_IN_ADVANCE'),
     clock_timestamp(), 'BASELINE'
-WHERE NOT EXISTS (SELECT 1 FROM operations_schema_versions WHERE version = 'fe11_001')
-  AND NOT EXISTS (SELECT 1 FROM booking_policy_revisions);
+WHERE NOT EXISTS (SELECT 1 FROM booking_policy_revisions);
 INSERT INTO booking_policy_states (state_id, current_revision_id)
 SELECT '00000000-0000-0000-0000-000000000011', revision_id FROM booking_policy_revisions WHERE revision_number = 1
 ON CONFLICT (state_id) DO NOTHING;
@@ -90,50 +83,7 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- 5. BẢNG SỰ CỐ KỸ THUẬT
-CREATE TABLE IF NOT EXISTS technical_incidents (
-    incident_id UUID PRIMARY KEY,
-    subject VARCHAR(200) NOT NULL CHECK (length(btrim(subject)) > 0),
-    description TEXT NOT NULL CHECK (length(btrim(description)) BETWEEN 1 AND 10000),
-    severity VARCHAR(20) NOT NULL CHECK (severity IN ('LOW', 'NORMAL', 'HIGH', 'CRITICAL')),
-    status VARCHAR(20) NOT NULL CHECK (status IN ('NEW', 'IN_PROGRESS', 'RESOLVED', 'CLOSED')),
-    reporter_id UUID NOT NULL REFERENCES users(user_id),
-    assignee_id UUID REFERENCES users(user_id),
-    recurrence_of UUID REFERENCES technical_incidents(incident_id),
-    created_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL,
-    version BIGINT NOT NULL DEFAULT 0
-);
-
-CREATE INDEX IF NOT EXISTS idx_incidents_status_severity_created ON technical_incidents(status, severity, created_at, incident_id);
-CREATE INDEX IF NOT EXISTS idx_incidents_assignee ON technical_incidents(assignee_id, status);
-
--- 6. BẢNG THÀNH PHẦN BỊ ẢNH HƯỞNG CỦA SỰ CỐ
-CREATE TABLE IF NOT EXISTS incident_components (
-    incident_id UUID NOT NULL REFERENCES technical_incidents(incident_id),
-    component_code VARCHAR(30) NOT NULL CHECK (component_code IN ('APPLICATION', 'DATABASE', 'AGENT_MEMORY')),
-    PRIMARY KEY (incident_id, component_code)
-);
-
--- 7. BẢNG LỊCH SỬ XỬ LÝ SỰ CỐ
-CREATE TABLE IF NOT EXISTS technical_incident_events (
-    event_id UUID PRIMARY KEY,
-    incident_id UUID NOT NULL REFERENCES technical_incidents(incident_id),
-    sequence_no BIGINT NOT NULL CHECK (sequence_no > 0),
-    actor_id UUID NOT NULL REFERENCES users(user_id),
-    occurred_at TIMESTAMPTZ NOT NULL,
-    action VARCHAR(20) NOT NULL CHECK (action IN ('CREATE', 'CLAIM', 'REASSIGN', 'PROGRESS', 'RESOLVE', 'RESUME', 'CLOSE')),
-    previous_state JSONB,
-    new_state JSONB NOT NULL,
-    detail TEXT CHECK (detail IS NULL OR length(btrim(detail)) BETWEEN 1 AND 10000),
-    reason VARCHAR(2000) CHECK (reason IS NULL OR length(btrim(reason)) BETWEEN 1 AND 2000),
-    verification_text TEXT CHECK (verification_text IS NULL OR length(btrim(verification_text)) BETWEEN 1 AND 10000),
-    UNIQUE (incident_id, sequence_no)
-);
-
-CREATE INDEX IF NOT EXISTS idx_events_action_time ON technical_incident_events(action, occurred_at, incident_id);
-
--- 8. BẢNG PHIÊN BẢN ĐIỀU KHOẢN & CHÍNH SÁCH
+-- 5. BẢNG PHIÊN BẢN ĐIỀU KHOẢN & CHÍNH SÁCH
 CREATE TABLE IF NOT EXISTS policy_document_versions (
     document_version_id UUID PRIMARY KEY,
     document_type VARCHAR(30) NOT NULL CHECK (document_type IN ('terms', 'usage-policy', 'regulations')),
@@ -151,8 +101,6 @@ CREATE TABLE IF NOT EXISTS policy_document_versions (
 
 CREATE INDEX IF NOT EXISTS idx_policy_effective ON policy_document_versions(document_type, publication_state, effective_from);
 
-INSERT INTO operations_schema_versions (version) VALUES ('fe11_001') ON CONFLICT DO NOTHING;
-
 -- LỊCH SỬ QUẢN LÝ NHÂN SỰ
 CREATE TABLE IF NOT EXISTS staff_account_audit_events (
     event_id UUID PRIMARY KEY,
@@ -164,33 +112,8 @@ CREATE TABLE IF NOT EXISTS staff_account_audit_events (
 );
 CREATE INDEX IF NOT EXISTS idx_staff_account_audit_time ON staff_account_audit_events(occurred_at DESC,event_id DESC);
 
--- ĐỀ XUẤT / PHÊ DUYỆT ĐỔI VAI TRÒ
-CREATE TABLE IF NOT EXISTS staff_role_change_requests (
-    request_id UUID PRIMARY KEY,
-    target_user_id UUID NOT NULL REFERENCES users(user_id),
-    requester_user_id UUID NOT NULL REFERENCES users(user_id),
-    from_role_id SMALLINT NOT NULL REFERENCES roles(role_id),
-    to_role_id SMALLINT NOT NULL REFERENCES roles(role_id),
-    reason VARCHAR(2000) NOT NULL,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING','APPROVED','REJECTED','CANCELLED')),
-    decided_by UUID REFERENCES users(user_id),
-    decision_note VARCHAR(2000),
-    created_at TIMESTAMPTZ NOT NULL,
-    decided_at TIMESTAMPTZ,
-    CONSTRAINT staff_role_change_not_self CHECK (target_user_id <> requester_user_id),
-    CONSTRAINT staff_role_change_decided CHECK ((status = 'PENDING') = (decided_by IS NULL AND decided_at IS NULL))
-);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_staff_role_change_pending ON staff_role_change_requests(target_user_id) WHERE status = 'PENDING';
-CREATE INDEX IF NOT EXISTS idx_staff_role_change_list ON staff_role_change_requests(status, created_at DESC, request_id);
-CREATE INDEX IF NOT EXISTS idx_staff_role_change_requester ON staff_role_change_requests(requester_user_id, created_at DESC, request_id);
-
--- HÀNG ĐỢI EMAIL, LỊCH SỬ CẤU HÌNH VÀ CẬP NHẬT SỰ CỐ
--- Cập nhật FE-11: trả lại sự cố về danh sách chờ, hàng đợi email cấp tài khoản, lịch sử cấu hình dùng chung.
--- Chỉ thêm bảng và nới một ràng buộc, không sửa dữ liệu có sẵn; chạy lại không sao.
-
-ALTER TABLE technical_incident_events DROP CONSTRAINT IF EXISTS technical_incident_events_action_check;
-ALTER TABLE technical_incident_events ADD CONSTRAINT technical_incident_events_action_check
-    CHECK (action IN ('CREATE','CLAIM','REASSIGN','PROGRESS','RESOLVE','RESUME','CLOSE','RELEASE'));
+-- HÀNG ĐỢI EMAIL VÀ LỊCH SỬ CẤU HÌNH
+-- Hàng đợi email cấp tài khoản, lịch sử cấu hình dùng chung. Chỉ thêm bảng, chạy lại không sao.
 
 -- Không có cột mật khẩu: mật khẩu tạm chỉ được sinh ngay lúc gửi thư.
 CREATE TABLE IF NOT EXISTS staff_credential_emails (

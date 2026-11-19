@@ -369,4 +369,22 @@ class SubmissionServiceImplTest {
                 UUID.randomUUID()), HttpStatus.NOT_FOUND);
         verify(files, never()).findFileData(any());
     }
+
+    // ----- FE-12: thông báo khi học viên sửa bài nộp -----
+
+    @Test
+    void tutorIsNotifiedWhenLearnerEditsSubmission() {
+        var events = mock(com.kizuna.features.notification.service.NotificationEvents.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "notificationEvents", events);
+        Assignment a = stored(NOW.plusDays(1));
+        AssignmentSubmission s = previous(a, 1, NOW.minusHours(5), false);
+
+        service.update(learnerActor, space.getSpaceId(), a.getAssignmentId(), s.getSubmissionId(), "Bản sửa", List.of(), List.of());
+
+        verify(events).publish(org.mockito.ArgumentMatchers.eq("assignment:" + s.getSubmissionId() + ":resubmitted:" + NOW.toInstant().toEpochMilli()),
+                org.mockito.ArgumentMatchers.eq("ASSIGNMENT"), org.mockito.ArgumentMatchers.eq("Học viên đã cập nhật bài nộp"),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq("/tutor/classrooms"),
+                org.mockito.ArgumentMatchers.eq(List.of(space.getTutor().getUser().getUserId())));
+    }
+
 }

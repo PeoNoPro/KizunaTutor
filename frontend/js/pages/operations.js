@@ -76,7 +76,7 @@ export function date(value) {
 }
 
 /** Kết quả thao tác ghi (đã lưu, đã tạo...) hiện thành thông báo nổi; các dòng "đã tải"/"đang tải" không hiển thị. */
-const DONE = /^(Đã (lưu|tạo|gửi|duyệt|từ chối|hủy|đổi|cấp lại|nhập|khóa|mở|xóa|cập nhật hồ sơ)|Không có sự cố phù hợp|Chưa có giao dịch)/;
+const DONE = /^(Đã (lưu|tạo|gửi|duyệt|từ chối|hủy|đổi|cấp lại|nhập|khóa|mở|xóa|cập nhật hồ sơ)|Chưa có giao dịch)/;
 
 export function notice(message, error = false) {
     const node = byId('operationsNotice'); node.dataset.error = String(error);
@@ -114,7 +114,7 @@ export function emptyState(title, message) {
 /** Màu nhãn theo ý nghĩa: xanh lá = tốt/xong, vàng = chờ, đỏ = lỗi/khóa, xanh dương = đang làm, xám = trung tính. */
 const TONES = {
     success: ['Đang hoạt động', 'Thành công', 'Đã duyệt', 'Đang bán', 'Đã đóng', 'Đã gửi'],
-    warning: ['Chờ duyệt', 'Đang chờ', 'Chưa kích hoạt', 'Chờ kích hoạt', 'Chưa xử lý', 'Đã khắc phục, chờ đóng', 'Cao', 'Chờ gửi'],
+    warning: ['Chờ duyệt', 'Đang chờ', 'Chưa kích hoạt', 'Chờ kích hoạt', 'Chưa xử lý', 'Đã khắc phục, đang theo dõi', 'Cao', 'Chờ gửi'],
     danger: ['Tạm khóa', 'Đã bị khóa', 'Thất bại', 'Đã từ chối', 'Nghiêm trọng', 'Ngừng bán', 'Gửi lỗi'],
     info: ['Đang xử lý']
 };
@@ -133,64 +133,6 @@ export function avatar(name) {
 export function actionButton(label, onClick, tone = '') {
     const node = text('button', label, 'portal-action' + (tone ? ' portal-action-' + tone : '')); node.type = 'button';
     node.addEventListener('click', onClick); return node;
-}
-
-/** Thao tác xử lý sự cố đặt ngay trên dòng; thao tác cần ghi chú sẽ hỏi trong hộp thoại nhỏ. */
-const INCIDENT_ACTIONS = {
-    claim: {label: 'Nhận xử lý', primary: true},
-    progress: {label: 'Ghi diễn biến', fields: [['detail', 'Diễn biến xử lý']]},
-    resolve: {label: 'Đã khắc phục', primary: true, fields: [['result', 'Kết quả khắc phục'], ['verification', 'Cách đã kiểm tra lại']]},
-    resume: {label: 'Mở lại xử lý', fields: [['reason', 'Lý do mở lại']]},
-    close: {label: 'Đóng sự cố', confirm: 'Bạn đã kiểm tra hệ thống chạy ổn và muốn đóng sự cố?'},
-    release: {label: 'Trả lại', fields: [['reason', 'Lý do trả lại danh sách chờ']]}
-};
-
-/** Hộp thoại nhập ghi chú dùng chung; trả về giá trị đã nhập, hoặc null khi người dùng hủy. */
-export function askFields(title, fields) {
-    return new Promise(resolve => {
-        const dialog = text('dialog', '', 'staff-dialog portal-dialog'), form = text('form'), head = text('div', '', 'portal-dialog-head'), body = text('div', '', 'portal-dialog-body'), actions = text('div', '', 'portal-dialog-actions');
-        head.append(text('h2', title));
-        const inputs = fields.map(([name, label]) => {
-            const id = 'ask-' + name, wrap = text('div'), caption = text('label', label), input = text('textarea');
-            caption.htmlFor = id; input.id = id; input.required = true; input.rows = 3; wrap.append(caption, input); body.append(wrap); return [name, input];
-        });
-        const ok = text('button', 'Xác nhận', 'primary'), cancel = text('button', 'Hủy'); ok.type = 'submit'; cancel.type = 'button';
-        actions.append(ok, cancel); form.append(head, body, actions); dialog.append(form); document.body.append(dialog);
-        let result = null;
-        form.addEventListener('submit', event => { event.preventDefault(); result = Object.fromEntries(inputs.map(([name, input]) => [name, input.value.trim()])); dialog.close(); });
-        cancel.addEventListener('click', () => dialog.close());
-        dialog.addEventListener('close', () => { dialog.remove(); resolve(result); });
-        dialog.showModal(); inputs[0]?.[1].focus();
-    });
-}
-
-/** `onCommand(row, action, payload)` thực hiện thao tác; không truyền thì dòng chỉ có nút xem chi tiết. */
-export function incidentCards(container, rows, onCommand) {
-    container.replaceChildren();
-    if (!rows.length) { container.append(emptyState('Chưa có sự cố phù hợp', 'Vui lòng thử điều chỉnh lại bộ lọc hoặc quay lại sau ít phút.')); return; }
-    const head = text('div', '', 'portal-row-head'); ['Thông tin', 'Trạng thái', 'Thao tác'].forEach(label => head.append(text('span', label))); container.append(head);
-    rows.forEach(row => {
-        const href = '/pages/operations-incident/?id=' + encodeURIComponent(row.incidentId);
-        const item = text('article', '', 'portal-row'), info = text('div', '', 'portal-row-info');
-        const link = text('a', row.subject, 'portal-row-title'); link.href = href;
-        const meta = text('div', '', 'portal-row-meta');
-        meta.append(badge(row.severityLabel), text('span', row.assigneeLabel ? 'Phụ trách: ' + row.assigneeLabel : ''));
-        info.append(link, meta);
-        // Bấm vào tên sự cố để xem chi tiết; cột thao tác chỉ chứa thao tác xử lý.
-        const actions = text('div', '', 'portal-actions');
-        if (onCommand) (row.allowedActions || []).filter(action => INCIDENT_ACTIONS[action]).forEach(action => {
-            const config = INCIDENT_ACTIONS[action];
-            actions.append(actionButton(config.label, async () => {
-                if (config.confirm && !confirm(config.confirm)) return;
-                const values = config.fields ? await askFields(config.label + ': ' + row.subject, config.fields) : {};
-                if (values) onCommand(row, action, {expectedVersion: row.version, ...values});
-            }, config.primary ? 'primary' : ''));
-        });
-        if (!actions.childElementCount) actions.append(text('span', '—', 'portal-muted'));
-        const status = text('div'); status.append(badge(row.statusLabel));
-        item.append(info, status, actions);
-        container.append(item);
-    });
 }
 
 function setupFieldValidation() {

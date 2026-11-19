@@ -17,17 +17,17 @@ public class SupportTicketController {
  @org.springframework.beans.factory.annotation.Autowired private com.kizuna.features.ticket.service.TicketAttachmentValidator attachments;
  @GetMapping("/attachment-limit") public ApiResponse<?> attachmentLimit(){service.me();return ApiResponse.ok(Map.of("maxBytes",attachments.maxBytes()));}
  @GetMapping("/me") public ApiResponse<?> me(){return ApiResponse.ok(service.me());}
- @GetMapping("/counts") public ApiResponse<?> counts(@RequestParam(required=false) String category,@RequestParam(required=false) String priority,@RequestParam(required=false) UUID assignedTo,@RequestParam(defaultValue="false") boolean handover){return ApiResponse.ok(service.counts(category,priority,assignedTo,handover));}
- @GetMapping("/dashboard") public ApiResponse<?> dashboard(@RequestParam(required=false) String category){return ApiResponse.ok(service.dashboard(category));}
+ @GetMapping("/counts") public ApiResponse<?> counts(@RequestParam(required=false) String category,@RequestParam(required=false) String priority,@RequestParam(required=false) UUID assignedTo,@RequestParam(required=false) String q,@RequestParam(defaultValue="false") boolean overdue){return ApiResponse.ok(service.counts(category,priority,assignedTo,q,overdue));}
+ @GetMapping("/overview") public ApiResponse<?> overview(){return ApiResponse.ok(service.overview());}
+ @GetMapping("/dashboard") public ApiResponse<?> dashboard(@RequestParam(required=false) String category,@RequestParam(required=false) String view,@RequestParam(required=false) String priority){return ApiResponse.ok(service.dashboard(category,view,priority));}
  @GetMapping("/csrf") public ApiResponse<?> csrf(CsrfToken token){service.me();return ApiResponse.ok(Map.of("headerName",token.getHeaderName(),"token",token.getToken()));}
- @GetMapping public ApiResponse<?> list(@RequestParam(required=false) List<String> status,@RequestParam(required=false) String category,@RequestParam(required=false) String priority,@RequestParam(required=false) UUID assignedTo,@RequestParam(defaultValue="false") boolean handover,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return ApiResponse.ok(service.list(status,category,priority,assignedTo,handover,page,size));}
+ @GetMapping public ApiResponse<?> list(@RequestParam(required=false) List<String> status,@RequestParam(required=false) String category,@RequestParam(required=false) String priority,@RequestParam(required=false) UUID assignedTo,@RequestParam(required=false) String q,@RequestParam(defaultValue="false") boolean overdue,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return ApiResponse.ok(service.list(status,category,priority,assignedTo,q,overdue,page,size));}
  @GetMapping("/{id}") public ApiResponse<?> detail(@PathVariable UUID id){return ApiResponse.ok(service.detail(id));}
  @GetMapping("/{id}/messages") public ApiResponse<?> messages(@PathVariable UUID id,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return ApiResponse.ok(service.messages(id,page,size));}
  @GetMapping("/{id}/history") public ApiResponse<?> history(@PathVariable UUID id,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return ApiResponse.ok(service.history(id,page,size));}
+ @GetMapping("/{id}/notes") public ApiResponse<?> notes(@PathVariable UUID id){return ApiResponse.ok(service.notes(id));}
+ @PostMapping("/{id}/notes") public ApiResponse<?> addNote(@PathVariable UUID id,@Valid @RequestBody Note body){return ApiResponse.ok(service.addNote(id,body));}
  @GetMapping("/assignees") public ApiResponse<?> assignees(){return ApiResponse.ok(service.candidates(false));}
- /** Quản lý chọn người tiếp nhận khi bàn giao: kèm số yêu cầu đang giữ và có đang trong ca hay không. */
- @org.springframework.beans.factory.annotation.Autowired private com.kizuna.features.ticket.service.SupportShiftService shifts;
- @GetMapping("/handover-candidates") public ApiResponse<?> handoverCandidates(){return ApiResponse.ok(shifts.handoverCandidates());}
  @GetMapping("/managers") public ApiResponse<?> managers(){return ApiResponse.ok(service.candidates(true));}
  @GetMapping("/related-contexts") public ApiResponse<?> contexts(@RequestParam String type,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return ApiResponse.ok(service.contexts(type,page,size));}
  @GetMapping("/{id}/related-context") public ApiResponse<?> context(@PathVariable UUID id){return ApiResponse.ok(service.context(id));}
@@ -35,7 +35,7 @@ public class SupportTicketController {
  public ResponseEntity<?> create(@Valid @RequestPart Create payload,@RequestPart(required=false) List<MultipartFile> files){var data=service.create(payload,files);return ResponseEntity.created(URI.create("/api/v1/tickets/"+data.get("ticketId"))).body(ApiResponse.ok(data));}
  @PostMapping(value="/{id}/messages",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
  public ApiResponse<?> message(@PathVariable UUID id,@Valid @RequestPart Message payload,@RequestPart(required=false) List<MultipartFile> files){return ApiResponse.ok(service.message(id,payload,files));}
- @PostMapping("/{id}/{action:claim|assignment|priority|resolve|close}")
+ @PostMapping("/{id}/{action:claim|priority|resolve|close}")
  public ApiResponse<?> command(@PathVariable UUID id,@PathVariable String action,@Valid @RequestBody Command body){return ApiResponse.ok(service.command(id,action,body));}
  @PostMapping("/{id}/escalations") public ApiResponse<?> escalate(@PathVariable UUID id,@Valid @RequestBody Command body){return ApiResponse.ok(service.command(id,"escalate",body));}
  @PostMapping("/{id}/escalations/current/{action:recipient|decision|return}")

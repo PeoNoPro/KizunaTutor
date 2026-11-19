@@ -20,9 +20,9 @@
     <p id="aiCurrent"></p>
     <div class="config-grid">
       <div><label for="aiProvider">Nhà cung cấp AI</label><select id="aiProvider" required></select></div>
-      <div><label for="aiModel">Model</label><input id="aiModel" maxlength="80" required placeholder="Ví dụ: gemini-2.5-flash"></div>
-      <div id="aiBaseUrlField" hidden><label for="aiBaseUrl">Địa chỉ máy chủ AI (Base URL)</label><input id="aiBaseUrl" type="url" maxlength="200" placeholder="https://api.groq.com/openai/v1"></div>
-      <div><label for="aiApiKey">API key</label><input id="aiApiKey" type="password" maxlength="400" autocomplete="off" spellcheck="false"></div>
+      <div><label for="aiModel">Model</label><input id="aiModel" maxlength="80" required autocomplete="off" spellcheck="false" placeholder="Ví dụ: gemini-2.5-flash"></div>
+      <div id="aiBaseUrlField" hidden><label for="aiBaseUrl">Địa chỉ máy chủ AI (Base URL)</label><input id="aiBaseUrl" type="url" maxlength="200" autocomplete="off" placeholder="https://api.groq.com/openai/v1"></div>
+      <div><label for="aiApiKey">API key</label><input id="aiApiKey" type="password" maxlength="400" autocomplete="new-password" spellcheck="false"></div>
     </div>
     <p id="aiKeyNote" class="staff-help"></p>
     <label for="aiReason">Lý do thay đổi</label><textarea id="aiReason" required maxlength="2000"></textarea>

@@ -343,11 +343,10 @@ async function testStorage() {
 async function saveStorage() {
     const payload = storagePayload(), box = byId('storageResult');
     const label = state.storage.providers.find(item => item.code === payload.provider)?.label || payload.provider;
-    if (!confirm('Chuyển lưu trữ sang ' + label + ' · bucket ' + payload.bucket + '?
-
-• Tệp tải lên từ giờ lưu ở kho mới.
-• Tệp cũ vẫn mở được: hệ thống tự đọc ở kho cũ khi kho mới chưa có.
-• Nên bấm "Chép tệp sang kho mới" sau khi chuyển, và đừng xóa kho cũ trước khi chép xong.')) return;
+    if (!confirm('Chuyển lưu trữ sang ' + label + ' · bucket ' + payload.bucket + '?\n\n'
+        + '• Tệp tải lên từ giờ lưu ở kho mới.\n'
+        + '• Tệp cũ vẫn mở được: hệ thống tự đọc ở kho cũ khi kho mới chưa có.\n'
+        + '• Nên bấm "Chép tệp sang kho mới" sau khi chuyển, và đừng xóa kho cũ trước khi chép xong.')) return;
     const button = document.querySelector('#storageForm [type="submit"]'); if (button) button.disabled = true;
     box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang thử kết nối kho mới và lưu…';
     try { await slowPost(STORAGE_PATH, {...payload, expectedVersion: state.storage.version, reason: byId('storageReason').value}, 'PUT'); }

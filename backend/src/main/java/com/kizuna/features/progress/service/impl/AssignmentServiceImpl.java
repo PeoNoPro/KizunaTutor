@@ -154,7 +154,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         List<FileAttachmentResponse> attachments = attachmentService.applyChanges(saved, files, null);
         if (notificationEvents != null) {
             notificationEvents.publish("assignment:" + saved.getAssignmentId() + ":published", "ASSIGNMENT", "Có bài tập mới",
-                    "Gia sư vừa giao bài \"" + title + "\"" + (req.dueDate() == null ? "." : ", hạn nộp " + fe12When(req.dueDate()) + "."),
+                    fe12Tutor(space) + " vừa giao bài \"" + title + "\" trong lớp \"" + space.getTitle() + "\"" + (req.dueDate() == null ? "." : ", hạn nộp " + fe12When(req.dueDate()) + "."),
                     "/learner/my-courses", java.util.List.of(space.getLearner().getUser().getUserId()));
         }
         return toSummary(actor, saved, List.of(), now, false, false, attachments);
@@ -181,6 +181,12 @@ public class AssignmentServiceImpl implements AssignmentService {
         boolean dueChanged = !sameInstant(req.dueDate(), assignment.getDueDate());
         if (dueChanged && req.dueDate() != null) requireFuture(req.dueDate(), now);
         requireOpensBeforeDue(req.opensAt(), req.dueDate());
+        // Ghi nhớ giá trị cũ để biết lần sửa này có đổi gì mà học viên cần biết không (FE-12).
+        boolean contentChanged = !Objects.equals(title, assignment.getTitle())
+                || !Objects.equals(description, assignment.getDescription())
+                || points.compareTo(assignment.getTotalPoints()) != 0
+                || !sameInstant(req.opensAt(), assignment.getOpensAt());
+        OffsetDateTime oldDue = assignment.getDueDate();
 
         assignment.setOpensAt(req.opensAt());
         assignment.setTitle(title);
@@ -190,6 +196,20 @@ public class AssignmentServiceImpl implements AssignmentService {
         Assignment saved = assignmentRepository.save(assignment);
         // Thêm / gỡ / thay tệp đề bài trong cùng giao dịch; lỗi bất kỳ → hủy toàn bộ, bài tập giữ nguyên như trước
         List<FileAttachmentResponse> attachments = attachmentService.applyChanges(saved, files, removeFileIds);
+        boolean filesChanged = (files != null && files.stream().anyMatch(f -> f != null && !f.isEmpty()))
+                || (removeFileIds != null && !removeFileIds.isEmpty());
+        if (notificationEvents != null && (contentChanged || dueChanged || filesChanged)) {
+            // Mã sự kiện gắn với trạng thái mới của bài tập (không dùng giờ hệ thống): xử lý lại cùng lần sửa không báo trùng.
+            String state = Integer.toHexString(Objects.hash(title, description, points.stripTrailingZeros(),
+                    req.opensAt() == null ? null : req.opensAt().toInstant(), req.dueDate() == null ? null : req.dueDate().toInstant(),
+                    attachments.stream().map(FileAttachmentResponse::fileId).toList()));
+            String change = dueChanged
+                    ? (req.dueDate() == null ? "bỏ hạn nộp" : "hạn nộp " + (oldDue == null ? "được đặt là " : "đổi thành ") + fe12When(req.dueDate()))
+                    : "nội dung bài tập đã được cập nhật";
+            notificationEvents.publish("assignment:" + saved.getAssignmentId() + ":updated:" + state, "ASSIGNMENT", "Bài tập được cập nhật",
+                    fe12Tutor(space) + " vừa sửa bài \"" + title + "\" trong lớp \"" + space.getTitle() + "\": " + change + ".",
+                    "/learner/my-courses", java.util.List.of(space.getLearner().getUser().getUserId()));
+        }
         return toSummary(actor, saved, submissionsOf(saved, space), now, false, false, attachments);
     }
 
@@ -291,6 +311,13 @@ public class AssignmentServiceImpl implements AssignmentService {
         return p;
     }
     /** FE-12: giờ hiển thị trong thông báo (giờ Việt Nam). */
+    /** Tên gia sư của lớp để ghi vào thông báo; thiếu tên thì dùng chữ "Gia sư". */
+    private static String fe12Tutor(com.kizuna.features.classroom.entity.LearningSpace space) {
+        var user = space.getTutor() == null ? null : space.getTutor().getUser();
+        return user == null || user.getFullName() == null || user.getFullName().isBlank()
+                ? "Gia sư" : "Gia sư " + user.getFullName();
+    }
+
     private static String fe12When(java.time.OffsetDateTime time) {
         return time == null ? "" : time.atZoneSameInstant(java.time.ZoneId.of("Asia/Ho_Chi_Minh"))
                 .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));

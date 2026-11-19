@@ -56,6 +56,10 @@ public class ClassroomServiceImpl implements ClassroomService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
 
+    /** Thông báo thay đổi khóa học cho học viên (FE-12). Không bắt buộc, như trên. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.classroom.service.ClassroomNotifier notifier;
+
     @Autowired
     public ClassroomServiceImpl(LearningSpaceRepository spaceRepository, LearningMaterialRepository materialRepository,
                                 LearnerRepository learnerRepository, ClassScheduleRepository scheduleRepository,
@@ -237,8 +241,11 @@ public class ClassroomServiceImpl implements ClassroomService {
             scheduleRepository.findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(space.getSpaceId())
                     .forEach(slot -> slot.setActiveFrom(activeFrom));
         }
+        Integer oldTotal = space.getTotalSessions();
         space.setTotalSessions(total);
-        return toSummary(spaceRepository.save(space), actor);
+        LearningSpace savedCourse = spaceRepository.save(space);
+        if (notifier != null) notifier.courseChanged(savedCourse, currentStart, oldTotal, ClassSessionCalendar.startDateOf(savedCourse), savedCourse.getTotalSessions());
+        return toSummary(savedCourse, actor);
     }
 
     @Override
@@ -258,7 +265,10 @@ public class ClassroomServiceImpl implements ClassroomService {
             String detail = "OFFLINE".equals(saved.getLearningMode())
                     ? "học trực tiếp tại " + saved.getLocationDetails()
                     : saved.getMeetingLink() == null ? "học online (gia sư sẽ gửi link phòng học)" : "học online, link phòng học: " + saved.getMeetingLink();
-            notificationEvents.publish("classroom:" + saved.getSpaceId() + ":delivery:" + System.currentTimeMillis(), "CONNECTION",
+            // Mã sự kiện cố định theo lần đổi (hình thức cũ → mới), không dùng giờ hệ thống: xử lý lại không tạo thông báo trùng.
+            String transition = Integer.toHexString(Objects.hash(oldMode, oldLink, oldLocation,
+                    saved.getLearningMode(), saved.getMeetingLink(), saved.getLocationDetails()));
+            notificationEvents.publish("classroom:" + saved.getSpaceId() + ":delivery:" + transition, "CONNECTION",
                     "Lớp học cập nhật hình thức học",
                     "Lớp \"" + saved.getTitle() + "\" chuyển sang " + detail + ".",
                     "/learner/connections", List.of(saved.getLearner().getUser().getUserId()));

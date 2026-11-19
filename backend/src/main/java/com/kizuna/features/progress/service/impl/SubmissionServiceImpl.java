@@ -175,6 +175,13 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setSubmissionContent(cleanContent);
         submission.setSubmittedAt(now);
         AssignmentSubmission saved = submissionRepository.save(submission);
+        if (notificationEvents != null) {
+            // Mã sự kiện gắn với thời điểm nộp lại đã lưu (không dùng giờ hệ thống lúc gọi): xử lý lại không báo trùng.
+            notificationEvents.publish("assignment:" + saved.getSubmissionId() + ":resubmitted:" + now.toInstant().toEpochMilli(), "ASSIGNMENT",
+                    "Học viên đã cập nhật bài nộp",
+                    learnerLabel(assignment) + " vừa chỉnh sửa bài nộp \"" + assignment.getTitle() + "\" (lớp \"" + assignment.getSpace().getTitle() + "\"). Bạn có thể xem lại bản mới nhất khi chấm điểm.",
+                    "/tutor/classrooms", java.util.List.of(assignment.getSpace().getTutor().getUser().getUserId()));
+        }
         return toResponse(saved, assignment);
     }
 
@@ -267,6 +274,13 @@ public class SubmissionServiceImpl implements SubmissionService {
             byte[] dbData = r2.put(r2Key(fileId), f.data(), type == null ? "application/octet-stream" : type.contentType);
             fileRepository.insertFile(fileId, submissionId, f.fileName(), f.data().length, dbData);
         }
+    }
+
+    /** Tên học viên của lớp để ghi vào thông báo; thiếu tên thì dùng chữ "Học viên". */
+    private static String learnerLabel(Assignment assignment) {
+        var learner = assignment.getSpace().getLearner();
+        var user = learner == null ? null : learner.getUser();
+        return user == null || user.getFullName() == null || user.getFullName().isBlank() ? "Học viên" : "Học viên " + user.getFullName();
     }
 
     private SubmissionResponse toResponse(AssignmentSubmission s, Assignment assignment) {

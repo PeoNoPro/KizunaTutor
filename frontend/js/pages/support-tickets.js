@@ -431,7 +431,7 @@ export async function startSupportPage(isDetail) {
       const form=createCsReplyForm((replyForm,files)=>{try{perform('messages',{message:validText(replyForm.elements.message.value,10000)},replyForm,true,files);}catch(error){$('csReplyNotice').textContent=error.message;$('csReplyNotice').focus();}},
         {label:account.canCreate?'Trả lời nhân viên hỗ trợ':'Phản hồi',help:'',button:'Gửi',placeholder:account.canCreate?'Nhập câu trả lời hoặc thông tin bổ sung…':'Nhập phản hồi…'});
       form.classList.add('support-reply');$('replyArea').append(form);}
-    else $('replyArea').append(element('p',ticket.status==='CLOSED'?(account.canCreate?'Yêu cầu đã đóng, không thể thêm trao đổi. Nếu vẫn còn vấn đề, vui lòng tạo yêu cầu mới.':'Yêu cầu đã đóng, không thể thêm trao đổi.'):ticket.status==='OPEN'&&!ticket.assigneeId?'Yêu cầu đang chờ hệ thống tự giao cho nhân viên đang trong ca và còn chỗ nhận việc.':'Chỉ người phụ trách hiện tại được gửi phản hồi.'));
+    else $('replyArea').append(element('p',ticket.status==='CLOSED'?(account.canCreate?'Yêu cầu đã đóng, không thể thêm trao đổi. Nếu vẫn còn vấn đề, vui lòng tạo yêu cầu mới.':'Yêu cầu đã đóng, không thể thêm trao đổi.'):ticket.status==='OPEN'&&!ticket.assigneeId?'Yêu cầu đang chờ nhân viên hỗ trợ nhận xử lý.':'Chỉ người phụ trách hiện tại được gửi phản hồi.'));
     const target=$('internalActions'),publicActions=$('ticketActions');
     const informationActions=csDetail()?$('csInformationControls'):target;
     if(actions.includes('priority')){const card=commandForm('priority','Mức ưu tiên','Cập nhật ưu tiên',[['priority','Ưu tiên','select']],{priority:priorities});card.querySelector('select').value=ticket.priority;informationActions.append(card);}

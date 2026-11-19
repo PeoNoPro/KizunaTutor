@@ -48,6 +48,10 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
     private final MaterialFileValidator fileValidator;
     private final R2FileStore r2;
 
+    /** Thông báo cho học viên (FE-12). Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.classroom.service.ClassroomNotifier notifier;
+
     static String r2Key(UUID fileId) {
         return "materials/" + fileId;
     }
@@ -106,6 +110,7 @@ public class LearningMaterialServiceImpl implements LearningMaterialService {
                 .uploadedBy(actor.user())
                 .build());
         insertFiles(saved.getMaterialId(), prepared);
+        if (notifier != null) notifier.materialAdded(space, saved.getMaterialId(), cleanTitle);
         return toResponse(saved, filesOf(saved.getMaterialId()));
     }
 

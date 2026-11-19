@@ -37,6 +37,10 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
     private final LearningSpaceRepository spaceRepository;
     private final ClassSessionChangeRepository changeRepository;
 
+    /** Thông báo cho học viên (FE-12). Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.classroom.service.ClassroomNotifier notifier;
+
     @Override
     @Transactional(readOnly = true)
     public List<TimetableEntryResponse> timetable(CurrentActor actor) {
@@ -92,6 +96,7 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                 .endTime(request.endTime())
                 .activeFrom(ClassSessionCalendar.activeFromFor(space, now()))
                 .build());
+        if (notifier != null) notifier.scheduleAdded(space, saved.getScheduleId(), saved.getDayOfWeek(), saved.getStartTime(), saved.getEndTime());
         return ClassScheduleResponse.of(saved);
     }
 
@@ -108,6 +113,8 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                 || !request.startTime().equals(schedule.getStartTime())
                 || !request.endTime().equals(schedule.getEndTime());
         if (!slotChanged) return ClassScheduleResponse.of(schedule);
+        int oldDay = schedule.getDayOfWeek();
+        java.time.LocalTime oldStart = schedule.getStartTime(), oldEnd = schedule.getEndTime();
 
         // Đổi lịch cố định chỉ áp dụng từ bây giờ: các lần dời / hủy riêng của những buổi chưa tới không còn khớp nên bỏ đi.
         changeRepository.deleteBySchedule_ScheduleIdAndOriginalDateGreaterThanEqual(schedule.getScheduleId(),
@@ -118,7 +125,10 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
             schedule.setDayOfWeek(request.dayOfWeek());
             schedule.setStartTime(request.startTime());
             schedule.setEndTime(request.endTime());
-            return ClassScheduleResponse.of(scheduleRepository.save(schedule));
+            ClassSchedule edited = scheduleRepository.save(schedule);
+            if (notifier != null) notifier.scheduleChanged(space, edited.getScheduleId(), oldDay, oldStart, oldEnd,
+                    request.dayOfWeek(), request.startTime(), request.endTime());
+            return ClassScheduleResponse.of(edited);
         }
         // Đã có buổi diễn ra → giữ lịch cũ cho các buổi đã qua, lịch mới có hiệu lực từ bây giờ
         schedule.setActiveUntil(now);
@@ -130,6 +140,8 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                 .endTime(request.endTime())
                 .activeFrom(ClassSessionCalendar.activeFromFor(space, now))
                 .build());
+        if (notifier != null) notifier.scheduleChanged(space, schedule.getScheduleId(), oldDay, oldStart, oldEnd,
+                request.dayOfWeek(), request.startTime(), request.endTime());
         return ClassScheduleResponse.of(replacement);
     }
 
@@ -154,6 +166,8 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
             schedule.setActiveUntil(now);
             scheduleRepository.save(schedule);
         }
+        if (notifier != null) notifier.scheduleRemoved(space, schedule.getScheduleId(), schedule.getDayOfWeek(),
+                schedule.getStartTime(), schedule.getEndTime());
     }
 
     private static OffsetDateTime now() {

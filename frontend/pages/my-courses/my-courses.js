@@ -3,6 +3,7 @@
  * UC-58 View Course (kèm lịch học hằng tuần), UC-61 View Learning Materials. Dữ liệu lấy từ API /api/classrooms.
  */
 
+import { previousPage, pageLabel } from '../../js/back-nav.js';
 import { API } from '../../js/api.js';
 import {
   classroomStatusLabel,
@@ -445,6 +446,15 @@ function init() {
   });
   const params = new URLSearchParams(window.location.search);
   const spaceId = params.get('space');
+  // Mở lớp bằng link từ trang chung (bấm nhãn lớp ở "Tài liệu học tập" / "Bài tập của tôi"): hiện nút quay lại trang đó
+  const prev = spaceId ? previousPage(null) : null;
+  if (prev && /[?&]view=(materials|assignments)\b/.test(prev)) {
+    const back = $('myCourseBackPrev');
+    back.href = prev;
+    back.querySelector('[data-label]').textContent = `Quay lại ${pageLabel(prev)}`;
+    back.classList.remove('hidden');
+    $('myCoursesBackBtn').addEventListener('click', () => back.classList.add('hidden'), { once: true });
+  }
   // Mục "Tài liệu học tập" / "Bài tập của tôi" trên thanh bên: trang chung mọi lớp
   if (!spaceId && showLearnerHub(params.get('view'), { notify: showError })) return;
   if (spaceId) showCourse(spaceId);

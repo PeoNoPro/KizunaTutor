@@ -6,6 +6,7 @@
  * - Màn kết quả: điểm, câu đúng / sai, đáp án đúng (nếu gia sư cho xem), nhận xét của gia sư.
  */
 
+import { previousPage, pageLabel } from '../../js/back-nav.js';
 import { API } from '../../js/api.js';
 import {
   escapeHtml,
@@ -50,9 +51,13 @@ const state = {
   submitting: false
 };
 
+/** Trang lớp, mở đúng tab Bài tập. */
 function classLink() {
-  return `/learner/my-courses?space=${encodeURIComponent(spaceId || '')}`;
+  return `/learner/my-courses?space=${encodeURIComponent(spaceId || '')}&tab=bai-tap`;
 }
+
+/** Trang vừa đứng trước khi vào làm bài (Bài tập của tôi, tab Bài tập của lớp…); không có thì về tab Bài tập của lớp. */
+const PREV_PAGE = previousPage(classLink());
 
 function showToast(message, tone = 'success') {
   const t = $('takeToast');
@@ -92,6 +97,8 @@ function breadcrumbHtml(last, { linkToIntro = false } = {}) {
   const title = state.summary?.title || state.attempt?.exerciseTitle || 'Bài làm trực tiếp';
   const sep = '<span class="material-symbols-outlined text-[16px]" aria-hidden="true">chevron_right</span>';
   return `
+    <a href="${escapeHtml(PREV_PAGE)}" class="inline-flex items-center gap-1 mb-1.5 font-label-md text-label-md text-primary hover:underline">
+      <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>Quay lại ${escapeHtml(pageLabel(PREV_PAGE))}</a>
     <nav aria-label="Đường dẫn" class="flex flex-wrap items-center gap-1 font-body-sm text-body-sm text-on-surface-variant">
       <a href="/learner/my-courses" class="text-primary hover:underline">Lớp học của tôi</a>${sep}
       <a href="${classLink()}" class="text-primary hover:underline">${escapeHtml(state.classInfo?.title || 'Lớp học')}</a>${sep}
@@ -615,7 +622,8 @@ function init() {
     $('takeMain').innerHTML = '<div class="kz-card p-6 text-center">Không tìm thấy bài tập.</div>';
     return;
   }
-  $('backLink').href = classLink();
+  $('backLink').href = PREV_PAGE;
+  $('backLink').title = `Về ${pageLabel(PREV_PAGE)} (bài vẫn được lưu, đồng hồ vẫn chạy)`;
   $('backLink').addEventListener('click', async (e) => {
     if (state.attempt?.status !== 'IN_PROGRESS') return;
     e.preventDefault();
@@ -623,7 +631,7 @@ function init() {
       'Câu trả lời đã được tự lưu. Đồng hồ vẫn chạy khi bạn rời trang; bạn có thể vào lại để làm tiếp.', 'Rời trang');
     if (ok) {
       await flushSaves();
-      window.location.href = classLink();
+      window.location.href = PREV_PAGE;
     }
   });
   $('submitBtn').addEventListener('click', confirmSubmit);

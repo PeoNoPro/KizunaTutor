@@ -7,6 +7,7 @@
  * - Tab "Bài làm": xem từng lượt, sửa điểm từng câu, chấm câu tự luận, nhận xét.
  */
 
+import { previousPage, pageLabel } from '../../js/back-nav.js';
 import { API } from '../../js/api.js';
 import {
   escapeHtml,
@@ -114,8 +115,23 @@ const TYPE_ICONS = {
 const INPUT = 'kz-input';
 const SMALL_BTN = 'kz-btn px-2.5 py-1.5';
 
+/** Trang lớp, mở đúng tab Bài tập. */
 function classLink() {
-  return `/tutor/classrooms?space=${encodeURIComponent(spaceId || '')}`;
+  return `/tutor/classrooms?space=${encodeURIComponent(spaceId || '')}&tab=bai-tap`;
+}
+
+/** Trang vừa đứng trước khi mở trang soạn bài (không có thì về tab Bài tập của lớp). */
+const PREV_PAGE = previousPage(spaceId ? classLink() : '/tutor/classrooms?view=assignments');
+
+/** Đường dẫn: tên lớp thật thay cho chữ "Lớp học". */
+async function fillClassCrumb() {
+  if (!spaceId) return;
+  try {
+    const c = await API.classrooms.detail(spaceId);
+    if (c?.title) $('backLink').textContent = c.title;
+  } catch (e) {
+    // giữ chữ "Lớp học"
+  }
 }
 
 function showToast(message, tone = 'success') {
@@ -1426,6 +1442,9 @@ function init() {
   mountTutorLayout('assignments');
   initImport();
   $('backLink').href = classLink();
+  $('prevLink').href = PREV_PAGE;
+  $('prevLabel').textContent = `Quay lại ${pageLabel(PREV_PAGE)}`;
+  fillClassCrumb();
   $('addTypeButtons').innerHTML = QUESTION_TYPES.map((t) => `
     <button type="button" class="ex-type-btn" data-add-type="${t.value}" title="${escapeHtml(t.hint)}">
       <span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">${TYPE_ICONS[t.value] || 'help'}</span>
@@ -1469,14 +1488,17 @@ function init() {
   $('tabSettings').addEventListener('click', () => switchTab('settings'));
   $('tabAttempts').addEventListener('click', () => switchTab('attempts'));
   ['exTitle', 'exInstructions', 'exOpens', 'exCloses', 'exTimeLimit', 'exAttempts'].forEach((id) => $(id).addEventListener('input', () => { state.dirty = true; }));
-  $('backLink').addEventListener('click', async (e) => {
+  // Rời trang khi còn thay đổi chưa lưu (nút Quay lại, đường dẫn): hỏi lại trước
+  document.querySelectorAll('#prevLink, #editorRoot header nav a').forEach((link) => link.addEventListener('click', async (e) => {
     if (!state.dirty) return;
     e.preventDefault();
-    if (await confirmBox('Rời trang?', 'Các thay đổi chưa lưu sẽ bị mất. Bấm "Lưu nháp" để giữ lại.', 'Rời trang')) {
+    if (await confirmBox('Rời trang?', state.status === 'PUBLISHED'
+      ? 'Các thay đổi chưa gửi cho học viên sẽ bị mất. Bấm "Cập nhật cho học viên" để giữ lại.'
+      : 'Các thay đổi chưa lưu sẽ bị mất. Bấm "Lưu nháp" để giữ lại.', 'Rời trang')) {
       state.dirty = false;
-      window.location.href = classLink();
+      window.location.href = link.getAttribute('href');
     }
-  });
+  }));
   window.addEventListener('beforeunload', (e) => {
     if (state.dirty) {
       e.preventDefault();

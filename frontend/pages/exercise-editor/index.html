@@ -52,10 +52,13 @@
 
     <div id="editorRoot" class="flex-1 flex flex-col pt-16 lg:pt-0 pb-24">
       <header class="bg-surface-container-lowest border-b border-surface-container-high px-4 md:px-8 pt-4">
+        <!-- Quay lại đúng trang vừa đứng (tab Bài tập của lớp, Quản lý bài tập, Lịch giảng dạy…) -->
+        <a id="prevLink" href="/tutor/classrooms?view=assignments" class="inline-flex items-center gap-1 mb-1.5 font-label-md text-label-md text-primary hover:underline">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span><span id="prevLabel">Quay lại</span></a>
         <nav aria-label="Đường dẫn" class="flex flex-wrap items-center gap-1 font-body-sm text-body-sm text-on-surface-variant">
           <a href="/tutor/classrooms?view=assignments" class="text-primary hover:underline">Quản lý bài tập</a>
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">chevron_right</span>
-          <a id="backLink" href="/tutor/classrooms" class="text-primary hover:underline">Lớp học</a>
+          <a id="backLink" href="/tutor/classrooms" class="text-primary hover:underline [overflow-wrap:anywhere]">Lớp học</a>
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">chevron_right</span>
           <span id="crumbTitle" class="[overflow-wrap:anywhere]">Bài làm trực tiếp</span>
         </nav>

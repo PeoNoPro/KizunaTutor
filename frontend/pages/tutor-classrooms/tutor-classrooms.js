@@ -1306,6 +1306,9 @@ function renderViewHint() {
 
 function renderRoute() {
   highlightSidebar();
+  // Nút quay lại ở chi tiết lớp về đúng mục đang mở trên thanh bên
+  const backLabel = { materials: 'Tài liệu học tập', assignments: 'Quản lý bài tập' }[currentView()] || 'Danh sách lớp học';
+  $('backToListBtn').innerHTML = `<span class="material-symbols-outlined text-[16px]">arrow_back</span>${backLabel}`;
   const spaceId = new URLSearchParams(window.location.search).get('space');
   renderViewHint();
   // Mục "Quản lý bài tập" / "Tài liệu học tập" trên thanh bên: trang chung của mọi lớp (thay cho danh sách lớp)

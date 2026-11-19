@@ -243,32 +243,50 @@ class OnlineExerciseServiceImplTest {
     }
 
     @Test
-    void autoModeRequiresAnswersForEveryQuestionAndTutorModeAllowsEssay() {
-        List<QuestionInput> withEssay = List.of(q(ExerciseQuestionType.WRITTEN, "Viết 3 câu", "5", "{}"));
-        assertThatThrownBy(() -> service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, true, withEssay)))
-                .hasMessageContaining("Gia sư chấm");
-        assertThat(service.create(tutorActor, space.getSpaceId(), request("TUTOR", null, 1, true, true, withEssay))
-                .summary().gradingMode()).isEqualTo("TUTOR");
+    void essayNeedsNoAnswerAndExerciseModeFollowsTheQuestions() {
+        // Tự luận: gia sư chỉ ra đề, đáp án / bài mẫu gửi lên bị bỏ; có câu tự luận → cả bài "Gia sư chấm"
+        ExerciseDetail essay = service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, true, List.of(
+                q(ExerciseQuestionType.WRITTEN, "Giới thiệu bản thân", "5", "{'grader':'AUTO','accepted':['x'],'sample':'...'}"))));
+        assertThat(essay.summary().gradingMode()).isEqualTo("TUTOR");
+        assertThat(essay.questions().get(0).data().has("accepted")).isFalse();
+        assertThat(essay.questions().get(0).data().has("sample")).isFalse();
+        // Điền khuyết không có đáp án vẫn giao được
+        ExerciseDetail fill = service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, true, List.of(
+                q(ExerciseQuestionType.FILL_BLANK, null, "1", "{'text':'友達 ___ 行きました'}"))));
+        assertThat(fill.summary().gradingMode()).isEqualTo("TUTOR");
+        // Chỉ trắc nghiệm → cả bài "Hệ thống chấm tự động" dù gửi gradingMode TUTOR
+        ExerciseDetail allAuto = service.create(tutorActor, space.getSpaceId(), request("TUTOR", null, 1, true, true,
+                List.of(q(ExerciseQuestionType.TRUE_FALSE, "Đúng?", "1", "{'correct':true}"))));
+        assertThat(allAuto.summary().gradingMode()).isEqualTo("AUTO");
     }
 
     @Test
-    void eachEssayChoosesItsGraderAndExerciseModeFollowsTheQuestions() {
-        // Máy chấm: bắt buộc có đáp án
-        assertThatThrownBy(() -> service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, true,
-                List.of(q(ExerciseQuestionType.WRITTEN, "Viết cách đọc", "2", "{'grader':'AUTO','accepted':[]}")))))
-                .hasMessageContaining("chọn \"Máy chấm\" thì phải nhập ít nhất một đáp án");
-        // Câu 1 máy chấm (có đáp án), câu 2 gia sư chấm → cả bài "Gia sư chấm", câu 2 chờ gia sư
-        ExerciseDetail mixed = service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 1, true, true, List.of(
-                q(ExerciseQuestionType.WRITTEN, "Viết cách đọc 先生", "2", "{'grader':'AUTO','accepted':['せんせい']}"),
-                q(ExerciseQuestionType.WRITTEN, "Giới thiệu bản thân", "5", "{'grader':'TUTOR','accepted':['bỏ qua']}"))));
-        assertThat(mixed.summary().gradingMode()).isEqualTo("TUTOR");
-        assertThat(mixed.questions().get(0).data().get("grader").asText()).isEqualTo("AUTO");
-        assertThat(mixed.questions().get(1).data().get("grader").asText()).isEqualTo("TUTOR");
-        assertThat(mixed.questions().get(1).data().get("accepted").size()).isZero();
-        // Mọi câu tự luận đều máy chấm → cả bài "Hệ thống chấm tự động" dù gửi gradingMode TUTOR
-        ExerciseDetail allAuto = service.create(tutorActor, space.getSpaceId(), request("TUTOR", null, 1, true, true,
-                List.of(q(ExerciseQuestionType.WRITTEN, "Viết cách đọc", "2", "{'grader':'AUTO','accepted':['せんせい']}"))));
-        assertThat(allAuto.summary().gradingMode()).isEqualTo("AUTO");
+    void fillBlankMatchingAnswerIsGradedAtOnceOtherAnswersWaitForReview() {
+        UUID ex = service.create(tutorActor, space.getSpaceId(), request("AUTO", null, 2, true, true, List.of(
+                q(ExerciseQuestionType.FILL_BLANK, null, "2", "{'text':'毎朝 ___ を飲みます。','answers':[['牛乳']]}")))).summary().exerciseId();
+
+        // Lượt 1: điền khớp đáp án → có điểm ngay
+        AttemptView a1 = service.start(learnerActor, space.getSpaceId(), ex);
+        service.saveAnswer(learnerActor, space.getSpaceId(), ex, a1.attemptId(), a1.questions().get(0).questionId(), json("{'blanks':['牛乳']}"));
+        AttemptView done1 = service.submit(learnerActor, space.getSpaceId(), ex, a1.attemptId());
+        assertThat(done1.status()).isEqualTo("GRADED");
+        assertThat(done1.finalScore()).isEqualByComparingTo("2");
+
+        // Lượt 2: điền khác đáp án → chờ chấm (AI gợi ý, gia sư duyệt), chưa có điểm
+        AttemptView a2 = service.start(learnerActor, space.getSpaceId(), ex);
+        UUID qid = a2.questions().get(0).questionId();
+        service.saveAnswer(learnerActor, space.getSpaceId(), ex, a2.attemptId(), qid, json("{'blanks':['ミルク']}"));
+        AttemptView done2 = service.submit(learnerActor, space.getSpaceId(), ex, a2.attemptId());
+        assertThat(done2.status()).isEqualTo("SUBMITTED");
+        assertThat(done2.finalScore()).isNull();
+        assertThat(done2.questions().get(0).needsManualGrading()).isTrue();
+        assertThat(done2.questions().get(0).score()).isNull();
+
+        // Gia sư duyệt: cho 0 điểm vẫn tính là đã chấm (không bị coi là "giữ điểm máy")
+        AttemptView graded = service.grade(tutorActor, space.getSpaceId(), ex, a2.attemptId(),
+                new GradeAttemptRequest(List.of(new GradeItem(qid, BigDecimal.ZERO, "Dùng 牛乳 theo bài học"))));
+        assertThat(graded.status()).isEqualTo("GRADED");
+        assertThat(graded.finalScore()).isEqualByComparingTo("0");
     }
 
     @Test

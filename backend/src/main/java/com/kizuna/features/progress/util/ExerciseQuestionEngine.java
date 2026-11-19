@@ -25,6 +25,11 @@ import java.util.regex.Pattern;
 public class ExerciseQuestionEngine {
 
     public static final String FIELD = "questions";
+    /**
+     * Đánh dấu câu soạn theo cách mới (từ khi có AI gợi ý chấm): tự luận không có đáp án; điền khuyết đáp án không bắt buộc.
+     * Câu cũ không có khóa này giữ nguyên cách chấm cũ.
+     */
+    public static final String REVIEW_KEY = "review";
     public static final Pattern BLANK = Pattern.compile("_{3,}");
     static final int MAX_OPTIONS = 10;
     static final int MAX_ITEMS = 20;
@@ -46,7 +51,7 @@ public class ExerciseQuestionEngine {
     /**
      * Kiểm tra câu hỏi và trả dữ liệu đã chuẩn hóa (chuỗi JSON).
      * @param strict true khi giao bài: bắt buộc đủ đáp án; false khi lưu nháp: chỉ kiểm tra cấu trúc
-     * @param autoMode true khi bài "Hệ thống chấm tự động": câu tự luận bắt buộc có đáp án được chấp nhận
+     * @param autoMode không còn dùng (giữ để tương thích): tự luận luôn chờ chấm, điền khuyết không bắt buộc đáp án
      * @param label "Câu 3" — để báo lỗi rõ câu nào
      */
     public String validate(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data,
@@ -88,22 +93,21 @@ public class ExerciseQuestionEngine {
                 else if (strict) throw error(label, "chưa chọn Đúng hoặc Sai.");
             }
             case FILL_BLANK -> {
+                // Đáp án từng chỗ trống KHÔNG bắt buộc: ô có đáp án máy so trước, ô còn lại chờ chấm (AI gợi ý, gia sư duyệt).
                 String text = text(d.get("text"));
                 int blanks = countBlanks(text);
                 List<List<String>> answers = new ArrayList<>();
                 JsonNode a = d.get("answers");
                 if (a != null && a.isArray()) for (JsonNode one : a) answers.add(texts(one));
-                if (strict) {
-                    if (blanks == 0) throw error(label, "câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).");
-                    if (answers.size() != blanks) throw error(label, "số đáp án không khớp với số chỗ trống.");
-                    for (int i = 0; i < blanks; i++) {
-                        if (answers.get(i).stream().allMatch(String::isBlank)) throw error(label, "chỗ trống " + (i + 1) + " chưa có đáp án.");
-                    }
-                }
+                if (strict && blanks == 0) throw error(label, "câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).");
                 out.put("text", text);
                 ArrayNode arr = mapper.createArrayNode();
-                answers.forEach(list -> arr.add(array(list.stream().filter(s -> !s.isBlank()).toList())));
+                for (int i = 0; i < blanks; i++) {
+                    List<String> list = i < answers.size() ? answers.get(i) : List.of();
+                    arr.add(array(list.stream().filter(s -> !s.isBlank()).toList()));
+                }
                 out.set("answers", arr);
+                out.put(REVIEW_KEY, true);
             }
             case WORD_BANK -> {
                 String text = text(d.get("text"));
@@ -113,6 +117,9 @@ public class ExerciseQuestionEngine {
                 if (strict) {
                     if (blanks == 0) throw error(label, "câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).");
                     if (answers.size() != blanks) throw error(label, "số từ đúng không khớp với số chỗ trống.");
+                    if (answers.size() + distractors.size() < 2) {
+                        throw error(label, "cần ít nhất 2 từ để kéo thả (thêm từ gây nhiễu).");
+                    }
                     requireNoBlank(answers, label, "có chỗ trống chưa có từ đúng.");
                 }
                 if (answers.size() + distractors.size() > MAX_ITEMS * 2) throw error(label, "ngân hàng từ quá dài.");
@@ -150,23 +157,8 @@ public class ExerciseQuestionEngine {
                 out.set("items", array(items));
             }
             case WRITTEN -> {
-                List<String> accepted = texts(d.get("accepted")).stream().filter(s -> !s.isBlank()).toList();
-                // Ai chấm câu này: "AUTO" (máy so với đáp án, bắt buộc có đáp án) hoặc "TUTOR" (gia sư chấm, không cần đáp án).
-                // Dữ liệu cũ không có khóa grader: suy ra theo cách chấm của bài như trước.
-                String grader = text(d.get("grader")).toUpperCase(Locale.ROOT);
-                boolean explicit = grader.equals("AUTO") || grader.equals("TUTOR");
-                if (!explicit) grader = autoMode || !accepted.isEmpty() ? "AUTO" : "TUTOR";
-                if (grader.equals("TUTOR")) {
-                    accepted = List.of();
-                } else if (strict && accepted.isEmpty()) {
-                    throw error(label, explicit
-                            ? "chọn \"Máy chấm\" thì phải nhập ít nhất một đáp án được chấp nhận (hoặc chọn \"Gia sư chấm\" cho câu này)."
-                            : "bài chấm tự động nên câu tự luận phải có đáp án được chấp nhận. Hãy nhập đáp án hoặc chọn \"Gia sư chấm\" cho câu này.");
-                }
-                out.put("grader", grader);
-                out.set("accepted", array(accepted));
-                String sample = text(d.get("sample"));
-                if (!sample.isBlank()) out.put("sample", sample);
+                // Tự luận: gia sư chỉ ra đề, không nhập đáp án / bài mẫu. Bài nộp luôn chờ chấm (AI gợi ý, gia sư duyệt).
+                out.put(REVIEW_KEY, true);
             }
         }
         if (strict && type != ExerciseQuestionType.FILL_BLANK && type != ExerciseQuestionType.WORD_BANK
@@ -178,7 +170,23 @@ public class ExerciseQuestionEngine {
 
     /** Câu tự luận không có đáp án sẵn → cần gia sư chấm. */
     public boolean needsManualGrading(ExerciseQuestionType type, String data) {
-        return type == ExerciseQuestionType.WRITTEN && texts(read(data).get("accepted")).isEmpty();
+        JsonNode d = read(data);
+        if (type == ExerciseQuestionType.WRITTEN) return texts(d.get("accepted")).isEmpty();
+        if (type == ExerciseQuestionType.FILL_BLANK && d.path(REVIEW_KEY).asBoolean(false)) {
+            JsonNode answers = d.get("answers");
+            if (answers == null || !answers.isArray() || answers.isEmpty()) return true;
+            for (JsonNode one : answers) if (texts(one).stream().allMatch(String::isBlank)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Câu có thể cần chấm (AI gợi ý, gia sư duyệt): tự luận chưa có đáp án, và điền khuyết soạn theo cách mới
+     * (ô không có đáp án hoặc học viên điền không khớp đáp án sẽ chờ chấm). Dùng để suy ra cách chấm của bài.
+     */
+    public boolean mayNeedReview(ExerciseQuestionType type, String data) {
+        return needsManualGrading(type, data)
+                || (type == ExerciseQuestionType.FILL_BLANK && read(data).path(REVIEW_KEY).asBoolean(false));
     }
 
     // ================================================================== đề cho học viên (không có đáp án)
@@ -223,10 +231,7 @@ public class ExerciseQuestionEngine {
             case FILL_BLANK, WORD_BANK -> out.set("answers", d.get("answers") == null ? mapper.createArrayNode() : d.get("answers"));
             case MATCHING -> out.set("pairs", d.get("pairs") == null ? mapper.createArrayNode() : d.get("pairs"));
             case ORDERING -> out.set("items", d.get("items") == null ? mapper.createArrayNode() : d.get("items"));
-            case WRITTEN -> {
-                out.set("accepted", d.get("accepted") == null ? mapper.createArrayNode() : d.get("accepted"));
-                if (d.has("sample")) out.set("sample", d.get("sample"));
-            }
+            case WRITTEN -> out.set("accepted", d.get("accepted") == null ? mapper.createArrayNode() : d.get("accepted"));
         }
         return out;
     }
@@ -248,6 +253,7 @@ public class ExerciseQuestionEngine {
             case FILL_BLANK -> {
                 JsonNode answers = d.get("answers");
                 List<String> given = texts(r.get("blanks"));
+                if (d.path(REVIEW_KEY).asBoolean(false)) return gradeFillBlankForReview(answers, given, points);
                 correct = answers != null && answers.size() > 0 && given.size() == answers.size();
                 for (int i = 0; correct && i < answers.size(); i++) {
                     String g = normalize(given.get(i));
@@ -271,6 +277,22 @@ public class ExerciseQuestionEngine {
             default -> correct = false;
         }
         return new Grade(correct, correct ? points : BigDecimal.ZERO);
+    }
+
+    /**
+     * Điền khuyết cách mới: bỏ trống hết → sai (0 điểm); mọi ô đều có đáp án và khớp → đúng đủ điểm;
+     * còn lại (ô không có đáp án, hoặc điền khác đáp án) → correct null = chờ chấm (AI gợi ý, gia sư duyệt).
+     */
+    private Grade gradeFillBlankForReview(JsonNode answers, List<String> given, BigDecimal points) {
+        int blanks = answers == null ? 0 : answers.size();
+        if (given.stream().allMatch(g -> normalize(g).isEmpty())) return new Grade(false, BigDecimal.ZERO);
+        boolean allMatched = blanks > 0;
+        for (int i = 0; allMatched && i < blanks; i++) {
+            String g = i < given.size() ? normalize(given.get(i)) : "";
+            List<String> accepted = texts(answers.get(i)).stream().filter(s -> !s.isBlank()).toList();
+            allMatched = !g.isEmpty() && accepted.stream().anyMatch(a -> normalize(a).equals(g));
+        }
+        return allMatched ? new Grade(true, points) : new Grade(null, BigDecimal.ZERO);
     }
 
     /** Chuẩn hóa chữ khi so sánh: NFKC (toàn/nửa độ rộng), bỏ khoảng trắng đầu cuối, gộp khoảng trắng, chữ thường. */

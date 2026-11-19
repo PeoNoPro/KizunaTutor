@@ -380,7 +380,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
                     id -> ExerciseAnswer.builder().attempt(a).questionId(id).correct(false).autoScore(BigDecimal.ZERO).build());
             // Câu máy đã chấm: điểm gia sư trùng điểm máy coi như không sửa (học viên không thấy "gia sư sửa điểm").
             BigDecimal score = item.score() == null ? null : item.score().setScale(2, RoundingMode.HALF_UP);
-            if (score != null && !engine.needsManualGrading(q.getType(), q.getData())
+            if (score != null && !awaitsReview(q, ans)
                     && ans.getAutoScore() != null && score.compareTo(ans.getAutoScore()) == 0) {
                 score = null;
             }
@@ -425,7 +425,16 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         attempts.save(a);
     }
 
-    /** Điểm lượt = tổng (điểm gia sư nếu có, ngược lại điểm máy). Còn câu tự luận chưa chấm → SUBMITTED, chưa có điểm cuối. */
+    /**
+     * Câu của lượt đã nộp đang chờ chấm (AI gợi ý, gia sư duyệt): câu luôn chấm tay (tự luận), hoặc máy không tự kết luận được
+     * (correct null — điền khuyết có ô không có đáp án / điền khác đáp án).
+     */
+    private boolean awaitsReview(ExerciseQuestion q, ExerciseAnswer ans) {
+        return engine.needsManualGrading(q.getType(), q.getData())
+                || (ans != null && ans.getCorrect() == null && engine.mayNeedReview(q.getType(), q.getData()));
+    }
+
+    /** Điểm lượt = tổng (điểm gia sư nếu có, ngược lại điểm máy). Còn câu chờ chấm → SUBMITTED, chưa có điểm cuối. */
     void recompute(ExerciseAttempt a, List<ExerciseQuestion> eq, List<ExerciseAnswer> all) {
         Map<UUID, ExerciseAnswer> byQuestion = all.stream()
                 .collect(Collectors.toMap(ExerciseAnswer::getQuestionId, x -> x, (x, y) -> x));
@@ -438,7 +447,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
             auto = auto.add(autoScore);
             if (ans != null && ans.getTutorScore() != null) {
                 total = total.add(ans.getTutorScore());
-            } else if (engine.needsManualGrading(q.getType(), q.getData())) {
+            } else if (awaitsReview(q, ans)) {
                 pending = true;
             } else {
                 total = total.add(autoScore);
@@ -477,7 +486,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
                 .collect(Collectors.toMap(ExerciseAnswer::getQuestionId, x -> x, (x, y) -> x));
         List<AttemptQuestion> items = eq.stream().map(q -> {
             ExerciseAnswer ans = byQuestion.get(q.getQuestionId());
-            boolean manual = engine.needsManualGrading(q.getType(), q.getData());
+            boolean manual = inProgress ? engine.needsManualGrading(q.getType(), q.getData()) : awaitsReview(q, ans);
             JsonNode response = ans == null || ans.getResponse() == null ? null : engine.read(ans.getResponse());
             Boolean correct = null;
             BigDecimal score = null;
@@ -579,7 +588,7 @@ public class OnlineExerciseServiceImpl implements OnlineExerciseService {
         syncAudios(e, audioById.values(), previousAudio);
         syncImages(e, imageById.values(), previousImages);
         // Cách chấm của bài suy ra từ từng câu: có câu tự luận gia sư chấm → "Gia sư chấm", ngược lại "Hệ thống chấm tự động"
-        boolean manual = rows.stream().anyMatch(r -> engine.needsManualGrading(r.getType(), r.getData()));
+        boolean manual = rows.stream().anyMatch(r -> engine.mayNeedReview(r.getType(), r.getData()));
         e.setGradingMode(manual ? OnlineExercise.GradingMode.TUTOR : OnlineExercise.GradingMode.AUTO);
     }
 

@@ -10,11 +10,11 @@ export const QUESTION_TYPES = [
   { value: 'SINGLE_CHOICE', label: 'Trắc nghiệm 1 đáp án', hint: 'Chọn một đáp án đúng' },
   { value: 'MULTI_CHOICE', label: 'Trắc nghiệm nhiều đáp án', hint: 'Chọn tất cả đáp án đúng' },
   { value: 'TRUE_FALSE', label: 'Đúng / Sai', hint: 'Chọn Đúng hoặc Sai' },
-  { value: 'FILL_BLANK', label: 'Điền khuyết', hint: 'Gõ từ vào chỗ trống' },
-  { value: 'WORD_BANK', label: 'Điền từ có sẵn', hint: 'Kéo hoặc bấm chọn từ vào chỗ trống' },
+  { value: 'FILL_BLANK', label: 'Điền khuyết', hint: 'Học viên gõ chữ vào chỗ trống. Đáp án không bắt buộc: ô có đáp án máy chấm ngay, còn lại AI gợi ý điểm và bạn duyệt' },
+  { value: 'WORD_BANK', label: 'Điền từ có sẵn', hint: 'Học viên kéo hoặc bấm chọn từ có sẵn (từ đúng + từ gây nhiễu) vào chỗ trống' },
   { value: 'MATCHING', label: 'Nối cột', hint: 'Chọn vế phải tương ứng với từng vế trái' },
   { value: 'ORDERING', label: 'Sắp xếp thứ tự', hint: 'Sắp xếp các mục theo thứ tự đúng' },
-  { value: 'WRITTEN', label: 'Tự luận', hint: 'Viết câu trả lời' }
+  { value: 'WRITTEN', label: 'Tự luận', hint: 'Học viên viết câu trả lời. Không cần đáp án: AI gợi ý điểm và nhận xét, bạn duyệt lại' }
 ];
 
 export function questionTypeLabel(type) {
@@ -96,24 +96,28 @@ export function defaultQuestion(type) {
     case 'WORD_BANK': return { ...base, data: { text: '', answers: [], distractors: [] } };
     case 'MATCHING': return { ...base, data: { pairs: [{ left: '', right: '' }, { left: '', right: '' }] } };
     case 'ORDERING': return { ...base, data: { items: ['', '', ''] } };
-    case 'WRITTEN': return { ...base, data: { grader: 'TUTOR', accepted: [], sample: '' } };
+    case 'WRITTEN': return { ...base, data: {} };
     default: return { ...base, data: {} };
   }
 }
 
 /**
- * Ai chấm câu tự luận: "AUTO" (máy so với đáp án được chấp nhận) hoặc "TUTOR" (gia sư chấm).
- * Dữ liệu cũ chưa có khóa grader: có đáp án → máy chấm; không có → theo cách chấm cũ của bài.
+ * Câu học viên tự viết chữ (tự luận, điền khuyết): bài nộp được AI gợi ý điểm, gia sư duyệt.
+ * Tự luận luôn chờ chấm; điền khuyết chỉ chờ chấm khi ô không có đáp án hoặc học viên điền khác đáp án.
  */
-export function writtenGrader(q, { autoMode = false } = {}) {
-  const g = String(q?.data?.grader || '').toUpperCase();
-  if (g === 'AUTO' || g === 'TUTOR') return g;
-  return (q?.data?.accepted || []).some((a) => String(a ?? '').trim()) || autoMode ? 'AUTO' : 'TUTOR';
+export function isTutorGraded(q) {
+  return q?.type === 'WRITTEN' || q?.type === 'FILL_BLANK';
 }
 
-/** Câu chờ gia sư chấm (tự luận chọn "Gia sư chấm"). */
-export function isTutorGraded(q) {
-  return q?.type === 'WRITTEN' && writtenGrader(q) === 'TUTOR';
+/** Câu điền khuyết có chỗ trống chưa nhập đáp án (chỗ đó luôn chờ chấm). */
+export function fillBlankMissingAnswers(q) {
+  if (q?.type !== 'FILL_BLANK') return 0;
+  const n = countBlanks(q.data?.text);
+  let missing = 0;
+  for (let i = 0; i < n; i += 1) {
+    if (!((q.data?.answers || [])[i] || []).some((a) => String(a ?? '').trim())) missing += 1;
+  }
+  return missing;
 }
 
 /** Lỗi của câu nghe chưa gắn file nghe (không giao bài được). */
@@ -127,7 +131,7 @@ export function needsAudio(q) {
 /**
  * Kiểm tra một câu trước khi giao (khớp quy tắc máy chủ). Trả câu lỗi tiếng Việt hoặc null.
  * Lỗi nội dung câu được báo trước; nội dung đủ rồi mới báo thiếu file nghe.
- * @param {boolean} autoMode bài "Hệ thống chấm tự động": câu tự luận phải có đáp án được chấp nhận
+ * @param {boolean} autoMode không còn dùng (giữ để tương thích)
  */
 export function validateQuestion(q, { autoMode = true } = {}) {
   return validateQuestionContent(q, { autoMode }) || (needsAudio(q) ? AUDIO_MISSING_MESSAGE : null);
@@ -154,18 +158,15 @@ function validateQuestionContent(q, { autoMode = true } = {}) {
     }
     case 'TRUE_FALSE':
       return typeof d.correct === 'boolean' ? null : 'chưa chọn Đúng hoặc Sai.';
-    case 'FILL_BLANK': {
-      const n = countBlanks(d.text);
-      if (!n) return 'câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).';
-      for (let i = 0; i < n; i += 1) {
-        if (!((d.answers || [])[i] || []).some((a) => !blank(a))) return `chỗ trống ${i + 1} chưa có đáp án.`;
-      }
-      return null;
-    }
+    case 'FILL_BLANK':
+      // Đáp án từng chỗ trống không bắt buộc
+      return countBlanks(d.text) ? null : 'câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).';
     case 'WORD_BANK': {
       const n = countBlanks(d.text);
       if (!n) return 'câu cần có ít nhất một chỗ trống (gõ ___ để tạo chỗ trống).';
       for (let i = 0; i < n; i += 1) if (blank((d.answers || [])[i])) return 'có chỗ trống chưa có từ đúng.';
+      const words = n + (d.distractors || []).filter((w) => !blank(w)).length;
+      if (words < 2) return 'cần ít nhất 2 từ để kéo thả (thêm từ gây nhiễu).';
       return null;
     }
     case 'MATCHING': {
@@ -181,9 +182,6 @@ function validateQuestionContent(q, { autoMode = true } = {}) {
       return null;
     }
     case 'WRITTEN':
-      if (writtenGrader(q, { autoMode }) === 'AUTO' && !(d.accepted || []).some((a) => !blank(a))) {
-        return 'chọn "Máy chấm" thì phải nhập ít nhất một đáp án được chấp nhận (hoặc chọn "Gia sư chấm" cho câu này).';
-      }
       return null;
     default:
       return 'dạng câu hỏi không hợp lệ.';
@@ -205,8 +203,8 @@ export function questionPayload(q) {
     data.distractors = (d.distractors || []).map((s) => String(s).trim()).filter(Boolean);
   }
   if (q.type === 'WRITTEN') {
-    data.grader = writtenGrader(q);
-    data.accepted = data.grader === 'TUTOR' ? [] : (d.accepted || []).map((s) => String(s).trim()).filter(Boolean);
+    // Tự luận không có đáp án / bài mẫu: bỏ dữ liệu cũ nếu có
+    Object.keys(data).forEach((k) => delete data[k]);
   }
   return {
     type: q.type,
@@ -299,14 +297,13 @@ export function describeCorrect(type, view, correct) {
     case 'SINGLE_CHOICE': return options[correct.correct] ?? '';
     case 'MULTI_CHOICE': return (correct.correct || []).map((i) => options[i]).join(' · ');
     case 'TRUE_FALSE': return correct.correct ? 'Đúng' : 'Sai';
-    case 'FILL_BLANK': return (correct.answers || []).map((a, i) => `(${i + 1}) ${(a || []).join(' / ')}`).join('   ');
+    case 'FILL_BLANK':
+      // Chỉ hiện các chỗ trống gia sư có nhập đáp án
+      return (correct.answers || []).map((a, i) => ((a || []).length ? `(${i + 1}) ${a.join(' / ')}` : '')).filter(Boolean).join('   ');
     case 'WORD_BANK': return (correct.answers || []).map((a, i) => `(${i + 1}) ${a}`).join('   ');
     case 'MATCHING': return (correct.pairs || []).map((p) => `${p.left} → ${p.right}`).join('   ');
     case 'ORDERING': return (correct.items || []).join(' → ');
-    case 'WRITTEN': {
-      const accepted = (correct.accepted || []).join(' / ');
-      return [accepted, correct.sample ? `Đáp án mẫu: ${correct.sample}` : ''].filter(Boolean).join(' · ');
-    }
+    case 'WRITTEN': return (correct.accepted || []).join(' / ');
     default: return '';
   }
 }

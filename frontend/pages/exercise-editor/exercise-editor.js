@@ -29,7 +29,6 @@ import {
   splitList,
   defaultQuestion,
   validateQuestion,
-  writtenGrader,
   isTutorGraded,
   needsAudio,
   AUDIO_MISSING_MESSAGE,
@@ -159,9 +158,6 @@ async function load() {
       image: q.image || null,
       listening: q.listening ? { maxPlays: q.listening.maxPlays ?? null } : null
     }));
-    state.questions.filter((q) => q.type === 'WRITTEN').forEach((q) => {
-      q.data.grader = writtenGrader(q, { autoMode: s.gradingMode !== 'TUTOR' });
-    });
     fillSettings(state.detail);
     $('loadingBox').classList.add('hidden');
     renderAll();
@@ -314,7 +310,7 @@ function renderOutline() {
           ${q.audio ? '<span class="material-symbols-outlined text-[17px] text-secondary" title="Có file nghe" aria-label="Có file nghe">headphones</span>' : ''}
           ${needsAudio(q) ? '<span class="material-symbols-outlined text-[17px] text-error" title="Câu nghe chưa có file nghe" aria-label="Thiếu file nghe">headset_off</span>' : ''}
           ${incomplete && incomplete !== AUDIO_MISSING_MESSAGE ? '<span class="material-symbols-outlined text-[17px] text-error" title="Chưa hoàn chỉnh" aria-label="Chưa hoàn chỉnh">error</span>' : ''}
-          ${manual && !incomplete ? '<span class="kz-badge" data-tone="paused" title="Gia sư chấm">GS</span>' : ''}
+          ${manual && !incomplete ? '<span class="kz-badge" data-tone="paused" title="AI gợi ý điểm, gia sư duyệt">AI</span>' : ''}
           <span class="font-caption text-caption text-on-surface-variant shrink-0">${formatScore(q.points)}đ</span>
         </button>
       </li>`;
@@ -350,12 +346,11 @@ function renderGradingInfo(manualCount) {
   const box = $('gradingInfo');
   if (!box) return;
   box.innerHTML = manualCount
-    ? `<span class="material-symbols-outlined text-[20px] text-tertiary" aria-hidden="true">rate_review</span>
-       <span><b>Gia sư chấm</b> — ${manualCount} câu tự luận do bạn chấm, các câu còn lại máy chấm ngay khi học viên nộp.
-       <span class="block font-caption text-caption text-on-surface-variant mt-0.5">Chọn "Máy chấm" hay "Gia sư chấm" ở từng câu tự luận (tab "Câu hỏi").</span></span>`
+    ? `<span class="material-symbols-outlined text-[20px] text-tertiary" aria-hidden="true">auto_awesome</span>
+       <span><b>AI gợi ý, gia sư duyệt</b> — ${manualCount} câu tự luận / điền khuyết: khi học viên nộp, AI gợi ý điểm và nhận xét, bạn duyệt lại; các câu còn lại máy chấm ngay.
+       <span class="block font-caption text-caption text-on-surface-variant mt-0.5">Câu điền khuyết có nhập đáp án: học viên điền khớp là có điểm ngay, chỉ câu điền khác mới cần duyệt.</span></span>`
     : `<span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">bolt</span>
-       <span><b>Hệ thống chấm tự động</b> — mọi câu đều có đáp án, học viên nộp xong có điểm ngay.
-       <span class="block font-caption text-caption text-on-surface-variant mt-0.5">Muốn tự chấm câu tự luận nào thì chọn "Gia sư chấm" ở câu đó (tab "Câu hỏi").</span></span>`;
+       <span><b>Hệ thống chấm tự động</b> — bài không có câu tự luận / điền khuyết, học viên nộp xong có điểm ngay.</span>`;
 }
 
 /** Ô chọn số lần nghe tối đa (dùng chung cho câu nghe có / chưa có file). */
@@ -534,7 +529,7 @@ function updateTotals() {
   $('footerStats').innerHTML = `
     <span><b class="text-on-surface">${qs.length}</b> câu</span>
     <span><b class="text-on-surface">${total}</b> điểm</span>
-    ${manual ? `<span><b class="text-on-surface">${manual}</b> câu gia sư chấm</span>` : ''}
+    ${manual ? `<span><b class="text-on-surface">${manual}</b> câu AI gợi ý · gia sư duyệt</span>` : ''}
     ${listening ? `<span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">headphones</span><b class="text-on-surface">${listening}</b> câu nghe</span>` : ''}
     ${missing && !state.locked ? `<button type="button" data-goto="missing" class="inline-flex items-center gap-1 text-error font-semibold hover:underline"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">headset_off</span>${missing} câu chưa có file nghe</button>` : ''}
     ${incomplete && !state.locked ? `<button type="button" data-goto="incomplete" class="inline-flex items-center gap-1 text-error hover:underline"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>${incomplete} câu chưa hoàn chỉnh</button>` : ''}`;
@@ -649,33 +644,12 @@ function bodyHtml(q) {
             </div>`).join('')}
         </div>
         ${state.locked ? '' : `<button type="button" data-act="item-add" class="${SMALL_BTN} mt-2" ${(d.items || []).length >= 20 ? 'disabled' : ''}>＋ Thêm mục</button>`}`;
-    case 'WRITTEN': {
-      const grader = writtenGrader(q);
-      const opt = (value, icon, title, hint) => `
-        <label class="flex items-start gap-2.5 p-3.5 rounded-xl border cursor-pointer ${grader === value ? 'border-2 border-primary bg-surface-container-low' : 'border-surface-container-high'}">
-          <input type="radio" name="grader-${escapeHtml(String(q.__key || ''))}" data-field="grader" value="${value}" ${grader === value ? 'checked' : ''} ${dis()} class="w-5 h-5 mt-0.5 accent-[#006194]">
-          <span><span class="flex items-center gap-1.5 font-semibold"><span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">${icon}</span>${title}</span>
-          <span class="block font-caption text-caption text-on-surface-variant mt-0.5">${hint}</span></span>
-        </label>`;
+    case 'WRITTEN':
       return `
-        <fieldset class="space-y-2">
-          <legend class="kz-label">Ai chấm câu này?</legend>
-          <div class="grid gap-2.5 sm:grid-cols-2">
-            ${opt('TUTOR', 'rate_review', 'Gia sư chấm', 'Học viên nộp xong, câu này chờ bạn chấm điểm và nhận xét.')}
-            ${opt('AUTO', 'bolt', 'Máy chấm', 'So với đáp án được chấp nhận — bắt buộc nhập đáp án.')}
-          </div>
-        </fieldset>
-        ${grader === 'AUTO' ? `
-        <div>
-          <label class="kz-label">Đáp án được chấp nhận <span class="text-error">*</span> <span class="font-normal text-on-surface-variant">(nhiều cách viết đúng thì phân cách bằng dấu ;)</span></label>
-          <input data-field="accepted" value="${escapeHtml((d.accepted || []).join('; '))}" class="${INPUT}" placeholder="Ví dụ: ありがとう; ありがとうございます" ${dis()}>
-          <p class="font-caption text-caption text-on-surface-variant mt-1">Máy chấm bỏ qua khoảng trắng thừa, hoa/thường, chữ toàn/nửa độ rộng.</p>
-        </div>` : ''}
-        <div>
-          <label class="kz-label">Đáp án mẫu <span class="font-normal text-on-surface-variant">(không bắt buộc, học viên xem sau khi nộp nếu được cho xem đáp án${grader === 'TUTOR' ? '; cũng là gợi ý khi bạn chấm' : ''})</span></label>
-          <textarea data-field="sample" rows="2" maxlength="2000" class="${INPUT}" ${dis()}>${escapeHtml(d.sample || '')}</textarea>
-        </div>`;
-    }
+        <p class="flex items-start gap-2.5 rounded-xl bg-surface-container-low px-4 py-3 text-on-surface-variant">
+          <span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">auto_awesome</span>
+          <span>Không cần đáp án. Khi học viên nộp bài, <b class="text-on-surface">AI gợi ý điểm và nhận xét</b>, bạn duyệt lại ở tab "Bài làm của học viên".</span>
+        </p>`;
     default:
       return '';
   }
@@ -687,11 +661,12 @@ function blanksHtml(q) {
   if (!n) return '<p class="font-caption text-caption text-on-surface-variant">Chưa có chỗ trống. Gõ ___ (3 dấu gạch dưới) vào câu để tạo chỗ trống.</p>';
   if (q.type === 'FILL_BLANK') {
     return `
-      <p class="kz-label">Đáp án từng chỗ trống <span class="font-normal text-on-surface-variant">(nhiều đáp án được chấp nhận thì phân cách bằng ;)</span></p>
+      <p class="kz-label">Đáp án từng chỗ trống <span class="font-normal text-on-surface-variant">(không bắt buộc; nhiều cách viết đúng thì phân cách bằng ;)</span></p>
+      <p class="font-caption text-caption text-on-surface-variant mb-2">Ô có đáp án: học viên điền khớp là máy chấm đúng ngay. Ô để trống hoặc học viên điền khác: AI gợi ý điểm, bạn duyệt lại.</p>
       <div class="flex flex-col gap-2">
         ${Array.from({ length: n }, (_, i) => `
           <label class="flex items-center gap-2"><span class="w-10 font-bold text-on-surface-variant">(${i + 1})</span>
-            <input data-blank="${i}" value="${escapeHtml(((d.answers || [])[i] || []).join('; '))}" class="${INPUT}" placeholder="Ví dụ: たべます; 食べます" ${dis()}></label>`).join('')}
+            <input data-blank="${i}" value="${escapeHtml(((d.answers || [])[i] || []).join('; '))}" class="${INPUT}" placeholder="Để trống = AI chấm · ví dụ: たべます; 食べます" ${dis()}></label>`).join('')}
       </div>`;
   }
   return `
@@ -701,7 +676,7 @@ function blanksHtml(q) {
         <label class="flex items-center gap-2"><span class="w-10 font-bold text-on-surface-variant">(${i + 1})</span>
           <input data-bankword="${i}" value="${escapeHtml((d.answers || [])[i] || '')}" class="${INPUT}" ${dis()}></label>`).join('')}
     </div>
-    <label class="kz-label mt-3">Từ gây nhiễu <span class="font-normal text-on-surface-variant">(không bắt buộc, phân cách bằng ;)</span></label>
+    <label class="kz-label mt-3">Từ gây nhiễu <span class="font-normal text-on-surface-variant">(phân cách bằng ;; tổng số từ để kéo phải từ 2 trở lên)</span></label>
     <input data-field="distractors" value="${escapeHtml((d.distractors || []).join('; '))}" class="${INPUT}" placeholder="Ví dụ: あれ; それ" ${dis()}>`;
 }
 
@@ -721,9 +696,7 @@ function onListInput(e) {
     const before = countBlanks(d.text);
     d.text = t.value;
     if (countBlanks(d.text) !== before) card.querySelector('[data-blanks]').innerHTML = blanksHtml(q);
-  } else if (t.dataset.field === 'accepted') d.accepted = splitList(t.value);
-  else if (t.dataset.field === 'sample') d.sample = t.value;
-  else if (t.dataset.field === 'distractors') d.distractors = splitList(t.value);
+  } else if (t.dataset.field === 'distractors') d.distractors = splitList(t.value);
   else if (t.dataset.opt !== undefined) d.options[Number(t.dataset.opt)] = t.value;
   else if (t.dataset.blank !== undefined) {
     d.answers = d.answers || [];
@@ -775,11 +748,6 @@ async function onListChange(e) {
       q.data.correct = [...set].sort((a, b) => a - b);
     } else q.data.correct = j;
   } else if (t.dataset.tf !== undefined) q.data.correct = t.dataset.tf === 'true';
-  else if (t.dataset.field === 'grader') {
-    q.data.grader = t.value;
-    renderQuestions();
-    return;
-  }
   renderOutline();
   updateTotals();
 }

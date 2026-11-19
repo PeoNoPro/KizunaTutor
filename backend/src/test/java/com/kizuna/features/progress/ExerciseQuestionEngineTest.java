@@ -54,12 +54,42 @@ class ExerciseQuestionEngineTest {
     }
 
     @Test
-    void fillBlankAcceptsAnyListedAnswerIgnoringWidthCaseAndSpaces() {
+    void fillBlankMatchesListedAnswersFirstAndSendsTheRestToReview() {
         String data = "{'text':'私は りんごを ___ 。 毎日 ___ 。','answers':[['たべます','食べます'],['Go']]}";
+        // Khớp đáp án (bỏ qua độ rộng ký tự, hoa thường, khoảng trắng) → máy chấm đúng ngay
         assertThat(grade(FILL_BLANK, data, "{'blanks':['  食べます ','ｇｏ']}").correct()).isTrue();
-        // Một chỗ trống sai → sai cả câu
-        assertThat(grade(FILL_BLANK, data, "{'blanks':['食べます','went']}").correct()).isFalse();
-        assertThat(grade(FILL_BLANK, data, "{'blanks':['食べます']}").correct()).isFalse();
+        // Điền khác đáp án → chờ chấm (AI gợi ý, gia sư duyệt), chưa cho điểm
+        ExerciseQuestionEngine.Grade other = grade(FILL_BLANK, data, "{'blanks':['食べます','went']}");
+        assertThat(other.correct()).isNull();
+        assertThat(other.score()).isEqualByComparingTo("0");
+        // Bỏ trống hết → sai luôn, không cần chấm
+        assertThat(grade(FILL_BLANK, data, "{'blanks':['','  ']}").correct()).isFalse();
+        // Đáp án đầy đủ thì câu không bắt buộc chấm tay (chỉ chờ chấm khi học viên điền khác)
+        assertThat(engine.needsManualGrading(FILL_BLANK, valid(FILL_BLANK, data))).isFalse();
+        assertThat(engine.mayNeedReview(FILL_BLANK, valid(FILL_BLANK, data))).isTrue();
+    }
+
+    @Test
+    void fillBlankAnswersAreOptional() {
+        String noAnswers = valid(FILL_BLANK, "{'text':'昨日、友達 ___ 映画を見ました。 ___ 。'}");
+        assertThat(engine.read(noAnswers).get("answers")).hasSize(2);
+        assertThat(engine.needsManualGrading(FILL_BLANK, noAnswers)).isTrue();
+        assertThat(engine.grade(FILL_BLANK, noAnswers, TWO, json("{'blanks':['と','楽しかった']}")).correct()).isNull();
+        // Chỉ có đáp án cho ô 1: ô 2 vẫn chờ chấm
+        String partial = valid(FILL_BLANK, "{'text':'A ___ B ___','answers':[['x'],[]]}");
+        assertThat(engine.needsManualGrading(FILL_BLANK, partial)).isTrue();
+        assertThat(engine.grade(FILL_BLANK, partial, TWO, json("{'blanks':['x','y']}")).correct()).isNull();
+    }
+
+    @Test
+    void oldQuestionsWithoutReviewMarkKeepTheOldGrading() {
+        // Câu soạn trước khi có AI (không có khóa "review"): điền khuyết sai một ô → sai cả câu; tự luận có đáp án → máy chấm
+        String oldFill = "{\"text\":\"A ___\",\"answers\":[[\"x\"]]}";
+        assertThat(engine.grade(FILL_BLANK, oldFill, TWO, json("{'blanks':['y']}")).correct()).isFalse();
+        assertThat(engine.mayNeedReview(FILL_BLANK, oldFill)).isFalse();
+        String oldWritten = "{\"grader\":\"AUTO\",\"accepted\":[\"ありがとう\"]}";
+        assertThat(engine.grade(WRITTEN, oldWritten, TWO, json("{'text':' ありがとう '}")).correct()).isTrue();
+        assertThat(engine.needsManualGrading(WRITTEN, oldWritten)).isFalse();
     }
 
     @Test
@@ -79,14 +109,22 @@ class ExerciseQuestionEngineTest {
     }
 
     @Test
-    void writtenAutoGradedOnlyWhenAcceptedAnswersExist() {
-        assertThat(grade(WRITTEN, "{'accepted':['ありがとう']}", "{'text':' ありがとう '}").correct()).isTrue();
-        String manual = engine.validate(WRITTEN, "Viết đoạn văn", TWO, json("{'sample':'...'}"), true, false, "Câu 1");
-        assertThat(engine.needsManualGrading(WRITTEN, manual)).isTrue();
-        assertThat(engine.grade(WRITTEN, manual, TWO, json("{'text':'abc'}")).correct()).isNull();
-        // Bài chấm tự động: câu tự luận bắt buộc có đáp án
-        assertThatThrownBy(() -> engine.validate(WRITTEN, "Viết", TWO, json("{}"), true, true, "Câu 4"))
-                .isInstanceOf(ClassroomException.class).hasMessageStartingWith("Câu 4: bài chấm tự động");
+    void writtenHasNoAnswersAndAlwaysWaitsForReview() {
+        // Gia sư chỉ ra đề: đáp án / bài mẫu / người chấm gửi lên đều bị bỏ
+        String w = engine.validate(WRITTEN, "Viết đoạn văn", TWO,
+                json("{'accepted':['x'],'sample':'...','grader':'AUTO'}"), true, true, "Câu 1");
+        assertThat(engine.read(w).has("accepted")).isFalse();
+        assertThat(engine.read(w).has("sample")).isFalse();
+        assertThat(engine.needsManualGrading(WRITTEN, w)).isTrue();
+        assertThat(engine.grade(WRITTEN, w, TWO, json("{'text':'x'}")).correct()).isNull();
+        assertThat(engine.correctAnswer(WRITTEN, w).get("accepted")).isEmpty();
+    }
+
+    @Test
+    void wordBankNeedsAtLeastTwoWordsToDrag() {
+        assertThatThrownBy(() -> valid(WORD_BANK, "{'text':'___ です','answers':['これ'],'distractors':[]}"))
+                .isInstanceOf(ClassroomException.class).hasMessageContaining("ít nhất 2 từ");
+        assertThat(valid(WORD_BANK, "{'text':'___ です','answers':['これ'],'distractors':['あれ']}")).contains("あれ");
     }
 
     @Test
@@ -105,8 +143,8 @@ class ExerciseQuestionEngineTest {
         // Cùng seed → cùng thứ tự xáo (tải lại trang vẫn giống)
         assertThat(engine.learnerView(ORDERING, items, 42L)).isEqualTo(o);
 
-        String written = valid(WRITTEN, "{'accepted':['bí mật']}");
-        assertThat(engine.learnerView(WRITTEN, written, 1L).toString()).doesNotContain("bí mật");
+        String fillOld = "{\"text\":\"A ___\",\"answers\":[[\"bí mật\"]]}";
+        assertThat(engine.learnerView(FILL_BLANK, fillOld, 1L).toString()).doesNotContain("bí mật");
     }
 
     @Test

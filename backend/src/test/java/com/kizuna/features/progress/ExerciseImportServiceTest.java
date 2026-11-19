@@ -94,7 +94,25 @@ class ExerciseImportServiceTest {
         assertThat(r.get(4).data().get("distractors").toString()).isEqualTo("[\"学校\"]");
         assertThat(r.get(5).data().get("pairs").get(1).get("right").asText()).isEqualTo("con mèo");
         assertThat(r.get(6).data().get("items").size()).isEqualTo(3);
-        assertThat(r.get(7).data().get("accepted").size()).isZero();
+        // Tự luận: không có đáp án, chờ chấm (AI gợi ý, gia sư duyệt)
+        assertThat(r.get(7).data().has("accepted")).isFalse();
+        assertThat(r.get(7).data().path("review").asBoolean()).isTrue();
+    }
+
+    @Test
+    void fillBlankAnswersAreOptionalButMustMatchTheBlanksWhenGiven() throws Exception {
+        ImportPreview p = service.preview(tutorActor, space.getSpaceId(), xlsx(new String[][]{
+                {"Điền khuyết", "昨日、友達 ___ 映画を見ました。", "", "", "1"},
+                {"Điền khuyết", "A ___ B ___", "", "x", "1"},
+                {"Điền từ có sẵn", "___ です", "あれ", "これ", "1"},
+                {"Điền từ có sẵn", "___ です", "", "これ", "1"}
+        }));
+        assertThat(p.rows().get(0).ok()).isTrue();
+        assertThat(p.rows().get(0).data().get("answers").toString()).isEqualTo("[[]]");
+        assertThat(p.rows().get(1).error()).contains("2 chỗ trống").contains("1 đáp án");
+        // Điền từ có sẵn cần ít nhất 2 từ để chọn
+        assertThat(p.rows().get(2).ok()).isTrue();
+        assertThat(p.rows().get(3).error()).contains("ít nhất 2 từ");
     }
 
     @Test
@@ -146,7 +164,7 @@ class ExerciseImportServiceTest {
             book.write(out);
             ImportPreview p = service.preview(tutorActor, space.getSpaceId(), new MockMultipartFile("file", "vi-du.xlsx",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", out.toByteArray()));
-            assertThat(p.total()).isEqualTo(10);
+            assertThat(p.total()).isEqualTo(11);
             assertThat(p.invalid()).as(p.rows().toString()).isZero();
             assertThat(p.rows().stream().filter(ImportRow::listening).count()).isEqualTo(2);
         }

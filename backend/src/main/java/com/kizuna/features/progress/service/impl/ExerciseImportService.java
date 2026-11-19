@@ -181,7 +181,13 @@ public class ExerciseImportService {
                 case FILL_BLANK -> {
                     data.put("text", c[1]);
                     ArrayNode answers = mapper.createArrayNode();
-                    for (String blank : split(c[3], "|")) answers.add(array(split(blank, ";")));
+                    List<String> perBlank = split(c[3], "|");
+                    int blanks = (int) ExerciseQuestionEngine.BLANK.matcher(c[1] == null ? "" : c[1]).results().count();
+                    if (!perBlank.isEmpty() && perBlank.size() != blanks) {
+                        return fail(rowNumber, label + ": câu có " + blanks + " chỗ trống nhưng cột D ghi " + perBlank.size()
+                                + " đáp án. Ghi đủ đáp án cho từng chỗ trống (cách nhau |) hoặc để trống cột D.", type);
+                    }
+                    for (String blank : perBlank) answers.add(array(split(blank, ";")));
                     data.set("answers", answers);
                     prompt = null;
                 }
@@ -205,13 +211,10 @@ public class ExerciseImportService {
                 }
                 case ORDERING -> data.set("items", array(split(c[2], "|")));
                 case WRITTEN -> {
-                    // Có đáp án → máy chấm; để trống → gia sư chấm câu này
-                    List<String> accepted = splitAny(c[3]);
-                    data.set("accepted", array(accepted));
-                    data.put("grader", accepted.isEmpty() ? "TUTOR" : "AUTO");
+                    // Tự luận không có đáp án: bài nộp chờ chấm (AI gợi ý, gia sư duyệt). Cột D được bỏ qua.
                 }
             }
-            // Cùng quy tắc khi giao bài (strict); câu tự luận được để trống đáp án (gia sư chấm)
+            // Cùng quy tắc khi giao bài (strict). Điền khuyết: đáp án không bắt buộc; tự luận: không có đáp án.
             String normalized = engine.validate(type, prompt, points, data, true, false, label);
             return new ImportRow(rowNumber, true, null, type, prompt, points, engine.read(normalized), listening, maxPlays);
         } catch (ClassroomException e) {
@@ -264,6 +267,7 @@ public class ExerciseImportService {
                     {"Nối cột", "Nối Kanji với nghĩa", "犬 = con chó | 猫 = con mèo | 鳥 = con chim", "", "3"},
                     {"Sắp xếp thứ tự", "Sắp xếp thành câu đúng", "私は | 毎日 | 日本語を | 勉強します", "", "2"},
                     {"Tự luận", "Viết 3 câu có dùng Kanji 会 và 社.", "", "", "5"},
+                    {"Điền khuyết", "昨日、友達 ___ 映画を見に行きました。", "", "", "1"},
                     {"Trắc nghiệm 1 đáp án", "Nghe đoạn hội thoại. Hai người hẹn gặp ở đâu?", "駅 | 学校 | 病院", "駅", "2", "Có", "2"},
                     {"Điền khuyết", "Nghe và điền từ: 毎朝 ___ を飲みます。", "", "牛乳;ぎゅうにゅう", "2", "Có", ""}
             };
@@ -286,12 +290,14 @@ public class ExerciseImportService {
                     "• Trắc nghiệm: cột C ghi các lựa chọn cách nhau bằng |; cột D ghi đúng nội dung lựa chọn đúng (hoặc số thứ tự 1, 2, 3…).",
                     "  Nhiều đáp án: cột D ghi các đáp án đúng cách nhau bằng |.",
                     "• Đúng / Sai: cột D ghi Đúng hoặc Sai.",
-                    "• Điền khuyết: cột B ghi câu có chỗ trống ___ (3 dấu gạch dưới); cột D ghi đáp án từng chỗ trống cách nhau bằng |,",
-                    "  mỗi chỗ trống nhiều cách viết đúng thì cách nhau bằng ; (vd 牛乳;ぎゅうにゅう).",
-                    "• Điền từ có sẵn: cột B câu có ___; cột D từ đúng từng chỗ trống (cách nhau |); cột C các từ gây nhiễu (cách nhau |).",
+                    "• Điền khuyết: cột B ghi câu có chỗ trống ___ (3 dấu gạch dưới). Cột D – đáp án KHÔNG bắt buộc:",
+                    "  ghi đáp án từng chỗ trống cách nhau bằng |, nhiều cách viết đúng thì cách nhau bằng ; (vd 牛乳;ぎゅうにゅう).",
+                    "  Học viên điền khớp đáp án → máy chấm đúng ngay; ô không có đáp án hoặc điền khác → AI gợi ý điểm, gia sư duyệt.",
+                    "• Điền từ có sẵn: cột B câu có ___; cột D từ đúng từng chỗ trống (cách nhau |);",
+                    "  cột C các từ gây nhiễu (cách nhau |). Tổng số từ (từ đúng + từ nhiễu) phải từ 2 trở lên.",
                     "• Nối cột: cột C ghi các cặp \"vế trái = vế phải\" cách nhau bằng |.",
                     "• Sắp xếp thứ tự: cột C ghi các mục THEO ĐÚNG THỨ TỰ, cách nhau bằng | (hệ thống tự xáo trộn khi học viên làm).",
-                    "• Tự luận: cột D ghi các đáp án được chấp nhận (cách nhau | hoặc ;) — để trống nếu gia sư tự chấm.",
+                    "• Tự luận: chỉ cần cột B (đề bài), không có đáp án. Bài nộp được AI gợi ý điểm, gia sư duyệt.",
                     "• Cột F – Câu nghe: ghi Có nếu câu cần file nghe (để trống = câu thường). Cột G – Số lần nghe: 1–5, để trống = không giới hạn.",
                     "  Excel không chứa được file âm thanh: sau khi nhập, câu nghe được đánh dấu \"Thiếu file nghe\" trên trình soạn,",
                     "  bấm vào câu đó → \"Thêm file nghe\". Bài còn câu nghe thiếu file thì lưu nháp được nhưng chưa giao được.",

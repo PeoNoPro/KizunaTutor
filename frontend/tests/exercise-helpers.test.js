@@ -16,6 +16,8 @@ import {
   formatScore,
   validateExerciseSettings,
   exerciseStateLabel,
+  isTutorGraded,
+  fillBlankMissingAnswers,
   QUESTION_TYPES
 } from '../js/exercise-helpers.js';
 
@@ -42,21 +44,25 @@ test('kiểm tra câu trước khi giao: báo đúng lỗi từng dạng', () =>
 
   const fill = defaultQuestion('FILL_BLANK');
   assert.match(validateQuestion(fill), /___/);
+  // Điền khuyết: đáp án không bắt buộc (ô để trống → AI gợi ý, gia sư duyệt)
   fill.data.text = 'Tôi ___ cơm';
-  assert.equal(validateQuestion(fill), 'chỗ trống 1 chưa có đáp án.');
+  assert.equal(validateQuestion(fill), null);
+  assert.equal(fillBlankMissingAnswers(fill), 1);
   fill.data.answers = [['ăn']];
   assert.equal(validateQuestion(fill), null);
+  assert.equal(fillBlankMissingAnswers(fill), 0);
 
-  // Câu tự luận chọn người chấm riêng: mặc định gia sư chấm; chọn máy chấm thì bắt buộc có đáp án
+  // Tự luận: chỉ cần đề, không có đáp án / bài mẫu / người chấm
   const essay = { ...defaultQuestion('WRITTEN'), prompt: 'Viết' };
+  assert.deepEqual(essay.data, {});
   assert.equal(validateQuestion(essay), null);
-  const machine = { ...essay, data: { ...essay.data, grader: 'AUTO' } };
-  assert.match(validateQuestion(machine), /Máy chấm.*đáp án/);
-  assert.equal(validateQuestion({ ...machine, data: { ...machine.data, accepted: ['せんせい'] } }), null);
-  // Dữ liệu cũ (chưa có grader): theo cách chấm cũ của bài
-  const legacy = { type: 'WRITTEN', prompt: 'Viết', points: 1, data: { accepted: [] } };
-  assert.match(validateQuestion(legacy, { autoMode: true }), /Gia sư chấm/);
-  assert.equal(validateQuestion(legacy, { autoMode: false }), null);
+  assert.ok(isTutorGraded(essay) && isTutorGraded(fill));
+  assert.deepEqual(questionPayload({ ...essay, data: { grader: 'AUTO', accepted: ['x'], sample: 'y' } }).data, {});
+
+  // Kéo thả từ: tổng số từ (đúng + nhiễu) ít nhất 2
+  const bank = { type: 'WORD_BANK', prompt: '', points: 1, data: { text: '___ です', answers: ['これ'], distractors: [] } };
+  assert.match(validateQuestion(bank), /ít nhất 2 từ/);
+  assert.equal(validateQuestion({ ...bank, data: { ...bank.data, distractors: ['あれ'] } }), null);
 
   const match = { ...defaultQuestion('MATCHING'), prompt: 'Nối' };
   assert.equal(validateQuestion(match), 'có cặp nối đang để trống.');

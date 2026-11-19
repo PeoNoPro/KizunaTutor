@@ -40,6 +40,9 @@ const $ = (id) => document.getElementById(id);
 let currentSpace = null;
 let materials = [];
 const materialFilter = { kind: '', keyword: '' };
+/** Số tài liệu hiện mỗi lần ("Xem thêm" để hiện tiếp). */
+const MATERIAL_PAGE = 10;
+let materialLimit = MATERIAL_PAGE;
 const openMaterialGroups = new Set();
 let currentTab = 'tong-quan';
 
@@ -170,6 +173,7 @@ async function loadCourse(spaceId) {
   materials = [];
   materialFilter.kind = '';
   materialFilter.keyword = '';
+  materialLimit = MATERIAL_PAGE;
   openMaterialGroups.clear();
   $('myMaterialSearch').value = '';
   hideLearnerAssignments();
@@ -320,12 +324,14 @@ function renderMaterials() {
     return;
   }
   stateBox.classList.add('hidden');
+  const visible = [...filtered].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    .slice(0, materialLimit);
   if (materialFilter.keyword.trim() || materialFilter.kind) {
-    const sorted = [...filtered].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    list.innerHTML = `<p class="font-body-sm text-[12px] text-on-surface-variant">${sorted.length} tài liệu phù hợp</p>
-      <ul class="flex flex-col gap-3">${sorted.map(materialItemHtml).join('')}</ul>`;
+    list.innerHTML = `<p class="font-body-sm text-[12px] text-on-surface-variant">${filtered.length} tài liệu phù hợp</p>
+      <ul class="flex flex-col gap-3">${visible.map(materialItemHtml).join('')}</ul>` + (filtered.length > visible.length ? `
+      <div class="flex justify-center"><button type="button" class="kz-btn" data-more-materials>Xem thêm ${Math.min(MATERIAL_PAGE, filtered.length - visible.length)} tài liệu (còn ${filtered.length - visible.length})</button></div>` : '');
   } else {
-    list.innerHTML = groupByWeek(filtered, (m) => m.createdAt).map((g, gi) => {
+    list.innerHTML = groupByWeek(visible, (m) => m.createdAt).map((g, gi) => {
       const open = gi === 0 || openMaterialGroups.has(g.key);
       return `
         <section>
@@ -333,7 +339,8 @@ function renderMaterials() {
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">${open ? 'expand_more' : 'chevron_right'}</span>${escapeHtml(g.label)}<span class="normal-case font-normal">· ${g.items.length} tài liệu</span></button>
           <ul class="flex flex-col gap-3 mt-2 ${open ? '' : 'hidden'}">${g.items.map(materialItemHtml).join('')}</ul>
         </section>`;
-    }).join('');
+    }).join('') + (filtered.length > visible.length ? `
+      <div class="flex justify-center"><button type="button" class="kz-btn" data-more-materials>Xem thêm ${Math.min(MATERIAL_PAGE, filtered.length - visible.length)} tài liệu (còn ${filtered.length - visible.length})</button></div>` : '');
   }
   list.querySelectorAll('[data-open-material]').forEach((btn) => {
     btn.addEventListener('click', () => openMaterial(btn.dataset.openMaterial, btn.dataset.file, btn));
@@ -411,15 +418,22 @@ function init() {
   document.querySelectorAll('[data-goto-tab]').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.gotoTab)));
   $('myMaterialSearch').addEventListener('input', (e) => {
     materialFilter.keyword = e.target.value;
+    materialLimit = MATERIAL_PAGE;
     renderMaterials();
   });
   $('myMaterialChips').addEventListener('click', (e) => {
     const chip = e.target.closest('[data-kind]');
     if (!chip) return;
     materialFilter.kind = chip.dataset.kind;
+    materialLimit = MATERIAL_PAGE;
     renderMaterials();
   });
   $('myCourseMaterialsList').addEventListener('click', (e) => {
+    if (e.target.closest('[data-more-materials]')) {
+      materialLimit += MATERIAL_PAGE;
+      renderMaterials();
+      return;
+    }
     const head = e.target.closest('[data-mgroup]');
     if (!head) return;
     const open = head.getAttribute('aria-expanded') === 'true';

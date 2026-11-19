@@ -91,17 +91,32 @@ const state = {
   deletingSchedule: null,
   tab: 'tong-quan',
   materialFilter: { kind: '', keyword: '' },
+  materialLimit: 10,
   collapsedGroups: new Set()
 };
 
 // ----------------------------------------------------------------------------
 // Tab của lớp: Tổng quan · Bài tập · Tài liệu (?tab=tong-quan|bai-tap|tai-lieu)
 // ----------------------------------------------------------------------------
+/** Số tài liệu hiện mỗi lần ("Xem thêm" để hiện tiếp). */
+const MATERIAL_PAGE = 10;
 const TAB_PANELS = { 'tong-quan': 'tabOverview', 'bai-tap': 'tabAssignments', 'tai-lieu': 'tabMaterials' };
 
 /** Tab mở đầu: ?tab=, hoặc theo mục thanh bên (Tài liệu học tập / Quản lý bài tập), mặc định Tổng quan. */
+/**
+ * Vào lớp từ mục "Tài liệu học tập" / "Quản lý bài tập" trên thanh bên: chỉ hiện đúng phần đó (khóa tab, ẩn thanh tab).
+ * Vào từ "Học viên của tôi": đủ 3 tab. Trả null khi không khóa.
+ */
+function lockedTab() {
+  const muc = currentMuc();
+  if (muc === 'tai-lieu' || currentView() === 'materials') return 'tai-lieu';
+  if (muc === 'bai-tap' || currentView() === 'assignments') return 'bai-tap';
+  return null;
+}
+
 function initialTab() {
   const params = new URLSearchParams(window.location.search);
+  if (lockedTab()) return lockedTab();
   if (params.get('tab')) return normalizeTab(params.get('tab'));
   if (params.get('newFile') || params.get('grade')) return 'bai-tap';
   const muc = currentMuc();
@@ -111,7 +126,9 @@ function initialTab() {
 }
 
 function setTab(key, { updateUrl = true } = {}) {
-  state.tab = normalizeTab(key);
+  const locked = lockedTab();
+  state.tab = locked || normalizeTab(key);
+  $('classTabs').classList.toggle('hidden', !!locked);
   Object.entries(TAB_PANELS).forEach(([k, id]) => $(id)?.classList.toggle('hidden', k !== state.tab));
   document.querySelectorAll('#classTabs [data-tab]').forEach((b) => {
     b.setAttribute('aria-selected', String(b.dataset.tab === state.tab));
@@ -119,7 +136,7 @@ function setTab(key, { updateUrl = true } = {}) {
   });
   if (updateUrl) {
     const url = new URL(window.location.href);
-    if (state.tab === 'tong-quan') url.searchParams.delete('tab');
+    if (state.tab === 'tong-quan' || locked) url.searchParams.delete('tab');
     else url.searchParams.set('tab', state.tab);
     window.history.replaceState(window.history.state, '', url);
   }
@@ -481,6 +498,7 @@ async function loadSpace(spaceId) {
   hideTutorAssignments();
   Object.values(TAB_PANELS).forEach((id) => $(id)?.classList.add('hidden'));
   state.materialFilter = { kind: '', keyword: '' };
+  state.materialLimit = MATERIAL_PAGE;
   state.collapsedGroups = new Set();
   if ($('materialSearch')) $('materialSearch').value = '';
   try {
@@ -934,14 +952,16 @@ function renderMaterials() {
     return;
   }
   stateBox.classList.add('hidden');
+  // Đang tìm / lọc: bỏ nhóm tuần, hiện thẳng kết quả (mới nhất trước). Mỗi lần hiện 10 tài liệu.
   const searching = !!(state.materialFilter.keyword.trim() || state.materialFilter.kind);
+  const visible = [...filtered].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    .slice(0, state.materialLimit);
   if (searching) {
-    // Đang tìm / lọc: bỏ nhóm tuần, hiện thẳng kết quả (mới nhất trước)
-    const sorted = [...filtered].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    list.innerHTML = `<p class="font-caption text-caption text-on-surface-variant">${sorted.length} tài liệu phù hợp</p>
-      <ul class="flex flex-col gap-3">${sorted.map((m) => materialItemHtml(m, canManage)).join('')}</ul>`;
+    list.innerHTML = `<p class="font-caption text-caption text-on-surface-variant">${filtered.length} tài liệu phù hợp</p>
+      <ul class="flex flex-col gap-3">${visible.map((m) => materialItemHtml(m, canManage)).join('')}</ul>` + (filtered.length > visible.length ? `
+      <div class="flex justify-center"><button type="button" class="kz-btn" data-more-materials>Xem thêm ${Math.min(MATERIAL_PAGE, filtered.length - visible.length)} tài liệu (còn ${filtered.length - visible.length})</button></div>` : '');
   } else {
-    const groups = groupByWeek(filtered, (m) => m.createdAt);
+    const groups = groupByWeek(visible, (m) => m.createdAt);
     list.innerHTML = groups.map((g, gi) => {
       const collapsed = state.collapsedGroups.has(`m:${g.key}`) || (gi > 0 && !state.collapsedGroups.has(`m:${g.key}:open`));
       return `
@@ -950,7 +970,8 @@ function renderMaterials() {
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">${collapsed ? 'chevron_right' : 'expand_more'}</span>${escapeHtml(g.label)}<span class="normal-case font-normal">· ${g.items.length} tài liệu</span></button>
           <ul class="flex flex-col gap-3 mt-2 ${collapsed ? 'hidden' : ''}">${g.items.map((m) => materialItemHtml(m, canManage)).join('')}</ul>
         </section>`;
-    }).join('');
+    }).join('') + (filtered.length > visible.length ? `
+      <div class="flex justify-center"><button type="button" class="kz-btn" data-more-materials>Xem thêm ${Math.min(MATERIAL_PAGE, filtered.length - visible.length)} tài liệu (còn ${filtered.length - visible.length})</button></div>` : '');
   }
   list.querySelectorAll('[data-open-material]').forEach((btn) => {
     btn.addEventListener('click', () => openMaterial(btn.dataset.openMaterial, btn.dataset.file, btn));
@@ -1182,15 +1203,22 @@ function init() {
   }));
   $('materialSearch').addEventListener('input', (e) => {
     state.materialFilter.keyword = e.target.value;
+    state.materialLimit = MATERIAL_PAGE;
     renderMaterials();
   });
   $('materialKindChips').addEventListener('click', (e) => {
     const chip = e.target.closest('[data-kind]');
     if (!chip) return;
     state.materialFilter.kind = chip.dataset.kind;
+    state.materialLimit = MATERIAL_PAGE;
     renderMaterials();
   });
   $('materialsList').addEventListener('click', (e) => {
+    if (e.target.closest('[data-more-materials]')) {
+      state.materialLimit += MATERIAL_PAGE;
+      renderMaterials();
+      return;
+    }
     const head = e.target.closest('[data-group]');
     if (!head) return;
     const key = head.dataset.group;

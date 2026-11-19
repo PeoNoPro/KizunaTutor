@@ -73,6 +73,16 @@
 .pr-confirm[data-danger] .pr-confirm-head .material-symbols-outlined{background:var(--pr-bad-bg);color:var(--pr-bad)}
 .pr-confirm-head h2{margin:2px 0 4px;font-size:18px;color:var(--pr-navy)}
 .pr-confirm-head p{margin:0;font-size:14px;line-height:1.55;color:var(--pr-text)}
+/* Hộp xác nhận căn giữa khi làm bài (chuyển phần thi / nộp bài). */
+.pr-confirm[data-center]{width:min(520px,calc(100vw - 32px));border-radius:24px}
+.pr-confirm[data-center] .pr-dialog-body{padding:32px 32px 28px;gap:24px}
+.pr-confirm[data-center] .pr-confirm-head{display:block;text-align:center}
+.pr-confirm[data-center] .pr-confirm-head h2{margin:0 0 12px;font-size:26px;font-weight:800;color:var(--pr-primary)}
+.pr-confirm[data-center] .pr-confirm-head p{font-size:16px;line-height:1.75;color:var(--pr-text)}
+.pr-confirm[data-center] .pr-confirm-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pr-confirm[data-center] .pr-confirm-row .pr-btn{min-height:50px;justify-content:center;font-weight:700;font-size:15px}
+.pr-confirm[data-center] .pr-confirm-row .pr-btn:first-child{border-color:var(--pr-primary);color:var(--pr-primary);background:#fff}
+@media(max-width:420px){.pr-confirm[data-center] .pr-dialog-body{padding:24px 18px}.pr-confirm[data-center] .pr-confirm-head h2{font-size:22px}}
 .pr-field{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--pr-navy)}
 .pr-field input,.pr-field select,.pr-field textarea{border:1px solid #c9d3dc;border-radius:10px;padding:9px 12px;font:inherit;font-weight:400;color:var(--pr-navy);background:#fff}
 .pr-field textarea{min-height:80px;resize:vertical}

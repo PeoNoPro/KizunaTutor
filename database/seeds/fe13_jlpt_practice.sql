@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS practice_attempts (
     attempt_id      UUID PRIMARY KEY,
     learner_id      UUID NOT NULL REFERENCES users(user_id),
     level           VARCHAR(2) NOT NULL CHECK (level IN ('N1','N2','N3','N4','N5')),
-    mode            VARCHAR(8) NOT NULL CHECK (mode IN ('RANDOM','EXAM')),
+    mode            VARCHAR(8) NOT NULL CONSTRAINT practice_attempts_mode_check CHECK (mode = 'EXAM'),
     exam_id         UUID REFERENCES practice_exams(exam_id),
     sections        TEXT NOT NULL,
     wrong_only      BOOLEAN NOT NULL DEFAULT false,

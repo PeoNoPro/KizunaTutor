@@ -3,7 +3,8 @@
  * - Cột phải: tên bài, đồng hồ, Nộp bài, tiến độ, danh sách phần thi (Đang làm / Đã làm / Chưa làm), bảng số câu của phần.
  * - Cột trái: cả phần thi đang chọn — mondai, hướng dẫn, đoạn văn, các câu xếp dọc; chọn đáp án là lưu ngay.
  * - Thi thử đầy đủ (Theo đề, từ 2 phần trở lên, không phải "làm lại câu sai"): như thi thật — mỗi phần một đồng hồ riêng,
- *   "Nộp phần này" hoặc hết giờ thì khóa phần đó, không quay lại (N1/N2 gộp Từ vựng + Ngữ pháp – Đọc hiểu làm một phần).
+ *   chuyển phần hoặc hết giờ thì khóa phần đó, không quay lại (N1/N2 gộp Từ vựng + Ngữ pháp – Đọc hiểu làm một phần).
+ * - Nút "Nộp bài" (đổi 2026-11-18): còn phần sau thì hỏi "Chuyển phần thi tiếp theo", ở phần cuối mới hỏi "Xác nhận nộp bài".
  *   Các chế độ còn lại chuyển phần tự do, một đồng hồ tổng. Máy chủ giữ hạn chót tổng, quá hạn tự nộp.
  * - Phần Nghe (chỉ có khi làm theo đề): thanh âm thanh cố định ở đáy, phát cả file liền mạch, được tua.
  *   Lời thoại chỉ hiện sau khi nộp.
@@ -132,18 +133,7 @@ function init(root) {
       cell.onclick = () => root.querySelector(`[data-card="${q.questionId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return cell;
     }));
-    const index = sections.indexOf(current);
-    if (locked()) {
-      // Chỉ chuyển trong phần đang làm (N1/N2 gộp 2 phần thi); sang phần sau phải "Nộp phần này".
-      const inPhase = phases[phase].sections, at = inPhase.indexOf(current);
-      $('paPrevSection').hidden = at <= 0;
-      $('paNextSection').hidden = phase >= phases.length - 1 && at >= inPhase.length - 1;
-      $('paNextSection').firstChild.textContent = at < inPhase.length - 1 ? 'Phần tiếp theo' : 'Nộp phần này, sang phần tiếp';
-      $('paTitle').textContent += ` · Phần ${phase + 1}/${phases.length} (${phases[phase].ms / 60000} phút)`;
-    } else {
-      $('paPrevSection').hidden = index <= 0; $('paNextSection').hidden = index >= sections.length - 1;
-      $('paNextSection').firstChild.textContent = 'Phần tiếp theo';
-    }
+    if (locked()) $('paTitle').textContent += ` · Phần ${phase + 1}/${phases.length} (${phases[phase].ms / 60000} phút)`;
   }
 
   /** Cả phần thi: các mondai xếp dọc; mỗi mondai có tiêu đề, hướng dẫn, đoạn văn nhóm và các câu. */
@@ -206,33 +196,57 @@ function init(root) {
 
   // ---- Thao tác
   async function save(q) {
-    try { await api(`/learner/practice/attempts/${attemptId}/answers/${q.questionId}`, { method: 'PUT', body: { chosen: q.chosen ?? null, flagged: !!q.flagged } }); }
+    try {
+      const result = await api(`/learner/practice/attempts/${attemptId}/answers/${q.questionId}`, { method: 'PUT', body: { chosen: q.chosen ?? null, flagged: !!q.flagged } });
+      // Hết giờ: máy chủ đã chấm và nộp bài, tải lại để hiện kết quả.
+      if (result?.expired) { showToast(result.message || 'Đã hết giờ, hệ thống đã tự nộp.', 'info'); load(); }
+    }
     catch (error) { showToast(error.message, 'error'); if (error.status === 409) load(); }
   }
   // Chỉ vẽ lại đúng câu vừa chọn để trang không nhảy vị trí cuộn.
   function choose(q, value, card) { q.chosen = q.chosen === value ? null : value; card.replaceWith(questionCard(q)); renderSide(); save(q); }
   function go(code) { if (code === current) return; current = code; renderAll(); main()?.scrollTo({ top: 0 }); }
-  $('paPrevSection').addEventListener('click', () => go(sections[sections.indexOf(current) - 1]));
-  $('paNextSection').addEventListener('click', () => {
+  /**
+   * Nút "Nộp bài": còn phần thi phía sau thì chuyển sang phần đó (thi thử đầy đủ: hết phần đang làm thì khóa phần đó),
+   * đang ở phần cuối thì nộp cả bài. Luôn hỏi lại trước.
+   */
+  async function submitOrNext() {
+    if (data.submitted) return;
+    let next = null, closePhase = false;
     if (locked()) {
       const inPhase = phases[phase].sections, at = inPhase.indexOf(current);
-      if (at < inPhase.length - 1) { go(inPhase[at + 1]); return; }
-      const empty = data.questions.filter(q => inPhase.includes(q.section) && !q.chosen).length;
-      askConfirm({ host: root, iconName: 'arrow_forward', title: 'Nộp phần này?', ok: 'Nộp phần này', cancel: 'Làm tiếp',
-        message: (empty ? `Phần này còn ${empty} câu chưa trả lời. ` : '') + 'Sau khi nộp bạn sẽ sang phần tiếp theo và không quay lại sửa phần này được nữa (giống thi thật).' })
-        .then(yes => { if (yes && locked()) finishPhase(false); });
-      return;
+      if (at < inPhase.length - 1) next = inPhase[at + 1];
+      else if (phase < phases.length - 1) { next = phases[phase + 1].sections[0]; closePhase = true; }
+    } else {
+      const index = sections.indexOf(current);
+      if (index < sections.length - 1) next = sections[index + 1];
     }
-    go(sections[sections.indexOf(current) + 1]);
-  });
+    if (!next) { submit(false); return; }
+    const left = inSection(current).filter(q => !q.chosen).length;
+    let message;
+    if (left) {
+      message = document.createDocumentFragment();
+      message.append('Mỗi câu hỏi là một bước tiến. Bạn hãy tiếp tục hành trình của mình với ', el('strong', `${left} bước`), ' còn lại!');
+    } else message = 'Bạn đã sẵn sàng cho phần thi tiếp theo chưa ?';
+    const yes = await askConfirm({ host: root, center: true, title: 'Chuyển phần thi tiếp theo', ok: 'Chuyển phần thi', cancel: 'Quay lại',
+      message: closePhase ? withLockNote(message) : message });
+    if (!yes || data.submitted) return;
+    if (closePhase) { if (locked()) finishPhase(false); } else go(next);
+  }
+  /** Thi thử đầy đủ: nhắc phần vừa làm sẽ khóa, giống thi thật. */
+  function withLockNote(message) {
+    const box = document.createDocumentFragment();
+    box.append(message, el('br'), el('small', 'Sau khi chuyển sẽ không quay lại sửa phần này được nữa.', 'pa-sub'));
+    return box;
+  }
 
   async function submit(auto) {
     if (data.submitted) return;
     if (!auto) {
       const empty = data.questions.filter(q => !q.chosen).length;
-      const yes = await askConfirm({ host: root, iconName: 'send', title: 'Nộp bài?', ok: 'Nộp bài', cancel: 'Làm tiếp',
-        message: empty ? `Bạn còn ${empty}/${data.questions.length} câu chưa trả lời, câu bỏ trống tính là sai. Sau khi nộp sẽ xem được kết quả, đáp án và giải thích.`
-          : 'Bạn đã trả lời hết các câu. Sau khi nộp sẽ xem được kết quả, đáp án và giải thích.' });
+      const yes = await askConfirm({ host: root, center: true, title: 'Xác nhận nộp bài', ok: 'Nộp bài', cancel: 'Quay lại',
+        message: empty ? 'Bạn chưa hoàn thành bài làm của mình. Bạn có chắc chắn muốn nộp bài không?'
+          : 'Bạn có chắc chắn muốn nộp bài không? Hãy đảm bảo rằng bạn đã kiểm tra lại tất cả câu trả lời trước khi nộp.' });
       if (!yes || data.submitted) return;
     }
     clearInterval(timer); $('paSubmit').disabled = true;
@@ -245,7 +259,7 @@ function init(root) {
     } catch (error) { showToast(error.message, 'error'); startTimer(); }
     finally { $('paSubmit').disabled = false; }
   }
-  $('paSubmit').addEventListener('click', () => submit(false));
+  $('paSubmit').addEventListener('click', submitOrNext);
 
   furiganaToggle(root, $('paFurigana'));
   load();

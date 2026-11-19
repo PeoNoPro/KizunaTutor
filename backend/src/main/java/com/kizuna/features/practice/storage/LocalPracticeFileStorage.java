@@ -23,7 +23,7 @@ public class LocalPracticeFileStorage implements PracticeFileStorage {
         this.root = Paths.get(dir).toAbsolutePath().normalize();
     }
 
-    /** Đường dẫn thật của khóa trên máy chủ (lớp lưu R2 dùng thư mục này làm bộ nhớ đệm). */
+    /** Đường dẫn thật của khóa trên máy chủ. */
     Path resolve(String key) {
         Path path = root.resolve(key).normalize();
         if (!path.startsWith(root)) throw new IllegalArgumentException("Khóa file không hợp lệ.");
@@ -36,16 +36,7 @@ public class LocalPracticeFileStorage implements PracticeFileStorage {
         try {
             Files.createDirectories(target.getParent());
             temp = Files.createTempFile(target.getParent(), "upload-", ".part");
-            long total = 0;
-            try (InputStream in = content; OutputStream out = Files.newOutputStream(temp)) {
-                byte[] buffer = new byte[64 * 1024];
-                for (int read; (read = in.read(buffer)) != -1; ) {
-                    total += read;
-                    if (total > maxBytes) throw new BusinessException(413, "Tệp vượt dung lượng cho phép (tối đa " + (maxBytes / 1_000_000) + " MB).");
-                    out.write(buffer, 0, read);
-                }
-            }
-            if (total == 0) throw new BusinessException(400, "Tệp rỗng, vui lòng chọn lại.");
+            long total = copyLimited(content, temp, maxBytes);
             Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             temp = null;
             return total;
@@ -54,6 +45,21 @@ public class LocalPracticeFileStorage implements PracticeFileStorage {
         } finally {
             if (temp != null) try { Files.deleteIfExists(temp); } catch (IOException ignored) { /* tệp tạm, bỏ qua */ }
         }
+    }
+
+    /** Chép luồng vào tệp, dừng và báo lỗi ngay khi vượt {@code maxBytes} (không giữ cả tệp trong bộ nhớ). */
+    static long copyLimited(InputStream content, Path target, long maxBytes) throws IOException {
+        long total = 0;
+        try (InputStream in = content; OutputStream out = Files.newOutputStream(target)) {
+            byte[] buffer = new byte[64 * 1024];
+            for (int read; (read = in.read(buffer)) != -1; ) {
+                total += read;
+                if (total > maxBytes) throw new BusinessException(413, "Tệp vượt dung lượng cho phép (tối đa " + (maxBytes / 1_000_000) + " MB).");
+                out.write(buffer, 0, read);
+            }
+        }
+        if (total == 0) throw new BusinessException(400, "Tệp rỗng, vui lòng chọn lại.");
+        return total;
     }
 
     @Override

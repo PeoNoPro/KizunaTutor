@@ -305,12 +305,14 @@ function renderStorage(data) {
     let current = !data.configured ? 'Chưa dùng lưu trữ đám mây: tệp đang lưu trên máy chủ.'
         : data.source === 'server' ? 'Đang dùng: ' + where + ' (cấu hình server, biến môi trường R2_*).' : 'Đang dùng: ' + where + '.';
     if (data.configured && !data.active) current += ' Cần khởi động lại backend một lần để bật lưu trữ đám mây.';
+    // Tải file nghe của gia sư (phần của nhóm) chỉ chạy khi server bật R2_ENABLED=true.
+    if (data.source === 'admin' && !data.serverR2Enabled) current += ' Lưu ý: chức năng tải file nghe của gia sư cần server đặt R2_ENABLED=true.';
     byId('storageCurrent').textContent = current;
     const reset = byId('resetStorage');
     reset.hidden = !(data.source === 'admin' && data.serverDefault);
     reset.title = data.serverDefault ? 'Dùng lại ' + data.serverDefault + ' như lúc nhóm cài đặt (biến môi trường R2_*).' : '';
     byId('storageCopyBox').hidden = !data.previous;
-    byId('storageCopyInfo').textContent = data.previous ? 'Kho trước đó: ' + data.previous + '. Tệp cũ vẫn nằm ở kho này; chép sang để hệ thống mở được trên kho mới. Không xóa gì ở kho cũ, tệp đã có thì bỏ qua.' : '';
+    byId('storageCopyInfo').textContent = data.previous ? 'Kho trước đó: ' + data.previous + '. Tệp cũ vẫn nằm ở kho này và vẫn mở được (hệ thống tự đọc ở kho cũ khi kho mới chưa có). Nên chép sang để sau này có thể ngừng dùng kho cũ. Không xóa gì ở kho cũ, tệp đã có thì bỏ qua.' : '';
     syncStorageNote();
 }
 
@@ -341,7 +343,11 @@ async function testStorage() {
 async function saveStorage() {
     const payload = storagePayload(), box = byId('storageResult');
     const label = state.storage.providers.find(item => item.code === payload.provider)?.label || payload.provider;
-    if (!confirm('Chuyển lưu trữ sang ' + label + ' · bucket ' + payload.bucket + '? Tệp tải lên từ giờ sẽ lưu ở kho này; tệp cũ cần chép sang bằng nút "Chép tệp sang kho mới".')) return;
+    if (!confirm('Chuyển lưu trữ sang ' + label + ' · bucket ' + payload.bucket + '?
+
+• Tệp tải lên từ giờ lưu ở kho mới.
+• Tệp cũ vẫn mở được: hệ thống tự đọc ở kho cũ khi kho mới chưa có.
+• Nên bấm "Chép tệp sang kho mới" sau khi chuyển, và đừng xóa kho cũ trước khi chép xong.')) return;
     const button = document.querySelector('#storageForm [type="submit"]'); if (button) button.disabled = true;
     box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang thử kết nối kho mới và lưu…';
     try { await slowPost(STORAGE_PATH, {...payload, expectedVersion: state.storage.version, reason: byId('storageReason').value}, 'PUT'); }

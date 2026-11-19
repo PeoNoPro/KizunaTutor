@@ -17,7 +17,7 @@ import java.util.*;
  *   <li>Làm bài mới: toàn bộ câu của các phần đã chọn theo thứ tự trong đề; thời gian = tổng số phút các phần.</li>
  *   <li>Làm lại câu sai: chỉ câu của đề đó có lần trả lời gần nhất bị sai, không tính giờ.</li>
  * </ul>
- * Chế độ trộn ngẫu nhiên (RANDOM) đã bỏ 2026-11-17; bài trộn cũ trong lịch sử vẫn xem lại được.
+ * Chỉ còn chế độ làm theo đề (EXAM); chế độ trộn ngẫu nhiên đã bỏ hẳn 2026-11-19 (cả nhãn và ràng buộc trong DB).
  * Đáp án, giải thích và lời thoại chỉ trả về sau khi nộp. Quá hạn (cộng 2 phút trễ mạng) thì tự nộp khi mở lại bài.
  */
 @Service
@@ -131,7 +131,8 @@ public class PracticeLearnerService {
     public Map<String, Object> answer(UUID learner, UUID attemptId, UUID questionId, Map<String, Object> body) {
         var a = owned(learner, attemptId, true);
         if (a.get("submitted_at") != null) throw new BusinessException(409, "Bài đã nộp, không sửa đáp án được nữa.");
-        if (expired(a)) { grade(attemptId); throw new BusinessException(409, "Đã hết giờ làm bài, hệ thống đã tự nộp."); }
+        // Hết giờ: chấm và lưu ngay (không ném lỗi, nếu ném thì transaction bị hủy và mất kết quả chấm), báo trang tải lại bài.
+        if (expired(a)) { grade(attemptId); return Map.of("saved", false, "expired", true, "message", "Đã hết giờ làm bài, hệ thống đã tự nộp."); }
         Integer chosen = body.get("chosen") instanceof Number n ? n.intValue() : null;
         if (chosen != null && (chosen < 1 || chosen > 4)) throw BusinessException.invalid();
         boolean flagged = Boolean.TRUE.equals(body.get("flagged"));
@@ -151,7 +152,7 @@ public class PracticeLearnerService {
     @Transactional(readOnly = true)
     public Map<String, Object> history(UUID learner, int page, int size) {
         if (page < 0 || size < 1 || size > 50) throw BusinessException.invalid();
-        var rows = jdbc.queryForList("SELECT * FROM practice_attempts WHERE learner_id=? ORDER BY started_at DESC LIMIT ? OFFSET ?", learner, size, page * size);
+        var rows = jdbc.queryForList("SELECT a.*,e.title AS exam_title FROM practice_attempts a LEFT JOIN practice_exams e ON e.exam_id=a.exam_id WHERE a.learner_id=? ORDER BY a.started_at DESC LIMIT ? OFFSET ?", learner, size, page * size);
         Long total = jdbc.queryForObject("SELECT count(*) FROM practice_attempts WHERE learner_id=?", Long.class, learner);
         return Map.of("items", rows.stream().map(this::summary).toList(), "page", page, "size", size, "totalElements", total == null ? 0 : total);
     }
@@ -199,11 +200,13 @@ public class PracticeLearnerService {
     private Map<String, Object> summary(Map<String, Object> a) {
         var out = new LinkedHashMap<String, Object>();
         out.put("attemptId", a.get("attempt_id")); out.put("level", a.get("level")); out.put("mode", a.get("mode"));
-        out.put("modeLabel", "EXAM".equals(a.get("mode")) ? "Theo đề" : "Trộn ngẫu nhiên"); out.put("wrongOnly", a.get("wrong_only"));
+        out.put("modeLabel", "Theo đề"); out.put("wrongOnly", a.get("wrong_only"));
         var sections = Arrays.stream(String.valueOf(a.get("sections")).split(",")).filter(s -> !s.isBlank()).toList();
         out.put("sections", sections); out.put("sectionLabels", sections.stream().map(PracticeExcel.SECTION_LABELS::get).toList());
         out.put("examId", a.get("exam_id"));
-        if (a.get("exam_id") != null) out.put("examTitle", jdbc.queryForList("SELECT title FROM practice_exams WHERE exam_id=?", String.class, a.get("exam_id")).stream().findFirst().orElse(null));
+        // Danh sách lịch sử đã JOIN sẵn tên đề (tránh một truy vấn cho mỗi dòng); trang một bài thì đọc riêng.
+        if (a.containsKey("exam_title")) out.put("examTitle", a.get("exam_title"));
+        else if (a.get("exam_id") != null) out.put("examTitle", jdbc.queryForList("SELECT title FROM practice_exams WHERE exam_id=?", String.class, a.get("exam_id")).stream().findFirst().orElse(null));
         out.put("questionCount", a.get("question_count")); out.put("correctCount", a.get("correct_count"));
         out.put("startedAt", a.get("started_at")); out.put("deadlineAt", a.get("deadline_at")); out.put("submittedAt", a.get("submitted_at"));
         out.put("submitted", a.get("submitted_at") != null);

@@ -93,16 +93,20 @@ export function furiganaToggle(container, button) {
  * Hộp xác nhận ngay trên trang (thay confirm() của trình duyệt). Trả về true khi người dùng đồng ý; Esc hoặc "Quay lại" là false.
  * host: nơi gắn hộp — trang học viên truyền vùng [data-practice-page] để hộp dùng đúng bộ màu học viên.
  */
-export function askConfirm({ title, message, ok = 'Đồng ý', cancel = 'Quay lại', danger = false, iconName, host = document.body }) {
+/** center: hộp căn giữa, không biểu tượng, hai nút bằng nhau (dùng khi làm bài). message có thể là chuỗi hoặc phần tử DOM. */
+export function askConfirm({ title, message, ok = 'Đồng ý', cancel = 'Quay lại', danger = false, iconName, host = document.body, center = false }) {
   return new Promise(resolve => {
     const dialog = el('dialog', undefined, 'pr-dialog pr-confirm');
     if (danger) dialog.dataset.danger = '';
+    if (center) dialog.dataset.center = '';
     dialog.setAttribute('aria-labelledby', 'prConfirmTitle');
     const body = el('div', undefined, 'pr-dialog-body'), head = el('div', undefined, 'pr-confirm-head'), text = el('div');
     const titleNode = el('h2', title); titleNode.id = 'prConfirmTitle';
-    text.append(titleNode); if (message) text.append(el('p', message));
-    head.append(icon(iconName || (danger ? 'warning' : 'help')), text);
-    const row = el('div', undefined, 'flex justify-end gap-2 flex-wrap');
+    text.append(titleNode);
+    if (message) { const p = el('p'); p.append(message); text.append(p); }
+    if (!center) head.append(icon(iconName || (danger ? 'warning' : 'help')));
+    head.append(text);
+    const row = el('div', undefined, 'pr-confirm-row flex justify-end gap-2 flex-wrap');
     const no = el('button', cancel, 'pr-btn'), yes = el('button', ok, danger ? 'pr-btn pr-btn-danger-solid' : 'pr-btn pr-btn-primary');
     no.type = yes.type = 'button';
     let answer = false;

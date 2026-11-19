@@ -29,6 +29,24 @@ Nhóm đã thống nhất bổ sung sau cuộc họp. Chỉ Admin còn hoạt đ
 | `GET /settings/history` | Bổ sung các khóa email gửi thư và AI; giá trị bí mật chỉ ghi "đổi mật khẩu ứng dụng"/"đổi API key" |
 | `GET /audit-log?source=SHIFT` | Nhật ký thao tác thêm nhóm `SHIFT` ("Lịch ca CS") đọc từ `support_shift_events` của FE-10: hành động "Xếp ca"/"Gỡ ca", đối tượng "Ca sáng 07/11/2026 · tên nhân viên", kết quả "Đã lưu". Chỉ đọc |
 
+### Quản lý người dùng và lưu trữ đám mây — bổ sung 2026-11-19
+
+Theo FR-030, FR-031, FR-034 trong `spec.md`.
+
+| Endpoint | Hợp đồng |
+| --- | --- |
+| `GET /users?q&role&status&page&size` | Chỉ Quản lý. `role` thuộc `LEARNER,TUTOR`; `status` thuộc `ACTIVE,SUSPENDED,PENDING,BANNED`; `q` tối đa 200 ký tự. Trả `items[{userId,fullName,email,phone,role,roleLabel,status,statusLabel,createdAt,version,verificationLabel?}],page,size,totalElements,summary` |
+| `GET /users/{id}` | Chỉ Quản lý. Như một dòng danh sách, thêm `membershipLabel,avgRating,totalReviews` (Gia sư) hoặc `currentLevel,targetLevel` (Học viên), `activity`, `ticketCount`, `historyReady`, `history[{action,actionLabel,reason,occurredAt,actorName}]` (10 mục gần nhất). 404 nếu không phải Học viên/Gia sư |
+| `PUT /users/{id}/status` | Chỉ Quản lý, cần CSRF. Body `status(ACTIVE|SUSPENDED),reason(1–500),expectedVersion`. 400 dữ liệu sai; 404 không thấy; 409 sai phiên bản hoặc chuyển trạng thái không hợp lệ; 503 chưa có bảng lịch sử. Trả chi tiết mới |
+| `GET /settings/cloud-storage` | Chỉ Admin. Trả `providers[{code,label}],configured,source(admin|server|none),provider,providerLabel,endpoint,region,bucket,maskedAccessKey,active,previous,serverDefault,version`; không bao giờ trả khóa |
+| `POST /settings/cloud-storage/test` | Body `provider,endpoint,region?,bucket,accessKey?,secretKey?`, chưa lưu. Ghi–đọc–xóa tệp `kizuna-connection-test/<uuid>.txt`; trả `{ok,message,latencyMs}` |
+| `PUT /settings/cloud-storage` | Body như `/test` thêm `expectedVersion,reason`. Thử kết nối trước; lỗi → 400 "Chưa lưu: …"; trùng → 400; phiên bản cũ → 409. Trả như `GET` |
+| `POST /settings/cloud-storage/reset` | Body `expectedVersion,reason`. Quay về kho cấu hình server; 400 nếu đang dùng kho mặc định hoặc server chưa có kho |
+| `GET /settings/cloud-storage/copy` | Tiến độ chép: `state(IDLE|RUNNING|DONE|FAILED),from,to,scanned,copied,skipped,failed,updatedAt,message?` |
+| `POST /settings/cloud-storage/copy` | Bắt đầu chép từ kho cũ sang kho đang dùng; 400 nếu chưa có kho cũ hoặc hai kho là một; 409 nếu đang chép |
+
+Bộ S3 dùng chung (`CloudStorageConfiguration`, bean `@Primary S3Client`/`S3Presigner`): mỗi lệnh gửi tới kho Admin đang chọn và tự thay tên bucket; các chức năng tải tệp khác không phải sửa code. Lúc khởi động chưa có kho nào thì không tạo bean; bật lần đầu cần khởi động lại backend.
+
 Bộ gửi thư dùng chung (`AdminMailConfiguration`, bean `@Primary JavaMailSender`): mọi thư của hệ thống (mật khẩu nhân viên, OTP, xác minh gia sư, thanh toán) gửi bằng tài khoản Admin đã cấu hình; chưa cấu hình thì dùng `spring.mail.*`. Nếu tài khoản Admin không đăng nhập hoặc không kết nối được lúc gửi, thư được gửi lại bằng `spring.mail.*` và ghi cảnh báo vào log máy chủ, để thư của các phân hệ khác không bị chặn.
 
 ### Quản lý báo sự cố cho Admin — bổ sung 2026-11-08

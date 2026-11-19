@@ -160,6 +160,7 @@ const URL_ALIASES = {
   '/learner/practice': '/pages/practice/index.html',
   '/learner/practice/': '/pages/practice/index.html',
   '/learner/practice/attempt': '/pages/practice-attempt/index.html',
+  '/learner/practice/history': '/pages/practice-history/index.html',
   '/academic/profile': '/pages/academic-profile/index.html',
   '/academic/profile/': '/pages/academic-profile/index.html',
   '/academic/content-import': '/pages/academic-content-import/index.html',

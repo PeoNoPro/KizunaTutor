@@ -45,21 +45,15 @@
               <p>Luyện đề thi các năm trước theo cấp độ N5–N1: làm cả đề như thi thật hoặc từng phần, chấm điểm ngay và xem giải thích.</p>
               <div class="flex flex-wrap gap-3">
                 <button id="openStart" type="button" class="pr-btn pr-btn-primary" style="min-height:48px;padding:8px 22px;font-size:16px"><span class="material-symbols-outlined">play_arrow</span>Bắt đầu luyện ngay</button>
-                <a href="#history" class="pr-btn" style="min-height:48px"><span class="material-symbols-outlined">history</span>Lịch sử thi</a>
+                <a href="/learner/practice/history" class="pr-btn" style="min-height:48px"><span class="material-symbols-outlined">history</span>Lịch sử thi</a>
               </div>
             </div>
             <div class="pl-features">
-              <div class="pl-feature"><span class="material-symbols-outlined">replay</span>Làm lại riêng những câu bạn từng làm sai</div>
+              <div class="pl-feature"><span class="material-symbols-outlined">checklist</span>Làm cả đề hoặc chọn từng phần thi</div>
               <div class="pl-feature"><span class="material-symbols-outlined">workspace_premium</span>Đề thi các năm, đủ cấp độ N5 – N1</div>
               <div class="pl-feature"><span class="material-symbols-outlined">headphones</span>Có phần Nghe và lời thoại sau khi nộp</div>
               <div class="pl-feature"><span class="material-symbols-outlined">insights</span>Xem điểm từng phần, đáp án và lịch sử</div>
             </div>
-          </section>
-
-          <section id="history" class="pr-card flex flex-col gap-3">
-            <div class="flex items-center justify-between gap-3"><h2 class="text-[18px] font-bold text-[#0F172A] m-0">Lịch sử thi</h2><span id="historyCount" class="text-[13px] text-[#64748B]"></span></div>
-            <div id="historyList" class="pl-history"><p class="pr-empty">Đang tải…</p></div>
-            <div class="flex justify-center"><button id="historyMore" type="button" class="pr-btn" hidden>Xem thêm</button></div>
           </section>
         </div>
 
@@ -68,12 +62,6 @@
             <div class="pr-dialog-head"><h2 id="startTitle">Bắt đầu luyện đề</h2><button type="button" class="pr-btn" data-close>Đóng</button></div>
             <label class="pr-field">Chọn cấp độ<select name="level"><option>N5</option><option>N4</option><option>N3</option><option>N2</option><option>N1</option></select></label>
             <label class="pr-field">Chọn đề<select name="examId"></select></label>
-            <fieldset class="flex flex-col gap-2"><legend class="pr-field mb-2">Hình thức</legend>
-              <div class="pr-choice-list">
-                <label class="pr-choice"><input type="radio" name="wrongOnly" value="false" checked>Làm bài mới</label>
-                <label class="pr-choice"><input type="radio" name="wrongOnly" value="true">Làm lại câu sai</label>
-              </div>
-            </fieldset>
             <fieldset class="flex flex-col gap-2"><legend class="pr-field mb-2">Chọn phần thi</legend>
               <label class="pr-choice"><input type="checkbox" name="all" checked>Tất cả các phần thi</label>
               <div class="pl-sections" id="sectionChoices"></div>

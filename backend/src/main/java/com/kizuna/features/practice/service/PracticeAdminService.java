@@ -1,15 +1,16 @@
 package com.kizuna.features.practice.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kizuna.core.exception.BusinessException;
 import com.kizuna.features.practice.storage.PracticeFileStorage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -20,6 +21,8 @@ import java.util.*;
 /**
  * FE-13: Ngân hàng đề của cán bộ học vụ — tạo đề từ Excel, xem/sửa câu, tải file nghe (phát cả file khi thi theo đề), đăng/ẩn.
  * Quyền ROLE_ACADEMIC_OFFICER do SecurityConfig kiểm (đường dẫn /api/academic/practice/**).
+ * Tải file (ảnh, file nghe tới 200 MB) luôn làm xong TRƯỚC khi mở transaction, rồi mới mở một transaction ngắn để ghi DB:
+ * không giữ kết nối DB và khóa dòng đề trong lúc chờ mạng. Ghi DB lỗi thì xóa file vừa tải để không để lại tệp mồ côi.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,6 +36,18 @@ public class PracticeAdminService {
     private final ObjectMapper json;
     private final PracticeFileStorage storage;
     private final PracticeMediaTokens tokens;
+    private final PlatformTransactionManager transactions;
+
+    /** File đã lưu vào kho, chờ ghi vào practice_files. */
+    private record Staged(UUID fileId, String key, String name, String contentType, long size) { }
+
+    private TransactionTemplate tx() { return new TransactionTemplate(transactions); }
+
+    /** Chạy phần ghi DB; lỗi thì xóa các file đã lưu trước đó rồi báo lỗi như cũ. */
+    private void writeOrDiscard(Collection<Staged> files, Runnable work) {
+        try { tx().executeWithoutResult(status -> work.run()); }
+        catch (RuntimeException exception) { files.forEach(f -> storage.delete(f.key())); throw exception; }
+    }
 
     // ------------------------------------------------------------------ danh sách / chi tiết
 
@@ -75,35 +90,43 @@ public class PracticeAdminService {
 
     // ------------------------------------------------------------------ tạo / nhập lại
 
-    @Transactional
     public Map<String, Object> create(UUID actor, MultipartFile excel, List<MultipartFile> images) {
         var parsed = parse(excel);
         UUID examId = UUID.randomUUID();
-        jdbc.update("""
-            INSERT INTO practice_exams(exam_id,title,level,exam_month,source,minutes_vocab,minutes_grammar,minutes_listening,status,created_by)
-            VALUES (?,?,?,?,?,?,?,?,'DRAFT',?)""", examId, parsed.title(), parsed.level(), parsed.examMonth(), parsed.source(),
-                parsed.minutesVocab(), parsed.minutesGrammar(), parsed.minutesListening(), actor);
-        saveContent(actor, examId, parsed, images);
+        var staged = stageImages(examId, parsed, images);   // lưu ảnh trước, ngoài transaction
+        writeOrDiscard(staged.values(), () -> {
+            jdbc.update("""
+                INSERT INTO practice_exams(exam_id,title,level,exam_month,source,minutes_vocab,minutes_grammar,minutes_listening,status,created_by)
+                VALUES (?,?,?,?,?,?,?,?,'DRAFT',?)""", examId, parsed.title(), parsed.level(), parsed.examMonth(), parsed.source(),
+                    parsed.minutesVocab(), parsed.minutesGrammar(), parsed.minutesListening(), actor);
+            saveContent(actor, examId, parsed, staged);
+        });
         return detail(examId);
     }
 
     /** Nhập lại nội dung cho đề còn Nháp và chưa có ai làm: thay toàn bộ câu hỏi và ảnh (giữ file nghe). */
-    @Transactional
     public Map<String, Object> reimport(UUID actor, UUID examId, MultipartFile excel, List<MultipartFile> images) {
-        var e = exam(examId, true);
-        if (!"DRAFT".equals(e.get("status")) || used(examId)) throw new BusinessException(409, "Chỉ nhập lại được đề đang Nháp và chưa có học viên làm.");
+        requireReimportable(exam(examId, false), examId);   // báo sớm, trước khi tải ảnh
         var parsed = parse(excel);
-        var oldImages = jdbc.queryForList("SELECT storage_key FROM practice_files WHERE exam_id=? AND kind='IMAGE'", String.class, examId);
-        jdbc.update("DELETE FROM practice_questions WHERE exam_id=?", examId);
-        jdbc.update("DELETE FROM practice_groups WHERE mondai_id IN (SELECT mondai_id FROM practice_mondai WHERE exam_id=?)", examId);
-        jdbc.update("DELETE FROM practice_mondai WHERE exam_id=?", examId);
-        jdbc.update("DELETE FROM practice_files WHERE exam_id=? AND kind='IMAGE'", examId);
-        afterCommit(() -> oldImages.forEach(storage::delete));
-        jdbc.update("""
-            UPDATE practice_exams SET title=?,level=?,exam_month=?,source=?,minutes_vocab=?,minutes_grammar=?,minutes_listening=?,updated_at=now(),version=version+1
-            WHERE exam_id=?""", parsed.title(), parsed.level(), parsed.examMonth(), parsed.source(), parsed.minutesVocab(), parsed.minutesGrammar(), parsed.minutesListening(), examId);
-        saveContent(actor, examId, parsed, images);
+        var staged = stageImages(examId, parsed, images);
+        writeOrDiscard(staged.values(), () -> {
+            requireReimportable(exam(examId, true), examId);   // kiểm lại khi đã khóa dòng đề
+            var oldImages = jdbc.queryForList("SELECT storage_key FROM practice_files WHERE exam_id=? AND kind='IMAGE'", String.class, examId);
+            jdbc.update("DELETE FROM practice_questions WHERE exam_id=?", examId);
+            jdbc.update("DELETE FROM practice_groups WHERE mondai_id IN (SELECT mondai_id FROM practice_mondai WHERE exam_id=?)", examId);
+            jdbc.update("DELETE FROM practice_mondai WHERE exam_id=?", examId);
+            jdbc.update("DELETE FROM practice_files WHERE exam_id=? AND kind='IMAGE'", examId);
+            afterCommit(() -> oldImages.forEach(storage::delete));
+            jdbc.update("""
+                UPDATE practice_exams SET title=?,level=?,exam_month=?,source=?,minutes_vocab=?,minutes_grammar=?,minutes_listening=?,updated_at=now(),version=version+1
+                WHERE exam_id=?""", parsed.title(), parsed.level(), parsed.examMonth(), parsed.source(), parsed.minutesVocab(), parsed.minutesGrammar(), parsed.minutesListening(), examId);
+            saveContent(actor, examId, parsed, staged);
+        });
         return detail(examId);
+    }
+
+    private void requireReimportable(Map<String, Object> e, UUID examId) {
+        if (!"DRAFT".equals(e.get("status")) || used(examId)) throw new BusinessException(409, "Chỉ nhập lại được đề đang Nháp và chưa có học viên làm.");
     }
 
     private PracticeExcel.Exam parse(MultipartFile excel) {
@@ -124,14 +147,26 @@ public class PracticeAdminService {
         InvalidExam(List<PracticeExcel.Problem> problems) { super("Tệp đề còn lỗi."); this.problems = problems; }
     }
 
-    private void saveContent(UUID actor, UUID examId, PracticeExcel.Exam parsed, List<MultipartFile> images) {
+    /** Lưu các ảnh được nhắc trong tệp Excel vào kho (ngoài transaction). Lỗi giữa chừng thì xóa các ảnh đã lưu. */
+    private Map<String, Staged> stageImages(UUID examId, PracticeExcel.Exam parsed, List<MultipartFile> images) {
         // Ảnh: chỉ nhận đúng các tên được nhắc trong tệp Excel.
         var byName = new HashMap<String, MultipartFile>();
         for (var file : images == null ? List.<MultipartFile>of() : images) if (file != null && !file.isEmpty()) byName.put(baseName(file.getOriginalFilename()), file);
         var missing = parsed.imageNames().stream().filter(name -> !byName.containsKey(baseName(name))).toList();
         if (!missing.isEmpty()) throw new InvalidExam(missing.stream().map(n -> new PracticeExcel.Problem(0, "Chưa tải lên ảnh \"" + n + "\".")).toList());
+        var staged = new LinkedHashMap<String, Staged>();
+        try {
+            for (String name : parsed.imageNames()) staged.put(name, stageImage(examId, byName.get(baseName(name))));
+        } catch (RuntimeException exception) {
+            staged.values().forEach(f -> storage.delete(f.key()));
+            throw exception;
+        }
+        return staged;
+    }
+
+    private void saveContent(UUID actor, UUID examId, PracticeExcel.Exam parsed, Map<String, Staged> staged) {
         var imageIds = new HashMap<String, UUID>();
-        for (String name : parsed.imageNames()) imageIds.put(name, storeImage(actor, examId, byName.get(baseName(name))));
+        for (var entry : staged.entrySet()) imageIds.put(entry.getKey(), recordFile(actor, examId, "IMAGE", entry.getValue()));
 
         int mondaiOrder = 0, questionOrder = 0;
         for (var m : parsed.mondai()) {
@@ -155,19 +190,27 @@ public class PracticeAdminService {
         }
     }
 
-    private UUID storeImage(UUID actor, UUID examId, MultipartFile file) {
-        String ext = IMAGE_TYPES.get(String.valueOf(file.getContentType()).toLowerCase(Locale.ROOT));
+    /** Kiểm tra ảnh (loại khai báo, dung lượng, chữ ký đầu tệp) rồi lưu vào kho. Không ghi DB. */
+    private Staged stageImage(UUID examId, MultipartFile file) {
+        String type = String.valueOf(file.getContentType()).toLowerCase(Locale.ROOT);
+        String ext = IMAGE_TYPES.get(type);
         if (ext == null) throw new BusinessException(400, "Ảnh \"" + file.getOriginalFilename() + "\" phải là PNG, JPG hoặc WEBP.");
         if (file.getSize() > MAX_IMAGE) throw new BusinessException(413, "Ảnh \"" + file.getOriginalFilename() + "\" tối đa 5 MB.");
         UUID fileId = UUID.randomUUID();
         String key = "exam/" + examId + "/" + fileId + "." + ext;
-        long size;
-        try { size = storage.save(key, file.getInputStream(), MAX_IMAGE); }
-        catch (IOException exception) { throw new BusinessException(400, "Không đọc được ảnh \"" + file.getOriginalFilename() + "\"."); }
-        rollbackDelete(key);
-        jdbc.update("INSERT INTO practice_files(file_id,exam_id,kind,storage_key,original_name,content_type,size_bytes,created_by) VALUES (?,?,'IMAGE',?,?,?,?,?)",
-                fileId, examId, key, limit(file.getOriginalFilename(), 255), file.getContentType(), size, actor);
-        return fileId;
+        try (var in = new java.io.BufferedInputStream(file.getInputStream())) {
+            if (!PracticeFileTypes.image(ext, PracticeFileTypes.head(in)))
+                throw new BusinessException(400, "Ảnh \"" + file.getOriginalFilename() + "\" không đúng định dạng " + ext.toUpperCase(Locale.ROOT) + ".");
+            return new Staged(fileId, key, limit(file.getOriginalFilename(), 255), type, storage.save(key, in, MAX_IMAGE));
+        } catch (IOException exception) {
+            throw new BusinessException(400, "Không đọc được ảnh \"" + file.getOriginalFilename() + "\".");
+        }
+    }
+
+    private UUID recordFile(UUID actor, UUID examId, String kind, Staged f) {
+        jdbc.update("INSERT INTO practice_files(file_id,exam_id,kind,storage_key,original_name,content_type,size_bytes,created_by) VALUES (?,?,?,?,?,?,?,?)",
+                f.fileId(), examId, kind, f.key(), f.name(), f.contentType(), f.size(), actor);
+        return f.fileId();
     }
 
     // ------------------------------------------------------------------ sửa
@@ -190,10 +233,15 @@ public class PracticeAdminService {
         return detail(examId);
     }
 
+    /**
+     * Sửa một câu. Phải gửi phiên bản đề đang xem (hai người sửa cùng lúc thì người sau nhận 409).
+     * Đề đã có học viên làm: chỉ sửa được chữ (câu hỏi, nội dung lựa chọn, giải thích, lời thoại); không đổi đáp án đúng
+     * hay số lựa chọn, vì bài đã nộp lưu kết quả chấm và lựa chọn theo đáp án cũ.
+     */
     @Transactional
     public Map<String, Object> updateQuestion(UUID examId, UUID questionId, Map<String, Object> body) {
-        exam(examId, true);
-        var rows = jdbc.queryForList("SELECT question_id FROM practice_questions WHERE question_id=? AND exam_id=? FOR UPDATE", questionId, examId);
+        expectVersion(exam(examId, true), body);
+        var rows = jdbc.queryForList("SELECT question_id,correct,jsonb_array_length(options) AS option_count FROM practice_questions WHERE question_id=? AND exam_id=? FOR UPDATE", questionId, examId);
         if (rows.isEmpty()) throw BusinessException.missing();
         String stem = text(body.get("stem"), 5000, false);
         @SuppressWarnings("unchecked") var raw = body.get("options") instanceof List<?> list ? (List<Object>) list : List.of();
@@ -201,6 +249,9 @@ public class PracticeAdminService {
         if (options.size() < 2 || options.size() > 4 || options.stream().anyMatch(String::isEmpty)) throw new BusinessException(400, "Mỗi câu cần 2–4 lựa chọn, không để trống lựa chọn nào.");
         int correct = body.get("correct") instanceof Number n ? n.intValue() : -1;
         if (correct < 1 || correct > options.size()) throw new BusinessException(400, "Đáp án phải là số thứ tự của một lựa chọn.");
+        var current = rows.get(0);
+        if (used(examId) && (correct != ((Number) current.get("correct")).intValue() || options.size() != ((Number) current.get("option_count")).intValue()))
+            throw new BusinessException(409, "Đề đã có học viên làm nên không đổi được đáp án đúng hoặc số lựa chọn (bài đã nộp sẽ bị chấm sai). Chỉ sửa được nội dung chữ; cần đổi đáp án thì hãy tạo đề mới.");
         String explanation = text(body.get("explanation"), 5000, false), script = text(body.get("script"), 10000, false);
         for (String value : concat(stem, explanation, script, options)) {
             String error = PracticeExcel.markup(value);
@@ -216,17 +267,22 @@ public class PracticeAdminService {
      * Đổi / bỏ ảnh của một câu ({@code target=question}) hoặc ảnh dùng chung của đoạn đọc chứa câu đó ({@code target=group}).
      * {@code file == null} là bỏ ảnh. Ảnh cũ chỉ xóa khỏi nơi lưu khi đề chưa có học viên làm.
      */
-    @Transactional
     public Map<String, Object> setImage(UUID actor, UUID examId, UUID questionId, String target, MultipartFile file) {
+        if (!"group".equals(target) && !"question".equals(target)) throw BusinessException.invalid();
+        exam(examId, false);
+        Staged next = file == null || file.isEmpty() ? null : stageImage(examId, file);   // lưu ảnh trước, ngoài transaction
+        writeOrDiscard(next == null ? List.of() : List.of(next), () -> replaceImage(actor, examId, questionId, "group".equals(target), next));
+        return detail(examId);
+    }
+
+    private void replaceImage(UUID actor, UUID examId, UUID questionId, boolean group, Staged staged) {
         exam(examId, true);
         var rows = jdbc.queryForList("SELECT group_id,image_file_id FROM practice_questions WHERE question_id=? AND exam_id=? FOR UPDATE", questionId, examId);
         if (rows.isEmpty()) throw BusinessException.missing();
-        boolean group = "group".equals(target);
-        if (!group && !"question".equals(target)) throw BusinessException.invalid();
         UUID groupId = (UUID) rows.get(0).get("group_id");
         if (group && groupId == null) throw new BusinessException(400, "Câu này không thuộc đoạn đọc nào.");
         UUID previous = group ? jdbc.queryForObject("SELECT image_file_id FROM practice_groups WHERE group_id=?", UUID.class, groupId) : (UUID) rows.get(0).get("image_file_id");
-        UUID next = file == null || file.isEmpty() ? null : storeImage(actor, examId, file);
+        UUID next = staged == null ? null : recordFile(actor, examId, "IMAGE", staged);
         if (group) jdbc.update("UPDATE practice_groups SET image_file_id=? WHERE group_id=?", next, groupId);
         else jdbc.update("UPDATE practice_questions SET image_file_id=? WHERE question_id=?", next, questionId);
         if (previous != null && !used(examId)) {
@@ -236,30 +292,36 @@ public class PracticeAdminService {
             afterCommit(() -> { if (jdbc.queryForList("SELECT 1 FROM practice_files WHERE file_id=?", previous).isEmpty()) storage.delete(oldKey); });
         }
         touch(examId);
-        return detail(examId);
     }
 
-    /** Tải file nghe theo luồng (không qua multipart nên không vướng giới hạn tải tệp chung của hệ thống). */
-    @Transactional
+    /**
+     * Tải file nghe theo luồng (không qua multipart nên không vướng giới hạn tải tệp chung của hệ thống).
+     * Lưu file vào kho trước, ngoài transaction (có thể mất vài phút với file 200 MB); xong mới khóa dòng đề và ghi DB.
+     */
     public Map<String, Object> uploadAudio(UUID actor, UUID examId, String contentType, String fileName, InputStream body) {
-        var e = exam(examId, true);
+        exam(examId, false);
         String type = contentType == null ? "" : contentType.split(";")[0].trim().toLowerCase(Locale.ROOT);
         if (!AUDIO_TYPES.contains(type)) throw new BusinessException(400, "File nghe phải là MP3, M4A, WAV hoặc OGG.");
         UUID fileId = UUID.randomUUID();
         String ext = switch (type) { case "audio/wav", "audio/x-wav" -> "wav"; case "audio/ogg" -> "ogg"; case "audio/webm" -> "webm"; case "audio/mp4", "audio/x-m4a", "audio/aac" -> "m4a"; default -> "mp3"; };
         String key = "exam/" + examId + "/" + fileId + "." + ext;
-        long size = storage.save(key, body, MAX_AUDIO);
-        rollbackDelete(key);
-        jdbc.update("INSERT INTO practice_files(file_id,exam_id,kind,storage_key,original_name,content_type,size_bytes,created_by) VALUES (?,?,'AUDIO',?,?,?,?,?)",
-                fileId, examId, key, limit(fileName == null || fileName.isBlank() ? "nghe." + ext : fileName, 255), type, size, actor);
-        UUID previous = (UUID) e.get("audio_file_id");
-        jdbc.update("UPDATE practice_exams SET audio_file_id=?,updated_at=now(),version=version+1 WHERE exam_id=?", fileId, examId);
-        // File cũ chỉ xóa khi đề chưa ai làm (lượt cũ có thể đang nghe file đó).
-        if (previous != null && !used(examId)) {
-            String oldKey = jdbc.queryForObject("SELECT storage_key FROM practice_files WHERE file_id=?", String.class, previous);
-            jdbc.update("DELETE FROM practice_files WHERE file_id=?", previous);
-            afterCommit(() -> storage.delete(oldKey));
-        }
+        var in = new java.io.BufferedInputStream(body);
+        try {
+            if (!PracticeFileTypes.audio(ext, PracticeFileTypes.head(in))) throw new BusinessException(400, "Nội dung tệp không phải file nghe " + ext.toUpperCase(Locale.ROOT) + ".");
+        } catch (IOException exception) { throw new BusinessException(400, "Không đọc được file nghe."); }
+        var staged = new Staged(fileId, key, limit(fileName == null || fileName.isBlank() ? "nghe." + ext : fileName, 255), type, storage.save(key, in, MAX_AUDIO));
+        writeOrDiscard(List.of(staged), () -> {
+            var e = exam(examId, true);
+            recordFile(actor, examId, "AUDIO", staged);
+            UUID previous = (UUID) e.get("audio_file_id");
+            jdbc.update("UPDATE practice_exams SET audio_file_id=?,updated_at=now(),version=version+1 WHERE exam_id=?", fileId, examId);
+            // File cũ chỉ xóa khi đề chưa ai làm (lượt cũ có thể đang nghe file đó).
+            if (previous != null && !used(examId)) {
+                String oldKey = jdbc.queryForObject("SELECT storage_key FROM practice_files WHERE file_id=?", String.class, previous);
+                jdbc.update("DELETE FROM practice_files WHERE file_id=?", previous);
+                afterCommit(() -> storage.delete(oldKey));
+            }
+        });
         return detail(examId);
     }
 
@@ -363,20 +425,10 @@ public class PracticeAdminService {
 
     private static String limit(String value, int max) { return value == null ? null : value.length() <= max ? value : value.substring(0, max); }
 
-    /** File đã ghi nhưng transaction bị hủy (ví dụ lỗi ở ảnh sau) thì xóa để không để lại tệp mồ côi. */
-    private void rollbackDelete(String key) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) return;
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override public void afterCompletion(int status) { if (status != STATUS_COMMITTED) storage.delete(key); }
-        });
-    }
-
     private void afterCommit(Runnable task) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) { task.run(); return; }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override public void afterCommit() { task.run(); }
         });
     }
-
-    @SuppressWarnings("unused") private static final TypeReference<List<String>> STRINGS = new TypeReference<>() {};
 }

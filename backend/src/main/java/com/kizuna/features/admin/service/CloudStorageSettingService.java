@@ -55,6 +55,9 @@ public class CloudStorageSettingService {
     private volatile boolean runtimeActive;
     private volatile Target cached;
     private volatile long cachedAt;
+    /** Kho cũ để đọc dự phòng (null = chưa đọc DB); làm mới tối đa mỗi 30 giây như kho đang dùng. */
+    private volatile Optional<Target> cachedPrevious;
+    private volatile long previousAt;
 
     /** Kho đang dùng. Khóa chỉ dùng trong server; toString không in khóa. */
     public record Target(String provider, String endpoint, String region, String bucket, String accessKey, String secretKey, String source) {
@@ -127,6 +130,23 @@ public class CloudStorageSettingService {
     @Transactional(readOnly = true, timeout = 3)
     public Optional<Target> previous() { return fromDb(PREVIOUS); }
 
+    /**
+     * Kho cũ dùng để ĐỌC DỰ PHÒNG: tệp chưa chép sang kho mới thì vẫn mở được (ảnh đại diện, tài liệu, bài nộp…).
+     * Trùng kho đang dùng thì coi như không có. Lỗi đọc DB thì bỏ qua dự phòng, không làm hỏng thao tác chính.
+     */
+    @Transactional(readOnly = true, timeout = 3)
+    public Optional<Target> fallback() {
+        var now = System.currentTimeMillis();
+        var known = cachedPrevious;
+        if (known == null || now - previousAt >= CACHE.toMillis()) {
+            try { known = fromDb(PREVIOUS); }
+            catch (RuntimeException exception) { known = Optional.empty(); }
+            cachedPrevious = known; previousAt = now;
+        }
+        var current = target();
+        return known.filter(old -> current.map(t -> !t.fingerprint().equals(old.fingerprint())).orElse(true));
+    }
+
     @Transactional(readOnly = true, timeout = 3)
     public Map<String, Object> view() {
         actors.requireAdmin();
@@ -144,6 +164,8 @@ public class CloudStorageSettingService {
         result.put("active", runtimeActive);
         result.put("previous", previous().map(Target::label).orElse(""));
         result.put("serverDefault", fromServer().map(Target::label).orElse(""));
+        // Tải file nghe của gia sư (R2AudioController/R2StorageService của nhóm) chỉ bật khi server đặt R2_ENABLED=true.
+        result.put("serverR2Enabled", serverEnabled);
         result.put("version", settings.version(AUDIT_KEY));
         return result;
     }
@@ -229,6 +251,7 @@ public class CloudStorageSettingService {
         settings.save(PROVIDER, "STRING", "Nhà cung cấp lưu trữ đám mây", before.map(Target::provider).orElse(""), next.provider(),
                 actor.userId(), r.reason(), AUDIT_KEY, beforeLabel, afterLabel);
         cached = next; cachedAt = System.currentTimeMillis();
+        cachedPrevious = null;
         return view();
     }
 
@@ -252,6 +275,7 @@ public class CloudStorageSettingService {
         settings.save(PROVIDER, "STRING", "Nhà cung cấp lưu trữ đám mây", before.get().provider(), "",
                 actor.userId(), r.reason(), AUDIT_KEY, before.get().label(), server.label() + " (cấu hình mặc định của server)");
         cached = server; cachedAt = System.currentTimeMillis();
+        cachedPrevious = null;
         return view();
     }
 

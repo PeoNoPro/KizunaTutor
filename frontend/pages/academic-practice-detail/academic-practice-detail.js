@@ -89,7 +89,11 @@ function openQuestion(question) {
   [1, 2, 3, 4].forEach(i => { f['o' + i].value = question.options[i - 1] || ''; });
   f.correct.value = String(question.correct); f.explanation.value = question.explanation || ''; f.script.value = question.script || '';
   renderImageEditors(question);
-  $('questionNotice').hidden = true; $('questionDialog').showModal();
+  // Đề đã có học viên làm: không đổi đáp án đúng (bài đã nộp chấm theo đáp án cũ); máy chủ cũng chặn đổi số lựa chọn.
+  f.correct.disabled = !!exam.used;
+  $('questionNotice').hidden = !exam.used;
+  if (exam.used) $('questionNotice').textContent = 'Đề đã có học viên làm: chỉ sửa được nội dung chữ, không đổi đáp án đúng hay số lựa chọn.';
+  $('questionDialog').showModal();
 }
 /** Ảnh trong hộp Sửa câu: ảnh của câu, và ảnh dùng chung của đoạn đọc (nếu câu thuộc một đoạn). Đổi/bỏ ảnh lưu ngay. */
 function renderImageEditors(question) {
@@ -127,7 +131,8 @@ $('questionForm').addEventListener('submit', async event => {
   while (options.length && !options[options.length - 1]) options.pop();
   try {
     exam = await api(`/academic/practice/exams/${examId}/questions/${editing.questionId}`, { method: 'PUT', body: {
-      stem: f.stem.value, options, correct: Number(f.correct.value), explanation: f.explanation.value, script: f.script.value } });
+      version: exam.version, stem: f.stem.value, options, correct: Number(f.correct.value), // ô bị khóa vẫn đọc được giá trị cũ
+      explanation: f.explanation.value, script: f.script.value } });
     $('questionDialog').close(); render(); showToast('Đã lưu câu.', 'success');
   } catch (error) { $('questionNotice').textContent = error.message; $('questionNotice').hidden = false; }
 });

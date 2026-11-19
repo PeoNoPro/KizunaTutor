@@ -1,5 +1,5 @@
 /**
- * FE-13: trang Luyện đề của học viên — hộp chọn (cấp độ, đề, hình thức, phần thi) và lịch sử thi.
+ * FE-13: trang Luyện đề của học viên — hộp chọn (cấp độ, đề, phần thi). Lịch sử thi ở trang riêng /learner/practice/history.
  * Khung học viên có thể nạp lại trang này mà không tải lại toàn bộ (thay <main>), nên mọi thứ khởi tạo ngay khi nạp.
  */
 import { api, el, dateTime, SECTION_LABELS, SECTION_ORDER, monthLabel } from '/js/pages/practice-common.js';
@@ -11,7 +11,7 @@ if (root) init(root);
 function init(root) {
   const $ = id => root.querySelector('#' + id);
   const dialog = $('startDialog'), form = $('startForm');
-  let options = null, historyPage = 0;
+  let options = null;
   const attemptUrl = id => '/learner/practice/attempt?id=' + encodeURIComponent(id);
 
   // ---- Hộp chọn
@@ -58,35 +58,10 @@ function init(root) {
     event.preventDefault();
     const f = form.elements, sections = [...sectionBox.querySelectorAll('input:checked')].map(input => input.value);
     if (!sections.length) { $('startNotice').textContent = 'Hãy chọn ít nhất một phần thi.'; $('startNotice').hidden = false; return; }
-    const body = { level: f.level.value, examId: f.examId.value, wrongOnly: f.wrongOnly.value === 'true', sections };
+    const body = { level: f.level.value, examId: f.examId.value, wrongOnly: false, sections }; // luôn làm bài mới, không cho chọn hình thức
     $('startSubmit').disabled = true; $('startSubmit').textContent = 'Đang chuẩn bị đề…';
     try { const result = await api('/learner/practice/attempts', { method: 'POST', body }); location.assign(attemptUrl(result.attemptId)); }
     catch (error) { $('startNotice').textContent = error.message; $('startNotice').hidden = false; }
     finally { $('startSubmit').disabled = false; $('startSubmit').textContent = 'Bắt đầu làm bài'; }
   });
-
-  // ---- Lịch sử thi
-  async function loadHistory(append = false) {
-    const box = $('historyList');
-    try {
-      const data = await api(`/learner/practice/attempts?page=${historyPage}&size=10`);
-      if (!append) box.replaceChildren();
-      if (!data.items.length && !append) box.append(el('p', 'Bạn chưa làm bài nào. Bấm "Bắt đầu luyện ngay" để làm bài đầu tiên.', 'pr-empty'));
-      data.items.forEach(item => {
-        const link = el('a', undefined, 'pl-attempt'); link.href = attemptUrl(item.attemptId);
-        const info = el('div');
-        info.append(el('strong', `${item.level} · ${item.examTitle || item.modeLabel}${item.wrongOnly ? ' · Làm lại câu sai' : ''}`),
-          el('small', `${item.sectionLabels.join(', ')} · ${dateTime(item.startedAt)}`));
-        const score = el('div', undefined, 'pl-score');
-        if (item.submitted) { score.append(document.createTextNode(`${item.correctCount}/${item.questionCount}`)); score.append(el('small', 'câu đúng')); }
-        else score.append(el('span', 'Đang làm', 'pr-badge'));
-        link.append(info, score, el('span', item.submitted ? 'Xem lại ›' : 'Làm tiếp ›', 'pr-btn pl-go'));
-        box.append(link);
-      });
-      $('historyCount').textContent = data.totalElements ? data.totalElements + ' lần làm' : '';
-      $('historyMore').hidden = (historyPage + 1) * data.size >= data.totalElements;
-    } catch (error) { box.replaceChildren(el('p', error.message, 'pr-notice')); }
-  }
-  $('historyMore').addEventListener('click', () => { historyPage++; loadHistory(true); });
-  loadHistory();
 }

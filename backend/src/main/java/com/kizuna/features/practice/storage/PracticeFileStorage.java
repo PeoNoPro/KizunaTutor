@@ -3,6 +3,7 @@ package com.kizuna.features.practice.storage;
 import org.springframework.core.io.Resource;
 
 import java.io.InputStream;
+import java.util.Optional;
 
 /**
  * FE-13: nơi lưu file nghe/ảnh của ngân hàng đề. DB chỉ giữ "khóa file" (đường dẫn tương đối), không giữ nội dung
@@ -18,4 +19,10 @@ public interface PracticeFileStorage {
 
     /** Xóa file (dùng khi thay file của đề còn Nháp). Không có file thì bỏ qua. */
     void delete(String key);
+
+    /**
+     * Đường dẫn để trình duyệt tải thẳng từ kho (đường dẫn ký sẵn, có hạn), không đi qua backend.
+     * Kho trên máy chủ không có thì trả rỗng và backend tự phát file.
+     */
+    default Optional<String> directUrl(String key) { return Optional.empty(); }
 }

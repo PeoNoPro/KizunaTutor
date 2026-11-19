@@ -65,7 +65,6 @@
 .support-page .support-row-info .support-preview{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .support-badge{display:inline-block;padding:2px 10px;border-radius:999px;background:#e8f1f7;font-size:12px;line-height:20px;font-weight:600;color:var(--support-primary)}
 .support-badge[data-state=RESOLVED]{background:#e6f4ee;color:#047857}.support-badge[data-state=CLOSED]{background:var(--support-sand);color:var(--support-muted)}.support-badge[data-state=ESCALATED]{background:#fdf1e0;color:#b45309}
-.support-badge[data-state=handover]{background:#fde8e8;color:#b42318;margin-right:6px}
 .support-empty{padding:48px 24px;text-align:center;color:var(--support-muted);font-size:14px}
 .support-empty .material-symbols-outlined{font-size:48px;display:block;margin-bottom:12px}
 .support-page .support-empty p{margin:0}
@@ -378,50 +377,25 @@ body.learner-frame .support-guide{border-color:#fbcfe8;background:#fff1f5}body.l
 .support-page .support-action-card textarea{min-height:120px}
 .support-page .support-action-card form>button{width:100%}
 /* Thẻ "Đã báo cho Admin" (FE-11). */
-.incident-reported-box{display:flex;flex-direction:column;gap:4px;margin:4px 0 14px;padding:12px 14px;border:1px solid #d7e6dd;border-radius:12px;background:#f3faf6;font-size:14px;line-height:1.5}
-.incident-reported-subject{color:var(--support-navy)}
-.incident-reported-status{font-size:13px;font-weight:700}
-.incident-reported-status::before{content:"● "}
-.incident-reported-meta{font-size:12px;color:var(--support-muted)}
-.incident-reported-link{margin-top:4px;font-size:13px;font-weight:700;color:#006194}
 
-/* Bàn giao yêu cầu (Quản lý): thẻ người cũ, chọn người nhận dạng thẻ, ghi chú bàn giao */
-.handover-card{padding:22px;border:1px solid #f3d3a4!important;background:linear-gradient(180deg,#fffaf1 0,#fff 120px)!important}
-.handover-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
-.handover-head h3{margin:0 0 4px;font-size:18px;line-height:26px;color:#131b2e}
-.handover-head p{margin:0;font-size:13px;line-height:20px;color:#5b6470}
-.handover-icon{flex:none;width:42px;height:42px;border-radius:12px;background:#fdecd2;color:#a35c00;display:inline-flex;align-items:center;justify-content:center;font-size:24px}
-.handover-from{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:#fff;border:1px dashed #e8cfa8;margin-bottom:18px}
-.handover-from small{display:block;font-size:11px;color:#6f7881}
-.handover-from strong{font-size:14px;color:#131b2e}
-.handover-tag{margin-left:auto;padding:3px 10px;border-radius:999px;background:#fde8e8;color:#b42318;font-size:11px;font-weight:700;white-space:nowrap}
-.handover-avatar{flex:none;width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#dbeaf5;color:#006194;font-size:13px;font-weight:700}
-.handover-avatar.is-off{background:#eceef2;color:#8a929c;text-decoration:line-through}
-.handover-form{display:flex;flex-direction:column;gap:16px}
-.handover-people{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto}
-.handover-people legend{padding:0;margin-bottom:8px;font-size:13px;font-weight:700;color:#131b2e}
-.handover-person{position:relative;display:flex;align-items:center;gap:12px;padding:10px 12px;border:1.5px solid #e3e6f0;border-radius:12px;background:#fff;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
-.handover-person:hover{border-color:#9cc3dd;background:#f7fbfe}
-.handover-person.is-selected{border-color:#006194;background:#eef6fc;box-shadow:0 0 0 3px rgba(0,97,148,.12)}
-.handover-person input{position:absolute;opacity:0;pointer-events:none}
-.handover-person:has(input:focus-visible){outline:2px solid #006194;outline-offset:2px}
-.handover-person-text{display:flex;flex-direction:column;gap:4px;min-width:0}
-.handover-person-text strong{font-size:14px;color:#131b2e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.handover-person-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.handover-chip{padding:1px 8px;border-radius:999px;background:#eef0f4;color:#5b6470;font-size:11px;font-weight:600}
-.handover-chip.is-on{background:#e6f4ee;color:#047857}
-.handover-load{font-size:12px;color:#5b6470}
-.handover-load.is-full{color:#b42318;font-weight:600}
-.handover-note{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#131b2e}
-.handover-note textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cfd6df;border-radius:10px;font:400 14px/21px 'Plus Jakarta Sans',sans-serif;resize:vertical}
-.handover-note textarea:focus{outline:none;border-color:#006194;box-shadow:0 0 0 3px rgba(0,97,148,.12)}
-.support-page .handover-submit{width:100%;background:#006194;color:#fff;border-color:#006194}
-.support-page .handover-submit:hover:not(:disabled){background:#007bb9}
-.support-page .handover-submit:disabled{background:#c9d3dc;border-color:#c9d3dc;color:#fff;opacity:1;cursor:not-allowed}
-.handover-empty{margin:0;padding:12px;border-radius:10px;background:#f6f7f9;font-size:13px;color:#5b6470}
-.support-badge[data-state=handover]::before{background:#b42318}
-.support-page .handover-person{flex-direction:row;align-items:center;gap:12px;text-align:left;color:#131b2e;font-weight:400}
-.support-page .handover-note{color:#131b2e}
-.handover-avatar.is-off{text-decoration:none;opacity:.7}
-.handover-person::after{content:'';margin-left:auto;flex:none;width:18px;height:18px;border-radius:50%;border:2px solid #c3cbd5;box-sizing:border-box}
-.handover-person.is-selected::after{border:6px solid #006194}
+/* Đợt 2 (2026-11-12): tìm kiếm, lọc quá hạn, mã yêu cầu, mức ưu tiên, thời gian chờ phản hồi. */
+.support-filters .support-search{flex:2;min-width:240px}
+.support-search-box{position:relative;display:block}
+.support-search-box>.material-symbols-outlined{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--support-muted);pointer-events:none}
+.support-page .support-search-box input{width:100%;padding-left:40px}
+.support-page .support-check{flex:none;flex-direction:row;align-items:center;gap:8px;min-width:0;padding:10px 0;color:var(--support-text);font-weight:600;cursor:pointer}
+.support-page .support-check input{width:18px;height:18px;accent-color:#b3261e}
+.support-row-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:2px}
+.support-code{font:600 12px/18px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--support-muted);background:#f3f1ea;border-radius:6px;padding:2px 8px}
+.support-priority{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#eef0f2;color:#4a545e}
+.support-priority::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.support-priority[data-priority=URGENT]{background:#fde7e5;color:#b3261e}
+.support-priority[data-priority=HIGH]{background:#fff2dc;color:#a35c00}
+.support-priority[data-priority=MEDIUM]{background:#e3f0f8;color:#006194}
+.support-wait{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#e4f4ea;color:#1e7a46}
+.support-wait .material-symbols-outlined{font-size:15px}
+.support-wait[data-state=soon]{background:#fff2dc;color:#a35c00}
+.support-wait[data-state=overdue]{background:#fde7e5;color:#b3261e}
+
+/* Nút "Nhận xử lý" trên danh sách của nhân viên hỗ trợ (2026-11-16). */
+.support-page .support-claim{margin-top:8px;min-height:34px;padding:4px 14px;font-size:13px}

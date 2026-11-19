@@ -2,7 +2,7 @@
 
 ## Hợp đồng hiện hành — đã triển khai 2026-11-09
 
-Phần này là nguồn đúng cho code hiện tại; các mục thiết kế bên dưới giữ để truy vết. SQL: `database/seeds/fe12_notification.sql` (giai đoạn 1) rồi `fe12_notification_dispatch.sql` (giai đoạn 2). Cả hai không xóa dữ liệu, chạy lại được.
+Phần này là nguồn đúng cho code hiện tại; các mục thiết kế bên dưới giữ để truy vết. SQL: `database/seeds/fe12_notification.sql` rồi `fe11_fe12_review_fixes.sql`. Cả hai không xóa dữ liệu, chạy lại được.
 
 **Cá nhân — `/api/v1/notifications`** (sáu vai trò, tài khoản ACTIVE; nằm trong chuỗi bảo mật JWT cookie + CSRF chung với `/api/v1/tickets`; lệnh ghi lấy mã ở `GET /csrf`)
 

@@ -180,7 +180,11 @@ export function mountTutorLayout(activeKey) {
       <aside id="tutorSidebarPanel" class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between -translate-x-full lg:translate-x-0 transition-transform duration-200 overflow-y-auto">
         <div class="flex flex-col">
           <div class="px-6 pt-6 pb-4">
-            ${brandLogoHtml({ href: '/home', subtitle: 'Không gian gia sư' })}
+            <!-- FE-12 (thêm 2026-11-13): chuông cạnh logo mở khung xem nhanh, giống học viên và nhân viên. -->
+            <div class="flex items-center justify-between gap-2">
+            ${brandLogoHtml({ href: '/home', subtitle: 'Không gian gia sư', className: 'min-w-0' })}
+            <button type="button" data-notification-bell class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors shrink-0" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
+            </div>
           </div>
           <nav class="flex flex-col gap-1 px-4 mt-2" aria-label="Điều hướng gia sư">
             ${NAV_ITEMS.map((item) => navItemHtml(item, activeKey)).join('')}

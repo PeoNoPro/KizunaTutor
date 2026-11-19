@@ -11,6 +11,7 @@ import {
   LEARNER_SUBNAV_ACTIVE,
   LEARNER_SUBNAV_IDLE
 } from '/js/sidebarRouter.js';
+import { brandLogoHtml } from '/components/brand-logo/brand-logo.js';
 import { initLearningToolsGuard } from '/js/learning-tools-access.js';
 
 // =========================================================================
@@ -26,6 +27,15 @@ export const LEARNER_MENU_GROUPS = [
         url: '/learner/dashboard',
         icon: 'grid_view',
         matcher: ['/learner/dashboard', '/learner', '/dashboard']
+      },
+      {
+        // FE-02: học viên xem và cập nhật hồ sơ cá nhân. Mở từ menu tài khoản, không hiện trong danh sách sidebar.
+        key: 'profile',
+        title: 'Hồ sơ cá nhân',
+        url: '/pages/learner-profile/',
+        icon: 'person',
+        matcher: ['/pages/learner-profile'],
+        hiddenInSidebar: true
       }
     ]
   },
@@ -34,10 +44,18 @@ export const LEARNER_MENU_GROUPS = [
     items: [
       {
         key: 'requests',
-        title: 'Thời khóa biểu & Lịch học',
+        title: 'Lịch học của tôi',
         url: '/learner/connections',
         icon: 'calendar_month',
         matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests', '/pages/learner-connections']
+      },
+      {
+        // Yêu cầu học thử và kết nối trực tiếp học viên đã gửi tới gia sư
+        key: 'my-requests',
+        title: 'Yêu cầu của tôi',
+        url: '/pages/learner-requests/',
+        icon: 'pending_actions',
+        matcher: ['/learner/requests', '/pages/learner-requests', '/connection-requests', '/pages/connection-requests']
       },
       {
         key: 'my-courses',
@@ -63,14 +81,14 @@ export const LEARNER_MENU_GROUPS = [
             title: 'Tra cứu từ vựng',
             url: '/vocabulary',
             icon: 'search',
-            matcher: ['/vocabulary', '/vocab', '/learning-support', '/learner/learning-support', '/learner/vocabulary', '/kana', '/kana-quiz']
+            matcher: ['/vocabulary', '/vocab', '/learning-support', '/learner/learning-support', '/learner/vocabulary']
           },
           {
             key: 'kanji-dictionary',
             title: 'Từ điển chữ Hán',
             url: '/kanji-dictionary',
             icon: 'menu_book',
-            matcher: ['/kanji-dictionary', '/dictionary', '/kanji', '/shodo', '/shodo-practice', '/kanji-practice', '/kanji-game', '/game', '/rain']
+            matcher: ['/kanji-dictionary', '/dictionary', '/kanji']
           },
           {
             key: 'handwriting',
@@ -82,10 +100,10 @@ export const LEARNER_MENU_GROUPS = [
         ]
       },
 
-      // 2. Dropdown: Ngữ pháp (Hub ngữ pháp & viết câu)
+      // 2. Dropdown: Ngữ pháp & Luyện viết (Hub ngữ pháp & viết câu)
       {
         key: 'group-grammar',
-        title: 'Ngữ pháp',
+        title: 'Ngữ pháp & Luyện viết',
         icon: 'auto_stories',
         isDropdown: true,
         children: [
@@ -106,16 +124,55 @@ export const LEARNER_MENU_GROUPS = [
         ]
       },
 
-      // 3. Đọc hiểu Dokkai (Hub đọc hiểu độc lập)
+      // 3. Đọc hiểu Dokkai AI (Hub đọc hiểu độc lập)
       {
         key: 'ai-reading',
-        title: 'Đọc hiểu Dokkai',
+        title: 'Đọc hiểu Dokkai AI',
         url: '/reading',
         icon: 'chrome_reader_mode',
         matcher: ['/reading', '/ai-reading', '/learner/reading', '/learner/ai-reading']
       },
 
-      // 4. Bộ thẻ của tôi (Hub Flashcards độc lập)
+      // 4. Dropdown: Thực hành & Luyện đề (Hub rèn luyện & thi thử JLPT)
+      {
+        key: 'group-practice',
+        title: 'Thực hành & Luyện đề',
+        icon: 'psychology',
+        isDropdown: true,
+        children: [
+          // FE-13 (thêm 2026-11-17): Luyện đề JLPT.
+          {
+            key: 'practice',
+            title: 'Luyện đề thi JLPT',
+            url: '/learner/practice',
+            icon: 'quiz',
+            matcher: ['/learner/practice', '/learner/practice/', '/pages/practice', '/pages/practice-attempt', '/pages/practice-history']
+          },
+          {
+            key: 'shodo',
+            title: 'Phòng luyện viết Shodo',
+            url: '/shodo',
+            icon: 'brush',
+            matcher: ['/shodo', '/shodo-practice', '/kanji-practice']
+          },
+          {
+            key: 'kana',
+            title: 'Đấu trường gõ Kana',
+            url: '/kana',
+            icon: 'keyboard',
+            matcher: ['/kana', '/kana-quiz']
+          },
+          {
+            key: 'kanji-game',
+            title: 'Game hứng chữ Hán',
+            url: '/kanji-game',
+            icon: 'videogame_asset',
+            matcher: ['/kanji-game', '/game', '/rain']
+          }
+        ]
+      },
+
+      // 5. Bộ thẻ của tôi (Hub Flashcards độc lập)
       {
         key: 'flashcards',
         title: 'Bộ thẻ của tôi',
@@ -169,15 +226,22 @@ export const LEARNER_MENU_GROUPS = [
 // =========================================================================
 export const PAGE_META_MAP = {
   'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
-  'requests': { title: 'Thời khóa biểu & Lịch học', badge: 'Gia sư & lớp học' },
+  'profile': { title: 'Hồ sơ cá nhân', badge: 'Bàn học tập' },
+  'requests': { title: 'Lịch học của tôi', badge: 'Gia sư & lớp học' },
+  'my-requests': { title: 'Yêu cầu của tôi', badge: 'Gia sư & lớp học' },
   'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },
-  'learning-support': { title: 'Tra cứu & Luyện từ vựng', badge: 'Hỗ trợ học tập' },
+  'learning-support': { title: 'Tra cứu từ vựng', badge: 'Hỗ trợ học tập' },
+  'vocabulary': { title: 'Tra cứu từ vựng', badge: 'Hỗ trợ học tập' },
   'kanji-dictionary': { title: 'Từ điển chữ Hán', badge: 'Hỗ trợ học tập' },
   'handwriting': { title: 'Tra cứu viết tay AI', badge: 'Hỗ trợ học tập' },
   'grammar': { title: 'Kho ngữ pháp JLPT', badge: 'Hỗ trợ học tập' },
   'ai-writing': { title: 'Chữa câu & Viết AI', badge: 'Hỗ trợ học tập' },
   'ai-reading': { title: 'Đọc hiểu Dokkai AI', badge: 'Hỗ trợ học tập' },
   'reading': { title: 'Đọc hiểu Dokkai AI', badge: 'Hỗ trợ học tập' },
+  'practice': { title: 'Luyện đề thi JLPT', badge: 'Hỗ trợ học tập' },
+  'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Hỗ trợ học tập' },
+  'kana': { title: 'Đấu trường gõ Kana', badge: 'Hỗ trợ học tập' },
+  'kanji-game': { title: 'Game hứng chữ Hán', badge: 'Hỗ trợ học tập' },
   'flashcards': { title: 'Bộ thẻ Flashcards', badge: 'Hỗ trợ học tập' },
   'notifications': { title: 'Thông báo', badge: 'Hệ thống & trợ giúp' },
   'support': { title: 'Trung tâm hỗ trợ', badge: 'Hệ thống & trợ giúp' },
@@ -268,8 +332,8 @@ export function getLearnerSidebarHtml(activeKey) {
   const profile = getLearnerProfile();
 
   const menuSectionsHtml = LEARNER_MENU_GROUPS.map(group => {
-    const itemsHtml = group.items.map(item => {
-      // Trường hợp 1: Menu cha dạng Dropdown / Accordion (Từ vựng, Ngữ pháp)
+    const itemsHtml = group.items.filter(item => !item.hiddenInSidebar).map(item => {
+      // Trường hợp 1: Menu cha dạng Dropdown / Accordion (Từ vựng, Ngữ pháp, Thực hành & Luyện đề)
       if (item.isDropdown && item.children) {
         const isGroupOpen = isDropdownGroupActive(item, currentActive);
 
@@ -311,7 +375,7 @@ export function getLearnerSidebarHtml(activeKey) {
       return `
         <a href="${item.url}"
            data-menu-key="${item.key}"
-           ${(item.key === 'tutors' || item.key === 'requests' || item.key === 'notifications' || item.key === 'support' || item.key === 'policies') ? 'data-no-spa' : 'data-spa-link'}
+           ${(item.key === 'tutors' || item.key === 'requests' || item.key === 'my-requests' || item.key === 'notifications' || item.key === 'support' || item.key === 'policies') ? 'data-no-spa' : 'data-spa-link'}
            class="${isActive ? LEARNER_NAV_ACTIVE : LEARNER_NAV_IDLE}" ${isActive ? 'aria-current="page"' : ''}>
           <span class="material-symbols-outlined text-[20px] shrink-0">${item.icon}</span>
           <span class="truncate">${item.title}</span>
@@ -337,13 +401,7 @@ export function getLearnerSidebarHtml(activeKey) {
       <div class="flex flex-col min-h-0 flex-1">
         <!-- Logo -->
         <div class="px-6 pt-6 pb-4 flex items-start justify-between">
-          <a href="/home" title="Về trang chủ KizunaTutor" class="no-underline">
-            <div class="flex items-center gap-2 mb-1">
-              <div class="w-8 h-8 rounded-lg bg-[#007bb9] flex items-center justify-center text-white text-[20px] leading-7 font-semibold">絆</div>
-              <div class="text-[20px] leading-7 font-semibold"><span class="text-[#0F2545]">Kizuna</span><span class="text-[#006194]">Tutor</span></div>
-            </div>
-            <p class="text-[11px] leading-[14px] font-medium text-[#3f4850] tracking-wider">Không gian học viên</p>
-          </a>
+          ${brandLogoHtml({ href: '/home', subtitle: 'Không gian học viên', className: 'min-w-0' })}
           <div class="flex items-center gap-1">
             <button type="button" data-notification-bell class="p-1.5 rounded-lg text-[#3f4850] hover:text-[#131b2e] hover:bg-[#eaedff] transition-colors" aria-label="Thông báo"><span class="material-symbols-outlined text-[22px]">notifications</span></button>
             <button type="button" id="btnCloseSidebarMobile" class="md:hidden p-1.5 rounded-lg text-[#707881] hover:text-[#131b2e] hover:bg-[#eaedff] transition-colors" title="Đóng menu" aria-label="Đóng menu">
@@ -362,7 +420,10 @@ export function getLearnerSidebarHtml(activeKey) {
       <div class="mx-4 my-4 relative" id="learnerUserMenu">
         <div id="learnerUserMenuPanel" role="menu" aria-label="Tài khoản"
              class="hidden absolute left-0 right-0 bottom-[calc(100%+8px)] rounded-xl bg-white shadow-lg ring-1 ring-black/5 p-1.5 flex-col z-50">
-          <a href="/home" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#131b2e] hover:bg-[#eaedff] no-underline">
+          <a href="/pages/learner-profile/" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#131b2e] hover:bg-[#eaedff] no-underline">
+            <span class="material-symbols-outlined text-[18px]">person</span><span>Hồ sơ cá nhân</span>
+          </a>
+          <a href="/home" data-no-spa role="menuitem" class="flex items-center gap-2 px-3 py-2 text-[14px] font-medium rounded-lg text-[#131b2e] hover:bg-[#eaedff] no-underline">
             <span class="material-symbols-outlined text-[18px]">home</span><span>Về trang chủ</span>
           </a>
           <div class="h-px bg-[#eaedff] my-1"></div>

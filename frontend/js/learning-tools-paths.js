@@ -7,14 +7,17 @@
 
 /** Key menu sidebar (components/learner-layout) của các công cụ bị khóa. */
 export const LOCKED_MENU_KEYS = [
-  'kanji-dictionary', 'handwriting', 'learning-support', 'grammar', 'shodo', 'kana', 'ai-writing', 'flashcards'
+  'kanji-dictionary', 'handwriting', 'learning-support', 'grammar', 'shodo', 'kana', 'ai-writing', 'flashcards',
+  // FE-13 Luyện đề JLPT (thêm 2026-11-19): chỉ học viên đã có gia sư (đã vào lớp) mới làm được.
+  'practice'
 ];
 
 /** Thư mục trang (frontend/pages/<tên>) của các công cụ bị khóa. */
 export const LOCKED_PAGE_DIRS = [
   'kanji-dictionary', 'handwriting-search', 'kana-quiz',
   'learning-support', 'grammar', 'shodo-practice', 'ai-writing',
-  'flashcards', 'flashcards-detail', 'flashcards-match', 'flashcards-study', 'kanji-game'
+  'flashcards', 'flashcards-detail', 'flashcards-match', 'flashcards-study', 'kanji-game',
+  'practice', 'practice-attempt', 'practice-history'
 ];
 
 /** Mọi đường dẫn (kể cả alias trong frontend/server.js) dẫn tới trang công cụ bị khóa. */
@@ -40,6 +43,8 @@ const LOCKED_PATHS = new Set([
   '/flashcards-match', '/flashcards-match.html', '/learner/flashcards-match', '/match', '/learner/match',
   // Game Mưa chữ Hán
   '/kanji-game', '/kanji-game.html', '/game', '/rain',
+  // Luyện đề JLPT (FE-13)
+  '/learner/practice', '/learner/practice/attempt', '/learner/practice/history',
   // Đường dẫn thật tới thư mục trang
   ...LOCKED_PAGE_DIRS.map((dir) => `/pages/${dir}`)
 ]);

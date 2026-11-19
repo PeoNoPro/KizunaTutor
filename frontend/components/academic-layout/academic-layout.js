@@ -18,6 +18,8 @@ const NAV_ITEMS = [
   { key: 'verifications', label: 'Hồ sơ xác thực gia sư', icon: 'verified_user', href: '/academic/verifications?view=queue' },
   { key: 'posts', label: 'Duyệt bài đăng', icon: 'fact_check', href: '/academic/posts' },
   { key: 'history', label: 'Lịch sử xét duyệt', icon: 'history_edu', href: '/academic/history' },
+  // FE-13 (thêm 2026-11-17): Ngân hàng đề luyện thi JLPT.
+  { key: 'practice', label: 'Ngân hàng đề', icon: 'quiz', href: '/academic/practice' },
   { key: 'content-import', label: 'Kho học liệu', icon: 'library_books', href: '/academic/content-import' },
   { key: 'notifications', label: 'Thông báo', icon: 'notifications', href: '/pages/notifications/' }
   // "Hồ sơ cá nhân" mở từ menu tài khoản ở góc dưới sidebar (đồng bộ với học viên, gia sư).

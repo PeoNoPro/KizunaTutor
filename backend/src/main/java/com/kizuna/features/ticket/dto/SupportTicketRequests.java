@@ -7,5 +7,7 @@ public final class SupportTicketRequests {
  public record Create(@NotBlank String subject,@NotBlank String category,@NotBlank String message,UUID relatedBookingId,UUID relatedMembershipId,UUID relatedTransactionId){}
  public record Command(@NotNull @JsonDeserialize(using=TicketVersionDeserializer.class) Long expectedVersion,
    UUID assigneeId,UUID managerId,String priority,String reason,String handlingSummary,String decisionText,String resolutionText){}
+ /** Ghi chú nội bộ: chỉ nhân viên hỗ trợ và Quản lý thấy, không gửi cho người yêu cầu. */
+ public record Note(@NotBlank String note){}
  public record Message(@NotNull @JsonDeserialize(using=TicketVersionDeserializer.class) Long expectedVersion,@NotBlank String message){}
 }

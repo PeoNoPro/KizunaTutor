@@ -24,7 +24,7 @@ public class ManagementReportService {
     }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ,timeout=4)
     public Map<String,Object> read(LocalDate start,LocalDate end) {
-        actors.requireReporter();var generated=OffsetDateTime.now(operationsClock);var period=OperationsIncidentReportService.period(start,end,generated);
+        actors.requireReporter();var generated=OffsetDateTime.now(operationsClock);var period=ReportPeriods.period(start,end,generated);
         var rows=reports.accounts(period.start(),period.cutoff());long total=0,created=0;
         var roleCounts=new LinkedHashMap<String,Long>();var statusCounts=new LinkedHashMap<String,Long>();
         for(var row:rows){long count=((Number)row[2]).longValue();total+=count;created+=((Number)row[3]).longValue();roleCounts.merge((String)row[0],count,Long::sum);statusCounts.merge((String)row[1],count,Long::sum);}

@@ -11,7 +11,7 @@ private final com.kizuna.features.notification.service.NotificationEvents notifi
 
 notificationEvents.publish(
     "payment:" + tx.getTransactionId() + ":success",   // mã sự kiện cố định, mỗi lần chuyển trạng thái một mã
-    "PAYMENT",                                          // nhóm: SYSTEM, TRIAL, ASSIGNMENT, PAYMENT, TICKET
+    "PAYMENT",                                          // nhóm: SYSTEM, TRIAL, CONNECTION, ASSIGNMENT, PAYMENT, TICKET
     "Thanh toán thành công",                            // tiêu đề, tối đa 150 ký tự
     "Gói " + plan.getPlanName() + " đã được kích hoạt.", // nội dung chữ thường, tối đa 10.000 ký tự
     "/tutor/membership",                                // trang mở khi bấm thông báo (đường dẫn nội bộ, bắt đầu bằng "/")
@@ -41,8 +41,8 @@ Email thanh toán/xác minh hiện các bạn đang tự gửi (`PaymentNotifica
 
 ## 3. Đã gắn sẵn (phần của FE-10/FE-11)
 
-- Yêu cầu hỗ trợ: CS trả lời → người gửi; người gửi bổ sung → CS phụ trách; giải quyết → người gửi; giao/tự giao → CS; chuyển lên/đổi người nhận → Quản lý; Quản lý trả kết quả → CS.
-- Sự cố kỹ thuật: Quản lý báo sự cố → mọi Admin; Admin nhận/khắc phục/đóng/trả lại → người báo.
+- Yêu cầu hỗ trợ: tạo mới → mọi CS đang hoạt động; CS nhận xử lý → người gửi; CS trả lời → người gửi; người gửi bổ sung → CS phụ trách; giải quyết → người gửi; chuyển lên/đổi người nhận → Quản lý; Quản lý trả kết quả → CS.
+- (Đã bỏ 2026-11-16/19: thông báo xếp ca/tự giao theo ca và thông báo sự cố kỹ thuật → Admin; hai luồng này không còn trong hệ thống.)
 
 ## 4. Đã gắn thêm vào module của các bạn (2026-11-10, chỉ thêm dòng, không sửa code có sẵn)
 
@@ -50,3 +50,11 @@ Email thanh toán/xác minh hiện các bạn đang tự gửi (`PaymentNotifica
 - Học thử: `TrialBookingServiceImpl` — tạo yêu cầu → gia sư; nhận/từ chối → học viên; hủy, đổi lịch → người còn lại.
 - Bài tập: `AssignmentServiceImpl.create` → học viên; `SubmissionServiceImpl.submit` → gia sư; `grade` → học viên.
 - Mỗi chỗ dùng trường `@Autowired(required = false) NotificationEvents` nên constructor và test dựng tay của các bạn không đổi.
+
+## 5. Bổ sung 2026-11-19 (rà soát thông báo tự động)
+
+- Lớp học → học viên (nhóm `CONNECTION`, qua `ClassroomNotifier`): hủy / dời / thêm / hủy buổi thêm / đưa buổi về lịch gốc, thêm / đổi / gỡ buổi hằng tuần, đổi ngày bắt đầu hoặc tổng số buổi, tài liệu mới. Mã sự kiện gắn với đối tượng bị đổi và trạng thái trước → sau của lần đổi (không dùng giờ hệ thống).
+- Bài tập (nhóm `ASSIGNMENT`): gia sư sửa bài (đổi nội dung / hạn nộp / tệp đề) → học viên; học viên sửa bài đã nộp → gia sư; nhắc sắp đến hạn (24 giờ) và quá hạn chưa nộp → học viên (`AssignmentReminderScheduler`, 10 phút/lần, mỗi bài mỗi loại một lần).
+- Hội viên (nhóm `PAYMENT`): gói hết hạn → gia sư (`MembershipExpiryService`, gọi cả khi đọc lẫn từ job nền); nhắc sắp hết hạn trong 3 ngày (`MembershipReminderScheduler`, mỗi giờ, một lần cho mỗi ngày hết hạn).
+- Đổi hình thức học của lớp: mã sự kiện nay theo lần đổi (hình thức cũ → mới) thay vì `System.currentTimeMillis()`.
+- Hạn chế đã biết: lặp đúng chuỗi đổi A→B, B→A, A→B thì lần A→B thứ hai không báo lại (trùng mã sự kiện).

@@ -25,29 +25,10 @@ async function loadAccounts(params) {
     }
 }
 
-const labelled = groups => Object.entries(groups).map(([label, count]) => ({label, count}));
-
-async function loadIncidents(params) {
-    try {
-        const data = await api(base + '/reports/incidents?' + params);
-        byId('incidentTiles').replaceChildren(...[['Phát sinh trong kỳ', data.createdCount], ['Khắc phục trong kỳ', data.resolvedCount], ['Còn mở cuối kỳ', data.openAtCutoff]].map(([label, count]) => {
-            const tile = text('div', '', 'statistics-tile'); tile.append(text('span', label), text('strong', number(count))); return tile;
-        }));
-        barChart(byId('incidentStatusChart'), 'Sự cố chưa đóng theo bước xử lý', labelled(data.breakdowns.open.status), 'Không có sự cố còn mở cuối kỳ.');
-        barChart(byId('incidentSeverityChart'), 'Sự cố chưa đóng theo mức độ', labelled(data.breakdowns.open.severity), 'Không có sự cố còn mở cuối kỳ.');
-    } catch (error) {
-        if (error.status === 401) throw error;
-        byId('incidentTiles').replaceChildren();
-        failed(['incidentStatusChart', 'incidentSeverityChart'], error.status === 403 ? error.message : 'Chưa tải được số liệu sự cố.');
-        return error;
-    }
-}
-
 async function load() {
     const params = query(byId('statisticsFilters'));
-    const errors = (await Promise.all([loadAccounts(params), loadIncidents(params)])).filter(Boolean);
-    // Cả hai nguồn lỗi thì để khung trang hiện nút thử lại; một nguồn lỗi vẫn giữ phần đã tải.
-    if (errors.length === 2) throw errors[0];
+    const errors = (await Promise.all([loadAccounts(params)])).filter(Boolean);
+    if (errors.length) throw errors[0];
     notice(errors.length ? 'Một số biểu đồ chưa tải được. Bạn có thể chọn Xem thống kê để thử lại.' : 'Đã cập nhật thống kê từ dữ liệu hệ thống.', errors.length > 0);
 }
 

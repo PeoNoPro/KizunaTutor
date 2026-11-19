@@ -65,6 +65,10 @@ public class ClassSessionServiceImpl implements ClassSessionService {
     private final ClassSessionCalendar calendar;
     private final Clock clock;
 
+    /** Thông báo cho học viên (FE-12). Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @Autowired(required = false)
+    private com.kizuna.features.classroom.service.ClassroomNotifier notifier;
+
     @Autowired
     public ClassSessionServiceImpl(ClassroomService classroomService, ClassScheduleRepository scheduleRepository,
                                    ClassSessionChangeRepository changeRepository, ClassExtraSessionRepository extraRepository,
@@ -138,6 +142,10 @@ public class ClassSessionServiceImpl implements ClassSessionService {
                 && end.equals(schedule.getEndTime());
         if (backToOriginal) {
             existing.ifPresent(changeRepository::delete);
+            if (notifier != null) {
+                notifier.sessionRestored(space, scheduleId, originalDate, current.date(), current.startTime(), current.endTime(),
+                        newDate, start, end);
+            }
             return;
         }
         ClassSessionChange change = existing.orElseGet(() -> ClassSessionChange.builder()
@@ -149,6 +157,10 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         changeRepository.save(change);
         ensureStillInCourse(space, newDate, s -> s.isOccurrence(scheduleId, originalDate),
                 "Không thể dời buổi này ra sau buổi cuối của khóa. Hãy tăng tổng số buổi của khóa trước.");
+        if (notifier != null) {
+            notifier.sessionMoved(space, scheduleId, originalDate, current.date(), current.startTime(), current.endTime(),
+                    newDate, start, end);
+        }
     }
 
     @Override
@@ -165,6 +177,9 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         change.setStartTime(null);
         change.setEndTime(null);
         changeRepository.save(change);
+        if (notifier != null) {
+            notifier.sessionCancelled(space, scheduleId, originalDate, current.date(), current.startTime(), current.endTime());
+        }
     }
 
     @Override
@@ -185,6 +200,10 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         rules.ensureNoSessionConflict(space.getTutor().getTutorId(), space.getLearner().getLearnerId(), space.getSpaceId(),
                 s -> s.isOccurrence(scheduleId, originalDate), originalDate, schedule.getStartTime(), schedule.getEndTime());
         changeRepository.delete(change);
+        if (notifier != null) {
+            notifier.sessionRestored(space, scheduleId, originalDate, change.getNewDate(), change.getStartTime(), change.getEndTime(),
+                    originalDate, schedule.getStartTime(), schedule.getEndTime());
+        }
     }
 
     // ------------------------------------------------------------------ buổi thêm riêng
@@ -206,6 +225,7 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         UUID extraId = saved.getExtraId();
         ensureStillInCourse(space, date, s -> Objects.equals(s.extraId(), extraId),
                 "Khóa học đã đủ " + space.getTotalSessions() + " buổi trước ngày này. Hãy tăng tổng số buổi của khóa trước khi thêm buổi.");
+        if (notifier != null) notifier.extraAdded(space, extraId, date, start, end);
     }
 
     @Override
@@ -223,12 +243,16 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         validateNewTime(calendar.load(space), newDate, start, end, now);
         rules.ensureNoSessionConflict(space.getTutor().getTutorId(), space.getLearner().getLearnerId(), space.getSpaceId(),
                 s -> Objects.equals(s.extraId(), extraId), newDate, start, end);
+        LocalDate oldDate = extra.getSessionDate();
+        LocalTime oldStart = extra.getStartTime();
+        LocalTime oldEnd = extra.getEndTime();
         extra.setSessionDate(newDate);
         extra.setStartTime(start);
         extra.setEndTime(end);
         extraRepository.save(extra);
         ensureStillInCourse(space, newDate, s -> Objects.equals(s.extraId(), extraId),
                 "Không thể dời buổi này ra sau buổi cuối của khóa. Hãy tăng tổng số buổi của khóa trước.");
+        if (notifier != null) notifier.extraMoved(space, extraId, oldDate, oldStart, oldEnd, newDate, start, end);
     }
 
     @Override
@@ -240,6 +264,9 @@ public class ClassSessionServiceImpl implements ClassSessionService {
             throw ClassroomException.conflict("Buổi học này đã bắt đầu hoặc đã diễn ra nên không thể hủy.");
         }
         extraRepository.delete(extra);
+        if (notifier != null) {
+            notifier.extraCancelled(space, extraId, extra.getSessionDate(), extra.getStartTime(), extra.getEndTime());
+        }
     }
 
     // ------------------------------------------------------------------ hỗ trợ

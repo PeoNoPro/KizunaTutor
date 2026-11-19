@@ -21,18 +21,18 @@ public class StaffAccountService {
     private static final Map<String,String> EMAIL_STATES=Map.of("PENDING","Email đang chờ gửi","SENT","Đã gửi email","FAILED","Gửi email thất bại");
     private final Clock operationsClock;
     static final Map<String,String> ROLES=Map.of("ROLE_ADMIN","Quản trị viên hệ thống","ROLE_MANAGER","Quản lý vận hành","ROLE_ACADEMIC_OFFICER","Cán bộ học vụ","ROLE_CS_STAFF","Chăm sóc khách hàng","ROLE_LEARNER","Học viên","ROLE_TUTOR","Gia sư");
-    // Admin chỉ gán vai trò lúc tạo và không cấp quyền Admin; đổi vai trò sau tạo thuộc StaffRoleChangeService.
+    // Admin gán vai trò lúc tạo hoặc đổi khi sửa thông tin, chỉ trong ba vai trò nội bộ này; không cấp quyền Admin.
     private static final Set<String> CREATABLE_ROLES=Set.of("ROLE_MANAGER","ROLE_ACADEMIC_OFFICER","ROLE_CS_STAFF");
     private static final Map<String,String> STATES=Map.of("ACTIVE","Đang hoạt động","SUSPENDED","Tạm khóa","PENDING","Chờ kích hoạt","BANNED","Đã bị khóa","INACTIVE","Ngừng hoạt động");
     // Theo mô tả vai trò trong RoleEnum và quyền đang thực thi; thay đổi quyền thì cập nhật cùng lúc.
     private static final Map<String,List<String>> DUTIES=Map.of(
-        "ROLE_ADMIN",List.of("Quản trị tài khoản nhân viên: tạo, nhập Excel, sửa thông tin, khóa và mở khóa","Duyệt hoặc từ chối đề xuất thăng chức","Cấu hình hệ thống và quản lý sự cố kỹ thuật","Xem thống kê, nhật ký, báo cáo và doanh thu"),
-        "ROLE_MANAGER",List.of("Điều hành kinh doanh: xem doanh thu, gói hội viên và báo cáo tổng hợp","Điều chuyển nhân viên giữa hai vai trò, đề xuất thăng chức","Xử lý yêu cầu hỗ trợ được chuyển lên","Không tạo, khóa tài khoản và không sửa cấu hình"),
+        "ROLE_ADMIN",List.of("Quản trị tài khoản nhân viên: tạo, nhập Excel, sửa thông tin, khóa và mở khóa","Gán và đổi vai trò nhân viên nội bộ","Cấu hình hệ thống và quản lý sự cố kỹ thuật","Xem thống kê, nhật ký, báo cáo và doanh thu"),
+        "ROLE_MANAGER",List.of("Điều hành kinh doanh: xem doanh thu, gói hội viên và báo cáo tổng hợp","Quản lý người dùng: xem, tạm khóa và mở lại tài khoản học viên, gia sư","Xử lý yêu cầu hỗ trợ được chuyển lên","Không tạo, khóa tài khoản và không sửa cấu hình"),
         "ROLE_CS_STAFF",List.of("Tiếp nhận và giải quyết yêu cầu hỗ trợ, khiếu nại của học viên và gia sư","Hỏi thêm thông tin, hướng dẫn và ghi kết quả xử lý","Chuyển yêu cầu vượt thẩm quyền lên Quản lý"),
         "ROLE_ACADEMIC_OFFICER",List.of("Thẩm định hồ sơ, bằng cấp và chứng chỉ JLPT của gia sư","Kiểm duyệt, chuẩn hóa từ điển Kanji"),
         "ROLE_TUTOR",List.of("Quản lý hồ sơ, lịch dạy và lớp học trực tuyến","Nhận yêu cầu kết nối, dạy học thử","Giao và theo dõi bài tập của học viên","Đăng ký gói hội viên gia sư"),
         "ROLE_LEARNER",List.of("Tìm gia sư, gửi yêu cầu kết nối và đặt lịch học thử","Tham gia lớp học, làm bài tập","Luyện viết Kanji và học từ vựng, ngữ pháp","Gửi yêu cầu hỗ trợ khi cần"));
-    public static final Map<String,String> ACTION_LABELS=Map.of("CREATE","Tạo nhân viên","UPDATE","Sửa thông tin","ROLE","Đổi vai trò","STATUS","Đổi trạng thái tài khoản","PROPOSE","Đề xuất thăng chức","REJECT","Từ chối đề xuất thăng chức","CANCEL","Hủy đề xuất thăng chức","DELETE","Xóa tài khoản");
+    public static final Map<String,String> ACTION_LABELS=Map.of("CREATE","Tạo nhân viên","UPDATE","Sửa thông tin","ROLE","Đổi vai trò","STATUS","Đổi trạng thái tài khoản","DELETE","Xóa tài khoản");
     static final String LOCKED_EMAIL_MESSAGE="Email này thuộc tài khoản nhân viên đang bị khóa. Hãy mở lại tài khoản đó thay vì tạo mới.";
     OffsetDateTime now() { return OffsetDateTime.now(operationsClock).truncatedTo(ChronoUnit.MICROS); }
     OffsetDateTime nextTime(Account account) { var time=now();return time.isAfter(account.updatedAt())?time:account.updatedAt().plusNanos(1000); }
@@ -78,7 +78,16 @@ public class StaffAccountService {
     public Map<String,Object> update(UUID id,Update r) {
         UUID actor=beginWrite();var a=checked(id,r.expectedUpdatedAt());String email=r.email().trim().toLowerCase(Locale.ROOT);
         if(actor.equals(id)&&!a.email().equalsIgnoreCase(email))throw new BusinessException(400,"Không đổi email của tài khoản đang sử dụng trong màn hình này.");
-        uniqueEmail(email,id);var time=nextTime(a);staff.update(id,r.fullName().trim(),email,r.phone()==null?null:r.phone().trim(),time);staff.audit(actor,id,"UPDATE",r.reason().trim(),time);return view(staff.get(id,false),actor);
+        uniqueEmail(email,id);var time=nextTime(a);
+        boolean roleChanged=r.roleId()!=null&&r.roleId()!=a.roleId();
+        if(roleChanged){
+            protect(a,actor,true);
+            if(!CREATABLE_ROLES.contains(a.role()))throw new BusinessException(400,"Chỉ đổi vai trò cho nhân viên Quản lý, Cán bộ học vụ hoặc Chăm sóc khách hàng.");
+            if(!CREATABLE_ROLES.contains(staff.activeRole(r.roleId())))throw new BusinessException(400,"Không cấp quyền Quản trị viên và chỉ chọn vai trò nhân viên nội bộ.");
+        }
+        staff.update(id,r.fullName().trim(),email,r.phone()==null?null:r.phone().trim(),time);
+        if(roleChanged)staff.changeRole(id,r.roleId(),time);
+        staff.audit(actor,id,roleChanged?"ROLE":"UPDATE",r.reason().trim(),time);return view(staff.get(id,false),actor);
     }
     /** Chỉ cấp lại cho người chưa đổi mật khẩu lần đầu, để Admin không thể chiếm tài khoản đang được dùng. */
     @Transactional(timeout=5)
@@ -105,7 +114,7 @@ public class StaffAccountService {
     }
     /**
      * Xóa mềm: ẩn khỏi danh sách, chặn đăng nhập (deleted_at + Tạm khóa), giữ nguyên lịch sử, yêu cầu hỗ trợ, nhật ký, giao dịch.
-     * Không xóa chính mình và tài khoản Quản trị viên. Ca làm từ hôm nay trở đi được gỡ (có ghi lịch sử gỡ ca).
+     * Không xóa chính mình và tài khoản Quản trị viên.
      * Nhật ký dùng hành động DELETE (database/seeds/fe11_fe12_review_fixes.sql). Phiên đăng nhập cũ bị từ chối ngay ở request kế tiếp
      * vì mỗi request đều đọc lại deleted_at và trạng thái tài khoản từ DB (JwtAuthenticationFilter, OperationsIdentityRepository).
      * Yêu cầu hỗ trợ đang dở của CS bị xóa sẽ hiện ở nhóm "Cần bàn giao" của Quản lý (FE-10 FR-022).
@@ -117,7 +126,6 @@ public class StaffAccountService {
         if(a.role().equals("ROLE_ADMIN"))throw new BusinessException(400,"Không xóa tài khoản Quản trị viên.");
         var time=nextTime(a);
         staff.softDelete(id,time);
-        staff.removeUpcomingShifts(id,actor,time.atZoneSameInstant(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate());
         staff.audit(actor,id,"DELETE",r.reason().trim(),time);
         return Map.of("userId",id,"deleted",true);
     }

@@ -14,6 +14,4 @@ public interface KanjiGameService {
     MinigameSessionResponse saveGameSession(UUID userId, MinigameSessionRequest request);
 
     List<MinigameSessionResponse> getUserSessions(UUID userId);
-
-    List<MinigameSessionResponse> getLeaderboard();
 }

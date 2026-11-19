@@ -80,8 +80,19 @@ async function loadKanjiSvg(char) {
     }
   } catch (e) {}
 
-  // 3. Dự phòng tải từ KanjiVG CDN theo mã Hex
+  // 3. Ưu tiên tải trực tiếp từ kho tài nguyên tĩnh nội bộ (/kanjivg/)
   if (hex) {
+    try {
+      const localRes = await fetch(`/kanjivg/${hex}.svg`);
+      if (localRes.ok) {
+        const svgText = await localRes.text();
+        if (svgText && svgText.includes('<path')) {
+          return parseKanjiSvgPaths(svgText);
+        }
+      }
+    } catch (e) {}
+
+    // 4. Dự phòng tải từ KanjiVG CDN theo mã Hex nếu file nội bộ không có
     const cdnUrl = `https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/${hex}.svg`;
     try {
       const res = await fetch(cdnUrl);
@@ -752,7 +763,9 @@ function saveShodoCurrentCharToDeck() {
 // =========================================================================
 // 8. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================
-document.addEventListener('DOMContentLoaded', async () => {
+let isShodoInitialized = false;
+
+async function initShodoPractice() {
   setupCanvas();
   renderStrokeStepBadges();
 
@@ -816,6 +829,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     strokePaths = [];
     renderGuidelineSvg();
     renderStrokeStepBadges();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initShodoPractice);
+window.addEventListener('kizuna:page-mounted', () => {
+  if (window.location.pathname.includes('shodo')) {
+    initShodoPractice();
   }
 });
 

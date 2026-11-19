@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Cẩm Nang Ngữ Pháp OpenJLPT
  * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * Hỗ trợ Bộ lọc kép: Cấp độ JLPT (N5 - N1) & Khối Ứng dụng Thực tế (Đời thường, Nhà hàng, Du lịch, Công việc, Sức khỏe, Học thuật)
@@ -334,7 +334,7 @@ function renderGrammarCards() {
     }).join('');
 
     html += `
-      <div class="bg-white border-2 border-[#0F172A] rounded-[12px] p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0F172A] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] flex flex-col justify-between group cursor-pointer"
+      <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 shadow-sm hover:border-[#CBD5E1] hover:shadow transition-all flex flex-col justify-between group cursor-pointer"
            data-action="view-detail" data-id="${rule.id}">
         
         <div>
@@ -347,7 +347,7 @@ function renderGrammarCards() {
               ${rule.romaji ? `<span class="text-sm text-[#64748B] font-mono mt-0.5">(${rule.romaji})</span>` : ''}
             </div>
             <!-- Duy nhất huy hiệu Cấp độ JLPT chuẩn hóa phong cách Shodo -->
-            <span class="px-2.5 py-0.5 text-xs font-bold text-[#0F172A] bg-[#FEF3C7] border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] shrink-0 mt-0.5">
+            <span class="px-2.5 py-0.5 text-xs font-bold text-[#0F172A] bg-[#FEF3C7] border border-amber-300 rounded-md shadow-xs shrink-0 mt-0.5">
               ${rule.level}
             </span>
           </div>

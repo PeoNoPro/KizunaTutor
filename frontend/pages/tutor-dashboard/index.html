@@ -145,8 +145,8 @@
             </div>
           </div>
 
-          <!-- 2.5. Yêu cầu kết nối (FE-05) -->
-          <section id="trialBookingsSection" class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-6">
+          <!-- 2.5. Yêu cầu kết nối (FE-05) — chỉ hiện khi hồ sơ đã được phê duyệt -->
+          <section id="trialBookingsSection" class="hidden bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-6">
             <div class="flex items-center justify-between gap-3 mb-4">
               <div class="flex items-center gap-2.5">
                 <div class="w-2.5 h-6 rounded-full bg-secondary"></div>
@@ -178,8 +178,44 @@
             </div>
           </section>
 
-          <!-- 3. Tiến trình xác minh + hoạt động gần đây (dữ liệu thật) -->
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          <!-- 3a. Đã phê duyệt: lịch giảng dạy hôm nay + truy cập nhanh -->
+          <div id="approvedSection" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <section class="lg:col-span-7 bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-2.5 h-6 rounded-full bg-primary"></div>
+                  <div>
+                    <h3 class="text-title-md text-on-surface">Lịch giảng dạy hôm nay</h3>
+                    <p id="todayScheduleNote" class="text-body-sm text-on-surface-variant">Các buổi học của bạn trong ngày</p>
+                  </div>
+                </div>
+                <a href="/tutor/schedule" class="text-label-sm text-primary hover:text-primary-container flex items-center gap-1 shrink-0 font-semibold">
+                  Xem cả tuần <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </a>
+              </div>
+              <ul id="todaySchedule" class="space-y-3"></ul>
+              <div id="todayScheduleEmpty" class="hidden p-6 rounded-xl bg-surface-container-low text-center space-y-2">
+                <span class="material-symbols-outlined text-outline text-[32px]">event_available</span>
+                <p class="text-body-sm text-on-surface-variant font-medium">Hôm nay bạn không có buổi dạy nào.</p>
+                <p class="text-caption text-on-surface-variant">Buổi học của lớp và buổi học thử đã xác nhận sẽ hiện tại đây.</p>
+              </div>
+              <p id="todayScheduleError" class="hidden p-4 rounded-xl bg-surface-container-low text-body-sm text-on-surface-variant"></p>
+            </section>
+
+            <section class="lg:col-span-5 bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+              <div class="flex items-center gap-2.5 mb-4">
+                <div class="w-2.5 h-6 rounded-full bg-secondary"></div>
+                <div>
+                  <h3 class="text-title-md text-on-surface">Truy cập nhanh</h3>
+                  <p class="text-body-sm text-on-surface-variant">Các chức năng giảng dạy thường dùng</p>
+                </div>
+              </div>
+              <div id="quickLinks" class="grid grid-cols-2 gap-3"></div>
+            </section>
+          </div>
+
+          <!-- 3b. Chưa phê duyệt: tiến trình xác minh + hoạt động gần đây (dữ liệu thật) -->
+          <div id="verificationSection" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
             <section class="lg:col-span-7 bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col">
               <div class="flex items-center justify-between gap-3 mb-5">
                 <div class="flex items-center gap-2.5">

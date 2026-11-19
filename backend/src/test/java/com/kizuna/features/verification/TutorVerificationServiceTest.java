@@ -184,6 +184,41 @@ class TutorVerificationServiceTest {
     }
 
     @Test
+    void req03_submitWithIdentityButNoJapaneseCertificateIsRejected() {
+        fillCompleteProfile();
+        addDocument(CredentialType.IDENTITY_DOCUMENT);
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.submit(new SubmitVerificationRequest(true)));
+
+        assertEquals("SUBMISSION_INCOMPLETE", ex.getCode());
+        assertTrue(ex.getMessage().startsWith("Không thể nộp hồ sơ. Vui lòng hoàn thiện"));
+        assertEquals(List.of(com.kizuna.features.verification.service.VerificationLabels.MISSING_JAPANESE),
+                ex.getMissingDocuments());
+        assertEquals(TutorVerificationStatus.UNVERIFIED, tutor.getVerificationStatus());
+        verify(historyRepository, never()).save(any());
+    }
+
+    @Test
+    void req03_otherJapaneseCertificateCountsAsLanguageDocument() {
+        fillCompleteProfile();
+        addDocument(CredentialType.IDENTITY_DOCUMENT);
+        addDocument(CredentialType.OTHER_JAPANESE_CERTIFICATE);
+
+        service.submit(new SubmitVerificationRequest(true));
+
+        assertEquals(TutorVerificationStatus.PENDING, tutor.getVerificationStatus());
+    }
+
+    @Test
+    void req02_missingTypeAndBlankTitleShowFieldMessages() {
+        assertEquals("Vui lòng chọn loại giấy tờ.", assertThrows(VerificationException.class,
+                () -> service.addDocument(null, "Hộ chiếu", null)).getFields().get("type"));
+        assertEquals("Vui lòng nhập tên giấy tờ.", assertThrows(VerificationException.class,
+                () -> service.addDocument("IDENTITY_DOCUMENT", "  ", null)).getFields().get("title"));
+    }
+
+    @Test
     void submitWithoutCommitmentIsRejected() {
         fillCompleteProfile();
         addDocument(CredentialType.IDENTITY_DOCUMENT);
@@ -597,14 +632,14 @@ class TutorVerificationServiceTest {
     }
 
     /**
-     * Ghi nội dung tệp lỗi thì ngoại lệ phải thoát ra khỏi addDocument (không bị nuốt), để @Transactional
+     * Tải tệp lên R2 lỗi thì ngoại lệ phải thoát ra khỏi addDocument (không bị nuốt), để @Transactional
      * huỷ cả dòng giấy tờ vừa thêm. Test đơn vị chỉ chứng minh ngoại lệ được ném ra; việc huỷ giao dịch
      * thật sự do Spring thực hiện và không được kiểm chứng ở đây.
      */
     @Test
-    void req02_failedFileDataWritePropagatesSoTransactionRollsBack() {
+    void req02_failedFileUploadPropagatesSoTransactionRollsBack() {
         storageAcceptsAnyFile();
-        doThrow(new IllegalStateException("Không ghi được nội dung giấy tờ xác minh"))
+        doThrow(new IllegalStateException("Không tải được giấy tờ xác minh lên R2"))
                 .when(storage).saveContent(any(), any(), any());
 
         assertThrows(IllegalStateException.class, () -> service.addDocument("IDENTITY_DOCUMENT", "CCCD", pdf()));
@@ -646,5 +681,82 @@ class TutorVerificationServiceTest {
 
         assertTrue(ex.getFields().containsKey("highestJlptLevel"));
         verify(historyRepository, never()).save(any());
+    }
+
+    // ===== REQ-08: đề nghị gỡ giấy tờ đã xác minh khi gửi yêu cầu cập nhật =====
+
+    private TutorCredential identity(TutorCredentialStatus status) {
+        TutorCredential c = credential(status);
+        c.setCredentialType(CredentialType.IDENTITY_DOCUMENT);
+        c.setTitle("CCCD");
+        return c;
+    }
+
+    private SubmitProfileUpdateRequest removing(UUID... ids) {
+        return new SubmitProfileUpdateRequest(null, null, List.of(ids));
+    }
+
+    @Test
+    void req08_removingVerifiedDocumentIsRecordedButNotDeleted() {
+        approve();
+        identity(TutorCredentialStatus.VERIFIED);
+        credential(TutorCredentialStatus.VERIFIED);
+        TutorCredential old = credential(TutorCredentialStatus.VERIFIED);
+        old.setTitle("JLPT N3 cũ");
+
+        TutorVerificationResponse response = service.submitProfileUpdate(removing(old.getCredentialId()));
+
+        ArgumentCaptor<TutorVerificationHistory> saved = ArgumentCaptor.forClass(TutorVerificationHistory.class);
+        verify(historyRepository).save(saved.capture());
+        List<ProfileUpdateTimeline.RemovedDocument> removed = ProfileUpdateTimeline.latest(List.of(saved.getValue()))
+                .orElseThrow().removedDocuments();
+        assertEquals(List.of(new ProfileUpdateTimeline.RemovedDocument(old.getCredentialId(), "JLPT N3 cũ")), removed);
+        verify(credentialRepository, never()).delete(any());
+        assertEquals(TutorVerificationServiceImpl.MSG_UPDATE_SUBMITTED, response.getMessage());
+    }
+
+    @Test
+    void req08_removingNewDocumentThroughUpdateIsRejected() {
+        approve();
+        identity(TutorCredentialStatus.VERIFIED);
+        TutorCredential fresh = credential(TutorCredentialStatus.PENDING);
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(removing(fresh.getCredentialId())));
+
+        assertEquals(TutorVerificationServiceImpl.MSG_REMOVE_ONLY_VERIFIED, ex.getMessage());
+        verify(historyRepository, never()).save(any());
+    }
+
+    @Test
+    void req08_removingTheOnlyIdentityDocumentIsRejected() {
+        approve();
+        TutorCredential onlyIdentity = identity(TutorCredentialStatus.VERIFIED);
+        credential(TutorCredentialStatus.VERIFIED);
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(removing(onlyIdentity.getCredentialId())));
+
+        assertEquals(TutorVerificationServiceImpl.MSG_REMOVE_KEEPS_REQUIRED, ex.getMessage());
+        verify(historyRepository, never()).save(any());
+    }
+
+    @Test
+    void req08_replacingCertificateWithNewUploadAllowsRemovingOldOne() {
+        approve();
+        identity(TutorCredentialStatus.VERIFIED);
+        TutorCredential old = credential(TutorCredentialStatus.VERIFIED);
+        credential(TutorCredentialStatus.PENDING);
+
+        assertDoesNotThrow(() -> service.submitProfileUpdate(removing(old.getCredentialId())));
+    }
+
+    @Test
+    void req08_removingUnknownDocumentIsNotFound() {
+        approve();
+        identity(TutorCredentialStatus.VERIFIED);
+
+        assertEquals("NOT_FOUND", assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(removing(UUID.randomUUID()))).getCode());
     }
 }

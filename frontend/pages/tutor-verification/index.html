@@ -58,6 +58,19 @@
           </dl>
         </section>
 
+        <!-- Hồ sơ đã phê duyệt: mặc định chỉ xem, bấm nút mới mở chỉnh sửa -->
+        <section id="editBar" class="tv-card p-4 hidden flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <p id="editBarText" class="text-[var(--tv-muted)]">Hồ sơ đang ở chế độ chỉ xem.</p>
+          <div class="flex flex-wrap gap-2 md:justify-end">
+            <button id="editProfileButton" type="button" class="tv-btn tv-btn-primary">
+              <span class="material-symbols-outlined text-base">edit</span>Chỉnh sửa hồ sơ xác minh
+            </button>
+            <button id="finishEditButton" type="button" class="tv-btn hidden">
+              <span class="material-symbols-outlined text-base">close</span>Kết thúc chỉnh sửa
+            </button>
+          </div>
+        </section>
+
         <!-- 4.2 Bắt đầu xác minh (UC-22 AF-1) -->
         <section id="startBlock" class="tv-card p-6 text-center hidden">
           <span class="material-symbols-outlined text-5xl" style="color: var(--tv-tutor);">badge</span>
@@ -203,6 +216,12 @@
                 <p class="tv-field-error" data-error-for="highestJlptLevel"></p>
               </div>
               <p id="updateNewDocuments" class="text-[var(--tv-muted)]"></p>
+              <div id="updateRemovals" class="hidden border border-black rounded-[5px] p-3">
+                <p class="font-semibold" style="color: var(--tv-warn);">Giấy tờ đề nghị gỡ</p>
+                <ul id="updateRemovalList" class="list-disc pl-6 mt-1"></ul>
+                <p class="tv-meta text-[var(--tv-muted)] mt-1">Giấy tờ chỉ bị gỡ khỏi hồ sơ khi cán bộ học vụ chấp nhận yêu cầu.</p>
+                <p class="tv-field-error" data-error-for="removedDocumentIds"></p>
+              </div>
               <div>
                 <label class="tv-label" for="updateNoteInput">Ghi chú cho cán bộ học vụ</label>
                 <textarea id="updateNoteInput" rows="3" maxlength="1000" class="tv-input" placeholder="Ví dụ: Tôi vừa đỗ JLPT N1, đã tải lên chứng chỉ mới."></textarea>

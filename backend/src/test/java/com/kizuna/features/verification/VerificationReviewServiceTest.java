@@ -12,6 +12,7 @@ import com.kizuna.features.verification.entity.RejectionReason;
 import com.kizuna.features.verification.entity.TutorVerifAction;
 import com.kizuna.features.verification.entity.TutorVerificationHistory;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
+import com.kizuna.features.verification.entity.TutorCredential;
 import com.kizuna.features.verification.repository.TutorCredentialRepository;
 import com.kizuna.features.verification.service.ProfileUpdateTimeline;
 import com.kizuna.features.verification.dto.request.RejectProfileUpdateRequest;
@@ -47,6 +48,7 @@ class VerificationReviewServiceTest {
     private TutorVerificationHistoryRepository historyRepository;
     private TutorCredentialRepository credentialRepository;
     private VerificationNotificationService notificationService;
+    private VerificationDocumentStorage storage;
     private VerificationReviewServiceImpl service;
 
     private final UUID officerId = UUID.randomUUID();
@@ -61,7 +63,7 @@ class VerificationReviewServiceTest {
         notificationService = mock(VerificationNotificationService.class);
         UserRepository userRepository = mock(UserRepository.class);
         CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
-        VerificationDocumentStorage storage = mock(VerificationDocumentStorage.class);
+        storage = mock(VerificationDocumentStorage.class);
 
         tutor = Tutor.builder()
                 .tutorId(UUID.randomUUID())
@@ -251,6 +253,72 @@ class VerificationReviewServiceTest {
         assertNull(decision.getReasonCode());
     }
 
+    private TutorCredential pendingRemoval() {
+        TutorCredential doc = TutorCredential.builder().credentialId(UUID.randomUUID())
+                .title("JLPT N3 cũ").storageKey(UUID.randomUUID() + ".pdf")
+                .verifiedStatus(TutorCredentialStatus.VERIFIED).build();
+        tutor.setVerificationStatus(TutorVerificationStatus.APPROVED);
+        when(historyRepository.findTimeline(tutor.getTutorId())).thenReturn(List.of(
+                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT).build(),
+                TutorVerificationHistory.builder().action(TutorVerifAction.APPROVE).build(),
+                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT)
+                        .internalNote(ProfileUpdateTimeline.submitNotes("N2", null, List.of(
+                                new ProfileUpdateTimeline.RemovedDocument(doc.getCredentialId(), doc.getTitle()))))
+                        .build()));
+        when(credentialRepository.findByCredentialIdAndTutor_TutorId(doc.getCredentialId(), tutor.getTutorId()))
+                .thenReturn(Optional.of(doc));
+        return doc;
+    }
+
+    @Test
+    void profileUpdateNotesKeepRemovedDocumentsAndRequestedJlpt() {
+        UUID id = UUID.randomUUID();
+        String notes = ProfileUpdateTimeline.submitNotes("N2", "N1", List.of(
+                new ProfileUpdateTimeline.RemovedDocument(id, "Bằng {cũ}; bản 1")));
+        var request = ProfileUpdateTimeline.latest(List.of(TutorVerificationHistory.builder()
+                .action(TutorVerifAction.SUBMIT).internalNote(notes).build())).orElseThrow();
+
+        assertEquals("N1", request.requestedJlpt());
+        assertEquals("N2", request.previousJlpt());
+        assertEquals(List.of(new ProfileUpdateTimeline.RemovedDocument(id, "Bằng cũ bản 1")), request.removedDocuments());
+    }
+
+    @Test
+    void approveProfileUpdateDeletesDocumentsTutorAskedToRemove() {
+        TutorCredential doc = pendingRemoval();
+
+        service.approveProfileUpdate(tutor.getTutorId());
+
+        verify(credentialRepository).delete(doc);
+        verify(storage).deleteLegacyAfterCommit(doc.getStorageKey());
+    }
+
+    @Test
+    void rejectProfileUpdateKeepsDocumentsTutorAskedToRemove() {
+        pendingRemoval();
+
+        service.rejectProfileUpdate(tutor.getTutorId(), new RejectProfileUpdateRequest("Chưa đủ căn cứ"));
+
+        verify(credentialRepository, never()).delete(any());
+        verify(storage, never()).deleteLegacyAfterCommit(any());
+    }
+
+    @Test
+    void detailMarksDocumentsTutorAskedToRemove() {
+        TutorCredential doc = pendingRemoval();
+        TutorCredential kept = TutorCredential.builder().credentialId(UUID.randomUUID()).title("CCCD")
+                .storageKey(UUID.randomUUID() + ".pdf").verifiedStatus(TutorCredentialStatus.VERIFIED).build();
+        when(tutorRepository.findWithUserByTutorId(tutor.getTutorId())).thenReturn(Optional.of(tutor));
+        when(credentialRepository.findByTutor_TutorIdOrderByUploadedAtAsc(tutor.getTutorId())).thenReturn(List.of(doc, kept));
+        when(storage.availableIds(any())).thenReturn(java.util.Set.of(doc.getCredentialId(), kept.getCredentialId()));
+
+        var detail = service.getDetail(tutor.getTutorId());
+
+        assertTrue(detail.getDocuments().get(0).isRemovalRequested());
+        assertFalse(detail.getDocuments().get(1).isRemovalRequested());
+        assertEquals("JLPT N3 cũ", detail.getProfileUpdate().getRemovedDocuments().get(0).getTitle());
+    }
+
     @Test
     void profileUpdateAlreadyHandledReturnsConflict() {
         tutor.setVerificationStatus(TutorVerificationStatus.APPROVED);
@@ -385,8 +453,59 @@ class VerificationReviewServiceTest {
     }
 
     @Test
+    void req07_pageSizeOf500IsCappedAt50() {
+        assertEquals(50, queuePageRequest(VerificationQueueQuery.builder().size(500).build()).getPageSize());
+    }
+
+    @Test
     void req07_keywordOf100CharactersIsAccepted() {
         assertDoesNotThrow(() -> queuePageRequest(VerificationQueueQuery.builder().keyword("k".repeat(100)).build()));
+    }
+
+    @SuppressWarnings("unchecked")
+    private com.kizuna.features.verification.dto.response.VerificationQueueItemResponse onlyQueueItem(
+            VerificationQueueQuery query) {
+        when(tutorRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class),
+                any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(tutor)));
+        return service.getQueue(query).getContent().get(0);
+    }
+
+    @Test
+    void req07_pendingQueueShowsProfileUpdateAsWaitingForReview() {
+        tutor.setVerificationStatus(TutorVerificationStatus.APPROVED);
+        java.time.OffsetDateTime requestedAt = java.time.OffsetDateTime.parse("2026-11-17T22:36:00+07:00");
+        when(historyRepository.findTimeline(tutor.getTutorId())).thenReturn(List.of(
+                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT).build(),
+                TutorVerificationHistory.builder().action(TutorVerifAction.APPROVE).build(),
+                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT)
+                        .internalNote(ProfileUpdateTimeline.MARKER).createdAt(requestedAt).build()));
+
+        var item = onlyQueueItem(VerificationQueueQuery.builder().build());
+
+        assertEquals(VerificationReviewServiceImpl.STATUS_PROFILE_UPDATE, item.getStatus());
+        assertEquals("Chờ xét duyệt (cập nhật hồ sơ)", item.getStatusLabel());
+        assertEquals(requestedAt, item.getSubmittedAt());
+        assertEquals("Gia sư B", item.getFullName());
+    }
+
+    @Test
+    void req07_pendingQueueKeepsFirstSubmissionAsPending() {
+        var item = onlyQueueItem(VerificationQueueQuery.builder().status("PENDING").build());
+
+        assertEquals("PENDING", item.getStatus());
+        verify(historyRepository, never()).findTimeline(any());
+    }
+
+    @Test
+    void req07_approvedFilterKeepsApprovedLabel() {
+        tutor.setVerificationStatus(TutorVerificationStatus.APPROVED);
+
+        var item = onlyQueueItem(VerificationQueueQuery.builder().status("APPROVED").build());
+
+        assertEquals("APPROVED", item.getStatus());
+        assertEquals("Đã phê duyệt", item.getStatusLabel());
+        verify(historyRepository, never()).findTimeline(any());
     }
 
     @Test

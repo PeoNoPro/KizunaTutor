@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  APPROVED_EDITABLE_FIELDS, hasPendingUpdate, canUploadDocuments, documentChangeable, newDocumentCount, profileUpdateError
+  APPROVED_EDITABLE_FIELDS, hasPendingUpdate, canUploadDocuments, documentChangeable, newDocumentCount, profileUpdateError,
+  canRequestRemoval, removalError, MSG_NO_CHANGES, MSG_REMOVE_KEEPS_REQUIRED
 } from '../js/verification-update-helpers.js';
 
 const verifiedDoc = { id: '1', status: 'VERIFIED', fileAvailable: true };
@@ -34,4 +35,30 @@ test('chỉ gửi yêu cầu khi đổi JLPT hoặc có giấy tờ mới', () =
   assert.equal(newDocumentCount(withNewDoc), 1);
   assert.equal(profileUpdateError(withNewDoc, 'N2', ''), null);
   assert.equal(profileUpdateError(approved, 'N1', 'x'.repeat(1001)), 'Ghi chú tối đa 1.000 ký tự.');
+});
+
+const idDoc = { id: "id", type: "IDENTITY_DOCUMENT", status: "VERIFIED", fileAvailable: true };
+const oldJlpt = { id: "j1", type: "JLPT_CERTIFICATE", status: "VERIFIED", fileAvailable: true };
+const newJlpt = { id: "j2", type: "JLPT_CERTIFICATE", status: "PENDING", fileAvailable: true };
+const withDocs = (docs) => ({ ...approved, documents: docs });
+
+test("chỉ đề nghị gỡ giấy tờ đã xác minh, và không khi đang có yêu cầu chờ", () => {
+  assert.equal(canRequestRemoval(approved, verifiedDoc), true);
+  assert.equal(canRequestRemoval(approved, newDoc), false, "giấy tờ mới gỡ trực tiếp");
+  assert.equal(canRequestRemoval({ ...approved, profileUpdate: { status: "PENDING" } }, verifiedDoc), false);
+  assert.equal(canRequestRemoval({ editable: true }, verifiedDoc), false, "hồ sơ chưa duyệt không qua yêu cầu cập nhật");
+});
+
+test("gỡ giấy tờ là một thay đổi hợp lệ để gửi yêu cầu", () => {
+  const data = withDocs([idDoc, oldJlpt, { ...oldJlpt, id: "j3" }]);
+  assert.equal(profileUpdateError(data, "N2", "", []), MSG_NO_CHANGES);
+  assert.equal(profileUpdateError(data, "N2", "", ["j1"]), null);
+});
+
+test("sau khi gỡ vẫn phải còn giấy tờ tùy thân và chứng chỉ tiếng Nhật", () => {
+  assert.equal(removalError(withDocs([idDoc, oldJlpt]), ["j1"]), MSG_REMOVE_KEEPS_REQUIRED);
+  assert.equal(removalError(withDocs([idDoc, oldJlpt]), ["id"]), MSG_REMOVE_KEEPS_REQUIRED);
+  assert.equal(removalError(withDocs([idDoc, oldJlpt, newJlpt]), ["j1"]), null, "đã tải chứng chỉ thay thế");
+  assert.equal(removalError(withDocs([idDoc, oldJlpt, { ...newJlpt, fileAvailable: false }]), ["j1"]), MSG_REMOVE_KEEPS_REQUIRED);
+  assert.equal(removalError(withDocs([idDoc, oldJlpt]), []), null);
 });

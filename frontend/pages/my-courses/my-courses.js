@@ -7,7 +7,6 @@ import { API } from '../../js/api.js';
 import {
   classroomStatusLabel,
   classroomStatusTone,
-  fileTypeLabel,
   formatDateVi,
   sortSchedules,
   summarizeSchedules,
@@ -22,6 +21,7 @@ import {
   roleDeniedHtml,
   clearSessionAndGoToLogin
 } from '../../js/classroom-helpers.js';
+import { fileChipHtml, RETRY_BUTTON_HTML } from './my-courses-ui.js';
 import { loadLearnerAssignments, hideLearnerAssignments } from './my-assignments.js';
 
 const $ = (id) => document.getElementById(id);
@@ -29,8 +29,8 @@ let currentSpace = null;
 
 function renderStateBox(el, message, retry) {
   el.innerHTML = `
-    <p class="text-[#333]">${escapeHtml(message)}</p>
-    ${retry ? '<button type="button" class="mc-btn mt-4" data-retry>Thử lại</button>' : ''}
+    <p>${escapeHtml(message)}</p>
+    ${retry ? RETRY_BUTTON_HTML : ''}
   `;
   el.classList.remove('hidden');
   if (retry) el.querySelector('[data-retry]').addEventListener('click', retry);
@@ -52,7 +52,7 @@ async function loadCourses() {
   const grid = $('myCoursesGrid');
   const stateBox = $('myCoursesState');
   stateBox.classList.add('hidden');
-  grid.innerHTML = '<p class="text-[#444]">Đang tải danh sách lớp học...</p>';
+  grid.innerHTML = '<p class="text-on-surface-variant">Đang tải danh sách lớp học...</p>';
   try {
     const courses = await API.classrooms.list() || [];
     if (!courses.length) {
@@ -62,20 +62,25 @@ async function loadCourses() {
     }
     grid.innerHTML = courses.map((c) => {
       const lines = courseCardLines(c);
+      const active = c.status === 'ACTIVE';
       return `
-      <article class="mc-card p-4 flex flex-col gap-3">
-        <div class="flex items-start justify-between gap-2">
-          <h3 class="mc-heading text-[18px] leading-snug min-w-0 [overflow-wrap:anywhere]">${escapeHtml(c.title)}</h3>
-          <span class="mc-badge shrink-0" data-tone="${classroomStatusTone(c.status)}">${escapeHtml(classroomStatusLabel(c.status))}</span>
+      <article class="kz-card p-5 flex flex-col gap-4">
+        <div class="flex items-start gap-3">
+          <div class="mc-icon ${active ? 'bg-primary-fixed text-on-primary-fixed-variant' : 'bg-surface-container-high text-on-surface-variant'}" aria-hidden="true">
+            <span class="material-symbols-outlined text-[24px]">${active ? 'school' : 'pause_circle'}</span></div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-title-sm text-title-sm text-on-surface [overflow-wrap:anywhere]">${escapeHtml(c.title)}</h3>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">Gia sư ${escapeHtml(c.tutorName || '')}</p>
+          </div>
+          <span class="kz-badge shrink-0" data-tone="${classroomStatusTone(c.status)}">${escapeHtml(classroomStatusLabel(c.status))}</span>
         </div>
-        <div class="text-[#333] space-y-1">
-          <div>Gia sư: <strong>${escapeHtml(c.tutorName || 'Gia sư')}</strong></div>
-          <div>Thời gian học: ${escapeHtml(lines.period)}</div>
-          ${lines.progress ? `<div>Tiến độ: ${escapeHtml(lines.progress)}</div>` : ''}
-          <div>Lịch học: ${c.schedules?.length ? escapeHtml(summarizeSchedules(c.schedules)) : 'Chưa có lịch học'}</div>
-          <div>Tài liệu: ${Number(c.materialCount) || 0}</div>
-        </div>
-        <button type="button" class="mc-btn mt-auto" data-open-course="${escapeHtml(c.spaceId)}">Xem lớp học</button>
+        <ul class="space-y-1.5 text-on-surface-variant">
+          <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">date_range</span><span class="min-w-0">${escapeHtml(lines.period)}</span></li>
+          ${lines.progress ? `<li class="flex items-start gap-2"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">trending_up</span><span class="min-w-0">Tiến độ: ${escapeHtml(lines.progress)}</span></li>` : ''}
+          <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">calendar_month</span><span class="min-w-0">${c.schedules?.length ? escapeHtml(summarizeSchedules(c.schedules)) : 'Chưa có lịch học'}</span></li>
+          <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">folder_open</span><span class="min-w-0">${Number(c.materialCount) || 0} tài liệu</span></li>
+        </ul>
+        <button type="button" class="kz-btn ${active ? 'kz-btn-primary' : ''} mt-auto h-11" data-open-course="${escapeHtml(c.spaceId)}">${active ? 'Vào lớp học<span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>' : 'Xem lớp học'}</button>
       </article>`;
     }).join('');
     grid.querySelectorAll('[data-open-course]').forEach((btn) => {
@@ -121,10 +126,12 @@ async function loadCourse(spaceId) {
   card.classList.add('hidden');
   materialsCard.classList.add('hidden');
   $('myCourseSchedule').classList.add('hidden');
+  $('myCourseCrumbClass').textContent = '';
   hideLearnerAssignments();
   try {
     currentSpace = await API.classrooms.detail(spaceId);
     $('myCourseTitle').textContent = currentSpace.title;
+    $('myCourseCrumbClass').textContent = currentSpace.title;
     const badge = $('myCourseStatus');
     badge.textContent = classroomStatusLabel(currentSpace.status);
     badge.dataset.tone = classroomStatusTone(currentSpace.status);
@@ -148,13 +155,16 @@ async function loadCourse(spaceId) {
 /** Hình thức học: lớp online có nút vào phòng học (khi gia sư đã gửi link), lớp trực tiếp hiện địa điểm. */
 function renderDelivery(space) {
   const box = $('myCourseDelivery');
+  const join = $('myCourseJoin');
+  join.innerHTML = '';
   if (space.learningMode === 'OFFLINE') {
-    box.innerHTML = `<span class="material-symbols-outlined text-[18px]">home_pin</span>Học trực tiếp: <strong>${escapeHtml(space.locationDetails || '')}</strong>`;
+    box.innerHTML = `<span class="material-symbols-outlined text-[18px]" aria-hidden="true">home_pin</span>Học trực tiếp: <strong class="font-semibold text-on-surface">${escapeHtml(space.locationDetails || '')}</strong>`;
   } else if (space.meetingLink && /^https?:\/\//i.test(space.meetingLink)) {
-    box.innerHTML = `<span class="material-symbols-outlined text-[18px]">videocam</span>Học online ·
-      <a href="${escapeHtml(space.meetingLink)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-3 py-1 border border-black rounded-[5px] bg-[#E5F4EA] font-semibold no-underline">Vào phòng học<span class="material-symbols-outlined text-[16px]">open_in_new</span></a>`;
+    box.innerHTML = '<span class="material-symbols-outlined text-[18px]" aria-hidden="true">videocam</span>Học online';
+    join.innerHTML = `<a href="${escapeHtml(space.meetingLink)}" target="_blank" rel="noopener noreferrer" class="kz-btn kz-btn-primary h-12 px-5 text-[14px] no-underline">
+      <span class="material-symbols-outlined text-[20px]" aria-hidden="true">video_call</span>Vào phòng học<span class="material-symbols-outlined text-[16px]" aria-hidden="true">open_in_new</span></a>`;
   } else {
-    box.innerHTML = '<span class="material-symbols-outlined text-[18px]">videocam</span>Học online · Gia sư chưa gửi link phòng học.';
+    box.innerHTML = '<span class="material-symbols-outlined text-[18px]" aria-hidden="true">videocam</span>Học online · Gia sư chưa gửi link phòng học.';
   }
 }
 
@@ -168,10 +178,13 @@ function renderSchedule(list) {
   } else {
     stateBox.classList.add('hidden');
     ul.innerHTML = schedules.map((s) => `
-      <li class="border border-black rounded-[5px] p-3 bg-[#E5F4EA] flex flex-col gap-0.5">
-        <span class="font-semibold text-[16px]">${escapeHtml(dayOfWeekLabel(s.dayOfWeek))}</span>
-        <span>${escapeHtml(shortTime(s.startTime))} – ${escapeHtml(shortTime(s.endTime))}</span>
-        <span class="mc-meta text-[#555]">${escapeHtml(durationLabel(s.startTime, s.endTime))}</span>
+      <li class="flex items-center gap-3 p-3.5 rounded-xl bg-surface-container-low">
+        <div class="mc-icon bg-surface-container-lowest text-primary" aria-hidden="true"><span class="material-symbols-outlined">calendar_today</span></div>
+        <div class="min-w-0">
+          <p class="font-title-sm text-title-sm text-on-surface">${escapeHtml(dayOfWeekLabel(s.dayOfWeek))}</p>
+          <p>${escapeHtml(shortTime(s.startTime))} – ${escapeHtml(shortTime(s.endTime))}</p>
+          <p class="font-body-sm text-[12px] text-on-surface-variant">${escapeHtml(durationLabel(s.startTime, s.endTime))}</p>
+        </div>
       </li>
     `).join('');
   }
@@ -182,7 +195,8 @@ async function loadMaterials() {
   const list = $('myCourseMaterialsList');
   const stateBox = $('myCourseMaterialsState');
   stateBox.classList.add('hidden');
-  list.innerHTML = '<li class="text-[#444]">Đang tải tài liệu...</li>';
+  $('myCourseMaterialsCount').textContent = '';
+  list.innerHTML = '<li class="text-on-surface-variant">Đang tải tài liệu...</li>';
   try {
     const materials = await API.classrooms.materials(currentSpace.spaceId) || [];
     if (!materials.length) {
@@ -190,15 +204,16 @@ async function loadMaterials() {
       renderStateBox(stateBox, 'Hiện chưa có tài liệu nào trong lớp học này.');
       return;
     }
+    $('myCourseMaterialsCount').textContent = `· ${materials.length} tài liệu`;
     list.innerHTML = materials.map((m) => `
-      <li class="border border-black rounded-[5px] p-4 bg-white flex flex-col sm:flex-row sm:items-start gap-3">
-        <div class="flex-1 min-w-0 space-y-1">
-          <h3 class="font-semibold text-[16px] [overflow-wrap:anywhere]">${escapeHtml(m.title)}</h3>
-          ${m.description ? `<p class="text-[#333] whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(m.description)}</p>` : ''}
-          <div class="flex flex-wrap gap-2 pt-1">${(m.files || []).map((f) => `
-            <button type="button" class="mc-btn max-w-full" data-open-material="${escapeHtml(m.materialId)}" data-file="${escapeHtml(f.fileId)}"
-              title="${escapeHtml(fileTypeLabel(f.fileType))}"><span class="min-w-0 [overflow-wrap:anywhere]">📎 ${escapeHtml(f.fileName)}</span></button>`).join('')}</div>
-          <p class="mc-meta text-[#555]">${(m.files || []).length} tệp · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
+      <li class="flex gap-3.5 p-4 rounded-xl border border-surface-container-high">
+        <div class="mc-icon bg-surface-container-low text-primary" aria-hidden="true"><span class="material-symbols-outlined">folder_open</span></div>
+        <div class="flex-1 min-w-0 space-y-2">
+          <h3 class="font-title-sm text-title-sm text-on-surface [overflow-wrap:anywhere]">${escapeHtml(m.title)}</h3>
+          ${m.description ? `<p class="text-on-surface-variant whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(m.description)}</p>` : ''}
+          <div class="flex flex-wrap gap-2">${(m.files || []).map((f) => fileChipHtml(f,
+            `data-open-material="${escapeHtml(m.materialId)}" data-file="${escapeHtml(f.fileId)}"`)).join('')}</div>
+          <p class="font-body-sm text-[12px] text-on-surface-variant">${(m.files || []).length} tệp · Tải lên ngày ${escapeHtml(formatDateVi(m.createdAt))}</p>
         </div>
       </li>
     `).join('');

@@ -7,7 +7,6 @@ import { API } from '../../js/api.js';
 import { formatDateTime, formatScore } from '../../js/exercise-helpers.js';
 import { createFileList } from '../../js/file-picker.js';
 import {
-  fileTypeLabel,
   formatFileSize,
   friendlyErrorMessage,
   escapeHtml,
@@ -22,6 +21,7 @@ import {
   formatPoints,
   validateSubmission
 } from '../../js/assignment-helpers.js';
+import { fileChipHtml, RETRY_BUTTON_HTML } from './my-courses-ui.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -29,14 +29,57 @@ const ctx = { space: null, assignments: [], detail: null, notify: () => {} };
 
 function stateBox(message, retry) {
   const box = $('myAssignmentsState');
-  box.innerHTML = `<p>${escapeHtml(message)}</p>${retry ? '<button type="button" class="mc-btn mt-4" data-retry>Thử lại</button>' : ''}`;
+  box.innerHTML = `<p>${escapeHtml(message)}</p>${retry ? RETRY_BUTTON_HTML : ''}`;
   box.classList.remove('hidden');
   if (retry) box.querySelector('[data-retry]').addEventListener('click', retry);
 }
 
 export function hideLearnerAssignments() {
   $('myCourseAssignments')?.classList.add('hidden');
-  $('myAssignmentDetail')?.classList.add('hidden');
+  closeDetail();
+}
+
+/** Mở bài tập nộp tệp thành màn riêng trong lớp: ẩn nội dung lớp, thêm tên bài vào đường dẫn. */
+function showDetailView(title) {
+  $('myCourseMain')?.classList.add('hidden');
+  $('myAssignmentDetail').classList.remove('hidden');
+  const crumbClass = $('myCourseCrumbClass');
+  if (crumbClass) {
+    crumbClass.disabled = false;
+    crumbClass.className = 'text-primary hover:underline font-medium [overflow-wrap:anywhere] text-left';
+  }
+  $('myCourseCrumbSep')?.classList.remove('hidden');
+  const crumb = $('myCourseCrumbAssignment');
+  if (crumb) {
+    crumb.textContent = title || 'Bài tập';
+    crumb.classList.remove('hidden');
+  }
+  document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/** Đóng màn bài tập, trở về nội dung lớp (cuộn tới khối Bài tập khi người dùng bấm quay lại). */
+function closeDetail({ scroll = false } = {}) {
+  const panel = $('myAssignmentDetail');
+  if (!panel) return;
+  panel.classList.add('hidden');
+  panel.innerHTML = '';
+  $('myCourseMain')?.classList.remove('hidden');
+  const crumbClass = $('myCourseCrumbClass');
+  if (crumbClass) {
+    crumbClass.disabled = true;
+    crumbClass.className = 'text-on-surface-variant [overflow-wrap:anywhere] text-left';
+  }
+  $('myCourseCrumbSep')?.classList.add('hidden');
+  $('myCourseCrumbAssignment')?.classList.add('hidden');
+  if (scroll) $('myCourseAssignments')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function bindCrumb() {
+  const crumbClass = $('myCourseCrumbClass');
+  if (crumbClass && !crumbClass.dataset.bound) {
+    crumbClass.dataset.bound = 'true';
+    crumbClass.addEventListener('click', () => closeDetail({ scroll: true }));
+  }
 }
 
 export async function loadLearnerAssignments(space, { notify } = {}) {
@@ -45,9 +88,11 @@ export async function loadLearnerAssignments(space, { notify } = {}) {
   const card = $('myCourseAssignments');
   const list = $('myAssignmentsList');
   if (!card || !space) return;
+  bindCrumb();
   card.classList.remove('hidden');
+  $('myAssignmentsTodo')?.classList.add('hidden');
   $('myAssignmentsState').classList.add('hidden');
-  list.innerHTML = '<li class="text-[#444]">Đang tải bài tập...</li>';
+  list.innerHTML = '<li class="text-on-surface-variant">Đang tải bài tập...</li>';
   try {
     const [assignments, exercises] = await Promise.all([
       API.assignments.list(space.spaceId),
@@ -69,7 +114,10 @@ function exerciseItemHtml(e) {
     : e.pendingGrading ? 'Chờ gia sư chấm'
       : e.bestScore !== null && e.bestScore !== undefined ? `Điểm: ${formatScore(e.bestScore)} / ${formatScore(e.maxScore)}`
         : e.state === 'CLOSED' ? 'Đã đóng đề' : 'Chưa làm';
+  const tone = e.inProgressAttemptId || (e.canStart && !e.attemptsUsed) ? 'paused'
+    : e.bestScore !== null && e.bestScore !== undefined && !e.pendingGrading ? 'active' : 'done';
   const button = e.inProgressAttemptId ? 'Làm tiếp' : (e.canStart ? (e.attemptsUsed ? 'Làm lượt mới' : 'Làm bài') : 'Xem kết quả');
+  const primary = e.canStart || e.inProgressAttemptId;
   const meta = [
     `${e.questionCount} câu · ${formatScore(e.maxScore)} điểm`,
     e.timeLimitMinutes ? `${e.timeLimitMinutes} phút` : 'Không giới hạn thời gian',
@@ -77,16 +125,18 @@ function exerciseItemHtml(e) {
     e.closesAt ? `Đóng đề ${formatDateTime(e.closesAt)}` : ''
   ].filter(Boolean).join(' · ');
   return `
-    <li class="border border-black rounded-[5px] p-4 bg-white flex flex-col sm:flex-row sm:items-start gap-3">
-      <div class="flex-1 min-w-0 space-y-1">
+    <li class="flex flex-wrap items-center gap-3.5 p-4 rounded-xl ${primary ? 'border border-surface-container-high' : 'bg-surface-container-low'}">
+      <div class="mc-icon ${primary ? 'bg-primary-fixed text-on-primary-fixed-variant' : 'bg-surface-container-lowest text-on-surface-variant'}" aria-hidden="true">
+        <span class="material-symbols-outlined">${primary ? 'quiz' : 'task_alt'}</span></div>
+      <div class="flex-1 min-w-[220px] space-y-1">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="mc-badge" data-tone="active">Làm trực tiếp</span>
-          <h3 class="font-semibold text-[16px] break-words">${escapeHtml(e.title)}</h3>
-          <span class="mc-badge">${escapeHtml(status)}</span>
+          <h3 class="font-title-sm text-title-sm text-on-surface break-words">${escapeHtml(e.title)}</h3>
+          <span class="kz-badge ${primary ? '' : 'bg-surface-container-lowest'}">Làm trực tiếp</span>
+          <span class="kz-badge" data-tone="${tone}">${escapeHtml(status)}</span>
         </div>
-        <p class="mc-meta text-[#555]">${escapeHtml(meta)}</p>
+        <p class="font-body-sm text-body-sm text-on-surface-variant">${escapeHtml(meta)}</p>
       </div>
-      <a class="mc-btn ${e.canStart || e.inProgressAttemptId ? 'mc-btn-primary' : ''} shrink-0" href="${url}">${button}</a>
+      <a class="kz-btn ${primary ? 'kz-btn-primary' : 'bg-surface-container-lowest shadow-sm'} h-11 px-4 no-underline shrink-0" href="${url}">${primary ? '<span class="material-symbols-outlined text-[18px]" aria-hidden="true">play_arrow</span>' : ''}${button}</a>
     </li>`;
 }
 
@@ -99,44 +149,54 @@ function renderList() {
     return;
   }
   $('myAssignmentsState').classList.add('hidden');
+  const todo = exercises.filter((e) => e.inProgressAttemptId || (e.canStart && !e.attemptsUsed)).length
+    + ctx.assignments.filter((a) => a.submissionState === 'NOT_SUBMITTED').length;
+  const todoBadge = $('myAssignmentsTodo');
+  if (todoBadge) {
+    todoBadge.textContent = `${todo} cần làm`;
+    todoBadge.classList.toggle('hidden', !todo);
+  }
   const items = [
     ...ctx.assignments.map((a) => ({ kind: 'file', at: a.createdAt, a })),
     ...exercises.map((e) => ({ kind: 'online', at: e.createdAt, e }))
   ].sort((x, y) => String(y.at || '').localeCompare(String(x.at || '')));
   list.innerHTML = items.map((it) => (it.kind === 'online' ? exerciseItemHtml(it.e) : fileItemHtml(it.a))).join('');
   list.querySelectorAll('[data-open-assignment]').forEach((btn) => {
-    btn.addEventListener('click', () => openDetail(btn.dataset.openAssignment));
+    btn.addEventListener('click', () => openDetail(btn.dataset.openAssignment, btn.dataset.title));
   });
 }
 
 function fileItemHtml(a) {
+  const todo = a.submissionState === 'NOT_SUBMITTED';
   return `
-    <li class="border border-black rounded-[5px] p-4 bg-white flex flex-col sm:flex-row sm:items-start gap-3">
-      <div class="flex-1 min-w-0 space-y-1">
+    <li class="flex flex-wrap items-center gap-3.5 p-4 rounded-xl ${todo ? 'border border-surface-container-high' : 'bg-surface-container-low'}">
+      <div class="mc-icon ${todo ? 'bg-secondary-fixed text-on-secondary-container' : 'bg-surface-container-lowest text-on-surface-variant'}" aria-hidden="true">
+        <span class="material-symbols-outlined">${todo ? 'upload_file' : 'task_alt'}</span></div>
+      <div class="flex-1 min-w-[220px] space-y-1">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="mc-badge">Nộp tệp</span>
-          <h3 class="font-semibold text-[16px] break-words">${escapeHtml(a.title)}</h3>
-          <span class="mc-badge" data-tone="${submissionStateTone(a.submissionState)}">${escapeHtml(submissionStateLabel(a.submissionState))}</span>
+          <h3 class="font-title-sm text-title-sm text-on-surface break-words">${escapeHtml(a.title)}</h3>
+          <span class="kz-badge ${todo ? '' : 'bg-surface-container-lowest'}">Nộp tệp</span>
+          <span class="kz-badge" data-tone="${todo ? 'paused' : submissionStateTone(a.submissionState)}">${escapeHtml(submissionStateLabel(a.submissionState))}</span>
         </div>
-        <p class="mc-meta text-[#555]">Hạn nộp: ${escapeHtml(formatDueDate(a.dueDate))} · Điểm tối đa: ${escapeHtml(formatPoints(a.totalPoints))}
+        <p class="font-body-sm text-body-sm text-on-surface-variant">Hạn nộp: ${escapeHtml(formatDueDate(a.dueDate))} · Điểm tối đa: ${escapeHtml(formatPoints(a.totalPoints))}
           ${a.grade !== null && a.grade !== undefined ? ` · Điểm của bạn: ${escapeHtml(formatPoints(a.grade))}` : ''}</p>
       </div>
-      <button type="button" class="mc-btn shrink-0" data-open-assignment="${escapeHtml(a.assignmentId)}">Xem bài tập</button>
+      <button type="button" class="kz-btn ${todo ? 'kz-btn-primary' : 'bg-surface-container-lowest shadow-sm'} h-11 px-4 shrink-0" data-open-assignment="${escapeHtml(a.assignmentId)}" data-title="${escapeHtml(a.title)}">${todo ? 'Xem &amp; nộp bài' : 'Xem bài tập'}</button>
     </li>`;
 }
 
-async function openDetail(assignmentId) {
+async function openDetail(assignmentId, title) {
   const panel = $('myAssignmentDetail');
-  panel.innerHTML = '<p class="text-[#444]">Đang tải bài tập...</p>';
-  panel.classList.remove('hidden');
-  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  panel.innerHTML = '<div class="kz-card p-6 text-on-surface-variant">Đang tải bài tập...</div>';
+  showDetailView(title);
   try {
     ctx.detail = await API.assignments.detail(ctx.space.spaceId, assignmentId);
     renderDetail();
   } catch (err) {
-    panel.innerHTML = `<p class="text-[#BF360C]">${escapeHtml(friendlyErrorMessage(err))}</p>
-      <button type="button" class="mc-btn" data-close-detail>Đóng</button>`;
-    panel.querySelector('[data-close-detail]').addEventListener('click', () => panel.classList.add('hidden'));
+    panel.innerHTML = `<div class="kz-card p-6 space-y-4 text-center">
+      <p class="text-error">${escapeHtml(friendlyErrorMessage(err))}</p>
+      <button type="button" class="kz-btn" data-close-detail><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>Về lớp học</button></div>`;
+    panel.querySelector('[data-close-detail]').addEventListener('click', () => closeDetail({ scroll: true }));
   }
 }
 
@@ -150,35 +210,46 @@ function lockedReason(a, submission) {
 /** Danh sách nút mở tệp. dataAttr: tên thuộc tính data-* chứa fileId. */
 function fileButtonsHtml(files, dataAttr) {
   if (!files || !files.length) return '';
-  return `<div class="flex flex-wrap gap-2">${files.map((f) => `
-    <button type="button" class="mc-btn max-w-full" ${dataAttr}="${escapeHtml(f.fileId)}" title="${escapeHtml(fileTypeLabel(f.fileType))} · ${escapeHtml(formatFileSize(f.fileSize))}">
-      <span class="min-w-0 [overflow-wrap:anywhere]">📎 ${escapeHtml(f.fileName)}</span>
-    </button>`).join('')}</div>`;
+  return `<div class="flex flex-wrap gap-2">${files.map((f) => fileChipHtml(f,
+    `${dataAttr}="${escapeHtml(f.fileId)}"`, formatFileSize(f.fileSize))).join('')}</div>`;
 }
 
 /** Form nộp bài (lần đầu) hoặc sửa bài nộp (gỡ tệp cũ / thêm tệp mới / sửa nội dung). */
 function submissionFormHtml(a, submission) {
   const editing = !!submission;
   return `
-    <form id="mySubmissionForm" class="border border-black rounded-[5px] p-4 space-y-3 bg-[#F8FAFC]" novalidate>
-      <h3 class="font-semibold">${editing ? 'Chỉnh sửa bài nộp' : 'Nộp bài làm'}</h3>
-      ${!editing && a.dueOver ? '<p class="text-[#BF360C]">Đã quá hạn nộp. Bạn chỉ được nộp một lần (nộp muộn) và không thể chỉnh sửa sau đó.</p>' : ''}
-      ${editing && a.dueDate ? `<p class="mc-meta text-[#555]">Bạn có thể chỉnh sửa đến ${escapeHtml(formatDueDate(a.dueDate))}, khi gia sư chưa chấm điểm.</p>` : ''}
+    <form id="mySubmissionForm" class="space-y-4" novalidate>
+      <h2 class="mc-section-title">${editing ? 'Chỉnh sửa bài nộp' : 'Nộp bài làm'}</h2>
+      ${!editing && a.dueOver ? noticeHtml('schedule', 'Đã quá hạn nộp. Bạn chỉ được nộp một lần (nộp muộn) và không thể chỉnh sửa sau đó.', 'warn') : ''}
+      ${editing && a.dueDate ? `<p class="font-body-sm text-body-sm text-on-surface-variant">Bạn có thể chỉnh sửa đến ${escapeHtml(formatDueDate(a.dueDate))}, khi gia sư chưa chấm điểm.</p>` : ''}
       <div>
-        <label for="mySubmissionContent" class="block font-semibold mb-1">Nội dung trả lời <span class="font-normal text-[#555]">(không bắt buộc nếu có tệp)</span></label>
-        <textarea id="mySubmissionContent" rows="4" maxlength="5000" class="w-full border border-black rounded-[5px] p-2 bg-white">${escapeHtml(submission?.content || '')}</textarea>
+        <label for="mySubmissionContent" class="kz-label">Nội dung trả lời <span class="font-normal text-on-surface-variant">(không bắt buộc nếu có tệp)</span></label>
+        <textarea id="mySubmissionContent" rows="5" maxlength="5000" class="kz-input resize-y">${escapeHtml(submission?.content || '')}</textarea>
       </div>
       <div>
-        <p class="block font-semibold mb-1">${editing ? 'Tệp bài làm' : 'Tệp bài làm'} <span class="font-normal text-[#555]">(không bắt buộc nếu có nội dung)</span></p>
+        <p class="kz-label">Tệp bài làm <span class="font-normal text-on-surface-variant">(không bắt buộc nếu có nội dung)</span></p>
         <div id="mySubmissionFileList"></div>
-        <p class="mc-meta text-[#555] mt-1">${escapeHtml(FILE_RULES_TEXT)}${editing ? ' Bấm "Thay" để đổi đúng tệp đó, "Xóa" để bỏ tệp.' : ''}</p>
+        <p class="font-body-sm text-[12px] text-on-surface-variant mt-1.5">${escapeHtml(FILE_RULES_TEXT)}${editing ? ' Bấm "Thay" để đổi đúng tệp đó, "Xóa" để bỏ tệp.' : ''}</p>
       </div>
-      <p id="mySubmissionError" class="text-[#BF360C] text-[12px] whitespace-pre-line [overflow-wrap:anywhere] hidden"></p>
-      <div class="flex justify-end gap-2">
-        ${editing ? '<button type="button" class="mc-btn" data-cancel-edit>Hủy</button>' : ''}
-        <button type="submit" id="mySubmissionSubmit" class="mc-btn mc-btn-primary">${editing ? 'Lưu bài nộp' : 'Nộp bài'}</button>
+      <p id="mySubmissionError" class="field-error hidden"></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        ${editing ? '<button type="button" class="kz-btn h-11 px-4" data-cancel-edit>Hủy</button>' : ''}
+        <button type="submit" id="mySubmissionSubmit" class="kz-btn kz-btn-primary h-11 px-5 text-[14px]">${editing ? 'Lưu bài nộp' : 'Nộp bài'}</button>
       </div>
     </form>`;
+}
+
+/** Dải thông báo: warn = cam nhạt (khóa, quá hạn), ok = xanh nhạt (thành công). */
+function noticeHtml(icon, text, kind) {
+  const cls = kind === 'ok' ? 'bg-primary-fixed text-on-primary-fixed-variant' : 'bg-tertiary-fixed text-on-tertiary-fixed-variant';
+  return `<p class="flex items-start gap-2.5 rounded-xl px-4 py-3 ${cls}" ${kind === 'ok' ? 'role="status"' : ''}>
+    <span class="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">${icon}</span><span class="min-w-0 [overflow-wrap:anywhere]">${escapeHtml(text)}</span></p>`;
+}
+
+function infoTileHtml(icon, label, value) {
+  return `<div class="p-3 rounded-xl bg-surface-container-low">
+    <p class="flex items-center gap-1.5 text-on-surface-variant"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">${icon}</span>${label}</p>
+    <p class="font-title-sm text-title-sm text-on-surface mt-0.5">${escapeHtml(value)}</p></div>`;
 }
 
 function renderDetail({ editMode = false, message = '' } = {}) {
@@ -187,44 +258,65 @@ function renderDetail({ editMode = false, message = '' } = {}) {
   const submission = subs[subs.length - 1] || null;
   const panel = $('myAssignmentDetail');
   const reason = lockedReason(a, submission);
+  const stateTone = a.submissionState === 'NOT_SUBMITTED' ? 'paused' : submissionStateTone(a.submissionState);
 
   let actionHtml = '';
   if (!submission && a.canSubmit) actionHtml = submissionFormHtml(a, null);
   else if (submission && a.canEditSubmission && editMode) actionHtml = submissionFormHtml(a, submission);
-  else if (reason && !(submission && a.canEditSubmission)) {
-    actionHtml = `<p class="border border-black rounded-[5px] bg-[#FDEDE8] text-[#BF360C] px-3 py-2">${escapeHtml(reason)}</p>`;
-  }
+  else if (reason && !(submission && a.canEditSubmission)) actionHtml = noticeHtml('lock', reason, 'warn');
+
+  const gradedHtml = submission?.graded ? `
+    <div class="space-y-3">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 rounded-full bg-primary-fixed text-on-primary-fixed-variant flex items-center justify-center font-title-md text-title-md shrink-0">${escapeHtml(formatPoints(submission.grade))}</div>
+        <div><p class="font-title-sm text-title-sm text-on-surface">Đã chấm điểm</p>
+          <p class="font-body-sm text-body-sm text-on-surface-variant">${escapeHtml(formatPoints(submission.grade))} / ${escapeHtml(formatPoints(a.totalPoints))} điểm</p></div>
+      </div>
+      ${submission.tutorFeedback ? `<p class="rounded-xl bg-surface-container-low px-4 py-3 whitespace-pre-line [overflow-wrap:anywhere]"><strong class="font-semibold">Nhận xét của gia sư:</strong> ${escapeHtml(submission.tutorFeedback)}</p>` : ''}
+    </div>` : '';
+
+  const submissionHtml = submission && !editMode ? `
+    <div class="space-y-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 class="mc-section-title">Bài nộp của bạn</h2>
+        <span class="kz-badge" data-tone="${submission.onTime ? 'active' : 'paused'}">${submission.onTime ? 'Đúng hạn' : 'Nộp muộn'}</span>
+      </div>
+      <p class="font-body-sm text-body-sm text-on-surface-variant">Cập nhật lần cuối: ${escapeHtml(formatDueDate(submission.submittedAt))}</p>
+      ${submission.content ? `<p class="whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(submission.content)}</p>` : ''}
+      ${fileButtonsHtml(submission.files, 'data-open-submission-file')}
+      ${a.canEditSubmission ? '<div class="flex justify-end"><button type="button" class="kz-btn h-11 px-4" data-edit-submission><span class="material-symbols-outlined text-[18px]" aria-hidden="true">edit</span>Chỉnh sửa bài nộp</button></div>' : ''}
+    </div>` : (!submission && !actionHtml ? '<p class="text-on-surface-variant">Bạn chưa nộp bài cho bài tập này.</p>' : '');
 
   panel.innerHTML = `
-    ${message ? `<p class="border border-black rounded-[5px] bg-[#E5F4EA] text-[#1E8B3F] px-3 py-2 font-semibold">${escapeHtml(message)}</p>` : ''}
-    <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0">
-        <h2 class="mc-heading text-[20px] [overflow-wrap:anywhere]">${escapeHtml(a.title)}</h2>
-        <p class="mc-meta text-[#555]">Hạn nộp: ${escapeHtml(formatDueDate(a.dueDate))} · Điểm tối đa: ${escapeHtml(formatPoints(a.totalPoints))} · Trạng thái: ${escapeHtml(submissionStateLabel(a.submissionState))}</p>
+    <section class="kz-card p-5 sm:p-6 flex flex-wrap items-center gap-4">
+      <div class="mc-icon w-12 h-12 bg-secondary-fixed text-on-secondary-container" aria-hidden="true"><span class="material-symbols-outlined text-[26px]">upload_file</span></div>
+      <div class="flex-1 min-w-[220px]">
+        <h1 class="font-headline-md text-headline-md text-on-surface [overflow-wrap:anywhere]">${escapeHtml(a.title)}</h1>
+        <p class="text-on-surface-variant">Bài nộp tệp${ctx.space?.tutorName ? ` · Gia sư ${escapeHtml(ctx.space.tutorName)}` : ''}</p>
       </div>
-      <button type="button" class="mc-btn shrink-0" data-close-detail>Đóng</button>
-    </div>
-    ${a.description ? `<p class="text-[#333] whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(a.description)}</p>` : ''}
-    ${a.attachments?.length ? `<div class="space-y-1.5"><p class="font-semibold">Tệp đề bài (${a.attachments.length})</p>${fileButtonsHtml(a.attachments, 'data-open-attachment')}</div>` : ''}
-    ${submission?.graded ? `<div class="border border-black rounded-[5px] bg-[#E5F4EA] px-3 py-2">
-        <p><strong>Điểm: ${escapeHtml(formatPoints(submission.grade))}/${escapeHtml(formatPoints(a.totalPoints))}</strong></p>
-        ${submission.tutorFeedback ? `<p class="whitespace-pre-line [overflow-wrap:anywhere]">Nhận xét của gia sư: ${escapeHtml(submission.tutorFeedback)}</p>` : ''}
-      </div>` : ''}
-    ${submission && !editMode ? `
-      <div class="border border-black rounded-[5px] p-3 bg-white space-y-2">
-        <div class="flex flex-wrap items-center gap-2">
-          <h3 class="font-semibold">Bài nộp của bạn</h3>
-          <span class="mc-badge" data-tone="${submission.onTime ? 'active' : 'paused'}">${submission.onTime ? 'Đúng hạn' : 'Nộp muộn'}</span>
-          <span class="mc-meta text-[#555]">Cập nhật lần cuối: ${escapeHtml(formatDueDate(submission.submittedAt))}</span>
+      <span class="kz-badge" data-tone="${stateTone}">${escapeHtml(submissionStateLabel(a.submissionState))}</span>
+      <button type="button" class="kz-btn h-10" data-close-detail><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>Về lớp học</button>
+    </section>
+    ${message ? noticeHtml('check_circle', message, 'ok') : ''}
+    <div class="grid gap-5 lg:grid-cols-2 items-start">
+      <section class="kz-card p-5 sm:p-6 space-y-4 min-w-0">
+        <h2 class="mc-section-title">Đề bài</h2>
+        <div class="grid grid-cols-2 gap-3">
+          ${infoTileHtml('event', 'Hạn nộp', formatDueDate(a.dueDate))}
+          ${infoTileHtml('grade', 'Điểm tối đa', `${formatPoints(a.totalPoints)} điểm`)}
         </div>
-        ${submission.content ? `<p class="text-[#333] whitespace-pre-line [overflow-wrap:anywhere]">${escapeHtml(submission.content)}</p>` : ''}
-        ${fileButtonsHtml(submission.files, 'data-open-submission-file')}
-        ${a.canEditSubmission ? '<div class="flex justify-end"><button type="button" class="mc-btn mc-btn-primary" data-edit-submission>Chỉnh sửa bài nộp</button></div>' : ''}
-      </div>` : (!submission ? '<p class="text-[#444]">Bạn chưa nộp bài cho bài tập này.</p>' : '')}
-    ${actionHtml}
+        ${a.description ? `<p class="whitespace-pre-line leading-relaxed [overflow-wrap:anywhere]">${escapeHtml(a.description)}</p>` : ''}
+        ${a.attachments?.length ? `<div class="space-y-2"><p class="font-label-md text-label-md text-on-surface">Tệp đề bài (${a.attachments.length})</p>${fileButtonsHtml(a.attachments, 'data-open-attachment')}</div>` : ''}
+      </section>
+      <section class="kz-card p-5 sm:p-6 space-y-5 min-w-0">
+        ${gradedHtml}
+        ${submissionHtml}
+        ${actionHtml}
+      </section>
+    </div>
   `;
 
-  panel.querySelector('[data-close-detail]').addEventListener('click', () => panel.classList.add('hidden'));
+  panel.querySelector('[data-close-detail]').addEventListener('click', () => closeDetail({ scroll: true }));
   panel.querySelectorAll('[data-open-attachment]').forEach((btn) => {
     btn.addEventListener('click', () => openBlob(
       () => API.assignments.attachmentFile(ctx.space.spaceId, a.assignmentId, btn.dataset.openAttachment), btn));

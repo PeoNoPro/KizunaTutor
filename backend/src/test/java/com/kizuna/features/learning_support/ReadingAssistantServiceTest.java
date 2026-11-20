@@ -124,7 +124,9 @@ class ReadingAssistantServiceTest {
         var q1 = response.getComprehensionQuestions().get(0);
         assertNotNull(q1.getId());
         assertNotNull(q1.getQuestion());
+        assertNotNull(q1.getQuestionVi(), "Phải có bản dịch tiếng Việt cho câu hỏi");
         assertEquals(4, q1.getOptions().size(), "Mỗi câu hỏi phải có 4 phương án trắc nghiệm");
+        assertEquals(4, q1.getOptionsVi().size(), "Mỗi câu hỏi phải có 4 phương án dịch tiếng Việt");
         assertNotNull(q1.getCorrectOptionIndex());
         assertEquals(0, q1.getCorrectOptionIndex());
         assertNotNull(q1.getEvidenceQuote(), "Phải có câu trích dẫn dẫn chứng trong bài");

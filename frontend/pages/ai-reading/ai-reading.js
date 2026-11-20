@@ -30,6 +30,7 @@ let pendingSaveWord = null;
 let isFuriganaHidden = false;
 let dokkaiAnswers = {};
 let dokkaiSubmitted = false;
+let isDokkaiTranslationHidden = true; // Mặc định ẩn dịch tiếng Việt để luyện đọc thuần tiếng Nhật
 
 // DOM Elements: Điều hướng 2 màn hình
 const inputScreenEl = document.getElementById('readingInputScreen');
@@ -61,6 +62,8 @@ const dokkaiQuestionsContainerEl = document.getElementById('dokkaiQuestionsConta
 const dokkaiScoreSummaryEl = document.getElementById('dokkaiScoreSummary');
 const btnSubmitDokkaiEl = document.getElementById('btnSubmitDokkai');
 const btnSubmitDokkaiTextEl = document.getElementById('btnSubmitDokkaiText');
+const btnToggleDokkaiTranslationEl = document.getElementById('btnToggleDokkaiTranslation');
+const dokkaiTranslationToggleTextEl = document.getElementById('dokkaiTranslationToggleText');
 
 const countGrammarsEl = document.getElementById('countGrammars');
 const grammarListContainerEl = document.getElementById('grammarListContainer');
@@ -253,6 +256,20 @@ function setupEventListeners() {
   // Nút Nộp bài & Chấm điểm Đọc hiểu
   if (btnSubmitDokkaiEl) {
     btnSubmitDokkaiEl.addEventListener('click', handleDokkaiSubmit);
+  }
+
+  // Nút Bật/Tắt Dịch tiếng Việt cho câu hỏi và phương án Đọc hiểu
+  if (btnToggleDokkaiTranslationEl) {
+    btnToggleDokkaiTranslationEl.addEventListener('click', () => {
+      isDokkaiTranslationHidden = !isDokkaiTranslationHidden;
+      if (dokkaiTranslationToggleTextEl) {
+        dokkaiTranslationToggleTextEl.textContent = isDokkaiTranslationHidden ? 'Hiện dịch tiếng Việt' : 'Ẩn dịch tiếng Việt';
+      }
+      document.querySelectorAll('.dokkai-translation-text').forEach(el => {
+        el.classList.toggle('hidden', isDokkaiTranslationHidden);
+      });
+      showToast(isDokkaiTranslationHidden ? 'Đã ẩn bản dịch tiếng Việt (luyện đọc thuần tiếng Nhật)' : 'Đã hiện bản dịch tiếng Việt hỗ trợ', 'info');
+    });
   }
 
   // Nút Đọc Toàn Bài
@@ -1115,6 +1132,11 @@ function renderDokkaiChallenge(data) {
     countDokkaiQuestionsHeaderEl.textContent = questions.length;
   }
 
+  // Đồng bộ trạng thái nút toggle dịch tiếng Việt
+  if (dokkaiTranslationToggleTextEl) {
+    dokkaiTranslationToggleTextEl.textContent = isDokkaiTranslationHidden ? 'Hiện dịch tiếng Việt' : 'Ẩn dịch tiếng Việt';
+  }
+
   // 1. Render bài đọc sạch ở cột trái (chỉ giữ Ruby furigana chuẩn)
   if (cleanReadingPassageBodyEl) {
     cleanReadingPassageBodyEl.innerHTML = data.rubyHtml || escapeHtml(data.originalText || '');
@@ -1177,15 +1199,25 @@ function renderDokkaiChallenge(data) {
     const letters = ['A', 'B', 'C', 'D'];
     (q.options || []).forEach((opt, optIdx) => {
       const letter = letters[optIdx] || String(optIdx + 1);
+      const viOpt = (q.optionsVi && q.optionsVi[optIdx]) ? q.optionsVi[optIdx] : '';
       optionsHtml += `
         <label class="dokkai-option-item flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-[#9F1239] hover:bg-rose-50/30 cursor-pointer transition select-none group" data-opt-index="${optIdx}">
           <input type="radio" name="dokkai_q_${q.id}" value="${optIdx}" class="mt-0.5 text-[#9F1239] focus:ring-[#9F1239] cursor-pointer" />
-          <div class="flex-1 text-xs sm:text-sm font-japanese leading-relaxed text-slate-800 group-hover:text-slate-900">
-            <span class="font-bold text-slate-500 font-sans mr-1">${letter}.</span> ${escapeHtml(opt)}
+          <div class="flex-1 text-xs sm:text-sm leading-relaxed">
+            <div class="font-japanese text-slate-800 group-hover:text-slate-900 font-medium">
+              <span class="font-bold text-slate-500 font-sans mr-1">${letter}.</span> ${escapeHtml(opt)}
+            </div>
+            ${viOpt ? `
+              <div class="dokkai-translation-text text-[11px] text-slate-500 font-sans mt-1 ml-4 ${isDokkaiTranslationHidden ? 'hidden' : ''}">
+                ${escapeHtml(viOpt)}
+              </div>
+            ` : ''}
           </div>
         </label>
       `;
     });
+
+    const viQuestion = q.questionVi || '';
 
     card.innerHTML = `
       <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
@@ -1198,8 +1230,15 @@ function renderDokkaiChallenge(data) {
         ${typeBadge}
       </div>
 
-      <div class="text-xs sm:text-sm font-bold text-slate-900 font-japanese leading-relaxed">
-        ${escapeHtml(q.question || '')}
+      <div class="space-y-1">
+        <div class="text-xs sm:text-sm font-bold text-slate-900 font-japanese leading-relaxed">
+          ${escapeHtml(q.question || '')}
+        </div>
+        ${viQuestion ? `
+          <div class="dokkai-translation-text text-xs text-indigo-700/80 font-sans font-medium italic ${isDokkaiTranslationHidden ? 'hidden' : ''}">
+            💡 ${escapeHtml(viQuestion)}
+          </div>
+        ` : ''}
       </div>
 
       <div class="space-y-2 pt-1" id="optionsGroup_${q.id}">

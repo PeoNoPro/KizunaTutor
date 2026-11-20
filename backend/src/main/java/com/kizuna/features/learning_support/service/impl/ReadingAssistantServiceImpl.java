@@ -129,6 +129,20 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
                             if (q.getCorrectOptionIndex() == null || q.getCorrectOptionIndex() < 0 || (!q.getOptions().isEmpty() && q.getCorrectOptionIndex() >= q.getOptions().size())) {
                                 q.setCorrectOptionIndex(0);
                             }
+                            // Tách nếu câu hỏi tiếng Nhật bị lồng tiếng Việt dạng (Bản dịch...)
+                            if ((q.getQuestionVi() == null || q.getQuestionVi().isBlank()) && q.getQuestion() != null) {
+                                String qText = q.getQuestion();
+                                int parenIdx = qText.indexOf('(');
+                                if (parenIdx < 0) parenIdx = qText.indexOf('（');
+                                if (parenIdx > 0 && parenIdx < qText.length() - 1) {
+                                    int closeIdx = qText.indexOf(')', parenIdx);
+                                    if (closeIdx < 0) closeIdx = qText.indexOf('）', parenIdx);
+                                    if (closeIdx > parenIdx) {
+                                        q.setQuestionVi(qText.substring(parenIdx + 1, closeIdx).trim());
+                                        q.setQuestion(qText.substring(0, parenIdx).trim());
+                                    }
+                                }
+                            }
                         }
                     }
                     result.setProvider(ai.provider());
@@ -174,12 +188,19 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
                 {
                   "id": "q_0",
                   "questionType": "MAIN_IDEA | REASON | DETAIL | REFERENCE",
-                  "question": "Câu hỏi kiểm tra đọc hiểu bằng tiếng Nhật (với N5/N4 kèm dịch tiếng Việt trong ngoặc)",
+                  "question": "Nội dung câu hỏi đọc hiểu THUẦN TIẾNG NHẬT (không chứa phần dịch tiếng Việt trong chuỗi này)",
+                  "questionVi": "Bản dịch tiếng Việt chuẩn xác của câu hỏi",
                   "options": [
-                    "Lựa chọn A",
-                    "Lựa chọn B",
-                    "Lựa chọn C",
-                    "Lựa chọn D"
+                    "Lựa chọn A thuần tiếng Nhật",
+                    "Lựa chọn B thuần tiếng Nhật",
+                    "Lựa chọn C thuần tiếng Nhật",
+                    "Lựa chọn D thuần tiếng Nhật"
+                  ],
+                  "optionsVi": [
+                    "Bản dịch tiếng Việt của lựa chọn A",
+                    "Bản dịch tiếng Việt của lựa chọn B",
+                    "Bản dịch tiếng Việt của lựa chọn C",
+                    "Bản dịch tiếng Việt của lựa chọn D"
                   ],
                   "correctOptionIndex": 0,
                   "evidenceQuote": "Câu văn trích dẫn CHÍNH XÁC 100%% từ bài đọc làm căn cứ chứng minh cho đáp án đúng",
@@ -488,12 +509,19 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
             comprehensionQuestions.add(ReadingComprehensionQuestionDto.builder()
                     .id("q_0")
                     .questionType("MAIN_IDEA")
-                    .question("筆者はツァン君についてどのように思っていますか。(Tác giả suy nghĩ như thế nào về người bạn Tsang?)")
+                    .question("筆者はツァン君についてどのように思っていますか。")
+                    .questionVi("Tác giả suy nghĩ như thế nào về người bạn Tsang?")
                     .options(List.of(
                             "いつも笑っていて、強気や我慢強さを教えてくれた最高の友達だと思っている。",
                             "背が高くてかっこいいが、少し怒りっぽい人だと思っている。",
                             "建築大学を卒業したあと、会えなくなって寂しいと思っている。",
                             "ハノイの観光地を案内してくれただけの知り合いだと思っている。"
+                    ))
+                    .optionsVi(List.of(
+                            "Là người bạn tuyệt vời nhất luôn mỉm cười và dạy tác giả sự nhẫn nại, kiên cường.",
+                            "Là người cao ráo đẹp trai nhưng lại có phần dễ nổi nóng.",
+                            "Cảm thấy buồn vì sau khi tốt nghiệp ĐH Kiến trúc không còn được gặp nhau nữa.",
+                            "Chỉ là người quen từng dẫn đi tham quan các danh lam thắng cảnh ở Hà Nội."
                     ))
                     .correctOptionIndex(0)
                     .evidenceQuote("私にツァン君の笑みは一番素晴らしものです。彼は我慢強いや強気を教えてくれました。")
@@ -502,12 +530,19 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
             comprehensionQuestions.add(ReadingComprehensionQuestionDto.builder()
                     .id("q_1")
                     .questionType("DETAIL")
-                    .question("二人が初めて出会ったのはいつですか。(Hai người gặp nhau lần đầu tiên khi nào?)")
+                    .question("二人が初めて出会ったのはいつですか。")
+                    .questionVi("Hai người gặp nhau lần đầu tiên khi nào?")
                     .options(List.of(
                             "建築大学の入学手続きをした時",
                             "ハノイの観光地で写真を撮っていた時",
                             "冬休みに友達と一緒に旅行した時",
                             "10年前にツァン君の家へ遊びに行った時"
+                    ))
+                    .optionsVi(List.of(
+                            "Khi làm thủ tục nhập học tại trường Đại học Kiến trúc",
+                            "Khi đang chụp ảnh tại một danh lam thắng cảnh ở Hà Nội",
+                            "Khi đi du lịch cùng bạn bè trong kỳ nghỉ đông",
+                            "Khi đến nhà bạn Tsang chơi 10 năm trước"
                     ))
                     .correctOptionIndex(0)
                     .evidenceQuote("初めて出会った相手は建築大学の入学手続きをした時でした。")
@@ -564,12 +599,19 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
             comprehensionQuestions.add(ReadingComprehensionQuestionDto.builder()
                     .id("q_0")
                     .questionType("DETAIL")
-                    .question("筆者たちは昼ごはんに何を食べましたか。(Nhóm tác giả đã ăn gì vào bữa trưa?)")
+                    .question("筆者たちは昼ごはんに何を食べましたか。")
+                    .questionVi("Nhóm tác giả đã ăn gì vào bữa trưa?")
                     .options(List.of(
                             "美味しいラーメンを食べた。",
                             "デパートでお弁当を買って食べた。",
                             "お寺の近くで抹茶アイスを食べた。",
                             "友達の家でパンを食べた。"
+                    ))
+                    .optionsVi(List.of(
+                            "Đã ăn món mì ramen rất ngon.",
+                            "Đã mua cơm hộp ở trung tâm thương mại để ăn.",
+                            "Đã ăn kem matcha ở gần ngôi chùa.",
+                            "Đã ăn bánh mì tại nhà của bạn."
                     ))
                     .correctOptionIndex(0)
                     .evidenceQuote("昼ごはんに美味しいラーメンを食べました。")
@@ -578,12 +620,19 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
             comprehensionQuestions.add(ReadingComprehensionQuestionDto.builder()
                     .id("q_1")
                     .questionType("REASON")
-                    .question("筆者は東京旅行についてどう感じましたか。(Tác giả cảm thấy như thế nào về chuyến đi Tokyo?)")
+                    .question("筆者は東京旅行についてどう感じましたか。")
+                    .questionVi("Tác giả cảm thấy như thế nào về chuyến đi Tokyo?")
                     .options(List.of(
                             "少し疲れたが、とても楽しくてまた行きたいと感じた。",
                             "浅草に人が多すぎて、全く面白くなかったと感じた。",
                             "電車が混んでいて、家族へのお土産も買えなかったと感じた。",
                             "雨が降ってしまい、写真が撮れなくて残念だったと感じた。"
+                    ))
+                    .optionsVi(List.of(
+                            "Tuy có hơi mệt nhưng rất vui và muốn được đi thêm lần nữa.",
+                            "Cảm thấy hoàn toàn không thú vị vì ở Asakusa quá đông người.",
+                            "Cảm thấy tàu điện quá đông và không mua được quà cho gia đình.",
+                            "Cảm thấy tiếc nuối vì trời đổ mưa nên không chụp được ảnh."
                     ))
                     .correctOptionIndex(0)
                     .evidenceQuote("少し疲れましたが、とても楽しかったです。また友達と東京へ行きたいです。")
@@ -616,12 +665,19 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
             comprehensionQuestions.add(ReadingComprehensionQuestionDto.builder()
                     .id("q_0")
                     .questionType("DETAIL")
-                    .question("京都で雨が降ったとき、筆者たちは何をしましたか。(Khi trời mưa ở Kyoto, nhóm tác giả đã làm gì?)")
+                    .question("京都で雨が降ったとき、筆者たちは何をしましたか。")
+                    .questionVi("Khi trời mưa ở Kyoto, nhóm tác giả đã làm gì?")
                     .options(List.of(
                             "着物を着て写真を撮った。",
                             "新幹線に乗ってすぐに帰った。",
                             "ホテルの中でずっと休んでいた。",
                             "お寺に入らないで買い物をした。"
+                    ))
+                    .optionsVi(List.of(
+                            "Mặc trang phục Kimono và chụp ảnh kỷ niệm.",
+                            "Lên tàu Shinkansen và trở về ngay lập tức.",
+                            "Ở trong khách sạn và nghỉ ngơi suốt cả ngày.",
+                            "Không vào thăm chùa mà chỉ đi mua sắm."
                     ))
                     .correctOptionIndex(0)
                     .evidenceQuote("雨が降っても着物を着て写真を撮りました。")
@@ -659,12 +715,19 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
             comprehensionQuestions.add(ReadingComprehensionQuestionDto.builder()
                     .id("q_0")
                     .questionType("MAIN_IDEA")
-                    .question("筆者が日本語の勉強で一番大切だと考えていることは何ですか。(Điều tác giả cho là quan trọng nhất trong việc học tiếng Nhật là gì?)")
+                    .question("筆者が日本語の勉強で一番大切だと考えていることは何ですか。")
+                    .questionVi("Điều tác giả cho là quan trọng nhất trong việc học tiếng Nhật là gì?")
                     .options(List.of(
                             "諦めずに文脈から推測し、毎日継続すること",
                             "分からない単語をすべて辞書で丸暗記すること",
                             "難しいニュースだけを一日中聞き続けること",
                             "日本の友達とだけ毎日会話すること"
+                    ))
+                    .optionsVi(List.of(
+                            "Không bỏ cuộc mà suy đoán theo ngữ cảnh và kiên trì mỗi ngày",
+                            "Học vẹt toàn bộ từ vựng chưa biết bằng từ điển",
+                            "Nghe các bản tin thời sự khó suốt cả ngày",
+                            "Chỉ trò chuyện hàng ngày với bạn bè người Nhật"
                     ))
                     .correctOptionIndex(0)
                     .evidenceQuote("分からない単語があってもすぐに諦めないで、文脈から意味を推測するように努力しています。継続することが一番大切だと思います。")
@@ -690,12 +753,19 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
             comprehensionQuestions.add(ReadingComprehensionQuestionDto.builder()
                     .id("q_0")
                     .questionType("DETAIL")
-                    .question("天気がいい日、公園から何がきれいに見えますか。(Vào những ngày trời đẹp, từ công viên có thể nhìn thấy cái gì rất đẹp?)")
+                    .question("天気がいい日、公園から何がきれいに見えますか。")
+                    .questionVi("Vào những ngày trời đẹp, từ công viên có thể nhìn thấy cái gì rất đẹp?")
                     .options(List.of(
-                            "富士山 (Núi Phú Sĩ)",
-                            "東京タワー (Tháp Tokyo)",
-                            "金閣寺 (Chùa Vàng Kinkakuji)",
-                            "大きいお寺 (Ngôi chùa lớn)"
+                            "富士山",
+                            "東京タワー",
+                            "金閣寺",
+                            "大きいお寺"
+                    ))
+                    .optionsVi(List.of(
+                            "Núi Phú Sĩ",
+                            "Tháp Tokyo",
+                            "Chùa Vàng Kinkakuji",
+                            "Ngôi chùa lớn"
                     ))
                     .correctOptionIndex(0)
                     .evidenceQuote("天気がいい日は富士山がきれいに見えます。")

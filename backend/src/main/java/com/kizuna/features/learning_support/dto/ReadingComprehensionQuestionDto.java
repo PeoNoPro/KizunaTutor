@@ -21,12 +21,19 @@ public class ReadingComprehensionQuestionDto {
     /** Loại câu hỏi: MAIN_IDEA (Ý chính), REASON (Lý do), DETAIL (Chi tiết), REFERENCE (Từ chỉ định) */
     private String questionType;
 
-    /** Nội dung câu hỏi (tiếng Nhật, có thể kèm tiếng Việt với N5/N4) */
+    /** Nội dung câu hỏi thuần tiếng Nhật */
     private String question;
 
-    /** Danh sách 4 phương án trắc nghiệm */
+    /** Bản dịch tiếng Việt của câu hỏi (hỗ trợ khi học viên cần tra cứu) */
+    private String questionVi;
+
+    /** Danh sách 4 phương án trắc nghiệm thuần tiếng Nhật */
     @Builder.Default
     private List<String> options = new ArrayList<>();
+
+    /** Bản dịch tiếng Việt của các phương án trắc nghiệm tương ứng */
+    @Builder.Default
+    private List<String> optionsVi = new ArrayList<>();
 
     /** Vị trí phương án đúng (0, 1, 2, 3) */
     private Integer correctOptionIndex;

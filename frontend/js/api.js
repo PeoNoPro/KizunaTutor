@@ -854,6 +854,25 @@ export const API = {
     }
   },
 
+  // ===== FE-14: Quản lý người dùng (Quản lý vận hành; phản hồi dạng { success, message, data }) =====
+
+  managerUsers: {
+    /** Danh sách gia sư / học viên: { category: TUTOR | LEARNER, keyword, status, page, size } (UC-20) */
+    list(params = {}) {
+      return authRequest(`/manager/users?${toQuery(params)}`).then((res) => res.data);
+    },
+
+    /** Chi tiết tài khoản, hồ sơ và lịch sử đổi trạng thái (UC-21) */
+    detail(userId) {
+      return authRequest(`/manager/users/${encodeURIComponent(userId)}`).then((res) => res.data);
+    },
+
+    /** { status, expectedStatus, reason, message } → { message, data } (UC-12) */
+    updateStatus(userId, payload) {
+      return authRequest(`/manager/users/${encodeURIComponent(userId)}/status`, { method: 'PUT', body: payload });
+    }
+  },
+
   // ===== FE-09: Gói hội viên và thanh toán (phản hồi dạng { success, message, data }) =====
 
   tutorMembership: {
@@ -1493,5 +1512,23 @@ API.exercises = {
   /** File Excel mẫu để nhập câu hỏi (Blob). */
   importTemplate(spaceId) {
     return assignmentBlob(`/${encodeURIComponent(spaceId)}/exercise-import/template`);
+  }
+};
+
+// =========================================================================
+// FE-15: GỢI Ý CHẤM CỦA AI cho câu tự luận của bài làm trực tiếp (chỉ gia sư của lớp)
+// .../exercises/{exerciseId}/attempts/{attemptId}/ai-reviews
+// =========================================================================
+API.exerciseAiReviews = {
+  /** Gợi ý từng câu: [{questionId, status, statusLabel, suggestedScore, feedback, updatedAt}] */
+  list(spaceId, exerciseId, attemptId) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/ai-reviews`));
+  },
+
+  /** Cho AI chấm lại các câu chưa chấm được */
+  retry(spaceId, exerciseId, attemptId) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/ai-reviews/retry`), { method: 'POST' });
   }
 };

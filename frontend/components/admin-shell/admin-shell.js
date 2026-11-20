@@ -10,6 +10,8 @@ const ADMIN_NAV = [
   {label: 'Doanh thu & giao dịch', icon: 'payments', href: '/pages/operations-revenue/', managerOnly: true},
   // FE-11 (2026-11-13): Quản lý xem và tạm khóa / mở lại tài khoản Học viên, Gia sư.
   {label: 'Quản lý người dùng', icon: 'manage_accounts', href: '/pages/manager-users/', managerOnly: true},
+  // FE-14 (Hân): danh sách, chi tiết và trạng thái tài khoản gia sư, học viên.
+  {label: 'Tài khoản gia sư, học viên', icon: 'badge', href: '/pages/manager-accounts/', managerOnly: true},
   {label: 'Quản lý nhân viên', icon: 'groups', items: [
     ['Danh sách nhân viên', '/pages/admin-staff/', 'Tạo, sửa thông tin và vai trò, khóa tài khoản nhân viên.']]},
   {label: 'Vận hành hệ thống', icon: 'settings_suggest', items: [
@@ -70,7 +72,7 @@ function attachNavGroup(link, items, listId, key, forceOpen = false) {
   link.addEventListener('click', event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.button) return; event.preventDefault(); setOpen(!wrap.classList.contains('is-open')); });
 }
 const ROLE_CACHE = 'kizuna-staff-nav-role';
-const MANAGER_PATHS = ['/pages/manager-dashboard/', '/pages/manager-reports/', '/pages/manager-users/', '/pages/operations-revenue/'];
+const MANAGER_PATHS = ['/pages/manager-dashboard/', '/pages/manager-reports/', '/pages/manager-users/', '/pages/operations-revenue/', '/pages/manager-accounts/'];
 /** Ẩn/hiện mục menu theo vai trò: Admin không thấy mục riêng của Quản lý và ngược lại. */
 function applyRoleNavigation(account, csWorkspace) {
   document.querySelectorAll('.sidebar-menu a,.sidebar-menu button').forEach(link => {

@@ -81,6 +81,61 @@ class VnpaySignerTest {
         assertFalse(signer.verify(Map.of("vnp_Amount", "1")));
     }
 
+    // ===== REQ-14: chữ ký VNPay =====
+
+    @Test
+    void req14_signatureFromSignedQueryVerifiesAndIsIndependentOfParameterOrder() {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("vnp_TxnRef", "abc");
+        params.put("vnp_Amount", "19900000");
+        params.put("vnp_ResponseCode", "00");
+        String hash = signer.hmacSha512(signer.hashData(params));
+
+        Map<String, String> reordered = new LinkedHashMap<>();
+        reordered.put("vnp_ResponseCode", "00");
+        reordered.put("vnp_Amount", "19900000");
+        reordered.put("vnp_TxnRef", "abc");
+        reordered.put("vnp_SecureHash", hash);
+
+        assertTrue(signer.verify(reordered));
+    }
+
+    @Test
+    void req14_changingAnySignedParameterInvalidatesSignature() throws Exception {
+        String hash = hmac("vnp_Amount=19900000&vnp_ResponseCode=00&vnp_TxnRef=abc");
+
+        assertFalse(signer.verify(Map.of("vnp_Amount", "19900000", "vnp_ResponseCode", "24",
+                "vnp_TxnRef", "abc", "vnp_SecureHash", hash)));
+        assertFalse(signer.verify(Map.of("vnp_Amount", "19900000", "vnp_ResponseCode", "00",
+                "vnp_TxnRef", "xyz", "vnp_SecureHash", hash)));
+        assertFalse(signer.verify(Map.of("vnp_Amount", "19900000", "vnp_ResponseCode", "00",
+                "vnp_TxnRef", "abc", "vnp_BankCode", "NCB", "vnp_SecureHash", hash)), "thêm tham số cũng làm sai chữ ký");
+    }
+
+    @Test
+    void req14_signatureMadeWithAnotherSecretIsRejected() throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA512");
+        mac.init(new SecretKeySpec("KHOA-KHAC".getBytes(StandardCharsets.UTF_8), "HmacSHA512"));
+        String foreign = HexFormat.of().formatHex(mac.doFinal("vnp_Amount=1".getBytes(StandardCharsets.UTF_8)));
+
+        assertFalse(signer.verify(Map.of("vnp_Amount", "1", "vnp_SecureHash", foreign)));
+    }
+
+    @Test
+    void req14_emptyOrGarbageSignatureIsRejected() {
+        assertFalse(signer.verify(Map.of("vnp_Amount", "1", "vnp_SecureHash", "")));
+        assertFalse(signer.verify(Map.of("vnp_Amount", "1", "vnp_SecureHash", "khong-phai-hex")));
+    }
+
+    /** Mã hóa theo US-ASCII như mẫu VNPay: nội dung đơn hàng gửi cổng phải là tiếng Việt không dấu. */
+    @Test
+    void req14_hashDataEncodesReservedCharactersOfUrl() {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("vnp_OrderInfo", "Goi 6 thang & uu dai = 50%/thang?");
+
+        assertEquals("vnp_OrderInfo=Goi+6+thang+%26+uu+dai+%3D+50%25%2Fthang%3F", signer.hashData(params));
+    }
+
     @Test
     void verifyFailsWhenSecretNotConfigured() throws Exception {
         VnpaySigner unconfigured = new VnpaySigner(properties(""));

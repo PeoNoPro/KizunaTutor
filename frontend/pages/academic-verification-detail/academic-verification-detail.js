@@ -5,7 +5,7 @@
 
 import { API, ApiError } from '/js/api.js';
 import { showToast } from '/js/main.js';
-import { mountAcademicLayout } from '/components/academic-layout/academic-layout.js';
+import { mountAcademicLayout, refreshAcademicNavCounts } from '/components/academic-layout/academic-layout.js';
 
 const STATUS_STYLE = {
   PENDING: { badge: 'bg-tertiary-fixed text-tertiary', dot: 'bg-tertiary' },
@@ -164,13 +164,14 @@ function render(data) {
   $('documentCount').textContent = `${docs.length} giấy tờ`;
   $('documentEmpty').classList.toggle('hidden', docs.length > 0);
   $('documentList').innerHTML = docs.map((doc) => `
-    <li class="p-4 rounded-xl bg-surface-container-low flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <li class="p-4 rounded-xl ${doc.removalRequested ? 'bg-error-container/40 ring-1 ring-error/40' : 'bg-surface-container-low'} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex items-start gap-3 min-w-0">
         <div class="w-10 h-10 rounded-lg bg-surface-container-lowest text-primary flex items-center justify-center shrink-0">
           <span class="material-symbols-outlined text-[20px]">${(doc.contentType || '').startsWith('image/') ? 'image' : 'description'}</span>
         </div>
         <div class="min-w-0">
-          <p class="text-label-md text-on-surface font-semibold truncate">${escapeHtml(doc.title)}</p>
+          <p class="text-label-md text-on-surface font-semibold truncate ${doc.removalRequested ? 'line-through' : ''}">${escapeHtml(doc.title)}</p>
+          ${doc.removalRequested ? '<p class="text-caption text-error font-semibold mt-0.5 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">delete</span>Gia sư đề nghị gỡ giấy tờ này (bị xóa nếu chấp nhận yêu cầu cập nhật)</p>' : ''}
           <p class="text-caption text-outline">${escapeHtml(doc.typeLabel)} • Tải lên ${formatDate(doc.uploadedAt)} • ${escapeHtml(doc.statusLabel)}</p>
           ${doc.fileAvailable ? '' : '<p class="text-caption text-error mt-0.5">Không thể hiển thị tệp này. Tệp có thể bị lỗi hoặc không được hỗ trợ.</p>'}
         </div>
@@ -199,6 +200,11 @@ function renderProfileUpdate(data) {
       ? `Giấy tờ mới chờ thẩm định: ${newDocs.map((d) => escapeHtml(d.title)).join(', ')} (xem ở mục giấy tờ bên dưới)`
       : 'Không có giấy tờ mới');
   }
+  const removed = update.removedDocuments || [];
+  if (removed.length) {
+    items.push(`<span class="text-error font-semibold">${waiting ? 'Đề nghị gỡ giấy tờ đã xác minh' : 'Giấy tờ đề nghị gỡ'}:</span> ${removed
+      .map((d) => `<strong>${escapeHtml(d.title || 'Giấy tờ')}</strong>`).join(', ')}${waiting ? ' (đánh dấu ở mục giấy tờ bên dưới; chấp nhận thì các giấy tờ này bị xóa khỏi hồ sơ)' : ''}`);
+  }
   if (update.note) items.push(`Ghi chú của gia sư: ${escapeHtml(update.note)}`);
   if (!waiting && update.reviewedAt) {
     items.push(`Xử lý lúc ${formatDate(update.reviewedAt, true)}${update.reviewedByName ? ` bởi ${escapeHtml(update.reviewedByName)}` : ''}`);
@@ -213,7 +219,11 @@ async function decideProfileUpdate(approve) {
   const button = approve ? $('approveUpdateButton') : $('rejectUpdateButton');
   showFieldErrors({});
   if (approve) {
-    if (!window.confirm('Chấp nhận yêu cầu cập nhật hồ sơ này?')) return;
+    const removing = (state.data && state.data.profileUpdate && state.data.profileUpdate.removedDocuments) || [];
+    const question = removing.length
+      ? `Chấp nhận yêu cầu cập nhật hồ sơ này? ${removing.length} giấy tờ gia sư đề nghị gỡ sẽ bị xóa khỏi hồ sơ.`
+      : 'Chấp nhận yêu cầu cập nhật hồ sơ này?';
+    if (!window.confirm(question)) return;
   } else {
     const feedback = $('updateFeedbackInput').value.trim();
     if (!feedback) {
@@ -231,6 +241,7 @@ async function decideProfileUpdate(approve) {
       : await API.academicVerification.rejectProfileUpdate(tutorId, $('updateFeedbackInput').value.trim());
     showToast(result.message, 'success');
     await load();
+    refreshAcademicNavCounts();
   } catch (err) {
     if (err instanceof ApiError && err.status === 400) showFieldErrors({ updateFeedback: (err.fields || {}).feedback });
     showToast(err instanceof ApiError ? err.message : 'Hệ thống đang bận, bạn vui lòng thử lại sau.', 'error');
@@ -279,6 +290,7 @@ async function runDecision(modalId, button, action) {
     closeModal(modalId);
     showToast(result.message, 'success');
     await load();
+    refreshAcademicNavCounts();
   } catch (err) {
     if (err instanceof ApiError && err.code === 'ALREADY_PROCESSED') {
       closeModal(modalId);

@@ -47,7 +47,12 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
     public static final String MSG_UPDATE_SUBMITTED =
             "Đã gửi yêu cầu cập nhật hồ sơ. Hồ sơ vẫn giữ trạng thái đã phê duyệt trong lúc cán bộ học vụ thẩm định.";
     public static final String MSG_NO_CHANGES =
-            "Chưa có thay đổi cần thẩm định. Hãy chọn trình độ JLPT mới hoặc tải lên giấy tờ mới.";
+            "Chưa có thay đổi cần thẩm định. Hãy chọn trình độ JLPT mới, tải lên giấy tờ mới hoặc chọn giấy tờ cần gỡ.";
+    public static final String MSG_REMOVE_ONLY_VERIFIED =
+            "Chỉ giấy tờ đã xác minh mới cần gửi đề nghị gỡ; giấy tờ mới bạn có thể gỡ trực tiếp.";
+    public static final String MSG_REMOVE_KEEPS_REQUIRED =
+            "Hồ sơ cần giữ ít nhất một giấy tờ tùy thân và một chứng chỉ năng lực tiếng Nhật. "
+                    + "Hãy tải lên giấy tờ thay thế trước khi gỡ.";
     private static final int MAX_TITLE_LENGTH = 150;
     private static final int MAX_NOTE_LENGTH = 1000;
 
@@ -159,11 +164,67 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
             throw VerificationException.validation(null, Map.of("note", "Ghi chú tối đa 1.000 ký tự."));
         }
         boolean jlptChanged = jlpt != null && !jlpt.equalsIgnoreCase(tutor.getHighestJlptLevel());
-        if (!jlptChanged && countNewDocuments(tutor) == 0) {
+        List<TutorCredential> credentials = credentialRepository.findByTutor_TutorIdOrderByUploadedAtAsc(tutor.getTutorId());
+        List<TutorCredential> removed = removedDocuments(credentials,
+                request == null ? null : request.getRemovedDocumentIds());
+        if (!jlptChanged && countNewDocuments(tutor) == 0 && removed.isEmpty()) {
             throw VerificationException.validation(MSG_NO_CHANGES, Map.of("highestJlptLevel", MSG_NO_CHANGES));
         }
-        stateMachine.submitProfileUpdate(tutor, jlptChanged ? jlpt : null, note);
+        if (!removed.isEmpty()) {
+            requireRequiredDocumentsAfterRemoval(credentials, removed);
+        }
+        stateMachine.submitProfileUpdate(tutor, jlptChanged ? jlpt : null, note, removed.stream()
+                .map(c -> new ProfileUpdateTimeline.RemovedDocument(c.getCredentialId(), c.getTitle())).toList());
         return assembler.build(tutor, false).toBuilder().message(MSG_UPDATE_SUBMITTED).build();
+    }
+
+    /**
+     * Giấy tờ gia sư đề nghị gỡ: phải thuộc hồ sơ và đã được xác minh
+     * (giấy tờ mới hoặc không được chấp nhận thì gỡ trực tiếp, không cần thẩm định).
+     */
+    private static List<TutorCredential> removedDocuments(List<TutorCredential> credentials, List<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, TutorCredential> byId = new LinkedHashMap<>();
+        credentials.forEach(c -> byId.put(c.getCredentialId(), c));
+        List<TutorCredential> removed = new java.util.ArrayList<>();
+        for (UUID id : new java.util.LinkedHashSet<>(ids)) {
+            TutorCredential credential = id == null ? null : byId.get(id);
+            if (credential == null) {
+                throw VerificationException.notFound();
+            }
+            if (credential.getVerifiedStatus() != TutorCredentialStatus.VERIFIED) {
+                throw VerificationException.validation(MSG_REMOVE_ONLY_VERIFIED,
+                        Map.of("removedDocumentIds", MSG_REMOVE_ONLY_VERIFIED));
+            }
+            removed.add(credential);
+        }
+        return removed;
+    }
+
+    /**
+     * Sau khi gỡ, hồ sơ (giấy tờ đã xác minh còn lại + giấy tờ mới gửi kèm) vẫn phải có
+     * giấy tờ tùy thân và chứng chỉ năng lực tiếng Nhật.
+     */
+    private void requireRequiredDocumentsAfterRemoval(List<TutorCredential> credentials, List<TutorCredential> removed) {
+        Set<UUID> available = storage.availableIds(credentials);
+        Set<UUID> removedIds = new java.util.HashSet<>();
+        removed.forEach(c -> removedIds.add(c.getCredentialId()));
+        List<TutorCredential> remaining = credentials.stream()
+                .filter(c -> !removedIds.contains(c.getCredentialId()))
+                .filter(c -> c.getVerifiedStatus() == TutorCredentialStatus.VERIFIED
+                        || c.getVerifiedStatus() == TutorCredentialStatus.PENDING)
+                .filter(c -> available.contains(c.getCredentialId()))
+                .toList();
+        boolean hasIdentity = remaining.stream()
+                .anyMatch(c -> c.getCredentialType() != null && c.getCredentialType().isIdentity());
+        boolean hasJapanese = remaining.stream()
+                .anyMatch(c -> c.getCredentialType() != null && c.getCredentialType().isJapaneseProficiency());
+        if (!hasIdentity || !hasJapanese) {
+            throw VerificationException.validation(MSG_REMOVE_KEEPS_REQUIRED,
+                    Map.of("removedDocumentIds", MSG_REMOVE_KEEPS_REQUIRED));
+        }
     }
 
     /** Giấy tờ mới (đang "Chờ thẩm định") còn xem được tệp. */

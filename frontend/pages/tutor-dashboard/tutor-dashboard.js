@@ -1,11 +1,12 @@
 /**
  * KizunaTutor - Trang tổng quan của gia sư (bố cục theo thiết kế Stitch "Tutor Dashboard").
- * Chỉ hiển thị dữ liệu thật từ API xác minh (/api/tutor/verification).
- * Các chức năng giảng dạy khác (lịch dạy, bài tập, yêu cầu kết nối, học viên) nằm ở thanh bên, không lặp lại ở đây.
+ * Chưa được phê duyệt: tiến trình xác minh + hoạt động gần đây (dữ liệu từ /api/tutor/verification).
+ * Đã phê duyệt: yêu cầu kết nối, lịch giảng dạy hôm nay (buổi của lớp + buổi học thử đã xác nhận) và truy cập nhanh.
  */
 
 import { API, ApiError } from '/js/api.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
+import { hm, ymd, listOf, todayLessons, lessonState } from '/js/tutor-dashboard-helpers.js';
 
 const STATUS_VIEW = {
   UNVERIFIED: {
@@ -286,6 +287,75 @@ async function loadTrialBookings() {
   }
 }
 
+/** Lối tắt tới các chức năng giảng dạy (trang hội viên tự hiện màn hình mua gói khi chưa có gói). */
+const QUICK_LINKS = [
+  { label: 'Lịch giảng dạy', icon: 'calendar_month', href: '/tutor/schedule' },
+  { label: 'Yêu cầu kết nối', icon: 'group_add', href: '/tutor/connections' },
+  { label: 'Học viên của tôi', icon: 'school', href: '/tutor/classrooms?view=students' },
+  { label: 'Tài liệu học tập', icon: 'menu_book', href: '/tutor/classrooms?view=materials' },
+  { label: 'Quản lý bài tập', icon: 'assignment', href: '/tutor/classrooms?view=assignments' },
+  { label: 'Bài đăng của tôi', icon: 'campaign', href: '/tutor/post' }
+];
+
+function renderQuickLinks() {
+  $('quickLinks').innerHTML = QUICK_LINKS.map((link) => `
+    <a href="${link.href}" class="p-3 rounded-xl bg-surface-container-low hover:bg-surface-container-high transition-colors flex items-center gap-2.5 min-w-0">
+      <span class="w-9 h-9 rounded-lg bg-primary-fixed text-primary flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-[20px]">${link.icon}</span>
+      </span>
+      <span class="text-label-md text-on-surface truncate">${link.label}</span>
+    </a>`).join('');
+}
+
+async function loadTodaySchedule() {
+  const now = new Date();
+  const today = ymd(now);
+  setVisible($('todayScheduleError'), false);
+  setVisible($('todayScheduleEmpty'), false);
+  $('todaySchedule').innerHTML = '<li class="h-14 rounded-xl bg-surface-container-low animate-pulse"></li>';
+  const [sessionsRes, trialsRes] = await Promise.allSettled([
+    API.classrooms.sessions(today, today),
+    API.trialBookings.getMyRequests('ALL', 0, 100)
+  ]);
+  if (sessionsRes.status === 'rejected' && trialsRes.status === 'rejected') {
+    $('todaySchedule').innerHTML = '';
+    const err = sessionsRes.reason;
+    $('todayScheduleError').textContent = err instanceof ApiError && err.message
+      ? err.message : 'Không tải được lịch giảng dạy hôm nay. Vui lòng thử lại sau.';
+    setVisible($('todayScheduleError'), true);
+    return;
+  }
+  const lessons = todayLessons(
+    sessionsRes.status === 'fulfilled' ? listOf(sessionsRes.value) : [],
+    trialsRes.status === 'fulfilled' ? listOf(trialsRes.value) : [],
+    now);
+  $('todayScheduleNote').textContent = lessons.length
+    ? `${lessons.length} buổi dạy trong ngày ${formatDate(now)}`
+    : `Ngày ${formatDate(now)}`;
+  setVisible($('todayScheduleEmpty'), lessons.length === 0);
+  const nowHm = hm(now);
+  $('todaySchedule').innerHTML = lessons.map((l) => {
+    const st = lessonState(l, nowHm);
+    return `
+      <li>
+        <a href="${l.href}" class="flex items-center gap-4 p-3 rounded-xl bg-surface-container-low hover:bg-surface-container-high transition-colors ${st.dim ? 'opacity-70' : ''}">
+          <div class="w-20 shrink-0 text-center">
+            <p class="text-title-sm font-bold text-primary">${escapeHtml(l.start)}</p>
+            <p class="text-caption text-on-surface-variant">${l.end ? `đến ${escapeHtml(l.end)}` : ''}</p>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <p class="text-label-md font-semibold text-on-surface truncate">${escapeHtml(l.title)}</p>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-secondary-fixed text-on-secondary-fixed shrink-0">${l.kind}</span>
+            </div>
+            <p class="text-caption text-on-surface-variant mt-0.5 truncate">${escapeHtml([l.partner, l.note].filter(Boolean).join(' • '))}</p>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-caption font-semibold shrink-0 ${st.cls}">${st.label}</span>
+        </a>
+      </li>`;
+  }).join('');
+}
+
 async function load() {
   setVisible($('loadingState'), true);
   setVisible($('errorState'), false);
@@ -293,7 +363,16 @@ async function load() {
   try {
     const data = await API.tutorVerification.getMine();
     render(data);
-    await loadTrialBookings();
+    const approved = data.status === 'APPROVED';
+    // Chưa phê duyệt: giữ tiến trình xác minh, ẩn yêu cầu kết nối.
+    // Đã phê duyệt: ẩn tiến trình xác minh và hoạt động gần đây, thay bằng lịch dạy hôm nay + truy cập nhanh.
+    setVisible($('trialBookingsSection'), approved);
+    setVisible($('verificationSection'), !approved);
+    setVisible($('approvedSection'), approved);
+    if (approved) {
+      renderQuickLinks();
+      await Promise.all([loadTrialBookings(), loadTodaySchedule()]);
+    }
     setVisible($('contentState'), true);
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) return;

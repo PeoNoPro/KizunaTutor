@@ -15,8 +15,8 @@ import { brandLogoHtml } from '/components/brand-logo/brand-logo.js';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Tổng quan', icon: 'space_dashboard', href: '/academic/dashboard' },
-  { key: 'verifications', label: 'Hồ sơ xác thực gia sư', icon: 'verified_user', href: '/academic/verifications?view=queue' },
-  { key: 'posts', label: 'Duyệt bài đăng', icon: 'fact_check', href: '/academic/posts' },
+  { key: 'verifications', label: 'Hồ sơ xác thực gia sư', icon: 'verified_user', href: '/academic/verifications?view=queue', counted: true },
+  { key: 'posts', label: 'Duyệt bài đăng', icon: 'fact_check', href: '/academic/posts', counted: true },
   { key: 'history', label: 'Lịch sử xét duyệt', icon: 'history_edu', href: '/academic/history' },
   // FE-13 (thêm 2026-11-17): Ngân hàng đề luyện thi JLPT.
   { key: 'practice', label: 'Ngân hàng đề', icon: 'quiz', href: '/academic/practice' },
@@ -67,8 +67,46 @@ function navItemHtml(item, activeKey) {
     <a ${attrs} class="flex items-center gap-3 px-3 py-2.5 transition-all ${cls}" ${active ? 'aria-current="page"' : ''}>
       <span class="material-symbols-outlined text-[20px]">${item.icon}</span>
       <span class="text-label-md">${item.label}</span>
+      ${item.counted ? `<span data-nav-count="${item.key}" hidden class="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-[#b42318] text-white text-[11px] font-bold leading-5 text-center shrink-0"></span>` : ''}
     </a>`;
 }
+
+/**
+ * Số đơn đang chờ cán bộ học vụ xử lý, hiện cạnh mục tương ứng trên sidebar (ẩn khi bằng 0):
+ * - Hồ sơ xác thực gia sư: hồ sơ chờ thẩm định + yêu cầu cập nhật hồ sơ chờ duyệt.
+ * - Duyệt bài đăng: bài đăng chờ duyệt.
+ * Lỗi tải số thì bỏ qua (số chỉ để tham khảo). Trang gọi lại sau khi duyệt / từ chối để số khớp ngay.
+ */
+export async function refreshAcademicNavCounts() {
+  if (!document.querySelector('[data-nav-count]')) return;
+  let API;
+  try {
+    ({ API } = await import('/js/api.js'));
+  } catch (e) {
+    return;
+  }
+  const show = (key, value) => {
+    const n = Number(value) || 0;
+    document.querySelectorAll(`[data-nav-count="${key}"]`).forEach((el) => {
+      el.hidden = n === 0;
+      el.textContent = n > 99 ? '99+' : String(n);
+      el.closest('a')?.setAttribute('title', n ? `${n} đơn đang chờ xử lý` : '');
+    });
+  };
+  const [verifications, posts] = await Promise.allSettled([
+    API.academicVerification.getSummary(),
+    API.academicPosts.getSummary()
+  ]);
+  if (verifications.status === 'fulfilled' && verifications.value) {
+    const s = verifications.value;
+    show('verifications', (s.pendingCount || 0) + (s.profileUpdatePendingCount || 0));
+  }
+  if (posts.status === 'fulfilled' && posts.value) {
+    show('posts', posts.value.pendingCount);
+  }
+}
+
+const NAV_COUNT_REFRESH_MS = 60000;
 
 export function mountAcademicLayout(activeKey, pageTitle) {
   const name = storedUserName() || 'Cán bộ học vụ';
@@ -129,6 +167,10 @@ export function mountAcademicLayout(activeKey, pageTitle) {
       notifyComingSoon(link.textContent.trim());
     });
   });
+  // Số đơn chờ xử lý cạnh mục Hồ sơ xác thực gia sư / Duyệt bài đăng; tự cập nhật mỗi phút và khi quay lại tab.
+  refreshAcademicNavCounts();
+  setInterval(() => { if (!document.hidden) refreshAcademicNavCounts(); }, NAV_COUNT_REFRESH_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAcademicNavCounts(); });
   // FE-12: số thông báo chưa đọc cạnh mục Thông báo.
   import('/js/pages/notification-badge.js').then(module => module.attachNotificationBadges()).catch(() => {});
 }

@@ -79,10 +79,15 @@ async function loadSummary() {
 }
 
 function renderSummary(s) {
-  $('kpiPending').textContent = formatNumber(s.pendingCount);
-  $('kpiPendingBadge').textContent = s.pendingOver24h > 0
+  // "Chờ xét duyệt" gồm cả yêu cầu cập nhật hồ sơ của gia sư đã phê duyệt (cùng danh sách mặc định)
+  const updates = s.profileUpdatePendingCount || 0;
+  $('kpiPending').textContent = formatNumber((s.pendingCount || 0) + updates);
+  const pendingNote = s.pendingOver24h > 0
     ? `${formatNumber(s.pendingOver24h)} hồ sơ chờ quá 24 giờ`
     : `${formatNumber(s.pendingNewToday)} hồ sơ mới hôm nay`;
+  $('kpiPendingBadge').textContent = updates > 0
+    ? `${pendingNote} · ${formatNumber(updates)} yêu cầu cập nhật`
+    : pendingNote;
   $('kpiNeedsInfo').textContent = formatNumber(s.needsInfoCount);
   $('kpiApproved').textContent = formatNumber(s.approvedCount);
   $('kpiApprovedBadge').textContent = s.profileUpdatePendingCount > 0

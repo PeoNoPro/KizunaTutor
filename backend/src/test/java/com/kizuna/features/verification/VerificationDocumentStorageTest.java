@@ -1,7 +1,7 @@
 package com.kizuna.features.verification;
 
+import com.kizuna.features.storage.R2FileStore;
 import com.kizuna.features.verification.entity.TutorCredential;
-import com.kizuna.features.verification.repository.TutorCredentialRepository;
 import com.kizuna.features.verification.service.VerificationDocumentStorage;
 import com.kizuna.features.verification.service.VerificationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,13 +29,13 @@ class VerificationDocumentStorageTest {
     @TempDir
     Path tempDir;
 
-    private TutorCredentialRepository repository;
+    private R2FileStore r2;
     private VerificationDocumentStorage storage;
 
     @BeforeEach
     void setUp() {
-        repository = mock(TutorCredentialRepository.class);
-        storage = new VerificationDocumentStorage(tempDir.toString(), repository);
+        r2 = mock(R2FileStore.class);
+        storage = new VerificationDocumentStorage(tempDir.toString(), r2);
     }
 
     private static byte[] validPdf() {
@@ -84,6 +84,47 @@ class VerificationDocumentStorageTest {
         assertInvalid(new MockMultipartFile("file", "lon.pdf", "application/pdf", big));
     }
 
+    /** PDF hợp lệ có đúng {@code size} byte: phần đầu "%PDF-", phần cuối "%%EOF", ở giữa là khoảng trắng. */
+    private static byte[] pdfOfSize(int size) {
+        byte[] content = new byte[size];
+        java.util.Arrays.fill(content, (byte) ' ');
+        byte[] head = "%PDF-1.4\n".getBytes(StandardCharsets.US_ASCII);
+        byte[] tail = "\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
+        System.arraycopy(head, 0, content, 0, head.length);
+        System.arraycopy(tail, 0, content, size - tail.length, tail.length);
+        return content;
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {1, 0})
+    void req02_pdfJustUnderOrExactlyTenMegabytesIsAccepted(int bytesBelowLimit) {
+        int size = (int) VerificationDocumentStorage.MAX_FILE_SIZE - bytesBelowLimit;
+
+        var document = storage.validate(new MockMultipartFile("file", "dung-han.pdf", "application/pdf", pdfOfSize(size)));
+
+        assertEquals(size, document.content().length);
+        assertTrue(document.key().endsWith(".pdf"));
+    }
+
+    @Test
+    void req02_pdfOneByteOverTenMegabytesIsRejected() {
+        assertInvalid(new MockMultipartFile("file", "qua-han.pdf", "application/pdf",
+                pdfOfSize((int) VerificationDocumentStorage.MAX_FILE_SIZE + 1)));
+    }
+
+    @Test
+    void req02_missingFileIsRejected() {
+        assertEquals("INVALID_FILE", assertThrows(VerificationException.class, () -> storage.validate(null)).getCode());
+    }
+
+    @Test
+    void req02_contentMustMatchExtensionNotJustTheFileName() throws IOException {
+        assertInvalid(new MockMultipartFile("file", "anh.jpg", "image/jpeg", image("png")));
+        assertInvalid(new MockMultipartFile("file", "anh.png", "image/png", image("jpg")));
+        assertInvalid(new MockMultipartFile("file", "anh.pdf", "application/pdf", image("png")));
+        assertInvalid(new MockMultipartFile("file", "giay-to.png", "image/png", validPdf()));
+    }
+
     @Test
     void rejectsExecutableRenamedToPdf() {
         byte[] exe = new byte[]{'M', 'Z', (byte) 0x90, 0, 3, 0, 0, 0};
@@ -110,60 +151,90 @@ class VerificationDocumentStorageTest {
     }
 
     @Test
-    void saveContentWritesToDatabaseColumn() {
-        UUID id = UUID.randomUUID();
-        when(repository.updateFileData(id, validPdf())).thenReturn(1);
-        storage.saveContent(id, UUID.randomUUID() + ".pdf", validPdf());
-        verify(repository).updateFileData(id, validPdf());
+    void saveContentUploadsToR2UnderVerificationPrefix() {
+        when(r2.enabled()).thenReturn(true);
+        String key = UUID.randomUUID() + ".pdf";
+
+        storage.saveContent(UUID.randomUUID(), key, validPdf());
+
+        verify(r2).put("verification/" + key, validPdf(), "application/pdf");
     }
 
     @Test
-    void saveContentFailsWhenRecordWasNotUpdated() {
-        when(repository.updateFileData(any(), any())).thenReturn(0);
-        assertThrows(IllegalStateException.class, () -> storage.saveContent(UUID.randomUUID(), UUID.randomUUID() + ".pdf", validPdf()));
+    void saveContentFailsWhenR2IsNotConfigured() {
+        when(r2.enabled()).thenReturn(false);
+
+        assertThrows(IllegalStateException.class,
+                () -> storage.saveContent(UUID.randomUUID(), UUID.randomUUID() + ".pdf", validPdf()));
+        verify(r2, never()).put(any(), any(), any());
     }
 
     @Test
-    void loadPrefersDatabaseContentSoAnyMachineCanServeTheFile() {
+    void saveContentPropagatesR2UploadError() {
+        when(r2.enabled()).thenReturn(true);
+        when(r2.put(any(), any(), any())).thenThrow(new IllegalStateException("R2 lỗi"));
+
+        assertThrows(IllegalStateException.class,
+                () -> storage.saveContent(UUID.randomUUID(), UUID.randomUUID() + ".png", validPdf()));
+    }
+
+    @Test
+    void loadReadsFileFromR2() {
         TutorCredential c = credential(UUID.randomUUID() + ".pdf");
-        when(repository.findFileData(c.getCredentialId())).thenReturn(validPdf());
+        when(r2.read(null, "verification/" + c.getStorageKey())).thenReturn(validPdf());
 
         assertArrayEquals(validPdf(), storage.load(c).orElseThrow());
     }
 
     @Test
-    void loadFallsBackToLegacyDiskFileWhenDatabaseHasNoContent() throws IOException {
+    void loadFallsBackToLegacyDiskFileWhenR2HasNoFile() throws IOException {
         String key = UUID.randomUUID() + ".pdf";
         Files.write(tempDir.resolve(key), validPdf());
         TutorCredential c = credential(key);
-        when(repository.findFileData(c.getCredentialId())).thenReturn(null);
+        when(r2.read(any(), any())).thenReturn(null);
 
         assertArrayEquals(validPdf(), storage.load(c).orElseThrow());
     }
 
     @Test
-    void loadIsEmptyWhenNeitherDatabaseNorDiskHasTheFile() {
+    void loadIsEmptyWhenNeitherR2NorDiskHasTheFile() {
         TutorCredential c = credential(UUID.randomUUID() + ".pdf");
         assertTrue(storage.load(c).isEmpty());
     }
 
     @Test
-    void availableIdsCombinesDatabaseContentAndLegacyDiskFiles() throws IOException {
-        TutorCredential inDb = credential(UUID.randomUUID() + ".pdf");
-        TutorCredential onDisk = credential(UUID.randomUUID() + ".png");
-        TutorCredential missing = credential(UUID.randomUUID() + ".jpg");
-        Files.write(tempDir.resolve(onDisk.getStorageKey()), new byte[]{1});
-        when(repository.findIdsWithFileData(any())).thenReturn(List.of(inDb.getCredentialId().toString()));
-
-        Set<UUID> available = storage.availableIds(List.of(inDb, onDisk, missing));
-
-        assertEquals(Set.of(inDb.getCredentialId(), onDisk.getCredentialId()), available);
+    void loadDoesNotCallR2ForUnmanagedKey() {
+        assertTrue(storage.load(credential("../khong-hop-le.pdf")).isEmpty());
+        verify(r2, never()).read(any(), any());
     }
 
     @Test
-    void availableIdsOfEmptyListSkipsQuery() {
+    void availableIdsWithR2EnabledCountsEveryManagedKey() {
+        when(r2.enabled()).thenReturn(true);
+        TutorCredential pdf = credential(UUID.randomUUID() + ".pdf");
+        TutorCredential png = credential(UUID.randomUUID() + ".png");
+        TutorCredential invalid = credential("tai-lieu.docx");
+
+        Set<UUID> available = storage.availableIds(List.of(pdf, png, invalid));
+
+        assertEquals(Set.of(pdf.getCredentialId(), png.getCredentialId()), available);
+        verify(r2, never()).read(any(), any());
+    }
+
+    @Test
+    void availableIdsWithoutR2OnlyCountsLegacyDiskFiles() throws IOException {
+        TutorCredential onDisk = credential(UUID.randomUUID() + ".png");
+        TutorCredential missing = credential(UUID.randomUUID() + ".jpg");
+        Files.write(tempDir.resolve(onDisk.getStorageKey()), new byte[]{1});
+
+        Set<UUID> available = storage.availableIds(List.of(onDisk, missing));
+
+        assertEquals(Set.of(onDisk.getCredentialId()), available);
+    }
+
+    @Test
+    void availableIdsOfEmptyListIsEmpty() {
         assertTrue(storage.availableIds(List.of()).isEmpty());
-        verify(repository, never()).findIdsWithFileData(any());
     }
 
     @Test

@@ -28,7 +28,7 @@ import java.util.UUID;
 @CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"})
 @RequestMapping("/api/academic/verifications")
 @RequiredArgsConstructor
-public class VerificationReviewController {
+public class VerificationReviewController extends VerificationErrorResponses {
 
     private final VerificationReviewService reviewService;
 

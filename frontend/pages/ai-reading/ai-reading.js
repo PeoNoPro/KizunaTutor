@@ -1349,24 +1349,30 @@ function highlightEvidenceInCleanPassage(quote) {
   const cleanQuote = quote.trim().replace(/[。！？\s]+$/, '');
   if (!cleanQuote) return;
 
-  // Xóa highlight cũ bằng cách thay thế lại nội dung bài đọc sạch ban đầu
-  if (currentAnalysisResult && currentAnalysisResult.rubyHtml) {
-    cleanReadingPassageBodyEl.innerHTML = currentAnalysisResult.rubyHtml;
-  }
+  // Khôi phục bài đọc sạch ban đầu
+  cleanReadingPassageBodyEl.innerHTML = (currentAnalysisResult && currentAnalysisResult.rubyHtml)
+    ? currentAnalysisResult.rubyHtml
+    : escapeHtml((currentAnalysisResult && currentAnalysisResult.originalText) || '');
 
   const passageHtml = cleanReadingPassageBodyEl.innerHTML;
   let highlighted = false;
 
-  // 1. Khớp nguyên chuỗi chính xác
-  if (passageHtml.includes(cleanQuote)) {
+  // 1. Sử dụng Regex thấu hiểu Ruby để tìm và bọc <mark> mà không làm mất furigana
+  const rubyRegex = createRubyAwareRegex(cleanQuote);
+  if (rubyRegex && rubyRegex.test(passageHtml)) {
+    cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(rubyRegex, (matched) => `<mark class="evidence-highlight">${matched}</mark>`);
+    highlighted = true;
+  } else if (passageHtml.includes(cleanQuote)) {
+    // 2. Dự phòng khi câu không có thẻ ruby
     cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(cleanQuote, `<mark class="evidence-highlight">${cleanQuote}</mark>`);
     highlighted = true;
   } else {
-    // 2. Tìm theo cụm từ đặc trưng (10-18 ký tự)
-    for (let len = Math.min(cleanQuote.length, 18); len >= 8; len -= 2) {
-      const snippet = cleanQuote.slice(0, len);
-      if (passageHtml.includes(snippet)) {
-        cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(snippet, `<mark class="evidence-highlight">${snippet}</mark>`);
+    // 3. Dự phòng cắt cụm từ con ngắn hơn nếu câu quá dài hoặc lệch dấu
+    for (let len = Math.min(cleanQuote.length, 16); len >= 6; len -= 2) {
+      const subQuote = cleanQuote.slice(0, len);
+      const subRegex = createRubyAwareRegex(subQuote);
+      if (subRegex && subRegex.test(passageHtml)) {
+        cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(subRegex, (matched) => `<mark class="evidence-highlight">${matched}</mark>`);
         highlighted = true;
         break;
       }

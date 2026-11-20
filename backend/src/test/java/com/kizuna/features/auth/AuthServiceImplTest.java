@@ -291,7 +291,7 @@ class AuthServiceImplTest {
         }
 
         @Test
-        @DisplayName("UTCID02 (Normal): ÄÄƒng kÃ½ vai trÃ² Gia sÆ° (ROLE_TUTOR) vá»›i trÃ¬nh Ä‘á»™ JLPT N1 thÃ nh cÃ´ng")
+        @DisplayName("UTCID02 (Normal): Đăng ký vai trò Gia sư (ROLE_TUTOR) với trình độ JLPT N1 thành công")
         void initiateRegistration_whenTutorRoleWithJlptN1_shouldGenerateOtp() {
             RegisterRequest request = RegisterRequest.builder()
                     .fullName("Nguyen Sensei")
@@ -423,7 +423,7 @@ class AuthServiceImplTest {
         }
 
         @Test
-        @DisplayName("UTCID03 (Abnormal): PhiÃªn Ä‘Äƒng kÃ½ khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ háº¿t háº¡n -> NÃ©m BadRequestException")
+        @DisplayName("UTCID03 (Abnormal): Phiên đăng ký không tồn tại hoặc đã hết hạn -> Ném BadRequestException")
         void completeRegistration_whenPendingNotFoundOrExpired_shouldThrowBadRequestException() {
             VerifyOtpRequest request = VerifyOtpRequest.builder()
                     .email("expired@kizuna.vn")
@@ -431,11 +431,11 @@ class AuthServiceImplTest {
                     .build();
 
             when(otpService.verifyOtp("expired@kizuna.vn", "999999"))
-                    .thenThrow(new BadRequestException("YÃªu cáº§u xÃ¡c thá»±c khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ háº¿t hiá»‡u lá»±c"));
+                    .thenThrow(new BadRequestException("Yêu cầu xác thực không tồn tại hoặc đã hết hiệu lực"));
 
             BadRequestException ex = assertThrows(BadRequestException.class,
                     () -> authService.completeRegistration(request));
-            assertThat(ex.getMessage()).contains("YÃªu cáº§u xÃ¡c thá»±c khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ háº¿t hiá»‡u lá»±c");
+            assertThat(ex.getMessage()).contains("Yêu cầu xác thực không tồn tại hoặc đã hết hiệu lực");
             verify(userRepository, never()).save(any());
         }
     }
@@ -548,7 +548,7 @@ class AuthServiceImplTest {
         }
 
         @Test
-        @DisplayName("UTCID04 (Abnormal): TÃ i khoáº£n ngÆ°á»i dÃ¹ng khÃ´ng tá»“n táº¡i -> NÃ©m ResourceNotFoundException")
+        @DisplayName("UTCID04 (Abnormal): Tài khoản người dùng không tồn tại -> Ném ResourceNotFoundException")
         void changePasswordFirstTime_whenUserNotFound_shouldThrowResourceNotFoundException() {
             String email = "notfound@kizuna.vn";
             FirstTimePasswordChangeRequest request = FirstTimePasswordChangeRequest.builder()

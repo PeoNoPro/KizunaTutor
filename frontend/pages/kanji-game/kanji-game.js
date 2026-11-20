@@ -164,7 +164,7 @@ class SparkleParticle {
   draw(ctx) {
     ctx.save();
 
-    // 1. Há»™p bao quanh máº·t chá»¯ (Rounded Glass Card)
+    // 1. Hộp bao quanh mặt chữ (Rounded Glass Card)
     const radius = 12;
     ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
     ctx.shadowBlur = 10;
@@ -179,18 +179,18 @@ class SparkleParticle {
     ctx.fill();
     ctx.stroke();
 
-    // Táº¯t bÃ³ng Ä‘á»• Ä‘á»ƒ váº½ chá»¯ sáº¯c nÃ©t
+    // Tắt bóng đổ để vẽ chữ sắc nét
     ctx.shadowColor = 'transparent';
 
     if (showAnswerHint) {
-      // 2. Váº½ máº·t chá»¯ HÃ¡n to á»Ÿ ná»­a trÃªn khi cÃ³ gá»£i Ã½ Ä‘Ã¡p Ã¡n
+      // 2. Vẽ mặt chữ Hán to ở nửa trên khi có gợi ý đáp án
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '900 28px "Noto Serif JP", serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(this.character, this.x + this.width / 2, this.y + 26);
 
-      // 3. Huy hiá»‡u cÃ¡ch Ä‘á»c gá»£i Ã½ (Primary Reading Badge)
+      // 3. Huy hiệu cách đọc gợi ý (Primary Reading Badge)
       const badgeY = this.y + this.height - 18;
       ctx.fillStyle = 'rgba(14, 165, 233, 0.25)';
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
@@ -206,7 +206,7 @@ class SparkleParticle {
       ctx.textBaseline = 'middle';
       ctx.fillText(this.primaryReading || this.hanViet, this.x + this.width / 2, badgeY - 1);
     } else {
-      // Khi áº©n Ä‘Ã¡p Ã¡n: Váº½ máº·t chá»¯ HÃ¡n to á»Ÿ chÃ­nh giá»¯a tháº» card
+      // Khi ẩn đáp án: Vẽ mặt chữ Hán to ở chính giữa thẻ card
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '900 32px "Noto Serif JP", serif';
       ctx.textAlign = 'center';
@@ -448,7 +448,7 @@ let spawnInterval = 3.6; // giây
 let selectedDuration = 60; // giây (60, 180, 300)
 let remainingTime = 60;
 let speedMultiplier = 0.6; // Mặc định tốc độ Luyện tập chậm rãi (0.6: Luyện tập, 1.0: Thư thái, 1.5: Tiêu chuẩn) // 1 (chill), 1.5 (standard), 2.2 (blitz)
-let showAnswerHint = false; // Máº·c Ä‘á»‹nh khÃ´ng hiá»ƒn thá»‹ Ä‘Ã¡p Ã¡n (theo yÃªu cáº§u thá»­ thÃ¡ch)
+let showAnswerHint = false; // Mặc định không hiển thị đáp án (theo yêu cầu thử thách)
 
 let score = 0;
 let combo = 0;

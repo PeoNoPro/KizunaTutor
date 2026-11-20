@@ -1,0 +1,29 @@
+/* FE-11 (2026-11-13): trang Quản lý người dùng của Quản lý vận hành. Bảng, hộp thoại và nhãn dùng chung admin-portal.css. */
+.mu-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:0 0 20px}
+.mu-tile{background:#fff;border:1px solid #ECE8DE;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.mu-tile span{font-size:13px;color:#68737D;font-weight:600}
+.mu-tile strong{font-size:26px;line-height:32px;color:#0F2545}
+.mu-tile[data-tone=danger] strong{color:#b3261e}
+.mu-sub{display:block;font-size:12px;color:#68737D;margin-top:2px}
+.mu-table td{vertical-align:middle}
+.mu-actions{display:flex;flex-wrap:wrap;gap:8px}
+.mu-detail{width:min(640px,calc(100vw - 32px))}
+.mu-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px;margin:0 0 18px}
+.mu-facts div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mu-facts dt{font-size:12px;color:#68737D}
+.mu-facts dd{margin:0;font-weight:600;color:#0F2545;overflow-wrap:anywhere}
+.mu-section-title{font-size:15px;margin:18px 0 10px;color:#0F2545}
+.mu-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.mu-stat{border:1px solid #ECE8DE;border-radius:12px;padding:10px 12px}
+.mu-stat span{display:block;font-size:12px;color:#68737D}
+.mu-stat strong{font-size:18px;color:#0F2545}
+.mu-history{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.mu-history li{border-left:3px solid #ECE8DE;padding:2px 0 2px 12px}
+.mu-history li[data-action=SUSPEND]{border-left-color:#b3261e}
+.mu-history li[data-action=REACTIVATE]{border-left-color:#1e7a46}
+.mu-history strong{font-size:13px}
+.mu-history p{margin:2px 0 0;font-size:13px;color:#3f4850;overflow-wrap:anywhere}
+.mu-muted{font-size:13px;color:#68737D;margin:0}
+.mu-warning{background:#fff2dc;color:#7a4500;border-radius:10px;padding:10px 12px;font-size:13px;margin:0 0 12px}
+@media(max-width:900px){.mu-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.mu-facts{grid-template-columns:minmax(0,1fr)}.mu-table thead{display:none}.mu-table,.mu-table tbody,.mu-table tr,.mu-table td{display:block;width:100%}.mu-table tr{padding:10px 0;border-bottom:1px solid #ECE8DE}.mu-table td{padding:4px 0;border:0}}

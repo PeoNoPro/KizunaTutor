@@ -7,6 +7,7 @@
 import { API, ApiError } from '/js/api.js';
 import { renderWeekTimeGrid, trialEvent, officialEvent, dayDateLabel, ymd, weekRange } from '/js/week-time-grid.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
+import { sessionDurationError, bindSessionTimeSelects } from '/js/classroom-helpers.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -255,8 +256,7 @@ function openSessionModal(session) {
   $('moveSessionOpenClass').classList.remove('hidden');
   const range = courseDateRange(session);
   setDateRange(range.min, range.max, session.date);
-  $('moveSessionStart').value = session.startTime;
-  $('moveSessionEnd').value = session.endTime;
+  bindSessionTimeSelects($('moveSessionStart'), $('moveSessionEnd'), { start: session.startTime, end: session.endTime });
   $('btnCancelSession').classList.remove('hidden');
   $('btnRestoreSession').classList.toggle('hidden', !session.moved);
   $('btnSubmitMoveSessionText').textContent = 'Lưu thay đổi';
@@ -286,8 +286,7 @@ function openAddSessionModal() {
   const { from, to } = weekRange(currentWeekMonday);
   const min = today > from ? today : from;
   setDateRange(min, to, today >= from && today <= to ? today : from);
-  $('moveSessionStart').value = '18:00';
-  $('moveSessionEnd').value = '19:30';
+  bindSessionTimeSelects($('moveSessionStart'), $('moveSessionEnd'), { start: '18:00', end: '19:30' });
   $('btnCancelSession').classList.add('hidden');
   $('btnRestoreSession').classList.add('hidden');
   $('btnSubmitMoveSessionText').textContent = 'Thêm buổi học';
@@ -322,6 +321,11 @@ async function submitMoveSession(event) {
   }
   if (endTime <= startTime) {
     setMoveError('Giờ kết thúc phải sau giờ bắt đầu.');
+    return;
+  }
+  const durationError = sessionDurationError(startTime, endTime);
+  if (durationError) {
+    setMoveError(durationError);
     return;
   }
   const dateInput = $('moveSessionDate');

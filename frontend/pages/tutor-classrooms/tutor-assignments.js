@@ -33,6 +33,15 @@ import {
   formatDateTime,
   formatScore
 } from '../../js/exercise-helpers.js';
+import {
+  groupByWeek,
+  matchesKeyword,
+  tutorStatus,
+  countStatuses,
+  TUTOR_STATUSES
+} from '../../js/class-tabs-helpers.js';
+
+const PAGE_SIZE = 10;
 
 const $ = (id) => document.getElementById(id);
 
@@ -43,7 +52,11 @@ const ctx = {
   editing: null,
   detail: null,
   picker: null,
-  toast: () => {}
+  toast: () => {},
+  // Bộ lọc tab Bài tập: status null = chưa chọn (mặc định "Cần chấm" nếu có, ngược lại "Tất cả")
+  filter: { status: null, kind: '', keyword: '' },
+  limit: PAGE_SIZE,
+  openGroups: new Set()
 };
 
 function setFieldError(id, message) {
@@ -88,14 +101,21 @@ function fileLinksHtml(files, dataAttr) {
 // Danh sách (UC-63)
 // ----------------------------------------------------------------------------
 export async function loadTutorAssignments(space) {
-  ctx.space = space;
   const section = $('assignmentsSection');
   const list = $('assignmentsList');
   if (!section || !space) return;
+  if (ctx.space?.spaceId !== space.spaceId || !ctx.filter) {
+    ctx.filter = { status: null, kind: '', keyword: '' };
+    ctx.limit = PAGE_SIZE;
+    ctx.openGroups = new Set();
+    if ($('assignmentSearch')) $('assignmentSearch').value = '';
+    if ($('assignmentKindFilter')) $('assignmentKindFilter').value = '';
+  }
+  ctx.space = space;
   section.classList.remove('hidden');
   $('openAssignmentFormBtn').classList.toggle('hidden', !space.canManage);
   $('assignmentsState').classList.add('hidden');
-  list.innerHTML = '<li class="text-on-surface-variant">Đang tải bài tập...</li>';
+  list.innerHTML = '<p class="text-on-surface-variant">Đang tải bài tập...</p>';
   try {
     const [assignments, exercises] = await Promise.all([
       API.assignments.list(space.spaceId),
@@ -110,6 +130,18 @@ export async function loadTutorAssignments(space) {
   }
 }
 
+/** Mở form giao bài nộp tệp (từ hộp thoại "Giao bài tập" ở trang Quản lý bài tập), điền sẵn hạn nộp nếu có. */
+export function openNewFileAssignment({ due = null } = {}) {
+  if (!ctx.space?.canManage) return;
+  openForm(null);
+  if (due) $('assignmentDueInput').value = toDateTimeLocalValue(due);
+}
+
+/** Mở bảng bài nộp + chấm của một bài nộp tệp (từ tab "Cần chấm" ở trang Quản lý bài tập). */
+export function openAssignmentSubmissions(assignmentId) {
+  if (ctx.space && assignmentId) openSubmissions(assignmentId);
+}
+
 export function hideTutorAssignments() {
   $('assignmentsSection')?.classList.add('hidden');
 }
@@ -121,6 +153,9 @@ function exerciseEditorUrl(exerciseId = null, tab = null) {
   if (tab) q.set('tab', tab);
   return `/pages/exercise-editor/index.html?${q.toString()}`;
 }
+
+/** Viền trái theo trạng thái: cần chấm cam, đang mở xanh, nháp / đã xong xám. */
+const STATUS_EDGE = { review: 'border-l-[#e8a35c]', open: 'border-l-primary', draft: 'border-l-outline-variant', done: 'border-l-outline-variant' };
 
 function exerciseItemHtml(e) {
   const meta = [
@@ -134,7 +169,7 @@ function exerciseItemHtml(e) {
     ? `Học viên đã làm ${e.attemptsUsed} lượt${e.bestScore !== null && e.bestScore !== undefined ? ` · Điểm cao nhất: ${formatScore(e.bestScore)}` : ''}${e.pendingGrading ? ' · Có bài chờ chấm' : ''}`
     : 'Học viên chưa làm';
   return `
-    <li class="kz-item flex flex-col sm:flex-row sm:items-start gap-3" data-exercise="${escapeHtml(e.exerciseId)}">
+    <li class="kz-item border-l-4 ${STATUS_EDGE[tutorStatus({ kind: 'online', e })]} flex flex-col sm:flex-row sm:items-start gap-3" data-exercise="${escapeHtml(e.exerciseId)}">
       <div class="flex-1 min-w-0 space-y-1.5">
         <div class="flex flex-wrap items-center gap-2">
           <span class="kz-badge" data-tone="active"><span class="material-symbols-outlined text-[14px]">edit_note</span>Làm trực tiếp</span>
@@ -151,26 +186,100 @@ function exerciseItemHtml(e) {
     </li>`;
 }
 
+/** Bài nộp tệp + bài làm trực tiếp, mới nhất trước. */
+function allItems() {
+  return [
+    ...ctx.assignments.map((a) => ({ kind: 'file', at: a.createdAt, a, title: a.title })),
+    ...ctx.exercises.map((e) => ({ kind: 'online', at: e.createdAt, e, title: e.title }))
+  ].sort((x, y) => String(y.at || '').localeCompare(String(x.at || '')));
+}
+
+const itemHtml = (it) => (it.kind === 'online' ? exerciseItemHtml(it.e) : fileItemHtml(it.a));
+
+/** Số bài cần chấm trên tab "Bài tập" + thẻ "Bài tập mới nhất" ở tab Tổng quan. */
+function renderOverview(items, counts) {
+  const badge = $('tabBadgeAssignments');
+  if (badge) {
+    badge.textContent = counts.review ? `${counts.review} cần chấm` : String(items.length);
+    badge.dataset.tone = counts.review ? 'paused' : '';
+    badge.classList.toggle('hidden', !items.length);
+  }
+  const box = $('overviewAssignments');
+  if (!box) return;
+  $('overviewAssignmentsMore').textContent = items.length ? `Xem tất cả ${items.length} bài tập` : 'Mở tab Bài tập';
+  // Ưu tiên bài cần chấm, sau đó bài mới nhất
+  const top = [...items.filter((it) => tutorStatus(it) === 'review'), ...items.filter((it) => tutorStatus(it) !== 'review')].slice(0, 3);
+  box.innerHTML = top.length ? top.map((it) => {
+    const status = tutorStatus(it);
+    const isOnline = it.kind === 'online';
+    const sub = isOnline
+      ? `Làm trực tiếp · ${escapeHtml(exerciseStateLabel(it.e.state))}${it.e.closesAt ? ` · đóng ${escapeHtml(formatDateTime(it.e.closesAt))}` : ''}`
+      : `Nộp tệp · hạn ${escapeHtml(formatDueDate(it.a.dueDate))}`;
+    const action = isOnline
+      ? `<a class="kz-btn ${status === 'review' ? 'kz-btn-primary' : ''} shrink-0" href="${exerciseEditorUrl(it.e.exerciseId, status === 'review' ? 'bai-lam' : null)}">${status === 'review' ? 'Chấm' : status === 'draft' ? 'Soạn tiếp' : 'Mở'}</a>`
+      : `<button type="button" class="kz-btn ${status === 'review' ? 'kz-btn-primary' : ''} shrink-0" data-view-assignment="${escapeHtml(it.a.assignmentId)}">${status === 'review' ? 'Chấm' : 'Xem'}</button>`;
+    return `
+      <li class="kz-item flex items-center gap-3 py-3">
+        <span class="material-symbols-outlined text-[22px] ${isOnline ? 'text-primary' : 'text-secondary'} shrink-0" aria-hidden="true">${isOnline ? (status === 'draft' ? 'edit_note' : 'quiz') : 'upload_file'}</span>
+        <div class="flex-1 min-w-0">
+          <p class="font-label-md text-label-md text-on-surface truncate">${escapeHtml(it.title)}</p>
+          <p class="font-caption text-caption text-on-surface-variant truncate">${sub}</p>
+        </div>
+        ${status === 'review' ? '<span class="kz-badge" data-tone="paused">Cần chấm</span>' : ''}
+        ${action}
+      </li>`;
+  }).join('') : '<li class="kz-item text-center text-on-surface-variant">Chưa có bài tập nào.</li>';
+  bindFileItems(box);
+}
+
+function renderChips(counts) {
+  const box = $('assignmentStatusChips');
+  if (!box) return;
+  box.innerHTML = TUTOR_STATUSES.filter((st) => st.key === 'all' || counts[st.key]).map((st) => `
+    <button type="button" class="kz-chip" data-status="${st.key}" aria-pressed="${ctx.filter.status === st.key}">${st.label} · ${counts[st.key] || 0}</button>`).join('');
+}
+
 function render() {
   const list = $('assignmentsList');
-  if (!ctx.assignments.length && !ctx.exercises.length) {
+  const items = allItems();
+  const counts = countStatuses(items, tutorStatus);
+  renderOverview(items, counts);
+  if (ctx.filter.status === null || (ctx.filter.status !== 'all' && !counts[ctx.filter.status])) {
+    ctx.filter.status = counts.review ? 'review' : 'all';
+  }
+  renderChips(counts);
+  if (!items.length) {
     list.innerHTML = '';
     stateBox('Hiện chưa có bài tập nào trong lớp học này.');
     return;
   }
+  const shown = items.filter((it) => (ctx.filter.status === 'all' || tutorStatus(it) === ctx.filter.status)
+    && (!ctx.filter.kind || it.kind === ctx.filter.kind)
+    && matchesKeyword(it.title, ctx.filter.keyword));
+  if (!shown.length) {
+    list.innerHTML = '';
+    stateBox('Không có bài tập nào khớp bộ lọc.');
+    return;
+  }
   $('assignmentsState').classList.add('hidden');
-  // Gộp bài nộp tệp và bài làm trực tiếp, bài mới nhất lên trên
-  const items = [
-    ...ctx.assignments.map((a) => ({ kind: 'file', at: a.createdAt, a })),
-    ...ctx.exercises.map((e) => ({ kind: 'online', at: e.createdAt, e }))
-  ].sort((x, y) => String(y.at || '').localeCompare(String(x.at || '')));
-  list.innerHTML = items.map((it) => (it.kind === 'online' ? exerciseItemHtml(it.e) : fileItemHtml(it.a))).join('');
+  const visible = shown.slice(0, ctx.limit);
+  const groups = groupByWeek(visible, (it) => it.at);
+  list.innerHTML = groups.map((g, gi) => {
+    const open = gi === 0 || ctx.openGroups.has(g.key) || ctx.filter.keyword.trim() !== '';
+    return `
+      <section>
+        <button type="button" class="kz-group-head" data-agroup="${escapeHtml(g.key)}" aria-expanded="${open}">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">${open ? 'expand_more' : 'chevron_right'}</span>${escapeHtml(g.label)}<span class="normal-case font-normal">· ${g.items.length} bài</span></button>
+        <ul class="flex flex-col gap-3 mt-2 ${open ? '' : 'hidden'}">${g.items.map(itemHtml).join('')}</ul>
+      </section>`;
+  }).join('') + (shown.length > visible.length ? `
+    <div class="flex justify-center"><button type="button" class="kz-btn" data-more-assignments>Xem thêm ${Math.min(PAGE_SIZE, shown.length - visible.length)} bài (còn ${shown.length - visible.length})</button></div>` : '');
   bindFileItems(list);
 }
 
 function fileItemHtml(a) {
   return `
-    <li class="kz-item flex flex-col sm:flex-row sm:items-start gap-3" data-assignment="${escapeHtml(a.assignmentId)}">
+    <li class="kz-item border-l-4 ${STATUS_EDGE[tutorStatus({ kind: 'file', a })]} flex flex-col sm:flex-row sm:items-start gap-3" data-assignment="${escapeHtml(a.assignmentId)}">
       <div class="flex-1 min-w-0 space-y-1.5">
         <div class="flex flex-wrap items-center gap-2">
           <span class="kz-badge"><span class="material-symbols-outlined text-[14px]">attach_file</span>Nộp tệp</span>
@@ -446,6 +555,38 @@ export function initTutorAssignments({ showToast }) {
   });
   $('assignmentForm')?.addEventListener('submit', submitForm);
   $('gradeForm')?.addEventListener('submit', submitGrade);
+  // Bộ lọc tab Bài tập
+  $('assignmentSearch')?.addEventListener('input', (e) => {
+    ctx.filter.keyword = e.target.value;
+    ctx.limit = PAGE_SIZE;
+    render();
+  });
+  $('assignmentKindFilter')?.addEventListener('change', (e) => {
+    ctx.filter.kind = e.target.value;
+    ctx.limit = PAGE_SIZE;
+    render();
+  });
+  $('assignmentStatusChips')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-status]');
+    if (!chip) return;
+    ctx.filter.status = chip.dataset.status;
+    ctx.limit = PAGE_SIZE;
+    render();
+  });
+  $('assignmentsList')?.addEventListener('click', (e) => {
+    if (e.target.closest('[data-more-assignments]')) {
+      ctx.limit += PAGE_SIZE;
+      render();
+      return;
+    }
+    const head = e.target.closest('[data-agroup]');
+    if (!head) return;
+    const open = head.getAttribute('aria-expanded') === 'true';
+    if (open) ctx.openGroups.delete(head.dataset.agroup); else ctx.openGroups.add(head.dataset.agroup);
+    head.setAttribute('aria-expanded', String(!open));
+    head.querySelector('.material-symbols-outlined').textContent = open ? 'chevron_right' : 'expand_more';
+    head.nextElementSibling.classList.toggle('hidden', open);
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       close('assignmentModal');

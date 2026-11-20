@@ -62,7 +62,7 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
     public static final String MSG_UPDATE_FEEDBACK_REQUIRED = "Vui lòng nhập lý do không chấp nhận yêu cầu cập nhật.";
     /** Giá trị lọc hàng đợi: yêu cầu cập nhật hồ sơ của gia sư đã phê duyệt. */
     public static final String STATUS_PROFILE_UPDATE = "PROFILE_UPDATE";
-    public static final String STATUS_PROFILE_UPDATE_LABEL = "Yêu cầu cập nhật hồ sơ";
+    public static final String STATUS_PROFILE_UPDATE_LABEL = "Chờ xét duyệt (cập nhật hồ sơ)";
     public static final String MSG_INFO_REQUIRED = "Vui lòng nêu rõ thông tin cần bổ sung trước khi gửi yêu cầu.";
 
     private static final int MAX_TEXT = 2000;
@@ -84,6 +84,10 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
     private final VerificationViewAssembler assembler;
     private final VerificationNotificationService notificationService;
     private final CurrentUserProvider currentUserProvider;
+    /** FE-12 (thêm 2026-11-13): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
 
     @Override
     @Transactional(readOnly = true)
@@ -137,10 +141,14 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
         int size = q.getSize() == null || q.getSize() < 1 ? DEFAULT_PAGE_SIZE : Math.min(q.getSize(), MAX_PAGE_SIZE);
         boolean newestFirst = "newest".equalsIgnoreCase(q.getSort());
 
+        Set<TutorVerificationStatus> statuses = parseStatuses(q.getStatus());
+        // "Chờ xét duyệt" gồm cả yêu cầu cập nhật hồ sơ của gia sư đã phê duyệt, để cán bộ thấy ngay đơn cần duyệt
+        boolean withUpdates = statuses.equals(EnumSet.of(TutorVerificationStatus.PENDING));
         Page<Tutor> result = tutorRepository.findAll(
-                VerificationQueueSpecification.of(parseStatuses(q.getStatus()), keyword, jlpt, from, to, newestFirst),
+                VerificationQueueSpecification.of(statuses, withUpdates ? ProfileUpdateTimeline.MARKER + "%" : null,
+                        keyword, jlpt, from, to, newestFirst),
                 PageRequest.of(page, size));
-        return PageResponse.of(result, this::toQueueItem);
+        return PageResponse.of(result, withUpdates ? this::toPendingQueueItem : this::toQueueItem);
     }
 
     @Override
@@ -168,6 +176,10 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
         stateMachine.approve(tutor, currentOfficer());
         tutorRepository.save(tutor);
         notificationService.approvedAfterCommit(tutor.getUser().getEmail(), tutor.getUser().getFullName());
+        if (notificationEvents != null) {
+            notificationEvents.publish("verification:" + tutor.getTutorId() + ":" + tutor.getSubmittedAt() + ":approved", "SYSTEM", "Hồ sơ gia sư đã được phê duyệt",
+                    "Chúc mừng bạn! Hồ sơ xác minh đã được cán bộ học vụ phê duyệt, bạn đã đủ điều kiện nhận học viên.", "/tutor/verification", java.util.List.of(tutor.getUser().getUserId()));
+        }
         return result(MSG_APPROVED, tutor);
     }
 
@@ -198,6 +210,10 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
         tutorRepository.save(tutor);
         notificationService.rejectedAfterCommit(tutor.getUser().getEmail(), tutor.getUser().getFullName(),
                 VerificationLabels.rejectionReason(reason), feedback);
+        if (notificationEvents != null) {
+            notificationEvents.publish("verification:" + tutor.getTutorId() + ":" + tutor.getSubmittedAt() + ":rejected", "SYSTEM", "Hồ sơ gia sư không được chấp nhận",
+                    "Lý do: " + VerificationLabels.rejectionReason(reason) + "." + (feedback == null ? "" : " Nhận xét của cán bộ học vụ: " + feedback), "/tutor/verification", java.util.List.of(tutor.getUser().getUserId()));
+        }
         return result(MSG_REJECTED, tutor);
     }
 
@@ -215,6 +231,10 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
         stateMachine.requestInfo(tutor, currentOfficer(), message);
         tutorRepository.save(tutor);
         notificationService.infoRequestedAfterCommit(tutor.getUser().getEmail(), tutor.getUser().getFullName(), message);
+        if (notificationEvents != null) {
+            notificationEvents.publish("verification:" + tutor.getTutorId() + ":" + tutor.getSubmittedAt() + ":info-requested", "SYSTEM", "Cần bổ sung hồ sơ gia sư",
+                    "Cán bộ học vụ cần bạn bổ sung: " + message + " Vui lòng cập nhật hồ sơ và nộp lại.", "/tutor/verification", java.util.List.of(tutor.getUser().getUserId()));
+        }
         return result(MSG_INFO_REQUESTED, tutor);
     }
 
@@ -250,6 +270,13 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
         Tutor tutor = lockTutor(tutorId);
         ProfileUpdateTimeline.Request request = pendingUpdate(tutor);
         stateMachine.approveProfileUpdate(tutor, currentOfficer(), request.requestedJlpt());
+        // Giấy tờ gia sư đề nghị gỡ: chỉ xóa khi yêu cầu được chấp nhận (tệp trên R2 xóa sau khi commit)
+        for (UUID documentId : request.removedDocumentIds()) {
+            credentialRepository.findByCredentialIdAndTutor_TutorId(documentId, tutor.getTutorId()).ifPresent(c -> {
+                credentialRepository.delete(c);
+                storage.deleteLegacyAfterCommit(c.getStorageKey());
+            });
+        }
         tutorRepository.save(tutor);
         return result(MSG_UPDATE_APPROVED, tutor);
     }
@@ -294,6 +321,25 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
                 .message(message)
                 .status(status.name())
                 .statusLabel(VerificationLabels.status(status))
+                .build();
+    }
+
+    /** Dòng của hàng đợi "Chờ xét duyệt": gia sư đã phê duyệt ở đây là đang có yêu cầu cập nhật hồ sơ chờ duyệt. */
+    private VerificationQueueItemResponse toPendingQueueItem(Tutor tutor) {
+        VerificationQueueItemResponse item = toQueueItem(tutor);
+        if (VerificationStateMachine.currentStatus(tutor) != TutorVerificationStatus.APPROVED) {
+            return item;
+        }
+        OffsetDateTime requestedAt = ProfileUpdateTimeline.latest(historyRepository.findTimeline(tutor.getTutorId()))
+                .map(r -> r.submit().getCreatedAt())
+                .orElse(item.getSubmittedAt());
+        return VerificationQueueItemResponse.builder()
+                .tutorId(item.getTutorId()).fullName(item.getFullName()).email(item.getEmail())
+                .phone(item.getPhone()).highestJlptLevel(item.getHighestJlptLevel())
+                .experienceYears(item.getExperienceYears())
+                .submittedAt(requestedAt)
+                .status(STATUS_PROFILE_UPDATE)
+                .statusLabel(STATUS_PROFILE_UPDATE_LABEL)
                 .build();
     }
 

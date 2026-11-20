@@ -103,7 +103,21 @@ function renderFillBlank(container, view, response, emit, disabled) {
   }));
 }
 
+/** Điền từ có sẵn kiểu đề JLPT: câu có chỗ trống đánh số, học viên chọn 1 phương án (bộ từ cho đủ các chỗ trống). */
+function renderOptionSets(container, view, response, emit, disabled) {
+  const segments = view.segments || [''];
+  const n = segments.length - 1;
+  container.innerHTML = `
+    <p class="leading-[2.4] text-[16px] [overflow-wrap:anywhere] mb-3">
+      ${segments.map((s, i) => `${escapeHtml(s)}${i < n ? `<span class="inline-flex items-center justify-center min-w-[56px] mx-1 px-2 rounded-md border-b-2 border-primary bg-primary-fixed/30 font-bold text-primary">(${i + 1})</span>` : ''}`).join('')}
+    </p>
+    <div data-option-sets></div>`;
+  const options = (view.options || []).map((o) => String(o).split('/').map((w) => w.trim()).join(' / '));
+  renderChoices(container.querySelector('[data-option-sets]'), { options }, response, emit, disabled, false);
+}
+
 function renderWordBank(container, view, response, emit, disabled) {
+  if (Array.isArray(view.options)) return renderOptionSets(container, view, response, emit, disabled);
   const segments = view.segments || [''];
   const n = segments.length - 1;
   const bank = view.bank || [];

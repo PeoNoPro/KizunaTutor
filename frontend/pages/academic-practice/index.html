@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ngân hàng đề - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+  <link rel="stylesheet" href="/styles/practice.css?v=20261117">
+  <style>
+    .ap-table{width:100%;border-collapse:collapse}
+    .ap-table th{font-size:12px;font-weight:700;color:#6b7580;text-align:left;padding:10px 12px;border-bottom:1px solid #e5e1d8;background:#faf8f2}
+    .ap-table td{padding:12px;border-bottom:1px solid #f0ece3;font-size:14px;vertical-align:middle}
+    .ap-table tr[data-href]{cursor:pointer}
+    .ap-table tr[data-href]:hover td{background:#f7fbfe}
+    .ap-title{font-weight:700;color:#0f2545}
+    .ap-sub{font-size:12px;color:#6b7580}
+    .ap-warn{color:#a35c00;font-weight:600}
+    @media(max-width:760px){.ap-table thead{display:none}.ap-table,.ap-table tbody,.ap-table tr,.ap-table td{display:block;width:100%}.ap-table tr{border-bottom:1px solid #e5e1d8;padding:8px 0}.ap-table td{border:0;padding:4px 12px}}
+  </style>
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+  <div id="academicSidebar"></div>
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="academicTopbar"></div>
+    <main class="flex-1 pt-16 lg:pt-0 w-full">
+      <div class="px-4 md:px-8 py-8 flex flex-col w-full gap-6">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-2.5">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-primary-fixed text-primary"><span class="material-symbols-outlined text-[20px]">quiz</span></span>
+              <h1 class="text-headline-lg text-on-surface font-bold tracking-tight">Ngân hàng đề</h1>
+            </div>
+            <p class="text-body-md text-on-surface-variant">Nhập đề JLPT từ tệp Excel, tải file nghe, kiểm tra lại rồi đăng để học viên luyện đề.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="downloadTemplate" type="button" class="pr-btn"><span class="material-symbols-outlined">download</span>Tải tệp mẫu</button>
+            <button id="openCreate" type="button" class="pr-btn pr-btn-primary"><span class="material-symbols-outlined">add</span>Tạo đề từ Excel</button>
+          </div>
+        </div>
+
+        <section class="pr-card flex flex-col gap-4">
+          <form id="filters" class="flex flex-wrap gap-3 items-end">
+            <label class="pr-field">Cấp độ<select name="level"><option value="">Tất cả</option><option>N5</option><option>N4</option><option>N3</option><option>N2</option><option>N1</option></select></label>
+            <label class="pr-field">Trạng thái<select name="status"><option value="">Tất cả</option><option value="DRAFT">Nháp</option><option value="PUBLISHED">Đã đăng</option><option value="HIDDEN">Đã ẩn</option></select></label>
+          </form>
+          <p id="listNotice" class="pr-notice" role="alert" hidden></p>
+          <div class="overflow-x-auto">
+            <table class="ap-table">
+              <thead><tr><th>Đề</th><th>Cấp độ</th><th>Câu hỏi</th><th>Phần Nghe</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead>
+              <tbody id="examRows"><tr><td colspan="6" class="pr-empty">Đang tải…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="createDialog" class="pr-dialog" aria-labelledby="createTitle">
+    <form id="createForm" class="pr-dialog-body">
+      <div class="pr-dialog-head"><h2 id="createTitle">Tạo đề từ Excel</h2><button type="button" class="pr-btn" data-close>Đóng</button></div>
+      <p class="text-[14px] text-on-surface-variant">Dùng đúng tệp mẫu (.xlsx, tối đa 5 MB). Nếu câu hỏi có ảnh, chọn kèm các ảnh có tên đúng như trong tệp. File nghe tải lên sau, ở trang chi tiết đề.</p>
+      <label class="pr-field">Tệp Excel đề<input name="file" type="file" accept=".xlsx" required></label>
+      <label class="pr-field">Ảnh dùng trong đề (không bắt buộc)<input name="images" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
+      <div id="createNotice" class="pr-notice" role="alert" hidden></div>
+      <div class="flex justify-end gap-2"><button type="button" class="pr-btn" data-close>Hủy</button><button id="createSubmit" type="submit" class="pr-btn pr-btn-primary">Kiểm tra và tạo đề</button></div>
+    </form>
+  </dialog>
+
+  <script type="module" src="/pages/academic-practice/academic-practice.js"></script>
+</body>
+</html>

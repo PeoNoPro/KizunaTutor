@@ -103,6 +103,10 @@ public class SecurityConfig {
                         "/api/academic/profile/**", "/api/academic/profile",
                         "/api/academic/posts/**", "/api/academic/posts",
                         "/api/academic/content-imports/**").hasAuthority("ROLE_ACADEMIC_OFFICER")
+                // FE-13 (thêm 2026-11-17): Luyện đề JLPT — học vụ quản lý ngân hàng đề, học viên luyện đề.
+                // File nghe/ảnh (/api/practice/media/**) dùng đường dẫn ký tạm thời nên không cần đăng nhập.
+                .requestMatchers("/api/academic/practice/**").hasAuthority("ROLE_ACADEMIC_OFFICER")
+                .requestMatchers("/api/learner/practice/**").hasAuthority("ROLE_LEARNER")
                 // Bài đăng gia sư (sau khi mua gói)
                 .requestMatchers("/api/tutor/post/**", "/api/tutor/post").hasAuthority("ROLE_TUTOR")
                 // FE-05: Đặt lịch học thử & Quản lý lịch rảnh gia sư
@@ -121,6 +125,8 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/manager/membership-plans/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
                 .requestMatchers("/api/manager/membership-plans/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/manager/tutor-memberships/**").hasAuthority("ROLE_MANAGER")
+                // FE-14: Quản lý vận hành xem và đổi trạng thái tài khoản gia sư, học viên (UC-12, UC-20, UC-21)
+                .requestMatchers("/api/manager/users", "/api/manager/users/**").hasAuthority("ROLE_MANAGER")
                 .requestMatchers("/api/admin/payment-transactions/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/tutors/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()

@@ -24,4 +24,6 @@ public class VerificationDocumentResponse {
     private String statusLabel;
     private OffsetDateTime uploadedAt;
     private boolean fileAvailable;
+    /** true: giấy tờ nằm trong yêu cầu cập nhật đang chờ, gia sư đề nghị gỡ. */
+    private boolean removalRequested;
 }

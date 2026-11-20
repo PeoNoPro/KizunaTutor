@@ -277,3 +277,8 @@ Danh sách bao phủ công việc không chứng minh đã thực hiện. T001 g
 - Xóa tài khoản nhân viên (xóa mềm, không đổi DB): `StaffAccountService.delete`, `StaffAccountRepository.softDelete/removeUpcomingShifts`, POST `/staff/{id}/delete`, nút "Xóa" và hộp xác nhận ở `pages/admin-staff`. Đã kiểm giao diện bằng trình duyệt với Admin; chưa thực hiện xóa trên dữ liệu thật, chưa có test tự động.
 - Sidebar Quản lý thêm mục "Doanh thu & giao dịch" (`/pages/operations-revenue/`).
 - `fetchAPI` tăng thời gian chờ chung 4,5 giây → 12 giây.
+
+## Cập nhật 2026-11-16 (thầy chốt với nhóm)
+
+- Bỏ luồng Manager đề xuất đổi vai trò/thăng chức: xóa `StaffRoleChange*`, trang `manager-staff-roles`, `admin-roles`, test liên quan, thẻ KPI trên dashboard Manager. Thay T067 và T086 bằng: Admin đổi vai trò khi sửa thông tin nhân viên (`PUT /staff/{id}` có `roleId`). Chưa chạy test cần DB cho phần này.
+- Xóa chức năng sự cố kỹ thuật theo yêu cầu của thầy: backend (`TechnicalIncident*`, `OperationsIncidentReportService`, các API `/incidents`, `/reported-incidents`, `/reports/incidents`), trang `operations-incidents`, `operations-incident`, `operations-reports`, thẻ và biểu đồ sự cố ở tổng quan Admin, Manager và thống kê, nút báo sự cố của Manager ở yêu cầu hỗ trợ. Giữ `ReportPeriods` (khoảng ngày dùng chung). Các task T021, T025–T032, T036 về sự cố không còn hiệu lực. Chưa chạy test cần DB.

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KizunaTutor - Quản lý & Luyện tập Bộ thẻ ghi nhớ Flashcards
  * Feature-Based architecture module, tuân thủ nghiêm ngặt FRONTEND_RULES.md
  * TUYỆT ĐỐI KHÔNG DÙNG DỮ LIỆU MẪU (NO MOCK DATA INJECTION)
@@ -106,7 +106,7 @@ function renderDecks(filterQuery = '') {
     const cardCount = deck.cards ? deck.cards.length : 0;
 
     html += `
-      <div class="deck-card relative flex flex-col justify-between p-4 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] hover:-translate-y-0.5 transition-transform group" data-deck-id="${deck.id}">
+      <div class="deck-card relative flex flex-col justify-between p-4 bg-white border border-[#E2E8F0] rounded-xl shadow-sm hover:border-[#CBD5E1] hover:shadow transition-all group" data-deck-id="${deck.id}">
         <!-- Phần thông tin thư mục -->
         <div>
           <div class="flex items-start justify-between gap-2">
@@ -120,13 +120,13 @@ function renderDecks(filterQuery = '') {
             <div class="relative dropdown-container shrink-0">
               <button type="button" 
                       data-action="toggle-menu" data-id="${deck.id}"
-                      class="w-7 h-7 flex items-center justify-center border border-[#0F172A] rounded-[4px] bg-slate-100 hover:bg-slate-200 text-xs shadow-[1px_1px_0px_0px_#0F172A] cursor-pointer transition font-bold"
+                      class="w-7 h-7 flex items-center justify-center border border-[#CBD5E1] rounded-lg bg-slate-50 hover:bg-slate-100 text-xs cursor-pointer transition font-bold"
                       title="Tùy chọn khác">
                 ⋮
               </button>
 
               <!-- Dropdown Menu Nội dung -->
-              <div id="menu-${deck.id}" class="deck-dropdown-menu hidden absolute right-0 top-8 w-48 bg-white border border-[#0F172A] rounded-[5px] shadow-[3px_3px_0px_0px_#0F172A] z-30 py-1 text-xs">
+              <div id="menu-${deck.id}" class="deck-dropdown-menu hidden absolute right-0 top-8 w-48 bg-white border border-[#E2E8F0] rounded-xl shadow-lg z-30 py-1 text-xs">
                 <button type="button" data-action="view-detail" data-id="${deck.id}" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer text-slate-800">
                   <span>🔍</span> Xem trang chi tiết
                 </button>
@@ -154,11 +154,11 @@ function renderDecks(filterQuery = '') {
         </div>
 
         <!-- Cụm nút hành động chính ở chân thẻ (Theo quy chuẩn Ponytail & Impeccable) -->
-        <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-[#0F172A]/15">
+        <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-[#E2E8F0]">
           <!-- Nút Chỉnh Sửa -->
           <button type="button" 
                   data-action="edit-deck" data-id="${deck.id}" 
-                  class="py-1.5 px-2 bg-white hover:bg-slate-100 text-[#0F172A] text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
+                  class="py-1.5 px-2 bg-white hover:bg-slate-100 text-[#0F172A] text-xs font-bold border border-[#CBD5E1] rounded-lg shadow-xs flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
                   title="Chỉnh sửa bộ thẻ & nạp dữ liệu từ Excel">
             <span>✏️</span> Chỉnh Sửa
           </button>
@@ -166,7 +166,7 @@ function renderDecks(filterQuery = '') {
           <!-- Nút Xóa -->
           <button type="button" 
                   data-action="delete-deck" data-id="${deck.id}" 
-                  class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
+                  class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-[#CBD5E1] rounded-lg shadow-xs flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
                   title="Xóa bộ thẻ này">
             <span>🗑️</span> Xóa
           </button>
@@ -174,7 +174,7 @@ function renderDecks(filterQuery = '') {
           <!-- Nút Chi Tiết Độc Lập -->
           <button type="button" 
                   data-action="view-detail" data-id="${deck.id}" 
-                  class="py-1.5 px-2 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#0F172A] rounded-[4px] shadow-[2px_2px_0px_0px_#0F172A] flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
+                  class="py-1.5 px-2 bg-[#006194] hover:bg-[#004B73] text-white text-xs font-bold border border-[#CBD5E1] rounded-lg shadow-xs flex items-center justify-center gap-1 cursor-pointer truncate transition active:scale-95"
                   title="Mở trang chi tiết bộ thẻ độc lập (/learner/deck-detail)">
             <span>📖</span> Chi Tiết
           </button>
@@ -289,13 +289,28 @@ function closeAllMenus() {
 // 4. TẠO & XÓA BỘ THẺ (CRUD LOGIC QUA APICLIENT)
 // =========================================================================
 function openCreateDeckModal() {
-  document.getElementById('modalCreateDeck').classList.remove('hidden');
-  document.getElementById('deckNameInput').value = '';
-  document.getElementById('deckDescInput').value = '';
+  const modal = document.getElementById('modalCreateDeck');
+  if (!modal) {
+    console.warn('Không tìm thấy #modalCreateDeck trong DOM.');
+    return;
+  }
+  modal.classList.remove('hidden');
+  const nameInput = document.getElementById('deckNameInput');
+  const descInput = document.getElementById('deckDescInput');
+  if (nameInput) {
+    nameInput.value = '';
+    nameInput.focus();
+  }
+  if (descInput) {
+    descInput.value = '';
+  }
 }
 
 function closeCreateDeckModal() {
-  document.getElementById('modalCreateDeck').classList.add('hidden');
+  const modal = document.getElementById('modalCreateDeck');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
 }
 
 async function saveNewDeck() {
@@ -859,21 +874,32 @@ async function saveDeckChanges() {
 }
 
 // =========================================================================
-// 7. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
+// 7. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY & SPA MOUNT)
 // =========================================================================
-document.addEventListener('DOMContentLoaded', () => {
+function initFlashcardsPage() {
   loadDecks();
 
   const searchInput = document.getElementById('inputSearchDecks');
-  if (searchInput) {
+  if (searchInput && !searchInput.hasAttribute('data-bound')) {
+    searchInput.setAttribute('data-bound', 'true');
     searchInput.addEventListener('input', debounce((e) => {
       renderDecks(e.target.value);
     }, 250));
   }
 
   // Nút tạo bộ thẻ mới
-  document.getElementById('btnOpenCreateDeck')?.addEventListener('click', openCreateDeckModal);
-  document.getElementById('btnEmptyCreateDeck')?.addEventListener('click', openCreateDeckModal);
+  const btnOpen = document.getElementById('btnOpenCreateDeck');
+  if (btnOpen && !btnOpen.hasAttribute('data-bound')) {
+    btnOpen.setAttribute('data-bound', 'true');
+    btnOpen.addEventListener('click', openCreateDeckModal);
+  }
+
+  const btnEmpty = document.getElementById('btnEmptyCreateDeck');
+  if (btnEmpty && !btnEmpty.hasAttribute('data-bound')) {
+    btnEmpty.setAttribute('data-bound', 'true');
+    btnEmpty.addEventListener('click', openCreateDeckModal);
+  }
+
   document.getElementById('btnCloseCreateDeckModal')?.addEventListener('click', closeCreateDeckModal);
   document.getElementById('btnCancelDeck')?.addEventListener('click', closeCreateDeckModal);
   document.getElementById('btnSaveDeck')?.addEventListener('click', saveNewDeck);
@@ -895,9 +921,24 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnConfirmMerge')?.addEventListener('click', executeMergeDecks);
 
   // Đóng dropdown menus khi click bên ngoài
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.dropdown-container')) {
-      closeAllMenus();
-    }
-  });
+  if (!window.__flashcardsClickOutsideBound) {
+    window.__flashcardsClickOutsideBound = true;
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.dropdown-container')) {
+        closeAllMenus();
+      }
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initFlashcardsPage);
+} else {
+  initFlashcardsPage();
+}
+
+window.addEventListener('kizuna:page-mounted', (e) => {
+  if (e.detail?.url?.includes('flashcards')) {
+    initFlashcardsPage();
+  }
 });

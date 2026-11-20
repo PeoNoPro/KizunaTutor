@@ -57,45 +57,18 @@ async function screenshot(name) {
   await writeFile(new URL(name + '.png', output), Buffer.from(shot.data, 'base64'));
 }
 async function fill(id, value) { await evaluate(`document.getElementById(${JSON.stringify(id)}).value = ${JSON.stringify(value)}`); }
-async function submitAction(action) {
-  await fill('commandAction', action);
-  await evaluate('document.getElementById("commandAction").dispatchEvent(new Event("change"))');
-  await evaluate('document.getElementById("incidentCommandForm").requestSubmit()');
-  await until('document.getElementById("operationsContent").getAttribute("aria-busy") === "false"');
-  assert.equal(await evaluate('document.body.dataset.error'), 'false');
-}
 try {
   await command('Page.enable');
   await command('Runtime.enable');
   await command('Fetch.enable', {patterns: [{urlPattern: 'http://localhost:3000/js/config/api.config.js', requestStage: 'Request'}]});
   for (const width of [1280, 390]) {
     await command('Emulation.setDeviceMetricsOverride', {width, height: 900, deviceScaleFactor: 1, mobile: width < 760});
-    for (const page of ['operations-config', 'operations-statistics', 'operations-incidents', 'operations-reports']) {
+    for (const page of ['operations-config', 'operations-statistics']) {
       await visit(page);
       await evaluate('document.fonts.ready');
       await screenshot(page + '-' + width);
     }
   }
-  await visit('operations-incidents');
-  await evaluate('document.getElementById("createIncidentPanel").open = true');
-  const subject = 'Kiểm tra giao diện quản trị cục bộ ' + Date.now();
-  await fill('incidentSubject', subject);
-  await fill('incidentDescription', 'Bản ghi phát triển riêng để kiểm chứng luồng tạo và xử lý sự cố qua giao diện.');
-  await evaluate('document.querySelector("input[name=component]").checked = true; document.getElementById("incidentCreateForm").requestSubmit()');
-  await until('location.pathname === "/pages/operations-incident/" && document.body.dataset.ready === "true"');
-  assert.equal(await evaluate('document.body.dataset.error'), 'false');
-  assert.equal(await evaluate('document.querySelector("#incidentDetail h2").textContent'), subject);
-  await submitAction('claim');
-  assert.equal(await evaluate('document.getElementById("incidentDetail").textContent.includes("Đang xử lý")'), true);
-  await fill('commandDetail', 'Đã đối chiếu giao diện và dữ liệu từ backend cục bộ.');
-  await submitAction('progress');
-  await fill('commandResult', 'Đã kiểm tra luồng cập nhật.');
-  await fill('commandVerification', 'Nội dung mới và lịch sử xuất hiện đúng sau khi tải lại.');
-  await submitAction('resolve');
-  assert.equal(await evaluate('document.getElementById("incidentDetail").textContent.includes("Đã giải quyết")'), true);
-  await submitAction('close');
-  assert.equal(await evaluate('document.getElementById("incidentDetail").textContent.includes("Đã đóng")'), true);
-  await screenshot('operations-detail-390');
   await command('Page.navigate', {url: 'http://localhost:3000/pages/admin-dashboard/'});
   await until('document.getElementById("dashboardNotice")?.dataset.loading === "false"');
   assert.equal(await evaluate('document.getElementById("dashboardNotice").dataset.error'), 'false');

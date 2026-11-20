@@ -32,7 +32,9 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -55,6 +57,10 @@ public class ClassroomServiceImpl implements ClassroomService {
     /** Thông báo tự động (FE-12). Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+
+    /** Thông báo thay đổi khóa học cho học viên (FE-12). Không bắt buộc, như trên. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.classroom.service.ClassroomNotifier notifier;
 
     @Autowired
     public ClassroomServiceImpl(LearningSpaceRepository spaceRepository, LearningMaterialRepository materialRepository,
@@ -103,10 +109,18 @@ public class ClassroomServiceImpl implements ClassroomService {
         completeFinishedOfTutor(tutor.getTutorId());
         List<UUID> ids = spaceRepository.findEligibleLearnerIds(tutor.getTutorId());
         if (ids.isEmpty()) return List.of();
+        // Hình thức học theo yêu cầu kết nối: lấy cho mọi học viên trong 1 query (tránh N+1)
+        Map<String, Object[]> deliveries = new HashMap<>();
+        for (Object[] row : spaceRepository.findAcceptedConnectionDeliveries(tutor.getTutorId(), ids)) {
+            deliveries.put(String.valueOf(row[0]), new Object[]{row[1], row[2]});
+        }
         return learnerRepository.findAllById(ids).stream()
                 .map(learner -> {
                     User u = learner.getUser();
-                    return new EligibleLearnerResponse(learner.getLearnerId(), u.getFullName(), u.getEmail(), u.getAvatarUrl());
+                    Object[] delivery = deliveries.get(String.valueOf(learner.getLearnerId()));
+                    return new EligibleLearnerResponse(learner.getLearnerId(), u.getFullName(), u.getEmail(), u.getAvatarUrl(),
+                            delivery == null ? null : (String) delivery[0],
+                            delivery == null ? null : (String) delivery[1]);
                 })
                 .sorted(Comparator.comparing(EligibleLearnerResponse::fullName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .toList();
@@ -237,8 +251,11 @@ public class ClassroomServiceImpl implements ClassroomService {
             scheduleRepository.findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(space.getSpaceId())
                     .forEach(slot -> slot.setActiveFrom(activeFrom));
         }
+        Integer oldTotal = space.getTotalSessions();
         space.setTotalSessions(total);
-        return toSummary(spaceRepository.save(space), actor);
+        LearningSpace savedCourse = spaceRepository.save(space);
+        if (notifier != null) notifier.courseChanged(savedCourse, currentStart, oldTotal, ClassSessionCalendar.startDateOf(savedCourse), savedCourse.getTotalSessions());
+        return toSummary(savedCourse, actor);
     }
 
     @Override
@@ -258,7 +275,10 @@ public class ClassroomServiceImpl implements ClassroomService {
             String detail = "OFFLINE".equals(saved.getLearningMode())
                     ? "học trực tiếp tại " + saved.getLocationDetails()
                     : saved.getMeetingLink() == null ? "học online (gia sư sẽ gửi link phòng học)" : "học online, link phòng học: " + saved.getMeetingLink();
-            notificationEvents.publish("classroom:" + saved.getSpaceId() + ":delivery:" + System.currentTimeMillis(), "CONNECTION",
+            // Mã sự kiện cố định theo lần đổi (hình thức cũ → mới), không dùng giờ hệ thống: xử lý lại không tạo thông báo trùng.
+            String transition = Integer.toHexString(Objects.hash(oldMode, oldLink, oldLocation,
+                    saved.getLearningMode(), saved.getMeetingLink(), saved.getLocationDetails()));
+            notificationEvents.publish("classroom:" + saved.getSpaceId() + ":delivery:" + transition, "CONNECTION",
                     "Lớp học cập nhật hình thức học",
                     "Lớp \"" + saved.getTitle() + "\" chuyển sang " + detail + ".",
                     "/learner/connections", List.of(saved.getLearner().getUser().getUserId()));

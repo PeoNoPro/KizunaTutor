@@ -854,6 +854,25 @@ export const API = {
     }
   },
 
+  // ===== FE-14: Quản lý người dùng (Quản lý vận hành; phản hồi dạng { success, message, data }) =====
+
+  managerUsers: {
+    /** Danh sách gia sư / học viên: { category: TUTOR | LEARNER, keyword, status, page, size } (UC-20) */
+    list(params = {}) {
+      return authRequest(`/manager/users?${toQuery(params)}`).then((res) => res.data);
+    },
+
+    /** Chi tiết tài khoản, hồ sơ và lịch sử đổi trạng thái (UC-21) */
+    detail(userId) {
+      return authRequest(`/manager/users/${encodeURIComponent(userId)}`).then((res) => res.data);
+    },
+
+    /** { status, expectedStatus, reason, message } → { message, data } (UC-12) */
+    updateStatus(userId, payload) {
+      return authRequest(`/manager/users/${encodeURIComponent(userId)}/status`, { method: 'PUT', body: payload });
+    }
+  },
+
   // ===== FE-09: Gói hội viên và thanh toán (phản hồi dạng { success, message, data }) =====
 
   tutorMembership: {
@@ -1443,5 +1462,73 @@ API.exercises = {
   grade(spaceId, exerciseId, attemptId, items) {
     return classroomRequest(exercisePath(spaceId,
       `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/grade`), { method: 'PUT', body: { items } });
+  },
+
+  /** Gia sư tải file nghe lên Cloudflare R2 (MP3/M4A/WAV/OGG/WEBM, tối đa 25 MB) → {audioId, fileName, fileSize}; gửi audioId kèm câu hỏi khi lưu bài. */
+  uploadAudio(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio`, { method: 'POST', formData: fd, timeout: 300000 });
+  },
+
+  /** Link nghe tạm của file trên R2: {url, expiresInSeconds}. Thẻ audio phát thẳng từ link này. */
+  audioUrl(spaceId, audioId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/${encodeURIComponent(audioId)}/url`);
+  },
+
+  /** Học viên: số lần đã nghe các câu nghe của lượt đang làm → [{questionId, plays, maxPlays, remaining}] (máy chủ đếm). */
+  listenStatus(spaceId, attemptId) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/listen?attemptId=${encodeURIComponent(attemptId)}`);
+  },
+
+  /** Học viên bắt đầu một lần nghe (resume = xin lại link giữa chừng, không tính thêm) → {url, expiresInSeconds, plays, maxPlays, remaining}. */
+  listen(spaceId, attemptId, questionId, resume = false) {
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-audio/listen`,
+      { method: 'POST', body: { attemptId, questionId, resume: !!resume } });
+  },
+
+  /** Gia sư tải ảnh minh họa cho câu hỏi (PNG/JPG/WEBP/GIF ≤ 5 MB) → {imageId, fileName, fileSize}. */
+  uploadImage(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-images`, { method: 'POST', formData: fd, timeout: 120000 });
+  },
+
+  /** Nội dung ảnh của câu hỏi (Blob, có kiểm quyền bằng token). */
+  imageBlob(spaceId, imageId) {
+    return assignmentBlob(`/${encodeURIComponent(spaceId)}/exercise-images/${encodeURIComponent(imageId)}`);
+  },
+
+  /**
+   * Đọc file Excel câu hỏi (.xlsx, tối đa 2 MB, 200 câu), KHÔNG lưu gì.
+   * → {total, valid, invalid, validPoints, rows: [{row, ok, error, type, prompt, points, data}]}
+   */
+  importPreview(spaceId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return classroomRequest(`/${encodeURIComponent(spaceId)}/exercise-import`, { method: 'POST', formData: fd, timeout: 120000 });
+  },
+
+  /** File Excel mẫu để nhập câu hỏi (Blob). */
+  importTemplate(spaceId) {
+    return assignmentBlob(`/${encodeURIComponent(spaceId)}/exercise-import/template`);
+  }
+};
+
+// =========================================================================
+// FE-15: GỢI Ý CHẤM CỦA AI cho câu tự luận của bài làm trực tiếp (chỉ gia sư của lớp)
+// .../exercises/{exerciseId}/attempts/{attemptId}/ai-reviews
+// =========================================================================
+API.exerciseAiReviews = {
+  /** Gợi ý từng câu: [{questionId, status, statusLabel, suggestedScore, feedback, updatedAt}] */
+  list(spaceId, exerciseId, attemptId) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/ai-reviews`));
+  },
+
+  /** Cho AI chấm lại các câu chưa chấm được */
+  retry(spaceId, exerciseId, attemptId) {
+    return classroomRequest(exercisePath(spaceId,
+      `/${encodeURIComponent(exerciseId)}/attempts/${encodeURIComponent(attemptId)}/ai-reviews/retry`), { method: 'POST' });
   }
 };

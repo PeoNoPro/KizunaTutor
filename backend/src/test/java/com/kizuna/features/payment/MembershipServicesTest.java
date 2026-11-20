@@ -93,6 +93,37 @@ class MembershipServicesTest {
         }
 
         @Test
+        void tutorIsNotifiedOnceWhenLastMembershipExpires() {
+            var events = mock(com.kizuna.features.notification.service.NotificationEvents.class);
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "notificationEvents", events);
+            TutorMembership ended = TutorMembership.builder().status(TutorMembershipState.ACTIVE)
+                    .startDate(TODAY.minusMonths(1)).endDate(TODAY.minusDays(1)).build();
+            when(membershipRepository.countEndedBefore(any(), any(), any())).thenReturn(1L);
+            when(membershipRepository.countValidOn(any(), any(), any())).thenReturn(0L);
+            when(membershipRepository.findEndedBefore(any(), any(), any())).thenReturn(List.of(ended));
+
+            service.refresh(tutor.getTutorId(), TODAY);
+
+            verify(events).publish(eq("membership:" + tutor.getTutorId() + ":expired:" + TODAY.minusDays(1)), eq("PAYMENT"),
+                    eq("Gói hội viên đã hết hạn"), anyString(), eq("/tutor/membership"), eq(List.of(tutor.getUser().getUserId())));
+        }
+
+        @Test
+        void noExpiryNotificationWhenStackedMembershipStillValid() {
+            var events = mock(com.kizuna.features.notification.service.NotificationEvents.class);
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "notificationEvents", events);
+            TutorMembership ended = TutorMembership.builder().status(TutorMembershipState.ACTIVE)
+                    .startDate(TODAY.minusMonths(1)).endDate(TODAY.minusDays(1)).build();
+            when(membershipRepository.countEndedBefore(any(), any(), any())).thenReturn(1L);
+            when(membershipRepository.countValidOn(any(), any(), any())).thenReturn(1L);
+            when(membershipRepository.findEndedBefore(any(), any(), any())).thenReturn(List.of(ended));
+
+            service.refresh(tutor.getTutorId(), TODAY);
+
+            verifyNoInteractions(events);
+        }
+
+        @Test
         void keepsActiveWhenStackedMembershipStillValid() {
             TutorMembership ended = TutorMembership.builder().status(TutorMembershipState.ACTIVE)
                     .startDate(TODAY.minusMonths(1)).endDate(TODAY.minusDays(1)).build();
@@ -363,19 +394,81 @@ class MembershipServicesTest {
             assertEquals(PaymentMessages.MSG32_FAILED, view.resultMessage());
         }
 
+        // ----- Tiếp tục thanh toán: VNPay không cho mở lại mã đơn đã mở → tạo giao dịch mới cùng gói -----
+
+        private void freshPlanPurchase(MembershipPlan plan) {
+            when(tutorRepository.findWithUserByUserId(user.getUserId()))
+                    .thenReturn(Optional.of(tutor(user, TutorVerificationStatus.APPROVED, TutorState.APPROVED_UNPAID)));
+            when(planRepository.findById(plan.getPlanId())).thenReturn(Optional.of(plan));
+            when(transactionRepository.save(any())).thenAnswer(inv -> {
+                PaymentTransaction tx = inv.getArgument(0);
+                tx.setTransactionId(UUID.randomUUID());
+                return tx;
+            });
+            when(gatewayClient.paymentParams(any(), any())).thenReturn(Map.of("vnp_TxnRef", "moi"));
+            when(gatewayClient.buildPaymentUrl(any())).thenReturn("https://pay.test?moi");
+        }
+
         @Test
-        void resumeRebuildsUrlForFreshPendingOnly() {
+        void resumeCreatesNewTransactionWithNewReferenceWhenOldStillPending() {
             PaymentTransaction fresh = ownPending(OffsetDateTime.now().minusMinutes(3));
-            when(gatewayClient.paymentParams(any(), any())).thenReturn(Map.of("vnp_TxnRef", fresh.getTxnRef()));
-            when(gatewayClient.buildPaymentUrl(any())).thenReturn("https://pay.test?again");
+            freshPlanPurchase(fresh.getPlan());
+            when(gatewayClient.queryTransaction(any(), any()))
+                    .thenThrow(new ServiceUnavailableException(PaymentMessages.MSG37_GATEWAY_UNAVAILABLE));
 
-            assertEquals("https://pay.test?again",
-                    service(properties).resumePayment(user, fresh.getTransactionId().toString(), null).paymentUrl());
+            var resumed = service(properties).resumePayment(user, fresh.getTransactionId().toString(), null);
+
+            ArgumentCaptor<PaymentTransaction> saved = ArgumentCaptor.forClass(PaymentTransaction.class);
+            verify(transactionRepository).save(saved.capture());
+            assertNotEquals(fresh.getTransactionId(), resumed.transactionId());
+            assertEquals(fresh.getPlan().getPlanId(), saved.getValue().getPlan().getPlanId());
+            assertEquals(PaymentTransactionStatus.PENDING, saved.getValue().getStatus());
+            assertEquals("https://pay.test?moi", resumed.paymentUrl());
+            // Giao dịch cũ không bị đổi trạng thái: nếu vẫn được trả ở tab cũ thì vẫn ghi nhận được.
+            assertEquals(PaymentTransactionStatus.PENDING, fresh.getStatus());
+        }
+
+        @Test
+        void resumeProcessesVerifiedGatewayResultAndStopsWhenOldAlreadyFinished() {
+            PaymentTransaction fresh = ownPending(OffsetDateTime.now().minusMinutes(3));
+            GatewayResult queried = new GatewayResult(fresh.getTxnRef(), "00", "00", "7", 19_900_000L, "NCB");
+            when(gatewayClient.queryTransaction(any(), any())).thenReturn(
+                    new VnpayGatewayClient.QueryOutcome(true, 200, "00", "OK", queried, Map.of(), "{}"));
+            when(processor.process(queried)).thenAnswer(inv -> {
+                fresh.setStatus(PaymentTransactionStatus.SUCCESS);
+                return PaymentResultProcessor.Outcome.ACTIVATED;
+            });
+
+            assertEquals(PaymentMessages.PAYMENT_ALREADY_FINISHED, assertThrows(ConflictException.class,
+                    () -> service(properties).resumePayment(user, fresh.getTransactionId().toString(), null)).getMessage());
+            verify(processor).process(queried);
             verify(transactionRepository, never()).save(any());
+        }
 
+        @Test
+        void resumeOfStaleTransactionIsRejected() {
             PaymentTransaction stale = ownPending(OffsetDateTime.now().minusMinutes(30));
             assertEquals(PaymentMessages.PAYMENT_EXPIRED, assertThrows(ConflictException.class,
                     () -> service(properties).resumePayment(user, stale.getTransactionId().toString(), null)).getMessage());
+            verifyNoInteractions(gatewayClient);
+            verify(transactionRepository, never()).save(any());
+        }
+
+        @Test
+        void onlyNewestTransactionOfAPlanIsResumable() {
+            MembershipPlan plan = plan(true);
+            OffsetDateTime now = OffsetDateTime.now();
+            PaymentTransaction newer = PaymentTransaction.builder().transactionId(UUID.randomUUID()).user(user).plan(plan)
+                    .amount(new BigDecimal("199000")).status(PaymentTransactionStatus.PENDING).transactionTime(now.minusMinutes(1)).build();
+            PaymentTransaction older = PaymentTransaction.builder().transactionId(UUID.randomUUID()).user(user).plan(plan)
+                    .amount(new BigDecimal("199000")).status(PaymentTransactionStatus.PENDING).transactionTime(now.minusMinutes(3)).build();
+            when(transactionRepository.findByUserUserIdAndPlanIsNotNull(eq(user.getUserId()), any()))
+                    .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(newer, older)));
+
+            var page = service(properties).listMyPayments(user, 0, 10);
+
+            assertTrue(page.items().get(0).resumable());
+            assertFalse(page.items().get(1).resumable());
         }
 
         @Test
@@ -396,6 +489,211 @@ class MembershipServicesTest {
             ArgumentCaptor<GatewayResult> used = ArgumentCaptor.forClass(GatewayResult.class);
             verify(processor).process(used.capture());
             assertEquals("24", used.getValue().responseCode());
+        }
+
+        // ----- REQ-16: tiếp tục thanh toán -----
+
+        @Test
+        void req16_resumeOfAnotherTutorsTransactionIsNotFoundAndNothingIsCreated() {
+            PaymentTransaction other = PaymentTransaction.builder().transactionId(UUID.randomUUID()).user(user())
+                    .plan(plan(true)).amount(new BigDecimal("199000")).status(PaymentTransactionStatus.PENDING)
+                    .transactionTime(OffsetDateTime.now()).build();
+            when(transactionRepository.findWithDetailsById(other.getTransactionId())).thenReturn(Optional.of(other));
+
+            assertEquals(PaymentMessages.TRANSACTION_NOT_FOUND, assertThrows(ResourceNotFoundException.class,
+                    () -> service(properties).resumePayment(user, other.getTransactionId().toString(), null)).getMessage());
+            verifyNoInteractions(gatewayClient, processor);
+            verify(transactionRepository, never()).save(any());
+        }
+
+        @Test
+        void req16_resumeOfFinishedTransactionIsRejectedWithoutAskingGateway() {
+            PaymentTransaction done = ownPending(OffsetDateTime.now().minusMinutes(2));
+            done.setStatus(PaymentTransactionStatus.SUCCESS);
+
+            assertEquals(PaymentMessages.PAYMENT_EXPIRED, assertThrows(ConflictException.class,
+                    () -> service(properties).resumePayment(user, done.getTransactionId().toString(), null)).getMessage());
+            verifyNoInteractions(gatewayClient);
+            verify(transactionRepository, never()).save(any());
+        }
+
+        @Test
+        void req16_resumeAsksGatewayBeforeCreatingTheNewTransaction() {
+            PaymentTransaction fresh = ownPending(OffsetDateTime.now().minusMinutes(3));
+            freshPlanPurchase(fresh.getPlan());
+            GatewayResult stillPending = new GatewayResult(fresh.getTxnRef(), "00", "01", null, 19_900_000L, null);
+            when(gatewayClient.queryTransaction(any(), any())).thenReturn(
+                    new VnpayGatewayClient.QueryOutcome(true, 200, "00", "OK", stillPending, Map.of(), "{}"));
+            when(processor.process(stillPending)).thenReturn(PaymentResultProcessor.Outcome.STILL_PENDING);
+
+            var resumed = service(properties).resumePayment(user, fresh.getTransactionId().toString(), null);
+
+            var order = inOrder(gatewayClient, transactionRepository);
+            order.verify(gatewayClient).queryTransaction(eq(fresh), any());
+            order.verify(transactionRepository).save(any());
+            assertNotEquals(fresh.getTransactionId(), resumed.transactionId());
+        }
+
+        @Test
+        void req16_resumeWithMalformedTransactionIdIsNotFound() {
+            assertEquals(PaymentMessages.TRANSACTION_NOT_FOUND, assertThrows(ResourceNotFoundException.class,
+                    () -> service(properties).resumePayment(user, "khong-phai-ma", null)).getMessage());
+            verifyNoInteractions(gatewayClient);
+        }
+
+        // ----- REQ-17: lịch sử thanh toán phân trang -----
+
+        @Test
+        void req17_historyIsPagedNewestFirstAndPageSizeIsCappedAt50() {
+            when(transactionRepository.findByUserUserIdAndPlanIsNotNull(eq(user.getUserId()), any()))
+                    .thenAnswer(inv -> new org.springframework.data.domain.PageImpl<PaymentTransaction>(
+                            List.of(), inv.getArgument(1), 120));
+
+            var page = service(properties).listMyPayments(user, 2, 100);
+
+            ArgumentCaptor<org.springframework.data.domain.Pageable> pageable =
+                    ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+            verify(transactionRepository).findByUserUserIdAndPlanIsNotNull(eq(user.getUserId()), pageable.capture());
+            assertEquals(2, pageable.getValue().getPageNumber());
+            assertEquals(50, pageable.getValue().getPageSize());
+            assertEquals(org.springframework.data.domain.Sort.Direction.DESC,
+                    pageable.getValue().getSort().getOrderFor("transactionTime").getDirection());
+            assertEquals(2, page.page());
+            assertEquals(50, page.size());
+            assertEquals(120, page.totalItems());
+            assertEquals(3, page.totalPages());
+        }
+
+        @Test
+        void req17_negativePageAndZeroSizeAreNormalised() {
+            when(transactionRepository.findByUserUserIdAndPlanIsNotNull(eq(user.getUserId()), any()))
+                    .thenAnswer(inv -> new org.springframework.data.domain.PageImpl<PaymentTransaction>(
+                            List.of(), inv.getArgument(1), 0));
+
+            service(properties).listMyPayments(user, -1, 0);
+
+            ArgumentCaptor<org.springframework.data.domain.Pageable> pageable =
+                    ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+            verify(transactionRepository).findByUserUserIdAndPlanIsNotNull(eq(user.getUserId()), pageable.capture());
+            assertEquals(0, pageable.getValue().getPageNumber());
+            assertEquals(1, pageable.getValue().getPageSize());
+        }
+
+        @Test
+        void req17_pendingTransactionsOfDifferentPlansAreEachResumable() {
+            OffsetDateTime now = OffsetDateTime.now();
+            PaymentTransaction planA = PaymentTransaction.builder().transactionId(UUID.randomUUID()).user(user).plan(plan(true))
+                    .amount(new BigDecimal("199000")).status(PaymentTransactionStatus.PENDING).transactionTime(now.minusMinutes(1)).build();
+            PaymentTransaction planB = PaymentTransaction.builder().transactionId(UUID.randomUUID()).user(user).plan(plan(true))
+                    .amount(new BigDecimal("199000")).status(PaymentTransactionStatus.PENDING).transactionTime(now.minusMinutes(2)).build();
+            when(transactionRepository.findByUserUserIdAndPlanIsNotNull(eq(user.getUserId()), any()))
+                    .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(planA, planB)));
+
+            var page = service(properties).listMyPayments(user, 0, 10);
+
+            assertTrue(page.items().get(0).resumable());
+            assertTrue(page.items().get(1).resumable());
+        }
+    }
+
+    /** REQ-20: quản trị viên kiểm tra giao dịch với cổng VNPay. */
+    @Nested
+    class AdminGatewayCheck {
+        PaymentTransactionRepository transactionRepository = mock(PaymentTransactionRepository.class);
+        PaymentResultProcessor processor = mock(PaymentResultProcessor.class);
+        VnpayGatewayClient gatewayClient = mock(VnpayGatewayClient.class);
+        PaymentAudit audit = mock(PaymentAudit.class);
+        VnpayProperties properties = VnpaySignerTest.properties(VnpaySignerTest.SECRET);
+        com.kizuna.features.payment.service.impl.PaymentIssueServiceImpl service =
+                new com.kizuna.features.payment.service.impl.PaymentIssueServiceImpl(transactionRepository,
+                        mock(com.kizuna.features.payment.repository.PaymentProcessingLogRepository.class),
+                        mock(TutorMembershipRepository.class), processor, gatewayClient,
+                        new MembershipViewMapper(new ObjectMapper(), properties), audit, new ObjectMapper());
+        User admin = User.builder().userId(UUID.randomUUID()).fullName("Quản trị A").build();
+
+        PaymentTransaction transaction(PaymentTransactionStatus status) {
+            PaymentTransaction tx = PaymentTransaction.builder().transactionId(UUID.randomUUID()).user(user())
+                    .plan(plan(true)).amount(new BigDecimal("199000")).status(status)
+                    .transactionTime(OffsetDateTime.now().minusMinutes(5)).build();
+            when(transactionRepository.findWithDetailsById(tx.getTransactionId())).thenReturn(Optional.of(tx));
+            return tx;
+        }
+
+        void gatewayAnswers(PaymentTransaction tx, String queryCode, String transactionStatus) {
+            GatewayResult result = new GatewayResult(tx.getTxnRef(), "00", transactionStatus, "123", 19_900_000L, "NCB");
+            when(gatewayClient.queryTransaction(eq(tx), any())).thenReturn(
+                    new VnpayGatewayClient.QueryOutcome(true, 200, queryCode, "OK", result, Map.of(), "{}"));
+        }
+
+        @Test
+        void req20_pendingTransactionIsUpdatedFromVerifiedGatewayResult() {
+            PaymentTransaction tx = transaction(PaymentTransactionStatus.PENDING);
+            gatewayAnswers(tx, "00", "00");
+            when(processor.process(any())).thenAnswer(inv -> {
+                tx.setStatus(PaymentTransactionStatus.SUCCESS);
+                return PaymentResultProcessor.Outcome.ACTIVATED;
+            });
+
+            var view = service.checkWithGateway(tx.getTransactionId().toString(), admin, "10.0.0.1");
+
+            verify(processor).process(any());
+            assertEquals("PENDING", view.statusBefore());
+            assertEquals("SUCCESS", view.statusAfter());
+            assertEquals("00", view.gatewayResponseCode());
+            verify(audit).log(eq(tx.getTransactionId()), eq(PaymentLogWriter.TYPE_QUERY), any(), any(), eq(200));
+        }
+
+        @Test
+        void req20_gatewayWithoutConfirmedResultLeavesTransactionPending() {
+            PaymentTransaction tx = transaction(PaymentTransactionStatus.PENDING);
+            gatewayAnswers(tx, "91", "01");
+
+            var view = service.checkWithGateway(tx.getTransactionId().toString(), admin, null);
+
+            verifyNoInteractions(processor);
+            assertEquals("PENDING", view.statusAfter());
+            assertEquals(PaymentTransactionStatus.PENDING, tx.getStatus());
+        }
+
+        @Test
+        void req20_finishedTransactionIsOnlyLoggedNotChanged() {
+            PaymentTransaction tx = transaction(PaymentTransactionStatus.FAILED);
+            gatewayAnswers(tx, "00", "00");
+
+            var view = service.checkWithGateway(tx.getTransactionId().toString(), admin, null);
+
+            verifyNoInteractions(processor);
+            assertEquals("FAILED", view.statusBefore());
+            assertEquals("FAILED", view.statusAfter());
+            verify(audit).log(eq(tx.getTransactionId()), eq(PaymentLogWriter.TYPE_QUERY), any(), any(), any());
+        }
+
+        @Test
+        void req20_vnpayReferenceWithoutHyphensFindsTheSameTransaction() {
+            PaymentTransaction tx = transaction(PaymentTransactionStatus.PENDING);
+            gatewayAnswers(tx, "91", "01");
+
+            service.checkWithGateway(tx.getTransactionId().toString().replace("-", ""), admin, null);
+
+            verify(gatewayClient).queryTransaction(eq(tx), any());
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = {"abc", "12345", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"})
+        void req20_malformedTransactionReferenceIsNotFound(String reference) {
+            assertEquals(PaymentMessages.TRANSACTION_NOT_FOUND, assertThrows(ResourceNotFoundException.class,
+                    () -> service.checkWithGateway(reference, admin, null)).getMessage());
+            verifyNoInteractions(gatewayClient, processor, audit);
+        }
+
+        @Test
+        void req20_unknownTransactionIsNotFound() {
+            UUID unknown = UUID.randomUUID();
+            when(transactionRepository.findWithDetailsById(unknown)).thenReturn(Optional.empty());
+
+            assertEquals(PaymentMessages.TRANSACTION_NOT_FOUND, assertThrows(ResourceNotFoundException.class,
+                    () -> service.checkWithGateway(unknown.toString(), admin, null)).getMessage());
+            verifyNoInteractions(gatewayClient, processor, audit);
         }
     }
 
@@ -456,5 +754,148 @@ class MembershipServicesTest {
             service.setActive(existing.getPlanId().toString(), true);
             verify(planRepository).updateActive(existing.getPlanId(), true);
         }
+
+        // ----- REQ-18: giá trị biên khi tạo / sửa gói -----
+
+        private void insertSucceeds() {
+            when(planRepository.findById(any())).thenAnswer(inv -> Optional.of(MembershipPlan.builder()
+                    .planId(inv.getArgument(0)).planName("Gói").durationMonths(1)
+                    .price(new BigDecimal("100000")).isActive(true).featuresJson("[]").build()));
+        }
+
+        private MembershipRequests.CreatePlanRequest create(String name, long price, List<String> benefits) {
+            return new MembershipRequests.CreatePlanRequest(name, 1, price, benefits);
+        }
+
+        @Test
+        void req18_nameOf100CharactersIsAcceptedAndWhitespaceIsCollapsed() {
+            insertSucceeds();
+            String name = "G".repeat(100);
+
+            service.createPlan(create("  " + name + "  ", 100_000L, List.of()));
+            service.createPlan(create("Gói   6    tháng", 100_000L, List.of()));
+
+            verify(planRepository).insertPlan(any(), eq(name), eq(1), any(), any());
+            verify(planRepository).insertPlan(any(), eq("Gói 6 tháng"), eq(1), any(), any());
+        }
+
+        @Test
+        void req18_nameOf101CharactersIsRejected() {
+            assertEquals("Tên gói tối đa 100 ký tự.", assertThrows(BadRequestException.class,
+                    () -> service.createPlan(create("G".repeat(101), 100_000L, List.of()))).getMessage());
+            verify(planRepository, never()).insertPlan(any(), any(), anyInt(), any(), any());
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.NullAndEmptySource
+        @org.junit.jupiter.params.provider.ValueSource(strings = {"   "})
+        void req18_nameIsRequired(String name) {
+            assertEquals("Vui lòng nhập tên gói.", assertThrows(BadRequestException.class,
+                    () -> service.createPlan(create(name, 100_000L, List.of()))).getMessage());
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(longs = {10_000L, 10_001L, 99_999_999L, 100_000_000L})
+        void req18_priceWithinRangeIsAccepted(long price) {
+            insertSucceeds();
+
+            service.createPlan(create("Gói mới", price, List.of()));
+
+            verify(planRepository).insertPlan(any(), eq("Gói mới"), eq(1), eq(BigDecimal.valueOf(price)), any());
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(longs = {9_999L, 100_000_001L})
+        void req18_priceOutsideRangeIsRejected(long price) {
+            assertEquals(PaymentMessages.MSG36_PRICE_RANGE, assertThrows(BadRequestException.class,
+                    () -> service.createPlan(create("Gói mới", price, List.of()))).getMessage());
+            verify(planRepository, never()).insertPlan(any(), any(), anyInt(), any(), any());
+        }
+
+        @Test
+        void req18_twentyBenefitsOf200CharactersAreAccepted() {
+            insertSucceeds();
+            List<String> benefits = java.util.stream.IntStream.range(0, 20)
+                    .mapToObj(i -> String.format("%03d", i) + "b".repeat(197)).toList();
+
+            service.createPlan(create("Gói mới", 100_000L, benefits));
+
+            verify(planRepository).insertPlan(any(), eq("Gói mới"), eq(1), any(), argThat(json -> json.contains(benefits.get(19))));
+        }
+
+        @Test
+        void req18_benefitOf201CharactersIsRejected() {
+            assertThrows(BadRequestException.class,
+                    () -> service.createPlan(create("Gói mới", 100_000L, List.of("b".repeat(201)))));
+            verify(planRepository, never()).insertPlan(any(), any(), anyInt(), any(), any());
+        }
+
+        /**
+         * So sánh không phân biệt hoa thường do câu truy vấn existsByPlanNameIgnoreCase của Spring Data thực hiện ở
+         * cơ sở dữ liệu. Test đơn vị chỉ xác nhận service dùng đúng truy vấn đó và chặn khi tên đã tồn tại.
+         */
+        @Test
+        void req18_duplicateNameInDifferentCaseIsRejectedOnCreate() {
+            when(planRepository.existsByPlanNameIgnoreCase("GÓI 6 THÁNG")).thenReturn(true);
+
+            assertEquals(PaymentMessages.PLAN_NAME_DUPLICATE, assertThrows(ConflictException.class,
+                    () -> service.createPlan(create("GÓI 6 THÁNG", 100_000L, List.of()))).getMessage());
+            verify(planRepository).existsByPlanNameIgnoreCase("GÓI 6 THÁNG");
+            verify(planRepository, never()).insertPlan(any(), any(), anyInt(), any(), any());
+        }
+
+        @Test
+        void req18_renamingToAnotherPlansNameIsRejectedOnUpdate() {
+            MembershipPlan existing = plan(true);
+            when(planRepository.findById(existing.getPlanId())).thenReturn(Optional.of(existing));
+            when(planRepository.existsByPlanNameIgnoreCaseAndPlanIdNot("gói 6 tháng", existing.getPlanId())).thenReturn(true);
+
+            assertEquals(PaymentMessages.PLAN_NAME_DUPLICATE, assertThrows(ConflictException.class,
+                    () -> service.updatePlan(existing.getPlanId().toString(),
+                            new MembershipRequests.UpdatePlanRequest("gói 6 tháng", 249_000L, List.of()))).getMessage());
+            verify(planRepository, never()).updatePlan(any(), any(), any(), any());
+        }
+
+        // ----- REQ-19: mở bán / ngừng bán -----
+
+        @Test
+        void req19_disablingAnActivePlanWritesInactiveState() {
+            MembershipPlan existing = plan(true);
+            when(planRepository.findById(existing.getPlanId())).thenReturn(Optional.of(existing));
+            doAnswer(inv -> {
+                existing.setIsActive(inv.getArgument(1));
+                return 1;
+            }).when(planRepository).updateActive(any(), anyBoolean());
+
+            var view = service.setActive(existing.getPlanId().toString(), false);
+
+            verify(planRepository).updateActive(existing.getPlanId(), false);
+            assertFalse(view.active());
+        }
+
+        @Test
+        void req19_enablingAnInactivePlanWritesActiveState() {
+            MembershipPlan existing = plan(false);
+            when(planRepository.findById(existing.getPlanId())).thenReturn(Optional.of(existing));
+            doAnswer(inv -> {
+                existing.setIsActive(inv.getArgument(1));
+                return 1;
+            }).when(planRepository).updateActive(any(), anyBoolean());
+
+            var view = service.setActive(existing.getPlanId().toString(), true);
+
+            verify(planRepository).updateActive(existing.getPlanId(), true);
+            assertTrue(view.active());
+        }
+
+        @Test
+        void req19_unknownPlanIsNotFound() {
+            when(planRepository.findById(any())).thenReturn(Optional.empty());
+
+            assertEquals(PaymentMessages.PLAN_NOT_FOUND, assertThrows(ResourceNotFoundException.class,
+                    () -> service.setActive(UUID.randomUUID().toString(), true)).getMessage());
+            verify(planRepository, never()).updateActive(any(), anyBoolean());
+        }
     }
+
 }

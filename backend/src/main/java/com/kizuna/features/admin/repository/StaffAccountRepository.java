@@ -29,16 +29,6 @@ public class StaffAccountRepository {
         return ((Number)em.createNativeQuery("SELECT count(*) FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.deleted_at IS NULL AND "+INTERNAL+" AND (lower(u.full_name) LIKE :q OR lower(u.email) LIKE :q)")
             .setParameter("q",pattern).getSingleResult()).longValue();
     }
-    private static final String MOVABLE=" AND r.role_name IN ('ROLE_ACADEMIC_OFFICER','ROLE_CS_STAFF') AND r.is_active=true AND u.account_status::text='ACTIVE' AND (lower(u.full_name) LIKE :q OR lower(u.email) LIKE :q)";
-    public List<Account> listMovable(String query,int offset,int size) {
-        String pattern="%"+query.toLowerCase(Locale.ROOT).replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%";
-        var rows=em.createNativeQuery(SELECT+MOVABLE+" ORDER BY u.full_name,u.user_id").setParameter("q",pattern).setFirstResult(offset).setMaxResults(size).getResultList();
-        return ((List<Object[]>)rows).stream().map(this::account).toList();
-    }
-    public long countMovable(String query) {
-        String pattern="%"+query.toLowerCase(Locale.ROOT).replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%";
-        return ((Number)em.createNativeQuery("SELECT count(*) FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.deleted_at IS NULL"+MOVABLE).setParameter("q",pattern).getSingleResult()).longValue();
-    }
     public int activeRoleId(String name) {
         var rows=em.createNativeQuery("SELECT r.role_id FROM roles r WHERE r.role_name=:name AND r.is_active=true FOR SHARE OF r").setParameter("name",name).getResultList();
         if(rows.isEmpty()) throw new BusinessException(400,"Vai trò đích đang ngừng sử dụng.");
@@ -95,12 +85,6 @@ public class StaffAccountRepository {
     public void softDelete(UUID id,OffsetDateTime now) {
         em.createNativeQuery("UPDATE users SET deleted_at=:now,account_status=CAST('SUSPENDED' AS user_account_status_enum),updated_at=:now WHERE user_id=:id AND deleted_at IS NULL")
             .setParameter("id",id).setParameter("now",now).executeUpdate();
-    }
-    /** Gỡ ca làm CS từ ngày cho trước trở đi, ghi lịch sử gỡ ca (bảng sự kiện chỉ thêm). */
-    public void removeUpcomingShifts(UUID staffId,UUID actor,java.time.LocalDate from) {
-        em.createNativeQuery("WITH d AS (DELETE FROM support_shifts WHERE staff_id=:staff AND shift_date>=:from RETURNING shift_id,staff_id,shift_date,shift_code) "
-            + "INSERT INTO support_shift_events(event_id,shift_id,staff_id,shift_date,shift_code,action,actor_id) SELECT gen_random_uuid(),shift_id,staff_id,shift_date,shift_code,'REMOVE',:actor FROM d")
-            .setParameter("staff",staffId).setParameter("from",from).setParameter("actor",actor).executeUpdate();
     }
     public void audit(UUID actor,UUID target,String action,String reason,OffsetDateTime now) {
         em.createNativeQuery("INSERT INTO staff_account_audit_events(event_id,actor_user_id,target_user_id,action,reason,occurred_at) VALUES (:id,:actor,:target,:action,:reason,:now)")

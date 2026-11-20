@@ -85,7 +85,8 @@ backend/src/main/java/com/kizuna/
     service/VerificationLabels.java                ánh xạ mã → nhãn tiếng Việt
     controller/TutorVerificationController.java    /api/tutor/verification
     controller/VerificationReviewController.java   /api/academic/verifications
-    controller/VerificationExceptionHandler.java   @RestControllerAdvice giới hạn 2 controller trên
+    controller/VerificationErrorResponses.java     lớp cha chứa các @ExceptionHandler; 3 controller của gói kế thừa (2026-11-16)
+    controller/VerificationExceptionHandler.java   @RestControllerAdvice giới hạn gói controller, kế thừa VerificationErrorResponses
     dto/request/, dto/response/
 backend/src/main/resources/application.properties (M) multipart 10MB, app.verification.storage-dir
 backend/src/test/java/com/kizuna/features/verification/

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -114,12 +115,18 @@ public class VerificationStateMachine {
 
     /** Gia sư gửi yêu cầu cập nhật; hồ sơ vẫn "Đã phê duyệt". note: ghi chú của gia sư (feedback). */
     public TutorVerificationHistory submitProfileUpdate(Tutor tutor, String requestedJlpt, String note) {
-        requireApproved(tutor);
-        return record(tutor, TutorVerifAction.SUBMIT, null, note, null,
-                ProfileUpdateTimeline.submitNotes(tutor.getHighestJlptLevel(), requestedJlpt));
+        return submitProfileUpdate(tutor, requestedJlpt, note, List.of());
     }
 
-    /** Chấp nhận: áp dụng JLPT đề xuất (nếu có) và xác minh các giấy tờ đang chờ. */
+    /** Như trên, kèm giấy tờ đã xác minh gia sư đề nghị gỡ (ghi vào notes để cán bộ học vụ thấy). */
+    public TutorVerificationHistory submitProfileUpdate(Tutor tutor, String requestedJlpt, String note,
+                                                        List<ProfileUpdateTimeline.RemovedDocument> removed) {
+        requireApproved(tutor);
+        return record(tutor, TutorVerifAction.SUBMIT, null, note, null,
+                ProfileUpdateTimeline.submitNotes(tutor.getHighestJlptLevel(), requestedJlpt, removed));
+    }
+
+    /** Chấp nhận: áp dụng JLPT đề xuất (nếu có) và xác minh các giấy tờ đang chờ; giấy tờ đề nghị gỡ do service xóa. */
     public TutorVerificationHistory approveProfileUpdate(Tutor tutor, User officer, String requestedJlpt) {
         requireApproved(tutor);
         if (requestedJlpt != null) {
@@ -130,7 +137,7 @@ public class VerificationStateMachine {
         return record(tutor, TutorVerifAction.APPROVE, officer, null, null, ProfileUpdateTimeline.MARKER);
     }
 
-    /** Từ chối: giấy tờ đang chờ bị đánh dấu không được chấp nhận; hồ sơ vẫn "Đã phê duyệt". */
+    /** Từ chối: giấy tờ đang chờ bị đánh dấu không được chấp nhận, giấy tờ đề nghị gỡ được giữ; hồ sơ vẫn "Đã phê duyệt". */
     public TutorVerificationHistory rejectProfileUpdate(Tutor tutor, User officer, String feedback) {
         requireApproved(tutor);
         credentialRepository.updateStatusForTutor(tutor.getTutorId(),

@@ -55,7 +55,19 @@ class KanjiStrokePlayer {
             }
         } catch (e) {}
 
-        // 3. Thử gọi API Backend theo mã Unicode Hex
+        // 3. Thử tải từ tài nguyên tĩnh nội bộ của KizunaTutor (/kanjivg/)
+        try {
+            const localResp = await fetch(`/kanjivg/${unicodeHex}.svg`);
+            if (localResp.ok) {
+                const localSvg = await localResp.text();
+                if (localSvg && localSvg.includes('<path')) {
+                    window.kanjiStrokeCache[char] = localSvg;
+                    return localSvg;
+                }
+            }
+        } catch (e) {}
+
+        // 4. Thử gọi API Backend theo mã Unicode Hex
         try {
             const hexResp = await fetch(`/api/kanji/hex/${unicodeHex}`);
             if (hexResp.ok) {
@@ -67,7 +79,7 @@ class KanjiStrokePlayer {
             }
         } catch (e) {}
 
-        // 4. Fallback tải trực tiếp từ KanjiVG CDN theo mã Hex
+        // 5. Dự phòng cuối cùng (fallback) từ CDN nếu môi trường chưa tải kịp file tĩnh
         try {
             const cdnUrl = `https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/${unicodeHex}.svg`;
             const cdnResp = await fetch(cdnUrl);

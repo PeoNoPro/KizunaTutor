@@ -217,4 +217,287 @@ class ContentImportTest {
             assertThat(plan.inserts()).extracting(v -> v.get("reading")).containsExactly("そう");
         }
     }
+
+    // ===== REQ-21, REQ-22, REQ-23: lớp service (kho học liệu, nhập tệp, lịch sử) =====
+
+    private static final String[] KANJI_IMPORT_HEADER = {"Kanji", "Nghĩa tiếng Việt", "Số nét"};
+
+    /** Tệp .xlsx (dạng byte) từ các dòng của một sheet. */
+    private static byte[] xlsx(String[]... rows) throws Exception {
+        try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = wb.createSheet("Sheet1");
+            for (int r = 0; r < rows.length; r++) {
+                Row row = sheet.createRow(r);
+                for (int c = 0; c < rows[r].length; c++) {
+                    if (rows[r][c] != null) row.createCell(c).setCellValue(rows[r][c]);
+                }
+            }
+            wb.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    /** Tệp Kanji có đúng {@code dataRows} dòng dữ liệu, ghi theo luồng để không tốn bộ nhớ. */
+    private static byte[] kanjiRows(int dataRows) throws Exception {
+        try (org.apache.poi.xssf.streaming.SXSSFWorkbook wb = new org.apache.poi.xssf.streaming.SXSSFWorkbook(200);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = wb.createSheet("Sheet1");
+            Row header = sheet.createRow(0);
+            header.createCell(0).setCellValue("Kanji");
+            header.createCell(1).setCellValue("Nghĩa tiếng Việt");
+            for (int r = 1; r <= dataRows; r++) {
+                Row row = sheet.createRow(r);
+                row.createCell(0).setCellValue("愛");
+                row.createCell(1).setCellValue("Yêu");
+            }
+            wb.write(out);
+            wb.dispose();
+            return out.toByteArray();
+        }
+    }
+
+    private static org.springframework.mock.web.MockMultipartFile excel(String name, byte[] content) {
+        return new org.springframework.mock.web.MockMultipartFile("file", name,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", content);
+    }
+
+    /** Tệp thật nhưng báo kích thước tùy ý: kiểm tra biên 15 MB mà không phải dựng tệp 15 MB. */
+    private static org.springframework.mock.web.MockMultipartFile excelReportingSize(byte[] content, long reportedSize) {
+        return new org.springframework.mock.web.MockMultipartFile("file", "kanji.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", content) {
+            @Override
+            public long getSize() {
+                return reportedSize;
+            }
+        };
+    }
+
+    @Nested
+    class ServiceLevel {
+
+        private final com.kizuna.features.learning_content.repository.LearningContentRepository store =
+                org.mockito.Mockito.mock(com.kizuna.features.learning_content.repository.LearningContentRepository.class);
+        private final com.kizuna.features.learning_content.repository.ContentImportHistoryRepository browse =
+                org.mockito.Mockito.mock(com.kizuna.features.learning_content.repository.ContentImportHistoryRepository.class);
+        private final com.kizuna.features.learning_content.service.impl.LearningContentServiceImpl service =
+                new com.kizuna.features.learning_content.service.impl.LearningContentServiceImpl(store, browse,
+                        org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class));
+        private final java.util.UUID officerId = java.util.UUID.randomUUID();
+
+        private com.kizuna.features.learning_content.dto.ContentImportResponse dryRun(
+                org.springframework.web.multipart.MultipartFile file) {
+            return service.importFile("kanji", file, true, officerId, "hv@kizuna.test");
+        }
+
+        // ----- REQ-21 -----
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.CsvSource({"kanji, KANJI", "vocabulary, VOCABULARY", "grammar, GRAMMAR"})
+        void req21_threeContentTypesCanBeBrowsed(String path, ContentType expected) {
+            service.listItems(path, null, null, null, 0, 10);
+
+            org.mockito.Mockito.verify(browse).listItems(org.mockito.ArgumentMatchers.eq(expected),
+                    org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.isNull(),
+                    org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(0),
+                    org.mockito.ArgumentMatchers.eq(10));
+        }
+
+        @Test
+        void req21_unknownContentTypeIsRejected() {
+            assertThatThrownBy(() -> service.listItems("radicals", null, null, null, 0, 10))
+                    .isInstanceOf(BusinessException.class).hasMessage("Loại học liệu không hợp lệ.");
+            org.mockito.Mockito.verifyNoInteractions(browse);
+        }
+
+        @Test
+        void req21_keywordOf100CharactersIsAccepted() {
+            service.listItems("kanji", "k".repeat(100), null, null, 0, 10);
+
+            org.mockito.Mockito.verify(browse).listItems(org.mockito.ArgumentMatchers.eq(ContentType.KANJI),
+                    org.mockito.ArgumentMatchers.eq("k".repeat(100)), org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt(),
+                    org.mockito.ArgumentMatchers.anyInt());
+        }
+
+        @Test
+        void req21_keywordOf101CharactersIsRejected() {
+            assertThatThrownBy(() -> service.listItems("kanji", "k".repeat(101), null, null, 0, 10))
+                    .isInstanceOf(BusinessException.class).hasMessage("Từ khóa tối đa 100 ký tự.");
+            org.mockito.Mockito.verifyNoInteractions(browse);
+        }
+
+        @Test
+        void req21_invalidJlptFilterIsRejected() {
+            assertThatThrownBy(() -> service.listItems("kanji", null, "N6", null, 0, 10))
+                    .isInstanceOf(BusinessException.class);
+            org.mockito.Mockito.verifyNoInteractions(browse);
+        }
+
+        // ----- REQ-22: kiểm tra tệp -----
+
+        @Test
+        void req22_missingOrEmptyFileIsRejected() {
+            assertThatThrownBy(() -> dryRun(null)).hasMessage("Vui lòng chọn tệp Excel cần nhập.");
+            assertThatThrownBy(() -> dryRun(excel("rong.xlsx", new byte[0]))).hasMessage("Vui lòng chọn tệp Excel cần nhập.");
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = {"kanji.xls", "kanji.csv", "kanji.xlsx.exe", "kanji"})
+        void req22_onlyXlsxFilesAreAccepted(String name) {
+            assertThatThrownBy(() -> dryRun(excel(name, new byte[]{1, 2, 3})))
+                    .isInstanceOf(BusinessException.class).hasMessage("Chỉ nhận tệp Excel định dạng .xlsx.");
+            org.mockito.Mockito.verifyNoInteractions(store);
+        }
+
+        @Test
+        void req22_fileOfExactly15MegabytesPassesTheSizeCheck() throws Exception {
+            byte[] content = xlsx(KANJI_IMPORT_HEADER, new String[]{"愛", "Yêu", "13"});
+
+            var report = dryRun(excelReportingSize(content,
+                    com.kizuna.features.learning_content.service.LearningContentService.MAX_FILE_BYTES));
+
+            assertThat(report.totalRows()).isEqualTo(1);
+            assertThat(report.created()).isEqualTo(1);
+        }
+
+        @Test
+        void req22_fileOneByteOver15MegabytesIsRejected() throws Exception {
+            byte[] content = xlsx(KANJI_IMPORT_HEADER, new String[]{"愛", "Yêu", "13"});
+
+            assertThatThrownBy(() -> dryRun(excelReportingSize(content,
+                    com.kizuna.features.learning_content.service.LearningContentService.MAX_FILE_BYTES + 1)))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage("Tệp vượt quá 15 MB. Vui lòng tách nhỏ tệp rồi nhập từng phần.");
+            org.mockito.Mockito.verifyNoInteractions(store);
+        }
+
+        @Test
+        void req22_corruptedXlsxIsRejected() {
+            assertThatThrownBy(() -> dryRun(excel("hong.xlsx", "khong phai tep excel".getBytes())))
+                    .isInstanceOf(BusinessException.class).hasMessageStartingWith("Không đọc được tệp.");
+            org.mockito.Mockito.verifyNoInteractions(store);
+        }
+
+        @Test
+        void req22_headerOnFifthRowIsFound() throws Exception {
+            byte[] content = xlsx(new String[]{"Kho Kanji"}, new String[]{"Ghi chú"}, new String[]{}, new String[]{"x"},
+                    KANJI_IMPORT_HEADER, new String[]{"愛", "Yêu", "13"});
+
+            assertThat(dryRun(excel("kanji.xlsx", content)).created()).isEqualTo(1);
+        }
+
+        @Test
+        void req22_headerOnSixthRowIsNotFound() throws Exception {
+            byte[] content = xlsx(new String[]{"1"}, new String[]{"2"}, new String[]{"3"}, new String[]{"4"},
+                    new String[]{"5"}, KANJI_IMPORT_HEADER, new String[]{"愛", "Yêu", "13"});
+
+            assertThatThrownBy(() -> dryRun(excel("kanji.xlsx", content)))
+                    .isInstanceOf(BusinessException.class).hasMessageStartingWith("Không tìm thấy dòng tiêu đề phù hợp.");
+        }
+
+        @Test
+        void req22_missingRequiredColumnIsRejected() throws Exception {
+            byte[] content = xlsx(new String[]{"Kanji", "Số nét"}, new String[]{"愛", "13"});
+
+            assertThatThrownBy(() -> dryRun(excel("kanji.xlsx", content)))
+                    .isInstanceOf(BusinessException.class).hasMessageContaining("Kanji, Nghĩa tiếng Việt");
+        }
+
+        @Test
+        void req22_fiftyThousandDataRowsAreAccepted() throws Exception {
+            var parsed = ContentWorkbookReader.read(ContentType.KANJI, new ByteArrayInputStream(kanjiRows(50_000)));
+
+            assertThat(parsed.totalRows()).isEqualTo(50_000);
+        }
+
+        @Test
+        void req22_fiftyThousandAndOneDataRowsAreRejected() {
+            assertThatThrownBy(() -> ContentWorkbookReader.read(ContentType.KANJI,
+                    new ByteArrayInputStream(kanjiRows(50_001))))
+                    .isInstanceOf(BusinessException.class).hasMessageContaining("50.000 dòng dữ liệu");
+        }
+
+        @Test
+        void req22_exactly300ErrorsAreAllShown() throws Exception {
+            var report = dryRun(excel("kanji.xlsx", xlsx(invalidKanjiRows(300))));
+
+            assertThat(report.issues()).hasSize(300);
+            assertThat(report.issuesTruncated()).isFalse();
+            assertThat(report.invalidRows()).isEqualTo(300);
+        }
+
+        @Test
+        void req22_moreThan300ErrorsAreCutTo300ButStillCounted() throws Exception {
+            var report = dryRun(excel("kanji.xlsx", xlsx(invalidKanjiRows(301))));
+
+            assertThat(report.issues()).hasSize(300);
+            assertThat(report.issuesTruncated()).isTrue();
+            assertThat(report.invalidRows()).isEqualTo(301);
+            assertThat(report.created()).isZero();
+        }
+
+        private String[][] invalidKanjiRows(int count) {
+            String[][] rows = new String[count + 1][];
+            rows[0] = KANJI_IMPORT_HEADER;
+            for (int i = 1; i <= count; i++) rows[i] = new String[]{"AB", "Không phải Kanji", "1"};
+            return rows;
+        }
+
+        @Test
+        void req22_dryRunWritesNothing() throws Exception {
+            dryRun(excel("kanji.xlsx", xlsx(KANJI_IMPORT_HEADER, new String[]{"愛", "Yêu", "13"})));
+
+            org.mockito.Mockito.verify(store, org.mockito.Mockito.never()).insert(org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.any());
+            org.mockito.Mockito.verifyNoInteractions(browse);
+        }
+
+        // ----- REQ-22 + REQ-23: nhập thật và ghi lịch sử -----
+
+        @Test
+        void req23_importInsertsOnlyNewItemsAndHistoryMatchesTheResult() throws Exception {
+            org.mockito.Mockito.when(store.loadExisting(ContentType.KANJI))
+                    .thenReturn(new HashMap<>(Map.of("憎", Map.of("character", "憎"))));
+            byte[] content = xlsx(KANJI_IMPORT_HEADER,
+                    new String[]{"憎", "Ghét", "14"},       // đã có → bỏ qua
+                    new String[]{"愛", "Yêu", "13"},        // mới
+                    new String[]{"愛", "Yêu", "13"},        // trùng trong tệp
+                    new String[]{"馮", "Cưỡi ngựa", "12"},  // mới
+                    new String[]{"恋", "Yêu đương", null},  // Kanji mới thiếu số nét → lỗi
+                    new String[]{"AB", "Sai", "1"});         // không phải Kanji → lỗi
+
+            var report = service.importFile("kanji", excel("kanji.xlsx", content), false, officerId, "hv@kizuna.test");
+
+            assertThat(report.dryRun()).isFalse();
+            assertThat(report.totalRows()).isEqualTo(6);
+            assertThat(report.created()).isEqualTo(2);
+            assertThat(report.skippedExisting()).isEqualTo(1);
+            assertThat(report.duplicatesInFile()).isEqualTo(1);
+            assertThat(report.invalidRows()).isEqualTo(2);
+
+            @SuppressWarnings("unchecked")
+            org.mockito.ArgumentCaptor<java.util.List<Map<String, String>>> inserted =
+                    org.mockito.ArgumentCaptor.forClass(java.util.List.class);
+            var order = org.mockito.Mockito.inOrder(store, browse);
+            order.verify(store).lock(ContentType.KANJI);
+            order.verify(store).insert(org.mockito.ArgumentMatchers.eq(ContentType.KANJI), inserted.capture());
+            order.verify(browse).logImport(org.mockito.ArgumentMatchers.eq(officerId),
+                    org.mockito.ArgumentMatchers.eq(ContentType.KANJI), org.mockito.ArgumentMatchers.same(report),
+                    org.mockito.ArgumentMatchers.argThat(items -> items.size() == 2));
+            assertThat(inserted.getValue()).extracting(v -> v.get("character")).containsExactly("愛", "馮");
+        }
+
+        @Test
+        void req23_failedInsertDoesNotWriteHistory() throws Exception {
+            org.mockito.Mockito.doThrow(new IllegalStateException("db")).when(store)
+                    .insert(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+
+            assertThatThrownBy(() -> service.importFile("kanji",
+                    excel("kanji.xlsx", xlsx(KANJI_IMPORT_HEADER, new String[]{"愛", "Yêu", "13"})),
+                    false, officerId, "hv@kizuna.test")).isInstanceOf(IllegalStateException.class);
+
+            org.mockito.Mockito.verify(browse, org.mockito.Mockito.never()).logImport(org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        }
+    }
 }

@@ -10,9 +10,6 @@ async function loadHealth() {
         const card = text('article', '', 'operations-card');
         card.append(text('h2', row.label), text('p', row.stale ? 'Chưa xác định · Dữ liệu quá hạn' : row.statusLabel),
             text('p', 'Lần đo: ' + date(row.observedAt) + (row.responseTimeMs == null ? '' : ' · ' + row.responseTimeMs + ' mili giây')), text('p', row.reasonLabel));
-        if (row.stale || row.statusLabel !== 'Hoạt động') {
-            const link = text('a', 'Ghi nhận sự cố'); link.href = '/pages/operations-incidents/?component=' + encodeURIComponent(row.componentCode); card.append(link);
-        }
         byId('healthComponents').append(card);
     });
 }

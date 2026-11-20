@@ -34,6 +34,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.*;
 
 /**
@@ -206,10 +209,11 @@ class ClassSessionServiceImplTest {
         assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(LocalDate.of(2026, 10, 30), 10, 11)), HttpStatus.BAD_REQUEST);
         // Giờ mới đã qua
         assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(LocalDate.of(2026, 11, 18), 8, 9)), HttpStatus.BAD_REQUEST);
-        // Dài hơn 4 giờ / ngắn hơn 30 phút
-        assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(SAT, 8, 13)), HttpStatus.BAD_REQUEST);
+        // Dài hơn 120 phút / ngắn hơn 60 phút
         assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU,
-                new ClassSessionMoveRequest(SAT, LocalTime.of(8, 0), LocalTime.of(8, 20))), HttpStatus.BAD_REQUEST);
+                new ClassSessionMoveRequest(SAT, LocalTime.of(8, 0), LocalTime.of(10, 5))), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU,
+                new ClassSessionMoveRequest(SAT, LocalTime.of(8, 0), LocalTime.of(8, 55))), HttpStatus.BAD_REQUEST);
         // Ngày gốc không phải buổi của khóa
         assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, LocalDate.of(2026, 11, 20), to(SAT, 10, 11)), HttpStatus.NOT_FOUND);
         assertThat(changeStore).isEmpty();
@@ -339,4 +343,50 @@ class ClassSessionServiceImplTest {
         assertThat(list.get(0).totalSessions()).isEqualTo(20);
         assertStatus(() -> service.sessions(asLearner(learner), MON, MON.plusDays(100)), HttpStatus.BAD_REQUEST);
     }
+
+    // ---------------------------------------------------------------- thông báo cho học viên (FE-12)
+
+    private com.kizuna.features.notification.service.NotificationEvents attachNotifier() {
+        var events = mock(com.kizuna.features.notification.service.NotificationEvents.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "notifier",
+                new com.kizuna.features.classroom.service.ClassroomNotifier(events));
+        return events;
+    }
+
+    @Test
+    void learnerIsNotifiedWhenTutorCancelsMovesAndAddsSessions() {
+        var events = attachNotifier();
+        UUID learnerUser = learner.getUser().getUserId();
+
+        service.move(asTutor(tutor), space.getSpaceId(), thursday.getScheduleId(), THU, to(SAT, 10, 11));
+        verify(events).publish(startsWith("classroom:" + space.getSpaceId() + ":session-moved:"), eq("CONNECTION"),
+                eq("Buổi học được dời lịch"), contains("Thứ Bảy 21/11"), eq("/learner/connections"), eq(List.of(learnerUser)));
+
+        service.addExtra(asTutor(tutor), space.getSpaceId(), to(LocalDate.of(2026, 11, 23), 10, 11));
+        verify(events).publish(startsWith("classroom:" + space.getSpaceId() + ":extra-added:"), eq("CONNECTION"),
+                eq("Có buổi học thêm"), anyString(), eq("/learner/connections"), eq(List.of(learnerUser)));
+
+        UUID extraId = extraStore.get(0).getExtraId();
+        service.cancelExtra(asTutor(tutor), space.getSpaceId(), extraId);
+        verify(events).publish(eq("classroom:" + space.getSpaceId() + ":extra-cancelled:" + extraId), eq("CONNECTION"),
+                eq("Buổi học thêm đã bị hủy"), anyString(), eq("/learner/connections"), eq(List.of(learnerUser)));
+    }
+
+    @Test
+    void cancellingASessionNotifiesWithAStableEventKey() {
+        var events = attachNotifier();
+        service.cancel(asTutor(tutor), space.getSpaceId(), thursday.getScheduleId(), THU);
+        verify(events).publish(eq("classroom:" + space.getSpaceId() + ":session-cancelled:" + thursday.getScheduleId() + ":" + THU),
+                eq("CONNECTION"), eq("Buổi học đã bị hủy"), contains("Thứ Năm 19/11"), eq("/learner/connections"),
+                eq(List.of(learner.getUser().getUserId())));
+    }
+
+    @Test
+    void rejectedChangeSendsNoNotification() {
+        var events = attachNotifier();
+        assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), thursday.getScheduleId(), THU, to(LocalDate.of(2026, 11, 17), 10, 11)),
+                HttpStatus.BAD_REQUEST);
+        verifyNoInteractions(events);
+    }
+
 }

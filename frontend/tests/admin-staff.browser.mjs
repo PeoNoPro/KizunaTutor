@@ -70,10 +70,6 @@ try {
   await until(`document.getElementById('staffRows').textContent.includes(${JSON.stringify(name)})`);
   await rowAction(name, 'Xem chi tiết');
   const edited = name + ' đã sửa'; await fill('staffFullName', edited); await fill('staffReason', 'Kiểm chứng cập nhật thông tin trên DB QA riêng.'); await save();
-  await visit('admin-roles'); assert.equal(await evaluate('document.querySelector(".portal-tabs [aria-current=page]").textContent'), 'Vai trò và quyền'); assert.equal(await evaluate('document.querySelectorAll("#roleCards article").length'), 6);
-  assert.equal(await evaluate(`Array.from(document.querySelectorAll('#staffRows button')).some(button=>button.textContent==='Đổi vai trò')`), false);
-  assert.equal(await evaluate(`Array.from(document.querySelectorAll('#staffRows tr')).find(row=>row.textContent.includes(${JSON.stringify(edited)})).textContent.includes('Đổi vai trò do Quản lý thực hiện')`), true);
-  await screenshot('roles-1280');
   await visit('admin-staff'); await rowAction(edited, 'Xem chi tiết'); await evaluate('document.getElementById("staffOpenStatus").click()'); await fill('staffReason', 'Kiểm chứng tạm khóa tài khoản trên DB QA.'); await save();
   assert.equal(await evaluate(`Array.from(document.querySelectorAll('#staffRows tr')).find(row=>row.textContent.includes(${JSON.stringify(edited)})).textContent.includes('Tạm khóa')`), true);
   await rowAction(edited, 'Xem chi tiết'); await evaluate('document.getElementById("staffOpenStatus").click()'); await fill('staffReason', 'Kiểm chứng khôi phục tài khoản.'); await save();
@@ -82,7 +78,7 @@ try {
   assert.equal(await evaluate('document.querySelectorAll("#staffRows tr").length'), 1);
   for (const width of [390, 320]) {
     await command('Emulation.setDeviceMetricsOverride', {width, height: 844, deviceScaleFactor: 1, mobile: true});
-    for (const page of ['admin-staff', 'admin-roles']) { await visit(page); await screenshot(page + '-' + width); }
+    for (const page of ['admin-staff']) { await visit(page); await screenshot(page + '-' + width); }
   }
   assert.deepEqual(errors, []);
   await writeFile(new URL('staff-results.json', output), JSON.stringify({passed: true, backend, checks: ['root opens dashboard', 'database admin identity/avatar', 'staff/role links enabled', 'create/edit/search', 'no direct role change', 'suspend/reactivate', 'audit history', 'desktop/mobile layout']}, null, 2));

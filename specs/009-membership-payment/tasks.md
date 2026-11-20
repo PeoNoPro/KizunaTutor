@@ -79,6 +79,10 @@ Quy ước: `[P]` chạy song song được (file khác nhau, không phụ thu�
 - [ ] T047 Chạy quickstart với VNPay sandbox (thẻ thử); ghi thời gian phản hồi quan sát trong DevTools cho SC-005 (không phải đo tải); ghi kết quả từng kịch bản vào mục "Kết quả kiểm chứng" bên dưới.
 - [ ] T048 Báo cáo: file đã tạo/sửa, file dùng chung đã thêm, vấn đề báo người khác (khối `vnpay.*` cũ, FE-01 gán PREMIUM).
 
+## Phase 10: Sửa lỗi sau nghiệm thu
+
+- [X] T049 (2026-11-13) "Tiếp tục thanh toán" mở VNPay báo "Giao dịch đang được xử lý hoặc đã quá thời gian thanh toán": VNPay không cho mở lại mã đơn đã mở. A7 đổi thành tra cứu giao dịch cũ (querydr) rồi tạo giao dịch mới cùng gói; A4 `resumable` chỉ cho giao dịch mới nhất của mỗi gói (`TutorMembershipServiceImpl`, `PaymentMessages.PAYMENT_ALREADY_FINISHED`, contract A7). Test `MembershipServicesTest$TutorPurchase` 19/19 xanh (thêm 4 test). `PaymentControllersTest` lỗi sẵn do thiếu bean `OperationsActorResolver` (không liên quan). Chưa thử lại với VNPay sandbox.
+
 ## Dependencies
 
 - Phase 1 → Phase 2 → các user story. T005 chặn mọi task có repository.

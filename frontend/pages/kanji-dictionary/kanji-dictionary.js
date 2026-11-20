@@ -508,18 +508,42 @@ function renderLearnerGrid(items) {
           <span>📁</span> Lưu Thẻ
         </button>
         <a href="/shodo?char=${encodeURIComponent(k.kanjiChar)}" data-spa-link 
+           data-action="open-shodo"
+           data-idx="${idx}"
            class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
-           title="Tập viết chữ này trên Canvas Shodo">
-          <span>✍️</span> Shodo
-        </a>
-        <a href="/kanji-game?jlpt=${encodeURIComponent(k.jlpt || k.jlptLevel || 'N5')}" data-spa-link 
-           class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#1E40AF] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
-           title="Thử thách Game Mưa chữ Hán theo cấp độ này">
-          <span>🌧️</span> Game
+           title="Luyện viết chữ này trên Canvas Shodo">
+          <span>✍️</span> Luyện viết
         </a>
       </div>
     </div>
   `).join('');
+
+  // Gắn sự kiện click Luyện viết (lưu thông tin thẻ vào localStorage để Shodo hiển thị tức thì)
+  grid.querySelectorAll('[data-action="open-shodo"]').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.getAttribute('data-idx'), 10);
+      const item = (window.lastRenderedDictionaryItems && window.lastRenderedDictionaryItems[idx]) || null;
+      if (item) {
+        try {
+          const char = item.kanjiChar || item.character || '';
+          localStorage.setItem('selected_kanji', char);
+          localStorage.setItem('selected_kanji_detail', JSON.stringify({
+            character: char,
+            kanjiChar: char,
+            hanViet: item.hanViet || '',
+            meaning: item.meaning || '',
+            strokeCount: item.strokeCount || item.totalStrokes || 0,
+            totalStrokes: item.strokeCount || item.totalStrokes || 0,
+            radical: item.radical || '',
+            jlpt: item.jlpt || item.jlptLevel || 'N5',
+            onyomi: item.onyomi || '',
+            kunyomi: item.kunyomi || '',
+            svgData: item.svgData || ''
+          }));
+        } catch (e) {}
+      }
+    });
+  });
 
   // Gắn sự kiện click phát âm bằng VOICEVOX
   grid.querySelectorAll('[data-action="speak-kanji"]').forEach(btn => {

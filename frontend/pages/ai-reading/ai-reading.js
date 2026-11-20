@@ -28,6 +28,8 @@ let currentAnalysisResult = null;
 let userDecksList = [];
 let pendingSaveWord = null;
 let isFuriganaHidden = false;
+let dokkaiAnswers = {};
+let dokkaiSubmitted = false;
 
 // DOM Elements: Điều hướng 2 màn hình
 const inputScreenEl = document.getElementById('readingInputScreen');
@@ -50,6 +52,16 @@ const btnToggleFuriganaEl = document.getElementById('btnToggleFurigana');
 const furiganaToggleTextEl = document.getElementById('furiganaToggleText');
 const btnSpeakFullEl = document.getElementById('btnSpeakFullArticle');
 
+// DOM Elements: Thử thách Đọc hiểu Dokkai (Tab 1)
+const countDokkaiQuestionsEl = document.getElementById('countDokkaiQuestions');
+const cleanReadingPassageBodyEl = document.getElementById('cleanReadingPassageBody');
+const btnToggleCleanFuriganaEl = document.getElementById('btnToggleCleanFurigana');
+const cleanFuriganaToggleTextEl = document.getElementById('cleanFuriganaToggleText');
+const dokkaiQuestionsContainerEl = document.getElementById('dokkaiQuestionsContainer');
+const dokkaiScoreSummaryEl = document.getElementById('dokkaiScoreSummary');
+const btnSubmitDokkaiEl = document.getElementById('btnSubmitDokkai');
+const btnSubmitDokkaiTextEl = document.getElementById('btnSubmitDokkaiText');
+
 const countGrammarsEl = document.getElementById('countGrammars');
 const grammarListContainerEl = document.getElementById('grammarListContainer');
 const countVocabsEl = document.getElementById('countVocabs');
@@ -59,6 +71,7 @@ const sentenceTranslationsContainerEl = document.getElementById('sentenceTransla
 // Tabs & Tab Panels
 const tabButtons = document.querySelectorAll('.reading-tab-btn');
 const tabPanels = {
+  challenge: document.getElementById('tabPanelChallenge'),
   reader: document.getElementById('tabPanelReader'),
   vocab: document.getElementById('tabPanelVocab'),
   grammar: document.getElementById('tabPanelGrammar'),
@@ -219,18 +232,27 @@ function setupEventListeners() {
     btnAnalyzeEl.addEventListener('click', executeReadingAnalysis);
   }
 
-  // Nút Bật/Tắt Furigana
+  // Nút Bật/Tắt Furigana trên thanh công cụ Workspace
   if (btnToggleFuriganaEl) {
     btnToggleFuriganaEl.addEventListener('click', () => {
       isFuriganaHidden = !isFuriganaHidden;
-      if (interactiveReadingBodyEl) {
-        interactiveReadingBodyEl.classList.toggle('hide-furigana', isFuriganaHidden);
-      }
-      if (furiganaToggleTextEl) {
-        furiganaToggleTextEl.textContent = isFuriganaHidden ? 'Hiện Furigana' : 'Ẩn Furigana';
-      }
+      syncFuriganaUI();
       showToast(isFuriganaHidden ? 'Đã ẩn Furigana để bạn tự đọc' : 'Đã hiện Furigana hỗ trợ đọc', 'info');
     });
+  }
+
+  // Nút Bật/Tắt Furigana trên Khung bài đọc sạch (Tab 1)
+  if (btnToggleCleanFuriganaEl) {
+    btnToggleCleanFuriganaEl.addEventListener('click', () => {
+      isFuriganaHidden = !isFuriganaHidden;
+      syncFuriganaUI();
+      showToast(isFuriganaHidden ? 'Đã ẩn Furigana để bạn tự đọc' : 'Đã hiện Furigana hỗ trợ đọc', 'info');
+    });
+  }
+
+  // Nút Nộp bài & Chấm điểm Đọc hiểu
+  if (btnSubmitDokkaiEl) {
+    btnSubmitDokkaiEl.addEventListener('click', handleDokkaiSubmit);
   }
 
   // Nút Đọc Toàn Bài
@@ -371,9 +393,9 @@ async function executeReadingAnalysis() {
     currentAnalysisResult = data;
     renderAnalysisResult(data);
 
-    // Chuyển sang Màn hình Không gian đọc và mở tab Bài đọc tương tác
+    // Chuyển sang Màn hình Không gian đọc và mở tab Thử thách Đọc hiểu mặc định
     switchScreen('workspace');
-    switchTab('reader');
+    switchTab('challenge');
     showToast('Phân tích đọc hiểu thành công!', 'success');
   } catch (err) {
     console.error('[AI Reading] Lỗi phân tích:', err);
@@ -404,6 +426,9 @@ function renderAnalysisResult(data) {
   if (textOverallSummaryEl) {
     textOverallSummaryEl.textContent = data.overallSummary || 'Không có tóm tắt.';
   }
+
+  // 0. Render Thử thách Đọc hiểu Dokkai (Tab 1)
+  renderDokkaiChallenge(data);
 
   // 1. Render Bài đọc có Furigana & Annotated Tokens (Mô hình Watanoc)
   if (interactiveReadingBodyEl) {
@@ -1049,4 +1074,310 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// =========================================================================
+// 8. PHÂN HỆ THỬ THÁCH ĐỌC HIỂU DOKKAI AI (TAB 1)
+// =========================================================================
+
+function syncFuriganaUI() {
+  if (interactiveReadingBodyEl) interactiveReadingBodyEl.classList.toggle('hide-furigana', isFuriganaHidden);
+  if (cleanReadingPassageBodyEl) cleanReadingPassageBodyEl.classList.toggle('hide-furigana', isFuriganaHidden);
+  if (furiganaToggleTextEl) furiganaToggleTextEl.textContent = isFuriganaHidden ? 'Hiện Furigana' : 'Ẩn Furigana';
+  if (cleanFuriganaToggleTextEl) cleanFuriganaToggleTextEl.textContent = isFuriganaHidden ? 'Hiện Furigana' : 'Ẩn Furigana';
+}
+
+function getQuestionTypeBadge(type) {
+  switch (type) {
+    case 'MAIN_IDEA':
+      return '<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-100 text-[#831843] border border-rose-200">Ý CHÍNH (要旨)</span>';
+    case 'REASON':
+      return '<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">LÝ DO (理由)</span>';
+    case 'DETAIL':
+      return '<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-sky-100 text-sky-800 border border-sky-200">CHI TIẾT (詳細)</span>';
+    case 'REFERENCE':
+      return '<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200">CHỈ ĐỊNH (指示語)</span>';
+    default:
+      return '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">ĐỌC HIỂU (読解)</span>';
+  }
+}
+
+function renderDokkaiChallenge(data) {
+  const questions = data.comprehensionQuestions || [];
+  dokkaiAnswers = {};
+  dokkaiSubmitted = false;
+
+  if (countDokkaiQuestionsEl) {
+    countDokkaiQuestionsEl.textContent = questions.length;
+  }
+
+  // 1. Render bài đọc sạch ở cột trái (chỉ giữ Ruby furigana chuẩn)
+  if (cleanReadingPassageBodyEl) {
+    cleanReadingPassageBodyEl.innerHTML = data.rubyHtml || escapeHtml(data.originalText || '');
+    cleanReadingPassageBodyEl.classList.toggle('hide-furigana', isFuriganaHidden);
+  }
+
+  // Ẩn bảng điểm cũ
+  if (dokkaiScoreSummaryEl) {
+    dokkaiScoreSummaryEl.classList.add('hidden');
+    dokkaiScoreSummaryEl.innerHTML = '';
+  }
+
+  if (btnSubmitDokkaiEl) {
+    btnSubmitDokkaiEl.disabled = false;
+    btnSubmitDokkaiEl.classList.remove('opacity-60', 'cursor-not-allowed');
+  }
+  if (btnSubmitDokkaiTextEl) {
+    btnSubmitDokkaiTextEl.textContent = 'Nộp bài & Chấm điểm AI';
+  }
+
+  // 2. Render danh sách câu hỏi ở cột phải
+  if (!dokkaiQuestionsContainerEl) return;
+  dokkaiQuestionsContainerEl.innerHTML = '';
+
+  if (questions.length === 0) {
+    dokkaiQuestionsContainerEl.innerHTML = `
+      <div class="ls-card p-6 text-center space-y-3 bg-amber-50/60 border border-amber-200">
+        <span class="material-symbols-outlined text-amber-600 text-[36px]">psychology_alt</span>
+        <div class="space-y-1">
+          <h4 class="text-sm font-bold text-slate-800">Chưa có câu hỏi đọc hiểu cho bài này</h4>
+          <p class="text-xs text-slate-500">Đoạn văn quá ngắn hoặc chưa kết nối AI để tự động tạo câu hỏi trắc nghiệm.</p>
+        </div>
+        <button type="button" class="btn-goto-reader px-4 py-2 rounded-lg bg-[#9F1239] text-white text-xs font-bold shadow-xs hover:bg-[#BE185D] transition cursor-pointer">
+          Chuyển sang xem bóc tách từ vựng & ngữ pháp
+        </button>
+      </div>
+    `;
+    const btnGoto = dokkaiQuestionsContainerEl.querySelector('.btn-goto-reader');
+    if (btnGoto) {
+      btnGoto.addEventListener('click', () => switchTab('reader'));
+    }
+    if (btnSubmitDokkaiEl && btnSubmitDokkaiEl.parentElement) {
+      btnSubmitDokkaiEl.parentElement.classList.add('hidden');
+    }
+    return;
+  }
+
+  if (btnSubmitDokkaiEl && btnSubmitDokkaiEl.parentElement) {
+    btnSubmitDokkaiEl.parentElement.classList.remove('hidden');
+  }
+
+  questions.forEach((q, qIndex) => {
+    const card = document.createElement('div');
+    card.className = 'ls-card p-4 space-y-3 border border-slate-200 dokkai-question-card';
+    card.dataset.questionId = q.id;
+
+    const typeBadge = getQuestionTypeBadge(q.questionType);
+
+    let optionsHtml = '';
+    const letters = ['A', 'B', 'C', 'D'];
+    (q.options || []).forEach((opt, optIdx) => {
+      const letter = letters[optIdx] || String(optIdx + 1);
+      optionsHtml += `
+        <label class="dokkai-option-item flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-[#9F1239] hover:bg-rose-50/30 cursor-pointer transition select-none group" data-opt-index="${optIdx}">
+          <input type="radio" name="dokkai_q_${q.id}" value="${optIdx}" class="mt-0.5 text-[#9F1239] focus:ring-[#9F1239] cursor-pointer" />
+          <div class="flex-1 text-xs sm:text-sm font-japanese leading-relaxed text-slate-800 group-hover:text-slate-900">
+            <span class="font-bold text-slate-500 font-sans mr-1">${letter}.</span> ${escapeHtml(opt)}
+          </div>
+        </label>
+      `;
+    });
+
+    card.innerHTML = `
+      <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#9F1239] text-white text-xs font-bold flex items-center justify-center shrink-0">
+            ${qIndex + 1}
+          </span>
+          <span class="text-xs font-bold text-slate-800">Câu hỏi ${qIndex + 1}</span>
+        </div>
+        ${typeBadge}
+      </div>
+
+      <div class="text-xs sm:text-sm font-bold text-slate-900 font-japanese leading-relaxed">
+        ${escapeHtml(q.question || '')}
+      </div>
+
+      <div class="space-y-2 pt-1" id="optionsGroup_${q.id}">
+        ${optionsHtml}
+      </div>
+
+      <!-- Khung lời giải phân tích bẫy (ẩn trước khi nộp bài) -->
+      <div class="dokkai-explanation-box hidden p-3.5 rounded-xl text-xs space-y-2.5">
+        <!-- Rendered after submit -->
+      </div>
+    `;
+
+    // Lắng nghe sự kiện chọn radio
+    const radioInputs = card.querySelectorAll(`input[name="dokkai_q_${q.id}"]`);
+    radioInputs.forEach(radio => {
+      radio.addEventListener('change', () => {
+        dokkaiAnswers[q.id] = parseInt(radio.value, 10);
+        card.querySelectorAll('.dokkai-option-item').forEach(lbl => {
+          lbl.classList.remove('border-[#9F1239]', 'bg-rose-50/50');
+        });
+        radio.closest('.dokkai-option-item').classList.add('border-[#9F1239]', 'bg-rose-50/50');
+      });
+    });
+
+    dokkaiQuestionsContainerEl.appendChild(card);
+  });
+}
+
+function handleDokkaiSubmit() {
+  if (!currentAnalysisResult || !currentAnalysisResult.comprehensionQuestions) return;
+  const questions = currentAnalysisResult.comprehensionQuestions;
+  if (questions.length === 0) return;
+
+  const answeredCount = Object.keys(dokkaiAnswers).length;
+  if (answeredCount < questions.length && !dokkaiSubmitted) {
+    const unAnswered = questions.length - answeredCount;
+    if (!confirm(`Bạn còn ${unAnswered} câu chưa trả lời. Bạn có chắc chắn muốn nộp bài để xem chấm điểm và phân tích không?`)) {
+      return;
+    }
+  }
+
+  dokkaiSubmitted = true;
+  let correctCount = 0;
+
+  questions.forEach(q => {
+    const userAns = dokkaiAnswers[q.id];
+    const isCorrect = userAns === q.correctOptionIndex;
+    if (isCorrect) correctCount++;
+
+    const card = dokkaiQuestionsContainerEl.querySelector(`.dokkai-question-card[data-question-id="${q.id}"]`);
+    if (!card) return;
+
+    card.querySelectorAll('input[type="radio"]').forEach(r => { r.disabled = true; });
+
+    card.querySelectorAll('.dokkai-option-item').forEach(lbl => {
+      const idx = parseInt(lbl.dataset.optIndex, 10);
+      lbl.classList.remove('border-[#9F1239]', 'bg-rose-50/50', 'hover:border-[#9F1239]', 'cursor-pointer');
+      lbl.classList.add('cursor-default');
+
+      if (idx === q.correctOptionIndex) {
+        lbl.classList.add('border-emerald-500', 'bg-emerald-50/80', 'text-emerald-900', 'font-semibold');
+        lbl.insertAdjacentHTML('beforeend', '<span class="material-symbols-outlined text-emerald-600 text-[18px] ml-auto shrink-0">check_circle</span>');
+      } else if (idx === userAns && !isCorrect) {
+        lbl.classList.add('border-rose-500', 'bg-rose-50/80', 'text-rose-900');
+        lbl.insertAdjacentHTML('beforeend', '<span class="material-symbols-outlined text-rose-600 text-[18px] ml-auto shrink-0">cancel</span>');
+      }
+    });
+
+    const explBox = card.querySelector('.dokkai-explanation-box');
+    if (explBox) {
+      explBox.classList.remove('hidden');
+      explBox.className = `dokkai-explanation-box p-3.5 rounded-xl text-xs space-y-2 border ${
+        isCorrect ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900' : 'bg-rose-50/60 border-rose-200 text-slate-800'
+      }`;
+
+      explBox.innerHTML = `
+        <div class="flex items-center justify-between gap-2 border-b border-slate-200/60 pb-1.5 flex-wrap">
+          <span class="font-bold flex items-center gap-1 ${isCorrect ? 'text-emerald-700' : 'text-rose-700'}">
+            <span class="material-symbols-outlined text-[16px]">${isCorrect ? 'check_circle' : 'error'}</span>
+            <span>${isCorrect ? 'Chính xác!' : 'Chưa chính xác'}</span>
+          </span>
+          ${q.evidenceQuote ? `
+            <button type="button" class="btn-show-evidence px-2.5 py-1 rounded-md bg-white border border-slate-200 text-slate-700 hover:text-[#9F1239] hover:border-[#9F1239] text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shadow-2xs" data-evidence="${escapeHtml(q.evidenceQuote)}">
+              <span class="material-symbols-outlined text-[14px] text-amber-500">search_check</span>
+              <span>🔍 Xem dẫn chứng trong bài</span>
+            </button>
+          ` : ''}
+        </div>
+        <p class="leading-relaxed text-slate-700">${escapeHtml(q.explanation || 'Không có giải thích chi tiết.')}</p>
+      `;
+
+      const btnEvidence = explBox.querySelector('.btn-show-evidence');
+      if (btnEvidence) {
+        btnEvidence.addEventListener('click', () => {
+          highlightEvidenceInCleanPassage(q.evidenceQuote);
+        });
+      }
+    }
+  });
+
+  // Hiển thị card điểm số
+  if (dokkaiScoreSummaryEl) {
+    dokkaiScoreSummaryEl.classList.remove('hidden');
+    const total = questions.length;
+    const percent = Math.round((correctCount / total) * 100);
+    const isPassed = percent >= 60;
+
+    dokkaiScoreSummaryEl.className = `ls-card p-4 space-y-2 border-2 ${
+      isPassed ? 'border-emerald-300 bg-emerald-50/50' : 'border-amber-300 bg-amber-50/50'
+    }`;
+
+    dokkaiScoreSummaryEl.innerHTML = `
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined ${isPassed ? 'text-emerald-600' : 'text-amber-600'} text-[28px] shrink-0">
+            ${isPassed ? 'military_tech' : 'psychology'}
+          </span>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">Kết quả Đọc hiểu: ${correctCount} / ${total} câu đúng (${percent}%)</h4>
+            <p class="text-[11px] text-slate-500">
+              ${isPassed ? 'Rất tốt! Bạn đã nắm bắt chính xác ý tứ và quan điểm của bài đọc.' : 'Cố gắng lên! Hãy xem giải thích và đối chiếu dẫn chứng trong bài để rút kinh nghiệm.'}
+            </p>
+          </div>
+        </div>
+        <button type="button" id="btnNextToDeepAnalysis" class="px-3.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-[#9F1239] text-slate-700 hover:text-[#9F1239] text-xs font-bold shadow-2xs cursor-pointer flex items-center justify-center gap-1 shrink-0 transition">
+          <span>Xem bóc tách sâu</span>
+          <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+        </button>
+      </div>
+    `;
+
+    const btnNext = dokkaiScoreSummaryEl.querySelector('#btnNextToDeepAnalysis');
+    if (btnNext) {
+      btnNext.addEventListener('click', () => switchTab('reader'));
+    }
+    dokkaiScoreSummaryEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  if (btnSubmitDokkaiEl) {
+    btnSubmitDokkaiEl.disabled = true;
+    btnSubmitDokkaiEl.classList.add('opacity-60', 'cursor-not-allowed');
+  }
+  if (btnSubmitDokkaiTextEl) {
+    btnSubmitDokkaiTextEl.textContent = 'Đã nộp bài & Có lời giải chi tiết';
+  }
+  showToast(`Đã chấm điểm: ${correctCount}/${questions.length} câu đúng!`, correctCount === questions.length ? 'success' : 'info');
+}
+
+function highlightEvidenceInCleanPassage(quote) {
+  if (!cleanReadingPassageBodyEl || !quote) return;
+  const cleanQuote = quote.trim().replace(/[。！？\s]+$/, '');
+  if (!cleanQuote) return;
+
+  // Xóa highlight cũ bằng cách thay thế lại nội dung bài đọc sạch ban đầu
+  if (currentAnalysisResult && currentAnalysisResult.rubyHtml) {
+    cleanReadingPassageBodyEl.innerHTML = currentAnalysisResult.rubyHtml;
+  }
+
+  const passageHtml = cleanReadingPassageBodyEl.innerHTML;
+  let highlighted = false;
+
+  // 1. Khớp nguyên chuỗi chính xác
+  if (passageHtml.includes(cleanQuote)) {
+    cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(cleanQuote, `<mark class="evidence-highlight">${cleanQuote}</mark>`);
+    highlighted = true;
+  } else {
+    // 2. Tìm theo cụm từ đặc trưng (10-18 ký tự)
+    for (let len = Math.min(cleanQuote.length, 18); len >= 8; len -= 2) {
+      const snippet = cleanQuote.slice(0, len);
+      if (passageHtml.includes(snippet)) {
+        cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(snippet, `<mark class="evidence-highlight">${snippet}</mark>`);
+        highlighted = true;
+        break;
+      }
+    }
+  }
+
+  const highlightEl = cleanReadingPassageBodyEl.querySelector('.evidence-highlight');
+  if (highlightEl) {
+    highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('Đã đánh dấu câu văn làm dẫn chứng trong bài đọc', 'info');
+  } else {
+    showToast('Dẫn chứng: 「' + cleanQuote + '」', 'info');
+  }
 }

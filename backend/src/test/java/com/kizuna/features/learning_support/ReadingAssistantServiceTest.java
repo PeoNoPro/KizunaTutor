@@ -97,11 +97,39 @@ class ReadingAssistantServiceTest {
         boolean hasAsakusa = response.getVocabularies().stream().anyMatch(v -> "浅草".equals(v.getSurfaceText()));
         boolean hasRamen = response.getVocabularies().stream().anyMatch(v -> "ラーメン".equals(v.getSurfaceText()));
         boolean hasOmiyage = response.getVocabularies().stream().anyMatch(v -> "お土産".equals(v.getSurfaceText()));
-
         assertTrue(hasTokyo, "Phải có từ vựng 東京");
         assertTrue(hasAsakusa, "Phải có từ vựng 浅草");
         assertTrue(hasRamen, "Phải có từ vựng ラーメン");
         assertTrue(hasOmiyage, "Phải có từ vựng お土産");
+    }
+
+    @Test
+    @DisplayName("Kiểm tra sinh câu hỏi Đọc hiểu Dokkai trắc nghiệm kèm bẫy và dẫn chứng")
+    void testAnalyzeReading_ComprehensionQuestions() {
+        String tokyoText = "先週の日曜日、私は友達と東京へ行きました。朝9時に駅で友達に会いました。それから、電車で浅草へ行きました。浅草は人がたくさんいましたが、とてもにぎやかで面白かったです。私たちは大きいお寺を見たり、写真を撮ったりしました。昼ごはんに美味しいラーメンを食べました。午後、デパートで家族にお土産を買いました。少し疲れましたが、とても楽しかったです。また友達と東京へ行きたいです。";
+
+        ReadingAnalysisRequest request = ReadingAnalysisRequest.builder()
+                .text(tokyoText)
+                .targetJlpt("ALL")
+                .includeFurigana(true)
+                .build();
+
+        ReadingAnalysisResponse response = readingService.analyzeReading(request);
+
+        assertNotNull(response);
+        assertNotNull(response.getComprehensionQuestions());
+        assertFalse(response.getComprehensionQuestions().isEmpty(), "Phải có danh sách câu hỏi Đọc hiểu Dokkai");
+        assertEquals(2, response.getComprehensionQuestions().size());
+
+        var q1 = response.getComprehensionQuestions().get(0);
+        assertNotNull(q1.getId());
+        assertNotNull(q1.getQuestion());
+        assertEquals(4, q1.getOptions().size(), "Mỗi câu hỏi phải có 4 phương án trắc nghiệm");
+        assertNotNull(q1.getCorrectOptionIndex());
+        assertEquals(0, q1.getCorrectOptionIndex());
+        assertNotNull(q1.getEvidenceQuote(), "Phải có câu trích dẫn dẫn chứng trong bài");
+        assertTrue(tokyoText.contains(q1.getEvidenceQuote()), "Câu dẫn chứng phải xuất hiện nguyên văn trong bài");
+        assertNotNull(q1.getExplanation(), "Phải có giải thích phân tích bẫy sư phạm");
     }
 
     @Test

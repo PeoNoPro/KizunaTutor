@@ -308,13 +308,19 @@ async function handleCheckWriting() {
   const targetGrammar = activeGrammarRule ? activeGrammarRule.pattern : null;
   const targetLevel = activeGrammarRule?.level ? activeGrammarRule.level.toUpperCase() : 'N5';
 
+  const fetchHeaders = {
+    'Content-Type': 'application/json'
+  };
+  try {
+    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token') || localStorage.getItem('token');
+    if (token) fetchHeaders['Authorization'] = `Bearer ${token}`;
+  } catch (e) {}
+
   let data = null;
   try {
     const res = await fetch('/api/learner/ai-writing/check', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: fetchHeaders,
       body: JSON.stringify({
         text: text,
         jlptLevel: targetLevel,
@@ -397,13 +403,102 @@ function isGrammarPatternSatisfied(text, targetPattern) {
  * Bộ thẩm định và chữa câu AI dự phòng thông minh (Client-side Smart Evaluator)
  */
 function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targetPattern = null) {
+  const trimmed = (text || '').trim();
+
+  // 1. Kiểm tra nhập linh tinh / vô nghĩa
+  const isGibberish = 
+    !trimmed ||
+    /^[\d\s.,!?_\-+/*=~@#$%^&()[\]{}|<>:;'"`~・…！？。、]+$/.test(trimmed) ||
+    /^(.)\1{3,}$/.test(trimmed) ||
+    /^(.{2,4})\1{2,}$/.test(trimmed) ||
+    /^[b-df-hj-np-tv-z]{5,}$/i.test(trimmed) ||
+    /(asdfgh|qwerty|zxcvbn|qazwsx|123456|poiuyt|lkjhgf)/i.test(trimmed) ||
+    /^(あいうえお|かきくけこ|さしすせそ|たちつてと|なにぬねの|はひふへほ|まみむめも|らりるれろ|アイウエオ)+$/.test(trimmed);
+
+  if (isGibberish) {
+    return {
+      originalText: text,
+      correctedText: '',
+      score: 0,
+      ratingBadge: 'Cảnh báo: Nội dung vô nghĩa',
+      overallComment: '⚠️ Cảnh báo: Nội dung bạn nhập dường như là các ký tự ngẫu nhiên hoặc vô nghĩa, không tạo thành câu tiếng Nhật có nghĩa. Vui lòng nhập một câu tiếng Nhật hoàn chỉnh để Sensei hỗ trợ sửa bài nhé!',
+      errors: [{
+        errorType: 'Nội dung vô nghĩa',
+        originalFragment: text,
+        correctedFragment: 'Hãy nhập câu tiếng Nhật có nghĩa',
+        explanation: 'Chuỗi ký tự không có ý nghĩa ngữ nghĩa trong tiếng Nhật. Không thể thẩm định ngữ pháp.'
+      }],
+      suggestedVocabulary: [],
+      nativeAlternatives: []
+    };
+  }
+
+  // 2. Kiểm tra văn bản không phải tiếng Nhật (tiếng Việt, tiếng Anh, Romaji, etc.)
+  const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(trimmed);
+  if (!hasJapanese) {
+    return {
+      originalText: text,
+      correctedText: 'Ví dụ câu tiếng Nhật: 私は日本語を勉強しています。',
+      score: 15,
+      ratingBadge: 'Chưa đúng ngôn ngữ / Cần viết bằng tiếng Nhật',
+      overallComment: 'Nhắc nhở: Bạn đang nhập văn bản không phải tiếng Nhật. Vui lòng luyện viết bằng chữ Hiragana, Katakana hoặc Kanji để Sensei có thể chấm điểm và sửa lỗi cho bạn nhé! ✍️',
+      errors: [{
+        errorType: 'Ngôn ngữ chưa phù hợp',
+        originalFragment: text,
+        correctedFragment: 'Cần viết bằng chữ Hiragana / Katakana / Kanji',
+        explanation: 'Văn bản chưa chứa ký tự tiếng Nhật (Hiragana, Katakana, Kanji). Hãy thử viết lại bằng bảng chữ cái tiếng Nhật nhé!'
+      }],
+      suggestedVocabulary: [
+        { word: '日本語', reading: 'にほんご (nihongo)', meaning: 'Tiếng Nhật' },
+        { word: '勉強', reading: 'べんきょう (benkyou)', meaning: 'Học tập' }
+      ],
+      nativeAlternatives: [
+        '私は日本語を勉強しています。(Tôi đang học tiếng Nhật)',
+        '日本語で書いてみましょう！(Hãy thử viết bằng tiếng Nhật nhé!)'
+      ]
+    };
+  }
+
   let score = 96;
   const errors = [];
   const suggestedVocabulary = [];
   const nativeAlternatives = [];
   let correctedText = text;
 
-  // 1. Kiểm tra trợ từ は (wa) viết nhầm thành わ
+  // 3. Kiểm tra lỗi ký tự hỏng mã
+  if (text.includes('\uFFFD') || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text)) {
+    errors.push({
+      errorType: 'Ký tự lỗi',
+      originalFragment: 'Ký tự không hợp lệ',
+      correctedFragment: 'Ký tự chuẩn',
+      explanation: 'Văn bản chứa ký tự bất thường hoặc lỗi font/mã hóa. Vui lòng kiểm tra lại bộ gõ tiếng Nhật.'
+    });
+    score -= 20;
+  }
+
+  // 4. Kiểm tra lỗi chính tả âm ghép / chữ nhỏ (ảo âm: ゃ, ゅ, ょ / xúc âm: っ)
+  if (text.includes('とうきよう') || text.includes('しやしん') || text.includes('びよういん') || text.includes('きよう') || text.includes('がつこう') || text.includes('がこう')) {
+    const typoWord = text.includes('とうきよう') ? 'とうきよう' :
+                     text.includes('しやしん') ? 'しやしん' :
+                     text.includes('びよういん') ? 'びよういん' :
+                     text.includes('きよう') ? 'きよう' : 'がつこう';
+    const fixedWord = typoWord.replace('とうきよう', 'とうきょう')
+                              .replace('しやしん', 'しゃしん')
+                              .replace('びよういん', 'びょういん')
+                              .replace('きよう', 'きょう')
+                              .replace('がつこう', 'がっこう')
+                              .replace('がこう', 'がっこう');
+    errors.push({
+      errorType: 'Ký tự lỗi / Lỗi chính tả',
+      originalFragment: typoWord,
+      correctedFragment: fixedWord,
+      explanation: 'Lỗi chính tả âm ghép/xúc âm: Từ này cần dùng chữ nhỏ (ゃ, ゅ, ょ, っ) thay vì chữ kích thước thông thường.'
+    });
+    correctedText = correctedText.replace(typoWord, fixedWord);
+    score -= 15;
+  }
+
+  // 5. Kiểm tra trợ từ は (wa) viết nhầm thành わ
   if (text.includes('私わ') || text.includes('わたしわ') || text.includes('彼わ') || text.includes('彼女わ')) {
     errors.push({
       errorType: 'Trợ từ chỉ chủ ngữ',
@@ -415,7 +510,31 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     score -= 10;
   }
 
-  // 2. Kiểm tra động từ đi với でした (lỗi kinh điển: 食べるでした)
+  // 6. Kiểm tra trợ từ を bị viết thành お
+  if (/[\u3040-\u309F\u4E00-\u9FAF]+お(食べる|飲む|見る|する|買う|読む|聞く|待つ)/.test(text)) {
+    errors.push({
+      errorType: 'Ký tự lỗi / Trợ từ',
+      originalFragment: 'お',
+      correctedFragment: 'を (phát âm: o/wo)',
+      explanation: 'Trợ từ chỉ tân ngữ/đối tượng của hành động luôn được viết bằng chữ Hiragana を, không dùng お.'
+    });
+    correctedText = correctedText.replace(/([\u3040-\u309F\u4E00-\u9FAF]+)お(食べる|飲む|見る|する|買う|読む|聞く|待つ)/g, '$1を$2');
+    score -= 10;
+  }
+
+  // 7. Kiểm tra trợ từ へ (e) bị viết thành え
+  if (/(学校|日本|東京|家|病院)え/.test(text)) {
+    errors.push({
+      errorType: 'Ký tự lỗi / Trợ từ',
+      originalFragment: 'え',
+      correctedFragment: 'へ (phát âm: e)',
+      explanation: 'Trợ từ chỉ phương hướng di chuyển luôn được viết bằng chữ Hiragana へ (phát âm: e), không dùng え.'
+    });
+    correctedText = correctedText.replace(/(学校|日本|東京|家|病院)え/g, '$1へ');
+    score -= 10;
+  }
+
+  // 8. Kiểm tra động từ đi với でした (lỗi kinh điển: 食べるでした)
   if (/([るうつぬぶむくぐす])でした/.test(text) || text.includes('食べるでした') || text.includes('行くでした') || text.includes('飲むでした')) {
     errors.push({
       errorType: 'Chia thể động từ',
@@ -431,7 +550,7 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     score -= 15;
   }
 
-  // 3. Kiểm tra tính từ đuôi い đi với だ
+  // 9. Kiểm tra tính từ đuôi い đi với だ
   if (/[い]だ/.test(text) && !text.includes('からだ')) {
     errors.push({
       errorType: 'Ngữ pháp tính từ',
@@ -442,11 +561,11 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     score -= 10;
   }
 
-  // 4. Kiểm tra phong cách Formality (Lịch sự)
+  // 10. Kiểm tra phong cách Formality (Lịch sự)
   if (formality === 'POLITE') {
-    const trimmed = correctedText.replace(/[。！？\s]+$/, '');
-    if (trimmed.endsWith('だ') || trimmed.endsWith('る') || trimmed.endsWith('た') || trimmed.endsWith('ない')) {
-      if (!trimmed.endsWith('です') && !trimmed.endsWith('ます') && !trimmed.endsWith('でした') && !trimmed.endsWith('ました') && !trimmed.endsWith('でしょうか') && !trimmed.endsWith('ください')) {
+    const trimmedEnding = correctedText.replace(/[。！？\s]+$/, '');
+    if (trimmedEnding.endsWith('だ') || trimmedEnding.endsWith('る') || trimmedEnding.endsWith('た') || trimmedEnding.endsWith('ない')) {
+      if (!trimmedEnding.endsWith('です') && !trimmedEnding.endsWith('ます') && !trimmedEnding.endsWith('でした') && !trimmedEnding.endsWith('ました') && !trimmedEnding.endsWith('でしょうか') && !trimmedEnding.endsWith('ください')) {
         errors.push({
           errorType: 'Sắc thái câu',
           originalFragment: 'Đuôi câu thể thường',
@@ -458,7 +577,7 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     }
   }
 
-  // 5. Kiểm tra mẫu ngữ pháp mục tiêu nếu có
+  // 11. Kiểm tra mẫu ngữ pháp mục tiêu nếu có
   if (targetPattern) {
     if (!isGrammarPatternSatisfied(text, targetPattern)) {
       errors.push({
@@ -467,9 +586,11 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
         correctedFragment: targetPattern,
         explanation: `Bạn đang chọn thử thách đặt câu với mẫu "${targetPattern}". Hãy thử áp dụng đúng công thức của mẫu này vào câu nhé!`
       });
-      score -= 10;
+      score -= 15;
     }
   }
+
+  score = Math.max(0, Math.min(100, score));
 
   // Đánh giá chung
   let ratingBadge = 'Tự nhiên xuất sắc';
@@ -479,9 +600,12 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     if (score >= 80) {
       ratingBadge = 'Khá tốt - Cần trau chuốt';
       overallComment = 'Câu viết tương đối mượt mà. Hãy tham khảo các phần lưu ý bên dưới để câu văn đạt mức hoàn hảo nhất nhé!';
-    } else {
+    } else if (score >= 60) {
       ratingBadge = 'Cần cải thiện';
-      overallComment = 'Câu viết đã thể hiện được ý tưởng, nhưng bạn cần lưu ý kỹ các lỗi trợ từ và thể chia động từ để người nghe hiểu chính xác.';
+      overallComment = 'Cố lên bạn nhé! Hãy xem kỹ các điểm lưu ý về trợ từ hoặc thể động từ ở bảng bên dưới để đặt câu chuẩn xác hơn.';
+    } else {
+      ratingBadge = 'Cần sửa lại ký tự & ngữ pháp';
+      overallComment = 'Câu văn có nhiều lỗi về ký tự hoặc ngữ pháp cơ bản. Hãy xem kỹ bảng sửa lỗi chi tiết bên dưới để hoàn thiện câu nhé!';
     }
   }
 
@@ -505,7 +629,7 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
   return {
     originalText: text,
     correctedText: correctedText,
-    score: Math.max(45, score),
+    score: score,
     ratingBadge: ratingBadge,
     overallComment: overallComment,
     errors: errors,

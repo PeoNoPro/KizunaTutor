@@ -124,10 +124,10 @@ export const LEARNER_MENU_GROUPS = [
         ]
       },
 
-      // 3. Đọc hiểu Dokkai AI (Hub đọc hiểu độc lập)
+      // 3. Đọc hiểu (Hub đọc hiểu độc lập)
       {
         key: 'ai-reading',
-        title: 'Đọc hiểu Dokkai AI',
+        title: 'Đọc hiểu',
         url: '/reading',
         icon: 'chrome_reader_mode',
         matcher: ['/reading', '/ai-reading', '/learner/reading', '/learner/ai-reading']
@@ -236,8 +236,8 @@ export const PAGE_META_MAP = {
   'handwriting': { title: 'Tra cứu viết tay AI', badge: 'Hỗ trợ học tập' },
   'grammar': { title: 'Kho ngữ pháp JLPT', badge: 'Hỗ trợ học tập' },
   'ai-writing': { title: 'Chữa câu & Viết AI', badge: 'Hỗ trợ học tập' },
-  'ai-reading': { title: 'Đọc hiểu Dokkai AI', badge: 'Hỗ trợ học tập' },
-  'reading': { title: 'Đọc hiểu Dokkai AI', badge: 'Hỗ trợ học tập' },
+  'ai-reading': { title: 'Đọc hiểu', badge: 'Hỗ trợ học tập' },
+  'reading': { title: 'Đọc hiểu', badge: 'Hỗ trợ học tập' },
   'practice': { title: 'Luyện đề thi JLPT', badge: 'Hỗ trợ học tập' },
   'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Hỗ trợ học tập' },
   'kana': { title: 'Đấu trường gõ Kana', badge: 'Hỗ trợ học tập' },

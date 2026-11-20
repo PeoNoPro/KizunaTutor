@@ -10,7 +10,7 @@ import { voicevoxClient } from '/js/voicevoxClient.js';
 // 1. Khởi tạo Layout Học viên Dùng Chung
 initLearnerShell({
   activeMenu: 'ai-reading',
-  pageTitle: 'Bóc Tách Đọc Hiểu AI 📖',
+  pageTitle: 'Luyện Đọc Hiểu AI 📖',
   badge: 'Trợ lý đọc hiểu Dokkai'
 });
 

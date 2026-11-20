@@ -20,6 +20,7 @@ import com.kizuna.features.auth.dto.response.UserSummaryDto;
 import com.kizuna.features.auth.service.EmailService;
 import com.kizuna.features.auth.service.OtpService;
 import com.kizuna.features.auth.service.impl.AuthServiceImpl;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -561,6 +562,86 @@ class AuthServiceImplTest {
             assertThrows(com.kizuna.core.exception.ResourceNotFoundException.class,
                     () -> authService.changePasswordFirstTime(request, email));
             verify(userRepository, never()).save(any());
+        }
+    }
+
+    // =========================================================================
+    // UC-05A: YÊU CẦU CẤP LẠI MẬT KHẨU TẠM QUA EMAIL (resetPasswordAndSendEmail)
+    // =========================================================================
+    @Nested
+    @DisplayName("UC-05A: Yêu cầu cấp lại mật khẩu tạm qua email (resetPasswordAndSendEmail)")
+    class ResetPasswordInitiateTests {
+
+        @Test
+        @DisplayName("UTCID01 (Normal): Cấp mật khẩu ngẫu nhiên và gửi email cho Học viên/Gia sư")
+        void resetPasswordAndSendEmail_whenLearnerOrTutor_shouldGeneratePasswordAndSendEmail() {
+            String email = "learner-reset@kizuna.vn";
+            User user = buildUser(email, "ROLE_LEARNER", UserAccountStatus.ACTIVE, false);
+
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+            when(passwordEncoder.encode(anyString())).thenReturn("hashed-new-temp");
+            when(mailSender.createMimeMessage()).thenReturn(new MimeMessage((jakarta.mail.Session) null));
+
+            assertDoesNotThrow(() -> authService.resetPasswordAndSendEmail(email));
+
+            assertEquals("hashed-new-temp", user.getPasswordHash());
+            verify(userRepository, times(1)).save(user);
+            verify(mailSender, times(1)).send(any(MimeMessage.class));
+        }
+
+        @ParameterizedTest(name = "UTCID02 (Abnormal): Từ chối reset mật khẩu cho vai trò quản trị nội bộ {0} -> Ném BusinessException 403")
+        @CsvSource({
+                "ROLE_ADMIN",
+                "ROLE_MANAGER",
+                "ROLE_CS_STAFF",
+                "ROLE_ACADEMIC_OFFICER"
+        })
+        void resetPasswordAndSendEmail_whenRestrictedStaffRole_shouldThrow403(String staffRole) {
+            String email = "staff-" + staffRole.toLowerCase() + "@kizuna.vn";
+            User staffUser = buildUser(email, staffRole, UserAccountStatus.ACTIVE, false);
+
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(staffUser));
+
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> authService.resetPasswordAndSendEmail(email));
+            assertThat(ex.status()).isEqualTo(403);
+            assertThat(ex.getMessage()).contains("không thể tự thực hiện quên mật khẩu");
+            verify(mailSender, never()).send(any(MimeMessage.class));
+            verify(userRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("UTCID03 (Normal - User Enumeration Prevention): Email không tồn tại -> Trả về bình thường không ném lỗi và không gửi email")
+        void resetPasswordAndSendEmail_whenEmailNotExist_shouldReturnSilentlyWithoutSendingEmail() {
+            String email = "notexist-reset@kizuna.vn";
+            when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+            assertDoesNotThrow(() -> authService.resetPasswordAndSendEmail(email));
+
+            verify(mailSender, never()).send(any(MimeMessage.class));
+            verify(userRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("UTCID04 (Boundary): Giới hạn tần suất trong 15 phút (tối đa 3 lần) -> Lần thứ 4 ném BusinessException 429")
+        void resetPasswordAndSendEmail_whenRateLimitExceeded_shouldThrow429() {
+            String email = "spam-reset@kizuna.vn";
+            User user = buildUser(email, "ROLE_LEARNER", UserAccountStatus.ACTIVE, false);
+
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+            when(passwordEncoder.encode(anyString())).thenReturn("hashed-new-temp");
+            when(mailSender.createMimeMessage()).thenReturn(new MimeMessage((jakarta.mail.Session) null));
+
+            // 3 lần đầu thực hiện bình thường (< 3 attempts)
+            assertDoesNotThrow(() -> authService.resetPasswordAndSendEmail(email));
+            assertDoesNotThrow(() -> authService.resetPasswordAndSendEmail(email));
+            assertDoesNotThrow(() -> authService.resetPasswordAndSendEmail(email));
+
+            // Lần thứ 4 (>= 3 attempts) -> Vượt rate limit ném 429
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> authService.resetPasswordAndSendEmail(email));
+            assertThat(ex.status()).isEqualTo(429);
+            assertThat(ex.getMessage()).contains("quá nhiều lần");
         }
     }
 

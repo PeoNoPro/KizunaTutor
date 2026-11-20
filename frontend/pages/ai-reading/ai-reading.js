@@ -1110,6 +1110,10 @@ function renderDokkaiChallenge(data) {
   if (countDokkaiQuestionsEl) {
     countDokkaiQuestionsEl.textContent = questions.length;
   }
+  const countDokkaiQuestionsHeaderEl = document.getElementById('countDokkaiQuestionsHeader');
+  if (countDokkaiQuestionsHeaderEl) {
+    countDokkaiQuestionsHeaderEl.textContent = questions.length;
+  }
 
   // 1. Render bài đọc sạch ở cột trái (chỉ giữ Ruby furigana chuẩn)
   if (cleanReadingPassageBodyEl) {

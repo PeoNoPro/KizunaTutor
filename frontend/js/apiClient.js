@@ -219,15 +219,37 @@ export const apiClient = {
    * GET /api/learner/decks/{id}
    */
   async getDeck(id) {
+    const decks = getStoredDecks();
+    const localDeck = decks.find(d => String(d.id) === String(id)) || null;
+
     try {
       const res = await fetch(`/api/learner/decks/${encodeURIComponent(id)}`, {
-        headers: { 'Accept': 'application/json' },
+        headers: getDeckHeaders(false),
         signal: AbortSignal.timeout(4000)
       }).catch(() => null);
 
       if (res && res.ok) {
         const data = await res.json();
         if (data && data.title) {
+          // Hợp nhất thông minh với localStorage nếu local có thẻ chưa đồng bộ
+          if (localDeck && Array.isArray(localDeck.cards) && Array.isArray(data.cards)) {
+            if (localDeck.cards.length > data.cards.length) {
+              const existingKeys = new Set(data.cards.map(c => String(c.id || c.char)));
+              localDeck.cards.forEach(lc => {
+                if (!existingKeys.has(String(lc.id || lc.char))) {
+                  data.cards.push(lc);
+                }
+              });
+            }
+          }
+          // Cập nhật lại local cache
+          const idx = decks.findIndex(d => String(d.id) === String(id));
+          if (idx !== -1) {
+            decks[idx] = data;
+          } else {
+            decks.push(data);
+          }
+          saveStoredDecks(decks);
           return data;
         }
       }
@@ -235,8 +257,7 @@ export const apiClient = {
       console.debug(`API /api/learner/decks/${id} offline, tìm trong local:`, e);
     }
 
-    const decks = getStoredDecks();
-    return decks.find(d => String(d.id) === String(id)) || null;
+    return localDeck;
   },
 
   /**
@@ -347,15 +368,19 @@ export const apiClient = {
    * POST /api/learner/decks/{id}/cards
    */
   async addCards(id, cards) {
-    const cardArray = Array.isArray(cards) ? cards : [cards];
+    const rawCards = Array.isArray(cards) ? cards : [cards];
+    const cardArray = rawCards.map(c => enrichFlashcardItem(c));
 
     try {
       const res = await fetch(`/api/learner/decks/${encodeURIComponent(id)}/cards`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: getDeckHeaders(true),
         body: JSON.stringify({ cards: cardArray }),
-        signal: AbortSignal.timeout(4000)
-      }).catch(() => null);
+        signal: AbortSignal.timeout(6000)
+      }).catch(err => {
+        console.warn('Lỗi kết nối POST /cards:', err);
+        return null;
+      });
 
       if (res && res.ok) {
         const result = await res.json();
@@ -368,12 +393,14 @@ export const apiClient = {
           }
           return result;
         }
+      } else if (res && (res.status === 401 || res.status === 403)) {
+        console.warn(`Máy chủ phản hồi mã ${res.status} khi thêm thẻ.`);
       }
     } catch (e) {
       console.debug(`API POST /api/learner/decks/${id}/cards offline:`, e);
     }
 
-    // Fallback Local
+    // Fallback LocalStorage khi offline
     const decks = getStoredDecks();
     const target = decks.find(d => String(d.id) === String(id));
     if (!target) throw new Error(`Không tìm thấy bộ thẻ #${id}`);

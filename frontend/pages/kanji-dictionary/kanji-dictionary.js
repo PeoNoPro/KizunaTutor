@@ -1050,6 +1050,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initDictionaryPage();
 });
 
+// Lắng nghe sự kiện SPA Mount khi chuyển từ trang khác sang
+window.addEventListener('kizuna:page-mounted', (e) => {
+  const path = e?.detail?.url || window.location.pathname;
+  if (path.includes('dictionary') || path.includes('kanji')) {
+    initDictionaryPage();
+  }
+});
+
 // Gắn toàn cục cho các hàm tương thích
 window.quickSearchPrompt = quickSearchPrompt;
 window.onSearchInputChange = onSearchInputChange;

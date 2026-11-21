@@ -8,6 +8,7 @@ import { showToast } from '/js/main.js';
 import { KizunaDialog } from '/js/common/dialog.js';
 import { AgentMemoryService } from '/js/api/agentMemory.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+import { apiClient } from '/js/apiClient.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
@@ -815,6 +816,10 @@ function saveShodoCurrentCharToDeck() {
     localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
     if (deck.id) {
       localStorage.setItem('kizuna_last_selected_deck_id', String(deck.id));
+      // Đồng bộ trực tiếp lên Backend API nếu có ID hợp lệ
+      apiClient.addCards(deck.id, [newCard]).catch(err => {
+        console.debug('Lỗi đồng bộ thẻ Shodo lên API:', err);
+      });
     }
     showToast(`Đã cất chữ "${currentChar}" vào bộ thẻ "${deck.title}" thành công! 🗂️`, 'success');
   } catch (err) {
@@ -896,8 +901,9 @@ async function initShodoPractice() {
 }
 
 document.addEventListener('DOMContentLoaded', initShodoPractice);
-window.addEventListener('kizuna:page-mounted', () => {
-  if (window.location.pathname.includes('shodo')) {
+window.addEventListener('kizuna:page-mounted', (e) => {
+  const path = e?.detail?.url || window.location.pathname;
+  if (path.includes('shodo') || path.includes('practice-canvas') || path.includes('practice') || path.includes('kanji-practice')) {
     initShodoPractice();
   }
 });

@@ -6,12 +6,13 @@
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { showToast } from '/js/main.js';
 import { voicevoxClient } from '/js/voicevoxClient.js';
+import { apiClient } from '/js/apiClient.js';
 
 // 1. Khởi tạo Layout Học viên Dùng Chung
 initLearnerShell({
   activeMenu: 'ai-reading',
-  pageTitle: 'Luyện Đọc Hiểu AI 📖',
-  badge: 'Trợ lý đọc hiểu Dokkai'
+  pageTitle: 'Luyện đọc hiểu văn bản',
+  badge: 'Đọc hiểu'
 });
 
 // Các đoạn văn bản mẫu
@@ -32,79 +33,143 @@ let dokkaiAnswers = {};
 let dokkaiSubmitted = false;
 let isDokkaiTranslationHidden = true; // Mặc định ẩn dịch tiếng Việt để luyện đọc thuần tiếng Nhật
 
-// DOM Elements: Điều hướng 2 màn hình
-const inputScreenEl = document.getElementById('readingInputScreen');
-const workspaceScreenEl = document.getElementById('readingWorkspaceScreen');
-const btnBackToInputEl = document.getElementById('btnBackToInput');
+// DOM Elements: Điều hướng 2 màn hình (Quản lý động chống lỗi Detached DOM Node khi chuyển trang SPA)
+let inputScreenEl = null;
+let workspaceScreenEl = null;
+let btnBackToInputEl = null;
 
 // DOM Elements: Màn hình 1 (Input Studio)
-const inputEl = document.getElementById('readingInputText');
-const charCountEl = document.getElementById('charCountLabel');
-const selectJlptEl = document.getElementById('selectJlptTarget');
-const btnClearEl = document.getElementById('btnClearInput');
-const btnAnalyzeEl = document.getElementById('btnAnalyzeReading');
-const loadingStateEl = document.getElementById('readingLoadingState');
+let inputEl = null;
+let charCountEl = null;
+let selectJlptEl = null;
+let btnClearEl = null;
+let btnAnalyzeEl = null;
+let loadingStateEl = null;
 
 // DOM Elements: Màn hình 2 (Reader Workspace)
-const badgeEstimatedLevelEl = document.getElementById('badgeEstimatedLevel');
-const interactiveReadingBodyEl = document.getElementById('interactiveReadingBody');
-const textOverallSummaryEl = document.getElementById('textOverallSummary');
-const btnToggleFuriganaEl = document.getElementById('btnToggleFurigana');
-const furiganaToggleTextEl = document.getElementById('furiganaToggleText');
-const btnSpeakFullEl = document.getElementById('btnSpeakFullArticle');
+let badgeEstimatedLevelEl = null;
+let interactiveReadingBodyEl = null;
+let textOverallSummaryEl = null;
+let btnToggleFuriganaEl = null;
+let furiganaToggleTextEl = null;
+let btnSpeakFullEl = null;
 
 // DOM Elements: Thử thách Đọc hiểu Dokkai (Tab 1)
-const countDokkaiQuestionsEl = document.getElementById('countDokkaiQuestions');
-const cleanReadingPassageBodyEl = document.getElementById('cleanReadingPassageBody');
-const btnToggleCleanFuriganaEl = document.getElementById('btnToggleCleanFurigana');
-const cleanFuriganaToggleTextEl = document.getElementById('cleanFuriganaToggleText');
-const dokkaiQuestionsContainerEl = document.getElementById('dokkaiQuestionsContainer');
-const dokkaiScoreSummaryEl = document.getElementById('dokkaiScoreSummary');
-const btnSubmitDokkaiEl = document.getElementById('btnSubmitDokkai');
-const btnSubmitDokkaiTextEl = document.getElementById('btnSubmitDokkaiText');
-const btnToggleDokkaiTranslationEl = document.getElementById('btnToggleDokkaiTranslation');
-const dokkaiTranslationToggleTextEl = document.getElementById('dokkaiTranslationToggleText');
+let countDokkaiQuestionsEl = null;
+let cleanReadingPassageBodyEl = null;
+let btnToggleCleanFuriganaEl = null;
+let cleanFuriganaToggleTextEl = null;
+let dokkaiQuestionsContainerEl = null;
+let dokkaiScoreSummaryEl = null;
+let btnSubmitDokkaiEl = null;
+let btnSubmitDokkaiTextEl = null;
+let btnToggleDokkaiTranslationEl = null;
+let dokkaiTranslationToggleTextEl = null;
 
-const countGrammarsEl = document.getElementById('countGrammars');
-const grammarListContainerEl = document.getElementById('grammarListContainer');
-const countVocabsEl = document.getElementById('countVocabs');
-const vocabularyGridContainerEl = document.getElementById('vocabularyGridContainer');
-const sentenceTranslationsContainerEl = document.getElementById('sentenceTranslationsContainer');
+let countGrammarsEl = null;
+let grammarListContainerEl = null;
+let countVocabsEl = null;
+let vocabularyGridContainerEl = null;
+let sentenceTranslationsContainerEl = null;
 
 // Tabs & Tab Panels
-const tabButtons = document.querySelectorAll('.reading-tab-btn');
-const tabPanels = {
-  challenge: document.getElementById('tabPanelChallenge'),
-  reader: document.getElementById('tabPanelReader'),
-  vocab: document.getElementById('tabPanelVocab'),
-  grammar: document.getElementById('tabPanelGrammar'),
-  translation: document.getElementById('tabPanelTranslation')
-};
+let tabButtons = [];
+let tabPanels = {};
 
 // Modal Lưu Flashcard
-const modalSaveEl = document.getElementById('modalSaveToDeck');
-const btnCloseModalEl = document.getElementById('btnCloseSaveModal');
-const btnCancelModalEl = document.getElementById('btnCancelModal');
-const btnConfirmSaveCardEl = document.getElementById('btnConfirmSaveCard');
-const selectTargetDeckEl = document.getElementById('selectTargetDeck');
-const modalTargetWordEl = document.getElementById('modalTargetWord');
-const modalTargetReadingEl = document.getElementById('modalTargetReading');
-const modalTargetMeaningEl = document.getElementById('modalTargetMeaning');
+let modalSaveEl = null;
+let btnCloseModalEl = null;
+let btnCancelModalEl = null;
+let btnConfirmSaveCardEl = null;
+let selectTargetDeckEl = null;
+let modalTargetWordEl = null;
+let modalTargetReadingEl = null;
+let modalTargetMeaningEl = null;
 
 // Tooltip Tương Tác Nổi (Watanoc Interactive Tooltip Elements)
-const tooltipEl = document.getElementById('readingFloatingTooltip');
-const tooltipArrowEl = document.getElementById('tooltipArrow');
-const tooltipBadgeTypeEl = document.getElementById('tooltipBadgeType');
-const tooltipBadgeJlptEl = document.getElementById('tooltipBadgeJlpt');
-const tooltipHeadwordEl = document.getElementById('tooltipHeadword');
-const tooltipReadingHanVietEl = document.getElementById('tooltipReadingHanViet');
-const tooltipMeaningEl = document.getElementById('tooltipMeaning');
-const tooltipExtraEl = document.getElementById('tooltipExtra');
-const btnTooltipSpeakEl = document.getElementById('btnTooltipSpeak');
-const btnTooltipCloseEl = document.getElementById('btnTooltipClose');
-const btnTooltipSaveFlashcardEl = document.getElementById('btnTooltipSaveFlashcard');
-const btnTooltipDetailLinkEl = document.getElementById('btnTooltipDetailLink');
-const tooltipDetailLinkTextEl = document.getElementById('tooltipDetailLinkText');
+let tooltipEl = null;
+let tooltipArrowEl = null;
+let tooltipBadgeTypeEl = null;
+let tooltipBadgeJlptEl = null;
+let tooltipHeadwordEl = null;
+let tooltipReadingHanVietEl = null;
+let tooltipMeaningEl = null;
+let tooltipExtraEl = null;
+let btnTooltipSpeakEl = null;
+let btnTooltipCloseEl = null;
+let btnTooltipSaveFlashcardEl = null;
+let btnTooltipDetailLinkEl = null;
+let tooltipDetailLinkTextEl = null;
+
+// Hàm làm mới toàn bộ tham chiếu DOM (Tránh lỗi DOM chết khi Router SPA thay thế ruột main)
+function refreshReadingDomReferences() {
+  inputScreenEl = document.getElementById('readingInputScreen');
+  workspaceScreenEl = document.getElementById('readingWorkspaceScreen');
+  btnBackToInputEl = document.getElementById('btnBackToInput');
+
+  inputEl = document.getElementById('readingInputText');
+  charCountEl = document.getElementById('charCountLabel');
+  selectJlptEl = document.getElementById('selectJlptTarget');
+  btnClearEl = document.getElementById('btnClearInput');
+  btnAnalyzeEl = document.getElementById('btnAnalyzeReading');
+  loadingStateEl = document.getElementById('readingLoadingState');
+
+  badgeEstimatedLevelEl = document.getElementById('badgeEstimatedLevel');
+  interactiveReadingBodyEl = document.getElementById('interactiveReadingBody');
+  textOverallSummaryEl = document.getElementById('textOverallSummary');
+  btnToggleFuriganaEl = document.getElementById('btnToggleFurigana');
+  furiganaToggleTextEl = document.getElementById('furiganaToggleText');
+  btnSpeakFullEl = document.getElementById('btnSpeakFullArticle');
+
+  countDokkaiQuestionsEl = document.getElementById('countDokkaiQuestions');
+  cleanReadingPassageBodyEl = document.getElementById('cleanReadingPassageBody');
+  btnToggleCleanFuriganaEl = document.getElementById('btnToggleCleanFurigana');
+  cleanFuriganaToggleTextEl = document.getElementById('cleanFuriganaToggleText');
+  dokkaiQuestionsContainerEl = document.getElementById('dokkaiQuestionsContainer');
+  dokkaiScoreSummaryEl = document.getElementById('dokkaiScoreSummary');
+  btnSubmitDokkaiEl = document.getElementById('btnSubmitDokkai');
+  btnSubmitDokkaiTextEl = document.getElementById('btnSubmitDokkaiText');
+  btnToggleDokkaiTranslationEl = document.getElementById('btnToggleDokkaiTranslation');
+  dokkaiTranslationToggleTextEl = document.getElementById('dokkaiTranslationToggleText');
+
+  countGrammarsEl = document.getElementById('countGrammars');
+  grammarListContainerEl = document.getElementById('grammarListContainer');
+  countVocabsEl = document.getElementById('countVocabs');
+  vocabularyGridContainerEl = document.getElementById('vocabularyGridContainer');
+  sentenceTranslationsContainerEl = document.getElementById('sentenceTranslationsContainer');
+
+  tabButtons = document.querySelectorAll('.reading-tab-btn');
+  tabPanels = {
+    challenge: document.getElementById('tabPanelChallenge'),
+    reader: document.getElementById('tabPanelReader'),
+    vocab: document.getElementById('tabPanelVocab'),
+    grammar: document.getElementById('tabPanelGrammar'),
+    translation: document.getElementById('tabPanelTranslation')
+  };
+
+  modalSaveEl = document.getElementById('modalSaveToDeck');
+  btnCloseModalEl = document.getElementById('btnCloseSaveModal');
+  btnCancelModalEl = document.getElementById('btnCancelModal');
+  btnConfirmSaveCardEl = document.getElementById('btnConfirmSaveCard');
+  selectTargetDeckEl = document.getElementById('selectTargetDeck');
+  modalTargetWordEl = document.getElementById('modalTargetWord');
+  modalTargetReadingEl = document.getElementById('modalTargetReading');
+  modalTargetMeaningEl = document.getElementById('modalTargetMeaning');
+
+  tooltipEl = document.getElementById('readingFloatingTooltip');
+  tooltipArrowEl = document.getElementById('tooltipArrow');
+  tooltipBadgeTypeEl = document.getElementById('tooltipBadgeType');
+  tooltipBadgeJlptEl = document.getElementById('tooltipBadgeJlpt');
+  tooltipHeadwordEl = document.getElementById('tooltipHeadword');
+  tooltipReadingHanVietEl = document.getElementById('tooltipReadingHanViet');
+  tooltipMeaningEl = document.getElementById('tooltipMeaning');
+  tooltipExtraEl = document.getElementById('tooltipExtra');
+  btnTooltipSpeakEl = document.getElementById('btnTooltipSpeak');
+  btnTooltipCloseEl = document.getElementById('btnTooltipClose');
+  btnTooltipSaveFlashcardEl = document.getElementById('btnTooltipSaveFlashcard');
+  btnTooltipDetailLinkEl = document.getElementById('btnTooltipDetailLink');
+  tooltipDetailLinkTextEl = document.getElementById('tooltipDetailLinkText');
+}
 
 // State cho Interactive Tokens & Tooltip
 let activeTokensMap = new Map();
@@ -165,12 +230,26 @@ function switchTab(tabKey) {
 }
 
 // =========================================================================
-// 2. KHỞI TẠO & LẮNG NGHE SỰ KIỆN
+// 2. KHỞI TẠO & LẮNG NGHE SỰ KIỆN (DOM READY & SPA MOUNT)
 // =========================================================================
-document.addEventListener('DOMContentLoaded', () => {
+function initReadingPage() {
+  refreshReadingDomReferences();
   setupEventListeners();
   checkVoicevoxStatus();
   fetchUserDecks();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initReadingPage);
+} else {
+  initReadingPage();
+}
+
+window.addEventListener('kizuna:page-mounted', (e) => {
+  const url = e?.detail?.url || window.location.pathname;
+  if (url.includes('reading')) {
+    initReadingPage();
+  }
 });
 
 function setupEventListeners() {
@@ -971,18 +1050,12 @@ function attachTokenEventListeners() {
 }
 
 // =========================================================================
-// 6. XỬ LÝ LƯU FLASHCARD
+// 6. XỬ LÝ LƯU FLASHCARD QUA APICLIENT (ĐỒNG BỘ CHUẨN BACKEND & LOCALSTORAGE)
 // =========================================================================
 async function fetchUserDecks() {
   try {
-    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-    const res = await fetch('/api/learner/flashcards/decks', { headers });
-    if (res.ok) {
-      userDecksList = await res.json();
-      populateDeckSelect();
-    }
+    userDecksList = await apiClient.getDecks();
+    populateDeckSelect();
   } catch (e) {
     console.warn('[AI Reading] Không tải được danh sách Decks:', e);
   }
@@ -1003,8 +1076,9 @@ function populateDeckSelect() {
     const opt = document.createElement('option');
     const val = String(deck.id || deck.deckId);
     opt.value = val;
-    opt.textContent = `${deck.name || 'Bộ thẻ'} (${deck.cardCount || 0} thẻ)`;
-    if (lastDeckId && (val === String(lastDeckId) || deck.name === lastDeckId)) {
+    const cardCount = Array.isArray(deck.cards) ? deck.cards.length : (deck.cardCount || 0);
+    opt.textContent = `${deck.title || deck.name || 'Bộ thẻ'} (${cardCount} thẻ)`;
+    if (lastDeckId && (val === String(lastDeckId) || deck.title === lastDeckId)) {
       opt.selected = true;
     }
     selectTargetDeckEl.appendChild(opt);
@@ -1039,44 +1113,58 @@ async function saveWordToDeck() {
   if (!pendingSaveWord) return;
 
   const deckId = selectTargetDeckEl ? selectTargetDeckEl.value : 'default';
-  btnConfirmSaveCardEl.disabled = true;
-  btnConfirmSaveCardEl.textContent = 'Đang lưu...';
+  if (btnConfirmSaveCardEl) {
+    btnConfirmSaveCardEl.disabled = true;
+    btnConfirmSaveCardEl.textContent = 'Đang lưu...';
+  }
 
-  const cardPayload = {
-    frontText: pendingSaveWord.kanji || pendingSaveWord.surfaceText || pendingSaveWord.reading,
-    frontSubText: pendingSaveWord.reading,
-    backMeaning: pendingSaveWord.meaning,
-    hanViet: pendingSaveWord.hanViet,
-    jlptLevel: pendingSaveWord.jlpt || 'N5',
-    deckId: deckId !== 'default' ? deckId : null
+  const wordText = pendingSaveWord.kanji || pendingSaveWord.surfaceText || pendingSaveWord.reading || '';
+  const readingText = pendingSaveWord.reading || '';
+  const meaningText = pendingSaveWord.meaning || '';
+  const hanVietText = pendingSaveWord.hanViet || '';
+  const jlptLevel = pendingSaveWord.jlpt || 'N5';
+
+  const newCard = {
+    char: wordText,
+    front: wordText,
+    reading: readingText,
+    meaning: meaningText,
+    back: readingText ? `${readingText} • ${meaningText}` : meaningText,
+    hanViet: hanVietText,
+    jlpt: jlptLevel
   };
 
   try {
-    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    const res = await fetch('/api/learner/flashcards/cards', {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(cardPayload)
-    });
-
-    if (!res.ok) {
-      throw new Error(`Mã lỗi: ${res.status}`);
+    let targetDeckId = deckId;
+    if (targetDeckId === 'default' || !targetDeckId) {
+      if (userDecksList && userDecksList.length > 0) {
+        targetDeckId = userDecksList[0].id;
+      } else {
+        const created = await apiClient.createDeck({
+          title: 'Bộ Thẻ Đọc Hiểu AI',
+          description: 'Từ vựng lưu từ bài tập đọc hiểu Dokkai',
+          color: 'rose',
+          cards: []
+        });
+        targetDeckId = created.id;
+        userDecksList.push(created);
+      }
     }
 
-    showToast(`Đã thêm từ「${cardPayload.frontText}」vào bộ thẻ thành công!`, 'success');
-    if (cardPayload.deckId) {
-      try { localStorage.setItem('kizuna_last_selected_deck_id', String(cardPayload.deckId)); } catch (e) {}
-    }
+    await apiClient.addCards(targetDeckId, [newCard]);
+
+    showToast(`Đã thêm từ「${wordText}」vào bộ thẻ thành công!`, 'success');
+    try { localStorage.setItem('kizuna_last_selected_deck_id', String(targetDeckId)); } catch (e) {}
     closeModal();
+    await fetchUserDecks();
   } catch (err) {
     console.error('[AI Reading] Lỗi lưu Flashcard:', err);
     showToast('Lưu Flashcard thất bại. Vui lòng thử lại.', 'error');
   } finally {
-    btnConfirmSaveCardEl.disabled = false;
-    btnConfirmSaveCardEl.textContent = 'Lưu vào bộ thẻ';
+    if (btnConfirmSaveCardEl) {
+      btnConfirmSaveCardEl.disabled = false;
+      btnConfirmSaveCardEl.textContent = 'Lưu vào bộ thẻ';
+    }
   }
 }
 

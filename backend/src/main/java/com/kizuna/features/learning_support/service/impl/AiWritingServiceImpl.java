@@ -69,18 +69,15 @@ public class AiWritingServiceImpl implements AiWritingService {
                     result.setFallback(false);
 
                     // Hàng rào kiểm duyệt bổ sung (Post-Validation Guardrails):
-                    // Trường hợp người dùng không nhập tiếng Nhật nhưng AI vẫn chấm điểm quá cao
-                    if (!containsJapanese(originalText)) {
-                        if (result.getScore() > 20) {
-                            result.setScore(15);
-                        }
-                        if (result.getRatingBadge() == null || !result.getRatingBadge().toLowerCase().contains("tiếng nhật")) {
-                            result.setRatingBadge("Chưa đúng ngôn ngữ / Cần viết bằng tiếng Nhật");
-                        }
-                        String curComment = result.getOverallComment() != null ? result.getOverallComment() : "";
-                        if (!curComment.toLowerCase().contains("tiếng nhật")) {
-                            result.setOverallComment("Nhắc nhở: Bạn đang nhập văn bản không phải tiếng Nhật. Vui lòng luyện viết bằng chữ Hiragana, Katakana hoặc Kanji nhé! ✍️ " + curComment);
-                        }
+                    // Trường hợp người dùng không nhập tiếng Nhật hoặc câu vô nghĩa mà AI trả về 意味が分かりません
+                    if (!containsJapanese(originalText) || isGibberishOrNonsense(originalText) || (result.getCorrectedText() != null && result.getCorrectedText().contains("意味が分かりません"))) {
+                        result.setScore(0);
+                        result.setRatingBadge("Chưa đúng ngôn ngữ / Cần viết bằng tiếng Nhật");
+                        result.setOverallComment("Nhắc nhở: Bạn đang nhập văn bản chưa phải tiếng Nhật có nghĩa. Vui lòng luyện viết bằng chữ Hiragana, Katakana hoặc Kanji để Sensei có thể chấm điểm và hướng dẫn bạn nhé! ✍️");
+                        result.setCorrectedText("");
+                        result.setErrors(List.of());
+                        result.setSuggestedVocabulary(List.of());
+                        result.setNativeAlternatives(List.of());
                     }
 
                     // Trường hợp văn bản gốc chứa ký tự lỗi/hỏng mã
@@ -330,23 +327,27 @@ public class AiWritingServiceImpl implements AiWritingService {
             return true;
         }
 
+        // Bỏ dấu tiếng Việt / diacritics để nhận diện chuỗi gõ phím ngẫu nhiên (keyboard smash như ádasdasd)
+        String stripped = java.text.Normalizer.normalize(trimmed, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+
         // 2. Ký tự lặp lại vô nghĩa 4 lần trở lên (ví dụ: aaaa, 1111, ああああ, .....)
-        if (trimmed.matches("^(.)\\1{3,}$")) {
+        if (trimmed.matches("^(.)\\1{3,}$") || stripped.matches("^(.)\\1{3,}$")) {
             return true;
         }
 
-        // 3. Chuỗi ký tự ngẫu nhiên lặp lại ngắn (ví dụ: asdasdasd, abcabcabc)
-        if (trimmed.matches("^(.{2,4})\\1{2,}$")) {
+        // 3. Chuỗi ký tự ngẫu nhiên lặp lại ngắn (ví dụ: asdasdasd, ádasdasd, abcabcabc)
+        if (trimmed.matches("^(.{2,4})\\1{2,}$") || stripped.matches("^(.{2,4})\\1{2,}$")) {
             return true;
         }
 
         // 4. Chuỗi Latin gõ phím ngẫu nhiên (keyboard smash không nguyên âm hoặc chuỗi phụ âm dày đặc)
-        if (trimmed.matches("(?i)^[b-df-hj-np-tv-z]{5,}$")) {
+        if (trimmed.matches("(?i)^[b-df-hj-np-tv-z]{5,}$") || stripped.matches("(?i)^[b-df-hj-np-tv-z]{5,}$")) {
             return true;
         }
 
         // 5. Các chuỗi gõ phím bừa theo hàng phím phổ biến
-        String lower = trimmed.toLowerCase();
+        String lower = stripped.toLowerCase();
         if (lower.matches(".*(asdfgh|qwerty|zxcvbn|qazwsx|123456|poiuyt|lkjhgf).*")) {
             return true;
         }
@@ -365,7 +366,7 @@ public class AiWritingServiceImpl implements AiWritingService {
                 .correctedText("")
                 .score(0)
                 .ratingBadge("Cảnh báo: Nội dung vô nghĩa")
-                .overallComment("⚠️ Cảnh báo: Nội dung bạn nhập dường như là các ký tự ngẫu nhiên hoặc vô nghĩa, không tạo thành câu tiếng Nhật hoàn chỉnh. Vui lòng nhập một câu tiếng Nhật có nghĩa để Sensei hỗ trợ sửa bài nhé!")
+                .overallComment("⚠️ Cảnh báo: Nội dung bạn nhập dường như là các ký tự ngẫu nhiên hoặc vô nghĩa, không tạo thành câu tiếng Nhật hoàn chỉnh. Vui lòng nhập một câu tiếng Nhật có nghĩa để Sensei hỗ trợ sửa bài nhé! ✍️")
                 .errors(List.of(
                         AiWritingErrorItemDto.builder()
                                 .errorType("Nội dung vô nghĩa")
@@ -385,7 +386,7 @@ public class AiWritingServiceImpl implements AiWritingService {
     private static AiWritingCheckResponse buildNonJapaneseReminderResponse(String text) {
         return AiWritingCheckResponse.builder()
                 .originalText(text)
-                .correctedText("Ví dụ câu tiếng Nhật: 私は日本語を勉強しています。")
+                .correctedText("")
                 .score(15)
                 .ratingBadge("Chưa đúng ngôn ngữ / Cần viết bằng tiếng Nhật")
                 .overallComment("Nhắc nhở: Bạn đang nhập văn bản không phải tiếng Nhật. Vui lòng luyện viết bằng chữ Hiragana, Katakana hoặc Kanji để Sensei có thể chấm điểm và sửa lỗi cho bạn nhé! ✍️")
@@ -397,25 +398,11 @@ public class AiWritingServiceImpl implements AiWritingService {
                                 .explanation("Văn bản bạn nhập không chứa ký tự tiếng Nhật. Hệ thống luyện viết KizunaTutor yêu cầu bài viết bằng tiếng Nhật.")
                                 .build()
                 ))
-                .suggestedVocabulary(List.of(
-                        AiWritingVocabularyDto.builder()
-                                .word("日本語")
-                                .reading("にほんご (nihongo)")
-                                .meaning("Tiếng Nhật")
-                                .build(),
-                        AiWritingVocabularyDto.builder()
-                                .word("勉強")
-                                .reading("べんきょう (benkyou)")
-                                .meaning("Học tập")
-                                .build()
-                ))
-                .nativeAlternatives(List.of(
-                        "私は日本語を勉強しています。(Tôi đang học tiếng Nhật)",
-                        "日本語で書いてみましょう！(Hãy thử viết bằng tiếng Nhật nhé!)"
-                ))
-                .provider("SYSTEM_FALLBACK")
-                .model("RuleEngine-v1")
-                .fallback(true)
+                .suggestedVocabulary(List.of())
+                .nativeAlternatives(List.of())
+                .provider("SYSTEM_GUARD")
+                .model("GuardRail-v1")
+                .fallback(false)
                 .build();
     }
 

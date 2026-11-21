@@ -45,7 +45,7 @@ async function speakWord(text, btn = null) {
 // 4. Tải dữ liệu bộ thẻ
 async function loadDeckDetail() {
   const urlParams = new URLSearchParams(window.location.search);
-  currentDeckId = urlParams.get('id');
+  currentDeckId = urlParams.get('id') || urlParams.get('deckId');
 
   if (!currentDeckId) {
     // Thử lấy từ pathname nếu theo cấu trúc /learner/flashcards/:id
@@ -156,7 +156,7 @@ function renderCardsList(filterQuery = '') {
             🔊
           </button>
           ${isKanji ? `
-            <a href="/learner/practice-canvas?char=${encodeURIComponent(c.char)}" 
+            <a href="/shodo?char=${encodeURIComponent(c.char)}" data-spa-link
                class="py-1 px-2 text-[11px] font-semibold rounded-lg border border-[#BAE6FD] bg-[#E0F2FE] text-[#006194] hover:bg-[#BAE6FD] flex items-center gap-1 transition no-underline cursor-pointer"
                title="Luyện viết chữ này trên Canvas Shodo">
               <span>🖌️</span>

@@ -21,7 +21,7 @@ export function paginationState(data = {}, sizes = PAGE_SIZE_OPTIONS) {
   const total = Number(data.total ?? data.totalElements ?? data.totalItems ?? 0);
   const size = Number(data.size) || sizes[0];
   const totalPages = Math.max(1, Number(data.totalPages) || Math.ceil(total / size) || 1);
-  const current = Math.min(Math.max(0, Number(data.page) || 0), totalPages - 1);
+  const current = Math.min(Math.max(0, Number(data.page ?? data.number ?? data.currentPage) || 0), totalPages - 1);
   const from = total === 0 ? 0 : current * size + 1;
   const to = Math.min(total, (current + 1) * size);
   const pages = [...new Set([0, totalPages - 1, current - 1, current, current + 1])]

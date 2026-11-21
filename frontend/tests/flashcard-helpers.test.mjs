@@ -63,3 +63,35 @@ test('enrichFlashcardItem an toàn khi dữ liệu rỗng hoặc thiếu trườ
   assert.equal(card.meaning, '');
   assert.ok(card.id);
 });
+
+test('Tương thích Minigame Bắn chữ: Thẻ từ vựng và chữ Hán sau khi enrich đều có target bắn hợp lệ', () => {
+  // 1. Thẻ từ vựng ghép Kanji: 勉強
+  const vocabCard = enrichFlashcardItem({
+    char: '勉強',
+    meaning: 'べんきょう, Việc học tập'
+  });
+  const vocabKana = extractKanaReadingsFromText(vocabCard.reading);
+  assert.ok(vocabKana.length > 0, 'Phải có Kana target để bắn từ vựng');
+  assert.equal(vocabKana[0], 'べんきょう');
+
+  // 2. Thẻ thuần Kana: ありがとう
+  const kanaCard = enrichFlashcardItem({
+    char: 'ありがとう',
+    meaning: 'Cảm ơn'
+  });
+  assert.equal(kanaCard.reading, 'ありがとう');
+
+  // 3. Thẻ Kanji đầy đủ: 水
+  const kanjiCard = enrichFlashcardItem({
+    char: '水',
+    hanViet: 'THỦY',
+    onyomi: 'スイ',
+    kunyomi: 'みず',
+    meaning: 'Nước',
+    jlpt: 'N5'
+  });
+  assert.equal(kanjiCard.reading, 'スイ');
+  assert.equal(kanjiCard.hanViet, 'THỦY');
+  const kanjiKana = extractKanaReadingsFromText(kanjiCard.reading);
+  assert.equal(kanjiKana[0], 'スイ');
+});

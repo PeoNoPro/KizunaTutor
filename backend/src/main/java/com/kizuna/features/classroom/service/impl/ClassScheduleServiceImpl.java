@@ -76,6 +76,7 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
     public ClassScheduleResponse add(CurrentActor actor, UUID spaceId, ClassScheduleRequest request) {
         LearningSpace space = loadEditableSpace(actor, spaceId);
         ClassScheduleRules.validateSlot(request);
+        ClassScheduleRules.requireStep(ClassScheduleRules.FIELD, request.startTime(), request.endTime());
         long weekly = scheduleRepository.countBySpace_SpaceId(space.getSpaceId());
         if (weekly >= ClassScheduleRules.MAX_SLOTS) {
             throw ClassroomException.fieldConflict(ClassScheduleRules.FIELD, "Mỗi lớp có tối đa " + ClassScheduleRules.MAX_SLOTS + " buổi học mỗi tuần.");
@@ -107,6 +108,9 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         ClassSchedule schedule = scheduleRepository.findByScheduleIdAndSpace_SpaceId(scheduleId, space.getSpaceId())
                 .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy buổi học trong lớp này."));
         ClassScheduleRules.validateSlot(request);
+        // Giờ lẻ của buổi cũ giữ nguyên thì vẫn nhận; giờ mới phải theo nấc 30 phút
+        ClassScheduleRules.requireStep(ClassScheduleRules.FIELD, request.startTime(), request.endTime(),
+                schedule.getStartTime(), schedule.getEndTime());
         rules.ensureNoConflict(space.getTutor().getTutorId(), space.getLearner().getLearnerId(),
                 space.getSpaceId(), schedule.getScheduleId(), List.of(request));
         boolean slotChanged = !request.dayOfWeek().equals(schedule.getDayOfWeek())

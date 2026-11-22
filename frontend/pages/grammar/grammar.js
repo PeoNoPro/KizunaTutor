@@ -8,7 +8,6 @@
 import { showToast, debounce } from '/js/main.js';
 import { voicevoxClient } from '/js/voicevoxClient.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
-import { renderPagination } from '/components/pagination/pagination.js';
 
 function escapeHtml(text) {
   if (text === null || text === undefined) return '';
@@ -23,8 +22,8 @@ function escapeHtml(text) {
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
   activeMenu: 'grammar',
-  pageTitle: 'Tra cứu ngữ pháp JLPT',
-  badge: 'Ngữ pháp'
+  pageTitle: 'Sổ tay Ngữ pháp JLPT',
+  badge: 'Cẩm nang JLPT N5 - N1'
 });
 
 // =========================================================================
@@ -103,10 +102,9 @@ let currentLevel = 'N5';
 let currentDomain = 'daily';
 let currentDomainLevel = 'ALL'; // 'ALL', 'N5', 'N4', 'N3', 'N2', 'N1'
 let currentSearchKeyword = '';
-let currentGrammarPage = 0;
-let GRAMMAR_PAGE_SIZE = 12; // 12 mẫu câu / trang (phù hợp lưới 1, 2, 3 cột)
+let currentGrammarPage = 1;
+const GRAMMAR_PAGE_SIZE = 12; // 12 m?u cu / trang (ph h?p lu?i 1, 2, 3 c?t)
 let masterGrammarList = []; // Toàn bộ 526 mẫu ngữ pháp đồng bộ từ Database
-let isStandbyMode = true; // Mặc định ở trạng thái chờ tra cứu khi chưa tìm kiếm hoặc chọn lọc cụ thể
 
 /**
  * Phân tích và gán các khối ứng dụng phù hợp cho mẫu ngữ pháp
@@ -334,29 +332,11 @@ function updateDomainSubLevelCounts() {
 function renderGrammarCards() {
   const grid = document.getElementById('grammarGrid');
   const emptyState = document.getElementById('grammarEmptyState');
-  const standbyState = document.getElementById('grammarStandbyState');
   const activeLabelEl = document.getElementById('filterActiveLabel');
   const activeCountEl = document.getElementById('filterActiveCount');
   const descEl = document.getElementById('filterDescription');
-  const paginationEl = document.getElementById('grammarPagination');
 
   if (!grid || !emptyState) return;
-
-  // 0. Nếu đang ở chế độ chờ (Standby Mode), hiển thị màn hình chờ và ẩn danh sách
-  if (isStandbyMode) {
-    if (standbyState) standbyState.classList.remove('hidden');
-    grid.innerHTML = '';
-    grid.classList.add('hidden');
-    emptyState.classList.add('hidden');
-    if (paginationEl) paginationEl.classList.add('hidden');
-    if (activeLabelEl) activeLabelEl.textContent = 'Màn hình chờ tra cứu';
-    if (activeCountEl) activeCountEl.textContent = '0';
-    if (descEl) descEl.textContent = 'Chọn một cấp độ JLPT hoặc nhập từ khóa để bắt đầu tra cứu.';
-    return;
-  }
-
-  // Khi đã vào chế độ xem dữ liệu, ẩn màn hình chờ
-  if (standbyState) standbyState.classList.add('hidden');
 
   // 1. Lọc theo Chế độ (Cấp độ JLPT hoặc Khối Ứng dụng kết hợp Cấp độ)
   let activeList = [];
@@ -395,6 +375,8 @@ function renderGrammarCards() {
   // 3. Cập nhật số lượng mẫu câu hiển thị
   if (activeCountEl) activeCountEl.textContent = String(filtered.length);
 
+  const paginationEl = document.getElementById('grammarPagination');
+
   if (filtered.length === 0) {
     grid.innerHTML = '';
     grid.classList.add('hidden');
@@ -406,13 +388,13 @@ function renderGrammarCards() {
   emptyState.classList.add('hidden');
   grid.classList.remove('hidden');
 
-  // Tính toán phân trang chuẩn 0-indexed
+  // Tnh ton phn trang
   const totalItems = filtered.length;
-  const totalPages = Math.ceil(totalItems / GRAMMAR_PAGE_SIZE) || 1;
-  if (currentGrammarPage >= totalPages) currentGrammarPage = totalPages - 1;
-  if (currentGrammarPage < 0) currentGrammarPage = 0;
+  const totalPages = Math.ceil(totalItems / GRAMMAR_PAGE_SIZE);
+  if (currentGrammarPage > totalPages) currentGrammarPage = totalPages || 1;
+  if (currentGrammarPage < 1) currentGrammarPage = 1;
 
-  const startIndex = currentGrammarPage * GRAMMAR_PAGE_SIZE;
+  const startIndex = (currentGrammarPage - 1) * GRAMMAR_PAGE_SIZE;
   const endIndex = Math.min(startIndex + GRAMMAR_PAGE_SIZE, totalItems);
   const pageItems = filtered.slice(startIndex, endIndex);
 
@@ -460,7 +442,7 @@ function renderGrammarCards() {
 
         <!-- DÒNG 4: HÀNH ĐỘNG FOOTER (Nút xem chi tiết) -->
         <div class="mt-4 pt-3 border-t border-[#E2E8F0] flex justify-end">
-          <div class="text-xs font-semibold text-[#006194] group-hover:text-[#007bb9] flex items-center gap-1 transition-colors">
+          <div class="text-xs font-semibold text-[#9F1239] group-hover:text-[#BE185D] flex items-center gap-1 transition-colors">
             <span>Xem chi tiết công thức &amp; ví dụ</span>
             <span class="transition-transform group-hover:translate-x-0.5">→</span>
           </div>
@@ -484,42 +466,93 @@ function renderGrammarCards() {
   });
 }
 
-// =========================================================================
-// 8. PHÂN TRANG (PAGINATION) - ĐỒNG BỘ BẰNG COMPONENT CHUẨN DÙNG CHUNG
-// =========================================================================
+/**
+ * Render thanh phân trang chuẩn phong cách Shodo
+ */
 function renderGrammarPagination(totalItems, totalPages, startIndex, endIndex) {
   const paginationEl = document.getElementById('grammarPagination');
-  if (!paginationEl) return;
+  const infoEl = document.getElementById('grammarPaginationInfo');
+  const controlsEl = document.getElementById('grammarPaginationControls');
 
-  if (totalItems === 0 || totalPages <= 1) {
+  if (!paginationEl || !infoEl || !controlsEl) return;
+
+  if (totalPages <= 1) {
     paginationEl.classList.add('hidden');
     return;
   }
 
   paginationEl.classList.remove('hidden');
-  renderPagination(
-    paginationEl,
-    {
-      page: currentGrammarPage,
-      size: GRAMMAR_PAGE_SIZE,
-      totalElements: totalItems,
-      totalPages: Math.max(1, totalPages)
-    },
-    {
-      sizes: [12, 24, 48],
-      onPage: (p) => {
+  infoEl.innerHTML = `Hiển thị <span class="font-bold text-[#0F172A]">${startIndex + 1} - ${endIndex}</span> trên <span class="font-bold text-[#0F172A]">${totalItems}</span> mẫu câu (Trang ${currentGrammarPage}/${totalPages})`;
+
+  // To danh sAch trang thA'ng minh (vd: 1 ... 4 5 6 ... 10)
+  const pages = [];
+  const delta = 1;
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentGrammarPage - delta && i <= currentGrammarPage + delta)) {
+      pages.push(i);
+    } else if (pages[pages.length - 1] !== '...') {
+      pages.push('...');
+    }
+  }
+
+  let controlsHtml = '';
+
+  // NAt Tr>c
+  const isFirst = currentGrammarPage === 1;
+  controlsHtml += `
+    <button type="button" data-grammar-page="${currentGrammarPage - 1}" ${isFirst ? 'disabled' : ''}
+            class="h-8 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-all ${isFirst ? 'opacity-40 cursor-not-allowed border-[#CBD5E1] text-[#94A3B8] bg-slate-50' : 'bg-white text-[#334155] border-[#CBD5E1] hover:bg-slate-50 hover:border-[#0F172A] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer shadow-xs'}">
+      <span class="material-symbols-outlined text-[15px]">chevron_left</span>
+      <span>Trước</span>
+    </button>
+  `;
+
+  // CAc nAt s` trang
+  pages.forEach(p => {
+    if (p === '...') {
+      controlsHtml += `<span class="px-1.5 text-xs text-[#94A3B8] select-none">...</span>`;
+    } else if (p === currentGrammarPage) {
+      controlsHtml += `
+        <button type="button" disabled
+                class="h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold bg-[#9F1239] text-white border border-[#0F172A] shadow-[1px_1px_0px_0px_#0F172A] select-none">
+          ${p}
+        </button>
+      `;
+    } else {
+      controlsHtml += `
+        <button type="button" data-grammar-page="${p}"
+                class="h-8 min-w-[32px] px-2 rounded-lg text-xs font-semibold bg-white text-[#334155] border border-[#CBD5E1] hover:bg-slate-50 hover:border-[#0F172A] hover:text-[#0F172A] transition-all cursor-pointer shadow-xs active:translate-x-[1px] active:translate-y-[1px]">
+          ${p}
+        </button>
+      `;
+    }
+  });
+
+  // NAt Sau
+  const isLast = currentGrammarPage === totalPages;
+  controlsHtml += `
+    <button type="button" data-grammar-page="${currentGrammarPage + 1}" ${isLast ? 'disabled' : ''}
+            class="h-8 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-all ${isLast ? 'opacity-40 cursor-not-allowed border-[#CBD5E1] text-[#94A3B8] bg-slate-50' : 'bg-white text-[#334155] border-[#CBD5E1] hover:bg-slate-50 hover:border-[#0F172A] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer shadow-xs'}">
+      <span>Sau</span>
+      <span class="material-symbols-outlined text-[15px]">chevron_right</span>
+    </button>
+  `;
+
+  controlsEl.innerHTML = controlsHtml;
+
+  // L_ng nghe s kin click phAn trang
+  controlsEl.querySelectorAll('button[data-grammar-page]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const p = parseInt(btn.dataset.grammarPage, 10);
+      if (!isNaN(p) && p >= 1 && p <= totalPages && p !== currentGrammarPage) {
         currentGrammarPage = p;
         renderGrammarCards();
         document.getElementById('grammarGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      },
-      onSize: (s) => {
-        GRAMMAR_PAGE_SIZE = s;
-        currentGrammarPage = 0;
-        renderGrammarCards();
-        document.getElementById('grammarGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }
-  );
+    });
+  });
 }
 
 // =========================================================================
@@ -806,22 +839,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Đọc Query Parameters từ URL (nếu có)
   const urlParams = new URLSearchParams(window.location.search);
-  const qKeyword = urlParams.get('q') || urlParams.get('keyword') || urlParams.get('search');
   const qMode = urlParams.get('mode');
   const qLevel = urlParams.get('level');
   const qDomain = urlParams.get('domain');
-  const qDetail = urlParams.get('detail') || urlParams.get('id');
-
-  if (qKeyword || qMode || qLevel || qDomain || qDetail) {
-    isStandbyMode = false;
-    if (qKeyword) {
-      currentSearchKeyword = qKeyword;
-      const sInput = document.getElementById('searchGrammarInput');
-      if (sInput) sInput.value = qKeyword;
-    }
-  } else {
-    isStandbyMode = true;
-  }
 
   if (qMode === 'domain') {
     currentFilterMode = 'domain';
@@ -901,7 +921,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (selectedMode === currentFilterMode) return;
 
       currentFilterMode = selectedMode;
-      isStandbyMode = false;
 
       // Cập nhật giao diện Segmented Control
       modeSwitcherBtns.forEach(b => {
@@ -935,12 +954,11 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       e.stopPropagation();
       currentLevel = tab.dataset.level;
-      currentGrammarPage = 0;
-      isStandbyMode = false;
+      currentGrammarPage = 1;
 
       document.querySelectorAll('#jlptLevelTabs button').forEach(t => {
         if (t.dataset.level === currentLevel) {
-          t.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer';
+          t.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer';
         } else {
           t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer';
         }
@@ -957,12 +975,11 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       e.stopPropagation();
       currentDomain = tab.dataset.domain;
-      currentGrammarPage = 0;
-      isStandbyMode = false;
+      currentGrammarPage = 1;
 
       document.querySelectorAll('#domainTabs button').forEach(t => {
         if (t.dataset.domain === currentDomain) {
-          t.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0';
+          t.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0';
         } else {
           t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1.5 shrink-0';
         }
@@ -979,12 +996,11 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       e.stopPropagation();
       currentDomainLevel = tab.dataset.domainLevel;
-      currentGrammarPage = 0;
-      isStandbyMode = false;
+      currentGrammarPage = 1;
 
       document.querySelectorAll('#domainJlptTabs button').forEach(t => {
         if (t.dataset.domainLevel === currentDomainLevel) {
-          t.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1';
+          t.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#831843] text-white shadow-xs transition cursor-pointer flex items-center gap-1';
         } else {
           t.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1';
         }
@@ -1012,8 +1028,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     searchInput.addEventListener('input', debounce((e) => {
       currentSearchKeyword = e.target.value;
-      currentGrammarPage = 0;
-      isStandbyMode = false;
+      currentGrammarPage = 1;
       renderGrammarCards();
     }, 250));
 
@@ -1022,77 +1037,12 @@ document.addEventListener('DOMContentLoaded', () => {
       clearBtn.classList.add('hidden');
       searchInput.focus();
       currentSearchKeyword = '';
-      currentGrammarPage = 0;
-      isStandbyMode = true;
+      currentGrammarPage = 1;
       renderGrammarCards();
     });
   }
 
-  // 5. Gắn sự kiện các nút gợi ý nhanh trên màn hình chờ
-  document.querySelectorAll('.btn-grammar-quick-chip').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const type = btn.getAttribute('data-quick-type');
-      const val = btn.getAttribute('data-quick-val');
-      isStandbyMode = false;
-
-      if (type === 'level') {
-        currentFilterMode = 'jlpt';
-        currentLevel = val;
-        currentGrammarPage = 0;
-        modeSwitcherBtns.forEach(b => {
-          if (b.dataset.mode === 'jlpt') {
-            b.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#831843] text-white shadow-xs';
-          } else {
-            b.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition flex items-center gap-1.5 cursor-pointer';
-          }
-        });
-        jlptTabsContainer?.classList.remove('hidden');
-        domainTabsContainer?.classList.add('hidden');
-        domainJlptSubFilter?.classList.add('hidden');
-        document.querySelectorAll('#jlptLevelTabs button').forEach(t => {
-          if (t.dataset.level === currentLevel) {
-            t.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer';
-          } else {
-            t.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer';
-          }
-        });
-      } else if (type === 'domain') {
-        currentFilterMode = 'domain';
-        currentDomain = val;
-        currentGrammarPage = 0;
-        modeSwitcherBtns.forEach(b => {
-          if (b.dataset.mode === 'domain') {
-            b.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#831843] text-white shadow-xs';
-          } else {
-            b.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition flex items-center gap-1.5 cursor-pointer';
-          }
-        });
-        jlptTabsContainer?.classList.add('hidden');
-        domainTabsContainer?.classList.remove('hidden');
-        domainJlptSubFilter?.classList.remove('hidden');
-        document.querySelectorAll('#domainTabs button').forEach(t => {
-          if (t.dataset.domain === currentDomain) {
-            t.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-[#006194] text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0';
-          } else {
-            t.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#F8FAFC] text-[#334155] hover:bg-[#F1F5F9] border border-[#E2E8F0] transition cursor-pointer flex items-center gap-1.5 shrink-0';
-          }
-        });
-      } else if (type === 'search') {
-        if (searchInput) searchInput.value = val;
-        if (clearBtn) clearBtn.classList.remove('hidden');
-        currentSearchKeyword = val;
-        currentGrammarPage = 0;
-      }
-
-      updateUrlParams();
-      renderGrammarCards();
-      document.getElementById('grammarGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  });
-
-  // 6. Nút quay lại danh sách
+  // 5. Nút quay lại danh sách
   document.getElementById('btnBackToList')?.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();

@@ -70,10 +70,6 @@ class FlashcardDeckControllerTest {
             BusinessException ex3 = assertThrows(BusinessException.class,
                     () -> controller.deleteDeck("deck-123", null, null));
             assertEquals(401, ex3.status());
-
-            BusinessException ex4 = assertThrows(BusinessException.class,
-                    () -> controller.addCards("deck-123", Map.of("cards", List.of()), null, null));
-            assertEquals(401, ex4.status());
         }
 
         @Test
@@ -105,11 +101,6 @@ class FlashcardDeckControllerTest {
             BusinessException delEx = assertThrows(BusinessException.class,
                     () -> controller.deleteDeck("deck-bob-01", "Bearer alice-jwt", null));
             assertEquals(403, delEx.status());
-
-            // [Act & Assert] Add cards to deck of Bob
-            BusinessException addCardsEx = assertThrows(BusinessException.class,
-                    () -> controller.addCards("deck-bob-01", Map.of("cards", List.of()), "Bearer alice-jwt", null));
-            assertEquals(403, addCardsEx.status());
 
             verify(jdbcTemplate, never()).update(contains("DELETE"), any(), any());
         }
@@ -258,61 +249,6 @@ class FlashcardDeckControllerTest {
             // [Act & Assert] When calling deleteDeck -> Throws ResourceNotFoundException
             assertThrows(ResourceNotFoundException.class,
                     () -> controller.deleteDeck("deck-not-exist", "Bearer user-jwt", null));
-        }
-
-        @Test
-        @DisplayName("Happy Path: Thêm danh sách thẻ mới vào bộ thẻ đã có (nối tiếp cards_json)")
-        void addCards_happyPath_shouldAppendCardsAndUpdateDb() {
-            // [Arrange] Given existing deck with 1 card
-            mockAuth("user-jwt", "user@kizuna.vn");
-
-            Map<String, Object> existingRow = new HashMap<>();
-            existingRow.put("id", "deck-add-1");
-            existingRow.put("owner_key", "user@kizuna.vn");
-            existingRow.put("title", "Bo The N5");
-            existingRow.put("description", "Mo ta");
-            existingRow.put("color", "blue");
-            existingRow.put("cards_json", "[{\"id\":\"c1\",\"char\":\"日\",\"reading\":\"ひ\",\"meaning\":\"Mặt trời\"}]");
-            existingRow.put("created_at", "2026-11-20T00:00:00Z");
-            existingRow.put("updated_at", "2026-11-20T00:00:00Z");
-
-            when(jdbcTemplate.queryForList(anyString(), eq("deck-add-1"))).thenReturn(List.of(existingRow));
-
-            Map<String, Object> body = Map.of(
-                    "cards", List.of(
-                            Map.of("char", "月", "reading", "つき", "meaning", "Mặt trăng"),
-                            Map.of("char", "火", "reading", "ひ", "meaning", "Lửa")
-                    )
-            );
-
-            // [Act] When calling addCards
-            ResponseEntity<Map<String, Object>> response = controller.addCards(
-                    "deck-add-1", body, "Bearer user-jwt", null);
-
-            // [Assert] Should return 3 cards in total and update DB
-            assertNotNull(response.getBody());
-            List<?> returnedCards = (List<?>) response.getBody().get("cards");
-            assertNotNull(returnedCards);
-            assertEquals(3, returnedCards.size());
-
-            verify(jdbcTemplate, times(1)).update(
-                    contains("UPDATE learner_flashcard_decks SET cards_json = ?, updated_at = NOW() WHERE id = ? AND owner_key = ?"),
-                    anyString(),
-                    eq("deck-add-1"),
-                    eq("user@kizuna.vn")
-            );
-        }
-
-        @Test
-        @DisplayName("Abnormal Case: Thêm thẻ vào bộ thẻ không tồn tại -> Ném ResourceNotFoundException")
-        void addCards_whenNotFound_shouldThrowResourceNotFoundException() {
-            // [Arrange] Deck not found in DB
-            mockAuth("user-jwt", "user@kizuna.vn");
-            when(jdbcTemplate.queryForList(anyString(), eq("deck-not-exist"))).thenReturn(Collections.emptyList());
-
-            // [Act & Assert] When calling addCards -> Throws ResourceNotFoundException
-            assertThrows(ResourceNotFoundException.class,
-                    () -> controller.addCards("deck-not-exist", Map.of("cards", List.of()), "Bearer user-jwt", null));
         }
     }
 }

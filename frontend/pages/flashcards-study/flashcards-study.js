@@ -7,7 +7,6 @@
 import { showToast } from '/js/main.js';
 import { voicevoxClient } from '/js/voicevoxClient.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
-import { apiClient } from '/js/apiClient.js';
 
 // 1. Khởi tạo Shell học viên
 initLearnerShell({
@@ -53,25 +52,42 @@ async function loadStudyDeck() {
     return;
   }
 
-  // 1. Tải trực tiếp qua apiClient (Tự động lấy dữ liệu mới nhất từ Backend có Header Auth, đồng bộ với LocalStorage)
+  // 1. Tìm trong LocalStorage
   try {
-    currentDeck = await apiClient.getDeck(currentDeckId);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const decks = JSON.parse(raw);
+      if (Array.isArray(decks)) {
+        currentDeck = decks.find(d => String(d.id) === String(currentDeckId));
+      }
+    }
   } catch (e) {
-    console.debug('Lỗi nạp bộ thẻ qua apiClient:', e);
+    console.debug('Lỗi đọc localStorage:', e);
   }
 
-  // 2. Fallback nếu apiClient chưa trả về
+  // 2. Nếu chưa có, thử tìm qua REST API Backend
   if (!currentDeck) {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const decks = JSON.parse(raw);
-        if (Array.isArray(decks)) {
-          currentDeck = decks.find(d => String(d.id) === String(currentDeckId));
-        }
+      const res = await fetch(`/api/learner/decks/${encodeURIComponent(currentDeckId)}`).catch(() => null);
+      if (res && res.ok) {
+        const d = await res.json();
+        currentDeck = {
+          id: String(d.id || d.folderId || currentDeckId),
+          title: d.title || d.folderName || 'Bộ thẻ',
+          description: d.description || '',
+          color: d.color || 'blue',
+          cards: (d.cards || d.items || []).map(c => ({
+            char: c.character || c.kanjiChar || c.char || c.front || '',
+            hanViet: c.hanViet || '',
+            meaning: c.meaning || c.back || '',
+            onyomi: c.onyomi || '—',
+            kunyomi: c.kunyomi || '—',
+            jlpt: c.jlptLevel || c.jlpt || 'Flashcard'
+          }))
+        };
       }
     } catch (e) {
-      console.debug('Lỗi đọc localStorage:', e);
+      console.debug('Lỗi API backend:', e);
     }
   }
 

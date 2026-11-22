@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Luyện Phản Xạ Chữ Hán - KizunaTutor</title>
+  <title>Trò Chơi Mưa Chữ Hán - KizunaTutor</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -77,29 +77,29 @@
           <div id="screenLobby" class="max-w-2xl mx-auto space-y-3 animate-in fade-in duration-200">
             
             <!-- Khối Nội Dung Chính: Cài Đặt (7/12) & Bảng Thành Tích (5/12) -->
-            <!-- Khối Cấu Hình Luyện Tập -->
+            <!-- Khối Cấu Hình Trận Đấu -->
             <div class="space-y-3">
               <div class="md:col-span-7 space-y-3">
                 <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 sm:p-4 shadow-sm space-y-3">
                   <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
                     <div class="flex items-center gap-1.5">
-                      <span class="material-symbols-outlined text-[18px] text-[#006194]">tune</span>
-                      <h2 class="font-bold text-sm text-[#0F172A]">Cấu hình phiên luyện tập</h2>
+                      <span class="material-symbols-outlined text-[18px] text-[#831843]">tune</span>
+                      <h2 class="font-bold text-sm text-[#0F172A]">Cấu hình trận đấu</h2>
                     </div>
                   </div>
 
                   <!-- Khối Chọn Nguồn Chữ Hán (Ẩn tự động khi đã chọn Deck từ trang trước) -->
                   <div id="sourceSelectionWrapper" class="space-y-2">
                     <!-- Badge thông báo nếu đang chọn từ Bộ Thẻ Cá Nhân -->
-                    <div id="deckInfoBanner" class="hidden p-2 rounded-lg bg-[#E0F2FE] border border-[#BAE6FD] flex items-center justify-between gap-2">
+                    <div id="deckInfoBanner" class="hidden p-2 rounded-lg bg-[#FFE5EC] border border-[#FBCFE8] flex items-center justify-between gap-2">
                       <div class="flex items-center gap-2">
                         <span class="text-base">🗂️</span>
                         <div>
-                          <span class="text-[10px] font-bold text-[#006194] uppercase tracking-wider block">Nguồn chữ Hán đã chọn:</span>
+                          <span class="text-[10px] font-bold text-[#831843] uppercase tracking-wider block">Nguồn chữ Hán đã chọn:</span>
                           <span id="deckInfoTitle" class="text-xs font-bold text-[#0F172A]">Bộ Thẻ Cá Nhân</span>
                         </div>
                       </div>
-                      <span id="deckInfoCount" class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white text-[#006194] border border-[#BAE6FD]">0 thẻ</span>
+                      <span id="deckInfoCount" class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white text-[#831843] border border-[#FBCFE8]">0 thẻ</span>
                     </div>
 
                     <!-- Dropdown Chọn Nguồn Chữ Hán -->
@@ -129,7 +129,7 @@
                     </label>
                     <div class="grid grid-cols-3 gap-2">
                       <button type="button" data-duration="60" 
-                              class="duration-btn active py-1.5 px-2 text-xs font-bold rounded-lg border border-transparent bg-[#006194] text-white transition text-center cursor-pointer shadow-xs">
+                              class="duration-btn active py-1.5 px-2 text-xs font-bold rounded-lg border border-transparent bg-[#9F1239] text-white transition text-center cursor-pointer shadow-xs">
                         60 giây
                       </button>
                       <button type="button" data-duration="180" 
@@ -150,7 +150,7 @@
                     </label>
                     <div class="grid grid-cols-3 gap-2">
                       <button type="button" data-speed="0.6" 
-                              class="speed-btn active py-1.5 px-2 text-xs font-bold rounded-lg border border-transparent bg-[#006194] text-white transition text-center cursor-pointer shadow-xs">
+                              class="speed-btn active py-1.5 px-2 text-xs font-bold rounded-lg border border-transparent bg-[#9F1239] text-white transition text-center cursor-pointer shadow-xs">
                         Luyện tập
                       </button>
                       <button type="button" data-speed="1.0" 
@@ -171,7 +171,7 @@
                     </label>
                     <div class="grid grid-cols-2 gap-2">
                       <button type="button" data-hint="false" id="btnHintOff" 
-                              class="hint-btn active py-1.5 px-2 text-xs font-bold rounded-lg border border-transparent bg-[#006194] text-white transition text-center cursor-pointer shadow-xs flex items-center justify-center gap-1.5">
+                              class="hint-btn active py-1.5 px-2 text-xs font-bold rounded-lg border border-transparent bg-[#9F1239] text-white transition text-center cursor-pointer shadow-xs flex items-center justify-center gap-1.5">
                         <span class="material-symbols-outlined text-[15px]">visibility_off</span>
                         <span>Không hiển thị</span>
                       </button>
@@ -182,12 +182,12 @@
                       </button>
                     </div>
                   </div>
-                  <!-- Nút Bắt Đầu Luyện Tập Chính -->
+                  <!-- Nút Bắt Đầu Trận Đấu Chính -->
                   <div class="pt-1">
                     <button type="button" id="btnStartFromLobby" 
-                            class="w-full py-2.5 px-4 rounded-lg bg-[#006194] hover:bg-[#004f7a] text-white font-bold text-sm border border-transparent shadow-xs active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center justify-center gap-2 cursor-pointer transition-all">
+                            class="w-full py-2.5 px-4 rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white font-bold text-sm border border-transparent shadow-xs active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center justify-center gap-2 cursor-pointer transition-all">
                       <span class="material-symbols-outlined text-[18px]">play_arrow</span>
-                      <span>Bắt Đầu Luyện Tập</span>
+                      <span>Bắt Đầu Chơi Ngay</span>
                     </button>
                   </div>
                 </div>
@@ -283,12 +283,12 @@
                 <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">keyboard</span>
                 <input type="text" 
                        id="kanjiGameInput" 
-                       placeholder="Nhập cách đọc rồi nhấn [Space] hoặc [Enter] để bắn 🚀" 
+                       placeholder="Gõ cách đọc chữ Hán tại đây (Ví dụ: nichi, hi, tsuki, nhat...)" 
                        autocomplete="off" 
                        autocorrect="off" 
                        autocapitalize="off" 
                        spellcheck="false"
-                       class="w-full pl-10 pr-20 py-2.5 text-xs sm:text-sm font-semibold border border-[#CBD5E1] focus:border-[#006194] focus:ring-1 focus:ring-[#006194] rounded-lg bg-white text-[#0F172A] focus:outline-none transition">
+                       class="w-full pl-10 pr-20 py-2.5 text-xs sm:text-sm font-semibold border border-[#CBD5E1] focus:border-[#831843] focus:ring-1 focus:ring-[#831843] rounded-lg bg-white text-[#0F172A] focus:outline-none transition">
                 <button type="button" id="btnClearInput" 
                         class="absolute right-2.5 top-1/2 -translate-y-1/2 px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
                         title="Xóa nội dung đang gõ">
@@ -324,7 +324,7 @@
               <!-- Thẻ Danh Hiệu Đạt Được -->
               <div class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 text-center space-y-0.5">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Danh hiệu đạt được:</span>
-                <h3 id="resultRankTitle" class="font-extrabold text-base sm:text-lg text-[#006194]">Bậc Thầy Chữ Hán 👑</h3>
+                <h3 id="resultRankTitle" class="font-extrabold text-base sm:text-lg text-[#831843]">Bậc Thầy Chữ Hán 👑</h3>
               </div>
 
               <!-- Lưới Thống Kê 4 Chỉ Số -->
@@ -361,9 +361,9 @@
               <!-- Cụm Nút Hành Động Điều Hướng -->
               <div class="pt-2 flex flex-col sm:flex-row items-center gap-3">
                 <button type="button" id="btnResultPlayAgain" 
-                        class="w-full sm:flex-1 py-3 px-4 rounded-xl bg-[#006194] hover:bg-[#004f7a] text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                        class="w-full sm:flex-1 py-3 px-4 rounded-xl bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-sm">
                   <span class="material-symbols-outlined text-[18px]">replay</span>
-                  <span>Luyện Tập Lại</span>
+                  <span>Chơi Lại (Cùng Cài Đặt)</span>
                 </button>
                 <button type="button" id="btnResultChangeSettings" 
                         class="w-full sm:flex-1 py-3 px-4 rounded-xl border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#1E293B] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer">

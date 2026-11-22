@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tra Cứu Từ Vựng 🔤 - KizunaTutor</title>
+  <title>Tra Cứu Từ Vựng - KizunaTutor</title>
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
 
   <!-- Fonts & Icons -->
@@ -42,7 +42,7 @@
             <div class="flex items-center justify-between gap-2.5 flex-wrap pb-2 border-b border-[#E2E8F0]">
               <div class="flex items-center gap-2">
                 <span class="text-xs font-bold text-[#0F172A] uppercase tracking-wider">Chủ đề từ vựng:</span>
-                <span id="activeTopicBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">
+                <span id="activeTopicBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
                   Tất cả JLPT
                 </span>
               </div>
@@ -55,7 +55,7 @@
                   </span>
                   <input type="text" id="searchVocabInput"
                          placeholder="Tìm từ vựng, Hiragana, Hán Việt, nghĩa..."
-                         class="w-full pl-9 pr-8 py-2 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#006194] focus:ring-1 focus:ring-[#006194] transition">
+                         class="w-full pl-9 pr-8 py-2 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
                   <button type="button" id="btnClearVocabSearch"
                           class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 text-[11px] font-bold flex items-center justify-center transition cursor-pointer"
                           title="Xóa từ khóa tìm kiếm">✕</button>
@@ -68,25 +68,31 @@
                 Đang nạp danh mục...
               </span>
 
-              <!-- Cụm chuyển đổi chế độ hiển thị từ vựng JLPT -->
+              <!-- Nút Luyện tập Kana & Cụm chuyển đổi chế độ hiển thị từ vựng JLPT -->
               <div class="flex items-center gap-2 flex-wrap">
-                <div class="inline-flex items-center p-0.5 bg-[#F1F5F9] rounded-lg border border-[#E2E8F0]">
-                  <button type="button" id="btnModeJlpt" data-view-mode="jlpt"
-                          class="px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer bg-white text-[#006194] shadow-xs"
-                          title="Tự động hiển thị Kana đối với từ vựng không yêu cầu chữ Hán ở cấp độ này">
-                    <span>🎯 Chuẩn JLPT</span>
-                  </button>
-                  <button type="button" id="btnModeKanji" data-view-mode="kanji"
-                          class="px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]"
-                          title="Luôn hiển thị chữ Hán to nhất để học âm Hán Việt">
-                    <span>🈸 Chữ Hán</span>
-                  </button>
-                  <button type="button" id="btnModeKana" data-view-mode="kana"
-                          class="px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]"
-                          title="Luôn hiển thị Hiragana / Katakana to nhất để luyện phát âm">
-                    <span>🔤 Chữ Kana</span>
-                  </button>
-                </div>
+                <a href="/kana" data-spa-link
+                   class="px-2.5 py-1 text-xs font-semibold rounded-md border border-[#CBD5E1] bg-white text-[#0F172A] hover:bg-slate-50 transition flex items-center gap-1.5 no-underline shadow-2xs"
+                   title="Luyện phản xạ gõ bảng chữ cái Hiragana & Katakana">
+                  <span>⌨️</span>
+                  <span>Đấu trường Kana</span>
+                </a>
+              <div class="inline-flex items-center p-0.5 bg-[#F1F5F9] rounded-lg border border-[#E2E8F0]">
+                <button type="button" id="btnModeJlpt" data-view-mode="jlpt"
+                        class="px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer bg-white text-[#831843] shadow-xs"
+                        title="Tự động hiển thị Kana đối với từ vựng không yêu cầu chữ Hán ở cấp độ này">
+                  <span>🎯 Chuẩn JLPT</span>
+                </button>
+                <button type="button" id="btnModeKanji" data-view-mode="kanji"
+                        class="px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]"
+                        title="Luôn hiển thị chữ Hán to nhất để học âm Hán Việt">
+                  <span>🈸 Chữ Hán</span>
+                </button>
+                <button type="button" id="btnModeKana" data-view-mode="kana"
+                        class="px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]"
+                        title="Luôn hiển thị Hiragana / Katakana to nhất để luyện phát âm">
+                  <span>🔤 Chữ Kana</span>
+                </button>
+              </div>
               </div>
             </div>
 
@@ -96,42 +102,8 @@
             </div>
           </div>
 
-          <!-- MÀN HÌNH CHỜ TRA CỨU TỪ VỰNG (STANDBY STATE) -->
-          <div id="vocabStandbyState" class="p-8 sm:p-12 text-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white space-y-3">
-            <img src="/assets/images/stickers/tea-meditation-capi.png" 
-                 alt="Capybara Học Từ Vựng" 
-                 class="w-16 h-16 mx-auto mb-2 object-contain pointer-events-none select-none" />
-            <h3 class="text-lg sm:text-xl font-bold text-[#0F172A]">
-              Sẵn sàng tra cứu Từ vựng JLPT &amp; Chủ đề 🔤
-            </h3>
-            <p class="text-xs text-[#64748B] font-sans max-w-lg mx-auto leading-relaxed">
-              Nhập từ vựng tiếng Nhật, Kanji, Romaji hoặc nghĩa tiếng Việt để xem chi tiết cách đọc, âm thanh bản xứ và câu ví dụ thực tế nhé! 🌸
-            </p>
-            <div class="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
-              <span class="font-bold text-[#64748B]">Gợi ý thử nhanh:</span>
-              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] font-bold hover:bg-[#FBCFE8] transition cursor-pointer" data-quick-topic="JLPT_N5">
-                🌱 Từ vựng N5
-              </button>
-              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] font-bold hover:bg-[#FBCFE8] transition cursor-pointer" data-quick-topic="JLPT_N4">
-                🌿 Từ vựng N4
-              </button>
-              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-semibold hover:bg-amber-100 transition cursor-pointer" data-quick-topic="LIFE_DAILY">
-                ☕ Giao tiếp hàng ngày
-              </button>
-              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-blue-50 text-blue-900 border border-blue-200 font-semibold hover:bg-blue-100 transition cursor-pointer" data-quick-topic="WORKPLACE">
-                💼 Tiếng Nhật công sở
-              </button>
-              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-slate-100 text-[#0F172A] border border-slate-200 font-semibold hover:bg-slate-200 transition cursor-pointer" data-quick-search="食べる">
-                食べる (Ăn)
-              </button>
-              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-slate-100 text-[#0F172A] border border-slate-200 font-semibold hover:bg-slate-200 transition cursor-pointer" data-quick-search="学校">
-                学校 (Trường học)
-              </button>
-            </div>
-          </div>
-
           <!-- Lưới Thẻ Từ Vựng -->
-          <div id="vocabGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch pb-2 min-w-0">
+          <div id="vocabGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch pb-2 min-w-0">
             <!-- Nạp động qua JS -->
           </div>
 

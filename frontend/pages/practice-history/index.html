@@ -18,11 +18,16 @@
     .ph-head h1{font-size:26px;line-height:34px;font-weight:800;color:#0F172A;margin:0}
     .pl-history{display:flex;flex-direction:column;gap:8px}
     .pl-attempt{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 16px;border:1px solid #E2E8F0;border-radius:14px;background:#fff;text-decoration:none;color:inherit}
-    .pl-attempt:hover{border-color:#BAE6FD;background:#F0F9FF}
+    .pl-attempt:hover{border-color:#FBCFE8;background:#FFF5F7}
     .pl-attempt strong{color:#0F172A;font-size:15px}
     .pl-attempt small{display:block;color:#64748B;font-size:12px;margin-top:2px}
     .pl-score{font-weight:800;font-size:18px;color:#0F172A;text-align:right}
     .pl-score small{font-weight:600}
+    .ph-pager{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap}
+    .ph-pager button{min-width:40px;height:40px;padding:0 10px;border:1px solid #E2E8F0;border-radius:10px;background:#fff;font-weight:700;color:#334155;cursor:pointer}
+    .ph-pager button[aria-current=page]{background:#831843;border-color:#831843;color:#fff}
+    .ph-pager button:disabled{opacity:.45;cursor:not-allowed}
+    .ph-pager span{color:#94A3B8;padding:0 4px}
     @media(max-width:860px){.pl-attempt{grid-template-columns:minmax(0,1fr) auto}.pl-attempt .pl-go{display:none}}
   </style>
 </head>
@@ -42,7 +47,7 @@
           </div>
           <section class="pr-card flex flex-col gap-4">
             <div id="historyList" class="pl-history"><p class="pr-empty">Đang tải…</p></div>
-            <div id="historyPaginationContainer" class="mt-2"></div>
+            <nav id="historyPager" class="ph-pager" aria-label="Phân trang lịch sử thi" hidden></nav>
           </section>
         </div>
       </main>

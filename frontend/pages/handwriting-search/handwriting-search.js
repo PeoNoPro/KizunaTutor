@@ -10,9 +10,9 @@ import { showToast } from '/js/main.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
-  activeMenu: 'kanji-dictionary',
-  pageTitle: 'Bảng vẽ nhận diện nét chữ Hán',
-  badge: 'Nhận diện nét'
+  activeMenu: 'handwriting',
+  pageTitle: 'Tra Cứu Viết Tay AI 🖌️',
+  badge: 'Nhận diện nét vẽ AI'
 });
 
 // =========================================================================

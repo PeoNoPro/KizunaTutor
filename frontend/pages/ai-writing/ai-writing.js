@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initLearnerShell({
     activeMenu: 'ai-writing',
     pageTitle: 'Luyện viết & Chữa câu AI',
-    badge: 'Luyện tập'
+    badge: 'Học tập & rèn luyện'
   });
 
   initEventListeners();
@@ -228,7 +228,7 @@ function switchMode(mode) {
   const inputEl = document.getElementById('writingInput');
 
   if (mode === 'free') {
-    if (btnFree) btnFree.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] hover:bg-[#007bb9] text-white border border-transparent shadow-xs';
+    if (btnFree) btnFree.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#9F1239] hover:bg-[#BE185D] text-white border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A]';
     if (btnGrammar) btnGrammar.className = 'px-3.5 py-1.5 rounded-md text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition flex items-center gap-1.5 cursor-pointer';
     banner?.classList.add('hidden');
 
@@ -238,7 +238,7 @@ function switchMode(mode) {
     }
   } else {
     if (activeGrammarRule) {
-      if (btnGrammar) btnGrammar.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#006194] hover:bg-[#007bb9] text-white border border-transparent shadow-xs';
+      if (btnGrammar) btnGrammar.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-[#9F1239] hover:bg-[#BE185D] text-white border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A]';
       if (btnFree) btnFree.className = 'px-3.5 py-1.5 rounded-md text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition flex items-center gap-1.5 cursor-pointer';
       banner?.classList.remove('hidden');
 
@@ -308,19 +308,13 @@ async function handleCheckWriting() {
   const targetGrammar = activeGrammarRule ? activeGrammarRule.pattern : null;
   const targetLevel = activeGrammarRule?.level ? activeGrammarRule.level.toUpperCase() : 'N5';
 
-  const fetchHeaders = {
-    'Content-Type': 'application/json'
-  };
-  try {
-    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token') || localStorage.getItem('token');
-    if (token) fetchHeaders['Authorization'] = `Bearer ${token}`;
-  } catch (e) {}
-
   let data = null;
   try {
     const res = await fetch('/api/learner/ai-writing/check', {
       method: 'POST',
-      headers: fetchHeaders,
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         text: text,
         jlptLevel: targetLevel,
@@ -403,88 +397,13 @@ function isGrammarPatternSatisfied(text, targetPattern) {
  * Bộ thẩm định và chữa câu AI dự phòng thông minh (Client-side Smart Evaluator)
  */
 function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targetPattern = null) {
-  const trimmed = (text || '').trim();
-  const normalized = trimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-  // 1. Kiểm tra nhập linh tinh / vô nghĩa
-  const isGibberish = 
-    !trimmed ||
-    /^[\d\s.,!?_\-+/*=~@#$%^&()[\]{}|<>:;'"`~・…！？。、]+$/.test(trimmed) ||
-    /^(.)\1{3,}$/.test(trimmed) ||
-    /^(.{2,4})\1{2,}$/.test(trimmed) ||
-    /^(.{2,4})\1{2,}$/.test(normalized) ||
-    /^[b-df-hj-np-tv-z]{5,}$/i.test(normalized) ||
-    /(asdfgh|qwerty|zxcvbn|qazwsx|123456|poiuyt|lkjhgf)/i.test(normalized) ||
-    /^(あいうえお|かきくけこ|さしすせそ|たちつてと|なにぬねの|はひふへほ|まみむめも|らりるれろ|アイウエオ)+$/.test(trimmed);
-
-  if (isGibberish) {
-    return {
-      originalText: text,
-      correctedText: '',
-      score: 0,
-      ratingBadge: 'Cảnh báo: Nội dung vô nghĩa',
-      overallComment: '⚠️ Cảnh báo: Nội dung bạn nhập dường như là các ký tự ngẫu nhiên hoặc vô nghĩa, không tạo thành câu tiếng Nhật có nghĩa. Vui lòng nhập một câu tiếng Nhật hoàn chỉnh để Sensei hỗ trợ sửa bài nhé! ✍️',
-      errors: [],
-      suggestedVocabulary: [],
-      nativeAlternatives: []
-    };
-  }
-
-  // 2. Kiểm tra văn bản không phải tiếng Nhật (tiếng Việt, tiếng Anh, Romaji, etc.)
-  const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(trimmed);
-  if (!hasJapanese) {
-    return {
-      originalText: text,
-      correctedText: '',
-      score: 0,
-      ratingBadge: 'Chưa đúng ngôn ngữ / Cần viết bằng tiếng Nhật',
-      overallComment: 'Nhắc nhở: Bạn đang nhập văn bản không phải tiếng Nhật. Vui lòng luyện viết bằng chữ Hiragana, Katakana hoặc Kanji để Sensei có thể chấm điểm và sửa lỗi cho bạn nhé! ✍️',
-      errors: [],
-      suggestedVocabulary: [],
-      nativeAlternatives: []
-    };
-  }
-
   let score = 96;
   const errors = [];
   const suggestedVocabulary = [];
   const nativeAlternatives = [];
   let correctedText = text;
 
-  // 3. Kiểm tra lỗi ký tự hỏng mã
-  if (text.includes('\uFFFD') || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text)) {
-    errors.push({
-      errorType: 'Ký tự lỗi',
-      originalFragment: 'Ký tự không hợp lệ',
-      correctedFragment: 'Ký tự chuẩn',
-      explanation: 'Văn bản chứa ký tự bất thường hoặc lỗi font/mã hóa. Vui lòng kiểm tra lại bộ gõ tiếng Nhật.'
-    });
-    score -= 20;
-  }
-
-  // 4. Kiểm tra lỗi chính tả âm ghép / chữ nhỏ (ảo âm: ゃ, ゅ, ょ / xúc âm: っ)
-  if (text.includes('とうきよう') || text.includes('しやしん') || text.includes('びよういん') || text.includes('きよう') || text.includes('がつこう') || text.includes('がこう')) {
-    const typoWord = text.includes('とうきよう') ? 'とうきよう' :
-                     text.includes('しやしん') ? 'しやしん' :
-                     text.includes('びよういん') ? 'びよういん' :
-                     text.includes('きよう') ? 'きよう' : 'がつこう';
-    const fixedWord = typoWord.replace('とうきよう', 'とうきょう')
-                              .replace('しやしん', 'しゃしん')
-                              .replace('びよういん', 'びょういん')
-                              .replace('きよう', 'きょう')
-                              .replace('がつこう', 'がっこう')
-                              .replace('がこう', 'がっこう');
-    errors.push({
-      errorType: 'Ký tự lỗi / Lỗi chính tả',
-      originalFragment: typoWord,
-      correctedFragment: fixedWord,
-      explanation: 'Lỗi chính tả âm ghép/xúc âm: Từ này cần dùng chữ nhỏ (ゃ, ゅ, ょ, っ) thay vì chữ kích thước thông thường.'
-    });
-    correctedText = correctedText.replace(typoWord, fixedWord);
-    score -= 15;
-  }
-
-  // 5. Kiểm tra trợ từ は (wa) viết nhầm thành わ
+  // 1. Kiểm tra trợ từ は (wa) viết nhầm thành わ
   if (text.includes('私わ') || text.includes('わたしわ') || text.includes('彼わ') || text.includes('彼女わ')) {
     errors.push({
       errorType: 'Trợ từ chỉ chủ ngữ',
@@ -496,31 +415,7 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     score -= 10;
   }
 
-  // 6. Kiểm tra trợ từ を bị viết thành お
-  if (/[\u3040-\u309F\u4E00-\u9FAF]+お(食べる|飲む|見る|する|買う|読む|聞く|待つ)/.test(text)) {
-    errors.push({
-      errorType: 'Ký tự lỗi / Trợ từ',
-      originalFragment: 'お',
-      correctedFragment: 'を (phát âm: o/wo)',
-      explanation: 'Trợ từ chỉ tân ngữ/đối tượng của hành động luôn được viết bằng chữ Hiragana を, không dùng お.'
-    });
-    correctedText = correctedText.replace(/([\u3040-\u309F\u4E00-\u9FAF]+)お(食べる|飲む|見る|する|買う|読む|聞く|待つ)/g, '$1を$2');
-    score -= 10;
-  }
-
-  // 7. Kiểm tra trợ từ へ (e) bị viết thành え
-  if (/(学校|日本|東京|家|病院)え/.test(text)) {
-    errors.push({
-      errorType: 'Ký tự lỗi / Trợ từ',
-      originalFragment: 'え',
-      correctedFragment: 'へ (phát âm: e)',
-      explanation: 'Trợ từ chỉ phương hướng di chuyển luôn được viết bằng chữ Hiragana へ (phát âm: e), không dùng え.'
-    });
-    correctedText = correctedText.replace(/(学校|日本|東京|家|病院)え/g, '$1へ');
-    score -= 10;
-  }
-
-  // 8. Kiểm tra động từ đi với でした (lỗi kinh điển: 食べるでした)
+  // 2. Kiểm tra động từ đi với でした (lỗi kinh điển: 食べるでした)
   if (/([るうつぬぶむくぐす])でした/.test(text) || text.includes('食べるでした') || text.includes('行くでした') || text.includes('飲むでした')) {
     errors.push({
       errorType: 'Chia thể động từ',
@@ -536,7 +431,7 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     score -= 15;
   }
 
-  // 9. Kiểm tra tính từ đuôi い đi với だ
+  // 3. Kiểm tra tính từ đuôi い đi với だ
   if (/[い]だ/.test(text) && !text.includes('からだ')) {
     errors.push({
       errorType: 'Ngữ pháp tính từ',
@@ -547,11 +442,11 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     score -= 10;
   }
 
-  // 10. Kiểm tra phong cách Formality (Lịch sự)
+  // 4. Kiểm tra phong cách Formality (Lịch sự)
   if (formality === 'POLITE') {
-    const trimmedEnding = correctedText.replace(/[。！？\s]+$/, '');
-    if (trimmedEnding.endsWith('だ') || trimmedEnding.endsWith('る') || trimmedEnding.endsWith('た') || trimmedEnding.endsWith('ない')) {
-      if (!trimmedEnding.endsWith('です') && !trimmedEnding.endsWith('ます') && !trimmedEnding.endsWith('でした') && !trimmedEnding.endsWith('ました') && !trimmedEnding.endsWith('でしょうか') && !trimmedEnding.endsWith('ください')) {
+    const trimmed = correctedText.replace(/[。！？\s]+$/, '');
+    if (trimmed.endsWith('だ') || trimmed.endsWith('る') || trimmed.endsWith('た') || trimmed.endsWith('ない')) {
+      if (!trimmed.endsWith('です') && !trimmed.endsWith('ます') && !trimmed.endsWith('でした') && !trimmed.endsWith('ました') && !trimmed.endsWith('でしょうか') && !trimmed.endsWith('ください')) {
         errors.push({
           errorType: 'Sắc thái câu',
           originalFragment: 'Đuôi câu thể thường',
@@ -563,7 +458,7 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     }
   }
 
-  // 11. Kiểm tra mẫu ngữ pháp mục tiêu nếu có
+  // 5. Kiểm tra mẫu ngữ pháp mục tiêu nếu có
   if (targetPattern) {
     if (!isGrammarPatternSatisfied(text, targetPattern)) {
       errors.push({
@@ -572,11 +467,9 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
         correctedFragment: targetPattern,
         explanation: `Bạn đang chọn thử thách đặt câu với mẫu "${targetPattern}". Hãy thử áp dụng đúng công thức của mẫu này vào câu nhé!`
       });
-      score -= 15;
+      score -= 10;
     }
   }
-
-  score = Math.max(0, Math.min(100, score));
 
   // Đánh giá chung
   let ratingBadge = 'Tự nhiên xuất sắc';
@@ -586,12 +479,9 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
     if (score >= 80) {
       ratingBadge = 'Khá tốt - Cần trau chuốt';
       overallComment = 'Câu viết tương đối mượt mà. Hãy tham khảo các phần lưu ý bên dưới để câu văn đạt mức hoàn hảo nhất nhé!';
-    } else if (score >= 60) {
-      ratingBadge = 'Cần cải thiện';
-      overallComment = 'Cố lên bạn nhé! Hãy xem kỹ các điểm lưu ý về trợ từ hoặc thể động từ ở bảng bên dưới để đặt câu chuẩn xác hơn.';
     } else {
-      ratingBadge = 'Cần sửa lại ký tự & ngữ pháp';
-      overallComment = 'Câu văn có nhiều lỗi về ký tự hoặc ngữ pháp cơ bản. Hãy xem kỹ bảng sửa lỗi chi tiết bên dưới để hoàn thiện câu nhé!';
+      ratingBadge = 'Cần cải thiện';
+      overallComment = 'Câu viết đã thể hiện được ý tưởng, nhưng bạn cần lưu ý kỹ các lỗi trợ từ và thể chia động từ để người nghe hiểu chính xác.';
     }
   }
 
@@ -615,7 +505,7 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
   return {
     originalText: text,
     correctedText: correctedText,
-    score: score,
+    score: Math.max(45, score),
     ratingBadge: ratingBadge,
     overallComment: overallComment,
     errors: errors,
@@ -629,21 +519,6 @@ function clientSideSmartEvaluation(text, jlpt = 'N5', formality = 'POLITE', targ
 function renderEvaluationResult(data) {
   const resultCard = document.getElementById('aiResultCard');
   if (!resultCard) return;
-
-  const correctedCard = document.getElementById('aiCorrectedCard');
-  const errorsCard = document.getElementById('aiErrorsCard');
-  const btnSave = document.getElementById('btnSaveToHistory');
-
-  const correctedText = (data.correctedText || '').trim();
-  const isInvalid = 
-    !correctedText ||
-    correctedText.includes('意味が分かりません') ||
-    (data.score || 0) <= 20 ||
-    (data.ratingBadge && (
-      data.ratingBadge.toLowerCase().includes('vô nghĩa') ||
-      data.ratingBadge.toLowerCase().includes('chưa đúng ngôn ngữ') ||
-      data.ratingBadge.toLowerCase().includes('không phải tiếng nhật')
-    ));
 
   // 1. Điểm số & Huy hiệu
   const scoreNum = document.getElementById('aiScoreNumber');
@@ -665,76 +540,53 @@ function renderEvaluationResult(data) {
     overallComment.textContent = data.overallComment || 'Câu viết tốt, hãy tiếp tục phát huy!';
   }
 
-  // Ẩn/Hiện nút Lưu lại vào sổ tay (nếu nhập vô nghĩa thì không hiển thị)
-  if (btnSave) {
-    if (isInvalid) {
-      btnSave.classList.add('hidden');
-    } else {
-      btnSave.classList.remove('hidden');
-    }
-  }
-
-  // 2. Câu sửa hoàn chỉnh (Card 2) - Ẩn hoàn toàn nếu nhập linh tinh hoặc không có thông tin đề đối chiếu
+  // 2. Câu sửa hoàn chỉnh
   const correctedEl = document.getElementById('aiCorrectedText');
-  if (correctedCard) {
-    if (isInvalid) {
-      correctedCard.classList.add('hidden');
-    } else {
-      correctedCard.classList.remove('hidden');
-      if (correctedEl) {
-        correctedEl.textContent = correctedText || data.originalText;
-      }
-    }
+  if (correctedEl) {
+    correctedEl.textContent = data.correctedText || data.originalText;
   }
 
-  // 3. Bóc tách danh sách lỗi chi tiết (Card 3) - Ẩn nếu nhập linh tinh để chỉ giữ duy nhất 1 nhận xét sư phạm ở Card 1
+  // 3. Bóc tách danh sách lỗi chi tiết
   const errorContainer = document.getElementById('errorListContainer');
   const errorCountBadge = document.getElementById('errorCountBadge');
-  const errors = data.errors || [];
 
-  if (errorsCard) {
-    if (isInvalid) {
-      errorsCard.classList.add('hidden');
+  if (errorContainer) {
+    const errors = data.errors || [];
+    if (errorCountBadge) {
+      errorCountBadge.textContent = errors.length > 0 
+        ? `${errors.length} điểm cần lưu ý`
+        : 'Hoàn hảo - Không có lỗi';
+      errorCountBadge.className = errors.length > 0
+        ? 'text-[11px] font-bold px-2 py-0.5 rounded-[4px] bg-[#FFE4E6] text-[#E11D48] border border-[#FDA4AF]'
+        : 'text-[11px] font-bold px-2 py-0.5 rounded-[4px] bg-[#E8F5E9] text-[#2E7D32] border border-[#86EFAC]';
+    }
+
+    if (errors.length === 0) {
+      errorContainer.innerHTML = `
+        <div class="p-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-[4px] text-xs text-[#166534] flex items-center gap-2 font-medium">
+          <span class="material-symbols-outlined text-[18px]">verified</span>
+          <span>Tuyệt vời! Không phát hiện lỗi sai ngữ pháp nào. Diễn đạt của bạn rất tự nhiên và chính xác.</span>
+        </div>
+      `;
     } else {
-      errorsCard.classList.remove('hidden');
-      if (errorCountBadge) {
-        errorCountBadge.textContent = errors.length > 0 
-          ? `${errors.length} điểm cần lưu ý`
-          : 'Hoàn hảo - Không có lỗi';
-        errorCountBadge.className = errors.length > 0
-          ? 'text-[11px] font-bold px-2 py-0.5 rounded-[4px] bg-[#FFE4E6] text-[#E11D48] border border-[#FDA4AF]'
-          : 'text-[11px] font-bold px-2 py-0.5 rounded-[4px] bg-[#E8F5E9] text-[#2E7D32] border border-[#86EFAC]';
-      }
-
-      if (errorContainer) {
-        if (errors.length === 0) {
-          errorContainer.innerHTML = `
-            <div class="p-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-[4px] text-xs text-[#166534] flex items-center gap-2 font-medium">
-              <span class="material-symbols-outlined text-[18px]">verified</span>
-              <span>Tuyệt vời! Không phát hiện lỗi sai ngữ pháp nào. Diễn đạt của bạn rất tự nhiên và chính xác.</span>
-            </div>
-          `;
-        } else {
-          errorContainer.innerHTML = errors.map(err => `
-            <div class="p-3 bg-[#FFF5F5] border border-[#FBCFE8] rounded-[4px] space-y-1.5">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-[#E11D48] uppercase tracking-wider flex items-center gap-1">
-                  <span class="material-symbols-outlined text-[14px]">warning</span>
-                  ${escapeHtml(err.errorType || 'Lỗi ngữ pháp')}
-                </span>
-              </div>
-              <div class="flex items-center gap-2 text-xs font-japanese">
-                <span class="line-through text-[#94A3B8] bg-white px-1.5 py-0.5 rounded border border-[#E2E8F0]">${escapeHtml(err.originalFragment || '')}</span>
-                <span class="material-symbols-outlined text-[14px] text-[#64748B]">arrow_forward</span>
-                <span class="font-bold text-[#16A34A] bg-[#DCFCE7] px-1.5 py-0.5 rounded border border-[#BBF7D0]">${escapeHtml(err.correctedFragment || '')}</span>
-              </div>
-              <p class="text-xs text-[#334155] leading-relaxed pt-1 border-t border-[#FEE2E2]">
-                ${escapeHtml(err.explanation || '')}
-              </p>
-            </div>
-          `).join('');
-        }
-      }
+      errorContainer.innerHTML = errors.map(err => `
+        <div class="p-3 bg-[#FFF5F5] border border-[#FBCFE8] rounded-[4px] space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-[#E11D48] uppercase tracking-wider flex items-center gap-1">
+              <span class="material-symbols-outlined text-[14px]">warning</span>
+              ${escapeHtml(err.errorType || 'Lỗi ngữ pháp')}
+            </span>
+          </div>
+          <div class="flex items-center gap-2 text-xs font-japanese">
+            <span class="line-through text-[#94A3B8] bg-white px-1.5 py-0.5 rounded border border-[#E2E8F0]">${escapeHtml(err.originalFragment || '')}</span>
+            <span class="material-symbols-outlined text-[14px] text-[#64748B]">arrow_forward</span>
+            <span class="font-bold text-[#16A34A] bg-[#DCFCE7] px-1.5 py-0.5 rounded border border-[#BBF7D0]">${escapeHtml(err.correctedFragment || '')}</span>
+          </div>
+          <p class="text-xs text-[#334155] leading-relaxed pt-1 border-t border-[#FEE2E2]">
+            ${escapeHtml(err.explanation || '')}
+          </p>
+        </div>
+      `).join('');
     }
   }
 
@@ -834,10 +686,10 @@ function updateHistoryFilterButtons() {
   const btnCurrent = document.getElementById('btnFilterHistoryCurrent');
 
   if (historyFilter === 'all') {
-    btnAll.className = 'px-3 py-1 rounded-[4px] bg-[#006194] text-white transition';
+    btnAll.className = 'px-3 py-1 rounded-[4px] bg-[#9F1239] text-white transition';
     btnCurrent.className = 'px-3 py-1 rounded-[4px] text-[#334155] hover:text-[#0F172A] transition';
   } else {
-    btnCurrent.className = 'px-3 py-1 rounded-[4px] bg-[#006194] text-white transition';
+    btnCurrent.className = 'px-3 py-1 rounded-[4px] bg-[#9F1239] text-white transition';
     btnAll.className = 'px-3 py-1 rounded-[4px] text-[#334155] hover:text-[#0F172A] transition';
   }
 }

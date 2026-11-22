@@ -229,51 +229,6 @@ public class FlashcardDeckController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/{id}/cards")
-    public ResponseEntity<Map<String, Object>> addCards(
-            @PathVariable String id,
-            @RequestBody Map<String, Object> body,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @CookieValue(value = "access_token", required = false) String cookieToken) {
-        String ownerKey = authenticatedUserHelper.requireAuthenticatedEmail(authHeader, cookieToken);
-        ensureTable();
-
-        Map<String, Object> existingRow = findDeckRowById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ thẻ: " + id));
-        assertOwner(existingRow, ownerKey, "Bạn không có quyền thêm thẻ vào bộ thẻ của tài khoản khác.");
-
-        List<Map<String, Object>> existingCards = parseCardsJson((String) existingRow.get("cards_json"));
-        Object cardsObj = body != null ? body.get("cards") : null;
-        List<Map<String, Object>> newCards = new ArrayList<>();
-        if (cardsObj instanceof List<?> list) {
-            for (Object item : list) {
-                if (item instanceof Map<?, ?> map) {
-                    Map<String, Object> cardMap = new LinkedHashMap<>();
-                    for (Map.Entry<?, ?> entry : map.entrySet()) {
-                        cardMap.put(String.valueOf(entry.getKey()), entry.getValue());
-                    }
-                    if (cardMap.get("id") == null || String.valueOf(cardMap.get("id")).isBlank()) {
-                        cardMap.put("id", "card-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 5));
-                    }
-                    newCards.add(cardMap);
-                }
-            }
-        }
-
-        existingCards.addAll(newCards);
-        String updatedCardsJson = toCardsJson(existingCards);
-
-        jdbcTemplate.update(
-                "UPDATE learner_flashcard_decks SET cards_json = ?, updated_at = NOW() WHERE id = ? AND owner_key = ?",
-                updatedCardsJson, id, ownerKey
-        );
-
-        Map<String, Object> result = mapRowToDeck(existingRow);
-        result.put("cards", existingCards);
-        result.put("updatedAt", OffsetDateTime.now().toString());
-        return ResponseEntity.ok(result);
-    }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteDeck(
             @PathVariable String id,

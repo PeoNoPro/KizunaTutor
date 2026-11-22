@@ -8,13 +8,12 @@
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { showToast } from '/js/main.js';
 import { voicevoxClient } from '/js/voicevoxClient.js';
-import { renderPagination } from '/components/pagination/pagination.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
   activeMenu: 'kanji-dictionary',
-  pageTitle: 'Tra cứu Hán tự & Bút thuận ⛩️',
-  badge: 'Chữ Hán'
+  pageTitle: 'Từ Điển Chữ Hán & Bút Thuận 📖',
+  badge: 'Công cụ rèn luyện'
 });
 
 // =========================================================================
@@ -211,38 +210,37 @@ function quickSearchPrompt(term) {
 // =========================================================================
 function renderStandbyState() {
   const grid = document.getElementById('learnerKanjiGrid');
-  const pagerContainer = document.getElementById('learnerPaginationContainer');
+  const pageInfo = document.getElementById('learnerPaginationInfo');
   const pageBtns = document.getElementById('learnerPaginationBtns');
 
-  if (pagerContainer) pagerContainer.innerHTML = '<div class="text-xs text-slate-400 text-center py-1">Chờ bạn nhập từ khóa hoặc chọn bộ lọc để tra cứu... 🌸</div>';
+  if (pageInfo) pageInfo.textContent = 'Chờ bạn nhập từ khóa hoặc chọn bộ lọc... 🌸';
   if (pageBtns) pageBtns.innerHTML = '';
 
   if (grid) {
     grid.innerHTML = `
-      <div class="col-span-full p-8 sm:p-12 text-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white space-y-3.5">
+      <div class="col-span-full p-8 sm:p-12 text-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white space-y-3">
         <img src="/assets/images/stickers/tea-meditation-capi.png" 
              alt="Capybara Thiền Trà Shodo" 
-             class="w-16 h-16 mx-auto mb-1 object-contain pointer-events-none select-none" />
+             class="w-16 h-16 mx-auto mb-2 object-contain pointer-events-none select-none" />
         <h3 class="text-lg sm:text-xl font-bold text-[#0F172A]">
           Sẵn sàng tra cứu Hán tự &amp; Bút thuận 📖
         </h3>
-        <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-xs text-slate-600 max-w-md mx-auto">
-          <span class="material-symbols-outlined text-[16px] text-amber-500 shrink-0">tips_and_updates</span>
-          <span>Tra cứu hơn 6.600 chữ Hán theo số nét, bộ thủ, cấp độ JLPT hoặc vẽ nét tay.</span>
-        </div>
-        <div class="pt-2 flex items-center justify-center gap-2 flex-wrap text-xs">
-          <span class="text-slate-400 font-medium mr-0.5">Thử nhanh:</span>
-          <button type="button" data-term="日" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-[#FFE5EC] hover:text-[#831843] hover:border-[#FBCFE8] border border-[#CBD5E1] font-bold text-[#1E293B] transition cursor-pointer shadow-2xs">
-            <span>日</span> <span class="text-[11px] text-slate-500 font-medium">NHẬT</span>
+        <p class="text-xs text-[#64748B] font-sans max-w-lg mx-auto leading-relaxed">
+          Hãy nhập chữ Hán, âm Hán Việt, âm On/Kun, chọn cấp độ JLPT hoặc vẽ nét bằng chuột để bắt đầu tra cứu hơn 6.600 chữ Hán nhé! ☕
+        </p>
+        <div class="pt-2 flex items-center justify-center gap-2 flex-wrap text-xs font-meta">
+          <span class="text-[#64748B] font-semibold">Gợi ý thử nhanh:</span>
+          <button type="button" data-term="日" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-[#FFE5EC] hover:text-[#831843] hover:border-[#FBCFE8] border border-[#CBD5E1] font-bold text-[#1E293B] transition cursor-pointer">
+            日 (NHẬT)
           </button>
-          <button type="button" data-term="月" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-[#FFE5EC] hover:text-[#831843] hover:border-[#FBCFE8] border border-[#CBD5E1] font-bold text-[#1E293B] transition cursor-pointer shadow-2xs">
-            <span>月</span> <span class="text-[11px] text-slate-500 font-medium">NGUYỆT</span>
+          <button type="button" data-term="月" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-[#FFE5EC] hover:text-[#831843] hover:border-[#FBCFE8] border border-[#CBD5E1] font-bold text-[#1E293B] transition cursor-pointer">
+            月 (NGUYỆT)
           </button>
-          <button type="button" data-term="N5" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-bold text-emerald-800 transition cursor-pointer shadow-2xs">
-            <span>🌸 JLPT N5</span>
+          <button type="button" data-term="N5" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-bold text-emerald-800 transition cursor-pointer">
+            Cấp độ N5
           </button>
-          <button type="button" data-term="N4" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 font-bold text-sky-800 transition cursor-pointer shadow-2xs">
-            <span>🎏 JLPT N4</span>
+          <button type="button" data-term="N4" class="btn-quick-prompt px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 font-bold text-sky-800 transition cursor-pointer">
+            Cấp độ N4
           </button>
         </div>
       </div>
@@ -510,42 +508,18 @@ function renderLearnerGrid(items) {
           <span>📁</span> Lưu Thẻ
         </button>
         <a href="/shodo?char=${encodeURIComponent(k.kanjiChar)}" data-spa-link 
-           data-action="open-shodo"
-           data-idx="${idx}"
            class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#FFE5EC] hover:bg-[#FCE7F3] border border-[#FBCFE8] text-[#831843] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
-           title="Luyện viết chữ này trên Canvas Shodo">
-          <span>✍️</span> Luyện viết
+           title="Tập viết chữ này trên Canvas Shodo">
+          <span>✍️</span> Shodo
+        </a>
+        <a href="/kanji-game?jlpt=${encodeURIComponent(k.jlpt || k.jlptLevel || 'N5')}" data-spa-link 
+           class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#1E40AF] flex items-center justify-center gap-1 no-underline transition active:scale-95 cursor-pointer"
+           title="Thử thách Game Mưa chữ Hán theo cấp độ này">
+          <span>🌧️</span> Game
         </a>
       </div>
     </div>
   `).join('');
-
-  // Gắn sự kiện click Luyện viết (lưu thông tin thẻ vào localStorage để Shodo hiển thị tức thì)
-  grid.querySelectorAll('[data-action="open-shodo"]').forEach(el => {
-    el.addEventListener('click', () => {
-      const idx = parseInt(el.getAttribute('data-idx'), 10);
-      const item = (window.lastRenderedDictionaryItems && window.lastRenderedDictionaryItems[idx]) || null;
-      if (item) {
-        try {
-          const char = item.kanjiChar || item.character || '';
-          localStorage.setItem('selected_kanji', char);
-          localStorage.setItem('selected_kanji_detail', JSON.stringify({
-            character: char,
-            kanjiChar: char,
-            hanViet: item.hanViet || '',
-            meaning: item.meaning || '',
-            strokeCount: item.strokeCount || item.totalStrokes || 0,
-            totalStrokes: item.strokeCount || item.totalStrokes || 0,
-            radical: item.radical || '',
-            jlpt: item.jlpt || item.jlptLevel || 'N5',
-            onyomi: item.onyomi || '',
-            kunyomi: item.kunyomi || '',
-            svgData: item.svgData || ''
-          }));
-        } catch (e) {}
-      }
-    });
-  });
 
   // Gắn sự kiện click phát âm bằng VOICEVOX
   grid.querySelectorAll('[data-action="speak-kanji"]').forEach(btn => {
@@ -576,29 +550,33 @@ function renderLearnerGrid(items) {
 }
 
 // =========================================================================
-// 7. PHÂN TRANG (PAGINATION) - ĐỒNG BỘ BẰNG COMPONENT CHUẨN DÙNG CHUNG
+// 7. PHÂN TRANG (PAGINATION)
 // =========================================================================
 function renderLearnerPagination(page, totalPages, totalElements) {
-  const container = document.getElementById('learnerPaginationContainer') || document.getElementById('learnerPaginationBtns');
-  if (!container) return;
+  const info = document.getElementById('learnerPaginationInfo');
+  const btns = document.getElementById('learnerPaginationBtns');
   if (!totalElements || totalElements === 0) {
-    container.innerHTML = '<div class="text-xs text-slate-400 text-center py-1">Không có kết quả tra cứu</div>';
+    if (info) info.innerHTML = 'Không có kết quả tra cứu';
+    if (btns) btns.innerHTML = '';
     return;
   }
+  if (info) info.innerHTML = `Trang <strong>${page + 1}</strong> / <strong>${totalPages}</strong> (${totalElements} chữ)`;
+  if (!btns) return;
 
-  renderPagination(
-    container,
-    {
-      page,
-      size: 18,
-      totalElements,
-      totalPages: Math.max(1, totalPages)
-    },
-    {
-      sizes: [18, 36, 72],
-      onPage: (p) => loadLearnerDictionary(p)
-    }
-  );
+  let html = '';
+  html += `<button type="button" id="btnPagePrev" ${page === 0 ? 'disabled' : ''} class="px-3 py-1.5 text-xs rounded-lg font-bold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 disabled:opacity-40 transition active:scale-95 cursor-pointer">◀</button>`;
+  html += `<span class="w-8 h-8 rounded-lg bg-[#9F1239] text-white flex items-center justify-center font-bold text-xs">${page + 1}</span>`;
+  html += `<button type="button" id="btnPageNext" ${page >= totalPages - 1 ? 'disabled' : ''} class="px-3 py-1.5 text-xs rounded-lg font-bold border border-[#CBD5E1] bg-white text-[#1E293B] hover:bg-slate-50 disabled:opacity-40 transition active:scale-95 cursor-pointer">▶</button>`;
+  btns.innerHTML = html;
+
+  const btnPrev = document.getElementById('btnPagePrev');
+  if (btnPrev && page > 0) {
+    btnPrev.addEventListener('click', () => loadLearnerDictionary(page - 1));
+  }
+  const btnNext = document.getElementById('btnPageNext');
+  if (btnNext && page < totalPages - 1) {
+    btnNext.addEventListener('click', () => loadLearnerDictionary(page + 1));
+  }
 }
 
 // =========================================================================
@@ -1048,14 +1026,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Nạp trạng thái ban đầu sạch sẽ, an toàn
   await initDictionaryPage();
-});
-
-// Lắng nghe sự kiện SPA Mount khi chuyển từ trang khác sang
-window.addEventListener('kizuna:page-mounted', (e) => {
-  const path = e?.detail?.url || window.location.pathname;
-  if (path.includes('dictionary') || path.includes('kanji')) {
-    initDictionaryPage();
-  }
 });
 
 // Gắn toàn cục cho các hàm tương thích

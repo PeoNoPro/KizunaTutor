@@ -89,7 +89,7 @@ export const LEARNER_MENU_GROUPS = [
   {
     groupTitle: 'Hỗ trợ học tập',
     items: [
-      // 1. Dropdown: Từ vựng & Chữ Hán (Moji・Goi)
+      // 1. Dropdown: Từ vựng & Chữ Hán (Hub trung tâm tri thức từ & chữ)
       {
         key: 'group-vocab',
         title: 'Từ vựng & Chữ Hán',
@@ -105,39 +105,62 @@ export const LEARNER_MENU_GROUPS = [
           },
           {
             key: 'kanji-dictionary',
-            title: 'Tra cứu Hán tự & Bút thuận',
+            title: 'Từ điển chữ Hán',
             url: '/kanji-dictionary',
             icon: 'menu_book',
-            matcher: ['/kanji-dictionary', '/dictionary', '/kanji', '/handwriting', '/handwriting-search', '/ohr']
+            matcher: ['/kanji-dictionary', '/dictionary', '/kanji']
+          },
+          {
+            key: 'handwriting',
+            title: 'Tra cứu viết tay AI',
+            url: '/handwriting',
+            icon: 'draw',
+            matcher: ['/handwriting', '/handwriting-search', '/ohr']
           }
         ]
       },
 
-      // 2. Ngữ pháp JLPT (Bunpou - Độc lập chuẩn JLPT)
+      // 2. Dropdown: Ngữ pháp & Luyện viết (Hub ngữ pháp & viết câu)
       {
-        key: 'grammar',
-        title: 'Tra cứu ngữ pháp JLPT',
-        url: '/grammar',
-        icon: 'library_books',
-        matcher: ['/grammar', '/openjlpt']
+        key: 'group-grammar',
+        title: 'Ngữ pháp & Luyện viết',
+        icon: 'auto_stories',
+        isDropdown: true,
+        children: [
+          {
+            key: 'grammar',
+            title: 'Kho ngữ pháp JLPT',
+            url: '/grammar',
+            icon: 'library_books',
+            matcher: ['/grammar', '/openjlpt']
+          },
+          {
+            key: 'ai-writing',
+            title: 'Chữa câu & Viết AI',
+            url: '/ai-writing',
+            icon: 'edit_note',
+            matcher: ['/ai-writing', '/sakubun']
+          }
+        ]
       },
 
-      // 3. Đọc hiểu JLPT (Dokkai - Độc lập chuẩn JLPT)
+      // 3. Đọc hiểu Dokkai AI (Hub đọc hiểu độc lập)
       {
         key: 'ai-reading',
-        title: 'Luyện đọc hiểu văn bản',
+        title: 'Đọc hiểu Dokkai AI',
         url: '/reading',
         icon: 'chrome_reader_mode',
         matcher: ['/reading', '/ai-reading', '/learner/reading', '/learner/ai-reading']
       },
 
-      // 4. Dropdown: Luyện tập & Thực hành (Gom toàn bộ các hoạt động rèn luyện)
+      // 4. Dropdown: Thực hành & Luyện đề (Hub rèn luyện & thi thử JLPT)
       {
         key: 'group-practice',
-        title: 'Luyện tập & Thực hành',
+        title: 'Thực hành & Luyện đề',
         icon: 'psychology',
         isDropdown: true,
         children: [
+          // FE-13 (thêm 2026-11-17): Luyện đề JLPT.
           {
             key: 'practice',
             title: 'Luyện đề thi JLPT',
@@ -146,51 +169,46 @@ export const LEARNER_MENU_GROUPS = [
             matcher: ['/learner/practice', '/learner/practice/', '/pages/practice', '/pages/practice-attempt', '/pages/practice-history']
           },
           {
-            key: 'ai-writing',
-            title: 'Luyện viết & Chữa câu AI',
-            url: '/ai-writing',
-            icon: 'edit_note',
-            matcher: ['/ai-writing', '/sakubun']
-          },
-          {
             key: 'shodo',
-            title: 'Luyện viết nét chữ Hán',
+            title: 'Phòng luyện viết Shodo',
             url: '/shodo',
             icon: 'brush',
             matcher: ['/shodo', '/shodo-practice', '/kanji-practice']
           },
           {
             key: 'kana',
-            title: 'Luyện gõ bảng chữ cái',
+            title: 'Đấu trường gõ Kana',
             url: '/kana',
             icon: 'keyboard',
             matcher: ['/kana', '/kana-quiz']
           },
           {
             key: 'kanji-game',
-            title: 'Luyện phản xạ chữ Hán',
+            title: 'Game hứng chữ Hán',
             url: '/kanji-game',
             icon: 'videogame_asset',
             matcher: ['/kanji-game', '/game', '/rain']
-          },
-          {
-            key: 'flashcards',
-            title: 'Bộ thẻ ghi nhớ Flashcards',
-            url: '/flashcards',
-            icon: 'style',
-            matcher: [
-              '/flashcards',
-              '/decks',
-              '/learner/flashcards',
-              '/learner/deck-detail',
-              '/deck-detail',
-              '/pages/flashcards',
-              '/flashcards-study',
-              '/learner/flashcards-study',
-              '/flashcards-match',
-              '/learner/flashcards-match'
-            ]
           }
+        ]
+      },
+
+      // 5. Bộ thẻ của tôi (Hub Flashcards độc lập)
+      {
+        key: 'flashcards',
+        title: 'Bộ thẻ của tôi',
+        url: '/flashcards',
+        icon: 'style',
+        matcher: [
+          '/flashcards',
+          '/decks',
+          '/learner/flashcards',
+          '/learner/deck-detail',
+          '/deck-detail',
+          '/pages/flashcards',
+          '/flashcards-study',
+          '/learner/flashcards-study',
+          '/flashcards-match',
+          '/learner/flashcards-match'
         ]
       }
     ]
@@ -237,16 +255,16 @@ export const PAGE_META_MAP = {
   'learning-support': { title: 'Tra cứu từ vựng', badge: 'Hỗ trợ học tập' },
   'vocabulary': { title: 'Tra cứu từ vựng', badge: 'Hỗ trợ học tập' },
   'kanji-dictionary': { title: 'Từ điển chữ Hán', badge: 'Hỗ trợ học tập' },
-  'handwriting': { title: 'Bảng vẽ nhận diện nét', badge: 'Hỗ trợ học tập' },
+  'handwriting': { title: 'Tra cứu viết tay AI', badge: 'Hỗ trợ học tập' },
   'grammar': { title: 'Kho ngữ pháp JLPT', badge: 'Hỗ trợ học tập' },
-  'ai-writing': { title: 'Luyện viết & Chữa câu AI', badge: 'Hỗ trợ học tập' },
-  'ai-reading': { title: 'Luyện đọc hiểu văn bản', badge: 'Hỗ trợ học tập' },
-  'reading': { title: 'Luyện đọc hiểu văn bản', badge: 'Hỗ trợ học tập' },
+  'ai-writing': { title: 'Chữa câu & Viết AI', badge: 'Hỗ trợ học tập' },
+  'ai-reading': { title: 'Đọc hiểu Dokkai AI', badge: 'Hỗ trợ học tập' },
+  'reading': { title: 'Đọc hiểu Dokkai AI', badge: 'Hỗ trợ học tập' },
   'practice': { title: 'Luyện đề thi JLPT', badge: 'Hỗ trợ học tập' },
-  'shodo': { title: 'Luyện viết nét chữ Hán', badge: 'Hỗ trợ học tập' },
-  'kana': { title: 'Luyện gõ bảng chữ cái', badge: 'Hỗ trợ học tập' },
-  'kanji-game': { title: 'Luyện phản xạ chữ Hán', badge: 'Hỗ trợ học tập' },
-  'flashcards': { title: 'Bộ thẻ ghi nhớ Flashcards', badge: 'Hỗ trợ học tập' },
+  'shodo': { title: 'Phòng luyện viết Shodo', badge: 'Hỗ trợ học tập' },
+  'kana': { title: 'Đấu trường gõ Kana', badge: 'Hỗ trợ học tập' },
+  'kanji-game': { title: 'Game hứng chữ Hán', badge: 'Hỗ trợ học tập' },
+  'flashcards': { title: 'Bộ thẻ Flashcards', badge: 'Hỗ trợ học tập' },
   'notifications': { title: 'Thông báo', badge: 'Hệ thống & trợ giúp' },
   'support': { title: 'Trung tâm hỗ trợ', badge: 'Hệ thống & trợ giúp' },
   'policies': { title: 'Chính sách & Điều khoản', badge: 'Hệ thống & trợ giúp' }

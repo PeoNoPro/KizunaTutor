@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Từ Điển Kanji Học Tập - KizunaTutor Learner</title>
+  <title>Tra Cứu Hán Tự & Bút Thuận ⛩️ - KizunaTutor Learner</title>
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
 
   <!-- Tailwind CSS CDN -->
@@ -59,7 +59,7 @@
               <div class="relative flex flex-1 items-center gap-2 w-full">
                 <input type="text" 
                        id="learnerSearchInput" 
-                       placeholder="🔍 Nhập chữ Hán (日, 本), âm Hán Việt (ÁI, TÂM), âm On/Kun hoặc nghĩa tiếng Việt..." 
+                       placeholder="🔍 Nhập chữ Hán, âm Hán Việt, âm On/Kun hoặc nghĩa tiếng Việt..." 
                        class="w-full pl-3.5 pr-8 py-2 text-xs rounded-lg border border-[#CBD5E1] text-[#0F172A] bg-white font-sans font-medium outline-none focus:border-[#831843] focus:ring-2 focus:ring-[#831843]/15 transition">
                 <button type="button" 
                         id="btnClearSearchInput" 
@@ -79,14 +79,15 @@
                 </select>
                 <button type="button" 
                         id="btnSearchSubmit"
-                        class="px-4 py-2 rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-semibold shrink-0 transition active:scale-95 cursor-pointer">
+                        class="px-4 py-2 rounded-lg bg-[#006194] hover:bg-[#007bb9] text-white text-xs font-semibold shrink-0 transition active:scale-95 cursor-pointer shadow-xs">
                   <span>🔍</span> Tìm Kiếm
                 </button>
                 <button type="button" 
                         id="btnOpenHwSearchModal" 
-                        class="px-3.5 py-2 rounded-lg bg-[#FFE5EC] hover:bg-[#FCE7F3] text-[#831843] border border-[#FBCFE8] text-xs font-semibold shrink-0 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-                        title="Dùng chuột vẽ từng nét để tìm chữ Hán tức thì bằng AI">
-                  <span>🖌️</span> Vẽ Nét Tra Cứu
+                        class="px-3.5 py-2 rounded-lg bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#0369A1] border border-[#BAE6FD] text-xs font-semibold shrink-0 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                        title="Dùng chuột vẽ từng nét để tìm chữ Hán tức thì">
+                  <span class="material-symbols-outlined text-[16px]">draw</span>
+                  <span>Vẽ nét tra cứu</span>
                 </button>
               </div>
             </div>
@@ -139,10 +140,9 @@
             <!-- Render động bằng JS -->
           </div>
 
-          <!-- Pagination Bar -->
-          <div class="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-[#E2E8F0] shadow-sm text-xs font-meta">
-            <span id="learnerPaginationInfo" class="text-[#64748B]">Chờ bạn nhập từ khóa hoặc chọn bộ lọc... 🌸</span>
-            <div class="flex items-center gap-1.5" id="learnerPaginationBtns"></div>
+          <!-- Thanh Phân Trang Dùng Chung -->
+          <div id="learnerPaginationContainer" class="bg-white p-3 sm:p-4 rounded-xl border border-[#E2E8F0] shadow-sm">
+            <div id="learnerPaginationBtns"></div>
           </div>
 
         </div>

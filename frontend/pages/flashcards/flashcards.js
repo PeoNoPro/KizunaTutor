@@ -7,12 +7,13 @@
 import { showToast, debounce } from '/js/main.js';
 import { apiClient, KizunaToast, enrichFlashcardItem } from '/js/apiClient.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+import { renderPagination } from '/components/pagination/pagination.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
   activeMenu: 'flashcards',
-  pageTitle: 'Bộ thẻ Flashcards',
-  badge: 'Bộ nhớ siêu tốc'
+  pageTitle: 'Bộ thẻ ghi nhớ Flashcards',
+  badge: 'Luyện tập'
 });
 
 // =========================================================================
@@ -23,6 +24,8 @@ let sourceMergeDeckId = null;
 let activeEditingDeck = null;
 let editingCards = [];
 let isDeckLoadError = false;
+let currentDeckPage = 0;
+let deckPageSize = 9;
 
 // =========================================================================
 // 2. TẢI DỮ LIỆU BỘ THẺ QUA APICLIENT
@@ -69,11 +72,14 @@ function renderDecks(filterQuery = '') {
     countBadge.textContent = `${filtered.length} bộ thẻ`;
   }
 
+  const paginationContainer = document.getElementById('deckPaginationContainer');
+
   // Khi chưa có dữ liệu hoặc tìm kiếm không khớp -> Hiển thị Empty State
   if (filtered.length === 0) {
     grid.innerHTML = '';
     grid.classList.add('hidden');
     emptyState.classList.remove('hidden');
+    if (paginationContainer) paginationContainer.innerHTML = '';
 
     const emptyTitle = emptyState.querySelector('h3');
     const emptyDesc = emptyState.querySelector('p');
@@ -100,9 +106,14 @@ function renderDecks(filterQuery = '') {
   emptyState.classList.add('hidden');
   grid.classList.remove('hidden');
 
+  const totalElements = filtered.length;
+  const totalPages = Math.ceil(totalElements / deckPageSize) || 1;
+  if (currentDeckPage >= totalPages) currentDeckPage = Math.max(0, totalPages - 1);
+  const pagedDecks = filtered.slice(currentDeckPage * deckPageSize, (currentDeckPage + 1) * deckPageSize);
+
   let html = '';
 
-  filtered.forEach(deck => {
+  pagedDecks.forEach(deck => {
     const cardCount = deck.cards ? deck.cards.length : 0;
 
     html += `
@@ -267,6 +278,28 @@ function renderDecks(filterQuery = '') {
       openMergeModal(btn.dataset.id);
     });
   });
+
+  if (paginationContainer) {
+    renderPagination(paginationContainer, {
+      page: currentDeckPage,
+      number: currentDeckPage,
+      size: deckPageSize,
+      totalElements: totalElements,
+      totalPages: totalPages
+    }, {
+      onPage: (p) => {
+        currentDeckPage = p;
+        renderDecks(filterQuery);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+      onSize: (s) => {
+        deckPageSize = s;
+        currentDeckPage = 0;
+        renderDecks(filterQuery);
+      },
+      sizes: [9, 18, 27]
+    });
+  }
 }
 
 function toggleDeckMenu(event, deckId) {
@@ -787,7 +820,19 @@ function handleExcelUpload(event) {
 
       editingCards = editingCards.concat(newCards);
       renderEditingCardsList();
-      KizunaToast.success(`Đã đọc thành công ${newCards.length} thẻ từ file Excel!`);
+
+      // Tự động lưu ngay lập tức lên cơ sở dữ liệu nếu đang chỉnh sửa bộ thẻ đã có ID
+      if (activeEditingDeck && activeEditingDeck.id) {
+        apiClient.addCards(activeEditingDeck.id, newCards).then(() => {
+          KizunaToast.success(`Đã nạp và lưu vĩnh viễn ${newCards.length} thẻ từ file Excel!`);
+          loadDecks();
+        }).catch(err => {
+          console.warn('Auto-save cards warning:', err);
+          KizunaToast.info(`Đã nạp ${newCards.length} thẻ vào danh sách. Hãy nhấn "Lưu Thay Đổi" để cập nhật.`);
+        });
+      } else {
+        KizunaToast.success(`Đã đọc thành công ${newCards.length} thẻ từ file Excel! Nhấn "Lưu Thay Đổi" để cập nhật.`);
+      }
     } catch (err) {
       console.error(err);
       KizunaToast.error('Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng file!');
@@ -807,37 +852,36 @@ function downloadSampleExcel() {
     [
       "Mặt trước (Chữ Hán / Từ vựng)*",
       "Âm Hán-Việt",
-      "Onyomi (Âm On)",
-      "Kunyomi (Âm Kun)",
+      "Onyomi / Cách đọc Kana*",
+      "Kunyomi (nếu có)",
       "Nghĩa tiếng Việt*",
       "Cấp độ JLPT",
       "Ví dụ / Ghi chú"
     ],
     ["日", "NHẬT", "ニチ, ジツ", "ひ, -び, -か", "Mặt trời, ngày, Nhật Bản", "N5", "日曜日 (Chủ nhật)"],
     ["月", "NGUYỆT", "ゲツ, ガツ", "つき", "Mặt trăng, tháng", "N5", "月曜日 (Thứ hai)"],
-    ["火", "HỎA", "カ", "ひ, -び, ほ-", "Lửa, sao Hỏa", "N5", "火曜日 (Thứ ba)"],
-    ["水", "THỦY", "スイ", "みず", "Nước", "N5", "水曜日 (Thứ tư)"],
-    ["木", "MỘC", "ボク, モク", "き, こ-", "Cây cối, gỗ", "N5", "木曜日 (Thứ năm)"],
-    ["金", "KIM", "キン, コン", "かね, かな-", "Vàng, tiền kim loại", "N5", "金曜日 (Thứ sáu)"],
-    ["土", "THỔ", "ド, ト", "つち", "Đất đai, thổ nhưỡng", "N5", "土曜日 (Thứ bảy)"],
-    ["山", "SƠN", "サン, セン", "やま", "Núi non", "N5", "富士山 (Núi Phú Sĩ)"],
-    ["川", "XUYÊN", "セン", "かわ", "Sông suối", "N5", "川 (Con sông)"],
-    ["桜", "ANH", "オウ", "さくら", "Hoa anh đào Nhật Bản", "N3", "桜の花 (Hoa anh đào)"]
+    ["桜", "ANH", "オウ", "さくら", "Hoa anh đào Nhật Bản", "N3", "桜の花 (Hoa anh đào)"],
+    ["勉強", "MIỄN CƯỜNG", "べんきょう", "—", "Học tập, việc học", "N5", "日本語を勉強する (Học tiếng Nhật)"],
+    ["日本語", "NHẬT BẢN NGỮ", "にほんご", "—", "Tiếng Nhật", "N5", "日本語の先生 (Thầy cô tiếng Nhật)"],
+    ["こんにちは", "—", "こんにちは", "—", "Xin chào (dùng ban ngày)", "N5", "挨拶 (Chào hỏi)"],
+    ["犬", "KHUYỂN", "ケン", "いぬ", "Con chó", "N5", "白い犬 (Con chó trắng)"],
+    ["猫", "MIÊU", "ビョウ", "ねこ", "Con mèo", "N5", "可愛い猫 (Con mèo dễ thương)"],
+    ["富士山", "PHÚ SĨ SƠN", "ふじさん", "—", "Núi Phú Sĩ - ngọn núi cao nhất Nhật Bản", "N5", "富士山に登る (Leo núi Phú Sĩ)"]
   ];
   const ws = XLSX.utils.aoa_to_sheet(sampleData);
   ws['!cols'] = [
     { wch: 28 },
     { wch: 15 },
+    { wch: 22 },
     { wch: 18 },
-    { wch: 18 },
-    { wch: 32 },
+    { wch: 35 },
     { wch: 12 },
-    { wch: 25 }
+    { wch: 30 }
   ];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Flashcards_Kanji");
+  XLSX.utils.book_append_sheet(wb, ws, "Flashcards_Kanji_Vocab");
   XLSX.writeFile(wb, "mau-flashcard-tieng-nhat-chuan.xlsx");
-  KizunaToast.success('Đã tải xuống file Excel mẫu đa cột chuẩn tiếng Nhật!');
+  KizunaToast.success('Đã tải xuống file Excel mẫu chuẩn (Kanji & Từ vựng)!');
 }
 async function saveDeckChanges() {
   if (!activeEditingDeck) return;
@@ -883,6 +927,7 @@ function initFlashcardsPage() {
   if (searchInput && !searchInput.hasAttribute('data-bound')) {
     searchInput.setAttribute('data-bound', 'true');
     searchInput.addEventListener('input', debounce((e) => {
+      currentDeckPage = 0;
       renderDecks(e.target.value);
     }, 250));
   }

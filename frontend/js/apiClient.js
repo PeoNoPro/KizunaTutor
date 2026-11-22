@@ -89,24 +89,45 @@ export function extractKanaReadingsFromText(rawText) {
 export function enrichFlashcardItem(card = {}) {
   const front = String(card.char || card.front || card.word || '').trim();
   const back = String(card.meaning || card.back || '').trim();
-  const explicitReading = String(card.reading || card.furigana || card.kunyomi || card.onyomi || '').trim();
+
+  // 1. Kiểm tra nếu mặt trước là Kana thuần túy (Hiragana/Katakana)
+  const isPureKana = front.length > 0 && /^[\u3040-\u309F\u30A0-\u30FFー\s]+$/.test(front);
+
+  // 2. Tìm cách đọc ưu tiên: reading -> furigana -> onyomi -> kunyomi
+  let explicitReading = String(card.reading || card.furigana || card.onyomi || card.kunyomi || '').trim();
+  if (explicitReading === '—') explicitReading = '';
 
   let reading = explicitReading;
-  if (!reading || /[\s•\-/|]/.test(reading)) {
+  if (!reading || /[\s•\-/|,]/.test(reading)) {
     const kanaFromExplicit = extractKanaReadingsFromText(explicitReading);
+    const kanaFromOn = extractKanaReadingsFromText(card.onyomi);
+    const kanaFromKun = extractKanaReadingsFromText(card.kunyomi);
     const kanaFromBack = extractKanaReadingsFromText(back);
-    const combined = [...kanaFromExplicit, ...kanaFromBack];
+    const combined = [...kanaFromExplicit, ...kanaFromOn, ...kanaFromKun, ...kanaFromBack];
     if (combined.length > 0) {
       reading = combined[0];
+    } else if (isPureKana) {
+      reading = front;
     }
   }
 
+  if (!reading && isPureKana) {
+    reading = front;
+  }
+
+  const id = card.id || `card-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const hanViet = String(card.hanViet || card.sinoVietnamese || '').trim();
+  const jlpt = String(card.jlpt || card.level || 'Tự do').trim();
+
   return {
     ...card,
-    char: front || card.char,
-    front: front || card.front,
-    meaning: back || card.meaning,
-    reading: reading || ''
+    id,
+    char: front,
+    front: front,
+    meaning: back,
+    reading: reading || '',
+    hanViet: hanViet || card.hanViet || '',
+    jlpt: jlpt || 'Tự do'
   };
 }
 
@@ -198,15 +219,37 @@ export const apiClient = {
    * GET /api/learner/decks/{id}
    */
   async getDeck(id) {
+    const decks = getStoredDecks();
+    const localDeck = decks.find(d => String(d.id) === String(id)) || null;
+
     try {
       const res = await fetch(`/api/learner/decks/${encodeURIComponent(id)}`, {
-        headers: { 'Accept': 'application/json' },
+        headers: getDeckHeaders(false),
         signal: AbortSignal.timeout(4000)
       }).catch(() => null);
 
       if (res && res.ok) {
         const data = await res.json();
         if (data && data.title) {
+          // Hợp nhất thông minh với localStorage nếu local có thẻ chưa đồng bộ
+          if (localDeck && Array.isArray(localDeck.cards) && Array.isArray(data.cards)) {
+            if (localDeck.cards.length > data.cards.length) {
+              const existingKeys = new Set(data.cards.map(c => String(c.id || c.char)));
+              localDeck.cards.forEach(lc => {
+                if (!existingKeys.has(String(lc.id || lc.char))) {
+                  data.cards.push(lc);
+                }
+              });
+            }
+          }
+          // Cập nhật lại local cache
+          const idx = decks.findIndex(d => String(d.id) === String(id));
+          if (idx !== -1) {
+            decks[idx] = data;
+          } else {
+            decks.push(data);
+          }
+          saveStoredDecks(decks);
           return data;
         }
       }
@@ -214,8 +257,7 @@ export const apiClient = {
       console.debug(`API /api/learner/decks/${id} offline, tìm trong local:`, e);
     }
 
-    const decks = getStoredDecks();
-    return decks.find(d => String(d.id) === String(id)) || null;
+    return localDeck;
   },
 
   /**
@@ -326,15 +368,19 @@ export const apiClient = {
    * POST /api/learner/decks/{id}/cards
    */
   async addCards(id, cards) {
-    const cardArray = Array.isArray(cards) ? cards : [cards];
+    const rawCards = Array.isArray(cards) ? cards : [cards];
+    const cardArray = rawCards.map(c => enrichFlashcardItem(c));
 
     try {
       const res = await fetch(`/api/learner/decks/${encodeURIComponent(id)}/cards`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: getDeckHeaders(true),
         body: JSON.stringify({ cards: cardArray }),
-        signal: AbortSignal.timeout(4000)
-      }).catch(() => null);
+        signal: AbortSignal.timeout(6000)
+      }).catch(err => {
+        console.warn('Lỗi kết nối POST /cards:', err);
+        return null;
+      });
 
       if (res && res.ok) {
         const result = await res.json();
@@ -347,12 +393,14 @@ export const apiClient = {
           }
           return result;
         }
+      } else if (res && (res.status === 401 || res.status === 403)) {
+        console.warn(`Máy chủ phản hồi mã ${res.status} khi thêm thẻ.`);
       }
     } catch (e) {
       console.debug(`API POST /api/learner/decks/${id}/cards offline:`, e);
     }
 
-    // Fallback Local
+    // Fallback LocalStorage khi offline
     const decks = getStoredDecks();
     const target = decks.find(d => String(d.id) === String(id));
     if (!target) throw new Error(`Không tìm thấy bộ thẻ #${id}`);

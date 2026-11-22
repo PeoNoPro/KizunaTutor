@@ -31,6 +31,7 @@ let currentPage = 0;
 let pageSize = 18;
 const VOCAB_PAGE_SIZES = [18, 36, 72];
 let currentViewMode = localStorage.getItem('kizuna_vocab_view_mode') || 'jlpt'; // 'jlpt' | 'kanji' | 'kana'
+let isStandbyMode = true; // Trạng thái chờ tra cứu khi mới vào trang
 
 // Danh sách các từ vựng ưu tiên hiển thị Hiragana / Katakana ở trình độ sơ cấp (JLPT N5/N4)
 // theo đúng quy chuẩn khảo thí JLPT và giáo trình Minna no Nihongo
@@ -83,12 +84,29 @@ function debounce(fn, delay = 250) {
 }
 
 async function initPage() {
+  const params = new URLSearchParams(window.location.search);
+  const qSearch = params.get('q') || params.get('keyword') || params.get('search');
+  const qTopic = params.get('topic');
+
+  if (qSearch || qTopic) {
+    isStandbyMode = false;
+    if (qTopic) activeTopic = qTopic;
+  } else {
+    isStandbyMode = true;
+  }
+
   await loadTopics();
   renderTopicPills();
   await loadVocabularies();
 
   const searchInput = document.getElementById('searchVocabInput');
   const clearBtn = document.getElementById('btnClearVocabSearch');
+
+  if (qSearch && searchInput) {
+    searchInput.value = qSearch;
+    clearBtn?.classList.remove('hidden');
+    filterVocab(qSearch);
+  }
 
   const debouncedFilter = debounce((val) => {
     filterVocab(val);
@@ -104,6 +122,9 @@ async function initPage() {
           clearBtn.classList.add('hidden');
         }
       }
+      if (val && val.trim().length > 0) {
+        isStandbyMode = false;
+      }
       debouncedFilter(val);
     });
 
@@ -111,9 +132,39 @@ async function initPage() {
       searchInput.value = '';
       clearBtn.classList.add('hidden');
       searchInput.focus();
-      filterVocab('');
+      isStandbyMode = true;
+      renderVocabPage();
     });
   }
+
+  // Gắn sự kiện các nút gợi ý nhanh trên màn hình chờ
+  document.querySelectorAll('.btn-vocab-quick-chip').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const topic = btn.getAttribute('data-quick-topic');
+      const search = btn.getAttribute('data-quick-search');
+      isStandbyMode = false;
+
+      if (topic) {
+        activeTopic = topic;
+        const matched = currentTopics.find(t => String(t.code || t.id) === activeTopic);
+        const badge = document.getElementById('activeTopicBadge');
+        if (badge && matched) {
+          badge.textContent = matched.titleVn;
+        }
+        if (searchInput) searchInput.value = '';
+        clearBtn?.classList.add('hidden');
+        renderTopicPills();
+        loadVocabularies();
+      } else if (search) {
+        if (searchInput) searchInput.value = search;
+        clearBtn?.classList.remove('hidden');
+        filterVocab(search);
+      }
+      document.getElementById('vocabGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
 }
 
 /**
@@ -150,7 +201,7 @@ function updateViewModeButtons() {
     const btn = document.querySelector(`[data-view-mode="${m}"]`);
     if (btn) {
       if (m === currentViewMode) {
-        btn.className = 'px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer bg-white text-[#831843] shadow-xs';
+        btn.className = 'px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer bg-white text-[#006194] shadow-xs';
       } else {
         btn.className = 'px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]';
       }
@@ -223,7 +274,7 @@ function renderTopicPills() {
               data-topic="${topicKey}"
               class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition flex items-center gap-1.5 cursor-pointer ${
                 isActive
-                  ? 'bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]'
+                  ? 'bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]'
                   : 'bg-white border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-50'
               }">
         <span>${t.icon || '📚'}</span>
@@ -235,6 +286,7 @@ function renderTopicPills() {
   container.querySelectorAll('button[data-topic]').forEach(btn => {
     btn.addEventListener('click', () => {
       activeTopic = btn.dataset.topic;
+      isStandbyMode = false;
       const matched = currentTopics.find(t => String(t.code || t.id) === activeTopic);
       const badge = document.getElementById('activeTopicBadge');
       if (badge && matched) {
@@ -346,8 +398,23 @@ async function loadVocabularies() {
 function renderVocabPage() {
   const grid = document.getElementById('vocabGrid');
   const emptyState = document.getElementById('vocabEmptyState');
+  const standbyState = document.getElementById('vocabStandbyState');
   const paginationContainer = document.getElementById('vocabPagination');
   if (!grid) return;
+
+  // 0. Nếu đang ở trạng thái chờ tra cứu (Standby State)
+  if (isStandbyMode) {
+    if (standbyState) standbyState.classList.remove('hidden');
+    grid.innerHTML = '';
+    grid.classList.add('hidden');
+    emptyState?.classList.add('hidden');
+    if (paginationContainer) paginationContainer.innerHTML = '';
+    return;
+  }
+
+  // Khi đã vào trạng thái duyệt kết quả, ẩn màn hình chờ
+  if (standbyState) standbyState.classList.add('hidden');
+  grid.classList.remove('hidden');
 
   const total = currentFilteredList.length;
   if (total === 0) {
@@ -424,7 +491,7 @@ function renderVocabGrid(items) {
             <span class="text-slate-400">Hán tự:</span>
             <span class="font-bold text-[#0F172A] font-japanese">${escapeHtml(v.word)}</span>
             <span class="text-slate-300">•</span>
-            <span class="text-[#831843] font-bold uppercase">${escapeHtml(v.hanViet)}</span>
+            <span class="text-[#0369A1] font-bold uppercase">${escapeHtml(v.hanViet)}</span>
           </div>
         `;
       } else {
@@ -438,13 +505,13 @@ function renderVocabGrid(items) {
       subLineHtml = `
         <div class="flex items-center gap-1.5 mt-0.5 text-xs text-[#64748B] font-mono truncate">
           <span>${escapeHtml(v.furigana || v.reading || '')}</span>
-          ${v.hanViet ? `<span class="text-slate-300">•</span><span class="text-[#831843] font-bold uppercase">${escapeHtml(v.hanViet)}</span>` : ''}
+          ${v.hanViet ? `<span class="text-slate-300">•</span><span class="text-[#0369A1] font-bold uppercase">${escapeHtml(v.hanViet)}</span>` : ''}
         </div>
       `;
     }
 
     return `
-      <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 hover:border-[#CBD5E1] transition-all flex flex-col justify-between h-full min-w-0 group">
+      <div class="bg-white border border-[#E2E8F0] rounded-xl p-3.5 hover:border-[#CBD5E1] transition-all flex flex-col justify-between h-full min-w-0 group shadow-xs">
         <div class="space-y-2.5 flex-1 min-w-0">
           <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-[#E2E8F0]">
             <div class="min-w-0">
@@ -453,7 +520,7 @@ function renderVocabGrid(items) {
               </div>
               ${subLineHtml}
             </div>
-            <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] shrink-0">
+            <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD] shrink-0">
               ${escapeHtml(v.level || 'JLPT')}
             </span>
           </div>
@@ -475,9 +542,9 @@ function renderVocabGrid(items) {
           <button type="button"
                   data-action="speak-vocab"
                   data-word="${escapeHtml(v.word || v.kanji || v.reading)}"
-                  class="flex-1 py-1.5 px-3 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FFE5EC] hover:border-[#FBCFE8] text-[#0F172A] hover:text-[#831843] text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  class="flex-1 py-1.5 px-3 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#E0F2FE] hover:border-[#BAE6FD] text-[#0F172A] hover:text-[#006194] text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
                   title="Nghe phát âm từ vựng">
-            <span class="material-symbols-outlined text-[16px] text-[#831843]">volume_up</span>
+            <span class="material-symbols-outlined text-[16px] text-[#006194]">volume_up</span>
             <span>Phát âm</span>
           </button>
           <button type="button"
@@ -486,7 +553,7 @@ function renderVocabGrid(items) {
                   data-reading="${escapeHtml(v.furigana || v.reading || '')}"
                   data-meaning="${escapeHtml(v.meaning || v.meaningVn || '')}"
                   data-level="${escapeHtml(v.level || 'JLPT')}"
-                  class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FFE5EC] text-[#64748B] hover:text-[#831843] transition cursor-pointer"
+                  class="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#E0F2FE] text-[#64748B] hover:text-[#006194] transition cursor-pointer"
                   title="Cất vào bộ thẻ Flashcards">
             <span class="material-symbols-outlined text-[18px]">bookmark_add</span>
           </button>
@@ -738,6 +805,7 @@ function filterVocab(kw) {
     renderVocabPage();
     return;
   }
+  isStandbyMode = false;
   currentFilteredList = vocabList.filter(v => {
     return (v.word && v.word.toLowerCase().includes(query)) ||
            (v.kanji && v.kanji.toLowerCase().includes(query)) ||

@@ -6,6 +6,7 @@
 import { showToast } from '/js/main.js';
 import { voicevoxClient } from '/js/voicevoxClient.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+import { apiClient } from '/js/apiClient.js';
 
 // 1. Khởi tạo Shell học viên
 initLearnerShell({
@@ -58,38 +59,25 @@ async function loadMatchGame() {
     return;
   }
 
-  // 1. Tìm trong LocalStorage
+  // 1. Tải trực tiếp qua apiClient (Tự động lấy dữ liệu mới nhất từ Backend có Header Auth, đồng bộ với LocalStorage)
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const decks = JSON.parse(raw);
-      if (Array.isArray(decks)) {
-        currentDeck = decks.find(d => String(d.id) === String(currentDeckId));
-      }
-    }
+    currentDeck = await apiClient.getDeck(currentDeckId);
   } catch (e) {
-    console.debug('Lỗi đọc localStorage flashcards:', e);
+    console.debug('Lỗi nạp bộ thẻ qua apiClient:', e);
   }
 
-  // 2. Nếu chưa có hoặc chưa có thẻ, nạp qua REST API Backend /api/learner/decks/{id}
+  // 2. Fallback nếu apiClient chưa trả về
   if (!currentDeck || !currentDeck.cards || currentDeck.cards.length === 0) {
     try {
-      const res = await fetch(`/api/learner/decks/${encodeURIComponent(currentDeckId)}`).catch(() => null);
-      if (res && res.ok) {
-        const d = await res.json();
-        if (d && (d.title || d.id)) {
-          currentDeck = {
-            id: String(d.id || currentDeckId),
-            title: d.title || d.folderName || 'Bộ thẻ',
-            cards: (d.cards || d.items || []).map(c => ({
-              char: c.char || c.kanjiChar || c.front || c.character || '',
-              meaning: c.meaning || c.back || ''
-            }))
-          };
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const decks = JSON.parse(raw);
+        if (Array.isArray(decks)) {
+          currentDeck = decks.find(d => String(d.id) === String(currentDeckId));
         }
       }
     } catch (e) {
-      console.debug('Lỗi API backend /api/learner/decks:', e);
+      console.debug('Lỗi đọc localStorage flashcards:', e);
     }
   }
 

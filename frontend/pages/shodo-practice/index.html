@@ -141,14 +141,14 @@
           <!-- Main Layout: 2 Columns (Canvas Area 5/12 + Details & Tools 7/12) -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start w-full min-w-0">
             
-            <!-- ==================== CỘT 1: KHUNG VẼ CANVAS Ô MỄ ==================== -->
-            <div class="lg:col-span-5 bg-white border-2 border-[#0F172A] rounded-xl p-4 sm:p-5 shadow-[3px_3px_0px_0px_#0F172A] flex flex-col items-center space-y-3 min-w-0 w-full">
+            <!-- ==================== CỘT 1: KHUNG VẼ CANVAS ==================== -->
+            <div class="lg:col-span-5 bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 shadow-sm flex flex-col items-center space-y-3 min-w-0 w-full">
               
               <!-- Thông tin chữ đang chọn trên Canvas -->
               <div class="w-full flex items-center justify-between pb-2.5 border-b border-[#E2E8F0]">
                 <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">
-                    Kanji
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">
+                    Chữ Hán
                   </span>
                   <span id="canvasActiveChar" class="text-2xl font-bold text-[#0F172A] font-japanese leading-none">—</span>
                   <span id="canvasActiveHanViet" class="text-xs font-semibold text-slate-500">(Chưa chọn chữ)</span>
@@ -161,8 +161,8 @@
                 </div>
               </div>
 
-              <!-- Khung Canvas Ô Mễ Tỷ Lệ 1:1 Cố Định Chống Reflow -->
-              <div class="shodo-canvas-box canvas-board-wrapper relative w-full max-w-[420px] aspect-square mx-auto bg-[#FAF8F2] border-2 border-[#0F172A] rounded-[8px] shadow-[3px_3px_0px_0px_#0F172A] overflow-hidden select-none" id="canvasWrapper">
+              <!-- Khung Canvas Lưới Tỷ Lệ 1:1 Cố Định Chống Reflow -->
+              <div class="shodo-canvas-box canvas-board-wrapper relative w-full max-w-[420px] aspect-square mx-auto bg-[#FAF8F2] border border-[#CBD5E1] rounded-xl shadow-xs overflow-hidden select-none" id="canvasWrapper">
                 <!-- Lớp 1: Lưới kẻ Mễ tự (Cố định nền) -->
                 <svg class="absolute inset-0 w-full h-full pointer-events-none select-none z-0" viewBox="0 0 300 300">
                   <line x1="0" y1="0" x2="300" y2="300" class="shodo-grid-line" />
@@ -179,10 +179,10 @@
               </div>
 
               <!-- Thanh Công Cụ Điều Khiển Nét Vẽ (Toolbar Cùng 1 Hàng Gọn Gàng) -->
-              <div class="shodo-toolbar w-full grid grid-cols-4 gap-1.5 p-1.5 bg-white border border-[#0F172A] rounded-[6px] shadow-[2px_2px_0px_0px_#0F172A]">
+              <div class="shodo-toolbar w-full grid grid-cols-4 gap-1.5 p-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg">
                 <!-- Nút Phát nét -->
                 <button type="button" id="btnPlayStroke" data-action="play-stroke"
-                        class="ls-btn ls-btn-default w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
+                        class="ls-btn ls-btn-default w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#CBD5E1] rounded-md shadow-xs transition hover:bg-slate-50 cursor-pointer"
                         title="Phát hoạt ảnh mô phỏng thứ tự từng nét chuẩn">
                   <span class="icon text-[11px] shrink-0">▷</span>
                   <span class="label whitespace-nowrap">Phát nét</span>
@@ -190,7 +190,7 @@
 
                 <!-- Nút Ẩn/Hiện nét mờ -->
                 <button type="button" id="btnToggleGuide" data-action="toggle-ghost"
-                        class="ls-btn ls-btn-default is-active bg-[#FFE5EC] text-[#831843] w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
+                        class="ls-btn ls-btn-default is-active bg-[#E0F2FE] text-[#0369A1] w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#BAE6FD] rounded-md shadow-xs transition cursor-pointer"
                         title="Nhấn để ẩn nét mờ hướng dẫn (tự nhớ mặt chữ để vẽ)">
                   <span class="icon text-[11px] shrink-0">👁️</span>
                   <span class="label whitespace-nowrap">Ẩn nét mờ</span>
@@ -198,7 +198,7 @@
 
                 <!-- Nút Hoàn tác -->
                 <button type="button" id="btnUndoStroke" 
-                        class="ls-btn ls-btn-default w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
+                        class="ls-btn ls-btn-default w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#CBD5E1] rounded-md shadow-xs transition hover:bg-slate-50 cursor-pointer"
                         title="Quay lại một nét vừa vẽ">
                   <span class="icon text-[11px] shrink-0">↩️</span>
                   <span class="label whitespace-nowrap">Hoàn tác</span>
@@ -206,7 +206,7 @@
 
                 <!-- Nút Xóa hết -->
                 <button type="button" id="btnClearBoard" 
-                        class="ls-btn ls-btn-danger w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] transition"
+                        class="ls-btn ls-btn-danger w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#CBD5E1] rounded-md shadow-xs transition hover:bg-rose-50 text-rose-700 cursor-pointer"
                         title="Xóa trắng bảng vẽ để luyện lại từ đầu">
                   <span class="icon text-[11px] shrink-0">🗑️</span>
                   <span class="label whitespace-nowrap">Xóa hết</span>
@@ -218,7 +218,7 @@
             <div class="lg:col-span-7 space-y-3 min-w-0 w-full">
               
               <!-- Hộp Tìm / Đổi Chữ Nhanh -->
-              <div class="bg-white border-2 border-[#0F172A] rounded-xl p-4 shadow-[3px_3px_0px_0px_#0F172A]">
+              <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 shadow-sm">
                 <div>
                   <label for="inputQuickChar" class="block text-xs font-semibold text-[#1E293B] mb-1">
                     Luyện viết chữ Hán bất kỳ:
@@ -226,9 +226,9 @@
                   <div class="flex items-center gap-2">
                     <input type="text" id="inputQuickChar" placeholder="Nhập chữ Hán (ví dụ: 心, 道, 学, 和, 絆...)" 
                            maxlength="5"
-                           class="flex-1 px-3 py-1.5 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#831843] focus:ring-1 focus:ring-[#831843] transition">
+                           class="flex-1 px-3 py-1.5 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#006194] focus:ring-1 focus:ring-[#006194] transition">
                     <button type="button" id="btnLoadChar" 
-                            class="px-3.5 py-1.5 font-semibold text-xs bg-[#9F1239] hover:bg-[#BE185D] text-white rounded-lg transition cursor-pointer">
+                            class="px-4 py-2 font-semibold text-xs bg-[#006194] hover:bg-[#007bb9] text-white rounded-lg transition cursor-pointer shadow-xs">
                       Nạp chữ
                     </button>
                   </div>
@@ -236,7 +236,7 @@
               </div>
 
               <!-- Bảng Chi Tiết Thông Tin Chữ Hán -->
-              <div class="bg-white border-2 border-[#0F172A] rounded-xl p-4 sm:p-5 space-y-3 shadow-[3px_3px_0px_0px_#0F172A]">
+              <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 space-y-3 shadow-sm">
                 <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2.5 flex-wrap gap-2">
                   <h3 class="font-bold text-sm text-[#0F172A] flex items-center gap-2">
                     <span>📖</span>

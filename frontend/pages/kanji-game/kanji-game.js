@@ -12,8 +12,8 @@ import { apiClient, extractKanaReadingsFromText } from '/js/apiClient.js';
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
   activeMenu: 'kanji-game',
-  pageTitle: 'Trò chơi mưa chữ Hán',
-  badge: 'Đấu trường phản xạ'
+  pageTitle: 'Luyện phản xạ chữ Hán',
+  badge: 'Luyện tập'
 });
 
 // =========================================================================
@@ -164,7 +164,7 @@ class SparkleParticle {
   draw(ctx) {
     ctx.save();
 
-    // 1. Há»™p bao quanh máº·t chá»¯ (Rounded Glass Card)
+    // 1. Hộp bao quanh mặt chữ (Rounded Glass Card)
     const radius = 12;
     ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
     ctx.shadowBlur = 10;
@@ -179,18 +179,18 @@ class SparkleParticle {
     ctx.fill();
     ctx.stroke();
 
-    // Táº¯t bÃ³ng Ä‘á»• Ä‘á»ƒ váº½ chá»¯ sáº¯c nÃ©t
+    // Tắt bóng đổ để vẽ chữ sắc nét
     ctx.shadowColor = 'transparent';
 
     if (showAnswerHint) {
-      // 2. Váº½ máº·t chá»¯ HÃ¡n to á»Ÿ ná»­a trÃªn khi cÃ³ gá»£i Ã½ Ä‘Ã¡p Ã¡n
+      // 2. Vẽ mặt chữ Hán to ở nửa trên khi có gợi ý đáp án
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '900 28px "Noto Serif JP", serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(this.character, this.x + this.width / 2, this.y + 26);
 
-      // 3. Huy hiá»‡u cÃ¡ch Ä‘á»c gá»£i Ã½ (Primary Reading Badge)
+      // 3. Huy hiệu cách đọc gợi ý (Primary Reading Badge)
       const badgeY = this.y + this.height - 18;
       ctx.fillStyle = 'rgba(14, 165, 233, 0.25)';
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
@@ -206,7 +206,7 @@ class SparkleParticle {
       ctx.textBaseline = 'middle';
       ctx.fillText(this.primaryReading || this.hanViet, this.x + this.width / 2, badgeY - 1);
     } else {
-      // Khi áº©n Ä‘Ã¡p Ã¡n: Váº½ máº·t chá»¯ HÃ¡n to á»Ÿ chÃ­nh giá»¯a tháº» card
+      // Khi ẩn đáp án: Vẽ mặt chữ Hán to ở chính giữa thẻ card
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '900 32px "Noto Serif JP", serif';
       ctx.textAlign = 'center';
@@ -448,7 +448,7 @@ let spawnInterval = 3.6; // giây
 let selectedDuration = 60; // giây (60, 180, 300)
 let remainingTime = 60;
 let speedMultiplier = 0.6; // Mặc định tốc độ Luyện tập chậm rãi (0.6: Luyện tập, 1.0: Thư thái, 1.5: Tiêu chuẩn) // 1 (chill), 1.5 (standard), 2.2 (blitz)
-let showAnswerHint = false; // Máº·c Ä‘á»‹nh khÃ´ng hiá»ƒn thá»‹ Ä‘Ã¡p Ã¡n (theo yÃªu cáº§u thá»­ thÃ¡ch)
+let showAnswerHint = false; // Mặc định không hiển thị đáp án (theo yêu cầu thử thách)
 
 let score = 0;
 let combo = 0;
@@ -1076,6 +1076,11 @@ function checkTypingMatch(isEnterCommit = false) {
     return;
   }
 
+  // Nếu chưa bấm Space hoặc Enter để chốt lệnh bắn -> Chỉ dừng lại ở việc ngắm mục tiêu (Live Target Preview)
+  if (!isEnterCommit) {
+    return;
+  }
+
   // 1. Tìm chữ rơi ở vị trí thấp nhất khớp chính xác
   let lowestMatchIndex = -1;
   let maxMatchY = -999;
@@ -1124,8 +1129,8 @@ function checkTypingMatch(isEnterCommit = false) {
     return;
   }
 
-  // 3. NẾU BẤM ENTER HOẶC SPACE MÀ KHÔNG KHỚP: Ghi nhận sai + Rung đỏ + TỰ ĐỘNG LÀM SẠCH Ô GÕ
-  if (isEnterCommit && trimmed.length > 0) {
+  // 3. NẾU BẮN HỤT (Bấm Enter hoặc Space mà không khớp): Ghi nhận sai + Rung đỏ + TỰ ĐỘNG LÀM SẠCH Ô GÕ
+  if (trimmed.length > 0) {
     sounds.playBuzz();
     combo = 0;
     totalMistakes++;
@@ -1363,21 +1368,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     setGameState('LOBBY');
   });
 
-  // Xử lý ô nhập dữ liệu gõ phím (Hỗ trợ tự động làm sạch + Space/Enter)
-  inputField?.addEventListener('input', () => {
-    // Nếu người dùng vừa gõ phím cách (Space) -> xem như kết thúc từ để commit
-    if (inputField.value.endsWith(' ')) {
-      inputField.value = inputField.value.trim();
-      checkTypingMatch(true);
-      return;
+  // 1. Quản lý trạng thái bộ gõ IME (Unikey / EVKey / Japanese IME)
+  let isComposing = false;
+  inputField?.addEventListener('compositionstart', () => {
+    isComposing = true;
+  });
+  inputField?.addEventListener('compositionend', () => {
+    isComposing = false;
+    if (liveTypingEcho) {
+      liveTypingEcho.textContent = inputField.value.trim() || '...';
     }
-    checkTypingMatch(false);
+    updateTargetKanji();
   });
 
+  // 2. Khi gõ từng phím: Cập nhật live target preview & live echo, KHÔNG kích hoạt bắn
+  inputField?.addEventListener('input', () => {
+    if (liveTypingEcho) {
+      liveTypingEcho.textContent = inputField.value.trim() || '...';
+    }
+    updateTargetKanji();
+  });
+
+  // 3. Phím Space / Enter: Kích hoạt lệnh bắn chính thức (chỉ khi không trong phiên gõ IME)
   inputField?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if ((e.key === 'Enter' || e.key === ' ') && !isComposing) {
       e.preventDefault();
-      checkTypingMatch(true);
+      const val = (inputField.value || '').trim();
+      if (val.length > 0) {
+        checkTypingMatch(true);
+      }
     }
   });
   // Nút bật/tắt âm thanh
@@ -1396,10 +1415,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   durationBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       durationBtns.forEach(b => {
-        b.classList.remove('active', 'bg-[#9F1239]', 'text-white', 'shadow-xs');
+        b.classList.remove('active', 'bg-[#006194]', 'text-white', 'shadow-xs');
         b.classList.add('bg-white', 'text-[#1E293B]', 'border-[#CBD5E1]');
       });
-      btn.classList.add('active', 'bg-[#9F1239]', 'text-white', 'shadow-xs');
+      btn.classList.add('active', 'bg-[#006194]', 'text-white', 'shadow-xs');
       btn.classList.remove('bg-white', 'text-[#1E293B]', 'border-[#CBD5E1]');
       selectedDuration = parseInt(btn.dataset.duration, 10) || 60;
       remainingTime = selectedDuration;
@@ -1411,10 +1430,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   speedBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       speedBtns.forEach(b => {
-        b.classList.remove('active', 'bg-[#9F1239]', 'text-white', 'shadow-xs');
+        b.classList.remove('active', 'bg-[#006194]', 'text-white', 'shadow-xs');
         b.classList.add('bg-white', 'text-[#1E293B]', 'border-[#CBD5E1]');
       });
-      btn.classList.add('active', 'bg-[#9F1239]', 'text-white', 'shadow-xs');
+      btn.classList.add('active', 'bg-[#006194]', 'text-white', 'shadow-xs');
       btn.classList.remove('bg-white', 'text-[#1E293B]', 'border-[#CBD5E1]');
       speedMultiplier = parseFloat(btn.dataset.speed) || 0.6;
     });
@@ -1425,10 +1444,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   hintBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       hintBtns.forEach(b => {
-        b.classList.remove('active', 'bg-[#9F1239]', 'text-white', 'shadow-xs');
+        b.classList.remove('active', 'bg-[#006194]', 'text-white', 'shadow-xs');
         b.classList.add('bg-white', 'text-[#1E293B]', 'border-[#CBD5E1]');
       });
-      btn.classList.add('active', 'bg-[#9F1239]', 'text-white', 'shadow-xs');
+      btn.classList.add('active', 'bg-[#006194]', 'text-white', 'shadow-xs');
       btn.classList.remove('bg-white', 'text-[#1E293B]', 'border-[#CBD5E1]');
       showAnswerHint = btn.dataset.hint === 'true';
     });

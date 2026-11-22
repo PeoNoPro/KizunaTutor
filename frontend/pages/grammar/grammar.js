@@ -395,8 +395,6 @@ function renderGrammarCards() {
   // 3. Cập nhật số lượng mẫu câu hiển thị
   if (activeCountEl) activeCountEl.textContent = String(filtered.length);
 
-  const paginationEl = document.getElementById('grammarPagination');
-
   if (filtered.length === 0) {
     grid.innerHTML = '';
     grid.classList.add('hidden');

@@ -8,6 +8,7 @@ import { showToast } from '/js/main.js';
 import { KizunaDialog } from '/js/common/dialog.js';
 import { AgentMemoryService } from '/js/api/agentMemory.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+import { apiClient } from '/js/apiClient.js';
 
 // Khởi tạo khung giao diện học viên dùng chung
 initLearnerShell({
@@ -34,8 +35,21 @@ let drawnStrokes = []; // Mảng các nét người dùng vẽ [[{x, y}, ...], .
 let currentStroke = [];
 
 // =========================================================================
-// 2. TIỆN ÍCH CHUYỂN ĐỔI UNICODE SANG MÃ HEX KANJIVG
+// 2. TIỆN ÍCH CHUYỂN ĐỔI UNICODE & HEADER XÁC THỰC
 // =========================================================================
+function getAuthHeaders() {
+  const headers = {
+    'Accept': 'application/json'
+  };
+  try {
+    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token') || localStorage.getItem('token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  } catch (e) {}
+  return headers;
+}
+
 function getKanjiUnicodeHex(char) {
   if (!char || typeof char !== 'string') return null;
   const codePoint = char.codePointAt(0);
@@ -67,9 +81,10 @@ async function loadKanjiSvg(char) {
 
   // 2. Thử lấy từ Backend Database (PostgreSQL lưu sẵn KanjiVG SVG)
   try {
-    let bRes = await fetch(`/api/learner/kanji/detail?char=${encodeURIComponent(targetChar)}`).catch(() => null);
+    const headers = getAuthHeaders();
+    let bRes = await fetch(`/api/learner/kanji/detail?char=${encodeURIComponent(targetChar)}`, { headers }).catch(() => null);
     if (!bRes || !bRes.ok) {
-      bRes = await fetch(`/api/kanji/${encodeURIComponent(targetChar)}`).catch(() => null);
+      bRes = await fetch(`/api/kanji/${encodeURIComponent(targetChar)}`, { headers }).catch(() => null);
     }
     if (bRes && bRes.ok) {
       const bData = await bRes.json();
@@ -498,17 +513,83 @@ function setElementText(id, text) {
 // =========================================================================
 // 6. CẬP NHẬT THÔNG TIN HÁN TỰ & KHAY XEM TỪNG NÉT
 // =========================================================================
+function applyKanjiDataToUI(data) {
+  if (!data) return;
+  const hanViet = data.hanViet || data.han_viet || data.sinoVietnamese || '—';
+  const meaning = data.meaning || data.meaningVn || data.definition || 'Chưa cập nhật nghĩa tiếng Việt.';
+  const onyomi = data.onyomi || data.on_yomi || data.onReading || '-';
+  const kunyomi = data.kunyomi || data.kun_yomi || data.kunReading || '-';
+  const strokeCount = data.strokeCount || data.totalStrokes || data.strokes || (strokePaths && strokePaths.length) || 0;
+  const radical = data.radical || data.bushu || data.mainRadical || '-';
+  const jlpt = data.jlptLevel || data.jlpt || data.level || 'N5';
+
+  // Binding lên tất cả các DOM IDs chuẩn
+  setElementText('canvasActiveHanViet', `(Âm Hán: ${hanViet})`);
+  setElementText('detailHanViet', hanViet);
+  setElementText('kanjiHanViet', hanViet);
+  setElementText('panelHanViet', hanViet);
+
+  setElementText('detailMeaning', meaning);
+  setElementText('kanjiMeaning', meaning);
+  setElementText('panelMeaning', meaning);
+
+  setElementText('detailOnyomi', onyomi);
+  setElementText('kanjiOnyomi', onyomi);
+  setElementText('panelOnyomi', onyomi);
+
+  setElementText('detailKunyomi', kunyomi);
+  setElementText('kanjiKunyomi', kunyomi);
+  setElementText('panelKunyomi', kunyomi);
+
+  setElementText('detailRadical', radical);
+  setElementText('kanjiRadical', radical);
+  setElementText('panelRadical', radical);
+
+  setElementText('detailJlpt', jlpt);
+  setElementText('kanjiJlptLevel', jlpt);
+  setElementText('kanjiJlptBadge', jlpt);
+  setElementText('panelJlpt', jlpt);
+
+  if (strokeCount > 0) {
+    setElementText('detailStrokeCount', `${strokeCount} nét`);
+    setElementText('strokeCountBadge', `${strokeCount} nét`);
+    setElementText('kanjiStrokeBadge', `${strokeCount} nét`);
+    setElementText('panelStrokeCount', `${strokeCount} nét`);
+  }
+
+  // Nếu backend có sẵn svgData và strokePaths đang rỗng
+  if (strokePaths.length === 0 && data.svgData) {
+    strokePaths = parseKanjiSvgPaths(data.svgData);
+    renderGuidelineSvg();
+    renderStrokeStepBadges();
+  }
+}
+
 async function loadKanjiDetailedInfo(character) {
   try {
     let data = null;
 
-    // 1. Thử gọi API chi tiết /api/learner/kanji/detail?char=...
-    let res = await fetch(`/api/learner/kanji/detail?char=${encodeURIComponent(character)}`).catch(() => null);
+    // 1. Kiểm tra localStorage ngay lập tức để render không bị độ trễ
+    try {
+      const cachedRaw = localStorage.getItem('selected_kanji_detail');
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached && (cached.character === character || cached.kanjiChar === character || cached.char === character)) {
+          data = cached;
+          applyKanjiDataToUI(cached);
+        }
+      }
+    } catch (e) {}
+
+    const headers = getAuthHeaders();
+
+    // 2. Thử gọi API chi tiết /api/learner/kanji/detail?char=...
+    let res = await fetch(`/api/learner/kanji/detail?char=${encodeURIComponent(character)}`, { headers }).catch(() => null);
     if (!res || !res.ok) {
-      res = await fetch(`/api/kanji/detail?char=${encodeURIComponent(character)}`).catch(() => null);
+      res = await fetch(`/api/kanji/detail?char=${encodeURIComponent(character)}`, { headers }).catch(() => null);
     }
     if (!res || !res.ok) {
-      res = await fetch(`/api/kanji/${encodeURIComponent(character)}`).catch(() => null);
+      res = await fetch(`/api/kanji/${encodeURIComponent(character)}`, { headers }).catch(() => null);
     }
 
     if (res && res.ok) {
@@ -516,9 +597,9 @@ async function loadKanjiDetailedInfo(character) {
       data = json.data || json;
     }
 
-    // 2. Dự phòng: Tìm qua search nếu detail chưa trả về
+    // 3. Dự phòng: Tìm qua search nếu detail chưa trả về
     if (!data || (!data.hanViet && !data.meaning)) {
-      const sRes = await fetch(`/api/learner/kanji/search?keyword=${encodeURIComponent(character)}&size=1`).catch(() => null);
+      const sRes = await fetch(`/api/learner/kanji/search?keyword=${encodeURIComponent(character)}&size=1`, { headers }).catch(() => null);
       if (sRes && sRes.ok) {
         const sJson = await sRes.json();
         if (sJson.items && sJson.items.length > 0) {
@@ -528,66 +609,28 @@ async function loadKanjiDetailedInfo(character) {
       }
     }
 
-    // 3. Dự phòng: Kiểm tra localStorage 'selected_kanji_detail' nếu cùng chữ
-    if (!data || !data.hanViet) {
-      try {
-        const cachedRaw = localStorage.getItem('selected_kanji_detail');
-        if (cachedRaw) {
-          const cached = JSON.parse(cachedRaw);
-          if (cached && (cached.character === character || cached.kanjiChar === character)) {
-            data = { ...cached, ...data };
-          }
+    // 4. Dự phòng: Tìm qua search endpoint công khai nếu learner search chưa có
+    if (!data || (!data.hanViet && !data.meaning)) {
+      const pRes = await fetch(`/api/kanji/search?keyword=${encodeURIComponent(character)}&size=1`, { headers }).catch(() => null);
+      if (pRes && pRes.ok) {
+        const pJson = await pRes.json();
+        if (pJson.items && pJson.items.length > 0) {
+          const found = pJson.items.find(x => (x.kanjiChar === character || x.character === character)) || pJson.items[0];
+          data = found;
         }
-      } catch (e) {}
+      }
     }
 
     if (data) {
-      const hanViet = data.hanViet || data.han_viet || data.sinoVietnamese || '—';
-      const meaning = data.meaning || data.meaningVn || data.definition || 'Chưa cập nhật nghĩa tiếng Việt.';
-      const onyomi = data.onyomi || data.on_yomi || data.onReading || '-';
-      const kunyomi = data.kunyomi || data.kun_yomi || data.kunReading || '-';
-      const strokeCount = data.strokeCount || data.totalStrokes || data.strokes || strokePaths.length || 5;
-      const radical = data.radical || data.bushu || data.mainRadical || '-';
-      const jlpt = data.jlptLevel || data.jlpt || data.level || 'N3';
-
-      // Binding lên tất cả các DOM IDs chuẩn
-      setElementText('canvasActiveHanViet', `(Âm Hán: ${hanViet})`);
-      setElementText('detailHanViet', hanViet);
-      setElementText('kanjiHanViet', hanViet);
-      setElementText('panelHanViet', hanViet);
-
-      setElementText('detailMeaning', meaning);
-      setElementText('kanjiMeaning', meaning);
-      setElementText('panelMeaning', meaning);
-
-      setElementText('detailOnyomi', onyomi);
-      setElementText('kanjiOnyomi', onyomi);
-      setElementText('panelOnyomi', onyomi);
-
-      setElementText('detailKunyomi', kunyomi);
-      setElementText('kanjiKunyomi', kunyomi);
-      setElementText('panelKunyomi', kunyomi);
-
-      setElementText('detailRadical', radical);
-      setElementText('kanjiRadical', radical);
-      setElementText('panelRadical', radical);
-
-      setElementText('detailJlpt', jlpt);
-      setElementText('kanjiJlptLevel', jlpt);
-      setElementText('kanjiJlptBadge', jlpt);
-      setElementText('panelJlpt', jlpt);
-
-      setElementText('detailStrokeCount', `${strokeCount} nét`);
-      setElementText('strokeCountBadge', `${strokeCount} nét`);
-      setElementText('kanjiStrokeBadge', `${strokeCount} nét`);
-      setElementText('panelStrokeCount', `${strokeCount} nét`);
-
-      // Nếu backend có sẵn svgData và strokePaths đang rỗng
-      if (strokePaths.length === 0 && data.svgData) {
-        strokePaths = parseKanjiSvgPaths(data.svgData);
-        renderGuidelineSvg();
-        renderStrokeStepBadges();
-      }
+      applyKanjiDataToUI(data);
+      try {
+        localStorage.setItem('selected_kanji', character);
+        localStorage.setItem('selected_kanji_detail', JSON.stringify({ ...data, character, kanjiChar: character }));
+      } catch (e) {}
+    } else {
+      // Khi không có kết nối server / chưa tìm thấy: hiển thị chữ đang chọn thay vì "Chưa chọn chữ"
+      setElementText('kanjiJlptLevel', 'Chữ Hán');
+      setElementText('canvasActiveHanViet', `(Chữ Hán: ${character})`);
     }
   } catch (err) {
     console.debug('Lỗi nạp thông tin chi tiết chữ Hán:', err);
@@ -617,6 +660,15 @@ async function selectKanji(char) {
   setElementText('canvasActiveChar', targetChar);
   setElementText('kanjiDisplayChar', targetChar);
   setElementText('canvasActiveHanViet', `(Chữ Hán: ${targetChar})`);
+
+  // Đồng bộ tham số ?char= trên URL
+  try {
+    const currentParams = new URLSearchParams(window.location.search);
+    if (currentParams.get('char') !== targetChar) {
+      currentParams.set('char', targetChar);
+      window.history.replaceState(null, '', `${window.location.pathname}?${currentParams.toString()}`);
+    }
+  } catch (e) {}
 
   // Tải đồng thời cả Dữ liệu nét vẽ (KanjiVG) và Thông tin chi tiết từ Database
   const [, detailResult] = await Promise.all([
@@ -764,6 +816,10 @@ function saveShodoCurrentCharToDeck() {
     localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
     if (deck.id) {
       localStorage.setItem('kizuna_last_selected_deck_id', String(deck.id));
+      // Đồng bộ trực tiếp lên Backend API nếu có ID hợp lệ
+      apiClient.addCards(deck.id, [newCard]).catch(err => {
+        console.debug('Lỗi đồng bộ thẻ Shodo lên API:', err);
+      });
     }
     showToast(`Đã cất chữ "${currentChar}" vào bộ thẻ "${deck.title}" thành công! 🗂️`, 'success');
   } catch (err) {
@@ -845,8 +901,9 @@ async function initShodoPractice() {
 }
 
 document.addEventListener('DOMContentLoaded', initShodoPractice);
-window.addEventListener('kizuna:page-mounted', () => {
-  if (window.location.pathname.includes('shodo')) {
+window.addEventListener('kizuna:page-mounted', (e) => {
+  const path = e?.detail?.url || window.location.pathname;
+  if (path.includes('shodo') || path.includes('practice-canvas') || path.includes('practice') || path.includes('kanji-practice')) {
     initShodoPractice();
   }
 });

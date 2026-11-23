@@ -48,6 +48,11 @@ public class AiWritingServiceImpl implements AiWritingService {
                     .build();
         }
 
+        // 0. Phát hiện nhập linh tinh / chuỗi vô nghĩa -> cảnh báo ngay lập tức, điểm 0
+        if (isGibberishOrNonsense(originalText)) {
+            return buildGibberishWarningResponse(originalText);
+        }
+
         // 1. Thử gọi AI theo nhà cung cấp, model và API key Admin đã chọn
         SystemSettingService.AiChoice ai = settings.aiChoice();
         if (ai.apiKey() != null && !ai.apiKey().isBlank()) {
@@ -62,6 +67,36 @@ public class AiWritingServiceImpl implements AiWritingService {
                     result.setProvider(ai.provider());
                     result.setModel(ai.model());
                     result.setFallback(false);
+
+                    // Hàng rào kiểm duyệt bổ sung (Post-Validation Guardrails):
+                    // Trường hợp người dùng không nhập tiếng Nhật hoặc câu vô nghĩa mà AI trả về 意味が分かりません
+                    if (!containsJapanese(originalText) || isGibberishOrNonsense(originalText) || (result.getCorrectedText() != null && result.getCorrectedText().contains("意味が分かりません"))) {
+                        result.setScore(0);
+                        result.setRatingBadge("Chưa đúng ngôn ngữ / Cần viết bằng tiếng Nhật");
+                        result.setOverallComment("Nhắc nhở: Bạn đang nhập văn bản chưa phải tiếng Nhật có nghĩa. Vui lòng luyện viết bằng chữ Hiragana, Katakana hoặc Kanji để Sensei có thể chấm điểm và hướng dẫn bạn nhé! ✍️");
+                        result.setCorrectedText("");
+                        result.setErrors(List.of());
+                        result.setSuggestedVocabulary(List.of());
+                        result.setNativeAlternatives(List.of());
+                    }
+
+                    // Trường hợp văn bản gốc chứa ký tự lỗi/hỏng mã
+                    if (hasMalformedCharacters(originalText)) {
+                        boolean hasCharErr = result.getErrors() != null && result.getErrors().stream()
+                                .anyMatch(e -> e.getErrorType() != null && e.getErrorType().toLowerCase().contains("ký tự"));
+                        if (!hasCharErr) {
+                            List<AiWritingErrorItemDto> errs = new ArrayList<>(result.getErrors() != null ? result.getErrors() : List.of());
+                            errs.add(AiWritingErrorItemDto.builder()
+                                    .errorType("Ký tự lỗi")
+                                    .originalFragment("Ký tự lạ/lỗi mã")
+                                    .correctedFragment("Ký tự chuẩn")
+                                    .explanation("Văn bản chứa ký tự bất thường hoặc lỗi font/mã hóa. Vui lòng kiểm tra lại bộ gõ tiếng Nhật.")
+                                    .build());
+                            result.setErrors(errs);
+                            result.setScore(Math.max(0, result.getScore() - 15));
+                        }
+                    }
+
                     return result;
                 }
             } catch (org.springframework.web.client.HttpStatusCodeException ex) {
@@ -86,18 +121,49 @@ public class AiWritingServiceImpl implements AiWritingService {
             Phong cách mong muốn: %s (POLITE: lịch sự です/ます, PLAIN: thể ngắn thân mật 普通形, KEIGO: kính ngữ thương mại 敬語)
             Mẫu ngữ pháp mục tiêu (nếu có): %s
 
-            Hãy phân tích kỹ lưỡng câu văn tiếng Nhật sau của học viên:
+            Văn bản học viên nhập vào:
             "%s"
 
-            BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON với cấu trúc chính xác sau (không bọc trong markdown ```json):
+            QUY TẮC THẨM ĐỊNH NGHIÊM NGẶT (BẮT BUỘC TUÂN THỦ):
+            1. PHÁT HIỆN VĂN BẢN KHÔNG PHẢI TIẾNG NHẬT (Tiếng Việt, Tiếng Anh, Romaji thuần túy, hoặc không chứa bất kỳ chữ Hiragana/Katakana/Kanji nào):
+               - Tuyệt đối KHÔNG chấm điểm cao. Điểm số "score" chỉ được từ 0 đến 20 điểm.
+               - "ratingBadge": BẮT BUỘC là "Chưa đúng ngôn ngữ / Cần viết bằng tiếng Nhật".
+               - "overallComment": Nhắc nhở rõ ràng bằng tiếng Việt thân thiện: "Nhắc nhở: Bạn đang nhập văn bản không phải tiếng Nhật. Vui lòng luyện viết bằng chữ Hiragana, Katakana hoặc Kanji để Sensei có thể chấm điểm và sửa lỗi cho bạn nhé! ✍️".
+               - "errors": Thêm mục lỗi với errorType: "Ngôn ngữ chưa phù hợp", originalFragment: văn bản gốc, correctedFragment: câu dịch tiếng Nhật chuẩn tương ứng, explanation: "Vui lòng nhập văn bản bằng tiếng Nhật (Hiragana, Katakana, Kanji).".
+               - "correctedText": Dịch ý của học viên sang câu tiếng Nhật chuẩn tự nhiên theo cấp độ %s và phong cách %s.
+               - "nativeAlternatives": Các cách diễn đạt tương ứng bằng tiếng Nhật tự nhiên.
+
+            2. PHÁT HIỆN NHẬP LINH TINH / VÔ NGHĨA (Chuỗi gõ phím ngẫu nhiên, spam phím, dãy số vô nghĩa, ký tự lặp vô nghĩa, ví dụ: 'asdfgh', 'qwert', '12345678', 'aaaaaa', hoặc câu từ rời rạc hoàn toàn vô nghĩa):
+               - BẮT BUỘC cho "score": 0 điểm. TUYỆT ĐỐI KHÔNG khen ngợi hay tự bịa ra ngữ nghĩa.
+               - "ratingBadge": BẮT BUỘC là "Cảnh báo: Nội dung vô nghĩa".
+               - "overallComment": Phát cảnh báo rõ ràng bằng tiếng Việt: "⚠️ Cảnh báo: Nội dung bạn nhập dường như là các ký tự ngẫu nhiên hoặc vô nghĩa, không tạo thành câu tiếng Nhật hoàn chỉnh. Vui lòng nhập một câu tiếng Nhật có nghĩa để Sensei hỗ trợ sửa bài nhé!".
+               - "errors": Thêm mục lỗi với errorType: "Nội dung vô nghĩa", originalFragment: văn bản gốc, correctedFragment: "Hãy nhập câu tiếng Nhật có nghĩa", explanation: "Chuỗi ký tự không có ý nghĩa trong tiếng Nhật. Không thể thẩm định ngữ pháp.".
+               - "correctedText": "",
+               - "suggestedVocabulary": [],
+               - "nativeAlternatives": []
+
+            3. PHÁT HIỆN KÝ TỰ LỖI / LỖI CHÍNH TẢ / KÝ TỰ BẤT THƯỜNG (Ký tự sai bảng chữ cái, lẫn ký tự lạ hỏng mã, gõ nhầm chữ nhỏ/chữ lớn như とうきよう -> とうきょう, sai trợ từ は/わ, を/お, へ/え, chia thể động từ, tính từ):
+               - Báo rõ từng lỗi cụ thể vào danh sách "errors" với:
+                 + errorType: "Ký tự lỗi / Lỗi chính tả" (hoặc "Trợ từ", "Chia thể", "Ngữ pháp mục tiêu").
+                 + originalFragment: đúng đoạn ký tự/từ bị lỗi trong câu gốc.
+                 + correctedFragment: cách viết/ký tự chuẩn xác.
+                 + explanation: giải thích chi tiết, dễ hiểu bằng tiếng Việt tại sao sai và sửa thế nào.
+               - Bắt buộc trừ điểm tương ứng với từng lỗi (mỗi lỗi ký tự hoặc ngữ pháp trừ 10 - 25 điểm). Điểm số phản ánh đúng chất lượng thực tế của câu, không tự động cho điểm cao nếu câu còn nhiều lỗi.
+
+            4. NẾU CÂU LÀ TIẾNG NHẬT HỢP LỆ VÀ CÓ NGHĨA:
+               - Chấm điểm công tâm từ 0 - 100 dựa trên độ chính xác ngữ pháp, trợ từ, thể động từ, phong cách %s và mức độ hoàn thành mẫu ngữ pháp %s.
+               - Sửa câu cho tự nhiên nhất có thể trong "correctedText".
+               - Nhận xét và giải thích chi tiết bằng tiếng Việt.
+
+            BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON với cấu trúc chính xác sau (không bọc trong markdown ```json, không kèm lời giải thích nào ngoài JSON):
             {
-              "correctedText": "Câu tiếng Nhật đã được sửa chuẩn tự nhiên theo phong cách yêu cầu",
+              "correctedText": "Câu tiếng Nhật đã được sửa chuẩn tự nhiên theo phong cách yêu cầu (hoặc rỗng nếu câu hoàn toàn vô nghĩa)",
               "score": 85,
-              "ratingBadge": "Tự nhiên xuất sắc / Khá tốt - Cần lưu ý / Cần sửa lại ngữ pháp",
-              "overallComment": "Nhận xét tổng quan thân thiện bằng tiếng Việt khuyến khích học viên",
+              "ratingBadge": "Tự nhiên xuất sắc / Khá tốt - Cần trau chuốt / Cần cải thiện / Cảnh báo: Nội dung vô nghĩa / Chưa đúng ngôn ngữ",
+              "overallComment": "Nhận xét tổng quan / Lời nhắc nhở / Lời cảnh báo bằng tiếng Việt theo đúng các quy tắc trên",
               "errors": [
                 {
-                  "errorType": "Trợ từ / Chia thì / Từ vựng / Sắc thái kính ngữ",
+                  "errorType": "Ký tự lỗi / Lỗi chính tả / Trợ từ / Chia thì / Ngôn ngữ chưa phù hợp / Nội dung vô nghĩa",
                   "originalFragment": "phần sai trong câu gốc",
                   "correctedFragment": "phần đã được sửa",
                   "explanation": "Giải thích chi tiết dễ hiểu bằng tiếng Việt tại sao sai và tại sao nên sửa như vậy"
@@ -115,8 +181,7 @@ public class AiWritingServiceImpl implements AiWritingService {
                 "Cách diễn đạt tự nhiên khác 2"
               ]
             }
-            Chú ý: Điểm số từ 0 đến 100. Mọi lời giải thích và nhận xét BẮT BUỘC là tiếng Việt tự nhiên, thân thiện.
-            """.formatted(jlpt, formality, targetPattern != null ? targetPattern : "Tự do", text);
+            """.formatted(jlpt, formality, targetPattern != null ? targetPattern : "Tự do", text, jlpt, formality, formality, targetPattern != null ? targetPattern : "Tự do");
     }
 
     private static String stripFence(String jsonText) {
@@ -239,8 +304,120 @@ public class AiWritingServiceImpl implements AiWritingService {
         return text.contains(cleanPattern);
     }
 
+    public static boolean containsJapanese(String text) {
+        if (text == null) return false;
+        return text.codePoints().anyMatch(cp ->
+                (cp >= 0x3040 && cp <= 0x309F) || // Hiragana
+                (cp >= 0x30A0 && cp <= 0x30FF) || // Katakana
+                (cp >= 0x4E00 && cp <= 0x9FAF)    // Kanji
+        );
+    }
+
+    public static boolean hasMalformedCharacters(String text) {
+        if (text == null) return false;
+        return text.contains("\uFFFD") || text.matches(".*[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F].*");
+    }
+
+    public static boolean isGibberishOrNonsense(String text) {
+        if (text == null || text.isBlank()) return true;
+        String trimmed = text.trim();
+
+        // 1. Chỉ chứa số hoặc ký tự đặc biệt / dấu câu, không có chữ cái hay kana/kanji nào
+        if (trimmed.matches("^[\\d\\s.,!?_\\-+/*=~@#$%^&()\\[\\]{}|<>:;'\"`~・…！？。、]+$")) {
+            return true;
+        }
+
+        // Bỏ dấu tiếng Việt / diacritics để nhận diện chuỗi gõ phím ngẫu nhiên (keyboard smash như ádasdasd)
+        String stripped = java.text.Normalizer.normalize(trimmed, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+
+        // 2. Ký tự lặp lại vô nghĩa 4 lần trở lên (ví dụ: aaaa, 1111, ああああ, .....)
+        if (trimmed.matches("^(.)\\1{3,}$") || stripped.matches("^(.)\\1{3,}$")) {
+            return true;
+        }
+
+        // 3. Chuỗi ký tự ngẫu nhiên lặp lại ngắn (ví dụ: asdasdasd, ádasdasd, abcabcabc)
+        if (trimmed.matches("^(.{2,4})\\1{2,}$") || stripped.matches("^(.{2,4})\\1{2,}$")) {
+            return true;
+        }
+
+        // 4. Chuỗi Latin gõ phím ngẫu nhiên (keyboard smash không nguyên âm hoặc chuỗi phụ âm dày đặc)
+        if (trimmed.matches("(?i)^[b-df-hj-np-tv-z]{5,}$") || stripped.matches("(?i)^[b-df-hj-np-tv-z]{5,}$")) {
+            return true;
+        }
+
+        // 5. Các chuỗi gõ phím bừa theo hàng phím phổ biến
+        String lower = stripped.toLowerCase();
+        if (lower.matches(".*(asdfgh|qwerty|zxcvbn|qazwsx|123456|poiuyt|lkjhgf).*")) {
+            return true;
+        }
+
+        // 6. Gõ lặp hàng phím Hiragana cơ bản liên tiếp không có nghĩa ngữ pháp
+        if (trimmed.matches("^(あいうえお|かきくけこ|さしすせそ|たちつてと|なにぬねの|はひふへほ|まみむめも|らりるれろ|アイウエオ)+$")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static AiWritingCheckResponse buildGibberishWarningResponse(String text) {
+        return AiWritingCheckResponse.builder()
+                .originalText(text)
+                .correctedText("")
+                .score(0)
+                .ratingBadge("Cảnh báo: Nội dung vô nghĩa")
+                .overallComment("⚠️ Cảnh báo: Nội dung bạn nhập dường như là các ký tự ngẫu nhiên hoặc vô nghĩa, không tạo thành câu tiếng Nhật hoàn chỉnh. Vui lòng nhập một câu tiếng Nhật có nghĩa để Sensei hỗ trợ sửa bài nhé! ✍️")
+                .errors(List.of(
+                        AiWritingErrorItemDto.builder()
+                                .errorType("Nội dung vô nghĩa")
+                                .originalFragment(text)
+                                .correctedFragment("Hãy nhập câu tiếng Nhật có nghĩa")
+                                .explanation("Chuỗi ký tự ngẫu nhiên hoặc không có ý nghĩa trong tiếng Nhật. Không thể thẩm định ngữ pháp.")
+                                .build()
+                ))
+                .suggestedVocabulary(List.of())
+                .nativeAlternatives(List.of())
+                .provider("SYSTEM_GUARD")
+                .model("GuardRail-v1")
+                .fallback(false)
+                .build();
+    }
+
+    private static AiWritingCheckResponse buildNonJapaneseReminderResponse(String text) {
+        return AiWritingCheckResponse.builder()
+                .originalText(text)
+                .correctedText("")
+                .score(15)
+                .ratingBadge("Chưa đúng ngôn ngữ / Cần viết bằng tiếng Nhật")
+                .overallComment("Nhắc nhở: Bạn đang nhập văn bản không phải tiếng Nhật. Vui lòng luyện viết bằng chữ Hiragana, Katakana hoặc Kanji để Sensei có thể chấm điểm và sửa lỗi cho bạn nhé! ✍️")
+                .errors(List.of(
+                        AiWritingErrorItemDto.builder()
+                                .errorType("Ngôn ngữ chưa phù hợp")
+                                .originalFragment(text)
+                                .correctedFragment("Cần viết bằng chữ Hiragana / Katakana / Kanji")
+                                .explanation("Văn bản bạn nhập không chứa ký tự tiếng Nhật. Hệ thống luyện viết KizunaTutor yêu cầu bài viết bằng tiếng Nhật.")
+                                .build()
+                ))
+                .suggestedVocabulary(List.of())
+                .nativeAlternatives(List.of())
+                .provider("SYSTEM_GUARD")
+                .model("GuardRail-v1")
+                .fallback(false)
+                .build();
+    }
+
     private AiWritingCheckResponse generateFallbackEvaluation(String text, String jlpt, String formality, String targetPattern) {
-        // Thuật toán kiểm tra quy tắc thông minh khi mạng ngoài chưa khả dụng
+        // 1. Kiểm tra nhập linh tinh / vô nghĩa
+        if (isGibberishOrNonsense(text)) {
+            return buildGibberishWarningResponse(text);
+        }
+
+        // 2. Kiểm tra văn bản không phải tiếng Nhật (tiếng Việt, tiếng Anh, Romaji, etc.)
+        if (!containsJapanese(text)) {
+            return buildNonJapaneseReminderResponse(text);
+        }
+
+        // 3. Thuật toán phân tích ngữ pháp và phát hiện lỗi ký tự khi mạng ngoài chưa khả dụng
         List<AiWritingErrorItemDto> errors = new ArrayList<>();
         List<AiWritingVocabularyDto> vocabList = new ArrayList<>();
         List<String> alternatives = new ArrayList<>();
@@ -250,17 +427,76 @@ public class AiWritingServiceImpl implements AiWritingService {
         String comment = "Tuyệt vời! Câu văn rất tự nhiên, từ vựng và ngữ pháp được áp dụng chính xác theo văn phong chuẩn Nhật.";
         String corrected = text;
 
-        if (text.contains("私わ") || text.contains("わたしわ")) {
+        // 3.1. Kiểm tra ký tự lỗi / ký tự hỏng mã
+        if (hasMalformedCharacters(text)) {
+            errors.add(AiWritingErrorItemDto.builder()
+                    .errorType("Ký tự lỗi")
+                    .originalFragment("Ký tự không hợp lệ")
+                    .correctedFragment("Ký tự chuẩn")
+                    .explanation("Văn bản chứa ký tự bất thường hoặc lỗi font/mã hóa. Vui lòng kiểm tra lại bộ gõ tiếng Nhật.")
+                    .build());
+            score -= 20;
+        }
+
+        // 3.2. Kiểm tra lỗi chính tả âm ghép / chữ nhỏ (ảo âm: ゃ, ゅ, ょ / xúc âm: っ)
+        if (text.contains("とうきよう") || text.contains("しやしん") || text.contains("びよういん") || text.contains("きよう") || text.contains("がつこう") || text.contains("がこう")) {
+            String typoWord = text.contains("とうきよう") ? "とうきよう" :
+                              text.contains("しやしん") ? "しやしん" :
+                              text.contains("びよういん") ? "びよういん" :
+                              text.contains("きよう") ? "きよう" : "がつこう";
+            String fixedWord = typoWord.replace("とうきよう", "とうきょう")
+                                       .replace("しやしん", "しゃしん")
+                                       .replace("びよういん", "びょういん")
+                                       .replace("きよう", "きょう")
+                                       .replace("がつこう", "がっこう")
+                                       .replace("がこう", "がっこう");
+            errors.add(AiWritingErrorItemDto.builder()
+                    .errorType("Ký tự lỗi / Lỗi chính tả")
+                    .originalFragment(typoWord)
+                    .correctedFragment(fixedWord)
+                    .explanation("Lỗi chính tả âm ghép/xúc âm: Từ này cần dùng chữ nhỏ (ゃ, ゅ, ょ, っ) thay vì chữ kích thước thông thường.")
+                    .build());
+            corrected = corrected.replace(typoWord, fixedWord);
+            score -= 15;
+        }
+
+        // 3.3. Kiểm tra trợ từ は (wa) viết nhầm thành わ
+        if (text.contains("私わ") || text.contains("わたしわ") || text.contains("彼わ") || text.contains("彼女わ")) {
             errors.add(AiWritingErrorItemDto.builder()
                     .errorType("Trợ từ")
                     .originalFragment("わ")
                     .correctedFragment("は (phát âm: wa)")
                     .explanation("Trợ từ chỉ chủ đề/chủ ngữ trong tiếng Nhật luôn được viết bằng chữ Hiragana は (ha), không dùng わ.")
                     .build());
-            corrected = corrected.replace("私わ", "私は").replace("わたしわ", "わたしは");
+            corrected = corrected.replace("私わ", "私は").replace("わたしわ", "わたしは").replace("彼わ", "彼は").replace("彼女わ", "彼女は");
             score -= 10;
         }
 
+        // 3.4. Kiểm tra trợ từ を bị viết nhầm thành お
+        if (text.matches(".*[\\u3040-\\u309F\\u4E00-\\u9FAF]+お(食べる|飲む|見る|する|買う|読む|聞く|待つ).*")) {
+            errors.add(AiWritingErrorItemDto.builder()
+                    .errorType("Ký tự lỗi / Trợ từ")
+                    .originalFragment("お")
+                    .correctedFragment("を (phát âm: o/wo)")
+                    .explanation("Trợ từ chỉ tân ngữ/đối tượng của hành động luôn được viết bằng chữ Hiragana を, không dùng お.")
+                    .build());
+            corrected = corrected.replaceAll("([\\u3040-\\u309F\\u4E00-\\u9FAF]+)お(食べる|飲む|見る|する|買う|読む|聞く|待つ)", "$1を$2");
+            score -= 10;
+        }
+
+        // 3.5. Kiểm tra trợ từ へ (e) bị viết nhầm thành え
+        if (text.matches(".*(学校|日本|東京|家|病院)え.*")) {
+            errors.add(AiWritingErrorItemDto.builder()
+                    .errorType("Ký tự lỗi / Trợ từ")
+                    .originalFragment("え")
+                    .correctedFragment("へ (phát âm: e)")
+                    .explanation("Trợ từ chỉ phương hướng di chuyển luôn được viết bằng chữ Hiragana へ (phát âm: e), không dùng え.")
+                    .build());
+            corrected = corrected.replaceAll("(学校|日本|東京|家|病院)え", "$1へ");
+            score -= 10;
+        }
+
+        // 3.6. Kiểm tra động từ nguyên mẫu đi trực tiếp với でした
         if (text.contains("食べるでした") || text.contains("行くでした") || text.contains("飲むでした") || text.matches(".*[るうつぬぶむくぐす]でした.*")) {
             errors.add(AiWritingErrorItemDto.builder()
                     .errorType("Chia thể động từ")
@@ -274,6 +510,18 @@ public class AiWritingServiceImpl implements AiWritingService {
             score -= 15;
         }
 
+        // 3.7. Kiểm tra tính từ đuôi い đi kèm với だ
+        if (text.matches(".*[い]だ.*") && !text.contains("からだ")) {
+            errors.add(AiWritingErrorItemDto.builder()
+                    .errorType("Ngữ pháp tính từ")
+                    .originalFragment("Tính từ đuôi い + だ")
+                    .correctedFragment("Tính từ đuôi い (bỏ だ)")
+                    .explanation("Trong tiếng Nhật thể thường, tính từ đuôi い không đi kèm với だ (ví dụ: おいしいだ là sai, chỉ cần nói おいしい hoặc おいしかったです).")
+                    .build());
+            score -= 10;
+        }
+
+        // 3.8. Kiểm tra sắc thái câu Lịch sự (POLITE)
         if ("POLITE".equalsIgnoreCase(formality)) {
             String trimmed = corrected.replaceAll("[。！？\\s]+$", "");
             if (trimmed.endsWith("だ") || trimmed.endsWith("る") || trimmed.endsWith("た") || trimmed.endsWith("ない")) {
@@ -289,6 +537,7 @@ public class AiWritingServiceImpl implements AiWritingService {
             }
         }
 
+        // 3.9. Kiểm tra mẫu ngữ pháp mục tiêu
         if (targetPattern != null && !targetPattern.isBlank()) {
             if (!isGrammarPatternSatisfied(text, targetPattern)) {
                 errors.add(AiWritingErrorItemDto.builder()
@@ -297,17 +546,22 @@ public class AiWritingServiceImpl implements AiWritingService {
                         .correctedFragment(targetPattern)
                         .explanation("Câu viết của bạn chưa lồng ghép rõ mẫu ngữ pháp mục tiêu: " + targetPattern + ". Hãy thử áp dụng công thức của mẫu này vào câu nhé.")
                         .build());
-                score -= 10;
+                score -= 15;
             }
         }
+
+        score = Math.max(0, Math.min(100, score));
 
         if (!errors.isEmpty()) {
             if (score >= 80) {
                 ratingBadge = "Khá tốt - Cần trau chuốt";
                 comment = "Câu viết tương đối mượt mà. Hãy tham khảo phần lưu ý bên dưới để câu văn đạt mức hoàn hảo nhất nhé!";
-            } else {
+            } else if (score >= 60) {
                 ratingBadge = "Cần cải thiện";
                 comment = "Cố lên bạn nhé! Hãy xem kỹ các điểm lưu ý về trợ từ hoặc thể động từ ở bảng bên dưới để đặt câu chuẩn xác hơn.";
+            } else {
+                ratingBadge = "Cần sửa lại ký tự & ngữ pháp";
+                comment = "Câu văn có nhiều lỗi về ký tự hoặc ngữ pháp cơ bản. Hãy xem kỹ bảng sửa lỗi chi tiết bên dưới để hoàn thiện câu nhé!";
             }
         }
 
@@ -328,7 +582,7 @@ public class AiWritingServiceImpl implements AiWritingService {
         return AiWritingCheckResponse.builder()
                 .originalText(text)
                 .correctedText(corrected)
-                .score(Math.max(40, score))
+                .score(score)
                 .ratingBadge(ratingBadge)
                 .overallComment(comment)
                 .errors(errors)

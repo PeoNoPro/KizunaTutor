@@ -8,18 +8,21 @@ import { debounce } from '/js/main.js';
 import { voicevoxClient } from '/js/voicevoxClient.js';
 import { apiClient, KizunaToast, enrichFlashcardItem } from '/js/apiClient.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
+import { renderPagination } from '/components/pagination/pagination.js';
 
 // 1. Khởi tạo Shell học viên
 initLearnerShell({
   activeMenu: 'flashcards',
-  pageTitle: 'Chi Tiết Bộ Thẻ Flashcard',
-  badge: 'Bộ nhớ siêu tốc'
+  pageTitle: 'Chi tiết bộ thẻ Flashcards',
+  badge: 'Luyện tập'
 });
 
 let currentDeck = null;
 let currentDeckId = null;
 let currentCards = [];
 let editingCardIndex = -1;
+let currentCardPage = 0;
+let cardPageSize = 20;
 
 // 2. Tiện ích An Toàn Chuỗi
 function escapeHtml(text) {
@@ -42,7 +45,7 @@ async function speakWord(text, btn = null) {
 // 4. Tải dữ liệu bộ thẻ
 async function loadDeckDetail() {
   const urlParams = new URLSearchParams(window.location.search);
-  currentDeckId = urlParams.get('id');
+  currentDeckId = urlParams.get('id') || urlParams.get('deckId');
 
   if (!currentDeckId) {
     // Thử lấy từ pathname nếu theo cấu trúc /learner/flashcards/:id
@@ -94,6 +97,8 @@ function renderCardsList(filterQuery = '') {
   const emptyState = document.getElementById('emptyCardsState');
   const countBadge = document.getElementById('filteredCountBadge');
 
+  const paginationContainer = document.getElementById('detailPaginationContainer');
+
   if (!container || !emptyState) return;
 
   const q = (filterQuery || '').trim().toLowerCase();
@@ -108,13 +113,19 @@ function renderCardsList(filterQuery = '') {
     container.innerHTML = '';
     container.classList.add('hidden');
     emptyState.classList.remove('hidden');
+    if (paginationContainer) paginationContainer.innerHTML = '';
     return;
   }
 
   emptyState.classList.add('hidden');
   container.classList.remove('hidden');
 
-  container.innerHTML = filtered.map((c) => {
+  const totalElements = filtered.length;
+  const totalPages = Math.ceil(totalElements / cardPageSize) || 1;
+  if (currentCardPage >= totalPages) currentCardPage = Math.max(0, totalPages - 1);
+  const pagedCards = filtered.slice(currentCardPage * cardPageSize, (currentCardPage + 1) * cardPageSize);
+
+  container.innerHTML = pagedCards.map((c) => {
     const originalIdx = currentCards.indexOf(c);
     const isKanji = (c.char && c.char.length === 1 && !c.char.match(/[a-zA-Z0-9\s]/));
 
@@ -145,8 +156,8 @@ function renderCardsList(filterQuery = '') {
             🔊
           </button>
           ${isKanji ? `
-            <a href="/learner/practice-canvas?char=${encodeURIComponent(c.char)}" 
-               class="py-1 px-2 text-[11px] font-semibold rounded-lg border border-[#FBCFE8] bg-[#FFE5EC] text-[#831843] hover:bg-[#FCE7F3] flex items-center gap-1 transition no-underline cursor-pointer"
+            <a href="/shodo?char=${encodeURIComponent(c.char)}" data-spa-link
+               class="py-1 px-2 text-[11px] font-semibold rounded-lg border border-[#BAE6FD] bg-[#E0F2FE] text-[#006194] hover:bg-[#BAE6FD] flex items-center gap-1 transition no-underline cursor-pointer"
                title="Luyện viết chữ này trên Canvas Shodo">
               <span>🖌️</span>
               <span>Luyện viết</span>
@@ -192,6 +203,28 @@ function renderCardsList(filterQuery = '') {
       deleteSingleCard(idx);
     });
   });
+
+  if (paginationContainer) {
+    renderPagination(paginationContainer, {
+      page: currentCardPage,
+      number: currentCardPage,
+      size: cardPageSize,
+      totalElements: totalElements,
+      totalPages: totalPages
+    }, {
+      onPage: (p) => {
+        currentCardPage = p;
+        renderCardsList(filterQuery);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+      onSize: (s) => {
+        cardPageSize = s;
+        currentCardPage = 0;
+        renderCardsList(filterQuery);
+      },
+      sizes: [10, 20, 50]
+    });
+  }
 }
 
 // 7. Xóa 1 thẻ lẻ qua API
@@ -397,19 +430,38 @@ function handleExcelImport(event) {
           return;
         }
 
-        // Hỗ trợ cả định dạng 3 cột (Mặt trước | Cách đọc Kana | Nghĩa) và 2 cột (Mặt trước | Mặt sau)
-        if (row.length >= 3 && String(row[2] || '').trim()) {
+        // Hỗ trợ linh hoạt: đa cột (>=4 cột), 3 cột và 2 cột tương thích ngược
+        if (row.length >= 4) {
+          const char = col0;
+          const hanViet = String(row[1] || '').trim();
+          const onyomi = String(row[2] || '').trim();
+          const kunyomi = String(row[3] || '').trim();
+          const meaning = String(row[4] || '').trim();
+          const jlpt = String(row[5] || '').trim();
+
+          newCards.push(enrichFlashcardItem({
+            char: char,
+            hanViet: hanViet,
+            onyomi: onyomi || '—',
+            kunyomi: kunyomi || '—',
+            meaning: meaning || '—',
+            jlpt: jlpt || 'Tự do'
+          }));
+        } else if (row.length === 3) {
           const readingCol = String(row[1] || '').trim();
           const meaningCol = String(row[2] || '').trim();
           newCards.push(enrichFlashcardItem({
             char: col0,
             reading: readingCol,
-            meaning: readingCol ? `${readingCol} • ${meaningCol}` : meaningCol
+            meaning: readingCol && meaningCol ? `${readingCol} • ${meaningCol}` : (meaningCol || readingCol || '—'),
+            jlpt: 'Tự do'
           }));
         } else {
+          const col1 = String(row[1] || '').trim();
           newCards.push(enrichFlashcardItem({
             char: col0,
-            meaning: col1 || '—'
+            meaning: col1 || '—',
+            jlpt: 'Tự do'
           }));
         }
       });
@@ -424,10 +476,10 @@ function handleExcelImport(event) {
       closeAddCardModal();
       renderOverview();
       renderCardsList(document.getElementById('internalSearchInput')?.value || '');
-      KizunaToast.success(`Đã nạp thành công ${newCards.length} thẻ từ file Excel!`);
+      KizunaToast.success(`Đã lưu vĩnh viễn ${newCards.length} thẻ từ file Excel vào bộ nhớ!`);
     } catch (err) {
       console.error(err);
-      KizunaToast.error('Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng file!');
+      KizunaToast.error('Lỗi khi đọc và lưu file Excel. Vui lòng kiểm tra lại định dạng file!');
     } finally {
       event.target.value = '';
     }
@@ -442,24 +494,39 @@ function downloadSampleExcel() {
   }
   const sampleData = [
     [
-      "Mặt trước (Chữ Hán / Từ vựng / Câu hỏi)*",
-      "Mặt sau (Giải nghĩa / Đáp án)*"
+      "Mặt trước (Chữ Hán / Từ vựng)*",
+      "Âm Hán-Việt",
+      "Onyomi / Cách đọc Kana*",
+      "Kunyomi (nếu có)",
+      "Nghĩa tiếng Việt*",
+      "Cấp độ JLPT",
+      "Ví dụ / Ghi chú"
     ],
-    ["日", "ニチ, ジツ, ひ, -び, -か, NHẬT, Mặt trời, ngày"],
-    ["桜", "さくら, Hoa anh đào"],
-    ["勉強", "べんきょう, Học tập, việc học"],
-    ["こんにちは", "Xin chào (dùng ban ngày)"],
-    ["犬", "いぬ, Con chó"],
-    ["猫", "ねこ, Con mèo"],
-    ["富士山", "ふじさん, Núi Phú Sĩ - ngọn núi cao nhất Nhật Bản"]
+    ["日", "NHẬT", "ニチ, ジツ", "ひ, -び, -か", "Mặt trời, ngày, Nhật Bản", "N5", "日曜日 (Chủ nhật)"],
+    ["月", "NGUYỆT", "ゲツ, ガツ", "つき", "Mặt trăng, tháng", "N5", "月曜日 (Thứ hai)"],
+    ["桜", "ANH", "オウ", "さくら", "Hoa anh đào", "N3", "桜の花 (Hoa anh đào)"],
+    ["勉強", "MIỄN CƯỜNG", "べんきょう", "—", "Học tập, việc học", "N5", "日本語を勉強する (Học tiếng Nhật)"],
+    ["日本語", "NHẬT BẢN NGỮ", "にほんご", "—", "Tiếng Nhật", "N5", "日本語の先生 (Thầy cô tiếng Nhật)"],
+    ["こんにちは", "—", "こんにちは", "—", "Xin chào (dùng ban ngày)", "N5", "挨拶 (Chào hỏi)"],
+    ["犬", "KHUYỂN", "ケン", "いぬ", "Con chó", "N5", "白い犬 (Con chó trắng)"],
+    ["猫", "MIÊU", "ビョウ", "ねこ", "Con mèo", "N5", "可愛い猫 (Con mèo dễ thương)"],
+    ["富士山", "PHÚ SĨ SƠN", "ふじさん", "—", "Núi Phú Sĩ - ngọn núi cao nhất Nhật Bản", "N5", "富士山に登る (Leo núi Phú Sĩ)"]
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(sampleData);
-  ws['!cols'] = [{ wch: 35 }, { wch: 60 }];
+  ws['!cols'] = [
+    { wch: 28 },
+    { wch: 15 },
+    { wch: 22 },
+    { wch: 18 },
+    { wch: 35 },
+    { wch: 12 },
+    { wch: 30 }
+  ];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Mau_Flashcard_2_Cot");
-  XLSX.writeFile(wb, "KizunaTutor_Mau_Flashcard_2_Cot.xlsx");
-  KizunaToast.info("Đã tải xuống file Excel mẫu 2 cột!");
+  XLSX.utils.book_append_sheet(wb, ws, "Mau_Flashcards");
+  XLSX.writeFile(wb, "mau-flashcard-tieng-nhat-chuan.xlsx");
+  KizunaToast.info("Đã tải xuống file Excel mẫu chuẩn (Kanji & Từ vựng)!");
 }
 
 // 12. In bộ thẻ (Print Mode A4 / Xuất PDF 2 mặt)
@@ -569,6 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('internalSearchInput');
   if (searchInput) {
     searchInput.addEventListener('input', debounce((e) => {
+      currentCardPage = 0;
       renderCardsList(e.target.value);
     }, 200));
   }

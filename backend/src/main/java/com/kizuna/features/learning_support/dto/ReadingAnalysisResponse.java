@@ -28,6 +28,10 @@ public class ReadingAnalysisResponse {
     private String model;
     private boolean fallback;
 
+    /** Danh sách câu hỏi Đọc hiểu (Dokkai) trắc nghiệm kiểm tra mức độ thấu hiểu */
+    @Builder.Default
+    private List<ReadingComprehensionQuestionDto> comprehensionQuestions = new ArrayList<>();
+
     /** Danh sách các cấu trúc ngữ pháp được bóc tách */
     @Builder.Default
     private List<ReadingGrammarItemDto> detectedGrammars = new ArrayList<>();

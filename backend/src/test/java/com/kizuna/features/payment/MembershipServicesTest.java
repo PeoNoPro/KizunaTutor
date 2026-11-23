@@ -371,29 +371,6 @@ class MembershipServicesTest {
             return own;
         }
 
-        @Test
-        void tutorCheckProcessesVerifiedGatewayResult() {
-            PaymentTransaction own = ownPending(OffsetDateTime.now().minusHours(1));
-            GatewayResult queried = new GatewayResult(own.getTxnRef(), "00", "00", "9", 19_900_000L, "NCB");
-            when(gatewayClient.queryTransaction(any(), any())).thenReturn(
-                    new VnpayGatewayClient.QueryOutcome(true, 200, "00", "OK", queried, Map.of(), "{}"));
-
-            service(properties).checkMyPayment(user, own.getTransactionId().toString(), null);
-
-            verify(processor).process(queried);
-        }
-
-        @Test
-        void tutorCheckOfFinishedTransactionDoesNotCallGateway() {
-            PaymentTransaction own = ownPending(OffsetDateTime.now());
-            own.setStatus(PaymentTransactionStatus.FAILED);
-
-            var view = service(properties).checkMyPayment(user, own.getTransactionId().toString(), null);
-
-            verifyNoInteractions(gatewayClient, processor);
-            assertEquals(PaymentMessages.MSG32_FAILED, view.resultMessage());
-        }
-
         // ----- Tiếp tục thanh toán: VNPay không cho mở lại mã đơn đã mở → tạo giao dịch mới cùng gói -----
 
         private void freshPlanPurchase(MembershipPlan plan) {
@@ -593,107 +570,6 @@ class MembershipServicesTest {
 
             assertTrue(page.items().get(0).resumable());
             assertTrue(page.items().get(1).resumable());
-        }
-    }
-
-    /** REQ-20: quản trị viên kiểm tra giao dịch với cổng VNPay. */
-    @Nested
-    class AdminGatewayCheck {
-        PaymentTransactionRepository transactionRepository = mock(PaymentTransactionRepository.class);
-        PaymentResultProcessor processor = mock(PaymentResultProcessor.class);
-        VnpayGatewayClient gatewayClient = mock(VnpayGatewayClient.class);
-        PaymentAudit audit = mock(PaymentAudit.class);
-        VnpayProperties properties = VnpaySignerTest.properties(VnpaySignerTest.SECRET);
-        com.kizuna.features.payment.service.impl.PaymentIssueServiceImpl service =
-                new com.kizuna.features.payment.service.impl.PaymentIssueServiceImpl(transactionRepository,
-                        mock(com.kizuna.features.payment.repository.PaymentProcessingLogRepository.class),
-                        mock(TutorMembershipRepository.class), processor, gatewayClient,
-                        new MembershipViewMapper(new ObjectMapper(), properties), audit, new ObjectMapper());
-        User admin = User.builder().userId(UUID.randomUUID()).fullName("Quản trị A").build();
-
-        PaymentTransaction transaction(PaymentTransactionStatus status) {
-            PaymentTransaction tx = PaymentTransaction.builder().transactionId(UUID.randomUUID()).user(user())
-                    .plan(plan(true)).amount(new BigDecimal("199000")).status(status)
-                    .transactionTime(OffsetDateTime.now().minusMinutes(5)).build();
-            when(transactionRepository.findWithDetailsById(tx.getTransactionId())).thenReturn(Optional.of(tx));
-            return tx;
-        }
-
-        void gatewayAnswers(PaymentTransaction tx, String queryCode, String transactionStatus) {
-            GatewayResult result = new GatewayResult(tx.getTxnRef(), "00", transactionStatus, "123", 19_900_000L, "NCB");
-            when(gatewayClient.queryTransaction(eq(tx), any())).thenReturn(
-                    new VnpayGatewayClient.QueryOutcome(true, 200, queryCode, "OK", result, Map.of(), "{}"));
-        }
-
-        @Test
-        void req20_pendingTransactionIsUpdatedFromVerifiedGatewayResult() {
-            PaymentTransaction tx = transaction(PaymentTransactionStatus.PENDING);
-            gatewayAnswers(tx, "00", "00");
-            when(processor.process(any())).thenAnswer(inv -> {
-                tx.setStatus(PaymentTransactionStatus.SUCCESS);
-                return PaymentResultProcessor.Outcome.ACTIVATED;
-            });
-
-            var view = service.checkWithGateway(tx.getTransactionId().toString(), admin, "10.0.0.1");
-
-            verify(processor).process(any());
-            assertEquals("PENDING", view.statusBefore());
-            assertEquals("SUCCESS", view.statusAfter());
-            assertEquals("00", view.gatewayResponseCode());
-            verify(audit).log(eq(tx.getTransactionId()), eq(PaymentLogWriter.TYPE_QUERY), any(), any(), eq(200));
-        }
-
-        @Test
-        void req20_gatewayWithoutConfirmedResultLeavesTransactionPending() {
-            PaymentTransaction tx = transaction(PaymentTransactionStatus.PENDING);
-            gatewayAnswers(tx, "91", "01");
-
-            var view = service.checkWithGateway(tx.getTransactionId().toString(), admin, null);
-
-            verifyNoInteractions(processor);
-            assertEquals("PENDING", view.statusAfter());
-            assertEquals(PaymentTransactionStatus.PENDING, tx.getStatus());
-        }
-
-        @Test
-        void req20_finishedTransactionIsOnlyLoggedNotChanged() {
-            PaymentTransaction tx = transaction(PaymentTransactionStatus.FAILED);
-            gatewayAnswers(tx, "00", "00");
-
-            var view = service.checkWithGateway(tx.getTransactionId().toString(), admin, null);
-
-            verifyNoInteractions(processor);
-            assertEquals("FAILED", view.statusBefore());
-            assertEquals("FAILED", view.statusAfter());
-            verify(audit).log(eq(tx.getTransactionId()), eq(PaymentLogWriter.TYPE_QUERY), any(), any(), any());
-        }
-
-        @Test
-        void req20_vnpayReferenceWithoutHyphensFindsTheSameTransaction() {
-            PaymentTransaction tx = transaction(PaymentTransactionStatus.PENDING);
-            gatewayAnswers(tx, "91", "01");
-
-            service.checkWithGateway(tx.getTransactionId().toString().replace("-", ""), admin, null);
-
-            verify(gatewayClient).queryTransaction(eq(tx), any());
-        }
-
-        @org.junit.jupiter.params.ParameterizedTest
-        @org.junit.jupiter.params.provider.ValueSource(strings = {"abc", "12345", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"})
-        void req20_malformedTransactionReferenceIsNotFound(String reference) {
-            assertEquals(PaymentMessages.TRANSACTION_NOT_FOUND, assertThrows(ResourceNotFoundException.class,
-                    () -> service.checkWithGateway(reference, admin, null)).getMessage());
-            verifyNoInteractions(gatewayClient, processor, audit);
-        }
-
-        @Test
-        void req20_unknownTransactionIsNotFound() {
-            UUID unknown = UUID.randomUUID();
-            when(transactionRepository.findWithDetailsById(unknown)).thenReturn(Optional.empty());
-
-            assertEquals(PaymentMessages.TRANSACTION_NOT_FOUND, assertThrows(ResourceNotFoundException.class,
-                    () -> service.checkWithGateway(unknown.toString(), admin, null)).getMessage());
-            verifyNoInteractions(gatewayClient, processor, audit);
         }
     }
 

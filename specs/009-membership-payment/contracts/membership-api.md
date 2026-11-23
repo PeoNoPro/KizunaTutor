@@ -34,10 +34,6 @@ Lỗi: 400 thiếu `planId`; 409 MSG34 khi hồ sơ chưa phê duyệt (tài kho
 Kiểm chữ ký; `vnp_TxnRef` phải thuộc gia sư đang đăng nhập (không thì 404). Nếu còn `PENDING`: querydr → xử lý; querydr lỗi hoặc không xác thực được thì dùng tham số trả về đã kiểm chữ ký (plan, Ghi chú triển khai).
 `data`: `{ transactionId, status, statusLabel, resultMessage, planName, amount, membership: { startDate, endDate } | null }`. `resultMessage` ∈ MSG31/MSG32/MSG33. Chữ ký sai → 400 "Kết quả thanh toán không hợp lệ." (không đổi dữ liệu).
 
-### A6. `POST /payments/{transactionId}/check` *(thêm 2026-11-04 theo phản hồi nghiệm thu)*
-Gia sư tự kiểm tra một giao dịch **của chính mình** còn `PENDING` với cổng (querydr) — dùng khi đã trả tiền nhưng không quay về được trang kết quả (chạy cục bộ không có IPN). Kết quả xử lý qua cùng `PaymentResultProcessor`.
-`data`: như A5. Giao dịch không còn chờ → trả trạng thái hiện tại, không gọi cổng. Không phải của mình → 404. Cổng lỗi → 503 MSG37.
-
 ### A7. `POST /payments/{transactionId}/resume` *(thêm 2026-11-04)*
 Tiếp tục thanh toán cho giao dịch `PENDING` của chính gia sư **còn trong hạn 15 phút**.
 
@@ -83,7 +79,9 @@ Trả gói sau cập nhật. Đã ở trạng thái đích → 200 không đổi
 ### C6. `GET /api/manager/tutor-memberships/{tutorId}`
 `data`: `{ tutor: { tutorId, fullName, email, phone, tutorStateLabel }, expiresOn, memberships: [{ membershipId, planName, registeredAt, startDate, endDate, status, statusLabel, amount }], payments: [{ transactionId, planName, amount, status, statusLabel, transactionTime, gatewayTransactionId }] | null, paymentsUnavailable: false }`.
 
-## D. Quản trị viên — `ROLE_ADMIN`, tiền tố `/api/admin/payment-transactions`
+## D. Quản trị viên — `ROLE_ADMIN`, tiền tố `/api/admin/payment-transactions` — ĐÃ GỠ 2026-11-23
+
+> D1–D4 đã gỡ khỏi backend cùng trang `/admin/payments` (UC-98 bỏ theo yêu cầu người dùng). Giữ lại mô tả dưới đây để tra cứu.
 
 ### D1. `GET /?status=&from=yyyy-MM-dd&to=yyyy-MM-dd&keyword=&page=0&size=20`
 `keyword` khớp mã giao dịch (UUID hoặc 32 ký tự hex) hoặc email/tên gia sư. `data`: trang `{ transactionId, txnRef, tutorName, email, planName, amount, status, statusLabel, stale, transactionTime, gatewayTransactionId }`.

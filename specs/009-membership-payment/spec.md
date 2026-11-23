@@ -20,7 +20,7 @@
 | UC-100 | Manage Membership Benefits | Quản lý vận hành | II.9.4 |
 | UC-44 | View Tutor Membership List | Quản lý vận hành | II.9.5 |
 | UC-45 | View Tutor Membership Details | Quản lý vận hành | II.9.6 |
-| UC-98 | Handle Payment Issues | Quản trị viên | II.9.2 |
+| ~~UC-98~~ | ~~Handle Payment Issues~~ — **đã gỡ 2026-11-23** theo yêu cầu người dùng | Quản trị viên | II.9.2 |
 | (chưa có UC) | Đăng bài và duyệt bài sau khi kích hoạt gói (BF I.2.2) | Gia sư, Cán bộ học vụ | Xem [srs-gaps.md](srs-gaps.md) G-01 |
 
 **Ngoài phạm vi**
@@ -42,6 +42,7 @@
 - Q: Phân loại gói? → A: Gói chỉ khác nhau theo số tháng và giá; không có cấp bậc. Gán sẵn PREMIUM khi đăng ký thuộc FE-01, người phụ trách sẽ báo lại.
 - Q: Quản lý vận hành được tạo/ngừng bán gói? → A: Có.
 - Q: UC-98 gồm những thao tác nào? → A: Xem giao dịch và nhật ký, kiểm tra trạng thái với cổng và đồng bộ, ghi kết quả điều tra. Không hoàn tiền.
+- Q (2026-11-23): Còn giữ UC-98 không? → A: Không. Người dùng quyết định gỡ toàn bộ chức năng xử lý sự cố thanh toán (trang `/admin/payments` và API `/api/admin/payment-transactions`). Gia sư vẫn tiếp tục thanh toán được (A7); IPN và trang kết quả không đổi. US5 và FR-019–FR-021 không còn hiệu lực.
 - Q: Định dạng phản hồi API? → A: Theo BACKEND_RULES mục 6 (`success`, `message`, `data`, `timestamp`; lỗi qua `GlobalExceptionHandler`). Được thêm vào file dùng chung nhưng tuyệt đối không sửa code của người khác.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -120,7 +121,9 @@ Quản lý vận hành xem danh sách gia sư đã đăng ký gói trả phí, t
 
 ---
 
-### User Story 5 - Quản trị viên xử lý sự cố thanh toán (Priority: P3)
+### User Story 5 - Quản trị viên xử lý sự cố thanh toán (Priority: P3) — ĐÃ GỠ 2026-11-23
+
+> Chức năng đã gỡ khỏi hệ thống theo yêu cầu người dùng (xem Clarifications). Nội dung dưới đây chỉ giữ để tra cứu.
 
 Quản trị viên xem danh sách giao dịch, lọc theo trạng thái/ngày/từ khóa, mở chi tiết để xem nhật ký trao đổi với cổng, kiểm tra trạng thái với cổng để đồng bộ, và ghi lại kết quả điều tra.
 
@@ -232,7 +235,7 @@ SRS chưa có thông điệp riêng cho thanh toán; các mã MSG31–MSG37 là 
 - **FR-017**: Quản lý vận hành MUST xem danh sách gia sư có ít nhất một bản ghi hội viên, tìm theo tên/email (≤ 100 ký tự), lọc theo gói và trạng thái, phân trang mặc định 20, tối đa 50.
 - **FR-018**: Quản lý vận hành MUST xem chi tiết hội viên của một gia sư gồm các lần đăng ký và lịch sử thanh toán; phần lịch sử lỗi không làm hỏng trang.
 
-**Sự cố thanh toán (UC-98)**
+**Sự cố thanh toán (UC-98)** — *đã gỡ 2026-11-23; FR-019–FR-021 không còn hiệu lực.*
 
 - **FR-019**: Quản trị viên MUST xem danh sách giao dịch, lọc theo trạng thái, khoảng ngày, từ khóa (mã giao dịch, email gia sư), xem chi tiết kèm nhật ký xử lý.
 - **FR-020**: Quản trị viên MUST tra cứu trạng thái với cổng cho một giao dịch; chỉ giao dịch đang chờ mới đổi trạng thái theo kết quả cổng (dùng lại bước xử lý ở FR-006).
@@ -240,7 +243,7 @@ SRS chưa có thông điệp riêng cho thanh toán; các mã MSG31–MSG37 là 
 
 **Đăng bài (BF I.2.2, chờ UC)**
 
-- **FR-022**: Gia sư có gói hiệu lực MUST tạo được bài đăng gửi duyệt; cán bộ học vụ MUST duyệt hoặc từ chối kèm lý do; bài chỉ hiển thị công khai khi đã duyệt và gia sư còn gói hiệu lực. *(Chờ UC mới và schema — srs-gaps G-01, data-model mục 6.)*
+- **FR-022**: Gia sư có gói hiệu lực MUST tạo được bài đăng gửi duyệt; cán bộ học vụ MUST duyệt hoặc từ chối kèm lý do; bài chỉ hiển thị công khai khi đã duyệt và gia sư còn gói hiệu lực. Mỗi quyết định duyệt, từ chối, yêu cầu bổ sung MUST luôn gửi cho gia sư cả email và thông báo trong ứng dụng (thêm 2026-11-24); lỗi gửi email chỉ ghi log, không làm hỏng quyết định. *(Chờ UC mới và schema — srs-gaps G-01, data-model mục 6.)*
 
 **Chung**
 

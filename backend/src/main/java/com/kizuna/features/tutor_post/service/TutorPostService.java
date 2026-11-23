@@ -68,6 +68,9 @@ public class TutorPostService {
     /** FE-12 (thêm 2026-11-13): thông báo tự động trong ứng dụng. Không bắt buộc, nên test dựng service bằng tay vẫn chạy. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.kizuna.features.notification.service.NotificationEvents notificationEvents;
+    /** UC-129, UC-130 (thêm 2026-11-24): luôn gửi email kết quả duyệt cho gia sư, cùng lúc với thông báo trong ứng dụng. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private TutorPostMailService mailService;
 
 
     // =====================================================================
@@ -194,6 +197,9 @@ public class TutorPostService {
         }
         tutorRepository.save(tutor);
         notifyTutorReviewed(post, "Bài đăng đã được duyệt", "Bài đăng \"" + post.getTitle() + "\" đã hiển thị trên trang Tìm gia sư.");
+        if (mailService != null) {
+            mailService.approvedAfterCommit(tutorEmail(post), tutorName(post), post.getTitle());
+        }
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }
 
@@ -204,6 +210,9 @@ public class TutorPostService {
         TutorPost post = lockPending(postId);
         markReviewed(post, officer, TutorPostStatus.REJECTED, reason);
         notifyTutorReviewed(post, "Bài đăng không được duyệt", "Bài đăng \"" + post.getTitle() + "\" bị từ chối. Lý do: " + reason);
+        if (mailService != null) {
+            mailService.rejectedAfterCommit(tutorEmail(post), tutorName(post), post.getTitle(), reason);
+        }
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }
 
@@ -214,6 +223,9 @@ public class TutorPostService {
         TutorPost post = lockPending(postId);
         markReviewed(post, officer, TutorPostStatus.NEEDS_REVISION, message);
         notifyTutorReviewed(post, "Cần bổ sung bài đăng", "Cán bộ học vụ cần bạn sửa bài đăng \"" + post.getTitle() + "\": " + message + " Sửa xong hãy gửi lại.");
+        if (mailService != null) {
+            mailService.revisionRequestedAfterCommit(tutorEmail(post), tutorName(post), post.getTitle(), message);
+        }
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }
 
@@ -309,6 +321,14 @@ public class TutorPostService {
         }
         notificationEvents.publish("tutor-post:" + post.getPostId() + ":reviewed:" + post.getReviewedAt(), "SYSTEM", title, content,
                 "/tutor/post", java.util.List.of(post.getTutor().getUser().getUserId()));
+    }
+
+    private static String tutorEmail(TutorPost post) {
+        return post.getTutor().getUser().getEmail();
+    }
+
+    private static String tutorName(TutorPost post) {
+        return post.getTutor().getUser().getFullName();
     }
 
     private void markReviewed(TutorPost post, User officer, TutorPostStatus status, String reason) {

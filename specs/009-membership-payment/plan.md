@@ -24,7 +24,7 @@ Gia sư đã phê duyệt mua gói hội viên qua VNPay sandbox (phương án C
 | I. Tiếng Việt, không lộ kỹ thuật | Đạt | Mọi mã có `…Label`; MSG31–37; IPN trả mã chuẩn VNPay chỉ cho cổng, không hiện cho người dùng; log che chữ ký |
 | II. Dữ liệu thật | Đạt | Gói lấy từ `membership_plans` có sẵn; trạng thái rỗng "Bạn chưa có gói hội viên"; không chèn dữ liệu mẫu |
 | III. Kiến trúc/quy ước | Đạt có ghi chú | Gói `com.kizuna.features.payment` có sẵn; khung phản hồi BACKEND_RULES 6.2; lỗi qua `GlobalExceptionHandler`. Ghi chú: IPN dùng định dạng VNPay (research §2); CSRF giữ như dự án (research §11) |
-| IV. Thiết kế theo phân hệ | Đạt | Trang gia sư dùng `tutor-layout` + theme Stitch (như FE-03); trang nhân viên dùng `staff-layout` mới cùng theme cổng học vụ |
+| IV. Thiết kế theo phân hệ | Đạt | Trang gia sư dùng `tutor-layout` + theme Stitch (như FE-03); trang nhân viên dùng `staff-layout` mới cùng theme cổng học vụ *(2026-11-23: các trang Quản lý của FE-09 đã chuyển sang khung quản trị dùng chung `admin-shell`; `staff-layout` không còn trang nào dùng)* |
 | V. Phạm vi/kiểm chứng | Đạt có điều kiện | Ma trận FR bên dưới; file dùng chung chỉ thêm. **Điều kiện**: D-1 (2 entity của thành viên khác) cần người dùng duyệt |
 
 ## Quyết định cần người dùng duyệt trước khi cài đặt
@@ -65,10 +65,10 @@ backend/src/main/java/com/kizuna/
     │            MembershipPeriodCalculator, MembershipExpiryService, PaymentLogWriter,
     │            PaymentNotificationService, CurrentTutorProvider,
     │            TutorMembershipService(+impl), MembershipPlanAdminService(+impl),
-    │            TutorMembershipMonitorService(+impl), PaymentIssueService(+impl), MembershipLabels
+    │            TutorMembershipMonitorService(+impl), MembershipLabels  [PaymentIssueService(+impl): đã gỡ 2026-11-23]
     ├── controller/ TutorMembershipController, VnpayIpnController,
-    │               ManagerMembershipPlanController, ManagerTutorMembershipController,
-    │               AdminPaymentTransactionController
+    │               ManagerMembershipPlanController, ManagerTutorMembershipController
+    │               [AdminPaymentTransactionController: đã gỡ 2026-11-23]
     └── dto/request, dto/response
 backend/src/main/resources/application.properties    # THÊM mục "13. FE-09 VNPAY" (app.payment.vnpay.*); KHÔNG sửa khối vnpay.* cũ
 backend/src/test/java/com/kizuna/features/payment/   # MỚI
@@ -76,13 +76,13 @@ core/config/WebMvcConfig.java                        # THÊM forward 4 route tra
 
 frontend/
 ├── components/tutor-layout/tutor-layout.js          # THÊM mục "Gói hội viên" (file FE-03 của mình)
-├── components/staff-layout/staff-layout.js          # MỚI (sidebar quản lý/quản trị, menu tài khoản dùng user-menu)
+├── components/staff-layout/staff-layout.js          # MỚI (sidebar quản lý/quản trị, menu tài khoản dùng user-menu) — 2026-11-23: không còn trang nào dùng
 ├── js/api.js, js/config/api.config.js, server.js    # THÊM nhóm API/route FE-09
 ├── pages/tutor-membership/                          # MỚI /tutor/membership
 ├── pages/tutor-membership-result/                   # MỚI /tutor/membership/result
 ├── pages/manager-membership-plans/                  # MỚI /manager/membership-plans
-├── pages/manager-tutor-memberships/                 # MỚI /manager/tutor-memberships (+ chi tiết dạng ngăn kéo)
-└── pages/admin-payments/                            # MỚI /admin/payments (+ chi tiết dạng ngăn kéo)
+├── pages/manager-tutor-memberships/                 # MỚI /manager/tutor-memberships — 2026-11-23: dựng lại trên admin-shell, chi tiết dạng hộp thoại
+└── pages/admin-payments/                            # ĐÃ GỠ 2026-11-23 (UC-98)
 ```
 
 ## Ảnh hưởng tới module khác
@@ -121,7 +121,7 @@ frontend/
 | FR-013 | MembershipExpiryService | ExpiryServiceTest, QS 16 |
 | FR-014–016 | MembershipPlanAdminService | ServiceTest, ControllerTest, QS 11–13 |
 | FR-017, 018 | TutorMembershipMonitorService | ControllerTest, QS 14–15 |
-| FR-019–021 | PaymentIssueService | ServiceTest, QS 9–10 |
+| FR-019–021 | ~~PaymentIssueService~~ — đã gỡ 2026-11-23 (UC-98) | — |
 | FR-022 | (chờ D-2) | — |
 | FR-023 | SecurityConfig | PaymentSecurityTest, QS 17 |
 | FR-024 | Trang frontend | QS 19 |
@@ -133,6 +133,7 @@ frontend/
 | --- | --- | --- |
 | IPN không dùng khung `success/data` | VNPay bắt buộc `RspCode/Message` | Dùng khung chung → VNPay coi là lỗi, gửi lại vô hạn |
 | Hai cấu hình VNPay cùng tồn tại (`vnpay.*` cũ, `app.payment.vnpay.*` mới) | Không được sửa code người khác | Sửa khối cũ — vi phạm quy định |
+| Gỡ UC-98 (2026-11-23) nhưng giữ dòng `/api/admin/payment-transactions/**` trong `core/security/SecurityConfig.java` và forward `/admin/payments` trong `core/config/WebMvcConfig.java` | Không sửa `core/` khi chưa hỏi; hai dòng này không còn đích nên vô hại (API trả 404, trang không còn tệp) | Sửa `core/` ngay — cần người dùng đồng ý trước |
 
 ## Phase Outputs and Readiness
 
@@ -148,5 +149,5 @@ frontend/
 - **Nhật ký** ghi bằng transaction riêng **sau** khi xử lý xong (không ghi trong lúc giữ khóa dòng giao dịch, tránh tự chờ khóa khóa ngoại).
 - **Thêm** `frontend/js/membership-format.js` (định dạng dùng chung cho 5 trang FE-09); `authRequest` (FE-03, của mình) đọc thêm `details` của lỗi validation để hiện lỗi theo trường.
 - DTO gom thành `MembershipViews` / `MembershipRequests` (record lồng) thay vì một file mỗi lớp.
-- **Bổ sung sau nghiệm thu (2026-11-04)**: A6 `POST /payments/{id}/check` (gia sư tự kiểm tra giao dịch chờ với cổng) và A7 `POST /payments/{id}/resume` (mở lại trang thanh toán trong hạn 15 phút, cùng mã đơn), trường `resumable` ở A4; nút "Kiểm tra kết quả" / "Tiếp tục thanh toán" trong bảng lịch sử giao dịch. Lý do: chạy cục bộ không có IPN, giao dịch đã trả tiền nhưng không về được trang kết quả bị kẹt ở "Chờ thanh toán". Đường dẫn trả về mặc định đổi sang cổng 8085 (phiên đăng nhập lưu theo cổng).
+- **Bổ sung sau nghiệm thu (2026-11-04)**: A7 `POST /payments/{id}/resume` (mở lại trang thanh toán trong hạn 15 phút, cùng mã đơn), trường `resumable` ở A4; nút "Tiếp tục thanh toán" trong bảng lịch sử giao dịch. Lý do: chạy cục bộ không có IPN, giao dịch đã trả tiền nhưng không về được trang kết quả bị kẹt ở "Chờ thanh toán". Đường dẫn trả về mặc định đổi sang cổng 8085 (phiên đăng nhập lưu theo cổng).
 - **Sửa lỗi TLS (2026-11-04)**: tra cứu querydr báo `PKIX path building failed` trên JDK 17.0.12 vì chứng chỉ `sandbox.vnpayment.vn` nối lên "Sectigo Public Server Authentication Root R46" không có trong cacerts của bản JDK này (Windows có). Thêm `features/payment/config/VnpayTrust.java`: SSLContext chỉ cho HttpClient gọi VNPay, tin cacerts của JDK + kho `Windows-ROOT` (nếu chạy Windows). Không tắt kiểm tra chứng chỉ, không đổi cấu hình JVM chung. Đã kiểm tra: JDK mặc định → PKIX; qua VnpayTrust → HTTP 200.

@@ -55,7 +55,7 @@ Chỉ tạo khi giao dịch thành công. Mỗi `transaction_ref` có tối đa 
 | --- | --- | --- |
 | `logId` | `log_id` | UUID PK |
 | `transaction` | `transaction_id` | FK NOT NULL |
-| `requestPayload` | `request_payload` | JSONB, có trường `type`: `CREATE_PAYMENT_URL`, `IPN`, `RETURN`, `QUERYDR`, `ADMIN_NOTE` |
+| `requestPayload` | `request_payload` | JSONB, có trường `type`: `CREATE_PAYMENT_URL`, `IPN`, `RETURN`, `QUERYDR`, `ADMIN_NOTE` (chỉ còn ở dữ liệu cũ; không ghi mới từ 2026-11-23 khi gỡ UC-98) |
 | `responsePayload` | `response_payload` | JSONB |
 | `httpStatusCode` | `http_status_code` | INTEGER nullable |
 | `loggedAt` | `logged_at` | TIMESTAMPTZ |

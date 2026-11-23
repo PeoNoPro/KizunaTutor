@@ -62,14 +62,6 @@ public class TutorMembershipController {
         return ResponseEntity.ok(ApiResponse.ok(service.listMyPayments(currentUser.requireUser(), page, size)));
     }
 
-    @PostMapping("/payments/{transactionId}/check")
-    public ResponseEntity<ApiResponse<MembershipViews.PaymentResultView>> checkPayment(
-            @PathVariable String transactionId, HttpServletRequest http) {
-        MembershipViews.PaymentResultView result =
-                service.checkMyPayment(currentUser.requireUser(), transactionId, ClientIp.of(http));
-        return ResponseEntity.ok(ApiResponse.ok(result.resultMessage(), result));
-    }
-
     @PostMapping("/payments/{transactionId}/resume")
     public ResponseEntity<ApiResponse<MembershipViews.PaymentCreatedView>> resumePayment(
             @PathVariable String transactionId, HttpServletRequest http) {

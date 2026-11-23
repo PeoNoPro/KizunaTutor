@@ -59,7 +59,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         var result = repository.list(ManagedAccountStatus.CATEGORY_ROLES.get(cat), st, likePattern(keyword), safePage, safeSize);
         List<ManagedUserResponse> items = result.items().stream()
                 .map(row -> new ManagedUserResponse(row.userId(), row.fullName(), row.email(), cat,
-                        ManagedAccountStatus.CATEGORY_LABELS.get(cat), row.status(), label(row.status()), row.createdAt()))
+                        ManagedAccountStatus.CATEGORY_LABELS.get(cat), row.status(), label(row.status()), row.createdAt(), row.lastLoginAt()))
                 .toList();
         long totalPages = result.total() == 0 ? 0 : (result.total() + safeSize - 1) / safeSize;
         return new PageResponse<>(items, safePage, safeSize, result.total(), totalPages);
@@ -101,7 +101,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         return new ManagedUserDetailResponse(account.userId(), account.fullName(), account.email(), phone,
                 account.avatarUrl(), category, ManagedAccountStatus.CATEGORY_LABELS.get(category), account.status(),
-                label(account.status()), account.createdAt(), account.updatedAt(), allowed,
+                label(account.status()), account.createdAt(), account.updatedAt(), account.lastLoginAt(), allowed,
                 pending ? PENDING_BLOCKED : null, tutor, learner, history);
     }
 
@@ -112,10 +112,8 @@ public class UserManagementServiceImpl implements UserManagementService {
         if (!ManagedAccountStatus.TARGET_STATUSES.contains(target)) {
             throw new BusinessException(400, "Trạng thái mới không hợp lệ.");
         }
-        String reason = request.reason() == null ? "" : request.reason().strip();
-        if (reason.isEmpty()) {
-            throw new BusinessException(400, "Vui lòng nhập lý do nội bộ.");
-        }
+        // Lý do nội bộ không bắt buộc (2026-11-23); trống thì ghi null vào nhật ký.
+        String reason = isBlank(request.reason()) ? null : request.reason().strip();
         String message = isBlank(request.message()) ? null : request.message().strip();
 
         Account account = requireManagedAccount(userId);

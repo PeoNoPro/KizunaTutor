@@ -20,19 +20,17 @@ test('thông báo rỗng: có điều kiện tìm theo UC-20 AF-1, không có th
 });
 
 test('biểu mẫu hợp lệ: cắt khoảng trắng, lời nhắn trống gửi null, kèm trạng thái hiện tại', () => {
-  const r = validateStatusForm({ status: 'SUSPENDED', currentStatus: 'ACTIVE', reason: '  Vi phạm  ', message: '   ' });
+  const r = validateStatusForm({ status: 'SUSPENDED', currentStatus: 'ACTIVE', message: '   ' });
   assert.equal(r.valid, true);
-  assert.deepEqual(r.payload, { status: 'SUSPENDED', expectedStatus: 'ACTIVE', reason: 'Vi phạm', message: null });
+  assert.deepEqual(r.payload, { status: 'SUSPENDED', expectedStatus: 'ACTIVE', message: null });
 });
 
-test('biểu mẫu lỗi: thiếu trạng thái, thiếu lý do, trùng trạng thái, quá dài', () => {
-  assert.deepEqual(validateStatusForm({ currentStatus: 'ACTIVE' }).errors, {
-    status: 'Vui lòng chọn trạng thái mới.', reason: 'Vui lòng nhập lý do nội bộ.'
-  });
-  assert.equal(validateStatusForm({ status: 'ACTIVE', currentStatus: 'ACTIVE', reason: 'x' }).errors.status, 'Tài khoản đã ở trạng thái này.');
-  const long = validateStatusForm({ status: 'BANNED', currentStatus: 'ACTIVE', reason: 'x'.repeat(1001), message: 'y'.repeat(1001) });
+test('biểu mẫu lỗi: thiếu trạng thái, trùng trạng thái, lời nhắn quá dài', () => {
+  assert.deepEqual(validateStatusForm({ currentStatus: 'ACTIVE' }).errors, { status: 'Vui lòng chọn trạng thái mới.' });
+  assert.equal(validateStatusForm({ status: 'SUSPENDED', currentStatus: 'ACTIVE' }).valid, true);
+  assert.equal(validateStatusForm({ status: 'ACTIVE', currentStatus: 'ACTIVE' }).errors.status, 'Tài khoản đã ở trạng thái này.');
+  const long = validateStatusForm({ status: 'BANNED', currentStatus: 'ACTIVE', message: 'y'.repeat(1001) });
   assert.equal(long.valid, false);
-  assert.ok(long.errors.reason.includes('1.000'));
   assert.ok(long.errors.message.includes('1.000'));
 });
 
@@ -48,4 +46,30 @@ test('giá trị trống hiện "Chưa cập nhật"; nhãn không viết hoa to
   assert.equal(orDash('  '), 'Chưa cập nhật');
   assert.equal(orDash(0), '0');
   STATUS_FILTERS.forEach(({ label }) => assert.notEqual(label, label.toUpperCase()));
+});
+
+test('lastLoginInfo: thời gian không đăng nhập dễ đọc, đánh dấu lâu không hoạt động từ 30 ngày', async () => {
+  const { lastLoginInfo, INACTIVE_DAYS } = await import('../js/manager-users-helpers.js');
+  const now = new Date('2026-11-23T10:00:00Z');
+  const ago = (ms) => new Date(now.getTime() - ms).toISOString();
+  const MIN = 60000, DAY = 86400000;
+  assert.deepEqual(lastLoginInfo(null, now), { text: 'Chưa ghi nhận', idle: false });
+  assert.deepEqual(lastLoginInfo('không phải ngày', now), { text: 'Chưa ghi nhận', idle: false });
+  assert.equal(lastLoginInfo(ago(20 * 1000), now).text, 'Vừa xong');
+  assert.equal(lastLoginInfo(ago(15 * MIN), now).text, '15 phút trước');
+  assert.equal(lastLoginInfo(ago(3 * 60 * MIN), now).text, '3 giờ trước');
+  assert.deepEqual(lastLoginInfo(ago(12 * DAY), now), { text: '12 ngày trước', idle: false });
+  assert.deepEqual(lastLoginInfo(ago(INACTIVE_DAYS * DAY), now), { text: '30 ngày trước', idle: true });
+  assert.equal(lastLoginInfo(ago(75 * DAY), now).text, '2 tháng trước');
+  assert.equal(lastLoginInfo(ago(400 * DAY), now).text, '1 năm trước');
+});
+
+test('lockAction: đang hoạt động thì Tạm khóa, đang bị khóa thì Mở lại, chờ kích hoạt thì không có nút', async () => {
+  const { lockAction } = await import('../js/manager-users-helpers.js');
+  assert.deepEqual(lockAction('ACTIVE'), { target: 'SUSPENDED', label: 'Tạm khóa tài khoản', confirm: 'Xác nhận tạm khóa', tone: 'danger' });
+  assert.equal(lockAction('SUSPENDED').target, 'ACTIVE');
+  assert.equal(lockAction('SUSPENDED').label, 'Mở lại tài khoản');
+  assert.equal(lockAction('BANNED').target, 'ACTIVE');
+  assert.equal(lockAction('PENDING'), null);
+  assert.equal(lockAction(undefined), null);
 });

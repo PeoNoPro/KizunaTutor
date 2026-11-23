@@ -66,6 +66,15 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final JavaMailSender mailSender;
 
+    // FE-14: ghi lần đăng nhập gần nhất. Tiêm qua field (không qua constructor) để không đổi cách dựng class trong test;
+    // test dựng tay thì field là null và bỏ qua.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.auth.service.LoginActivityRecorder loginActivity;
+
+    private void recordLogin(User user) {
+        if (loginActivity != null && user != null) loginActivity.record(user.getUserId());
+    }
+
     @Value("${app.mail.sender-email:${spring.mail.username:kizunatutor@gmail.com}}")
     private String senderEmail;
 
@@ -301,6 +310,7 @@ public class AuthServiceImpl implements AuthService {
             learnerRepository.save(learner);
         }
 
+        recordLogin(user);
         String token = tokenProvider.generateToken(user);
         RoleEnum roleEnum = RoleEnum.fromString(role.getRoleName());
         String redirectUrl = roleEnum.getDashboardRoute();
@@ -338,6 +348,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(403, "Tài khoản của bạn hiện đang bị tạm khóa/cấm. Vui lòng liên hệ bộ phận hỗ trợ.");
         }
 
+        recordLogin(user);
         String token = tokenProvider.generateToken(user);
         RoleEnum roleEnum = RoleEnum.fromString(user.getRole().getRoleName());
         String redirectUrl = roleEnum.getDashboardRoute();
@@ -413,6 +424,7 @@ public class AuthServiceImpl implements AuthService {
             learnerRepository.save(learner);
         }
 
+        recordLogin(user);
         String token = tokenProvider.generateToken(user);
         RoleEnum roleEnum = RoleEnum.fromString(role.getRoleName());
         String redirectUrl = roleEnum.getDashboardRoute();

@@ -11,7 +11,7 @@ public record UpdateUserStatusRequest(
         @NotBlank(message = "Vui lòng tải lại thông tin tài khoản trước khi cập nhật.")
         String expectedStatus,
 
-        @NotBlank(message = "Vui lòng nhập lý do nội bộ.")
+        // 2026-11-23: không bắt buộc (giao diện Tạm khóa / Mở lại không còn ô lý do nội bộ)
         @Size(max = 1000, message = "Lý do nội bộ tối đa 1.000 ký tự.")
         String reason,
 

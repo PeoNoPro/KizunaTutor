@@ -123,3 +123,7 @@ _Cập nhật 2026-11-04._
 - T014/T047: luồng thanh toán thật với VNPay sandbox (cần đặt `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`), gồm thứ tự trường chữ ký querydr và IPN qua tunnel.
 - Ghi gói thật (C2–C4) trên Supabase: chưa chạy để không đổi dữ liệu dùng chung; câu lệnh `CAST(... AS jsonb)` mới được kiểm tra bằng mock.
 - T046: rà soát giao diện bằng mắt ở 1240px và 375px.
+
+## Điều chỉnh 2026-11-23
+
+- [X] Chuyển cấu hình gói hội viên (contracts C1–C4) từ Quản trị viên về Quản lý đúng hợp đồng `ROLE_MANAGER`: `SecurityConfig`, trang `FE/pages/manager-membership-plans` dựng lại trên khung quản trị dùng chung, nằm trong nhóm thả xuống "Doanh thu & giao dịch" của sidebar Quản lý; bỏ phần gói khỏi Cấu hình hệ thống của Admin; cập nhật `PaymentControllersTest`.

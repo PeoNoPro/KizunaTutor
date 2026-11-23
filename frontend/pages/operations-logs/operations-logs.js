@@ -22,7 +22,15 @@ function row(event) {
 
 async function loadLogs() {
     if (!state.catalogLoaded) {
-        (await api(base + '/assignees')).forEach(admin => option(byId('logActor'), admin.value, admin.label));
+        // API /assignees đã gỡ ở backend (commit 201b7e0e): không tải được danh sách người thực hiện
+        // thì ẩn ô lọc đó và vẫn tải nhật ký, thay vì dừng cả trang.
+        try {
+            (await api(base + '/assignees')).forEach(admin => option(byId('logActor'), admin.value, admin.label));
+        } catch (error) {
+            if (error.status === 401) throw error;
+            byId('logActor').value = '';
+            byId('logActor').closest('label').hidden = true;
+        }
         state.catalogLoaded = true;
     }
     const params = query(byId('logFilters')); params.set('page', state.page);

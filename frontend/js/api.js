@@ -838,6 +838,11 @@ export const API = {
       }).then((res) => res.data);
     },
 
+    /** Tệp Excel mẫu của một loại học liệu (Blob .xlsx) */
+    downloadTemplate(type) {
+      return authRequest(`/academic/content-imports/${type}/template`, { responseType: 'blob' });
+    },
+
     /** Danh sách học liệu: { keyword, jlpt, sort: LEVEL | NEWEST, page, size } */
     getItems(type, params = {}) {
       return authRequest(`/academic/content-imports/${type}/items?${toQuery(params)}`).then((res) => res.data);

@@ -123,6 +123,7 @@ Cán bộ học vụ mở phần "Lịch sử nhập" của một loại học l
 - **FR-006**: Hệ thống PHẢI nhận tệp `.xlsx` tối đa 15 MB và tối đa 50.000 dòng dữ liệu cho một lần nhập.
 - **FR-007**: Hệ thống PHẢI nhận cột theo **tên tiêu đề** (không phân biệt dấu, chữ hoa/thường, bỏ qua phần trong ngoặc), tìm dòng tiêu đề trong 5 dòng đầu, đọc mọi sheet có đủ cột bắt buộc. Cột bắt buộc: Kanji — "Kanji", "Nghĩa tiếng Việt"; Từ vựng — "Từ vựng", "Nghĩa tiếng Việt"; Ngữ pháp — "Mã định danh", "Mẫu cấu trúc ngữ pháp", "Ý nghĩa tiếng Việt". Các cột còn lại theo tệp mẫu là không bắt buộc.
 - **FR-008**: Hệ thống PHẢI hiển thị trước cho cán bộ học vụ cột bắt buộc và cột không bắt buộc của loại đang chọn.
+- **FR-008a**: Hệ thống PHẢI cho tải tệp Excel mẫu của loại đang chọn (tiêu đề đúng tên cột, cột bắt buộc được đánh dấu, không có dữ liệu, kèm sheet hướng dẫn); tệp mẫu nhập lại ngay phải đọc được (0 dòng dữ liệu, không lỗi).
 - **FR-009**: Hệ thống PHẢI có bước "Kiểm tra tệp" không ghi dữ liệu, trả về: số dòng đọc được, số mục sẽ thêm, số mục đã có, số dòng trùng trong tệp, số dòng lỗi và danh sách lỗi / cảnh báo (sheet, số dòng, lý do).
 - **FR-010**: Hệ thống PHẢI chỉ cho "Nhập vào hệ thống" sau một lần kiểm tra có ít nhất một mục mới, với đúng tệp và loại đã kiểm tra; đổi tệp hoặc loại thì phải kiểm tra lại.
 - **FR-011**: Hệ thống PHẢI nhận diện trùng theo khóa: Kanji — chữ Kanji; Từ vựng — (từ, cách đọc); Ngữ pháp — mã định danh (không phân biệt hoa thường).

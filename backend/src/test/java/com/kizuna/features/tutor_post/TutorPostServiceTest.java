@@ -15,7 +15,10 @@ import com.kizuna.features.tutor_post.dto.TutorPostDtos.SubmitPostRequest;
 import com.kizuna.features.tutor_post.entity.TutorPost;
 import com.kizuna.features.tutor_post.entity.TutorPostStatus;
 import com.kizuna.features.tutor_post.repository.TutorPostRepository;
+import com.kizuna.features.tutor_post.service.TutorPostMailService;
 import com.kizuna.features.tutor_post.service.TutorPostService;
+import com.kizuna.features.notification.service.NotificationEvents;
+import org.springframework.test.util.ReflectionTestUtils;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -30,6 +33,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -274,6 +278,53 @@ class TutorPostServiceTest {
             assertNull(revision.getRejectionReason());
             assertNull(revision.getReviewedBy());
             assertNull(revision.getReviewedAt());
+        }
+    }
+
+    /** UC-129, UC-130 (2026-11-24): mỗi quyết định luôn gửi gia sư cả email và thông báo trong ứng dụng. */
+    @Nested
+    class ReviewAlwaysSendsEmailAndInAppNotification {
+        TutorPostMailService mail = mock(TutorPostMailService.class);
+        NotificationEvents events = mock(NotificationEvents.class);
+        TutorPost pending = post(TutorPostStatus.PENDING_REVIEW);
+
+        @BeforeEach
+        void wire() {
+            ReflectionTestUtils.setField(service, "mailService", mail);
+            ReflectionTestUtils.setField(service, "notificationEvents", events);
+            when(postRepository.findLockedById(pending.getPostId())).thenReturn(Optional.of(pending));
+        }
+
+        private void verifyInApp(String title) {
+            verify(events).publish(anyString(), eq("SYSTEM"), eq(title), anyString(), eq("/tutor/post"),
+                    eq(List.of(user.getUserId())));
+        }
+
+        @Test
+        void approve() {
+            service.approve(pending.getPostId(), officer);
+            verify(mail).approvedAfterCommit("gs@kizuna.test", "Gia sư A", "Luyện thi JLPT N3 cấp tốc");
+            verifyInApp("Bài đăng đã được duyệt");
+        }
+
+        @Test
+        void reject() {
+            service.reject(pending.getPostId(), officer, new RejectPostRequest("Nội dung không phù hợp"));
+            verify(mail).rejectedAfterCommit("gs@kizuna.test", "Gia sư A", "Luyện thi JLPT N3 cấp tốc", "Nội dung không phù hợp");
+            verifyInApp("Bài đăng không được duyệt");
+        }
+
+        @Test
+        void requestRevision() {
+            service.requestInfo(pending.getPostId(), officer, new RejectPostRequest("Bổ sung lộ trình học"));
+            verify(mail).revisionRequestedAfterCommit("gs@kizuna.test", "Gia sư A", "Luyện thi JLPT N3 cấp tốc", "Bổ sung lộ trình học");
+            verifyInApp("Cần bổ sung bài đăng");
+        }
+
+        @Test
+        void invalidInputSendsNothing() {
+            assertThrows(BadRequestException.class, () -> service.reject(pending.getPostId(), officer, new RejectPostRequest(" ")));
+            verifyNoInteractions(mail, events);
         }
     }
 

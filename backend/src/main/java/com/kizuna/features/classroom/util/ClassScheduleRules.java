@@ -57,6 +57,7 @@ public class ClassScheduleRules {
             throw ClassroomException.field(FIELD, "Mỗi lớp có tối đa " + MAX_SLOTS + " buổi học mỗi tuần.");
         }
         slots.forEach(ClassScheduleRules::validateSlot);
+        slots.forEach(s -> requireStep(FIELD, s.startTime(), s.endTime()));
         for (int i = 0; i < slots.size(); i++) {
             for (int j = i + 1; j < slots.size(); j++) {
                 if (overlaps(slots.get(i), slots.get(j))) {
@@ -80,6 +81,28 @@ public class ClassScheduleRules {
         if (length.compareTo(MIN_DURATION) < 0 || length.compareTo(MAX_DURATION) > 0) {
             throw ClassroomException.field(FIELD, "Mỗi buổi học dài từ 60 phút đến 120 phút (" + describe(slot) + ").");
         }
+    }
+
+    /** Giờ học chọn theo nấc 30 phút (07:00, 07:30…), giống ô chọn giờ ở giao diện. */
+    public static final int STEP_MINUTES = 30;
+
+    /**
+     * Giờ bắt đầu / kết thúc mới đặt phải theo nấc {@value #STEP_MINUTES} phút.
+     * Giờ lẻ của buổi cũ được giữ nguyên (truyền ở {@code keep}) thì vẫn nhận, để sửa lớp cũ không bị chặn
+     * (giao diện cũng giữ giờ cũ như "18:45" trong danh sách chọn). Gọi sau khi đã kiểm tra giờ khác null.
+     */
+    public static void requireStep(String field, LocalTime start, LocalTime end, LocalTime... keep) {
+        List<LocalTime> kept = java.util.Arrays.stream(keep).filter(java.util.Objects::nonNull).toList();
+        for (LocalTime t : new LocalTime[]{start, end}) {
+            if (t != null && !onStep(t) && !kept.contains(t)) {
+                throw ClassroomException.field(field, "Giờ học chọn theo nấc " + STEP_MINUTES
+                        + " phút (ví dụ 18:00, 18:30). Giờ " + t.format(HH_MM) + " không hợp lệ.");
+            }
+        }
+    }
+
+    static boolean onStep(LocalTime t) {
+        return t.getSecond() == 0 && t.getNano() == 0 && t.getMinute() % STEP_MINUTES == 0;
     }
 
     /** Giống {@link #validateSlot} nhưng báo lỗi ở trường "session" — dùng cho dời / thêm một buổi cụ thể. */

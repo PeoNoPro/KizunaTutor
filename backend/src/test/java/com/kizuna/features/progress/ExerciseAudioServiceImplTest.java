@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 
@@ -133,6 +135,40 @@ class ExerciseAudioServiceImplTest {
         assertThat(guarded.url(tutorActor, space.getSpaceId(), audio.getAudioId()).url()).isEqualTo("https://r2/signed");
         when(listen.requiresCounting(any(), eq(exId), eq(audio.getAudioId()))).thenReturn(false);
         assertThat(guarded.url(learnerActor, space.getSpaceId(), audio.getAudioId()).url()).isEqualTo("https://r2/signed");
+    }
+
+    @Test
+    void oldFilesAreDeletedOnR2OnlyAfterTheTransactionCommits() {
+        ExerciseAudio old = stored(null);
+        when(audios.findUnlinkedBefore(space.getSpaceId(), NOW.minusDays(1))).thenReturn(List.of(old));
+        when(r2.uploadAudio(any())).thenReturn(new R2StorageService.UploadedAudio("audio/new.mp3", "audio/mpeg", "u"));
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.upload(tutorActor, space.getSpaceId(), mp3("a.mp3"));
+            verify(s3, never()).deleteObject(any(DeleteObjectRequest.class));
+            TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+            verify(s3).deleteObject(argThat((DeleteObjectRequest r) -> old.getStorageKey().equals(r.key())));
+            verify(s3, never()).deleteObject(argThat((DeleteObjectRequest r) -> "audio/new.mp3".equals(r.key())));
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void whenTheTransactionRollsBackTheJustUploadedFileIsRemovedAndOldFilesAreKept() {
+        ExerciseAudio old = stored(null);
+        when(audios.findUnlinkedBefore(space.getSpaceId(), NOW.minusDays(1))).thenReturn(List.of(old));
+        when(r2.uploadAudio(any())).thenReturn(new R2StorageService.UploadedAudio("audio/new.mp3", "audio/mpeg", "u"));
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.upload(tutorActor, space.getSpaceId(), mp3("a.mp3"));
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(sync -> sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+            verify(s3).deleteObject(argThat((DeleteObjectRequest r) -> "audio/new.mp3".equals(r.key())));
+            verify(s3, never()).deleteObject(argThat((DeleteObjectRequest r) -> old.getStorageKey().equals(r.key())));
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test

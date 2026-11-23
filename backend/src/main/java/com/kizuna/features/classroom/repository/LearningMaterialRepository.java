@@ -22,6 +22,10 @@ public interface LearningMaterialRepository extends JpaRepository<LearningMateri
 
     long countBySpace_SpaceId(UUID spaceId);
 
+    /** Số tài liệu của nhiều lớp trong một truy vấn (danh sách lớp): mỗi dòng [spaceId, số tài liệu]. */
+    @Query("SELECT m.space.spaceId, COUNT(m) FROM LearningMaterial m WHERE m.space.spaceId IN :spaceIds GROUP BY m.space.spaceId")
+    List<Object[]> countBySpaceIds(@Param("spaceIds") java.util.Collection<UUID> spaceIds);
+
     /*
      * Nội dung tệp (cột file_data BYTEA) KHÔNG ánh xạ vào entity để danh sách tài liệu
      * không phải tải dữ liệu nhị phân; chỉ đọc/ghi riêng qua hai truy vấn dưới đây.

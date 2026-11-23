@@ -1,26 +1,37 @@
 /**
- * KizunaTutor - Tổng quan học vụ & hàng đợi hồ sơ xác minh (FE-03: UC-25, III.3.1.1)
- * Bố cục theo thiết kế Stitch "Cổng học vụ". Mọi số liệu lấy từ /api/academic/verifications.
+ * KizunaTutor - Tổng quan học vụ (FE-03 + FE-09): gộp hồ sơ xác thực gia sư và bài đăng tuyển học viên.
+ * - 4 thẻ chỉ số cộng cả hai loại đơn (bấm để lọc bảng).
+ * - Bảng "Đơn cần xử lý" gộp hai danh sách (mỗi loại tối đa 50 đơn), phân trang trên trình duyệt.
+ * - Cột thống kê: tình trạng xác thực, tình trạng bài đăng, hồ sơ trong tháng.
+ * Trang "Hồ sơ xác thực gia sư" riêng nằm ở /pages/academic-tutor-verifications/.
  */
 
 import { API, ApiError } from '/js/api.js';
 import { debounce } from '/js/main.js';
 import { mountAcademicLayout } from '/components/academic-layout/academic-layout.js';
 import { renderPagination as renderPaginationBar, PAGE_SIZE_OPTIONS } from '/components/pagination/pagination.js';
+import { STATUS_PARAMS, mergeRows, kpiCounts, breakdownText } from '/js/academic-dashboard-helpers.js';
 
+// Đường dẫn cũ của trang hồ sơ (/academic/verifications?view=queue) chuyển sang trang riêng
+if (new URLSearchParams(window.location.search).get('view') === 'queue') {
+  window.location.replace('/academic/verifications');
+}
 
 const MSG01 = 'Không tìm thấy kết quả phù hợp. Vui lòng thử lại với từ khóa hoặc bộ lọc khác.';
+const FETCH_LIMIT = 50;
 
-const STATUS_STYLE = {
+const TONE_STYLE = {
   PENDING: { badge: 'bg-tertiary-fixed text-tertiary', dot: 'bg-tertiary' },
-  ADDITIONAL_INFO_REQUIRED: { badge: 'bg-secondary-fixed text-on-secondary-fixed', dot: 'bg-secondary' },
+  NEEDS_INFO: { badge: 'bg-secondary-fixed text-on-secondary-fixed', dot: 'bg-secondary' },
   APPROVED: { badge: 'bg-surface-container-highest text-primary', dot: 'bg-primary' },
-  REJECTED: { badge: 'bg-error-container text-error', dot: 'bg-error' },
-  // Gia sư đã phê duyệt gửi yêu cầu đổi JLPT / bổ sung giấy tờ
-  PROFILE_UPDATE: { badge: 'bg-tertiary-fixed text-tertiary', dot: 'bg-tertiary' }
+  REJECTED: { badge: 'bg-error-container text-error', dot: 'bg-error' }
+};
+const TYPE_STYLE = {
+  VERIFICATION: { badge: 'bg-primary-fixed text-primary', icon: 'verified_user' },
+  POST: { badge: 'bg-secondary-fixed text-on-secondary-fixed', icon: 'campaign' }
 };
 
-const state = { page: 0, size: PAGE_SIZE_OPTIONS[0] };
+const state = { page: 0, size: PAGE_SIZE_OPTIONS[0], rows: [], token: 0, type: 'ALL' };
 const $ = (id) => document.getElementById(id);
 
 // =========================================================================
@@ -36,10 +47,7 @@ function formatNumber(value) {
   return new Intl.NumberFormat('vi-VN').format(value || 0);
 }
 
-function pad(n) {
-  return String(n).padStart(2, '0');
-}
-
+const pad = (n) => String(n).padStart(2, '0');
 function formatDateTime(value) {
   if (!value) return '—';
   const d = new Date(value);
@@ -49,8 +57,7 @@ function formatDateTime(value) {
 
 function relativeTime(value) {
   if (!value) return '';
-  const diffMs = Date.now() - new Date(value).getTime();
-  const minutes = Math.max(0, Math.floor(diffMs / 60000));
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
   if (minutes < 60) return `${minutes || 1} phút trước`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} giờ trước`;
@@ -64,71 +71,82 @@ function initialsOf(name) {
 }
 
 // =========================================================================
-// 2. SỐ LIỆU TỔNG QUAN
+// 2. SỐ LIỆU TỔNG QUAN (cả hai loại đơn)
 // =========================================================================
 async function loadSummary() {
   $('summaryError').classList.add('hidden');
-  try {
-    const s = await API.academicVerification.getSummary();
-    renderSummary(s);
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401) return;
-    $('summaryErrorText').textContent = err instanceof ApiError ? err.message : 'Không thể tải số liệu tổng quan.';
+  const [verification, posts] = await Promise.allSettled([
+    API.academicVerification.getSummary(),
+    API.academicPosts.getSummary()
+  ]);
+  const failed = [verification, posts].find((r) => r.status === 'rejected');
+  if (failed && failed.reason instanceof ApiError && failed.reason.status === 401) return;
+  const v = verification.status === 'fulfilled' ? verification.value : null;
+  const p = posts.status === 'fulfilled' ? posts.value : null;
+  if (!v && !p) {
+    $('summaryErrorText').textContent = failed && failed.reason instanceof ApiError ? failed.reason.message : 'Không thể tải số liệu tổng quan.';
+    $('summaryError').classList.remove('hidden');
+    return;
+  }
+  renderKpis(v, p);
+  if (v) renderVerificationStats(v);
+  if (p) renderPostStats(p);
+  if (failed) {
+    $('summaryErrorText').textContent = v ? 'Chưa tải được số liệu bài đăng.' : 'Chưa tải được số liệu hồ sơ xác thực.';
     $('summaryError').classList.remove('hidden');
   }
 }
 
-function renderSummary(s) {
-  // "Chờ xét duyệt" gồm cả yêu cầu cập nhật hồ sơ của gia sư đã phê duyệt (cùng danh sách mặc định)
-  const updates = s.profileUpdatePendingCount || 0;
-  $('kpiPending').textContent = formatNumber((s.pendingCount || 0) + updates);
-  const pendingNote = s.pendingOver24h > 0
-    ? `${formatNumber(s.pendingOver24h)} hồ sơ chờ quá 24 giờ`
-    : `${formatNumber(s.pendingNewToday)} hồ sơ mới hôm nay`;
-  $('kpiPendingBadge').textContent = updates > 0
-    ? `${pendingNote} · ${formatNumber(updates)} yêu cầu cập nhật`
-    : pendingNote;
-  $('kpiNeedsInfo').textContent = formatNumber(s.needsInfoCount);
-  $('kpiApproved').textContent = formatNumber(s.approvedCount);
-  $('kpiApprovedBadge').textContent = s.profileUpdatePendingCount > 0
-    ? `${formatNumber(s.profileUpdatePendingCount)} yêu cầu cập nhật chờ thẩm định`
-    : `${formatNumber(s.approvedThisMonth)} trong tháng này`;
-  $('kpiRejected').textContent = formatNumber(s.rejectedCount);
-  $('kpiRejectedBadge').textContent = `${formatNumber(s.rejectedThisMonth)} trong tháng này`;
+function renderKpis(v, p) {
+  const k = kpiCounts(v, p);
+  [['kpiPending', k.pending], ['kpiNeedsInfo', k.needsInfo], ['kpiApproved', k.approved], ['kpiRejected', k.rejected]]
+    .forEach(([id, count]) => {
+      $(id).textContent = formatNumber(count.total);
+      $(`${id}Breakdown`).textContent = breakdownText(count) || 'Không có đơn';
+    });
+  const overdue = v && v.pendingOver24h > 0 ? `${formatNumber(v.pendingOver24h)} hồ sơ chờ quá 24 giờ` : '';
+  $('kpiPendingNote').textContent = overdue;
+  $('kpiPendingNote').classList.toggle('hidden', !overdue);
+}
 
+function renderVerificationStats(s) {
   $('approvedMonthText').textContent = formatNumber(s.approvedThisMonth);
   $('rejectedMonthText').textContent = formatNumber(s.rejectedThisMonth);
   $('totalTutorsText').textContent = formatNumber(s.totalTutors);
-
-  renderDistribution(s);
+  renderDistribution('distributionBar', 'distributionList', [
+    { label: 'Đã duyệt', value: s.approvedCount, color: 'bg-primary' },
+    { label: 'Chờ xét duyệt', value: (s.pendingCount || 0) + (s.profileUpdatePendingCount || 0), color: 'bg-tertiary' },
+    { label: 'Cần bổ sung', value: s.needsInfoCount, color: 'bg-secondary' },
+    { label: 'Đã từ chối', value: s.rejectedCount, color: 'bg-error' }
+  ]);
 }
 
-function renderDistribution(s) {
+function renderPostStats(p) {
   const parts = [
-    { label: 'Đã duyệt', value: s.approvedCount, color: 'bg-primary', note: 'tổng cộng' },
-    { label: 'Chờ xét duyệt', value: s.pendingCount, color: 'bg-tertiary', note: 'đang chờ' },
-    { label: 'Cần bổ sung', value: s.needsInfoCount, color: 'bg-secondary', note: 'chờ gia sư' },
-    { label: 'Đã từ chối', value: s.rejectedCount, color: 'bg-error', note: 'không đạt' }
+    { label: 'Đang hiển thị', value: p.approvedCount, color: 'bg-primary' },
+    { label: 'Chờ duyệt', value: p.pendingCount, color: 'bg-tertiary' },
+    { label: 'Cần bổ sung', value: p.needsInfoCount, color: 'bg-secondary' },
+    { label: 'Bị từ chối', value: p.rejectedCount, color: 'bg-error' }
   ];
-  const total = parts.reduce((sum, p) => sum + (p.value || 0), 0);
-  const percent = (v) => (total === 0 ? 0 : Math.round((v / total) * 1000) / 10);
+  $('totalPostsText').textContent = formatNumber(parts.reduce((sum, x) => sum + (x.value || 0), 0));
+  renderDistribution('postDistributionBar', 'postDistributionList', parts);
+}
 
-  $('distributionBar').innerHTML = total === 0
+function renderDistribution(barId, listId, parts) {
+  const total = parts.reduce((sum, p) => sum + (p.value || 0), 0);
+  const percent = (v) => (total === 0 ? 0 : Math.round(((v || 0) / total) * 1000) / 10);
+  $(barId).innerHTML = total === 0
     ? '<div class="h-full w-full rounded-full bg-surface-container"></div>'
     : parts.filter((p) => p.value > 0).map((p) =>
         `<div class="${p.color} h-full rounded-full transition-all duration-500" style="width:${percent(p.value)}%" title="${p.label}: ${percent(p.value)}%"></div>`
       ).join('');
-
-  $('distributionList').innerHTML = parts.map((p) => `
-    <li class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-surface-container-low">
-      <span class="flex items-center gap-2 min-w-0">
-        <span class="w-2.5 h-2.5 rounded-full ${p.color} inline-block shrink-0"></span>
-        <span class="text-body-sm text-on-surface truncate">${p.label}</span>
+  $(listId).innerHTML = parts.map((p) => `
+    <li class="flex items-center justify-between gap-2 text-body-sm" title="${percent(p.value)}%">
+      <span class="flex items-center gap-2 min-w-0 text-on-surface-variant">
+        <span class="w-2 h-2 rounded-full ${p.color} inline-block shrink-0"></span>
+        <span class="truncate">${p.label}</span>
       </span>
-      <span class="flex items-baseline gap-2 shrink-0">
-        <span class="text-title-sm font-bold text-on-surface">${formatNumber(p.value)}</span>
-        <span class="text-caption text-outline w-12 text-right">${percent(p.value)}%</span>
-      </span>
+      <span class="font-semibold text-on-surface">${formatNumber(p.value)}</span>
     </li>`).join('');
 }
 
@@ -144,25 +162,8 @@ function highlightKpi() {
 }
 
 // =========================================================================
-// 3. HÀNG ĐỢI HỒ SƠ
+// 3. BẢNG ĐƠN (gộp hai loại)
 // =========================================================================
-function currentFilters() {
-  return {
-    status: $('statusSelect').value,
-    keyword: $('keywordInput').value.trim(),
-    jlptLevel: $('levelSelect').value,
-    submittedFrom: $('fromInput').value,
-    submittedTo: $('toInput').value,
-    sort: $('sortSelect').value,
-    page: state.page,
-    size: state.size
-  };
-}
-
-function hasNarrowingFilters(f) {
-  return Boolean(f.keyword || f.jlptLevel || f.submittedFrom || f.submittedTo);
-}
-
 function showQueueState({ icon, title, text, retry = false }) {
   $('queueBody').innerHTML = '';
   $('queueStateIcon').textContent = icon;
@@ -172,91 +173,127 @@ function showQueueState({ icon, title, text, retry = false }) {
   $('queueState').classList.remove('hidden');
 }
 
+/** Tải hai danh sách theo bộ lọc rồi gộp; phân trang trên trình duyệt. */
 async function loadQueue() {
-  const filters = currentFilters();
+  const token = ++state.token;
+  const status = $('statusSelect').value;
+  const type = state.type;
+  const keyword = $('keywordInput').value.trim();
+  const sort = $('sortSelect').value;
+  const params = STATUS_PARAMS[status] || STATUS_PARAMS.ALL;
   $('queueState').classList.add('hidden');
+  $('queueLimitNote').classList.add('hidden');
   $('queueBody').innerHTML = Array.from({ length: 3 }).map(() =>
     '<tr><td colspan="5" class="px-6 py-3"><div class="tv-skeleton h-10"></div></td></tr>').join('');
-  try {
-    const page = await API.academicVerification.getQueue(filters);
-    $('filteredTotal').textContent = formatNumber(page.totalElements);
-    if (!page.content || page.content.length === 0) {
-      if (hasNarrowingFilters(filters)) {
-        showQueueState({ icon: 'search_off', title: MSG01 });
-      } else if (filters.status === 'PROFILE_UPDATE') {
-        showQueueState({ icon: 'task_alt', title: 'Hiện không có yêu cầu cập nhật hồ sơ nào chờ thẩm định.' });
-      } else if (filters.status === 'PENDING') {
-        showQueueState({ icon: 'task_alt', title: 'Hiện không còn hồ sơ nào chờ thẩm định.' });
-      } else {
-        showQueueState({ icon: 'inbox', title: 'Chưa có hồ sơ nào ở trạng thái này.' });
-      }
-      renderPagination(page);
-      return;
-    }
-    $('queueBody').innerHTML = page.content.map(rowHtml).join('');
-    renderPagination(page);
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401) return;
+
+  const wantVerification = type !== 'POST';
+  const wantPost = type !== 'VERIFICATION';
+  const [vr, pr] = await Promise.allSettled([
+    wantVerification ? API.academicVerification.getQueue({ status: params.verification, keyword, sort, page: 0, size: FETCH_LIMIT }) : Promise.resolve(null),
+    wantPost ? API.academicPosts.list({ status: params.post, keyword, page: 0, size: FETCH_LIMIT }) : Promise.resolve(null)
+  ]);
+  if (token !== state.token) return;
+  const errors = [vr, pr].filter((r) => r.status === 'rejected').map((r) => r.reason);
+  if (errors.some((e) => e instanceof ApiError && e.status === 401)) return;
+  const vPage = vr.status === 'fulfilled' ? vr.value : null;
+  const pPage = pr.status === 'fulfilled' ? pr.value : null;
+  if (!vPage && !pPage) {
     $('filteredTotal').textContent = '0';
-    showQueueState({ icon: 'cloud_off', title: 'Không thể tải danh sách hồ sơ.', text: err instanceof ApiError ? err.message : '', retry: true });
     $('pager').innerHTML = '';
+    showQueueState({ icon: 'cloud_off', title: 'Không thể tải danh sách đơn.', text: errors[0] instanceof ApiError ? errors[0].message : '', retry: true });
+    return;
   }
+
+  state.rows = mergeRows(vPage?.content, pPage?.content, sort);
+  state.page = 0;
+  const total = (vPage?.totalElements || 0) + (pPage?.totalElements || 0);
+  $('filteredTotal').textContent = formatNumber(total);
+
+  const notes = [];
+  if (vPage && vPage.totalElements > (vPage.content || []).length) notes.push('Hồ sơ xác thực gia sư');
+  if (pPage && pPage.totalElements > (pPage.content || []).length) notes.push('Duyệt bài đăng');
+  if (errors.length) notes.push(vPage ? 'chưa tải được bài đăng' : 'chưa tải được hồ sơ xác thực');
+  if (notes.length) {
+    $('queueLimitNote').textContent = errors.length
+      ? `Một phần dữ liệu ${notes[notes.length - 1]}. Vui lòng tải lại trang.`
+      : `Bảng hiển thị tối đa ${FETCH_LIMIT} đơn mỗi loại. Xem đầy đủ ở trang ${notes.join(' và ')}.`;
+    $('queueLimitNote').classList.remove('hidden');
+  }
+  renderRows(status, keyword);
 }
 
-function rowHtml(item) {
-  const style = STATUS_STYLE[item.status] || STATUS_STYLE.PENDING;
-  const overdue = item.status === 'PENDING' && item.submittedAt && (Date.now() - new Date(item.submittedAt).getTime()) > 24 * 3600 * 1000;
-  const waitText = item.submittedAt
-    ? `<span class="text-caption ${overdue ? 'text-error font-medium' : 'text-outline'}">${relativeTime(item.submittedAt)}${overdue ? ' (quá 24 giờ)' : ''}</span>`
-    : '<span class="text-caption text-outline">Chưa có ngày nộp</span>';
-  const primary = item.status === 'PENDING' || item.status === 'PROFILE_UPDATE';
-  const contact = [item.email, item.phone].filter(Boolean).map(escapeHtml).join(' • ');
+function renderRows(status, keyword) {
+  if (state.rows.length === 0) {
+    $('pager').innerHTML = '';
+    if (keyword) showQueueState({ icon: 'search_off', title: MSG01 });
+    else if (status === 'PENDING') showQueueState({ icon: 'task_alt', title: 'Hiện không còn đơn nào chờ xét duyệt.' });
+    else showQueueState({ icon: 'inbox', title: 'Chưa có đơn nào ở trạng thái này.' });
+    return;
+  }
+  $('queueState').classList.add('hidden');
+  const start = state.page * state.size;
+  $('queueBody').innerHTML = state.rows.slice(start, start + state.size).map(rowHtml).join('');
+  renderPaginationBar($('pager'), { totalElements: state.rows.length, page: state.page, size: state.size }, {
+    onPage: (p) => { state.page = p; renderRows(status, keyword); },
+    onSize: (s) => { state.size = s; state.page = 0; renderRows(status, keyword); }
+  });
+}
+
+function rowHtml(row) {
+  const tone = TONE_STYLE[row.tone] || TONE_STYLE.PENDING;
+  const type = TYPE_STYLE[row.type];
+  const waiting = row.tone === 'PENDING';
+  const overdue = waiting && row.submittedAt && (Date.now() - new Date(row.submittedAt).getTime()) > 24 * 3600 * 1000;
   return `
-    <tr class="hover:bg-surface-container-low/60 transition-colors">
-      <td class="py-4 px-6">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-primary-fixed text-on-primary-fixed-variant flex items-center justify-center text-label-sm shadow-sm flex-shrink-0">${escapeHtml(initialsOf(item.fullName))}</div>
-          <div class="flex flex-col min-w-0">
-            <span class="text-body-md font-bold text-on-surface truncate">${escapeHtml(item.fullName)}</span>
-            <span class="text-caption text-outline truncate">${contact}</span>
+    <tr class="border-t border-surface-container hover:bg-surface-container-low/60 transition-colors">
+      <td class="py-3.5 px-6">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-9 h-9 rounded-lg ${type.badge} flex items-center justify-center shrink-0" title="${escapeHtml(row.typeLabel)}">
+            <span class="material-symbols-outlined text-[20px]">${type.icon}</span>
+          </span>
+          <div class="flex flex-col min-w-0 max-w-[480px]">
+            <span class="font-semibold text-on-surface truncate">${escapeHtml(row.title)}</span>
+            <span class="text-caption text-outline truncate">${escapeHtml(row.typeLabel)}${row.subtitle ? ` · ${escapeHtml(row.subtitle)}` : ''}</span>
           </div>
         </div>
       </td>
-      <td class="py-4 px-6">
-        <div class="flex flex-col gap-1">
-          <span class="font-medium text-on-surface">${item.highestJlptLevel ? `JLPT ${escapeHtml(item.highestJlptLevel)}` : 'Chưa khai báo JLPT'}</span>
-          <span class="text-caption text-outline">Kinh nghiệm ${item.experienceYears ?? 0} năm</span>
+      <td class="py-3.5 px-4">
+        <div class="flex flex-col min-w-0 max-w-[360px]">
+          <span class="font-medium text-on-surface truncate">${escapeHtml(row.tutorName)}</span>
+          <span class="text-caption text-outline truncate">${escapeHtml(row.contact)}</span>
         </div>
       </td>
-      <td class="py-4 px-6">
-        <div class="flex flex-col">
-          <span class="font-medium text-on-surface">${formatDateTime(item.submittedAt)}</span>
-          ${waitText}
-        </div>
+      <td class="py-3.5 px-4 whitespace-nowrap" title="${formatDateTime(row.submittedAt)}">
+        ${row.submittedAt
+          ? `<span class="${overdue ? 'text-error font-medium' : 'text-on-surface-variant'}">${relativeTime(row.submittedAt)}</span>`
+          : '<span class="text-outline">—</span>'}
       </td>
-      <td class="py-4 px-6">
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${style.badge} text-caption font-semibold">
-          <span class="w-1.5 h-1.5 rounded-full ${style.dot}"></span>${escapeHtml(item.statusLabel)}
+      <td class="py-3.5 px-4">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${tone.badge} text-caption font-semibold whitespace-nowrap">
+          <span class="w-1.5 h-1.5 rounded-full ${tone.dot}"></span>${escapeHtml(row.statusLabel)}
         </span>
       </td>
-      <td class="py-4 px-6 text-right">
-        <a href="/academic/verifications/detail?tutorId=${encodeURIComponent(item.tutorId)}"
-           class="inline-block px-3 py-1.5 rounded-lg ${primary ? 'bg-primary text-on-primary hover:bg-primary-container shadow-sm' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'} text-label-sm transition-colors">
-          ${primary ? 'Xem hồ sơ' : 'Chi tiết'}
+      <td class="py-3.5 px-6 text-right">
+        <a href="${row.href}"
+           class="inline-block px-3 py-1.5 rounded-lg ${waiting ? 'bg-primary text-on-primary hover:bg-primary-container shadow-sm' : 'text-primary hover:bg-surface-container'} text-label-sm transition-colors whitespace-nowrap">
+          ${escapeHtml(row.actionLabel)}
         </a>
       </td>
     </tr>`;
 }
 
-function renderPagination(page) {
-  renderPaginationBar($('pager'), page, {
-    onPage: (p) => { state.page = p; loadQueue(); },
-    onSize: (s) => { state.size = s; state.page = 0; loadQueue(); }
+/** Tab loại đơn (Tất cả / Hồ sơ gia sư / Bài đăng). */
+function renderTypeTabs() {
+  document.querySelectorAll('.type-tab').forEach((tab) => {
+    const active = tab.dataset.type === state.type;
+    tab.className = `type-tab px-3 py-1.5 rounded-md text-label-sm transition-colors ${active
+      ? 'bg-surface-container-lowest text-primary shadow-sm font-semibold'
+      : 'text-on-surface-variant hover:text-on-surface'}`;
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
   });
 }
 
 function applyFilters() {
-  state.page = 0;
   highlightKpi();
   loadQueue();
 }
@@ -264,52 +301,30 @@ function applyFilters() {
 function focusQueue(status) {
   if (status) $('statusSelect').value = status;
   applyFilters();
-  // Bảng nằm ngay dưới thẻ chỉ số trên màn hình rộng; chỉ cuộn khi bảng đang khuất
-  const top = $('queue').getBoundingClientRect().top;
-  if (top > window.innerHeight * 0.6 || top < 0) {
-    $('queue').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  $('queue').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// =========================================================================
-// 4. KHỞI TẠO
-// =========================================================================
 function bindEvents() {
+  $('filterForm').addEventListener('submit', (event) => { event.preventDefault(); applyFilters(); });
   $('keywordInput').addEventListener('input', debounce(applyFilters, 300));
-  ['statusSelect', 'levelSelect', 'sortSelect', 'fromInput', 'toInput'].forEach((id) => $(id).addEventListener('change', applyFilters));
-  $('filterForm').addEventListener('submit', (e) => { e.preventDefault(); applyFilters(); });
-  $('toggleDateButton').addEventListener('click', () => $('dateRow').classList.toggle('hidden'));
-  $('clearFiltersButton').addEventListener('click', () => {
-    $('keywordInput').value = '';
-    $('levelSelect').value = '';
-    $('fromInput').value = '';
-    $('toInput').value = '';
-    $('sortSelect').value = 'oldest';
-    applyFilters();
+  ['statusSelect', 'sortSelect'].forEach((id) => $(id).addEventListener('change', applyFilters));
+  $('typeTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.type-tab');
+    if (!tab || tab.dataset.type === state.type) return;
+    state.type = tab.dataset.type;
+    renderTypeTabs();
+    loadQueue();
   });
+  $('summaryRetryButton').addEventListener('click', loadSummary);
   $('queueRetryButton').addEventListener('click', loadQueue);
   document.querySelectorAll('[data-kpi-filter]').forEach((card) => card.addEventListener('click', () => focusQueue(card.dataset.kpiFilter)));
-  $('summaryRetryButton').addEventListener('click', loadSummary);
 }
 
-// Máy chủ dev chuyển /academic/verifications sang /pages/academic-verifications/ nên dùng ?view=queue để nhận biết.
-const onQueuePage = new URLSearchParams(window.location.search).get('view') === 'queue'
-  || window.location.pathname.startsWith('/academic/verifications');
-mountAcademicLayout(onQueuePage ? 'verifications' : 'dashboard', onQueuePage ? 'Hồ sơ xác thực gia sư' : 'Tổng quan học vụ');
-
-/** Trang "Hồ sơ xác thực gia sư": chỉ tập trung vào bảng hồ sơ, bỏ cột thống kê để bảng chiếm toàn chiều ngang. */
-function applyQueueLayout() {
-  document.title = 'Hồ sơ xác thực gia sư - KizunaTutor';
-  $('pageTitle').textContent = 'Hồ sơ xác thực gia sư';
-  $('pageSubtitle').textContent = 'Tìm kiếm, lọc và mở từng hồ sơ để thẩm định thông tin và giấy tờ của gia sư.';
-  $('statsAside').classList.add('hidden');
-  $('queue').classList.remove('xl:col-span-8');
-  $('queue').classList.add('xl:col-span-12');
-}
+mountAcademicLayout('dashboard', 'Tổng quan học vụ');
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (onQueuePage) applyQueueLayout();
   bindEvents();
+  renderTypeTabs();
   highlightKpi();
   loadSummary();
   loadQueue();

@@ -62,8 +62,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addViewController("/academic").setViewName("forward:/pages/academic-verifications/index.html");
         registry.addViewController("/academic/dashboard").setViewName("forward:/pages/academic-verifications/index.html");
         registry.addViewController("/academic/dashboard/").setViewName("forward:/pages/academic-verifications/index.html");
-        registry.addViewController("/academic/verifications").setViewName("forward:/pages/academic-verifications/index.html");
-        registry.addViewController("/academic/verifications/").setViewName("forward:/pages/academic-verifications/index.html");
+        registry.addViewController("/academic/verifications").setViewName("forward:/pages/academic-tutor-verifications/index.html");
+        registry.addViewController("/academic/verifications/").setViewName("forward:/pages/academic-tutor-verifications/index.html");
         registry.addViewController("/academic/verifications/detail").setViewName("forward:/pages/academic-verification-detail/index.html");
         // FE-09: gói hội viên và thanh toán
         registry.addViewController("/tutor/membership").setViewName("forward:/pages/tutor-membership/index.html");
@@ -80,7 +80,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         forwardWithSlash(registry, "/academic/history", "academic-review-history");
         forwardWithSlash(registry, "/academic/profile", "academic-profile");
         forwardWithSlash(registry, "/tutor/profile", "tutor-teaching-profile");
-        forwardWithSlash(registry, "/manager/users", "manager-users");
+        forwardWithSlash(registry, "/manager/users", "manager-accounts");
         forwardWithSlash(registry, "/academic/content-import", "academic-content-import");
         forwardWithSlash(registry, "/my-courses", "my-courses");
         forwardWithSlash(registry, "/learner/my-courses", "my-courses");

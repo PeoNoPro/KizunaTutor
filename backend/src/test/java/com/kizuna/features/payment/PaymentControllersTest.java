@@ -131,21 +131,23 @@ class PaymentControllersTest {
 
     @Test
     void req19_activateAndDeactivateReturnFriendlyMessages() throws Exception {
-        mockMvc.perform(post("/api/manager/membership-plans/p1/activate").with(as("ROLE_ADMIN")))
+        mockMvc.perform(post("/api/manager/membership-plans/p1/activate").with(as("ROLE_MANAGER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Đã mở bán gói hội viên."));
         org.mockito.Mockito.verify(planService).setActive("p1", true);
 
-        mockMvc.perform(post("/api/manager/membership-plans/p1/deactivate").with(as("ROLE_ADMIN")))
+        mockMvc.perform(post("/api/manager/membership-plans/p1/deactivate").with(as("ROLE_MANAGER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Đã ngừng bán gói hội viên."));
         org.mockito.Mockito.verify(planService).setActive("p1", false);
     }
 
     @Test
-    void req19_onlyAdminCanToggleSaleManagerOnlyViews() throws Exception {
-        mockMvc.perform(post("/api/manager/membership-plans/p1/activate").with(as("ROLE_MANAGER")))
+    void req19_onlyManagerCanConfigurePlans() throws Exception {
+        mockMvc.perform(post("/api/manager/membership-plans/p1/activate").with(as("ROLE_ADMIN")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/manager/membership-plans").with(as("ROLE_ADMIN")))
                 .andExpect(status().isForbidden());
         mockMvc.perform(post("/api/manager/membership-plans/p1/activate").with(as("ROLE_TUTOR")))
                 .andExpect(status().isForbidden());

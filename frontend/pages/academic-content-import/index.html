@@ -79,7 +79,13 @@
         <!-- ===== Tab Nhập từ Excel ===== -->
         <div id="panelImport" class="hidden flex flex-col gap-6" role="tabpanel">
           <section class="rounded-xl bg-surface-container-lowest shadow-sm p-6 flex flex-col gap-5">
-            <h2 class="text-title-md font-semibold">Chọn tệp</h2>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <h2 class="text-title-md font-semibold">Chọn tệp</h2>
+              <button id="templateButton" type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container-low text-[#006194] text-label-md hover:bg-surface-container disabled:opacity-60">
+                <span class="material-symbols-outlined text-[18px]">download</span>
+                <span id="templateButtonText">Tải tệp mẫu</span>
+              </button>
+            </div>
             <div id="columnInfo" class="rounded-lg bg-surface-container-low p-4 text-body-sm"></div>
 
             <label for="fileInput" id="dropZone" class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-outline-variant p-8 text-center cursor-pointer hover:bg-surface-container-low transition-colors">

@@ -12,6 +12,13 @@
 .manager-users-page .mu-skeleton-short { width: 40%; margin-top: 8px; }
 @keyframes mu-pulse { 50% { opacity: .45; } }
 
+/* Lần đăng nhập gần nhất: lâu không đăng nhập thì tô màu cảnh báo */
+.manager-users-page .mu-login { font-weight: 600; color: #1b1c19; }
+.manager-users-page .mu-idle { font-weight: 600; color: #9a4d00; }
+
+/* Nút "Tạm khóa tài khoản" trong hộp thoại chi tiết: viền đỏ như nút trên danh sách */
+.mu-detail-dialog #detailStatus[data-tone="danger"] { background: #ba1a1a; border-color: #ba1a1a; }
+
 .manager-users-page .mu-field-error { margin: 6px 0 0; font-size: 13px; color: #ba1a1a; }
 
 .mu-detail-dialog { width: min(720px, calc(100vw - 32px)); }

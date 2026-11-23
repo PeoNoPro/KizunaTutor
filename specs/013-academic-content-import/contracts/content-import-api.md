@@ -24,6 +24,10 @@ Query: `keyword` (≤ 100 ký tự, tùy chọn), `jlpt` (`N1`…`N5`, trống/`
 | vocabulary | `id`, `word`, `reading`, `romaji`, `hanViet`, `partOfSpeech`, `meaning`, `exampleSentence`, `exampleFurigana`, `exampleMeaning`, `jmdictId`, `jlpt`, `createdAt` |
 | grammar | `id`, `code`, `pattern`, `romaji`, `meaning`, `formation`, `notes`, `exampleSentence`, `exampleFurigana`, `exampleMeaning`, `extendedExamples`, `tags`, `jlpt`, `createdAt` |
 
+## 2a. `GET /{type}/template`
+
+Tệp Excel mẫu (không bọc ApiResponse): `200` với `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `Content-Disposition: attachment; filename="mau-kanji.xlsx" | "mau-tu-vung.xlsx" | "mau-ngu-phap.xlsx"`. Gồm sheet dữ liệu (dòng 1 là tiêu đề đúng tên cột của loại, cột bắt buộc tô xanh, không có dòng dữ liệu) và sheet `HuongDan` (không có dòng tiêu đề nên bị bỏ qua khi nhập). `{type}` sai → `400`.
+
 ## 3. `POST /{type}?dryRun=true|false`
 
 `multipart/form-data`, phần `file` (`.xlsx`, ≤ 15 MB). `dryRun` mặc định `true` (chỉ kiểm tra, không ghi). `dryRun=false`: thêm mục mới và ghi lịch sử trong một giao dịch.

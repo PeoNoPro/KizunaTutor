@@ -49,10 +49,19 @@ SUSPENDED ⇄ BANNED
 | `action_type` | `USER_ACCOUNT_STATUS_CHANGE` |
 | `target_entity` | `users` |
 | `target_id` | `user_id` của người bị đổi |
-| `details` JSONB | `{ "fromStatus": "ACTIVE", "toStatus": "SUSPENDED", "reason": "...", "messageToUser": "..." \| null }` |
+| `details` JSONB | `{ "fromStatus": "ACTIVE", "toStatus": "SUSPENDED", "reason": "..." \| null, "messageToUser": "..." \| null }` (từ 2026-11-23 lý do không bắt buộc) |
 | `created_at` | mặc định |
 
 Đọc lịch sử: `WHERE action_type = 'USER_ACCOUNT_STATUS_CHANGE' AND target_id = ? ORDER BY created_at DESC LIMIT 20`, nối `users` lấy tên người thực hiện.
+
+### 2.3 `user_login_activity` — lần đăng nhập gần nhất (migration 037, 2026-11-23)
+
+| Cột | Kiểu | Ghi chú |
+| --- | --- | --- |
+| `user_id` | UUID PK, FK `users` (CASCADE) | mỗi tài khoản một dòng |
+| `last_login_at` | TIMESTAMPTZ | ghi đè mỗi lần đăng nhập thành công (mật khẩu, Google, vừa đăng ký xong) |
+
+Bảng riêng thay vì cột trong `users`: `users` có trigger `trg_users_updated_at`, ghi mỗi lần đăng nhập sẽ làm đổi `updated_at`. `LoginActivityRecorder` ghi sau khi giao dịch đăng nhập hoàn tất, trong giao dịch riêng; lỗi chỉ ghi log, không làm hỏng đăng nhập.
 
 ## 3. Nhãn hiển thị
 

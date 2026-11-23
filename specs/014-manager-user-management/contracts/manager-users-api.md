@@ -27,7 +27,8 @@ Query:
       "categoryLabel": "Gia sư",
       "accountStatus": "ACTIVE",
       "accountStatusLabel": "Đang hoạt động",
-      "createdAt": "2026-11-01T08:00:00Z"
+      "createdAt": "2026-11-01T08:00:00Z",
+      "lastLoginAt": "2026-11-20T02:30:00Z"
     }
   ],
   "page": 0, "size": 20, "totalElements": 10, "totalPages": 1
@@ -45,7 +46,7 @@ Query:
   "avatarUrl": "..." ,
   "category": "TUTOR", "categoryLabel": "Gia sư",
   "accountStatus": "ACTIVE", "accountStatusLabel": "Đang hoạt động",
-  "createdAt": "...", "updatedAt": "...",
+  "createdAt": "...", "updatedAt": "...", "lastLoginAt": "...",
   "allowedStatuses": [ { "value": "SUSPENDED", "label": "Tạm khóa" }, { "value": "BANNED", "label": "Khóa vĩnh viễn" } ],
   "statusChangeBlockedReason": null,
   "tutorProfile": {
@@ -75,7 +76,7 @@ Body `UpdateUserStatusRequest`:
 | --- | --- | --- |
 | `status` | có | `ACTIVE` \| `SUSPENDED` \| `BANNED` |
 | `expectedStatus` | có | trạng thái lúc mở biểu mẫu |
-| `reason` | có | 1–1.000 ký tự sau khi cắt khoảng trắng |
+| `reason` | không (từ 2026-11-23) | tối đa 1.000 ký tự; trống thì ghi null |
 | `message` | không | tối đa 1.000 ký tự |
 
 Thành công 200: `message` = "Đã cập nhật trạng thái tài khoản thành {nhãn}." ; `data` = `ManagedUserDetailResponse` mới.
@@ -92,3 +93,4 @@ Lỗi:
 | `expectedStatus` ≠ hiện tại, hoặc UPDATE 0 dòng | 409 | "Trạng thái tài khoản vừa được thay đổi. Vui lòng tải lại trước khi cập nhật." |
 
 Tác dụng phụ: 1 dòng `system_audit_logs`; email sau commit (lỗi gửi không ảnh hưởng phản hồi).
+

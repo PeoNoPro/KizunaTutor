@@ -36,22 +36,23 @@
       <main class="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-6xl mx-auto">
         <div class="max-w-6xl mx-auto space-y-3 w-full flex-1">
 
-          <!-- Main Handwriting Workspace (Khung Vẽ Ô Mễ & Khay Kết Quả) -->
+          <!-- Main Handwriting Workspace (Khung Vẽ & Kết Quả) -->
           <div class="p-4 sm:p-6 bg-white border border-[#E2E8F0] rounded-xl shadow-sm">
             <div class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 items-start">
 
-              <!-- CỘT 1: KHUNG VẼ CANVAS Ô MỄ -->
+              <!-- CỘT 1: KHUNG VẼ CANVAS -->
               <div class="flex flex-col items-center">
                 <div class="w-[300px] flex items-center justify-between pb-2 mb-2.5 border-b border-[#E2E8F0]">
                   <span class="text-xs font-bold text-[#0F172A] flex items-center gap-1.5">
-                    <span>✍️</span> Ô Mễ Viết Nét Chuột
+                    <span class="material-symbols-outlined text-[16px] text-[#006194]">draw</span>
+                    <span>Bảng vẽ nhận diện nét</span>
                   </span>
-                  <span id="pageHwStrokeCountBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8]">0 nét</span>
+                  <span id="pageHwStrokeCountBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">0 nét</span>
                 </div>
 
-                <!-- Khung Canvas Ô Mễ Shodo Style -->
-                <div class="relative w-[300px] h-[300px] bg-[#FAF8F2] border-2 border-[#0F172A] rounded-[8px] shadow-[3px_3px_0px_0px_#0F172A] overflow-hidden select-none cursor-crosshair">
-                  <!-- Lưới Mễ tự chuẩn -->
+                <!-- Khung Canvas Lưới Canh Nét -->
+                <div class="relative w-[300px] h-[300px] bg-[#FAF8F2] border border-[#CBD5E1] rounded-xl shadow-sm overflow-hidden select-none cursor-crosshair">
+                  <!-- Lưới canh nét chuẩn -->
                   <svg class="absolute inset-0 w-full h-full pointer-events-none select-none z-0" viewBox="0 0 300 300">
                     <line x1="0" y1="0" x2="300" y2="300" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4 4" />
                     <line x1="300" y1="0" x2="0" y2="300" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4 4" />
@@ -61,48 +62,49 @@
                   <canvas id="pageHwCanvas" width="300" height="300" class="absolute inset-0 w-full h-full z-10 block cursor-crosshair"></canvas>
                 </div>
 
-                <!-- Cụm Phím Thao Tác Canvas Chuẩn Shodo Retro Toolbar -->
-                <div class="w-[300px] grid grid-cols-3 gap-1.5 p-1.5 bg-white border border-[#0F172A] rounded-[6px] shadow-[2px_2px_0px_0px_#0F172A] mt-3">
+                <!-- Cụm Phím Thao Tác Canvas Chuẩn -->
+                <div class="w-[300px] grid grid-cols-3 gap-1.5 p-1.5 bg-white border border-[#E2E8F0] rounded-lg shadow-xs mt-3">
                   <button type="button" id="btnPageHwUndo" 
-                          class="shodo-btn-retro w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] bg-white text-[#0F172A] hover:bg-slate-50 transition" 
+                          class="w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#CBD5E1] rounded-md bg-white text-[#0F172A] hover:bg-slate-50 transition shadow-xs cursor-pointer" 
                           title="Xóa nét vừa vẽ">
-                    <span class="text-[11px] shrink-0">↩️</span>
+                    <span class="material-symbols-outlined text-[14px]">undo</span>
                     <span class="whitespace-nowrap">Hoàn tác</span>
                   </button>
                   <button type="button" id="btnPageHwClear" 
-                          class="shodo-btn-retro w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] bg-white text-rose-700 hover:bg-rose-50 transition" 
+                          class="w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#CBD5E1] rounded-md bg-white text-rose-700 hover:bg-rose-50 transition shadow-xs cursor-pointer" 
                           title="Xóa toàn bộ nét">
-                    <span class="text-[11px] shrink-0">🗑️</span>
+                    <span class="material-symbols-outlined text-[14px]">delete</span>
                     <span class="whitespace-nowrap">Xóa hết</span>
                   </button>
                   <button type="button" id="btnPageHwRecognize" 
-                          class="shodo-btn-retro w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-[#0F172A] rounded-[4px] shadow-[1px_1px_0px_0px_#0F172A] bg-[#9F1239] text-white hover:bg-[#BE185D] transition" 
+                          class="w-full h-[32px] !p-0 flex items-center justify-center gap-1 text-[11px] font-bold border border-transparent rounded-md bg-[#006194] text-white hover:bg-[#007bb9] transition shadow-xs cursor-pointer" 
                           title="Kích hoạt nhận diện">
-                    <span class="text-[11px] shrink-0">🔍</span>
+                    <span class="material-symbols-outlined text-[14px]">search</span>
                     <span class="whitespace-nowrap">Nhận diện</span>
                   </button>
                 </div>
 
                 <div class="w-[300px] mt-3 p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-xs text-slate-500 leading-relaxed">
-                  💡 <strong>Mẹo viết chữ:</strong> Kéo vẽ từng nét chuột theo thứ tự nét chuẩn. AI tự động nhận diện chữ Hán tương ứng ngay tức thì!
+                  💡 <strong>Mẹo viết chữ:</strong> Kéo vẽ từng nét chuột theo thứ tự nét chuẩn. Hệ thống tự động nhận diện chữ Hán tương ứng ngay tức thì!
                 </div>
               </div>
 
-              <!-- CỘT 2: KHAY CHỮ HÁN GỢI Ý & KẾT QUẢ -->
+              <!-- CỘT 2: KẾT QUẢ CHỮ HÁN GỢI Ý -->
               <div class="flex flex-col min-h-[380px]">
                 <div class="flex items-center justify-between pb-2.5 border-b border-[#E2E8F0] mb-3">
                   <span class="text-sm font-bold text-[#0F172A] flex items-center gap-2">
-                    <span>🎯</span> Chữ Hán Khớp Nhất Từ Kizuna AI
+                    <span class="material-symbols-outlined text-[18px] text-[#006194]">task_alt</span>
+                    <span>Kết quả nhận diện chữ Hán gợi ý</span>
                   </span>
-                  <span class="text-xs text-slate-500">(Bấm [Luyện viết] để vào phòng Canvas Shodo)</span>
+                  <span class="text-xs text-slate-500">(Bấm [Luyện viết] để xem thứ tự nét bút thuận)</span>
                 </div>
 
                 <div id="pageHwCandidateList" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
                   <div class="col-span-full text-center py-16 px-4 bg-[#F8FAFC] border border-dashed border-[#CBD5E1] rounded-xl">
-                    <div class="text-4xl mb-3">🖌️</div>
+                    <div class="text-3xl mb-2 text-slate-400">✍️</div>
                     <h5 class="text-sm font-bold text-[#0F172A] mb-1">Bảng Nhận Diện Sẵn Sàng</h5>
                     <p class="text-xs text-slate-500 max-w-sm mx-auto">
-                      Hãy dùng chuột vẽ từng nét chữ Hán vào ô Mễ bên trái. Kết quả nhận diện sẽ xuất hiện tức thì theo thời gian thực!
+                      Hãy dùng chuột vẽ từng nét chữ Hán vào khung bên trái. Kết quả nhận diện sẽ xuất hiện tức thì theo thời gian thực!
                     </p>
                   </div>
                 </div>

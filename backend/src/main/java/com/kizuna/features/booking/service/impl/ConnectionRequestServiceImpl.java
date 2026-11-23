@@ -206,9 +206,10 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
 
         // Yêu cầu kết nối chỉ là ĐỀ NGHỊ: học viên gửi thứ + giờ bắt đầu mong muốn. KHÔNG tạo buổi học, KHÔNG giữ chỗ;
         // gia sư trao đổi với học viên rồi đồng ý (lúc đó ca mới "Đã có học viên") và tạo lớp học.
+        // Học viên chỉ chọn thứ + giờ bắt đầu; độ dài ca do gia sư chọn khi đồng ý (end_time để trống tới lúc đó)
         List<SlotRange> ranges = normalizeSlots(request.getSlots());
         for (SlotRange r : ranges) {
-            // Chỉ cần GIỜ BẮT ĐẦU nằm trong lịch rảnh (gia sư sắp xếp thời lượng khi nhận yêu cầu)
+            // Chỉ cần GIỜ BẮT ĐẦU nằm trong lịch rảnh
             SlotRange startOnly = new SlotRange(r.dayOfWeek(), r.start(), r.start().plusMinutes(30));
             if (!tutorScheduleService.isSlotAvailable(tutorId, r.dayOfWeek(), startOnly.start(), startOnly.end())) {
                 throw new BadRequestException("Giờ " + dayName(r.dayOfWeek()) + " " + r.start().format(HH_MM)
@@ -238,7 +239,7 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
                     .connectionRequest(connection)
                     .dayOfWeek(r.dayOfWeek())
                     .startTime(r.start())
-                    .endTime(r.end())
+                    .endTime(null)
                     .build());
         }
         connection = connectionRequestRepository.save(connection);
@@ -323,7 +324,8 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
             if (!connection.getSessions().isEmpty()) {
                 ensureSessionsFreeForAccept(connection, learnerId);
             } else {
-                // Yêu cầu kiểu cũ: chỉ có ca hằng tuần
+                // Ca hằng tuần: gia sư chọn độ dài từng ca, rồi kiểm tra trùng lịch theo đúng khoảng giờ đó
+                applyTutorDurations(connection, request.getSlotDurations());
                 for (ConnectionRequestSlot slot : connection.getSlots()) {
                     SlotRange r = new SlotRange(slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime());
                     ensureSlotFree(tutor.getTutorId(), learnerId, connection.getRequestId(), r, today(),
@@ -451,41 +453,83 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
 
     // ------------------------------------------------------------------ hỗ trợ
 
-    /** Chuẩn hóa và kiểm tra danh sách ca: thời lượng hợp lệ, mốc 30 phút, không qua nửa đêm, không chồng nhau. */
+    /**
+     * Chuẩn hóa ca học viên gửi: chỉ thứ + giờ bắt đầu (mốc 30 phút), không trùng nhau.
+     * Trả về khoảng 30 phút tính từ giờ bắt đầu (chỉ để kiểm tra lịch rảnh); độ dài thật do gia sư chọn khi đồng ý.
+     */
     List<SlotRange> normalizeSlots(List<ConnectionSlotRequestDTO> slots) {
         if (slots == null || slots.isEmpty()) {
             throw new BadRequestException("Vui lòng chọn ít nhất một ca học hằng tuần");
         }
         List<SlotRange> ranges = new ArrayList<>();
         for (ConnectionSlotRequestDTO s : slots) {
-            if (s == null || s.getDayOfWeek() == null || s.getStartTime() == null || s.getDurationMinutes() == null) {
+            if (s == null || s.getDayOfWeek() == null || s.getStartTime() == null) {
                 throw new BadRequestException("Thông tin ca học chưa đầy đủ");
             }
             if (s.getDayOfWeek() < 1 || s.getDayOfWeek() > 7) {
                 throw new BadRequestException("Thứ trong tuần của ca học không hợp lệ");
             }
-            if (!ALLOWED_DURATIONS.contains(s.getDurationMinutes())) {
-                throw new BadRequestException("Thời lượng mỗi ca học chỉ có thể là 60, 90 hoặc 120 phút");
-            }
             LocalTime start = s.getStartTime().withSecond(0).withNano(0);
             if (start.getMinute() % 30 != 0) {
                 throw new BadRequestException("Giờ bắt đầu ca học phải là giờ chẵn hoặc giờ rưỡi");
             }
-            int startMinutes = start.getHour() * 60 + start.getMinute();
-            if (startMinutes + s.getDurationMinutes() >= 24 * 60) {
-                throw new BadRequestException("Ca học phải kết thúc trước 24:00");
+            if (start.isAfter(LocalTime.of(23, 0))) {
+                throw new BadRequestException("Ca học phải bắt đầu trước 23:00");
             }
-            ranges.add(new SlotRange(s.getDayOfWeek(), start, start.plusMinutes(s.getDurationMinutes())));
+            ranges.add(new SlotRange(s.getDayOfWeek(), start, start.plusMinutes(30)));
+        }
+        ranges.sort(Comparator.comparing(SlotRange::dayOfWeek).thenComparing(SlotRange::start));
+        for (int i = 1; i < ranges.size(); i++) {
+            SlotRange prev = ranges.get(i - 1);
+            SlotRange cur = ranges.get(i);
+            if (prev.dayOfWeek().equals(cur.dayOfWeek()) && prev.start().equals(cur.start())) {
+                throw new BadRequestException("Ca " + dayName(cur.dayOfWeek()) + " " + cur.start().format(HH_MM) + " bị chọn trùng");
+            }
+        }
+        return ranges;
+    }
+
+    /**
+     * Gia sư đồng ý: điền giờ kết thúc từng ca theo độ dài gia sư chọn (60 / 90 / 120 phút).
+     * Ca chưa có giờ kết thúc bắt buộc phải có độ dài; ca của yêu cầu cũ (đã có giờ kết thúc) giữ nguyên nếu không gửi.
+     * Lỗi ném ra làm rollback cả giao dịch nên giờ kết thúc không bị lưu dở.
+     */
+    void applyTutorDurations(ConnectionRequest connection, List<RespondConnectionRequestDTO.SlotDuration> durations) {
+        java.util.Map<UUID, Integer> byId = new java.util.HashMap<>();
+        if (durations != null) {
+            for (RespondConnectionRequestDTO.SlotDuration d : durations) {
+                if (d != null && d.getSlotId() != null) byId.put(d.getSlotId(), d.getDurationMinutes());
+            }
+        }
+        List<SlotRange> ranges = new ArrayList<>();
+        for (ConnectionRequestSlot slot : connection.getSlots()) {
+            String label = dayName(slot.getDayOfWeek()) + " " + slot.getStartTime().format(HH_MM);
+            Integer minutes = byId.get(slot.getSlotId());
+            if (minutes == null) {
+                if (slot.getEndTime() == null) {
+                    throw new BadRequestException("Vui lòng chọn độ dài cho ca " + label);
+                }
+            } else {
+                if (!ALLOWED_DURATIONS.contains(minutes)) {
+                    throw new BadRequestException("Độ dài ca " + label + " chỉ có thể là 60, 90 hoặc 120 phút");
+                }
+                int startMinutes = slot.getStartTime().getHour() * 60 + slot.getStartTime().getMinute();
+                if (startMinutes + minutes >= 24 * 60) {
+                    throw new BadRequestException("Ca " + label + " phải kết thúc trước 24:00");
+                }
+                slot.setEndTime(slot.getStartTime().plusMinutes(minutes));
+            }
+            ranges.add(new SlotRange(slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime()));
         }
         ranges.sort(Comparator.comparing(SlotRange::dayOfWeek).thenComparing(SlotRange::start));
         for (int i = 1; i < ranges.size(); i++) {
             SlotRange prev = ranges.get(i - 1);
             SlotRange cur = ranges.get(i);
             if (prev.dayOfWeek().equals(cur.dayOfWeek()) && cur.start().isBefore(prev.end())) {
-                throw new BadRequestException("Ca " + prev.label() + " và ca " + cur.label() + " bị chồng giờ nhau");
+                throw new BadRequestException("Ca " + prev.label() + " và ca " + cur.label()
+                        + " bị chồng giờ nhau. Hãy chọn độ dài ngắn hơn hoặc trao đổi giờ khác với học viên.");
             }
         }
-        return ranges;
     }
 
     private void ensureSlotFree(UUID tutorId, UUID learnerId, UUID excludeRequestId, SlotRange r, LocalDate startDate,
@@ -556,7 +600,9 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         if (cr.getStatus() != ConnectionRequestStatus.PENDING || cr.getSlots().isEmpty()) return null;
         List<String> issues = new ArrayList<>();
         for (ConnectionRequestSlot slot : cr.getSlots()) {
-            SlotRange r = new SlotRange(slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime());
+            // Chưa có độ dài ca (gia sư chưa chọn): chỉ xét giờ bắt đầu
+            LocalTime end = slot.getEndTime() != null ? slot.getEndTime() : slot.getStartTime().plusMinutes(30);
+            SlotRange r = new SlotRange(slot.getDayOfWeek(), slot.getStartTime(), end);
             SlotConflict c = slotConflict(cr.getTutor().getTutorId(), cr.getLearner().getLearnerId(), cr.getRequestId(),
                     r, today(), true);
             if (c != null) issues.add(c.tutorText(r));
@@ -599,7 +645,8 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
     /** Ví dụ: "Thứ hai 19:00–20:30, Thứ năm 19:00–20:30" (theo ca hằng tuần của yêu cầu). */
     private static String slotSummary(ConnectionRequest cr) {
         return cr.getSlots().stream()
-                .map(s -> dayName(s.getDayOfWeek()) + " " + s.getStartTime().format(HH_MM) + "–" + s.getEndTime().format(HH_MM))
+                .map(s -> dayName(s.getDayOfWeek()) + " " + s.getStartTime().format(HH_MM)
+                        + (s.getEndTime() != null ? "–" + s.getEndTime().format(HH_MM) : ""))
                 .collect(java.util.stream.Collectors.joining(", "));
     }
 
@@ -830,11 +877,14 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
 
         List<ConnectionRequestResponseDTO.SlotView> slots = cr.getSlots().stream()
                 .map(s -> ConnectionRequestResponseDTO.SlotView.builder()
+                        .slotId(s.getSlotId())
                         .dayOfWeek(s.getDayOfWeek())
                         .dayName(dayName(s.getDayOfWeek()))
                         .startTime(s.getStartTime().format(HH_MM))
-                        .endTime(s.getEndTime().format(HH_MM))
-                        .durationMinutes((int) Duration.between(s.getStartTime(), s.getEndTime()).toMinutes())
+                        // Trống tới khi gia sư đồng ý và chọn độ dài ca
+                        .endTime(s.getEndTime() != null ? s.getEndTime().format(HH_MM) : null)
+                        .durationMinutes(s.getEndTime() != null
+                                ? (int) Duration.between(s.getStartTime(), s.getEndTime()).toMinutes() : null)
                         .build())
                 .toList();
 

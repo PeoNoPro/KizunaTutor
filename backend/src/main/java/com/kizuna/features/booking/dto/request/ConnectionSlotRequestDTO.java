@@ -26,6 +26,6 @@ public class ConnectionSlotRequestDTO {
     @NotNull(message = "Vui lòng chọn giờ bắt đầu cho ca học")
     private LocalTime startTime;
 
-    @NotNull(message = "Vui lòng chọn thời lượng cho ca học")
+    /** Không dùng nữa: độ dài ca do gia sư chọn khi đồng ý (giữ trường để client cũ gửi lên không lỗi). */
     private Integer durationMinutes;
 }

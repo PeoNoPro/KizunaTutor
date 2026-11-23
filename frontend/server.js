@@ -42,6 +42,7 @@ const URL_ALIASES = {
   '/register.html': '/pages/register/index.html',
   '/register': '/pages/register/index.html',
   '/oauth2/redirect': '/pages/login/index.html',
+  '/cong-cu-hoc-tap': '/pages/learning-tools-intro/index.html',
   '/tutors.html': '/pages/tutor-discovery/index.html',
   '/tutors': '/pages/tutor-discovery/index.html',
   '/tutor-discovery': '/pages/tutor-discovery/index.html',

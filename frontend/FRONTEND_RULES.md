@@ -136,7 +136,7 @@ Tất cả các trang **BẮT BUỘC sử dụng Footer 4 cột nền tối** th
   1. **Thương hiệu & Triết lý**: Logo Kizuna + Slogan + Triết lý gắn kết bền vững (Kizuna) + Badge `verified` *"Bảo chứng hồ sơ & Năng lực sư phạm chuẩn JLPT"*.
   2. **Dành cho học viên**: 5 link (Tìm gia sư theo trình độ N5-N1, Gia sư bản xứ Tokyo, Khóa chuyên đề, Chính sách học thử 0đ, Tra cứu yêu cầu đã gửi).
   3. **Dành cho gia sư**: 5 link (Đăng ký gia sư mới, Không gian quản lý, Bộ quy chuẩn xác thực, Chính sách không cắt phế, Cộng đồng Senpai).
-  4. **Hỗ trợ & Pháp lý**: 4 link (Điều khoản, Bảo mật, Khiếu nại, Trung tâm trợ giúp) + Khung nổi bật: `Hotline: 1900 6886 (8:00 – 22:00)`.
+  4. **Hỗ trợ & Pháp lý**: 4 link (Điều khoản, Bảo mật, Khiếu nại, Trung tâm trợ giúp) + Khung nổi bật: `Hotline: 0838 445 533 (8:00 – 22:00)`.
 - **Dải bản quyền chân trang**:
   - `© 2024 KizunaTutor. Tất cả quyền được bảo lưu. Giữ trọn tinh thần kết nối Nhật – Việt 『絆』.`
   - Cụm bên phải: Biểu tượng `lock` *"Bảo mật SSL 256-bit"* và biểu tượng `translate` *"Hỗ trợ Song ngữ Tiếng Việt • 日本語"*.
@@ -294,7 +294,7 @@ Trước khi hoàn thành bất kỳ task Frontend nào, hãy tự kiểm tra l�
 - [ ] Trang đã sử dụng đúng Logo tại `/assets/logos/kizuna-logo.png` chưa?
 - [ ] Header đã đồng bộ đúng 5 menu và **KHÔNG có nút Đăng nhập** chưa?
 - [ ] Header có nút "Đăng ký" kèm biểu tượng `arrow_forward` chưa?
-- [ ] Footer đã dùng bản 4 cột nền tối `#131d2e` kèm Hotline `1900 6886` chưa?
+- [ ] Footer đã dùng bản 4 cột nền tối `#131d2e` kèm Hotline `0838 445 533` chưa?
 - [ ] Khung trang học tập đã dùng đúng `max-w-6xl mx-auto p-4 sm:p-6` chưa?
 - [ ] Các Card chính đã chuẩn viền `border-2 border-[#0F172A]` và bóng `shadow-[3px_3px_0px_0px_#0F172A]` chưa?
 - [ ] Nút chính CTA đã dùng màu Đỏ Hồng Trầm `#9F1239` (hover `#BE185D`) chưa?

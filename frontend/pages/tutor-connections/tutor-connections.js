@@ -587,7 +587,43 @@ let directLoaded = false;
 const DIRECT_HISTORY = ['DECLINED', 'CANCELLED', 'EXPIRED'];
 
 function slotText(s) {
-  return `${s.dayName} ${s.startTime}–${s.endTime} (${s.durationMinutes} phút)`;
+  // Yêu cầu đang chờ chưa có độ dài ca: gia sư chọn khi đồng ý
+  return s.endTime
+    ? `${s.dayName} ${s.startTime}–${s.endTime} (${s.durationMinutes} phút)`
+    : `${s.dayName} ${s.startTime} (bạn chọn độ dài khi đồng ý)`;
+}
+
+// ---- Độ dài ca: gia sư chọn khi đồng ý, gợi ý theo bảng học phí (môn học viên chọn) trong bài đăng của chính gia sư
+const SLOT_DURATIONS = [60, 90, 120];
+const priceItemsCache = new Map(); // tutorId -> Promise<priceItems[]>
+function myPriceItems(tutorId) {
+  if (!priceItemsCache.has(tutorId)) {
+    priceItemsCache.set(tutorId, API.tutors.getDetail(tutorId)
+      .then(t => (Array.isArray(t?.priceItems) ? t.priceItems : []))
+      .catch(() => []));
+  }
+  return priceItemsCache.get(tutorId);
+}
+/** Độ dài gợi ý: môn đầu tiên học viên chọn có trong bảng học phí; không khớp thì null (gia sư tự chọn). */
+function suggestedMinutes(priceItems, learningGoals) {
+  const goals = String(learningGoals || '').split(',').map(g => g.trim()).filter(Boolean);
+  for (const g of goals) {
+    const item = priceItems.find(p => p && String(p.levelLabel || p.level).trim() === g);
+    if (item && SLOT_DURATIONS.includes(Number(item.sessionMinutes))) return Number(item.sessionMinutes);
+  }
+  return null;
+}
+function durationPickerHtml(s) {
+  const options = SLOT_DURATIONS.map(m =>
+    `<option value="${m}" ${Number(s.durationMinutes) === m ? 'selected' : ''}>${m} phút</option>`).join('');
+  return `
+    <li class="flex flex-wrap items-center justify-between gap-2 list-none -ml-5">
+      <span class="font-semibold">${escapeHtml(`${s.dayName} ${s.startTime}`)}</span>
+      <select data-slot-duration="${s.slotId}" aria-label="Độ dài ca ${escapeHtml(`${s.dayName} ${s.startTime}`)}"
+        class="px-2.5 py-1.5 rounded-lg border border-outline-variant bg-surface text-body-sm">
+        <option value="" ${s.durationMinutes ? '' : 'selected'}>Chọn độ dài ca</option>${options}
+      </select>
+    </li>`;
 }
 
 function renderDirect() {
@@ -707,12 +743,23 @@ function openDirectRespond(requestId, action) {
   const accept = action === 'ACCEPT';
   $('directRespondTitle').textContent = accept ? 'Đồng ý kết nối' : 'Từ chối yêu cầu kết nối';
   $('directRespondSubtitle').textContent = accept
-    ? 'Các ca bên dưới sẽ được giữ cho học viên này. Học viên sẽ thấy số điện thoại và email của bạn.'
+    ? 'Chọn độ dài từng ca. Các ca sẽ được giữ cho học viên này và học viên sẽ thấy số điện thoại, email của bạn.'
     : 'Học viên sẽ nhận được lý do bạn gửi';
   $('directRespondIcon').textContent = accept ? 'handshake' : 'cancel';
   $('directRespondIconWrap').className = `w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accept ? 'bg-primary-fixed text-primary' : 'bg-error-container text-error'}`;
   $('directRespondLearner').textContent = activeDirect.partnerName || 'Học viên';
-  $('directRespondSlots').innerHTML = (activeDirect.slots || []).map(s => `<li>${escapeHtml(slotText(s))}</li>`).join('')
+  // Đồng ý yêu cầu chỉ có ca hằng tuần: gia sư chọn độ dài từng ca
+  const pickDurations = accept && !(activeDirect.sessions || []).length && (activeDirect.slots || []).length > 0;
+  if (pickDurations) {
+    const request = activeDirect;
+    myPriceItems(request.tutorId).then(items => {
+      const minutes = suggestedMinutes(items, request.learningGoals);
+      if (!minutes || activeDirect !== request) return;
+      document.querySelectorAll('#directRespondSlots [data-slot-duration]').forEach(sel => { if (!sel.value) sel.value = String(minutes); });
+    });
+  }
+  $('directRespondSlots').innerHTML = (activeDirect.slots || [])
+    .map(s => pickDurations ? durationPickerHtml(s) : `<li>${escapeHtml(slotText(s))}</li>`).join('')
     + ((activeDirect.sessions || []).length
       ? `<li class="font-semibold">${activeDirect.sessions.length} buổi: ${activeDirect.sessions.map(s => {
           const [, m, d] = String(s.date).split('-');
@@ -737,13 +784,23 @@ async function submitDirectRespond() {
     $('directRespondMessage').focus();
     return;
   }
+  // Độ dài từng ca gia sư chọn (chỉ khi đồng ý yêu cầu có ca hằng tuần)
+  const pickers = [...document.querySelectorAll('#directRespondSlots [data-slot-duration]')];
+  if (directAction === 'ACCEPT' && pickers.some(sel => !sel.value)) {
+    showToast('Vui lòng chọn độ dài cho từng ca học.', 'error');
+    pickers.find(sel => !sel.value).focus();
+    return;
+  }
+  const slotDurations = directAction === 'ACCEPT' && pickers.length
+    ? pickers.map(sel => ({ slotId: sel.dataset.slotDuration, durationMinutes: Number(sel.value) }))
+    : null;
   const btn = $('btnSubmitDirectRespond');
   const btnText = $('btnSubmitDirectRespondText');
   const original = btnText.textContent;
   btn.disabled = true;
   btnText.textContent = 'Đang xử lý...';
   try {
-    await API.connectionRequests.respond(activeDirect.requestId, { action: directAction, message: message || null });
+    await API.connectionRequests.respond(activeDirect.requestId, { action: directAction, message: message || null, slotDurations });
     const accepted = directAction === 'ACCEPT';
     closeModals();
     showToast(accepted ? 'Đã đồng ý kết nối. Bạn có thể tạo lớp học cho học viên.' : 'Đã từ chối yêu cầu kết nối.');

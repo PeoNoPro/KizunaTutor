@@ -184,6 +184,41 @@ class TutorVerificationServiceTest {
     }
 
     @Test
+    void req03_submitWithIdentityButNoJapaneseCertificateIsRejected() {
+        fillCompleteProfile();
+        addDocument(CredentialType.IDENTITY_DOCUMENT);
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.submit(new SubmitVerificationRequest(true)));
+
+        assertEquals("SUBMISSION_INCOMPLETE", ex.getCode());
+        assertTrue(ex.getMessage().startsWith("Không thể nộp hồ sơ. Vui lòng hoàn thiện"));
+        assertEquals(List.of(com.kizuna.features.verification.service.VerificationLabels.MISSING_JAPANESE),
+                ex.getMissingDocuments());
+        assertEquals(TutorVerificationStatus.UNVERIFIED, tutor.getVerificationStatus());
+        verify(historyRepository, never()).save(any());
+    }
+
+    @Test
+    void req03_otherJapaneseCertificateCountsAsLanguageDocument() {
+        fillCompleteProfile();
+        addDocument(CredentialType.IDENTITY_DOCUMENT);
+        addDocument(CredentialType.OTHER_JAPANESE_CERTIFICATE);
+
+        service.submit(new SubmitVerificationRequest(true));
+
+        assertEquals(TutorVerificationStatus.PENDING, tutor.getVerificationStatus());
+    }
+
+    @Test
+    void req02_missingTypeAndBlankTitleShowFieldMessages() {
+        assertEquals("Vui lòng chọn loại giấy tờ.", assertThrows(VerificationException.class,
+                () -> service.addDocument(null, "Hộ chiếu", null)).getFields().get("type"));
+        assertEquals("Vui lòng nhập tên giấy tờ.", assertThrows(VerificationException.class,
+                () -> service.addDocument("IDENTITY_DOCUMENT", "  ", null)).getFields().get("title"));
+    }
+
+    @Test
     void submitWithoutCommitmentIsRejected() {
         fillCompleteProfile();
         addDocument(CredentialType.IDENTITY_DOCUMENT);
@@ -437,5 +472,291 @@ class TutorVerificationServiceTest {
         tutor.setVerificationStatus(TutorVerificationStatus.PENDING);
         assertEquals("VERIFICATION_LOCKED", assertThrows(VerificationException.class,
                 () -> service.submitProfileUpdate(new SubmitProfileUpdateRequest("N1", null))).getCode());
+    }
+
+    // ===== REQ-01: giá trị biên khi cập nhật hồ sơ =====
+
+    /** Ngày hiện tại theo múi giờ mà hệ thống dùng để tính tuổi. */
+    private static LocalDate today() {
+        return LocalDate.now(VerificationViewAssembler.ZONE);
+    }
+
+    @Test
+    void req01_tutorTurningEighteenTodayIsAccepted() {
+        LocalDate birthday = today().minusYears(18);
+
+        service.updateProfile(UpdateVerificationProfileRequest.builder().dateOfBirth(birthday).build());
+
+        assertEquals(birthday, tutor.getDateOfBirth());
+        verify(tutorRepository).save(tutor);
+    }
+
+    @Test
+    void req01_tutorOneDayShortOfEighteenIsRejectedAndNothingSaved() {
+        VerificationException ex = assertThrows(VerificationException.class, () -> service.updateProfile(
+                UpdateVerificationProfileRequest.builder().dateOfBirth(today().minusYears(18).plusDays(1)).build()));
+
+        assertEquals("Gia sư cần đủ 18 tuổi trở lên.", ex.getFields().get("dateOfBirth"));
+        assertNull(tutor.getDateOfBirth());
+        verify(tutorRepository, never()).save(any());
+    }
+
+    @Test
+    void req01_oneCharacterNameIsRejectedAndOldNameKept() {
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.updateProfile(UpdateVerificationProfileRequest.builder().fullName(" A ").build()));
+
+        assertEquals("Họ tên cần tối thiểu 2 ký tự.", ex.getFields().get("fullName"));
+        assertEquals("Nguyễn Gia Sư", tutor.getUser().getFullName());
+        verify(tutorRepository, never()).save(any());
+    }
+
+    @Test
+    void req01_twoCharacterNameIsAccepted() {
+        service.updateProfile(UpdateVerificationProfileRequest.builder().fullName("An").build());
+
+        assertEquals("An", tutor.getUser().getFullName());
+    }
+
+    @Test
+    void req01_profileNeedingMoreInformationIsEditable() {
+        tutor.setVerificationStatus(TutorVerificationStatus.ADDITIONAL_INFO_REQUIRED);
+
+        TutorVerificationResponse response = service.updateProfile(
+                UpdateVerificationProfileRequest.builder().phone("0911222333").build());
+
+        assertEquals("0911222333", tutor.getPhone());
+        assertEquals(TutorVerificationStatus.ADDITIONAL_INFO_REQUIRED, tutor.getVerificationStatus());
+        assertTrue(response.getEditable());
+    }
+
+    @Test
+    void req01_introductionOf19CharactersBlocksSubmission() {
+        fillCompleteProfile();
+        tutor.setBio("a".repeat(19));
+        addDocument(CredentialType.IDENTITY_DOCUMENT);
+        addDocument(CredentialType.JLPT_CERTIFICATE);
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.submit(new SubmitVerificationRequest(true)));
+
+        assertEquals("SUBMISSION_INCOMPLETE", ex.getCode());
+        assertEquals(Set.of("bio"), ex.getFields().keySet());
+        assertEquals(TutorVerificationStatus.UNVERIFIED, tutor.getVerificationStatus());
+    }
+
+    @Test
+    void req01_introductionOf20CharactersAllowsSubmission() {
+        fillCompleteProfile();
+        tutor.setBio("a".repeat(20));
+        addDocument(CredentialType.IDENTITY_DOCUMENT);
+        addDocument(CredentialType.JLPT_CERTIFICATE);
+
+        service.submit(new SubmitVerificationRequest(true));
+
+        assertEquals(TutorVerificationStatus.PENDING, tutor.getVerificationStatus());
+    }
+
+    @Test
+    void req01_approvedTutorIntroductionBoundaryIs20Characters() {
+        approve();
+        var base = UpdateVerificationProfileRequest.builder().phone("0905123456").address("Đà Nẵng");
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.updateProfile(base.bio("a".repeat(19)).build()));
+        assertEquals(Set.of("bio"), ex.getFields().keySet());
+
+        service.updateProfile(base.bio("b".repeat(20)).build());
+        assertEquals("b".repeat(20), tutor.getBio());
+    }
+
+    // ===== REQ-02: giấy tờ xác minh =====
+
+    private MockMultipartFile pdf() {
+        return new MockMultipartFile("file", "giay-to.pdf", "application/pdf",
+                "%PDF-1.4 %%EOF".getBytes(StandardCharsets.US_ASCII));
+    }
+
+    private void storageAcceptsAnyFile() {
+        when(storage.validate(any())).thenReturn(new VerificationDocumentStorage.ValidatedDocument(
+                UUID.randomUUID() + ".pdf", "%PDF-1.4 %%EOF".getBytes(StandardCharsets.US_ASCII)));
+        when(credentialRepository.save(any())).thenAnswer(inv -> {
+            TutorCredential c = inv.getArgument(0);
+            c.setCredentialId(UUID.randomUUID());
+            return c;
+        });
+    }
+
+    @Test
+    void req02_titleOf150CharactersIsAcceptedAndNewDocumentIsPending() {
+        storageAcceptsAnyFile();
+        String title = "T".repeat(150);
+
+        service.addDocument("JLPT_CERTIFICATE", title, pdf());
+
+        ArgumentCaptor<TutorCredential> saved = ArgumentCaptor.forClass(TutorCredential.class);
+        verify(credentialRepository).save(saved.capture());
+        assertEquals(title, saved.getValue().getTitle());
+        assertEquals(CredentialType.JLPT_CERTIFICATE, saved.getValue().getCredentialType());
+        assertEquals(TutorCredentialStatus.PENDING, saved.getValue().getVerifiedStatus());
+        verify(storage).saveContent(eq(saved.getValue().getCredentialId()), any(), any());
+    }
+
+    @Test
+    void req02_titleOf151CharactersIsRejectedBeforeFileIsRead() {
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.addDocument("JLPT_CERTIFICATE", "T".repeat(151), pdf()));
+
+        assertEquals("Tên giấy tờ tối đa 150 ký tự.", ex.getFields().get("title"));
+        verify(storage, never()).validate(any());
+        verify(credentialRepository, never()).save(any());
+    }
+
+    @Test
+    void req02_missingDocumentTypeIsRejected() {
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.addDocument(" ", "CCCD", pdf()));
+
+        assertEquals("Vui lòng chọn loại giấy tờ.", ex.getFields().get("type"));
+        verify(credentialRepository, never()).save(any());
+    }
+
+    @Test
+    void req02_invalidFileIsRejectedAndNoDocumentRowIsCreated() {
+        when(storage.validate(any())).thenThrow(VerificationException.invalidFile());
+
+        assertThrows(VerificationException.class, () -> service.addDocument("IDENTITY_DOCUMENT", "CCCD", pdf()));
+
+        verify(credentialRepository, never()).save(any());
+        verify(storage, never()).saveContent(any(), any(), any());
+    }
+
+    /**
+     * Tải tệp lên R2 lỗi thì ngoại lệ phải thoát ra khỏi addDocument (không bị nuốt), để @Transactional
+     * huỷ cả dòng giấy tờ vừa thêm. Test đơn vị chỉ chứng minh ngoại lệ được ném ra; việc huỷ giao dịch
+     * thật sự do Spring thực hiện và không được kiểm chứng ở đây.
+     */
+    @Test
+    void req02_failedFileUploadPropagatesSoTransactionRollsBack() {
+        storageAcceptsAnyFile();
+        doThrow(new IllegalStateException("Không tải được giấy tờ xác minh lên R2"))
+                .when(storage).saveContent(any(), any(), any());
+
+        assertThrows(IllegalStateException.class, () -> service.addDocument("IDENTITY_DOCUMENT", "CCCD", pdf()));
+
+        verify(credentialRepository, times(1)).save(any());
+        verify(historyRepository, never()).save(any());
+    }
+
+    // ===== REQ-08: yêu cầu cập nhật hồ sơ sau khi đã phê duyệt =====
+
+    @Test
+    void req08_noteOf1000CharactersIsAccepted() {
+        approve();
+
+        service.submitProfileUpdate(new SubmitProfileUpdateRequest("N1", "g".repeat(1000)));
+
+        ArgumentCaptor<TutorVerificationHistory> saved = ArgumentCaptor.forClass(TutorVerificationHistory.class);
+        verify(historyRepository).save(saved.capture());
+        assertEquals("g".repeat(1000), saved.getValue().getFeedback());
+    }
+
+    @Test
+    void req08_noteOf1001CharactersIsRejected() {
+        approve();
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(new SubmitProfileUpdateRequest("N1", "g".repeat(1001))));
+
+        assertEquals("Ghi chú tối đa 1.000 ký tự.", ex.getFields().get("note"));
+        verify(historyRepository, never()).save(any());
+    }
+
+    @Test
+    void req08_invalidJlptLevelIsRejected() {
+        approve();
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(new SubmitProfileUpdateRequest("N6", null)));
+
+        assertTrue(ex.getFields().containsKey("highestJlptLevel"));
+        verify(historyRepository, never()).save(any());
+    }
+
+    // ===== REQ-08: đề nghị gỡ giấy tờ đã xác minh khi gửi yêu cầu cập nhật =====
+
+    private TutorCredential identity(TutorCredentialStatus status) {
+        TutorCredential c = credential(status);
+        c.setCredentialType(CredentialType.IDENTITY_DOCUMENT);
+        c.setTitle("CCCD");
+        return c;
+    }
+
+    private SubmitProfileUpdateRequest removing(UUID... ids) {
+        return new SubmitProfileUpdateRequest(null, null, List.of(ids));
+    }
+
+    @Test
+    void req08_removingVerifiedDocumentIsRecordedButNotDeleted() {
+        approve();
+        identity(TutorCredentialStatus.VERIFIED);
+        credential(TutorCredentialStatus.VERIFIED);
+        TutorCredential old = credential(TutorCredentialStatus.VERIFIED);
+        old.setTitle("JLPT N3 cũ");
+
+        TutorVerificationResponse response = service.submitProfileUpdate(removing(old.getCredentialId()));
+
+        ArgumentCaptor<TutorVerificationHistory> saved = ArgumentCaptor.forClass(TutorVerificationHistory.class);
+        verify(historyRepository).save(saved.capture());
+        List<ProfileUpdateTimeline.RemovedDocument> removed = ProfileUpdateTimeline.latest(List.of(saved.getValue()))
+                .orElseThrow().removedDocuments();
+        assertEquals(List.of(new ProfileUpdateTimeline.RemovedDocument(old.getCredentialId(), "JLPT N3 cũ")), removed);
+        verify(credentialRepository, never()).delete(any());
+        assertEquals(TutorVerificationServiceImpl.MSG_UPDATE_SUBMITTED, response.getMessage());
+    }
+
+    @Test
+    void req08_removingNewDocumentThroughUpdateIsRejected() {
+        approve();
+        identity(TutorCredentialStatus.VERIFIED);
+        TutorCredential fresh = credential(TutorCredentialStatus.PENDING);
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(removing(fresh.getCredentialId())));
+
+        assertEquals(TutorVerificationServiceImpl.MSG_REMOVE_ONLY_VERIFIED, ex.getMessage());
+        verify(historyRepository, never()).save(any());
+    }
+
+    @Test
+    void req08_removingTheOnlyIdentityDocumentIsRejected() {
+        approve();
+        TutorCredential onlyIdentity = identity(TutorCredentialStatus.VERIFIED);
+        credential(TutorCredentialStatus.VERIFIED);
+
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(removing(onlyIdentity.getCredentialId())));
+
+        assertEquals(TutorVerificationServiceImpl.MSG_REMOVE_KEEPS_REQUIRED, ex.getMessage());
+        verify(historyRepository, never()).save(any());
+    }
+
+    @Test
+    void req08_replacingCertificateWithNewUploadAllowsRemovingOldOne() {
+        approve();
+        identity(TutorCredentialStatus.VERIFIED);
+        TutorCredential old = credential(TutorCredentialStatus.VERIFIED);
+        credential(TutorCredentialStatus.PENDING);
+
+        assertDoesNotThrow(() -> service.submitProfileUpdate(removing(old.getCredentialId())));
+    }
+
+    @Test
+    void req08_removingUnknownDocumentIsNotFound() {
+        approve();
+        identity(TutorCredentialStatus.VERIFIED);
+
+        assertEquals("NOT_FOUND", assertThrows(VerificationException.class,
+                () -> service.submitProfileUpdate(removing(UUID.randomUUID()))).getCode());
     }
 }

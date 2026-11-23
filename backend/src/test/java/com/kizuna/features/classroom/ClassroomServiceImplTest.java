@@ -136,6 +136,20 @@ class ClassroomServiceImplTest {
     }
 
     @Test
+    void eligibleLearnersGetDeliveryFromConnectionRequestsInOneQuery() {
+        when(spaces.findEligibleLearnerIds(tutor.getTutorId())).thenReturn(List.of(learner.getLearnerId()));
+        when(learners.findAllById(List.of(learner.getLearnerId()))).thenReturn(List.of(learner));
+        when(spaces.findAcceptedConnectionDeliveries(tutor.getTutorId(), List.of(learner.getLearnerId())))
+                .thenReturn(List.<Object[]>of(new Object[]{learner.getLearnerId(), "OFFLINE", "12 Lê Lợi, Phường Bến Thành, TP. Hồ Chí Minh"}));
+
+        EligibleLearnerResponse r = service.listEligibleLearners(asTutor(tutor)).get(0);
+
+        assertThat(r.learningMode()).isEqualTo("OFFLINE");
+        assertThat(r.locationDetails()).startsWith("12 Lê Lợi");
+        verify(spaces, never()).findAcceptedConnectionDelivery(any(), any());
+    }
+
+    @Test
     void eligibleLearnersEmptyWhenNoConnection() {
         when(spaces.findEligibleLearnerIds(tutor.getTutorId())).thenReturn(List.of());
         assertThat(service.listEligibleLearners(asTutor(tutor))).isEmpty();

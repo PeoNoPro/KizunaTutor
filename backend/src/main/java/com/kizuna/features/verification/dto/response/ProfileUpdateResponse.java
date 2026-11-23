@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /** Yêu cầu cập nhật hồ sơ gần nhất của gia sư đã được phê duyệt. */
@@ -24,4 +25,13 @@ public class ProfileUpdateResponse {
     private OffsetDateTime submittedAt;
     private OffsetDateTime reviewedAt;
     private String reviewedByName;
+    /** Giấy tờ đã xác minh gia sư đề nghị gỡ trong yêu cầu này (null nếu không có). */
+    private List<RemovedDocument> removedDocuments;
+
+    @Getter
+    @AllArgsConstructor
+    public static class RemovedDocument {
+        private UUID id;
+        private String title;
+    }
 }

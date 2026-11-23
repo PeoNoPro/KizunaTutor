@@ -33,28 +33,48 @@
   </style>
   <style type="text/tailwindcss">
     @layer components {
-      .ex-tab { @apply px-4 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container; }
-      .ex-tab[data-active="true"] { @apply bg-primary text-on-primary; }
+      .ex-chip { @apply h-9 px-3.5 rounded-full border border-surface-container-high bg-surface-container-lowest font-label-md text-[13px] text-on-surface; }
+      .ex-chip[data-active="true"] { @apply bg-on-surface text-surface border-on-surface; }
+      .ex-tile { @apply p-4 rounded-xl bg-surface-container-low; }
     }
+    /* Đang làm bài: ẩn sidebar học viên để tập trung, tránh bấm nhầm rời bài */
+    body.ex-taking #learnerSidebar { display: none !important; }
+  </style>
+  <!-- Phần nội dung FE-06/07 dùng cùng font với trang gia sư (Plus Jakarta Sans). styles/components.css của nhóm ép font Inter
+       cho mọi trang học viên nên chữ trông to hơn bên gia sư; chỉ ghi đè trong vùng nội dung, sidebar giữ nguyên. -->
+  <style id="fe0607-font">
+    #takeMain, #takeMain *:not(.material-symbols-outlined):not(.ms),
+    #takeBar, #takeBar *:not(.material-symbols-outlined):not(.ms),
+    #confirmModal, #confirmModal *:not(.material-symbols-outlined):not(.ms) { font-family: 'Plus Jakarta Sans', 'Noto Sans JP', system-ui, sans-serif !important; }
   </style>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface">
-  <div id="takeRoot" class="min-h-screen">
-    <header class="sticky top-0 z-30 bg-surface-container-lowest shadow-sm">
-      <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
-        <a id="backLink" href="/learner/my-courses" class="kz-btn"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Quay lại lớp</a>
-        <div class="flex-1 min-w-0">
-          <p id="takeTitle" class="font-title-sm text-title-sm text-on-surface truncate">Bài làm trực tiếp</p>
-          <p id="takeSub" class="font-caption text-caption text-on-surface-variant"></p>
-        </div>
-        <span id="saveState" class="hidden font-caption text-caption text-on-surface-variant"></span>
-        <div id="timerBox" class="hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container font-bold tabular-nums" aria-live="polite">
-          <span class="material-symbols-outlined text-[18px]">timer</span><span id="timerText">--:--</span>
-        </div>
-        <button type="button" id="submitBtn" class="hidden kz-btn kz-btn-primary">Nộp bài</button>
+  <div class="flex h-screen overflow-hidden bg-surface">
+    <!-- Sidebar dùng chung của học viên (components/learner-layout), gắn từ exercise-take.js với mục "Lớp học của tôi" -->
+    <div id="exLearnerSidebarSlot"></div>
+
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div id="exLearnerHeaderSlot"></div>
+
+      <div id="takeRoot" class="flex-1 overflow-y-auto">
+        <!-- Thanh trên khi đang làm bài: tên bài, tự lưu, đồng hồ, nộp bài -->
+        <header id="takeBar" class="hidden sticky top-0 z-30 bg-surface-container-lowest border-b border-surface-container-high">
+          <div class="px-4 md:px-8 py-3 flex flex-wrap items-center gap-3">
+            <a id="backLink" href="/learner/my-courses" class="kz-btn" title="Về trang bài tập (bài vẫn được lưu, đồng hồ vẫn chạy)"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span><span class="hidden sm:inline">Thoát</span></a>
+            <div class="flex-1 min-w-0">
+              <p id="takeSub" class="font-caption text-caption text-on-surface-variant truncate"></p>
+              <p id="takeTitle" class="font-title-md text-title-md text-on-surface truncate">Bài làm trực tiếp</p>
+            </div>
+            <span id="saveState" class="hidden font-caption text-caption text-on-surface-variant"></span>
+            <div id="timerBox" class="hidden flex items-center gap-1.5 h-11 px-4 rounded-xl bg-surface-container-low font-bold text-[18px] tabular-nums" aria-live="polite">
+              <span class="material-symbols-outlined text-[20px]" aria-hidden="true">timer</span><span id="timerText">--:--</span>
+            </div>
+            <button type="button" id="submitBtn" class="hidden kz-btn kz-btn-primary h-11 px-5">Nộp bài</button>
+          </div>
+        </header>
+        <main id="takeMain" class="w-full max-w-6xl mx-auto px-4 md:px-8 py-6"></main>
       </div>
-    </header>
-    <main id="takeMain" class="max-w-6xl mx-auto px-4 py-6"></main>
+    </div>
   </div>
 
   <!-- Hộp xác nhận dùng chung -->

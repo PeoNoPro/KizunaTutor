@@ -2,9 +2,7 @@ package com.kizuna.features.verification.service;
 
 import com.kizuna.features.storage.R2FileStore;
 import com.kizuna.features.verification.entity.TutorCredential;
-import com.kizuna.features.verification.repository.TutorCredentialRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -22,19 +20,17 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
- * Lưu giấy tờ xác minh trong DB, cột tutor_credentials.file_data (BYTEA) — cùng cách FE-06 —
- * để mọi máy chạy backend dùng chung DB đều xem được tệp. Tệp không bao giờ nằm trong thư mục phục vụ công khai (FR-024).
+ * Lưu giấy tờ xác minh trên Cloudflare R2 với khóa "verification/{file_url}"; DB chỉ giữ thông tin giấy tờ,
+ * không giữ nội dung tệp. Tệp không bao giờ nằm trong thư mục phục vụ công khai (FR-024).
  * Cột file_url giữ khóa tệp dạng UUID ngẫu nhiên + đuôi (pdf|png|jpg), dùng để xác định loại tệp.
  *
- * Chuyển tiếp: giấy tờ tải lên trước khi đổi cách lưu có file_data = NULL; khi đó đọc từ thư mục cũ
- * (app.verification.storage-dir) nếu máy hiện tại còn tệp.
+ * Chuyển tiếp: giấy tờ rất cũ có thể còn ở thư mục app.verification.storage-dir trên máy hiện tại; khi đó vẫn đọc được.
  */
 @Slf4j
 @Component
@@ -46,24 +42,16 @@ public class VerificationDocumentStorage {
             Pattern.compile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(pdf|png|jpg)$");
     private static final int PDF_TAIL_WINDOW = 1024;
 
-    /** Tệp đã qua kiểm tra: khóa lưu ở file_url và nội dung ghi vào file_data. */
+    /** Tệp đã qua kiểm tra: khóa lưu ở file_url và nội dung ghi lên R2. */
     public record ValidatedDocument(String key, byte[] content) {
     }
 
     private final Path legacyDir;
-    private final TutorCredentialRepository credentialRepository;
-    /** Bật R2: tệp mới nằm trên R2 với khóa "verification/{file_url}", cột file_data để NULL. */
+    /** Nơi lưu nội dung giấy tờ: khóa "verification/{file_url}". */
     private final R2FileStore r2;
 
-    public VerificationDocumentStorage(String storageDir, TutorCredentialRepository credentialRepository) {
-        this(storageDir, credentialRepository, R2FileStore.disabled());
-    }
-
-    @Autowired
-    public VerificationDocumentStorage(@Value("${app.verification.storage-dir}") String storageDir,
-                                       TutorCredentialRepository credentialRepository, R2FileStore r2) {
+    public VerificationDocumentStorage(@Value("${app.verification.storage-dir}") String storageDir, R2FileStore r2) {
         this.legacyDir = Paths.get(storageDir).toAbsolutePath().normalize();
-        this.credentialRepository = credentialRepository;
         this.r2 = r2;
     }
 
@@ -93,20 +81,23 @@ public class VerificationDocumentStorage {
     }
 
     /**
-     * Ghi nội dung tệp vào DB cho giấy tờ đã lưu; chạy trong cùng transaction với bản ghi giấy tờ.
+     * Ghi nội dung tệp lên R2 cho giấy tờ đã lưu; lỗi ném ra để transaction của bản ghi giấy tờ rollback.
+     * Chưa cấu hình R2 thì không nhận tệp (không lưu giấy tờ thiếu tệp).
      */
     public void saveContent(UUID credentialId, String key, byte[] content) {
-        if (credentialRepository.updateFileData(credentialId, r2.put(r2Key(key), content, contentType(key))) != 1) {
-            throw new IllegalStateException("Không ghi được nội dung giấy tờ xác minh " + credentialId);
+        if (!r2.enabled()) {
+            throw new IllegalStateException("Chưa cấu hình R2 nên không lưu được giấy tờ xác minh " + credentialId);
         }
+        r2.put(r2Key(key), content, contentType(key));
     }
 
     /**
-     * Nội dung tệp của giấy tờ: ưu tiên DB, nếu chưa có thì tìm ở thư mục cũ trên máy hiện tại.
+     * Nội dung tệp của giấy tờ: đọc từ R2, nếu không có thì tìm ở thư mục cũ trên máy hiện tại.
      */
     public Optional<byte[]> load(TutorCredential credential) {
-        byte[] data = r2.read(credentialRepository.findFileData(credential.getCredentialId()),
-                r2Key(credential.getStorageKey()));
+        byte[] data = isManagedKey(credential.getStorageKey())
+                ? r2.read(null, r2Key(credential.getStorageKey()))
+                : null;
         if (data != null && data.length > 0) {
             return Optional.of(data);
         }
@@ -121,19 +112,13 @@ public class VerificationDocumentStorage {
     }
 
     /**
-     * Mã các giấy tờ xem được tệp: có nội dung trong DB, hoặc (chuyển tiếp) còn tệp ở thư mục cũ.
-     * Một truy vấn cho cả danh sách, không tải dữ liệu nhị phân.
+     * Mã các giấy tờ xem được tệp: có khóa hợp lệ khi bật R2, hoặc (chuyển tiếp) còn tệp ở thư mục cũ.
+     * Không gọi R2 cho từng dòng; tệp mất thật thì lúc tải báo không tìm thấy.
      */
     public Set<UUID> availableIds(Collection<TutorCredential> credentials) {
-        List<UUID> ids = credentials.stream().map(TutorCredential::getCredentialId).filter(Objects::nonNull).toList();
         Set<UUID> available = new HashSet<>();
-        if (ids.isEmpty()) {
-            return available;
-        }
-        credentialRepository.findIdsWithFileData(ids).forEach(id -> available.add(UUID.fromString(id)));
         for (TutorCredential credential : credentials) {
-            // shortcut: bật R2 thì coi giấy tờ có khóa hợp lệ là còn tệp (không gọi R2 cho từng dòng); tệp mất thật thì lúc tải báo không tìm thấy
-            if (credential.getCredentialId() != null && !available.contains(credential.getCredentialId())
+            if (credential.getCredentialId() != null
                     && ((r2.enabled() && isManagedKey(credential.getStorageKey()))
                     || resolveExisting(credential.getStorageKey()).isPresent())) {
                 available.add(credential.getCredentialId());
@@ -144,7 +129,7 @@ public class VerificationDocumentStorage {
 
     /**
      * Xóa tệp cũ ở thư mục chuyển tiếp (nếu máy này còn) sau khi transaction commit.
-     * Nội dung trong DB tự mất cùng bản ghi hoặc bị ghi đè khi thay tệp.
+     * Tệp trên R2 cũng được xóa sau khi commit.
      */
     public void deleteLegacyAfterCommit(String key) {
         if (isManagedKey(key)) {

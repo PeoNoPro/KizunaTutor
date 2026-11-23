@@ -24,6 +24,7 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -70,17 +71,24 @@ public class VerificationViewAssembler {
                 .submittedAt(tutor.getSubmittedAt())
                 .verifiedAt(tutor.getVerifiedAt())
                 .profile(profile(tutor))
-                .documents(credentials.stream().map(c -> document(c, available.contains(c.getCredentialId()))).toList())
                 .latestFeedback(latestFeedback(tutor, status));
 
+        Set<UUID> removalRequested = Set.of();
         if (status == TutorVerificationStatus.APPROVED) {
-            builder.profileUpdate(ProfileUpdateTimeline.latest(historyRepository.findTimeline(tutor.getTutorId()))
-                    .map(r -> profileUpdate(r, tutor))
-                    .orElse(null));
+            Optional<ProfileUpdateTimeline.Request> update =
+                    ProfileUpdateTimeline.latest(historyRepository.findTimeline(tutor.getTutorId()));
+            builder.profileUpdate(update.map(r -> profileUpdate(r, tutor)).orElse(null));
+            removalRequested = update.filter(ProfileUpdateTimeline.Request::pending)
+                    .map(r -> Set.copyOf(r.removedDocumentIds())).orElse(Set.of());
             if (!forOfficer) {
                 builder.updatable(true);
             }
         }
+
+        Set<UUID> toRemove = removalRequested;
+        builder.documents(credentials.stream()
+                .map(c -> document(c, available.contains(c.getCredentialId()), toRemove.contains(c.getCredentialId())))
+                .toList());
 
         if (forOfficer) {
             builder.tutorId(tutor.getTutorId()).email(user != null ? user.getEmail() : null);
@@ -115,6 +123,8 @@ public class VerificationViewAssembler {
                 .submittedAt(request.submit().getCreatedAt())
                 .reviewedAt(decision != null ? decision.getCreatedAt() : null)
                 .reviewedByName(decision != null && decision.getOfficer() != null ? decision.getOfficer().getFullName() : null)
+                .removedDocuments(request.removedDocuments().isEmpty() ? null : request.removedDocuments().stream()
+                        .map(d -> new ProfileUpdateResponse.RemovedDocument(d.id(), d.title())).toList())
                 .build();
     }
 
@@ -171,10 +181,10 @@ public class VerificationViewAssembler {
     }
 
     public VerificationDocumentResponse document(TutorCredential credential) {
-        return document(credential, storage.availableIds(List.of(credential)).contains(credential.getCredentialId()));
+        return document(credential, storage.availableIds(List.of(credential)).contains(credential.getCredentialId()), false);
     }
 
-    private VerificationDocumentResponse document(TutorCredential credential, boolean fileAvailable) {
+    private VerificationDocumentResponse document(TutorCredential credential, boolean fileAvailable, boolean removalRequested) {
         String key = credential.getStorageKey();
         return VerificationDocumentResponse.builder()
                 .id(credential.getCredentialId())
@@ -187,6 +197,7 @@ public class VerificationViewAssembler {
                 .statusLabel(VerificationLabels.documentStatus(credential.getVerifiedStatus()))
                 .uploadedAt(credential.getUploadedAt())
                 .fileAvailable(fileAvailable)
+                .removalRequested(removalRequested)
                 .build();
     }
 

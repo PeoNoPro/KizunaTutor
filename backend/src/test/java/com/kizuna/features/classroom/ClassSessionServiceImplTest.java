@@ -209,10 +209,11 @@ class ClassSessionServiceImplTest {
         assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(LocalDate.of(2026, 10, 30), 10, 11)), HttpStatus.BAD_REQUEST);
         // Giờ mới đã qua
         assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(LocalDate.of(2026, 11, 18), 8, 9)), HttpStatus.BAD_REQUEST);
-        // Dài hơn 4 giờ / ngắn hơn 30 phút
-        assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(SAT, 8, 13)), HttpStatus.BAD_REQUEST);
+        // Dài hơn 120 phút / ngắn hơn 60 phút
         assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU,
-                new ClassSessionMoveRequest(SAT, LocalTime.of(8, 0), LocalTime.of(8, 20))), HttpStatus.BAD_REQUEST);
+                new ClassSessionMoveRequest(SAT, LocalTime.of(8, 0), LocalTime.of(10, 5))), HttpStatus.BAD_REQUEST);
+        assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU,
+                new ClassSessionMoveRequest(SAT, LocalTime.of(8, 0), LocalTime.of(8, 55))), HttpStatus.BAD_REQUEST);
         // Ngày gốc không phải buổi của khóa
         assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, LocalDate.of(2026, 11, 20), to(SAT, 10, 11)), HttpStatus.NOT_FOUND);
         assertThat(changeStore).isEmpty();

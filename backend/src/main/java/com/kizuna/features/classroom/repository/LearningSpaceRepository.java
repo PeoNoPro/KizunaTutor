@@ -88,4 +88,14 @@ public interface LearningSpaceRepository extends JpaRepository<LearningSpace, UU
             ORDER BY cr.responded_at DESC NULLS LAST LIMIT 1
             """, nativeQuery = true)
     List<Object[]> findAcceptedConnectionDelivery(@Param("tutorId") UUID tutorId, @Param("learnerId") UUID learnerId);
+
+    /** Như {@link #findAcceptedConnectionDelivery} cho nhiều học viên trong 1 query: [learner_id, learning_mode, location_details]. */
+    @Query(value = """
+            SELECT DISTINCT ON (cr.learner_id) cr.learner_id, cr.learning_mode, cr.location_details
+            FROM connection_requests cr
+            WHERE cr.tutor_id = :tutorId AND cr.learner_id IN (:learnerIds)
+              AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED'
+            ORDER BY cr.learner_id, cr.responded_at DESC NULLS LAST
+            """, nativeQuery = true)
+    List<Object[]> findAcceptedConnectionDeliveries(@Param("tutorId") UUID tutorId, @Param("learnerIds") Collection<UUID> learnerIds);
 }

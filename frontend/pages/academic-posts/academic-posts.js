@@ -5,7 +5,7 @@
 
 import { API, ApiError } from '/js/api.js';
 import { debounce, showToast } from '/js/main.js';
-import { mountAcademicLayout } from '/components/academic-layout/academic-layout.js';
+import { mountAcademicLayout, refreshAcademicNavCounts } from '/components/academic-layout/academic-layout.js';
 import { renderPagination, PAGE_SIZE_OPTIONS } from '/components/pagination/pagination.js';
 
 const STATUS_STYLE = {
@@ -67,6 +67,7 @@ function renderTabs() {
 }
 
 async function loadSummary() {
+  refreshAcademicNavCounts();
   try {
     const s = await API.academicPosts.getSummary();
     document.querySelectorAll('[data-count]').forEach((el) => {

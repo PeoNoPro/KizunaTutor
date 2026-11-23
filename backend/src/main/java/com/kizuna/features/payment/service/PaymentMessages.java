@@ -29,8 +29,6 @@ public final class PaymentMessages {
     public static final String TUTOR_PROFILE_MISSING = "Tài khoản của bạn chưa có hồ sơ gia sư.";
     public static final String INVALID_RESULT = "Kết quả thanh toán không hợp lệ.";
     public static final String PAYMENT_CREATED = "Đã tạo giao dịch. Đang chuyển tới cổng thanh toán.";
-    public static final String NOTE_SAVED = "Đã lưu ghi chú điều tra.";
-    public static final String GATEWAY_CHECKED = "Đã kiểm tra trạng thái với cổng thanh toán.";
     public static final String INVALID_ID = "Mã không hợp lệ.";
     public static final String PAYMENT_EXPIRED = "Giao dịch đã hết hạn thanh toán. Vui lòng chọn gói để tạo giao dịch mới.";
     public static final String PAYMENT_RESUMED = "Đang chuyển tới cổng thanh toán.";

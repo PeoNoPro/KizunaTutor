@@ -30,9 +30,6 @@ public interface TutorMembershipService {
 
     MembershipViews.PageView<MembershipViews.PaymentView> listMyPayments(User user, int page, int size);
 
-    /** A6: gia sư tự kiểm tra giao dịch còn chờ của mình với cổng (querydr). */
-    MembershipViews.PaymentResultView checkMyPayment(User user, String transactionId, String clientIp);
-
     /** A7: mở lại trang thanh toán cho giao dịch còn chờ, còn trong hạn. */
     MembershipViews.PaymentCreatedView resumePayment(User user, String transactionId, String clientIp);
 }

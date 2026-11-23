@@ -27,7 +27,6 @@ public class PaymentLogWriter {
     public static final String TYPE_IPN = "IPN";
     public static final String TYPE_RETURN = "RETURN";
     public static final String TYPE_QUERY = "QUERYDR";
-    public static final String TYPE_NOTE = "ADMIN_NOTE";
 
     private final PaymentProcessingLogRepository logRepository;
     private final PaymentTransactionRepository transactionRepository;

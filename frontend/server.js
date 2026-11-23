@@ -186,8 +186,7 @@ const URL_ALIASES = {
   '/manager/users/': '/pages/manager-accounts/index.html',
   // FE-14 (Nguyễn Đức Hân): quản lý tài khoản gia sư / học viên
   '/manager/accounts': '/pages/manager-accounts/index.html',
-  '/manager/accounts/': '/pages/manager-accounts/index.html',
-  '/admin/payments': '/pages/admin-payments/index.html'
+  '/manager/accounts/': '/pages/manager-accounts/index.html'
 };
 
 const server = http.createServer((req, res) => {

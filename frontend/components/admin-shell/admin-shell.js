@@ -9,7 +9,9 @@ const ADMIN_NAV = [
   // Nhóm Doanh thu của Quản lý: doanh thu, giao dịch và gói hội viên gia sư (2026-11-23: chuyển từ Cấu hình hệ thống của Admin).
   {label: 'Doanh thu', icon: 'payments', managerOnly: true, items: [
     ['Báo cáo doanh thu', '/pages/operations-revenue/', 'Doanh thu từ giao dịch gói hội viên gia sư đã thanh toán thành công.', true],
-    ['Gói hội viên gia sư', '/pages/manager-membership-plans/', 'Thêm gói, chỉnh giá, quyền lợi và mở bán / ngừng bán gói hội viên của gia sư.', true]]},
+    ['Gói hội viên gia sư', '/pages/manager-membership-plans/', 'Thêm gói, chỉnh giá, quyền lợi và mở bán / ngừng bán gói hội viên của gia sư.', true],
+    // FE-09 UC-44/UC-45 (2026-11-23): trang đã có nhưng trước đây không có link trên menu Quản lý.
+    ['Hội viên gia sư', '/pages/manager-tutor-memberships/', 'Danh sách gia sư đã đăng ký gói hội viên trả phí, kèm ngày hết hạn.', true]]},
   // FE-14 (Hân): danh sách, chi tiết và trạng thái tài khoản gia sư, học viên.
   // 2026-11-23: đã gỡ trang 'Quản lý người dùng' (FE-11, /pages/manager-users/) vì trùng chức năng với trang này.
   {label: 'Quản lý người dùng', icon: 'manage_accounts', href: '/pages/manager-accounts/', managerOnly: true},
@@ -73,7 +75,7 @@ function attachNavGroup(link, items, listId, key, forceOpen = false) {
   link.addEventListener('click', event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.button) return; event.preventDefault(); setOpen(!wrap.classList.contains('is-open')); });
 }
 const ROLE_CACHE = 'kizuna-staff-nav-role';
-const MANAGER_PATHS = ['/pages/manager-dashboard/', '/pages/manager-reports/', '/pages/operations-revenue/', '/pages/manager-membership-plans/', '/pages/manager-accounts/'];
+const MANAGER_PATHS = ['/pages/manager-dashboard/', '/pages/manager-reports/', '/pages/operations-revenue/', '/pages/manager-membership-plans/', '/pages/manager-tutor-memberships/', '/pages/manager-accounts/'];
 /** Ẩn/hiện mục menu theo vai trò: Admin không thấy mục riêng của Quản lý và ngược lại. */
 function applyRoleNavigation(account, csWorkspace) {
   document.querySelectorAll('.sidebar-menu a,.sidebar-menu button').forEach(link => {

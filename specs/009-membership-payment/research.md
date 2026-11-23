@@ -29,7 +29,7 @@ Mỗi mục: Quyết định · Lý do · Phương án đã cân nhắc.
 - Ngày bắt đầu = `max(today, maxEnd + 1)` với `maxEnd` = ngày hết hạn xa nhất trong các bản ghi `ACTIVE` của gia sư; không có thì `today`. Ngày hết hạn = `start.plusMonths(n).minusDays(1)`. `today` theo Asia/Ho_Chi_Minh (ASM-11).
 - Hết hạn khi đọc (chốt 4): mỗi lần đọc thông tin hội viên của một gia sư (gia sư, quản lý), các bản ghi `ACTIVE` có `end_date < today` chuyển `EXPIRED`; nếu không còn bản ghi `ACTIVE` nào có `end_date >= today` thì `tutor_state` `ACTIVE_PAID` → `APPROVED_UNPAID` và `membership_status` → `EXPIRED`. Danh sách của quản lý tính trạng thái hiển thị theo ngày (không ghi hàng loạt khi liệt kê).
 
-## 5. Lưu ghi chú điều tra của quản trị viên
+## 5. Lưu ghi chú điều tra của quản trị viên — ĐÃ GỠ 2026-11-23 (UC-98); không còn ghi `ADMIN_NOTE` mới, dòng cũ vẫn nằm trong `payment_processing_logs`
 
 - **Quyết định**: Một dòng `payment_processing_logs` với `request_payload = {"type":"ADMIN_NOTE","note":"...","adminId":"...","adminName":"..."}`, `response_payload = null`, `http_status_code = null`.
 - **Lý do**: Không đổi schema; bảng đã là nhật ký theo giao dịch.

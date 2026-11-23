@@ -49,12 +49,6 @@ export const API_CONFIG = {
       PLAN: (planId) => `/manager/membership-plans/${planId}`,
       TUTOR_MEMBERSHIPS: '/manager/tutor-memberships',
       TUTOR_MEMBERSHIP: (tutorId) => `/manager/tutor-memberships/${tutorId}`
-    },
-    ADMIN_PAYMENTS: {
-      TRANSACTIONS: '/admin/payment-transactions',
-      TRANSACTION: (id) => `/admin/payment-transactions/${id}`,
-      GATEWAY_CHECK: (id) => `/admin/payment-transactions/${id}/gateway-check`,
-      NOTES: (id) => `/admin/payment-transactions/${id}/notes`
     }
   }
 };

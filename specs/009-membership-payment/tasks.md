@@ -61,7 +61,7 @@ Quy ước: `[P]` chạy song song được (file khác nhau, không phụ thu�
 - [X] T038 [P] [US4] Test `ManagerTutorMembershipControllerTest`.
 - [X] T039 [US4] Tạo `frontend/pages/manager-tutor-memberships/` (bảng, bộ lọc, MSG01, ngăn kéo chi tiết); forward + alias.
 
-## Phase 7: US5 — Xử lý sự cố thanh toán (P3)
+## Phase 7: US5 — Xử lý sự cố thanh toán (P3) — ĐÃ GỠ 2026-11-23 (xem T050)
 
 - [X] T040 [P] [US5] Test `PaymentIssueServiceTest` (lọc; gateway-check PENDING → xử lý, SUCCESS/FAILED → chỉ ghi log; cổng lỗi → 503; ghi chú 1–2.000 ký tự).
 - [X] T041 [US5] Tạo `service/PaymentIssueService.java` + impl, `controller/AdminPaymentTransactionController.java` (D1–D4).
@@ -127,3 +127,6 @@ _Cập nhật 2026-11-04._
 ## Điều chỉnh 2026-11-23
 
 - [X] Chuyển cấu hình gói hội viên (contracts C1–C4) từ Quản trị viên về Quản lý đúng hợp đồng `ROLE_MANAGER`: `SecurityConfig`, trang `FE/pages/manager-membership-plans` dựng lại trên khung quản trị dùng chung, nằm trong nhóm thả xuống "Doanh thu & giao dịch" của sidebar Quản lý; bỏ phần gói khỏi Cấu hình hệ thống của Admin; cập nhật `PaymentControllersTest`.
+- [X] T050 Gỡ UC-98 (xử lý sự cố thanh toán) theo yêu cầu người dùng: xóa `AdminPaymentTransactionController`, `PaymentIssueService` + impl, DTO chỉ dùng cho UC-98 (`AdminTransactionRowView`, `LogView`, `NoteView`, `AdminTransactionDetailView`, `GatewayCheckView`, `NoteRequest`), `MembershipViewMapper.adminRow`, `MembershipQuerySpecification.membershipTransactions`, `MembershipLabels.outcome/logType`, `PaymentLogWriter.TYPE_NOTE`, `PaymentMessages.NOTE_SAVED/GATEWAY_CHECKED`; xóa `frontend/pages/admin-payments/`, alias `/admin/payments` trong `server.js`, `API.adminPayments`, `API_CONFIG` mục giao dịch Admin, khối `admin` trong `staff-layout.js`; bỏ test UC-98 trong `PaymentControllersTest` và `MembershipServicesTest$AdminGatewayCheck`. Giữ nguyên `core/` (xem plan Complexity Tracking). Không đổi DB: nhật ký cũ loại `ADMIN_NOTE` vẫn nằm trong `payment_processing_logs`.
+- [X] T052 (2026-11-23) Trang "Hội viên gia sư" (UC-44, UC-45, `/pages/manager-tutor-memberships/`) đã có nhưng không có link trên menu Quản lý (`admin-shell`): thêm mục "Hội viên gia sư" vào nhóm "Doanh thu" của `frontend/components/admin-shell/admin-shell.js` và vào `MANAGER_PATHS`; cập nhật danh sách link được phép trong `frontend/tests/management-profile.browser.mjs`. Dựng lại trang trên khung quản trị dùng chung (`operations.js` → `admin-shell`, cùng kiểu với `manager-membership-plans`): bộ lọc tên/email, gói, trạng thái; bảng phân trang 20 dòng; hộp thoại chi tiết (UC-45). Giữ nguyên API C5, C6. `staff-layout.js` không còn trang nào dùng.
+- [X] T053 (2026-11-24) Duyệt bài đăng (UC-129, UC-130) luôn gửi gia sư cả email và thông báo trong ứng dụng: thêm `tutor_post/service/TutorPostMailService` (gửi sau khi giao dịch lưu xong, luồng riêng, lỗi chỉ ghi log, cùng kiểu `VerificationNotificationService`); `TutorPostService.approve/reject/requestInfo` gọi email cạnh `notifyTutorReviewed`. Email không phụ thuộc cài đặt nhận email của FE-12. Thêm test trong `TutorPostServiceTest` và `TutorPostMailServiceTest`.

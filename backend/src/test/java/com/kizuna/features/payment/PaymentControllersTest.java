@@ -10,7 +10,6 @@ import com.kizuna.core.security.JwtAuthenticationFilter;
 import com.kizuna.core.security.JwtTokenProvider;
 import com.kizuna.core.security.RestAuthErrorHandlers;
 import com.kizuna.core.security.SecurityConfig;
-import com.kizuna.features.payment.controller.AdminPaymentTransactionController;
 import com.kizuna.features.payment.controller.ManagerMembershipPlanController;
 import com.kizuna.features.payment.controller.ManagerTutorMembershipController;
 import com.kizuna.features.payment.controller.TutorMembershipController;
@@ -18,7 +17,6 @@ import com.kizuna.features.payment.controller.VnpayIpnController;
 import com.kizuna.features.payment.dto.response.MembershipViews;
 import com.kizuna.features.payment.service.CurrentUserAccessor;
 import com.kizuna.features.payment.service.MembershipPlanAdminService;
-import com.kizuna.features.payment.service.PaymentIssueService;
 import com.kizuna.features.payment.service.PaymentMessages;
 import com.kizuna.features.payment.service.TutorMembershipMonitorService;
 import com.kizuna.features.payment.service.TutorMembershipService;
@@ -50,7 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Phân quyền (FR-023, SC-007), IPN công khai (FR-004) và khung phản hồi BACKEND_RULES 6.2/6.3. Không chạm DB.
  */
 @WebMvcTest(controllers = {TutorMembershipController.class, VnpayIpnController.class, ManagerMembershipPlanController.class,
-        ManagerTutorMembershipController.class, AdminPaymentTransactionController.class})
+        ManagerTutorMembershipController.class})
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, RestAuthErrorHandlers.class, CurrentUserAccessor.class})
 class PaymentControllersTest {
 
@@ -61,7 +59,6 @@ class PaymentControllersTest {
     @MockBean private VnpayIpnService ipnService;
     @MockBean private MembershipPlanAdminService planService;
     @MockBean private TutorMembershipMonitorService monitorService;
-    @MockBean private PaymentIssueService issueService;
     @MockBean private JwtTokenProvider jwtTokenProvider;
     @MockBean private UserRepository userRepository;
     @MockBean private com.kizuna.core.security.JwtTokenVerifier jwtTokenVerifier;
@@ -77,7 +74,6 @@ class PaymentControllersTest {
     void anonymousIsUnauthorizedOnProtectedRoutes() throws Exception {
         mockMvc.perform(get("/api/tutor/memberships/me")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/manager/membership-plans")).andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/admin/payment-transactions")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -85,7 +81,6 @@ class PaymentControllersTest {
         mockMvc.perform(get("/api/tutor/memberships/me").with(as("ROLE_LEARNER"))).andExpect(status().isForbidden());
         mockMvc.perform(get("/api/manager/membership-plans").with(as("ROLE_TUTOR"))).andExpect(status().isForbidden());
         mockMvc.perform(get("/api/manager/tutor-memberships").with(as("ROLE_ADMIN"))).andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/admin/payment-transactions").with(as("ROLE_MANAGER"))).andExpect(status().isForbidden());
     }
 
     @Test
@@ -162,15 +157,6 @@ class PaymentControllersTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Vui lòng chọn gói hội viên."));
-    }
-
-    @Test
-    void gatewayUnavailableIs503() throws Exception {
-        when(issueService.checkWithGateway(eq("abc"), any(), any()))
-                .thenThrow(new ServiceUnavailableException(PaymentMessages.MSG37_GATEWAY_UNAVAILABLE));
-        mockMvc.perform(post("/api/admin/payment-transactions/abc/gateway-check").with(as("ROLE_ADMIN")))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.message").value(PaymentMessages.MSG37_GATEWAY_UNAVAILABLE));
     }
 
     @Test

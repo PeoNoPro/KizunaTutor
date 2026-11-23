@@ -36,9 +36,4 @@ public final class MembershipRequests {
             @NotNull(message = "Vui lòng nhập giá gói.") Long price,
             List<String> benefits) {
     }
-
-    public record NoteRequest(
-            @NotBlank(message = "Vui lòng nhập nội dung ghi chú.")
-            @Size(max = 2000, message = "Ghi chú tối đa 2.000 ký tự.") String note) {
-    }
 }

@@ -35,8 +35,8 @@ Chỉ unit test và `@WebMvcTest`, không chạm DB. Test tích hợp DB bị b�
 | 6 | Sửa 1 ký tự `vnp_Amount` trong URL kết quả / IPN | 400 "Kết quả thanh toán không hợp lệ." / `97`; không đổi dữ liệu | SC-003 |
 | 7 | Mua tiếp gói 3 tháng khi gói cũ còn hiệu lực | Gói mới bắt đầu ngày sau ngày hết hạn cũ; trang hiện "Đã gia hạn, bắt đầu từ …" | US1-8, FR-008 |
 | 8 | Mua gói rồi bấm "Hủy giao dịch" trên cổng | MSG32; giao dịch `FAILED`; nút thanh toán lại | US1-4, FR-009 |
-| 9 | Tạo giao dịch rồi đóng tab, quản trị viên bấm "Kiểm tra với cổng thanh toán" | Trạng thái đồng bộ theo cổng; nhật ký có `QUERYDR` | US5-2, FR-020 |
-| 10 | Quản trị viên ghi chú điều tra | Ghi chú hiện trong chi tiết; gia sư không thấy | US5-4, FR-021 |
+| 9 | *(Đã gỡ 2026-11-23 cùng UC-98 — bỏ qua)* Tạo giao dịch rồi đóng tab, quản trị viên bấm "Kiểm tra với cổng thanh toán" | Trạng thái đồng bộ theo cổng; nhật ký có `QUERYDR` | US5-2, FR-020 |
+| 10 | *(Đã gỡ 2026-11-23 cùng UC-98 — bỏ qua)* Quản trị viên ghi chú điều tra | Ghi chú hiện trong chi tiết; gia sư không thấy | US5-4, FR-021 |
 | 11 | Quản lý đổi giá gói 1 tháng | Gia sư thấy giá mới; giao dịch cũ giữ giá cũ | US3-2, FR-015 |
 | 12 | Quản lý nhập giá 0 / bỏ trống tên | Bị chặn, MSG36/MSG02 | US3-3 |
 | 13 | Quản lý ngừng bán một gói | Gia sư không còn thấy gói đó | US3-5 |

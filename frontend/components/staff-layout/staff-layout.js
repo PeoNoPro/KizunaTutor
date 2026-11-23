@@ -1,5 +1,5 @@
 /**
- * KizunaTutor - Khung giao diện cho Quản lý vận hành và Quản trị viên (FE-09), cùng phong cách Stitch của cổng học vụ.
+ * KizunaTutor - Khung giao diện cho Quản lý vận hành (FE-09), cùng phong cách Stitch của cổng học vụ.
  *
  * Trang dùng:
  *   <div id="staffSidebar"></div>
@@ -38,18 +38,8 @@ const ROLES = {
       { key: 'tutorMemberships', label: 'Hội viên gia sư', icon: 'card_membership', href: '/manager/tutor-memberships' },
       { key: 'users', label: 'Quản lý người dùng', icon: 'manage_accounts', href: '/manager/users' }
     ]
-  },
-  admin: {
-    requiredRole: 'ROLE_ADMIN',
-    portal: 'Quản trị hệ thống',
-    roleLabel: 'Quản trị viên',
-    sectionTitle: 'Quản trị hệ thống',
-    home: '/admin/payments',
-    items: [
-      { key: 'payments', label: 'Quản lý thanh toán', icon: 'receipt_long', href: '/admin/payments' },
-      { key: 'users', label: 'Quản lý người dùng', icon: 'manage_accounts', href: '/manager/users' }
-    ]
   }
+  // 2026-11-23: bỏ khối 'admin' (trang Quản lý thanh toán /admin/payments, UC-98) theo yêu cầu người dùng.
 };
 
 function escapeHtml(text) {

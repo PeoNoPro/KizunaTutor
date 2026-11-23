@@ -23,9 +23,14 @@
     <main class="flex-1 w-full pt-16 lg:pt-0">
       <div class="px-4 md:px-8 py-6">
 
-        <div class="mb-6">
-          <h1 class="text-headline-md text-on-surface">Gói hội viên</h1>
-          <p class="text-body-md text-on-surface-variant mt-1">Đăng ký gói để mở khóa đầy đủ tính năng giảng dạy trên KizunaTutor.</p>
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 class="text-headline-md text-on-surface">Gói hội viên</h1>
+            <p class="text-body-md text-on-surface-variant mt-1">Đăng ký gói để mở khóa đầy đủ tính năng giảng dạy trên KizunaTutor. Gói đang dùng xem ở trang Tổng quan.</p>
+          </div>
+          <button id="historyButton" type="button" class="tv-btn inline-flex items-center gap-2 self-start sm:self-auto shrink-0">
+            <span class="material-symbols-outlined text-[18px]">receipt_long</span>Lịch sử giao dịch
+          </button>
         </div>
 
         <section id="loadingState" class="space-y-4" aria-live="polite">
@@ -54,29 +59,7 @@
             </div>
           </div>
 
-          <!-- Gói hiện tại (trái) + lịch sử giao dịch (phải) -->
-          <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
-          <section class="tv-card p-6 xl:col-span-4 h-full" aria-labelledby="currentTitle">
-            <div class="flex items-center justify-between gap-3 flex-wrap">
-              <h2 id="currentTitle" class="text-title-lg">Gói của tôi</h2>
-              <span id="tutorStateBadge"></span>
-            </div>
-            <div id="currentBlock" class="mt-4"></div>
-            <div id="upcomingBlock" class="mt-4 hidden">
-              <h3 class="text-label-md text-on-surface-variant mb-2">Đã gia hạn nối tiếp</h3>
-              <ul id="upcomingList" class="flex flex-col gap-2"></ul>
-            </div>
-          </section>
-
-          <!-- Lịch sử -->
-          <section class="tv-card p-6 xl:col-span-8 h-full" aria-labelledby="historyTitle">
-            <h2 id="historyTitle" class="text-title-lg">Lịch sử giao dịch</h2>
-            <div id="paymentsBlock" class="mt-4 overflow-x-auto"></div>
-            <div id="paymentsPager" class="mt-3"></div>
-          </section>
-          </div>
-
-          <!-- Các gói đang mở bán -->
+          <!-- Các gói đang mở bán (gói đang dùng hiển thị ở trang Tổng quan) -->
           <section aria-labelledby="plansTitle">
             <h2 id="plansTitle" class="text-title-lg mb-3">Chọn gói</h2>
             <div id="plansGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
@@ -105,6 +88,20 @@
           <span class="material-symbols-outlined text-[18px]">payments</span>Thanh toán qua VNPay
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Lịch sử giao dịch (mở bằng nút ở đầu trang) -->
+  <div id="historyModal" class="hidden fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+    <div class="tv-card w-full max-w-3xl p-6 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between gap-3">
+        <h2 id="historyTitle" class="text-title-lg">Lịch sử giao dịch</h2>
+        <button id="historyClose" type="button" class="tv-btn tv-btn-small" aria-label="Đóng">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+      <div id="paymentsBlock" class="mt-4 overflow-auto flex-1"></div>
+      <div id="paymentsPager" class="mt-3"></div>
     </div>
   </div>
 

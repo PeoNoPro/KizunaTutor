@@ -5,7 +5,7 @@
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <meta content="web_standard" name="shell-type">
   <title>Không gian hỗ trợ học tập - KizunaTutor</title>
-  <meta name="description" content="Giới thiệu 8 công cụ luyện tiếng Nhật trên KizunaTutor: luyện viết Shodo, tra chữ Hán viết tay, từ điển Kanji, ngữ pháp, chữa câu AI, Flashcards, Kana và game Mưa chữ Hán.">
+  <meta name="description" content="Giới thiệu các công cụ luyện tiếng Nhật trên KizunaTutor: tra cứu từ vựng, từ điển chữ Hán, tra cứu viết tay AI, bộ thẻ Flashcards, kho ngữ pháp JLPT, chữa câu AI, đọc hiểu Dokkai AI, luyện đề JLPT, luyện viết Shodo, đấu trường gõ Kana và game hứng chữ Hán.">
   <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,7 +41,7 @@
           </p>
           <h1 class="text-display-3 sm:text-display-2 lg:text-display-1 text-navy">Không gian hỗ trợ học tập</h1>
           <p class="text-lead text-fg-muted max-w-xl">
-            Giờ học với gia sư giúp bạn hiểu bài. Phần còn lại là luyện tập đều đặn. KizunaTutor tích hợp sẵn 8 công cụ tiếng Nhật để bạn tự ôn chữ Hán, ngữ pháp, từ vựng và Kana giữa các buổi học.
+            Giờ học với gia sư giúp bạn hiểu bài. Phần còn lại là luyện tập đều đặn. KizunaTutor tích hợp sẵn các công cụ tiếng Nhật để bạn tự ôn từ vựng, chữ Hán, ngữ pháp, đọc hiểu và luyện đề JLPT giữa các buổi học.
           </p>
           <div class="flex flex-wrap gap-3 pt-1">
             <a href="/tutors" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-element bg-primary hover:bg-primary-hover text-on-primary font-semibold text-body transition-colors duration-fast">
@@ -49,7 +49,7 @@
               <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
             </a>
             <a href="#danh-sach-cong-cu" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-element border border-line-strong bg-card hover:bg-surface-muted text-fg font-semibold text-body transition-colors duration-fast">
-              Xem 8 công cụ
+              Xem các công cụ
             </a>
           </div>
         </div>
@@ -90,7 +90,7 @@
             <span class="w-11 h-11 rounded-full bg-accent text-on-accent text-heading-3 font-extrabold flex items-center justify-center shrink-0">3</span>
             <div>
               <h3 class="text-heading-3 text-navy">Luyện tập mỗi ngày</h3>
-              <p class="text-body text-fg-muted mt-1">Toàn bộ 8 công cụ được mở trong không gian học viên của bạn.</p>
+              <p class="text-body text-fg-muted mt-1">Toàn bộ công cụ được mở trong không gian học viên của bạn.</p>
             </div>
           </li>
         </ol>
@@ -98,15 +98,161 @@
     </section>
 
 
-    <!-- ③ 8 CÔNG CỤ (chỉ giới thiệu, không mở công cụ) -->
+    <!-- ③ DANH SÁCH CÔNG CỤ (chỉ giới thiệu, không mở công cụ). Cùng nhóm và tên với sidebar học viên (components/learner-layout). -->
     <section class="w-full py-16 sm:py-20 bg-surface scroll-mt-24" id="danh-sach-cong-cu">
       <div class="max-w-[1240px] mx-auto px-4 sm:px-6 space-y-20">
 
-        <!-- Nhóm: Chữ Hán -->
+        <!-- Nhóm: Từ vựng & chữ Hán -->
         <div>
-          <p class="text-caption font-semibold text-primary">Nhóm 1 · Chữ Hán</p>
-          <h2 class="text-heading-1 sm:text-display-3 text-navy mt-1">Nhớ mặt chữ, viết đúng thứ tự nét</h2>
+          <p class="text-caption font-semibold text-primary">Nhóm 1 · Từ vựng &amp; chữ Hán</p>
+          <h2 class="text-heading-1 sm:text-display-3 text-navy mt-1">Tra từ, nhớ chữ, ôn bằng bộ thẻ</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+
+            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+              <div class="h-36 bg-primary flex items-center justify-between px-6">
+                <span class="material-symbols-outlined text-[52px] text-on-primary" aria-hidden="true">search</span>
+                <span class="font-kanji text-[64px] text-white/30" aria-hidden="true">語</span>
+              </div>
+              <div class="p-6 flex-1">
+                <h3 class="text-heading-2 text-navy">Tra cứu từ vựng</h3>
+                <p class="text-body text-fg-muted mt-2">Kho từ vựng tiếng Nhật theo chủ đề và cấp độ JLPT.</p>
+                <ul class="mt-4 space-y-2 text-body text-fg">
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Tìm theo chữ Hán, Hiragana, âm Hán Việt hoặc nghĩa</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Lọc theo chủ đề và cấp độ JLPT</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Lưu từ vào bộ thẻ cá nhân để ôn lại</span></li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+              <div class="h-36 bg-navy flex items-center justify-between px-6">
+                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">menu_book</span>
+                <span class="font-kanji text-[64px] text-white/25" aria-hidden="true">辞</span>
+              </div>
+              <div class="p-6 flex-1">
+                <h3 class="text-heading-2 text-navy">Từ điển chữ Hán</h3>
+                <p class="text-body text-fg-muted mt-2">Tra cứu chữ Hán theo cấp độ JLPT.</p>
+                <ul class="mt-4 space-y-2 text-body text-fg">
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Âm Hán Việt, âm On/Kun, số nét và ví dụ</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Nghe phát âm chuẩn bằng giọng đọc AI</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Cất chữ vào bộ thẻ cá nhân để ôn lại</span></li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+              <div class="h-36 bg-accent flex items-center justify-between px-6">
+                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">draw</span>
+                <span class="font-kanji text-[64px] text-white/40" aria-hidden="true">探</span>
+              </div>
+              <div class="p-6 flex-1">
+                <h3 class="text-heading-2 text-navy">Tra cứu viết tay AI</h3>
+                <p class="text-body text-fg-muted mt-2">Gặp chữ không biết cách đọc? Vẽ lại để tra.</p>
+                <ul class="mt-4 space-y-2 text-body text-fg">
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Vẽ từng nét bằng chuột hoặc cảm ứng</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Nhận gợi ý chữ phù hợp ngay khi vẽ</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Mở chi tiết chữ Hán vừa tìm được</span></li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+              <div class="h-36 bg-success flex items-center justify-between px-6">
+                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">style</span>
+                <span class="font-kanji text-[64px] text-white/30" aria-hidden="true">単語</span>
+              </div>
+              <div class="p-6 flex-1">
+                <h3 class="text-heading-2 text-navy">Bộ thẻ Flashcards</h3>
+                <p class="text-body text-fg-muted mt-2">Bộ thẻ từ vựng của riêng bạn.</p>
+                <ul class="mt-4 space-y-2 text-body text-fg">
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Tạo bộ thẻ, nhập nhanh từ file Excel mẫu</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Gộp nhiều bộ thẻ thành một</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Luyện lật thẻ và chơi ghép cặp</span></li>
+                </ul>
+              </div>
+            </article>
+
+          </div>
+        </div>
+
+        <!-- Nhóm: Ngữ pháp, viết & đọc hiểu -->
+        <div>
+          <p class="text-caption font-semibold text-primary">Nhóm 2 · Ngữ pháp, viết &amp; đọc hiểu</p>
+          <h2 class="text-heading-1 sm:text-display-3 text-navy mt-1">Hiểu mẫu câu, viết tự nhiên, đọc trôi chảy</h2>
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+
+            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+              <div class="h-36 bg-success flex items-center justify-between px-6">
+                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">library_books</span>
+                <span class="font-kanji text-[64px] text-white/30" aria-hidden="true">文法</span>
+              </div>
+              <div class="p-6 flex-1">
+                <h3 class="text-heading-2 text-navy">Kho ngữ pháp JLPT</h3>
+                <p class="text-body text-fg-muted mt-2">Cẩm nang mẫu ngữ pháp từ N5 đến N1.</p>
+                <ul class="mt-4 space-y-2 text-body text-fg">
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Lọc theo cấp độ JLPT, tìm theo từ khoá</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Câu ví dụ kèm nghe phát âm</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Sensei AI chấm và phân tích câu bạn tự đặt</span></li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+              <div class="h-36 bg-primary flex items-center justify-between px-6">
+                <span class="material-symbols-outlined text-[52px] text-on-primary" aria-hidden="true">edit_note</span>
+                <span class="font-kanji text-[64px] text-white/30" aria-hidden="true">作文</span>
+              </div>
+              <div class="p-6 flex-1">
+                <h3 class="text-heading-2 text-navy">Chữa câu &amp; Viết AI</h3>
+                <p class="text-body text-fg-muted mt-2">Viết câu tiếng Nhật và nhận góp ý ngay.</p>
+                <ul class="mt-4 space-y-2 text-body text-fg">
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Đối chiếu ngữ pháp và sắc thái ngữ cảnh</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Gợi ý cách diễn đạt tự nhiên hơn</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Lưu lịch sử đặt câu thành sổ tay riêng</span></li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+              <div class="h-36 bg-navy flex items-center justify-between px-6">
+                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">chrome_reader_mode</span>
+                <span class="font-kanji text-[64px] text-white/25" aria-hidden="true">読解</span>
+              </div>
+              <div class="p-6 flex-1">
+                <h3 class="text-heading-2 text-navy">Đọc hiểu Dokkai AI</h3>
+                <p class="text-body text-fg-muted mt-2">Luyện đọc và bóc tách văn bản tiếng Nhật bằng AI.</p>
+                <ul class="mt-4 space-y-2 text-body text-fg">
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Dán đoạn văn bất kỳ hoặc chọn nhanh bài đọc mẫu</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>AI bóc tách từ vựng và ngữ pháp theo cấp độ JLPT</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Bật hoặc ẩn Furigana khi đọc</span></li>
+                </ul>
+              </div>
+            </article>
+
+          </div>
+        </div>
+
+        <!-- Nhóm: Thực hành & luyện đề -->
+        <div>
+          <p class="text-caption font-semibold text-primary">Nhóm 3 · Thực hành &amp; luyện đề</p>
+          <h2 class="text-heading-1 sm:text-display-3 text-navy mt-1">Luyện đề như thi thật, ôn bài mà như chơi</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+
+            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
+              <div class="h-36 bg-accent flex items-center justify-between px-6">
+                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">quiz</span>
+                <span class="font-kanji text-[64px] text-white/40" aria-hidden="true">試験</span>
+              </div>
+              <div class="p-6 flex-1">
+                <h3 class="text-heading-2 text-navy">Luyện đề thi JLPT</h3>
+                <p class="text-body text-fg-muted mt-2">Đề luyện thi từ N5 đến N1 do cán bộ học vụ biên soạn.</p>
+                <ul class="mt-4 space-y-2 text-body text-fg">
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Chọn phần Từ vựng, Ngữ pháp – Đọc hiểu hoặc Nghe, tính giờ như thi thật</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Xem đáp án, giải thích và lời thoại phần nghe sau khi nộp</span></li>
+                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Làm lại riêng các câu đã sai</span></li>
+                </ul>
+              </div>
+            </article>
 
             <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
               <div class="h-36 bg-primary flex items-center justify-between px-6">
@@ -125,110 +271,12 @@
             </article>
 
             <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
-              <div class="h-36 bg-accent flex items-center justify-between px-6">
-                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">draw</span>
-                <span class="font-kanji text-[64px] text-white/40" aria-hidden="true">探</span>
-              </div>
-              <div class="p-6 flex-1">
-                <h3 class="text-heading-2 text-navy">Tra chữ Hán viết tay</h3>
-                <p class="text-body text-fg-muted mt-2">Gặp chữ không biết cách đọc? Vẽ lại để tra.</p>
-                <ul class="mt-4 space-y-2 text-body text-fg">
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Vẽ từng nét bằng chuột hoặc cảm ứng</span></li>
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Nhận gợi ý chữ phù hợp ngay khi vẽ</span></li>
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Mở chi tiết chữ Hán vừa tìm được</span></li>
-                </ul>
-              </div>
-            </article>
-
-            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
-              <div class="h-36 bg-navy flex items-center justify-between px-6">
-                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">auto_stories</span>
-                <span class="font-kanji text-[64px] text-white/25" aria-hidden="true">辞</span>
-              </div>
-              <div class="p-6 flex-1">
-                <h3 class="text-heading-2 text-navy">Từ điển Kanji</h3>
-                <p class="text-body text-fg-muted mt-2">Tra cứu chữ Hán theo cấp độ JLPT.</p>
-                <ul class="mt-4 space-y-2 text-body text-fg">
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Âm Hán Việt, âm On/Kun, số nét và ví dụ</span></li>
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Nghe phát âm chuẩn bằng giọng đọc AI</span></li>
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Cất chữ vào bộ thẻ cá nhân để ôn lại</span></li>
-                </ul>
-              </div>
-            </article>
-
-          </div>
-        </div>
-
-        <!-- Nhóm: Ngữ pháp & viết câu -->
-        <div>
-          <p class="text-caption font-semibold text-primary">Nhóm 2 · Ngữ pháp &amp; viết câu</p>
-          <h2 class="text-heading-1 sm:text-display-3 text-navy mt-1">Hiểu mẫu câu, viết câu tự nhiên</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-
-            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
-              <div class="h-36 bg-success flex items-center justify-between px-6">
-                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">menu_book</span>
-                <span class="font-kanji text-[64px] text-white/30" aria-hidden="true">文法</span>
-              </div>
-              <div class="p-6 flex-1">
-                <h3 class="text-heading-2 text-navy">Ngữ pháp &amp; AI Sensei</h3>
-                <p class="text-body text-fg-muted mt-2">Cẩm nang mẫu ngữ pháp từ N5 đến N1.</p>
-                <ul class="mt-4 space-y-2 text-body text-fg">
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Lọc theo cấp độ JLPT, tìm theo từ khoá</span></li>
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Câu ví dụ kèm nghe phát âm</span></li>
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Sensei AI chấm và phân tích câu bạn tự đặt</span></li>
-                </ul>
-              </div>
-            </article>
-
-            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
-              <div class="h-36 bg-primary flex items-center justify-between px-6">
-                <span class="material-symbols-outlined text-[52px] text-on-primary" aria-hidden="true">edit_note</span>
-                <span class="font-kanji text-[64px] text-white/30" aria-hidden="true">作文</span>
-              </div>
-              <div class="p-6 flex-1">
-                <h3 class="text-heading-2 text-navy">Luyện viết &amp; chữa câu AI</h3>
-                <p class="text-body text-fg-muted mt-2">Viết câu tiếng Nhật và nhận góp ý ngay.</p>
-                <ul class="mt-4 space-y-2 text-body text-fg">
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Đối chiếu ngữ pháp và sắc thái ngữ cảnh</span></li>
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Gợi ý cách diễn đạt tự nhiên hơn</span></li>
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Lưu lịch sử đặt câu thành sổ tay riêng</span></li>
-                </ul>
-              </div>
-            </article>
-
-          </div>
-        </div>
-
-        <!-- Nhóm: Từ vựng & trò chơi -->
-        <div>
-          <p class="text-caption font-semibold text-primary">Nhóm 3 · Từ vựng &amp; trò chơi</p>
-          <h2 class="text-heading-1 sm:text-display-3 text-navy mt-1">Ôn bài mà như chơi</h2>
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-
-            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
-              <div class="h-36 bg-accent flex items-center justify-between px-6">
-                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">style</span>
-                <span class="font-kanji text-[64px] text-white/40" aria-hidden="true">単語</span>
-              </div>
-              <div class="p-6 flex-1">
-                <h3 class="text-heading-2 text-navy">Bộ thẻ Flashcards</h3>
-                <p class="text-body text-fg-muted mt-2">Bộ thẻ từ vựng của riêng bạn.</p>
-                <ul class="mt-4 space-y-2 text-body text-fg">
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Tạo bộ thẻ, nhập nhanh từ file Excel mẫu</span></li>
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Gộp nhiều bộ thẻ thành một</span></li>
-                  <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Luyện lật thẻ và chơi ghép cặp</span></li>
-                </ul>
-              </div>
-            </article>
-
-            <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
               <div class="h-36 bg-navy flex items-center justify-between px-6">
                 <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">keyboard</span>
                 <span class="font-kanji text-[64px] text-white/25" aria-hidden="true">あア</span>
               </div>
               <div class="p-6 flex-1">
-                <h3 class="text-heading-2 text-navy">Đấu trường Kana</h3>
+                <h3 class="text-heading-2 text-navy">Đấu trường gõ Kana</h3>
                 <p class="text-body text-fg-muted mt-2">Luyện nhận mặt Hiragana và Katakana.</p>
                 <ul class="mt-4 space-y-2 text-body text-fg">
                   <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Chọn hàng chữ muốn luyện hoặc cả bảng</span></li>
@@ -240,11 +288,11 @@
 
             <article class="bg-card rounded-container border border-line shadow-low overflow-hidden flex flex-col">
               <div class="h-36 bg-success flex items-center justify-between px-6">
-                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">sports_esports</span>
+                <span class="material-symbols-outlined text-[52px] text-on-dark" aria-hidden="true">videogame_asset</span>
                 <span class="font-kanji text-[64px] text-white/30" aria-hidden="true">雨</span>
               </div>
               <div class="p-6 flex-1">
-                <h3 class="text-heading-2 text-navy">Game Mưa chữ Hán</h3>
+                <h3 class="text-heading-2 text-navy">Game hứng chữ Hán</h3>
                 <p class="text-body text-fg-muted mt-2">Gõ cách đọc trước khi chữ rơi chạm đất.</p>
                 <ul class="mt-4 space-y-2 text-body text-fg">
                   <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-[18px] shrink-0" aria-hidden="true">check</span><span>Chọn kho chữ Hán hoặc bộ thẻ của bạn</span></li>

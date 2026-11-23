@@ -98,7 +98,7 @@
               <span>Tìm gia sư ngay</span>
               <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
             </a>
-            <a href="/register" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-element border border-white/60 hover:bg-white/10 text-on-dark font-semibold text-body transition-colors duration-fast">
+            <a href="/register?role=tutor" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-element border border-white/60 hover:bg-white/10 text-on-dark font-semibold text-body transition-colors duration-fast">
               <span>Trở thành gia sư</span>
             </a>
           </div>
@@ -108,7 +108,7 @@
 
 
     <!-- ③ ĐỘI NGŨ GIA SƯ (dữ liệu API thật qua home.js) -->
-    <section class="w-full py-16 sm:py-20 bg-white scroll-mt-24" id="kham-pha-gia-su">
+    <section class="w-full py-8 sm:py-10 bg-white scroll-mt-24" id="kham-pha-gia-su">
       <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
 
         <div class="reveal text-center max-w-2xl mx-auto mb-10">
@@ -132,7 +132,7 @@
 
 
     <!-- ② KIZUNATUTOR CUNG CẤP GÌ: 3 cột minh hoạ (linh vật capybara) -->
-    <section class="w-full py-16 sm:py-20 bg-surface-muted">
+    <section class="w-full py-8 sm:py-10 bg-surface-muted">
       <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
 
         <h2 class="reveal text-center text-heading-1 sm:text-display-3 text-navy mb-12 sm:mb-16">Xem KizunaTutor cung cấp những gì</h2>
@@ -180,23 +180,27 @@
 
 
     <!-- ②b KHÔNG GIAN HỖ TRỢ HỌC TẬP (bản thu gọn; chi tiết ở /cong-cu-hoc-tap) -->
-    <section class="w-full py-14 sm:py-16 bg-surface scroll-mt-24" id="cong-cu-hoc-tap">
+    <section class="w-full py-7 sm:py-8 bg-surface scroll-mt-24" id="cong-cu-hoc-tap">
       <div class="max-w-[1240px] mx-auto px-4 sm:px-6 text-center">
 
         <h2 class="reveal text-heading-1 sm:text-display-3 text-navy">Không gian hỗ trợ học tập</h2>
         <p class="reveal text-lead text-fg-muted mt-2 max-w-2xl mx-auto">
-          8 công cụ luyện tiếng Nhật tích hợp sẵn, mở khi bạn vào lớp cùng gia sư.
+          Các công cụ luyện tiếng Nhật tích hợp sẵn, mở khi bạn vào lớp cùng gia sư.
         </p>
 
-        <ul class="reveal mt-8 flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
+        <!-- Cùng danh sách và thứ tự với nhóm "Hỗ trợ học tập" trong components/learner-layout -->
+        <ul class="reveal mt-8 flex flex-wrap justify-center gap-3 max-w-5xl mx-auto">
+          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">search</span>Tra cứu từ vựng</li>
+          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">menu_book</span>Từ điển chữ Hán</li>
+          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">draw</span>Tra cứu viết tay AI</li>
+          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">library_books</span>Kho ngữ pháp JLPT</li>
+          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">edit_note</span>Chữa câu &amp; Viết AI</li>
+          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">chrome_reader_mode</span>Đọc hiểu Dokkai AI</li>
+          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">quiz</span>Luyện đề thi JLPT</li>
           <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">brush</span>Luyện viết Shodo</li>
-          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">draw</span>Tra chữ viết tay</li>
-          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">auto_stories</span>Từ điển Kanji</li>
-          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">menu_book</span>Ngữ pháp &amp; AI Sensei</li>
-          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">edit_note</span>Chữa câu AI</li>
-          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">style</span>Flashcards</li>
-          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">keyboard</span>Đấu trường Kana</li>
-          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">sports_esports</span>Mưa chữ Hán</li>
+          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">keyboard</span>Đấu trường gõ Kana</li>
+          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">videogame_asset</span>Game hứng chữ Hán</li>
+          <li class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-line shadow-low text-body font-semibold text-navy"><span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">style</span>Bộ thẻ Flashcards</li>
         </ul>
 
         <a href="/cong-cu-hoc-tap" class="reveal mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-element bg-primary hover:bg-primary-hover text-on-primary font-semibold text-body transition-colors duration-fast">
@@ -209,7 +213,7 @@
 
 
     <!-- ④ VÌ SAO CHỌN KIZUNA: thẻ trắng, icon tròn nổi trên mép -->
-    <section class="w-full py-16 sm:py-20 bg-surface-muted">
+    <section class="w-full py-8 sm:py-10 bg-surface-muted">
       <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
 
         <div class="reveal text-center max-w-2xl mx-auto mb-16">
@@ -263,7 +267,7 @@
 
 
     <!-- ⑤ CHƯƠNG TRÌNH THEO MỤC TIÊU -->
-    <section class="w-full py-16 sm:py-20 bg-surface scroll-mt-24" id="chuyen-de">
+    <section class="w-full py-8 sm:py-10 bg-surface scroll-mt-24" id="chuyen-de">
       <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
 
         <div class="reveal text-center max-w-2xl mx-auto mb-10">
@@ -325,7 +329,7 @@
 
 
     <!-- ⑥ 3 BƯỚC: thẻ xanh đậm chữ trắng, số tròn vàng nổi trên mép -->
-    <section class="w-full py-16 sm:py-20 bg-surface-muted scroll-mt-24" id="cach-hoat-dong">
+    <section class="w-full py-8 sm:py-10 bg-surface-muted scroll-mt-24" id="cach-hoat-dong">
       <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
 
         <div class="reveal text-center max-w-2xl mx-auto mb-16">
@@ -371,7 +375,7 @@
 
 
     <!-- ⑦ TRỞ THÀNH GIA SƯ: dải navy -->
-    <section class="w-full py-16 sm:py-20 bg-surface scroll-mt-24" id="tro-thanh-gia-su">
+    <section class="w-full py-8 sm:py-10 bg-surface scroll-mt-24" id="tro-thanh-gia-su">
       <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
         <div class="reveal bg-card border border-line shadow-med rounded-page p-8 sm:p-12 space-y-6 text-fg">
 
@@ -404,7 +408,7 @@
 
 
     <!-- ⑧ CÂU HỎI THƯỜNG GẶP (căn giữa) -->
-    <section class="w-full py-16 sm:py-20 bg-surface-muted scroll-mt-24" id="ho-tro">
+    <section class="w-full py-8 sm:py-10 bg-surface-muted scroll-mt-24" id="ho-tro">
       <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
 
         <!-- Câu hỏi thường gặp (logic trong home.js) -->

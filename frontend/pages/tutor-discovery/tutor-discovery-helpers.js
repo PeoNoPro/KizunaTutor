@@ -290,14 +290,11 @@ export function buildTutorCardHtml(tutor, options = {}) {
         <!-- Cột giữa: Thông tin chuyên môn & giới thiệu -->
         <div class="flex-1 min-w-0 flex flex-col justify-between gap-2.5">
           <div class="space-y-2">
-            <!-- Tên + hình thức dạy -->
+            <!-- Tên -->
             <div class="flex flex-wrap items-center gap-2">
               <h3 class="text-[19px] font-bold text-[#0F2545] leading-snug group-hover:text-[#006194] transition-colors">
                 <a href="${profileUrl}">${escapeHtml(tutor.fullName)}</a>
               </h3>
-              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[6px] bg-[#F6F9FB] text-[#475569] text-[11px] font-medium border border-[#E5EAF0]">
-                ${escapeHtml(tutor.teachingFormat)}
-              </span>
             </div>
 
             <!-- Dòng metadata thực tế từ DB -->

@@ -1,5 +1,5 @@
 /**
- * KizunaTutor - Hàm thuần cho trang "Bài đăng của tôi" (không đụng DOM, test được bằng node --test).
+ * KizunaTutor - Hàm thuần cho trang "Bài đăng tuyển học viên" (không đụng DOM, test được bằng node --test).
  * Giới hạn khớp TutorPostService (backend): tiêu đề 10–150, giới thiệu 50–3000,
  * bảng học phí ít nhất 1 mục, mỗi môn học / cấp độ một mức; mỗi mức có thời lượng một buổi (60 / 90 / 120 phút)
  * và giá một buổi 10.000–10.000.000 đ.

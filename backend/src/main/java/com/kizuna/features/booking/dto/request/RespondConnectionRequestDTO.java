@@ -18,4 +18,16 @@ public class RespondConnectionRequestDTO {
     /** Lời nhắn khi đồng ý, hoặc lý do khi từ chối. */
     @Size(max = 1000, message = "Lời nhắn tối đa 1000 ký tự")
     private String message;
+
+    /** Khi đồng ý: độ dài từng ca hằng tuần (60 / 90 / 120 phút) do gia sư chọn, theo slotId. */
+    private java.util.List<SlotDuration> slotDurations;
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SlotDuration {
+        private java.util.UUID slotId;
+        private Integer durationMinutes;
+    }
 }

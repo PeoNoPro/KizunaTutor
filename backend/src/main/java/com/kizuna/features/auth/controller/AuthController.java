@@ -54,6 +54,11 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
+    // FE-14: ghi lần đăng nhập gần nhất. Tiêm qua field (không qua constructor) để không đổi cách dựng class trong test;
+    // test dựng tay thì field là null và bỏ qua.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kizuna.features.auth.service.LoginActivityRecorder loginActivity;
+
     @Value("${app.auth.mock-google.enabled:false}")
     private boolean mockGoogleEnabled;
 
@@ -195,6 +200,7 @@ public class AuthController {
             learnerRepository.save(learner);
         }
 
+        if (loginActivity != null) loginActivity.record(user.getUserId());
         String token = jwtTokenProvider.generateToken(user);
         String roleName = user.getRole().getRoleName();
 

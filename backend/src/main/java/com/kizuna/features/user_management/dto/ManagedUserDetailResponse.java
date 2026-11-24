@@ -22,6 +22,7 @@ public record ManagedUserDetailResponse(
         String accountStatusLabel,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,
+        OffsetDateTime lastLoginAt,
         List<StatusOption> allowedStatuses,
         String statusChangeBlockedReason,
         TutorProfile tutorProfile,

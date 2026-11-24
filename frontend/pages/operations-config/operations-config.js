@@ -14,13 +14,10 @@ function showSection() {
     document.title = label + ' - KizunaTutor';
 }
 
-const state = {historyPage: 0, dirty: false, senderDirty: false, aiDirty: false, version: null, current: null, senderVersion: null, sender: null, ai: null, plans: [], plan: null, savingPlan: false};
+const state = {historyPage: 0, dirty: false, senderDirty: false, aiDirty: false, version: null, current: null, senderVersion: null, sender: null, ai: null};
 const PATH = base + '/settings/attachment-limit';
 const SENDER_PATH = base + '/settings/mail-sender';
 const AI_PATH = base + '/settings/ai';
-// Gói hội viên dùng API của phân hệ thanh toán (FE-09, đăng nhập bằng token): Admin tạo/sửa, Quản lý chỉ xem.
-const plansApi = API.managerMembership;
-const money = value => new Intl.NumberFormat('vi-VN').format(value) + ' đ';
 
 function renderAi(ai) {
     state.ai = ai;
@@ -47,37 +44,6 @@ function syncAiNote() {
         : chosen.keySource === 'server' ? 'Đang dùng API key trong cấu hình server. Nhập key mới nếu muốn thay.' : '';
 }
 
-function renderPlans(plans) {
-    state.plans = plans;
-    const rows = byId('planRows'); rows.replaceChildren();
-    if (!plans.length) {
-        const row = text('tr'), cell = text('td', 'Chưa có gói hội viên. Chọn "Thêm gói" để tạo gói đầu tiên.', 'table-empty'); cell.colSpan = 5; row.append(cell); rows.append(row); return;
-    }
-    plans.forEach(plan => {
-        const row = text('tr'), actions = text('td'), box = text('div', '', 'portal-actions');
-        box.append(actionButton('Sửa', () => openPlan(plan)), actionButton(plan.active ? 'Ngừng bán' : 'Mở bán', () => togglePlan(plan), plan.active ? 'danger' : 'primary'));
-        actions.append(box);
-        const name = text('td'); name.append(text('strong', plan.planName));
-        if (plan.benefits.length) {
-            const list = text('ul', '', 'plan-benefits');
-            plan.benefits.forEach(benefit => list.append(text('li', benefit)));
-            name.append(list);
-        }
-        const status = text('td'); status.append(badge(plan.active ? 'Đang bán' : 'Ngừng bán'));
-        row.append(name, text('td', plan.durationMonths + ' tháng'), text('td', money(plan.price)), status, actions);
-        rows.append(row);
-    });
-}
-
-async function loadPlans() {
-    try { renderPlans(await plansApi.getPlans()); }
-    catch (error) {
-        if (error.status === 401) throw error;
-        const rows = byId('planRows'), row = text('tr'), cell = text('td', error.message || 'Chưa tải được danh sách gói.', 'table-empty');
-        cell.colSpan = 5; row.append(cell); rows.replaceChildren(row);
-    }
-}
-
 async function load() {
     showSection();
     const [data, sender, ai, history, storage, copy] = await Promise.all([api(PATH), api(SENDER_PATH), api(AI_PATH), api(base + '/settings/history?page=' + state.historyPage), api(STORAGE_PATH), api(STORAGE_PATH + '/copy')]);
@@ -101,7 +67,6 @@ async function load() {
         : 'Đang gửi bằng tài khoản thư của server' + (sender.senderEmail ? ' (' + sender.senderEmail + ')' : '') + '. Nhập email và mật khẩu ứng dụng để gửi bằng email của bạn.';
     renderAi(ai);
     renderStorage(storage); renderCopy(copy);
-    await loadPlans();
 
     byId('configHistory').replaceChildren();
     if (!history.items.length) byId('configHistory').append(emptyState('Chưa có thay đổi cấu hình', 'Lịch sử sẽ hiện ở đây sau lần lưu đầu tiên.'));
@@ -190,83 +155,6 @@ async function saveAi() {
     state.aiDirty = false; byId('aiReason').value = ''; byId('aiApiKey').value = '';
     notice('Đã lưu cấu hình AI. Áp dụng cho lần chấm bài tiếp theo.');
     refreshAfterSave();
-}
-
-// ----- Hộp thoại gói hội viên: chọn nhanh thời hạn/giá, giá có dấu chấm ngăn cách, quyền lợi thêm từng dòng. -----
-const planMoney = value => new Intl.NumberFormat('vi-VN').format(value);
-const digits = value => Number(String(value).replace(/\D/g, '')) || 0;
-function planMonths() { return Number(byId('planMonths').value) || 0; }
-function setMonths(value) {
-    const preset = ['1', '3', '6', '12'].includes(String(value));
-    byId('planMonths').value = value === 'other' ? '' : value;
-    byId('planMonthsOther').hidden = preset || !value;
-    document.querySelectorAll('#planMonthChips button').forEach(chip => chip.setAttribute('aria-pressed', String(chip.dataset.months === (preset ? String(value) : value ? 'other' : ''))));
-    if (value === 'other') byId('planMonths').focus();
-    updatePerMonth();
-}
-function setPrice(value) { byId('planPrice').value = value ? planMoney(value) : ''; updatePerMonth(); }
-function updatePerMonth() {
-    const price = digits(byId('planPrice').value), months = planMonths();
-    byId('planPerMonth').textContent = price && months > 1 ? 'Khoảng ' + planMoney(Math.round(price / months)) + ' đ mỗi tháng' : '';
-    document.querySelectorAll('[data-price]').forEach(chip => chip.setAttribute('aria-pressed', String(Number(chip.dataset.price) === price)));
-}
-function addBenefitRow(value = '') {
-    const list = byId('planBenefitList');
-    if (list.children.length >= 20) { planError('benefits', 'Mỗi gói có tối đa 20 quyền lợi.'); return; }
-    const row = text('li'), input = text('input'), remove = text('button', '×', 'plan-remove');
-    input.maxLength = 200; input.value = value; input.placeholder = 'Ví dụ: Hiển thị nổi bật trong tìm kiếm gia sư';
-    input.setAttribute('aria-label', 'Quyền lợi ' + (list.children.length + 1));
-    remove.type = 'button'; remove.setAttribute('aria-label', 'Bỏ quyền lợi này');
-    remove.addEventListener('click', () => { row.remove(); if (!list.children.length) addBenefitRow(); });
-    input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); addBenefitRow(); list.lastElementChild.querySelector('input').focus(); } });
-    row.append(input, remove); list.append(row);
-}
-function planError(field, message) { const node = document.querySelector('[data-error="' + field + '"]'); if (node) node.textContent = message; }
-
-function openPlan(plan = null) {
-    state.plan = plan; byId('planForm').reset(); byId('planNotice').textContent = '';
-    document.querySelectorAll('.plan-error').forEach(node => { node.textContent = ''; });
-    byId('planDialogTitle').textContent = plan ? 'Sửa gói hội viên' : 'Thêm gói hội viên';
-    byId('planName').value = plan?.planName || '';
-    setMonths(plan ? String(plan.durationMonths) : '1');
-    // Thời hạn không đổi sau khi tạo để không ảnh hưởng gia sư đã mua gói.
-    document.querySelectorAll('#planMonthChips button').forEach(chip => { chip.disabled = Boolean(plan); });
-    byId('planMonths').disabled = Boolean(plan); byId('planMonthsLocked').hidden = !plan;
-    setPrice(plan?.price || '');
-    byId('planBenefitList').replaceChildren();
-    (plan?.benefits.length ? plan.benefits : ['']).forEach(value => addBenefitRow(value));
-    byId('planDialog').showModal(); byId('planName').focus();
-}
-
-async function savePlan(event) {
-    event.preventDefault(); if (state.savingPlan) return;
-    document.querySelectorAll('.plan-error').forEach(node => { node.textContent = ''; });
-    const name = byId('planName').value.trim(), months = planMonths(), price = digits(byId('planPrice').value);
-    const benefits = [...byId('planBenefitList').querySelectorAll('input')].map(input => input.value.trim()).filter(Boolean);
-    let ok = true;
-    if (!name) { planError('planName', 'Vui lòng nhập tên gói.'); ok = false; }
-    if (!state.plan && (!Number.isInteger(months) || months < 1 || months > 36)) { planError('durationMonths', 'Chọn thời hạn từ 1 đến 36 tháng.'); ok = false; }
-    if (price < 10000 || price > 100000000) { planError('price', 'Giá từ 10.000 đ đến 100.000.000 đ.'); ok = false; }
-    if (benefits.some(line => line.length > 200)) { planError('benefits', 'Mỗi quyền lợi tối đa 200 ký tự.'); ok = false; }
-    if (!ok) return;
-    const payload = {planName: name, price, benefits};
-    state.savingPlan = true; byId('savePlan').disabled = true; byId('planNotice').textContent = '';
-    try {
-        if (state.plan) await plansApi.updatePlan(state.plan.planId, payload);
-        else await plansApi.createPlan({...payload, durationMonths: months});
-        byId('planDialog').close();
-        await page.run(async () => { await loadPlans(); notice(state.plan ? 'Đã lưu thay đổi gói hội viên.' : 'Đã tạo gói hội viên.'); });
-    } catch (error) {
-        byId('planNotice').textContent = error.message || 'Chưa lưu được gói. Vui lòng thử lại.';
-    } finally { state.savingPlan = false; byId('savePlan').disabled = false; }
-}
-
-async function togglePlan(plan) {
-    if (plan.active && !confirm('Ngừng bán "' + plan.planName + '"? Gia sư đã mua vẫn dùng được đến hết hạn.')) return;
-    await page.run(async () => {
-        await plansApi.setActive(plan.planId, !plan.active);
-        await loadPlans(); notice(plan.active ? 'Đã ngừng bán gói ' + plan.planName + '.' : 'Đã mở bán gói ' + plan.planName + '.');
-    });
 }
 
 async function testAi() {
@@ -440,17 +328,6 @@ byId('aiProvider').addEventListener('change', () => {
     byId('aiApiKey').value = '';
     syncAiNote();
 });
-byId('createPlan').addEventListener('click', () => openPlan());
-byId('planForm').addEventListener('submit', savePlan);
-document.querySelectorAll('#planMonthChips button').forEach(chip => chip.addEventListener('click', () => setMonths(chip.dataset.months)));
-byId('planMonths').addEventListener('input', updatePerMonth);
-document.querySelectorAll('[data-price]').forEach(chip => chip.addEventListener('click', () => setPrice(Number(chip.dataset.price))));
-// Đang gõ thì để số thường (xóa, sửa giữa chừng không bị nhảy con trỏ); rời ô mới thêm dấu chấm, ví dụ 229900 → 229.900.
-byId('planPrice').addEventListener('input', () => { const field = byId('planPrice'), clean = field.value.replace(/[^\d.]/g, ''); if (clean !== field.value) field.value = clean; updatePerMonth(); });
-byId('planPrice').addEventListener('focus', () => { const value = digits(byId('planPrice').value); byId('planPrice').value = value ? String(value) : ''; });
-byId('planPrice').addEventListener('blur', () => { const value = digits(byId('planPrice').value); byId('planPrice').value = value ? planMoney(value) : ''; });
-byId('addBenefit').addEventListener('click', () => { addBenefitRow(); byId('planBenefitList').lastElementChild.querySelector('input').focus(); });
-['cancelPlan', 'closePlan'].forEach(id => byId(id).addEventListener('click', () => { if (!state.savingPlan) byId('planDialog').close(); }));
 page.bind('configHistoryPrev', 'click', async () => { state.historyPage = Math.max(0, state.historyPage - 1); await load(); });
 page.bind('configHistoryNext', 'click', async () => { state.historyPage++; await load(); });
 page.start();

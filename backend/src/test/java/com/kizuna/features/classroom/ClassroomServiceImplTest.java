@@ -89,7 +89,7 @@ class ClassroomServiceImplTest {
     void tutorListsOwnClassrooms() {
         LearningSpace s = space(tutor, learner, LearningSpaceStatus.ACTIVE);
         when(spaces.findByTutor_TutorIdOrderByCreatedAtDesc(tutor.getTutorId())).thenReturn(List.of(s));
-        when(materials.countBySpace_SpaceId(s.getSpaceId())).thenReturn(2L);
+        when(materials.countBySpaceIds(List.of(s.getSpaceId()))).thenReturn(List.<Object[]>of(new Object[]{s.getSpaceId(), 2L}));
 
         List<ClassroomSummaryResponse> result = service.listMine(asTutor(tutor));
 
@@ -98,6 +98,9 @@ class ClassroomServiceImplTest {
         assertThat(result.get(0).canManage()).isTrue();
         assertThat(result.get(0).materialCount()).isEqualTo(2);
         verify(spaces, never()).findByLearner_LearnerIdOrderByCreatedAtDesc(any());
+        // Danh sách lớp đếm tài liệu và lấy lịch một lần cho mọi lớp, không truy vấn riêng từng lớp
+        verify(materials, never()).countBySpace_SpaceId(any());
+        verify(schedules, never()).findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(any());
     }
 
     @Test

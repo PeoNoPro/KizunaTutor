@@ -838,6 +838,11 @@ export const API = {
       }).then((res) => res.data);
     },
 
+    /** Tệp Excel mẫu của một loại học liệu (Blob .xlsx) */
+    downloadTemplate(type) {
+      return authRequest(`/academic/content-imports/${type}/template`, { responseType: 'blob' });
+    },
+
     /** Danh sách học liệu: { keyword, jlpt, sort: LEVEL | NEWEST, page, size } */
     getItems(type, params = {}) {
       return authRequest(`/academic/content-imports/${type}/items?${toQuery(params)}`).then((res) => res.data);
@@ -896,11 +901,6 @@ export const API = {
       return authRequest(`/tutor/memberships/payments?page=${page}&size=${size}`).then((res) => res.data);
     },
 
-    /** Kiểm tra lại với cổng một giao dịch đang chờ của chính gia sư (đã trả tiền nhưng chưa xác nhận) */
-    checkPayment(transactionId) {
-      return authRequest(`/tutor/memberships/payments/${transactionId}/check`, { method: 'POST', timeoutMs: 45000 }).then((res) => res.data);
-    },
-
     /** Mở lại trang thanh toán của giao dịch đang chờ, còn trong hạn 15 phút */
     resumePayment(transactionId) {
       return authRequest(`/tutor/memberships/payments/${transactionId}/resume`, { method: 'POST' }).then((res) => res.data);
@@ -939,25 +939,6 @@ export const API = {
 
     getTutorMembershipDetail(tutorId) {
       return authRequest(`/manager/tutor-memberships/${tutorId}`).then((res) => res.data);
-    }
-  },
-
-  adminPayments: {
-    /** status, from, to (yyyy-MM-dd), keyword, page, size (UC-98) */
-    getTransactions(params = {}) {
-      return authRequest(`/admin/payment-transactions?${toQuery(params)}`).then((res) => res.data);
-    },
-
-    getDetail(transactionId) {
-      return authRequest(`/admin/payment-transactions/${transactionId}`).then((res) => res.data);
-    },
-
-    checkWithGateway(transactionId) {
-      return authRequest(`/admin/payment-transactions/${transactionId}/gateway-check`, { method: 'POST', timeoutMs: 45000 });
-    },
-
-    addNote(transactionId, note) {
-      return authRequest(`/admin/payment-transactions/${transactionId}/notes`, { method: 'POST', body: { note } });
     }
   },
 

@@ -87,7 +87,7 @@ export function initNavigation() {
       link.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors bg-[#E0EFF7] text-[#006194]';
       link.setAttribute('aria-current', 'page');
     } else {
-      link.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#FAF8F2] transition-colors';
+      link.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium text-[#3F4850] hover:text-[#006194] hover:bg-[#F6F9FB] transition-colors';
       link.removeAttribute('aria-current');
     }
   });

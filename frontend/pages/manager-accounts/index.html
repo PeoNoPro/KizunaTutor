@@ -20,7 +20,7 @@
       <button type="submit">Tìm kiếm</button><button id="clearUserSearch" type="button">Xóa bộ lọc</button>
     </form>
     <p id="userTotal" class="staff-help"></p>
-    <div class="table-scroll"><table class="staff-table"><caption class="sr-only">Danh sách gia sư và học viên</caption><thead><tr><th scope="col">Người dùng</th><th scope="col">Ngày đăng ký</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="userRows"></tbody></table></div>
+    <div class="table-scroll"><table class="staff-table"><caption class="sr-only">Danh sách gia sư và học viên</caption><thead><tr><th scope="col">Người dùng</th><th scope="col">Ngày đăng ký</th><th scope="col">Đăng nhập gần nhất</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="userRows"></tbody></table></div>
     <div id="userEmpty" hidden></div>
     <div class="operations-pagination"><button id="userPrev" type="button">Trang trước</button><span id="userPage"></span><button id="userNext" type="button">Trang sau</button></div>
   </section>
@@ -30,7 +30,7 @@
 <dialog id="detailDialog" class="staff-dialog portal-dialog mu-detail-dialog" aria-labelledby="detailTitle">
   <div class="portal-dialog-head"><h2 id="detailTitle">Chi tiết người dùng</h2><button id="closeDetail" class="portal-dialog-close" type="button" aria-label="Đóng chi tiết">Đóng</button></div>
   <div id="detailBody" class="portal-dialog-body"></div>
-  <div class="portal-dialog-actions"><button id="detailStatus" class="primary" type="button" hidden>Cập nhật trạng thái</button><button id="backToList" type="button">Quay lại danh sách</button></div>
+  <div class="portal-dialog-actions"><button id="detailStatus" class="primary" type="button" hidden>Tạm khóa tài khoản</button><button id="backToList" type="button">Quay lại danh sách</button></div>
 </dialog>
 
 <!-- Cập nhật trạng thái tài khoản (UC-12) -->
@@ -38,8 +38,7 @@
   <form id="statusForm" novalidate><div class="portal-dialog-head"><h2 id="statusDialogTitle">Cập nhật trạng thái tài khoản</h2><button id="closeStatus" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div>
     <div class="portal-dialog-body">
       <p id="statusSummary" class="staff-help"></p>
-      <div><label for="newStatus">Trạng thái mới</label><select id="newStatus"></select><p id="statusConsequence" class="portal-muted"></p><p class="mu-field-error" data-error-for="status" hidden></p></div>
-      <div data-status-detail hidden><label for="statusReason">Lý do nội bộ</label><textarea id="statusReason" maxlength="1000" placeholder="Chỉ Quản lý xem được, không gửi cho người dùng"></textarea><p class="mu-field-error" data-error-for="reason" hidden></p></div>
+      <div><label for="newStatus" hidden>Trạng thái mới</label><select id="newStatus" hidden></select><p id="statusConsequence" class="portal-muted"></p><p class="mu-field-error" data-error-for="status" hidden></p></div>
       <div data-status-detail hidden><label for="statusMessage">Lời nhắn gửi người dùng (không bắt buộc)</label><textarea id="statusMessage" maxlength="1000" placeholder="Nội dung này được gửi kèm email thông báo"></textarea><p class="mu-field-error" data-error-for="message" hidden></p></div>
       <p id="statusNotice" class="staff-dialog-notice" role="alert"></p>
     </div>

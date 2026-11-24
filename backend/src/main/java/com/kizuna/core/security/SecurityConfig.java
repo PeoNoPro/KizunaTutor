@@ -121,9 +121,8 @@ public class SecurityConfig {
                 // FE-09: gói hội viên và thanh toán
                 .requestMatchers("/api/payments/vnpay/ipn").permitAll()
                 .requestMatchers("/api/tutor/memberships/**").hasAuthority("ROLE_TUTOR")
-                // Nhóm thống nhất: Quản trị viên tạo/sửa/mở/đóng gói, Quản lý chỉ xem danh sách gói.
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/manager/membership-plans/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
-                .requestMatchers("/api/manager/membership-plans/**").hasAuthority("ROLE_ADMIN")
+                // 2026-11-23: cấu hình gói hội viên chuyển từ Quản trị viên sang Quản lý (nhóm Doanh thu & giao dịch).
+                .requestMatchers("/api/manager/membership-plans/**").hasAuthority("ROLE_MANAGER")
                 .requestMatchers("/api/manager/tutor-memberships/**").hasAuthority("ROLE_MANAGER")
                 // FE-14: Quản lý vận hành xem và đổi trạng thái tài khoản gia sư, học viên (UC-12, UC-20, UC-21)
                 .requestMatchers("/api/manager/users", "/api/manager/users/**").hasAuthority("ROLE_MANAGER")

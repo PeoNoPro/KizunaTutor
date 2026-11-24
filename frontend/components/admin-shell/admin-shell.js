@@ -6,17 +6,20 @@ const ADMIN_NAV = [
   {label: 'Tổng quan', icon: 'space_dashboard', href: '/pages/admin-dashboard/', adminOnly: true},
   {label: 'Tổng quan', icon: 'space_dashboard', href: '/pages/manager-dashboard/', managerOnly: true},
   {label: 'Báo cáo tổng hợp', icon: 'monitoring', href: '/pages/manager-reports/', managerOnly: true},
-  // Trang doanh thu (tổng quan, theo gói, danh sách giao dịch thanh toán) đã có nhưng trước đây thiếu link trên sidebar.
-  {label: 'Doanh thu & giao dịch', icon: 'payments', href: '/pages/operations-revenue/', managerOnly: true},
-  // FE-11 (2026-11-13): Quản lý xem và tạm khóa / mở lại tài khoản Học viên, Gia sư.
-  {label: 'Quản lý người dùng', icon: 'manage_accounts', href: '/pages/manager-users/', managerOnly: true},
+  // Nhóm Doanh thu của Quản lý: doanh thu, giao dịch và gói hội viên gia sư (2026-11-23: chuyển từ Cấu hình hệ thống của Admin).
+  {label: 'Doanh thu', icon: 'payments', managerOnly: true, items: [
+    ['Báo cáo doanh thu', '/pages/operations-revenue/', 'Doanh thu từ giao dịch gói hội viên gia sư đã thanh toán thành công.', true],
+    ['Gói hội viên gia sư', '/pages/manager-membership-plans/', 'Thêm gói, chỉnh giá, quyền lợi và mở bán / ngừng bán gói hội viên của gia sư.', true],
+    // FE-09 UC-44/UC-45 (2026-11-23): trang đã có nhưng trước đây không có link trên menu Quản lý.
+    ['Hội viên gia sư', '/pages/manager-tutor-memberships/', 'Danh sách gia sư đã đăng ký gói hội viên trả phí, kèm ngày hết hạn.', true]]},
   // FE-14 (Hân): danh sách, chi tiết và trạng thái tài khoản gia sư, học viên.
-  {label: 'Tài khoản gia sư, học viên', icon: 'badge', href: '/pages/manager-accounts/', managerOnly: true},
+  // 2026-11-23: đã gỡ trang 'Quản lý người dùng' (FE-11, /pages/manager-users/) vì trùng chức năng với trang này.
+  {label: 'Quản lý người dùng', icon: 'manage_accounts', href: '/pages/manager-accounts/', managerOnly: true},
   {label: 'Quản lý nhân viên', icon: 'groups', items: [
     ['Danh sách nhân viên', '/pages/admin-staff/', 'Tạo, sửa thông tin và vai trò, khóa tài khoản nhân viên.']]},
   {label: 'Vận hành hệ thống', icon: 'settings_suggest', items: [
     ['Nhật ký thao tác', '/pages/operations-logs/', 'Ai đã thay đổi gì trong khu quản trị và vào lúc nào.'],
-    ['Cấu hình hệ thống', '/pages/operations-config/', 'AI hỗ trợ học tập, gói hội viên, email gửi thư cho nhân viên và giới hạn tệp đính kèm.']]}
+    ['Cấu hình hệ thống', '/pages/operations-config/', 'AI hỗ trợ học tập, email gửi thư cho nhân viên, giới hạn tệp đính kèm và lưu trữ đám mây.']]}
 ];
 const PAGE_ALIASES = {'/pages/notification-broadcasts/': '/pages/notifications/', '/pages/notification-preferences/': '/pages/notifications/', '/pages/support-ticket/': '/pages/support-tickets/'};
 const escapeHtml = value => value.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[c]);
@@ -25,7 +28,7 @@ const icon = name => name ? '<span class="su-icon" aria-hidden="true">' + name +
 function adminNavigation() {
   return ADMIN_NAV.map(entry => entry.href
     ? `<a href="${entry.href}"${entry.managerOnly ? ' data-manager-only hidden' : ''}>${icon(entry.icon)}${escapeHtml(entry.label)}</a>`
-    : `<details class="nav-group"><summary>${icon(entry.icon)}${escapeHtml(entry.label)}</summary><div class="nav-group-items">${entry.items.map(([label, href, , managerOnly]) => `<a href="${href}"${managerOnly ? ' data-manager-only hidden' : ''}>${escapeHtml(label)}</a>`).join('')}</div></details>`).join('')
+    : `<details class="nav-group"${entry.managerOnly ? ' data-manager-only hidden' : ''}><summary>${icon(entry.icon)}${escapeHtml(entry.label)}</summary><div class="nav-group-items">${entry.items.map(([label, href, , managerOnly]) => `<a href="${href}"${managerOnly ? ' data-manager-only hidden' : ''}>${escapeHtml(label)}</a>`).join('')}</div></details>`).join('')
     + '<a href="/pages/support-tickets/" data-support-link hidden>' + icon('support_agent') + 'Yêu cầu hỗ trợ</a>';
 }
 /** Tiêu đề và mô tả trang lấy theo tên mục trong sidebar để hai nơi gọi cùng một tên. */
@@ -46,7 +49,7 @@ function attachSupportGroups(link, labels, base) {
   attachNavGroup(link, labels.map((label, index) => ({label, href: base + '?group=' + index, current: onList && index === current})), 'supportNavItems', 'kizuna-support-nav-open', onList || location.pathname === '/pages/support-ticket/');
 }
 /** Các phần của trang Cấu hình hệ thống, mỗi phần là một mục con trên sidebar (tham số ?section=, mặc định phần đầu). */
-export const CONFIG_SECTIONS = [['ai', 'AI hỗ trợ học tập'], ['plans', 'Gói hội viên gia sư'], ['mail', 'Email gửi thư'], ['attachment', 'Giới hạn tệp đính kèm'], ['storage', 'Lưu trữ đám mây']];
+export const CONFIG_SECTIONS = [['ai', 'AI hỗ trợ học tập'], ['mail', 'Email gửi thư'], ['attachment', 'Giới hạn tệp đính kèm'], ['storage', 'Lưu trữ đám mây']];
 export function currentConfigSection() {
   const requested = new URLSearchParams(location.search).get('section');
   return CONFIG_SECTIONS.some(([key]) => key === requested) ? requested : CONFIG_SECTIONS[0][0];
@@ -72,7 +75,7 @@ function attachNavGroup(link, items, listId, key, forceOpen = false) {
   link.addEventListener('click', event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.button) return; event.preventDefault(); setOpen(!wrap.classList.contains('is-open')); });
 }
 const ROLE_CACHE = 'kizuna-staff-nav-role';
-const MANAGER_PATHS = ['/pages/manager-dashboard/', '/pages/manager-reports/', '/pages/manager-users/', '/pages/operations-revenue/', '/pages/manager-accounts/'];
+const MANAGER_PATHS = ['/pages/manager-dashboard/', '/pages/manager-reports/', '/pages/operations-revenue/', '/pages/manager-membership-plans/', '/pages/manager-tutor-memberships/', '/pages/manager-accounts/'];
 /** Ẩn/hiện mục menu theo vai trò: Admin không thấy mục riêng của Quản lý và ngược lại. */
 function applyRoleNavigation(account, csWorkspace) {
   document.querySelectorAll('.sidebar-menu a,.sidebar-menu button').forEach(link => {
@@ -81,7 +84,7 @@ function applyRoleNavigation(account, csWorkspace) {
     link.hidden = !((MANAGER_PATHS.includes(target) && account.canReport) || (link.hasAttribute('data-support-link') && account.canSupport) || (csWorkspace && link.hasAttribute('data-cs-navigation') && account.canSupport && !account.canReport));
   });
   if (account.canAdmin === false) {
-    document.querySelectorAll('.nav-group').forEach(group => { group.hidden = ![...group.querySelectorAll('a')].some(link => !link.hidden); if (!group.hidden) group.open = true; });
+    document.querySelectorAll('.nav-group').forEach(group => { group.hidden = ![...group.querySelectorAll('a')].some(link => !link.hidden); if (!group.hidden) group.open = [...group.querySelectorAll('a')].some(link => link.getAttribute('href') === location.pathname); });
     document.querySelector('.nav-caption').textContent = csWorkspace ? 'Nhân viên hỗ trợ' : account.canReport ? 'Quản lý' : 'Không gian nội bộ';
   }
 }

@@ -42,6 +42,7 @@ const URL_ALIASES = {
   '/register.html': '/pages/register/index.html',
   '/register': '/pages/register/index.html',
   '/oauth2/redirect': '/pages/login/index.html',
+  '/cong-cu-hoc-tap': '/pages/learning-tools-intro/index.html',
   '/tutors.html': '/pages/tutor-discovery/index.html',
   '/tutors': '/pages/tutor-discovery/index.html',
   '/tutor-discovery': '/pages/tutor-discovery/index.html',
@@ -151,8 +152,8 @@ const URL_ALIASES = {
   '/academic': '/pages/academic-verifications/index.html',
   '/academic/dashboard': '/pages/academic-verifications/index.html',
   '/academic/dashboard/': '/pages/academic-verifications/index.html',
-  '/academic/verifications': '/pages/academic-verifications/index.html',
-  '/academic/verifications/': '/pages/academic-verifications/index.html',
+  '/academic/verifications': '/pages/academic-tutor-verifications/index.html',
+  '/academic/verifications/': '/pages/academic-tutor-verifications/index.html',
   '/academic/verifications/detail': '/pages/academic-verification-detail/index.html',
   '/academic/posts': '/pages/academic-posts/index.html',
   '/academic/posts/': '/pages/academic-posts/index.html',
@@ -181,12 +182,11 @@ const URL_ALIASES = {
   '/tutor/membership/result': '/pages/tutor-membership-result/index.html',
   '/manager/membership-plans': '/pages/manager-membership-plans/index.html',
   '/manager/tutor-memberships': '/pages/manager-tutor-memberships/index.html',
-  '/manager/users': '/pages/manager-users/index.html',
-  '/manager/users/': '/pages/manager-users/index.html',
+  '/manager/users': '/pages/manager-accounts/index.html',
+  '/manager/users/': '/pages/manager-accounts/index.html',
   // FE-14 (Nguyễn Đức Hân): quản lý tài khoản gia sư / học viên
   '/manager/accounts': '/pages/manager-accounts/index.html',
-  '/manager/accounts/': '/pages/manager-accounts/index.html',
-  '/admin/payments': '/pages/admin-payments/index.html'
+  '/manager/accounts/': '/pages/manager-accounts/index.html'
 };
 
 const server = http.createServer((req, res) => {

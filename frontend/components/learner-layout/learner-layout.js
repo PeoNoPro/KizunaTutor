@@ -62,28 +62,11 @@ export const LEARNER_MENU_GROUPS = [
         title: 'Lớp học của tôi',
         url: '/pages/my-courses/',
         icon: 'school',
-        matcher: ['/my-courses', '/pages/my-courses']
-      },
-      {
-        // FE-06: tài liệu học tập của mọi lớp (cùng trang Lớp học của tôi, ?view=materials)
-        key: 'my-materials',
-        title: 'Tài liệu học tập',
-        url: '/pages/my-courses/?view=materials',
-        icon: 'menu_book',
-        query: { view: 'materials' },
-        paths: ['/pages/my-courses', '/learner/my-courses', '/my-courses'],
-        noSpa: true
-      },
-      {
-        // FE-07: bài tập của mọi lớp (cùng trang Lớp học của tôi, ?view=assignments)
-        key: 'my-assignments',
-        title: 'Bài tập của tôi',
-        url: '/pages/my-courses/?view=assignments',
-        icon: 'assignment',
-        query: { view: 'assignments' },
-        paths: ['/pages/my-courses', '/learner/my-courses', '/my-courses'],
+        matcher: ['/my-courses', '/pages/my-courses'],
+        // Trang có tailwind.config + <style type="text/tailwindcss"> riêng mà bộ chuyển trang SPA không nạp: tải lại cả trang
         noSpa: true
       }
+      // Tài liệu và bài tập học viên xem trong từng lớp ở "Lớp học của tôi" (không có mục riêng trên thanh bên)
     ]
   },
   {

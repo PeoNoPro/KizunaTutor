@@ -63,38 +63,4 @@ public final class MembershipLabels {
             default -> state.getDisplayName();
         };
     }
-
-    /** Diễn giải kết quả xử lý ghi trong nhật ký (không hiện mã nội bộ). */
-    public static String outcome(String outcome) {
-        if (outcome == null) {
-            return "";
-        }
-        return switch (outcome) {
-            case "ACTIVATED" -> "Đã ghi nhận thanh toán thành công và kích hoạt gói";
-            case "FAILED" -> "Đã ghi nhận thanh toán thất bại";
-            case "ALREADY_PROCESSED" -> "Giao dịch đã được xử lý trước đó, không thay đổi";
-            case "AMOUNT_MISMATCH" -> "Số tiền không khớp, không thay đổi";
-            case "NOT_FOUND" -> "Không tìm thấy giao dịch";
-            case "STILL_PENDING" -> "Cổng chưa xác nhận kết quả";
-            case "INVALID_SIGNATURE" -> "Chữ ký không hợp lệ, không thay đổi";
-            case "UNVERIFIED" -> "Phản hồi tra cứu không xác thực được, không thay đổi";
-            case "URL_CREATED" -> "Đã tạo đường dẫn thanh toán";
-            case "ERROR" -> "Lỗi khi xử lý, giao dịch giữ nguyên trạng thái";
-            default -> "";
-        };
-    }
-
-    public static String logType(String type) {
-        if (type == null) {
-            return "Khác";
-        }
-        return switch (type) {
-            case PaymentLogWriter.TYPE_CREATE -> "Tạo đường dẫn thanh toán";
-            case PaymentLogWriter.TYPE_IPN -> "Cổng gửi kết quả (IPN)";
-            case PaymentLogWriter.TYPE_RETURN -> "Gia sư quay về trang kết quả";
-            case PaymentLogWriter.TYPE_QUERY -> "Tra cứu trạng thái với cổng";
-            case PaymentLogWriter.TYPE_NOTE -> "Ghi chú điều tra";
-            default -> "Khác";
-        };
-    }
 }

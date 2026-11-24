@@ -480,6 +480,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Khởi tạo form và các ô số OTP
+  // Nút "Trở thành gia sư" mở /register?role=tutor: chọn sẵn vai trò Gia sư
+  if (new URLSearchParams(location.search).get('role') === 'tutor') {
+    const tutorRole = document.querySelector('input[name="userRole"][value="ROLE_TUTOR"]');
+    if (tutorRole) tutorRole.checked = true;
+  }
   initRegistrationForm();
   initPasswordVisibilityToggles();
   initOtpInputs();

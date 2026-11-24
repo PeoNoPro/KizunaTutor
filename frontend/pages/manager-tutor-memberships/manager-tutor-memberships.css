@@ -1,0 +1,37 @@
+/* FE-09 (UC-44, UC-45): phần riêng của trang Hội viên gia sư; khung, bảng, hộp thoại dùng lớp chung của khu quản trị (admin-portal.css). */
+
+.tm-toolbar { flex-wrap: wrap; }
+
+/* Bảng không bóp cột tên khi màn hình hẹp: giữ bề rộng tối thiểu, khung .table-scroll cho cuộn ngang. */
+.tm-table { min-width: 820px; }
+.tm-table td:first-child { min-width: 240px; }
+.tm-table td:not(:first-child), .tm-table th { white-space: nowrap; }
+.tm-detail-dialog .staff-table { min-width: 560px; }
+.tm-detail-dialog .staff-table td, .tm-detail-dialog .staff-table th { white-space: nowrap; }
+
+.tm-skeleton {
+  display: block;
+  height: 16px;
+  border-radius: 6px;
+  background: #ece8de;
+  animation: tm-pulse 1.2s ease-in-out infinite;
+}
+.tm-skeleton-short { width: 40%; margin-top: 8px; }
+@keyframes tm-pulse { 50% { opacity: .45; } }
+
+.tm-detail-dialog { width: min(760px, calc(100vw - 32px)); }
+.tm-detail-head strong { display: block; font-size: 18px; color: #0f2545; overflow-wrap: anywhere; }
+.tm-detail-head .portal-muted { overflow-wrap: anywhere; }
+
+.tm-section-title { margin: 0; font-size: 16px; font-weight: 700; color: #0f2545; }
+.tm-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; margin: 0; }
+.tm-fields div { min-width: 0; }
+.tm-fields dt { font-size: 13px; color: #6b7580; }
+.tm-fields dd { margin: 2px 0 0; font-size: 15px; color: #1b1c19; overflow-wrap: anywhere; }
+
+.tm-detail-dialog .tm-money { text-align: right; white-space: nowrap; }
+.tm-unavailable { margin: 0; font-size: 14px; color: #ba1a1a; }
+
+@media (max-width: 640px) {
+  .tm-fields { grid-template-columns: 1fr; }
+}

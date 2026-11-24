@@ -8,7 +8,8 @@ import { byId, text, date, paging, emptyState, badge, avatar, actionButton, opti
 import { API, ApiError } from '../../js/api.js';
 import { showToast } from '../../js/main.js';
 import {
-  CATEGORIES, STATUS_FILTERS, accountStatusTone, emptyMessage, validateStatusForm, statusConsequence, orDash
+  CATEGORIES, STATUS_FILTERS, accountStatusTone, emptyMessage, validateStatusForm, statusConsequence, orDash,
+  lastLoginInfo, INACTIVE_DAYS, lockAction
 } from '../../js/manager-users-helpers.js';
 
 const PAGE_SIZE = 20;
@@ -27,7 +28,7 @@ function skeletonRows() {
   rows.replaceChildren();
   for (let i = 0; i < 4; i += 1) {
     const row = text('tr');
-    for (let c = 0; c < 4; c += 1) {
+    for (let c = 0; c < 5; c += 1) {
       const cell = text('td');
       cell.append(text('span', '', 'mu-skeleton'));
       if (c === 0) cell.append(text('span', '', 'mu-skeleton mu-skeleton-short'));
@@ -58,15 +59,14 @@ async function loadUsers() {
     const actions = text('td');
     const box = text('div', '', 'portal-actions');
     box.append(actionButton('Xem chi tiết', () => openDetail(user.userId)));
-    if (user.accountStatus !== 'PENDING') {
-      box.append(actionButton('Cập nhật trạng thái', () => openStatus({
-        userId: user.userId, fullName: user.fullName, currentStatus: user.accountStatus, currentLabel: user.accountStatusLabel,
-        allowed: Object.keys(STATUS_LABEL).filter((s) => s !== 'PENDING' && s !== user.accountStatus)
-          .map((s) => ({ value: s, label: STATUS_LABEL[s] }))
-      }), 'primary'));
+    const lock = lockAction(user.accountStatus);
+    if (lock) {
+      box.append(actionButton(lock.label, () => openStatus({
+        userId: user.userId, fullName: user.fullName, currentStatus: user.accountStatus, currentLabel: user.accountStatusLabel
+      }), lock.tone));
     }
     actions.append(box);
-    row.append(identity, text('td', dateOnly(user.createdAt)), status, actions);
+    row.append(identity, text('td', dateOnly(user.createdAt)), lastLoginCell(user.lastLoginAt), status, actions);
     rows.append(row);
   });
   const empty = byId('userEmpty');
@@ -81,6 +81,22 @@ async function loadUsers() {
   byId('userTotal').textContent = `Tổng cộng ${data.totalElements} ${group}.`;
   byId('userPage').textContent = `Trang ${state.page + 1}${data.totalPages ? ' / ' + data.totalPages : ''}`;
   paging('user', data, state.page);
+}
+
+/** Ô "Đăng nhập gần nhất": bao lâu rồi + ngày giờ; lâu không đăng nhập thì tô cảnh báo. */
+function lastLoginCell(value) {
+  const info = lastLoginInfo(value);
+  const cell = text('td');
+  cell.append(text('strong', info.text, info.idle ? 'mu-idle' : 'mu-login'));
+  if (value) cell.append(text('p', date(value), 'staff-email'));
+  if (info.idle) cell.title = 'Đã ' + INACTIVE_DAYS + ' ngày trở lên không đăng nhập';
+  return cell;
+}
+
+/** Dòng chi tiết: "12 ngày trước (11/11/2026, 09:30)". */
+function lastLoginDetail(value) {
+  const info = lastLoginInfo(value);
+  return value ? info.text + ' (' + date(value) + ')' + (info.idle ? ' · lâu không hoạt động' : '') : info.text;
 }
 
 // ===== Chi tiết (UC-21) =====
@@ -124,8 +140,8 @@ function historySection(items) {
     const item = text('li');
     const change = text('p');
     change.append(text('strong', h.fromStatusLabel), document.createTextNode(' → '), text('strong', h.toStatusLabel));
-    item.append(change, text('p', `${date(h.changedAt)} · ${h.actorName}`, 'portal-muted'),
-      text('p', 'Lý do nội bộ: ' + h.reason));
+    item.append(change, text('p', `${date(h.changedAt)} · ${h.actorName}`, 'portal-muted'));
+    if (h.reason) item.append(text('p', 'Lý do nội bộ: ' + h.reason));
     if (h.messageToUser) item.append(text('p', 'Lời nhắn đã gửi: ' + h.messageToUser, 'portal-muted'));
     list.append(item);
   });
@@ -154,13 +170,16 @@ function renderDetail(d) {
     head,
     ...(d.statusChangeBlockedReason ? [text('p', d.statusChangeBlockedReason, 'staff-help')] : []),
     text('h3', 'Thông tin tài khoản', 'mu-section-title'),
-    fields([['Số điện thoại', d.phone], ['Ngày đăng ký', dateOnly(d.createdAt)], ['Cập nhật gần nhất', date(d.updatedAt)]]),
+    fields([['Số điện thoại', d.phone], ['Ngày đăng ký', dateOnly(d.createdAt)],
+      ['Đăng nhập gần nhất', lastLoginDetail(d.lastLoginAt)], ['Cập nhật gần nhất', date(d.updatedAt)]]),
     text('h3', d.category === 'TUTOR' ? 'Hồ sơ gia sư' : 'Hồ sơ học viên', 'mu-section-title'),
     profileSection(d),
     text('h3', 'Lịch sử đổi trạng thái', 'mu-section-title'),
     historySection(d.statusHistory || [])
   );
-  byId('detailStatus').hidden = !d.allowedStatuses.length;
+  const lock = lockAction(d.accountStatus);
+  byId('detailStatus').hidden = !lock || !d.allowedStatuses.some((s) => s.value === lock.target);
+  if (lock) { byId('detailStatus').textContent = lock.label; byId('detailStatus').dataset.tone = lock.tone; }
 }
 
 async function openDetail(userId) {
@@ -194,16 +213,21 @@ function showStatusDetails(visible) {
 function openStatus(target) {
   state.target = target;
   byId('statusForm').reset();
-  ['status', 'reason', 'message'].forEach((n) => setFieldError(n, ''));
+  ['status', 'message'].forEach((n) => setFieldError(n, ''));
   byId('statusNotice').textContent = '';
   byId('statusSummary').textContent = `${target.fullName} · Trạng thái hiện tại: ${target.currentLabel}`;
+  const lock = lockAction(target.currentStatus);
+  if (!lock) return;
   const select = byId('newStatus');
   select.replaceChildren();
-  option(select, '', 'Chọn trạng thái mới');
-  target.allowed.forEach((s) => option(select, s.value, s.label));
-  byId('statusConsequence').textContent = '';
-  showStatusDetails(false);
+  option(select, lock.target, STATUS_LABEL[lock.target]);
+  select.value = lock.target;
+  byId('statusDialogTitle').textContent = lock.label;
+  byId('saveStatus').textContent = lock.confirm;
+  byId('statusConsequence').textContent = statusConsequence(lock.target);
+  showStatusDetails(true);
   statusDialog.showModal();
+  byId('statusMessage').focus();
 }
 
 function closeStatus() {
@@ -215,11 +239,11 @@ function closeStatus() {
 async function submitStatus(event) {
   event.preventDefault();
   if (state.saving || !state.target) return;
-  ['status', 'reason', 'message'].forEach((n) => setFieldError(n, ''));
+  ['status', 'message'].forEach((n) => setFieldError(n, ''));
   byId('statusNotice').textContent = '';
   const check = validateStatusForm({
     status: byId('newStatus').value, currentStatus: state.target.currentStatus,
-    reason: byId('statusReason').value, message: byId('statusMessage').value
+    message: byId('statusMessage').value
   });
   if (!check.valid) {
     Object.entries(check.errors).forEach(([name, message]) => setFieldError(name, message));
@@ -252,6 +276,10 @@ async function submitStatus(event) {
 
 CATEGORIES.forEach((c) => option(byId('userCategory'), c.value, c.label));
 STATUS_FILTERS.forEach((s) => option(byId('userStatus'), s.value, s.label));
+// Mở từ thẻ số liệu ở Tổng quan của Quản lý: ?category=LEARNER | TUTOR
+const requestedCategory = new URLSearchParams(location.search).get('category');
+if (CATEGORIES.some((c) => c.value === requestedCategory)) state.category = requestedCategory;
+byId('userCategory').value = state.category;
 
 const page = createOperationsPage(loadUsers);
 page.bind('userSearch', 'submit', async () => {
@@ -283,7 +311,7 @@ byId('backToList').addEventListener('click', () => detailDialog.close());
 byId('detailStatus').addEventListener('click', () => {
   const d = state.detail;
   if (!d) return;
-  openStatus({ userId: d.userId, fullName: d.fullName, currentStatus: d.accountStatus, currentLabel: d.accountStatusLabel, allowed: d.allowedStatuses });
+  openStatus({ userId: d.userId, fullName: d.fullName, currentStatus: d.accountStatus, currentLabel: d.accountStatusLabel });
 });
 byId('newStatus').addEventListener('change', () => {
   const value = byId('newStatus').value;

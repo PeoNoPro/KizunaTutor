@@ -68,6 +68,15 @@ description: "Danh sách công việc triển khai FE-13 — Kho học liệu ch
 
 - [X] T034 Liên kết `vocabulary_kanjis` chỉ ghép đúng từng cặp (từ, cách đọc) của dòng vừa thêm: `unnest(words[], readings[])` song song thay cho `word = ANY(...) AND reading = ANY(...)` (tránh gắn Kanji cho mục đã có trùng từ hoặc trùng cách đọc) trong `LC/repository/LearningContentRepository.java`; test `BT/repository/LearningContentRepositoryTest.java` (2 test); kiểm chứng trên DB bằng giao dịch rollback: mục có sẵn (会青試, よみB) không bị gắn, từ mới gắn đúng 3 Kanji.
 
+## Phase T: Tệp mẫu tải về (2026-11-23)
+
+- [X] T035 `LC/service/ContentTemplate.java` tạo tệp mẫu từng loại từ `ContentType` (FR-008a); `GET /{type}/template` trong `ContentImportController` (contracts §2a); test `BT/learning_content/service/ContentTemplateTest.java` (9 test: tệp mẫu chỉ có tiêu đề, đọc lại qua `ContentWorkbookReader` không lỗi)
+- [X] T036 Nút "Tải tệp mẫu" ở tab "Nhập từ Excel" (`FE/pages/academic-content-import`), `API.academicContent.downloadTemplate`, tên tệp trong `CONTENT_TYPES`
+
+## Phase S: Trình nạp Excel khi khởi động dùng chung quy tắc FE-13 (2026-11-23)
+
+- [X] T037 Viết lại `learning_support/seeder/KanjiExcelSeeder` (JOB-10) và `VocabExcelSeeder` (JOB-11) theo yêu cầu người dùng: dùng `ContentWorkbookReader` + `ContentImportPlanner` + `LearningContentRepository` (đọc cột theo tên tiêu đề, kiểm tra hợp lệ, bỏ trùng trong tệp, ghi `kanji_dictionary` + `kanjis`, liên kết `vocabulary_kanjis` theo cặp từ – cách đọc). Kanji mới bắt buộc cột "Số nét" (thiếu thì bỏ qua, ghi log; trước đây ghi cứng 1); Kanji đã có chỉ điền ô trống (Hán Việt, âm đọc, nghĩa, JLPT, số nét = 0), không ghi đè; thêm chữ còn thiếu vào `kanjis`. Từ vựng đã có (cùng từ và cách đọc) bỏ qua nên chạy lại không trùng. Mỗi trình nạp chạy trong một giao dịch + khóa `content-import:<loại>`; lỗi chỉ ghi log, không chặn khởi động (trước đây `throw e`). Thứ tự chạy: Kanji (`@Order(1)`) rồi từ vựng (`@Order(2)`). Bỏ cấu hình thừa `app.seeder.kanji.*` (không code nào dùng). Test `BT/learning_support/seeder/ExcelSeedersTest`. Đọc thử tệp thật: Kanji 6.611 dòng hợp lệ nhưng tệp chưa có cột Số nét nên chữ mới đều bị bỏ qua; từ vựng 15.622 dòng (6 sheet), 7.811 từ sau khi bỏ trùng, 0 dòng lỗi.
+
 ## Dependencies
 
 - Phase 2 → Phase 3, 4, 5. T022 và T023 phải làm cùng lúc. T031 → T032. T033 cuối cùng.

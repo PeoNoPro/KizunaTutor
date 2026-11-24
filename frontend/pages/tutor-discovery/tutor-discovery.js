@@ -199,18 +199,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (labelEl) labelEl.textContent = labelText;
     if (triggerBtn) {
       triggerBtn.className = isActive
-        ? 'filter-pill-btn w-full h-10 px-4 rounded-full bg-[#EBF4FF] border border-[#006194] text-[#004B73] text-[13.5px] font-semibold inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap'
-        : 'filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5DECB] hover:border-[#0F2545] text-[#0F2545] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap';
+        ? 'filter-pill-btn w-full h-10 px-4 rounded-full bg-[#EAF4FA] border border-[#006194] text-[#006194] text-[13.5px] font-semibold inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap'
+        : 'filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5EAF0] hover:border-[#006194] text-[#1F2937] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap';
     }
   }
 
   function syncOptionHighlight(filterType, activeValue) {
     document.querySelectorAll(`.filter-option-btn[data-filter-type="${filterType}"]`).forEach(btn => {
       const isSelected = String(btn.getAttribute('data-value') || '') === String(activeValue || '');
-      btn.classList.toggle('bg-[#EBF4FF]', isSelected);
-      btn.classList.toggle('text-[#004B73]', isSelected);
+      btn.classList.toggle('bg-[#EAF4FA]', isSelected);
+      btn.classList.toggle('text-[#006194]', isSelected);
       btn.classList.toggle('font-semibold', isSelected);
-      btn.classList.toggle('text-[#0F2545]', !isSelected);
+      btn.classList.toggle('text-[#1F2937]', !isSelected);
     });
   }
 
@@ -330,11 +330,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!tutorPreviewPanel) return;
     tutorPreviewPanel.style.transform = 'translate3d(0, 0, 0)';
     tutorPreviewPanel.innerHTML = `
-      <div class="bg-white border border-[#E5DECB] rounded-[12px] p-3.5 shadow-sm space-y-3 animate-pulse">
-        <div class="w-full aspect-[16/10] rounded-[8px] bg-[#EFECE4]"></div>
+      <div class="bg-white border border-[#E5EAF0] rounded-[12px] p-3.5 shadow-sm space-y-3 animate-pulse">
+        <div class="w-full aspect-[16/10] rounded-[8px] bg-[#F6F9FB] border border-[#E5EAF0]"></div>
         <div class="grid grid-cols-2 gap-2.5">
-          <div class="h-10 rounded-[8px] bg-[#FAF8F2] border border-[#EFECE4]"></div>
-          <div class="h-10 rounded-[8px] bg-[#FAF8F2] border border-[#EFECE4]"></div>
+          <div class="h-10 rounded-[8px] bg-[#F6F9FB] border border-[#E5EAF0]"></div>
+          <div class="h-10 rounded-[8px] bg-[#F6F9FB] border border-[#E5EAF0]"></div>
         </div>
       </div>
     `;
@@ -384,11 +384,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const isCurrent = cardEl.getAttribute('data-tutor-id') === String(matched.id);
         cardEl.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
         cardEl.classList.toggle('tutor-card-selected', isCurrent);
-        cardEl.classList.toggle('border-[#0F2545]', isCurrent);
+        cardEl.classList.toggle('border-[#006194]', isCurrent);
         cardEl.classList.toggle('ring-1', isCurrent);
-        cardEl.classList.toggle('ring-[#0F2545]/15', isCurrent);
-        cardEl.classList.toggle('shadow-[0_10px_28px_rgba(15,37,69,0.10)]', isCurrent);
-        cardEl.classList.toggle('border-[#E5DECB]', !isCurrent);
+        cardEl.classList.toggle('ring-[#006194]/20', isCurrent);
+        cardEl.classList.toggle('shadow-[0_10px_28px_rgba(0,97,148,0.12)]', isCurrent);
+        cardEl.classList.toggle('border-[#E5EAF0]', !isCurrent);
       });
     }
 
@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPreviewSkeleton();
     if (tutorGrid) {
       tutorGrid.innerHTML = `
-        <div class="py-16 flex flex-col items-center justify-center text-on-surface-variant gap-3 bg-white border border-[#E5DECB] rounded-[12px]">
+        <div class="py-16 flex flex-col items-center justify-center text-on-surface-variant gap-3 bg-white border border-[#E5EAF0] rounded-[12px]">
           <span class="material-symbols-outlined text-primary text-[40px] animate-spin">progress_activity</span>
           <p class="text-sm font-medium">Đang tải danh sách gia sư từ máy chủ...</p>
         </div>
@@ -617,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (totalCountEl) totalCountEl.textContent = totalElements;
 
     let navHtml = `
-      <button class="px-space-md py-2 rounded-lg bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#3F4850] text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1 ${currentPage <= 1 ? 'pointer-events-none opacity-50 cursor-not-allowed' : 'cursor-pointer'}" 
+      <button class="px-space-md py-2 rounded-lg bg-white border border-[#E5EAF0] hover:bg-[#F6F9FB] hover:text-[#006194] text-[#1F2937] text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1 ${currentPage <= 1 ? 'pointer-events-none opacity-50 cursor-not-allowed' : 'cursor-pointer'}" 
               type="button" 
               data-page="${currentPage - 1}"
               ${currentPage <= 1 ? 'disabled' : ''}>
@@ -633,13 +633,13 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       } else {
         navHtml += `
-          <button class="w-9 h-9 rounded-lg bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#3F4850] font-label-sm text-label-sm font-semibold transition-colors cursor-pointer" type="button" data-page="${i}">${i}</button>
+          <button class="w-9 h-9 rounded-lg bg-white border border-[#E5EAF0] hover:bg-[#F6F9FB] hover:text-[#006194] text-[#1F2937] font-label-sm text-label-sm font-semibold transition-colors cursor-pointer" type="button" data-page="${i}">${i}</button>
         `;
       }
     }
 
     navHtml += `
-      <button class="px-space-md py-2 rounded-lg bg-white border border-[#E5DECB] hover:bg-[#FAF8F2] text-[#3F4850] text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1 ${currentPage >= totalPagesCount ? 'pointer-events-none opacity-50 cursor-not-allowed' : 'cursor-pointer'}" 
+      <button class="px-space-md py-2 rounded-lg bg-white border border-[#E5EAF0] hover:bg-[#F6F9FB] hover:text-[#006194] text-[#1F2937] text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1 ${currentPage >= totalPagesCount ? 'pointer-events-none opacity-50 cursor-not-allowed' : 'cursor-pointer'}" 
               type="button" 
               data-page="${currentPage + 1}"
               ${currentPage >= totalPagesCount ? 'disabled' : ''}>
@@ -718,9 +718,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     activeChipsContainer.innerHTML = chips.map(chip => `
-      <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container text-primary text-xs font-semibold border border-surface-variant">
+      <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#EAF4FA] text-[#006194] text-xs font-semibold border border-[#E5EAF0]">
         <span>${escapeHtml(chip.label)}</span>
-        <button type="button" class="hover:text-error ml-1 text-[14px] leading-none cursor-pointer" data-remove-filter="${escapeHtml(chip.key)}" aria-label="Bỏ lọc ${escapeHtml(chip.label)}">×</button>
+        <button type="button" class="hover:text-[#BA1A1A] ml-1 text-[14px] leading-none cursor-pointer" data-remove-filter="${escapeHtml(chip.key)}" aria-label="Bỏ lọc ${escapeHtml(chip.label)}">×</button>
       </span>
     `).join('');
   }
@@ -889,7 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
       locationOptionsList.innerHTML = '';
       const allBtn = document.createElement('button');
       allBtn.type = 'button';
-      allBtn.className = 'filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer';
+      allBtn.className = 'filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer';
       allBtn.setAttribute('data-filter-type', 'location');
       allBtn.setAttribute('data-value', '');
       allBtn.textContent = 'Tất cả khu vực';
@@ -899,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
         locations.forEach(loc => {
           const optBtn = document.createElement('button');
           optBtn.type = 'button';
-          optBtn.className = 'filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#0F2545] hover:bg-[#FAF8F2] transition-colors cursor-pointer';
+          optBtn.className = 'filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer';
           optBtn.setAttribute('data-filter-type', 'location');
           optBtn.setAttribute('data-value', loc);
           optBtn.textContent = loc;

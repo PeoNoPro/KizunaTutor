@@ -9,7 +9,11 @@ import com.kizuna.features.learning_content.dto.ImportHistoryDetailResponse;
 import com.kizuna.features.learning_content.dto.ImportHistoryResponse;
 import com.kizuna.features.learning_content.service.LearningContentService;
 import com.kizuna.features.payment.service.CurrentUserAccessor;
+import com.kizuna.core.exception.BusinessException;
+import com.kizuna.features.learning_content.service.ContentTemplate;
+import com.kizuna.features.learning_content.service.ContentType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -46,6 +50,17 @@ public class ContentImportController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(ApiResponse.ok(service.listItems(type, keyword, jlpt, sort, page, size)));
+    }
+
+    /** Tệp Excel mẫu của một loại học liệu (tiêu đề đúng tên cột + dòng ví dụ + sheet hướng dẫn). */
+    @GetMapping("/{type}/template")
+    public ResponseEntity<byte[]> template(@PathVariable String type) {
+        ContentType contentType = ContentType.fromPath(type)
+                .orElseThrow(() -> new BusinessException(400, "Loại học liệu không hợp lệ."));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + ContentTemplate.fileName(contentType) + "\"")
+                .body(ContentTemplate.build(contentType));
     }
 
     @PostMapping(value = "/{type}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

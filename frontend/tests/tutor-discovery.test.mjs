@@ -180,8 +180,9 @@ test('buildTutorCardHtml dựng thẻ ngang tiếng Việt an toàn, không inli
   assert.ok(!html.includes('>Kinh nghiệm</div>'));
   assert.ok(!html.includes('>Lịch rảnh/tuần</div>'));
   assert.ok(html.includes('Xem thêm'));
-  assert.ok(html.includes('Gia sư tiêu biểu'));
-  assert.ok(html.includes('Đã xác thực'));
+  assert.ok(!html.includes('Gia sư tiêu biểu'), 'Thẻ không còn nhãn tiêu biểu, xác thực, JLPT');
+  assert.ok(!html.includes('Đã xác thực'));
+  assert.ok(!html.includes('JLPT N1'));
   assert.ok(html.includes('Đang mở 1 khung giờ trống trong tuần'));
   assert.ok(!html.includes('open_in_new'), 'Không hiển thị nút icon mở hồ sơ phụ ở góc phải thẻ');
   assert.ok(!/\bstyle\s*=/.test(html), 'Không dùng inline style=');

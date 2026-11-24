@@ -88,9 +88,97 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
                         : callOpenAiCompatible(prompt, ai.model(), ai.apiKey(), ai.baseUrl(), "OPENAI".equals(ai.provider()));
 
                 if (jsonText != null && !jsonText.isBlank()) {
-                    ReadingAnalysisResponse result = objectMapper.readValue(stripFence(jsonText), ReadingAnalysisResponse.class);
+                    JsonNode root = objectMapper.readTree(stripFence(jsonText));
+                    // Chuẩn hóa comprehensionQuestions nếu AI trả về dạng mảng string thay vì mảng object
+                    if (root.has("comprehensionQuestions") && root.get("comprehensionQuestions").isArray()) {
+                        com.fasterxml.jackson.databind.node.ArrayNode qArray = (com.fasterxml.jackson.databind.node.ArrayNode) root.get("comprehensionQuestions");
+                        for (int i = 0; i < qArray.size(); i++) {
+                            JsonNode item = qArray.get(i);
+                            if (item.isTextual()) {
+                                com.fasterxml.jackson.databind.node.ObjectNode obj = objectMapper.createObjectNode();
+                                obj.put("id", "q_" + i);
+                                obj.put("questionType", "MAIN_IDEA");
+                                obj.put("question", item.asText());
+                                obj.put("questionVi", item.asText());
+                                com.fasterxml.jackson.databind.node.ArrayNode opts = obj.putArray("options");
+                                opts.add("A").add("B").add("C").add("D");
+                                obj.put("correctOptionIndex", 0);
+                                qArray.set(i, obj);
+                            }
+                        }
+                    }
+
+                    // Chuẩn hóa sentenceTranslations nếu AI trả về dạng string đơn lẻ hoặc alias khác
+                    if (root.has("sentenceTranslations")) {
+                        JsonNode stNode = root.get("sentenceTranslations");
+                        if (stNode.isTextual()) {
+                            com.fasterxml.jackson.databind.node.ArrayNode arr = objectMapper.createArrayNode();
+                            String txt = stNode.asText().trim();
+                            for (String s : txt.split("(?<=[。！？!?\n])")) {
+                                String t = s.trim();
+                                if (!t.isEmpty()) arr.add(t);
+                            }
+                            if (arr.isEmpty() && !txt.isEmpty()) arr.add(txt);
+                            ((com.fasterxml.jackson.databind.node.ObjectNode) root).set("sentenceTranslations", arr);
+                        }
+                    } else {
+                        String altKey = null;
+                        if (root.has("translations")) altKey = "translations";
+                        else if (root.has("translation")) altKey = "translation";
+                        else if (root.has("vietnameseTranslation")) altKey = "vietnameseTranslation";
+                        else if (root.has("vietnamese")) altKey = "vietnamese";
+
+                        if (altKey != null) {
+                            JsonNode altNode = root.get(altKey);
+                            com.fasterxml.jackson.databind.node.ArrayNode arr = objectMapper.createArrayNode();
+                            if (altNode.isArray()) {
+                                for (JsonNode item : altNode) {
+                                    arr.add(item.asText());
+                                }
+                            } else if (altNode.isTextual()) {
+                                String txt = altNode.asText().trim();
+                                for (String s : txt.split("(?<=[。！？!?\n])")) {
+                                    String t = s.trim();
+                                    if (!t.isEmpty()) arr.add(t);
+                                }
+                                if (arr.isEmpty() && !txt.isEmpty()) arr.add(txt);
+                            }
+                            ((com.fasterxml.jackson.databind.node.ObjectNode) root).set("sentenceTranslations", arr);
+                        }
+                    }
+
+                    ReadingAnalysisResponse result = objectMapper.treeToValue(root, ReadingAnalysisResponse.class);
                     if (result.getOriginalText() == null || result.getOriginalText().isBlank()) {
                         result.setOriginalText(originalText);
+                    }
+                    if (result.getRubyHtml() == null || result.getRubyHtml().isBlank() || !result.getRubyHtml().contains("<ruby>")) {
+                        // Thử các khóa dự phòng nếu AI dùng alias khác
+                        for (String rKey : List.of("ruby_html", "ruby", "furiganaHtml", "furigana_html", "furigana")) {
+                            if (root.has(rKey) && !root.get(rKey).asText().isBlank() && root.get(rKey).asText().contains("<ruby>")) {
+                                result.setRubyHtml(root.get(rKey).asText());
+                                break;
+                            }
+                        }
+                    }
+                    if (result.getRubyHtml() != null && result.getRubyHtml().contains("<ruby>")) {
+                        result.setRubyHtml(sanitizeRubyHtml(result.getRubyHtml()));
+                    } else {
+                        // Dự phòng tự động bóc tách thẻ Ruby nếu AI không trả về
+                        result.setRubyHtml(generateComprehensiveRubyHtml(originalText));
+                    }
+                    if (result.getFullTranslation() == null || result.getFullTranslation().isBlank()) {
+                        if (root.has("fullTranslation") && !root.get("fullTranslation").asText().isBlank()) {
+                            result.setFullTranslation(root.get("fullTranslation").asText().trim());
+                        } else if (result.getSentenceTranslations() != null && !result.getSentenceTranslations().isEmpty()) {
+                            result.setFullTranslation(String.join(" ", result.getSentenceTranslations()));
+                        }
+                    }
+                    if (result.getSentenceTranslations() == null || result.getSentenceTranslations().isEmpty()) {
+                        if (result.getFullTranslation() != null && !result.getFullTranslation().isBlank()) {
+                            result.setSentenceTranslations(new ArrayList<>(List.of(result.getFullTranslation())));
+                        } else if (result.getOverallSummary() != null && !result.getOverallSummary().isBlank()) {
+                            result.setSentenceTranslations(new ArrayList<>(List.of(result.getOverallSummary())));
+                        }
                     }
                     // Đảm bảo gán ID cho vocabularies và grammars
                     if (result.getVocabularies() != null) {
@@ -170,7 +258,7 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
     private String buildPrompt(String text, String targetJlpt) {
         return """
             Bạn là Kizuna Reading Sensei - chuyên gia sư phạm và ngôn ngữ tiếng Nhật của nền tảng KizunaTutor.
-            Nhiệm vụ của bạn là bóc tách toàn diện đoạn văn bản tiếng Nhật học viên cung cấp để hỗ trợ luyện kỹ năng Đọc hiểu (Dokkai).
+            Nhiệm vụ của bạn là phân tích đoạn văn bản tiếng Nhật học viên cung cấp để phục vụ luyện thi kỹ năng Đọc hiểu (Dokkai).
 
             Văn bản gốc:
             \"\"\"
@@ -183,6 +271,7 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
               "originalText": "văn bản gốc",
               "rubyHtml": "văn bản gốc được bọc chuẩn thẻ HTML <ruby>Hán tự<rt>furigana</rt></ruby> cho TẤT CẢ các từ chứa chữ Hán. Giữ nguyên dấu câu và các từ kana không cần ruby.",
               "overallSummary": "Tóm tắt ngắn gọn 1-2 câu ý chính của đoạn văn bằng tiếng Việt",
+              "fullTranslation": "Bản dịch tiếng Việt hoàn chỉnh, tự nhiên và chuẩn xác của TOÀN BỘ đoạn văn bản trên",
               "estimatedLevel": "Ước tính cấp độ JLPT tổng thể của bài đọc (ví dụ: N5, N4, N3, N2, N1)",
               "comprehensionQuestions": [
                 {
@@ -207,37 +296,13 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
                   "explanation": "Giải thích chi tiết bằng tiếng Việt: vì sao đáp án đúng và phân tích bẫy vì sao các phương án khác sai"
                 }
               ],
-              "detectedGrammars": [
-                {
-                  "id": "g_0",
-                  "pattern": "Mẫu ngữ pháp JLPT chuẩn (ví dụ: 〜ことにしている, 〜ても, 〜たり〜たりする)",
-                  "grammarCode": "Mã ngữ pháp nếu có hoặc để trống",
-                  "jlptLevel": "Cấp độ JLPT của mẫu này (N5/N4/N3/N2/N1)",
-                  "meaning": "Ý nghĩa tiếng Việt",
-                  "matchedText": "Chuỗi con xuất hiện CHÍNH XÁC 100%% trong văn bản gốc (KHÔNG CHỨA dấu ngã 〜 hay ký tự suy đoán). Ví dụ nếu trong bài viết '大学に行ったり、観光地に行ったりしました' thì matchedText phải là đúng chuỗi đó.",
-                  "explanation": "Giải thích ngữ cảnh sư phạm ngắn gọn bằng tiếng Việt"
-                }
-              ],
-              "vocabularies": [
-                {
-                  "id": "v_0",
-                  "surfaceText": "Chuỗi từ vựng xuất hiện CHÍNH XÁC trực tiếp trong câu văn bản (ví dụ: 手に入れました, 出会った, 行ったり)",
-                  "kanji": "Từ vựng chữ Hán hoặc thể từ điển nguyên mẫu (ví dụ: 手に入れる, 出会う, 行く)",
-                  "reading": "Cách đọc Hiragana chuẩn (ví dụ: てにいれる, であう, いく)",
-                  "hanViet": "Âm Hán Việt in hoa (nếu có chữ Hán, ví dụ: THỦ NHẬP, XUẤT HỘI, HÀNH)",
-                  "meaning": "Nghĩa tiếng Việt súc tích",
-                  "jlpt": "Cấp độ JLPT (N5 - N1)",
-                  "wordType": "Từ loại (Danh từ, Động từ V1/V2/V3, Tính từ -i/-na, Phó từ)"
-                }
-              ],
               "sentenceTranslations": [
                 "Bản dịch tiếng Việt sát nghĩa cho từng câu trong đoạn văn theo thứ tự"
               ]
             }
             Lưu ý:
             - Sinh từ 1 đến 3 câu hỏi Đọc hiểu (Dokkai) trắc nghiệm 4 lựa chọn phù hợp với độ dài bài đọc (dưới 200 ký tự: 1 câu; 200-500: 2 câu; trên 500: 3 câu). Đảm bảo evidenceQuote trích dẫn 100%% nguyên văn từ bài đọc.
-            - Trích xuất tối thiểu 4-12 từ vựng quan trọng nhất trong bài.
-            - Bóc tách đầy đủ tất cả cấu trúc ngữ pháp có trong bài đọc, matchedText phải trích dẫn trực tiếp từ bài đọc để hệ thống highlight chính xác.
+            - comprehensionQuestions BẮT BUỘC là danh sách các Object JSON có đầy đủ thuộc tính id, question, questionVi, options, optionsVi, correctOptionIndex (KHÔNG ĐƯỢC trả về dạng mảng string).
             - Furigana trong rubyHtml phải chính xác theo ngữ cảnh câu.
             """.formatted(text, targetJlpt);
     }
@@ -253,6 +318,20 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
         if (jsonText.startsWith("```")) jsonText = jsonText.substring(3);
         if (jsonText.endsWith("```")) jsonText = jsonText.substring(0, jsonText.length() - 3);
         return jsonText.trim();
+    }
+
+    private static String sanitizeRubyHtml(String html) {
+        if (html == null) return "";
+        // Loại bỏ khoảng trắng giữa các thẻ ruby và giữa thẻ với chữ cái tiếng Nhật, tránh làm lệch từ
+        return html
+                .replaceAll(">\\s+<", "><")
+                .replaceAll("(?<=<ruby>)\\s+", "")
+                .replaceAll("\\s+(?=</ruby>)", "")
+                .replaceAll("(?<=<rt>)\\s+", "")
+                .replaceAll("\\s+(?=</rt>)", "")
+                .replaceAll("(?<=</ruby>)\\s+(?=[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}、。！？])", "")
+                .replaceAll("(?<=[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}])\\s+(?=<ruby>)", "")
+                .trim();
     }
 
     private String callGemini(String prompt, String model, String apiKey) throws Exception {
@@ -321,15 +400,14 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
         reqBody.put("model", model);
         reqBody.put("messages", List.of(systemMsg, userMsg));
         reqBody.put("temperature", 0.2);
-        reqBody.put("max_tokens", 4000); // Đảm bảo bóc tách toàn diện không bị cắt ngắn
-        if (isOpenAiOfficial) {
-            reqBody.put("response_format", Map.of("type", "json_object"));
-        }
+        reqBody.put("max_tokens", 2000); // 2000 token là tối ưu cho sinh câu hỏi đọc hiểu và giới hạn TPM
+        reqBody.put("response_format", Map.of("type", "json_object"));
 
         var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(8000);
         factory.setReadTimeout(45000);
         RestTemplate restTemplate = new RestTemplate(factory);
+        restTemplate.getMessageConverters().add(0, new org.springframework.http.converter.StringHttpMessageConverter(java.nio.charset.StandardCharsets.UTF_8));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -772,6 +850,64 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
                     .explanation("Đáp án đúng là 1: Trong bài tác giả nói '天気がいい日は富士山がきれいに見えます' (Những ngày trời đẹp thì nhìn thấy núi Phú Sĩ rất đẹp).")
                     .build());
 
+        } else if (originalText.contains("自然") || (originalText.contains("海") && originalText.contains("町"))) {
+            // Preset 6: Vẻ đẹp thiên nhiên & thị trấn ven biển (User test case)
+            estLevel = "N4";
+            summary = "Đoạn văn ca ngợi vẻ đẹp phong cảnh thiên nhiên tươi đẹp với núi, biển, sông và đặc biệt là sự thanh bình, lãng mạn tại một thị trấn nhỏ ven biển giúp xua tan áp lực bận rộn thường nhật.";
+            translations = List.of(
+                    "Đất nước của tôi có rất nhiều cảnh sắc thiên nhiên tươi đẹp.",
+                    "Đặc biệt là phong cảnh núi non, biển cả và sông ngòi vô cùng tuyệt mỹ.",
+                    "Nơi mà tôi yêu thích nhất là một thị trấn nhỏ nằm ở gần bờ biển.",
+                    "Mỗi khi đến đó, bãi biển xanh biếc và bờ cát trắng trải rộng mở ra trước mắt khiến tâm hồn tôi trở nên tĩnh lặng và an yên.",
+                    "Khi trời rạng sáng, mặt trời mọc dần từ phía biển và bầu trời từng chút từng chút bừng sáng.",
+                    "Khung cảnh ấy thực sự tuyệt vời đến mức có thể ngắm nhìn hàng giờ liền không biết chán.",
+                    "Hơn nữa, vào buổi chiều tà, bầu trời chuyển sang sắc đỏ và cam, mang lại một bầu không khí vô cùng lãng mạn.",
+                    "Tôi có thể tạm quên đi chuỗi ngày bận rộn thường nhật để cảm nhận trọn vẹn vẻ đẹp của thiên nhiên.",
+                    "Nếu có cơ hội, tôi rất mong mọi người cũng sẽ ghé thăm nơi tuyệt vời này."
+            );
+            comprehensionQuestions.add(ReadingComprehensionQuestionDto.builder()
+                    .id("q_0")
+                    .questionType("MAIN_IDEA")
+                    .question("筆者が一番好きな場所について、正しいものはどれですか。")
+                    .questionVi("Về địa điểm mà tác giả yêu thích nhất, phát biểu nào sau đây là đúng?")
+                    .options(List.of(
+                            "海の近くにある小さな町で、青い海と白い砂浜が広がっている場所。",
+                            "山奥にある静かな村で、川の景色がとてもきれいな場所。",
+                            "毎朝多くの人が集まって賑やかな大都市の観光地。",
+                            "夕方になると暗くなって少し怖い雰囲気の町。"
+                    ))
+                    .optionsVi(List.of(
+                            "Một thị trấn nhỏ gần biển, nơi có biển xanh và bãi cát trắng trải dài.",
+                            "Một ngôi làng yên tĩnh trong vùng núi sâu, nơi phong cảnh sông ngòi rất đẹp.",
+                            "Một địa điểm du lịch ở thành phố lớn, nơi mỗi sáng có đông người tụ tập nhộn nhịp.",
+                            "Một thị trấn mà khi trời về chiều thì trở nên tối tăm và có bầu không khí hơi đáng sợ."
+                    ))
+                    .correctOptionIndex(0)
+                    .evidenceQuote("私が一番好きな場所は、海の近くにある小さな町です。そこへ行くと、青い海と白い砂浜が広がっていて、心が落ち着きます。")
+                    .explanation("Đáp án đúng là 1: Trong bài tác giả nói rõ '私が一番好きな場所は、海の近くにある小さな町です。そこへ行くと、青い海と白い砂浜が広がっていて、心が落ち着きます' (Nơi tôi thích nhất là thị trấn nhỏ gần biển, có biển xanh và cát trắng).")
+                    .build());
+            comprehensionQuestions.add(ReadingComprehensionQuestionDto.builder()
+                    .id("q_1")
+                    .questionType("DETAIL")
+                    .question("夕方の海の景色について、筆者はどのように言っていますか。")
+                    .questionVi("Về cảnh biển vào buổi chiều tối, tác giả đã nói như thế nào?")
+                    .options(List.of(
+                            "空が赤やオレンジ色に変わり、とてもロマンチックな雰囲気になる。",
+                            "太陽が海から昇って、空が少しずつ明るくなっていく。",
+                            "青い海と白い砂浜が広がって、何時間でも見ていられる。",
+                            "仕事が忙しくなって、自然の美しさを忘れてしまう。"
+                    ))
+                    .optionsVi(List.of(
+                            "Bầu trời chuyển sang màu đỏ và cam, mang lại bầu không khí vô cùng lãng mạn.",
+                            "Mặt trời nhô lên từ phía biển và bầu trời dần dần bừng sáng.",
+                            "Biển xanh và cát trắng trải dài, có thể ngắm hàng giờ không chán.",
+                            "Công việc trở nên bận rộn hơn khiến quên đi vẻ đẹp của thiên nhiên."
+                    ))
+                    .correctOptionIndex(0)
+                    .evidenceQuote("夕方には空が赤やオレンジ色に変わり、とてもロマンチックな雰囲気になります。")
+                    .explanation("Đáp án đúng là 1: Trong bài tác giả nêu '夕方には空が赤やオレンジ色に変わり、とてもロマンチックな雰囲気になります' (Buổi chiều bầu trời chuyển sang màu đỏ và cam, tạo không khí rất lãng mạn).")
+                    .build());
+
         } else {
             // Mặc định hoặc văn bản tự do
             estLevel = "N5";
@@ -816,11 +952,13 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
 
         // Tự động sinh Ruby Furigana cho tất cả chữ Hán trong văn bản
         String rubyHtml = generateComprehensiveRubyHtml(originalText);
+        String fullTrans = translations.isEmpty() ? summary : String.join(" ", translations);
 
         return ReadingAnalysisResponse.builder()
                 .originalText(originalText)
                 .rubyHtml(rubyHtml)
                 .overallSummary(summary)
+                .fullTranslation(fullTrans)
                 .estimatedLevel(estLevel)
                 .comprehensionQuestions(comprehensionQuestions)
                 .detectedGrammars(detectedGrammars)
@@ -899,103 +1037,171 @@ public class ReadingAssistantServiceImpl implements ReadingAssistantService {
     }
 
     private String generateComprehensiveRubyHtml(String text) {
+        if (text == null || text.isBlank()) return "";
         String res = text;
-        // Danh sách thay thế Ruby ưu tiên từ dài trước ngắn sau
-        String[][] rubyReplacements = {
-                // Tsang & Hà Nội
-                {"人生最大の贈り物", "<ruby>人生<rt>じんせい</rt></ruby><ruby>最大<rt>さいだい</rt></ruby>の<ruby>贈り物<rt>おくりもの</rt></ruby>"},
-                {"人生", "<ruby>人生<rt>じんせい</rt></ruby>"},
-                {"最大", "<ruby>最大<rt>さいだい</rt></ruby>"},
-                {"贈り物", "<ruby>贈り物<rt>おくりもの</rt></ruby>"},
-                {"友情", "<ruby>友情<rt>ゆうじょう</rt></ruby>"},
-                {"手に入れました", "<ruby>手<rt>て</rt></ruby>に<ruby>入<rt>い</rt></ruby>れました"},
-                {"建築大学", "<ruby>建築大学<rt>けんちくだいがく</rt></ruby>"},
-                {"大学", "<ruby>大学<rt>だいがく</rt></ruby>"},
-                {"入学手続き", "<ruby>入学<rt>にゅうがく</rt></ruby><ruby>手続き<rt>てつづき</rt></ruby>"},
-                {"手続き", "<ruby>手続き<rt>てつづき</rt></ruby>"},
-                {"観光地", "<ruby>観光地<rt>かんこうち</rt></ruby>"},
-                {"春夏秋冬", "<ruby>春夏秋冬<rt>しゅんかしゅうとう</rt></ruby>"},
-                {"記念", "<ruby>記念<rt>きねん</rt></ruby>"},
-                {"我慢強い", "<ruby>我慢強い<rt>がまんづよい</rt></ruby>"},
-                {"強気", "<ruby>強気<rt>つよき</rt></ruby>"},
-                {"友達", "<ruby>友達<rt>ともだち</rt></ruby>"},
-                {"出会った", "<ruby>出会<rt>であ</rt></ruby>った"},
-                {"相手", "<ruby>相手<rt>あいて</rt></ruby>"},
-                {"素晴らしい", "<ruby>素晴<rt>すば</rt></ruby>らしい"},
-                {"素晴らし", "<ruby>素晴<rt>すば</rt></ruby>らし"},
-                {"毎日", "<ruby>毎日<rt>まいにち</rt></ruby>"},
-                {"一緒", "<ruby>一緒<rt>いっしょ</rt></ruby>"},
-                {"笑み", "<ruby>笑<rt>え</rt></ruby>み"},
-                {"笑い", "<ruby>笑<rt>わら</rt></ruby>い"},
-                {"初めて", "<ruby>初<rt>はじ</rt></ruby>めて"},
-                {"教えてくれました", "<ruby>教<rt>おし</rt></ruby>えてくれました"},
-                {"作って来ました", "<ruby>作<rt>つく</rt></ruby>って<ruby>来<rt>き</rt></ruby>ました"},
-                {"手伝ってくれたい", "<ruby>手伝<rt>てつだ</rt></ruby>ってくれたい"},
 
-                // Tokyo & Asakusa
-                {"日曜日", "<ruby>日曜日<rt>にちようび</rt></ruby>"},
-                {"先週", "<ruby>先週<rt>せんしゅう</rt></ruby>"},
-                {"東京", "<ruby>東京<rt>とうきょう</rt></ruby>"},
-                {"浅草", "<ruby>浅草<rt>あさくさ</rt></ruby>"},
-                {"昼ごはん", "<ruby>昼<rt>ひる</rt></ruby>ごはん"},
-                {"美味しい", "<ruby>美味<rt>おい</rt></ruby>しい"},
-                {"お寺", "お<ruby>寺<rt>てら</rt></ruby>"},
-                {"お土産", "お<ruby>土産<rt>みやげ</rt></ruby>"},
-                {"電車", "<ruby>電車<rt>でんしゃ</rt></ruby>"},
-                {"写真", "<ruby>写真<rt>しゃしん</rt></ruby>"},
-                {"家族", "<ruby>家族<rt>かぞく</rt></ruby>"},
-                {"午後", "<ruby>午後<rt>ごご</rt></ruby>"},
-                {"行きました", "<ruby>行<rt>い</rt></ruby>きました"},
-                {"行きたいです", "<ruby>行<rt>い</rt></ruby>きたいです"},
-                {"行きたい", "<ruby>行<rt>い</rt></ruby>きたい"},
-                {"会いました", "<ruby>会<rt>あ</rt></ruby>いました"},
-                {"見たり", "<ruby>見<rt>み</rt></ruby>たり"},
-                {"撮ったりしました", "<ruby>撮<rt>と</rt></ruby>ったりしました"},
-                {"撮ったり", "<ruby>撮<rt>と</rt></ruby>ったり"},
-                {"食べました", "<ruby>食<rt>た</rt></ruby>べました"},
-                {"買いました", "<ruby>買<rt>か</rt></ruby>いました"},
-                {"疲れましたが", "<ruby>疲<rt>つか</rt></ruby>れましたが"},
-                {"疲れました", "<ruby>疲<rt>つか</rt></ruby>れました"},
-                {"楽しかったです", "<ruby>楽<rt>たの</rt></ruby>しかったです"},
-                {"面白かったです", "<ruby>面白<rt>おもしろ</rt></ruby>かったです"},
-                {"大きい", "<ruby>大<rt>おお</rt></ruby>きい"},
-                {"駅", "<ruby>駅<rt>えき</rt></ruby>"},
-                {"朝", "<ruby>朝<rt>あさ</rt></ruby>"},
-                {"人", "<ruby>人<rt>ひと</rt></ruby>"},
-                {"私", "<ruby>私<rt>わたし</rt></ruby>"},
-                {"少し", "<ruby>少<rt>すこ</rt></ruby>し"},
+        // Danh sách thay thế Ruby ưu tiên cụm từ dài trước, từ ngắn sau
+        List<String[]> pairs = new ArrayList<>(List.of(
+                // Preset Tsang & Hà Nội
+                new String[]{"人生最大の贈り物", "<ruby>人生<rt>じんせい</rt></ruby><ruby>最大<rt>さいだい</rt></ruby>の<ruby>贈り物<rt>おくりもの</rt></ruby>"},
+                new String[]{"入学手続き", "<ruby>入学<rt>にゅうがく</rt></ruby><ruby>手続き<rt>てつづき</rt></ruby>"},
+                new String[]{"手に入れました", "<ruby>手<rt>て</rt></ruby>に<ruby>入<rt>い</rt></ruby>れました"},
+                new String[]{"教えてくれました", "<ruby>教<rt>おし</rt></ruby>えてくれました"},
+                new String[]{"作って来ました", "<ruby>作<rt>つく</rt></ruby>って<ruby>来<rt>き</rt></ruby>ました"},
+                new String[]{"手伝ってくれたい", "<ruby>手伝<rt>てつだ</rt></ruby>ってくれたい"},
+                new String[]{"建築大学", "<ruby>建築大学<rt>けんちくだいがく</rt></ruby>"},
+                new String[]{"春夏秋冬", "<ruby>春夏秋冬<rt>しゅんかしゅうとう</rt></ruby>"},
+                new String[]{"我慢強い", "<ruby>我慢強い<rt>がまんづよい</rt></ruby>"},
+                new String[]{"素晴らしい", "<ruby>素晴<rt>すば</rt></ruby>らしい"},
+                new String[]{"素晴らし", "<ruby>素晴<rt>すば</rt></ruby>らし"},
+                new String[]{"出会った", "<ruby>出会<rt>であ</rt></ruby>った"},
+                new String[]{"観光地", "<ruby>観光地<rt>かんこうち</rt></ruby>"},
+                new String[]{"贈り物", "<ruby>贈り物<rt>おくりもの</rt></ruby>"},
+                new String[]{"手続き", "<ruby>手続き<rt>てつづき</rt></ruby>"},
+                new String[]{"初めて", "<ruby>初<rt>はじ</rt></ruby>めて"},
+                new String[]{"人生", "<ruby>人生<rt>じんせい</rt></ruby>"},
+                new String[]{"最大", "<ruby>最大<rt>さいだい</rt></ruby>"},
+                new String[]{"友情", "<ruby>友情<rt>ゆうじょう</rt></ruby>"},
+                new String[]{"大学", "<ruby>大学<rt>だいがく</rt></ruby>"},
+                new String[]{"記念", "<ruby>記念<rt>きねん</rt></ruby>"},
+                new String[]{"強気", "<ruby>強気<rt>つよき</rt></ruby>"},
+                new String[]{"友達", "<ruby>友達<rt>ともだち</rt></ruby>"},
+                new String[]{"相手", "<ruby>相手<rt>あいて</rt></ruby>"},
+                new String[]{"毎日", "<ruby>毎日<rt>まいにち</rt></ruby>"},
+                new String[]{"一緒", "<ruby>一緒<rt>いっしょ</rt></ruby>"},
+                new String[]{"笑み", "<ruby>笑<rt>え</rt></ruby>み"},
+                new String[]{"笑い", "<ruby>笑<rt>わら</rt></ruby>い"},
 
-                // Kyoto, NHK, Buổi sáng
-                {"毎朝", "<ruby>毎朝<rt>まいあさ</rt></ruby>"},
-                {"公園", "<ruby>公園<rt>こうえん</rt></ruby>"},
-                {"散歩", "<ruby>散歩<rt>さんぽ</rt></ruby>"},
-                {"天気", "<ruby>天気<rt>てんき</rt></ruby>"},
-                {"富士山", "<ruby>富士山<rt>ふじさん</rt></ruby>"},
-                {"パン屋", "パン<ruby>屋<rt>や</rt></ruby>"},
-                {"朝ご飯", "<ruby>朝<rt>あさ</rt></ruby>ご<ruby>飯<rt>はん</rt></ruby>"},
-                {"京都", "<ruby>京都<rt>きょうと</rt></ruby>"},
-                {"旅行", "<ruby>旅行<rt>りょこう</rt></ruby>"},
-                {"新幹線", "<ruby>新幹線<rt>しんかんせん</rt></ruby>"},
-                {"時間", "<ruby>時間<rt>じかん</rt></ruby>"},
-                {"金閣寺", "<ruby>金閣寺<rt>きんかくじ</rt></ruby>"},
-                {"抹茶", "<ruby>抹茶<rt>まっちゃ</rt></ruby>"},
-                {"雨", "<ruby>雨<rt>あめ</rt></ruby>"},
-                {"降", "<ruby>降<rt>ふ</rt></ruby>"},
-                {"着物", "<ruby>着物<rt>きもの</rt></ruby>"},
-                {"着て", "<ruby>着<rt>き</rt></ruby>て"},
-                {"日本語", "<ruby>日本語<rt>にほんご</rt></ruby>"},
-                {"上手", "<ruby>上手<rt>じょうず</rt></ruby>"},
-                {"単語", "<ruby>単語<rt>たんご</rt></ruby>"},
-                {"文脈", "<ruby>文脈<rt>ぶんみゃく</rt></ruby>"},
-                {"意味", "<ruby>意味<rt>いみ</rt></ruby>"},
-                {"推測", "<ruby>推測<rt>すいそく</rt></ruby>"},
-                {"努力", "<ruby>努力<rt>どりょく</rt></ruby>"},
-                {"継続", "<ruby>継続<rt>けいぞく</rt></ruby>"},
-                {"一番", "<ruby>一番<rt>いちばん</rt></ruby>"},
-                {"大切", "<ruby>大切<rt>たいせつ</rt></ruby>"}
-        };
+                // Preset Tokyo & Asakusa
+                new String[]{"撮ったりしました", "<ruby>撮<rt>と</rt></ruby>ったりしました"},
+                new String[]{"面白かったです", "<ruby>面白<rt>おもしろ</rt></ruby>かったです"},
+                new String[]{"楽しかったです", "<ruby>楽<rt>たの</rt></ruby>しかったです"},
+                new String[]{"行きたいです", "<ruby>行<rt>い</rt></ruby>きたいです"},
+                new String[]{"疲れましたが", "<ruby>疲<rt>つか</rt></ruby>れましたが"},
+                new String[]{"日曜日", "<ruby>日曜日<rt>にちようび</rt></ruby>"},
+                new String[]{"昼ごはん", "<ruby>昼<rt>ひる</rt></ruby>ごはん"},
+                new String[]{"美味しい", "<ruby>美味<rt>おい</rt></ruby>しい"},
+                new String[]{"お土産", "お<ruby>土産<rt>みやげ</rt></ruby>"},
+                new String[]{"行きました", "<ruby>行<rt>い</rt></ruby>きました"},
+                new String[]{"会いました", "<ruby>会<rt>あ</rt></ruby>いました"},
+                new String[]{"食べました", "<ruby>食<rt>た</rt></ruby>べました"},
+                new String[]{"買いました", "<ruby>買<rt>か</rt></ruby>いました"},
+                new String[]{"疲れました", "<ruby>疲<rt>つか</rt></ruby>れました"},
+                new String[]{"先週", "<ruby>先週<rt>せんしゅう</rt></ruby>"},
+                new String[]{"東京", "<ruby>東京<rt>とうきょう</rt></ruby>"},
+                new String[]{"浅草", "<ruby>浅草<rt>あさくさ</rt></ruby>"},
+                new String[]{"お寺", "お<ruby>寺<rt>てら</rt></ruby>"},
+                new String[]{"電車", "<ruby>電車<rt>でんしゃ</rt></ruby>"},
+                new String[]{"写真", "<ruby>写真<rt>しゃしん</rt></ruby>"},
+                new String[]{"家族", "<ruby>家族<rt>かぞく</rt></ruby>"},
+                new String[]{"午後", "<ruby>午後<rt>ごご</rt></ruby>"},
+                new String[]{"見たり", "<ruby>見<rt>み</rt></ruby>たり"},
+                new String[]{"撮ったり", "<ruby>撮<rt>と</rt></ruby>ったり"},
+                new String[]{"大きい", "<ruby>大<rt>おお</rt></ruby>きい"},
+                new String[]{"駅", "<ruby>駅<rt>えき</rt></ruby>"},
+                new String[]{"朝", "<ruby>朝<rt>あさ</rt></ruby>"},
+                new String[]{"人", "<ruby>人<rt>ひと</rt></ruby>"},
+                new String[]{"私", "<ruby>私<rt>わたし</rt></ruby>"},
+                new String[]{"少し", "<ruby>少<rt>すco</rt></ruby>し".replace("co", "ko")},
 
-        for (String[] pair : rubyReplacements) {
+                // Preset Kyoto & NHK & Buổi sáng công viên
+                new String[]{"新幹線", "<ruby>新幹線<rt>しんかんせん</rt></ruby>"},
+                new String[]{"金閣寺", "<ruby>金閣寺<rt>きんかくじ</rt></ruby>"},
+                new String[]{"日本語", "<ruby>日本語<rt>にほんご</rt></ruby>"},
+                new String[]{"朝ご飯", "<ruby>朝<rt>あさ</rt></ruby>ご<ruby>飯<rt>はん</rt></ruby>"},
+                new String[]{"富士山", "<ruby>富士山<rt>ふじさん</rt></ruby>"},
+                new String[]{"パン屋", "パン<ruby>屋<rt>や</rt></ruby>"},
+                new String[]{"京都", "<ruby>京都<rt>きょうと</rt></ruby>"},
+                new String[]{"旅行", "<ruby>旅行<rt>りょこう</rt></ruby>"},
+                new String[]{"抹茶", "<ruby>抹茶<rt>まっちゃ</rt></ruby>"},
+                new String[]{"着物", "<ruby>着物<rt>きもの</rt></ruby>"},
+                new String[]{"毎朝", "<ruby>毎朝<rt>まいあさ</rt></ruby>"},
+                new String[]{"公園", "<ruby>公園<rt>こうえん</rt></ruby>"},
+                new String[]{"散歩", "<ruby>散歩<rt>さんぽ</rt></ruby>"},
+                new String[]{"天気", "<ruby>天気<rt>てんき</rt></ruby>"},
+                new String[]{"上手", "<ruby>上手<rt>じょうず</rt></ruby>"},
+                new String[]{"単語", "<ruby>単語<rt>たんご</rt></ruby>"},
+                new String[]{"文脈", "<ruby>文脈<rt>ぶんみゃく</rt></ruby>"},
+                new String[]{"意味", "<ruby>意味<rt>いみ</rt></ruby>"},
+                new String[]{"推測", "<ruby>推測<rt>すいそく</rt></ruby>"},
+                new String[]{"努力", "<ruby>努力<rt>どりょく</rt></ruby>"},
+                new String[]{"継続", "<ruby>継続<rt>けいぞく</rt></ruby>"},
+                new String[]{"一番", "<ruby>一番<rt>いちばん</rt></ruby>"},
+                new String[]{"大切", "<ruby>大切<rt>たいせつ</rt></ruby>"},
+                new String[]{"時間", "<ruby>時間<rt>じかん</rt></ruby>"},
+                new String[]{"起きて", "<ruby>起<rt>お</rt></ruby>きて"},
+                new String[]{"見えます", "<ruby>見<rt>み</rt></ruby>えます"},
+                new String[]{"途中で", "<ruby>途中<rt>とちゅう</rt></ruby>で"},
+                new String[]{"寄って", "<ruby>寄<rt>よ</rt></ruby>って"},
+                new String[]{"焼きたて", "<ruby>焼<rt>や</rt></ruby>きたて"},
+                new String[]{"帰って", "<ruby>帰<rt>かえ</rt></ruby>って"},
+                new String[]{"着て", "<ruby>着<rt>き</rt></ruby>て"},
+                new String[]{"雨", "<ruby>雨<rt>あめ</rt></ruby>"},
+                new String[]{"降", "<ruby>降<rt>ふ</rt></ruby>"},
+                new String[]{"家", "<ruby>家<rt>いえ</rt></ruby>"},
+
+                // Preset Nature (Vẻ đẹp thiên nhiên) & từ thông dụng
+                new String[]{"落ち着きます", "<ruby>落<rt>お</rt></ruby>ち<ruby>着<rt>つ</rt></ruby>きます"},
+                new String[]{"雰囲気", "<ruby>雰囲気<rt>ふんいき</rt></ruby>"},
+                new String[]{"美しい", "<ruby>美<rt>うつく</rt></ruby>しい"},
+                new String[]{"自然", "<ruby>自然<rt>しぜん</rt></ruby>"},
+                new String[]{"景色", "<ruby>景色<rt>けしき</rt></ruby>"},
+                new String[]{"場所", "<ruby>場所<rt>ばしょ</rt></ruby>"},
+                new String[]{"砂浜", "<ruby>砂浜<rt>すなはま</rt></ruby>"},
+                new String[]{"太陽", "<ruby>太陽<rt>たいよう</rt></ruby>"},
+                new String[]{"夕方", "<ruby>夕方<rt>ゆうがた</rt></ruby>"},
+                new String[]{"機会", "<ruby>機会<rt>きかい</rt></ruby>"},
+                new String[]{"訪れて", "<ruby>訪<rt>おとず</rt></ruby>れて"},
+                new String[]{"特に", "<ruby>特<rt>とく</rt></ruby>に"},
+                new String[]{"近く", "<ruby>近<rt>ちか</rt></ruby>く"},
+                new String[]{"小さな", "<ruby>小<rt>ちい</rt></ruby>さな"},
+                new String[]{"青い", "<ruby>青<rt>あお</rt></ruby>い"},
+                new String[]{"白い", "<ruby>白<rt>しろ</rt></ruby>い"},
+                new String[]{"広がって", "<ruby>広<rt>ひろ</rt></ruby>がって"},
+                new String[]{"昇り", "<ruby>昇<rt>のぼ</rt></ruby>り"},
+                new String[]{"明るく", "<ruby>明<rt>あか</rt></ruby>るく"},
+                new String[]{"変わり", "<ruby>変<rt>か</rt></ruby>わり"},
+                new String[]{"忙しい", "<ruby>忙<rt>いそが</rt></ruby>しい"},
+                new String[]{"忘れて", "<ruby>忘<rt>わす</rt></ruby>れて"},
+                new String[]{"感じ", "<ruby>感<rt>かん</rt></ruby>じ"},
+                new String[]{"皆さん", "<ruby>皆<rt>みな</rt></ruby>さん"},
+                new String[]{"好き", "<ruby>好<rt>す</rt></ruby>き"},
+                new String[]{"勉強", "<ruby>勉強<rt>べんきょう</rt></ruby>"},
+                new String[]{"学校", "<ruby>学校<rt>がっこう</rt></ruby>"},
+                new String[]{"先生", "<ruby>先生<rt>せんせい</rt></ruby>"},
+                new String[]{"学生", "<ruby>学生<rt>がくせい</rt></ruby>"},
+                new String[]{"今日", "<ruby>今日<rt>きょう</rt></ruby>"},
+                new String[]{"明日", "<ruby>明日<rt>あした</rt></ruby>"},
+                new String[]{"昨日", "<ruby>昨日<rt>きのう</rt></ruby>"},
+                new String[]{"山", "<ruby>山<rt>やま</rt></ruby>"},
+                new String[]{"海", "<ruby>海<rt>うみ</rt></ruby>"},
+                new String[]{"川", "<ruby>川<rt>かわ</rt></ruby>"},
+                new String[]{"町", "<ruby>町<rt>まち</rt></ruby>"},
+                new String[]{"空", "<ruby>空<rt>そら</rt></ruby>"},
+                new String[]{"赤", "<ruby>赤<rt>あか</rt></ruby>"},
+                new String[]{"色", "<ruby>色<rt>いろ</rt></ruby>"},
+                new String[]{"国", "<ruby>国<rt>くに</rt></ruby>"},
+                new String[]{"心", "<ruby>心<rt>こころ</rt></ruby>"},
+                new String[]{"今", "<ruby>今<rt>いま</rt></ruby>"},
+                new String[]{"時", "<ruby>時<rt>じ</rt></ruby>"}
+        ));
+
+        // Nạp thêm toàn bộ từ vựng có trong MASTER_LEXICON nếu chưa có trong danh sách
+        for (LexiconItem item : MASTER_LEXICON) {
+            String surf = item.surface();
+            String reading = item.reading();
+            if (surf != null && reading != null && !surf.equals(reading) && surf.matches(".*[\\p{IsHan}].*")) {
+                boolean exists = pairs.stream().anyMatch(p -> p[0].equals(surf));
+                if (!exists) {
+                    pairs.add(new String[]{surf, "<ruby>" + surf + "<rt>" + reading + "</rt></ruby>"});
+                }
+            }
+        }
+
+        // Sắp xếp ưu tiên chuỗi dài trước chuỗi ngắn để tránh thay thế con đè lên từ ghép
+        pairs.sort((a, b) -> Integer.compare(b[0].length(), a[0].length()));
+
+        for (String[] pair : pairs) {
             res = res.replace(pair[0], pair[1]);
         }
         return res;

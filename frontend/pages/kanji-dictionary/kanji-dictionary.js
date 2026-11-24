@@ -285,6 +285,10 @@ function renderKanjiSkeleton(grid) {
 }
 
 async function loadLearnerDictionary(page = 0) {
+  // Guard Clause: Chỉ thực thi nếu người dùng đang ở trang Tra cứu Hán tự
+  const grid = document.getElementById('learnerKanjiGrid');
+  if (!grid) return;
+
   currentLearnerPage = page;
   const inputEl = document.getElementById('learnerSearchInput') || document.getElementById('kanjiSearchInput');
   const inputVal = inputEl ? inputEl.value.trim() : '';
@@ -886,6 +890,10 @@ async function submitSaveToDeck(e) {
 // 11. KHỞI TẠO TRANG TỪ ĐIỂN & LẮNG NGHE SỰ KIỆN
 // =========================================================================
 async function initDictionaryPage() {
+  // Guard Clause: Chỉ thực thi khi đang ở trang Tra cứu Hán tự
+  const grid = document.getElementById('learnerKanjiGrid');
+  if (!grid) return;
+
   // 1. Reset các cờ trạng thái cũ chống rò rỉ dữ liệu phiên trước
   isSearching = false;
   if (currentSearchController) {
@@ -902,6 +910,9 @@ async function initDictionaryPage() {
     searchInput.value = targetQuery;
     searchInput.setAttribute('value', targetQuery);
     if (clearBtn) clearBtn.classList.remove('hidden');
+  } else if (searchInput && !window.location.search) {
+    searchInput.value = '';
+    if (clearBtn) clearBtn.classList.add('hidden');
   }
 
   const { jlpt, stroke, radical } = getNormalizedFilterParams();
@@ -909,6 +920,9 @@ async function initDictionaryPage() {
   if (jlpt) {
     const jlptSelect = document.getElementById('learnerJlptSelect');
     if (jlptSelect) jlptSelect.value = jlpt;
+  } else {
+    const jlptSelect = document.getElementById('learnerJlptSelect');
+    if (jlptSelect) jlptSelect.value = 'ALL';
   }
 
   if (stroke) {
@@ -919,12 +933,22 @@ async function initDictionaryPage() {
       const clearStroke = document.getElementById('btnClearStrokeInput');
       if (clearStroke) clearStroke.classList.remove('hidden');
     }
+  } else {
+    currentDictStroke = null;
+    const strokeInput = document.getElementById('dictStrokeInput');
+    if (strokeInput) strokeInput.value = '';
+    const clearStroke = document.getElementById('btnClearStrokeInput');
+    if (clearStroke) clearStroke.classList.add('hidden');
   }
 
   if (radical) {
     currentDictRadical = radical;
     const radicalSelect = document.getElementById('dictRadicalSelect');
     if (radicalSelect) radicalSelect.value = radical;
+  } else {
+    currentDictRadical = null;
+    const radicalSelect = document.getElementById('dictRadicalSelect');
+    if (radicalSelect) radicalSelect.value = '';
   }
 
   // 3. Thực thi tìm kiếm nếu có từ khóa hoặc bộ lọc, ngược lại hiển thị Standby
@@ -942,6 +966,10 @@ async function initDictionaryPage() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Guard Clause: Chỉ khởi tạo khi đang ở trang Tra cứu Hán tự
+  const grid = document.getElementById('learnerKanjiGrid');
+  if (!grid) return;
+
   renderDictRadicalButtons();
 
   // Sự kiện ô tìm kiếm
@@ -1043,6 +1071,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Lắng nghe sự kiện popstate của trình duyệt (Back/Forward)
   window.addEventListener('popstate', () => {
+    if (!document.getElementById('learnerKanjiGrid')) return;
     initDictionaryPage();
   });
 

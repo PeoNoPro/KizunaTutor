@@ -799,6 +799,9 @@ if (!window.__grammarPopstateBound) {
 // 6. KHỞI TẠO DOM & LẮNG NGHE SỰ KIỆN (DOM READY)
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
+  // Guard Clause: Chỉ khởi tạo khi đang ở trang Kho ngữ pháp JLPT
+  if (!document.getElementById('grammarListView')) return;
+
   const modeSwitcherBtns = document.querySelectorAll('#filterModeSwitcher button');
   const jlptTabsContainer = document.getElementById('jlptLevelTabs');
   const domainTabsContainer = document.getElementById('domainTabs');

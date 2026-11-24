@@ -21,33 +21,39 @@
   <link rel="stylesheet" href="/styles/components.css">
   <link rel="stylesheet" href="/styles/utilities.css">
   <style>
-    /* Kiểu dáng cho thẻ Ruby Furigana */
+    /* Kiểu dáng cho thẻ Ruby Furigana - Furigana nằm chuẩn trên đầu chữ Hán, không làm lệch từ */
     ruby {
       ruby-position: over;
       ruby-align: center;
       display: inline-ruby;
-      margin: 0 1px;
+      margin: 0 !important;
+      padding: 0 !important;
     }
     rt {
-      font-size: 0.58em;
+      display: ruby-text;
+      font-size: 0.52em;
       line-height: 1;
-      color: #64748B;
+      color: #475569;
       font-weight: 600;
       user-select: none;
-      transform: translateY(-4px);
+      text-align: center;
     }
     .hide-furigana rt {
       display: none !important;
     }
 
-    /* Container bài đọc với line-height rộng rãi chống đè Furigana và gạch chân */
-    #interactiveReadingBody, #cleanReadingPassageBody {
-      line-height: 3.4 !important;
-      letter-spacing: 0.04em;
+    /* Container bài đọc với line-height rộng rãi đảm bảo Furigana hiển thị hoàn hảo */
+    #cleanReadingPassageBody {
+      line-height: 3.5 !important;
+      letter-spacing: 0.05em;
+      padding-top: 1.75rem !important;
+      padding-bottom: 1.75rem !important;
     }
     @media (min-width: 640px) {
-      #interactiveReadingBody, #cleanReadingPassageBody {
-        line-height: 3.6 !important;
+      #cleanReadingPassageBody {
+        line-height: 3.8 !important;
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
       }
     }
 
@@ -66,87 +72,6 @@
     @keyframes pulse-evidence {
       from { background-color: #FEF08A; box-shadow: 0 0 0 2px #EAB308, 0 2px 8px rgba(234, 179, 8, 0.4); }
       to { background-color: #FDE047; box-shadow: 0 0 0 3px #CA8A04, 0 4px 14px rgba(202, 138, 4, 0.6); }
-    }
-
-    /* Interactive Reading Tokens theo phong cách Watanoc - Soft Pastel Highlights */
-    .reading-token {
-      position: relative;
-      display: inline;
-      padding: 3px 6px 4px 6px;
-      margin: 0 2px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.18s ease-in-out;
-      text-decoration: none;
-      box-decoration-break: clone;
-      -webkit-box-decoration-break: clone;
-      font-weight: 500;
-    }
-    /* Token Từ vựng (Vocabulary): Nền hồng phấn dịu mắt + Gạch chân nét đứt */
-    .token-vocab {
-      background-color: #FFE4E6 !important;
-      border-bottom: 2.5px dashed #F43F5E !important;
-      color: #881337 !important;
-    }
-    .token-vocab:hover, .token-vocab.active-token {
-      background-color: #FECDD3 !important;
-      color: #4C0519 !important;
-      box-shadow: 0 2px 6px rgba(244, 63, 94, 0.25) !important;
-    }
-    /* Token Ngữ pháp (Grammar): Nền tím chàm dịu mắt + Gạch chân nét liền */
-    .token-grammar {
-      background-color: #EEF2FF !important;
-      border-bottom: 2.5px solid #6366F1 !important;
-      font-weight: 600;
-      color: #312E81 !important;
-    }
-    .token-grammar:hover, .token-grammar.active-token {
-      background-color: #E0E7FF !important;
-      color: #1E1B4B !important;
-      box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25) !important;
-    }
-    /* Token Hán tự (Kanji): Nền xanh ngọc dịu mắt + Gạch chân nét chấm */
-    .token-kanji {
-      background-color: #ECFDF5 !important;
-      border-bottom: 2.5px dotted #10B981 !important;
-      color: #064E3B !important;
-      font-weight: 600;
-    }
-    .token-kanji:hover, .token-kanji.active-token {
-      background-color: #D1FAE5 !important;
-      color: #022C22 !important;
-      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25) !important;
-    }
-
-    /* Hỗ trợ lồng Token: Token từ vựng/Hán tự nằm trong khối ngữ pháp */
-    .token-grammar .token-vocab {
-      background-color: #FFE4E6 !important;
-      border-bottom: 2.5px dashed #F43F5E !important;
-      color: #881337 !important;
-    }
-    .token-grammar .token-kanji {
-      background-color: #ECFDF5 !important;
-      border-bottom: 2.5px dotted #10B981 !important;
-      color: #064E3B !important;
-    }
-
-    /* Tab Buttons Styling */
-    .reading-tab-btn {
-      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .reading-tab-btn.active {
-      background-color: #FFFFFF;
-      color: #9F1239;
-      border-color: #CBD5E1;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-    }
-
-    /* Floating Tooltip mượt mà */
-    #readingFloatingTooltip {
-      position: fixed;
-      z-index: 9999;
-      transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-      will-change: transform, opacity;
     }
   </style>
 </head>
@@ -171,16 +96,31 @@
           <!-- ============================================================= -->
           <div id="readingInputScreen" class="space-y-4">
             
-            <!-- Tiêu đề tinh gọn -->
-            <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
-              <div>
-                <h1 class="text-base sm:text-lg font-bold text-[#0F172A] flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[#9F1239] text-[22px]">auto_stories</span>
-                  <span>Luyện Đọc Hiểu Tiếng Nhật (Dokkai AI)</span>
-                </h1>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  Dán bài đọc tiếng Nhật hoặc chọn bài mẫu để AI tự động tạo bài tập đọc hiểu Dokkai chuẩn JLPT, phân tích dẫn chứng và bóc tách từ vựng, ngữ pháp.
+            <!-- Tiêu đề tinh gọn kèm linh vật Capybara và Nút Hướng dẫn chữ I -->
+            <div class="relative bg-gradient-to-r from-rose-50/80 via-white to-amber-50/50 border border-[#CBD5E1] rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-xs">
+              <div class="space-y-1.5 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="material-symbols-outlined text-[#9F1239] text-[24px]">auto_stories</span>
+                  <h1 class="text-base sm:text-lg font-bold text-[#0F172A]">
+                    Luyện Đọc Hiểu Tiếng Nhật
+                  </h1>
+                  <!-- Nút chữ I để xem hướng dẫn sử dụng -->
+                  <button type="button" id="btnToggleGuide"
+                          class="w-5 h-5 rounded-full bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-[#9F1239] border border-slate-300 flex items-center justify-center transition cursor-pointer text-xs font-bold font-serif shadow-2xs"
+                          title="Bấm để xem hướng dẫn 3 bước học nhanh">
+                    i
+                  </button>
+                </div>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Luyện tập đọc hiểu Dokkai chuẩn JLPT cùng trợ lý AI và phát âm chuẩn Tokyo VOICEVOX.
                 </p>
+              </div>
+
+              <!-- Linh vật Capybara thân thiện -->
+              <div class="shrink-0">
+                <img src="/assets/images/stickers/professor-capi.png"
+                     alt="Capybara Sensei"
+                     class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-sm select-none" />
               </div>
             </div>
 
@@ -202,29 +142,10 @@
               </div>
 
               <!-- Thanh Công Cụ Chân Thẻ -->
-              <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
-                <div class="flex items-center gap-3">
-                  <div class="flex items-center gap-1.5">
-                    <label for="selectJlptTarget" class="text-xs font-semibold text-slate-600">Trọng tâm JLPT:</label>
-                    <select id="selectJlptTarget" class="text-xs px-2.5 py-1.5 rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] font-semibold focus:outline-none focus:border-[#9F1239]">
-                      <option value="ALL">Tất cả (Tự động)</option>
-                      <option value="N5">JLPT N5 (Sơ cấp 1)</option>
-                      <option value="N4">JLPT N4 (Sơ cấp 2)</option>
-                      <option value="N3">JLPT N3 (Trung cấp)</option>
-                      <option value="N2">JLPT N2 (Thượng cấp)</option>
-                      <option value="N1">JLPT N1 (Cao cấp)</option>
-                    </select>
-                  </div>
-
-                  <button type="button" id="btnClearInput" class="text-xs text-slate-500 hover:text-rose-600 font-medium cursor-pointer transition flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[15px]">clear</span>
-                    <span>Xóa</span>
-                  </button>
-                </div>
-
-                <!-- Nút Bắt Đầu Bóc Tách -->
+              <div class="flex items-center justify-end pt-1">
+                <!-- Nút Bắt Đầu Đọc Hiểu AI -->
                 <button type="button" id="btnAnalyzeReading"
-                        class="py-2.5 px-6 rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white font-bold text-xs sm:text-sm border-2 border-[#0F172A] shadow-[3px_3px_0px_0px_#0F172A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0px_0px_#0F172A] transition flex items-center justify-center gap-2 cursor-pointer">
+                        class="w-full sm:w-auto py-2.5 px-6 rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white font-bold text-xs sm:text-sm border-2 border-[#0F172A] shadow-[3px_3px_0px_0px_#0F172A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0px_0px_#0F172A] transition flex items-center justify-center gap-2 cursor-pointer">
                   <span class="material-symbols-outlined text-[18px]">psychology</span>
                   <span>Bắt đầu Luyện Đọc Hiểu AI</span>
                 </button>
@@ -247,11 +168,11 @@
           </div>
 
           <!-- ============================================================= -->
-          <!-- MÀN HÌNH 2: READER WORKSPACE (KHÔNG GIAN ĐỌC HIỂU CHUYÊN SÂU) -->
+          <!-- MÀN HÌNH 2: READER WORKSPACE (KHÔNG GIAN ĐỌC HIỂU DOKKAI STUDIO) -->
           <!-- ============================================================= -->
-          <div id="readingWorkspaceScreen" class="hidden space-y-4">
+          <div id="readingWorkspaceScreen" class="hidden space-y-5">
 
-            <!-- 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG (STICKY TOP BAR) -->
+            <!-- 1. THANH TIÊU ĐỀ TRÊN CÙNG (STICKY TOP BAR - QUY TỤ ĐỦ 4 TÙY CHỌN TRẢI NGHIỆM) -->
             <div class="ls-card p-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20 bg-white/95 backdrop-blur-md shadow-xs">
               <div class="flex items-center gap-3">
                 <button type="button" id="btnBackToInput"
@@ -263,122 +184,128 @@
                 <span class="ls-badge ls-badge-jlpt font-bold" id="badgeEstimatedLevel">JLPT N5</span>
               </div>
 
-              <!-- Các nút hành động tương tác -->
-              <div class="flex items-center gap-2">
-                <!-- Nút bật tắt Furigana -->
+              <!-- Cụm 4 nút tùy chọn hiển thị & âm thanh trên thanh công cụ -->
+              <div class="flex items-center flex-wrap gap-2">
+                <!-- 1. Nút bật tắt Furigana -->
                 <button type="button" id="btnToggleFurigana"
-                        class="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1.5"
-                        title="Bật/Tắt Furigana để tự kiểm tra năng lực đọc">
-                  <span class="material-symbols-outlined text-[15px]">visibility</span>
-                  <span id="furiganaToggleText">Ẩn Furigana</span>
+                        class="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                        title="Bật/Tắt Furigana trên bài đọc">
+                  <span class="material-symbols-outlined text-[15px] text-slate-600">visibility_off</span>
+                  <span id="furiganaToggleText">Hiện Furigana</span>
                 </button>
 
-                <!-- Nút phát âm toàn bài VOICEVOX -->
+                <!-- 2. Nút bật tắt Ý chính bài đọc -->
+                <button type="button" id="btnToggleSummary"
+                        class="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                        title="Bật/Tắt hiển thị tóm tắt ý chính của bài đọc">
+                  <span class="material-symbols-outlined text-[15px] text-amber-600">summarize</span>
+                  <span id="summaryToggleText">Hiện ý chính</span>
+                </button>
+
+                <!-- 3. Nút bật tắt Bản dịch tham khảo tiếng Việt -->
+                <button type="button" id="btnToggleTranslation"
+                        class="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                        title="Bật/Tắt hiển thị bản dịch tiếng Việt tham khảo của bài đọc">
+                  <span class="material-symbols-outlined text-[15px] text-indigo-600">translate</span>
+                  <span id="translationToggleText">Hiện bản dịch</span>
+                </button>
+
+                <!-- 4. Nút phát âm toàn bài VOICEVOX -->
                 <button type="button" id="btnSpeakFullArticle"
-                        class="px-3 py-1.5 text-xs font-bold rounded-lg bg-[#FFE5EC] border border-[#FBCFE8] text-[#831843] hover:bg-rose-100 transition cursor-pointer flex items-center gap-1.5">
+                        class="px-3 py-1.5 text-xs font-bold rounded-lg bg-[#FFE5EC] border border-[#FBCFE8] text-[#831843] hover:bg-rose-100 transition cursor-pointer flex items-center gap-1.5 shadow-2xs">
                   <span class="material-symbols-outlined text-[16px]">volume_up</span>
                   <span>Nghe toàn bài (VOICEVOX)</span>
                 </button>
               </div>
             </div>
 
-            <!-- 2. THANH CHUYỂN TABS (SUB-NAVIGATION TABS) -->
-            <div class="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 overflow-x-auto text-xs font-bold" id="readingTabGroup">
-              <button type="button" data-tab="challenge"
-                      class="reading-tab-btn active px-4 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer border border-transparent">
-                <span class="material-symbols-outlined text-[16px] text-[#9F1239]">quiz</span>
-                <span>Thử thách Đọc hiểu (<span id="countDokkaiQuestions">0</span>)</span>
-              </button>
-              <button type="button" data-tab="reader"
-                      class="reading-tab-btn px-4 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer border border-transparent text-slate-600 hover:text-slate-900">
-                <span class="material-symbols-outlined text-[16px]">auto_stories</span>
-                <span>Bài đọc tương tác</span>
-              </button>
-              <button type="button" data-tab="vocab"
-                      class="reading-tab-btn px-4 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer border border-transparent text-slate-600 hover:text-slate-900">
-                <span class="material-symbols-outlined text-[16px]">translate</span>
-                <span>Từ vựng & Hán tự (<span id="countVocabs">0</span>)</span>
-              </button>
-              <button type="button" data-tab="grammar"
-                      class="reading-tab-btn px-4 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer border border-transparent text-slate-600 hover:text-slate-900">
-                <span class="material-symbols-outlined text-[16px]">school</span>
-                <span>Cấu trúc Ngữ pháp (<span id="countGrammars">0</span>)</span>
-              </button>
-              <button type="button" data-tab="translation"
-                      class="reading-tab-btn px-4 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer border border-transparent text-slate-600 hover:text-slate-900">
-                <span class="material-symbols-outlined text-[16px]">g_translate</span>
-                <span>Bản dịch song ngữ</span>
-              </button>
-            </div>
-
-            <!-- 3. CÁC NỘI DUNG TƯƠNG ỨNG TỪNG TAB -->
-
-            <!-- TAB 1: BÀI TẬP ĐỌC HIỂU DOKKAI (TRÌNH TỰ TỪ TRÊN XUỐNG DƯỚI) -->
-            <div id="tabPanelChallenge" class="space-y-4">
-              
-              <!-- 1. KHUNG ĐOẠN VĂN ĐỌC HIỂU Ở TRÊN -->
-              <div class="ls-card space-y-3">
-                <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
-                  <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[#9F1239] text-[20px]">menu_book</span>
-                    <h3 class="text-xs sm:text-sm font-bold text-[#0F172A] uppercase tracking-wider">
-                      Đoạn văn đọc hiểu
-                    </h3>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button type="button" id="btnToggleCleanFurigana"
-                            class="px-2.5 py-1 text-xs font-semibold rounded-md border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1"
-                            title="Bật/Tắt Furigana trên bài đọc">
-                      <span class="material-symbols-outlined text-[14px]">visibility</span>
-                      <span id="cleanFuriganaToggleText">Ẩn Furigana</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Khung bài đọc sạch với font to rõ, line-height thoáng đãng -->
-                <div id="cleanReadingPassageBody"
-                     class="p-6 sm:p-8 bg-white border border-[#E2E8F0] rounded-xl text-lg sm:text-2xl font-japanese text-[#0F172A] shadow-2xs leading-relaxed">
-                  <!-- Rendered by ai-reading.js -->
-                </div>
-
-                <div class="text-[11px] text-slate-400 italic flex items-center gap-1.5 pt-1 border-t border-slate-100">
-                  <span class="material-symbols-outlined text-[15px] text-amber-500 shrink-0">tips_and_updates</span>
-                  <span>Đọc kỹ đoạn văn trên và trả lời các câu hỏi kiểm tra đọc hiểu bên dưới theo đúng trình tự.</span>
+            <!-- ============================================================= -->
+            <!-- PHẦN 1 (TRÊN): ĐOẠN VĂN ĐỌC HIỂU (READING PASSAGE)            -->
+            <!-- ============================================================= -->
+            <div class="ls-card space-y-3">
+              <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-[#9F1239] text-[20px]">menu_book</span>
+                  <h3 class="text-xs sm:text-sm font-bold text-[#0F172A] uppercase tracking-wider">
+                    Đoạn văn đọc hiểu
+                  </h3>
                 </div>
               </div>
 
-              <!-- 2. BẢNG TỔNG KẾT KẾT QUẢ CHẤM ĐIỂM (HIỂN THỊ SAU KHI NỘP BÀI) -->
+              <!-- Khung bài đọc với font to rõ, line-height rộng rãi đảm bảo Furigana rõ nét -->
+              <div id="cleanReadingPassageBody"
+                   class="p-6 sm:p-8 bg-white border border-[#E2E8F0] rounded-xl text-lg sm:text-2xl font-japanese text-[#0F172A] shadow-2xs leading-relaxed">
+                <!-- Rendered by ai-reading.js -->
+              </div>
+
+              <!-- Hộp Tóm Tắt Ý Chính Bài Viết (Mặc định ẩn, bật/tắt bằng nút trên thanh công cụ) -->
+              <div id="overallSummaryBox" class="hidden p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start gap-2.5 transition-all">
+                <span class="material-symbols-outlined text-amber-700 text-[18px] shrink-0 mt-0.5">summarize</span>
+                <div class="text-xs sm:text-sm leading-relaxed">
+                  <span class="font-bold text-amber-900">Ý chính bài đọc: </span>
+                  <span id="textOverallSummary" class="text-amber-800">...</span>
+                </div>
+              </div>
+
+              <!-- Khung bản dịch tham khảo tiếng Việt toàn bài (Mặc định ẩn, bật/tắt bằng nút trên thanh công cụ) -->
+              <div id="cleanPassageTranslationContainer" class="hidden p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 transition-all">
+                <div class="flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                  <span class="material-symbols-outlined text-[16px] text-[#9F1239]">g_translate</span>
+                  <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Bản dịch toàn bộ bài đọc (Tiếng Việt)</h4>
+                </div>
+
+                <!-- Bản dịch toàn văn đoạn văn -->
+                <div id="fullTranslationBody" class="p-3.5 bg-white rounded-lg border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed font-sans shadow-2xs">
+                  <!-- Rendered by ai-reading.js -->
+                </div>
+
+                <!-- Danh sách dịch từng câu đối chiếu -->
+                <div id="sentenceTranslationsContainer" class="space-y-1.5 text-xs text-slate-600 leading-relaxed font-sans pt-1">
+                  <!-- Nạp động bởi ai-reading.js -->
+                </div>
+              </div>
+
+              <div class="text-[11px] text-slate-400 italic flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                <span class="material-symbols-outlined text-[15px] text-amber-500 shrink-0">tips_and_updates</span>
+                <span>Đọc kỹ đoạn văn trên và trả lời các câu hỏi kiểm tra đọc hiểu bên dưới theo đúng trình tự.</span>
+              </div>
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- PHẦN 2 (DƯỚI): BỘ CÂU HỎI ĐỌC HIỂU DOKKAI & NỘP BÀI           -->
+            <!-- ============================================================= -->
+            <div id="dokkaiQuestionsSection" class="space-y-4">
+
+              <!-- BẢNG TỔNG KẾT KẾT QUẢ CHẤM ĐIỂM (HIỂN THỊ SAU KHI NỘP BÀI) -->
               <div id="dokkaiScoreSummary" class="hidden ls-card p-4 space-y-2 border-2 transition-all">
                 <!-- Rendered by ai-reading.js -->
               </div>
 
-              <!-- 3. DANH SÁCH BỘ CÂU HỎI THEO THỨ TỰ TỪ TRÊN XUỐNG DƯỚI -->
-              <div class="space-y-3">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 border-b border-slate-200 pb-2">
-                  <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[#9F1239] text-[18px]">quiz</span>
-                    <h4 class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wider">
-                      Câu hỏi kiểm tra đọc hiểu (<span id="countDokkaiQuestionsHeader">0</span> câu)
-                    </h4>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <!-- Nút Bật/Tắt Dịch tiếng Việt cho câu hỏi và phương án -->
-                    <button type="button" id="btnToggleDokkaiTranslation"
-                            class="px-2.5 py-1 text-xs font-semibold rounded-md border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                            title="Bật/Tắt hiển thị bản dịch tiếng Việt của câu hỏi và các lựa chọn">
-                      <span class="material-symbols-outlined text-[15px] text-indigo-600">translate</span>
-                      <span id="dokkaiTranslationToggleText">Hiện dịch tiếng Việt</span>
-                    </button>
-                  </div>
+              <!-- Header câu hỏi -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 border-b border-slate-200 pb-2">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-[#9F1239] text-[18px]">quiz</span>
+                  <h4 class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wider">
+                    Câu hỏi kiểm tra đọc hiểu (<span id="countDokkaiQuestionsHeader">0</span> câu)
+                  </h4>
                 </div>
-
-                <!-- Container danh sách câu hỏi -->
-                <div id="dokkaiQuestionsContainer" class="space-y-4">
-                  <!-- Rendered by ai-reading.js -->
+                <div class="flex items-center gap-2">
+                  <!-- Nút Bật/Tắt Dịch tiếng Việt cho câu hỏi và phương án -->
+                  <button type="button" id="btnToggleDokkaiTranslation"
+                          class="px-2.5 py-1 text-xs font-semibold rounded-md border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                          title="Bật/Tắt hiển thị bản dịch tiếng Việt của câu hỏi và các lựa chọn">
+                    <span class="material-symbols-outlined text-[15px] text-indigo-600">translate</span>
+                    <span id="dokkaiTranslationToggleText">Hiện dịch câu hỏi & lựa chọn</span>
+                  </button>
                 </div>
               </div>
 
-              <!-- 4. KHUNG THAO TÁC NỘP BÀI -->
+              <!-- Container danh sách câu hỏi -->
+              <div id="dokkaiQuestionsContainer" class="space-y-4">
+                <!-- Rendered by ai-reading.js -->
+              </div>
+
+              <!-- Nút Nộp bài -->
               <div id="dokkaiActionContainer" class="pt-2">
                 <button type="button" id="btnSubmitDokkai"
                         class="w-full py-3.5 px-6 rounded-xl bg-[#9F1239] hover:bg-[#BE185D] text-white font-bold text-sm sm:text-base border-2 border-[#0F172A] shadow-[3px_3px_0px_0px_#0F172A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0px_0px_#0F172A] transition flex items-center justify-center gap-2 cursor-pointer">
@@ -389,101 +316,6 @@
 
             </div>
 
-            <!-- TAB 2: BÀI ĐỌC TƯƠNG TÁC (ZEN READER MODE) -->
-            <div id="tabPanelReader" class="hidden space-y-4">
-              <div class="ls-card space-y-4">
-                <!-- Chú giải phân loại Highlight (Legend Bar) -->
-                <div class="flex items-center justify-between px-3.5 py-2.5 bg-slate-50 rounded-xl border border-[#E2E8F0] text-xs flex-wrap gap-2.5">
-                  <div class="flex items-center gap-3.5 flex-wrap">
-                    <span class="text-slate-600 font-semibold flex items-center gap-1">
-                      <span class="material-symbols-outlined text-[16px] text-amber-500">touch_app</span>
-                      <span>Quy ước màu highlight:</span>
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#FFE4E6] border-b-2 border-dashed border-rose-500 text-rose-800 font-semibold shadow-2xs">
-                      <span>Từ vựng</span>
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#EEF2FF] border-b-2 border-solid border-indigo-500 text-indigo-800 font-semibold shadow-2xs">
-                      <span>Ngữ pháp</span>
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#ECFDF5] border-b-2 border-dotted border-emerald-500 text-emerald-800 font-semibold shadow-2xs">
-                      <span>Chữ Hán</span>
-                    </span>
-                  </div>
-                  <span class="text-[11px] text-slate-400 italic hidden md:inline">Rê chuột hoặc click vào từ để xem giải nghĩa & nghe phát âm</span>
-                </div>
-
-                <!-- Khung Văn Bản Đọc Hiểu Chính (Rộng rãi, Font chữ to rõ) -->
-                <div id="interactiveReadingBody"
-                     class="p-6 sm:p-8 bg-white border border-[#E2E8F0] rounded-2xl text-lg sm:text-2xl font-japanese text-[#0F172A] shadow-2xs">
-                  <!-- Rendered by ai-reading.js -->
-                </div>
-
-                <!-- Hộp Tóm Tắt Ý Chính Bài Viết -->
-                <div class="p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex items-start gap-3">
-                  <span class="material-symbols-outlined text-amber-700 text-[20px] shrink-0 mt-0.5">summarize</span>
-                  <div class="text-xs sm:text-sm leading-relaxed">
-                    <span class="font-bold text-amber-900">Ý chính bài đọc: </span>
-                    <span id="textOverallSummary" class="text-amber-800">...</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- TAB 2: SỔ TAY TỪ VỰNG & HÁN TỰ -->
-            <div id="tabPanelVocab" class="hidden space-y-3">
-              <div class="ls-card space-y-3">
-                <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
-                  <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[#9F1239] text-[18px]">translate</span>
-                    <h3 class="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
-                      Danh sách từ vựng & chữ Hán bóc tách
-                    </h3>
-                  </div>
-                  <span class="text-[11px] text-slate-400">Tích hợp VOICEVOX & Flashcard 1 chạm</span>
-                </div>
-
-                <!-- Lưới thẻ từ vựng -->
-                <div id="vocabularyGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <!-- Nạp động bởi ai-reading.js -->
-                </div>
-              </div>
-            </div>
-
-            <!-- TAB 3: PHÂN TÍCH CẤU TRÚC NGỮ PHÁP -->
-            <div id="tabPanelGrammar" class="hidden space-y-3">
-              <div class="ls-card space-y-3">
-                <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
-                  <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[#9F1239] text-[18px]">school</span>
-                    <h3 class="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
-                      Cấu trúc ngữ pháp phát hiện trong bài
-                    </h3>
-                  </div>
-                  <span class="text-[11px] text-slate-400">Click để tra cứu chi tiết trong kho ngữ pháp</span>
-                </div>
-
-                <!-- Danh sách thẻ ngữ pháp -->
-                <div id="grammarListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <!-- Nạp động bởi ai-reading.js -->
-                </div>
-              </div>
-            </div>
-
-            <!-- TAB 4: BẢN DỊCH SONG NGỮ TỪNG CÂU -->
-            <div id="tabPanelTranslation" class="hidden space-y-3">
-              <div class="ls-card space-y-3">
-                <div class="flex items-center gap-2 border-b border-[#E2E8F0] pb-2">
-                  <span class="material-symbols-outlined text-[#9F1239] text-[18px]">g_translate</span>
-                  <h3 class="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
-                    Đối chiếu bản dịch tham khảo tiếng Việt
-                  </h3>
-                </div>
-                <div id="sentenceTranslationsContainer" class="space-y-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
-                  <!-- Nạp động bởi ai-reading.js -->
-                </div>
-              </div>
-            </div>
-
           </div>
 
         </div>
@@ -492,109 +324,54 @@
     </div>
   </div>
 
-  <!-- KHUNG POPUP GIẢI NGHĨA TƯƠNG TÁC (WATANOC INTERACTIVE TOOLTIP) -->
-  <div id="readingFloatingTooltip"
-       class="hidden opacity-0 pointer-events-none w-80 max-w-[92vw] bg-white/95 backdrop-blur-md border-2 border-slate-800 rounded-2xl shadow-2xl p-4 text-left transition-all duration-150">
-    
-    <!-- Mũi tên chỉ hướng Tooltip (Arrow Notch) -->
-    <div id="tooltipArrow" class="absolute w-3 h-3 bg-white border-slate-800 rotate-45 pointer-events-none"></div>
-
-    <!-- Header: Badge phân loại, Cấp độ JLPT, Tiêu đề từ vựng/ngữ pháp & Loa VOICEVOX -->
-    <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
-      <div class="space-y-0.5">
-        <div class="flex items-center gap-1.5">
-          <span id="tooltipBadgeType" class="px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide bg-rose-100 text-rose-800 border border-rose-200">
-            Từ vựng
-          </span>
-          <span id="tooltipBadgeJlpt" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
-            JLPT N5
-          </span>
-        </div>
-        <div class="text-lg font-bold font-japanese text-slate-900 mt-1" id="tooltipHeadword">
-          毎朝
-        </div>
-        <div class="text-xs text-slate-500 font-japanese" id="tooltipReadingHanViet">
-          まいあさ <span class="font-sans font-bold text-[#831843] ml-1">(MỖI TRIỀU)</span>
-        </div>
-      </div>
-
-      <!-- Cụm nút công cụ góc phải: Phát âm VOICEVOX & Nút đóng trên mobile -->
-      <div class="flex items-center gap-1 shrink-0">
-        <button type="button" id="btnTooltipSpeak"
-                class="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer flex items-center justify-center"
-                title="Nghe phát âm chuẩn Tokyo (VOICEVOX)">
-          <span class="material-symbols-outlined text-[18px]">volume_up</span>
-        </button>
-        <button type="button" id="btnTooltipClose"
-                class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer md:hidden"
-                title="Đóng bảng">
-          <span class="material-symbols-outlined text-[18px]">close</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Body: Nghĩa tiếng Việt & Giải thích ngữ cảnh -->
-    <div class="py-2.5 space-y-1.5 text-xs text-slate-700">
-      <div id="tooltipMeaning" class="font-semibold text-slate-900 leading-snug">
-        Ý nghĩa tiếng Việt...
-      </div>
-      <div id="tooltipExtra" class="text-slate-500 text-[11px] leading-relaxed hidden">
-        Giải thích thêm...
-      </div>
-    </div>
-
-    <!-- Footer: Nút thêm Flashcard & Xem chi tiết kho từ điển -->
-    <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-      <button type="button" id="btnTooltipSaveFlashcard"
-              class="px-2.5 py-1.5 rounded-lg bg-[#FFE5EC] hover:bg-rose-100 text-[#831843] text-xs font-bold border border-[#FBCFE8] flex items-center gap-1.5 cursor-pointer transition">
-        <span class="material-symbols-outlined text-[15px]">style</span>
-        <span>+ Flashcard</span>
-      </button>
-
-      <a id="btnTooltipDetailLink" href="/grammar" target="_blank"
-         class="text-xs text-[#9F1239] hover:underline font-semibold flex items-center gap-1">
-        <span id="tooltipDetailLinkText">Kho ngữ pháp</span>
-        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- MODAL: LƯU TỪ VỰNG VÀO BỘ THẺ FLASHCARD -->
-  <div id="modalSaveToDeck" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center p-4">
-    <div class="bg-white rounded-xl border-2 border-[#0F172A] shadow-[4px_4px_0px_0px_#0F172A] w-full max-w-md p-5 space-y-4 animate-in fade-in duration-200">
-      <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
-        <h4 class="text-sm font-bold text-[#0F172A] flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-[#9F1239] text-[18px]">style</span>
-          <span>Lưu vào Bộ thẻ Flashcard</span>
-        </h4>
-        <button type="button" id="btnCloseSaveModal" class="text-slate-400 hover:text-slate-600 cursor-pointer">
+  <!-- MODAL: HƯỚNG DẪN 3 BƯỚC HỌC NHANH DOKKAI (NỔI GIỮA MÀN HÌNH) -->
+  <div id="readingGuideModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all">
+    <div id="readingGuideDialog" class="bg-white rounded-2xl border-2 border-[#0F172A] shadow-[4px_4px_0px_0px_#0F172A] w-full max-w-lg p-5 sm:p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+        <h3 class="text-sm sm:text-base font-bold text-[#0F172A] flex items-center gap-2">
+          <span class="material-symbols-outlined text-[#9F1239] text-[22px]">auto_stories</span>
+          <span>3 bước học nhanh Luyện Đọc Hiểu Dokkai</span>
+        </h3>
+        <button type="button" id="btnCloseGuide" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer" title="Đóng hướng dẫn">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
 
-      <!-- Thông tin từ sắp lưu -->
-      <div class="p-3 bg-rose-50 border border-rose-100 rounded-lg flex items-center justify-between">
-        <div>
-          <div class="text-lg font-bold font-japanese text-[#0F172A]" id="modalTargetWord">漢字</div>
-          <div class="text-xs text-slate-600" id="modalTargetReading">かんじ (HÁN TỰ)</div>
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div class="p-3.5 bg-rose-50/70 rounded-xl border border-rose-200/80 flex items-start gap-3">
+          <span class="text-xl shrink-0 select-none">📝</span>
+          <div class="space-y-0.5">
+            <h4 class="font-bold text-slate-900 text-xs sm:text-sm">Bước 1: Nhập văn bản bài đọc</h4>
+            <p class="text-slate-600 text-xs leading-relaxed">
+              Dán đoạn văn tiếng Nhật (bài thi JLPT, tin tức NHK, bài báo) bạn muốn luyện đọc vào khung bên dưới.
+            </p>
+          </div>
         </div>
-        <div class="text-right text-xs font-medium text-[#9F1239]" id="modalTargetMeaning">Ý nghĩa tiếng Việt</div>
+
+        <div class="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 flex items-start gap-3">
+          <span class="text-xl shrink-0 select-none">⚡</span>
+          <div class="space-y-0.5">
+            <h4 class="font-bold text-slate-900 text-xs sm:text-sm">Bước 2: AI tạo bài tập đọc hiểu Dokkai</h4>
+            <p class="text-slate-600 text-xs leading-relaxed">
+              Bấm "Bắt đầu Luyện Đọc Hiểu AI", trợ lý tự động bóc tách Furigana, dịch tham khảo và tạo câu hỏi trắc nghiệm chuẩn JLPT.
+            </p>
+          </div>
+        </div>
+
+        <div class="p-3.5 bg-emerald-50/70 rounded-xl border border-emerald-200/80 flex items-start gap-3">
+          <span class="text-xl shrink-0 select-none">🎯</span>
+          <div class="space-y-0.5">
+            <h4 class="font-bold text-slate-900 text-xs sm:text-sm">Bước 3: Trả lời & xem dẫn chứng trong bài</h4>
+            <p class="text-slate-600 text-xs leading-relaxed">
+              Chọn đáp án, nộp bài nhận giải thích chi tiết và bấm "Xem dẫn chứng trong bài" để câu trích dẫn tự động sáng lên trong bài đọc.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <!-- Chọn Deck có sẵn hoặc tạo Deck mới -->
-      <div class="space-y-2">
-        <label for="selectTargetDeck" class="text-xs font-bold text-[#0F172A]">Chọn bộ thẻ của bạn:</label>
-        <select id="selectTargetDeck" class="w-full text-xs p-2 rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#9F1239]">
-          <option value="">Đang tải danh sách bộ thẻ...</option>
-        </select>
-      </div>
-
-      <div class="pt-2 flex items-center justify-end gap-2">
-        <button type="button" id="btnCancelModal" class="px-3 py-1.5 rounded-lg border border-[#CBD5E1] text-xs font-medium text-slate-600 hover:bg-slate-50 transition cursor-pointer">
-          Hủy bỏ
-        </button>
-        <button type="button" id="btnConfirmSaveCard" class="px-4 py-1.5 rounded-lg bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs font-bold border border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] transition cursor-pointer">
-          Lưu vào bộ thẻ
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-end">
+        <button type="button" id="btnAckGuide" class="px-5 py-2 rounded-xl bg-[#9F1239] hover:bg-[#BE185D] text-white text-xs sm:text-sm font-bold border-2 border-[#0F172A] shadow-[2px_2px_0px_0px_#0F172A] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer transition">
+          Đã hiểu, bắt đầu ngay
         </button>
       </div>
     </div>

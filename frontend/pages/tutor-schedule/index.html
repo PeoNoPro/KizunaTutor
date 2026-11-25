@@ -155,35 +155,6 @@
             </button>
           </div>
 
-          <!-- Mẫu ca rảnh phổ biến (Gợi ý thêm nhanh) -->
-          <div class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm border border-outline-variant/40 space-y-3">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
-                <h3 class="text-label-md font-bold text-on-surface">Mẫu ca rảnh phổ biến (bấm để thêm nhanh)</h3>
-              </div>
-              <span class="text-caption text-on-surface-variant">Chọn mẫu để mở form nhanh</span>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-              <button type="button" class="btn-preset p-3 rounded-xl bg-surface-container-low hover:bg-primary-fixed/40 border border-outline-variant/40 text-left transition-all cursor-pointer group" data-start="18:30" data-end="20:30">
-                <p class="text-caption font-bold text-primary group-hover:text-primary-container">Tối ngày thường</p>
-                <p class="text-body-sm font-semibold text-on-surface mt-0.5">18:30 - 20:30 (2 giờ)</p>
-              </button>
-              <button type="button" class="btn-preset p-3 rounded-xl bg-surface-container-low hover:bg-primary-fixed/40 border border-outline-variant/40 text-left transition-all cursor-pointer group" data-start="19:00" data-end="21:00">
-                <p class="text-caption font-bold text-primary group-hover:text-primary-container">Tối cuối tuần</p>
-                <p class="text-body-sm font-semibold text-on-surface mt-0.5">19:00 - 21:00 (2 giờ)</p>
-              </button>
-              <button type="button" class="btn-preset p-3 rounded-xl bg-surface-container-low hover:bg-primary-fixed/40 border border-outline-variant/40 text-left transition-all cursor-pointer group" data-start="09:00" data-end="11:00" data-dow="1">
-                <p class="text-caption font-bold text-primary group-hover:text-primary-container">Sáng Chủ nhật</p>
-                <p class="text-body-sm font-semibold text-on-surface mt-0.5">09:00 - 11:00 (2 giờ)</p>
-              </button>
-              <button type="button" class="btn-preset p-3 rounded-xl bg-surface-container-low hover:bg-primary-fixed/40 border border-outline-variant/40 text-left transition-all cursor-pointer group" data-start="14:00" data-end="16:00" data-dow="7">
-                <p class="text-caption font-bold text-primary group-hover:text-primary-container">Chiều Thứ bảy</p>
-                <p class="text-body-sm font-semibold text-on-surface mt-0.5">14:00 - 16:00 (2 giờ)</p>
-              </button>
-            </div>
-          </div>
-
           <!-- Danh sách ca rảnh 7 ngày trong tuần -->
           <div id="availabilityGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
             <!-- Render động 7 cột từ Thứ 2 đến Chủ nhật -->
@@ -247,12 +218,6 @@
             <label for="inputEndTime" class="text-label-md font-semibold text-on-surface">Giờ kết thúc</label>
             <input type="time" id="inputEndTime" class="tv-input" value="20:30" required>
           </div>
-        </div>
-
-        <!-- Xem trước thời lượng -->
-        <div class="p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 flex items-center gap-2 text-caption text-on-surface">
-          <span class="material-symbols-outlined text-[18px] text-primary">schedule</span>
-          <span id="slotDurationPreview">Thời lượng: 2 giờ 0 phút</span>
         </div>
 
         <p id="formAddSlotError" class="text-caption text-error hidden"></p>
@@ -358,6 +323,31 @@
         <button type="button" id="btnConfirmCancelSession" class="px-4 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white text-label-md font-semibold cursor-pointer disabled:opacity-60">
           Xác nhận hủy
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HỘP XÁC NHẬN XÓA / TẠM TẮT CA RẢNH (nội dung điền từ tutor-schedule.js) ===== -->
+  <div id="modalSlotConfirm" class="fixed inset-0 z-[60] hidden tv-modal-backdrop flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="slotConfirmTitle" aria-describedby="slotConfirmText">
+    <div class="bg-surface-container-lowest rounded-3xl shadow-xl w-full max-w-md p-6 space-y-4">
+      <div class="flex items-center gap-3">
+        <div id="slotConfirmIconBox" class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
+          <span id="slotConfirmIcon" class="material-symbols-outlined text-[24px]">warning</span>
+        </div>
+        <h2 id="slotConfirmTitle" class="text-title-md font-bold text-on-surface"></h2>
+      </div>
+      <div id="slotConfirmNote" class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/40 space-y-3">
+        <p id="slotConfirmText" class="text-body-sm text-on-surface"></p>
+        <div class="space-y-1 pt-3 border-t border-outline-variant/40">
+          <p id="slotConfirmNoteTitle" class="text-body-sm font-bold text-on-surface"></p>
+          <p id="slotConfirmNoteText" class="text-body-sm text-on-surface-variant"></p>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 pt-1">
+        <button type="button" id="btnSlotConfirmCancel" class="py-3 rounded-2xl border-2 border-outline-variant bg-white hover:bg-surface-container-low text-on-surface text-label-md font-semibold cursor-pointer">
+          Hủy
+        </button>
+        <button type="button" id="btnSlotConfirmOk" class="py-3 rounded-2xl text-white text-label-md font-semibold shadow-md cursor-pointer"></button>
       </div>
     </div>
   </div>

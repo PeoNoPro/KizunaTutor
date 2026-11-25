@@ -424,32 +424,7 @@ async function restoreMovedSession() {
 // ---------------------------------------------------------------------------
 // PHÂN HỆ 2: CÀI ĐẶT CA RẢNH (AVAILABILITY CHO HỌC VIÊN TÌM KIẾM)
 // ---------------------------------------------------------------------------
-function computeDurationText(startStr, endStr) {
-  if (!startStr || !endStr) return '';
-  const [sh, sm] = startStr.split(':').map(Number);
-  const [eh, em] = endStr.split(':').map(Number);
-  if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return '';
 
-  const totalMin = (eh * 60 + em) - (sh * 60 + sm);
-  if (totalMin <= 0) return 'Giờ kết thúc phải sau giờ bắt đầu';
-
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  const hText = h > 0 ? `${h} giờ ` : '';
-  const mText = m > 0 ? `${m} phút` : '';
-  const approxSlots = Math.floor(totalMin / 30);
-
-  return `Thời lượng: ${hText}${mText} (học viên có thể đặt tối đa ~${approxSlots} ca học thử 30 phút)`;
-}
-
-function updateDurationPreview() {
-  const start = $('inputStartTime')?.value;
-  const end = $('inputEndTime')?.value;
-  const preview = $('slotDurationPreview');
-  if (preview) {
-    preview.textContent = computeDurationText(start, end);
-  }
-}
 
 function renderAvailabilityGrid() {
   const grid = $('availabilityGrid');
@@ -532,9 +507,16 @@ function bindAvailabilityEvents() {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.id;
       if (!id) return;
-      if (!confirm('Bạn có chắc chắn muốn xóa ca rảnh này không? Ca rảnh này sẽ không còn hiển thị cho học viên đặt lịch.')) {
-        return;
-      }
+      const ok = await confirmSlotAction({
+        tone: 'danger',
+        icon: 'warning',
+        title: 'Xóa ca rảnh',
+        text: `Ca rảnh ${slotLabel(id)} sẽ bị xóa khỏi lịch và học viên không còn thấy ca này để đặt lịch.`,
+        noteTitle: 'Chỉ muốn tạm ngưng nhận lịch?',
+        noteText: 'Đừng xóa — hãy bấm “Tạm tắt” để ẩn ca này, bạn có thể bật lại bất cứ lúc nào.',
+        okText: 'Xóa'
+      });
+      if (!ok) return;
       try {
         await API.tutorSchedule.removeSlot(id);
         showToast('Đã xóa ca rảnh thành công');
@@ -549,6 +531,17 @@ function bindAvailabilityEvents() {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.id;
       const currentActive = btn.dataset.active === 'true';
+      if (currentActive && !(await confirmSlotAction({
+        tone: 'warning',
+        icon: 'pause_circle',
+        title: 'Tạm tắt ca rảnh',
+        text: `Học viên sẽ không thấy và không thể đặt lịch vào ca ${slotLabel(id)} cho đến khi bạn bật lại.`,
+        noteTitle: 'Muốn bỏ hẳn ca này?',
+        noteText: 'Hãy dùng nút xóa (biểu tượng thùng rác) thay vì tạm tắt.',
+        okText: 'Tạm tắt'
+      }))) {
+        return;
+      }
       try {
         await API.tutorSchedule.toggleSlot(id, !currentActive);
         showToast(!currentActive ? 'Đã bật nhận lịch cho ca này' : 'Đã tạm ẩn ca rảnh này');
@@ -560,13 +553,61 @@ function bindAvailabilityEvents() {
   });
 }
 
+/** "Thứ tư, 10:00 - 20:00" cho ca rảnh có id tương ứng */
+function slotLabel(id) {
+  const slot = availabilitiesList.find(a => String(a.availabilityId) === String(id));
+  if (!slot) return 'này';
+  const day = WEEKDAYS_DEF.find(d => d.dow === Number(slot.dayOfWeek));
+  return `${day ? day.name + ', ' : ''}${slot.startTime} - ${slot.endTime}`;
+}
+
+const CONFIRM_TONES = {
+  danger: { box: 'bg-red-50 text-red-600', ok: 'bg-red-600 hover:bg-red-700' },
+  warning: { box: 'bg-amber-50 text-amber-600', ok: 'bg-amber-600 hover:bg-amber-700' }
+};
+
+/** Hộp xác nhận #modalSlotConfirm; trả về true khi người dùng bấm nút hành động */
+function confirmSlotAction({ tone, icon, title, text, noteTitle, noteText, okText }) {
+  const modal = $('modalSlotConfirm');
+  const t = CONFIRM_TONES[tone];
+  $('slotConfirmIconBox').className = `w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${t.box}`;
+  $('slotConfirmIcon').textContent = icon;
+  $('slotConfirmTitle').textContent = title;
+  $('slotConfirmText').textContent = text;
+  $('slotConfirmNoteTitle').textContent = noteTitle;
+  $('slotConfirmNoteText').textContent = noteText;
+  const okBtn = $('btnSlotConfirmOk');
+  okBtn.className = `py-3 rounded-2xl text-white text-label-md font-semibold shadow-md cursor-pointer ${t.ok}`;
+  okBtn.textContent = okText;
+  modal.classList.remove('hidden');
+  okBtn.focus();
+
+  return new Promise(resolve => {
+    const done = (result) => {
+      modal.classList.add('hidden');
+      okBtn.removeEventListener('click', onOk);
+      $('btnSlotConfirmCancel').removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    };
+    const onOk = () => done(true);
+    const onCancel = () => done(false);
+    const onBackdrop = (e) => { if (e.target === modal) done(false); };
+    const onKey = (e) => { if (e.key === 'Escape') done(false); };
+    okBtn.addEventListener('click', onOk);
+    $('btnSlotConfirmCancel').addEventListener('click', onCancel);
+    modal.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey);
+  });
+}
+
 function openAddSlotModal(preselectedDow = null, start = null, end = null) {
   if (preselectedDow) $('selectDayOfWeek').value = String(preselectedDow);
   if (start) $('inputStartTime').value = start;
   if (end) $('inputEndTime').value = end;
 
   $('formAddSlotError').classList.add('hidden');
-  updateDurationPreview();
   $('modalAddSlot').classList.remove('hidden');
 }
 
@@ -657,18 +698,6 @@ function initEvents() {
     btn.addEventListener('click', closeMoveSessionModal);
   });
 
-  // Presets ca rảnh
-  document.querySelectorAll('.btn-preset').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const start = btn.dataset.start;
-      const end = btn.dataset.end;
-      const dow = btn.dataset.dow || '2';
-      openAddSlotModal(dow, start, end);
-    });
-  });
-
-  $('inputStartTime')?.addEventListener('input', updateDurationPreview);
-  $('inputEndTime')?.addEventListener('input', updateDurationPreview);
 
   // Gửi form Thêm ca rảnh
   $('formAddSlot')?.addEventListener('submit', async (e) => {

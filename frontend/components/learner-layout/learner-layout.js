@@ -43,19 +43,19 @@ export const LEARNER_MENU_GROUPS = [
     groupTitle: 'Gia sư & lớp học',
     items: [
       {
-        key: 'requests',
-        title: 'Lịch học của tôi',
-        url: '/learner/connections',
-        icon: 'calendar_month',
-        matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests', '/pages/learner-connections']
-      },
-      {
         // Yêu cầu học thử và kết nối trực tiếp học viên đã gửi tới gia sư
         key: 'my-requests',
-        title: 'Yêu cầu của tôi',
+        title: 'Yêu cầu kết nối',
         url: '/pages/learner-requests/',
         icon: 'pending_actions',
         matcher: ['/learner/requests', '/pages/learner-requests', '/connection-requests', '/pages/connection-requests']
+      },
+      {
+        key: 'requests',
+        title: 'Lịch học',
+        url: '/learner/connections',
+        icon: 'calendar_month',
+        matcher: ['/learner/connections', '/learner/bookings', '/connection-requests', '/pages/connection-requests', '/pages/learner-connections']
       },
       {
         key: 'my-courses',
@@ -229,8 +229,8 @@ export const LEARNER_MENU_GROUPS = [
 export const PAGE_META_MAP = {
   'dashboard': { title: 'Tổng quan học tập', badge: 'Bàn học tập' },
   'profile': { title: 'Hồ sơ cá nhân', badge: 'Bàn học tập' },
-  'requests': { title: 'Lịch học của tôi', badge: 'Gia sư & lớp học' },
-  'my-requests': { title: 'Yêu cầu của tôi', badge: 'Gia sư & lớp học' },
+  'requests': { title: 'Lịch học', badge: 'Gia sư & lớp học' },
+  'my-requests': { title: 'Yêu cầu kết nối', badge: 'Gia sư & lớp học' },
   'my-courses': { title: 'Lớp học của tôi', badge: 'Gia sư & lớp học' },
   'my-materials': { title: 'Tài liệu học tập', badge: 'Gia sư & lớp học' },
   'my-assignments': { title: 'Bài tập của tôi', badge: 'Gia sư & lớp học' },

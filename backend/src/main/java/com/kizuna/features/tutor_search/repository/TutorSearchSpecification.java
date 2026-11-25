@@ -29,7 +29,8 @@ import java.util.UUID;
 
 /**
  * Xây dựng Specification truy vấn lọc động danh sách gia sư theo JPA Criteria.
- * Tuân thủ quy tắc nghiệp vụ GB-06 (Chỉ hiển thị gia sư đã được phê duyệt hồ sơ).
+ * Tuân thủ quy tắc nghiệp vụ GB-06 (Chỉ hiển thị gia sư đã được phê duyệt hồ
+ * sơ).
  */
 public class TutorSearchSpecification {
 
@@ -92,21 +93,27 @@ public class TutorSearchSpecification {
 
     /**
      * Bộ lọc "Mục tiêu học".
-     * @param priceLevels mức trong bảng học phí của bài đăng (tutor_posts.price_items, enum PriceLevel) cho biết gia sư
-     *                    CÓ DẠY mục tiêu này; khớp một trong các mức là đạt
-     * @param keywords    dự phòng cho bài đăng cũ CHƯA có bảng học phí: đoán theo chuyên môn, tiêu đề, nội dung
+     *
+     * @param priceLevels mức trong bảng học phí của bài đăng
+     * (tutor_posts.price_items, enum PriceLevel) cho biết gia sư CÓ DẠY mục
+     * tiêu này; khớp một trong các mức là đạt
+     * @param keywords dự phòng cho bài đăng cũ CHƯA có bảng học phí: đoán theo
+     * chuyên môn, tiêu đề, nội dung
      * @param tutorLevels trình độ gia sư cần có (null = không yêu cầu)
      */
     private record GoalFilter(List<String> priceLevels, List<String> keywords, List<String> tutorLevels) {
+
     }
 
-    /** Thứ tự từ cao xuống thấp. */
+    /**
+     * Thứ tự từ cao xuống thấp.
+     */
     private static final List<String> JLPT_LEVELS = List.of("N1", "N2", "N3", "N4", "N5");
 
     // Văn bản bài đăng được chuẩn hóa: chữ thường, dấu câu thành khoảng trắng, có khoảng trắng hai đầu
     // → " n3 " khớp "Luyện thi N3," nhưng không khớp nhầm giữa một từ khác.
-    private static final List<String> JLPT_KEYWORDS =
-            List.of("jlpt", "luyện thi", "luyện đề", "ôn thi", " n1 ", " n2 ", " n3 ", " n4 ", " n5 ");
+    private static final List<String> JLPT_KEYWORDS
+            = List.of("jlpt", "luyện thi", "luyện đề", "ôn thi", " n1 ", " n2 ", " n3 ", " n4 ", " n5 ");
 
     private static final List<String> ALL_JLPT_PRICE_LEVELS = List.of("JLPT_N5", "JLPT_N4", "JLPT_N3", "JLPT_N2", "JLPT_N1");
 
@@ -130,18 +137,23 @@ public class TutorSearchSpecification {
         return g == null ? null : GOALS.get(g);
     }
 
-    /** "N3" → [N1, N2, N3]; null nếu không lọc hoặc giá trị không hợp lệ. */
+    /**
+     * "N3" → [N1, N2, N3]; null nếu không lọc hoặc giá trị không hợp lệ.
+     */
     static List<String> levelsAtLeast(String level) {
         String l = normalize(level);
-        if (l == null) return null;
+        if (l == null) {
+            return null;
+        }
         int idx = JLPT_LEVELS.indexOf(l.toUpperCase());
         return idx < 0 ? null : JLPT_LEVELS.subList(0, idx + 1);
     }
 
     /**
-     * Gia sư có dạy mục tiêu này:
-     *  - bài đăng có bảng học phí → bảng có một trong các mức của mục tiêu (bảng học phí là nguồn chính xác);
-     *  - bài đăng cũ chưa có bảng học phí → đoán theo từ khóa trong chuyên môn, tiêu đề, nội dung.
+     * Gia sư có dạy mục tiêu này: - bài đăng có bảng học phí → bảng có một
+     * trong các mức của mục tiêu (bảng học phí là nguồn chính xác); - bài đăng
+     * cũ chưa có bảng học phí → đoán theo từ khóa trong chuyên môn, tiêu đề,
+     * nội dung.
      */
     private static Predicate teachesGoal(CriteriaBuilder cb, Root<TutorPost> p, GoalFilter goal) {
         // jsonb::text của PostgreSQL có dạng chuẩn [{"level": "KAIWA", "hourlyRate": 200000}, ...]
@@ -153,7 +165,10 @@ public class TutorSearchSpecification {
         return cb.or(cb.and(hasPriceTable, priceMatch), cb.and(cb.not(hasPriceTable), teachesGoalByKeywords(cb, p, goal)));
     }
 
-    /** Dự phòng cho bài đăng chưa có bảng học phí: bài đăng đang hiển thị chứa một trong các từ khóa. */
+    /**
+     * Dự phòng cho bài đăng chưa có bảng học phí: bài đăng đang hiển thị chứa
+     * một trong các từ khóa.
+     */
     private static Predicate teachesGoalByKeywords(CriteriaBuilder cb, Root<TutorPost> p, GoalFilter goal) {
         // " " + chuyên môn + tiêu đề + nội dung + " ", bỏ dấu câu thành khoảng trắng để so khớp được cả từ ngắn như "IT"
         Expression<String> text = cb.concat(cb.concat(cb.concat(cb.concat(cb.concat(
@@ -166,18 +181,21 @@ public class TutorSearchSpecification {
                 .toArray(Predicate[]::new));
     }
 
-    /** Hình thức dạy trong bài đăng phù hợp với từng lựa chọn trên bộ lọc. */
+    /**
+     * Hình thức dạy trong bài đăng phù hợp với từng lựa chọn trên bộ lọc.
+     */
     private static final Map<String, List<String>> FORMAT_VALUES = Map.of(
             "online", List.of("ONLINE", "BOTH"),
             "offline", List.of("OFFLINE", "BOTH"),
             "hybrid", List.of("BOTH"));
 
     /**
-     * EXISTS bài đăng đang hiển thị của gia sư (PUBLISHED, không có bài PUBLISHED nào được duyệt muộn hơn)
-     * thỏa các bộ lọc hình thức học / môn học / học phí. Trả về null khi không có bộ lọc nào trong nhóm này.
+     * EXISTS bài đăng đang hiển thị của gia sư (PUBLISHED, không có bài
+     * PUBLISHED nào được duyệt muộn hơn) thỏa các bộ lọc hình thức học / môn
+     * học / học phí. Trả về null khi không có bộ lọc nào trong nhóm này.
      */
     private static Predicate displayedPostMatches(Root<Tutor> root, CriteriaQuery<?> query, CriteriaBuilder cb,
-                                                  TutorSearchCriteriaDTO criteria) {
+            TutorSearchCriteriaDTO criteria) {
         String format = normalize(criteria.getFormat());
         List<String> formatValues = format == null ? null : FORMAT_VALUES.get(format);
         GoalFilter goal = goalFilterOf(criteria.getGoal());
@@ -224,12 +242,16 @@ public class TutorSearchSpecification {
     }
 
     private static String normalize(String value) {
-        if (value == null) return null;
+        if (value == null) {
+            return null;
+        }
         String v = value.trim().toLowerCase();
         return v.isEmpty() || "all".equals(v) ? null : v;
     }
 
-    /** EXISTS bài đăng đã duyệt AND EXISTS gói hội viên ACTIVE chưa hết hạn. */
+    /**
+     * EXISTS bài đăng đã duyệt AND EXISTS gói hội viên ACTIVE chưa hết hạn.
+     */
     private static Predicate hasPublishedPostAndActiveMembership(Root<Tutor> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
         Subquery<UUID> post = query.subquery(UUID.class);
         Root<TutorPost> p = post.from(TutorPost.class);
@@ -246,5 +268,5 @@ public class TutorSearchSpecification {
 
         return cb.and(cb.exists(post), cb.exists(membership));
     }
-}
 
+}

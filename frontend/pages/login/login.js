@@ -149,7 +149,7 @@ async function handleLoginSubmit(event) {
     showLoginAlert('Chưa kết nối được máy chủ đăng nhập. Vui lòng thử lại sau.', 'danger');
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
+      submitBtn.innerHTML = `<span>Đăng nhập</span>`;
     }
     return;
   }
@@ -159,7 +159,7 @@ async function handleLoginSubmit(event) {
     showLoginAlert(errorMsg, 'danger');
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
+      submitBtn.innerHTML = `<span>Đăng nhập</span>`;
     }
     return;
   }
@@ -181,7 +181,7 @@ async function handleLoginSubmit(event) {
     showFirstTimeChangePasswordModal(data.token, data.user, password);
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.innerHTML = `<span>Đăng nhập</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
+      submitBtn.innerHTML = `<span>Đăng nhập</span>`;
     }
     return;
   }

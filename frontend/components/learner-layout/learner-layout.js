@@ -308,9 +308,9 @@ export function getLearnerProfile() {
       .slice(-2)
       .map(part => part[0]?.toUpperCase())
       .join('') || 'HV';
-    return { name, initials, email: user?.email || '', roleName: 'Học viên' };
+    return { name, initials, email: user?.email || '', avatarUrl: user?.avatarUrl || '', roleName: 'Học viên' };
   } catch (e) {
-    return { name: 'Học viên', initials: 'HV', email: '', roleName: 'Học viên' };
+    return { name: 'Học viên', initials: 'HV', email: '', avatarUrl: '', roleName: 'Học viên' };
   }
 }
 
@@ -451,8 +451,11 @@ export function getLearnerSidebarHtml(activeKey) {
         <button type="button" id="btnUserMenuToggle" aria-haspopup="menu" aria-expanded="false"
                 class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-[#eaedff] transition-colors text-left">
           <div class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 rounded-full bg-[#007bb9] flex items-center justify-center text-white font-semibold text-sm shrink-0">
+            <div class="relative w-10 h-10 rounded-full bg-[#007bb9] flex items-center justify-center text-white font-semibold text-sm shrink-0 overflow-hidden">
               ${escapeAttr(profile.initials)}
+              ${profile.avatarUrl
+                ? `<img src="${escapeAttr(profile.avatarUrl)}" alt="" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">`
+                : ''}
             </div>
             <div class="min-w-0">
               <p class="text-[14px] font-semibold text-[#131b2e] truncate">${escapeAttr(profile.name)}</p>

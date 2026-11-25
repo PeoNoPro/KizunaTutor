@@ -35,12 +35,6 @@ public class SystemSettingService {
     private final Clock operationsClock;
     /** Email mặc định khi Admin chưa cấu hình: tài khoản SMTP trong cấu hình triển khai. */
     @Value("${spring.mail.username:}") private String defaultSender;
-    /** Mặc định khi Admin chưa chọn; API key chỉ nằm trong cấu hình server, không lưu DB và không trả ra giao diện. */
-    @Value("${app.ai.provider:GEMINI}") private String defaultAiProvider;
-    @Value("${app.ai.gemini-model:gemini-2.5-flash}") private String defaultGeminiModel;
-    @Value("${app.ai.openai-model:gpt-4o-mini}") private String defaultOpenAiModel;
-    @Value("${app.ai.gemini-api-key:}") private String geminiKey;
-    @Value("${app.ai.openai-api-key:}") private String openAiKey;
     /** Khóa mã hóa API key lưu trong DB; mặc định lấy từ bí mật JWT của server. */
     @Value("${app.settings.secret-key:${app.jwt.secret:}}") private String settingsSecret;
 
@@ -244,22 +238,17 @@ public class SystemSettingService {
         }
     }
 
-    private String defaultModel(String provider) {return "OPENAI".equals(provider)?defaultOpenAiModel:"GEMINI".equals(provider)?defaultGeminiModel:"";}
-    private String defaultProvider() {
-        var provider=defaultAiProvider==null?"GEMINI":defaultAiProvider.trim().toUpperCase(Locale.ROOT);
-        return AI_PROVIDERS.contains(provider)?provider:"GEMINI";
-    }
     private static final String MODEL_PATTERN="[A-Za-z0-9._:/-]{1,80}";
-    private String providerNow() {return value(AI_PROVIDER_KEY).filter(AI_PROVIDERS::contains).orElse(defaultProvider());}
-    private String serverKey(String provider) {var key="OPENAI".equals(provider)?openAiKey:"GEMINI".equals(provider)?geminiKey:null;return key==null?"":key.trim();}
-    /** Key Admin nhập (đã giải mã) được ưu tiên; không có thì dùng key trong cấu hình server. */
+    private String providerNow() {return value(AI_PROVIDER_KEY).filter(AI_PROVIDERS::contains).orElse("");}
+    /** Chỉ đọc API key đã mã hóa trong DB (system_configurations), không lấy từ cấu hình project. */
     private String apiKey(String provider) {
-        return value(AI_KEY_PREFIX+provider).map(this::decrypt).filter(key->!key.isBlank()).orElse(serverKey(provider));
+        return value(AI_KEY_PREFIX+provider).map(this::decrypt).filter(key->!key.isBlank()).orElse("");
     }
     private String baseUrl(String provider) {return "OPENAI".equals(provider)?OPENAI_BASE_URL:"CUSTOM".equals(provider)?value(AI_BASE_URL_KEY).orElse(""):"";}
     private AiChoice currentAi() {
         var provider=providerNow();
-        var model=value(AI_MODEL_KEY).filter(text->text.matches(MODEL_PATTERN)).orElse(defaultModel(provider));
+        if(provider.isEmpty())return new AiChoice("","","","");
+        var model=value(AI_MODEL_KEY).filter(text->text.matches(MODEL_PATTERN)).orElse("");
         return new AiChoice(provider,model,apiKey(provider),baseUrl(provider));
     }
     static String mask(String key) {return key.isBlank()?"":"••••"+key.substring(Math.max(0,key.length()-4));}
@@ -358,11 +347,11 @@ public class SystemSettingService {
         } catch(Exception exception) {return "";}
     }
 
-    /** Dùng khi gọi AI: lỗi đọc DB thì quay về cấu hình server để học viên vẫn dùng được. */
+    /** Chỉ đọc cấu hình AI từ DB; lỗi đọc DB hoặc chưa cấu hình trả về rỗng (các tính năng AI tự dùng bộ chấm dự phòng). */
     @Transactional(readOnly=true,timeout=3)
     public AiChoice aiChoice() {
         try {return currentAi();}
-        catch(RuntimeException exception) {var provider=defaultProvider();return new AiChoice(provider,defaultModel(provider),serverKey(provider),baseUrl(provider));}
+        catch(RuntimeException exception) {return new AiChoice("","","","");}
     }
 
     @Transactional(readOnly=true,timeout=3)
@@ -370,16 +359,16 @@ public class SystemSettingService {
         actors.requireAdmin();
         var current=currentAi();
         var providers=AI_PROVIDERS.stream().map(code->{
-            var key=apiKey(code);var fromAdmin=value(AI_KEY_PREFIX+code).map(this::decrypt).filter(k->!k.isBlank()).isPresent();
+            var key=apiKey(code);
             var item=new LinkedHashMap<String,Object>();
-            item.put("code",code);item.put("label",AI_LABELS.get(code));item.put("defaultModel",defaultModel(code));
-            item.put("keyConfigured",!key.isBlank());item.put("keySource",key.isBlank()?"":fromAdmin?"admin":"server");item.put("maskedKey",mask(key));
+            item.put("code",code);item.put("label",AI_LABELS.get(code));item.put("defaultModel",code.equals(current.provider())?current.model():"");
+            item.put("keyConfigured",!key.isBlank());item.put("keySource",key.isBlank()?"":"admin");item.put("maskedKey",mask(key));
             item.put("baseUrl",baseUrl(code));
             return item;
         }).toList();
         var result=new LinkedHashMap<String,Object>();
         result.put("provider",current.provider());
-        result.put("providerLabel",AI_LABELS.get(current.provider()));
+        result.put("providerLabel",AI_LABELS.getOrDefault(current.provider(),""));
         result.put("model",current.model());
         result.put("keyConfigured",!current.apiKey().isBlank());
         result.put("providers",providers);

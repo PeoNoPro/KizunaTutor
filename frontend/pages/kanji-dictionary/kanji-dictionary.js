@@ -334,10 +334,7 @@ async function loadLearnerDictionary(page = 0) {
   const controller = new AbortController();
   currentSearchController = controller;
 
-  const grid = document.getElementById('learnerKanjiGrid');
-  if (grid) {
-    renderKanjiSkeleton(grid);
-  }
+  renderKanjiSkeleton(grid);
 
   isSearching = true;
 
@@ -745,7 +742,9 @@ async function submitSaveToDeck(e) {
   // Đảm bảo có đầy đủ dữ liệu nghĩa, onyomi, kunyomi nếu chưa có
   if (!currentKanjiToSave || !currentKanjiToSave.meaning || currentKanjiToSave.meaning === 'Chưa cập nhật nghĩa') {
     try {
-      const res = await fetch(`/api/learner/kanji/search?keyword=${encodeURIComponent(kanjiChar)}`).catch(() => null);
+      const authToken = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+      const searchHeaders = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+      const res = await fetch(`/api/learner/kanji/search?keyword=${encodeURIComponent(kanjiChar)}`, { headers: searchHeaders }).catch(() => null);
       if (res && res.ok) {
         const data = await res.json();
         const found = (data.items || []).find(x => (x.kanjiChar || x.char) === kanjiChar);

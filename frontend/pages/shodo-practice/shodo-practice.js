@@ -761,7 +761,7 @@ function renderStrokeStepBadges() {
 /**
  * Cất chữ Hán đang luyện viết trực tiếp vào Bộ thẻ Flashcard cá nhân
  */
-function saveShodoCurrentCharToDeck() {
+async function saveShodoCurrentCharToDeck() {
   if (!currentChar) {
     showToast('Vui lòng chọn hoặc nạp một chữ Hán trước khi lưu thẻ.', 'info');
     return;
@@ -774,8 +774,11 @@ function saveShodoCurrentCharToDeck() {
   const jlpt = document.getElementById('kanjiJlptLevel')?.textContent || 'N3';
 
   try {
-    const raw = localStorage.getItem('kizuna_flashcard_decks');
-    let decks = raw ? JSON.parse(raw) : [];
+    let decks = await apiClient.getDecks().catch(() => null);
+    if (!Array.isArray(decks)) {
+      const raw = localStorage.getItem('kizuna_flashcard_decks');
+      decks = raw ? JSON.parse(raw) : [];
+    }
     if (!Array.isArray(decks)) decks = [];
 
     const lastId = localStorage.getItem('kizuna_last_selected_deck_id');
@@ -784,19 +787,7 @@ function saveShodoCurrentCharToDeck() {
     if (!deck && decks.length > 0) {
       deck = decks[0];
     }
-    if (!deck) {
-      deck = {
-        id: 'deck_' + Date.now(),
-        title: 'Bộ Thẻ Cá Nhân',
-        description: 'Bộ thẻ học viên tạo từ Shodo & Từ điển',
-        cards: [],
-        color: 'blue'
-      };
-      decks.push(deck);
-    }
 
-    deck.cards = deck.cards || [];
-    const existingIdx = deck.cards.findIndex(c => (c.char || c.kanjiChar) === currentChar);
     const newCard = {
       char: currentChar,
       kanjiChar: currentChar,
@@ -807,19 +798,18 @@ function saveShodoCurrentCharToDeck() {
       jlpt: (jlpt && jlpt !== 'Chưa chọn chữ') ? jlpt : 'N3'
     };
 
-    if (existingIdx >= 0) {
-      deck.cards[existingIdx] = { ...deck.cards[existingIdx], ...newCard };
-    } else {
-      deck.cards.push(newCard);
-    }
-
-    localStorage.setItem('kizuna_flashcard_decks', JSON.stringify(decks));
-    if (deck.id) {
-      localStorage.setItem('kizuna_last_selected_deck_id', String(deck.id));
-      // Đồng bộ trực tiếp lên Backend API nếu có ID hợp lệ
-      apiClient.addCards(deck.id, [newCard]).catch(err => {
-        console.debug('Lỗi đồng bộ thẻ Shodo lên API:', err);
+    if (!deck) {
+      deck = await apiClient.createDeck({
+        title: 'Bộ Thẻ Cá Nhân',
+        description: 'Bộ thẻ học viên tạo từ Shodo & Từ điển',
+        cards: [newCard],
+        color: 'blue'
       });
+    } else {
+      await apiClient.addCards(deck.id, [newCard]);
+    }
+    if (deck?.id) {
+      localStorage.setItem('kizuna_last_selected_deck_id', String(deck.id));
     }
     showToast(`Đã cất chữ "${currentChar}" vào bộ thẻ "${deck.title}" thành công! 🗂️`, 'success');
   } catch (err) {

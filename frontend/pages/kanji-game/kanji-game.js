@@ -767,7 +767,9 @@ async function loadGameData() {
   // Ngược lại: tải dữ liệu thực tế từ Backend API
   try {
     const jlptParam = source === 'ALL' ? '' : `&jlpt=${encodeURIComponent(source)}`;
-    const res = await fetch(`/api/learner/minigame/play-data?limit=40${jlptParam}`);
+    const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await fetch(`/api/learner/minigame/play-data?limit=40${jlptParam}`, { headers });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {

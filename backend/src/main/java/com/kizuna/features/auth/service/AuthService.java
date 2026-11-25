@@ -15,6 +15,7 @@ public interface AuthService {
     void initiateRegistration(RegisterRequest request);
     LoginResponse completeRegistration(VerifyOtpRequest request);
     LoginResponse login(LoginRequest request, HttpServletResponse response);
+    LoginResponse authenticateWithGoogle(String email, String fullName, String avatarUrl, String requestedRole);
     LoginResponse register(RegisterRequest request, HttpServletResponse response);
     UserSummaryDto getCurrentUser(String email);
     Map<String, Object> changePasswordFirstTime(FirstTimePasswordChangeRequest request, String userEmail);

@@ -419,6 +419,7 @@ export const apiClient = {
     try {
       await fetch(`/api/learner/decks/${encodeURIComponent(id)}/cards/${encodeURIComponent(cardIdOrIndex)}`, {
         method: 'DELETE',
+        headers: getDeckHeaders(),
         signal: AbortSignal.timeout(4000)
       }).catch(() => null);
     } catch (e) {
@@ -446,7 +447,7 @@ export const apiClient = {
     try {
       const res = await fetch(`/api/learner/decks/${encodeURIComponent(id)}/duplicate`, {
         method: 'POST',
-        headers: { 'Accept': 'application/json' },
+        headers: getDeckHeaders(),
         signal: AbortSignal.timeout(4000)
       }).catch(() => null);
 

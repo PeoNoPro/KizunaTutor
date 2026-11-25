@@ -18,7 +18,7 @@ import java.nio.charset.StandardCharsets;
 @Controller
 public class GoogleOAuthController {
 
-    private static final String PLACEHOLDER_CLIENT_ID = "1029384756-kizunatutor-google-client.apps.googleusercontent.com";
+    public static final String PLACEHOLDER_CLIENT_ID = "1029384756-kizunatutor-google-client.apps.googleusercontent.com";
 
     @Value("${spring.security.oauth2.client.registration.google.client-id:}")
     private String googleClientId;

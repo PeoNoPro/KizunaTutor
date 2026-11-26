@@ -72,3 +72,12 @@ description: "Danh sách công việc triển khai FE-14 — Quản lý người
 - `dev` (PR #24) đã có trang FE-02 "Quản lý người dùng" ở `frontend/pages/manager-users/` (gọi `/api/profile/users`, menu `staff-layout`). Để giữ cả hai chức năng, trang FE-14 chuyển sang `frontend/pages/manager-accounts/{index.html, manager-accounts.js, manager-accounts.css}`, nội dung không đổi.
 - Đường dẫn trang FE-14: `/manager/accounts` (và `/pages/manager-accounts/`). Đã sửa các dòng do FE-14 thêm: `WebMvcConfig` (`/manager/accounts`), `admin-shell.js` (link menu và `MANAGER_PATHS`), `frontend/server.js` (+ route `/manager/accounts`). Không sửa trang, route hay menu của FE-02.
 - API FE-14 giữ nguyên `/api/manager/users`; `frontend/js/manager-users-helpers.js` và test của nó giữ nguyên.
+
+## 2026-11-23 — Lần đăng nhập gần nhất (FR-003a)
+
+- [X] T040 Migration `database/migrations/037_user_login_activity.sql` (bảng `user_login_activity`) — người dùng tự chạy trên Supabase
+- [X] T041 `features/auth/service/LoginActivityRecorder.java`: ghi sau commit, giao dịch riêng, nuốt lỗi; gọi ở `AuthServiceImpl` (đăng nhập, đăng ký, xác thực OTP đăng ký) và `AuthController` (Google) qua field `@Autowired(required = false)` để không đổi constructor dùng trong test của nhóm; test `LoginActivityRecorderTest` (4)
+- [X] T042 `ManagedUserRepository` đọc `last_login_at`; `ManagedUserResponse`, `ManagedUserDetailResponse` thêm `lastLoginAt`; cập nhật `UserManagementServiceTest`
+- [X] T043 Trang `pages/manager-accounts`: cột "Đăng nhập gần nhất" và dòng trong chi tiết; `lastLoginInfo` trong `js/manager-users-helpers.js` + test
+- [X] T045 Giao diện đổi trạng thái chỉ còn "Tạm khóa tài khoản" / "Mở lại tài khoản" theo trạng thái hiện tại (`lockAction` trong `js/manager-users-helpers.js` + test); hộp thoại bỏ ô chọn trạng thái, chỉ nhập lý do và lời nhắn
+- [X] T046 Bỏ ô "Lý do nội bộ" khỏi hộp thoại Tạm khóa / Mở lại; `UpdateUserStatusRequest.reason` và kiểm tra ở `UserManagementServiceImpl` thành không bắt buộc (vẫn ghi nhật ký, vẫn trả trong lịch sử); cập nhật test backend và `validateStatusForm`

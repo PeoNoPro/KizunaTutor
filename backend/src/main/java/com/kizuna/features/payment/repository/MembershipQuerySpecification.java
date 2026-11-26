@@ -2,8 +2,6 @@ package com.kizuna.features.payment.repository;
 
 import com.kizuna.core.entity.Tutor;
 import com.kizuna.core.entity.User;
-import com.kizuna.features.payment.entity.PaymentTransaction;
-import com.kizuna.features.payment.entity.PaymentTransactionStatus;
 import com.kizuna.features.payment.entity.TutorMembership;
 import com.kizuna.features.payment.entity.TutorMembershipState;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -17,14 +15,13 @@ import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 /**
- * Bộ lọc danh sách hội viên (UC-44) và danh sách giao dịch (UC-98).
+ * Bộ lọc danh sách hội viên (UC-44) và cách đọc mã giao dịch từ chuỗi.
  */
 public final class MembershipQuerySpecification {
 
@@ -70,46 +67,6 @@ public final class MembershipQuerySpecification {
                 predicates.add(cb.or(
                         cb.lessThan(root.get("endDate"), today),
                         cb.notEqual(root.get("status"), TutorMembershipState.ACTIVE)));
-            }
-            return cb.and(predicates.toArray(Predicate[]::new));
-        };
-    }
-
-    /**
-     * Giao dịch gói hội viên cho quản trị viên: trạng thái, khoảng thời gian, từ khóa (mã giao dịch hoặc tên/email).
-     */
-    public static Specification<PaymentTransaction> membershipTransactions(PaymentTransactionStatus status,
-                                                                           OffsetDateTime from, OffsetDateTime toExclusive,
-                                                                           String keyword) {
-        return (root, query, cb) -> {
-            boolean countQuery = isCountQuery(query.getResultType());
-            Join<PaymentTransaction, User> user;
-            if (countQuery) {
-                user = root.join("user");
-                root.join("plan");
-            } else {
-                user = fetchJoin(root, "user");
-                root.fetch("plan", JoinType.INNER);
-            }
-            List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.isNotNull(root.get("plan")));
-            if (status != null) {
-                predicates.add(cb.equal(root.get("status"), status));
-            }
-            if (from != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("transactionTime"), from));
-            }
-            if (toExclusive != null) {
-                predicates.add(cb.lessThan(root.get("transactionTime"), toExclusive));
-            }
-            String trimmed = keyword == null ? "" : keyword.trim();
-            if (!trimmed.isEmpty()) {
-                UUID id = parseTransactionKeyword(trimmed);
-                if (id != null) {
-                    predicates.add(cb.equal(root.get("transactionId"), id));
-                } else {
-                    addKeyword(cb, predicates, user, trimmed);
-                }
             }
             return cb.and(predicates.toArray(Predicate[]::new));
         };

@@ -1,12 +1,14 @@
 /**
- * KizunaTutor - Trang gói hội viên của gia sư (FE-09: UC-97 xem gói và ngày hết hạn, UC-104 mua gói qua VNPay).
+ * KizunaTutor - Trang gói hội viên của gia sư (FE-09: UC-104 mua gói qua VNPay).
+ * Trang chỉ hiển thị các gói đang mở bán; gói đang dùng (UC-97) hiển thị ở trang Tổng quan.
+ * Lịch sử giao dịch mở bằng nút ở đầu trang.
  * Dữ liệu lấy từ API thật; không có dữ liệu thì hiển thị trạng thái rỗng.
  */
 
 import { API, ApiError } from '/js/api.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
 import { renderPagination } from '/components/pagination/pagination.js';
-import { escapeHtml, formatMoney, formatDate, formatDateTime, statusBadge, badge, toast } from '/js/membership-format.js';
+import { escapeHtml, formatMoney, formatDate, formatDateTime, statusBadge, toast } from '/js/membership-format.js';
 
 
 const $ = (id) => document.getElementById(id);
@@ -21,44 +23,9 @@ function errorText(err) {
   return err instanceof ApiError ? err.message : 'Hệ thống đang bận, bạn vui lòng thử lại sau.';
 }
 
-function renderCurrent() {
+/** Gia sư chưa đủ điều kiện mua gói (ví dụ hồ sơ chưa được phê duyệt): hiện lý do. */
+function renderEligibility() {
   const { mine } = state;
-  $('tutorStateBadge').innerHTML = mine.tutorStateLabel ? badge(mine.tutorStateLabel, mine.tutorState === 'ACTIVE_PAID' ? 'success' : 'neutral') : '';
-  const current = mine.current;
-  const block = $('currentBlock');
-
-  if (current) {
-    block.innerHTML = `
-      <div class="flex flex-col gap-3 rounded-xl bg-surface-container-low p-4">
-        <div>
-          <p class="text-title-md font-semibold">${escapeHtml(current.planName)}</p>
-          <p class="text-body-sm text-on-surface-variant mt-1">Từ ${formatDate(current.startDate)} đến ${formatDate(current.endDate)}</p>
-        </div>
-        <div class="flex items-center gap-3 flex-wrap">
-          ${statusBadge(current.status, current.statusLabel)}
-          <span class="text-body-md">Còn <strong>${current.daysLeft}</strong> ngày</span>
-        </div>
-      </div>
-      ${mine.expiresOn && mine.expiresOn !== current.endDate
-        ? `<p class="text-body-sm text-on-surface-variant mt-3">Tính cả các gói đã gia hạn, gói của bạn có hiệu lực đến <strong>${formatDate(mine.expiresOn)}</strong>.</p>` : ''}`;
-  } else {
-    const hadBefore = (mine.history || []).length > 0;
-    block.innerHTML = `
-      <div class="rounded-xl bg-surface-container-low p-6 text-center">
-        <span class="material-symbols-outlined text-4xl text-outline">${hadBefore ? 'event_busy' : 'workspace_premium'}</span>
-        <p class="text-title-md mt-2">${hadBefore ? 'Gói hội viên của bạn đã hết hạn' : 'Bạn chưa có gói hội viên'}</p>
-        <p class="text-body-sm text-on-surface-variant mt-1">${hadBefore ? 'Gia hạn để tiếp tục nhận học viên và dùng đầy đủ tính năng giảng dạy.' : 'Chọn một gói bên dưới để bắt đầu nhận học viên.'}</p>
-      </div>`;
-  }
-
-  const upcoming = mine.upcoming || [];
-  $('upcomingBlock').classList.toggle('hidden', upcoming.length === 0);
-  $('upcomingList').innerHTML = upcoming.map((m) => `
-    <li class="flex items-center justify-between gap-3 rounded-lg bg-surface-container-low px-4 py-3">
-      <span class="text-body-md">${escapeHtml(m.planName)} · ${formatDate(m.startDate)} – ${formatDate(m.endDate)}</span>
-      ${statusBadge(m.status, m.statusLabel)}
-    </li>`).join('');
-
   $('ineligibleBanner').classList.toggle('hidden', mine.eligible);
   $('ineligibleText').textContent = mine.ineligibleReason || '';
 }
@@ -103,6 +70,7 @@ function renderPlans() {
 
 async function loadPayments(page = 0) {
   const block = $('paymentsBlock');
+  block.innerHTML = '<div class="tv-skeleton h-32 rounded-xl"></div>';
   try {
     const data = await API.tutorMembership.getPayments(page, state.paymentsSize);
     state.paymentsPage = data.page;
@@ -125,32 +93,16 @@ async function loadPayments(page = 0) {
               <td class="py-3 pr-4">${escapeHtml(p.planName)}</td>
               <td class="py-3 pr-4 text-right">${formatMoney(p.amount)}</td>
               <td class="py-3 pr-4">${statusBadge(p.status, p.statusLabel)}</td>
-              <td class="py-3 text-right whitespace-nowrap">${p.status === 'PENDING' ? `
-                <button type="button" class="tv-btn-small" data-check="${p.transactionId}" title="Dùng khi bạn đã thanh toán nhưng gói chưa được kích hoạt">Kiểm tra kết quả</button>
-                ${p.resumable ? `<button type="button" class="tv-btn-small" data-resume="${p.transactionId}">Tiếp tục thanh toán</button>` : ''}` : ''}
+              <td class="py-3 text-right whitespace-nowrap">${p.status === 'PENDING' && p.resumable
+                ? `<button type="button" class="tv-btn-small" data-resume="${p.transactionId}">Tiếp tục thanh toán</button>` : ''}
               </td>
             </tr>`).join('')}
         </tbody>
       </table>`;
-    block.querySelectorAll('[data-check]').forEach((b) => b.addEventListener('click', () => checkPayment(b.dataset.check, b)));
     block.querySelectorAll('[data-resume]').forEach((b) => b.addEventListener('click', () => resumePayment(b.dataset.resume, b)));
     renderPager(data);
   } catch (err) {
     block.innerHTML = `<p class="text-body-md text-error">${escapeHtml(errorText(err))}</p>`;
-  }
-}
-
-async function checkPayment(transactionId, button) {
-  button.disabled = true;
-  button.textContent = 'Đang kiểm tra…';
-  try {
-    const result = await API.tutorMembership.checkPayment(transactionId);
-    toast(result.resultMessage, result.status === 'SUCCESS' ? 'success' : result.status === 'FAILED' ? 'error' : 'info');
-    await load();
-  } catch (err) {
-    toast(errorText(err), 'error');
-    button.disabled = false;
-    button.textContent = 'Kiểm tra kết quả';
   }
 }
 
@@ -171,6 +123,16 @@ function renderPager(data) {
     onPage: (p) => loadPayments(p),
     onSize: (s) => { state.paymentsSize = s; loadPayments(0); }
   });
+}
+
+function openHistory() {
+  $('historyModal').classList.remove('hidden');
+  loadPayments(0);
+  $('historyClose').focus();
+}
+
+function closeHistory() {
+  $('historyModal').classList.add('hidden');
 }
 
 function openConfirm(planId) {
@@ -219,10 +181,9 @@ async function load() {
     const [mine, plans] = await Promise.all([API.tutorMembership.getMine(), API.tutorMembership.getPlans()]);
     state.mine = mine;
     state.plans = plans || [];
-    renderCurrent();
+    renderEligibility();
     renderPlans();
     show('contentState');
-    loadPayments(0);
   } catch (err) {
     $('errorMessage').textContent = errorText(err);
     show('errorState');
@@ -244,6 +205,13 @@ $('retryButton').addEventListener('click', load);
 $('confirmCancel').addEventListener('click', closeConfirm);
 $('confirmSubmit').addEventListener('click', submitPayment);
 $('confirmModal').addEventListener('click', (event) => { if (event.target.id === 'confirmModal') closeConfirm(); });
-document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeConfirm(); });
+$('historyButton').addEventListener('click', openHistory);
+$('historyClose').addEventListener('click', closeHistory);
+$('historyModal').addEventListener('click', (event) => { if (event.target.id === 'historyModal') closeHistory(); });
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  closeConfirm();
+  closeHistory();
+});
 loadIdentity();
 load();

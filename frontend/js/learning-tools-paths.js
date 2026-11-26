@@ -46,7 +46,7 @@ const LOCKED_PATHS = new Set([
   // Game Mưa chữ Hán
   '/kanji-game', '/kanji-game.html', '/game', '/rain',
   // Luyện đề JLPT (FE-13)
-  '/learner/practice', '/learner/practice/attempt', '/learner/practice/history',
+  '/learner/practice', '/learner/practice/attempt', '/learner/practice/history', '/learner/practice-history', '/practice-history',
   // Đường dẫn thật tới thư mục trang
   ...LOCKED_PAGE_DIRS.map((dir) => `/pages/${dir}`)
 ]);

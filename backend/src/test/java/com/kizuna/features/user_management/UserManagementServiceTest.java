@@ -38,6 +38,7 @@ class UserManagementServiceTest {
     private static final UUID USER = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID MANAGER = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-11-13T08:00:00Z");
+    private static final OffsetDateTime LAST_LOGIN = OffsetDateTime.parse("2026-11-01T02:30:00Z");
 
     private ManagedUserRepository repository;
     private UserStatusMailService mail;
@@ -54,7 +55,7 @@ class UserManagementServiceTest {
     }
 
     private static Account account(String role, String status) {
-        return new Account(USER, "Nguyễn Văn A", "a@example.com", null, null, role, status, NOW, NOW);
+        return new Account(USER, "Nguyễn Văn A", "a@example.com", null, null, role, status, NOW, NOW, LAST_LOGIN);
     }
 
     // ===== Danh sách (UC-20) =====
@@ -63,7 +64,7 @@ class UserManagementServiceTest {
     @DisplayName("TC-02-054/059: Mặc định nhóm Gia sư, 20 dòng/trang; 21 tài khoản -> 2 trang")
     void danhSach_macDinhGiaSu_chuanHoaTrangVaKichThuoc() {
         when(repository.list(any(), any(), any(), anyInt(), anyInt())).thenReturn(new ManagedUserRepository.Page(
-                List.of(new AccountRow(USER, "A", "a@example.com", "ROLE_TUTOR", "SUSPENDED", NOW)), 21));
+                List.of(new AccountRow(USER, "A", "a@example.com", "ROLE_TUTOR", "SUSPENDED", NOW, LAST_LOGIN)), 21));
 
         var page = service.list(null, "  ", null, -3, 15);
 
@@ -72,6 +73,7 @@ class UserManagementServiceTest {
         assertThat(page.totalPages()).isEqualTo(2);
         assertThat(page.items().get(0).accountStatusLabel()).isEqualTo("Tạm khóa");
         assertThat(page.items().get(0).categoryLabel()).isEqualTo("Gia sư");
+        assertThat(page.items().get(0).lastLoginAt()).isEqualTo(LAST_LOGIN);
     }
 
     @Test
@@ -128,6 +130,7 @@ class UserManagementServiceTest {
         assertThat(d.learnerProfile()).isNull();
         assertThat(d.allowedStatuses()).extracting("value").containsExactly("SUSPENDED", "BANNED");
         assertThat(d.statusChangeBlockedReason()).isNull();
+        assertThat(d.lastLoginAt()).isEqualTo(LAST_LOGIN);
     }
 
     @Test
@@ -165,7 +168,7 @@ class UserManagementServiceTest {
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "SUSPENDED")));
         when(repository.updateStatus(USER, "SUSPENDED", "ACTIVE")).thenReturn(1);
 
-        service.updateStatus(USER, new UpdateUserStatusRequest("ACTIVE", "SUSPENDED", "Đã xác minh", "   "), MANAGER);
+        service.updateStatus(USER, new UpdateUserStatusRequest("ACTIVE", "SUSPENDED", "x", "   "), MANAGER);
 
         verify(mail).statusChangedAfterCommit(anyString(), anyString(), eq("ACTIVE"), isNull());
     }
@@ -335,7 +338,7 @@ class UserManagementServiceTest {
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "ACTIVE")));
         when(repository.updateStatus(USER, "ACTIVE", "SUSPENDED")).thenReturn(1);
 
-        service.updateStatus(USER, new UpdateUserStatusRequest("SUSPENDED", "ACTIVE", "Vi phạm", null), MANAGER);
+        service.updateStatus(USER, new UpdateUserStatusRequest("SUSPENDED", "ACTIVE", "x", null), MANAGER);
 
         var order = org.mockito.Mockito.inOrder(repository, mail);
         order.verify(repository).updateStatus(USER, "ACTIVE", "SUSPENDED");
@@ -349,7 +352,7 @@ class UserManagementServiceTest {
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "SUSPENDED")));
         when(repository.updateStatus(USER, "SUSPENDED", "ACTIVE")).thenReturn(1);
 
-        service.updateStatus(USER, new UpdateUserStatusRequest("ACTIVE", "SUSPENDED", "Đã xử lý xong", null), MANAGER);
+        service.updateStatus(USER, new UpdateUserStatusRequest("ACTIVE", "SUSPENDED", "x", null), MANAGER);
 
         verify(repository).updateStatus(USER, "SUSPENDED", "ACTIVE");
         verify(repository).insertAudit(eq(MANAGER), eq(USER), anyString());
@@ -359,14 +362,15 @@ class UserManagementServiceTest {
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.NullAndEmptySource
     @org.junit.jupiter.params.provider.ValueSource(strings = {"   ", "\t"})
-    void req26_emptyReasonIsRejectedBeforeReadingTheAccount(String reason) {
-        assertThatThrownBy(() -> service.updateStatus(USER, new UpdateUserStatusRequest("BANNED", "ACTIVE", reason, null), MANAGER))
-                .isInstanceOfSatisfying(BusinessException.class, e -> {
-                    assertThat(e.status()).isEqualTo(400);
-                    assertThat(e.getMessage()).isEqualTo("Vui lòng nhập lý do nội bộ.");
-                });
-        verify(repository, never()).findAccount(any());
-        verifyNoWrite();
+    void lyDoNoiBoKhongBatBuoc_trongThiGhiNullVaVanDoiTrangThai(String reason) {
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "ACTIVE")));
+        when(repository.updateStatus(USER, "ACTIVE", "SUSPENDED")).thenReturn(1);
+
+        service.updateStatus(USER, new UpdateUserStatusRequest("SUSPENDED", "ACTIVE", reason, null), MANAGER);
+
+        verify(repository).updateStatus(USER, "ACTIVE", "SUSPENDED");
+        verify(repository).insertAudit(eq(MANAGER), eq(USER), org.mockito.ArgumentMatchers.contains("\"reason\":null"));
+        verify(mail).statusChangedAfterCommit(anyString(), anyString(), eq("SUSPENDED"), isNull());
     }
 
     @Test
@@ -411,10 +415,9 @@ class UserManagementServiceTest {
     }
 
     @Test
-    @DisplayName("TC-02-070: Không chọn trạng thái -> lỗi kiểm tra dữ liệu, không lưu")
-    void req26_blankReasonStatusAndExpectedStatusAreInvalid() {
+    void req26_blankStatusAndExpectedStatusAreInvalid_reasonIsOptional() {
         assertThat(violatedFields(new UpdateUserStatusRequest(" ", " ", " ", null)))
-                .containsExactlyInAnyOrder("status", "expectedStatus", "reason");
+                .containsExactlyInAnyOrder("status", "expectedStatus");
     }
 
     // ===== REQ-24/25/26: câu thông báo lỗi đúng như requirement =====

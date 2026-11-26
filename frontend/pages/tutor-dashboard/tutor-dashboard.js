@@ -7,6 +7,7 @@
 import { API, ApiError } from '/js/api.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
 import { hm, ymd, listOf, todayLessons, lessonState } from '/js/tutor-dashboard-helpers.js';
+import { statusBadge, badge } from '/js/membership-format.js';
 
 const STATUS_VIEW = {
   UNVERIFIED: {
@@ -176,16 +177,6 @@ function render(data) {
   $('heroLevelText').textContent = hasLevel ? `JLPT ${profile.highestJlptLevel}` : '';
   $('heroActionText').textContent = view.action;
 
-  // Thẻ số liệu
-  $('metricStatus').textContent = data.statusLabel;
-  $('metricStatus').className = `text-title-md mt-2 truncate ${view.color}`;
-  $('metricStatusIcon').textContent = view.icon;
-  $('metricStatusNote').textContent = view.note;
-  $('metricJlpt').textContent = profile.highestJlptLevel || '—';
-  $('metricExperience').textContent = profile.experienceYears != null ? String(profile.experienceYears) : '—';
-  $('metricDocuments').textContent = String((data.documents || []).length);
-  $('metricSubmitted').textContent = formatDate(data.submittedAt);
-
   renderProgress(data);
 
   // Hoạt động gần đây
@@ -294,7 +285,7 @@ const QUICK_LINKS = [
   { label: 'Học viên của tôi', icon: 'school', href: '/tutor/classrooms?view=students' },
   { label: 'Tài liệu học tập', icon: 'menu_book', href: '/tutor/classrooms?view=materials' },
   { label: 'Quản lý bài tập', icon: 'assignment', href: '/tutor/classrooms?view=assignments' },
-  { label: 'Bài đăng của tôi', icon: 'campaign', href: '/tutor/post' }
+  { label: 'Bài đăng tuyển học viên', icon: 'campaign', href: '/tutor/post' }
 ];
 
 function renderQuickLinks() {
@@ -356,6 +347,52 @@ async function loadTodaySchedule() {
   }).join('');
 }
 
+/** Gói hội viên đang dùng (FE-09, UC-97) — trước đây ở trang Gói hội viên. */
+async function loadMembership() {
+  const block = $('membershipBlock');
+  try {
+    const mine = await API.tutorMembership.getMine();
+    $('membershipStateBadge').innerHTML = mine.tutorStateLabel
+      ? badge(mine.tutorStateLabel, mine.tutorState === 'ACTIVE_PAID' ? 'success' : 'neutral') : '';
+    const current = mine.current;
+    if (current) {
+      block.innerHTML = `
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-xl bg-surface-container-low p-4">
+          <div>
+            <p class="text-title-md font-semibold text-on-surface">${escapeHtml(current.planName)}</p>
+            <p class="text-body-sm text-on-surface-variant mt-1">Từ ${formatDate(current.startDate)} đến ${formatDate(current.endDate)}</p>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            ${statusBadge(current.status, current.statusLabel)}
+            <span class="text-body-md text-on-surface">Còn <strong>${current.daysLeft}</strong> ngày</span>
+          </div>
+        </div>
+        ${mine.expiresOn && mine.expiresOn !== current.endDate
+          ? `<p class="text-body-sm text-on-surface-variant mt-3">Tính cả các gói đã gia hạn, gói của bạn có hiệu lực đến <strong>${formatDate(mine.expiresOn)}</strong>.</p>` : ''}`;
+      $('membershipLinkText').textContent = 'Gia hạn / nâng cấp gói';
+    } else {
+      const hadBefore = (mine.history || []).length > 0;
+      block.innerHTML = `
+        <div class="rounded-xl bg-surface-container-low p-5 text-center">
+          <span class="material-symbols-outlined text-[32px] text-outline">${hadBefore ? 'event_busy' : 'workspace_premium'}</span>
+          <p class="text-title-sm font-semibold text-on-surface mt-1">${hadBefore ? 'Gói hội viên của bạn đã hết hạn' : 'Bạn chưa có gói hội viên'}</p>
+          <p class="text-body-sm text-on-surface-variant mt-1">${hadBefore ? 'Gia hạn để tiếp tục nhận học viên và dùng đầy đủ tính năng giảng dạy.' : 'Đăng ký gói để bắt đầu nhận học viên.'}</p>
+        </div>`;
+      $('membershipLinkText').textContent = hadBefore ? 'Gia hạn gói' : 'Xem các gói';
+    }
+    const upcoming = mine.upcoming || [];
+    setVisible($('membershipUpcoming'), upcoming.length > 0);
+    $('membershipUpcomingList').innerHTML = upcoming.map((m) => `
+      <li class="flex items-center justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
+        <span class="text-body-sm text-on-surface">${escapeHtml(m.planName)} · ${formatDate(m.startDate)} – ${formatDate(m.endDate)}</span>
+        ${statusBadge(m.status, m.statusLabel)}
+      </li>`).join('');
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) return;
+    block.innerHTML = '<p class="text-body-sm text-on-surface-variant">Chưa tải được thông tin gói hội viên. Vui lòng tải lại trang.</p>';
+  }
+}
+
 async function load() {
   setVisible($('loadingState'), true);
   setVisible($('errorState'), false);
@@ -371,7 +408,7 @@ async function load() {
     setVisible($('approvedSection'), approved);
     if (approved) {
       renderQuickLinks();
-      await Promise.all([loadTrialBookings(), loadTodaySchedule()]);
+      await Promise.all([loadTrialBookings(), loadTodaySchedule(), loadMembership()]);
     }
     setVisible($('contentState'), true);
   } catch (err) {

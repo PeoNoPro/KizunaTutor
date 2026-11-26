@@ -15,6 +15,7 @@ public class ReadingAnalysisResponse {
     private String originalText;
 
     /** Văn bản đã gắn thẻ Ruby HTML (<ruby>漢字<rt>かんじ</rt></ruby>) */
+    @com.fasterxml.jackson.annotation.JsonAlias({"ruby_html", "ruby", "furiganaHtml", "furigana_html", "furigana"})
     private String rubyHtml;
 
     /** Tóm tắt / Ý chính của đoạn văn bằng tiếng Việt */
@@ -39,6 +40,9 @@ public class ReadingAnalysisResponse {
     /** Danh sách các từ vựng trọng tâm */
     @Builder.Default
     private List<ReadingVocabularyItemDto> vocabularies = new ArrayList<>();
+
+    /** Bản dịch toàn văn đoạn văn bản bằng tiếng Việt */
+    private String fullTranslation;
 
     /** Các câu dịch tham khảo từng câu */
     @Builder.Default

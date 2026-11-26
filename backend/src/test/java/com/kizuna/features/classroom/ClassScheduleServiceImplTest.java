@@ -160,9 +160,9 @@ class ClassScheduleServiceImplTest {
     @Test
     void slotOverlappingConfirmedTrialIsRejected() {
         when(schedules.findOpenSchedulesOfParticipants(any(), any(), any())).thenReturn(List.of(monday));
-        // Buổi học thử của chính gia sư: Thứ Bảy 09:00–09:50
+        // Buổi học thử của chính gia sư: Thứ Bảy 09:00–10:00
         when(schedules.findUpcomingTrialSlots(tutor.getTutorId(), learner.getLearnerId())).thenReturn(List.<Object[]>of(
-                new Object[]{tutor.getTutorId().toString(), 6, "09:00", "09:50", "14/11/2026"}));
+                new Object[]{tutor.getTutorId().toString(), 6, "09:00", "10:00", "14/11/2026"}));
 
         assertThatThrownBy(() -> service.add(asTutor(tutor), space.getSpaceId(), req(6, 9, 30, 10, 30)))
                 .isInstanceOfSatisfying(ClassroomException.class, e -> {
@@ -171,7 +171,7 @@ class ClassScheduleServiceImplTest {
                     assertThat(e.getFieldErrors()).containsKey(ClassScheduleRules.FIELD);
                 });
         // Sát giờ (bắt đầu đúng lúc học thử kết thúc) thì không tính là trùng
-        assertThat(service.add(asTutor(tutor), space.getSpaceId(), req(6, 9, 50, 10, 50)).dayOfWeek()).isEqualTo(6);
+        assertThat(service.add(asTutor(tutor), space.getSpaceId(), req(6, 10, 0, 11, 0)).dayOfWeek()).isEqualTo(6);
     }
 
     @Test

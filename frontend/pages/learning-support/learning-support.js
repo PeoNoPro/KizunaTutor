@@ -797,24 +797,58 @@ async function submitSaveVocabToDeck(e) {
   }
 }
 
-function filterVocab(kw) {
-  const query = (kw || '').trim().toLowerCase();
+let latestVocabSearchSeq = 0;
+
+async function filterVocab(kw) {
+  const query = (kw || '').trim();
+  const lowerQuery = query.toLowerCase();
   currentPage = 0;
-  if (!query) {
+  const searchSeq = ++latestVocabSearchSeq;
+
+  const badge = document.getElementById('activeTopicBadge');
+  if (!lowerQuery) {
+    const matched = currentTopics.find(t => String(t.code || t.id) === activeTopic);
+    if (badge && matched) badge.textContent = matched.titleVn;
     currentFilteredList = [...vocabList];
     renderVocabPage();
     return;
   }
+
   isStandbyMode = false;
-  currentFilteredList = vocabList.filter(v => {
-    return (v.word && v.word.toLowerCase().includes(query)) ||
-           (v.kanji && v.kanji.toLowerCase().includes(query)) ||
-           (v.furigana && v.furigana.toLowerCase().includes(query)) ||
-           (v.reading && v.reading.toLowerCase().includes(query)) ||
-           (v.meaning && v.meaning.toLowerCase().includes(query)) ||
-           (v.meaningVn && v.meaningVn.toLowerCase().includes(query)) ||
-           (v.hanViet && v.hanViet.toLowerCase().includes(query));
-  });
+  if (badge) badge.textContent = 'Tìm kiếm toàn kho';
+
+  const grid = document.getElementById('vocabGrid');
+  renderVocabSkeleton(grid);
+
+  let results = null;
+  try {
+    const res = await fetch(`/api/learner/vocabularies/search?topic=ALL&search=${encodeURIComponent(query)}&limit=300`, {
+      headers: getAuthHeaders()
+    });
+    if (searchSeq !== latestVocabSearchSeq) return;
+    if (res.ok) {
+      const data = await res.json();
+      results = Array.isArray(data) ? data : (data.content || data.items || []);
+    }
+  } catch (e) {
+    if (searchSeq !== latestVocabSearchSeq) return;
+  }
+
+  if (results === null) {
+    results = vocabList.filter(v => {
+      return (v.word && v.word.toLowerCase().includes(lowerQuery)) ||
+             (v.kanji && v.kanji.toLowerCase().includes(lowerQuery)) ||
+             (v.furigana && v.furigana.toLowerCase().includes(lowerQuery)) ||
+             (v.reading && v.reading.toLowerCase().includes(lowerQuery)) ||
+             (v.romaji && v.romaji.toLowerCase().includes(lowerQuery)) ||
+             (v.level && v.level.toLowerCase().includes(lowerQuery)) ||
+             (v.meaning && v.meaning.toLowerCase().includes(lowerQuery)) ||
+             (v.meaningVn && v.meaningVn.toLowerCase().includes(lowerQuery)) ||
+             (v.hanViet && v.hanViet.toLowerCase().includes(lowerQuery));
+    });
+  }
+
+  currentFilteredList = results;
   renderVocabPage();
 }
 

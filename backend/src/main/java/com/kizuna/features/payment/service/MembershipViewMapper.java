@@ -99,13 +99,4 @@ public class MembershipViewMapper {
                 tx.getStatus().name(), MembershipLabels.transactionStatus(tx.getStatus(), isStale(tx, now)),
                 tx.getTransactionTime(), tx.getGatewayTransactionId());
     }
-
-    public MembershipViews.AdminTransactionRowView adminRow(PaymentTransaction tx, OffsetDateTime now) {
-        boolean stale = isStale(tx, now);
-        return new MembershipViews.AdminTransactionRowView(tx.getTransactionId(), tx.getTxnRef(),
-                tx.getUser().getFullName(), tx.getUser().getEmail(),
-                tx.getPlan() == null ? null : tx.getPlan().getPlanName(), money(tx.getAmount()),
-                tx.getStatus().name(), MembershipLabels.transactionStatus(tx.getStatus(), stale), stale,
-                tx.getTransactionTime(), tx.getGatewayTransactionId());
-    }
 }

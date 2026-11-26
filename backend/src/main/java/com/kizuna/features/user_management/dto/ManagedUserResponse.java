@@ -12,5 +12,7 @@ public record ManagedUserResponse(
         String categoryLabel,
         String accountStatus,
         String accountStatusLabel,
-        OffsetDateTime createdAt) {
+        OffsetDateTime createdAt,
+        // Lần đăng nhập gần nhất (null = chưa ghi nhận kể từ khi có migration 037)
+        OffsetDateTime lastLoginAt) {
 }

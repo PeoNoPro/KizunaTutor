@@ -116,6 +116,7 @@ Từ danh sách hoặc chi tiết, Quản lý bấm "Cập nhật trạng thái"
 - **FR-001**: Hệ thống PHẢI cho Quản lý xem danh sách theo nhóm Gia sư hoặc Học viên, mỗi dòng gồm họ tên, email, ngày đăng ký, trạng thái tài khoản; phân trang 10 / 20 / 50 dòng, mới đăng ký trước, có tổng số.
 - **FR-002**: Hệ thống PHẢI cho tìm theo họ tên hoặc email (không phân biệt hoa thường, tối đa 100 ký tự) và lọc theo trạng thái (Chờ kích hoạt, Đang hoạt động, Tạm khóa, Khóa vĩnh viễn).
 - **FR-003**: Danh sách chỉ gồm tài khoản gia sư, học viên chưa bị xóa; không bao giờ có tài khoản nhân viên.
+- **FR-003a** (2026-11-23): Danh sách và chi tiết PHẢI cho biết lần đăng nhập gần nhất và đã bao lâu không đăng nhập (ví dụ "12 ngày trước"); từ 30 ngày trở lên được đánh dấu lâu không hoạt động; tài khoản chưa có dữ liệu hiện "Chưa ghi nhận". Ghi nhận lần đăng nhập không được làm hỏng hay chậm việc đăng nhập.
 
 **Chi tiết (UC-21)**
 
@@ -126,7 +127,9 @@ Từ danh sách hoặc chi tiết, Quản lý bấm "Cập nhật trạng thái"
 **Đổi trạng thái (UC-12)**
 
 - **FR-007**: Hệ thống PHẢI cho đổi giữa Đang hoạt động, Tạm khóa, Khóa vĩnh viễn; trạng thái mới phải khác trạng thái hiện tại. Tài khoản Chờ kích hoạt không được đổi.
+  - *Điều chỉnh giao diện 2026-11-23*: Quản lý không chọn trạng thái. Tài khoản Đang hoạt động có nút "Tạm khóa tài khoản" (chuyển sang Tạm khóa); tài khoản Tạm khóa hoặc Khóa vĩnh viễn có nút "Mở lại tài khoản" (chuyển về Đang hoạt động). Giao diện không còn đặt Khóa vĩnh viễn; API vẫn giữ nguyên.
 - **FR-008**: Lý do nội bộ bắt buộc (1–1.000 ký tự); lời nhắn gửi người dùng tùy chọn (tối đa 1.000 ký tự).
+  - *Điều chỉnh 2026-11-23*: lý do nội bộ không còn bắt buộc và giao diện không còn ô nhập; API vẫn nhận lý do (tối đa 1.000 ký tự) nếu có, trống thì ghi null vào nhật ký. Lịch sử có lý do vẫn hiển thị.
 - **FR-009**: Khi trạng thái mới không phải Đang hoạt động, tài khoản PHẢI mất quyền truy cập ngay từ yêu cầu kế tiếp và không đăng nhập được; khi về Đang hoạt động, đăng nhập lại được.
 - **FR-010**: Cập nhật trạng thái và ghi nhật ký PHẢI cùng thành công hoặc cùng không xảy ra. Nhật ký gồm: Quản lý thực hiện, người bị đổi, trạng thái cũ, trạng thái mới, lý do nội bộ, lời nhắn, thời điểm.
 - **FR-011**: Sau khi lưu thành công, hệ thống PHẢI gửi email cho người dùng nêu trạng thái mới (khôi phục quyền truy cập khi về Đang hoạt động) và lời nhắn nếu có; không chứa lý do nội bộ. Email lỗi không hoàn tác thay đổi.

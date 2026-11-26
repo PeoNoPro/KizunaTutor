@@ -5,6 +5,7 @@
 
 import { showToast } from '/js/main.js';
 import { initPasswordVisibilityToggles, initForgotPasswordModal } from '/js/auth-features.js';
+import { resolveLoginErrorMessage } from '/js/auth-oauth-helpers.js';
 
 // =========================================================================
 // 1. CẤU HÌNH & KHÓA LƯU TRỮ PHIÊN
@@ -371,11 +372,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (registered === 'true') {
     showLoginAlert('Tài khoản đã tạo thành công! Hãy đăng nhập để bắt đầu.', 'success');
   } else if (error) {
-    let msg = 'Đăng nhập không thành công. Vui lòng kiểm tra lại.';
-    if (error === 'email_not_provided') msg = 'Dịch vụ xác thực không cung cấp thông tin email của bạn.';
-    if (error === 'oauth2_failure') msg = 'Đăng nhập bằng tài khoản Google thất bại hoặc bạn đã hủy ủy quyền.';
-    if (error === 'oauth2_process_error') msg = 'Lỗi xử lý tài khoản Google phía máy chủ.';
-    if (error === 'oauth2_not_configured') msg = 'Đăng nhập bằng Google chưa được cấu hình Client ID trên máy chủ.';
-    showLoginAlert(msg, 'danger');
+    showLoginAlert(resolveLoginErrorMessage(error), 'danger');
   }
 });

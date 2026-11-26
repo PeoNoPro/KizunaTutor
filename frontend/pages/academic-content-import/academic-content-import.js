@@ -184,8 +184,31 @@ function openItemDetail(item) {
 
 // ===== Tab Nhập từ Excel =====
 
+/** Tải tệp Excel mẫu của loại đang chọn (tiêu đề đúng tên cột + dòng ví dụ + sheet hướng dẫn). */
+async function downloadTemplate() {
+  const t = findContentType(state.type);
+  const button = $('templateButton');
+  button.disabled = true;
+  try {
+    const blob = await API.academicContent.downloadTemplate(t.type);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = t.template;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    if (!(err instanceof ApiError && err.status === 401)) showToast(err.message || 'Không tải được tệp mẫu.', 'error');
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function renderColumnInfo() {
   const t = findContentType(state.type);
+  $('templateButtonText').textContent = `Tải tệp mẫu ${t.label}`;
   const info = summaryOf(state.type);
   if (!info) {
     $('columnInfo').textContent = '';
@@ -414,6 +437,7 @@ function bindEvents() {
     zone.classList.remove('bg-surface-container-low');
   }));
   zone.addEventListener('drop', (e) => setFile(e.dataTransfer.files[0]));
+  $('templateButton').addEventListener('click', downloadTemplate);
   $('checkButton').addEventListener('click', () => runImport(true));
   $('confirmButton').addEventListener('click', () => runImport(false));
   $('resetButton').addEventListener('click', () => {

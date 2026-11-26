@@ -33,7 +33,7 @@
 
 - [x] CHK017 Có yêu cầu bí mật cổng chỉ từ biến môi trường và không lộ trong log? [Spec FR-011, FR-025, SC-006]
 - [x] CHK018 Gia sư chỉ truy cập giao dịch của chính mình, kể cả ở trang kết quả? [Spec FR-023, Contract A5]
-- [x] CHK019 Ghi chú điều tra của quản trị viên bị cấm hiển thị cho gia sư? [Spec FR-021, GB-02]
+- [x] CHK019 *(Không còn áp dụng: UC-98 đã gỡ 2026-11-23)* Ghi chú điều tra của quản trị viên bị cấm hiển thị cho gia sư? [Spec FR-021, GB-02]
 - [x] CHK020 Kết quả có chữ ký sai hoặc số tiền lệch bị từ chối và đo được? [Spec SC-003]
 
 ## Đo được

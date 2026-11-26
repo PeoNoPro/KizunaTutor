@@ -274,6 +274,78 @@ public class FlashcardDeckController {
         return ResponseEntity.ok(result);
     }
 
+    @DeleteMapping("/{id}/cards/{cardIdOrIndex}")
+    public ResponseEntity<Map<String, Object>> deleteCard(
+            @PathVariable String id,
+            @PathVariable String cardIdOrIndex,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String ownerKey = authenticatedUserHelper.requireAuthenticatedEmail(authHeader, cookieToken);
+        ensureTable();
+
+        Map<String, Object> existingRow = findDeckRowById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ thẻ: " + id));
+        assertOwner(existingRow, ownerKey, "Bạn không có quyền xóa thẻ trong bộ thẻ của tài khoản khác.");
+
+        List<Map<String, Object>> cards = parseCardsJson((String) existingRow.get("cards_json"));
+        boolean removed = cards.removeIf(c -> cardIdOrIndex.equals(String.valueOf(c.get("id"))));
+        if (!removed) {
+            try {
+                int idx = Integer.parseInt(cardIdOrIndex);
+                if (idx >= 0 && idx < cards.size()) {
+                    cards.remove(idx);
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        jdbcTemplate.update(
+                "UPDATE learner_flashcard_decks SET cards_json = ?, updated_at = NOW() WHERE id = ? AND owner_key = ?",
+                toCardsJson(cards), id, ownerKey
+        );
+
+        Map<String, Object> result = mapRowToDeck(existingRow);
+        result.put("cards", cards);
+        result.put("updatedAt", OffsetDateTime.now().toString());
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<Map<String, Object>> duplicateDeck(
+            @PathVariable String id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @CookieValue(value = "access_token", required = false) String cookieToken) {
+        String ownerKey = authenticatedUserHelper.requireAuthenticatedEmail(authHeader, cookieToken);
+        ensureTable();
+
+        Map<String, Object> existingRow = findDeckRowById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ thẻ để nhân bản: " + id));
+        assertOwner(existingRow, ownerKey, "Bạn không có quyền nhân bản bộ thẻ của tài khoản khác.");
+
+        String newId = "deck-" + System.currentTimeMillis();
+        String newTitle = (existingRow.get("title") != null ? existingRow.get("title") : "Bộ thẻ") + " (Bản sao)";
+        String description = existingRow.get("description") != null ? String.valueOf(existingRow.get("description")) : "";
+        String color = existingRow.get("color") != null ? String.valueOf(existingRow.get("color")) : "blue";
+        String cardsJson = existingRow.get("cards_json") != null ? String.valueOf(existingRow.get("cards_json")) : "[]";
+
+        jdbcTemplate.update(
+                """
+                INSERT INTO learner_flashcard_decks (id, owner_key, title, description, color, cards_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                """,
+                newId, ownerKey, newTitle, description, color, cardsJson
+        );
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", newId);
+        result.put("title", newTitle);
+        result.put("description", description);
+        result.put("color", color);
+        result.put("cards", parseCardsJson(cardsJson));
+        result.put("updatedAt", OffsetDateTime.now().toString());
+        return ResponseEntity.ok(result);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteDeck(
             @PathVariable String id,

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hồ sơ xác thực gia sư - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <div id="academicSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="academicTopbar"></div>
+
+    <main class="flex-1 pt-16 lg:pt-0 w-full">
+      <div class="px-4 md:px-8 py-8 flex flex-col w-full gap-6">
+
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2.5">
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-primary-fixed text-primary">
+              <span class="material-symbols-outlined text-[20px]">verified_user</span>
+            </span>
+            <h1 class="text-headline-lg text-on-surface font-bold tracking-tight">Hồ sơ xác thực gia sư</h1>
+          </div>
+          <p class="text-body-md text-on-surface-variant">Thẩm định thông tin và giấy tờ của gia sư trước khi gia sư được nhận học viên trên KizunaTutor.</p>
+        </div>
+
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
+          <div class="p-6 pb-4 flex flex-col gap-4">
+            <div class="flex flex-wrap gap-2" role="tablist" aria-label="Trạng thái" id="statusTabs">
+              <button type="button" data-status="PENDING" class="status-tab px-3 py-1.5 rounded-full text-label-sm">Chờ xét duyệt <span data-count="pending"></span></button>
+              <button type="button" data-status="ADDITIONAL_INFO_REQUIRED" class="status-tab px-3 py-1.5 rounded-full text-label-sm">Cần bổ sung <span data-count="needsInfo"></span></button>
+              <button type="button" data-status="APPROVED" class="status-tab px-3 py-1.5 rounded-full text-label-sm">Đã phê duyệt <span data-count="approved"></span></button>
+              <button type="button" data-status="REJECTED" class="status-tab px-3 py-1.5 rounded-full text-label-sm">Bị từ chối <span data-count="rejected"></span></button>
+              <button type="button" data-status="ALL" class="status-tab px-3 py-1.5 rounded-full text-label-sm">Tất cả</button>
+            </div>
+
+            <form id="filterForm" class="grid grid-cols-1 md:grid-cols-12 gap-3" autocomplete="off">
+              <div class="md:col-span-6 relative flex items-center">
+                <span class="material-symbols-outlined text-outline absolute left-3 text-[18px]">search</span>
+                <input id="keywordInput" maxlength="100" type="search" placeholder="Tìm theo tên hoặc email gia sư..."
+                       class="w-full h-10 pl-9 pr-3 rounded-lg bg-surface-container-low text-on-surface placeholder:text-outline text-body-sm outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 transition-all">
+              </div>
+              <div class="md:col-span-2">
+                <select id="levelSelect" aria-label="Trình độ" class="w-full h-10 px-3 rounded-lg bg-surface-container-low text-on-surface text-body-sm outline-none cursor-pointer focus:ring-2 focus:ring-primary/20">
+                  <option value="">Mọi trình độ</option>
+                  <option value="N1">JLPT N1</option>
+                  <option value="N2">JLPT N2</option>
+                  <option value="N3">JLPT N3</option>
+                  <option value="N4">JLPT N4</option>
+                  <option value="N5">JLPT N5</option>
+                </select>
+              </div>
+              <div class="md:col-span-2">
+                <select id="sortSelect" aria-label="Sắp xếp" class="w-full h-10 px-3 rounded-lg bg-surface-container-low text-on-surface text-body-sm outline-none cursor-pointer focus:ring-2 focus:ring-primary/20">
+                  <option value="oldest">Cũ nhất trước</option>
+                  <option value="newest">Mới nhất trước</option>
+                </select>
+              </div>
+              <div class="md:col-span-2">
+                <button id="toggleDateButton" type="button" class="w-full h-10 px-3 rounded-lg bg-surface-container-low text-on-surface text-body-sm inline-flex items-center justify-center gap-1.5 hover:bg-surface-container">
+                  <span class="material-symbols-outlined text-[18px]">date_range</span>Ngày nộp
+                </button>
+              </div>
+              <div id="dateRow" class="md:col-span-12 hidden grid grid-cols-1 sm:grid-cols-[auto_1fr_auto_1fr_auto] items-center gap-2">
+                <label for="fromInput" class="text-label-sm text-on-surface-variant">Từ ngày</label>
+                <input id="fromInput" type="date" class="h-10 px-3 rounded-lg bg-surface-container-low text-on-surface text-body-sm outline-none focus:ring-2 focus:ring-primary/20">
+                <label for="toInput" class="text-label-sm text-on-surface-variant">Đến ngày</label>
+                <input id="toInput" type="date" class="h-10 px-3 rounded-lg bg-surface-container-low text-on-surface text-body-sm outline-none focus:ring-2 focus:ring-primary/20">
+                <button id="clearFiltersButton" type="button" class="h-10 px-3 rounded-lg text-primary text-label-sm hover:bg-surface-container">Xóa bộ lọc</button>
+              </div>
+              <p id="filterError" class="md:col-span-12 hidden text-caption text-error"></p>
+            </form>
+          </div>
+
+          <ul id="tutorList" class="flex flex-col"></ul>
+
+          <div id="listState" class="hidden p-10 text-center">
+            <span id="listStateIcon" class="material-symbols-outlined text-5xl text-outline">inbox</span>
+            <p id="listStateTitle" class="text-title-sm text-on-surface mt-2"></p>
+            <button id="retryButton" type="button" class="hidden mt-3 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface text-label-sm">Thử lại</button>
+          </div>
+
+          <div id="pager" class="p-4 px-6 bg-surface-container-low"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/pages/academic-tutor-verifications/academic-tutor-verifications.js"></script>
+</body>
+</html>

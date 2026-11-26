@@ -6,9 +6,9 @@ export const MAX_IMPORT_BYTES = 15 * 1024 * 1024;
 
 /** type gửi lên API + tên hiển thị + tệp mẫu đang có trong thư mục /database */
 export const CONTENT_TYPES = [
-  { type: 'kanji', apiType: 'KANJI', label: 'Kanji', icon: 'translate', sample: 'kanji_vietnamese_full.xlsx' },
-  { type: 'vocabulary', apiType: 'VOCABULARY', label: 'Từ vựng', icon: 'spellcheck', sample: 'Kho_Tu_Vung_OpenJLPT_Full_Tieng_Viet.xlsx' },
-  { type: 'grammar', apiType: 'GRAMMAR', label: 'Ngữ pháp', icon: 'menu_book', sample: 'Kho_Ngu_Phap_OpenJLPT_Tieng_Viet.xlsx' }
+  { type: 'kanji', apiType: 'KANJI', label: 'Kanji', icon: 'translate', sample: 'kanji_vietnamese_full.xlsx', template: 'mau-kanji.xlsx' },
+  { type: 'vocabulary', apiType: 'VOCABULARY', label: 'Từ vựng', icon: 'spellcheck', sample: 'Kho_Tu_Vung_OpenJLPT_Full_Tieng_Viet.xlsx', template: 'mau-tu-vung.xlsx' },
+  { type: 'grammar', apiType: 'GRAMMAR', label: 'Ngữ pháp', icon: 'menu_book', sample: 'Kho_Ngu_Phap_OpenJLPT_Tieng_Viet.xlsx', template: 'mau-ngu-phap.xlsx' }
 ];
 
 export function findContentType(type) {

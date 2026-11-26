@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   { key: 'progress', label: 'Báo cáo tiến độ', icon: 'insights', member: true },
   { key: 'verification', label: 'Hồ sơ gia sư', icon: 'badge', href: '/tutor/verification' },
   { key: 'membership', label: 'Gói hội viên', icon: 'workspace_premium', href: '/tutor/membership' },
-  { key: 'post', label: 'Bài đăng của tôi', icon: 'campaign', href: '/tutor/post', member: true },
+  { key: 'post', label: 'Bài đăng tuyển học viên', icon: 'campaign', href: '/tutor/post', member: true },
   // FE-10: gia sư gửi và theo dõi yêu cầu hỗ trợ.
   { key: 'support', label: 'Yêu cầu hỗ trợ', icon: 'support_agent', href: '/tutor/support/tickets' },
   { key: 'settings', label: 'Cài đặt', icon: 'settings' }

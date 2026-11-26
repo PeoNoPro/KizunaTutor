@@ -605,4 +605,134 @@ class OnlineExerciseServiceImplTest {
                 request("AUTO", null, 1, true, false, List.of(listening(mine.getAudioId(), 6)))))
                 .isInstanceOf(ClassroomException.class).hasMessageContaining("số lần nghe tối đa phải từ 1 đến 5");
     }
+    // ---------------------------------------------------------------- giá trị biên của cài đặt bài (FR-7.2.3)
+
+    private ExerciseRequest settings(String title, OffsetDateTime opens, OffsetDateTime closes, Integer minutes,
+                                     Integer maxAttempts, boolean publish) {
+        return new ExerciseRequest(title, null, opens, closes, minutes, maxAttempts, null, true, publish, autoQuestions());
+    }
+
+    private void assertFieldError(Runnable call, String field) {
+        assertThatThrownBy(call::run).isInstanceOfSatisfying(ClassroomException.class,
+                e -> assertThat(e.getFieldErrors()).containsKey(field));
+    }
+
+    @Test
+    void titleIsRequiredAndAtMost150Characters() {
+        UUID sid = space.getSpaceId();
+        assertThat(service.create(tutorActor, sid, settings("a".repeat(150), null, null, null, 1, false)).summary().title())
+                .hasSize(150);
+        assertFieldError(() -> service.create(tutorActor, sid, settings("a".repeat(151), null, null, null, 1, false)), "title");
+        assertFieldError(() -> service.create(tutorActor, sid, settings("   ", null, null, null, 1, false)), "title");
+    }
+
+    @Test
+    void attemptsFrom1To20AndTimeLimitFrom1To600MinutesOrUnlimited() {
+        UUID sid = space.getSpaceId();
+        assertThat(service.create(tutorActor, sid, settings("Bài", null, null, 1, 1, false)).summary().maxAttempts()).isEqualTo(1);
+        ExerciseSummary max = service.create(tutorActor, sid, settings("Bài", null, null, 600, 20, false)).summary();
+        assertThat(max.maxAttempts()).isEqualTo(20);
+        assertThat(max.timeLimitMinutes()).isEqualTo(600);
+        assertThat(service.create(tutorActor, sid, settings("Bài", null, null, null, 1, false)).summary().timeLimitMinutes())
+                .as("để trống = không giới hạn").isNull();
+
+        assertFieldError(() -> service.create(tutorActor, sid, settings("Bài", null, null, null, 0, false)), "maxAttempts");
+        assertFieldError(() -> service.create(tutorActor, sid, settings("Bài", null, null, null, 21, false)), "maxAttempts");
+        assertFieldError(() -> service.create(tutorActor, sid, settings("Bài", null, null, 0, 1, false)), "timeLimitMinutes");
+        assertFieldError(() -> service.create(tutorActor, sid, settings("Bài", null, null, 601, 1, false)), "timeLimitMinutes");
+    }
+
+    @Test
+    void closeTimeMustBeAfterOpenTimeAndInTheFutureWhenPublishing() {
+        UUID sid = space.getSpaceId();
+        assertFieldError(() -> service.create(tutorActor, sid, settings("Bài", NOW.plusDays(2), NOW.plusDays(1), null, 1, false)),
+                "closesAt");
+        assertFieldError(() -> service.create(tutorActor, sid, settings("Bài", NOW.plusDays(1), NOW.plusDays(1), null, 1, false)),
+                "closesAt");
+        assertFieldError(() -> service.create(tutorActor, sid, settings("Bài", null, NOW.minusMinutes(1), null, 1, true)), "closesAt");
+        assertThat(service.create(tutorActor, sid, settings("Bài", NOW.plusHours(1), NOW.plusDays(1), null, 1, true)).summary().state())
+                .isEqualTo("NOT_OPEN");
+    }
+
+    @Test
+    void learnerCannotStartMoreAttemptsThanAllowedNorAfterTheExerciseIsClosed() {
+        UUID ex = publishAuto(null, 1, true);
+        AttemptView a = service.start(learnerActor, space.getSpaceId(), ex);
+        service.submit(learnerActor, space.getSpaceId(), ex, a.attemptId());
+        assertThatThrownBy(() -> service.start(learnerActor, space.getSpaceId(), ex))
+                .isInstanceOf(ClassroomException.class).hasMessageContaining("hết 1 lượt");
+
+        UUID other = publishAuto(null, 3, true);
+        clockAt(NOW.plusDays(4)); // request() đặt giờ đóng đề sau 3 ngày
+        assertThatThrownBy(() -> service.start(learnerActor, space.getSpaceId(), other))
+                .isInstanceOf(ClassroomException.class).hasMessageContaining("Đề đã đóng");
+    }
+
+    @Test
+    void maxAttemptsCannotBeLoweredBelowAttemptsAlreadyUsed() {
+        UUID ex = publishAuto(null, 3, true);
+        for (int i = 0; i < 2; i++) {
+            AttemptView a = service.start(learnerActor, space.getSpaceId(), ex);
+            service.submit(learnerActor, space.getSpaceId(), ex, a.attemptId());
+        }
+        assertFieldError(() -> service.update(tutorActor, space.getSpaceId(), ex, request("AUTO", null, 1, true, true, autoQuestions())),
+                "maxAttempts");
+        assertThat(service.update(tutorActor, space.getSpaceId(), ex, request("AUTO", null, 2, true, true, autoQuestions()))
+                .summary().maxAttempts()).isEqualTo(2);
+    }
+
+    // ---------------------------------------------------------------- chấm bài trực tiếp (FR-7.4.1) và phân quyền (NFR-1)
+
+    @Test
+    void tutorScoreMustBeBetweenZeroAndThePointsOfTheQuestionAndCommentAtMost5000Chars() {
+        UUID ex = publishAuto(null, 1, true);
+        AttemptView a = service.start(learnerActor, space.getSpaceId(), ex);
+        service.submit(learnerActor, space.getSpaceId(), ex, a.attemptId());
+        UUID first = a.questions().get(0).questionId(); // 2 điểm
+        UUID sid = space.getSpaceId();
+
+        assertFieldError(() -> service.grade(tutorActor, sid, ex, a.attemptId(),
+                new GradeAttemptRequest(List.of(new GradeItem(first, new BigDecimal("-0.5"), null)))), "grade");
+        assertFieldError(() -> service.grade(tutorActor, sid, ex, a.attemptId(),
+                new GradeAttemptRequest(List.of(new GradeItem(first, new BigDecimal("2.01"), null)))), "grade");
+        assertFieldError(() -> service.grade(tutorActor, sid, ex, a.attemptId(),
+                new GradeAttemptRequest(List.of(new GradeItem(first, null, "x".repeat(5001))))), "grade");
+        assertStatus(() -> service.grade(tutorActor, sid, ex, a.attemptId(),
+                new GradeAttemptRequest(List.of(new GradeItem(UUID.randomUUID(), BigDecimal.ONE, null)))), HttpStatus.NOT_FOUND);
+
+        // Biên hợp lệ: 0 và đúng bằng điểm tối đa của câu; gia sư sửa điểm máy → học viên thấy điểm gia sư
+        AttemptView zero = service.grade(tutorActor, sid, ex, a.attemptId(),
+                new GradeAttemptRequest(List.of(new GradeItem(first, BigDecimal.ZERO, "x".repeat(5000)))));
+        assertThat(zero.questions().get(0).score()).isEqualByComparingTo("0");
+        AttemptView full = service.grade(tutorActor, sid, ex, a.attemptId(),
+                new GradeAttemptRequest(List.of(new GradeItem(first, new BigDecimal("2"), null))));
+        assertThat(full.questions().get(0).score()).isEqualByComparingTo("2");
+        assertThat(service.attempt(learnerActor, sid, ex, a.attemptId()).questions().get(0).score()).isEqualByComparingTo("2");
+    }
+
+    @Test
+    void attemptInProgressCannotBeGradedAndLearnerCannotCreateOrEditExercises() {
+        UUID ex = publishAuto(null, 1, true);
+        AttemptView a = service.start(learnerActor, space.getSpaceId(), ex);
+        assertStatus(() -> service.grade(tutorActor, space.getSpaceId(), ex, a.attemptId(), new GradeAttemptRequest(List.of())),
+                HttpStatus.CONFLICT);
+        assertStatus(() -> service.create(learnerActor, space.getSpaceId(), request("AUTO", null, 1, true, true, autoQuestions())),
+                HttpStatus.FORBIDDEN);
+        assertStatus(() -> service.update(learnerActor, space.getSpaceId(), ex, request("AUTO", null, 1, true, true, autoQuestions())),
+                HttpStatus.FORBIDDEN);
+        assertStatus(() -> service.delete(learnerActor, space.getSpaceId(), ex), HttpStatus.FORBIDDEN);
+        // Gia sư không làm bài thay học viên
+        assertStatus(() -> service.start(tutorActor, space.getSpaceId(), ex), HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void answersCannotBeChangedAfterSubmitting() {
+        UUID ex = publishAuto(null, 1, true);
+        AttemptView a = service.start(learnerActor, space.getSpaceId(), ex);
+        service.submit(learnerActor, space.getSpaceId(), ex, a.attemptId());
+        assertStatus(() -> service.saveAnswer(learnerActor, space.getSpaceId(), ex, a.attemptId(),
+                a.questions().get(0).questionId(), json("{'choice':0}")), HttpStatus.CONFLICT);
+        assertStatus(() -> service.saveAnswer(learnerActor, space.getSpaceId(), ex, a.attemptId(),
+                UUID.randomUUID(), json("{'choice':0}")), HttpStatus.CONFLICT);
+    }
 }

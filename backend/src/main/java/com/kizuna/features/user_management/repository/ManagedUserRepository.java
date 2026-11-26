@@ -17,8 +17,9 @@ import java.util.UUID;
 /**
  * FE-14: đọc tài khoản gia sư / học viên trên các bảng lõi (users, roles, tutors, learners), đổi đúng cột
  * users.account_status và ghi nhật ký vào system_audit_logs. Không tạo bảng, không sửa cột nào khác.
+ * Lần đăng nhập gần nhất đọc từ user_login_activity (migration 037, ghi bởi LoginActivityRecorder).
  */
-// Tên bean riêng: phân hệ admin (FE-11) cũng có class ManagedUserRepository; trùng tên bean mặc định làm ứng dụng không khởi động được
+// Tên bean riêng (trước đây phân hệ admin FE-11 có class cùng tên; đã gỡ 2026-11-23, giữ tên bean để không đổi cấu hình)
 @Repository("userManagementRepository")
 @RequiredArgsConstructor
 public class ManagedUserRepository {
@@ -28,11 +29,12 @@ public class ManagedUserRepository {
     private final JdbcTemplate jdbc;
 
     public record Account(UUID userId, String fullName, String email, String phone, String avatarUrl,
-                          String roleName, String status, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                          String roleName, String status, OffsetDateTime createdAt, OffsetDateTime updatedAt,
+                          OffsetDateTime lastLoginAt) {
     }
 
     public record AccountRow(UUID userId, String fullName, String email, String roleName, String status,
-                             OffsetDateTime createdAt) {
+                             OffsetDateTime createdAt, OffsetDateTime lastLoginAt) {
     }
 
     public record TutorRow(Long tutorCode, String headline, Integer experienceYears, String highestJlptLevel,
@@ -71,20 +73,23 @@ public class ManagedUserRepository {
         pageArgs.add(size);
         pageArgs.add((long) page * size);
         List<AccountRow> items = jdbc.query(
-                "SELECT u.user_id, u.full_name, u.email, r.role_name, u.account_status::text, u.created_at" + where
+                "SELECT u.user_id, u.full_name, u.email, r.role_name, u.account_status::text, u.created_at, "
+                        + "(SELECT la.last_login_at FROM user_login_activity la WHERE la.user_id = u.user_id)" + where
                         + " ORDER BY u.created_at DESC, u.user_id LIMIT ? OFFSET ?",
                 (rs, i) -> new AccountRow(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3),
-                        rs.getString(4), rs.getString(5), rs.getObject(6, OffsetDateTime.class)),
+                        rs.getString(4), rs.getString(5), rs.getObject(6, OffsetDateTime.class),
+                        rs.getObject(7, OffsetDateTime.class)),
                 pageArgs.toArray());
         return new Page(items, total == null ? 0 : total);
     }
 
     public Optional<Account> findAccount(UUID userId) {
         return jdbc.query("SELECT u.user_id, u.full_name, u.email, u.phone, u.avatar_url, r.role_name, "
-                        + "u.account_status::text, u.created_at, u.updated_at" + ACCOUNT_FROM + " AND u.user_id = ?",
+                        + "u.account_status::text, u.created_at, u.updated_at, "
+                        + "(SELECT la.last_login_at FROM user_login_activity la WHERE la.user_id = u.user_id)" + ACCOUNT_FROM + " AND u.user_id = ?",
                 (rs, i) -> new Account(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4),
                         rs.getString(5), rs.getString(6), rs.getString(7), rs.getObject(8, OffsetDateTime.class),
-                        rs.getObject(9, OffsetDateTime.class)),
+                        rs.getObject(9, OffsetDateTime.class), rs.getObject(10, OffsetDateTime.class)),
                 userId).stream().findFirst();
     }
 

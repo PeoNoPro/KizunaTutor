@@ -99,7 +99,7 @@ test('hợp đồng trang HTML/JS và định tuyến FE-02 không dùng mã n�
   const htmlPaths = [
     'pages/learner-profile/index.html',
     'pages/tutor-teaching-profile/index.html',
-    'pages/manager-users/index.html'
+    'pages/manager-accounts/index.html'
   ];
 
   for (const rel of htmlPaths) {
@@ -120,5 +120,5 @@ test('hợp đồng trang HTML/JS và định tuyến FE-02 không dùng mã n�
     assert.ok(apiJs.includes(`${fn}(`), `API.profile phải cung cấp hàm ${fn}`);
   });
   assert.ok(staffLayoutJs.includes("href: '/manager/users'"), 'staff-layout phải có liên kết Quản lý người dùng');
-  assert.ok(serverJs.includes("'/manager/users': '/pages/manager-users/index.html'"), 'server.js phải định tuyến /manager/users');
+  assert.ok(serverJs.includes("'/manager/users': '/pages/manager-accounts/index.html'"), 'server.js phải định tuyến /manager/users');
 });

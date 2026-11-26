@@ -88,14 +88,44 @@ public class ClassroomServiceImpl implements ClassroomService {
         List<LearningSpace> spaces = actor.isTutor()
                 ? spaceRepository.findByTutor_TutorIdOrderByCreatedAtDesc(actor.tutor().getTutorId())
                 : spaceRepository.findByLearner_LearnerIdOrderByCreatedAtDesc(actor.learner().getLearnerId());
+        if (spaces.isEmpty()) return List.of();
+        List<ClassSessionCalendar.SpaceData> data = calendar.load(spaces);
         java.util.Map<UUID, ClassSessionCalendar.Progress> progress =
-                ClassSessionCalendar.progressOf(calendar.load(spaces), LocalDateTime.now(clock));
+                ClassSessionCalendar.progressOf(data, LocalDateTime.now(clock));
         // Lớp đã học xong buổi cuối → "Đã hoàn thành" (tính khi truy cập)
         calendar.completeFinished(spaces, progress);
+        // Lịch hằng tuần và số tài liệu lấy một lần cho mọi lớp (không truy vấn riêng từng lớp)
+        Map<UUID, List<ClassScheduleResponse>> slots = activeSlotsOf(data);
+        Map<UUID, Long> materialCounts = materialCountsOf(spaces);
         // Lớp đang hoạt động / tạm dừng lên trước, lớp đã kết thúc xuống cuối (giữ thứ tự mới nhất trong từng nhóm)
         return spaces.stream()
                 .sorted(Comparator.comparing((LearningSpace sp) -> !OPEN_STATUSES.contains(sp.getStatus())))
-                .map(space -> toSummary(space, actor, progress.get(space.getSpaceId()))).toList();
+                .map(space -> toSummary(space, actor, progress.get(space.getSpaceId()),
+                        materialCounts.getOrDefault(space.getSpaceId(), 0L),
+                        slots.getOrDefault(space.getSpaceId(), List.of())))
+                .toList();
+    }
+
+    /** Buổi hằng tuần còn hiệu lực của từng lớp, xếp theo thứ rồi giờ bắt đầu (giống findBySpace_SpaceIdOrderBy...). */
+    private static Map<UUID, List<ClassScheduleResponse>> activeSlotsOf(List<ClassSessionCalendar.SpaceData> data) {
+        Map<UUID, List<ClassScheduleResponse>> result = new HashMap<>();
+        for (ClassSessionCalendar.SpaceData d : data) {
+            result.put(d.space().getSpaceId(), d.slots().stream()
+                    .filter(s -> s.getActiveUntil() == null)
+                    .sorted(Comparator.comparing(ClassSchedule::getDayOfWeek).thenComparing(ClassSchedule::getStartTime))
+                    .map(ClassScheduleResponse::of)
+                    .toList());
+        }
+        return result;
+    }
+
+    private Map<UUID, Long> materialCountsOf(List<LearningSpace> spaces) {
+        Map<UUID, Long> result = new HashMap<>();
+        List<Object[]> rows = materialRepository.countBySpaceIds(spaces.stream().map(LearningSpace::getSpaceId).toList());
+        if (rows != null) {
+            for (Object[] row : rows) result.put((UUID) row[0], ((Number) row[1]).longValue());
+        }
+        return result;
     }
 
     @Override
@@ -377,6 +407,15 @@ public class ClassroomServiceImpl implements ClassroomService {
     }
 
     private ClassroomSummaryResponse toSummary(LearningSpace space, CurrentActor actor, ClassSessionCalendar.Progress progress) {
+        boolean saved = space.getSpaceId() != null;
+        return toSummary(space, actor, progress,
+                saved ? materialRepository.countBySpace_SpaceId(space.getSpaceId()) : 0,
+                saved ? scheduleRepository.findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(space.getSpaceId())
+                        .stream().map(ClassScheduleResponse::of).toList() : List.of());
+    }
+
+    private ClassroomSummaryResponse toSummary(LearningSpace space, CurrentActor actor, ClassSessionCalendar.Progress progress,
+                                               long materialCount, List<ClassScheduleResponse> schedules) {
         boolean readOnly = isReadOnly(space);
         User tutorUser = space.getTutor().getUser();
         User learnerUser = space.getLearner().getUser();
@@ -391,10 +430,8 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .createdAt(space.getCreatedAt())
                 .readOnly(readOnly)
                 .canManage(!readOnly && isTutorOf(actor, space))
-                .materialCount(space.getSpaceId() == null ? 0 : materialRepository.countBySpace_SpaceId(space.getSpaceId()))
-                .schedules(space.getSpaceId() == null ? List.of()
-                        : scheduleRepository.findBySpace_SpaceIdOrderByDayOfWeekAscStartTimeAsc(space.getSpaceId())
-                                .stream().map(ClassScheduleResponse::of).toList())
+                .materialCount(materialCount)
+                .schedules(schedules)
                 .courseStartDate(ClassSessionCalendar.startDateOf(space))
                 .totalSessions(space.getTotalSessions())
                 .startedSessions(progress == null ? 0 : progress.startedSessions())

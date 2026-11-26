@@ -263,32 +263,6 @@ public class TutorMembershipServiceImpl implements TutorMembershipService {
     }
 
     @Override
-    public MembershipViews.PaymentResultView checkMyPayment(User user, String transactionIdText, String clientIp) {
-        UUID transactionId = parseId(transactionIdText, PaymentMessages.TRANSACTION_NOT_FOUND);
-        PaymentTransaction tx = requireOwnTransaction(user, transactionId);
-        if (tx.getStatus() != PaymentTransactionStatus.PENDING) {
-            return resultView(tx);
-        }
-        VnpayGatewayClient.QueryOutcome query = gatewayClient.queryTransaction(tx, clientIp);
-        Map<String, Object> response = queryResponse(query);
-        String outcome = "STILL_PENDING";
-        if (query.verified() && "00".equals(query.queryResponseCode()) && query.result() != null) {
-            try {
-                outcome = processor.process(query.result()).name();
-            } catch (Exception e) {
-                log.error("Lỗi xử lý kết quả tra cứu cho giao dịch {}; giao dịch giữ nguyên", tx.getTxnRef(), e);
-                outcome = "ERROR";
-            }
-        } else if (!query.verified()) {
-            outcome = "UNVERIFIED";
-        }
-        response.put("outcome", outcome);
-        response.put("requestedBy", "TUTOR");
-        audit.log(transactionId, PaymentLogWriter.TYPE_QUERY, query.requestBody(), response, query.httpStatus());
-        return resultView(requireOwnTransaction(user, transactionId));
-    }
-
-    @Override
     public MembershipViews.PaymentCreatedView resumePayment(User user, String transactionIdText, String clientIp) {
         if (!properties.isConfigured()) {
             throw new ServiceUnavailableException(PaymentMessages.MSG37_GATEWAY_UNAVAILABLE);

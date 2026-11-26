@@ -6,6 +6,7 @@
 import { showToast } from '/js/main.js';
 import { setAuthSession } from '/pages/login/login.js';
 import { initPasswordVisibilityToggles } from '/js/auth-features.js';
+import { buildGoogleOAuthUrl } from '/js/auth-oauth-helpers.js';
 
 // =========================================================================
 // 1. TRẠNG THÁI QUẢN LÝ LUỒNG OTP
@@ -485,6 +486,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const tutorRole = document.querySelector('input[name="userRole"][value="ROLE_TUTOR"]');
     if (tutorRole) tutorRole.checked = true;
   }
+  const googleRegisterBtn = document.getElementById('btnGoogleRegister');
+  const syncGoogleRegisterHref = () => {
+    if (!googleRegisterBtn) return;
+    const selectedRole = document.querySelector('input[name="userRole"]:checked')?.value || 'ROLE_LEARNER';
+    googleRegisterBtn.setAttribute('href', buildGoogleOAuthUrl(selectedRole));
+  };
+  syncGoogleRegisterHref();
+  document.querySelectorAll('input[name="userRole"]').forEach(radio => {
+    radio.addEventListener('change', syncGoogleRegisterHref);
+  });
+  googleRegisterBtn?.addEventListener('click', syncGoogleRegisterHref);
   initRegistrationForm();
   initPasswordVisibilityToggles();
   initOtpInputs();

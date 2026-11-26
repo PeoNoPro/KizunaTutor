@@ -69,25 +69,4 @@ public final class MembershipViews {
     public record TutorMembershipDetailView(TutorInfoView tutor, LocalDate expiresOn, List<MembershipItemView> memberships,
                                             List<TutorPaymentView> payments, boolean paymentsUnavailable) {
     }
-
-    // ---------- Quản trị viên ----------
-
-    public record AdminTransactionRowView(UUID transactionId, String txnRef, String tutorName, String email,
-                                          String planName, long amount, String status, String statusLabel,
-                                          boolean stale, OffsetDateTime transactionTime, String gatewayTransactionId) {
-    }
-
-    public record LogView(String type, String typeLabel, OffsetDateTime loggedAt, Integer httpStatusCode, String summary) {
-    }
-
-    public record NoteView(String note, String adminName, OffsetDateTime createdAt) {
-    }
-
-    public record AdminTransactionDetailView(AdminTransactionRowView transaction, MembershipItemView membership,
-                                             List<LogView> logs, List<NoteView> notes) {
-    }
-
-    public record GatewayCheckView(String statusBefore, String statusAfter, String statusAfterLabel,
-                                   String gatewayResponseCode, String gatewayMessage) {
-    }
 }

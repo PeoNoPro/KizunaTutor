@@ -134,6 +134,9 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         LocalTime start = request == null ? null : request.startTime();
         LocalTime end = request == null ? null : request.endTime();
         validateNewTime(data, newDate, start, end, now);
+        // Giữ giờ lẻ của lịch gốc / của lần dời trước thì vẫn nhận; giờ mới phải theo nấc 30 phút
+        ClassScheduleRules.requireStep(SESSION_FIELD, start, end, schedule.getStartTime(), schedule.getEndTime(),
+                current.startTime(), current.endTime());
         rules.ensureNoSessionConflict(space.getTutor().getTutorId(), space.getLearner().getLearnerId(), space.getSpaceId(),
                 s -> s.isOccurrence(scheduleId, originalDate), newDate, start, end);
 
@@ -217,6 +220,7 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         LocalTime start = request == null ? null : request.startTime();
         LocalTime end = request == null ? null : request.endTime();
         ClassScheduleRules.validateSession(date, start, end);
+        ClassScheduleRules.requireStep(SESSION_FIELD, start, end);
         validateDateInCourse(space, date, start, now);
         rules.ensureNoSessionConflict(space.getTutor().getTutorId(), space.getLearner().getLearnerId(), space.getSpaceId(),
                 null, date, start, end);
@@ -241,6 +245,7 @@ public class ClassSessionServiceImpl implements ClassSessionService {
         LocalTime start = request == null ? null : request.startTime();
         LocalTime end = request == null ? null : request.endTime();
         validateNewTime(calendar.load(space), newDate, start, end, now);
+        ClassScheduleRules.requireStep(SESSION_FIELD, start, end, extra.getStartTime(), extra.getEndTime());
         rules.ensureNoSessionConflict(space.getTutor().getTutorId(), space.getLearner().getLearnerId(), space.getSpaceId(),
                 s -> Objects.equals(s.extraId(), extraId), newDate, start, end);
         LocalDate oldDate = extra.getSessionDate();

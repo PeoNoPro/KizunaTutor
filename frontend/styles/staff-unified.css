@@ -141,17 +141,24 @@
 /* Nhóm thả xuống (Quản lý nhân viên, Vận hành hệ thống...) */
 .staff-unified .nav-group > summary { list-style: none; cursor: pointer; font-weight: 500 !important; }
 .staff-unified .nav-group > summary::-webkit-details-marker { display: none; }
+/* Mũi tên đặt cùng vị trí với nhóm "Yêu cầu hỗ trợ" (admin-portal.css: .support-nav-group.is-collapsible) để các mũi tên thẳng hàng */
+/* border-box: summary mặc định cộng phần đệm vào width 100% nên tràn khỏi sidebar, mũi tên bị khuất */
+/* justify-content: admin-portal.css đặt space-between; mũi tên nằm absolute nên phải dồn chữ về sát icon như các mục khác */
+.staff-unified .nav-group > summary { position: relative; box-sizing: border-box; justify-content: flex-start !important; padding-right: 30px !important; }
 .staff-unified .nav-group > summary::after {
   content: '';
-  margin-left: auto;
+  box-sizing: border-box;
+  position: absolute;
+  right: 14px;
+  top: 50%;
   width: 7px;
   height: 7px;
   border-right: 2px solid currentColor;
   border-bottom: 2px solid currentColor;
-  transform: rotate(45deg) translateY(-2px);
+  transform: translateY(-70%) rotate(45deg);
   transition: transform .15s;
 }
-.staff-unified .nav-group[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
+.staff-unified .nav-group[open] > summary::after { transform: translateY(-30%) rotate(-135deg); }
 .staff-unified .nav-group:has(a[aria-current=page]) > summary { color: var(--su-primary) !important; }
 .staff-unified .nav-group-items,
 .staff-unified .support-nav-items {

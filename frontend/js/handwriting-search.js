@@ -420,9 +420,13 @@ async function hwExecuteRecognition() {
     };
 
     try {
+        const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
         const bRes = await fetch('/api/kanji/search-by-strokes', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
+            credentials: 'include',
             body: JSON.stringify(backendPayload)
         });
 

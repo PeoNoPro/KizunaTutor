@@ -5,6 +5,7 @@
  */
 
 import { showToast } from '/js/main.js';
+import { apiClient } from '/js/apiClient.js';
 import { KizunaDialog } from '/js/common/dialog.js';
 import { AgentMemoryService } from '/js/api/agentMemory.js';
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
@@ -745,42 +746,49 @@ function renderEvaluationResult(data) {
 // =========================================================================
 // 8. LƯU TỪ VỰNG VÀO BỘ THẺ FLASHCARD SRS
 // =========================================================================
-function addWordToFlashcard(word, reading, meaning) {
+async function addWordToFlashcard(word, reading, meaning) {
   try {
-    let decks = JSON.parse(localStorage.getItem(FLASHCARD_STORAGE_KEY) || '[]');
+    let decks = await apiClient.getDecks().catch(() => null);
+    if (!Array.isArray(decks)) {
+      decks = JSON.parse(localStorage.getItem(FLASHCARD_STORAGE_KEY) || '[]');
+    }
     let targetDeck = decks.find(d => d.title === 'Từ vựng từ Luyện viết AI' || d.title === 'Mặc định');
 
+    const newCard = {
+      id: 'card_' + Date.now(),
+      char: word,
+      front: word,
+      reading: reading || '',
+      meaning: meaning || '',
+      back: `${reading}\n${meaning}`,
+      hint: 'Học từ bài tập chữa câu AI',
+      jlpt: currentJlpt,
+      level: currentJlpt,
+      createdAt: new Date().toISOString()
+    };
+
     if (!targetDeck) {
-      targetDeck = {
-        id: 'deck_ai_writing_' + Date.now(),
+      targetDeck = await apiClient.createDeck({
         title: 'Từ vựng từ Luyện viết AI',
         description: 'Tập hợp từ vựng và collocations hay được AI Sensei gợi ý khi sửa bài viết',
         color: 'blue',
-        cards: []
-      };
-      decks.unshift(targetDeck);
+        cards: [newCard]
+      });
+      showToast(`Đã lưu "${word}" vào bộ Flashcards thành công!`, 'success');
+      return;
     }
 
     if (!Array.isArray(targetDeck.cards)) {
       targetDeck.cards = [];
     }
 
-    const exists = targetDeck.cards.some(c => c.front === word);
+    const exists = targetDeck.cards.some(c => (c.front || c.char) === word);
     if (exists) {
       showToast(`Từ "${word}" đã có trong bộ Flashcards của bạn.`, 'info');
       return;
     }
 
-    targetDeck.cards.push({
-      id: 'card_' + Date.now(),
-      front: word,
-      back: `${reading}\n${meaning}`,
-      hint: 'Học từ bài tập chữa câu AI',
-      level: currentJlpt,
-      createdAt: new Date().toISOString()
-    });
-
-    localStorage.setItem(FLASHCARD_STORAGE_KEY, JSON.stringify(decks));
+    await apiClient.addCards(targetDeck.id, [newCard]);
     showToast(`Đã lưu "${word}" vào bộ Flashcards thành công!`, 'success');
 
   } catch (err) {

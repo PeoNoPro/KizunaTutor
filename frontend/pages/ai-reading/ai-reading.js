@@ -8,6 +8,11 @@
 import { initLearnerShell } from '/components/learner-layout/learner-layout.js';
 import { showToast } from '/js/main.js';
 import { voicevoxClient } from '/js/voicevoxClient.js';
+import {
+  splitJapaneseSentences,
+  buildTranslationSentences,
+  findBestMatchingSentence,
+} from '/js/reading-translation-helpers.js';
 
 // 1. Khởi tạo Layout Học viên Dùng Chung
 initLearnerShell({
@@ -30,7 +35,6 @@ let currentAnalysisResult = null;
 let isFuriganaHidden = true; // Mặc định ẩn Furigana
 let isSummaryVisible = false; // Mặc định ẩn ý chính bài đọc
 let isTranslationVisible = false; // Mặc định ẩn bản dịch tham khảo tiếng Việt
-let isDokkaiTranslationHidden = true; // Mặc định ẩn dịch câu hỏi & lựa chọn
 let dokkaiAnswers = {};
 let dokkaiSubmitted = false;
 
@@ -63,12 +67,9 @@ let overallSummaryBoxEl = null;
 let textOverallSummaryEl = null;
 let cleanPassageTranslationContainerEl = null;
 let fullTranslationBodyEl = null;
-let sentenceTranslationsContainerEl = null;
 
 // DOM Elements: Bộ câu hỏi Đọc hiểu Dokkai (Dưới)
 let countDokkaiQuestionsHeaderEl = null;
-let btnToggleDokkaiTranslationEl = null;
-let dokkaiTranslationToggleTextEl = null;
 let dokkaiQuestionsContainerEl = null;
 let dokkaiScoreSummaryEl = null;
 let btnSubmitDokkaiEl = null;
@@ -103,11 +104,8 @@ function refreshReadingDomReferences() {
   textOverallSummaryEl = document.getElementById('textOverallSummary');
   cleanPassageTranslationContainerEl = document.getElementById('cleanPassageTranslationContainer');
   fullTranslationBodyEl = document.getElementById('fullTranslationBody');
-  sentenceTranslationsContainerEl = document.getElementById('sentenceTranslationsContainer');
 
   countDokkaiQuestionsHeaderEl = document.getElementById('countDokkaiQuestionsHeader');
-  btnToggleDokkaiTranslationEl = document.getElementById('btnToggleDokkaiTranslation');
-  dokkaiTranslationToggleTextEl = document.getElementById('dokkaiTranslationToggleText');
   dokkaiQuestionsContainerEl = document.getElementById('dokkaiQuestionsContainer');
   dokkaiScoreSummaryEl = document.getElementById('dokkaiScoreSummary');
   btnSubmitDokkaiEl = document.getElementById('btnSubmitDokkai');
@@ -159,6 +157,14 @@ window.addEventListener('kizuna:page-mounted', (e) => {
 });
 
 function setupEventListeners() {
+  const guardEl = btnAnalyzeEl || document.getElementById('btnAnalyzeReading');
+  if (guardEl && guardEl.dataset.readingEventsBound === 'true') {
+    return;
+  }
+  if (guardEl) {
+    guardEl.dataset.readingEventsBound = 'true';
+  }
+
   // Nút chữ I để bật/tắt modal hướng dẫn 3 bước học nhanh
   const btnToggleGuideEl = document.getElementById('btnToggleGuide');
   const btnCloseGuideEl = document.getElementById('btnCloseGuide');
@@ -306,23 +312,30 @@ function setupEventListeners() {
     });
   }
 
-  // Nút Bật/Tắt Dịch câu hỏi & lựa chọn ở khu vực Dokkai
-  if (btnToggleDokkaiTranslationEl) {
-    btnToggleDokkaiTranslationEl.addEventListener('click', () => {
-      isDokkaiTranslationHidden = !isDokkaiTranslationHidden;
-      document.querySelectorAll('.dokkai-translation-text').forEach(el => {
-        el.classList.toggle('hidden', isDokkaiTranslationHidden);
-      });
-      if (dokkaiTranslationToggleTextEl) {
-        dokkaiTranslationToggleTextEl.textContent = isDokkaiTranslationHidden ? 'Hiện dịch câu hỏi & lựa chọn' : 'Ẩn dịch câu hỏi & lựa chọn';
-      }
-      showToast(isDokkaiTranslationHidden ? 'Đã ẩn bản dịch tiếng Việt' : 'Đã hiện bản dịch tiếng Việt hỗ trợ', 'info');
-    });
-  }
-
   // Nút Nộp bài Đọc hiểu Dokkai
   if (btnSubmitDokkaiEl) {
     btnSubmitDokkaiEl.addEventListener('click', handleDokkaiSubmit);
+  }
+
+  // Bấm vào câu trong bản dịch đoạn văn để nhảy tới câu tiếng Nhật tương ứng
+  if (fullTranslationBodyEl) {
+    fullTranslationBodyEl.addEventListener('click', (e) => {
+      const span = e.target.closest('[data-sentence-index]');
+      if (!span) return;
+      const idx = Number.parseInt(span.dataset.sentenceIndex, 10);
+      if (Number.isNaN(idx)) return;
+
+      fullTranslationBodyEl.querySelectorAll('.translation-sentence-link').forEach((el) => {
+        el.classList.remove('bg-amber-100', 'text-amber-950', 'font-medium');
+      });
+      span.classList.add('bg-amber-100', 'text-amber-950', 'font-medium');
+
+      const jpSentences = splitJapaneseSentences(currentAnalysisResult?.originalText || '');
+      const targetJp = jpSentences[idx] || jpSentences[0] || '';
+      if (targetJp) {
+        highlightEvidenceInCleanPassage(targetJp);
+      }
+    });
   }
 }
 
@@ -451,32 +464,17 @@ function renderAnalysisResult(data) {
     cleanReadingPassageBodyEl.classList.toggle('hide-furigana', isFuriganaHidden);
   }
 
-  // 2. Render bản dịch tiếng Việt toàn bài và câu đối chiếu
+  // 2. Render bản dịch tiếng Việt toàn bài dạng đoạn văn liền mạch (bấm từng câu để đối chiếu)
   if (fullTranslationBodyEl) {
-    const fullText = data.fullTranslation
-      || (Array.isArray(data.sentenceTranslations) && data.sentenceTranslations.length > 0 ? data.sentenceTranslations.join(' ') : '')
-      || data.overallSummary
-      || 'Chưa có bản dịch toàn bài.';
-    fullTranslationBodyEl.innerHTML = `<p class="leading-relaxed font-sans text-slate-800">${escapeHtml(fullText)}</p>`;
-  }
-
-  if (sentenceTranslationsContainerEl) {
-    sentenceTranslationsContainerEl.innerHTML = '';
-    let sentences = data.sentenceTranslations || [];
-    if (typeof sentences === 'string') {
-      sentences = [sentences];
-    }
-
-    if (sentences.length > 1) {
-      sentences.forEach((s, idx) => {
-        const item = document.createElement('div');
-        item.className = 'flex items-start gap-2.5 p-2 rounded-lg bg-white border border-slate-200/80 shadow-2xs hover:border-[#9F1239] transition';
-        item.innerHTML = `
-          <span class="text-xs font-bold text-slate-400 shrink-0 select-none mt-0.5">${idx + 1}.</span>
-          <span class="text-xs sm:text-sm text-slate-700 font-sans leading-relaxed">${escapeHtml(s)}</span>
-        `;
-        sentenceTranslationsContainerEl.appendChild(item);
-      });
+    const sentences = buildTranslationSentences(data.sentenceTranslations, data.fullTranslation);
+    if (sentences.length > 0) {
+      const spansHtml = sentences
+        .map((sentence, idx) => `<span class="translation-sentence-link cursor-pointer hover:bg-amber-100/80 rounded px-0.5 transition-colors" data-sentence-index="${idx}" title="Bấm để xem câu tiếng Nhật tương ứng">${escapeHtml(sentence)}</span>`)
+        .join(' ');
+      fullTranslationBodyEl.innerHTML = `<p class="leading-relaxed font-sans text-slate-800">${spansHtml}</p>`;
+    } else {
+      const fallbackText = data.overallSummary || 'Chưa có bản dịch toàn bài.';
+      fullTranslationBodyEl.innerHTML = `<p class="leading-relaxed font-sans text-slate-800">${escapeHtml(fallbackText)}</p>`;
     }
   }
 
@@ -484,7 +482,6 @@ function renderAnalysisResult(data) {
   isFuriganaHidden = true;
   isSummaryVisible = false;
   isTranslationVisible = false;
-  isDokkaiTranslationHidden = true;
 
   syncFuriganaUI();
   if (overallSummaryBoxEl) overallSummaryBoxEl.classList.add('hidden');
@@ -516,11 +513,6 @@ function renderDokkaiChallenge(data) {
 
   if (countDokkaiQuestionsHeaderEl) {
     countDokkaiQuestionsHeaderEl.textContent = questions.length;
-  }
-
-  // Đồng bộ trạng thái nút toggle dịch câu hỏi
-  if (dokkaiTranslationToggleTextEl) {
-    dokkaiTranslationToggleTextEl.textContent = isDokkaiTranslationHidden ? 'Hiện dịch câu hỏi & lựa chọn' : 'Ẩn dịch câu hỏi & lựa chọn';
   }
 
   // Ẩn bảng điểm cũ
@@ -579,7 +571,7 @@ function renderDokkaiChallenge(data) {
               <span class="font-bold text-slate-500 font-sans mr-1">${letter}.</span> ${escapeHtml(opt)}
             </div>
             ${viOpt ? `
-              <div class="dokkai-translation-text text-[11px] text-slate-500 font-sans mt-1 ml-4 ${isDokkaiTranslationHidden ? 'hidden' : ''}">
+              <div class="dokkai-translation-text text-[11px] text-slate-500 font-sans mt-1 ml-4 hidden">
                 ${escapeHtml(viOpt)}
               </div>
             ` : ''}
@@ -589,14 +581,26 @@ function renderDokkaiChallenge(data) {
     });
 
     const viQuestion = q.questionVi || '';
+    const hasQuestionTranslation = Boolean(viQuestion || (q.optionsVi && q.optionsVi.some(Boolean)));
 
-    // Header câu hỏi tinh gọn: Chỉ hiển thị Câu hỏi số thứ tự, loại bỏ hoàn toàn các tag Ý CHÍNH (要旨), v.v.
+    // Header câu hỏi tinh gọn: Chỉ hiển thị Câu hỏi số thứ tự + nút dịch riêng cho từng câu
     card.innerHTML = `
-      <div class="flex items-center gap-2 border-b border-slate-100 pb-2">
-        <span class="w-6 h-6 rounded-full bg-[#9F1239] text-white text-xs font-bold flex items-center justify-center shrink-0">
-          ${qIndex + 1}
-        </span>
-        <span class="text-xs font-bold text-slate-800">Câu hỏi ${qIndex + 1}</span>
+      <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#9F1239] text-white text-xs font-bold flex items-center justify-center shrink-0">
+            ${qIndex + 1}
+          </span>
+          <span class="text-xs font-bold text-slate-800">Câu hỏi ${qIndex + 1}</span>
+        </div>
+        ${hasQuestionTranslation ? `
+          <button type="button"
+                  class="btn-toggle-question-translation px-2.5 py-1 text-[11px] font-semibold rounded-md border border-[#CBD5E1] bg-white text-slate-600 hover:text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50/40 transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                  aria-expanded="false"
+                  title="Bật/Tắt bản dịch tiếng Việt cho câu hỏi này">
+            <span class="material-symbols-outlined text-[14px] text-indigo-600">translate</span>
+            <span class="question-translation-toggle-text">Hiện dịch</span>
+          </button>
+        ` : ''}
       </div>
 
       <div class="space-y-1">
@@ -604,7 +608,7 @@ function renderDokkaiChallenge(data) {
           ${escapeHtml(q.question || '')}
         </div>
         ${viQuestion ? `
-          <div class="dokkai-translation-text text-xs text-indigo-700/80 font-sans font-medium italic ${isDokkaiTranslationHidden ? 'hidden' : ''}">
+          <div class="dokkai-translation-text text-xs text-indigo-700/80 font-sans font-medium italic hidden">
             💡 ${escapeHtml(viQuestion)}
           </div>
         ` : ''}
@@ -619,6 +623,26 @@ function renderDokkaiChallenge(data) {
         <!-- Rendered after submit -->
       </div>
     `;
+
+    // Nút bật/tắt dịch riêng cho câu hỏi này
+    const btnToggleQTrans = card.querySelector('.btn-toggle-question-translation');
+    if (btnToggleQTrans) {
+      let isQuestionTranslationShown = false;
+      btnToggleQTrans.addEventListener('click', () => {
+        isQuestionTranslationShown = !isQuestionTranslationShown;
+        card.querySelectorAll('.dokkai-translation-text').forEach((el) => {
+          el.classList.toggle('hidden', !isQuestionTranslationShown);
+        });
+        const labelEl = btnToggleQTrans.querySelector('.question-translation-toggle-text');
+        if (labelEl) {
+          labelEl.textContent = isQuestionTranslationShown ? 'Ẩn dịch' : 'Hiện dịch';
+        }
+        btnToggleQTrans.setAttribute('aria-expanded', String(isQuestionTranslationShown));
+        btnToggleQTrans.classList.toggle('bg-indigo-50', isQuestionTranslationShown);
+        btnToggleQTrans.classList.toggle('border-indigo-300', isQuestionTranslationShown);
+        btnToggleQTrans.classList.toggle('text-indigo-700', isQuestionTranslationShown);
+      });
+    }
 
     // Lắng nghe sự kiện chọn radio
     const radioInputs = card.querySelectorAll(`input[name="dokkai_q_${q.id}"]`);
@@ -790,14 +814,30 @@ function highlightEvidenceInCleanPassage(quote) {
     cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(cleanQuote, `<mark class="evidence-highlight">${cleanQuote}</mark>`);
     highlighted = true;
   } else {
-    // 3. Dự phòng cắt theo dấu phẩy hoặc cụm từ con ngắn hơn nếu câu quá dài hoặc lệch dấu
-    const clauses = cleanQuote.split(/[、,]/).map(c => c.trim()).filter(c => c.length >= 4);
-    for (const clause of clauses) {
-      const clauseRegex = createRubyAwareRegex(clause);
-      if (clauseRegex && clauseRegex.test(passageHtml)) {
-        cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(clauseRegex, (matched) => `<mark class="evidence-highlight">${matched}</mark>`);
+    // 3. Dự phòng tìm câu khớp nhất trong văn bản gốc (khi AI lược chữ hoặc thêm ...)
+    const bestSentence = findBestMatchingSentence(cleanQuote, (currentAnalysisResult && currentAnalysisResult.originalText) || '');
+    if (bestSentence) {
+      const bestClean = bestSentence.trim().replace(/^[「『"'\s]+/, '').replace(/[」』"'。！？\s]+$/, '');
+      const bestRegex = createRubyAwareRegex(bestClean);
+      if (bestRegex && bestRegex.test(passageHtml)) {
+        cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(bestRegex, (matched) => `<mark class="evidence-highlight">${matched}</mark>`);
         highlighted = true;
-        break;
+      } else if (bestClean && passageHtml.includes(bestClean)) {
+        cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(bestClean, `<mark class="evidence-highlight">${bestClean}</mark>`);
+        highlighted = true;
+      }
+    }
+
+    // 4. Dự phòng cắt theo dấu phẩy hoặc cụm từ con ngắn hơn
+    if (!highlighted) {
+      const clauses = cleanQuote.split(/[、,，…・]/).map(c => c.trim()).filter(c => c.length >= 4);
+      for (const clause of clauses) {
+        const clauseRegex = createRubyAwareRegex(clause);
+        if (clauseRegex && clauseRegex.test(passageHtml)) {
+          cleanReadingPassageBodyEl.innerHTML = passageHtml.replace(clauseRegex, (matched) => `<mark class="evidence-highlight">${matched}</mark>`);
+          highlighted = true;
+          break;
+        }
       }
     }
 
@@ -817,14 +857,12 @@ function highlightEvidenceInCleanPassage(quote) {
   // Duy trì trạng thái ẩn/hiện Furigana theo thiết lập hiện tại của người dùng
   cleanReadingPassageBodyEl.classList.toggle('hide-furigana', isFuriganaHidden);
 
-  // Cuộn trang mượt mà lên vị trí dẫn chứng trên bài đọc
+  // Cuộn trang mượt mà lên vị trí dẫn chứng trên bài đọc (chỉ highlight trong bài, không hiện toast)
   const highlightEl = cleanReadingPassageBodyEl.querySelector('.evidence-highlight');
   if (highlightEl) {
     highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    showToast('Đã đánh dấu câu dẫn chứng trong bài đọc', 'info');
   } else {
     cleanReadingPassageBodyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    showToast('Dẫn chứng: 「' + cleanQuote + '」', 'info');
   }
 }
 
@@ -840,6 +878,9 @@ function createRubyAwareRegex(phrase) {
   const interTag = '(?:\\s*<rt>[^<]*<\\/rt>|\\s*<[^>]+>)*\\s*';
   const parts = chars.map((ch) => {
     const esc = ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (ch === '\n' || ch === '\r') {
+      return '(?:<br\\s*\\/?>|\\s)*';
+    }
     if (ch === '、' || ch === '。' || ch === '，' || ch === '．' || ch === ' ' || ch === '　') {
       return '(?:' + esc + '|[、。，．\\s])*';
     }

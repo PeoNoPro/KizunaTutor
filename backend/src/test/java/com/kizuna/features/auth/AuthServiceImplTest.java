@@ -722,4 +722,173 @@ class AuthServiceImplTest {
             verify(userRepository, never()).save(any());
         }
     }
+
+    // =========================================================================
+    // UC-01.OAUTH2: ĐĂNG NHẬP / ĐĂNG KÝ BẰNG GOOGLE OAUTH2 THẬT
+    // =========================================================================
+    @Nested
+    @DisplayName("UC-01.OAUTH2: Đăng nhập & tạo tài khoản qua Google (authenticateWithGoogle)")
+    class GoogleOAuthTests {
+
+        @Test
+        @DisplayName("Normal Case: Tài khoản Gmail mới với ROLE_LEARNER -> Tạo User + Learner và trả JWT")
+        void authenticateWithGoogle_newLearner_createsUserAndLearner() {
+            Role learnerRole = Role.builder().roleName("ROLE_LEARNER").build();
+            when(userRepository.findByEmail("new.learner@gmail.com")).thenReturn(Optional.empty());
+            when(roleRepository.findByRoleName("ROLE_LEARNER")).thenReturn(Optional.of(learnerRole));
+            when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$randomEncoded");
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                User saved = inv.getArgument(0);
+                saved.setUserId(java.util.UUID.randomUUID());
+                return saved;
+            });
+            when(tokenProvider.generateToken(any(User.class))).thenReturn("jwt-google-learner");
+
+            LoginResponse result = authService.authenticateWithGoogle(
+                    "New.Learner@gmail.com",
+                    "Nguyễn Văn Học",
+                    "https://lh3.googleusercontent.com/a/avatar.png",
+                    "ROLE_LEARNER"
+            );
+
+            assertThat(result.getToken()).isEqualTo("jwt-google-learner");
+            assertThat(result.getRedirectUrl()).isEqualTo("/pages/home/");
+            assertThat(result.getUser().getEmail()).isEqualTo("new.learner@gmail.com");
+            assertThat(result.getUser().getRole()).isEqualTo("ROLE_LEARNER");
+            verify(learnerRepository, times(1)).save(any(Learner.class));
+            verify(tutorRepository, never()).save(any(Tutor.class));
+        }
+
+        @Test
+        @DisplayName("Normal Case: Tài khoản Gmail mới chọn ROLE_TUTOR -> Tạo User + Tutor (UNVERIFIED, FREE)")
+        void authenticateWithGoogle_newTutor_createsUserAndTutor() {
+            Role tutorRole = Role.builder().roleName("ROLE_TUTOR").build();
+            when(userRepository.findByEmail("new.tutor@gmail.com")).thenReturn(Optional.empty());
+            when(roleRepository.findByRoleName("ROLE_TUTOR")).thenReturn(Optional.of(tutorRole));
+            when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$randomEncoded");
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                User saved = inv.getArgument(0);
+                saved.setUserId(java.util.UUID.randomUUID());
+                return saved;
+            });
+            when(tokenProvider.generateToken(any(User.class))).thenReturn("jwt-google-tutor");
+
+            LoginResponse result = authService.authenticateWithGoogle(
+                    "new.tutor@gmail.com",
+                    "Trần Gia Sư",
+                    "https://lh3.googleusercontent.com/a/tutor.png",
+                    "ROLE_TUTOR"
+            );
+
+            assertThat(result.getToken()).isEqualTo("jwt-google-tutor");
+            assertThat(result.getRedirectUrl()).isEqualTo("/tutor/dashboard");
+            assertThat(result.getUser().getRole()).isEqualTo("ROLE_TUTOR");
+            ArgumentCaptor<Tutor> tutorCaptor = ArgumentCaptor.forClass(Tutor.class);
+            verify(tutorRepository, times(1)).save(tutorCaptor.capture());
+            assertThat(tutorCaptor.getValue().getVerificationStatus())
+                    .isEqualTo(com.kizuna.features.verification.entity.TutorVerificationStatus.UNVERIFIED);
+            assertThat(tutorCaptor.getValue().getMembershipStatus())
+                    .isEqualTo(com.kizuna.features.payment.entity.TutorMembershipStatus.FREE);
+            verify(learnerRepository, never()).save(any(Learner.class));
+        }
+
+        @Test
+        @DisplayName("Security Case: Truyền role ngoài whitelist (ROLE_ADMIN) -> Rơi về ROLE_LEARNER")
+        void authenticateWithGoogle_disallowedRole_fallsBackToLearner() {
+            Role learnerRole = Role.builder().roleName("ROLE_LEARNER").build();
+            when(userRepository.findByEmail("attacker@gmail.com")).thenReturn(Optional.empty());
+            when(roleRepository.findByRoleName("ROLE_LEARNER")).thenReturn(Optional.of(learnerRole));
+            when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$randomEncoded");
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                User saved = inv.getArgument(0);
+                saved.setUserId(java.util.UUID.randomUUID());
+                return saved;
+            });
+            when(tokenProvider.generateToken(any(User.class))).thenReturn("jwt-safe");
+
+            LoginResponse result = authService.authenticateWithGoogle(
+                    "attacker@gmail.com",
+                    "Attacker",
+                    null,
+                    "ROLE_ADMIN"
+            );
+
+            assertThat(result.getUser().getRole()).isEqualTo("ROLE_LEARNER");
+            verify(roleRepository, never()).findByRoleName("ROLE_ADMIN");
+            verify(learnerRepository, times(1)).save(any(Learner.class));
+        }
+
+        @Test
+        @DisplayName("Normal Case: Email đã tồn tại (ROLE_TUTOR) -> Giữ nguyên role cũ và điền avatar nếu trống")
+        void authenticateWithGoogle_existingUser_keepsExistingRoleAndFillsBlankAvatar() {
+            User existingTutor = buildUser("existing.tutor@gmail.com", "ROLE_TUTOR", UserAccountStatus.ACTIVE, false);
+            existingTutor.setAvatarUrl(null);
+            when(userRepository.findByEmail("existing.tutor@gmail.com")).thenReturn(Optional.of(existingTutor));
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(tokenProvider.generateToken(existingTutor)).thenReturn("jwt-existing");
+
+            LoginResponse result = authService.authenticateWithGoogle(
+                    "existing.tutor@gmail.com",
+                    "Tên Mới Từ Google",
+                    "https://lh3.googleusercontent.com/a/new-avatar.png",
+                    "ROLE_LEARNER"
+            );
+
+            assertThat(result.getUser().getRole()).isEqualTo("ROLE_TUTOR");
+            assertThat(result.getRedirectUrl()).isEqualTo("/tutor/dashboard");
+            assertThat(existingTutor.getAvatarUrl()).isEqualTo("https://lh3.googleusercontent.com/a/new-avatar.png");
+            verify(userRepository, times(1)).save(existingTutor);
+            verify(learnerRepository, never()).save(any());
+            verify(tutorRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Abnormal Case: Tài khoản đã bị khóa hoặc xóa mềm -> Ném BusinessException 403")
+        void authenticateWithGoogle_blockedOrDeletedUser_throws403BusinessException() {
+            User lockedUser = buildUser("locked@gmail.com", "ROLE_LEARNER", UserAccountStatus.LOCKED, false);
+            when(userRepository.findByEmail("locked@gmail.com")).thenReturn(Optional.of(lockedUser));
+
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> authService.authenticateWithGoogle("locked@gmail.com", "Locked", null, "ROLE_LEARNER"));
+            assertThat(ex.status()).isEqualTo(403);
+
+            User deletedUser = buildUser("deleted@gmail.com", "ROLE_LEARNER", UserAccountStatus.ACTIVE, false);
+            deletedUser.setDeletedAt(java.time.OffsetDateTime.now());
+            when(userRepository.findByEmail("deleted@gmail.com")).thenReturn(Optional.of(deletedUser));
+
+            BusinessException deletedEx = assertThrows(BusinessException.class,
+                    () -> authService.authenticateWithGoogle("deleted@gmail.com", "Deleted", null, "ROLE_LEARNER"));
+            assertThat(deletedEx.status()).isEqualTo(403);
+        }
+
+        @Test
+        @DisplayName("Boundary Case: Tên > 100 ký tự, avatar > 500 ký tự hoặc tên rỗng -> Cắt gọn an toàn theo cột DB")
+        void authenticateWithGoogle_longNameAndAvatar_truncatesToColumnLimits() {
+            Role learnerRole = Role.builder().roleName("ROLE_LEARNER").build();
+            when(userRepository.findByEmail("boundary@gmail.com")).thenReturn(Optional.empty());
+            when(roleRepository.findByRoleName("ROLE_LEARNER")).thenReturn(Optional.of(learnerRole));
+            when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$randomEncoded");
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                User saved = inv.getArgument(0);
+                saved.setUserId(java.util.UUID.randomUUID());
+                return saved;
+            });
+            when(tokenProvider.generateToken(any(User.class))).thenReturn("jwt-boundary");
+
+            String longName = "A".repeat(150);
+            String longAvatar = "https://example.com/" + "x".repeat(600);
+
+            authService.authenticateWithGoogle("boundary@gmail.com", longName, longAvatar, "ROLE_LEARNER");
+
+            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository, times(1)).save(userCaptor.capture());
+            assertThat(userCaptor.getValue().getFullName().length()).isEqualTo(100);
+            assertThat(userCaptor.getValue().getAvatarUrl().length()).isEqualTo(500);
+
+            when(userRepository.findByEmail("blankname@gmail.com")).thenReturn(Optional.empty());
+            authService.authenticateWithGoogle("blankname@gmail.com", "   ", null, "ROLE_LEARNER");
+            verify(userRepository, times(2)).save(userCaptor.capture());
+            assertThat(userCaptor.getValue().getFullName()).isEqualTo("Học Viên Kizuna");
+        }
+    }
 }

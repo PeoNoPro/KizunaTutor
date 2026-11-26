@@ -68,6 +68,7 @@
       animation: pulse-evidence 1.2s ease-in-out infinite alternate;
       transition: all 0.3s ease;
       display: inline;
+      scroll-margin-top: 96px;
     }
     @keyframes pulse-evidence {
       from { background-color: #FEF08A; box-shadow: 0 0 0 2px #EAB308, 0 2px 8px rgba(234, 179, 8, 0.4); }
@@ -248,20 +249,18 @@
               </div>
 
               <!-- Khung bản dịch tham khảo tiếng Việt toàn bài (Mặc định ẩn, bật/tắt bằng nút trên thanh công cụ) -->
-              <div id="cleanPassageTranslationContainer" class="hidden p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 transition-all">
-                <div class="flex items-center gap-1.5 pb-1 border-b border-slate-200">
-                  <span class="material-symbols-outlined text-[16px] text-[#9F1239]">g_translate</span>
-                  <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Bản dịch toàn bộ bài đọc (Tiếng Việt)</h4>
+              <div id="cleanPassageTranslationContainer" class="hidden p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 transition-all">
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-slate-200">
+                  <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px] text-[#9F1239]">g_translate</span>
+                    <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Bản dịch toàn bộ bài đọc (Tiếng Việt)</h4>
+                  </div>
+                  <span class="text-[11px] text-slate-500 italic">Bấm vào một câu bất kỳ để xem câu tiếng Nhật tương ứng</span>
                 </div>
 
-                <!-- Bản dịch toàn văn đoạn văn -->
+                <!-- Bản dịch toàn văn đoạn văn (mỗi câu có thể bấm để đối chiếu lên bài đọc) -->
                 <div id="fullTranslationBody" class="p-3.5 bg-white rounded-lg border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed font-sans shadow-2xs">
                   <!-- Rendered by ai-reading.js -->
-                </div>
-
-                <!-- Danh sách dịch từng câu đối chiếu -->
-                <div id="sentenceTranslationsContainer" class="space-y-1.5 text-xs text-slate-600 leading-relaxed font-sans pt-1">
-                  <!-- Nạp động bởi ai-reading.js -->
                 </div>
               </div>
 
@@ -282,21 +281,12 @@
               </div>
 
               <!-- Header câu hỏi -->
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 border-b border-slate-200 pb-2">
+              <div class="flex items-center justify-between gap-2 px-1 border-b border-slate-200 pb-2">
                 <div class="flex items-center gap-2">
                   <span class="material-symbols-outlined text-[#9F1239] text-[18px]">quiz</span>
                   <h4 class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wider">
                     Câu hỏi kiểm tra đọc hiểu (<span id="countDokkaiQuestionsHeader">0</span> câu)
                   </h4>
-                </div>
-                <div class="flex items-center gap-2">
-                  <!-- Nút Bật/Tắt Dịch tiếng Việt cho câu hỏi và phương án -->
-                  <button type="button" id="btnToggleDokkaiTranslation"
-                          class="px-2.5 py-1 text-xs font-semibold rounded-md border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                          title="Bật/Tắt hiển thị bản dịch tiếng Việt của câu hỏi và các lựa chọn">
-                    <span class="material-symbols-outlined text-[15px] text-indigo-600">translate</span>
-                    <span id="dokkaiTranslationToggleText">Hiện dịch câu hỏi & lựa chọn</span>
-                  </button>
                 </div>
               </div>
 

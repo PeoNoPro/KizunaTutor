@@ -2,6 +2,10 @@ package com.kizuna.core.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kizuna.features.admin.config.OperationsDevLoginSettings;
+import com.kizuna.features.auth.security.GoogleOAuth2AuthorizationRequestResolver;
+import com.kizuna.features.auth.security.GoogleOAuth2FailureHandler;
+import com.kizuna.features.auth.security.GoogleOAuth2SuccessHandler;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +20,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -88,6 +93,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter,
                                                    RestAuthErrorHandlers restAuthErrorHandlers,
+                                                   ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider,
+                                                   ObjectProvider<GoogleOAuth2SuccessHandler> oauth2SuccessHandlerProvider,
+                                                   ObjectProvider<GoogleOAuth2FailureHandler> oauth2FailureHandlerProvider,
                                                    @Value("${app.frontend-origins:http://localhost:3000,http://127.0.0.1:3000}") String origins) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
@@ -131,6 +139,19 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .anyRequest().permitAll()
             );
+
+        ClientRegistrationRepository clientRegistrationRepository = clientRegistrationRepositoryProvider.getIfAvailable();
+        GoogleOAuth2SuccessHandler oauth2SuccessHandler = oauth2SuccessHandlerProvider.getIfAvailable();
+        GoogleOAuth2FailureHandler oauth2FailureHandler = oauth2FailureHandlerProvider.getIfAvailable();
+        if (clientRegistrationRepository != null && oauth2SuccessHandler != null && oauth2FailureHandler != null) {
+            http.oauth2Login(oauth2 -> oauth2
+                .authorizationEndpoint(auth -> auth
+                    .authorizationRequestResolver(new GoogleOAuth2AuthorizationRequestResolver(clientRegistrationRepository))
+                )
+                .successHandler(oauth2SuccessHandler)
+                .failureHandler(oauth2FailureHandler)
+            );
+        }
 
         return http.build();
     }

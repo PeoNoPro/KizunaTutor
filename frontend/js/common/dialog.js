@@ -88,6 +88,10 @@ export class KizunaDialog {
     });
   }
 
+  static confirm(options = {}) {
+    return this.show(options);
+  }
+
   static show(options = {}) {
     this.init();
     if (!this.dialogElement) return;

@@ -22,8 +22,8 @@ import static org.mockito.Mockito.*;
 class LearnerProfileGetTest extends ProfileUnitTestBase {
     private final LearnerProfileServiceImpl service = new LearnerProfileServiceImpl(users, learners, avatars);
 
-    @Test @DisplayName("TC-02-001: Học viên xem hồ sơ -> trả đủ họ tên, email, SĐT, ảnh, trình độ, mục tiêu, tỉnh, địa chỉ")
-    void tc02_001_viewOwnProfile() {
+    @Test @DisplayName("UTCID01: Học viên xem hồ sơ -> trả đủ họ tên, email, SĐT, ảnh, trình độ, mục tiêu, tỉnh, địa chỉ")
+    void utcid01_viewOwnProfile() {
         User u = loggedIn("ROLE_LEARNER");
         u.setPhone("0912345678");
         when(learners.findByUser_UserId(USER_ID)).thenReturn(Optional.of(Learner.builder().user(u).currentLevel("N5")
@@ -42,8 +42,8 @@ class LearnerProfileGetTest extends ProfileUnitTestBase {
         assertEquals("Cầu Giấy", dto.address());
     }
 
-    @Test @DisplayName("TC-02-001: Học viên chưa có bản ghi learner -> vẫn trả thông tin tài khoản, phần học tập rỗng")
-    void tc02_001_noLearnerRow() {
+    @Test @DisplayName("UTCID02: Học viên chưa có bản ghi learner -> vẫn trả thông tin tài khoản, phần học tập rỗng")
+    void utcid02_noLearnerRow() {
         loggedIn("ROLE_LEARNER");
         when(learners.findByUser_UserId(USER_ID)).thenReturn(Optional.empty());
 
@@ -53,23 +53,23 @@ class LearnerProfileGetTest extends ProfileUnitTestBase {
         assertNull(dto.currentLevel());
     }
 
-    @Test @DisplayName("TC-02-003: Tài khoản không phải học viên -> 403 'Chỉ tài khoản học viên mới xem được hồ sơ này.'")
-    void tc02_003_notLearner() {
+    @Test @DisplayName("UTCID03: Tài khoản không phải học viên -> 403 'Chỉ tài khoản học viên mới xem được hồ sơ này.'")
+    void utcid03_notLearner() {
         loggedIn("ROLE_TUTOR");
         var ex = assertThrows(AccessDeniedException.class, () -> service.getMyProfile(EMAIL));
         assertEquals("Chỉ tài khoản học viên mới xem được hồ sơ này.", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-02-004: Tài khoản đã bị xóa -> 404 'Không tìm thấy hồ sơ học viên.'")
-    void tc02_004_deletedAccount() {
+    @Test @DisplayName("UTCID04: Tài khoản đã bị xóa -> 404 'Không tìm thấy hồ sơ học viên.'")
+    void utcid04_deletedAccount() {
         User u = loggedIn("ROLE_LEARNER");
         u.setDeletedAt(OffsetDateTime.now());
         var ex = assertThrows(ResourceNotFoundException.class, () -> service.getMyProfile(EMAIL));
         assertEquals("Không tìm thấy hồ sơ học viên.", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-02-004: Email không tồn tại -> 404")
-    void tc02_004_unknownEmail() {
+    @Test @DisplayName("UTCID05: Email không tồn tại -> 404")
+    void utcid05_unknownEmail() {
         when(users.findByEmail(EMAIL)).thenReturn(Optional.empty());
         assertThrows(ResourceNotFoundException.class, () -> service.getMyProfile(EMAIL));
     }

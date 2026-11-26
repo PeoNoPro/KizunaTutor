@@ -51,8 +51,8 @@ class TrialRespondTest extends TrialUnitTestBase {
 
     // ---- UC-07.03 Accept ----
 
-    @Test @DisplayName("TC-07-021: Nhận học thử với link hợp lệ -> Confirmed, lưu link, lịch sử, báo học viên; chưa tạo kết nối")
-    void tc07_021_accept() {
+    @Test @DisplayName("UTCID01: Nhận học thử với link hợp lệ -> Confirmed, lưu link, lịch sử, báo học viên; chưa tạo kết nối")
+    void utcid01_accept() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.PENDING, 48);
 
@@ -66,8 +66,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         verify(events).publish(contains(":accepted"), eq("TRIAL"), any(), any(), any(), eq(List.of(learnerUser.getUserId())));
     }
 
-    @Test @DisplayName("TC-07-022: Yêu cầu chờ khác trùng một phần giờ -> tự hủy, ghi lý do, báo học viên đó")
-    void tc07_022_cancelsOverlapping() {
+    @Test @DisplayName("UTCID02: Yêu cầu chờ khác trùng một phần giờ -> tự hủy, ghi lý do, báo học viên đó")
+    void utcid02_cancelsOverlapping() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.PENDING, 48);
         TrialBooking overlap = otherPending(b.getScheduledStartTime().plusMinutes(15));
@@ -83,8 +83,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         verify(events).publish(contains(":taken"), any(), any(), any(), any(), eq(List.of(overlap.getLearner().getUser().getUserId())));
     }
 
-    @Test @DisplayName("TC-07-023: Yêu cầu chờ khác ngay sau buổi đã nhận (chạm sát) -> giữ nguyên Pending")
-    void tc07_023_keepsTouching() {
+    @Test @DisplayName("UTCID03: Yêu cầu chờ khác ngay sau buổi đã nhận (chạm sát) -> giữ nguyên Pending")
+    void utcid03_keepsTouching() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.PENDING, 48);
         TrialBooking next = otherPending(b.getScheduledEndTime());
@@ -96,8 +96,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         assertEquals(TrialBookingStatus.PENDING, next.getBookingStatus());
     }
 
-    @Test @DisplayName("TC-07-024: Yêu cầu chờ quá 24 giờ -> 400 đã hết hạn phản hồi")
-    void tc07_024_expired() {
+    @Test @DisplayName("UTCID04: Yêu cầu chờ quá 24 giờ -> 400 đã hết hạn phản hồi")
+    void utcid04_expired() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.PENDING, 48);
         b.setUpdatedAt(OffsetDateTime.now().minusHours(25));
@@ -106,8 +106,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         assertEquals(TrialBookingStatus.PENDING, b.getBookingStatus());
     }
 
-    @Test @DisplayName("TC-07-025: Đã tới giờ học mà còn Pending -> 400 (coi như hết hạn), không xác nhận")
-    void tc07_025_timePassed() {
+    @Test @DisplayName("UTCID05: Đã tới giờ học mà còn Pending -> 400 (coi như hết hạn), không xác nhận")
+    void utcid05_timePassed() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.PENDING, -1);
         assertThrows(BadRequestException.class, () -> service.respondTrialBooking(TUTOR_EMAIL, BOOKING_ID, accept(LINK)));
@@ -115,8 +115,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         verify(bookings, never()).save(any());
     }
 
-    @Test @DisplayName("TC-07-026: Trùng buổi học thử đã xác nhận khác của gia sư -> 409")
-    void tc07_026_tutorOverlap() {
+    @Test @DisplayName("UTCID06: Trùng buổi học thử đã xác nhận khác của gia sư -> 409")
+    void utcid06_tutorOverlap() {
         asTutor();
         booking(TrialBookingStatus.PENDING, 48);
         when(bookings.existsConfirmedTutorOverlap(eq(tutor.getTutorId()), eq(BOOKING_ID), any(), any())).thenReturn(true);
@@ -125,8 +125,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         verify(bookings, never()).save(any());
     }
 
-    @Test @DisplayName("TC-07-027: Học viên đã có buổi học thử đã xác nhận cùng giờ -> 409")
-    void tc07_027_learnerOverlap() {
+    @Test @DisplayName("UTCID07: Học viên đã có buổi học thử đã xác nhận cùng giờ -> 409")
+    void utcid07_learnerOverlap() {
         asTutor();
         booking(TrialBookingStatus.PENDING, 48);
         when(bookings.existsConfirmedLearnerOverlap(eq(learner.getLearnerId()), eq(BOOKING_ID), any(), any())).thenReturn(true);
@@ -134,8 +134,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         assertTrue(ex.getMessage().startsWith("Học viên đã có một buổi học thử khác được xác nhận vào khung giờ này."));
     }
 
-    @Test @DisplayName("TC-07-028: Trùng lịch lớp chính thức của gia sư -> 409")
-    void tc07_028_classClash() {
+    @Test @DisplayName("UTCID08: Trùng lịch lớp chính thức của gia sư -> 409")
+    void utcid08_classClash() {
         asTutor();
         booking(TrialBookingStatus.PENDING, 48);
         when(bookings.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any())).thenReturn(Optional.of("TUTOR"));
@@ -143,8 +143,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         assertTrue(ex.getMessage().startsWith("Buổi học thử trùng với lịch dạy lớp chính thức của bạn."));
     }
 
-    @Test @DisplayName("TC-07-028: Trùng buổi học kết nối với học viên khác -> 409")
-    void tc07_028_sessionClash() {
+    @Test @DisplayName("UTCID09: Trùng buổi học kết nối với học viên khác -> 409")
+    void utcid09_sessionClash() {
         asTutor();
         booking(TrialBookingStatus.PENDING, 48);
         when(bookings.existsConnectionSessionClash(any(), any(), anyInt(), any(), any(), anyBoolean(), anyInt())).thenReturn(true);
@@ -152,8 +152,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         assertTrue(ex.getMessage().startsWith("Bạn đã có buổi học kết nối với học viên khác vào khung giờ này."));
     }
 
-    @Test @DisplayName("TC-07-029: Không nhập link phòng học -> 400")
-    void tc07_029_missingLink() {
+    @Test @DisplayName("UTCID10: Không nhập link phòng học -> 400")
+    void utcid10_missingLink() {
         asTutor();
         booking(TrialBookingStatus.PENDING, 48);
         var ex = assertThrows(BadRequestException.class, () -> service.respondTrialBooking(TUTOR_EMAIL, BOOKING_ID, accept(" ")));
@@ -161,24 +161,24 @@ class TrialRespondTest extends TrialUnitTestBase {
         verify(bookings, never()).save(any());
     }
 
-    @Test @DisplayName("TC-07-030: Link không bắt đầu bằng http -> 400")
-    void tc07_030_linkWithoutHttp() {
+    @Test @DisplayName("UTCID11: Link không bắt đầu bằng http -> 400")
+    void utcid11_linkWithoutHttp() {
         asTutor();
         booking(TrialBookingStatus.PENDING, 48);
         assertThrows(BadRequestException.class, () -> service.respondTrialBooking(TUTOR_EMAIL, BOOKING_ID, accept("meet.google.com/abc")));
         verify(bookings, never()).save(any());
     }
 
-    @Test @DisplayName("TC-07-031: Buổi học thử đã được xử lý -> 400 'Buổi học thử này đã được xử lý trước đó'")
-    void tc07_031_alreadyProcessed() {
+    @Test @DisplayName("UTCID12: Buổi học thử đã được xử lý -> 400 'Buổi học thử này đã được xử lý trước đó'")
+    void utcid12_alreadyProcessed() {
         asTutor();
         booking(TrialBookingStatus.CONFIRMED, 48);
         var ex = assertThrows(BadRequestException.class, () -> service.respondTrialBooking(TUTOR_EMAIL, BOOKING_ID, accept(LINK)));
         assertEquals("Buổi học thử này đã được xử lý trước đó", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-07-032: Gia sư hết gói hội viên -> 400 yêu cầu đăng ký / gia hạn gói")
-    void tc07_032_noMembership() {
+    @Test @DisplayName("UTCID13: Gia sư hết gói hội viên -> 400 yêu cầu đăng ký / gia hạn gói")
+    void utcid13_noMembership() {
         asTutor();
         booking(TrialBookingStatus.PENDING, 48);
         when(membership.hasActiveMembership(eq(tutor.getTutorId()), any())).thenReturn(false);
@@ -186,8 +186,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         assertEquals("Bạn chưa có gói hội viên còn hạn nên chưa thể nhận học viên mới. Vui lòng đăng ký hoặc gia hạn gói.", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-07-033: Gia sư xử lý buổi học thử của gia sư khác -> 403")
-    void tc07_033_otherTutorsBooking() {
+    @Test @DisplayName("UTCID14: Gia sư xử lý buổi học thử của gia sư khác -> 403")
+    void utcid14_otherTutorsBooking() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.PENDING, 48);
         b.setTutor(Tutor.builder().tutorId(UUID.randomUUID()).user(User.builder().userId(UUID.randomUUID()).build()).build());
@@ -195,8 +195,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         assertEquals(TrialBookingStatus.PENDING, b.getBookingStatus());
     }
 
-    @Test @DisplayName("TC-07-021: Hành động không phải ACCEPT/DECLINE -> 400")
-    void tc07_021_invalidAction() {
+    @Test @DisplayName("UTCID15: Hành động không phải ACCEPT/DECLINE -> 400")
+    void utcid15_invalidAction() {
         asTutor();
         booking(TrialBookingStatus.PENDING, 48);
         var req = RespondTrialBookingRequestDTO.builder().action("MAYBE").build();
@@ -206,8 +206,8 @@ class TrialRespondTest extends TrialUnitTestBase {
 
     // ---- UC-07.04 Decline ----
 
-    @Test @DisplayName("TC-07-034: Từ chối kèm lý do -> Declined, yêu cầu kết nối Declined, lịch sử có lý do, báo học viên")
-    void tc07_034_decline() {
+    @Test @DisplayName("UTCID16: Từ chối kèm lý do -> Declined, yêu cầu kết nối Declined, lịch sử có lý do, báo học viên")
+    void utcid16_decline() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.PENDING, 48);
 
@@ -220,8 +220,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         verify(events).publish(contains(":declined"), any(), any(), any(), any(), eq(List.of(learnerUser.getUserId())));
     }
 
-    @Test @DisplayName("TC-07-034: Từ chối không cần gói hội viên và không kiểm tra trùng lịch")
-    void tc07_034_declineNeedsNoMembership() {
+    @Test @DisplayName("UTCID17: Từ chối không cần gói hội viên và không kiểm tra trùng lịch")
+    void utcid17_declineNeedsNoMembership() {
         asTutor();
         booking(TrialBookingStatus.PENDING, 48);
         when(membership.hasActiveMembership(any(), any())).thenReturn(false);
@@ -231,8 +231,8 @@ class TrialRespondTest extends TrialUnitTestBase {
         verify(bookings, never()).existsConfirmedTutorOverlap(any(), any(), any(), any());
     }
 
-    @Test @DisplayName("TC-07-036: Từ chối yêu cầu đã xử lý / đã hết hạn -> 400, không đổi")
-    void tc07_036_declineHandled() {
+    @Test @DisplayName("UTCID18: Từ chối yêu cầu đã xử lý / đã hết hạn -> 400, không đổi")
+    void utcid18_declineHandled() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.EXPIRED, 48);
         assertThrows(BadRequestException.class, () -> service.respondTrialBooking(TUTOR_EMAIL, BOOKING_ID, decline("No")));

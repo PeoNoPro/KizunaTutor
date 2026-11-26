@@ -19,8 +19,8 @@ import static org.mockito.Mockito.*;
  */
 class AvailabilityListTest extends AvailabilityUnitTestBase {
 
-    @Test @DisplayName("TC-06-001: Gia sư xem ca rảnh -> trả theo thứ tự repository (ngày, giờ bắt đầu), có tên ngày và giờ HH:mm")
-    void tc06_001_listOwnSlots() {
+    @Test @DisplayName("UTCID01: Gia sư xem ca rảnh -> trả theo thứ tự repository (ngày, giờ bắt đầu), có tên ngày và giờ HH:mm")
+    void utcid01_listOwnSlots() {
         loggedInTutor();
         TutorAvailability mon = TutorAvailability.builder().availabilityId(UUID.randomUUID()).tutor(tutor).dayOfWeek(2)
                 .startTime(LocalTime.of(18, 0)).endTime(LocalTime.of(20, 0)).isActive(true).build();
@@ -39,8 +39,8 @@ class AvailabilityListTest extends AvailabilityUnitTestBase {
         assertFalse(result.get(1).getIsActive());
     }
 
-    @Test @DisplayName("TC-06-002: Tài khoản chưa liên kết hồ sơ gia sư -> 404 'Tài khoản của bạn chưa được liên kết với hồ sơ gia sư'")
-    void tc06_002_notLinked() {
+    @Test @DisplayName("UTCID02: Tài khoản chưa liên kết hồ sơ gia sư -> 404 'Tài khoản của bạn chưa được liên kết với hồ sơ gia sư'")
+    void utcid02_notLinked() {
         when(users.findByEmail(EMAIL)).thenReturn(Optional.of(user));
         when(tutors.findByUser(user)).thenReturn(Optional.empty());
 
@@ -48,8 +48,8 @@ class AvailabilityListTest extends AvailabilityUnitTestBase {
         assertEquals("Tài khoản của bạn chưa được liên kết với hồ sơ gia sư", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-06-003: Gia sư chưa có ca rảnh -> danh sách rỗng")
-    void tc06_003_noSlot() {
+    @Test @DisplayName("UTCID03: Gia sư chưa có ca rảnh -> danh sách rỗng")
+    void utcid03_noSlot() {
         loggedInTutor();
         when(slots.findByTutor_TutorIdOrderByDayOfWeekAscStartTimeAsc(TUTOR_ID)).thenReturn(List.of());
 

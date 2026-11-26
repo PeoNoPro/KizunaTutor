@@ -43,8 +43,8 @@ class AvatarUploadTest {
         return b;
     }
 
-    @Test @DisplayName("TC-02-044: Tải JPG hợp lệ -> lưu tệp, trả URL /api/profile/avatar/<tên tệp>")
-    void tc02_044_validJpg() {
+    @Test @DisplayName("UTCID01: Tải JPG hợp lệ -> lưu tệp, trả URL /api/profile/avatar/<tên tệp>")
+    void utcid01_validJpg() {
         AvatarUploadResponseDto dto = service().store(file("avatar.jpg", JPG), OWNER, null);
 
         assertTrue(dto.avatarUrl().startsWith("/api/profile/avatar/"));
@@ -52,53 +52,62 @@ class AvatarUploadTest {
         assertEquals(JPG.length, dto.size());
     }
 
-    @Test @DisplayName("TC-02-045: Tải PNG và WEBP hợp lệ -> đều được nhận")
-    void tc02_045_pngAndWebp() {
+    @Test @DisplayName("UTCID02: Tải PNG hợp lệ -> được nhận, lưu đuôi .png")
+    void utcid02_png() {
         assertTrue(service().store(file("a.png", PNG), OWNER, null).fileName().endsWith(".png"));
+    }
+
+    @Test @DisplayName("UTCID03: Tải WEBP hợp lệ -> được nhận, lưu đuôi .webp")
+    void utcid03_webp() {
         assertTrue(service().store(file("b.webp", WEBP), OWNER, null).fileName().endsWith(".webp"));
     }
 
-    @Test @DisplayName("TC-02-046: Tệp GIF hoặc PDF -> 400")
-    void tc02_046_unsupportedType() {
+    @Test @DisplayName("UTCID04: Tệp GIF -> 400")
+    void utcid04_gif() {
         var ex = assertThrows(BadRequestException.class, () -> service().store(file("a.gif", JPG), OWNER, null));
         assertEquals(INVALID, ex.getMessage());
-        assertThrows(BadRequestException.class, () -> service().store(file("a.pdf", JPG), OWNER, null));
     }
 
-    @Test @DisplayName("TC-02-047: Tệp đúng 5 MB (biên) -> được nhận")
-    void tc02_047_exactly5Mb() {
+    @Test @DisplayName("UTCID05: Tệp PDF -> 400")
+    void utcid05_pdf() {
+        var ex = assertThrows(BadRequestException.class, () -> service().store(file("a.pdf", JPG), OWNER, null));
+        assertEquals(INVALID, ex.getMessage());
+    }
+
+    @Test @DisplayName("UTCID06: Tệp đúng 5 MB (biên) -> được nhận")
+    void utcid06_exactly5Mb() {
         var dto = service().store(file("big.jpg", jpgOfSize(AvatarStorageService.MAX_FILE_SIZE)), OWNER, null);
         assertEquals(AvatarStorageService.MAX_FILE_SIZE, dto.size());
     }
 
-    @Test @DisplayName("TC-02-048: Tệp 5 MB + 1 byte (vượt biên) -> 400")
-    void tc02_048_over5Mb() {
+    @Test @DisplayName("UTCID07: Tệp 5 MB + 1 byte (vượt biên) -> 400")
+    void utcid07_over5Mb() {
         var ex = assertThrows(BadRequestException.class,
                 () -> service().store(file("big.jpg", jpgOfSize(AvatarStorageService.MAX_FILE_SIZE + 1)), OWNER, null));
         assertEquals(INVALID, ex.getMessage());
     }
 
-    @Test @DisplayName("TC-02-049: Tệp rỗng 0 byte -> 400")
-    void tc02_049_emptyFile() {
+    @Test @DisplayName("UTCID08: Tệp rỗng 0 byte -> 400")
+    void utcid08_emptyFile() {
         assertThrows(BadRequestException.class, () -> service().store(file("empty.jpg", new byte[0]), OWNER, null));
     }
 
-    @Test @DisplayName("TC-02-050: Tệp văn bản đổi đuôi thành .jpg -> 400 (nội dung không khớp)")
-    void tc02_050_fakeJpg() {
+    @Test @DisplayName("UTCID09: Tệp văn bản đổi đuôi thành .jpg -> 400 (nội dung không khớp)")
+    void utcid09_fakeJpg() {
         var ex = assertThrows(BadRequestException.class,
                 () -> service().store(file("fake.jpg", "hello world".getBytes()), OWNER, null));
         assertEquals(INVALID, ex.getMessage());
     }
 
-    @Test @DisplayName("TC-02-051: Tên tệp lưu = <userId>_<UUID>.jpg, không dùng tên gốc")
-    void tc02_051_generatedName() {
+    @Test @DisplayName("UTCID10: Tên tệp lưu = <userId>_<UUID>.jpg, không dùng tên gốc")
+    void utcid10_generatedName() {
         var dto = service().store(file("my photo.jpg", JPG), OWNER, null);
         assertTrue(dto.fileName().matches(OWNER + "_[0-9a-f-]{36}\\.jpg"));
         assertFalse(dto.avatarUrl().contains("my photo"));
     }
 
-    @Test @DisplayName("TC-02-052: Ảnh đã tải nhưng chưa dùng bị xóa khi tải ảnh mới; ảnh đang dùng được giữ")
-    void tc02_052_cleansUnusedUploads() {
+    @Test @DisplayName("UTCID11: Ảnh đã tải nhưng chưa dùng bị xóa khi tải ảnh mới; ảnh đang dùng được giữ")
+    void utcid11_cleansUnusedUploads() {
         AvatarStorageServiceImpl service = service();
         var current = service.store(file("current.jpg", JPG), OWNER, null);
         var unused = service.store(file("a.jpg", JPG), OWNER, current.avatarUrl());
@@ -110,24 +119,12 @@ class AvatarUploadTest {
         assertTrue(Files.exists(dir.resolve(latest.fileName())));
     }
 
-    @Test @DisplayName("TC-02-053: Không ghi được vào kho lưu trữ -> 503 'Chưa lưu được ảnh đại diện. Vui lòng thử lại sau.'")
-    void tc02_053_storageUnavailable() throws Exception {
+    @Test @DisplayName("UTCID12: Không ghi được vào kho lưu trữ -> 503 'Chưa lưu được ảnh đại diện. Vui lòng thử lại sau.'")
+    void utcid12_storageUnavailable() throws Exception {
         Path notADirectory = Files.writeString(dir.resolve("blocked"), "x");
         var service = new AvatarStorageServiceImpl(notADirectory.toString());
 
         var ex = assertThrows(ServiceUnavailableException.class, () -> service.store(file("a.jpg", JPG), OWNER, null));
         assertEquals("Chưa lưu được ảnh đại diện. Vui lòng thử lại sau.", ex.getMessage());
-    }
-
-    @Test @DisplayName("TC-02-021: Kiểm tra ảnh của chính chủ - ảnh của người khác bị từ chối, ảnh của mình được nhận")
-    void tc02_021_requireOwnAvatar() {
-        AvatarStorageServiceImpl service = service();
-        var mine = service.store(file("me.jpg", JPG), OWNER, null);
-        UUID other = UUID.fromString("00000000-0000-0000-0000-000000000002");
-        var theirs = service.store(file("them.jpg", JPG), other, null);
-
-        assertDoesNotThrow(() -> service.requireOwnAvatar(mine.avatarUrl(), null, OWNER));
-        assertThrows(BadRequestException.class, () -> service.requireOwnAvatar(theirs.avatarUrl(), null, OWNER));
-        assertTrue(Arrays.asList(dir.toFile().list()).contains(theirs.fileName()));
     }
 }

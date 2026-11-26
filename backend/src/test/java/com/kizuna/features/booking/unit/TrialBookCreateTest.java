@@ -47,8 +47,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         verify(connections, never()).save(any());
     }
 
-    @Test @DisplayName("TC-07-001: Đặt học thử hợp lệ -> buổi Pending 30 phút online, có yêu cầu kết nối, lịch sử, báo gia sư")
-    void tc07_001_validBooking() {
+    @Test @DisplayName("UTCID01: Đặt học thử hợp lệ -> buổi Pending 30 phút online, có yêu cầu kết nối, lịch sử, báo gia sư")
+    void utcid01_validBooking() {
         ready();
 
         var dto = service.createTrialBooking(LEARNER_EMAIL, request(START));
@@ -67,8 +67,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertNotNull(dto.getBookingId());
     }
 
-    @Test @DisplayName("TC-07-001: Thời lượng khác 30 phút -> 400 'Thời lượng buổi học thử là 30 phút'")
-    void tc07_001_durationFixed() {
+    @Test @DisplayName("UTCID02: Thời lượng khác 30 phút -> 400 'Thời lượng buổi học thử là 30 phút'")
+    void utcid02_durationFixed() {
         ready();
         CreateTrialBookingRequestDTO req = request(START);
         req.setDurationMinutes(60);
@@ -77,8 +77,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertNothingSaved();
     }
 
-    @Test @DisplayName("TC-07-002: Chưa đồng ý chia sẻ liên hệ -> 400 yêu cầu đồng ý")
-    void tc07_002_noConsent() {
+    @Test @DisplayName("UTCID03: Chưa đồng ý chia sẻ liên hệ -> 400 yêu cầu đồng ý")
+    void utcid03_noConsent() {
         ready();
         CreateTrialBookingRequestDTO req = request(START);
         req.setShareContact(false);
@@ -87,8 +87,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         verify(bookings, never()).save(any());
     }
 
-    @Test @DisplayName("TC-07-003: Số điện thoại liên hệ sai -> 400 'Số điện thoại không hợp lệ...'")
-    void tc07_003_invalidPhone() {
+    @Test @DisplayName("UTCID04: Số điện thoại liên hệ sai -> 400 'Số điện thoại không hợp lệ...'")
+    void utcid04_invalidPhone() {
         ready();
         CreateTrialBookingRequestDTO req = request(START);
         req.setContactPhone("12345");
@@ -96,8 +96,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertEquals("Số điện thoại không hợp lệ. Vui lòng nhập 10 số, bắt đầu bằng 0.", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-07-003: Email liên hệ sai -> 400 'Email liên hệ không hợp lệ.'")
-    void tc07_003_invalidEmail() {
+    @Test @DisplayName("UTCID05: Email liên hệ sai -> 400 'Email liên hệ không hợp lệ.'")
+    void utcid05_invalidEmail() {
         ready();
         CreateTrialBookingRequestDTO req = request(START);
         req.setContactEmail("abc");
@@ -105,8 +105,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertEquals("Email liên hệ không hợp lệ.", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-07-004/020: Giờ bắt đầu trong quá khứ -> 400 'Thời gian bắt đầu học phải ở tương lai'")
-    void tc07_004_pastStart() {
+    @Test @DisplayName("UTCID06: Giờ bắt đầu trong quá khứ -> 400 'Thời gian bắt đầu học phải ở tương lai'")
+    void utcid06_pastStart() {
         ready();
         var ex = assertThrows(BadRequestException.class,
                 () -> service.createTrialBooking(LEARNER_EMAIL, request(OffsetDateTime.now().minusHours(1))));
@@ -114,8 +114,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertNothingSaved();
     }
 
-    @Test @DisplayName("TC-07-005: Đã có buổi học thử đang mở với gia sư này -> 409")
-    void tc07_005_openTrialExists() {
+    @Test @DisplayName("UTCID07: Đã có buổi học thử đang mở với gia sư này -> 409")
+    void utcid07_openTrialExists() {
         ready();
         when(bookings.existsByLearnerLearnerIdAndTutorTutorIdAndBookingStatusIn(eq(learner.getLearnerId()), eq(tutor.getTutorId()), any()))
                 .thenReturn(true);
@@ -124,8 +124,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertNothingSaved();
     }
 
-    @Test @DisplayName("TC-07-006: Đang chờ 2 gia sư (biên trên) -> yêu cầu thứ 3 bị chặn 409")
-    void tc07_006_thirdPending() {
+    @Test @DisplayName("UTCID08: Đang chờ 2 gia sư (biên trên) -> yêu cầu thứ 3 bị chặn 409")
+    void utcid08_thirdPending() {
         ready();
         when(bookings.countByLearnerLearnerIdAndBookingStatus(learner.getLearnerId(), TrialBookingStatus.PENDING)).thenReturn(2L);
         var ex = assertThrows(ConflictException.class, () -> service.createTrialBooking(LEARNER_EMAIL, request(START)));
@@ -133,16 +133,16 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertNothingSaved();
     }
 
-    @Test @DisplayName("TC-07-007: Đang chờ 1 gia sư -> yêu cầu thứ 2 vẫn được tạo")
-    void tc07_007_secondPendingAllowed() {
+    @Test @DisplayName("UTCID09: Đang chờ 1 gia sư -> yêu cầu thứ 2 vẫn được tạo")
+    void utcid09_secondPendingAllowed() {
         ready();
         when(bookings.countByLearnerLearnerIdAndBookingStatus(learner.getLearnerId(), TrialBookingStatus.PENDING)).thenReturn(1L);
         service.createTrialBooking(LEARNER_EMAIL, request(START));
         verify(bookings).save(any(TrialBooking.class));
     }
 
-    @Test @DisplayName("TC-07-008/035: Gia sư vừa từ chối trong 24 giờ -> 409 chờ 24 giờ")
-    void tc07_008_declinedRecently() {
+    @Test @DisplayName("UTCID10: Gia sư vừa từ chối trong 24 giờ -> 409 chờ 24 giờ")
+    void utcid10_declinedRecently() {
         ready();
         when(bookings.existsByLearnerLearnerIdAndTutorTutorIdAndBookingStatusAndUpdatedAtAfter(
                 eq(learner.getLearnerId()), eq(tutor.getTutorId()), eq(TrialBookingStatus.DECLINED), any())).thenReturn(true);
@@ -150,8 +150,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertTrue(ex.getMessage().startsWith("Gia sư vừa từ chối yêu cầu học thử của bạn. Bạn có thể gửi lại sau 24 giờ"));
     }
 
-    @Test @DisplayName("TC-07-009: Mốc kiểm tra từ chối là 24 giờ trước -> lần từ chối cũ hơn không chặn")
-    void tc07_009_cooldownWindow() {
+    @Test @DisplayName("UTCID11: Mốc kiểm tra từ chối là 24 giờ trước -> lần từ chối cũ hơn không chặn")
+    void utcid11_cooldownWindow() {
         ready();
         service.createTrialBooking(LEARNER_EMAIL, request(START));
 
@@ -163,8 +163,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         verify(bookings).save(any(TrialBooking.class));
     }
 
-    @Test @DisplayName("TC-07-010: Giờ ngoài lịch rảnh và không chọn 'Đề xuất giờ khác' -> 400")
-    void tc07_010_outsideAvailability() {
+    @Test @DisplayName("UTCID12: Giờ ngoài lịch rảnh và không chọn 'Đề xuất giờ khác' -> 400")
+    void utcid12_outsideAvailability() {
         ready();
         when(bookings.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false);
         var ex = assertThrows(BadRequestException.class, () -> service.createTrialBooking(LEARNER_EMAIL, request(START)));
@@ -172,8 +172,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertNothingSaved();
     }
 
-    @Test @DisplayName("TC-07-011: Gia sư đã bận giờ đó -> 409 'Giờ này đã kín: ...'")
-    void tc07_011_tutorBusy() {
+    @Test @DisplayName("UTCID13: Gia sư đã bận giờ đó -> 409 'Giờ này đã kín: ...'")
+    void utcid13_tutorBusy() {
         ready();
         busyAt(START, BusyKind.TRIAL);
         var ex = assertThrows(ConflictException.class, () -> service.createTrialBooking(LEARNER_EMAIL, request(START)));
@@ -181,16 +181,16 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertNothingSaved();
     }
 
-    @Test @DisplayName("TC-07-012: Học viên đã có buổi đã xác nhận với gia sư khác giờ đó -> 409")
-    void tc07_012_learnerBusy() {
+    @Test @DisplayName("UTCID14: Học viên đã có buổi đã xác nhận với gia sư khác giờ đó -> 409")
+    void utcid14_learnerBusy() {
         ready();
         busyAt(START, BusyKind.LEARNER_TRIAL);
         var ex = assertThrows(ConflictException.class, () -> service.createTrialBooking(LEARNER_EMAIL, request(START)));
         assertTrue(ex.getMessage().contains("bạn đã có buổi học thử với gia sư khác vào giờ này"));
     }
 
-    @Test @DisplayName("TC-07-013: Gia sư chưa được duyệt -> 400 chưa sẵn sàng nhận học viên")
-    void tc07_013_notApproved() {
+    @Test @DisplayName("UTCID15: Gia sư chưa được duyệt -> 400 chưa sẵn sàng nhận học viên")
+    void utcid15_notApproved() {
         ready();
         tutor.setVerificationStatus(TutorVerificationStatus.PENDING);
         var ex = assertThrows(BadRequestException.class, () -> service.createTrialBooking(LEARNER_EMAIL, request(START)));
@@ -198,23 +198,23 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertNothingSaved();
     }
 
-    @Test @DisplayName("TC-07-013: Gia sư hết gói hội viên -> 400 'Gia sư hiện chưa sẵn sàng nhận học viên mới. Vui lòng chọn gia sư khác.'")
-    void tc07_013_noMembership() {
+    @Test @DisplayName("UTCID16: Gia sư hết gói hội viên -> 400 'Gia sư hiện chưa sẵn sàng nhận học viên mới. Vui lòng chọn gia sư khác.'")
+    void utcid16_noMembership() {
         ready();
         when(membership.hasActiveMembership(eq(tutor.getTutorId()), any())).thenReturn(false);
         var ex = assertThrows(BadRequestException.class, () -> service.createTrialBooking(LEARNER_EMAIL, request(START)));
         assertEquals("Gia sư hiện chưa sẵn sàng nhận học viên mới. Vui lòng chọn gia sư khác.", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-07-014: Tài khoản gia sư đặt học thử -> 403")
-    void tc07_014_tutorCannotBook() {
+    @Test @DisplayName("UTCID17: Tài khoản gia sư đặt học thử -> 403")
+    void utcid17_tutorCannotBook() {
         asTutor();
         var ex = assertThrows(AccessDeniedException.class, () -> service.createTrialBooking(TUTOR_EMAIL, request(START)));
         assertEquals("Chỉ tài khoản học viên mới có thể đặt lịch học thử", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-07-015: Yêu cầu chờ quá hạn của chính học viên được chuyển Hết hạn trước khi kiểm tra giới hạn")
-    void tc07_015_expiresOwnStaleRequests() {
+    @Test @DisplayName("UTCID18: Yêu cầu chờ quá hạn của chính học viên được chuyển Hết hạn trước khi kiểm tra giới hạn")
+    void utcid18_expiresOwnStaleRequests() {
         ready();
         TrialBooking stale = booking(TrialBookingStatus.PENDING, 1);
         when(bookings.findStalePendingOfLearnerLocked(eq(learner.getLearnerId()), eq(TrialBookingStatus.PENDING), any(), any()))
@@ -228,8 +228,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
 
     // ---- UC-07.02 Đề xuất giờ ngoài lịch rảnh ----
 
-    @Test @DisplayName("TC-07-016: Đề xuất giờ ngoài lịch rảnh -> lưu Pending, đánh dấu ngoài lịch rảnh")
-    void tc07_016_proposeOffSchedule() {
+    @Test @DisplayName("UTCID19: Đề xuất giờ ngoài lịch rảnh -> lưu Pending, đánh dấu ngoài lịch rảnh")
+    void utcid19_proposeOffSchedule() {
         ready();
         when(bookings.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false);
         CreateTrialBookingRequestDTO req = request(START);
@@ -240,8 +240,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         verify(bookings).save(argThat((TrialBooking b) -> b.getOffSchedule() && b.getBookingStatus() == TrialBookingStatus.PENDING));
     }
 
-    @Test @DisplayName("TC-07-017: Đã đề xuất 2 lần trong 7 ngày với gia sư này -> lần thứ 3 bị chặn 409")
-    void tc07_017_proposalLimit() {
+    @Test @DisplayName("UTCID20: Đã đề xuất 2 lần trong 7 ngày với gia sư này -> lần thứ 3 bị chặn 409")
+    void utcid20_proposalLimit() {
         ready();
         when(bookings.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false);
         when(bookings.countOffScheduleSince(eq(learner.getLearnerId()), eq(tutor.getTutorId()), any())).thenReturn(2L);
@@ -253,8 +253,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         assertNothingSaved();
     }
 
-    @Test @DisplayName("TC-07-017: Đã đề xuất 1 lần -> lần thứ 2 vẫn được")
-    void tc07_017_secondProposalAllowed() {
+    @Test @DisplayName("UTCID21: Đã đề xuất 1 lần -> lần thứ 2 vẫn được")
+    void utcid21_secondProposalAllowed() {
         ready();
         when(bookings.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false);
         when(bookings.countOffScheduleSince(eq(learner.getLearnerId()), eq(tutor.getTutorId()), any())).thenReturn(1L);
@@ -265,8 +265,8 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         verify(bookings).save(any(TrialBooking.class));
     }
 
-    @Test @DisplayName("TC-07-019: Giờ đề xuất trùng lịch bận của gia sư -> 409")
-    void tc07_019_proposalBusy() {
+    @Test @DisplayName("UTCID22: Giờ đề xuất trùng lịch bận của gia sư -> 409")
+    void utcid22_proposalBusy() {
         ready();
         when(bookings.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false);
         busyAt(START, BusyKind.TUTOR_CLASS);

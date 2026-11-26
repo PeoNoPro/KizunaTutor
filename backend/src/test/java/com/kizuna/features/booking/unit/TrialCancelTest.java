@@ -26,8 +26,8 @@ class TrialCancelTest extends TrialUnitTestBase {
         return CancelTrialBookingRequestDTO.builder().cancelReason(text).build();
     }
 
-    @Test @DisplayName("TC-07-051: Học viên hủy buổi đang chờ -> Cancelled, yêu cầu kết nối Cancelled, lịch sử có lý do, báo gia sư")
-    void tc07_051_cancelPending() {
+    @Test @DisplayName("UTCID01: Học viên hủy buổi đang chờ -> Cancelled, yêu cầu kết nối Cancelled, lịch sử có lý do, báo gia sư")
+    void utcid01_cancelPending() {
         asLearner();
         TrialBooking b = booking(TrialBookingStatus.PENDING, 48);
 
@@ -40,16 +40,16 @@ class TrialCancelTest extends TrialUnitTestBase {
         verify(events).publish(contains(":cancelled"), any(), any(), any(), any(), eq(List.of(tutorUser.getUserId())));
     }
 
-    @Test @DisplayName("TC-07-052: Học viên hủy buổi đã xác nhận còn 48 giờ -> hủy được")
-    void tc07_052_cancelConfirmedEarly() {
+    @Test @DisplayName("UTCID02: Học viên hủy buổi đã xác nhận còn 48 giờ -> hủy được")
+    void utcid02_cancelConfirmedEarly() {
         asLearner();
         TrialBooking b = booking(TrialBookingStatus.CONFIRMED, 48);
         service.cancelTrialBooking(LEARNER_EMAIL, BOOKING_ID, reason("Sick"));
         assertEquals(TrialBookingStatus.CANCELLED, b.getBookingStatus());
     }
 
-    @Test @DisplayName("TC-07-053: Học viên hủy buổi đã xác nhận còn 23 giờ -> 400 quy tắc 24 giờ")
-    void tc07_053_learnerLate() {
+    @Test @DisplayName("UTCID03: Học viên hủy buổi đã xác nhận còn 23 giờ -> 400 quy tắc 24 giờ")
+    void utcid03_learnerLate() {
         asLearner();
         TrialBooking b = booking(TrialBookingStatus.CONFIRMED, 23);
         var ex = assertThrows(BadRequestException.class, () -> service.cancelTrialBooking(LEARNER_EMAIL, BOOKING_ID, reason("Sick")));
@@ -57,8 +57,8 @@ class TrialCancelTest extends TrialUnitTestBase {
         assertEquals(TrialBookingStatus.CONFIRMED, b.getBookingStatus());
     }
 
-    @Test @DisplayName("TC-07-054: Gia sư hủy buổi đã xác nhận còn 5 giờ -> hủy được, báo học viên")
-    void tc07_054_tutorLate() {
+    @Test @DisplayName("UTCID04: Gia sư hủy buổi đã xác nhận còn 5 giờ -> hủy được, báo học viên")
+    void utcid04_tutorLate() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.CONFIRMED, 5);
         service.cancelTrialBooking(TUTOR_EMAIL, BOOKING_ID, reason("Emergency"));
@@ -66,14 +66,14 @@ class TrialCancelTest extends TrialUnitTestBase {
         verify(events).publish(contains(":cancelled"), any(), any(), any(), any(), eq(List.of(learnerUser.getUserId())));
     }
 
-    @Test @DisplayName("TC-07-055: Lý do hủy trống -> 'Lý do hủy buổi học không được để trống' (kiểm tra trên DTO)")
-    void tc07_055_emptyReason() {
+    @Test @DisplayName("UTCID05: Lý do hủy trống -> 'Lý do hủy buổi học không được để trống' (kiểm tra trên DTO)")
+    void utcid05_emptyReason() {
         assertTrue(hasError(reason(" "), "cancelReason", "Lý do hủy buổi học không được để trống"));
         assertFalse(hasError(reason("Sick"), "cancelReason", "Lý do hủy buổi học không được để trống"));
     }
 
-    @Test @DisplayName("TC-07-056: Buổi đã Completed / Declined / Expired / Cancelled -> 400 không hủy được")
-    void tc07_056_closedBooking() {
+    @Test @DisplayName("UTCID06: Buổi đã Completed / Declined / Expired / Cancelled -> 400 không hủy được")
+    void utcid06_closedBooking() {
         asLearner();
         for (TrialBookingStatus closed : List.of(TrialBookingStatus.COMPLETED, TrialBookingStatus.DECLINED,
                 TrialBookingStatus.EXPIRED, TrialBookingStatus.CANCELLED)) {
@@ -84,8 +84,8 @@ class TrialCancelTest extends TrialUnitTestBase {
         verify(bookings, never()).save(any());
     }
 
-    @Test @DisplayName("TC-07-057: Người ngoài hủy buổi học thử -> 403, không đổi")
-    void tc07_057_stranger() {
+    @Test @DisplayName("UTCID07: Người ngoài hủy buổi học thử -> 403, không đổi")
+    void utcid07_stranger() {
         asStranger("other@test.com");
         TrialBooking b = booking(TrialBookingStatus.PENDING, 48);
         var ex = assertThrows(AccessDeniedException.class, () -> service.cancelTrialBooking("other@test.com", BOOKING_ID, reason("x")));

@@ -31,8 +31,8 @@ class TrialRescheduleTest extends TrialUnitTestBase {
         return RescheduleTrialBookingRequestDTO.builder().newScheduledStartTime(start).rescheduleReason("Bận việc").build();
     }
 
-    @Test @DisplayName("TC-07-043: Học viên dời buổi đang chờ -> giờ mới, vẫn Pending, lịch sử, báo gia sư")
-    void tc07_043_learnerReschedulesPending() {
+    @Test @DisplayName("UTCID01: Học viên dời buổi đang chờ -> giờ mới, vẫn Pending, lịch sử, báo gia sư")
+    void utcid01_learnerReschedulesPending() {
         asLearner();
         TrialBooking b = booking(TrialBookingStatus.PENDING, 48);
 
@@ -45,8 +45,8 @@ class TrialRescheduleTest extends TrialUnitTestBase {
         verify(events).publish(contains(":rescheduled:"), any(), any(), any(), any(), eq(List.of(tutorUser.getUserId())));
     }
 
-    @Test @DisplayName("TC-07-044: Học viên dời buổi đã xác nhận còn hơn 24 giờ -> về Pending, gia sư phải xác nhận lại")
-    void tc07_044_learnerReschedulesConfirmed() {
+    @Test @DisplayName("UTCID02: Học viên dời buổi đã xác nhận còn hơn 24 giờ -> về Pending, gia sư phải xác nhận lại")
+    void utcid02_learnerReschedulesConfirmed() {
         asLearner();
         TrialBooking b = booking(TrialBookingStatus.CONFIRMED, 72);
         b.setTutorConfirmed(true);
@@ -57,8 +57,8 @@ class TrialRescheduleTest extends TrialUnitTestBase {
         assertFalse(b.getTutorConfirmed());
     }
 
-    @Test @DisplayName("TC-07-045: Gia sư dời buổi đã xác nhận -> Rescheduled (chốt luôn), báo học viên")
-    void tc07_045_tutorReschedules() {
+    @Test @DisplayName("UTCID03: Gia sư dời buổi đã xác nhận -> Rescheduled (chốt luôn), báo học viên")
+    void utcid03_tutorReschedules() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.CONFIRMED, 72);
 
@@ -68,16 +68,16 @@ class TrialRescheduleTest extends TrialUnitTestBase {
         verify(events).publish(contains(":rescheduled:"), any(), any(), any(), any(), eq(List.of(learnerUser.getUserId())));
     }
 
-    @Test @DisplayName("TC-07-045: Gia sư dời sang giờ học viên đã có buổi đã xác nhận với gia sư khác -> 409")
-    void tc07_045_tutorReschedulesLearnerBusy() {
+    @Test @DisplayName("UTCID04: Gia sư dời sang giờ học viên đã có buổi đã xác nhận với gia sư khác -> 409")
+    void utcid04_tutorReschedulesLearnerBusy() {
         asTutor();
         booking(TrialBookingStatus.CONFIRMED, 72);
         busyAt(NEW_START, BusyKind.LEARNER_COURSE);
         assertThrows(ConflictException.class, () -> service.rescheduleTrialBooking(TUTOR_EMAIL, BOOKING_ID, to(NEW_START)));
     }
 
-    @Test @DisplayName("TC-07-046: Buổi đã xác nhận còn dưới 24 giờ (23 giờ) -> 400")
-    void tc07_046_lessThan24h() {
+    @Test @DisplayName("UTCID05: Buổi đã xác nhận còn dưới 24 giờ (23 giờ) -> 400")
+    void utcid05_lessThan24h() {
         asLearner();
         TrialBooking b = booking(TrialBookingStatus.CONFIRMED, 23);
         var ex = assertThrows(BadRequestException.class, () -> service.rescheduleTrialBooking(LEARNER_EMAIL, BOOKING_ID, to(NEW_START)));
@@ -85,16 +85,16 @@ class TrialRescheduleTest extends TrialUnitTestBase {
         assertEquals(TrialBookingStatus.CONFIRMED, b.getBookingStatus());
     }
 
-    @Test @DisplayName("TC-07-046: Buổi đang chờ dưới 24 giờ vẫn dời được (quy tắc 24 giờ chỉ áp cho buổi đã xác nhận)")
-    void tc07_046_pendingUnder24hAllowed() {
+    @Test @DisplayName("UTCID06: Buổi đang chờ dưới 24 giờ vẫn dời được (quy tắc 24 giờ chỉ áp cho buổi đã xác nhận)")
+    void utcid06_pendingUnder24hAllowed() {
         asLearner();
         booking(TrialBookingStatus.PENDING, 5);
         service.rescheduleTrialBooking(LEARNER_EMAIL, BOOKING_ID, to(NEW_START));
         verify(bookings).save(any(TrialBooking.class));
     }
 
-    @Test @DisplayName("TC-07-047: Giờ mới trong quá khứ -> 400 'Thời gian dời lịch học phải ở tương lai.'")
-    void tc07_047_pastNewTime() {
+    @Test @DisplayName("UTCID07: Giờ mới trong quá khứ -> 400 'Thời gian dời lịch học phải ở tương lai.'")
+    void utcid07_pastNewTime() {
         asLearner();
         booking(TrialBookingStatus.PENDING, 48);
         var ex = assertThrows(BadRequestException.class,
@@ -102,8 +102,8 @@ class TrialRescheduleTest extends TrialUnitTestBase {
         assertEquals("Thời gian dời lịch học phải ở tương lai.", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-07-048: Giờ mới trùng buổi học thử đã xác nhận của gia sư -> 409")
-    void tc07_048_conflict() {
+    @Test @DisplayName("UTCID08: Giờ mới trùng buổi học thử đã xác nhận của gia sư -> 409")
+    void utcid08_conflict() {
         asLearner();
         booking(TrialBookingStatus.PENDING, 48);
         when(bookings.existsConfirmedTutorOverlap(eq(tutor.getTutorId()), eq(BOOKING_ID), any(), any())).thenReturn(true);
@@ -112,8 +112,8 @@ class TrialRescheduleTest extends TrialUnitTestBase {
         verify(bookings, never()).save(any());
     }
 
-    @Test @DisplayName("TC-07-049 / TC-07-018: Đề xuất ngoài lịch rảnh: 1 lần tạo + 1 lần dời trong 7 ngày -> lần dời thứ 2 bị chặn 409")
-    void tc07_049_offScheduleLimit() {
+    @Test @DisplayName("UTCID09: Đề xuất ngoài lịch rảnh: 1 lần tạo + 1 lần dời trong 7 ngày -> lần dời thứ 2 bị chặn 409")
+    void utcid09_offScheduleLimit() {
         asLearner();
         booking(TrialBookingStatus.PENDING, 48);
         when(bookings.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false);
@@ -124,8 +124,8 @@ class TrialRescheduleTest extends TrialUnitTestBase {
         assertTrue(ex.getMessage().startsWith("Bạn chỉ có thể đề xuất giờ ngoài lịch rảnh tối đa 2 lần mỗi tuần"));
     }
 
-    @Test @DisplayName("TC-07-049: Học viên dời ra ngoài lịch rảnh lần đầu -> được, lịch sử có dấu '[đề xuất ngoài lịch rảnh]'")
-    void tc07_049_offScheduleMarked() {
+    @Test @DisplayName("UTCID10: Học viên dời ra ngoài lịch rảnh lần đầu -> được, lịch sử có dấu '[đề xuất ngoài lịch rảnh]'")
+    void utcid10_offScheduleMarked() {
         asLearner();
         TrialBooking b = booking(TrialBookingStatus.PENDING, 48);
         when(bookings.isWithinAvailability(any(), anyInt(), any(), any())).thenReturn(false);
@@ -136,16 +136,16 @@ class TrialRescheduleTest extends TrialUnitTestBase {
         verify(history).save(argThat((TrialBookingHistory h) -> h.getChangeReason().startsWith("[đề xuất ngoài lịch rảnh]")));
     }
 
-    @Test @DisplayName("TC-07-050: Buổi đã hủy -> 400 chỉ dời được buổi đang chờ hoặc đã xác nhận")
-    void tc07_050_cancelledBooking() {
+    @Test @DisplayName("UTCID11: Buổi đã hủy -> 400 chỉ dời được buổi đang chờ hoặc đã xác nhận")
+    void utcid11_cancelledBooking() {
         asLearner();
         booking(TrialBookingStatus.CANCELLED, 48);
         var ex = assertThrows(BadRequestException.class, () -> service.rescheduleTrialBooking(LEARNER_EMAIL, BOOKING_ID, to(NEW_START)));
         assertEquals("Chỉ có thể đổi lịch cho buổi học thử đang chờ xác nhận hoặc đã xác nhận", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-07-050: Người ngoài dời lịch -> 403")
-    void tc07_050_stranger() {
+    @Test @DisplayName("UTCID12: Người ngoài dời lịch -> 403")
+    void utcid12_stranger() {
         asStranger("other@test.com");
         booking(TrialBookingStatus.PENDING, 48);
         assertThrows(AccessDeniedException.class, () -> service.rescheduleTrialBooking("other@test.com", BOOKING_ID, to(NEW_START)));

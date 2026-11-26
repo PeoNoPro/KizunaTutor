@@ -21,8 +21,8 @@ import static org.mockito.Mockito.*;
  */
 class AgreeConnectionAfterTrialTest extends TrialUnitTestBase {
 
-    @Test @DisplayName("TC-08-001: Đồng ý sau buổi học thử đã hoàn thành -> yêu cầu kết nối Accepted, đánh dấu đã đồng ý, hủy buổi học thử khác chưa diễn ra, báo học viên")
-    void tc08_001_agree() {
+    @Test @DisplayName("UTCID01: Đồng ý sau buổi học thử đã hoàn thành -> yêu cầu kết nối Accepted, đánh dấu đã đồng ý, hủy buổi học thử khác chưa diễn ra, báo học viên")
+    void utcid01_agree() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.COMPLETED, -2);
         TrialBooking otherOpen = TrialBooking.builder().bookingId(UUID.randomUUID()).learner(learner).tutor(tutor)
@@ -38,8 +38,8 @@ class AgreeConnectionAfterTrialTest extends TrialUnitTestBase {
         verify(events).publish(contains(":agreed"), eq("CONNECTION"), any(), any(), any(), eq(List.of(learnerUser.getUserId())));
     }
 
-    @Test @DisplayName("TC-08-001: Buổi học thử chưa gắn yêu cầu kết nối -> tạo yêu cầu kết nối Accepted mới")
-    void tc08_001_createsConnectionIfMissing() {
+    @Test @DisplayName("UTCID02: Buổi học thử chưa gắn yêu cầu kết nối -> tạo yêu cầu kết nối Accepted mới")
+    void utcid02_createsConnectionIfMissing() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.COMPLETED, -2);
         b.setConnectionRequest(null);
@@ -50,16 +50,16 @@ class AgreeConnectionAfterTrialTest extends TrialUnitTestBase {
         assertNotNull(b.getConnectionRequest());
     }
 
-    @Test @DisplayName("TC-08-002: Buổi học thử chưa hoàn thành -> 400 'Chỉ có thể đồng ý kết nối sau khi buổi học thử đã hoàn thành'")
-    void tc08_002_notCompleted() {
+    @Test @DisplayName("UTCID03: Buổi học thử chưa hoàn thành -> 400 'Chỉ có thể đồng ý kết nối sau khi buổi học thử đã hoàn thành'")
+    void utcid03_notCompleted() {
         asTutor();
         booking(TrialBookingStatus.CONFIRMED, 24);
         var ex = assertThrows(BadRequestException.class, () -> service.agreeConnectionAfterTrial(TUTOR_EMAIL, BOOKING_ID));
         assertEquals("Chỉ có thể đồng ý kết nối sau khi buổi học thử đã hoàn thành", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-08-003: Gia sư hết gói hội viên -> 400 yêu cầu đăng ký / gia hạn gói")
-    void tc08_003_noMembership() {
+    @Test @DisplayName("UTCID04: Gia sư hết gói hội viên -> 400 yêu cầu đăng ký / gia hạn gói")
+    void utcid04_noMembership() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.COMPLETED, -2);
         when(membership.hasActiveMembership(eq(tutor.getTutorId()), any())).thenReturn(false);
@@ -67,8 +67,8 @@ class AgreeConnectionAfterTrialTest extends TrialUnitTestBase {
         assertNotEquals(Boolean.TRUE, b.getOfficialArrangementAgreed());
     }
 
-    @Test @DisplayName("TC-08-004: Đã đồng ý trước đó -> không đổi gì, không lưu")
-    void tc08_004_alreadyAgreed() {
+    @Test @DisplayName("UTCID05: Đã đồng ý trước đó -> không đổi gì, không lưu")
+    void utcid05_alreadyAgreed() {
         asTutor();
         TrialBooking b = booking(TrialBookingStatus.COMPLETED, -2);
         b.setOfficialArrangementAgreed(true);

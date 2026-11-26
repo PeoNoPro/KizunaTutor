@@ -18,8 +18,8 @@ import static org.mockito.Mockito.*;
  */
 class AvailabilityRemoveTest extends AvailabilityUnitTestBase {
 
-    @Test @DisplayName("TC-06-022: Xóa ca không có học viên -> xóa ca")
-    void tc06_022_deleteFreeSlot() {
+    @Test @DisplayName("UTCID01: Xóa ca không có học viên -> xóa ca")
+    void utcid01_deleteFreeSlot() {
         loggedInTutor();
         TutorAvailability slot = ownSlot(2, "18:00", "20:00", true);
         trialInSlot(false);
@@ -30,8 +30,8 @@ class AvailabilityRemoveTest extends AvailabilityUnitTestBase {
         verify(slots).delete(slot);
     }
 
-    @Test @DisplayName("TC-06-022: Kiểm tra học viên theo đúng ngày và khung giờ của ca bị xóa")
-    void tc06_022_checksExactSlotRange() {
+    @Test @DisplayName("UTCID02: Kiểm tra học viên theo đúng ngày và khung giờ của ca bị xóa")
+    void utcid02_checksExactSlotRange() {
         loggedInTutor();
         ownSlot(4, "07:30", "09:00", true);
         trialInSlot(false);
@@ -43,8 +43,8 @@ class AvailabilityRemoveTest extends AvailabilityUnitTestBase {
         verify(connections).hasUpcomingSessionsInSlot(TUTOR_ID, 4, LocalTime.of(7, 30), LocalTime.of(9, 0));
     }
 
-    @Test @DisplayName("TC-06-024: Ca không tồn tại hoặc không thuộc gia sư -> 404, không xóa")
-    void tc06_024_notOwned() {
+    @Test @DisplayName("UTCID03: Ca không tồn tại hoặc không thuộc gia sư -> 404, không xóa")
+    void utcid03_notOwned() {
         loggedInTutor();
         when(slots.findByAvailabilityIdAndTutor_TutorId(SLOT_ID, TUTOR_ID)).thenReturn(Optional.empty());
 
@@ -53,8 +53,8 @@ class AvailabilityRemoveTest extends AvailabilityUnitTestBase {
         verify(slots, never()).delete(any());
     }
 
-    @Test @DisplayName("TC-06-025: Trong ca có học thử -> 409, không xóa")
-    void tc06_025_trialInSlot() {
+    @Test @DisplayName("UTCID04: Trong ca có học thử -> 409, không xóa")
+    void utcid04_trialInSlot() {
         loggedInTutor();
         ownSlot(2, "18:00", "20:00", true);
         trialInSlot(true);
@@ -64,8 +64,8 @@ class AvailabilityRemoveTest extends AvailabilityUnitTestBase {
         verify(slots, never()).delete(any());
     }
 
-    @Test @DisplayName("TC-06-026: Trong ca có buổi kết nối -> 409, không xóa")
-    void tc06_026_connectionInSlot() {
+    @Test @DisplayName("UTCID05: Trong ca có buổi kết nối -> 409, không xóa")
+    void utcid05_connectionInSlot() {
         loggedInTutor();
         ownSlot(2, "18:00", "20:00", true);
         trialInSlot(false);

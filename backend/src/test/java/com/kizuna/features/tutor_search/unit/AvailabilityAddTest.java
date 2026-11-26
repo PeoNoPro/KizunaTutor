@@ -29,8 +29,8 @@ class AvailabilityAddTest extends AvailabilityUnitTestBase {
         when(slots.hasOverlappingSlot(eq(TUTOR_ID), anyInt(), any(), any())).thenReturn(false);
     }
 
-    @Test @DisplayName("TC-06-004: Thêm ca hợp lệ Thứ hai 18:00-20:00 -> lưu ca đang mở")
-    void tc06_004_validSlot() {
+    @Test @DisplayName("UTCID01: Thêm ca hợp lệ Thứ hai 18:00-20:00 -> lưu ca đang mở")
+    void utcid01_validSlot() {
         loggedInTutor();
         noOverlap();
 
@@ -45,55 +45,55 @@ class AvailabilityAddTest extends AvailabilityUnitTestBase {
         assertEquals("18:00", result.getStartTime());
     }
 
-    @Test @DisplayName("TC-06-005: Giờ bắt đầu để trống -> 400 'Giờ bắt đầu không được để trống'")
-    void tc06_005_emptyTime() {
+    @Test @DisplayName("UTCID02: Giờ bắt đầu để trống -> 400 'Giờ bắt đầu không được để trống'")
+    void utcid02_emptyTime() {
         loggedInTutor();
         var ex = assertThrows(BadRequestException.class, () -> service.addAvailability(EMAIL, slot(2, " ", "20:00")));
         assertEquals("Giờ bắt đầu không được để trống", ex.getMessage());
         verify(slots, never()).save(any());
     }
 
-    @Test @DisplayName("TC-06-006: Giờ sai định dạng '6pm' -> 400 định dạng HH:mm")
-    void tc06_006_wrongFormat() {
+    @Test @DisplayName("UTCID03: Giờ sai định dạng '6pm' -> 400 định dạng HH:mm")
+    void utcid03_wrongFormat() {
         loggedInTutor();
         var ex = assertThrows(BadRequestException.class, () -> service.addAvailability(EMAIL, slot(2, "6pm", "20:00")));
         assertEquals("Giờ bắt đầu không đúng định dạng HH:mm (Ví dụ: 18:30)", ex.getMessage());
         verify(slots, never()).save(any());
     }
 
-    @Test @DisplayName("TC-06-007: Bắt đầu bằng kết thúc 18:00-18:00 (biên) -> 400")
-    void tc06_007_startEqualsEnd() {
+    @Test @DisplayName("UTCID04: Bắt đầu bằng kết thúc 18:00-18:00 (biên) -> 400")
+    void utcid04_startEqualsEnd() {
         loggedInTutor();
         var ex = assertThrows(BadRequestException.class, () -> service.addAvailability(EMAIL, slot(2, "18:00", "18:00")));
         assertTrue(ex.getMessage().contains("phải sớm hơn giờ kết thúc"));
         verify(slots, never()).save(any());
     }
 
-    @Test @DisplayName("TC-06-008: Bắt đầu sau kết thúc 20:00-18:00 -> 400")
-    void tc06_008_startAfterEnd() {
+    @Test @DisplayName("UTCID05: Bắt đầu sau kết thúc 20:00-18:00 -> 400")
+    void utcid05_startAfterEnd() {
         loggedInTutor();
         var ex = assertThrows(BadRequestException.class, () -> service.addAvailability(EMAIL, slot(2, "20:00", "18:00")));
         assertTrue(ex.getMessage().contains("phải sớm hơn giờ kết thúc"));
     }
 
-    @Test @DisplayName("TC-06-009: Ca 29 phút (dưới biên) -> 400 tối thiểu 30 phút")
-    void tc06_009_29Minutes() {
+    @Test @DisplayName("UTCID06: Ca 29 phút (dưới biên) -> 400 tối thiểu 30 phút")
+    void utcid06_29Minutes() {
         loggedInTutor();
         var ex = assertThrows(BadRequestException.class, () -> service.addAvailability(EMAIL, slot(2, "18:00", "18:29")));
         assertTrue(ex.getMessage().startsWith("Khung giờ rảnh tối thiểu phải từ 30 phút"));
         verify(slots, never()).save(any());
     }
 
-    @Test @DisplayName("TC-06-010: Ca đúng 30 phút (biên) -> lưu được")
-    void tc06_010_30Minutes() {
+    @Test @DisplayName("UTCID07: Ca đúng 30 phút (biên) -> lưu được")
+    void utcid07_30Minutes() {
         loggedInTutor();
         noOverlap();
         service.addAvailability(EMAIL, slot(2, "18:00", "18:30"));
         verify(slots).save(any(TutorAvailability.class));
     }
 
-    @Test @DisplayName("TC-06-011: Trùng ca đang mở cùng ngày -> 409")
-    void tc06_011_overlap() {
+    @Test @DisplayName("UTCID08: Trùng ca đang mở cùng ngày -> 409")
+    void utcid08_overlap() {
         loggedInTutor();
         when(slots.hasOverlappingSlot(TUTOR_ID, 2, LocalTime.of(19, 0), LocalTime.of(21, 0))).thenReturn(true);
 
@@ -102,8 +102,8 @@ class AvailabilityAddTest extends AvailabilityUnitTestBase {
         verify(slots, never()).save(any());
     }
 
-    @Test @DisplayName("TC-06-012: Ca chạm sát ca khác 20:00-21:00 (repository báo không trùng) -> lưu được")
-    void tc06_012_touchingSlot() {
+    @Test @DisplayName("UTCID09: Ca chạm sát ca khác 20:00-21:00 (repository báo không trùng) -> lưu được")
+    void utcid09_touchingSlot() {
         loggedInTutor();
         noOverlap();
         service.addAvailability(EMAIL, slot(2, "20:00", "21:00"));
@@ -111,8 +111,8 @@ class AvailabilityAddTest extends AvailabilityUnitTestBase {
         verify(slots).save(any(TutorAvailability.class));
     }
 
-    @Test @DisplayName("TC-06-014: Trùng giờ với ca đang tắt -> câu kiểm tra trùng chỉ xét ca đang mở, lưu được")
-    void tc06_014_sameTimeAsTurnedOffSlot() throws Exception {
+    @Test @DisplayName("UTCID10: Trùng giờ với ca đang tắt -> câu kiểm tra trùng chỉ xét ca đang mở, lưu được")
+    void utcid10_sameTimeAsTurnedOffSlot() throws Exception {
         String jpql = com.kizuna.features.tutor_search.repository.TutorAvailabilityRepository.class
                 .getMethod("hasOverlappingSlot", java.util.UUID.class, Integer.class, LocalTime.class, LocalTime.class)
                 .getAnnotation(org.springframework.data.jpa.repository.Query.class).value();
@@ -124,8 +124,8 @@ class AvailabilityAddTest extends AvailabilityUnitTestBase {
         verify(slots).save(any(TutorAvailability.class));
     }
 
-    @Test @DisplayName("TC-06-013: Cùng giờ nhưng khác ngày -> kiểm tra trùng theo đúng ngày mới, lưu được")
-    void tc06_013_otherDay() {
+    @Test @DisplayName("UTCID11: Cùng giờ nhưng khác ngày -> kiểm tra trùng theo đúng ngày mới, lưu được")
+    void utcid11_otherDay() {
         loggedInTutor();
         when(slots.hasOverlappingSlot(TUTOR_ID, 2, LocalTime.of(18, 0), LocalTime.of(20, 0))).thenReturn(true);
         when(slots.hasOverlappingSlot(TUTOR_ID, 3, LocalTime.of(18, 0), LocalTime.of(20, 0))).thenReturn(false);

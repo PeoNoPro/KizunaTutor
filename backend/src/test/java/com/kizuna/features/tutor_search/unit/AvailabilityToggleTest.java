@@ -18,8 +18,8 @@ import static org.mockito.Mockito.*;
  */
 class AvailabilityToggleTest extends AvailabilityUnitTestBase {
 
-    @Test @DisplayName("TC-06-015: Tắt ca không có học viên -> lưu isActive = false")
-    void tc06_015_turnOff() {
+    @Test @DisplayName("UTCID01: Tắt ca không có học viên -> lưu isActive = false")
+    void utcid01_turnOff() {
         loggedInTutor();
         TutorAvailability slot = ownSlot(2, "18:00", "20:00", true);
         trialInSlot(false);
@@ -32,8 +32,8 @@ class AvailabilityToggleTest extends AvailabilityUnitTestBase {
         verify(slots).save(slot);
     }
 
-    @Test @DisplayName("TC-06-016: Bật lại ca đang tắt -> lưu isActive = true, không cần kiểm tra học viên")
-    void tc06_016_turnOn() {
+    @Test @DisplayName("UTCID02: Bật lại ca đang tắt -> lưu isActive = true, không cần kiểm tra học viên")
+    void utcid02_turnOn() {
         loggedInTutor();
         TutorAvailability slot = ownSlot(2, "18:00", "20:00", false);
 
@@ -44,8 +44,8 @@ class AvailabilityToggleTest extends AvailabilityUnitTestBase {
         verify(connections, never()).hasUpcomingSessionsInSlot(any(), any(), any(), any());
     }
 
-    @Test @DisplayName("TC-06-017: Ca không thuộc gia sư -> 404 'Không tìm thấy ca rảnh cần cập nhật'")
-    void tc06_017_notOwned() {
+    @Test @DisplayName("UTCID03: Ca không thuộc gia sư -> 404 'Không tìm thấy ca rảnh cần cập nhật'")
+    void utcid03_notOwned() {
         loggedInTutor();
         when(slots.findByAvailabilityIdAndTutor_TutorId(SLOT_ID, TUTOR_ID)).thenReturn(Optional.empty());
 
@@ -54,8 +54,8 @@ class AvailabilityToggleTest extends AvailabilityUnitTestBase {
         verify(slots, never()).save(any());
     }
 
-    @Test @DisplayName("TC-06-018/019: Trong ca có học thử đang chờ hoặc đã xác nhận -> 409, ca vẫn mở")
-    void tc06_018_trialInSlot() {
+    @Test @DisplayName("UTCID04: Trong ca có học thử đang chờ hoặc đã xác nhận -> 409, ca vẫn mở")
+    void utcid04_trialInSlot() {
         loggedInTutor();
         TutorAvailability slot = ownSlot(2, "18:00", "20:00", true);
         trialInSlot(true);
@@ -66,8 +66,8 @@ class AvailabilityToggleTest extends AvailabilityUnitTestBase {
         verify(slots, never()).save(any());
     }
 
-    @Test @DisplayName("TC-06-020/021: Trong ca có buổi kết nối đã đồng ý hoặc đang chờ còn hạn -> 409, ca vẫn mở")
-    void tc06_020_connectionInSlot() {
+    @Test @DisplayName("UTCID05: Trong ca có buổi kết nối đã đồng ý hoặc đang chờ còn hạn -> 409, ca vẫn mở")
+    void utcid05_connectionInSlot() {
         loggedInTutor();
         TutorAvailability slot = ownSlot(2, "18:00", "20:00", true);
         trialInSlot(false);

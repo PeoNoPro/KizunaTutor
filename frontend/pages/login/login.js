@@ -25,15 +25,6 @@ const DASHBOARD_ROUTES = {
   ROLE_STUDENT: '/pages/home/'
 };
 
-const DEMO_ACCOUNTS = {
-  admin: { email: 'admin@kizuna.vn', pass: 'admin123', role: 'ROLE_ADMIN', fullName: 'Quản Trị Viên (Admin)' },
-  manager: { email: 'manager@kizuna.vn', pass: '123456', role: 'ROLE_MANAGER', fullName: 'Quản Lý Vận Hành' },
-  cs: { email: 'cs@kizuna.vn', pass: '123456', role: 'ROLE_CS_STAFF', fullName: 'Chăm Sóc Khách Hàng (CS)' },
-  academic: { email: 'academic@kizuna.vn', pass: '123456', role: 'ROLE_ACADEMIC_OFFICER', fullName: 'Cán Bộ Học Vụ' },
-  tutor: { email: 'tutor@kizuna.vn', pass: '123456', role: 'ROLE_TUTOR', fullName: 'Giảng Viên Kizuna' },
-  learner: { email: 'learner@kizuna.vn', pass: '123456', role: 'ROLE_LEARNER', fullName: 'Học Viên Kizuna' }
-};
-
 let firstTimeAuthData = {
   token: null,
   user: null
@@ -200,27 +191,6 @@ async function handleLoginSubmit(event) {
 }
 
 // =========================================================================
-// 4. KIỂM THỬ NHANH 6 VAI TRÒ (QUICK LOGIN HELPER)
-// =========================================================================
-function setupQuickLoginButtons() {
-  document.querySelectorAll('.btn-quick-login').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const roleKey = btn.dataset.role;
-      const account = DEMO_ACCOUNTS[roleKey];
-      if (account) {
-        const emailInput = document.getElementById('loginEmail');
-        const passwordInput = document.getElementById('loginPassword');
-        if (emailInput && passwordInput) {
-          emailInput.value = account.email;
-          passwordInput.value = account.pass;
-          handleLoginSubmit();
-        }
-      }
-    });
-  });
-}
-
-// =========================================================================
 // 5. MODAL ĐỔI MẬT KHẨU LẦN ĐẦU (FIRST-TIME PASSWORD CHANGE)
 // =========================================================================
 function showFirstTimeChangePasswordModal(token, user, currentPassword) {
@@ -339,9 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Form submit
   document.getElementById('loginForm')?.addEventListener('submit', handleLoginSubmit);
-
-  // Quick login buttons
-  setupQuickLoginButtons();
 
   // First time password form
   // Tính năng Ẩn/Hiện mật khẩu & Modal Quên mật khẩu (Zero-Reload)

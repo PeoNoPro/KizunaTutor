@@ -24,8 +24,8 @@ class FeaturedTutorsTest extends TutorSearchUnitTestBase {
 
     private static TutorPost post(Tutor t) { return TutorPost.builder().tutor(t).title("Post of " + t.getUser().getFullName()).build(); }
 
-    @Test @DisplayName("TC-05-030: Gia sư nổi bật có bài đăng và gói còn hạn -> hiển thị theo thứ tự điểm")
-    void tc05_030_featured() {
+    @Test @DisplayName("UTCID01: Gia sư nổi bật có bài đăng và gói còn hạn -> hiển thị theo thứ tự điểm")
+    void utcid01_featured() {
         Tutor a = tutor(A, "Tutor A", "Hà Nội"), b = tutor(B, "Tutor B", "Hà Nội");
         when(repo.findTop6ByIsFeaturedTrueOrderByAvgRatingDesc()).thenReturn(List.of(a, b));
         when(posts.publishedPosts(any())).thenReturn(Map.of(A, post(a), B, post(b)));
@@ -36,16 +36,16 @@ class FeaturedTutorsTest extends TutorSearchUnitTestBase {
         assertEquals(List.of("Tutor A", "Tutor B"), result.stream().map(r -> r.getFullName()).toList());
     }
 
-    @Test @DisplayName("TC-05-031: Giới hạn 6 gia sư lấy từ truy vấn top 6")
-    void tc05_031_top6() {
+    @Test @DisplayName("UTCID02: Giới hạn 6 gia sư lấy từ truy vấn top 6")
+    void utcid02_top6() {
         when(repo.findTop6ByIsFeaturedTrueOrderByAvgRatingDesc()).thenReturn(List.of());
         service.getFeaturedTutors();
         verify(repo).findTop6ByIsFeaturedTrueOrderByAvgRatingDesc();
         verify(repo, never()).findAll();
     }
 
-    @Test @DisplayName("TC-05-032: Gia sư nổi bật chưa có bài đăng đã duyệt -> bị ẩn")
-    void tc05_032_noPublishedPost() {
+    @Test @DisplayName("UTCID03: Gia sư nổi bật chưa có bài đăng đã duyệt -> bị ẩn")
+    void utcid03_noPublishedPost() {
         Tutor a = tutor(A, "Tutor A", "Hà Nội"), b = tutor(B, "Tutor B", "Hà Nội");
         when(repo.findTop6ByIsFeaturedTrueOrderByAvgRatingDesc()).thenReturn(List.of(a, b));
         when(posts.publishedPosts(any())).thenReturn(Map.of(A, post(a)));
@@ -57,8 +57,8 @@ class FeaturedTutorsTest extends TutorSearchUnitTestBase {
         assertEquals(A, result.get(0).getTutorId());
     }
 
-    @Test @DisplayName("TC-05-032: Gia sư nổi bật hết gói hội viên -> bị ẩn")
-    void tc05_032_noMembership() {
+    @Test @DisplayName("UTCID04: Gia sư nổi bật hết gói hội viên -> bị ẩn")
+    void utcid04_noMembership() {
         Tutor a = tutor(A, "Tutor A", "Hà Nội"), b = tutor(B, "Tutor B", "Hà Nội");
         when(repo.findTop6ByIsFeaturedTrueOrderByAvgRatingDesc()).thenReturn(List.of(a, b));
         when(posts.publishedPosts(any())).thenReturn(Map.of(A, post(a), B, post(b)));
@@ -68,8 +68,8 @@ class FeaturedTutorsTest extends TutorSearchUnitTestBase {
         assertEquals(List.of(A), service.getFeaturedTutors().stream().map(r -> r.getTutorId()).toList());
     }
 
-    @Test @DisplayName("TC-05-033: Không có gia sư nổi bật hiển thị được -> danh sách rỗng")
-    void tc05_033_none() {
+    @Test @DisplayName("UTCID05: Không có gia sư nổi bật hiển thị được -> danh sách rỗng")
+    void utcid05_none() {
         when(repo.findTop6ByIsFeaturedTrueOrderByAvgRatingDesc()).thenReturn(List.of());
         assertTrue(service.getFeaturedTutors().isEmpty());
     }

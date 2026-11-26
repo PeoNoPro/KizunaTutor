@@ -24,8 +24,8 @@ class TutorProfileGetTest extends ProfileUnitTestBase {
     private final TutorSearchService search = mock(TutorSearchService.class);
     private final TutorProfileServiceImpl service = new TutorProfileServiceImpl(users, tutors, avatars, search);
 
-    @Test @DisplayName("TC-02-024: Gia sư xem hồ sơ -> trả mã gia sư, tiêu đề, kinh nghiệm, học phí, JLPT, tỉnh, khu vực")
-    void tc02_024_viewOwnProfile() {
+    @Test @DisplayName("UTCID01: Gia sư xem hồ sơ -> trả mã gia sư, tiêu đề, kinh nghiệm, học phí, JLPT, tỉnh, khu vực")
+    void utcid01_viewOwnProfile() {
         User u = loggedIn("ROLE_TUTOR");
         when(tutors.findByUser_UserId(USER_ID)).thenReturn(Optional.of(Tutor.builder().user(u).tutorCode(10001L)
                 .headline("JLPT N1 teacher").experienceYears((short) 3).hourlyRate(new BigDecimal("200000"))
@@ -43,15 +43,15 @@ class TutorProfileGetTest extends ProfileUnitTestBase {
         assertEquals("Cầu Giấy", dto.addressDetail());
     }
 
-    @Test @DisplayName("TC-02-025: Tài khoản không phải gia sư -> 403 'Chỉ tài khoản gia sư mới xem được hồ sơ này.'")
-    void tc02_025_notTutor() {
+    @Test @DisplayName("UTCID02: Tài khoản không phải gia sư -> 403 'Chỉ tài khoản gia sư mới xem được hồ sơ này.'")
+    void utcid02_notTutor() {
         loggedIn("ROLE_LEARNER");
         var ex = assertThrows(AccessDeniedException.class, () -> service.getMyProfile(EMAIL));
         assertEquals("Chỉ tài khoản gia sư mới xem được hồ sơ này.", ex.getMessage());
     }
 
-    @Test @DisplayName("TC-02-026: Tài khoản gia sư đã bị xóa -> 404 'Không tìm thấy hồ sơ gia sư.'")
-    void tc02_026_deleted() {
+    @Test @DisplayName("UTCID03: Tài khoản gia sư đã bị xóa -> 404 'Không tìm thấy hồ sơ gia sư.'")
+    void utcid03_deleted() {
         User u = loggedIn("ROLE_TUTOR");
         u.setDeletedAt(OffsetDateTime.now());
         var ex = assertThrows(ResourceNotFoundException.class, () -> service.getMyProfile(EMAIL));

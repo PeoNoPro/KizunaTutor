@@ -11,6 +11,7 @@ import com.kizuna.features.user_management.repository.ManagedUserRepository.Tuto
 import com.kizuna.features.user_management.service.UserStatusMailService;
 import com.kizuna.features.user_management.service.impl.UserManagementServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -59,6 +60,7 @@ class UserManagementServiceTest {
     // ===== Danh sách (UC-20) =====
 
     @Test
+    @DisplayName("TC-02-054/059: Mặc định nhóm Gia sư, 20 dòng/trang; 21 tài khoản -> 2 trang")
     void danhSach_macDinhGiaSu_chuanHoaTrangVaKichThuoc() {
         when(repository.list(any(), any(), any(), anyInt(), anyInt())).thenReturn(new ManagedUserRepository.Page(
                 List.of(new AccountRow(USER, "A", "a@example.com", "ROLE_TUTOR", "SUSPENDED", NOW)), 21));
@@ -73,6 +75,7 @@ class UserManagementServiceTest {
     }
 
     @Test
+    @DisplayName("TC-02-056/057: Lọc học viên theo từ khóa + trạng thái; không có kết quả -> danh sách rỗng, 0 trang")
     void danhSach_hocVien_locTrangThai_tuKhoaThoatKyTuDacBiet() {
         when(repository.list(any(), any(), any(), anyInt(), anyInt())).thenReturn(new ManagedUserRepository.Page(List.of(), 0));
 
@@ -112,6 +115,7 @@ class UserManagementServiceTest {
     }
 
     @Test
+    @DisplayName("TC-02-061: Chi tiết gia sư -> thông tin tài khoản, hồ sơ gia sư, trạng thái được chọn")
     void chiTiet_giaSu_coHoSo_soDienThoaiLayTuHoSoKhiTaiKhoanTrong_vaTrangThaiDuocChon() {
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "ACTIVE")));
         when(repository.tutorProfile(USER)).thenReturn(Optional.of(new TutorRow(10001L, "Tiêu đề", 3, "N2", null, 0,
@@ -127,6 +131,7 @@ class UserManagementServiceTest {
     }
 
     @Test
+    @DisplayName("TC-02-065: Tài khoản chờ kích hoạt -> không có trạng thái nào được chọn, báo chưa hoàn tất đăng ký")
     void chiTiet_hocVienChoKichHoat_khongDuocDoiTrangThai() {
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "PENDING")));
         when(repository.learnerProfile(USER)).thenReturn(Optional.of(new LearnerRow("N5", "N3", "Giao tiếp", "Hà Nội", null)));
@@ -274,6 +279,7 @@ class UserManagementServiceTest {
     // ===== REQ-25: chi tiết =====
 
     @Test
+    @DisplayName("TC-02-061: Lịch sử đổi trạng thái chỉ lấy 20 lần gần nhất")
     void req25_historyIsLimitedTo20MostRecentChanges() {
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "ACTIVE")));
 
@@ -293,6 +299,7 @@ class UserManagementServiceTest {
     }
 
     @Test
+    @DisplayName("TC-02-062: Chi tiết học viên -> trình độ, mục tiêu, tỉnh")
     void req25_learnerDetailReturnsProfileAndAllowedStatuses() {
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "SUSPENDED")));
         when(repository.learnerProfile(USER)).thenReturn(Optional.of(new LearnerRow("N5", "N3", "Giao tiếp", "Hà Nội", null)));
@@ -306,9 +313,24 @@ class UserManagementServiceTest {
         assertThat(d.allowedStatuses()).extracting("value").containsExactly("ACTIVE", "BANNED");
     }
 
+    @Test
+    @DisplayName("TC-02-064: Gia sư / học viên chưa điền hồ sơ -> phần hồ sơ trả null để giao diện báo chưa cập nhật")
+    void tc02_064_profileNotFilledIn() {
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "ACTIVE")));
+        var learner = service.detail(USER);
+        assertThat(learner.learnerProfile()).isNull();
+        assertThat(learner.tutorProfile()).isNull();
+
+        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "ACTIVE")));
+        var tutor = service.detail(USER);
+        assertThat(tutor.tutorProfile()).isNull();
+        assertThat(tutor.allowedStatuses()).isNotEmpty();
+    }
+
     // ===== REQ-26: đổi trạng thái =====
 
     @Test
+    @DisplayName("TC-02-067: Tạm khóa tài khoản -> cập nhật, ghi 1 nhật ký, gửi email theo đúng thứ tự")
     void req26_activeToSuspendedThenAuditThenEmailInThatOrder() {
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "ACTIVE")));
         when(repository.updateStatus(USER, "ACTIVE", "SUSPENDED")).thenReturn(1);
@@ -322,6 +344,7 @@ class UserManagementServiceTest {
     }
 
     @Test
+    @DisplayName("TC-02-068: Mở lại tài khoản đang tạm khóa -> Active, ghi nhật ký, gửi email")
     void req26_suspendedBackToActiveIsAllowed() {
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "SUSPENDED")));
         when(repository.updateStatus(USER, "SUSPENDED", "ACTIVE")).thenReturn(1);
@@ -368,6 +391,7 @@ class UserManagementServiceTest {
     }
 
     @Test
+    @DisplayName("TC-02-071: Lời nhắn 1000 ký tự (biên) -> hợp lệ")
     void req26_reasonAndMessageOf1000CharactersAreValid() {
         assertThat(violatedFields(new UpdateUserStatusRequest("BANNED", "ACTIVE", "r".repeat(1000), "m".repeat(1000))))
                 .isEmpty();
@@ -380,12 +404,14 @@ class UserManagementServiceTest {
     }
 
     @Test
+    @DisplayName("TC-02-071: Lời nhắn 1001 ký tự (vượt biên) -> không hợp lệ")
     void req26_messageToUserOf1001CharactersIsInvalid() {
         assertThat(violatedFields(new UpdateUserStatusRequest("BANNED", "ACTIVE", "Lý do", "m".repeat(1001))))
                 .containsExactly("message");
     }
 
     @Test
+    @DisplayName("TC-02-070: Không chọn trạng thái -> lỗi kiểm tra dữ liệu, không lưu")
     void req26_blankReasonStatusAndExpectedStatusAreInvalid() {
         assertThat(violatedFields(new UpdateUserStatusRequest(" ", " ", " ", null)))
                 .containsExactlyInAnyOrder("status", "expectedStatus", "reason");
@@ -430,6 +456,7 @@ class UserManagementServiceTest {
     }
 
     @Test
+    @DisplayName("TC-02-072: Người khác vừa đổi trạng thái -> 409 yêu cầu tải lại, không ghi đè")
     void req26_changedElsewhereMessageForStaleExpectedStatusAndLostUpdate() {
         String changed = "Trạng thái tài khoản vừa được thay đổi. Vui lòng tải lại trước khi cập nhật.";
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "SUSPENDED")));
@@ -596,6 +623,7 @@ class UserManagementServiceTest {
         }
 
         @Test
+        @DisplayName("TC-02-073: Gửi email lỗi -> không báo lỗi ra ngoài, trạng thái vẫn giữ")
         void req26_sendFailureDoesNotPropagateAndLaterMailsStillGo() {
             org.mockito.Mockito.doThrow(new org.springframework.mail.MailSendException("smtp down"))
                     .doNothing()

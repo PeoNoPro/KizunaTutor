@@ -88,6 +88,18 @@ class LearnerProfileControllerTest {
     }
 
     @Test
+    @DisplayName("TC-02-002: Gửi kèm userId của học viên khác -> bỏ qua, chỉ trả hồ sơ theo email trong phiên đăng nhập")
+    void tc02_002_userIdInRequestIsIgnored() throws Exception {
+        when(learnerProfileService.getMyProfile(EMAIL)).thenReturn(sample());
+
+        mockMvc.perform(get("/api/profile/learner/me").param("userId", UUID.randomUUID().toString())
+                        .with(as("ROLE_LEARNER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.email").value(EMAIL));
+        verify(learnerProfileService).getMyProfile(EMAIL);
+    }
+
+    @Test
     @DisplayName("Học viên cập nhật hồ sơ hợp lệ - 200 kèm thông điệp tiếng Việt")
     void learnerUpdatesProfile() throws Exception {
         when(learnerProfileService.updateMyProfile(eq(EMAIL), any(UpdateLearnerProfileRequest.class))).thenReturn(sample());

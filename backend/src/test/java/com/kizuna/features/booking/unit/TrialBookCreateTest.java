@@ -141,7 +141,7 @@ class TrialBookCreateTest extends TrialUnitTestBase {
         verify(bookings).save(any(TrialBooking.class));
     }
 
-    @Test @DisplayName("TC-07-008: Gia sư vừa từ chối trong 24 giờ -> 409 chờ 24 giờ")
+    @Test @DisplayName("TC-07-008/035: Gia sư vừa từ chối trong 24 giờ -> 409 chờ 24 giờ")
     void tc07_008_declinedRecently() {
         ready();
         when(bookings.existsByLearnerLearnerIdAndTutorTutorIdAndBookingStatusAndUpdatedAtAfter(

@@ -111,6 +111,19 @@ class AvailabilityAddTest extends AvailabilityUnitTestBase {
         verify(slots).save(any(TutorAvailability.class));
     }
 
+    @Test @DisplayName("TC-06-014: Trùng giờ với ca đang tắt -> câu kiểm tra trùng chỉ xét ca đang mở, lưu được")
+    void tc06_014_sameTimeAsTurnedOffSlot() throws Exception {
+        String jpql = com.kizuna.features.tutor_search.repository.TutorAvailabilityRepository.class
+                .getMethod("hasOverlappingSlot", java.util.UUID.class, Integer.class, LocalTime.class, LocalTime.class)
+                .getAnnotation(org.springframework.data.jpa.repository.Query.class).value();
+        assertTrue(jpql.contains("a.isActive = true"), "Câu kiểm tra trùng phải bỏ qua ca đang tắt");
+
+        loggedInTutor();
+        noOverlap();
+        service.addAvailability(EMAIL, slot(2, "18:00", "20:00"));
+        verify(slots).save(any(TutorAvailability.class));
+    }
+
     @Test @DisplayName("TC-06-013: Cùng giờ nhưng khác ngày -> kiểm tra trùng theo đúng ngày mới, lưu được")
     void tc06_013_otherDay() {
         loggedInTutor();

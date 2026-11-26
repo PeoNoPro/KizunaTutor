@@ -1288,9 +1288,16 @@ async function endGame(isWon, failedKanji = null) {
       }))
     };
 
+    const headers = { 'Content-Type': 'application/json' };
+    try {
+      const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    } catch (_) {}
+
     await fetch('/api/learner/minigame/sessions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
+      credentials: 'include',
       body: JSON.stringify(payload)
     });
 

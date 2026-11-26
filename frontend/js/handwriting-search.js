@@ -610,9 +610,13 @@ async function openHwKanjiDetail(indexOrChar, event) {
     // Luôn gọi API để làm giàu thông tin chữ đầy đủ nhất (không bị thiếu Onyomi, Kunyomi, Bộ thủ, Nghĩa)
     if (char && char !== '?') {
         try {
-            let res = await fetch(`/api/kanji/detail?char=${encodeURIComponent(char)}`);
+            const token = localStorage.getItem('kizuna_token') || localStorage.getItem('access_token');
+            const headers = { 'Accept': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const fetchOpts = { headers, credentials: 'include' };
+            let res = await fetch(`/api/kanji/detail?char=${encodeURIComponent(char)}`, fetchOpts);
             if (!res.ok) {
-                res = await fetch(`/api/kanji/${encodeURIComponent(char)}`);
+                res = await fetch(`/api/kanji/${encodeURIComponent(char)}`, fetchOpts);
             }
             if (res.ok) {
                 const q = await res.json();

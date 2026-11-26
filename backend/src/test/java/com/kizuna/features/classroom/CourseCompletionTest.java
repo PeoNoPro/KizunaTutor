@@ -138,12 +138,4 @@ class CourseCompletionTest {
         assertThatThrownBy(() -> service.loadGradableSpace(asLearner(learner), done.getSpaceId()))
                 .isInstanceOfSatisfying(ClassroomException.class, e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
     }
-
-    @Test
-    void expiredMembershipStillLocksGrading() {
-        Tutor expired = tutor(TutorMembershipStatus.EXPIRED);
-        LearningSpace done = space(expired, learner, LearningSpaceStatus.COMPLETED);
-        assertThat(service.isGradeLocked(done)).isTrue();
-        verify(spaces, never()).saveAll(any());
-    }
 }

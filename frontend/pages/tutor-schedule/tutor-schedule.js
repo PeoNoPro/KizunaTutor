@@ -7,7 +7,7 @@
 import { API, ApiError } from '/js/api.js';
 import { renderWeekTimeGrid, trialEvent, officialEvent, dayDateLabel, ymd, weekRange } from '/js/week-time-grid.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
-import { sessionDurationError, bindSessionTimeSelects } from '/js/classroom-helpers.js';
+import { sessionDurationError, bindSessionTimeSelects, notifyUnlessMembershipGate } from '/js/classroom-helpers.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -195,7 +195,8 @@ async function loadWeekSessions() {
   } catch (err) {
     if (token !== weekSessionsToken) return;
     console.error('Lỗi tải lịch học của tuần:', err);
-    showToast(err.userMessage || 'Không thể tải lịch học của tuần này.', 'error');
+    // Gia sư hết gói: thẻ khóa của tutor-layout đã báo, không hiện thêm toast trùng nội dung
+    notifyUnlessMembershipGate(err, () => showToast(err.userMessage || 'Không thể tải lịch học của tuần này.', 'error'));
   }
   setWeekLoading(false);
   renderWeeklyCalendar();

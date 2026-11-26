@@ -233,25 +233,6 @@ class ClassroomServiceImplTest {
     }
 
     @Test
-    void rejectsCreationWhenMembershipExpired() {
-        Tutor expired = tutor(TutorMembershipStatus.EXPIRED);
-        assertStatus(() -> service.create(asTutor(expired), req(learner.getLearnerId(), "Lớp")),
-                HttpStatus.CONFLICT);
-        verify(spaces, never()).save(any());
-    }
-
-    @Test
-    void freeTutorWithoutMembershipCannotCreateClassOrListLearners() {
-        Tutor free = tutor(TutorMembershipStatus.FREE);
-        assertThatThrownBy(() -> service.create(asTutor(free), req(learner.getLearnerId(), "Lớp")))
-                .isInstanceOf(ClassroomException.class)
-                .hasMessageContaining("chưa có gói hội viên");
-        assertStatus(() -> service.listEligibleLearners(asTutor(free)), HttpStatus.CONFLICT);
-        verify(spaces, never()).save(any());
-        verify(spaces, never()).findEligibleLearnerIds(any());
-    }
-
-    @Test
     void standardMembershipCanCreateClass() {
         Tutor standard = tutor(TutorMembershipStatus.STANDARD);
         when(learners.findById(learner.getLearnerId())).thenReturn(Optional.of(learner));
@@ -268,7 +249,6 @@ class ClassroomServiceImplTest {
         ClassroomSummaryResponse r = service.getDetail(asTutor(free), s.getSpaceId());
         assertThat(r.readOnly()).isTrue();
         assertThat(r.canManage()).isFalse();
-        assertStatus(() -> service.loadManageableSpace(asTutor(free), s.getSpaceId()), HttpStatus.CONFLICT);
     }
 
     @Test

@@ -16,7 +16,6 @@ import com.kizuna.features.classroom.service.ClassroomService;
 import com.kizuna.features.classroom.util.ClassScheduleRules;
 import com.kizuna.features.classroom.util.ClassSessionCalendar;
 import com.kizuna.features.classroom.util.CurrentActor;
-import com.kizuna.features.classroom.util.MembershipRules;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -178,16 +177,13 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         return OffsetDateTime.now(ClassScheduleRules.VN_ZONE);
     }
 
-    /** Chỉ gia sư của lớp, lớp đang hoạt động và gói hội viên còn hiệu lực mới được thay đổi lịch. */
+    /** Chỉ gia sư của lớp và lớp đang hoạt động mới được thay đổi lịch (gia sư hết gói hội viên đã bị chặn ở CurrentUserResolver). */
     private LearningSpace loadEditableSpace(CurrentActor actor, UUID spaceId) {
         LearningSpace space = classroomService.loadAccessibleSpace(actor, spaceId);
         boolean isTutorOfSpace = actor.isTutor()
                 && Objects.equals(actor.tutor().getTutorId(), space.getTutor().getTutorId());
         if (!isTutorOfSpace) {
             throw ClassroomException.forbidden("Chỉ gia sư của lớp mới được thay đổi lịch học.");
-        }
-        if (!MembershipRules.isActive(space.getTutor())) {
-            throw ClassroomException.conflict(MembershipRules.readOnlyMessage(space.getTutor()));
         }
         if (space.getStatus() != LearningSpaceStatus.ACTIVE) {
             throw ClassroomException.conflict("Lớp học không còn hoạt động nên không thể thay đổi lịch học.");

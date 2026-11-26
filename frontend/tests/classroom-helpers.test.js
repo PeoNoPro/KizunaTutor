@@ -12,7 +12,9 @@ import {
   escapeHtml,
   MAX_MATERIAL_SIZE_BYTES,
   INVALID_FILE_MESSAGE,
-  UNSUPPORTED_FORMAT_MESSAGE
+  UNSUPPORTED_FORMAT_MESSAGE,
+  isMembershipLockedError,
+  notifyUnlessMembershipGate
 } from '../js/classroom-helpers.js';
 
 test('nhãn trạng thái lớp bằng tiếng Việt, không lộ enum', () => {
@@ -231,4 +233,29 @@ test('thẻ lớp: thời gian học theo ngày bắt đầu khóa, lớp cũ d�
   assert.deepEqual(courseCardLines(c), { period: '20/11/2026 → dự kiến 15/01/2027', progress: 'Đã học 3/16 buổi' });
   assert.deepEqual(courseCardLines({ createdAt: '2026-11-12T08:00:00Z' }), { period: 'Bắt đầu 12/11/2026', progress: null });
   assert.equal(courseCardLines({ courseStartDate: '2026-11-20', totalSessions: 4 }).progress, 'Đã học 0/4 buổi');
+});
+
+const MEMBERSHIP_403 = { status: 403, message: 'Bạn cần đăng ký gói hội viên còn hiệu lực để sử dụng chức năng này.' };
+const fakeDoc = (hasGate) => ({ querySelector: (sel) => (hasGate && sel === '[data-membership-gate]' ? {} : null) });
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+test('nhận đúng lỗi 403 "cần gói hội viên"; lỗi khác không tính', () => {
+  assert.equal(isMembershipLockedError(MEMBERSHIP_403), true);
+  assert.equal(isMembershipLockedError({ status: 403, message: 'Bạn không có quyền truy cập lớp học này.' }), false);
+  assert.equal(isMembershipLockedError({ status: 409, message: 'Gói hội viên ...' }), false);
+  assert.equal(isMembershipLockedError(null), false);
+});
+
+test('lỗi thường hiện thông báo ngay; lỗi gói hội viên chỉ hiện khi trang không có thẻ khóa', async () => {
+  let shown = 0;
+  notifyUnlessMembershipGate({ status: 500, message: 'Lỗi' }, () => shown++, { doc: fakeDoc(true), waitMs: 5 });
+  assert.equal(shown, 1);
+
+  notifyUnlessMembershipGate(MEMBERSHIP_403, () => shown++, { doc: fakeDoc(true), waitMs: 5 });
+  await wait(20);
+  assert.equal(shown, 1, 'đã có thẻ khóa thì không hiện toast trùng');
+
+  notifyUnlessMembershipGate(MEMBERSHIP_403, () => shown++, { doc: fakeDoc(false), waitMs: 5 });
+  await wait(20);
+  assert.equal(shown, 2, 'không có thẻ khóa thì vẫn báo cho gia sư');
 });

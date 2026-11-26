@@ -489,3 +489,23 @@ export function clearSessionAndGoToLogin() {
   document.cookie = 'access_token=; Max-Age=0; path=/';
   window.location.href = '/login';
 }
+
+/** Lỗi 403 "cần gói hội viên" do CurrentUserResolver trả về khi gia sư hết gói / chưa có gói. */
+export function isMembershipLockedError(err) {
+  return Boolean(err) && err.status === 403 && /gói hội viên/i.test(String(err.userMessage || err.message || ''));
+}
+
+/**
+ * Hiện thông báo lỗi tải dữ liệu, trừ khi đó là lỗi "cần gói hội viên" và trang đã có thẻ khóa của tutor-layout
+ * (thẻ khóa đã nói đúng nội dung đó). Thẻ khóa có thể hiện sau lỗi API một chút nên chờ trước khi quyết định;
+ * không thấy thẻ khóa (ví dụ không kiểm tra được gói) thì vẫn hiện thông báo như bình thường.
+ */
+export function notifyUnlessMembershipGate(err, show, { doc = globalThis.document, waitMs = 1500 } = {}) {
+  if (!isMembershipLockedError(err)) {
+    show();
+    return;
+  }
+  setTimeout(() => {
+    if (!doc || !doc.querySelector('[data-membership-gate]')) show();
+  }, waitMs);
+}

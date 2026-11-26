@@ -539,11 +539,10 @@ function renderSpace() {
 
   const note = $('detailReadOnlyNote');
   if (c.readOnly) {
-    note.textContent = c.status === 'ACTIVE'
-      ? 'Bạn chưa có gói hội viên hoặc gói đã hết hạn nên lớp học đang ở chế độ chỉ xem. Vui lòng đăng ký hoặc gia hạn gói để tiếp tục quản lý lớp học.'
-      : c.status === 'COMPLETED'
-        ? 'Khóa học đã học xong buổi cuối nên lớp chuyển sang chỉ xem. Bạn vẫn chấm được các bài tập còn chờ chấm và có thể mở lớp mới với học viên này.'
-        : 'Lớp học không còn hoạt động nên đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại tài liệu đã chia sẻ.';
+    // Gia sư hết gói hội viên bị chặn ở tutor-layout / CurrentUserResolver nên không có ghi chú riêng ở đây
+    note.textContent = c.status === 'COMPLETED'
+      ? 'Khóa học đã học xong buổi cuối nên lớp chuyển sang chỉ xem. Bạn vẫn chấm được các bài tập còn chờ chấm và có thể mở lớp mới với học viên này.'
+      : 'Lớp học không còn hoạt động nên đang ở chế độ chỉ xem. Bạn vẫn có thể xem lại tài liệu đã chia sẻ.';
     note.classList.remove('hidden');
   } else {
     note.classList.add('hidden');

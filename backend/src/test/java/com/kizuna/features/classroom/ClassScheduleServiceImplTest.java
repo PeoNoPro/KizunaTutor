@@ -255,14 +255,6 @@ class ClassScheduleServiceImplTest {
 
         space.setStatus(LearningSpaceStatus.COMPLETED);
         assertStatus(() -> service.add(asTutor(tutor), space.getSpaceId(), req(2, 9, 0, 10, 0)), HttpStatus.CONFLICT);
-
-        space.setStatus(LearningSpaceStatus.ACTIVE);
-        tutor.setMembershipStatus(TutorMembershipStatus.FREE);
-        assertStatus(() -> service.add(asTutor(tutor), space.getSpaceId(), req(2, 9, 0, 10, 0)), HttpStatus.CONFLICT);
-
-        tutor.setMembershipStatus(TutorMembershipStatus.EXPIRED);
-        assertStatus(() -> service.update(asTutor(tutor), space.getSpaceId(), monday.getScheduleId(), req(2, 9, 0, 10, 0)),
-                HttpStatus.CONFLICT);
         verify(schedules, never()).save(any());
     }
 

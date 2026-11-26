@@ -227,13 +227,11 @@ class ClassSessionServiceImplTest {
     }
 
     @Test
-    void onlyTutorOfActiveClassWithMembershipCanChangeSessions() {
+    void onlyTutorOfClassCanChangeSessions() {
         UUID id = thursday.getScheduleId();
         assertStatus(() -> service.move(asLearner(learner), space.getSpaceId(), id, THU, to(SAT, 10, 11)), HttpStatus.FORBIDDEN);
         assertStatus(() -> service.cancel(asLearner(learner), space.getSpaceId(), id, THU), HttpStatus.FORBIDDEN);
         assertStatus(() -> service.addExtra(asLearner(learner), space.getSpaceId(), to(SAT, 10, 11)), HttpStatus.FORBIDDEN);
-        tutor.setMembershipStatus(TutorMembershipStatus.EXPIRED);
-        assertStatus(() -> service.move(asTutor(tutor), space.getSpaceId(), id, THU, to(SAT, 10, 11)), HttpStatus.CONFLICT);
         assertThat(changeStore).isEmpty();
     }
 

@@ -132,9 +132,6 @@ public class ClassroomServiceImpl implements ClassroomService {
     @Transactional
     public List<EligibleLearnerResponse> listEligibleLearners(CurrentActor actor) {
         Tutor tutor = requireTutor(actor);
-        if (!MembershipRules.isActive(tutor)) {
-            throw ClassroomException.conflict(MembershipRules.createBlockedMessage(tutor));
-        }
         // Lớp đã học xong không còn chặn việc mở lớp mới với học viên đó
         completeFinishedOfTutor(tutor.getTutorId());
         List<UUID> ids = spaceRepository.findEligibleLearnerIds(tutor.getTutorId());
@@ -170,9 +167,6 @@ public class ClassroomServiceImpl implements ClassroomService {
         LocalDate startDate = validateStartDate(request.startDate(), today);
         int totalSessions = validateTotalSessions(request.totalSessions(), 0, slots.size());
 
-        if (!MembershipRules.isActive(tutor)) {
-            throw ClassroomException.conflict(MembershipRules.createBlockedMessage(tutor));
-        }
         Learner learner = learnerRepository.findById(request.learnerId())
                 .orElseThrow(() -> ClassroomException.notFound("Không tìm thấy học viên đã chọn."));
         if (!spaceRepository.hasAcceptedConnection(tutor.getTutorId(), learner.getLearnerId())) {
@@ -364,9 +358,6 @@ public class ClassroomServiceImpl implements ClassroomService {
         if (!isTutorOf(actor, space)) {
             throw ClassroomException.forbidden("Chỉ gia sư của lớp mới được thay đổi nội dung lớp học.");
         }
-        if (!MembershipRules.isActive(space.getTutor())) {
-            throw ClassroomException.conflict(MembershipRules.readOnlyMessage(space.getTutor()));
-        }
         if (space.getStatus() != LearningSpaceStatus.ACTIVE) {
             throw ClassroomException.conflict("Lớp học không còn hoạt động nên không thể thay đổi nội dung.");
         }
@@ -380,9 +371,6 @@ public class ClassroomServiceImpl implements ClassroomService {
         if (!isTutorOf(actor, space)) {
             throw ClassroomException.forbidden("Chỉ gia sư của lớp mới được chấm điểm.");
         }
-        if (!MembershipRules.isActive(space.getTutor())) {
-            throw ClassroomException.conflict(MembershipRules.readOnlyMessage(space.getTutor()));
-        }
         if (isGradeLocked(space)) {
             throw ClassroomException.conflict("Lớp học không còn hoạt động nên không thể chấm điểm.");
         }
@@ -391,8 +379,8 @@ public class ClassroomServiceImpl implements ClassroomService {
 
     @Override
     public boolean isGradeLocked(LearningSpace space) {
-        boolean statusOk = space.getStatus() == LearningSpaceStatus.ACTIVE || space.getStatus() == LearningSpaceStatus.COMPLETED;
-        return !statusOk || !MembershipRules.isActive(space.getTutor());
+        // Gia sư hết gói hội viên đã bị chặn ở CurrentUserResolver nên ở đây chỉ xét trạng thái lớp
+        return space.getStatus() != LearningSpaceStatus.ACTIVE && space.getStatus() != LearningSpaceStatus.COMPLETED;
     }
 
     @Override

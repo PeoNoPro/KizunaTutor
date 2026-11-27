@@ -1,0 +1,13 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutor/availability/{{availMonId}}"
+method: DELETE
+headers:
+  Authorization: Bearer {{tutorToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 409", () => pm.expect(pm.response.code).to.be.oneOf([409]));
+      pm.test("Thông báo: Không thể xóa ca rảnh này vì đang có lịch học thử", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Không thể xóa ca rảnh này vì đang có lịch học thử"); });
+    language: text/javascript
+order: 16000

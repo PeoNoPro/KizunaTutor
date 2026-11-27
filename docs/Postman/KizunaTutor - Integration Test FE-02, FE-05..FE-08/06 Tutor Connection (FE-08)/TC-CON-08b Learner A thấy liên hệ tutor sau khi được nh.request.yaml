@@ -1,0 +1,14 @@
+$kind: http-request
+name: TC-CON-08b Learner A thấy liên hệ tutor sau khi được nhận
+description: ""
+url: "{{baseUrl}}/api/connection-requests/my-requests"
+method: GET
+headers:
+  Authorization: Bearer {{learnerToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      const r = pm.response.json().data.items.find(x => x.requestId === pm.environment.get('requestId')); pm.test("ACCEPTED, có email tutor", () => { pm.expect(r.status).to.eql('ACCEPTED'); pm.expect(String(r.partnerEmail).toLowerCase()).to.eql(pm.environment.get('tutorEmail').toLowerCase()); });
+    language: text/javascript
+order: 14000

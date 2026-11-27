@@ -1,0 +1,12 @@
+$kind: http-request
+name: TC-DIS-09a Hồ sơ theo mã gia sư (link /gs/{code})
+description: ""
+url: "{{baseUrl}}/api/tutors/code/{{tutorCode}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("đúng Tutor A", () => pm.expect(pm.response.json().tutorId).to.eql(pm.environment.get('tutorId')));
+    language: text/javascript
+order: 9000

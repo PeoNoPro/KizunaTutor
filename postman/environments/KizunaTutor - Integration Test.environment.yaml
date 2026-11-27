@@ -1,0 +1,68 @@
+name: KizunaTutor - Integration Test
+values:
+  - key: baseUrl
+    value: 'http://localhost:8085'
+  - key: learnerEmail
+    value: ''
+  - key: learnerPassword
+    value: ''
+  - key: learnerPhone
+    value: ''
+  - key: learner2Email
+    value: ''
+  - key: learner2Password
+    value: ''
+  - key: learner2Phone
+    value: ''
+  - key: tutorEmail
+    value: ''
+  - key: tutorPassword
+    value: ''
+  - key: tutor2Email
+    value: ''
+  - key: tutor2Password
+    value: ''
+  - key: managerEmail
+    value: ''
+  - key: managerPassword
+    value: ''
+  - key: tutorLearningMode
+    value: ONLINE
+  - key: searchKeyword
+    value: N3
+  - key: forgedToken
+    secret: true
+  - key: nextMonday
+    value: ''
+  - key: nextWednesday
+    value: ''
+  - key: mondayIn2Weeks
+    value: ''
+  - key: learnerToken
+    secret: true
+  - key: learnerId
+    value: ''
+  - key: tutorToken
+    secret: true
+  - key: tutor2Token
+    secret: true
+  - key: managerToken
+    secret: true
+  - key: tutorId
+    value: ''
+  - key: tutorCode
+    value: ''
+  - key: tutorProfile
+    value: ''
+  - key: learnerProfileOriginal
+    value: ''
+  - key: learner2Token
+    value: ''
+  - key: learner2Id
+    value: ''
+  - key: page0Ids
+    value: ''
+  - key: availMonId
+    value: ''
+  - key: availSatId
+    value: ''

@@ -1,0 +1,27 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/profile/tutor/me"
+method: PUT
+headers:
+  Authorization: Bearer {{tutorToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: "{{body}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      const o = JSON.parse(pm.environment.get('tutorProfile'));
+      const b = { fullName: o.fullName, phone: o.phone, avatarUrl: o.avatarUrl, headline: o.headline, bio: o.bio, experienceYears: o.experienceYears, hourlyRate: o.hourlyRate, highestJlptLevel: o.highestJlptLevel, province: o.province, addressDetail: o.addressDetail };
+      Object.assign(b, { headline: 'a'.repeat(201), experienceYears: 51, hourlyRate: 50000001, highestJlptLevel: '' });
+      pm.variables.set('body', JSON.stringify(b));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Tiêu đề giảng dạy tối đa 200 ký tự.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Tiêu đề giảng dạy tối đa 200 ký tự."); });
+      pm.test("Thông báo: Số năm kinh nghiệm phải từ 0 đến 50 năm.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Số năm kinh nghiệm phải từ 0 đến 50 năm."); });
+      pm.test("Thông báo: Học phí vượt quá giới hạn cho phép.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Học phí vượt quá giới hạn cho phép."); });
+      pm.test("Thông báo: Vui lòng chọn trình độ JLPT cao nhất.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Vui lòng chọn trình độ JLPT cao nhất."); });
+    language: text/javascript
+order: 8000

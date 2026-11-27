@@ -1,0 +1,34 @@
+$kind: http-request
+name: TC-CON-10 Chấp nhận yêu cầu của Learner B (giờ đã giao cho Learner A)
+description: slotId được lấy tự động ở pre-request từ danh sách của Tutor A.
+url: "{{baseUrl}}/api/connection-requests/{{request2Id}}/respond"
+method: PUT
+headers:
+  Authorization: Bearer {{tutorToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "action": "ACCEPT",
+      "slotDurations": [
+        {
+          "slotId": "{{slot2Id}}",
+          "durationMinutes": 60
+        }
+      ]
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      pm.sendRequest({ url: pm.environment.get('baseUrl') + '/api/connection-requests/my-requests', header: { Authorization: 'Bearer ' + pm.environment.get('tutorToken') } }, (err, res) => {
+        const r = res.json().data.items.find(x => x.requestId === pm.environment.get('request2Id'));
+        pm.variables.set('slot2Id', r.slots[0].slotId);
+      });
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 409/400", () => pm.expect(pm.response.code).to.be.oneOf([409,400]));
+      pm.test("Thông báo: đã được bạn nhận cho học viên khác", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("đã được bạn nhận cho học viên khác"); });
+    language: text/javascript
+order: 20000

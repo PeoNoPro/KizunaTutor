@@ -1,0 +1,13 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/connection-requests/{{requestId}}/cancel"
+method: PUT
+headers:
+  Authorization: Bearer {{learnerToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Chỉ có thể hủy yêu cầu kết nối đang chờ gia sư phản hồi", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Chỉ có thể hủy yêu cầu kết nối đang chờ gia sư phản hồi"); });
+    language: text/javascript
+order: 18000

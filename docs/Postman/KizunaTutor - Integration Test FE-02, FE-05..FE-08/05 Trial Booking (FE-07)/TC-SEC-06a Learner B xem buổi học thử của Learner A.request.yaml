@@ -1,0 +1,13 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/trial-bookings/{{bookingId}}"
+method: GET
+headers:
+  Authorization: Bearer {{learner2Token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 403", () => pm.expect(pm.response.code).to.be.oneOf([403]));
+      pm.test("Thông báo: Bạn không có quyền xem thông tin buổi học thử này", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Bạn không có quyền xem thông tin buổi học thử này"); });
+    language: text/javascript
+order: 8000

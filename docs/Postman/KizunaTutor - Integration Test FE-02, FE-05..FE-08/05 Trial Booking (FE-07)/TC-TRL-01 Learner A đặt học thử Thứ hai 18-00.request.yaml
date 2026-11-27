@@ -1,0 +1,30 @@
+$kind: http-request
+name: TC-TRL-01 Learner A đặt học thử Thứ hai 18:00
+description: ""
+url: "{{baseUrl}}/api/trial-bookings"
+method: POST
+headers:
+  Authorization: Bearer {{learnerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tutorId": "{{tutorId}}",
+      "scheduledStartTime": "{{nextMonday}}T18:00:00+07:00",
+      "contactPhone": "{{learnerPhone}}",
+      "contactEmail": "{{learnerEmail}}",
+      "shareContact": true,
+      "learningGoals": "Luyện thi JLPT N3",
+      "initialMessage": "Em muốn học thử ạ."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200/201", () => pm.expect(pm.response.code).to.be.oneOf([200,201]));
+      if (pm.response.code < 300) { pm.environment.set("bookingId", pm.response.json().data.bookingId); }
+      pm.test("pm.response.json().data.bookingStatus = PENDING", () => pm.expect(pm.response.json().data.bookingStatus).to.eql("PENDING"));
+      pm.test("pm.response.json().data.durationMinutes = 30", () => pm.expect(pm.response.json().data.durationMinutes).to.eql(30));
+      pm.test("pm.response.json().data.offSchedule = false", () => pm.expect(pm.response.json().data.offSchedule).to.eql(false));
+    language: text/javascript
+order: 4000

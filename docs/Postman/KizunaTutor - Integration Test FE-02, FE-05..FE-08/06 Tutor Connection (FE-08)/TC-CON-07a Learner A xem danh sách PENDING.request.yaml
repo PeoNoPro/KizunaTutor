@@ -1,0 +1,13 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/connection-requests/my-requests?status=PENDING"
+method: GET
+headers:
+  Authorization: Bearer {{learnerToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      const r = pm.response.json().data.items.find(x => x.requestId === pm.environment.get('requestId')); pm.test("có yêu cầu", () => pm.expect(r).to.exist); pm.test("chưa thấy email tutor", () => pm.expect(r.partnerEmail || null).to.be.null);
+    language: text/javascript
+order: 7000

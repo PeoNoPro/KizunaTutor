@@ -1,0 +1,3 @@
+$kind: collection
+description: Kiểm tra phân quyền. Không tạo hay sửa dữ liệu.
+order: 2000

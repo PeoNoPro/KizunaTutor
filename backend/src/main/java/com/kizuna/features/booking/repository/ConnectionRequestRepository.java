@@ -28,11 +28,13 @@ public interface ConnectionRequestRepository extends JpaRepository<ConnectionReq
     @org.springframework.data.jpa.repository.Query("SELECT cr FROM ConnectionRequest cr "
             + "WHERE cr.learner.learnerId = :learnerId AND cr.tutor.tutorId = :tutorId "
             + "AND cr.requestType = com.kizuna.features.booking.entity.ConnectionRequestType.DIRECT "
-            + "AND cr.status = com.kizuna.features.booking.entity.ConnectionRequestStatus.PENDING "
+            // status truyền bằng tham số: hằng enum trong JPQL bị Hibernate ép kiểu '::ConnectionRequestStatus' (kiểu không tồn tại trong DB)
+            + "AND cr.status = :status "
             + "AND cr.createdAt < :before")
     java.util.List<ConnectionRequest> findStaleDirectOfPairLocked(
             @org.springframework.data.repository.query.Param("learnerId") UUID learnerId,
             @org.springframework.data.repository.query.Param("tutorId") UUID tutorId,
+            @org.springframework.data.repository.query.Param("status") ConnectionRequestStatus status,
             @org.springframework.data.repository.query.Param("before") java.time.OffsetDateTime before);
 
     Page<ConnectionRequest> findByLearnerLearnerIdAndStatus(UUID learnerId, ConnectionRequestStatus status, Pageable pageable);

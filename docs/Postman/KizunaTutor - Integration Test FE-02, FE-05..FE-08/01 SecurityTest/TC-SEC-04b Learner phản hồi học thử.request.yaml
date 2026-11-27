@@ -1,0 +1,19 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/trial-bookings/00000000-0000-4000-8000-000000000000/respond"
+method: PUT
+headers:
+  Authorization: Bearer {{learnerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "action": "ACCEPT",
+      "meetingLink": "https://meet.google.com/abc-defg-hij"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 403", () => pm.expect(pm.response.code).to.be.oneOf([403]));
+    language: text/javascript
+order: 10000

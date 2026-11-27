@@ -1,0 +1,12 @@
+$kind: http-request
+name: TC-AVL-06b Lịch công khai không còn Thứ tư 18:00
+description: ""
+url: "{{baseUrl}}/api/tutors/{{tutorId}}/weekly-schedule?weekStart={{nextMonday}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("Thứ tư 18:00 - 20:00 không còn rảnh", () => { const d = pm.response.json().days.find(x => x.dayOfWeek === 4 || x.dayName === 'Thứ tư'); pm.expect(d.freeRanges.some(r => r.startTime <= '18:00' && r.endTime > '18:00')).to.be.false; });
+    language: text/javascript
+order: 12000

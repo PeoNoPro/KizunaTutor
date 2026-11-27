@@ -1,0 +1,14 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutor/availability"
+method: GET
+headers:
+  Authorization: Bearer {{tutorToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      const l = pm.response.json().data; pm.test("có 2 ca vừa thêm", () => { const ids = l.map(a => a.availabilityId); pm.expect(ids).to.include(pm.environment.get('availMonId')); pm.expect(ids).to.include(pm.environment.get('availWedId')); });
+      pm.test("sắp theo thứ rồi giờ bắt đầu, giờ dạng HH:mm", () => { for (let i = 1; i < l.length; i++) { const a = l[i-1], b = l[i]; pm.expect(a.dayOfWeek < b.dayOfWeek || (a.dayOfWeek === b.dayOfWeek && a.startTime <= b.startTime)).to.be.true; } l.forEach(a => pm.expect(a.startTime).to.match(/^\d{2}:\d{2}$/)); });
+    language: text/javascript
+order: 10000

@@ -1,0 +1,14 @@
+$kind: collection
+description: Chạy bằng Collection Runner theo đúng thứ tự folder 00 → 08. Điền environment "KizunaTutor - Integration Test" trước khi chạy. Tên request bắt đầu bằng mã test case trong file Integration Test_FE02_FE05-FE08.xlsx.
+scripts:
+  - type: http:beforeRequest
+    code: |-
+      // Tính ngày Thứ hai, Thứ tư của tuần sau và Thứ hai 2 tuần sau (giờ Việt Nam).
+      const vn = new Date(Date.now() + 7 * 3600 * 1000);
+      const dow = vn.getUTCDay(); // 0 = CN
+      const monThisWeek = new Date(vn); monThisWeek.setUTCDate(vn.getUTCDate() - ((dow + 6) % 7));
+      const add = d => { const x = new Date(monThisWeek); x.setUTCDate(x.getUTCDate() + d); return x.toISOString().slice(0, 10); };
+      pm.environment.set('nextMonday', add(7));
+      pm.environment.set('nextWednesday', add(9));
+      pm.environment.set('mondayIn2Weeks', add(14));
+    language: text/javascript

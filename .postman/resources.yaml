@@ -1,0 +1,16 @@
+# Use this workspace to collaborate
+workspace:
+  id: c748a4a0-48a4-4af7-8fd9-ad9ce049ee66
+
+localResources:
+  collections:
+    - ../docs/Postman/KizunaTutor - Integration Test FE-02, FE-05..FE-08
+  environments: []
+  specs:
+    - ../backend/services/agent-memory/MemoryKnowledge/openapi.yaml
+    - ../backend/services/agent-memory/MemoryPanel/docs/api/meta-api.openapi.yaml
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections: {}

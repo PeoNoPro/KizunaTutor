@@ -1,0 +1,19 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/profile/users/{{learner2Id}}/status"
+method: PUT
+headers:
+  Authorization: Bearer {{managerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "status": "SUSPENDED",
+      "reason": "Kiểm thử tích hợp: tạm khoá"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+    language: text/javascript
+order: 4000

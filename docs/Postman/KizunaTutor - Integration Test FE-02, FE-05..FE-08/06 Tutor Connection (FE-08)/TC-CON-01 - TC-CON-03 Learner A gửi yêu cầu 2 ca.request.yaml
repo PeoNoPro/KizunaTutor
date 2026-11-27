@@ -1,0 +1,40 @@
+$kind: http-request
+name: TC-CON-01 / TC-CON-03 Learner A gửi yêu cầu 2 ca
+description: "TC-CON-03 (DEF-01): nếu Learner A có yêu cầu PENDING cũ hơn 24 giờ với Tutor A, request này phải trả 200/201 (không lỗi 500) và yêu cầu cũ thành EXPIRED."
+url: "{{baseUrl}}/api/connection-requests"
+method: POST
+headers:
+  Authorization: Bearer {{learnerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tutorId": "{{tutorId}}",
+      "learningMode": "{{tutorLearningMode}}",
+      "slots": [
+        {
+          "dayOfWeek": 2,
+          "startTime": "18:00"
+        },
+        {
+          "dayOfWeek": 4,
+          "startTime": "18:00"
+        }
+      ],
+      "contactPhone": "{{learnerPhone}}",
+      "contactEmail": "{{learnerEmail}}",
+      "shareContact": true,
+      "learningGoals": "Học giao tiếp hằng tuần"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200/201", () => pm.expect(pm.response.code).to.be.oneOf([200,201]));
+      if (pm.response.code < 300) { pm.environment.set("requestId", pm.response.json().data.requestId); }
+      pm.test("pm.response.json().data.status = PENDING", () => pm.expect(pm.response.json().data.status).to.eql("PENDING"));
+      if (pm.response.code < 300) { pm.environment.set("slotMonId", pm.response.json().data.slots.find(s => s.dayOfWeek === 2).slotId); }
+      if (pm.response.code < 300) { pm.environment.set("slotWedId", pm.response.json().data.slots.find(s => s.dayOfWeek === 4).slotId); }
+      pm.test("2 ca, chưa có giờ kết thúc", () => { pm.expect(pm.response.json().data.slots.length).to.eql(2); pm.response.json().data.slots.forEach(s => pm.expect(s.endTime || null).to.be.null); });
+    language: text/javascript
+order: 4000

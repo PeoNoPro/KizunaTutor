@@ -1,0 +1,12 @@
+$kind: http-request
+name: TC-PRF-15b / TC-SEC-11 Learner B dùng token cũ
+description: ""
+url: "{{baseUrl}}/api/profile/learner/me"
+method: GET
+headers:
+  Authorization: Bearer {{learner2Token}}
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 401/403", () => pm.expect(pm.response.code).to.be.oneOf([401,403]));
+    language: text/javascript
+order: 5000

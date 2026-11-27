@@ -1,0 +1,13 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/trial-bookings/{{bookingId}}/complete"
+method: PUT
+headers:
+  Authorization: Bearer {{learnerToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Buổi học chưa kết thúc.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Buổi học chưa kết thúc."); });
+    language: text/javascript
+order: 17000

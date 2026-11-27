@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutors?sortBy=price_asc&page=1&size=10"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("không trùng gia sư của trang 0", () => { const p0 = JSON.parse(pm.environment.get('page0Ids')); pm.response.json().content.forEach(t => pm.expect(p0).to.not.include(t.tutorId)); });
+    language: text/javascript
+order: 4000

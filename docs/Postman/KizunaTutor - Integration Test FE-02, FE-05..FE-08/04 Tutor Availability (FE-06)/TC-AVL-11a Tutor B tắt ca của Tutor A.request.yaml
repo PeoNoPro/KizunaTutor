@@ -1,0 +1,13 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutor/availability/{{availMonId}}/toggle?active=false"
+method: PATCH
+headers:
+  Authorization: Bearer {{tutor2Token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 404", () => pm.expect(pm.response.code).to.be.oneOf([404]));
+      pm.test("Thông báo: Không tìm thấy ca rảnh cần cập nhật", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Không tìm thấy ca rảnh cần cập nhật"); });
+    language: text/javascript
+order: 14000

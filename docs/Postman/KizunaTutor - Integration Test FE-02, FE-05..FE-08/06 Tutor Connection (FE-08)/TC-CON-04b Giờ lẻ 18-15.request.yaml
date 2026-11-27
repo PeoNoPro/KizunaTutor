@@ -1,0 +1,32 @@
+$kind: http-request
+name: TC-CON-04b Giờ lẻ 18:15
+description: ""
+url: "{{baseUrl}}/api/connection-requests"
+method: POST
+headers:
+  Authorization: Bearer {{learner2Token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tutorId": "{{tutorId}}",
+      "learningMode": "{{tutorLearningMode}}",
+      "slots": [
+        {
+          "dayOfWeek": 2,
+          "startTime": "18:15"
+        }
+      ],
+      "contactPhone": "{{learner2Phone}}",
+      "contactEmail": "{{learner2Email}}",
+      "shareContact": true,
+      "learningGoals": "Học giao tiếp hằng tuần"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Giờ bắt đầu ca học phải là giờ chẵn hoặc giờ rưỡi", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Giờ bắt đầu ca học phải là giờ chẵn hoặc giờ rưỡi"); });
+    language: text/javascript
+order: 2000

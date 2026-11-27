@@ -1,0 +1,12 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutors?sortBy=price_asc&page=0&size=10"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      const c = pm.response.json().content; pm.test("giá tăng dần", () => { for (let i = 1; i < c.length; i++) pm.expect(Number(c[i].hourlyRate || 0)).to.be.at.least(Number(c[i-1].hourlyRate || 0)); });
+      if (pm.response.code < 300) { pm.environment.set("page0Ids", JSON.stringify(c.map(t => t.tutorId))); }
+    language: text/javascript
+order: 3000

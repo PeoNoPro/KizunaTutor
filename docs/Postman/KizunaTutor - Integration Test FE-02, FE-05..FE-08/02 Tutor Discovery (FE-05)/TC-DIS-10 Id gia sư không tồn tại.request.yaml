@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutors/{{$randomUUID}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 404", () => pm.expect(pm.response.code).to.be.oneOf([404]));
+      pm.test("Thông báo: Không tìm thấy thông tin gia sư", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Không tìm thấy thông tin gia sư"); });
+    language: text/javascript
+order: 11000

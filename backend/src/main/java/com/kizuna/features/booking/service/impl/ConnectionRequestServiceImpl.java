@@ -185,7 +185,7 @@ public class ConnectionRequestServiceImpl implements ConnectionRequestService {
         // phần còn lại do BookingExpiryScheduler quét định kỳ.
         OffsetDateTime checkedAt = OffsetDateTime.now();
         for (ConnectionRequest stale : connectionRequestRepository.findStaleDirectOfPairLocked(
-                learnerId, tutorId, checkedAt.minusHours(BookingLimits.DIRECT_RESPONSE_HOURS))) {
+                learnerId, tutorId, ConnectionRequestStatus.PENDING, checkedAt.minusHours(BookingLimits.DIRECT_RESPONSE_HOURS))) {
             expireDirect(stale, NO_RESPONSE_REASON, checkedAt);
         }
         if (connectionRequestRepository.existsByLearnerLearnerIdAndTutorTutorIdAndRequestTypeAndStatusAndRespondedAtAfter(

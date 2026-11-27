@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutors/featured"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("tối đa 6, đều nổi bật", () => { const l = pm.response.json(); pm.expect(l.length).to.be.at.most(6); l.forEach(t => pm.expect(t.isFeatured === undefined ? t.featured : t.isFeatured).to.not.eql(false)); });
+    language: text/javascript
+order: 7000

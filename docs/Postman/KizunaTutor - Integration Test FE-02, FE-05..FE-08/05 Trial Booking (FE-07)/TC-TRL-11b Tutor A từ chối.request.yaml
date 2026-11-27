@@ -1,0 +1,21 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/trial-bookings/{{bookingId}}/respond"
+method: PUT
+headers:
+  Authorization: Bearer {{tutorToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "action": "DECLINE",
+      "declineReason": "Busy this week"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("pm.response.json().data.bookingStatus = DECLINED", () => pm.expect(pm.response.json().data.bookingStatus).to.eql("DECLINED"));
+    language: text/javascript
+order: 25000

@@ -1,0 +1,3 @@
+$kind: collection
+description: Đăng nhập 5 tài khoản test, lưu token vào environment. Chạy trước mọi folder khác.
+order: 1000

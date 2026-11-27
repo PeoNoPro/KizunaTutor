@@ -1,0 +1,13 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/connection-requests/my-requests"
+method: GET
+headers:
+  Authorization: Bearer {{tutorToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      const r = pm.response.json().data.items.find(x => x.requestId === pm.environment.get('requestId')); pm.test("có yêu cầu của Learner A", () => pm.expect(r).to.exist); pm.test("thấy email learner", () => pm.expect(String(r.partnerEmail).toLowerCase()).to.eql(pm.environment.get('learnerEmail').toLowerCase()));
+    language: text/javascript
+order: 8000

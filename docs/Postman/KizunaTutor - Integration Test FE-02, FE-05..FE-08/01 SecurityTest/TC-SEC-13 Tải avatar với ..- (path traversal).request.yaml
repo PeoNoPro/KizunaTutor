@@ -1,0 +1,12 @@
+$kind: http-request
+name: TC-SEC-13 Tải avatar với ../ (path traversal)
+description: ""
+url: "{{baseUrl}}/api/profile/avatar/..%2F..%2Fapplication.properties"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400/404", () => pm.expect(pm.response.code).to.be.oneOf([400,404]));
+      pm.test("không trả nội dung file cấu hình", () => pm.expect(pm.response.text()).to.not.include('spring.datasource'));
+    language: text/javascript
+order: 15000

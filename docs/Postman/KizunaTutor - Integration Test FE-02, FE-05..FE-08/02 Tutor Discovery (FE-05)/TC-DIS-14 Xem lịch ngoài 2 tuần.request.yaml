@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutors/{{tutorId}}/weekly-schedule?weekStart={{mondayIn2Weeks}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Chỉ có thể xem lịch rảnh trong 2 tuần", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Chỉ có thể xem lịch rảnh trong 2 tuần"); });
+    language: text/javascript
+order: 12000

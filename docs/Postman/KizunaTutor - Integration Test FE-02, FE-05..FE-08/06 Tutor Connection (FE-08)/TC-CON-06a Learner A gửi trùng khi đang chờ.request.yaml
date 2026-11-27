@@ -1,0 +1,31 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/connection-requests"
+method: POST
+headers:
+  Authorization: Bearer {{learnerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tutorId": "{{tutorId}}",
+      "learningMode": "{{tutorLearningMode}}",
+      "slots": [
+        {
+          "dayOfWeek": 2,
+          "startTime": "18:00"
+        }
+      ],
+      "contactPhone": "{{learnerPhone}}",
+      "contactEmail": "{{learnerEmail}}",
+      "shareContact": true,
+      "learningGoals": "Học giao tiếp hằng tuần"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 409", () => pm.expect(pm.response.code).to.be.oneOf([409]));
+      pm.test("Thông báo: Bạn đã gửi yêu cầu kết nối tới gia sư này và đang chờ gia sư phản hồi.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Bạn đã gửi yêu cầu kết nối tới gia sư này và đang chờ gia sư phản hồi."); });
+    language: text/javascript
+order: 6000

@@ -1,0 +1,3 @@
+$kind: collection
+description: "Tutor A thêm ca rảnh Thứ hai và Thứ tư 18:00 - 20:00 (dayOfWeek: 1 = Chủ nhật, 2 = Thứ hai, ...). Tutor A KHÔNG được có sẵn ca trùng giờ này."
+order: 5000

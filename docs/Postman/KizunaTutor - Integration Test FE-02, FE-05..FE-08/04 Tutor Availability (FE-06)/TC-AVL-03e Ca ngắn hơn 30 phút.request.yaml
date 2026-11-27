@@ -1,0 +1,22 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutor/availability"
+method: POST
+headers:
+  Authorization: Bearer {{tutorToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "dayOfWeek": 7,
+      "startTime": "18:00",
+      "endTime": "18:29"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Khung giờ rảnh tối thiểu phải từ 30 phút", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Khung giờ rảnh tối thiểu phải từ 30 phút"); });
+    language: text/javascript
+order: 9000

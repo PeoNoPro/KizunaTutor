@@ -590,7 +590,7 @@ function slotText(s) {
   // Yêu cầu đang chờ chưa có độ dài ca: gia sư chọn khi đồng ý
   return s.endTime
     ? `${s.dayName} ${s.startTime}–${s.endTime} (${s.durationMinutes} phút)`
-    : `${s.dayName} ${s.startTime} (bạn chọn độ dài khi đồng ý)`;
+    : `${s.dayName} ${s.startTime}`;
 }
 
 // ---- Độ dài ca: gia sư chọn khi đồng ý, gợi ý theo bảng học phí (môn học viên chọn) trong bài đăng của chính gia sư

@@ -1,0 +1,26 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/trial-bookings"
+method: POST
+headers:
+  Authorization: Bearer {{learner2Token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tutorId": "{{tutorId}}",
+      "scheduledStartTime": "{{nextMonday}}T18:00:00+07:00",
+      "contactPhone": "{{learner2Phone}}",
+      "contactEmail": "{{learner2Email}}",
+      "shareContact": true,
+      "learningGoals": "Luyện thi JLPT N3",
+      "initialMessage": "Em muốn học thử ạ."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 409", () => pm.expect(pm.response.code).to.be.oneOf([409]));
+      pm.test("Thông báo: Giờ này đã kín: gia sư đã có lịch học thử.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Giờ này đã kín: gia sư đã có lịch học thử."); });
+    language: text/javascript
+order: 14000

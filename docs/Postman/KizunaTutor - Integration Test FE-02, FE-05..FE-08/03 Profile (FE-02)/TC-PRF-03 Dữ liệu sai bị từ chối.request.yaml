@@ -1,0 +1,27 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/profile/learner/me"
+method: PUT
+headers:
+  Authorization: Bearer {{learnerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: "{{body}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      const o = JSON.parse(pm.environment.get('learnerProfileOriginal'));
+      const b = { fullName: o.fullName, phone: o.phone, avatarUrl: o.avatarUrl, currentLevel: o.currentLevel || 'N5', targetLevel: o.targetLevel || 'N3', learningGoals: o.learningGoals, province: o.province, address: o.address };
+      Object.assign(b, { fullName: '', phone: '091234567', currentLevel: 'N6', learningGoals: 'a'.repeat(2001) });
+      pm.variables.set('body', JSON.stringify(b));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Vui lòng nhập họ và tên.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Vui lòng nhập họ và tên."); });
+      pm.test("Thông báo: Số điện thoại không đúng định dạng 10 chữ số.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Số điện thoại không đúng định dạng 10 chữ số."); });
+      pm.test("Thông báo: Trình độ hiện tại không hợp lệ.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Trình độ hiện tại không hợp lệ."); });
+      pm.test("Thông báo: Mục tiêu học tập tối đa 2000 ký tự.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Mục tiêu học tập tối đa 2000 ký tự."); });
+    language: text/javascript
+order: 2000

@@ -1,0 +1,30 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/connection-requests/{{requestId}}/respond"
+method: PUT
+headers:
+  Authorization: Bearer {{tutorToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "action": "ACCEPT",
+      "slotDurations": [
+        {
+          "slotId": "{{slotMonId}}",
+          "durationMinutes": 45
+        },
+        {
+          "slotId": "{{slotWedId}}",
+          "durationMinutes": 60
+        }
+      ]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: chỉ có thể là 60, 90 hoặc 120 phút", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("chỉ có thể là 60, 90 hoặc 120 phút"); });
+    language: text/javascript
+order: 12000

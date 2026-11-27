@@ -1,0 +1,22 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutor/availability"
+method: POST
+headers:
+  Authorization: Bearer {{tutorToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "dayOfWeek": 7,
+      "startTime": " ",
+      "endTime": "20:00"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Giờ bắt đầu không được để trống", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Giờ bắt đầu không được để trống"); });
+    language: text/javascript
+order: 5000

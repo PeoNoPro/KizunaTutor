@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutor/availability/{{availWedId}}/toggle?active=true"
+method: PATCH
+headers:
+  Authorization: Bearer {{tutorToken}}
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+    language: text/javascript
+order: 13000

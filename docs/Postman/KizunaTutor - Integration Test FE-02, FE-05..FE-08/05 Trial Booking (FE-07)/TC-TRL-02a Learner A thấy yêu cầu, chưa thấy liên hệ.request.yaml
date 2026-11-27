@@ -1,0 +1,14 @@
+$kind: http-request
+name: TC-TRL-02a Learner A thấy yêu cầu, chưa thấy liên hệ tutor
+description: ""
+url: "{{baseUrl}}/api/trial-bookings/my-requests"
+method: GET
+headers:
+  Authorization: Bearer {{learnerToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      const b = pm.response.json().data.items.find(x => x.bookingId === pm.environment.get('bookingId')); pm.test("có booking", () => pm.expect(b).to.exist); pm.test("chưa thấy email/sđt tutor", () => { pm.expect(b.partnerEmail || null).to.be.null; pm.expect(b.partnerPhone || null).to.be.null; });
+    language: text/javascript
+order: 6000

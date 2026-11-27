@@ -1,0 +1,13 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/profile/users?role=ROLE_TUTOR&status=ACTIVE&keyword={{tutorEmail}}&page=0&size=20"
+method: GET
+headers:
+  Authorization: Bearer {{managerToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("có Tutor A, mọi dòng khớp từ khoá", () => { const it = pm.response.json().data.content || pm.response.json().data.items; const k = pm.environment.get('tutorEmail').toLowerCase(); pm.expect(it.length).to.be.at.least(1); it.forEach(u => pm.expect((u.email + ' ' + u.fullName).toLowerCase()).to.include(k)); });
+    language: text/javascript
+order: 1000

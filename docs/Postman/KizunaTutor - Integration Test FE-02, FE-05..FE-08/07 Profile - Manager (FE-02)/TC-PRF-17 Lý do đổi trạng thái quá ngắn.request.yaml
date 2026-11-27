@@ -1,0 +1,21 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/profile/users/{{learner2Id}}/status"
+method: PUT
+headers:
+  Authorization: Bearer {{managerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "status": "SUSPENDED",
+      "reason": "abc"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Lý do thay đổi trạng thái phải từ 5 đến 500 ký tự.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Lý do thay đổi trạng thái phải từ 5 đến 500 ký tự."); });
+    language: text/javascript
+order: 3000

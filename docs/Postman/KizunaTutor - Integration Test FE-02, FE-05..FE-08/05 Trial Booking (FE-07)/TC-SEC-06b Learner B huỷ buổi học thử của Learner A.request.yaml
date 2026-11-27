@@ -1,0 +1,20 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/trial-bookings/{{bookingId}}/cancel"
+method: PUT
+headers:
+  Authorization: Bearer {{learner2Token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "cancelReason": "Thử huỷ hộ"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 403", () => pm.expect(pm.response.code).to.be.oneOf([403]));
+      pm.test("Thông báo: Bạn không có quyền hủy buổi học thử này", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Bạn không có quyền hủy buổi học thử này"); });
+    language: text/javascript
+order: 9000

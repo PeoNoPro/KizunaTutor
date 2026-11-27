@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutors/locations"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      const l = pm.response.json(); pm.test("không trùng, không rỗng", () => { pm.expect(new Set(l).size).to.eql(l.length); l.forEach(x => pm.expect(String(x).trim()).to.not.eql('')); });
+    language: text/javascript
+order: 6000

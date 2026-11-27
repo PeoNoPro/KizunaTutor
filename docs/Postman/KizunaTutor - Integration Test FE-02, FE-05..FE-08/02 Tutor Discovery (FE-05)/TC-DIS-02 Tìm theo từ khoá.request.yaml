@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutors?keyword={{searchKeyword}}&size=100"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("mỗi kết quả chứa từ khoá ở tên/tiêu đề/bài đăng", () => { const k = pm.environment.get('searchKeyword').toLowerCase(); pm.response.json().content.forEach(t => pm.expect([t.fullName, t.headline, t.postTitle, t.bio].join(' ').toLowerCase()).to.include(k)); });
+    language: text/javascript
+order: 2000

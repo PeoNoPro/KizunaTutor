@@ -1,0 +1,24 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/profile/tutor/me"
+method: PUT
+headers:
+  Authorization: Bearer {{tutorToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: "{{body}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      const o = JSON.parse(pm.environment.get('tutorProfile'));
+      const b = { fullName: o.fullName, phone: o.phone, avatarUrl: o.avatarUrl, headline: o.headline, bio: o.bio, experienceYears: o.experienceYears, hourlyRate: o.hourlyRate, highestJlptLevel: o.highestJlptLevel, province: o.province, addressDetail: o.addressDetail };
+      Object.assign(b, { province: 'Hà Nội', addressDetail: '12 Nguyễn Trãi' });
+      pm.variables.set('body', JSON.stringify(b));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Địa chỉ công khai chỉ nên ghi Quận/Huyện hoặc khu vực chung", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Địa chỉ công khai chỉ nên ghi Quận/Huyện hoặc khu vực chung"); });
+    language: text/javascript
+order: 6000

@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/trial-bookings/my-requests?status=ABC"
+method: GET
+headers:
+  Authorization: Bearer {{learnerToken}}
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+    language: text/javascript
+order: 20000

@@ -1,0 +1,12 @@
+$kind: http-request
+name: TC-DIS-01 Danh sách chỉ gồm gia sư hiển thị (có Tutor A)
+description: ""
+url: "{{baseUrl}}/api/tutors?size=100"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("Tutor A có trong kết quả", () => pm.expect(pm.response.json().content.map(t => t.tutorId)).to.include(pm.environment.get('tutorId')));
+    language: text/javascript
+order: 1000

@@ -1,0 +1,17 @@
+$kind: http-request
+name: TC-PRF-09 Tutor A xem hồ sơ giảng dạy (lấy tutorId, tutorCode)
+description: ""
+url: "{{baseUrl}}/api/profile/tutor/me"
+method: GET
+headers:
+  Authorization: Bearer {{tutorToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      if (pm.response.code < 300) { pm.environment.set("tutorId", pm.response.json().data.tutorId); }
+      if (pm.response.code < 300) { pm.environment.set("tutorCode", pm.response.json().data.tutorCode); }
+      if (pm.response.code < 300) { pm.environment.set("tutorProfile", JSON.stringify(pm.response.json().data)); }
+      pm.test("có tutorId, tutorCode", () => { pm.expect(pm.response.json().data.tutorId).to.be.a('string'); pm.expect(pm.response.json().data.tutorCode).to.be.a('number'); });
+    language: text/javascript
+order: 6000

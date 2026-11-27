@@ -1,0 +1,22 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/connection-requests/{{request3Id}}/respond"
+method: PUT
+headers:
+  Authorization: Bearer {{tutorToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "action": "DECLINE",
+      "message": "Schedule full"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("pm.response.json().data.status = DECLINED", () => pm.expect(pm.response.json().data.status).to.eql("DECLINED"));
+      pm.test("pm.response.json().data.responseMessage = Schedule full", () => pm.expect(pm.response.json().data.responseMessage).to.eql("Schedule full"));
+    language: text/javascript
+order: 24000

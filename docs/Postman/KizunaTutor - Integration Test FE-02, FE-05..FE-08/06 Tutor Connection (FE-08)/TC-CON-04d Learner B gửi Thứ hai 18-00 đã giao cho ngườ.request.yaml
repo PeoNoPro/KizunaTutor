@@ -1,0 +1,32 @@
+$kind: http-request
+name: TC-CON-04d Learner B gửi Thứ hai 18:00 đã giao cho người khác
+description: ""
+url: "{{baseUrl}}/api/connection-requests"
+method: POST
+headers:
+  Authorization: Bearer {{learner2Token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tutorId": "{{tutorId}}",
+      "learningMode": "{{tutorLearningMode}}",
+      "slots": [
+        {
+          "dayOfWeek": 2,
+          "startTime": "18:00"
+        }
+      ],
+      "contactPhone": "{{learner2Phone}}",
+      "contactEmail": "{{learner2Email}}",
+      "shareContact": true,
+      "learningGoals": "Học giao tiếp hằng tuần"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 409", () => pm.expect(pm.response.code).to.be.oneOf([409]));
+      pm.test("Thông báo: Giờ Thứ hai 18:00 gia sư đã nhận học viên khác.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Giờ Thứ hai 18:00 gia sư đã nhận học viên khác."); });
+    language: text/javascript
+order: 22000

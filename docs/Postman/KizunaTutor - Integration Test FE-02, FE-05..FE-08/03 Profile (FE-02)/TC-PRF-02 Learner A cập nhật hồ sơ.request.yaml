@@ -1,0 +1,27 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/profile/learner/me"
+method: PUT
+headers:
+  Authorization: Bearer {{learnerToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: "{{body}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      const o = JSON.parse(pm.environment.get('learnerProfileOriginal'));
+      const b = { fullName: o.fullName, phone: o.phone, avatarUrl: o.avatarUrl, currentLevel: o.currentLevel || 'N5', targetLevel: o.targetLevel || 'N3', learningGoals: o.learningGoals, province: o.province, address: o.address };
+      Object.assign(b, { fullName: 'Nguyen Van B', currentLevel: 'N4', targetLevel: 'N2', learningGoals: 'Đỗ N2 trong 1 năm', province: 'Hà Nội', address: 'Cầu Giấy' });
+      pm.variables.set('body', JSON.stringify(b));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("pm.response.json().data.fullName = Nguyen Van B", () => pm.expect(pm.response.json().data.fullName).to.eql("Nguyen Van B"));
+      pm.test("pm.response.json().data.currentLevel = N4", () => pm.expect(pm.response.json().data.currentLevel).to.eql("N4"));
+      pm.test("pm.response.json().data.targetLevel = N2", () => pm.expect(pm.response.json().data.targetLevel).to.eql("N2"));
+      pm.test("email không đổi", () => pm.expect(pm.response.json().data.email.toLowerCase()).to.eql(pm.environment.get('learnerEmail').toLowerCase()));
+    language: text/javascript
+order: 1000

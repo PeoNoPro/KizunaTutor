@@ -1,0 +1,21 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/connection-requests/{{requestId}}/respond"
+method: PUT
+headers:
+  Authorization: Bearer {{tutorToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "action": "ACCEPT",
+      "slotDurations": []
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Vui lòng chọn độ dài cho ca Thứ hai 18:00", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Vui lòng chọn độ dài cho ca Thứ hai 18:00"); });
+    language: text/javascript
+order: 11000

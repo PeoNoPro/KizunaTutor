@@ -1,0 +1,14 @@
+$kind: http-request
+name: TC-CON-13b Đồng ý kết nối khi học thử chưa hoàn thành
+description: ""
+url: "{{baseUrl}}/api/trial-bookings/{{bookingId}}/agree-connection"
+method: PUT
+headers:
+  Authorization: Bearer {{tutorToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 400", () => pm.expect(pm.response.code).to.be.oneOf([400]));
+      pm.test("Thông báo: Chỉ có thể đồng ý kết nối sau khi buổi học thử đã hoàn thành", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Chỉ có thể đồng ý kết nối sau khi buổi học thử đã hoàn thành"); });
+    language: text/javascript
+order: 18000

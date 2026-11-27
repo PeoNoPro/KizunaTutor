@@ -1,0 +1,32 @@
+$kind: http-request
+name: TC-CON-06c Learner B gửi lại trong 24 giờ sau khi bị từ chối
+description: ""
+url: "{{baseUrl}}/api/connection-requests"
+method: POST
+headers:
+  Authorization: Bearer {{learner2Token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tutorId": "{{tutorId}}",
+      "learningMode": "{{tutorLearningMode}}",
+      "slots": [
+        {
+          "dayOfWeek": 4,
+          "startTime": "19:30"
+        }
+      ],
+      "contactPhone": "{{learner2Phone}}",
+      "contactEmail": "{{learner2Email}}",
+      "shareContact": true,
+      "learningGoals": "Học giao tiếp hằng tuần"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 409", () => pm.expect(pm.response.code).to.be.oneOf([409]));
+      pm.test("Thông báo: Gia sư vừa từ chối yêu cầu kết nối của bạn.", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("Gia sư vừa từ chối yêu cầu kết nối của bạn."); });
+    language: text/javascript
+order: 25000

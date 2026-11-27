@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutors/{{tutorId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("không có email, số điện thoại, mật khẩu", () => { const t = pm.response.text(); pm.expect(t).to.not.include(pm.environment.get('tutorEmail')); pm.expect(t).to.not.match(/passwordHash|password_hash|accountStatus/); const p = JSON.parse(pm.environment.get('tutorProfile') || '{}').phone; if (p) pm.expect(t).to.not.include(p); });
+    language: text/javascript
+order: 14000

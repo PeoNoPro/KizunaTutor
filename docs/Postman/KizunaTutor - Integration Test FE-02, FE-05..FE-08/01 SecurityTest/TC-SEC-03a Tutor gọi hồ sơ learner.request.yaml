@@ -1,0 +1,11 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/profile/learner/me"
+method: GET
+headers:
+  Authorization: Bearer {{tutorToken}}
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 403", () => pm.expect(pm.response.code).to.be.oneOf([403]));
+    language: text/javascript
+order: 6000

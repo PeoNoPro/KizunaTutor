@@ -1,0 +1,21 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "{{learner2Email}}",
+      "password": "{{learner2Password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      if (pm.response.code < 300) { pm.environment.set("learner2Token", pm.response.json().token); }
+      if (pm.response.code < 300) { pm.environment.set("learner2Id", pm.response.json().user.id); }
+    language: text/javascript
+order: 2000

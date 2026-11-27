@@ -1,0 +1,22 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/tutor/availability"
+method: POST
+headers:
+  Authorization: Bearer {{tutorToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "dayOfWeek": 2,
+      "startTime": "19:00",
+      "endTime": "21:00"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 409", () => pm.expect(pm.response.code).to.be.oneOf([409]));
+      pm.test("Thông báo: bị trùng với một ca rảnh đang mở trong ngày Thứ hai", () => { const j = pm.response.json(); const all = [j.message].concat((j.fieldErrors || []).map(f => f.message)).join(' | '); pm.expect(all).to.include("bị trùng với một ca rảnh đang mở trong ngày Thứ hai"); });
+    language: text/javascript
+order: 4000

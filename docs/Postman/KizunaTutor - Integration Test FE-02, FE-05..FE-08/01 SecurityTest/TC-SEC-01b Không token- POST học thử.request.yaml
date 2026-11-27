@@ -1,0 +1,24 @@
+$kind: http-request
+name: "TC-SEC-01b Không token: POST học thử"
+description: ""
+url: "{{baseUrl}}/api/trial-bookings"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tutorId": "{{tutorId}}",
+      "scheduledStartTime": "{{nextMonday}}T18:00:00+07:00",
+      "contactPhone": "{{learnerPhone}}",
+      "contactEmail": "{{learnerEmail}}",
+      "shareContact": true,
+      "learningGoals": "Luyện thi JLPT N3",
+      "initialMessage": "Em muốn học thử ạ."
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 401", () => pm.expect(pm.response.code).to.be.oneOf([401]));
+    language: text/javascript
+order: 2000

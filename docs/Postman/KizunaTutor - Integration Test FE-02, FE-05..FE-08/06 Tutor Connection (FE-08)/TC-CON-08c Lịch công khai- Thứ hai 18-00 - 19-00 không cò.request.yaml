@@ -1,0 +1,12 @@
+$kind: http-request
+name: "TC-CON-08c Lịch công khai: Thứ hai 18:00 - 19:00 không còn rảnh"
+description: ""
+url: "{{baseUrl}}/api/tutors/{{tutorId}}/weekly-schedule?weekStart={{nextMonday}}&minDuration=60"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("Thứ hai không rảnh 18:00 - 19:00", () => { const d = pm.response.json().days.find(x => x.date === pm.environment.get('nextMonday')); pm.expect(d.freeRanges.some(r => r.startTime < '19:00' && r.endTime > '18:00')).to.be.false; });
+    language: text/javascript
+order: 15000

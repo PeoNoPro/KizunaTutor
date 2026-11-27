@@ -1,0 +1,13 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/trial-bookings/my-requests?status=confirmed&page=0&size=10"
+method: GET
+headers:
+  Authorization: Bearer {{learnerToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("chỉ có CONFIRMED", () => pm.response.json().data.items.forEach(b => pm.expect(b.bookingStatus).to.eql('CONFIRMED')));
+    language: text/javascript
+order: 19000

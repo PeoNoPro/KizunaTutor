@@ -1,0 +1,12 @@
+$kind: http-request
+name: "TC-TRL-18b Lịch công khai: Thứ tư 18:00 rảnh lại"
+description: ""
+url: "{{baseUrl}}/api/tutors/{{tutorId}}/weekly-schedule?weekStart={{nextMonday}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      pm.test("Thứ tư 18:00 - 20:00 rảnh", () => { const d = pm.response.json().days.find(x => x.date === pm.environment.get('nextWednesday')); pm.expect(d.freeRanges.some(r => r.startTime <= '18:00' && r.endTime >= '20:00')).to.be.true; });
+    language: text/javascript
+order: 23000

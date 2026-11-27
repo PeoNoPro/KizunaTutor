@@ -1,0 +1,32 @@
+$kind: http-request
+name: TC-CON-02 Learner B gửi cùng giờ Thứ hai 18:00 (yêu cầu chờ không giữ chỗ)
+description: ""
+url: "{{baseUrl}}/api/connection-requests"
+method: POST
+headers:
+  Authorization: Bearer {{learner2Token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tutorId": "{{tutorId}}",
+      "learningMode": "{{tutorLearningMode}}",
+      "slots": [
+        {
+          "dayOfWeek": 2,
+          "startTime": "18:00"
+        }
+      ],
+      "contactPhone": "{{learner2Phone}}",
+      "contactEmail": "{{learner2Email}}",
+      "shareContact": true,
+      "learningGoals": "Học giao tiếp hằng tuần"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200/201", () => pm.expect(pm.response.code).to.be.oneOf([200,201]));
+      if (pm.response.code < 300) { pm.environment.set("request2Id", pm.response.json().data.requestId); }
+    language: text/javascript
+order: 5000

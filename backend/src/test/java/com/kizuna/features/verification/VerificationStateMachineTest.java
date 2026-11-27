@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class VerificationStateMachineTest {
@@ -209,6 +210,64 @@ class VerificationStateMachineTest {
         assertEquals("VERIFICATION_REJECTED", assertThrows(VerificationException.class,
                 () -> VerificationStateMachine.requireEditable(
                         tutor(TutorVerificationStatus.REJECTED, TutorState.REJECTED))).getCode());
+    }
+
+    // ===== FE-16: hồ sơ bị từ chối mở lại sau 7 ngày =====
+
+    @Test
+    void fe16_rejectedProfileLockedBeforeCooldownEndsWithResubmitTime() {
+        java.time.OffsetDateTime now = java.time.OffsetDateTime.parse("2026-11-26T10:00:00+07:00");
+        java.time.OffsetDateTime availableAt = now.plusMinutes(1);
+        Tutor tutor = tutor(TutorVerificationStatus.REJECTED, TutorState.REJECTED);
+
+        assertFalse(VerificationStateMachine.isEditable(TutorVerificationStatus.REJECTED, availableAt, now));
+        VerificationException ex = assertThrows(VerificationException.class,
+                () -> stateMachine.submit(tutor, availableAt, now));
+        assertEquals("VERIFICATION_REJECTED", ex.getCode());
+        assertEquals("Hồ sơ của bạn đã bị từ chối. Bạn có thể chỉnh sửa và nộp lại hồ sơ từ 10:01 ngày 26/11/2026.",
+                ex.getMessage());
+        assertEquals(TutorVerificationStatus.REJECTED, tutor.getVerificationStatus());
+        verifyNoInteractions(historyRepository);
+    }
+
+    @Test
+    void fe16_rejectedProfileCanBeResubmittedExactlyWhenCooldownEnds() {
+        java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+        Tutor tutor = tutor(TutorVerificationStatus.REJECTED, TutorState.REJECTED);
+
+        assertTrue(VerificationStateMachine.isEditable(TutorVerificationStatus.REJECTED, now, now));
+        TutorVerificationHistory history = stateMachine.submit(tutor, now, now);
+
+        assertEquals(TutorVerificationStatus.PENDING, tutor.getVerificationStatus());
+        assertEquals(TutorState.PENDING_VERIFICATION, tutor.getTutorState());
+        assertEquals(TutorVerifAction.SUBMIT, history.getAction());
+    }
+
+    @Test
+    void fe16_rejectedProfileWithoutKnownRejectionTimeIsEditable() {
+        assertTrue(VerificationStateMachine.isEditable(TutorVerificationStatus.REJECTED, null, java.time.OffsetDateTime.now()));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = TutorVerificationStatus.class, names = {"PENDING", "APPROVED"})
+    void fe16_cooldownOverloadKeepsOtherLockedStatuses(TutorVerificationStatus status) {
+        java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+        assertFalse(VerificationStateMachine.isEditable(status, null, now));
+        assertEquals("VERIFICATION_LOCKED", assertThrows(VerificationException.class,
+                () -> VerificationStateMachine.requireEditable(tutor(status, TutorState.PENDING_VERIFICATION), null, now)).getCode());
+    }
+
+    @Test
+    void fe16_resubmitTimeIsLatestRejectionPlusSevenDays() {
+        Tutor tutor = tutor(TutorVerificationStatus.REJECTED, TutorState.REJECTED);
+        java.time.OffsetDateTime rejectedAt = java.time.OffsetDateTime.parse("2026-11-20T08:30:00+07:00");
+        when(historyRepository.findFirstByTutor_TutorIdAndActionInOrderByCreatedAtDesc(eq(tutor.getTutorId()), any()))
+                .thenReturn(java.util.Optional.of(TutorVerificationHistory.builder()
+                        .action(TutorVerifAction.REJECT).createdAt(rejectedAt).build()));
+
+        assertEquals(rejectedAt.plusDays(7), VerificationStateMachine.resubmitAvailableAt(tutor, historyRepository));
+        assertNull(VerificationStateMachine.resubmitAvailableAt(
+                tutor(TutorVerificationStatus.APPROVED, TutorState.APPROVED_UNPAID), historyRepository));
     }
 
     @Test

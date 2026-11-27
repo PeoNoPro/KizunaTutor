@@ -13,6 +13,7 @@ import com.kizuna.features.verification.repository.TutorVerificationHistoryRepos
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.EnumSet;
 import java.util.List;
@@ -29,11 +30,17 @@ public class VerificationStateMachine {
 
     /**
      * Chỉ hồ sơ chưa nộp hoặc được yêu cầu bổ sung mới chỉnh sửa/nộp được.
-     * "Bị từ chối" là quyết định cuối cùng (quyết định của người phụ trách 2026-11-03, UC-28 POST-2).
+     * "Bị từ chối" khóa trong 7 ngày rồi được sửa / nộp lại (FE-16, 2026-11-26; trước đó là quyết định cuối cùng).
      */
     private static final Set<TutorVerificationStatus> EDITABLE = EnumSet.of(
             TutorVerificationStatus.UNVERIFIED,
             TutorVerificationStatus.ADDITIONAL_INFO_REQUIRED);
+
+    /**
+     * FE-16 (2026-11-26): hồ sơ bị từ chối được sửa và nộp lại sau 7 ngày kể từ lúc cán bộ học vụ từ chối
+     * (specs/016-rejection-resubmit-cooldown, thay quy tắc "từ chối là cuối cùng").
+     */
+    public static final Duration RESUBMIT_COOLDOWN = Duration.ofDays(7);
 
     private final TutorVerificationHistoryRepository historyRepository;
     private final TutorCredentialRepository credentialRepository;
@@ -42,8 +49,36 @@ public class VerificationStateMachine {
         return tutor.getVerificationStatus() != null ? tutor.getVerificationStatus() : TutorVerificationStatus.UNVERIFIED;
     }
 
+    /** Theo trạng thái thuần: hồ sơ bị từ chối coi là khóa. Có tính thời gian chờ thì dùng overload bên dưới. */
     public static boolean isEditable(TutorVerificationStatus status) {
         return EDITABLE.contains(status != null ? status : TutorVerificationStatus.UNVERIFIED);
+    }
+
+    /**
+     * FE-16: như trên, nhưng hồ sơ bị từ chối được sửa khi đã hết thời gian chờ.
+     * resubmitAvailableAt rỗng (dữ liệu cũ không có dòng lịch sử từ chối) = được sửa ngay.
+     */
+    public static boolean isEditable(TutorVerificationStatus status, OffsetDateTime resubmitAvailableAt, OffsetDateTime now) {
+        if (status == TutorVerificationStatus.REJECTED) {
+            return resubmitAvailableAt == null || !now.isBefore(resubmitAvailableAt);
+        }
+        return isEditable(status);
+    }
+
+    /**
+     * FE-16: thời điểm hồ sơ bị từ chối được nộp lại = lần từ chối mới nhất + 7 ngày.
+     * Hồ sơ không ở trạng thái bị từ chối, hoặc không tìm thấy lần từ chối, trả null.
+     * Hồ sơ bị từ chối không thể có yêu cầu cập nhật (chỉ hồ sơ đã duyệt mới gửi được), nên dòng REJECT mới nhất là lần từ chối hồ sơ.
+     */
+    public static OffsetDateTime resubmitAvailableAt(Tutor tutor, TutorVerificationHistoryRepository historyRepository) {
+        if (currentStatus(tutor) != TutorVerificationStatus.REJECTED || tutor.getTutorId() == null) {
+            return null;
+        }
+        return historyRepository
+                .findFirstByTutor_TutorIdAndActionInOrderByCreatedAtDesc(tutor.getTutorId(), EnumSet.of(TutorVerifAction.REJECT))
+                .map(TutorVerificationHistory::getCreatedAt)
+                .map(rejectedAt -> rejectedAt.plus(RESUBMIT_COOLDOWN))
+                .orElse(null);
     }
 
     /**
@@ -60,10 +95,37 @@ public class VerificationStateMachine {
     }
 
     /**
+     * FE-16: như requireEditable(tutor), nhưng hồ sơ bị từ chối được sửa / nộp khi đã hết thời gian chờ;
+     * còn trong thời gian chờ thì báo thời điểm được nộp lại.
+     */
+    public static void requireEditable(Tutor tutor, OffsetDateTime resubmitAvailableAt, OffsetDateTime now) {
+        TutorVerificationStatus status = currentStatus(tutor);
+        if (status == TutorVerificationStatus.REJECTED) {
+            if (!isEditable(status, resubmitAvailableAt, now)) {
+                throw VerificationException.rejectedUntil(resubmitAvailableAt);
+            }
+            return;
+        }
+        requireEditable(tutor);
+    }
+
+    /**
      * Gia sư nộp hoặc nộp lại hồ sơ: Chưa nộp / Cần bổ sung → Đang chờ thẩm định.
      */
     public TutorVerificationHistory submit(Tutor tutor) {
         requireEditable(tutor);
+        return doSubmit(tutor);
+    }
+
+    /**
+     * FE-16: nộp có tính thời gian chờ: thêm "Bị từ chối (đã hết 7 ngày)" → Đang chờ thẩm định.
+     */
+    public TutorVerificationHistory submit(Tutor tutor, OffsetDateTime resubmitAvailableAt, OffsetDateTime now) {
+        requireEditable(tutor, resubmitAvailableAt, now);
+        return doSubmit(tutor);
+    }
+
+    private TutorVerificationHistory doSubmit(Tutor tutor) {
         tutor.setVerificationStatus(TutorVerificationStatus.PENDING);
         tutor.setTutorState(TutorState.PENDING_VERIFICATION);
         tutor.setSubmittedAt(OffsetDateTime.now());
@@ -98,7 +160,7 @@ public class VerificationStateMachine {
     }
 
     /**
-     * Cán bộ từ chối: Đang chờ thẩm định → Bị từ chối. Đây là trạng thái cuối, gia sư không thể nộp lại.
+     * Cán bộ từ chối: Đang chờ thẩm định → Bị từ chối. FE-16: gia sư được nộp lại sau RESUBMIT_COOLDOWN.
      */
     public TutorVerificationHistory reject(Tutor tutor, User officer, RejectionReason reason,
                                            String feedback, String internalNote) {

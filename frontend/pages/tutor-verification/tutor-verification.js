@@ -8,7 +8,7 @@ import { showToast } from '/js/main.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
 import {
   APPROVED_EDITABLE_FIELDS, hasPendingUpdate, canUploadDocuments, documentChangeable, newDocumentCount, profileUpdateError,
-  canRequestRemoval, removalError
+  canRequestRemoval, removalError, rejectedProfileHint, rejectedReadOnlyNote
 } from '/js/verification-update-helpers.js';
 
 mountTutorLayout('verification');
@@ -31,7 +31,8 @@ const STATUS_STYLES = {
   PENDING: { css: 'tv-status-pending', icon: 'hourglass_top', hint: 'Cán bộ học vụ đang thẩm định hồ sơ. Kết quả sẽ được gửi qua email của bạn.' },
   ADDITIONAL_INFO_REQUIRED: { css: 'tv-status-needs-info', icon: 'edit_note', hint: 'Vui lòng xem phản hồi bên dưới, bổ sung thông tin và nộp lại hồ sơ.' },
   APPROVED: { css: 'tv-status-approved', icon: 'verified', hint: 'Hồ sơ đã được phê duyệt. Bạn có thể sửa thông tin liên hệ bất cứ lúc nào; đổi trình độ JLPT hoặc bổ sung giấy tờ thì gửi yêu cầu cập nhật để cán bộ học vụ thẩm định.' },
-  REJECTED: { css: 'tv-status-rejected', icon: 'block', hint: 'Hồ sơ không được chấp nhận. Đây là quyết định cuối cùng nên hồ sơ không thể chỉnh sửa hoặc nộp lại. Vui lòng liên hệ bộ phận hỗ trợ nếu bạn cần trao đổi thêm.' }
+  // FE-16: lời nhắc thật lấy từ rejectedProfileHint (có thời điểm được nộp lại)
+  REJECTED: { css: 'tv-status-rejected', icon: 'block', hint: 'Hồ sơ không được chấp nhận.' }
 };
 
 const state = {
@@ -268,7 +269,8 @@ function renderStatus(data) {
   const badge = $('statusBadge');
   badge.className = `tv-badge text-sm ${style.css}`;
   badge.innerHTML = `<span class="material-symbols-outlined text-base">${style.icon}</span>${escapeHtml(data.statusLabel)}`;
-  $('statusHint').textContent = style.hint;
+  // FE-16: hồ sơ bị từ chối được nộp lại sau 7 ngày
+  $('statusHint').textContent = data.status === 'REJECTED' ? rejectedProfileHint(data) : style.hint;
   $('submittedAtText').textContent = formatDate(data.submittedAt);
   $('verifiedAtText').textContent = formatDate(data.verifiedAt);
 }
@@ -372,9 +374,10 @@ function renderEditMode(data) {
       : 'Chỉ xem — bấm "Chỉnh sửa hồ sơ xác minh" để thay đổi';
   } else {
     $('readOnlyNote').textContent = data.status === 'REJECTED'
-      ? 'Chỉ xem — hồ sơ đã bị từ chối và không thể nộp lại'
+      ? rejectedReadOnlyNote(data) // FE-16: nêu thời điểm được nộp lại
       : 'Chỉ xem — hồ sơ đang được thẩm định';
-  }  const resubmit = data.status === 'ADDITIONAL_INFO_REQUIRED';
+  }
+  const resubmit = data.status === 'ADDITIONAL_INFO_REQUIRED' || data.status === 'REJECTED';
   $('submitButtonText').textContent = resubmit ? 'Nộp lại hồ sơ' : 'Nộp hồ sơ';
   $('confirmSubmitButton').textContent = resubmit ? 'Nộp lại hồ sơ' : 'Nộp hồ sơ';
 }

@@ -48,13 +48,23 @@ public class VerificationNotificationService {
     }
 
     public void rejectedAfterCommit(String toEmail, String fullName, String reasonLabel, String feedback) {
+        rejectedAfterCommit(toEmail, fullName, reasonLabel, feedback, null);
+    }
+
+    /** FE-16: email từ chối nêu thời điểm gia sư được chỉnh sửa và nộp lại (null = nêu chung "sau 7 ngày"). */
+    public void rejectedAfterCommit(String toEmail, String fullName, String reasonLabel, String feedback,
+                                    java.time.OffsetDateTime resubmitAvailableAt) {
         String detail = feedback == null || feedback.isBlank() ? "" : "<p>Nhận xét của cán bộ học vụ: " + escape(feedback) + "</p>";
+        String when = resubmitAvailableAt == null
+                ? "sau 7 ngày kể từ hôm nay"
+                : "từ " + VerificationException.formatResubmitTime(resubmitAvailableAt);
         afterCommit(toEmail, "Kết quả xét duyệt hồ sơ gia sư của bạn",
                 greeting(fullName)
                         + "<p>Rất tiếc, hồ sơ xác minh gia sư của bạn không được chấp nhận.</p>"
                         + "<p>Lý do: <strong>" + escape(reasonLabel) + "</strong></p>"
                         + detail
-                        + "<p>Quyết định này là kết quả cuối cùng của đợt xét duyệt. Nếu bạn cần trao đổi thêm, vui lòng liên hệ bộ phận hỗ trợ của KizunaTutor.</p>"
+                        + "<p>Bạn có thể chỉnh sửa hồ sơ, tải lên giấy tờ mới và nộp lại " + escape(when) + ". "
+                        + "Nếu bạn cần trao đổi thêm, vui lòng liên hệ bộ phận hỗ trợ của KizunaTutor.</p>"
                         + signature());
     }
 

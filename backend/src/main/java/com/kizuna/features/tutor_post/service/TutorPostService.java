@@ -54,6 +54,14 @@ public class TutorPostService {
     public static final String MSG_UPDATE_SUBMITTED =
             "Đã gửi bản cập nhật. Học viên vẫn thấy bài đang hiển thị cho tới khi cán bộ học vụ duyệt bản mới.";
 
+    /** FE-16: bài đầu tiên bị từ chối được thay bằng bài mới sau 7 ngày kể từ lúc từ chối. */
+    public static final java.time.Duration RESUBMIT_COOLDOWN = java.time.Duration.ofDays(7);
+
+    /** FE-16: lời nhắn khi gửi bài trong thời gian chờ. */
+    public static String rejectedUntilMessage(OffsetDateTime availableAt) {
+        return "Bài đăng của bạn đã bị từ chối. Bạn có thể gửi bài đăng mới từ " + formatResubmitTime(availableAt) + ".";
+    }
+
     private static final Set<String> FORMATS = Set.of("ONLINE", "OFFLINE", "BOTH");
     private static final BigDecimal MIN_RATE = new BigDecimal("10000");
     private static final BigDecimal MAX_RATE = new BigDecimal("10000000");
@@ -82,9 +90,28 @@ public class TutorPostService {
         Tutor tutor = requireTutor(user);
         String blocked = blockedReason(tutor);
         TutorPost latest = postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId()).orElse(null);
-        boolean editable = blocked == null && isEditable(latest, tutor.getTutorId());
-        return new MyPostView(blocked == null, blocked, editable, membershipExpiresOn(tutor.getTutorId()),
+        OffsetDateTime now = OffsetDateTime.now(ZONE);
+        boolean editable = blocked == null && isEditable(latest, tutor.getTutorId(), now);
+        return new MyPostView(blocked == null, blocked, editable, resubmitAvailableAt(latest, tutor.getTutorId()),
+                membershipExpiresOn(tutor.getTutorId()),
                 postView(tutor.getTutorId()), PRICE_LEVEL_OPTIONS, PostPriceItem.SESSION_MINUTES);
+    }
+
+    /**
+     * FE-16: thời điểm được gửi bài mới khi bài mới nhất bị từ chối và chưa có bản đã duyệt = lúc từ chối + 7 ngày.
+     * Có bản đã duyệt (bản cập nhật bị từ chối) hoặc bài không có thời điểm duyệt (dữ liệu cũ) thì null = gửi được ngay.
+     */
+    private OffsetDateTime resubmitAvailableAt(TutorPost latest, UUID tutorId) {
+        if (latest == null || latest.getStatus() != TutorPostStatus.REJECTED || latest.getReviewedAt() == null
+                || publishedPost(tutorId).isPresent()) {
+            return null;
+        }
+        return latest.getReviewedAt().plus(RESUBMIT_COOLDOWN);
+    }
+
+    /** "HH:mm ngày dd/MM/yyyy" theo giờ Việt Nam. */
+    static String formatResubmitTime(OffsetDateTime time) {
+        return time.atZoneSameInstant(ZONE).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm 'ngày' dd/MM/yyyy"));
     }
 
     /** Danh sách môn học / cấp độ cho ô chọn trên giao diện (theo thứ tự khai báo của PriceLevel). */
@@ -94,16 +121,19 @@ public class TutorPostService {
 
     /**
      * Gia sư gửi được khi: chưa có bài; được yêu cầu bổ sung; bài đã duyệt (gửi bản cập nhật);
-     * hoặc bản cập nhật bị từ chối nhưng vẫn còn bản đã duyệt đang hiển thị.
-     * Bài đang chờ duyệt, hoặc bài đầu tiên bị từ chối (quyết định cuối cùng) thì không gửi được.
+     * bản cập nhật bị từ chối nhưng vẫn còn bản đã duyệt đang hiển thị;
+     * hoặc (FE-16) bài đầu tiên bị từ chối đã quá 7 ngày. Bài đang chờ duyệt thì không gửi được.
      */
-    private boolean isEditable(TutorPost latest, UUID tutorId) {
+    private boolean isEditable(TutorPost latest, UUID tutorId, OffsetDateTime now) {
         if (latest == null) {
             return true;
         }
         return switch (latest.getStatus()) {
             case NEEDS_REVISION, PUBLISHED -> true;
-            case REJECTED -> publishedPost(tutorId).isPresent();
+            case REJECTED -> {
+                OffsetDateTime availableAt = resubmitAvailableAt(latest, tutorId);
+                yield availableAt == null || !now.isBefore(availableAt);
+            }
             case PENDING_REVIEW -> false;
         };
     }
@@ -121,8 +151,10 @@ public class TutorPostService {
             throw new ConflictException(blocked);
         }
         TutorPost latest = postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId()).orElse(null);
-        if (!isEditable(latest, tutor.getTutorId())) {
-            throw new ConflictException(MSG_NOT_EDITABLE);
+        if (!isEditable(latest, tutor.getTutorId(), OffsetDateTime.now(ZONE))) {
+            OffsetDateTime availableAt = resubmitAvailableAt(latest, tutor.getTutorId());
+            // FE-16: bài đầu tiên bị từ chối còn trong thời gian chờ thì nêu thời điểm được gửi bài mới
+            throw new ConflictException(availableAt != null ? rejectedUntilMessage(availableAt) : MSG_NOT_EDITABLE);
         }
         SubmitPostRequest r = validate(request);
         List<PostPriceItem> prices = r.prices().stream()
@@ -203,15 +235,22 @@ public class TutorPostService {
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }
 
-    /** Từ chối: quyết định cuối cùng, gia sư không gửi lại bài này được. */
+    /**
+     * Từ chối: bài này không gửi lại được. FE-16: chưa có bản đã duyệt thì gia sư gửi bài mới sau 7 ngày;
+     * là bản cập nhật của bài đã duyệt thì gửi bản khác được ngay.
+     */
     @Transactional
     public ReviewItemView reject(UUID postId, User officer, RejectPostRequest request) {
         String reason = requireText(request, "Vui lòng nhập lý do từ chối.", "Lý do từ chối tối đa 2.000 ký tự.");
         TutorPost post = lockPending(postId);
         markReviewed(post, officer, TutorPostStatus.REJECTED, reason);
-        notifyTutorReviewed(post, "Bài đăng không được duyệt", "Bài đăng \"" + post.getTitle() + "\" bị từ chối. Lý do: " + reason);
+        OffsetDateTime resubmitAvailableAt = resubmitAvailableAt(post, post.getTutor().getTutorId());
+        String next = resubmitAvailableAt == null
+                ? " Bạn có thể sửa và gửi bản cập nhật khác ngay."
+                : " Bạn có thể gửi bài đăng mới từ " + formatResubmitTime(resubmitAvailableAt) + ".";
+        notifyTutorReviewed(post, "Bài đăng không được duyệt", "Bài đăng \"" + post.getTitle() + "\" bị từ chối. Lý do: " + reason + next);
         if (mailService != null) {
-            mailService.rejectedAfterCommit(tutorEmail(post), tutorName(post), post.getTitle(), reason);
+            mailService.rejectedAfterCommit(tutorEmail(post), tutorName(post), post.getTitle(), reason, resubmitAvailableAt);
         }
         return toReviewItem(postRepository.save(post), LocalDate.now(ZONE));
     }

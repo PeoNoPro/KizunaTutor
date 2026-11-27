@@ -30,7 +30,8 @@ const DIALOGS = {
   },
   reject: {
     title: 'Từ chối bài đăng',
-    hint: (name) => `Đây là quyết định cuối cùng: gia sư ${name} sẽ không gửi lại được bài này.`,
+    // FE-16: bài đầu tiên bị từ chối được gửi bài mới sau 7 ngày; bản cập nhật bị từ chối gửi lại ngay
+    hint: (name) => `Gia sư ${name} sẽ nhận lý do từ chối. Nếu đây là bài đầu tiên, gia sư chỉ gửi được bài mới sau 7 ngày; nếu là bản cập nhật, bài đang hiển thị vẫn giữ nguyên. Nếu bài chỉ cần sửa, hãy dùng "Yêu cầu bổ sung".`,
     placeholder: 'Ví dụ: Bài đăng chứa thông tin liên hệ ngoài hệ thống, nội dung không phù hợp...',
     confirm: 'Từ chối',
     confirmClass: 'bg-error',
@@ -121,11 +122,11 @@ function contentBlock(label, c, tone) {
     </div>`;
 }
 
-function statusBadges(p) {
+function statusBadges(p, { showMembership = true } = {}) {
   return `
     <span class="px-2 py-0.5 rounded-full text-caption font-semibold ${STATUS_STYLE[p.reviewStatus] || ''}">${escapeHtml(p.reviewStatusLabel)}</span>
     ${p.reviewStatus === 'PENDING' && p.published ? '<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-primary text-caption font-semibold">Bản cập nhật</span>' : ''}
-    ${p.membershipActive ? '' : '<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-caption font-semibold">Gói đã hết hạn</span>'}`;
+    ${showMembership && !p.membershipActive ? '<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-caption font-semibold">Gói đã hết hạn</span>' : ''}`;
 }
 
 /** Một dòng tóm tắt trong danh sách; toàn bộ nội dung xem ở "Xem chi tiết". */
@@ -168,13 +169,12 @@ function openDetail(postId) {
     <div class="flex flex-wrap items-center gap-2">
       <span class="text-body-md font-semibold text-on-surface">${escapeHtml(p.tutorName)}</span>
       ${p.highestJlptLevel ? `<span class="text-caption text-outline">JLPT ${escapeHtml(p.highestJlptLevel)}</span>` : ''}
-      ${statusBadges(p)}
+      ${statusBadges(p, { showMembership: false })}
     </div>`;
 
   const facts = [
     ['Email gia sư', escapeHtml(p.tutorEmail || '—')],
     ['Gửi lúc', formatDateTime(p.submittedAt)],
-    ['Gói hội viên', p.membershipActive ? 'Còn hiệu lực' : 'Đã hết hạn — bài sẽ tạm ẩn khỏi trang Tìm gia sư'],
     ...(p.reviewedAt ? [[`${escapeHtml(p.reviewStatusLabel)} lúc`, `${formatDateTime(p.reviewedAt)} bởi ${escapeHtml(p.reviewerName || '—')}`]] : [])
   ];
   const feedback = p.reviewFeedback && (p.reviewStatus === 'REJECTED' || p.reviewStatus === 'NEEDS_INFO')

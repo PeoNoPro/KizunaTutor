@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   APPROVED_EDITABLE_FIELDS, hasPendingUpdate, canUploadDocuments, documentChangeable, newDocumentCount, profileUpdateError,
-  canRequestRemoval, removalError, MSG_NO_CHANGES, MSG_REMOVE_KEEPS_REQUIRED
+  canRequestRemoval, removalError, MSG_NO_CHANGES, MSG_REMOVE_KEEPS_REQUIRED,
+  formatResubmitTime, rejectedProfileHint, rejectedReadOnlyNote
 } from '../js/verification-update-helpers.js';
 
 const verifiedDoc = { id: '1', status: 'VERIFIED', fileAvailable: true };
@@ -61,4 +62,14 @@ test("sau khi gỡ vẫn phải còn giấy tờ tùy thân và chứng chỉ ti
   assert.equal(removalError(withDocs([idDoc, oldJlpt, newJlpt]), ["j1"]), null, "đã tải chứng chỉ thay thế");
   assert.equal(removalError(withDocs([idDoc, oldJlpt, { ...newJlpt, fileAvailable: false }]), ["j1"]), MSG_REMOVE_KEEPS_REQUIRED);
   assert.equal(removalError(withDocs([idDoc, oldJlpt]), []), null);
+});
+
+test('FE-16: hồ sơ bị từ chối còn thời gian chờ nêu thời điểm nộp lại; hết chờ thì mời nộp lại với giấy tờ mới', () => {
+  const at = new Date(2026, 11, 3, 9, 30).toISOString();
+  assert.equal(formatResubmitTime(at), '09:30 ngày 03/12/2026');
+  const waiting = { status: 'REJECTED', editable: false, resubmitAvailableAt: at };
+  assert.match(rejectedProfileHint(waiting), /nộp lại hồ sơ từ 09:30 ngày 03\/12\/2026/);
+  assert.equal(rejectedReadOnlyNote(waiting), 'Chỉ xem — được chỉnh sửa và nộp lại từ 09:30 ngày 03/12/2026');
+  assert.match(rejectedProfileHint({ status: 'REJECTED', editable: true }), /tải lên giấy tờ mới/);
+  assert.match(rejectedProfileHint({ status: 'REJECTED', editable: false }), /liên hệ bộ phận hỗ trợ/);
 });

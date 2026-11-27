@@ -47,11 +47,23 @@ public class TutorPostMailService {
     }
 
     public void rejectedAfterCommit(String toEmail, String fullName, String postTitle, String reason) {
+        rejectedAfterCommit(toEmail, fullName, postTitle, reason, null);
+    }
+
+    /**
+     * FE-16: resubmitAvailableAt = thời điểm được gửi bài mới (bài đầu tiên bị từ chối);
+     * null = bản cập nhật bị từ chối, gia sư gửi bản khác được ngay.
+     */
+    public void rejectedAfterCommit(String toEmail, String fullName, String postTitle, String reason,
+                                    java.time.OffsetDateTime resubmitAvailableAt) {
+        String next = resubmitAvailableAt == null
+                ? "Bạn có thể sửa và gửi bản cập nhật khác ngay."
+                : "Bạn có thể gửi bài đăng mới từ " + TutorPostService.formatResubmitTime(resubmitAvailableAt) + ".";
         afterCommit(toEmail, "Bài đăng của bạn không được duyệt",
                 greeting(fullName)
                         + "<p>Rất tiếc, bài đăng <strong>" + escape(postTitle) + "</strong> không được duyệt.</p>"
                         + "<p>Lý do: " + escape(reason) + "</p>"
-                        + "<p>Bạn không gửi lại được bài này. Nếu cần trao đổi thêm, vui lòng liên hệ bộ phận hỗ trợ của KizunaTutor.</p>"
+                        + "<p>" + escape(next) + " Nếu cần trao đổi thêm, vui lòng liên hệ bộ phận hỗ trợ của KizunaTutor.</p>"
                         + signature());
     }
 

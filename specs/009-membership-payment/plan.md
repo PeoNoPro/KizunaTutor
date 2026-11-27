@@ -64,7 +64,7 @@ backend/src/main/java/com/kizuna/
     ├── service/ VnpaySigner, VnpayGatewayClient (tạo URL, querydr), PaymentResultProcessor,
     │            MembershipPeriodCalculator, MembershipExpiryService, PaymentLogWriter,
     │            PaymentNotificationService, CurrentTutorProvider,
-    │            TutorMembershipService(+impl), MembershipPlanAdminService(+impl),
+    │            TutorMembershipService(+impl), MembershipPlanManagerService(+impl),
     │            TutorMembershipMonitorService(+impl), MembershipLabels  [PaymentIssueService(+impl): đã gỡ 2026-11-23]
     ├── controller/ TutorMembershipController, VnpayIpnController,
     │               ManagerMembershipPlanController, ManagerTutorMembershipController
@@ -119,7 +119,7 @@ frontend/
 | FR-009 | PaymentResultProcessor | ProcessorTest, QS 8 |
 | FR-010 | PaymentNotificationService (sau commit) | ProcessorTest (lỗi mail không rollback) |
 | FR-013 | MembershipExpiryService | ExpiryServiceTest, QS 16 |
-| FR-014–016 | MembershipPlanAdminService | ServiceTest, ControllerTest, QS 11–13 |
+| FR-014–016 | MembershipPlanManagerService | ServiceTest, ControllerTest, QS 11–13 |
 | FR-017, 018 | TutorMembershipMonitorService | ControllerTest, QS 14–15 |
 | FR-019–021 | ~~PaymentIssueService~~ — đã gỡ 2026-11-23 (UC-98) | — |
 | FR-022 | (chờ D-2) | — |

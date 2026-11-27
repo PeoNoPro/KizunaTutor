@@ -313,7 +313,10 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
     public TutorVerificationResponse submit(SubmitVerificationRequest request) {
         Tutor tutor = tutorRepository.findLockedByUserId(currentUserId())
                 .orElseThrow(VerificationException::notFound);
-        VerificationStateMachine.requireEditable(tutor);
+        // FE-16: hồ sơ bị từ chối được nộp lại khi đã hết thời gian chờ 7 ngày
+        OffsetDateTime resubmitAvailableAt = VerificationStateMachine.resubmitAvailableAt(tutor, historyRepository);
+        OffsetDateTime now = OffsetDateTime.now();
+        VerificationStateMachine.requireEditable(tutor, resubmitAvailableAt, now);
         if (request == null || !Boolean.TRUE.equals(request.getCommitment())) {
             throw VerificationException.commitmentRequired();
         }
@@ -322,7 +325,7 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
             throw VerificationException.incomplete(check.fields(), check.missingDocuments());
         }
         boolean resubmitted = tutor.getSubmittedAt() != null;
-        stateMachine.submit(tutor);
+        stateMachine.submit(tutor, resubmitAvailableAt, now);
         tutorRepository.save(tutor);
         if (notificationEvents != null) {
             notificationEvents.publishToRole("verification:" + tutor.getTutorId() + ":submitted:" + tutor.getSubmittedAt(), "SYSTEM",
@@ -353,7 +356,9 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
         Tutor tutor = tutorRepository.findLockedByUserId(currentUserId())
                 .orElseThrow(VerificationException::notFound);
         if (!isApproved(tutor)) {
-            VerificationStateMachine.requireEditable(tutor);
+            // FE-16: hồ sơ bị từ chối mở lại sau 7 ngày
+            VerificationStateMachine.requireEditable(tutor,
+                    VerificationStateMachine.resubmitAvailableAt(tutor, historyRepository), OffsetDateTime.now());
         }
         return tutor;
     }

@@ -53,8 +53,13 @@ public final class TutorPostDtos {
      * Trang "Bài đăng của tôi".
      * canPost = gói hội viên còn hạn và hồ sơ đã được duyệt; post = null khi chưa từng đăng.
      */
-    /** editable = được soạn và gửi: chưa có bài, hoặc cán bộ học vụ yêu cầu bổ sung (và gói còn hạn). */
-    public record MyPostView(boolean canPost, String blockedReason, boolean editable, LocalDate membershipExpiresOn,
+    /**
+     * editable = được soạn và gửi: chưa có bài, cán bộ học vụ yêu cầu bổ sung, sửa bài đã duyệt,
+     * hoặc bài đầu tiên bị từ chối đã quá 7 ngày (và gói còn hạn).
+     * resubmitAvailableAt (FE-16) = thời điểm được gửi bài mới khi bài đầu tiên bị từ chối; null ở các trường hợp khác.
+     */
+    public record MyPostView(boolean canPost, String blockedReason, boolean editable, OffsetDateTime resubmitAvailableAt,
+                             LocalDate membershipExpiresOn,
                              PostView post, List<PriceLevelOption> priceLevels, List<Integer> sessionMinutesOptions) {
     }
 

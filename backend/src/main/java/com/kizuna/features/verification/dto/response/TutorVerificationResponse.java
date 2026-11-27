@@ -23,6 +23,8 @@ public class TutorVerificationResponse {
     private String status;
     private String statusLabel;
     private Boolean editable;
+    /** FE-16: hồ sơ bị từ chối — thời điểm được sửa và nộp lại (lần từ chối + 7 ngày). */
+    private OffsetDateTime resubmitAvailableAt;
     private OffsetDateTime submittedAt;
     private OffsetDateTime verifiedAt;
     private VerificationProfileDto profile;

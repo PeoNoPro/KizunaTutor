@@ -8,6 +8,7 @@ import com.kizuna.features.verification.dto.response.TutorVerificationResponse;
 import com.kizuna.features.verification.dto.response.VerificationDocumentResponse;
 import com.kizuna.features.verification.dto.response.VerificationProfileDto;
 import com.kizuna.features.verification.entity.TutorCredential;
+import com.kizuna.features.verification.entity.TutorCredentialStatus;
 import com.kizuna.features.verification.entity.TutorVerifAction;
 import com.kizuna.features.verification.entity.TutorVerificationHistory;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -93,8 +95,11 @@ public class VerificationViewAssembler {
         if (forOfficer) {
             builder.tutorId(tutor.getTutorId()).email(user != null ? user.getEmail() : null);
         } else {
-            boolean editable = VerificationStateMachine.isEditable(status);
+            // FE-16: hồ sơ bị từ chối mở lại sau 7 ngày; trả kèm thời điểm để trang gia sư hiển thị
+            OffsetDateTime resubmitAvailableAt = VerificationStateMachine.resubmitAvailableAt(tutor, historyRepository);
+            boolean editable = VerificationStateMachine.isEditable(status, resubmitAvailableAt, OffsetDateTime.now());
             builder.editable(editable);
+            builder.resubmitAvailableAt(resubmitAvailableAt);
             builder.missingRequirements(editable ? check(tutor, credentials, available).labels() : List.of());
         }
         return builder.build();
@@ -161,11 +166,14 @@ public class VerificationViewAssembler {
         }
 
         List<String> missingDocuments = new ArrayList<>();
+        // FE-16: giấy tờ "Không được chấp nhận" không tính — nộp lại sau khi bị từ chối phải tải giấy tờ mới
         boolean hasIdentity = credentials.stream()
                 .anyMatch(c -> c.getCredentialType() != null && c.getCredentialType().isIdentity()
+                        && c.getVerifiedStatus() != TutorCredentialStatus.REJECTED
                         && available.contains(c.getCredentialId()));
         boolean hasJapanese = credentials.stream()
                 .anyMatch(c -> c.getCredentialType() != null && c.getCredentialType().isJapaneseProficiency()
+                        && c.getVerifiedStatus() != TutorCredentialStatus.REJECTED
                         && available.contains(c.getCredentialId()));
         if (!hasIdentity) {
             missingDocuments.add(VerificationLabels.MISSING_IDENTITY);

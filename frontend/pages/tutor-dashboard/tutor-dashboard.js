@@ -23,7 +23,7 @@ const STATUS_VIEW = {
     icon: 'verified', color: 'text-success', note: 'Đủ điều kiện nhận học viên', action: 'Xem hồ sơ xác minh',
   },
   REJECTED: {
-    icon: 'block', color: 'text-error', note: 'Quyết định cuối cùng, không thể nộp lại', action: 'Xem lý do từ chối',
+    icon: 'block', color: 'text-error', note: 'Được nộp lại sau 7 ngày kể từ khi bị từ chối', action: 'Xem lý do từ chối',
   }
 };
 

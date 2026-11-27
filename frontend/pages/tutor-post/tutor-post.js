@@ -7,7 +7,7 @@
 import { API, ApiError } from '/js/api.js';
 import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
 import { formatDateTime, toast } from '/js/membership-format.js';
-import { validatePostDraft, submitLabel, priceRowsFromContent, isUpdateMode, SESSION_MINUTES } from '/js/tutor-post-helpers.js';
+import { validatePostDraft, submitLabel, priceRowsFromContent, isUpdateMode, SESSION_MINUTES, rejectedFirstPostHint } from '/js/tutor-post-helpers.js';
 
 const $ = (id) => document.getElementById(id);
 const STATES = ['loadingState', 'errorState', 'blockedState', 'contentState'];
@@ -54,7 +54,8 @@ function renderStatus(post) {
       $('statusTitle').textContent = 'Bản cập nhật bị từ chối';
       text = `Lý do: ${post.reviewFeedback || '—'}${keepShown}\nBạn có thể chỉnh sửa và gửi bản cập nhật khác.`;
     } else {
-      text = `Lý do: ${post.reviewFeedback || '—'}\nĐây là quyết định cuối cùng của cán bộ học vụ.`;
+      // FE-16: bài đầu tiên bị từ chối được thay bằng bài mới sau 7 ngày
+      text = `Lý do: ${post.reviewFeedback || '—'}\n${rejectedFirstPostHint(pageState.allowed, pageState.resubmitAvailableAt)}`;
     }
   } else {
     text = `Duyệt lúc ${formatDateTime(post.reviewedAt)}. Học viên có thể xem bài và kết nối với bạn trên trang Tìm gia sư.`
@@ -80,7 +81,8 @@ function fillForm(post) {
 // minutes: thời lượng một buổi được chọn (backend: sessionMinutesOptions)
 const priceState = { levels: [], minutes: [...SESSION_MINUTES], editable: false };
 // post: bài hiện tại; allowed: backend cho phép gửi; editing: đang mở form để sửa
-const pageState = { post: null, allowed: false, editing: false };
+// resubmitAvailableAt (FE-16): thời điểm được gửi bài mới khi bài đầu tiên bị từ chối
+const pageState = { post: null, allowed: false, editing: false, resubmitAvailableAt: null };
 
 function escapeAttr(text) {
   return String(text == null ? '' : text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -161,8 +163,13 @@ function applyEditable(editable, post) {
   if (editable && updateMode) {
     hint = 'Sửa nội dung rồi bấm "Gửi bản cập nhật". Bản đang hiển thị giữ nguyên cho tới khi cán bộ học vụ duyệt bản mới.';
   } else if (editable) {
-    hint = post ? 'Sửa các thông tin được yêu cầu rồi gửi lại để cán bộ học vụ duyệt.'
-                : 'Điền thông tin và gửi để cán bộ học vụ duyệt trước khi hiển thị cho học viên.';
+    if (post && post.reviewStatus === 'REJECTED') {
+      // FE-16: bài đầu tiên bị từ chối đã hết thời gian chờ — gửi sẽ tạo bài mới
+      hint = 'Sửa nội dung theo lý do bị từ chối rồi gửi lại. Hệ thống tạo bài đăng mới để cán bộ học vụ duyệt.';
+    } else {
+      hint = post ? 'Sửa các thông tin được yêu cầu rồi gửi lại để cán bộ học vụ duyệt.'
+                  : 'Điền thông tin và gửi để cán bộ học vụ duyệt trước khi hiển thị cho học viên.';
+    }
   } else if (updateMode) {
     hint = 'Bấm "Chỉnh sửa bài đăng" để cập nhật nội dung hoặc học phí.';
   }
@@ -194,6 +201,7 @@ async function submit(event) {
     const res = await API.tutorPost.submit(payload);
     toast(res.message, 'success');
     // Sau khi gửi, bài chuyển sang chờ duyệt: khóa form và ẩn nút gửi
+    pageState.resubmitAvailableAt = null;
     renderPost(res.post, false);
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) return;
@@ -244,6 +252,7 @@ async function load() {
     if (Array.isArray(data.sessionMinutesOptions) && data.sessionMinutesOptions.length) {
       priceState.minutes = data.sessionMinutesOptions.map(Number);
     }
+    pageState.resubmitAvailableAt = data.resubmitAvailableAt || null; // FE-16
     renderPost(data.post, data.editable);
     // Gói hết hạn nhưng đã có bài: vẫn xem được, bài tạm ẩn khỏi trang Tìm gia sư
     if (!data.canPost) {

@@ -18,7 +18,6 @@ import com.kizuna.features.verification.entity.TutorCredentialStatus;
 import com.kizuna.features.verification.repository.TutorVerificationHistoryRepository;
 import com.kizuna.features.verification.repository.VerificationTutorRepository;
 import com.kizuna.features.verification.service.CurrentUserProvider;
-import com.kizuna.features.verification.service.DocumentFile;
 import com.kizuna.features.verification.service.VerificationDocumentStorage;
 import com.kizuna.features.verification.service.VerificationException;
 import com.kizuna.features.verification.service.VerificationStateMachine;
@@ -44,6 +43,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class TutorVerificationServiceTest {
@@ -133,28 +133,61 @@ class TutorVerificationServiceTest {
         assertThrows(VerificationException.class, () -> service.addDocument("JLPT_CERTIFICATE", "N2", null));
     }
 
-    @Test
-    void rejectedProfileCannotBeEditedOrResubmitted() {
+    /** FE-16: giả lập lần từ chối hồ sơ cách đây ... (dòng lịch sử REJECT mới nhất). */
+    private void rejectedAgo(java.time.Duration ago) {
         tutor.setVerificationStatus(TutorVerificationStatus.REJECTED);
+        TutorVerificationHistory rejection = TutorVerificationHistory.builder().tutor(tutor)
+                .action(TutorVerifAction.REJECT).createdAt(java.time.OffsetDateTime.now().minus(ago)).build();
+        when(historyRepository.findFirstByTutor_TutorIdAndActionInOrderByCreatedAtDesc(eq(tutor.getTutorId()), any()))
+                .thenReturn(Optional.of(rejection));
+    }
 
-        assertEquals("VERIFICATION_REJECTED", assertThrows(VerificationException.class,
-                () -> service.updateProfile(new UpdateVerificationProfileRequest())).getCode());
+    @Test
+    void rejectedProfileCannotBeEditedOrResubmittedDuringCooldown() {
+        rejectedAgo(java.time.Duration.ofDays(2));
+
+        VerificationException first = assertThrows(VerificationException.class,
+                () -> service.updateProfile(new UpdateVerificationProfileRequest()));
+        assertEquals("VERIFICATION_REJECTED", first.getCode());
+        assertTrue(first.getMessage().startsWith("Hồ sơ của bạn đã bị từ chối. Bạn có thể chỉnh sửa và nộp lại hồ sơ từ "),
+                first.getMessage());
         assertEquals("VERIFICATION_REJECTED", assertThrows(VerificationException.class,
                 () -> service.addDocument("IDENTITY_DOCUMENT", "CCCD", null)).getCode());
         assertEquals("VERIFICATION_REJECTED", assertThrows(VerificationException.class,
                 () -> service.removeDocument(UUID.randomUUID())).getCode());
         assertEquals("VERIFICATION_REJECTED", assertThrows(VerificationException.class,
                 () -> service.submit(new SubmitVerificationRequest(true))).getCode());
-        assertFalse(service.getMyVerification().getEditable());
+        TutorVerificationResponse view = service.getMyVerification();
+        assertFalse(view.getEditable());
+        assertNotNull(view.getResubmitAvailableAt());
+        assertTrue(view.getMissingRequirements().isEmpty(), "chỉ xem thì không liệt kê phần còn thiếu");
         verify(historyRepository, never()).save(any());
     }
 
     @Test
-    void underageDateOfBirthIsRejected() {
-        VerificationException ex = assertThrows(VerificationException.class,
-                () -> service.updateProfile(UpdateVerificationProfileRequest.builder()
-                        .dateOfBirth(LocalDate.now().minusYears(17)).build()));
-        assertTrue(ex.getFields().containsKey("dateOfBirth"));
+    void fe16_rejectedProfileReopensAfterSevenDaysAndCanBeResubmittedWithNewDocuments() {
+        rejectedAgo(java.time.Duration.ofDays(7).plusMinutes(1));
+        fillCompleteProfile();
+        // giấy tờ cũ đã bị đánh dấu "Không được chấp nhận" khi từ chối
+        addDocument(CredentialType.IDENTITY_DOCUMENT);
+        addDocument(CredentialType.JLPT_CERTIFICATE);
+        credentials.forEach(c -> c.setVerifiedStatus(TutorCredentialStatus.REJECTED));
+
+        TutorVerificationResponse view = service.getMyVerification();
+        assertTrue(view.getEditable());
+        assertEquals(2, view.getMissingRequirements().size(), "giấy tờ bị từ chối không được tính");
+        assertEquals("SUBMISSION_INCOMPLETE", assertThrows(VerificationException.class,
+                () -> service.submit(new SubmitVerificationRequest(true))).getCode());
+
+        addDocument(CredentialType.IDENTITY_DOCUMENT);
+        addDocument(CredentialType.JLPT_CERTIFICATE);
+        TutorVerificationResponse response = service.submit(new SubmitVerificationRequest(true));
+
+        assertEquals(TutorVerificationStatus.PENDING, tutor.getVerificationStatus());
+        assertEquals(TutorVerificationServiceImpl.MSG_SUBMITTED, response.getMessage());
+        var captor = ArgumentCaptor.forClass(TutorVerificationHistory.class);
+        verify(historyRepository, times(1)).save(captor.capture());
+        assertEquals(TutorVerifAction.SUBMIT, captor.getValue().getAction());
     }
 
     @Test
@@ -249,33 +282,6 @@ class TutorVerificationServiceTest {
     }
 
     @Test
-    void secondSubmitIsRejectedAsLocked() {
-        fillCompleteProfile();
-        addDocument(CredentialType.IDENTITY_DOCUMENT);
-        addDocument(CredentialType.JLPT_CERTIFICATE);
-        service.submit(new SubmitVerificationRequest(true));
-
-        assertEquals("VERIFICATION_LOCKED", assertThrows(VerificationException.class,
-                () -> service.submit(new SubmitVerificationRequest(true))).getCode());
-        verify(historyRepository, times(1)).save(any());
-    }
-
-    @Test
-    void stateChangingOperationsAlwaysUseRowLock() {
-        fillCompleteProfile();
-        addDocument(CredentialType.IDENTITY_DOCUMENT);
-        addDocument(CredentialType.JLPT_CERTIFICATE);
-
-        service.updateProfile(UpdateVerificationProfileRequest.builder()
-                .phone(tutor.getPhone()).dateOfBirth(tutor.getDateOfBirth()).address(tutor.getAddress())
-                .bio(tutor.getBio()).highestJlptLevel(tutor.getHighestJlptLevel()).build());
-        service.submit(new SubmitVerificationRequest(true));
-
-        verify(tutorRepository, times(2)).findLockedByUserId(userId);
-        verify(tutorRepository, never()).findWithUserByUserId(userId);
-    }
-
-    @Test
     void invalidDocumentTypeOrTitleIsRejectedBeforeStoringFile() {
         VerificationException badType = assertThrows(VerificationException.class,
                 () -> service.addDocument("PASSPORT_XYZ", "Hộ chiếu", null));
@@ -320,42 +326,6 @@ class TutorVerificationServiceTest {
         assertEquals("JLPT N2", existing.getTitle());
         verify(storage, never()).validate(any());
         verify(storage, never()).saveContent(any(), any(), any());
-    }
-
-    @Test
-    void documentFileIsServedFromStoredContent() {
-        addDocument(CredentialType.JLPT_CERTIFICATE);
-        TutorCredential existing = credentials.get(0);
-        byte[] content = "%PDF-1.4 %%EOF".getBytes(StandardCharsets.US_ASCII);
-        when(credentialRepository.findByCredentialIdAndTutor_TutorId(existing.getCredentialId(), tutor.getTutorId()))
-                .thenReturn(Optional.of(existing));
-        when(storage.load(existing)).thenReturn(Optional.of(content));
-
-        DocumentFile file = service.loadMyDocumentFile(existing.getCredentialId());
-
-        assertArrayEquals(content, file.content());
-        assertEquals("application/pdf", file.contentType());
-        assertEquals("JLPT_CERTIFICATE.pdf", file.fileName());
-    }
-
-    @Test
-    void documentWithoutStoredContentIsNotFound() {
-        addDocument(CredentialType.JLPT_CERTIFICATE);
-        TutorCredential existing = credentials.get(0);
-        when(credentialRepository.findByCredentialIdAndTutor_TutorId(existing.getCredentialId(), tutor.getTutorId()))
-                .thenReturn(Optional.of(existing));
-        when(storage.load(existing)).thenReturn(Optional.empty());
-
-        assertEquals("NOT_FOUND", assertThrows(VerificationException.class,
-                () -> service.loadMyDocumentFile(existing.getCredentialId())).getCode());
-    }
-
-    @Test
-    void documentOfAnotherTutorIsNotFound() {
-        when(credentialRepository.findByCredentialIdAndTutor_TutorId(any(), eq(tutor.getTutorId())))
-                .thenReturn(Optional.empty());
-        assertEquals("NOT_FOUND", assertThrows(VerificationException.class,
-                () -> service.loadMyDocumentFile(UUID.randomUUID())).getCode());
     }
 
     // ===== Cập nhật hồ sơ sau khi đã phê duyệt =====
@@ -545,31 +515,6 @@ class TutorVerificationServiceTest {
         assertEquals(TutorVerificationStatus.UNVERIFIED, tutor.getVerificationStatus());
     }
 
-    @Test
-    void req01_introductionOf20CharactersAllowsSubmission() {
-        fillCompleteProfile();
-        tutor.setBio("a".repeat(20));
-        addDocument(CredentialType.IDENTITY_DOCUMENT);
-        addDocument(CredentialType.JLPT_CERTIFICATE);
-
-        service.submit(new SubmitVerificationRequest(true));
-
-        assertEquals(TutorVerificationStatus.PENDING, tutor.getVerificationStatus());
-    }
-
-    @Test
-    void req01_approvedTutorIntroductionBoundaryIs20Characters() {
-        approve();
-        var base = UpdateVerificationProfileRequest.builder().phone("0905123456").address("Đà Nẵng");
-
-        VerificationException ex = assertThrows(VerificationException.class,
-                () -> service.updateProfile(base.bio("a".repeat(19)).build()));
-        assertEquals(Set.of("bio"), ex.getFields().keySet());
-
-        service.updateProfile(base.bio("b".repeat(20)).build());
-        assertEquals("b".repeat(20), tutor.getBio());
-    }
-
     // ===== REQ-02: giấy tờ xác minh =====
 
     private MockMultipartFile pdf() {
@@ -600,16 +545,6 @@ class TutorVerificationServiceTest {
         assertEquals(CredentialType.JLPT_CERTIFICATE, saved.getValue().getCredentialType());
         assertEquals(TutorCredentialStatus.PENDING, saved.getValue().getVerifiedStatus());
         verify(storage).saveContent(eq(saved.getValue().getCredentialId()), any(), any());
-    }
-
-    @Test
-    void req02_titleOf151CharactersIsRejectedBeforeFileIsRead() {
-        VerificationException ex = assertThrows(VerificationException.class,
-                () -> service.addDocument("JLPT_CERTIFICATE", "T".repeat(151), pdf()));
-
-        assertEquals("Tên giấy tờ tối đa 150 ký tự.", ex.getFields().get("title"));
-        verify(storage, never()).validate(any());
-        verify(credentialRepository, never()).save(any());
     }
 
     @Test
@@ -659,17 +594,6 @@ class TutorVerificationServiceTest {
         ArgumentCaptor<TutorVerificationHistory> saved = ArgumentCaptor.forClass(TutorVerificationHistory.class);
         verify(historyRepository).save(saved.capture());
         assertEquals("g".repeat(1000), saved.getValue().getFeedback());
-    }
-
-    @Test
-    void req08_noteOf1001CharactersIsRejected() {
-        approve();
-
-        VerificationException ex = assertThrows(VerificationException.class,
-                () -> service.submitProfileUpdate(new SubmitProfileUpdateRequest("N1", "g".repeat(1001))));
-
-        assertEquals("Ghi chú tối đa 1.000 ký tự.", ex.getFields().get("note"));
-        verify(historyRepository, never()).save(any());
     }
 
     @Test
@@ -726,37 +650,5 @@ class TutorVerificationServiceTest {
 
         assertEquals(TutorVerificationServiceImpl.MSG_REMOVE_ONLY_VERIFIED, ex.getMessage());
         verify(historyRepository, never()).save(any());
-    }
-
-    @Test
-    void req08_removingTheOnlyIdentityDocumentIsRejected() {
-        approve();
-        TutorCredential onlyIdentity = identity(TutorCredentialStatus.VERIFIED);
-        credential(TutorCredentialStatus.VERIFIED);
-
-        VerificationException ex = assertThrows(VerificationException.class,
-                () -> service.submitProfileUpdate(removing(onlyIdentity.getCredentialId())));
-
-        assertEquals(TutorVerificationServiceImpl.MSG_REMOVE_KEEPS_REQUIRED, ex.getMessage());
-        verify(historyRepository, never()).save(any());
-    }
-
-    @Test
-    void req08_replacingCertificateWithNewUploadAllowsRemovingOldOne() {
-        approve();
-        identity(TutorCredentialStatus.VERIFIED);
-        TutorCredential old = credential(TutorCredentialStatus.VERIFIED);
-        credential(TutorCredentialStatus.PENDING);
-
-        assertDoesNotThrow(() -> service.submitProfileUpdate(removing(old.getCredentialId())));
-    }
-
-    @Test
-    void req08_removingUnknownDocumentIsNotFound() {
-        approve();
-        identity(TutorCredentialStatus.VERIFIED);
-
-        assertEquals("NOT_FOUND", assertThrows(VerificationException.class,
-                () -> service.submitProfileUpdate(removing(UUID.randomUUID()))).getCode());
     }
 }

@@ -85,11 +85,31 @@ export function priceRowsFromContent(content) {
  * nhưng phải bấm "Chỉnh sửa bài đăng" trước để tránh sửa nhầm.
  */
 export function isUpdateMode(editable, post) {
-  return Boolean(editable && post && (post.reviewStatus === 'APPROVED' || post.reviewStatus === 'REJECTED'));
+  // FE-16: bài đầu tiên bị từ chối (chưa có bản đã duyệt) mở lại sau 7 ngày thì soạn bài mới, không phải bản cập nhật
+  return Boolean(editable && post
+    && (post.reviewStatus === 'APPROVED' || (post.reviewStatus === 'REJECTED' && post.published)));
+}
+
+/** FE-16: "HH:mm ngày dd/MM/yyyy" theo giờ máy người dùng; giá trị rỗng hoặc sai trả "—". */
+export function formatResubmitTime(value) {
+  const d = value ? new Date(value) : null;
+  if (!d || Number.isNaN(d.getTime())) return '—';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())} ngày ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
 /**
- * Nhãn nút gửi, hoặc null nếu không được gửi (bài đang chờ duyệt, bài đầu tiên bị từ chối).
+ * FE-16: câu hướng dẫn bước tiếp theo cho bài đầu tiên bị từ chối (chưa có bản đã duyệt):
+ * còn trong thời gian chờ thì nêu thời điểm được gửi bài mới, hết chờ thì mời sửa và gửi lại.
+ */
+export function rejectedFirstPostHint(editable, resubmitAvailableAt) {
+  if (editable) return 'Bạn có thể sửa nội dung bên dưới và gửi lại bài đăng mới để cán bộ học vụ duyệt.';
+  if (resubmitAvailableAt) return `Bạn có thể gửi bài đăng mới từ ${formatResubmitTime(resubmitAvailableAt)}.`;
+  return 'Bài đăng này không gửi lại được.';
+}
+
+/**
+ * Nhãn nút gửi, hoặc null nếu không được gửi (bài đang chờ duyệt, bài đầu tiên bị từ chối còn trong thời gian chờ).
  * "Gửi duyệt" lần đầu, "Gửi lại" khi được yêu cầu bổ sung, "Gửi bản cập nhật" khi sửa bài đã duyệt.
  */
 export function submitLabel(editable, post) {

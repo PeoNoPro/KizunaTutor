@@ -14,6 +14,35 @@ export const MSG_NO_CHANGES =
 export const MSG_REMOVE_KEEPS_REQUIRED =
   'Hồ sơ cần giữ ít nhất một giấy tờ tùy thân và một chứng chỉ năng lực tiếng Nhật. Hãy tải lên giấy tờ thay thế trước khi gỡ.';
 
+/** FE-16: "HH:mm ngày dd/MM/yyyy" theo giờ máy người dùng; giá trị rỗng hoặc sai trả "—". */
+export function formatResubmitTime(value) {
+  const d = value ? new Date(value) : null;
+  if (!d || Number.isNaN(d.getTime())) return '—';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())} ngày ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+/**
+ * FE-16: lời nhắc cho hồ sơ bị từ chối. Hết thời gian chờ (editable) thì mời sửa và nộp lại với giấy tờ mới;
+ * còn chờ thì nêu thời điểm được nộp lại.
+ */
+export function rejectedProfileHint(data) {
+  if (data && data.editable) {
+    return 'Hồ sơ đã bị từ chối trước đó. Bạn có thể sửa thông tin, tải lên giấy tờ mới thay cho giấy tờ không được chấp nhận và nộp lại hồ sơ.';
+  }
+  if (data && data.resubmitAvailableAt) {
+    return `Hồ sơ không được chấp nhận. Bạn có thể chỉnh sửa và nộp lại hồ sơ từ ${formatResubmitTime(data.resubmitAvailableAt)}. Vui lòng xem lý do bên dưới để chuẩn bị.`;
+  }
+  return 'Hồ sơ không được chấp nhận. Vui lòng liên hệ bộ phận hỗ trợ nếu bạn cần trao đổi thêm.';
+}
+
+/** FE-16: ghi chú chỉ xem của hồ sơ bị từ chối còn trong thời gian chờ. */
+export function rejectedReadOnlyNote(data) {
+  return data && data.resubmitAvailableAt
+    ? `Chỉ xem — được chỉnh sửa và nộp lại từ ${formatResubmitTime(data.resubmitAvailableAt)}`
+    : 'Chỉ xem — hồ sơ đã bị từ chối';
+}
+
 const IDENTITY_TYPES = ['IDENTITY_DOCUMENT'];
 const JAPANESE_TYPES = ['JLPT_CERTIFICATE', 'OTHER_JAPANESE_CERTIFICATE'];
 

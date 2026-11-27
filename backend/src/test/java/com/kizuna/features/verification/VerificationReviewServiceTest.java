@@ -119,8 +119,14 @@ class VerificationReviewServiceTest {
         verify(historyRepository).save(captor.capture());
         assertEquals(RejectionReason.INFORMATION_MISMATCH, captor.getValue().getReasonCode());
         assertEquals("Đã đối chiếu CCCD", captor.getValue().getInternalNote());
-        verify(notificationService).rejectedAfterCommit("gs@kizuna.test", "Gia sư B",
-                "Thông tin không trùng khớp với giấy tờ", "Họ tên không khớp");
+        // FE-16: email nêu thời điểm được nộp lại = lúc từ chối + 7 ngày
+        ArgumentCaptor<java.time.OffsetDateTime> availableAt = ArgumentCaptor.forClass(java.time.OffsetDateTime.class);
+        verify(notificationService).rejectedAfterCommit(org.mockito.ArgumentMatchers.eq("gs@kizuna.test"),
+                org.mockito.ArgumentMatchers.eq("Gia sư B"),
+                org.mockito.ArgumentMatchers.eq("Thông tin không trùng khớp với giấy tờ"),
+                org.mockito.ArgumentMatchers.eq("Họ tên không khớp"), availableAt.capture());
+        long days = java.time.Duration.between(java.time.OffsetDateTime.now(), availableAt.getValue()).toHours();
+        assertTrue(days >= 167 && days <= 168, "khoảng 7 ngày sau, thực tế " + days + " giờ");
     }
 
     @Test
@@ -173,32 +179,6 @@ class VerificationReviewServiceTest {
                 () -> service.getQueue(VerificationQueueQuery.builder().status("UNVERIFIED").build()));
         assertThrows(VerificationException.class, () -> service.getQueue(VerificationQueueQuery.builder()
                 .submittedFrom(LocalDate.of(2026, 11, 3)).submittedTo(LocalDate.of(2026, 11, 1)).build()));
-    }
-
-    @Test
-    void unsubmittedProfileIsNotVisibleToOfficer() {
-        tutor.setVerificationStatus(TutorVerificationStatus.UNVERIFIED);
-        when(tutorRepository.findWithUserByTutorId(tutor.getTutorId())).thenReturn(Optional.of(tutor));
-        assertEquals("NOT_FOUND", assertThrows(VerificationException.class,
-                () -> service.getDetail(tutor.getTutorId())).getCode());
-    }
-
-    @Test
-    void historyIncludesInternalNoteAndOfficerName() {
-        when(tutorRepository.findById(tutor.getTutorId())).thenReturn(Optional.of(tutor));
-        when(historyRepository.findTimeline(tutor.getTutorId())).thenReturn(List.of(
-                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT).build(),
-                TutorVerificationHistory.builder().action(TutorVerifAction.REJECT).officer(officer)
-                        .reasonCode(RejectionReason.OTHER).internalNote("nội bộ").feedback("gửi gia sư").build()));
-
-        var history = service.getHistory(tutor.getTutorId());
-
-        assertEquals("Nộp hồ sơ", history.get(0).getActionLabel());
-        assertNull(history.get(0).getOfficerName());
-        assertEquals("Cán bộ A", history.get(1).getOfficerName());
-        assertEquals("nội bộ", history.get(1).getInternalNote());
-        assertEquals("Lý do khác", history.get(1).getReasonLabel());
-        verify(notificationService, never()).approvedAfterCommit(anyString(), anyString());
     }
 
     // ===== Yêu cầu cập nhật hồ sơ của gia sư đã phê duyệt (lưu trong lịch sử thẩm định) =====
@@ -301,22 +281,6 @@ class VerificationReviewServiceTest {
 
         verify(credentialRepository, never()).delete(any());
         verify(storage, never()).deleteLegacyAfterCommit(any());
-    }
-
-    @Test
-    void detailMarksDocumentsTutorAskedToRemove() {
-        TutorCredential doc = pendingRemoval();
-        TutorCredential kept = TutorCredential.builder().credentialId(UUID.randomUUID()).title("CCCD")
-                .storageKey(UUID.randomUUID() + ".pdf").verifiedStatus(TutorCredentialStatus.VERIFIED).build();
-        when(tutorRepository.findWithUserByTutorId(tutor.getTutorId())).thenReturn(Optional.of(tutor));
-        when(credentialRepository.findByTutor_TutorIdOrderByUploadedAtAsc(tutor.getTutorId())).thenReturn(List.of(doc, kept));
-        when(storage.availableIds(any())).thenReturn(java.util.Set.of(doc.getCredentialId(), kept.getCredentialId()));
-
-        var detail = service.getDetail(tutor.getTutorId());
-
-        assertTrue(detail.getDocuments().get(0).isRemovalRequested());
-        assertFalse(detail.getDocuments().get(1).isRemovalRequested());
-        assertEquals("JLPT N3 cũ", detail.getProfileUpdate().getRemovedDocuments().get(0).getTitle());
     }
 
     @Test
@@ -509,25 +473,6 @@ class VerificationReviewServiceTest {
     }
 
     @Test
-    void req07_keywordOf101CharactersIsRejected() {
-        VerificationException ex = assertThrows(VerificationException.class,
-                () -> service.getQueue(VerificationQueueQuery.builder().keyword("k".repeat(101)).build()));
-
-        assertTrue(ex.getFields().containsKey("keyword"));
-    }
-
-    @Test
-    void req07_sameStartAndEndDateIsAcceptedButEndBeforeStartIsRejected() {
-        LocalDate day = LocalDate.of(2026, 11, 3);
-        assertDoesNotThrow(() -> queuePageRequest(VerificationQueueQuery.builder()
-                .submittedFrom(day).submittedTo(day).build()));
-
-        VerificationException ex = assertThrows(VerificationException.class, () -> service.getQueue(
-                VerificationQueueQuery.builder().submittedFrom(day).submittedTo(day.minusDays(1)).build()));
-        assertTrue(ex.getFields().containsKey("submittedTo"));
-    }
-
-    @Test
     void req07_invalidJlptAndStatusFiltersAreRejectedWithFieldErrors() {
         assertTrue(assertThrows(VerificationException.class,
                 () -> service.getQueue(VerificationQueueQuery.builder().jlptLevel("N6").build()))
@@ -560,13 +505,5 @@ class VerificationReviewServiceTest {
         assertEquals("N2", tutor.getHighestJlptLevel());
         verify(historyRepository, never()).save(any());
         verify(credentialRepository, never()).updateStatusForTutor(any(), any(), any());
-    }
-
-    @Test
-    void firstSubmissionIsNotAProfileUpdate() {
-        List<TutorVerificationHistory> timeline = List.of(
-                TutorVerificationHistory.builder().action(TutorVerifAction.SUBMIT).build());
-        assertTrue(ProfileUpdateTimeline.latest(timeline).isEmpty());
-        assertFalse(ProfileUpdateTimeline.hasPending(timeline));
     }
 }

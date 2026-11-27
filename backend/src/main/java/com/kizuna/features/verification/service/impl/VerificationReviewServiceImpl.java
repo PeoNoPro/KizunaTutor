@@ -206,13 +206,19 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
         }
 
         Tutor tutor = lockTutor(tutorId);
-        stateMachine.reject(tutor, currentOfficer(), reason, feedback, internalNote);
+        TutorVerificationHistory rejection = stateMachine.reject(tutor, currentOfficer(), reason, feedback, internalNote);
         tutorRepository.save(tutor);
+        // FE-16: gia sư được nộp lại sau 7 ngày kể từ lần từ chối này
+        java.time.OffsetDateTime rejectedAt = rejection != null && rejection.getCreatedAt() != null
+                ? rejection.getCreatedAt() : java.time.OffsetDateTime.now();
+        java.time.OffsetDateTime resubmitAvailableAt = rejectedAt.plus(VerificationStateMachine.RESUBMIT_COOLDOWN);
         notificationService.rejectedAfterCommit(tutor.getUser().getEmail(), tutor.getUser().getFullName(),
-                VerificationLabels.rejectionReason(reason), feedback);
+                VerificationLabels.rejectionReason(reason), feedback, resubmitAvailableAt);
         if (notificationEvents != null) {
             notificationEvents.publish("verification:" + tutor.getTutorId() + ":" + tutor.getSubmittedAt() + ":rejected", "SYSTEM", "Hồ sơ gia sư không được chấp nhận",
-                    "Lý do: " + VerificationLabels.rejectionReason(reason) + "." + (feedback == null ? "" : " Nhận xét của cán bộ học vụ: " + feedback), "/tutor/verification", java.util.List.of(tutor.getUser().getUserId()));
+                    "Lý do: " + VerificationLabels.rejectionReason(reason) + "." + (feedback == null ? "" : " Nhận xét của cán bộ học vụ: " + feedback)
+                            + " Bạn có thể chỉnh sửa và nộp lại hồ sơ từ " + VerificationException.formatResubmitTime(resubmitAvailableAt) + ".",
+                    "/tutor/verification", java.util.List.of(tutor.getUser().getUserId()));
         }
         return result(MSG_REJECTED, tutor);
     }

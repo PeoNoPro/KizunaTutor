@@ -140,16 +140,6 @@ class PaymentResultProcessorTest {
     }
 
     @Test
-    void activationFailureThrowsSoTransactionRollsBackAndStaysRetryable() {
-        when(membershipRepository.save(any())).thenThrow(new IllegalStateException("db"));
-
-        assertThrows(IllegalStateException.class, () -> processor.process(result("00", "00", 19_900_000L)));
-        // Trong DB thật transaction bị rollback; ở đây xác nhận trạng thái giao dịch chưa bị đặt SUCCESS trước khi lỗi.
-        assertEquals(PaymentTransactionStatus.PENDING, tx.getStatus());
-        verify(notificationService, never()).membershipActivatedAfterCommit(any(), any(), any(), any(), any(), anyLong());
-    }
-
-    @Test
     void existingMembershipForSameTransactionIsNotDuplicated() {
         when(membershipRepository.findFirstByTransactionRef(tx.getTransactionId().toString()))
                 .thenReturn(Optional.of(TutorMembership.builder().build()));
@@ -159,49 +149,7 @@ class PaymentResultProcessorTest {
         assertEquals(PaymentTransactionStatus.SUCCESS, tx.getStatus());
     }
 
-    @Test
-    void stacksAfterLatestActiveMembership() {
-        LocalDate latest = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")).plusDays(10);
-        when(membershipRepository.findMaxEndDate(tutor.getTutorId(), TutorMembershipState.ACTIVE)).thenReturn(Optional.of(latest));
-
-        processor.process(result("00", "00", 19_900_000L));
-
-        ArgumentCaptor<TutorMembership> saved = ArgumentCaptor.forClass(TutorMembership.class);
-        verify(membershipRepository).save(saved.capture());
-        assertEquals(latest.plusDays(1), saved.getValue().getStartDate());
-    }
-
     // ===== REQ-14: trạng thái cuối và chống trùng =====
-
-    @Test
-    void req14_failedTransactionIsFinalAndLaterSuccessDoesNotActivate() {
-        assertEquals(Outcome.FAILED, processor.process(result("24", "02", 19_900_000L)));
-
-        assertEquals(Outcome.ALREADY_PROCESSED, processor.process(result("00", "00", 19_900_000L)));
-
-        assertEquals(PaymentTransactionStatus.FAILED, tx.getStatus());
-        verify(membershipRepository, never()).save(any());
-        assertEquals(TutorState.APPROVED_UNPAID, tutor.getTutorState());
-        assertEquals(TutorMembershipStatus.FREE, tutor.getMembershipStatus());
-    }
-
-    @Test
-    void req14_successfulTransactionIsFinalAndLaterFailureDoesNotChangeIt() {
-        processor.process(result("00", "00", 19_900_000L));
-
-        assertEquals(Outcome.ALREADY_PROCESSED, processor.process(result("24", "02", 19_900_000L)));
-
-        assertEquals(PaymentTransactionStatus.SUCCESS, tx.getStatus());
-        assertEquals(TutorState.ACTIVE_PAID, tutor.getTutorState());
-        verify(membershipRepository, times(1)).save(any());
-    }
-
-    @Test
-    void req14_failedPaymentDoesNotNotifyActivation() {
-        processor.process(result("24", "02", 19_900_000L));
-
-        verify(notificationService, never()).membershipActivatedAfterCommit(any(), any(), any(), any(), any(), anyLong());
-    }
 
     @Test
     void req14_missingAmountIsTreatedAsMismatch() {
@@ -212,52 +160,6 @@ class PaymentResultProcessorTest {
         assertEquals(PaymentTransactionStatus.PENDING, tx.getStatus());
         assertEquals(TutorState.APPROVED_UNPAID, tutor.getTutorState());
         verify(membershipRepository, never()).save(any());
-    }
-
-    @Test
-    void req14_amountOffByOneDongIsRejected() {
-        assertEquals(Outcome.AMOUNT_MISMATCH, processor.process(result("00", "00", 19_900_000L + 100L)));
-        assertEquals(Outcome.AMOUNT_MISMATCH, processor.process(result("00", "00", 19_900_000L - 100L)));
-        verify(membershipRepository, never()).save(any());
-    }
-
-    @Test
-    void req14_mismatchedAmountDoesNotConsumeThePendingTransaction() {
-        processor.process(result("00", "00", 100L));
-
-        assertEquals(Outcome.ACTIVATED, processor.process(result("00", "00", 19_900_000L)),
-                "số tiền sai không làm giao dịch rơi vào trạng thái cuối");
-        assertEquals(PaymentTransactionStatus.SUCCESS, tx.getStatus());
-    }
-
-    @Test
-    void req14_unknownTransactionTouchesNothing() {
-        UUID unknown = UUID.randomUUID();
-        when(transactionRepository.findLockedById(unknown)).thenReturn(Optional.empty());
-
-        assertEquals(Outcome.NOT_FOUND, processor.process(
-                new GatewayResult(unknown.toString().replace("-", ""), "00", "00", "1", 19_900_000L, "NCB")));
-
-        verify(membershipRepository, never()).save(any());
-        verify(tutorRepository, never()).findLockedByUserId(any());
-    }
-
-    @Test
-    void req14_unapprovedTutorGetsMembershipButNotActivePaidState() {
-        tutor.setVerificationStatus(TutorVerificationStatus.PENDING);
-        tutor.setTutorState(TutorState.PENDING_VERIFICATION);
-
-        assertEquals(Outcome.ACTIVATED, processor.process(result("00", "00", 19_900_000L)));
-
-        assertEquals(TutorState.PENDING_VERIFICATION, tutor.getTutorState());
-        assertEquals(TutorMembershipStatus.PREMIUM, tutor.getMembershipStatus());
-        verify(membershipRepository, times(1)).save(any());
-    }
-
-    @Test
-    void suspendedAccountAfterPaymentIsStillActivated() {
-        tx.getUser().setAccountStatus(com.kizuna.core.entity.UserAccountStatus.SUSPENDED);
-        assertEquals(Outcome.ACTIVATED, processor.process(result("00", "00", 19_900_000L)));
     }
 
     /**

@@ -48,8 +48,8 @@ Quy ước: `[P]` chạy song song được (file khác nhau, không phụ thu�
 
 ## Phase 5: US3 — Cấu hình gói, giá, quyền lợi (P2)
 
-- [X] T031 [P] [US3] Test `MembershipPlanAdminServiceTest` (tạo, trùng tên → 409, giá ngoài khoảng, quyền lợi > 20, không đổi số tháng, bật/tắt bán).
-- [X] T032 [US3] Tạo `service/MembershipPlanAdminService.java` + impl và `controller/ManagerMembershipPlanController.java` (C1–C4); DTO `PlanAdminView`, `CreatePlanRequest`, `UpdatePlanRequest`.
+- [X] T031 [P] [US3] Test `MembershipPlanManagerServiceTest` (tạo, trùng tên → 409, giá ngoài khoảng, quyền lợi > 20, không đổi số tháng, bật/tắt bán).
+- [X] T032 [US3] Tạo `service/MembershipPlanManagerService.java` + impl và `controller/ManagerMembershipPlanController.java` (C1–C4); DTO `PlanManagerView`, `CreatePlanRequest`, `UpdatePlanRequest`.
 - [X] T033 [P] [US3] Test `ManagerMembershipPlanControllerTest`.
 - [X] T034 [US3] Tạo `frontend/components/staff-layout/staff-layout.js` (sidebar theo vai trò, logo → `/home`, menu tài khoản dùng `user-menu`).
 - [X] T035 [US3] Tạo `frontend/pages/manager-membership-plans/` (bảng gói, form tạo/sửa, bật/tắt bán, MSG04/36/02); forward `/manager/membership-plans` trong `WebMvcConfig`, alias `server.js`; thêm `API.managerMembership`.

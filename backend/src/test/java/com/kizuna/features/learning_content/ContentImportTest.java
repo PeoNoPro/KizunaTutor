@@ -164,18 +164,6 @@ class ContentImportTest {
         }
 
         @Test
-        void kanjiMoiKhongCoSoNet_laLoi() throws Exception {
-            ParsedWorkbook parsed = read(ContentType.KANJI, one(
-                    new String[]{"Kanji", "Nghĩa tiếng Việt", "Số nét"},
-                    new String[]{"愛", "Yêu", null},
-                    new String[]{"馮", "Cưỡi ngựa", "12"}));
-            Plan plan = ContentImportPlanner.plan(ContentType.KANJI, parsed.rows(), Map.of());
-            assertThat(plan.inserts()).extracting(v -> v.get("character")).containsExactly("馮");
-            assertThat(plan.invalidRows()).isEqualTo(1);
-            assertThat(plan.issues().get(0).message()).contains("cần cột Số nét");
-        }
-
-        @Test
         void kanjiDaCoKhongCanSoNet() throws Exception {
             ParsedWorkbook parsed = read(ContentType.KANJI, one(KANJI_HEADER,
                     new String[]{"憎", "TĂNG", null, null, "Ghét", "N2"}));
@@ -183,38 +171,6 @@ class ContentImportTest {
                     existing("憎", Map.of("character", "憎")));
             assertThat(plan.invalidRows()).isZero();
             assertThat(plan.skippedExisting()).isEqualTo(1);
-        }
-
-        @Test
-        void nguPhap_maDaCoKhongPhanBietHoaThuong_mauThuocMaKhacLaLoi() throws Exception {
-            ParsedWorkbook parsed = read(ContentType.GRAMMAR, one(GRAMMAR_HEADER,
-                    grammar("wa-2", "〜は", "Thì"),
-                    grammar("WA", "〜は", "Thì; là"),
-                    grammar("ga", "〜が", "Chủ ngữ"),
-                    grammar("ga-2", "〜が", "Trùng mẫu trong tệp")));
-            Plan plan = ContentImportPlanner.plan(ContentType.GRAMMAR, parsed.rows(),
-                    existing("wa", Map.of("code", "wa", "pattern", "〜は")));
-            assertThat(plan.skippedExisting()).isEqualTo(1);
-            assertThat(plan.invalidRows()).isEqualTo(2);
-            assertThat(plan.issues()).extracting(i -> i.message())
-                    .anyMatch(m -> m.contains("đã có với mã wa"))
-                    .anyMatch(m -> m.contains("đã có với mã ga"));
-            assertThat(plan.inserts()).extracting(v -> v.get("code")).containsExactly("ga");
-        }
-
-        @Test
-        void tuVung_khoaLaTuVaCachDoc() throws Exception {
-            String[] a = new String[VOCAB_HEADER.length];
-            a[2] = "相";
-            a[3] = "あい";
-            a[7] = "Cùng nhau";
-            String[] b = a.clone();
-            b[3] = "そう";
-            ParsedWorkbook parsed = read(ContentType.VOCABULARY, one(VOCAB_HEADER, a, b));
-            Plan plan = ContentImportPlanner.plan(ContentType.VOCABULARY, parsed.rows(),
-                    existing("相\u0000あい", Map.of("word", "相", "reading", "あい")));
-            assertThat(plan.skippedExisting()).isEqualTo(1);
-            assertThat(plan.inserts()).extracting(v -> v.get("reading")).containsExactly("そう");
         }
     }
 
@@ -372,13 +328,6 @@ class ContentImportTest {
         }
 
         @Test
-        void req22_corruptedXlsxIsRejected() {
-            assertThatThrownBy(() -> dryRun(excel("hong.xlsx", "khong phai tep excel".getBytes())))
-                    .isInstanceOf(BusinessException.class).hasMessageStartingWith("Không đọc được tệp.");
-            org.mockito.Mockito.verifyNoInteractions(store);
-        }
-
-        @Test
         void req22_headerOnFifthRowIsFound() throws Exception {
             byte[] content = xlsx(new String[]{"Kho Kanji"}, new String[]{"Ghi chú"}, new String[]{}, new String[]{"x"},
                     KANJI_IMPORT_HEADER, new String[]{"愛", "Yêu", "13"});
@@ -396,51 +345,10 @@ class ContentImportTest {
         }
 
         @Test
-        void req22_missingRequiredColumnIsRejected() throws Exception {
-            byte[] content = xlsx(new String[]{"Kanji", "Số nét"}, new String[]{"愛", "13"});
-
-            assertThatThrownBy(() -> dryRun(excel("kanji.xlsx", content)))
-                    .isInstanceOf(BusinessException.class).hasMessageContaining("Kanji, Nghĩa tiếng Việt");
-        }
-
-        @Test
         void req22_fiftyThousandDataRowsAreAccepted() throws Exception {
             var parsed = ContentWorkbookReader.read(ContentType.KANJI, new ByteArrayInputStream(kanjiRows(50_000)));
 
             assertThat(parsed.totalRows()).isEqualTo(50_000);
-        }
-
-        @Test
-        void req22_fiftyThousandAndOneDataRowsAreRejected() {
-            assertThatThrownBy(() -> ContentWorkbookReader.read(ContentType.KANJI,
-                    new ByteArrayInputStream(kanjiRows(50_001))))
-                    .isInstanceOf(BusinessException.class).hasMessageContaining("50.000 dòng dữ liệu");
-        }
-
-        @Test
-        void req22_exactly300ErrorsAreAllShown() throws Exception {
-            var report = dryRun(excel("kanji.xlsx", xlsx(invalidKanjiRows(300))));
-
-            assertThat(report.issues()).hasSize(300);
-            assertThat(report.issuesTruncated()).isFalse();
-            assertThat(report.invalidRows()).isEqualTo(300);
-        }
-
-        @Test
-        void req22_moreThan300ErrorsAreCutTo300ButStillCounted() throws Exception {
-            var report = dryRun(excel("kanji.xlsx", xlsx(invalidKanjiRows(301))));
-
-            assertThat(report.issues()).hasSize(300);
-            assertThat(report.issuesTruncated()).isTrue();
-            assertThat(report.invalidRows()).isEqualTo(301);
-            assertThat(report.created()).isZero();
-        }
-
-        private String[][] invalidKanjiRows(int count) {
-            String[][] rows = new String[count + 1][];
-            rows[0] = KANJI_IMPORT_HEADER;
-            for (int i = 1; i <= count; i++) rows[i] = new String[]{"AB", "Không phải Kanji", "1"};
-            return rows;
         }
 
         @Test

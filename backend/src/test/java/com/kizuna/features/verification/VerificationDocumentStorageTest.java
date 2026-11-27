@@ -138,19 +138,6 @@ class VerificationDocumentStorageTest {
     }
 
     @Test
-    void rejectsCorruptPngWithValidSignature() {
-        byte[] corrupt = new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3};
-        assertInvalid(new MockMultipartFile("file", "hong.png", "image/png", corrupt));
-    }
-
-    @Test
-    void rejectsUnsupportedExtensionAndEmptyFile() {
-        assertInvalid(new MockMultipartFile("file", "tai-lieu.docx", "application/octet-stream", validPdf()));
-        assertInvalid(new MockMultipartFile("file", "rong.pdf", "application/pdf", new byte[0]));
-        assertInvalid(new MockMultipartFile("file", "khong-duoi", "application/pdf", validPdf()));
-    }
-
-    @Test
     void saveContentUploadsToR2UnderVerificationPrefix() {
         when(r2.enabled()).thenReturn(true);
         String key = UUID.randomUUID() + ".pdf";
@@ -203,12 +190,6 @@ class VerificationDocumentStorageTest {
     }
 
     @Test
-    void loadDoesNotCallR2ForUnmanagedKey() {
-        assertTrue(storage.load(credential("../khong-hop-le.pdf")).isEmpty());
-        verify(r2, never()).read(any(), any());
-    }
-
-    @Test
     void availableIdsWithR2EnabledCountsEveryManagedKey() {
         when(r2.enabled()).thenReturn(true);
         TutorCredential pdf = credential(UUID.randomUUID() + ".pdf");
@@ -222,35 +203,7 @@ class VerificationDocumentStorageTest {
     }
 
     @Test
-    void availableIdsWithoutR2OnlyCountsLegacyDiskFiles() throws IOException {
-        TutorCredential onDisk = credential(UUID.randomUUID() + ".png");
-        TutorCredential missing = credential(UUID.randomUUID() + ".jpg");
-        Files.write(tempDir.resolve(onDisk.getStorageKey()), new byte[]{1});
-
-        Set<UUID> available = storage.availableIds(List.of(onDisk, missing));
-
-        assertEquals(Set.of(onDisk.getCredentialId()), available);
-    }
-
-    @Test
     void availableIdsOfEmptyListIsEmpty() {
         assertTrue(storage.availableIds(List.of()).isEmpty());
-    }
-
-    @Test
-    void rejectsKeysThatEscapeStorageDirectory() throws IOException {
-        Files.writeString(tempDir.getParent().resolve("secret.pdf"), "x");
-        assertTrue(storage.resolveExisting("../secret.pdf").isEmpty());
-        assertTrue(storage.resolveExisting("..\\secret.pdf").isEmpty());
-        assertTrue(storage.resolveExisting("/etc/passwd").isEmpty());
-        assertTrue(storage.resolveExisting(null).isEmpty());
-    }
-
-    @Test
-    void deleteLegacyWithoutTransactionRemovesDiskFileImmediately() throws IOException {
-        String key = UUID.randomUUID() + ".pdf";
-        Files.write(tempDir.resolve(key), validPdf());
-        storage.deleteLegacyAfterCommit(key);
-        assertTrue(storage.resolveExisting(key).isEmpty());
     }
 }

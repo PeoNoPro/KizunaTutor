@@ -3,7 +3,7 @@ package com.kizuna.features.payment.controller;
 import com.kizuna.core.dto.ApiResponse;
 import com.kizuna.features.payment.dto.request.MembershipRequests;
 import com.kizuna.features.payment.dto.response.MembershipViews;
-import com.kizuna.features.payment.service.MembershipPlanAdminService;
+import com.kizuna.features.payment.service.MembershipPlanManagerService;
 import com.kizuna.features.payment.service.PaymentMessages;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -27,37 +27,37 @@ import java.util.List;
 @CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"})
 public class ManagerMembershipPlanController {
 
-    private final MembershipPlanAdminService service;
+    private final MembershipPlanManagerService service;
 
-    public ManagerMembershipPlanController(MembershipPlanAdminService service) {
+    public ManagerMembershipPlanController(MembershipPlanManagerService service) {
         this.service = service;
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<MembershipViews.PlanAdminView>>> list() {
+    public ResponseEntity<ApiResponse<List<MembershipViews.PlanManagerView>>> list() {
         return ResponseEntity.ok(ApiResponse.ok(service.listPlans()));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<MembershipViews.PlanAdminView>> create(
+    public ResponseEntity<ApiResponse<MembershipViews.PlanManagerView>> create(
             @Valid @RequestBody MembershipRequests.CreatePlanRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(PaymentMessages.PLAN_CREATED, service.createPlan(request)));
     }
 
     @PutMapping("/{planId}")
-    public ResponseEntity<ApiResponse<MembershipViews.PlanAdminView>> update(
+    public ResponseEntity<ApiResponse<MembershipViews.PlanManagerView>> update(
             @PathVariable String planId, @Valid @RequestBody MembershipRequests.UpdatePlanRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(PaymentMessages.MSG04_UPDATED, service.updatePlan(planId, request)));
     }
 
     @PostMapping("/{planId}/activate")
-    public ResponseEntity<ApiResponse<MembershipViews.PlanAdminView>> activate(@PathVariable String planId) {
+    public ResponseEntity<ApiResponse<MembershipViews.PlanManagerView>> activate(@PathVariable String planId) {
         return ResponseEntity.ok(ApiResponse.ok(PaymentMessages.PLAN_OPENED, service.setActive(planId, true)));
     }
 
     @PostMapping("/{planId}/deactivate")
-    public ResponseEntity<ApiResponse<MembershipViews.PlanAdminView>> deactivate(@PathVariable String planId) {
+    public ResponseEntity<ApiResponse<MembershipViews.PlanManagerView>> deactivate(@PathVariable String planId) {
         return ResponseEntity.ok(ApiResponse.ok(PaymentMessages.PLAN_CLOSED, service.setActive(planId, false)));
     }
 }

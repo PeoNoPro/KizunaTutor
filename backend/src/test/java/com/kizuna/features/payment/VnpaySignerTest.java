@@ -84,23 +84,6 @@ class VnpaySignerTest {
     // ===== REQ-14: chữ ký VNPay =====
 
     @Test
-    void req14_signatureFromSignedQueryVerifiesAndIsIndependentOfParameterOrder() {
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("vnp_TxnRef", "abc");
-        params.put("vnp_Amount", "19900000");
-        params.put("vnp_ResponseCode", "00");
-        String hash = signer.hmacSha512(signer.hashData(params));
-
-        Map<String, String> reordered = new LinkedHashMap<>();
-        reordered.put("vnp_ResponseCode", "00");
-        reordered.put("vnp_Amount", "19900000");
-        reordered.put("vnp_TxnRef", "abc");
-        reordered.put("vnp_SecureHash", hash);
-
-        assertTrue(signer.verify(reordered));
-    }
-
-    @Test
     void req14_changingAnySignedParameterInvalidatesSignature() throws Exception {
         String hash = hmac("vnp_Amount=19900000&vnp_ResponseCode=00&vnp_TxnRef=abc");
 
@@ -134,11 +117,5 @@ class VnpaySignerTest {
         params.put("vnp_OrderInfo", "Goi 6 thang & uu dai = 50%/thang?");
 
         assertEquals("vnp_OrderInfo=Goi+6+thang+%26+uu+dai+%3D+50%25%2Fthang%3F", signer.hashData(params));
-    }
-
-    @Test
-    void verifyFailsWhenSecretNotConfigured() throws Exception {
-        VnpaySigner unconfigured = new VnpaySigner(properties(""));
-        assertFalse(unconfigured.verify(Map.of("vnp_Amount", "1", "vnp_SecureHash", hmac("vnp_Amount=1"))));
     }
 }

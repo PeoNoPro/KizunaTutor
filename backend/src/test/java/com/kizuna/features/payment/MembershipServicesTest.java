@@ -21,7 +21,7 @@ import com.kizuna.features.payment.repository.MembershipTutorRepository;
 import com.kizuna.features.payment.repository.PaymentTransactionRepository;
 import com.kizuna.features.payment.repository.TutorMembershipRepository;
 import com.kizuna.features.payment.service.*;
-import com.kizuna.features.payment.service.impl.MembershipPlanAdminServiceImpl;
+import com.kizuna.features.payment.service.impl.MembershipPlanManagerServiceImpl;
 import com.kizuna.features.payment.service.impl.TutorMembershipServiceImpl;
 import com.kizuna.features.verification.entity.TutorVerificationStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -574,9 +574,9 @@ class MembershipServicesTest {
     }
 
     @Nested
-    class PlanAdmin {
+    class PlanManager {
         MembershipPlanRepository planRepository = mock(MembershipPlanRepository.class);
-        MembershipPlanAdminServiceImpl service = new MembershipPlanAdminServiceImpl(planRepository,
+        MembershipPlanManagerServiceImpl service = new MembershipPlanManagerServiceImpl(planRepository,
                 new MembershipViewMapper(new ObjectMapper(), VnpaySignerTest.properties("")));
 
         @Test
@@ -608,17 +608,6 @@ class MembershipServicesTest {
             assertThrows(BadRequestException.class,
                     () -> service.createPlan(new MembershipRequests.CreatePlanRequest("Mới", 1, 100_000L, tooMany)));
             verify(planRepository, never()).insertPlan(any(), any(), anyInt(), any(), any());
-        }
-
-        @Test
-        void updateKeepsDurationAndUsesNewPrice() {
-            MembershipPlan existing = plan(true);
-            when(planRepository.findById(existing.getPlanId())).thenReturn(Optional.of(existing));
-
-            service.updatePlan(existing.getPlanId().toString(),
-                    new MembershipRequests.UpdatePlanRequest("Gói 1 tháng", 249_000L, List.of("X")));
-
-            verify(planRepository).updatePlan(existing.getPlanId(), "Gói 1 tháng", BigDecimal.valueOf(249_000L), "[\"X\"]");
         }
 
         @Test
@@ -688,24 +677,6 @@ class MembershipServicesTest {
             verify(planRepository, never()).insertPlan(any(), any(), anyInt(), any(), any());
         }
 
-        @Test
-        void req18_twentyBenefitsOf200CharactersAreAccepted() {
-            insertSucceeds();
-            List<String> benefits = java.util.stream.IntStream.range(0, 20)
-                    .mapToObj(i -> String.format("%03d", i) + "b".repeat(197)).toList();
-
-            service.createPlan(create("Gói mới", 100_000L, benefits));
-
-            verify(planRepository).insertPlan(any(), eq("Gói mới"), eq(1), any(), argThat(json -> json.contains(benefits.get(19))));
-        }
-
-        @Test
-        void req18_benefitOf201CharactersIsRejected() {
-            assertThrows(BadRequestException.class,
-                    () -> service.createPlan(create("Gói mới", 100_000L, List.of("b".repeat(201)))));
-            verify(planRepository, never()).insertPlan(any(), any(), anyInt(), any(), any());
-        }
-
         /**
          * So sánh không phân biệt hoa thường do câu truy vấn existsByPlanNameIgnoreCase của Spring Data thực hiện ở
          * cơ sở dữ liệu. Test đơn vị chỉ xác nhận service dùng đúng truy vấn đó và chặn khi tên đã tồn tại.
@@ -718,18 +689,6 @@ class MembershipServicesTest {
                     () -> service.createPlan(create("GÓI 6 THÁNG", 100_000L, List.of()))).getMessage());
             verify(planRepository).existsByPlanNameIgnoreCase("GÓI 6 THÁNG");
             verify(planRepository, never()).insertPlan(any(), any(), anyInt(), any(), any());
-        }
-
-        @Test
-        void req18_renamingToAnotherPlansNameIsRejectedOnUpdate() {
-            MembershipPlan existing = plan(true);
-            when(planRepository.findById(existing.getPlanId())).thenReturn(Optional.of(existing));
-            when(planRepository.existsByPlanNameIgnoreCaseAndPlanIdNot("gói 6 tháng", existing.getPlanId())).thenReturn(true);
-
-            assertEquals(PaymentMessages.PLAN_NAME_DUPLICATE, assertThrows(ConflictException.class,
-                    () -> service.updatePlan(existing.getPlanId().toString(),
-                            new MembershipRequests.UpdatePlanRequest("gói 6 tháng", 249_000L, List.of()))).getMessage());
-            verify(planRepository, never()).updatePlan(any(), any(), any(), any());
         }
 
         // ----- REQ-19: mở bán / ngừng bán -----

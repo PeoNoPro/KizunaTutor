@@ -7,7 +7,7 @@ import com.kizuna.features.payment.dto.request.MembershipRequests;
 import com.kizuna.features.payment.dto.response.MembershipViews;
 import com.kizuna.features.payment.entity.MembershipPlan;
 import com.kizuna.features.payment.repository.MembershipPlanRepository;
-import com.kizuna.features.payment.service.MembershipPlanAdminService;
+import com.kizuna.features.payment.service.MembershipPlanManagerService;
 import com.kizuna.features.payment.service.MembershipViewMapper;
 import com.kizuna.features.payment.service.PaymentMessages;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ import java.util.UUID;
  * Số tháng không đổi sau khi tạo; không xóa gói (FR-014).
  */
 @Service
-public class MembershipPlanAdminServiceImpl implements MembershipPlanAdminService {
+public class MembershipPlanManagerServiceImpl implements MembershipPlanManagerService {
 
     static final long MIN_PRICE = 10_000L;
     static final long MAX_PRICE = 100_000_000L;
@@ -34,20 +34,20 @@ public class MembershipPlanAdminServiceImpl implements MembershipPlanAdminServic
     private final MembershipPlanRepository planRepository;
     private final MembershipViewMapper mapper;
 
-    public MembershipPlanAdminServiceImpl(MembershipPlanRepository planRepository, MembershipViewMapper mapper) {
+    public MembershipPlanManagerServiceImpl(MembershipPlanRepository planRepository, MembershipViewMapper mapper) {
         this.planRepository = planRepository;
         this.mapper = mapper;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<MembershipViews.PlanAdminView> listPlans() {
-        return planRepository.findAllByOrderByDurationMonthsAscPriceAsc().stream().map(mapper::planAdmin).toList();
+    public List<MembershipViews.PlanManagerView> listPlans() {
+        return planRepository.findAllByOrderByDurationMonthsAscPriceAsc().stream().map(mapper::planManager).toList();
     }
 
     @Override
     @Transactional
-    public MembershipViews.PlanAdminView createPlan(MembershipRequests.CreatePlanRequest request) {
+    public MembershipViews.PlanManagerView createPlan(MembershipRequests.CreatePlanRequest request) {
         String name = normalizeName(request.planName());
         long price = validatePrice(request.price());
         List<String> benefits = normalizeBenefits(request.benefits());
@@ -57,12 +57,12 @@ public class MembershipPlanAdminServiceImpl implements MembershipPlanAdminServic
         UUID planId = UUID.randomUUID();
         planRepository.insertPlan(planId, name, request.durationMonths(), BigDecimal.valueOf(price),
                 mapper.benefitsJson(benefits));
-        return mapper.planAdmin(load(planId));
+        return mapper.planManager(load(planId));
     }
 
     @Override
     @Transactional
-    public MembershipViews.PlanAdminView updatePlan(String planIdText, MembershipRequests.UpdatePlanRequest request) {
+    public MembershipViews.PlanManagerView updatePlan(String planIdText, MembershipRequests.UpdatePlanRequest request) {
         UUID planId = TutorMembershipServiceImpl.parseId(planIdText, PaymentMessages.PLAN_NOT_FOUND);
         load(planId);
         String name = normalizeName(request.planName());
@@ -72,18 +72,18 @@ public class MembershipPlanAdminServiceImpl implements MembershipPlanAdminServic
             throw new ConflictException(PaymentMessages.PLAN_NAME_DUPLICATE);
         }
         planRepository.updatePlan(planId, name, BigDecimal.valueOf(price), mapper.benefitsJson(benefits));
-        return mapper.planAdmin(load(planId));
+        return mapper.planManager(load(planId));
     }
 
     @Override
     @Transactional
-    public MembershipViews.PlanAdminView setActive(String planIdText, boolean active) {
+    public MembershipViews.PlanManagerView setActive(String planIdText, boolean active) {
         UUID planId = TutorMembershipServiceImpl.parseId(planIdText, PaymentMessages.PLAN_NOT_FOUND);
         MembershipPlan plan = load(planId);
         if (Boolean.TRUE.equals(plan.getIsActive()) != active) {
             planRepository.updateActive(planId, active);
         }
-        return mapper.planAdmin(load(planId));
+        return mapper.planManager(load(planId));
     }
 
     private MembershipPlan load(UUID planId) {

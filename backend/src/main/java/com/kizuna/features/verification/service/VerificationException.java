@@ -63,6 +63,21 @@ public class VerificationException extends RuntimeException {
         return of(HttpStatus.CONFLICT, "VERIFICATION_REJECTED", MSG_REJECTED_FINAL);
     }
 
+    /**
+     * FE-16: hồ sơ bị từ chối còn trong thời gian chờ; lời nhắn nêu thời điểm được nộp lại (giờ Việt Nam).
+     */
+    public static VerificationException rejectedUntil(java.time.OffsetDateTime resubmitAvailableAt) {
+        return of(HttpStatus.CONFLICT, "VERIFICATION_REJECTED",
+                "Hồ sơ của bạn đã bị từ chối. Bạn có thể chỉnh sửa và nộp lại hồ sơ từ "
+                        + formatResubmitTime(resubmitAvailableAt) + ".");
+    }
+
+    /** Định dạng "HH:mm ngày dd/MM/yyyy" theo giờ Việt Nam, dùng chung cho lời nhắn, email, thông báo. */
+    public static String formatResubmitTime(java.time.OffsetDateTime time) {
+        return time.atZoneSameInstant(java.time.ZoneId.of("Asia/Ho_Chi_Minh"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm 'ngày' dd/MM/yyyy"));
+    }
+
     /** Hồ sơ đã phê duyệt đang có yêu cầu cập nhật chờ thẩm định: chưa đổi được giấy tờ / JLPT. */
     public static VerificationException updatePending() {
         return of(HttpStatus.CONFLICT, "PROFILE_UPDATE_PENDING",

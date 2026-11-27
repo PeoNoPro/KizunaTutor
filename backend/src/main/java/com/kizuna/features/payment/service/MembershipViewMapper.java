@@ -61,9 +61,9 @@ public class MembershipViewMapper {
                 money(plan.getPrice()), benefits(plan.getFeaturesJson()));
     }
 
-    public MembershipViews.PlanAdminView planAdmin(MembershipPlan plan) {
+    public MembershipViews.PlanManagerView planManager(MembershipPlan plan) {
         boolean active = Boolean.TRUE.equals(plan.getIsActive());
-        return new MembershipViews.PlanAdminView(plan.getPlanId(), plan.getPlanName(), plan.getDurationMonths(),
+        return new MembershipViews.PlanManagerView(plan.getPlanId(), plan.getPlanName(), plan.getDurationMonths(),
                 money(plan.getPrice()), benefits(plan.getFeaturesJson()), active, MembershipLabels.planActive(active),
                 plan.getCreatedAt());
     }

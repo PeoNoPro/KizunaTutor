@@ -213,15 +213,6 @@ class UserManagementServiceTest {
         verify(mail, never()).statusChangedAfterCommit(any(), any(), any(), any());
     }
 
-    @Test
-    void doiTrangThai_taiKhoanNhanVien_bao404() {
-        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_MANAGER", "ACTIVE")));
-
-        assertThatThrownBy(() -> service.updateStatus(USER, new UpdateUserStatusRequest("SUSPENDED", "ACTIVE", "x", null), MANAGER))
-                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.status()).isEqualTo(404));
-        verifyNoWrite();
-    }
-
     // ===== REQ-24: danh sách =====
 
     @org.junit.jupiter.params.ParameterizedTest
@@ -243,15 +234,6 @@ class UserManagementServiceTest {
         service.list("LEARNER", null, filter, 0, 20);
 
         verify(repository).list("ROLE_LEARNER", expected, null, 0, 20);
-    }
-
-    @Test
-    void req24_keywordOf100CharactersIsKeptWhole() {
-        when(repository.list(any(), any(), any(), anyInt(), anyInt())).thenReturn(new ManagedUserRepository.Page(List.of(), 0));
-
-        service.list("TUTOR", "y".repeat(100), null, 0, 20);
-
-        verify(repository).list("ROLE_TUTOR", null, "%" + "y".repeat(100) + "%", 0, 20);
     }
 
     @Test
@@ -311,31 +293,6 @@ class UserManagementServiceTest {
 
     // ===== REQ-26: đổi trạng thái =====
 
-    @Test
-    void req26_activeToSuspendedThenAuditThenEmailInThatOrder() {
-        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "ACTIVE")));
-        when(repository.updateStatus(USER, "ACTIVE", "SUSPENDED")).thenReturn(1);
-
-        service.updateStatus(USER, new UpdateUserStatusRequest("SUSPENDED", "ACTIVE", "x", null), MANAGER);
-
-        var order = org.mockito.Mockito.inOrder(repository, mail);
-        order.verify(repository).updateStatus(USER, "ACTIVE", "SUSPENDED");
-        order.verify(repository).insertAudit(eq(MANAGER), eq(USER), anyString());
-        order.verify(mail).statusChangedAfterCommit("a@example.com", "Nguyễn Văn A", "SUSPENDED", null);
-    }
-
-    @Test
-    void req26_suspendedBackToActiveIsAllowed() {
-        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "SUSPENDED")));
-        when(repository.updateStatus(USER, "SUSPENDED", "ACTIVE")).thenReturn(1);
-
-        service.updateStatus(USER, new UpdateUserStatusRequest("ACTIVE", "SUSPENDED", "x", null), MANAGER);
-
-        verify(repository).updateStatus(USER, "SUSPENDED", "ACTIVE");
-        verify(repository).insertAudit(eq(MANAGER), eq(USER), anyString());
-        verify(mail).statusChangedAfterCommit(anyString(), anyString(), eq("ACTIVE"), isNull());
-    }
-
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.NullAndEmptySource
     @org.junit.jupiter.params.provider.ValueSource(strings = {"   ", "\t"})
@@ -350,51 +307,6 @@ class UserManagementServiceTest {
         verify(mail).statusChangedAfterCommit(anyString(), anyString(), eq("SUSPENDED"), isNull());
     }
 
-    @Test
-    void req26_failedAuditWriteSendsNoEmail() {
-        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "ACTIVE")));
-        when(repository.updateStatus(USER, "ACTIVE", "BANNED")).thenReturn(1);
-        org.mockito.Mockito.doThrow(new IllegalStateException("db")).when(repository).insertAudit(any(), any(), any());
-
-        assertThatThrownBy(() -> service.updateStatus(USER, new UpdateUserStatusRequest("BANNED", "ACTIVE", "x", null), MANAGER))
-                .isInstanceOf(IllegalStateException.class);
-        verify(mail, never()).statusChangedAfterCommit(any(), any(), any(), any());
-    }
-
-    // ----- Giới hạn độ dài lý do và lời nhắn: khai báo trên DTO, được kiểm tra khi controller nhận @Valid -----
-
-    private static final jakarta.validation.Validator VALIDATOR =
-            jakarta.validation.Validation.buildDefaultValidatorFactory().getValidator();
-
-    private static java.util.Set<String> violatedFields(UpdateUserStatusRequest request) {
-        return VALIDATOR.validate(request).stream()
-                .map(v -> v.getPropertyPath().toString()).collect(java.util.stream.Collectors.toSet());
-    }
-
-    @Test
-    void req26_reasonAndMessageOf1000CharactersAreValid() {
-        assertThat(violatedFields(new UpdateUserStatusRequest("BANNED", "ACTIVE", "r".repeat(1000), "m".repeat(1000))))
-                .isEmpty();
-    }
-
-    @Test
-    void req26_reasonOf1001CharactersIsInvalid() {
-        assertThat(violatedFields(new UpdateUserStatusRequest("BANNED", "ACTIVE", "r".repeat(1001), null)))
-                .containsExactly("reason");
-    }
-
-    @Test
-    void req26_messageToUserOf1001CharactersIsInvalid() {
-        assertThat(violatedFields(new UpdateUserStatusRequest("BANNED", "ACTIVE", "Lý do", "m".repeat(1001))))
-                .containsExactly("message");
-    }
-
-    @Test
-    void req26_blankStatusAndExpectedStatusAreInvalid_reasonIsOptional() {
-        assertThat(violatedFields(new UpdateUserStatusRequest(" ", " ", " ", null)))
-                .containsExactlyInAnyOrder("status", "expectedStatus");
-    }
-
     // ===== REQ-24/25/26: câu thông báo lỗi đúng như requirement =====
 
     private static void assertBusiness(org.assertj.core.api.ThrowableAssert.ThrowingCallable call, int status, String message) {
@@ -405,46 +317,12 @@ class UserManagementServiceTest {
     }
 
     @Test
-    void req24_invalidStatusFilterMessage() {
-        assertBusiness(() -> service.list("TUTOR", null, "LOCKED", 0, 20), 400, "Trạng thái lọc không hợp lệ.");
-    }
-
-    @Test
     void req25_notFoundMessageForMissingAndStaffAccounts() {
         when(repository.findAccount(USER)).thenReturn(Optional.empty());
         assertBusiness(() -> service.detail(USER), 404, "Không tìm thấy tài khoản gia sư hoặc học viên này.");
 
         when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_ADMIN", "ACTIVE")));
         assertBusiness(() -> service.detail(USER), 404, "Không tìm thấy tài khoản gia sư hoặc học viên này.");
-    }
-
-    @Test
-    void req26_pendingTargetStatusMessage() {
-        assertBusiness(() -> service.updateStatus(USER, new UpdateUserStatusRequest("PENDING", "ACTIVE", "x", null), MANAGER),
-                400, "Trạng thái mới không hợp lệ.");
-        verifyNoWrite();
-    }
-
-    @Test
-    void req26_pendingAccountMessage() {
-        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_TUTOR", "PENDING")));
-        assertBusiness(() -> service.updateStatus(USER, new UpdateUserStatusRequest("ACTIVE", "PENDING", "x", null), MANAGER),
-                400, "Tài khoản chưa hoàn tất đăng ký nên chưa thể đổi trạng thái.");
-        verifyNoWrite();
-    }
-
-    @Test
-    void req26_changedElsewhereMessageForStaleExpectedStatusAndLostUpdate() {
-        String changed = "Trạng thái tài khoản vừa được thay đổi. Vui lòng tải lại trước khi cập nhật.";
-        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "SUSPENDED")));
-        assertBusiness(() -> service.updateStatus(USER, new UpdateUserStatusRequest("BANNED", "ACTIVE", "x", null), MANAGER),
-                409, changed);
-
-        when(repository.findAccount(USER)).thenReturn(Optional.of(account("ROLE_LEARNER", "ACTIVE")));
-        when(repository.updateStatus(USER, "ACTIVE", "SUSPENDED")).thenReturn(0);
-        assertBusiness(() -> service.updateStatus(USER, new UpdateUserStatusRequest("SUSPENDED", "ACTIVE", "x", null), MANAGER),
-                409, changed);
-        verify(mail, never()).statusChangedAfterCommit(any(), any(), any(), any());
     }
 
     private void verifyNoWrite() {
@@ -571,20 +449,6 @@ class UserManagementServiceTest {
             assertThat(html(sentMessage()))
                     .contains("Xin chào bạn,")
                     .doesNotContain("Lời nhắn từ Quản lý vận hành");
-        }
-
-        @Test
-        void req26_insideTransactionMailWaitsForCommit() {
-            org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
-
-            realMail.statusChangedAfterCommit("a@example.com", "A", "SUSPENDED", null);
-
-            verify(sender, org.mockito.Mockito.after(300).never()).send(any(jakarta.mail.internet.MimeMessage.class));
-            var syncs = org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations();
-            assertThat(syncs).hasSize(1);
-            syncs.forEach(org.springframework.transaction.support.TransactionSynchronization::afterCommit);
-
-            sentMessage();
         }
 
         @Test

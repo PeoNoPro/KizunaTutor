@@ -50,7 +50,7 @@ public final class MembershipViews {
 
     // ---------- Quản lý vận hành ----------
 
-    public record PlanAdminView(UUID planId, String planName, int durationMonths, long price, List<String> benefits,
+    public record PlanManagerView(UUID planId, String planName, int durationMonths, long price, List<String> benefits,
                                 boolean active, String activeLabel, OffsetDateTime createdAt) {
     }
 

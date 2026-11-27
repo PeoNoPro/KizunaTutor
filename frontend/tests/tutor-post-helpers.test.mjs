@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  validatePostDraft, validatePrices, priceRowsFromContent, submitLabel, isUpdateMode
+  validatePostDraft, validatePrices, priceRowsFromContent, submitLabel, isUpdateMode,
+  formatResubmitTime, rejectedFirstPostHint
 } from '../js/tutor-post-helpers.js';
 
 const valid = {
@@ -76,10 +77,27 @@ test('nút gửi chỉ hiện khi được sửa: "Gửi duyệt" lần đầu, 
 
 test('bài đã duyệt: được cập nhật qua nút "Chỉnh sửa bài đăng", nút gửi là "Gửi bản cập nhật"', () => {
   assert.equal(isUpdateMode(true, { reviewStatus: 'APPROVED' }), true);
-  assert.equal(isUpdateMode(true, { reviewStatus: 'REJECTED' }), true);
+  // bản cập nhật bị từ chối khi vẫn còn bản đã duyệt
+  assert.equal(isUpdateMode(true, { reviewStatus: 'REJECTED', published: { title: 'Bài cũ' } }), true);
   assert.equal(isUpdateMode(true, { reviewStatus: 'NEEDS_INFO' }), false);
   assert.equal(isUpdateMode(true, null), false);
   assert.equal(isUpdateMode(false, { reviewStatus: 'APPROVED' }), false);
   assert.equal(submitLabel(true, { reviewStatus: 'APPROVED' }), 'Gửi bản cập nhật');
-  assert.equal(submitLabel(true, { reviewStatus: 'REJECTED' }), 'Gửi bản cập nhật');
+  assert.equal(submitLabel(true, { reviewStatus: 'REJECTED', published: { title: 'Bài cũ' } }), 'Gửi bản cập nhật');
+});
+
+test('FE-16: bài đầu tiên bị từ chối hết thời gian chờ thì soạn bài mới ngay, nút "Gửi lại"', () => {
+  const rejectedFirst = { reviewStatus: 'REJECTED', published: null };
+  assert.equal(isUpdateMode(true, rejectedFirst), false);
+  assert.equal(submitLabel(true, rejectedFirst), 'Gửi lại');
+  assert.equal(submitLabel(false, rejectedFirst), null);
+});
+
+test('FE-16: lời nhắc bài đầu tiên bị từ chối nêu thời điểm gửi bài mới', () => {
+  const at = new Date(2026, 11, 3, 14, 5).toISOString();
+  assert.equal(formatResubmitTime(at), '14:05 ngày 03/12/2026');
+  assert.equal(rejectedFirstPostHint(false, at), 'Bạn có thể gửi bài đăng mới từ 14:05 ngày 03/12/2026.');
+  assert.match(rejectedFirstPostHint(true, at), /gửi lại bài đăng mới/);
+  assert.equal(formatResubmitTime(null), '—');
+  assert.equal(formatResubmitTime('không phải ngày'), '—');
 });

@@ -16,7 +16,7 @@ import com.kizuna.features.payment.controller.TutorMembershipController;
 import com.kizuna.features.payment.controller.VnpayIpnController;
 import com.kizuna.features.payment.dto.response.MembershipViews;
 import com.kizuna.features.payment.service.CurrentUserAccessor;
-import com.kizuna.features.payment.service.MembershipPlanAdminService;
+import com.kizuna.features.payment.service.MembershipPlanManagerService;
 import com.kizuna.features.payment.service.PaymentMessages;
 import com.kizuna.features.payment.service.TutorMembershipMonitorService;
 import com.kizuna.features.payment.service.TutorMembershipService;
@@ -57,7 +57,7 @@ class PaymentControllersTest {
 
     @MockBean private TutorMembershipService tutorService;
     @MockBean private VnpayIpnService ipnService;
-    @MockBean private MembershipPlanAdminService planService;
+    @MockBean private MembershipPlanManagerService planService;
     @MockBean private TutorMembershipMonitorService monitorService;
     @MockBean private JwtTokenProvider jwtTokenProvider;
     @MockBean private UserRepository userRepository;

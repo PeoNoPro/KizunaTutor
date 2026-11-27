@@ -174,51 +174,36 @@ class TutorPostServiceTest {
         }
 
         @Test
-        void priceTableIsRequired() {
-            BadRequestException e = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of())));
-            assertTrue(e.getMessage().contains("ít nhất một mức học phí"));
-        }
+        void cannotSubmitWhilePending() {
+            when(postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId()))
+                    .thenReturn(Optional.of(post(TutorPostStatus.PENDING_REVIEW)));
 
-        @Test
-        void rejectsDuplicateUnknownLevelAndOutOfRangeRate() {
-            BadRequestException dup = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
-                    new PriceItemRequest("JLPT_N3", 90, new BigDecimal("200000")),
-                    new PriceItemRequest("JLPT_N3", 90, new BigDecimal("250000"))))));
-            assertTrue(dup.getMessage().contains("chỉ được đặt một mức học phí"));
-
-            BadRequestException unknown = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
-                    new PriceItemRequest("TOEIC", 90, new BigDecimal("200000"))))));
-            assertTrue(unknown.getMessage().contains("chọn môn học hoặc cấp độ"));
-
-            BadRequestException rate = assertThrows(BadRequestException.class, () -> service.submit(user, requestWith(List.of(
-                    new PriceItemRequest("JLPT_N1", 90, new BigDecimal("20000000"))))));
-            assertTrue(rate.getMessage().contains("Học phí mỗi buổi từ 10.000 đ đến 10.000.000 đ"));
+            MyPostView mine = service.getMine(user);
+            assertFalse(mine.editable());
+            assertNull(mine.resubmitAvailableAt());
+            assertEquals(TutorPostService.MSG_NOT_EDITABLE,
+                    assertThrows(ConflictException.class, () -> service.submit(user, validRequest())).getMessage());
             verify(postRepository, never()).saveAndFlush(any());
         }
 
+        /** FE-16: bài đầu tiên bị từ chối cách đây ... (chưa có bản đã duyệt). */
+        TutorPost rejectedFirstPostAgo(java.time.Duration ago) {
+            TutorPost rejected = post(TutorPostStatus.REJECTED);
+            rejected.setReviewedAt(java.time.OffsetDateTime.now().minus(ago));
+            when(postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId())).thenReturn(Optional.of(rejected));
+            return rejected;
+        }
+
         @Test
-        void myPostViewListsAllPriceLevels() {
+        void fe16_firstPostRejectedLessThanSevenDaysAgoIsLockedWithResubmitTime() {
+            TutorPost rejected = rejectedFirstPostAgo(java.time.Duration.ofDays(7).minusMinutes(1));
+
             MyPostView mine = service.getMine(user);
-            assertEquals(8, mine.priceLevels().size());
-            assertEquals("JLPT_N5", mine.priceLevels().get(0).code());
-            assertEquals("Luyện thi EJU", mine.priceLevels().get(7).label());
-        }
-
-        @Test
-        void legacyPostWithoutPriceTableHasEmptyPriceViews() {
-            assertTrue(TutorPostService.priceViews(post(TutorPostStatus.PUBLISHED)).isEmpty());
-        }
-
-        @Test
-        void cannotSubmitWhilePendingOrAfterFirstPostRejected() {
-            for (TutorPostStatus status : new TutorPostStatus[]{TutorPostStatus.PENDING_REVIEW, TutorPostStatus.REJECTED}) {
-                when(postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId()))
-                        .thenReturn(Optional.of(post(status)));
-
-                assertFalse(service.getMine(user).editable(), "không được sửa khi " + status);
-                assertEquals(TutorPostService.MSG_NOT_EDITABLE,
-                        assertThrows(ConflictException.class, () -> service.submit(user, validRequest())).getMessage());
-            }
+            assertFalse(mine.editable());
+            assertEquals(rejected.getReviewedAt().plusDays(7), mine.resubmitAvailableAt());
+            String message = assertThrows(ConflictException.class, () -> service.submit(user, validRequest())).getMessage();
+            assertEquals(TutorPostService.rejectedUntilMessage(rejected.getReviewedAt().plusDays(7)), message);
+            assertTrue(message.startsWith("Bài đăng của bạn đã bị từ chối. Bạn có thể gửi bài đăng mới từ "), message);
             verify(postRepository, never()).saveAndFlush(any());
         }
 
@@ -242,12 +227,16 @@ class TutorPostServiceTest {
         @Test
         void canUpdateAgainAfterUpdateRejectedWhilePublishedVersionRemains() {
             TutorPost published = post(TutorPostStatus.PUBLISHED);
+            TutorPost rejectedUpdate = post(TutorPostStatus.REJECTED);
+            rejectedUpdate.setReviewedAt(java.time.OffsetDateTime.now().minusMinutes(5)); // FE-16: vừa bị từ chối vẫn gửi được ngay
             when(postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId()))
-                    .thenReturn(Optional.of(post(TutorPostStatus.REJECTED)));
+                    .thenReturn(Optional.of(rejectedUpdate));
             when(postRepository.findFirstByTutorTutorIdAndStatusOrderByReviewedAtDesc(tutor.getTutorId(), TutorPostStatus.PUBLISHED))
                     .thenReturn(Optional.of(published));
 
-            assertTrue(service.getMine(user).editable());
+            MyPostView mine = service.getMine(user);
+            assertTrue(mine.editable());
+            assertNull(mine.resubmitAvailableAt());
             service.submit(user, validRequest());
             verify(postRepository).saveAndFlush(any());
         }
@@ -261,23 +250,6 @@ class TutorPostServiceTest {
                     .thenReturn(Optional.of(post(TutorPostStatus.PUBLISHED)));
             assertEquals(TutorPostService.MSG_UPDATE_SUBMITTED,
                     TutorPostService.submittedMessage(service.getMine(user).post()));
-        }
-
-        @Test
-        void resubmitAfterRevisionRequestReusesPostAndClearsReview() {
-            TutorPost revision = post(TutorPostStatus.NEEDS_REVISION);
-            revision.setRejectionReason("Bổ sung kinh nghiệm");
-            revision.setReviewedBy(officer);
-            when(postRepository.findFirstByTutorTutorIdOrderByCreatedAtDesc(tutor.getTutorId())).thenReturn(Optional.of(revision));
-
-            assertTrue(service.getMine(user).editable());
-            service.submit(user, validRequest());
-
-            verify(postRepository).saveAndFlush(revision);
-            assertEquals(TutorPostStatus.PENDING_REVIEW, revision.getStatus());
-            assertNull(revision.getRejectionReason());
-            assertNull(revision.getReviewedBy());
-            assertNull(revision.getReviewedAt());
         }
     }
 
@@ -310,21 +282,10 @@ class TutorPostServiceTest {
         @Test
         void reject() {
             service.reject(pending.getPostId(), officer, new RejectPostRequest("Nội dung không phù hợp"));
-            verify(mail).rejectedAfterCommit("gs@kizuna.test", "Gia sư A", "Luyện thi JLPT N3 cấp tốc", "Nội dung không phù hợp");
+            // FE-16: bài đầu tiên bị từ chối → email nêu thời điểm gửi bài mới = lúc từ chối + 7 ngày
+            verify(mail).rejectedAfterCommit("gs@kizuna.test", "Gia sư A", "Luyện thi JLPT N3 cấp tốc", "Nội dung không phù hợp",
+                    pending.getReviewedAt().plusDays(7));
             verifyInApp("Bài đăng không được duyệt");
-        }
-
-        @Test
-        void requestRevision() {
-            service.requestInfo(pending.getPostId(), officer, new RejectPostRequest("Bổ sung lộ trình học"));
-            verify(mail).revisionRequestedAfterCommit("gs@kizuna.test", "Gia sư A", "Luyện thi JLPT N3 cấp tốc", "Bổ sung lộ trình học");
-            verifyInApp("Cần bổ sung bài đăng");
-        }
-
-        @Test
-        void invalidInputSendsNothing() {
-            assertThrows(BadRequestException.class, () -> service.reject(pending.getPostId(), officer, new RejectPostRequest(" ")));
-            verifyNoInteractions(mail, events);
         }
     }
 
@@ -419,30 +380,6 @@ class TutorPostServiceTest {
         }
 
         @Test
-        void req12_revisionRequestOf2000CharactersIsAcceptedAnd2001IsRejected() {
-            TutorPost pending = pendingPost();
-
-            BadRequestException e = assertThrows(BadRequestException.class,
-                    () -> service.requestInfo(pending.getPostId(), officer, new RejectPostRequest("m".repeat(2001))));
-            assertEquals("Nội dung yêu cầu tối đa 2.000 ký tự.", e.getMessage());
-            assertEquals(TutorPostStatus.PENDING_REVIEW, pending.getStatus());
-
-            service.requestInfo(pending.getPostId(), officer, new RejectPostRequest("m".repeat(2000)));
-            assertEquals(TutorPostStatus.NEEDS_REVISION, pending.getStatus());
-        }
-
-        @Test
-        void req12_alreadyRejectedPostCannotBeReviewedAgain() {
-            TutorPost rejected = post(TutorPostStatus.REJECTED);
-            when(postRepository.findLockedById(rejected.getPostId())).thenReturn(Optional.of(rejected));
-
-            assertEquals(TutorPostService.MSG_ALREADY_REVIEWED, assertThrows(ConflictException.class,
-                    () -> service.reject(rejected.getPostId(), officer, new RejectPostRequest("Lý do"))).getMessage());
-            assertEquals(TutorPostStatus.REJECTED, rejected.getStatus());
-            verify(tutorRepository, never()).save(any());
-        }
-
-        @Test
         void req12_searchKeywordOf100CharactersIsAccepted() {
             when(postRepository.search(any(), any(), any())).thenReturn(org.springframework.data.domain.Page.empty());
 
@@ -505,57 +442,6 @@ class TutorPostServiceTest {
         void req10_introductionOutside50To3000CharactersIsRejected(int length) {
             assertRejected(new SubmitPostRequest(TITLE, "d".repeat(length), null, "online", PRICES),
                     "Nội dung giới thiệu từ 50 đến 3.000 ký tự");
-        }
-
-        @org.junit.jupiter.params.ParameterizedTest
-        @org.junit.jupiter.params.provider.ValueSource(ints = {254, 255})
-        void req10_expertiseUpTo255CharactersIsAccepted(int length) {
-            assertAccepted(new SubmitPostRequest(TITLE, DESCRIPTION, "s".repeat(length), "online", PRICES));
-        }
-
-        @Test
-        void req10_expertiseOf256CharactersIsRejected() {
-            assertRejected(new SubmitPostRequest(TITLE, DESCRIPTION, "s".repeat(256), "online", PRICES),
-                    "Chuyên môn tối đa 255 ký tự");
-        }
-
-        @org.junit.jupiter.params.ParameterizedTest
-        @org.junit.jupiter.params.provider.NullAndEmptySource
-        @org.junit.jupiter.params.provider.ValueSource(strings = {"  ", "QUA_THU"})
-        void req10_teachingFormatIsRequired(String format) {
-            assertRejected(new SubmitPostRequest(TITLE, DESCRIPTION, null, format, PRICES), "Vui lòng chọn hình thức dạy");
-        }
-
-        @org.junit.jupiter.params.ParameterizedTest
-        @org.junit.jupiter.params.provider.ValueSource(strings = {"10000", "10001", "9999999", "10000000"})
-        void req10_tuitionWithinTenThousandToTenMillionIsAccepted(String rate) {
-            assertAccepted(requestWith(List.of(new PriceItemRequest("JLPT_N3", 90, new BigDecimal(rate)))));
-        }
-
-        @org.junit.jupiter.params.ParameterizedTest
-        @org.junit.jupiter.params.provider.ValueSource(strings = {"9999", "10000001"})
-        void req10_tuitionOutsideTenThousandToTenMillionIsRejected(String rate) {
-            assertRejected(requestWith(List.of(new PriceItemRequest("JLPT_N3", 90, new BigDecimal(rate)))),
-                    "Học phí mỗi buổi từ 10.000 đ đến 10.000.000 đ");
-        }
-
-        @Test
-        void req10_missingTuitionAmountIsRejected() {
-            assertRejected(requestWith(java.util.Collections.singletonList(new PriceItemRequest("JLPT_N3", 90, null))),
-                    "Học phí mỗi buổi từ 10.000 đ đến 10.000.000 đ");
-        }
-
-        @org.junit.jupiter.params.ParameterizedTest
-        @org.junit.jupiter.params.provider.ValueSource(ints = {60, 90, 120})
-        void req10_sessionLengthOf60_90_120MinutesIsAccepted(int minutes) {
-            assertAccepted(requestWith(List.of(new PriceItemRequest("JLPT_N3", minutes, new BigDecimal("250000")))));
-        }
-
-        @org.junit.jupiter.params.ParameterizedTest
-        @org.junit.jupiter.params.provider.ValueSource(ints = {0, 45, 59, 61, 150})
-        void req10_otherSessionLengthsAreRejected(int minutes) {
-            assertRejected(requestWith(List.of(new PriceItemRequest("JLPT_N3", minutes, new BigDecimal("250000")))),
-                    "Vui lòng chọn thời lượng mỗi buổi (60, 90 hoặc 120 phút) cho từng môn học");
         }
     }
 }

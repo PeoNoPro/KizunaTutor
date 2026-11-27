@@ -1,0 +1,29 @@
+/* Utility Layouts & Classes */
+
+.container-custom {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+@media (min-width: 768px) {
+  .container-custom {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.text-primary-gradient {
+  background: linear-gradient(135deg, #0F2545 0%, #006194 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+

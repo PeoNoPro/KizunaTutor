@@ -1,0 +1,422 @@
+/**
+ * ==============================================================================
+ * KIZUNA TUTOR - LEARNING SUPPORT COMMON DESIGN TOKENS & SYSTEM
+ * Source of Truth: Shodo Reference Template (/shodo)
+ * Applicable to: Grammar, Shodo Canvas, Flashcards, Kana Arena, AI-Writing,
+ * Kanji Dictionary, Handwriting Search, Learning Support Hub
+ * ==============================================================================
+ */
+
+/* ==============================================================================
+   1. DESIGN TOKENS (SHODO GOLD STANDARD)
+   ============================================================================== */
+:root {
+  /* --- PALETTE MÀU: NỀN & BỀ MẶT (SURFACE & BACKGROUND) --- */
+  --color-bg-app: #F8FAFC;              /* Nền toàn app sạch sẽ, dịu mắt (Slate 50) */
+  --color-bg-surface: #FFFFFF;          /* Nền thẻ / Khối tương tác chính */
+  --color-bg-surface-warm: #FAF8F2;     /* Nền ấm dịu mắt cho Canvas / Ô Mễ */
+  --color-bg-white: #FFFFFF;            /* Nền thẻ trắng tinh khiết */
+  --color-bg-sky: #F0F9FF;              /* Nền nhạt thông tin */
+  --color-bg-orange: #FFF7ED;           /* Nền nhạt chú ý / Note */
+  --color-bg-amber: #FEF3C7;            /* Nền nhạt mẹo học / Tips */
+  --color-bg-pink-tint: #FFE5EC;        /* Nền phớt hồng Hiragana / Trợ lý AI */
+
+  /* --- PALETTE MÀU: CHỮ (TEXT & CONTRAST SAFETY) --- */
+  --color-text-primary: #0F172A;        /* Chữ chính: Tương phản tuyệt đối (Slate 900) */
+  --color-text-secondary: #334155;      /* Chữ đọc / Văn bản chính (Slate 700) */
+  --color-text-muted: #64748B;          /* Ghi chú nhỏ, metadata, Furigana mờ (Slate 500) */
+  --color-text-white: #FFFFFF;          /* Chữ sáng cho nút solid */
+  --color-text-berry: #831843;          /* Hồng mận nhấn mạnh (Pink 900) */
+
+  /* --- PALETTE MÀU: THƯƠNG HIỆU & ĐIỀU HƯỚNG (BRAND & ACCENTS) --- */
+  --color-primary: #006194;             /* Xanh Sensei chủ đạo */
+  --color-primary-container: #007BB9;   /* Xanh tương tác hover */
+  --color-secondary: #4059AA;           /* Xanh tím thứ cấp */
+  --color-tertiary: #831843;            /* Hồng tím mận nhấn mạnh */
+  --color-accent-pink: #E0399A;         /* Hồng Hiragana cho trạng thái Active */
+  --color-accent-green: #2A5A1A;        /* Xanh thư pháp Shodo */
+  --color-ink: #1E293B;                 /* Mực than cho Primary Buttons */
+  --color-ink-hover: #334155;           /* Hover Mực than */
+
+  /* --- PALETTE MÀU: TRẠNG THÁI (FEEDBACK & STATUS) --- */
+  --color-success: #059669;             /* Thành công, điểm đúng */
+  --color-info: #0284C7;                /* Thông tin, hướng dẫn */
+  --color-warning: #D97706;             /* Cảnh báo, lưu ý ngoại lệ */
+  --color-error: #E11D48;               /* Báo lỗi, sai nét */
+  --color-red: #B91C1C;                 /* Trọng tâm ngữ pháp */
+
+  /* --- PALETTE MÀU: VIỀN (BORDERS) --- */
+  --color-border-subtle: #E2E8F0;       /* Viền thẻ chính, khung bài học (Slate 200) */
+  --color-border-strong: #E2E8F0;       /* Viền thẻ chính đồng nhất */
+  --color-border-input: #CBD5E1;        /* Viền ô nhập Romaji / Search (Slate 300) */
+  --color-border-default: #E2E8F0;      /* Viền phân tách nội dung */
+  --color-border-light: #F1F5F9;        /* Đường kẻ mờ dòng ví dụ (Slate 100) */
+  --color-border-pink: #FBCFE8;         /* Viền badge phớt hồng */
+  --color-border-solid: #0F172A;        /* Viền than cho Retro-Brutalist elements */
+
+  /* --- TYPOGRAPHY SCALE --- */
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-japanese: 'Noto Serif JP', serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-family-serif: 'Noto Serif JP', serif;
+
+  --font-size-xs: 11px;                 /* Captions, metadata, Furigana */
+  --font-size-sm: 13px;                 /* Labels, phụ đề, nút nhỏ */
+  --font-size-base: 14px;               /* Văn bản đọc chính (Default) */
+  --font-size-lg: 16px;                 /* Tiêu đề mục con, điểm nhấn */
+  --font-size-xl: 18px;                 /* Tiêu đề ngữ pháp, tiêu đề module */
+
+  /* --- SPACING SCALE (BASE 4PX) --- */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-7: 16px;
+  --space-8: 20px;
+  --space-9: 36px;
+
+  /* --- SHAPES & RADII --- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* --- ELEVATION & SHADOWS --- */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+  --shadow-retro: 3px 3px 0px 0px #0F172A;
+  --shadow-btn: 2px 2px 0px 0px #0F172A;
+  --shadow-btn-sm: 1px 1px 0px 0px #0F172A;
+
+  /* --- MOTION --- */
+  --motion-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-base: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==============================================================================
+   2. KHÓA ỔN ĐỊNH BỐ CỤC TOÀN CỤC (LAYOUT & SCROLL STABILITY)
+   ============================================================================== */
+html {
+  scrollbar-gutter: stable both-edges;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+body.learning-support-body {
+  background-color: var(--color-bg-app, #F8FAFC);
+  color: var(--color-text-secondary, #334155);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-base, 14px);
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* ==============================================================================
+   3. COMPONENT NỀN TẢNG (COMMON COMPONENTS CHUẨN SHODO)
+   ============================================================================== */
+
+/* --- THẺ BỀ MẶT (CARDS & CONTAINERS) --- */
+.ls-card {
+  background-color: var(--color-bg-surface, #FFFFFF);
+  border: 1px solid var(--color-border-subtle, #E2E8F0);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-xs);
+  color: var(--color-text-primary, #0F172A);
+  padding: 0.75rem 1rem;
+  transition: var(--motion-fast);
+}
+
+.ls-card-interactive:hover {
+  border-color: #CBD5E1;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Biến thể thẻ Retro-Brutalist nếu cần viền đậm */
+.ls-card-retro {
+  background-color: var(--color-bg-surface-warm, #FAF8F2);
+  border: 2px solid var(--color-border-solid, #0F172A);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-retro);
+  color: var(--color-text-primary, #0F172A);
+  padding: 0.75rem 1rem;
+}
+
+/* --- HỆ THỐNG NÚT BẤM (BUTTON SCALE) --- */
+.ls-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 4px);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: var(--motion-fast);
+  line-height: 1.2;
+  user-select: none;
+}
+.ls-btn:active {
+  transform: scale(0.98);
+}
+
+/* Nút chính (Sensei Primary / Ink Black) */
+.ls-btn-primary {
+  background-color: var(--color-btn-primary, #9F1239);
+  color: var(--color-text-white, #FFFFFF) !important;
+  box-shadow: var(--shadow-xs);
+}
+.ls-btn-primary:hover {
+  background-color: var(--color-btn-primary-hover, #BE185D);
+}
+
+/* Nút Phụ / Mặc định (Outline / Secondary) - Chuẩn Shodo Retro */
+.ls-btn-default,
+.ls-btn-outline {
+  background-color: #FFFFFF;
+  border: 1px solid #0F172A;
+  color: #0F172A !important;
+  box-shadow: 1px 1px 0px 0px #0F172A;
+  font-weight: 700;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ls-btn-default:hover,
+.ls-btn-outline:hover {
+  background-color: #F8FAFC;
+}
+.ls-btn-default:active,
+.ls-btn-outline:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0px 0px 0px 0px #0F172A;
+}
+
+/* Nút Thứ Cấp Nổi Bật (Cherry Soft Highlight - Chuẩn Handwriting) */
+.ls-btn-secondary {
+  background-color: #FFE5EC !important;
+  border: 1px solid #FBCFE8 !important;
+  color: #831843 !important;
+  box-shadow: 1px 1px 0px 0px #0F172A;
+  font-weight: 700;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ls-btn-secondary:hover {
+  background-color: #FCE7F3 !important;
+}
+.ls-btn-secondary:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0px 0px 0px 0px #0F172A;
+}
+
+/* Nút Shodo (Xanh nét bút) */
+.ls-btn-shodo {
+  background-color: var(--color-accent-green);
+  color: var(--color-text-white) !important;
+  border: 1px solid var(--color-border-solid);
+  box-shadow: var(--shadow-btn-sm);
+}
+
+/* Nút Active / Tab đang chọn (Hồng Hiragana) */
+.ls-btn-active,
+.ls-pill.is-active {
+  background-color: var(--color-bg-pink-tint, #FFE5EC) !important;
+  color: var(--color-text-berry, #831843) !important;
+  border-color: var(--color-border-pink, #FBCFE8) !important;
+}
+
+/* Nút Xóa / Nguy hiểm */
+.ls-btn-danger {
+  background-color: #FFF1F2;
+  border-color: #FBCFE8;
+  color: var(--color-error, #E11D48) !important;
+}
+.ls-btn-danger:hover {
+  background-color: #FFE4E6;
+}
+
+/* --- THANH TÁC VỤ (TOOLBAR & FILTER PILLS) --- */
+.ls-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4, 8px);
+  padding: 0.75rem 1rem;
+  background-color: var(--color-bg-surface, #FFFFFF);
+  border: 1px solid var(--color-border-subtle, #E2E8F0);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-xs);
+  margin-bottom: var(--space-3, 12px);
+}
+
+.ls-pill-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 4px);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}
+
+.ls-pill {
+  font-size: var(--font-size-xs, 11px);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid var(--color-border-input, #CBD5E1);
+  background-color: var(--color-bg-surface, #FFFFFF);
+  color: var(--color-text-secondary, #334155);
+  cursor: pointer;
+  transition: var(--motion-fast);
+}
+.ls-pill:hover {
+  border-color: #94A3B8;
+  color: var(--color-text-primary, #0F172A);
+}
+
+/* --- Ô NHẬP LIỆU (INPUT FIELDS) --- */
+.ls-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--color-text-primary, #0F172A);
+  background-color: var(--color-bg-surface, #FFFFFF);
+  border: 1px solid var(--color-border-input, #CBD5E1);
+  border-radius: var(--radius-md, 8px);
+  padding: 6px 12px;
+  outline: none;
+  transition: var(--motion-fast);
+}
+.ls-input:focus {
+  border-color: var(--color-text-berry, #831843);
+  box-shadow: 0 0 0 1px var(--color-text-berry, #831843);
+}
+
+/* --- BADGES & HUY HIỆU CẤP ĐỘ JLPT --- */
+.ls-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  line-height: 1.2;
+}
+
+.ls-badge-jlpt {
+  background-color: var(--color-bg-pink-tint, #FFE5EC);
+  color: var(--color-text-berry, #831843);
+  border: 1px solid var(--color-border-pink, #FBCFE8);
+}
+
+.ls-badge-neutral {
+  background-color: #F1F5F9;
+  color: var(--color-text-secondary, #334155);
+  border: 1px solid var(--color-border-subtle, #E2E8F0);
+}
+
+.ls-badge-tips {
+  background-color: var(--color-bg-amber, #FEF3C7);
+  color: var(--color-warning, #D97706);
+  border: 1px solid #FDE68A;
+}
+
+/* ==============================================================================
+   4. TIỆN ÍCH CHỐNG LỖI HIỂN THỊ (ANTI-BUG UTILITIES)
+   ============================================================================== */
+.ls-text-contrast-safe {
+  color: var(--color-text-primary) !important;
+}
+
+.ls-text-secondary {
+  color: var(--color-text-secondary) !important;
+}
+
+.ls-text-muted {
+  color: var(--color-text-muted) !important;
+}
+
+.ls-wrap-text {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.font-japanese {
+  font-family: var(--font-family-japanese, 'Noto Serif JP', serif);
+}
+
+/* ==============================================================================
+   5. KHOA CHONG XE DICH KHUNG SHODO (ZERO LAYOUT SHIFT)
+   ============================================================================== */
+.shodo-canvas-box,
+.canvas-board-wrapper {
+  contain: layout paint;
+  will-change: transform;
+}
+
+.shodo-toolbar {
+  contain: layout;
+}
+
+.shodo-toolbar button,
+.shodo-toolbar .ls-btn {
+  box-sizing: border-box;
+  text-align: center;
+  user-select: none;
+  padding: 0 !important;
+}
+
+
+/* Shodo Neo-Brutalist Universal Card & Button Enforcement */
+.shodo-card,
+.ls-card {
+  background-color: var(--color-app-surface, #FFFFFF);
+  border: 2px solid #0F172A !important;
+  border-radius: 12px !important;
+  padding: 1rem;
+  box-shadow: 3px 3px 0px 0px #0F172A !important;
+  color: var(--color-app-primary, #0F172A);
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shodo-btn-primary,
+.ls-btn-primary,
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.45rem 1rem;
+  background-color: #9F1239 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #0F172A !important;
+  border-radius: 8px !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px 0px #0F172A !important;
+  user-select: none;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.shodo-btn-primary:hover,
+.ls-btn-primary:hover,
+.btn-primary:hover {
+  background-color: #BE185D !important;
+}
+.shodo-btn-primary:active,
+.ls-btn-primary:active,
+.btn-primary:active {
+  transform: translate(1px, 1px) !important;
+  box-shadow: 0px 0px 0px 0px #0F172A !important;
+}

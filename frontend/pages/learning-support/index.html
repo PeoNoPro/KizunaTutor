@@ -1,0 +1,226 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tra Cứu Từ Vựng 🔤 - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Tailwind & Project CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/js/shodo-tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/assets/css/learning-support-common.css">
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <link rel="stylesheet" href="/styles/utilities.css">
+</head>
+<body class="bg-[#F8FAFC] text-[#334155] font-body antialiased selection:bg-[#E0399A] selection:text-white">
+  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
+
+    <!-- 1. SIDEBAR DÙNG CHUNG CHO HỌC VIÊN -->
+    <div id="learnerSidebarContainer"></div>
+
+    <!-- 2. MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      
+      <!-- HEADER DÙNG CHUNG CHO HỌC VIÊN -->
+      <div id="learnerHeaderContainer"></div>
+
+      <!-- Scrollable Main Container -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-6xl mx-auto">
+        <div class="space-y-3">
+
+          <!-- Bảng Chọn Cấp Độ, Ô Tìm Kiếm & Dải Topic Pills -->
+          <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 shadow-sm space-y-3">
+            <div class="flex items-center justify-between gap-2.5 flex-wrap pb-2 border-b border-[#E2E8F0]">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-[#0F172A] uppercase tracking-wider">Chủ đề từ vựng:</span>
+                <span id="activeTopicBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">
+                  Tất cả JLPT
+                </span>
+              </div>
+
+              <!-- Ô Tìm Kiếm Nhanh Từ Vựng -->
+              <div class="w-full sm:w-80 shrink-0">
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <span class="material-symbols-outlined text-[18px]">search</span>
+                  </span>
+                  <input type="text" id="searchVocabInput"
+                         placeholder="Tìm từ vựng, Hiragana, Hán Việt, nghĩa..."
+                         class="w-full pl-9 pr-8 py-2 text-xs rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#006194] focus:ring-1 focus:ring-[#006194] transition">
+                  <button type="button" id="btnClearVocabSearch"
+                          class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 text-[11px] font-bold flex items-center justify-center transition cursor-pointer"
+                          title="Xóa từ khóa tìm kiếm">✕</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between flex-wrap gap-2 text-xs text-slate-500 pt-0.5">
+              <span id="topicCountSummary" class="font-medium">
+                Đang nạp danh mục...
+              </span>
+
+              <!-- Cụm chuyển đổi chế độ hiển thị từ vựng JLPT -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <div class="inline-flex items-center p-0.5 bg-[#F1F5F9] rounded-lg border border-[#E2E8F0]">
+                  <button type="button" id="btnModeJlpt" data-view-mode="jlpt"
+                          class="px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer bg-white text-[#006194] shadow-xs"
+                          title="Tự động hiển thị Kana đối với từ vựng không yêu cầu chữ Hán ở cấp độ này">
+                    <span>🎯 Chuẩn JLPT</span>
+                  </button>
+                  <button type="button" id="btnModeKanji" data-view-mode="kanji"
+                          class="px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]"
+                          title="Luôn hiển thị chữ Hán to nhất để học âm Hán Việt">
+                    <span>🈸 Chữ Hán</span>
+                  </button>
+                  <button type="button" id="btnModeKana" data-view-mode="kana"
+                          class="px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer text-[#64748B] hover:text-[#0F172A]"
+                          title="Luôn hiển thị Hiragana / Katakana to nhất để luyện phát âm">
+                    <span>🔤 Chữ Kana</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dải nút chọn chủ đề (Topic Pills) -->
+            <div id="topicPillsContainer" class="flex gap-2 overflow-x-auto pb-1 scrollbar-none items-center min-w-0">
+              <!-- Render tự động bởi learning-support.js -->
+            </div>
+          </div>
+
+          <!-- MÀN HÌNH CHỜ TRA CỨU TỪ VỰNG (STANDBY STATE) -->
+          <div id="vocabStandbyState" class="p-8 sm:p-12 text-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white space-y-3">
+            <img src="/assets/images/stickers/tea-meditation-capi.png" 
+                 alt="Capybara Học Từ Vựng" 
+                 class="w-16 h-16 mx-auto mb-2 object-contain pointer-events-none select-none" />
+            <h3 class="text-lg sm:text-xl font-bold text-[#0F172A]">
+              Sẵn sàng tra cứu Từ vựng JLPT &amp; Chủ đề 🔤
+            </h3>
+            <p class="text-xs text-[#64748B] font-sans max-w-lg mx-auto leading-relaxed">
+              Nhập từ vựng tiếng Nhật, Kanji, Romaji hoặc nghĩa tiếng Việt để xem chi tiết cách đọc, âm thanh bản xứ và câu ví dụ thực tế nhé! 🌸
+            </p>
+            <div class="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
+              <span class="font-bold text-[#64748B]">Gợi ý thử nhanh:</span>
+              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] font-bold hover:bg-[#FBCFE8] transition cursor-pointer" data-quick-topic="JLPT_N5">
+                🌱 Từ vựng N5
+              </button>
+              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-[#FFE5EC] text-[#831843] border border-[#FBCFE8] font-bold hover:bg-[#FBCFE8] transition cursor-pointer" data-quick-topic="JLPT_N4">
+                🌿 Từ vựng N4
+              </button>
+              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-semibold hover:bg-amber-100 transition cursor-pointer" data-quick-topic="LIFE_DAILY">
+                ☕ Giao tiếp hàng ngày
+              </button>
+              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-blue-50 text-blue-900 border border-blue-200 font-semibold hover:bg-blue-100 transition cursor-pointer" data-quick-topic="WORKPLACE">
+                💼 Tiếng Nhật công sở
+              </button>
+              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-slate-100 text-[#0F172A] border border-slate-200 font-semibold hover:bg-slate-200 transition cursor-pointer" data-quick-search="食べる">
+                食べる (Ăn)
+              </button>
+              <button type="button" class="btn-vocab-quick-chip px-2.5 py-1 rounded-md bg-slate-100 text-[#0F172A] border border-slate-200 font-semibold hover:bg-slate-200 transition cursor-pointer" data-quick-search="学校">
+                学校 (Trường học)
+              </button>
+            </div>
+          </div>
+
+          <!-- Lưới Thẻ Từ Vựng -->
+          <div id="vocabGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch pb-2 min-w-0">
+            <!-- Nạp động qua JS -->
+          </div>
+
+          <!-- Empty State -->
+          <div id="vocabEmptyState" class="hidden p-8 sm:p-12 text-center rounded-xl border border-dashed border-[#CBD5E1] bg-white space-y-2">
+            <div class="text-3xl">🔍</div>
+            <h3 class="text-sm sm:text-base font-bold text-[#0F172A]">Không tìm thấy từ vựng phù hợp</h3>
+            <p class="text-xs text-slate-500">Hãy thử tìm bằng từ khóa khác hoặc chuyển sang cấp độ khác nhé.</p>
+          </div>
+
+          <!-- Thanh Phân Trang Dùng Chung -->
+          <div id="vocabPagination" class="pt-6 pb-8"></div>
+
+          <!-- FOOTER DÙNG CHUNG -->
+          <footer class="mt-6 pt-3 pb-3 border-t border-[#0F172A]/10 text-center text-xs text-slate-500">
+            KizunaTutor &copy; 2026 &bull; Đồng hành cùng bạn trên từng từ vựng tiếng Nhật 🌸
+          </footer>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CHỌN BỘ THẺ LƯU TỪ VỰNG ==================== -->
+  <div id="vocabSaveToDeckModal"
+       class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] items-center justify-center p-4">
+    <div class="bg-white max-w-md w-full border border-[#E2E8F0] shadow-xl rounded-xl overflow-hidden font-sans"
+         onclick="event.stopPropagation()">
+      <div class="px-5 py-3.5 border-b border-[#E2E8F0] bg-[#FAF8F2] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[20px] text-[#831843]">bookmark_add</span>
+          <h3 class="text-sm sm:text-base font-bold text-[#0F172A]">Lưu từ vựng vào bộ thẻ</h3>
+        </div>
+        <button type="button" id="btnCloseVocabDeckModal"
+                class="w-7 h-7 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs transition cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <!-- Xem trước từ vựng đang lưu -->
+        <div class="p-3.5 rounded-xl bg-[#FFE5EC]/50 border border-[#FBCFE8] flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-baseline gap-2 flex-wrap">
+              <span id="modalVocabWord" class="text-xl font-bold text-[#0F172A] font-japanese">—</span>
+              <span id="modalVocabReading" class="text-xs font-medium text-[#831843]"></span>
+            </div>
+            <p id="modalVocabMeaning" class="text-xs text-[#334155] mt-1 line-clamp-2"></p>
+          </div>
+          <span id="modalVocabLevel" class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white text-[#831843] border border-[#FBCFE8] shrink-0">N5</span>
+        </div>
+
+        <form id="formSaveVocabToDeck" class="space-y-3.5" novalidate>
+          <div>
+            <label for="modalVocabDeckSelect" class="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
+              Chọn bộ thẻ muốn lưu:
+            </label>
+            <select id="modalVocabDeckSelect"
+                    class="w-full px-3 py-2.5 rounded-lg border border-[#CBD5E1] text-sm text-[#0F172A] bg-white font-semibold outline-none focus:border-[#831843] focus:ring-2 focus:ring-[#831843]/15 transition">
+              <option value="">Đang tải danh sách bộ thẻ...</option>
+            </select>
+          </div>
+
+          <div id="newVocabDeckInputWrapper" class="hidden">
+            <label for="modalNewVocabDeckNameInput" class="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
+              Tên bộ thẻ mới *
+            </label>
+            <input type="text" id="modalNewVocabDeckNameInput"
+                   placeholder="Ví dụ: Từ vựng N5 tuần 1..."
+                   class="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-sm text-[#0F172A] bg-white font-semibold outline-none focus:border-[#831843] focus:ring-2 focus:ring-[#831843]/15 transition">
+          </div>
+
+          <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-[#E2E8F0]">
+            <button type="button" id="btnCancelVocabDeckModal"
+                    class="px-4 py-2 rounded-lg bg-white border border-[#CBD5E1] text-[#1E293B] hover:bg-slate-50 text-xs font-semibold transition cursor-pointer">
+              Hủy bỏ
+            </button>
+            <button type="submit" id="btnConfirmSaveVocabDeck"
+                    class="px-5 py-2 rounded-lg bg-[#831843] hover:bg-[#9F1239] text-white text-xs font-bold transition cursor-pointer flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px]">save</span>
+              <span>Lưu vào bộ thẻ</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared Layout & Component Scripts -->
+  <script type="module" src="/components/learner-layout/learner-layout.js"></script>
+  <script type="module" src="/pages/learning-support/learning-support.js?v=20261110_v4"></script>
+</body>
+</html>

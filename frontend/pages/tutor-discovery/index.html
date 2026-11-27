@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta content="web_standard" name="shell-type">
+  <title>KizunaTutor - Tìm gia sư tiếng Nhật</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+
+  <style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    .material-symbols-outlined.filled {
+      font-variation-settings: 'FILL' 1;
+    }
+    #tutor-preview-panel {
+      will-change: transform;
+      transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #tutor-preview-panel {
+        transition: none;
+      }
+    }
+  </style>
+
+  <!-- Tailwind CSS CDN with Figma Design Tokens -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-variant": "#dae2fd",
+            "error-container": "#ffdad6",
+            "on-tertiary": "#ffffff",
+            "on-error-container": "#93000a",
+            "background": "#faf8ff",
+            "surface-tint": "#006398",
+            "on-primary": "#ffffff",
+            "on-secondary": "#ffffff",
+            "surface-container-high": "#e2e7ff",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "on-background": "#131b2e",
+            "on-tertiary-fixed": "#2f1500",
+            "primary-fixed-dim": "#93ccff",
+            "surface-container": "#eaedff",
+            "on-secondary-fixed": "#00164e",
+            "on-secondary-container": "#1d3989",
+            "error": "#ba1a1a",
+            "inverse-surface": "#283044",
+            "surface-container-low": "#f2f3ff",
+            "on-error": "#ffffff",
+            "tertiary-fixed": "#ffdcc3",
+            "on-primary-fixed-variant": "#004b73",
+            "tertiary-fixed-dim": "#ffb77d",
+            "outline-variant": "#bfc7d2",
+            "on-surface-variant": "#3f4850",
+            "on-tertiary-container": "#fffbff",
+            "inverse-primary": "#93ccff",
+            "surface-bright": "#faf8ff",
+            "surface": "#faf8ff",
+            "on-secondary-fixed-variant": "#264191",
+            "primary-container": "#007bb9",
+            "outline": "#707881",
+            "secondary-fixed": "#dce1ff",
+            "primary": "#006194",
+            "tertiary-container": "#b15f00",
+            "surface-container-highest": "#dae2fd",
+            "on-primary-container": "#fdfcff",
+            "secondary": "#4059aa",
+            "tertiary": "#8d4b00",
+            "on-surface": "#131b2e",
+            "secondary-container": "#8fa7fe",
+            "secondary-fixed-dim": "#b6c4ff",
+            "on-primary-fixed": "#001d31",
+            "surface-dim": "#d2d9f4",
+            "surface-container-lowest": "#ffffff",
+            "inverse-on-surface": "#eef0ff",
+            "primary-fixed": "#cce5ff"
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px"
+          },
+          spacing: {
+            "gutter-dense": "1rem",
+            "space-sm": "0.5rem",
+            "margin-mobile": "1rem",
+            margin: "2rem",
+            gutter: "1.5rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "space-lg": "1.5rem",
+            "space-xs": "0.25rem"
+          },
+          fontFamily: {
+            "headline-lg-mobile": ["Plus Jakarta Sans"],
+            "display-hero": ["Plus Jakarta Sans"],
+            "title-sm": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            caption: ["Plus Jakarta Sans"],
+            "display-hero-mobile": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "title-md": ["Plus Jakarta Sans"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-white font-body-md text-body-md text-[#1F2937] min-h-screen flex flex-col antialiased selection:bg-[#EAF4FA] selection:text-[#006194]">
+
+  <!-- Header dùng chung (Nạp tự động từ /components/header/header.html) -->
+  <div id="header-placeholder"></div>
+
+  <!-- Main Content -->
+  <main class="w-full pt-20 bg-white flex-1">
+    <div class="flex flex-col w-full">
+      <!-- Top Background Ambient Elements -->
+      <div class="relative w-full overflow-x-clip pb-space-xl">
+        <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[980px] h-[340px] bg-gradient-to-b from-[#EAF4FA]/50 via-white to-transparent blur-3xl pointer-events-none -z-10"></div>
+        <div class="max-w-[1200px] mx-auto px-margin-mobile md:px-margin">
+          
+          <!-- 1. Page Heading -->
+          <section class="pt-space-lg pb-space-md">
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-space-md">
+              <div class="max-w-3xl space-y-space-xs">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EAF4FA] text-[#006194] text-xs font-semibold border border-[#E5EAF0]">
+                  <span class="w-2 h-2 rounded-full bg-[#006194] animate-pulse"></span>
+                  <span class="tracking-wide">Kết nối tận tâm chuẩn sư phạm</span>
+                </div>
+                <h1 class="font-headline-lg text-headline-lg md:text-display-hero text-[#1F2937] tracking-tight font-bold">
+                  Tìm gia sư tiếng Nhật
+                </h1>
+                <p class="font-body-lg text-body-lg text-[#64748B] max-w-2xl leading-relaxed">
+                  Kết nối trực tiếp 1-1 với đội ngũ Sensei bản xứ và gia sư chuyên môn cao tại Việt Nam &amp; Nhật Bản. Lộ trình cá nhân hóa, học thử linh hoạt.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. Search & Single-Row Pill Filter Section -->
+          <section class="mt-space-md relative z-30">
+            <div class="bg-[#F6F9FB] border border-[#E5EAF0] rounded-2xl p-4 md:p-5 shadow-sm space-y-3">
+              
+              <!-- Main Search Bar -->
+              <div class="flex flex-col sm:flex-row items-center gap-space-xs p-1 bg-white border border-[#E5EAF0] rounded-xl shadow-xs">
+                <div class="flex items-center gap-space-sm w-full px-space-md py-2">
+                  <span class="material-symbols-outlined text-[#94A3B8] text-[20px]">search</span>
+                  <input class="w-full bg-transparent text-body-md font-body-md text-[#1F2937] placeholder:text-[#94A3B8] focus:outline-none" 
+                         id="search-input" 
+                         placeholder="Tìm theo tên gia sư, từ khóa, kỹ năng (vd: Kenji, Kaiwa, IT, Phỏng vấn...)" 
+                         type="text">
+                </div>
+                <button class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-[#006194] hover:bg-[#004B73] text-white font-label-md text-label-md font-semibold tracking-wide transition-all shadow-sm shrink-0 flex items-center justify-center gap-1.5 cursor-pointer" 
+                        id="search-button" 
+                        type="button">
+                  <span>Tìm kiếm</span>
+                  <span class="material-symbols-outlined text-[17px]">arrow_forward</span>
+                </button>
+              </div>
+
+              <!-- Hàng bộ lọc ngang duy nhất (1 hàng ngang giãn đều hết chiều rộng) -->
+              <div id="filter-pill-bar" class="flex flex-wrap lg:flex-nowrap items-center gap-2.5 pt-0.5">
+                <div class="w-full lg:flex-1 grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-nowrap items-center gap-2.5">
+
+                  <!-- 1. Mục tiêu học (gộp "Môn học" + "Trình độ JLPT": trình độ chỉ có ý nghĩa khi luyện thi) -->
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="goal">
+                    <button type="button" data-dropdown-trigger="goal" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5EAF0] hover:border-[#006194] text-[#1F2937] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="goal" class="truncate">Mục tiêu học</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
+                    </button>
+                    <div data-dropdown-panel="goal" class="hidden absolute left-0 top-full mt-2 w-72 rounded-2xl bg-white border border-[#E5EAF0] shadow-xl p-2 z-40">
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="goal" data-value="">Tất cả mục tiêu</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="goal" data-value="kaiwa">Giao tiếp (Kaiwa)</button>
+
+                      <div class="px-3 pt-2.5 pb-1 text-[11px] font-bold tracking-wide text-[#64748B]">Luyện thi JLPT</div>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt_n5">Luyện thi N5</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt_n4">Luyện thi N4</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt_n3">Luyện thi N3</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt_n2">Luyện thi N2</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="goal" data-value="jlpt_n1">Luyện thi N1</button>
+
+                      <div class="px-3 pt-2.5 pb-1 text-[11px] font-bold tracking-wide text-[#64748B]">Chuyên ngành</div>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="goal" data-value="business">Tiếng Nhật thương mại</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="goal" data-value="eju">Luyện thi EJU</button>
+                    </div>
+                  </div>
+
+                  <!-- 3. Thời gian học (Popover theo ảnh 2: Khung giờ học + Ngày học) -->
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="schedule">
+                    <button type="button" data-dropdown-trigger="schedule" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5EAF0] hover:border-[#006194] text-[#1F2937] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="schedule" class="truncate">Thời gian học</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
+                    </button>
+                    <div id="popover-schedule" data-dropdown-panel="schedule" class="hidden absolute left-0 top-full mt-2 w-72 rounded-2xl bg-white border border-[#E5EAF0] shadow-xl p-4 z-40 space-y-4">
+                      <div class="flex items-center justify-between">
+                        <h3 class="text-[15px] font-bold text-[#1F2937]">Thời gian học</h3>
+                        <button type="button" id="btn-clear-schedule-slots" class="hidden text-[12px] font-medium text-[#006194] hover:underline cursor-pointer">Bỏ chọn</button>
+                      </div>
+
+                      <!-- Khung giờ học -->
+                      <div class="space-y-2.5">
+                        <p class="text-[13px] font-semibold text-[#1F2937]">Khung giờ học</p>
+                        <div class="space-y-2">
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1F2937] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-shift-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="morning">
+                            <span>Buổi sáng (00:00 - 12:00)</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1F2937] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-shift-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="afternoon">
+                            <span>Buổi chiều (12:00 - 18:00)</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1F2937] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-shift-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="evening">
+                            <span>Buổi tối (18:00 - 24:00)</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <!-- Ngày học -->
+                      <div class="space-y-2.5">
+                        <p class="text-[13px] font-semibold text-[#1F2937]">Ngày học</p>
+                        <div class="space-y-2">
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1F2937] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="2">
+                            <span>Thứ 2</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1F2937] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="3">
+                            <span>Thứ 3</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1F2937] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="4">
+                            <span>Thứ 4</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1F2937] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="5">
+                            <span>Thứ 5</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1F2937] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="6">
+                            <span>Thứ 6</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1F2937] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="7">
+                            <span>Thứ 7</span>
+                          </label>
+                          <label class="flex items-center gap-2.5 text-[13px] text-[#1F2937] cursor-pointer select-none">
+                            <input type="checkbox" class="schedule-day-checkbox w-4 h-4 rounded border-[#CBD5E1] text-[#006194] focus:ring-[#006194] cursor-pointer" value="1">
+                            <span>Chủ nhật</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 4. Hình thức học -->
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="format">
+                    <button type="button" data-dropdown-trigger="format" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5EAF0] hover:border-[#006194] text-[#1F2937] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="format" class="truncate">Hình thức học</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
+                    </button>
+                    <div data-dropdown-panel="format" class="hidden absolute left-0 top-full mt-2 w-48 rounded-2xl bg-white border border-[#E5EAF0] shadow-xl p-2 z-40">
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="format" data-value="">Mọi hình thức</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="format" data-value="offline">Tại nhà</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="format" data-value="online">Online 1-1</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="format" data-value="hybrid">Linh hoạt</button>
+                    </div>
+                  </div>
+
+                  <!-- 5. Địa điểm (Nạp từ API /api/tutors/locations) -->
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="location">
+                    <button type="button" data-dropdown-trigger="location" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5EAF0] hover:border-[#006194] text-[#1F2937] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="location" class="truncate">Địa điểm</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
+                    </button>
+                    <div data-dropdown-panel="location" class="hidden absolute left-0 top-full mt-2 w-60 rounded-2xl bg-white border border-[#E5EAF0] shadow-xl p-2 z-40">
+                      <div id="location-options-list" class="max-h-64 overflow-y-auto space-y-0.5">
+                        <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="location" data-value="">Tất cả khu vực</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 6. Học phí -->
+                  <div class="relative filter-dropdown min-w-0 lg:flex-auto" data-dropdown="price">
+                    <button type="button" data-dropdown-trigger="price" aria-expanded="false" class="filter-pill-btn w-full h-10 px-4 rounded-full bg-white border border-[#E5EAF0] hover:border-[#006194] text-[#1F2937] text-[13.5px] font-medium inline-flex items-center justify-between gap-2 transition-colors cursor-pointer whitespace-nowrap">
+                      <span data-pill-label="price" class="truncate">Học phí</span>
+                      <span class="material-symbols-outlined text-[18px] text-[#64748B] shrink-0">expand_more</span>
+                    </button>
+                    <div data-dropdown-panel="price" class="hidden absolute right-0 lg:right-0 lg:left-auto top-full mt-2 w-60 rounded-2xl bg-white border border-[#E5EAF0] shadow-xl p-2 z-40">
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="">Mọi mức giá</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="150-250">150.000đ - 250.000đ / buổi</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="250-400">250.000đ - 400.000đ / buổi</button>
+                      <button type="button" class="filter-option-btn w-full text-left px-3 py-2 rounded-xl text-[13px] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors cursor-pointer" data-filter-type="priceRange" data-value="400-600">400.000đ - 600.000đ+ / buổi</button>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Nút Đặt lại bộ lọc cùng 1 hàng ngang -->
+                <button class="w-full sm:w-auto lg:shrink-0 h-10 inline-flex items-center justify-center gap-1.5 px-4 rounded-full bg-white border border-[#E5EAF0] text-[#1F2937] hover:bg-[#F6F9FB] hover:text-[#006194] transition-colors text-[13.5px] font-medium shadow-xs cursor-pointer whitespace-nowrap" 
+                        id="reset-filter-btn" 
+                        type="button">
+                  <span class="material-symbols-outlined text-[18px]">restart_alt</span>
+                  <span>Đặt lại bộ lọc</span>
+                </button>
+              </div>
+
+              <!-- Chip bộ lọc đang chọn (chỉ hiện khi có bộ lọc được chọn) -->
+              <div id="active-chips-row" class="hidden flex-wrap items-center gap-2 pt-1 border-t border-[#E5EAF0]">
+                <span class="text-[#64748B] text-caption font-caption font-semibold">Đang áp dụng:</span>
+                <div id="active-filter-chips" class="inline-flex flex-wrap items-center gap-1.5"></div>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- 3. Tutor Results Section -->
+          <section class="mt-space-lg space-y-space-md relative z-10">
+            <!-- Results Header Status & Sort -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-xs">
+              <div class="flex items-center gap-2">
+                <h2 class="font-title-md text-title-md text-[#1F2937] font-bold">
+                  Tìm thấy <span class="text-[#006194] font-bold" id="total-tutors-count">0</span> gia sư phù hợp
+                </h2>
+                <span class="px-2.5 py-0.5 rounded-full bg-[#EAF4FA] border border-[#E5EAF0] text-[#006194] font-caption text-caption font-semibold">Sẵn sàng nhận học viên</span>
+              </div>
+              <div class="flex items-center gap-space-sm">
+                <span class="font-body-sm text-body-sm text-[#64748B] shrink-0">Sắp xếp:</span>
+                <div class="relative">
+                  <select id="sort-select" class="h-9 pl-3 pr-8 rounded-lg bg-white border border-[#E5EAF0] text-body-sm font-body-sm text-[#1F2937] font-medium appearance-none shadow-sm focus:outline-none focus:border-[#006194] cursor-pointer">
+                    <option value="rating">Được đánh giá cao nhất</option>
+                    <option value="exp">Kinh nghiệm giảng dạy</option>
+                    <option value="price_asc">Mức học phí: Thấp đến cao</option>
+                    <option value="price_desc">Mức học phí: Cao đến thấp</option>
+                    <option value="newest">Gia sư mới tham gia</option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#94A3B8] text-[16px]">unfold_more</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Marketplace Split Layout: Left Stacked Cards + Right Sliding Preview -->
+            <div id="results-layout" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              <!-- Cột trái: Danh sách thẻ gia sư chiều ngang -->
+              <div id="tutor-cards-col" class="lg:col-span-8 space-y-4">
+                <div id="tutor-grid" class="grid grid-cols-1 gap-4"></div>
+              </div>
+
+              <!-- Cột phải: Khung xem nhanh trượt theo thẻ gia sư đang chọn -->
+              <aside id="tutor-preview-aside" class="hidden lg:block lg:col-span-4 relative" aria-label="Xem nhanh hồ sơ gia sư">
+                <div id="tutor-preview-panel"></div>
+              </aside>
+            </div>
+
+            <!-- Empty State Container -->
+            <div id="empty-state" class="hidden flex-col items-center justify-center p-12 bg-white rounded-2xl border border-[#E5EAF0] text-center space-y-4">
+              <div class="w-16 h-16 rounded-full bg-[#EAF4FA] border border-[#E5EAF0] flex items-center justify-center text-[#006194]">
+                <span class="material-symbols-outlined text-[32px]">search_off</span>
+              </div>
+              <div class="space-y-1">
+                <h3 class="text-lg font-bold text-[#1F2937]">Không tìm thấy gia sư phù hợp</h3>
+                <p class="text-sm text-[#64748B] max-w-md mx-auto">
+                  Không tìm thấy gia sư phù hợp với tiêu chí tìm kiếm. Vui lòng điều chỉnh lại bộ lọc hoặc tìm kiếm với từ khóa khác.
+                </p>
+              </div>
+              <button id="empty-reset-btn" type="button" class="px-5 py-2.5 rounded-lg bg-[#006194] text-white font-semibold text-xs hover:bg-[#004B73] transition-all shadow-sm cursor-pointer">
+                Xóa tất cả bộ lọc
+              </button>
+            </div>
+          </section>
+
+          <!-- 4. Pagination Section -->
+          <section id="pagination-section" class="mt-space-lg py-space-md flex flex-col sm:flex-row items-center justify-between gap-space-md border-t-0">
+            <p id="pagination-info" class="font-body-sm text-body-sm text-[#64748B]">
+              Hiển thị <span class="font-semibold text-[#1F2937]" id="current-range">1 - 6</span> trong tổng số <span class="font-semibold text-[#1F2937]" id="total-count-display">6</span> gia sư
+            </p>
+            <nav id="pagination-nav" aria-label="Pagination" class="flex items-center gap-1.5"></nav>
+          </section>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Kết nối gia sư -->
+  <div id="connect-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md bg-white rounded-2xl border border-[#E5EAF0] shadow-2xl overflow-hidden p-6 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-[#E5EAF0]">
+        <div class="flex items-center gap-3">
+          <img id="connect-tutor-avatar" src="" alt="Tutor Avatar" class="w-10 h-10 rounded-full object-cover border border-[#E5EAF0]">
+          <div>
+            <h3 class="font-bold text-[#1F2937] text-sm">Gửi yêu cầu tới</h3>
+            <p id="connect-tutor-name" class="text-xs text-[#006194] font-semibold"></p>
+          </div>
+        </div>
+        <button id="close-connect-modal" type="button" class="p-1 rounded-lg text-[#64748B] hover:bg-[#F6F9FB] hover:text-[#1F2937] transition-colors cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <form id="connect-form" class="space-y-4">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-[#1F2937]">Nội dung tin nhắn:</label>
+          <textarea class="w-full h-24 p-3 rounded-xl border border-[#E5EAF0] bg-[#F6F9FB] text-xs text-[#1F2937] focus:outline-none focus:border-[#006194]" placeholder="Giới thiệu về bạn và mục tiêu học tập muốn đạt được..."></textarea>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button id="cancel-connect-btn" type="button" class="px-4 py-2 rounded-lg bg-[#F6F9FB] hover:bg-[#EEF2F6] text-xs font-semibold text-[#1F2937] border border-[#E5EAF0] transition-colors cursor-pointer">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-[#006194] hover:bg-[#004B73] text-white text-xs font-semibold transition-colors cursor-pointer">Gửi yêu cầu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer dùng chung (Nạp tự động từ /components/footer/footer.html) -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Scripts -->
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/pages/tutor-discovery/tutor-discovery.js"></script>
+</body>
+</html>

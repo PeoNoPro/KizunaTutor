@@ -1,0 +1,369 @@
+package com.kizuna.features.booking;
+
+import com.kizuna.core.exception.BadRequestException;
+import com.kizuna.core.exception.ConflictException;
+import com.kizuna.core.entity.Learner;
+import com.kizuna.core.entity.Role;
+import com.kizuna.core.entity.Tutor;
+import com.kizuna.core.entity.User;
+import com.kizuna.core.repository.TutorRepository;
+import com.kizuna.core.repository.UserRepository;
+import com.kizuna.features.booking.dto.request.RespondTrialBookingRequestDTO;
+import com.kizuna.features.booking.dto.response.TrialBookingResponseDTO;
+import com.kizuna.features.booking.entity.*;
+import com.kizuna.features.booking.repository.TrialBookingHistoryRepository;
+import com.kizuna.features.booking.repository.TrialBookingRepository;
+import com.kizuna.features.booking.service.impl.TrialBookingServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class TrialBookingRespondTest {
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private TutorRepository tutorRepository;
+
+    @Mock
+    private TrialBookingRepository trialBookingRepository;
+
+    @Mock
+    private TrialBookingHistoryRepository trialBookingHistoryRepository;
+
+    @Mock
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @InjectMocks
+    private TrialBookingServiceImpl trialBookingService;
+
+    private User mockTutorUser;
+    private Tutor mockTutor;
+    private TrialBooking mockBooking;
+    private ConnectionRequest mockRequest;
+    private UUID bookingId;
+
+    @BeforeEach
+    void setUp() {
+        UUID tutorId = UUID.randomUUID();
+        bookingId = UUID.randomUUID();
+
+        Role tutorRole = Role.builder().roleName("ROLE_TUTOR").build();
+        mockTutorUser = User.builder()
+                .userId(UUID.randomUUID())
+                .email("tutor@test.com")
+                .fullName("Yamada Sensei")
+                .role(tutorRole)
+                .build();
+
+        mockTutor = Tutor.builder()
+                .tutorId(tutorId)
+                .tutorCode(10001L)
+                .user(mockTutorUser)
+                .build();
+
+        Role learnerRole = Role.builder().roleName("ROLE_LEARNER").build();
+        User mockLearnerUser = User.builder()
+                .userId(UUID.randomUUID())
+                .email("learner@test.com")
+                .fullName("Nguyen Van Hoc Vien")
+                .role(learnerRole)
+                .build();
+
+        Learner mockLearner = Learner.builder()
+                .learnerId(UUID.randomUUID())
+                .user(mockLearnerUser)
+                .build();
+
+        mockRequest = ConnectionRequest.builder()
+                .requestId(UUID.randomUUID())
+                .learner(mockLearner)
+                .tutor(mockTutor)
+                .status(ConnectionRequestStatus.PENDING)
+                .build();
+
+        mockBooking = TrialBooking.builder()
+                .bookingId(bookingId)
+                .connectionRequest(mockRequest)
+                .learner(mockLearner)
+                .tutor(mockTutor)
+                .learningMode("ONLINE")
+                .scheduledStartTime(OffsetDateTime.now().plusDays(2))
+                .scheduledEndTime(OffsetDateTime.now().plusDays(2).plusMinutes(50))
+                .bookingStatus(TrialBookingStatus.PENDING)
+                .build();
+    }
+
+    /** Yêu cầu học thử đang chờ của một học viên khác với cùng gia sư. */
+    private TrialBooking otherPending(OffsetDateTime start, int minutes) {
+        User u = User.builder().userId(UUID.randomUUID()).email("khac@test.com").fullName("Hoc Vien Khac").build();
+        Learner l = Learner.builder().learnerId(UUID.randomUUID()).user(u).build();
+        ConnectionRequest cr = ConnectionRequest.builder().requestId(UUID.randomUUID()).learner(l).tutor(mockTutor)
+                .status(ConnectionRequestStatus.PENDING).build();
+        return TrialBooking.builder().bookingId(UUID.randomUUID()).connectionRequest(cr).learner(l).tutor(mockTutor)
+                .scheduledStartTime(start).scheduledEndTime(start.plusMinutes(minutes))
+                .bookingStatus(TrialBookingStatus.PENDING).build();
+    }
+
+    @Test
+    @DisplayName("Gia sư nhận học thử: yêu cầu học thử khác đang chờ trùng giờ tự hủy và học viên được báo; không trùng thì giữ nguyên")
+    void testAccept_CancelsOverlappingPendingTrials() {
+        var events = mock(com.kizuna.features.notification.service.NotificationEvents.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(trialBookingService, "notificationEvents", events);
+        OffsetDateTime start = mockBooking.getScheduledStartTime();
+        TrialBooking overlapping = otherPending(start.plusMinutes(20), 30);   // chồng một phần
+        TrialBooking later = otherPending(start.plusHours(3), 30);           // không trùng
+
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(trialBookingRepository.findByTutorTutorIdAndBookingStatusIn(mockTutor.getTutorId(), List.of(TrialBookingStatus.PENDING)))
+                .thenReturn(List.of(mockBooking, overlapping, later));
+
+        trialBookingService.respondTrialBooking("tutor@test.com", bookingId, RespondTrialBookingRequestDTO.builder()
+                .action("ACCEPT").meetingLink("https://meet.google.com/abc-xyz-123").build());
+
+        assertEquals(TrialBookingStatus.CONFIRMED, mockBooking.getBookingStatus());
+        assertEquals(TrialBookingStatus.CANCELLED, overlapping.getBookingStatus());
+        assertEquals(ConnectionRequestStatus.CANCELLED, overlapping.getConnectionRequest().getStatus());
+        assertEquals(TrialBookingStatus.PENDING, later.getBookingStatus());
+        verify(events).publish(eq("trial:" + overlapping.getBookingId() + ":taken"), eq("TRIAL"), any(), any(), any(),
+                eq(List.of(overlapping.getLearner().getUser().getUserId())));
+    }
+
+    private void expiredMembership() {
+        var membership = mock(com.kizuna.features.payment.service.TutorMembershipService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(trialBookingService, "membershipService", membership);
+        lenient().when(membership.hasActiveMembership(eq(mockTutor.getTutorId()), any())).thenReturn(false);
+    }
+
+    @Test
+    @DisplayName("Gia sư hết gói hội viên không nhận được học thử - yêu cầu vẫn chờ, không lưu gì")
+    void testRespondTrialBooking_Accept_BlockedWithoutMembership() {
+        expiredMembership();
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () ->
+                trialBookingService.respondTrialBooking("tutor@test.com", bookingId, RespondTrialBookingRequestDTO.builder()
+                        .action("ACCEPT").meetingLink("https://meet.google.com/abc-xyz-123").build()));
+
+        assertTrue(ex.getMessage().contains("gói hội viên"));
+        assertEquals(TrialBookingStatus.PENDING, mockBooking.getBookingStatus());
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Gia sư hết gói hội viên vẫn từ chối được yêu cầu học thử")
+    void testRespondTrialBooking_Decline_AllowedWithoutMembership() {
+        expiredMembership();
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        trialBookingService.respondTrialBooking("tutor@test.com", bookingId,
+                RespondTrialBookingRequestDTO.builder().action("DECLINE").build());
+
+        assertEquals(TrialBookingStatus.DECLINED, mockBooking.getBookingStatus());
+    }
+
+    @Test
+    @DisplayName("Gia sư hết gói hội viên không đồng ý kết nối chính thức sau học thử được")
+    void testAgreeConnectionAfterTrial_BlockedWithoutMembership() {
+        expiredMembership();
+        mockBooking.setBookingStatus(TrialBookingStatus.COMPLETED);
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+
+        assertThrows(BadRequestException.class,
+                () -> trialBookingService.agreeConnectionAfterTrial("tutor@test.com", bookingId));
+
+        assertEquals(ConnectionRequestStatus.PENDING, mockRequest.getStatus());
+        assertNotEquals(Boolean.TRUE, mockBooking.getOfficialArrangementAgreed());
+        verify(trialBookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Gia sư duyệt Chấp nhận (ACCEPT) - Chuyển sang CONFIRMED và lưu link Google Meet")
+    void testRespondTrialBooking_Accept_Success() {
+        RespondTrialBookingRequestDTO dto = RespondTrialBookingRequestDTO.builder()
+                .action("ACCEPT")
+                .meetingLink("https://meet.google.com/abc-xyz-123")
+                .note("Hẹn gặp em đúng giờ nhé!")
+                .build();
+
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TrialBookingResponseDTO response = trialBookingService.respondTrialBooking("tutor@test.com", bookingId, dto);
+
+        assertNotNull(response);
+        assertEquals("CONFIRMED", response.getBookingStatus());
+        assertEquals("Đã xác nhận", response.getStatusLabel());
+        assertEquals("https://meet.google.com/abc-xyz-123", response.getMeetingLink());
+        // Chấp nhận lịch học thử chưa phải là kết nối: chỉ ACCEPTED sau khi học thử xong và gia sư đồng ý.
+        assertEquals(ConnectionRequestStatus.PENDING, mockRequest.getStatus());
+        verify(trialBookingHistoryRepository, times(1)).save(any(TrialBookingHistory.class));
+    }
+
+    @Test
+    @DisplayName("Đồng ý kết nối sau khi học thử hoàn thành - kết nối ACCEPTED, đánh dấu đã thỏa thuận học chính thức")
+    void testAgreeConnectionAfterTrial_Success() {
+        mockBooking.setBookingStatus(TrialBookingStatus.COMPLETED);
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TrialBookingResponseDTO response = trialBookingService.agreeConnectionAfterTrial("tutor@test.com", bookingId);
+
+        assertEquals(ConnectionRequestStatus.ACCEPTED, mockRequest.getStatus());
+        assertNotNull(mockRequest.getRespondedAt());
+        assertEquals(Boolean.TRUE, mockBooking.getOfficialArrangementAgreed());
+        assertEquals(Boolean.TRUE, response.isOfficialArrangementAgreed());
+    }
+
+    @Test
+    @DisplayName("Đồng ý kết nối thì các buổi học thử khác chưa diễn ra giữa hai người tự chuyển sang Đã hủy")
+    void testAgreeConnectionAfterTrial_CancelsOtherOpenTrials() {
+        mockBooking.setBookingStatus(TrialBookingStatus.COMPLETED);
+        ConnectionRequest otherRequest = ConnectionRequest.builder()
+                .requestId(UUID.randomUUID()).learner(mockBooking.getLearner()).tutor(mockTutor)
+                .status(ConnectionRequestStatus.PENDING).build();
+        TrialBooking otherTrial = TrialBooking.builder()
+                .bookingId(UUID.randomUUID()).connectionRequest(otherRequest)
+                .learner(mockBooking.getLearner()).tutor(mockTutor)
+                .scheduledStartTime(OffsetDateTime.now().plusDays(1))
+                .scheduledEndTime(OffsetDateTime.now().plusDays(1).plusMinutes(25))
+                .bookingStatus(TrialBookingStatus.CONFIRMED).build();
+
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(trialBookingRepository.findByTutorTutorIdAndLearnerLearnerIdAndBookingStatusIn(any(), any(), any()))
+                .thenReturn(java.util.List.of(otherTrial));
+
+        trialBookingService.agreeConnectionAfterTrial("tutor@test.com", bookingId);
+
+        assertEquals(TrialBookingStatus.CANCELLED, otherTrial.getBookingStatus());
+        assertEquals(ConnectionRequestStatus.CANCELLED, otherRequest.getStatus());
+        assertEquals(ConnectionRequestStatus.ACCEPTED, mockRequest.getStatus());
+        verify(trialBookingHistoryRepository, times(1)).save(any(TrialBookingHistory.class));
+    }
+
+    @Test
+    @DisplayName("Không cho chấp nhận học thử trùng lịch dạy lớp chính thức của gia sư")
+    void testRespondTrialBooking_Accept_ClashWithOfficialClass() {
+        RespondTrialBookingRequestDTO dto = RespondTrialBookingRequestDTO.builder()
+                .action("ACCEPT").meetingLink("https://meet.google.com/abc-xyz-123").build();
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+        when(trialBookingRepository.findClassScheduleClash(any(), any(), any(), anyInt(), any(), any()))
+                .thenReturn(Optional.of("TUTOR"));
+
+        ConflictException ex = assertThrows(ConflictException.class,
+                () -> trialBookingService.respondTrialBooking("tutor@test.com", bookingId, dto));
+        assertTrue(ex.getMessage().contains("lịch dạy lớp chính thức"));
+        assertEquals(TrialBookingStatus.PENDING, mockBooking.getBookingStatus());
+        verify(trialBookingRepository, never()).save(any(TrialBooking.class));
+    }
+
+    @Test
+    @DisplayName("Không cho chấp nhận học thử trùng giờ một buổi học thử khác gia sư đã xác nhận")
+    void testRespondTrialBooking_Accept_ClashWithConfirmedTrial() {
+        RespondTrialBookingRequestDTO dto = RespondTrialBookingRequestDTO.builder()
+                .action("ACCEPT").meetingLink("https://meet.google.com/abc-xyz-123").build();
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+        when(trialBookingRepository.existsConfirmedTutorOverlap(any(), any(), any(), any())).thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class,
+                () -> trialBookingService.respondTrialBooking("tutor@test.com", bookingId, dto));
+        assertTrue(ex.getMessage().contains("buổi học thử khác trùng khung giờ"));
+        assertEquals(TrialBookingStatus.PENDING, mockBooking.getBookingStatus());
+        verify(trialBookingRepository, never()).save(any(TrialBooking.class));
+    }
+
+    @Test
+    @DisplayName("Không cho đồng ý kết nối khi buổi học thử chưa hoàn thành")
+    void testAgreeConnectionAfterTrial_NotCompleted() {
+        mockBooking.setBookingStatus(TrialBookingStatus.CONFIRMED);
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+
+        assertThrows(BadRequestException.class,
+                () -> trialBookingService.agreeConnectionAfterTrial("tutor@test.com", bookingId));
+        assertEquals(ConnectionRequestStatus.PENDING, mockRequest.getStatus());
+        verify(trialBookingRepository, never()).save(any(TrialBooking.class));
+    }
+
+    @Test
+    @DisplayName("Gia sư từ chối (DECLINE) - Chuyển sang DECLINED và cập nhật lý do từ chối")
+    void testRespondTrialBooking_Decline_Success() {
+        RespondTrialBookingRequestDTO dto = RespondTrialBookingRequestDTO.builder()
+                .action("DECLINE")
+                .declineReason("Bận lịch công tác đột xuất")
+                .build();
+
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(mockTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+        when(trialBookingRepository.save(any(TrialBooking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TrialBookingResponseDTO response = trialBookingService.respondTrialBooking("tutor@test.com", bookingId, dto);
+
+        assertNotNull(response);
+        assertEquals("DECLINED", response.getBookingStatus());
+        assertEquals("Đã từ chối", response.getStatusLabel());
+        assertEquals(ConnectionRequestStatus.DECLINED, mockRequest.getStatus());
+        verify(trialBookingHistoryRepository, times(1)).save(any(TrialBookingHistory.class));
+    }
+
+    @Test
+    @DisplayName("Gia sư khác can thiệp vào lịch không thuộc về mình - Bị chặn AccessDeniedException")
+    void testRespondTrialBooking_WrongTutor_ThrowsAccessDenied() {
+        Tutor anotherTutor = Tutor.builder()
+                .tutorId(UUID.randomUUID())
+                .user(mockTutorUser)
+                .build();
+
+        RespondTrialBookingRequestDTO dto = RespondTrialBookingRequestDTO.builder()
+                .action("ACCEPT")
+                .build();
+
+        when(userRepository.findByEmail("tutor@test.com")).thenReturn(Optional.of(mockTutorUser));
+        when(tutorRepository.findByUser(mockTutorUser)).thenReturn(Optional.of(anotherTutor));
+        when(trialBookingRepository.findLockedById(bookingId)).thenReturn(Optional.of(mockBooking));
+
+        assertThrows(AccessDeniedException.class, () ->
+                trialBookingService.respondTrialBooking("tutor@test.com", bookingId, dto)
+        );
+    }
+}

@@ -1,0 +1,713 @@
+/**
+ * KizunaTutor - Xác minh hồ sơ gia sư (FE-03: UC-22, UC-23, UC-24, UC-82, UC-83)
+ * Dữ liệu lấy từ API /api/tutor/verification; không dùng dữ liệu giả.
+ */
+
+import { API, ApiError } from '/js/api.js';
+import { showToast } from '/js/main.js';
+import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
+import {
+  APPROVED_EDITABLE_FIELDS, hasPendingUpdate, canUploadDocuments, documentChangeable, newDocumentCount, profileUpdateError,
+  canRequestRemoval, removalError
+} from '/js/verification-update-helpers.js';
+
+mountTutorLayout('verification');
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg'];
+const MSG_INVALID_FILE = 'Tệp không hợp lệ. Vui lòng chọn tệp PDF, PNG hoặc JPG có dung lượng tối đa 10MB.';
+const DOCUMENT_TYPES = [
+  ['IDENTITY_DOCUMENT', 'Giấy tờ tùy thân'],
+  ['JLPT_CERTIFICATE', 'Chứng chỉ JLPT'],
+  ['OTHER_JAPANESE_CERTIFICATE', 'Chứng chỉ tiếng Nhật khác'],
+  ['DEGREE', 'Bằng cấp'],
+  ['TEACHING_CERTIFICATE', 'Chứng chỉ sư phạm'],
+  ['OTHER', 'Khác']
+];
+const PROFILE_FIELDS = ['fullName', 'phone', 'dateOfBirth', 'address', 'experienceYears', 'highestJlptLevel', 'bio'];
+
+const STATUS_STYLES = {
+  UNVERIFIED: { css: 'tv-status-unverified', icon: 'radio_button_unchecked', hint: 'Hoàn thiện thông tin, tải lên giấy tờ và nộp hồ sơ để được thẩm định.' },
+  PENDING: { css: 'tv-status-pending', icon: 'hourglass_top', hint: 'Cán bộ học vụ đang thẩm định hồ sơ. Kết quả sẽ được gửi qua email của bạn.' },
+  ADDITIONAL_INFO_REQUIRED: { css: 'tv-status-needs-info', icon: 'edit_note', hint: 'Vui lòng xem phản hồi bên dưới, bổ sung thông tin và nộp lại hồ sơ.' },
+  APPROVED: { css: 'tv-status-approved', icon: 'verified', hint: 'Hồ sơ đã được phê duyệt. Bạn có thể sửa thông tin liên hệ bất cứ lúc nào; đổi trình độ JLPT hoặc bổ sung giấy tờ thì gửi yêu cầu cập nhật để cán bộ học vụ thẩm định.' },
+  REJECTED: { css: 'tv-status-rejected', icon: 'block', hint: 'Hồ sơ không được chấp nhận. Đây là quyết định cuối cùng nên hồ sơ không thể chỉnh sửa hoặc nộp lại. Vui lòng liên hệ bộ phận hỗ trợ nếu bạn cần trao đổi thêm.' }
+};
+
+const state = {
+  data: null,
+  started: false,
+  // Hồ sơ đã phê duyệt: chỉ xem cho tới khi bấm "Chỉnh sửa hồ sơ xác minh"
+  editing: false,
+  // Giấy tờ đã xác minh gia sư chọn gỡ (gửi kèm yêu cầu cập nhật, chỉ bị xóa khi cán bộ chấp nhận)
+  removedIds: new Set(),
+  replaceTargetId: null,
+  previewUrl: null
+};
+
+const $ = (id) => document.getElementById(id);
+
+// =========================================================================
+// 1. TIỆN ÍCH
+// =========================================================================
+function formatDate(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text == null ? '' : String(text);
+  return div.innerHTML;
+}
+
+function fileExtension(name) {
+  const idx = (name || '').lastIndexOf('.');
+  return idx < 0 ? '' : name.slice(idx + 1).toLowerCase();
+}
+
+function isAcceptableFile(file) {
+  return file && file.size > 0 && file.size <= MAX_FILE_SIZE && ALLOWED_EXTENSIONS.includes(fileExtension(file.name));
+}
+
+function setVisible(el, visible) {
+  if (el) el.classList.toggle('hidden', !visible);
+}
+
+function showFieldErrors(fields = {}) {
+  document.querySelectorAll('[data-error-for]').forEach((el) => {
+    const key = el.dataset.errorFor;
+    el.textContent = fields[key] || '';
+  });
+  PROFILE_FIELDS.forEach((key) => {
+    const input = document.querySelector(`#profileForm [name="${key}"]`);
+    if (input) input.classList.toggle('has-error', Boolean(fields[key]));
+  });
+}
+
+function messageOf(err) {
+  return err instanceof ApiError ? err.message : 'Hệ thống đang bận, bạn vui lòng thử lại sau.';
+}
+
+function setBusy(button, busy) {
+  if (!button) return;
+  button.disabled = busy;
+  button.setAttribute('aria-busy', busy ? 'true' : 'false');
+}
+
+// =========================================================================
+// 2. TẢI DỮ LIỆU
+// =========================================================================
+async function loadVerification() {
+  setVisible($('loadingState'), true);
+  setVisible($('errorState'), false);
+  setVisible($('contentState'), false);
+  try {
+    state.data = await API.tutorVerification.getMine();
+    render();
+    setVisible($('contentState'), true);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) return;
+    $('errorMessage').textContent = err instanceof ApiError && err.status === 404
+      ? 'Không tìm thấy hồ sơ gia sư của tài khoản này. Vui lòng liên hệ bộ phận hỗ trợ.'
+      : messageOf(err);
+    setVisible($('errorState'), true);
+  } finally {
+    setVisible($('loadingState'), false);
+  }
+}
+
+// =========================================================================
+// 3. HIỂN THỊ
+// =========================================================================
+function isUntouched(data) {
+  const p = data.profile || {};
+  return data.status === 'UNVERIFIED' && !data.submittedAt && (data.documents || []).length === 0
+    && !p.phone && !p.dateOfBirth && !p.address && !p.highestJlptLevel;
+}
+
+function render() {
+  const data = state.data;
+  const profile = data.profile || {};
+  setTutorIdentity({ fullName: profile.fullName, jlptLevel: profile.highestJlptLevel, statusLabel: data.statusLabel });
+  renderStatus(data);
+  renderFeedback(data);
+
+  const showStart = isUntouched(data) && !state.started;
+  setVisible($('startBlock'), showStart);
+  setVisible($('workArea'), !showStart);
+
+  if (!data.updatable) state.editing = false;
+  // Bỏ các mục đã chọn gỡ không còn hợp lệ (giấy tờ đã bị xóa hoặc đang có yêu cầu chờ)
+  state.removedIds = new Set([...state.removedIds].filter((id) =>
+    (data.documents || []).some((d) => d.id === id && canRequestRemoval(data, d))));
+
+  renderEditBar(data);
+  renderProfile(data);
+  renderDocuments(data);
+  renderEditMode(data);
+  renderMissing(data);
+  renderProfileUpdate(data);
+}
+
+/** Thanh "Chỉnh sửa hồ sơ xác minh" — chỉ với hồ sơ đã phê duyệt. */
+function renderEditBar(data) {
+  const bar = $('editBar');
+  const show = Boolean(data.updatable);
+  setVisible(bar, show);
+  bar.classList.toggle('flex', show);
+  if (!show) return;
+  setVisible($('editProfileButton'), !state.editing);
+  setVisible($('finishEditButton'), state.editing);
+  $('editBarText').textContent = state.editing
+    ? (hasPendingUpdate(data)
+      ? 'Đang chỉnh sửa. Bạn sửa được thông tin liên hệ; giấy tờ bị khóa cho tới khi yêu cầu cập nhật đang chờ có kết quả.'
+      : 'Đang chỉnh sửa. Thông tin liên hệ lưu ngay; đổi JLPT, thêm hoặc gỡ giấy tờ cần gửi yêu cầu cập nhật.')
+    : 'Hồ sơ đang ở chế độ chỉ xem. Bấm "Chỉnh sửa hồ sơ xác minh" để thay đổi thông tin hoặc giấy tờ.';
+}
+
+function startEditing() {
+  state.editing = true;
+  render();
+  $('profileSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function finishEditing() {
+  if (state.removedIds.size > 0
+    && !window.confirm('Bạn đã chọn giấy tờ cần gỡ nhưng chưa gửi yêu cầu cập nhật. Bỏ các lựa chọn này?')) return;
+  state.editing = false;
+  state.removedIds = new Set();
+  $('uploadForm').reset();
+  showFieldErrors({});
+  render();
+}
+
+function removedDocuments(data) {
+  return (data.documents || []).filter((d) => state.removedIds.has(d.id));
+}
+
+/** Mục "Yêu cầu cập nhật hồ sơ" — chỉ hiện với hồ sơ đã phê duyệt (biểu mẫu chỉ khi đang chỉnh sửa). */
+function renderProfileUpdate(data) {
+  const update = data.profileUpdate;
+  setVisible($('updateSection'), Boolean(data.updatable) && (state.editing || Boolean(update)));
+  if (!data.updatable) return;
+  const pending = hasPendingUpdate(data);
+  setVisible($('updateStatusBox'), Boolean(update));
+  if (update) {
+    $('updateStatusLabel').textContent = update.status === 'PENDING'
+      ? 'Yêu cầu cập nhật đang chờ thẩm định'
+      : `Yêu cầu cập nhật gần nhất: ${update.statusLabel}`;
+    const when = update.status === 'PENDING' ? update.submittedAt : update.reviewedAt;
+    $('updateStatusDate').textContent = when ? ` · ${formatDate(when)}` : '';
+    const lines = [];
+    if (update.requestedJlptLevel) lines.push(`Trình độ JLPT: ${update.currentJlptLevel || '—'} → ${update.requestedJlptLevel}`);
+    if (update.removedDocuments && update.removedDocuments.length) {
+      lines.push(`Đề nghị gỡ giấy tờ: ${update.removedDocuments.map((d) => d.title || 'Giấy tờ').join(', ')}`);
+    }
+    if (update.note) lines.push(`Ghi chú: ${update.note}`);
+    if (update.status === 'REJECTED' && update.feedback) lines.push(`Lý do không chấp nhận: ${update.feedback}`);
+    if (pending) lines.push('Bạn chưa thể thay đổi giấy tờ hoặc trình độ JLPT cho tới khi có kết quả.');
+    $('updateStatusDetail').textContent = lines.join('\n');
+  }
+  const showForm = !pending && state.editing;
+  setVisible($('updateForm'), showForm);
+  if (showForm) {
+    if (!$('updateJlptInput').dataset.touched) {
+      $('updateJlptInput').value = (data.profile && data.profile.highestJlptLevel) || 'N5';
+    }
+    const count = newDocumentCount(data);
+    $('updateNewDocuments').textContent = count > 0
+      ? `Gửi kèm ${count} giấy tờ mới đang chờ thẩm định.`
+      : 'Chưa có giấy tờ mới. Bạn có thể tải lên ở mục Giấy tờ xác minh trước khi gửi.';
+    const removed = removedDocuments(data);
+    setVisible($('updateRemovals'), removed.length > 0);
+    $('updateRemovalList').innerHTML = removed
+      .map((d) => `<li>${escapeHtml(d.title)} <span class="tv-meta text-[var(--tv-muted)]">(${escapeHtml(d.typeLabel)})</span></li>`)
+      .join('');
+    const err = removalError(data, [...state.removedIds]);
+    document.querySelector('[data-error-for="removedDocumentIds"]').textContent = err || '';
+  }
+}
+
+async function submitProfileUpdate(event) {
+  event.preventDefault();
+  showFieldErrors({});
+  const highestJlptLevel = $('updateJlptInput').value;
+  const note = $('updateNoteInput').value.trim();
+  const removedDocumentIds = [...state.removedIds];
+  const error = profileUpdateError(state.data, highestJlptLevel, note, removedDocumentIds);
+  if (error) {
+    showToast(error, 'error');
+    return;
+  }
+  const button = $('updateSubmitButton');
+  setBusy(button, true);
+  try {
+    state.data = await API.tutorVerification.submitProfileUpdate({ highestJlptLevel, note, removedDocumentIds });
+    $('updateNoteInput').value = '';
+    delete $('updateJlptInput').dataset.touched;
+    state.removedIds = new Set();
+    state.editing = false;
+    render();
+    showToast(state.data.message, 'success');
+  } catch (err) {
+    showFieldErrors(err.fields || {});
+    showToast(messageOf(err), 'error');
+    if (['PROFILE_UPDATE_PENDING', 'VERIFICATION_LOCKED'].includes(err.code)) await refreshQuietly();
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+function renderStatus(data) {
+  const style = STATUS_STYLES[data.status] || STATUS_STYLES.UNVERIFIED;
+  const badge = $('statusBadge');
+  badge.className = `tv-badge text-sm ${style.css}`;
+  badge.innerHTML = `<span class="material-symbols-outlined text-base">${style.icon}</span>${escapeHtml(data.statusLabel)}`;
+  $('statusHint').textContent = style.hint;
+  $('submittedAtText').textContent = formatDate(data.submittedAt);
+  $('verifiedAtText').textContent = formatDate(data.verifiedAt);
+}
+
+function renderFeedback(data) {
+  // Chỉ hiện khung khi cán bộ học vụ đã có phản hồi
+  const fb = data.latestFeedback;
+  setVisible($('feedbackBlock'), Boolean(fb));
+  setVisible($('feedbackContent'), Boolean(fb));
+  if (!fb) return;
+  $('feedbackKind').textContent = fb.kindLabel || 'Phản hồi';
+  $('feedbackDate').textContent = fb.createdAt ? ` · ${formatDate(fb.createdAt)}` : '';
+  $('feedbackReason').textContent = fb.reasonLabel ? `Lý do: ${fb.reasonLabel}` : '';
+  setVisible($('feedbackReason'), Boolean(fb.reasonLabel));
+  $('feedbackText').textContent = fb.content || '';
+  setVisible($('feedbackEditButton'), Boolean(data.editable));
+}
+
+function renderProfile(data) {
+  const p = data.profile || {};
+  $('fullNameInput').value = p.fullName || '';
+  $('phoneInput').value = p.phone || '';
+  $('dateOfBirthInput').value = p.dateOfBirth || '';
+  $('addressInput').value = p.address || '';
+  $('experienceYearsInput').value = p.experienceYears ?? 0;
+  $('highestJlptLevelInput').value = p.highestJlptLevel || '';
+  $('bioInput').value = p.bio || '';
+  $('bioCounter').textContent = String(($('bioInput').value || '').length);
+}
+
+function renderDocuments(data) {
+  const docs = data.documents || [];
+  const list = $('documentList');
+  setVisible($('documentEmpty'), docs.length === 0);
+  list.innerHTML = docs.map((doc) => {
+    const unavailable = !doc.fileAvailable
+      ? '<p class="mt-1" style="color: var(--tv-warn);">Không thể hiển thị tệp này. Tệp có thể bị lỗi hoặc không được hỗ trợ.</p>'
+      : '';
+    const editingNow = Boolean(data.editable) || state.editing;
+    const changeable = editingNow && documentChangeable(data, doc);
+    const marked = state.removedIds.has(doc.id);
+    const removalButton = editingNow && canRequestRemoval(data, doc) ? (marked ? `
+        <button type="button" class="tv-btn tv-btn-small" data-action="unmark-remove" data-id="${doc.id}">
+          <span class="material-symbols-outlined text-base">undo</span>Hoàn tác
+        </button>` : `
+        <button type="button" class="tv-btn tv-btn-small tv-btn-danger" data-action="mark-remove" data-id="${doc.id}">
+          <span class="material-symbols-outlined text-base">delete</span>Gỡ
+        </button>`) : '';
+    const removalBadge = marked
+      ? '<span class="tv-badge mt-1 ml-1" style="color: var(--tv-warn);">Sẽ gỡ khi yêu cầu được chấp nhận</span>'
+      : doc.removalRequested
+        ? '<span class="tv-badge mt-1 ml-1" style="color: var(--tv-warn);">Đã đề nghị gỡ · chờ thẩm định</span>'
+        : '';
+    const typeSelect = changeable ? `
+        <label class="sr-only" for="docType-${doc.id}">Loại giấy tờ</label>
+        <select id="docType-${doc.id}" class="tv-input !w-auto !py-1 text-sm" data-change-type="${doc.id}" title="Đổi loại giấy tờ">
+          ${DOCUMENT_TYPES.map(([value, label]) => `<option value="${value}" ${value === doc.type ? 'selected' : ''}>${label}</option>`).join('')}
+        </select>` : '';
+    const editButtons = changeable ? `
+        ${typeSelect}
+        <button type="button" class="tv-btn tv-btn-small" data-action="replace" data-id="${doc.id}">
+          <span class="material-symbols-outlined text-base">swap_horiz</span>Thay tệp
+        </button>
+        <button type="button" class="tv-btn tv-btn-small tv-btn-danger" data-action="remove" data-id="${doc.id}">
+          <span class="material-symbols-outlined text-base">delete</span>Gỡ
+        </button>` : '';
+    return `
+      <li class="border border-black rounded-[5px] p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div class="min-w-0">
+          <p class="tv-meta text-[var(--tv-muted)]">${escapeHtml(doc.typeLabel)} · Tải lên ${formatDate(doc.uploadedAt)}</p>
+          <p class="font-semibold truncate ${marked ? 'line-through' : ''}">${escapeHtml(doc.title)}</p>
+          <span class="tv-badge mt-1">${escapeHtml(doc.statusLabel)}</span>${removalBadge}
+          ${unavailable}
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="tv-btn tv-btn-small" data-action="view" data-id="${doc.id}" ${doc.fileAvailable ? '' : 'disabled'}>
+            <span class="material-symbols-outlined text-base">visibility</span>Xem
+          </button>
+          ${editButtons}${removalButton}
+        </div>
+      </li>`;
+  }).join('');
+}
+
+function renderEditMode(data) {
+  const editable = Boolean(data.editable);
+  const updatable = Boolean(data.updatable);
+  // Hồ sơ đã phê duyệt: chỉ mở các trường liên hệ; họ tên, ngày sinh, JLPT giữ nguyên
+  // Đã phê duyệt: chỉ mở khi đang chỉnh sửa (bấm "Chỉnh sửa hồ sơ xác minh")
+  const approvedEditing = updatable && state.editing;
+  document.querySelectorAll('#profileForm .tv-input').forEach((input) => {
+    input.disabled = !(editable || (approvedEditing && APPROVED_EDITABLE_FIELDS.includes(input.name)));
+  });
+  document.querySelectorAll('[data-edit-only]').forEach((el) => setVisible(el, editable));
+  setVisible($('saveProfileButton').parentElement, editable || approvedEditing);
+  setVisible($('uploadForm'), canUploadDocuments(data) && (editable || approvedEditing));
+  setVisible($('readOnlyNote'), !editable);
+  if (updatable) {
+    $('readOnlyNote').textContent = approvedEditing
+      ? 'Đã phê duyệt — họ tên, ngày sinh giữ nguyên; đổi JLPT trong mục Yêu cầu cập nhật hồ sơ'
+      : 'Chỉ xem — bấm "Chỉnh sửa hồ sơ xác minh" để thay đổi';
+  } else {
+    $('readOnlyNote').textContent = data.status === 'REJECTED'
+      ? 'Chỉ xem — hồ sơ đã bị từ chối và không thể nộp lại'
+      : 'Chỉ xem — hồ sơ đang được thẩm định';
+  }  const resubmit = data.status === 'ADDITIONAL_INFO_REQUIRED';
+  $('submitButtonText').textContent = resubmit ? 'Nộp lại hồ sơ' : 'Nộp hồ sơ';
+  $('confirmSubmitButton').textContent = resubmit ? 'Nộp lại hồ sơ' : 'Nộp hồ sơ';
+}
+
+// Nhãn nhóm giấy tờ bắt buộc do backend trả về (VerificationLabels) → loại giấy tờ chọn sẵn khi tải lên
+const MISSING_DOCUMENT_TYPES = {
+  'Giấy tờ tùy thân': 'IDENTITY_DOCUMENT',
+  'Chứng chỉ năng lực tiếng Nhật (JLPT hoặc chứng chỉ tương đương)': 'JLPT_CERTIFICATE'
+};
+
+function renderMissing(data, extraDocuments) {
+  const items = extraDocuments || data.missingRequirements || [];
+  setVisible($('missingBox'), data.editable && items.length > 0);
+  $('missingList').innerHTML = items.map((item) => {
+    const type = MISSING_DOCUMENT_TYPES[item];
+    const action = type
+      ? ` <button type="button" class="tv-btn tv-btn-small ml-2" data-upload-type="${type}">
+            <span class="material-symbols-outlined text-base">upload</span>Tải lên ngay</button>`
+      : '';
+    return `<li class="py-0.5">${escapeHtml(item)}${action}</li>`;
+  }).join('');
+}
+
+/** Chọn sẵn loại giấy tờ trong biểu mẫu tải lên và đưa người dùng tới đó. */
+function prepareUpload(type) {
+  $('documentTypeInput').value = type;
+  const label = DOCUMENT_TYPES.find(([value]) => value === type);
+  if (label && !$('documentTitleInput').value.trim()) $('documentTitleInput').value = label[1];
+  $('uploadForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('documentTypeInput').classList.add('has-error');
+  setTimeout(() => $('documentTypeInput').classList.remove('has-error'), 1500);
+  $('documentFileInput').focus();
+}
+
+// =========================================================================
+// 4. THAO TÁC
+// =========================================================================
+function readProfileForm() {
+  const value = (id) => $(id).value.trim();
+  const years = $('experienceYearsInput').value;
+  return {
+    fullName: value('fullNameInput'),
+    phone: value('phoneInput'),
+    dateOfBirth: $('dateOfBirthInput').value || null,
+    address: value('addressInput'),
+    experienceYears: years === '' ? null : Number(years),
+    highestJlptLevel: $('highestJlptLevelInput').value,
+    bio: value('bioInput')
+  };
+}
+
+async function saveProfile({ silent = false } = {}) {
+  const button = $('saveProfileButton');
+  setBusy(button, true);
+  showFieldErrors({});
+  try {
+    state.data = await API.tutorVerification.saveProfile(readProfileForm());
+    render();
+    if (!silent) showToast(state.data.message || 'Đã cập nhật thông tin xác minh.', 'success');
+    return true;
+  } catch (err) {
+    showFieldErrors(err.fields || {});
+    showToast(messageOf(err), 'error');
+    if (err.code === 'VERIFICATION_LOCKED' || err.code === 'VERIFICATION_REJECTED') await loadVerification();
+    return false;
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+function hasPendingUpload() {
+  return Boolean($('documentFileInput').files[0]);
+}
+
+async function uploadDocument(event) {
+  if (event) event.preventDefault();
+  return uploadSelectedDocument();
+}
+
+/**
+ * Tải lên giấy tờ đang chọn trong biểu mẫu. Trả về true nếu tải thành công.
+ */
+async function uploadSelectedDocument() {
+  const type = $('documentTypeInput').value;
+  const title = $('documentTitleInput').value.trim();
+  const file = $('documentFileInput').files[0];
+  const errors = {};
+  if (!title) errors.title = 'Vui lòng nhập tên giấy tờ.';
+  if (!file) errors.file = 'Vui lòng chọn tệp.';
+  else if (!isAcceptableFile(file)) errors.file = MSG_INVALID_FILE;
+  showFieldErrors(errors);
+  if (Object.keys(errors).length) {
+    if (errors.file === MSG_INVALID_FILE) showToast(MSG_INVALID_FILE, 'error');
+    $('uploadForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+
+  const button = $('uploadButton');
+  setBusy(button, true);
+  try {
+    await API.tutorVerification.addDocument({ type, title, file });
+    $('uploadForm').reset();
+    showToast('Đã tải lên giấy tờ.', 'success');
+    await refreshQuietly();
+    return true;
+  } catch (err) {
+    showFieldErrors(err.code === 'INVALID_FILE' ? { file: err.message } : (err.fields || {}));
+    showToast(messageOf(err), 'error');
+    return false;
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function replaceDocument(file) {
+  const id = state.replaceTargetId;
+  state.replaceTargetId = null;
+  if (!id || !file) return;
+  if (!isAcceptableFile(file)) {
+    showToast(MSG_INVALID_FILE, 'error');
+    return;
+  }
+  try {
+    await API.tutorVerification.updateDocument(id, { file });
+    showToast('Đã thay tệp giấy tờ.', 'success');
+    await refreshQuietly();
+  } catch (err) {
+    showToast(messageOf(err), 'error');
+  }
+}
+
+async function removeDocument(id) {
+  const doc = (state.data.documents || []).find((d) => d.id === id);
+  if (!window.confirm(`Gỡ giấy tờ "${doc ? doc.title : ''}" khỏi hồ sơ?`)) return;
+  try {
+    await API.tutorVerification.removeDocument(id);
+    showToast('Đã gỡ giấy tờ.', 'success');
+    await refreshQuietly();
+  } catch (err) {
+    showToast(messageOf(err), 'error');
+  }
+}
+
+async function viewDocument(id) {
+  const doc = (state.data.documents || []).find((d) => d.id === id);
+  const body = $('previewBody');
+  $('previewTitle').textContent = doc ? doc.title : 'Xem giấy tờ';
+  body.innerHTML = '<div class="tv-skeleton w-full h-[300px]"></div>';
+  openModal('previewModal');
+  try {
+    const blob = await API.tutorVerification.getDocumentFile(id);
+    releasePreview();
+    state.previewUrl = URL.createObjectURL(blob);
+    if ((blob.type || '').startsWith('image/')) {
+      body.innerHTML = `<img src="${state.previewUrl}" alt="${escapeHtml(doc ? doc.title : 'Giấy tờ')}" class="max-w-full max-h-[70vh] object-contain">`;
+    } else {
+      body.innerHTML = `<iframe src="${state.previewUrl}" title="${escapeHtml(doc ? doc.title : 'Giấy tờ')}" class="w-full h-[70vh]"></iframe>`;
+    }
+  } catch (err) {
+    body.innerHTML = '<p class="p-6 text-center" style="color: var(--tv-warn);">Không thể hiển thị tệp này. Tệp có thể bị lỗi hoặc không được hỗ trợ.</p>';
+  }
+}
+
+function requestSubmit() {
+  showFieldErrors({});
+  if (!$('commitmentInput').checked) {
+    showFieldErrors({ commitment: 'Vui lòng xác nhận cam kết trước khi nộp hồ sơ.' });
+    return;
+  }
+  openModal('confirmModal');
+}
+
+async function confirmSubmit() {
+  const confirmButton = $('confirmSubmitButton');
+  const submitButton = $('submitButton');
+  setBusy(confirmButton, true);
+  setBusy(submitButton, true);
+  try {
+    // Giấy tờ đã chọn nhưng chưa bấm "Tải lên" thì tải lên trước khi nộp
+    if (hasPendingUpload()) {
+      const uploaded = await uploadSelectedDocument();
+      if (!uploaded) {
+        closeModal('confirmModal');
+        return;
+      }
+    }
+    // Lưu các thay đổi chưa lưu trên biểu mẫu trước khi nộp
+    const saved = await saveProfile({ silent: true });
+    if (!saved) {
+      closeModal('confirmModal');
+      return;
+    }
+    state.data = await API.tutorVerification.submit(true);
+    closeModal('confirmModal');
+    $('commitmentInput').checked = false;
+    render();
+    showToast(state.data.message, 'success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    closeModal('confirmModal');
+    showFieldErrors(err.fields || {});
+    if (err.code === 'SUBMISSION_INCOMPLETE') {
+      const labels = [...Object.values(err.fields || {}), ...(err.missingDocuments || [])];
+      renderMissing(state.data, labels);
+      $('missingBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const missingDocs = err.missingDocuments || [];
+      showToast(missingDocs.length
+        ? `Không thể nộp hồ sơ. Còn thiếu: ${missingDocs.join(', ')}.`
+        : messageOf(err), 'error');
+    } else {
+      showToast(messageOf(err), 'error');
+    }
+    if (err.code === 'VERIFICATION_LOCKED' || err.code === 'VERIFICATION_REJECTED') await loadVerification();
+  } finally {
+    setBusy(confirmButton, false);
+    setBusy(submitButton, false);
+  }
+}
+
+async function refreshQuietly() {
+  try {
+    state.data = await API.tutorVerification.getMine();
+    render();
+  } catch (err) {
+    showToast(messageOf(err), 'error');
+  }
+}
+
+// =========================================================================
+// 5. HỘP THOẠI
+// =========================================================================
+function openModal(id) {
+  const modal = $(id);
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeModal(id) {
+  const modal = $(id);
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+  if (id === 'previewModal') releasePreview();
+}
+
+function releasePreview() {
+  if (state.previewUrl) {
+    URL.revokeObjectURL(state.previewUrl);
+    state.previewUrl = null;
+  }
+}
+
+// =========================================================================
+// 6. KHỞI TẠO
+// =========================================================================
+function bindEvents() {
+  $('retryButton').addEventListener('click', loadVerification);
+  $('startButton').addEventListener('click', () => {
+    state.started = true;
+    render();
+    $('fullNameInput').focus();
+  });
+  $('feedbackEditButton').addEventListener('click', () => {
+    $('profileSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('profileForm').addEventListener('submit', (event) => {
+    event.preventDefault();
+    saveProfile();
+  });
+  $('bioInput').addEventListener('input', () => {
+    $('bioCounter').textContent = String($('bioInput').value.length);
+  });
+  $('uploadForm').addEventListener('submit', uploadDocument);
+  $('updateForm').addEventListener('submit', submitProfileUpdate);
+  $('updateJlptInput').addEventListener('change', () => { $('updateJlptInput').dataset.touched = '1'; });
+  $('editProfileButton').addEventListener('click', startEditing);
+  $('finishEditButton').addEventListener('click', finishEditing);
+  $('documentList').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button || button.disabled) return;
+    const { action, id } = button.dataset;
+    if (action === 'view') viewDocument(id);
+    if (action === 'remove') removeDocument(id);
+    if (action === 'mark-remove' || action === 'unmark-remove') {
+      if (action === 'mark-remove') state.removedIds.add(id);
+      else state.removedIds.delete(id);
+      render();
+      if (action === 'mark-remove') {
+        $('updateSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        showToast('Đã chọn gỡ. Hãy gửi yêu cầu cập nhật để cán bộ học vụ thẩm định.', 'info');
+      }
+    }
+    if (action === 'replace') {
+      state.replaceTargetId = id;
+      $('replaceFileInput').value = '';
+      $('replaceFileInput').click();
+    }
+  });
+  $('replaceFileInput').addEventListener('change', (event) => replaceDocument(event.target.files[0]));
+  $('documentList').addEventListener('change', async (event) => {
+    const select = event.target.closest('select[data-change-type]');
+    if (!select) return;
+    select.disabled = true;
+    try {
+      await API.tutorVerification.updateDocument(select.dataset.changeType, { type: select.value });
+      showToast('Đã đổi loại giấy tờ.', 'success');
+      await refreshQuietly();
+    } catch (err) {
+      showToast(messageOf(err), 'error');
+      await refreshQuietly();
+    }
+  });
+  $('submitButton').addEventListener('click', requestSubmit);
+  $('missingList').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-upload-type]');
+    if (button) prepareUpload(button.dataset.uploadType);
+  });
+  $('confirmCancelButton').addEventListener('click', () => closeModal('confirmModal'));
+  $('confirmSubmitButton').addEventListener('click', confirmSubmit);
+  $('previewCloseButton').addEventListener('click', () => closeModal('previewModal'));
+  ['confirmModal', 'previewModal'].forEach((id) => {
+    $(id).addEventListener('click', (event) => {
+      if (event.target.id === id) closeModal(id);
+    });
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeModal('confirmModal');
+      closeModal('previewModal');
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  bindEvents();
+  loadVerification();
+});

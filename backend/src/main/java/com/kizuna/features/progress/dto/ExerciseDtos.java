@@ -1,0 +1,153 @@
+package com.kizuna.features.progress.dto;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.kizuna.features.progress.entity.ExerciseQuestionType;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
+/** Dữ liệu vào / ra của bài làm trực tiếp (FE-07). */
+public final class ExerciseDtos {
+
+    private ExerciseDtos() {
+    }
+
+    /**
+     * Một câu hỏi gia sư soạn. data: JSON theo dạng câu (xem ExerciseQuestionType).
+     * audioId: file nghe MP3 đã tải lên (null = không có); maxPlays: số lần nghe tối đa (null = không giới hạn, 1 – 5).
+     */
+    public record QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data,
+                                UUID audioId, Integer maxPlays, Boolean listening, UUID imageId) {
+        public QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data) {
+            this(type, prompt, points, data, null, null, null, null);
+        }
+
+        public QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data,
+                             UUID audioId, Integer maxPlays) {
+            this(type, prompt, points, data, audioId, maxPlays, null, null);
+        }
+
+        public QuestionInput(ExerciseQuestionType type, String prompt, BigDecimal points, JsonNode data,
+                             UUID audioId, Integer maxPlays, Boolean listening) {
+            this(type, prompt, points, data, audioId, maxPlays, listening, null);
+        }
+
+        /** Câu nghe: gia sư đánh dấu "Câu nghe" hoặc đã gắn file nghe. Câu nghe chưa có file thì không giao bài được. */
+        public boolean isListening() {
+            return Boolean.TRUE.equals(listening) || audioId != null;
+        }
+    }
+
+    /** Câu nghe (có hoặc chưa có file nghe): required = true; maxPlays null = nghe không giới hạn. */
+    public record ListeningInfo(boolean required, Integer maxPlays) {
+    }
+
+    /** File nghe gắn với câu hỏi. maxPlays null = nghe không giới hạn. */
+    public record AudioInfo(UUID audioId, String fileName, long fileSize, Integer maxPlays) {
+    }
+
+    /** Ảnh minh họa gắn với câu hỏi (một ảnh mỗi câu). */
+    public record ImageInfo(UUID imageId, String fileName, long fileSize) {
+    }
+
+    /** Nội dung ảnh để trả về trình duyệt. */
+    public record ImageContent(byte[] data, String contentType, String fileName) {
+    }
+
+    /** Link nghe tạm của file trên Cloudflare R2; hết hạn sau expiresInSeconds giây. */
+    public record AudioUrl(String url, long expiresInSeconds) {
+    }
+
+    /**
+     * Học viên bắt đầu nghe câu nghe trong lượt đang làm. resume = true: xin lại link giữa lúc đang nghe (link cũ hết hạn),
+     * không tính thêm lần nghe.
+     */
+    public record ListenRequest(UUID attemptId, UUID questionId, Boolean resume) {
+    }
+
+    /** Số lần nghe của một câu trong lượt làm bài (máy chủ đếm). maxPlays / remaining null = không giới hạn. */
+    public record ListenStatus(UUID questionId, int plays, Integer maxPlays, Integer remaining) {
+    }
+
+    /** Link nghe tạm cấp cho một lần nghe, kèm số lần nghe sau khi cộng. */
+    public record ListenGrant(String url, long expiresInSeconds, int plays, Integer maxPlays, Integer remaining) {
+    }
+
+    /**
+     * Tạo / sửa bài. publish = true: giao bài (kiểm tra đủ đáp án); false: lưu nháp (bài đã giao thì giữ nguyên trạng thái đã giao).
+     * gradingMode: không dùng nữa (giữ để tương thích) — cách chấm của bài máy chủ tự suy ra từ các câu hỏi.
+     */
+    public record ExerciseRequest(String title, String instructions, OffsetDateTime opensAt, OffsetDateTime closesAt,
+                                  Integer timeLimitMinutes, Integer maxAttempts, String gradingMode, Boolean showAnswers,
+                                  Boolean publish, List<QuestionInput> questions) {
+    }
+
+    /**
+     * Thông tin một bài trong danh sách.
+     * state: DRAFT (nháp), NOT_OPEN (chưa mở), OPEN (đang mở), CLOSED (đã đóng).
+     * locked: đã có học viên làm bài → khóa câu hỏi, đáp án, thời gian làm bài, cách chấm.
+     */
+    public record ExerciseSummary(UUID exerciseId, String title, String status, String state,
+                                  OffsetDateTime opensAt, OffsetDateTime closesAt, Integer timeLimitMinutes,
+                                  int maxAttempts, String gradingMode, boolean showAnswers,
+                                  int questionCount, BigDecimal maxScore,
+                                  int attemptsUsed, UUID inProgressAttemptId, BigDecimal bestScore,
+                                  boolean pendingGrading, boolean canStart, boolean locked, boolean canManage,
+                                  OffsetDateTime createdAt) {
+    }
+
+    /** Câu hỏi đầy đủ (kèm đáp án) cho gia sư soạn / sửa. */
+    public record QuestionDetail(UUID questionId, int position, ExerciseQuestionType type, String prompt,
+                                 BigDecimal points, JsonNode data, AudioInfo audio, ListeningInfo listening,
+                                 ImageInfo image) {
+        public QuestionDetail(UUID questionId, int position, ExerciseQuestionType type, String prompt,
+                              BigDecimal points, JsonNode data, AudioInfo audio, ListeningInfo listening) {
+            this(questionId, position, type, prompt, points, data, audio, listening, null);
+        }
+    }
+
+    /** Chi tiết bài: gia sư nhận kèm câu hỏi đầy đủ; học viên nhận questions = null. */
+    public record ExerciseDetail(ExerciseSummary summary, String instructions, List<QuestionDetail> questions) {
+    }
+
+    /**
+     * Một câu trong một lượt làm bài.
+     * view: đề cho học viên (không có đáp án). response: câu trả lời đã lưu.
+     * Sau khi nộp: correct / score (null khi chờ gia sư chấm); correctAnswer chỉ có khi được xem đáp án.
+     * audio: file nghe của câu (null = không có). image: ảnh minh họa của câu (null = không có).
+     */
+    public record AttemptQuestion(UUID questionId, int position, ExerciseQuestionType type, String prompt,
+                                  BigDecimal points, JsonNode view, JsonNode response,
+                                  Boolean correct, BigDecimal score, BigDecimal autoScore, boolean needsManualGrading,
+                                  String tutorComment, JsonNode correctAnswer, AudioInfo audio, ImageInfo image) {
+        public AttemptQuestion(UUID questionId, int position, ExerciseQuestionType type, String prompt,
+                               BigDecimal points, JsonNode view, JsonNode response,
+                               Boolean correct, BigDecimal score, BigDecimal autoScore, boolean needsManualGrading,
+                               String tutorComment, JsonNode correctAnswer, AudioInfo audio) {
+            this(questionId, position, type, prompt, points, view, response, correct, score, autoScore,
+                    needsManualGrading, tutorComment, correctAnswer, audio, null);
+        }
+    }
+
+    /**
+     * Một lượt làm bài. remainingSeconds: số giây còn lại (null = không giới hạn); serverNow để trình duyệt canh giờ.
+     * status: IN_PROGRESS, SUBMITTED (chờ gia sư chấm), GRADED.
+     */
+    public record AttemptView(UUID attemptId, UUID exerciseId, String exerciseTitle, String instructions,
+                              int attemptNumber, int maxAttempts, String status,
+                              OffsetDateTime startedAt, OffsetDateTime deadlineAt, OffsetDateTime closesAt,
+                              OffsetDateTime submittedAt, OffsetDateTime serverNow, Long remainingSeconds,
+                              String submitReason, boolean late,
+                              BigDecimal autoScore, BigDecimal finalScore, BigDecimal maxScore,
+                              boolean answersVisible, String learnerName, List<AttemptQuestion> questions) {
+    }
+
+    /** Gia sư chấm / sửa điểm một lượt: mỗi phần tử là một câu (score null = bỏ điểm sửa, dùng lại điểm máy chấm). */
+    public record GradeAttemptRequest(List<GradeItem> items) {
+    }
+
+    public record GradeItem(UUID questionId, BigDecimal score, String comment) {
+    }
+}

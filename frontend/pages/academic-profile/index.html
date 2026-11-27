@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hồ sơ cá nhân - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/components/tutor-layout/tailwind-theme.js"></script>
+  <link rel="stylesheet" href="/styles/tutor-theme.css">
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased">
+
+  <div id="academicSidebar"></div>
+
+  <div class="lg:pl-72 flex flex-col min-h-screen">
+    <div id="academicTopbar"></div>
+
+    <main class="flex-1 pt-16 lg:pt-0 w-full">
+      <div class="px-4 md:px-8 py-8 w-full flex flex-col gap-6">
+
+        <!-- Tiêu đề -->
+        <div class="flex flex-col gap-1">
+          <h1 class="text-headline-lg text-on-surface font-bold tracking-tight">Hồ sơ cá nhân</h1>
+          <p class="text-body-md text-on-surface-variant">Xem và cập nhật thông tin tài khoản của bạn.</p>
+        </div>
+
+        <!-- Đang tải / lỗi -->
+        <div id="loadingState" class="tv-skeleton h-80 rounded-2xl" aria-live="polite"></div>
+        <section id="errorState" class="hidden bg-surface-container-lowest rounded-2xl p-8 shadow-sm text-center">
+          <span class="material-symbols-outlined text-5xl text-error">cloud_off</span>
+          <h2 class="text-headline-sm mt-2">Chưa tải được hồ sơ cá nhân</h2>
+          <p id="errorMessage" class="text-on-surface-variant mt-1"></p>
+          <button id="retryButton" type="button" class="mt-4 px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-label-md inline-flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">refresh</span>Thử lại
+          </button>
+        </section>
+
+        <!-- Hồ sơ: mỗi hàng một nhóm thông tin (cùng bố cục với hồ sơ học viên) -->
+        <section id="contentState" class="hidden bg-white rounded-2xl border border-[#E2E8F0] divide-y divide-[#EEF1F5] max-w-[1100px]">
+
+          <!-- 1. Thông tin cá nhân -->
+          <form id="profileForm" novalidate class="grid grid-cols-1 md:grid-cols-[240px,1fr] gap-4 md:gap-8 p-6">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px] text-[#006194]">person</span>
+                <h2 class="text-[15px] font-bold text-[#0F2545]">Thông tin cá nhân</h2>
+              </div>
+              <p class="text-xs text-[#68737D] mt-1 leading-relaxed">Email do quản trị viên cấp nên không thể tự thay đổi.</p>
+            </div>
+            <div class="space-y-4 min-w-0">
+              <div class="flex flex-wrap items-center gap-4">
+                <div id="avatar" class="w-16 h-16 shrink-0 rounded-full bg-[#006194]/10 text-[#006194] flex items-center justify-center text-xl font-bold">KZ</div>
+                <div class="min-w-0">
+                  <div id="nameHeading" class="text-[15px] font-bold text-[#0F2545] break-words"></div>
+                  <div class="flex flex-wrap items-center gap-2 mt-1">
+                    <span id="roleBadge" class="px-2.5 py-0.5 rounded-full bg-[#006194]/10 text-[#006194] text-xs font-semibold">Cán bộ học vụ</span>
+                    <span id="statusBadge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold"></span>
+                    <span id="joinedText" class="text-xs text-[#68737D]"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="fullNameInput" class="block text-sm text-[#0F2545] mb-1.5">Họ tên</label>
+                  <input id="fullNameInput" maxlength="100" autocomplete="name"
+                         class="w-full rounded-lg border border-[#D9DEE5] bg-white px-3 py-2.5 text-sm text-[#0F2545] outline-none focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/15">
+                  <p id="fullNameError" class="hidden mt-1 text-xs text-[#BA1A1A]"></p>
+                </div>
+                <div>
+                  <label for="emailInput" class="block text-sm text-[#0F2545] mb-1.5">Email</label>
+                  <div class="flex">
+                    <input id="emailInput" type="email" readonly class="flex-1 min-w-0 rounded-l-lg border border-[#D9DEE5] bg-white px-3 py-2.5 text-sm text-[#3F4850] cursor-default outline-none">
+                    <span class="inline-flex items-center px-3 rounded-r-lg border border-l-0 border-[#D9DEE5] bg-[#F1F5F9] text-[#0F2545]" title="Không thể thay đổi email">
+                      <span class="material-symbols-outlined text-[18px]">lock</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div data-form-message class="hidden rounded-lg px-4 py-3 text-sm"></div>
+              <div class="flex justify-end">
+                <button id="saveButton" type="submit" disabled class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#006194] text-white text-sm font-semibold hover:bg-[#004b73] disabled:opacity-50 disabled:cursor-not-allowed">
+                  <span class="material-symbols-outlined text-[18px]">save</span><span id="saveText">Lưu thay đổi</span>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <!-- 2. Số điện thoại -->
+          <form id="phoneForm" novalidate class="grid grid-cols-1 md:grid-cols-[240px,1fr] gap-4 md:gap-8 p-6">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px] text-[#006194]">call</span>
+                <h2 class="text-[15px] font-bold text-[#0F2545]">Số điện thoại</h2>
+              </div>
+              <p class="text-xs text-[#68737D] mt-1 leading-relaxed">Để gia sư và đồng nghiệp liên lạc với bạn khi cần.</p>
+            </div>
+            <div class="min-w-0">
+              <div id="phoneView" class="flex flex-wrap items-center justify-between gap-3">
+                <span id="phoneText" class="text-[15px] text-[#0F2545]"></span>
+                <button id="btnEditPhone" type="button" class="px-3 py-1.5 rounded-lg border border-[#006194] text-[#006194] text-sm font-medium hover:bg-[#006194]/5">Đổi số</button>
+              </div>
+              <div id="phoneEdit" class="hidden space-y-3">
+                <div class="max-w-sm">
+                  <label for="phoneInput" class="block text-sm text-[#0F2545] mb-1.5">Số điện thoại mới</label>
+                  <input id="phoneInput" maxlength="13" inputmode="tel" placeholder="Ví dụ: 0912345678"
+                         class="w-full rounded-lg border border-[#D9DEE5] bg-white px-3 py-2.5 text-sm text-[#0F2545] outline-none focus:border-[#006194] focus:ring-2 focus:ring-[#006194]/15">
+                  <p id="phoneError" class="hidden mt-1 text-xs text-[#BA1A1A]"></p>
+                </div>
+                <div class="flex justify-end gap-2">
+                  <button id="btnCancelPhone" type="button" class="px-4 py-2 rounded-lg border border-[#D9DEE5] text-sm font-medium text-[#3F4850] hover:bg-[#F8FAFC]">Hủy</button>
+                  <button id="savePhoneButton" type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#006194] text-white text-sm font-semibold hover:bg-[#004b73] disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span class="material-symbols-outlined text-[18px]">save</span><span id="savePhoneText">Lưu số mới</span>
+                  </button>
+                </div>
+              </div>
+              <div data-form-message class="hidden mt-3 rounded-lg px-4 py-3 text-sm"></div>
+            </div>
+          </form>
+
+          <!-- 3. Mật khẩu (khối dùng chung components/change-password) -->
+          <div id="changePasswordSection"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="w-full py-6 px-4 md:px-8" style="background-color: #131D2E; color: #e3e8f3;">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <img src="/assets/logos/kizuna-logo.png" alt="KizunaTutor" class="w-8 h-8 rounded-lg object-contain bg-surface-container-lowest p-0.5">
+          <span class="text-title-sm font-bold tracking-tight text-white">KizunaTutor</span>
+          <span class="text-caption text-outline-variant">© 2026 Quản lý chất lượng đào tạo &amp; gia sư Nhật ngữ.</span>
+        </div>
+        <span class="text-caption text-outline-variant">Hệ thống điều hành học vụ</span>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/pages/academic-profile/academic-profile.js"></script>
+</body>
+</html>

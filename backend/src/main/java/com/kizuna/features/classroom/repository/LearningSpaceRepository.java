@@ -1,0 +1,101 @@
+package com.kizuna.features.classroom.repository;
+
+import com.kizuna.features.classroom.entity.LearningSpace;
+import com.kizuna.features.classroom.entity.LearningSpaceStatus;
+import org.springframework.data.jpa.repository.EntityGraph;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface LearningSpaceRepository extends JpaRepository<LearningSpace, UUID> {
+
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "learner", "learner.user"})
+    List<LearningSpace> findByTutor_TutorIdOrderByCreatedAtDesc(UUID tutorId);
+
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "learner", "learner.user"})
+    List<LearningSpace> findByLearner_LearnerIdOrderByCreatedAtDesc(UUID learnerId);
+
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "learner", "learner.user"})
+    Optional<LearningSpace> findWithParticipantsBySpaceId(UUID spaceId);
+
+    /**
+     * Khóa dòng lớp học (SELECT ... FOR UPDATE) tới hết transaction, để các thao tác thêm/sửa lịch
+     * của cùng một lớp chạy lần lượt (chặn trường hợp bấm "Thêm buổi" 2 lần liên tiếp lọt buổi trùng giờ).
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s.spaceId FROM LearningSpace s WHERE s.spaceId = :spaceId")
+    Optional<UUID> lockById(@Param("spaceId") UUID spaceId);
+
+    /** Các lớp đang mở (ACTIVE / PAUSED) mà gia sư (tutorId) HOẶC học viên (learnerId) tham gia; tham số còn lại để null. */
+    @Query("""
+            SELECT sp FROM LearningSpace sp
+            JOIN FETCH sp.tutor t JOIN FETCH t.user
+            JOIN FETCH sp.learner l JOIN FETCH l.user
+            WHERE sp.status IN :statuses
+              AND (t.tutorId = :tutorId OR l.learnerId = :learnerId)
+            """)
+    List<LearningSpace> findOpenOfParticipants(@Param("tutorId") UUID tutorId,
+                                               @Param("learnerId") UUID learnerId,
+                                               @Param("statuses") Collection<LearningSpaceStatus> statuses);
+
+    boolean existsByTutor_TutorIdAndLearner_LearnerIdAndStatusIn(UUID tutorId, UUID learnerId,
+                                                                 Collection<LearningSpaceStatus> statuses);
+
+    /** Số lớp của học viên (theo user_id) đang ở các trạng thái cho trước; dùng để mở khóa công cụ học. */
+    long countByLearner_User_UserIdAndStatusIn(UUID userId, Collection<LearningSpaceStatus> statuses);
+
+    /**
+     * Truy vấn CHỈ ĐỌC bảng connection_requests (thuộc tutor_search, không import entity của feature đó):
+     * học viên đã được gia sư chấp nhận kết nối và chưa có lớp đang hoạt động/tạm dừng với gia sư này.
+     */
+    @Query(value = """
+            SELECT DISTINCT cr.learner_id
+            FROM connection_requests cr
+            WHERE cr.tutor_id = :tutorId
+              AND cr.status = 'ACCEPTED'
+              AND NOT EXISTS (
+                  SELECT 1 FROM learning_spaces ls
+                  WHERE ls.tutor_id = cr.tutor_id
+                    AND ls.learner_id = cr.learner_id
+                    AND ls.status IN ('ACTIVE', 'PAUSED'))
+            """, nativeQuery = true)
+    List<UUID> findEligibleLearnerIds(@Param("tutorId") UUID tutorId);
+
+    /** Truy vấn CHỈ ĐỌC: cặp gia sư - học viên có kết nối đã được chấp nhận hay không. */
+    @Query(value = """
+            SELECT EXISTS (
+                SELECT 1 FROM connection_requests cr
+                WHERE cr.tutor_id = :tutorId
+                  AND cr.learner_id = :learnerId
+                  AND cr.status = 'ACCEPTED')
+            """, nativeQuery = true)
+    boolean hasAcceptedConnection(@Param("tutorId") UUID tutorId, @Param("learnerId") UUID learnerId);
+
+    /** Hình thức học + địa điểm của yêu cầu kết nối khóa học đã nhận gần nhất: [learning_mode, location_details]. */
+    @Query(value = """
+            SELECT cr.learning_mode, cr.location_details FROM connection_requests cr
+            WHERE cr.tutor_id = :tutorId AND cr.learner_id = :learnerId
+              AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED'
+            ORDER BY cr.responded_at DESC NULLS LAST LIMIT 1
+            """, nativeQuery = true)
+    List<Object[]> findAcceptedConnectionDelivery(@Param("tutorId") UUID tutorId, @Param("learnerId") UUID learnerId);
+
+    /** Như {@link #findAcceptedConnectionDelivery} cho nhiều học viên trong 1 query: [learner_id, learning_mode, location_details]. */
+    @Query(value = """
+            SELECT DISTINCT ON (cr.learner_id) cr.learner_id, cr.learning_mode, cr.location_details
+            FROM connection_requests cr
+            WHERE cr.tutor_id = :tutorId AND cr.learner_id IN (:learnerIds)
+              AND cr.request_type = 'DIRECT' AND cr.status = 'ACCEPTED'
+            ORDER BY cr.learner_id, cr.responded_at DESC NULLS LAST
+            """, nativeQuery = true)
+    List<Object[]> findAcceptedConnectionDeliveries(@Param("tutorId") UUID tutorId, @Param("learnerIds") Collection<UUID> learnerIds);
+}

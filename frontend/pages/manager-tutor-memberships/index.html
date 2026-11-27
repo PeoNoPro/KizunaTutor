@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hội viên gia sư - KizunaTutor</title><link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/variables.css"><link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/components.css"><link rel="stylesheet" href="/styles/utilities.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css">
+<link rel="stylesheet" href="./manager-tutor-memberships.css">
+</head>
+<!-- FE-09 (UC-44, UC-45): danh sách và chi tiết hội viên gia sư cho Quản lý. 2026-11-23: dựng lại trên khung quản trị dùng chung (menu Quản lý, nhóm "Doanh thu"). -->
+<body class="admin-dashboard operations-page">
+<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+<main id="dashboardMain" class="dashboard-main">
+<div id="operationsContent" class="operations-content" aria-busy="true">
+  <div class="operations-page-heading"><span class="role-badge">Kinh doanh</span><h1>Hội viên gia sư</h1><p>Danh sách gia sư đã đăng ký gói hội viên trả phí, kèm ngày hết hạn.</p></div>
+  <p id="operationsNotice" role="status" tabindex="-1" aria-live="polite"></p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+
+  <section class="operations-card" aria-labelledby="membersTitle">
+    <h2 id="membersTitle">Gia sư đã đăng ký gói</h2>
+    <form id="memberSearch" class="staff-toolbar tm-toolbar">
+      <label for="memberQuery">Tìm gia sư<input id="memberQuery" maxlength="100" placeholder="Nhập tên hoặc email"></label>
+      <label for="memberPlan">Gói<select id="memberPlan"><option value="">Tất cả gói</option></select></label>
+      <label for="memberStatus">Trạng thái<select id="memberStatus"><option value="">Tất cả</option><option value="ACTIVE">Đang hiệu lực</option><option value="EXPIRED">Đã hết hạn</option></select></label>
+      <button type="submit">Tìm kiếm</button><button id="clearMemberSearch" type="button">Xóa bộ lọc</button>
+    </form>
+    <p id="memberTotal" class="staff-help"></p>
+    <div class="table-scroll"><table class="staff-table tm-table"><caption class="sr-only">Danh sách hội viên gia sư</caption><thead><tr><th scope="col">Gia sư</th><th scope="col">Gói</th><th scope="col">Ngày đăng ký</th><th scope="col">Ngày hết hạn</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="memberRows"></tbody></table></div>
+    <div id="memberEmpty" hidden></div>
+    <div class="operations-pagination"><button id="memberPrev" type="button">Trang trước</button><span id="memberPage"></span><button id="memberNext" type="button">Trang sau</button></div>
+  </section>
+</div>
+</main>
+
+<!-- Chi tiết hội viên (UC-45) -->
+<dialog id="detailDialog" class="staff-dialog portal-dialog tm-detail-dialog" aria-labelledby="detailTitle">
+  <div class="portal-dialog-head"><h2 id="detailTitle">Chi tiết hội viên</h2><button id="closeDetail" class="portal-dialog-close" type="button" aria-label="Đóng chi tiết">Đóng</button></div>
+  <div id="detailBody" class="portal-dialog-body"></div>
+  <div class="portal-dialog-actions"><button id="backToList" type="button">Quay lại danh sách</button></div>
+</dialog>
+<script type="module" src="/js/main.js"></script>
+<script type="module" src="./manager-tutor-memberships.js"></script>
+</body></html>

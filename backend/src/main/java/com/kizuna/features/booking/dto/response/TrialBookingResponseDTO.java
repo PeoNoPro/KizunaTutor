@@ -1,0 +1,58 @@
+package com.kizuna.features.booking.dto.response;
+
+import lombok.*;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class TrialBookingResponseDTO {
+
+    private UUID bookingId;
+    /** Gia sư đã bấm "Đồng ý kết nối" sau buổi học thử (kết nối ACCEPTED, có thể tạo lớp FE-06). */
+    private boolean officialArrangementAgreed;
+    /** Đề xuất ngoài lịch rảnh của gia sư. */
+    private boolean offSchedule;
+    private UUID requestId;
+
+    // Tương thích hợp đồng API
+    private UUID tutorId;
+    private String tutorName;
+    private UUID learnerId;
+
+    // Thông tin đối tác (Nếu người xem là Học viên -> đối tác là Gia sư; Nếu người xem là Gia sư -> đối tác là Học viên)
+    private UUID partnerId;
+    private String partnerName;
+    private String partnerAvatarUrl;
+    private String partnerRole;
+
+    /**
+     * Liên hệ của người bên kia: gia sư xem liên hệ học viên (trừ khi đã từ chối / hủy / hết hạn);
+     * học viên xem liên hệ gia sư khi gia sư đã đồng ý. Null nếu chưa được xem.
+     */
+    private String partnerEmail;
+    private String partnerPhone;
+
+    private OffsetDateTime scheduledStartTime;
+    private OffsetDateTime scheduledEndTime;
+    private Integer durationMinutes;
+
+    private String learningMode;
+    private String meetingLink;
+    private String locationDetails;
+
+    private String currentLevel;
+    private String learningGoals;
+    private String initialMessage;
+
+    private String bookingStatus;
+    private String statusLabel; // Nhãn hiển thị tiếng Việt tự nhiên: "Chờ gia sư xác nhận", "Đã xác nhận", "Đã từ chối", "Đã hủy"
+
+    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
+}
+

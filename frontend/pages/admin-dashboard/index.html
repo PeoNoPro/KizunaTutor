@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tổng quan quản trị và vận hành KizunaTutor.">
+  <title>Tổng quan hệ thống - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Serif+JP:wght@400;600&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="./admin-dashboard.css">
+<link rel="stylesheet" href="/styles/admin-portal.css"><link rel="stylesheet" href="/pages/operations-statistics/operations-statistics.css"></head>
+<body class="admin-dashboard">
+  <a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+
+
+
+  <main id="dashboardMain" class="dashboard-main">
+    <section class="dashboard-intro" aria-labelledby="pageTitle">
+      <div class="intro-copy"><div class="intro-eyebrow"><span class="role-badge"><span class="status-dot"></span>Quản trị hệ thống</span><span class="kizuna-motif">『絆』</span><span>Kết nối Việt – Nhật</span></div><h1 id="pageTitle"><span id="greeting">Xin chào</span><span class="greeting-name" id="greetingName"></span></h1><div class="greeting-date" id="greetingDate"></div><p>Xem nhanh nhân viên, cấu hình hệ thống và các thao tác quản trị gần đây.</p></div>
+      </section>
+    <p class="dashboard-notice" id="dashboardNotice" role="alert" hidden></p>
+    <section id="accountSummary" aria-busy="true" class="kpi-grid" aria-label="Chỉ số nhân sự">
+      <article class="kpi-card kpi-card-v2"><div class="kpi-top"><span class="icon-tile kpi-icon" data-tone="blue"><img src="/assets/icons/admin-dashboard/users.svg" alt=""></span></div><div><h2>Nhân viên hệ thống</h2><strong class="kpi-value" data-account-count="staffAccounts">—</strong></div><div class="kpi-foot"><span>Đang hoạt động</span><span data-account-count="activeStaffAccounts">Đang tải…</span></div></article>
+      <article class="kpi-card kpi-card-v2"><div class="kpi-top"><span class="icon-tile kpi-icon" data-tone="violet"><img src="/assets/icons/admin-dashboard/nav-users.svg" alt=""></span></div><div><h2>Quản lý vận hành</h2><strong class="kpi-value" data-role-count="Quản lý vận hành">—</strong></div><div class="kpi-foot"><span>Người dùng và doanh thu</span></div></article>
+      <article class="kpi-card kpi-card-v2"><div class="kpi-top"><span class="icon-tile kpi-icon" data-tone="green"><img src="/assets/icons/admin-dashboard/nav-users.svg" alt=""></span></div><div><h2>Chăm sóc khách hàng</h2><strong class="kpi-value" data-role-count="Chăm sóc khách hàng">—</strong></div><div class="kpi-foot"><span>Hỗ trợ người dùng</span></div></article>
+      <article class="kpi-card kpi-card-v2"><div class="kpi-top"><span class="icon-tile kpi-icon" data-tone="amber"><img src="/assets/icons/admin-dashboard/nav-users.svg" alt=""></span></div><div><h2>Cán bộ học vụ</h2><strong class="kpi-value" data-role-count="Cán bộ học vụ">—</strong></div><div class="kpi-foot"><span>Thẩm định hồ sơ gia sư</span></div></article>
+    </section>
+    <section class="panel revenue-panel" id="staffChartsSection" aria-labelledby="staffChartsTitle" aria-busy="true"><div class="section-heading"><div><h2 id="staffChartsTitle">Thống kê nhân sự và quản trị</h2><p class="panel-sub">Nhân viên theo vai trò, trạng thái tài khoản và các thao tác quản trị gần đây.</p></div></div>
+      <div class="overview-charts">
+        <article class="overview-chart"><h3>Nhân viên theo vai trò</h3><p>Số tài khoản nhân viên của từng vai trò.</p><div id="chartStaffRoles"><div class="chart-empty">Đang tải biểu đồ…</div></div></article>
+        <article class="overview-chart"><h3>Trạng thái tài khoản nhân viên</h3><p>Đang hoạt động, tạm khóa hay chờ kích hoạt.</p><div id="chartStaffStatuses"><div class="chart-empty">Đang tải biểu đồ…</div></div></article>
+        <article class="overview-chart overview-chart-wide"><h3>Thao tác quản trị theo ngày</h3><p>Số thao tác trong 14 ngày gần nhất, tính trên 50 thao tác mới nhất.</p><div id="chartAudit"><div class="chart-empty">Đang tải biểu đồ…</div></div></article>
+      </div>
+    </section>
+    <section class="panel audit-panel activity-v2" id="activitySection" aria-labelledby="auditTitle"><div class="section-heading"><div><h2 id="auditTitle">Hoạt động gần đây</h2><p class="panel-sub">Thay đổi về nhân sự, cấu hình và thông báo</p></div><a class="soft-link" href="/pages/operations-logs/">Xem toàn bộ nhật ký ›</a></div><div class="table-scroll"><table><caption class="sr-only">Hoạt động quản trị gần đây</caption><thead><tr><th scope="col">Hoạt động</th><th scope="col">Người thực hiện</th><th scope="col">Kết quả</th><th scope="col">Thời gian</th></tr></thead><tbody id="auditRows"><tr><td colspan="4" class="table-empty">Đang tải nhật ký…</td></tr></tbody></table></div></section>
+    <section class="panel revenue-panel" id="shortcutSection" aria-labelledby="shortcutTitle"><div class="section-heading"><div><h2 id="shortcutTitle">Việc quản trị thường dùng</h2><p class="panel-sub">Quản lý nhân viên và cấu hình hệ thống.</p></div></div>
+      <div class="report-grid">
+        <article class="report-card"><img src="/assets/icons/admin-dashboard/nav-users.svg" alt=""><h3>Quản lý nhân viên</h3><p>Tạo, sửa thông tin và vai trò, khóa hoặc mở tài khoản nhân viên.</p><a href="/pages/admin-staff/" class="report-link">Mở danh sách ›</a></article>
+        <article class="report-card"><img src="/assets/icons/admin-dashboard/nav-settings.svg" alt=""><h3>Cấu hình hệ thống</h3><p>AI hỗ trợ học tập, gói hội viên, email gửi thư và giới hạn tệp đính kèm.</p><a href="/pages/operations-config/" class="report-link">Mở cấu hình ›</a></article>
+        <article class="report-card"><img src="/assets/icons/admin-dashboard/nav-logs.svg" alt=""><h3>Nhật ký thao tác</h3><p>Ai đã thay đổi gì trong khu quản trị và vào lúc nào.</p><a href="/pages/operations-logs/" class="report-link">Xem nhật ký ›</a></article>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="./admin-dashboard.js"></script>
+</body>
+</html>

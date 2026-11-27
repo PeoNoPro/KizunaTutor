@@ -1,0 +1,333 @@
+import { OPERATIONS_BASE as base, api, byId, text, date, notice, paging, emptyState, badge, actionButton, createOperationsPage } from '../../js/pages/operations.js';
+import { API, fetchAPI } from '../../js/api.js';
+import { API_CONFIG } from '../../js/config/api.config.js';
+import { showToast } from '../../js/main.js';
+import { CONFIG_SECTIONS, currentConfigSection } from '../../components/admin-shell/admin-shell.js';
+
+/** Chỉ hiện phần cấu hình đang chọn trên sidebar (?section=); tiêu đề trang ghi thêm tên phần. */
+function showSection() {
+    const key = currentConfigSection(), label = CONFIG_SECTIONS.find(([item]) => item === key)[1];
+    if (new URLSearchParams(location.search).get('section') !== key) history.replaceState(null, '', location.pathname + '?section=' + key);
+    document.querySelectorAll('[data-config-section]').forEach(card => { card.hidden = card.dataset.configSection !== key; });
+    const heading = document.querySelector('.operations-page-heading h1');
+    if (heading) heading.textContent = 'Cấu hình hệ thống · ' + label;
+    document.title = label + ' - KizunaTutor';
+}
+
+const state = {historyPage: 0, dirty: false, senderDirty: false, aiDirty: false, version: null, current: null, senderVersion: null, sender: null, ai: null};
+const PATH = base + '/settings/attachment-limit';
+const SENDER_PATH = base + '/settings/mail-sender';
+const AI_PATH = base + '/settings/ai';
+
+function renderAi(ai) {
+    state.ai = ai;
+    const select = byId('aiProvider');
+    if (!state.aiDirty) {
+        select.replaceChildren(...ai.providers.map(item => { const option = text('option', item.label); option.value = item.code; return option; }));
+        select.value = ai.provider; byId('aiModel').value = ai.model; byId('aiApiKey').value = '';
+        byId('aiBaseUrl').value = ai.providers.find(item => item.code === 'CUSTOM')?.baseUrl || '';
+    }
+    byId('aiCurrent').textContent = 'Đang dùng: ' + ai.providerLabel + ' · ' + ai.model + (ai.keyConfigured ? '' : '. Chưa có API key nên đang chấm bằng bộ dự phòng.');
+    syncAiNote();
+}
+
+/** Ô API key không bao giờ hiện key cũ; chỉ hiện 4 ký tự cuối để Admin biết đã có key. Để trống = giữ key cũ. */
+function syncAiNote() {
+    const chosen = state.ai?.providers.find(item => item.code === byId('aiProvider').value);
+    if (!chosen) return;
+    const custom = chosen.code === 'CUSTOM';
+    byId('aiBaseUrlField').hidden = !custom; byId('aiBaseUrl').required = custom;
+    byId('aiApiKey').required = !chosen.keyConfigured;
+    byId('aiApiKey').placeholder = chosen.keyConfigured ? 'Đã có key ' + chosen.maskedKey + ', để trống nếu giữ nguyên' : 'Dán API key của ' + chosen.label;
+    byId('aiKeyNote').textContent = custom
+        ? 'Địa chỉ máy chủ AI là đường dẫn hệ thống gửi bài viết tới để AI chấm, ghi trong tài liệu của nhà cung cấp. Ví dụ Groq: https://api.groq.com/openai/v1 · DeepSeek: https://api.deepseek.com/v1 · OpenRouter: https://openrouter.ai/api/v1.'
+        : chosen.keySource === 'server' ? 'Đang dùng API key trong cấu hình server. Nhập key mới nếu muốn thay.' : '';
+}
+
+async function load() {
+    showSection();
+    const [data, sender, ai, history, storage, copy] = await Promise.all([api(PATH), api(SENDER_PATH), api(AI_PATH), api(base + '/settings/history?page=' + state.historyPage), api(STORAGE_PATH), api(STORAGE_PATH + '/copy')]);
+    state.version = data.version; state.current = data.maxMegabytes;
+    byId('attachmentLimit').max = data.ceilingMegabytes;
+    byId('attachmentCeiling').textContent = 'Từ 1 đến ' + data.ceilingMegabytes + ' MB.';
+    if (!state.dirty) byId('attachmentLimit').value = data.maxMegabytes;
+    byId('attachmentCurrent').textContent = 'Hiện hành: ' + data.maxMegabytes + ' MB mỗi tệp.';
+
+    state.senderVersion = sender.version; state.sender = sender.senderEmail;
+    state.mail = sender;
+    if (!state.senderDirty) {
+        byId('senderEmail').value = sender.senderEmail || ''; byId('senderPassword').value = '';
+        byId('smtpHost').value = sender.smtpHost || ''; byId('smtpPort').value = sender.smtpPort || 587;
+        // Máy chủ đã lưu không phải loại tự đoán được thì hiện ô để Admin thấy.
+        showSmtp(Boolean(sender.smtpHost) && !['smtp.gmail.com', 'smtp.office365.com', 'smtp.mail.yahoo.com'].includes(sender.smtpHost));
+    }
+    syncMailPlaceholder();
+    byId('senderCurrent').textContent = sender.ownAccount
+        ? 'Đang gửi bằng: ' + sender.senderEmail
+        : 'Đang gửi bằng tài khoản thư của server' + (sender.senderEmail ? ' (' + sender.senderEmail + ')' : '') + '. Nhập email và mật khẩu ứng dụng để gửi bằng email của bạn.';
+    renderAi(ai);
+    renderStorage(storage); renderCopy(copy);
+
+    byId('configHistory').replaceChildren();
+    if (!history.items.length) byId('configHistory').append(emptyState('Chưa có thay đổi cấu hình', 'Lịch sử sẽ hiện ở đây sau lần lưu đầu tiên.'));
+    const unit = row => row.unit ? ' ' + row.unit : '';
+    history.items.forEach(row => byId('configHistory').append(text('p', row.settingLabel + '\n' + row.actorDisplayName + ' · ' + date(row.occurredAt) + '\n' + row.before + unit(row) + ' → ' + row.after + unit(row) + '\nLý do: ' + row.reason)));
+    paging('configHistory', history, state.historyPage);
+    notice('');
+}
+
+async function save() {
+    const maxMegabytes = Number(byId('attachmentLimit').value);
+    if (!confirm('Đổi giới hạn tệp đính kèm hỗ trợ từ ' + state.current + ' MB thành ' + maxMegabytes + ' MB? Chỉ áp dụng cho lần tải mới, tệp đã lưu giữ nguyên.')) return;
+    await api(PATH, 'PUT', {maxMegabytes, expectedVersion: state.version, reason: byId('configReason').value});
+    state.dirty = false; byId('configReason').value = '';
+    await load(); notice('Đã lưu giới hạn tệp đính kèm.');
+}
+
+/** Mật khẩu cũ không bao giờ hiện lại; chỉ báo đã có (4 ký tự cuối). Để trống = giữ mật khẩu cũ. */
+function syncMailPlaceholder() {
+    const same = byId('senderEmail').value.trim().toLowerCase() === (state.mail?.senderEmail || '').toLowerCase();
+    byId('senderPassword').placeholder = same && state.mail?.ownAccount ? 'Đã có ' + state.mail.maskedPassword + ', để trống nếu giữ nguyên' : 'Gmail: mật khẩu ứng dụng 16 ký tự';
+}
+
+function mailPayload() {
+    return {senderEmail: byId('senderEmail').value.trim(), appPassword: byId('senderPassword').value.trim(), smtpHost: byId('smtpHost').value.trim(), smtpPort: Number(byId('smtpPort').value) || 587};
+}
+
+/** Gọi API có thể chờ máy chủ bên ngoài (SMTP, AI) quá 4,5 giây nên không dùng fetchAPI. */
+async function slowPost(path, payload, method = 'POST') {
+    const csrf = await fetchAPI(base + '/csrf');
+    const response = await fetch(API_CONFIG.BASE_URL + path, {method, credentials: 'include', signal: AbortSignal.timeout(45000),
+        headers: {'Content-Type': 'application/json', [csrf.headerName]: csrf.token}, body: JSON.stringify(payload)});
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.success === false) {
+        // Gắn mã lỗi để trang hiện đúng câu backend trả về (ví dụ "Chưa lưu: sai mật khẩu ứng dụng…").
+        const error = new Error(result.fieldErrors?.length ? result.fieldErrors.map(f => f.message).join(' ') : result.message || 'Chưa thực hiện được.');
+        error.status = response.status || 400;
+        throw error;
+    }
+    return result.data;
+}
+
+function showResult(box, data) {
+    const seconds = (data.latencyMs / 1000).toLocaleString('vi-VN', {maximumFractionDigits: 1});
+    box.dataset.tone = data.ok ? 'success' : 'danger';
+    box.replaceChildren(text('strong', (data.ok ? '✓ ' : '✗ ') + data.message), text('span', ' (' + seconds + ' giây)'));
+    if (data.reply) box.append(text('p', 'AI trả lời: ' + data.reply));
+}
+
+/**
+ * Lưu email gửi thư. Máy chủ đăng nhập thử SMTP trước khi lưu (có thể mất vài giây), nên dùng thời gian chờ dài.
+ * Kết quả (đã lưu hoặc lý do chưa lưu) hiện ngay dưới nút, không đẩy lên đầu trang.
+ */
+async function saveSender() {
+    const payload = mailPayload(), box = byId('senderResult');
+    if (!confirm('Lưu email gửi thư ' + payload.senderEmail + (payload.appPassword ? ' (kèm mật khẩu ứng dụng mới)' : '') + '? Các thư gửi sau sẽ dùng email này.')) return;
+    const button = document.querySelector('#senderForm [type="submit"]'); if (button) button.disabled = true;
+    box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang kiểm tra đăng nhập email và lưu…';
+    try {
+        await slowPost(SENDER_PATH, {...payload, expectedVersion: state.senderVersion, reason: byId('senderReason').value}, 'PUT');
+    } catch (error) {
+        if (error.status === 401) throw error;
+        box.dataset.tone = 'danger';
+        box.textContent = '✗ ' + (error.name === 'TimeoutError' ? 'Máy chủ thư không phản hồi sau 45 giây. Chưa lưu cấu hình.' : error.message);
+        return;
+    } finally { if (button) button.disabled = false; }
+    state.senderDirty = false; byId('senderReason').value = ''; byId('senderPassword').value = '';
+    box.dataset.tone = 'success'; box.textContent = '✓ Đã lưu. Các thư gửi sau sẽ dùng ' + payload.senderEmail + '.';
+    showToast('Đã lưu email gửi thư hệ thống.', 'success');
+    refreshAfterSave();
+}
+
+/**
+ * Báo thành công ngay khi lưu xong, rồi mới tải lại dữ liệu trang ở nền. Tải lại chậm hoặc lỗi
+ * không được che mất kết quả lưu; khi đó chỉ nhắc tải lại trang để xem dữ liệu mới.
+ */
+function refreshAfterSave() {
+    load().catch(() => showToast('Đã lưu, nhưng chưa tải lại được dữ liệu mới. Hãy tải lại trang để xem.', 'info'));
+}
+
+async function saveAi() {
+    const provider = byId('aiProvider').value, model = byId('aiModel').value.trim(), apiKey = byId('aiApiKey').value.trim();
+    const label = state.ai.providers.find(item => item.code === provider)?.label || provider;
+    if (!confirm('Lưu cấu hình AI: ' + label + ' · ' + model + (apiKey ? ' (kèm API key mới)' : '') + '? Áp dụng ngay cho lần chấm bài tiếp theo.')) return;
+    await api(AI_PATH, 'PUT', {provider, model, apiKey, baseUrl: provider === 'CUSTOM' ? byId('aiBaseUrl').value.trim() : '', expectedVersion: state.ai.version, reason: byId('aiReason').value});
+    state.aiDirty = false; byId('aiReason').value = ''; byId('aiApiKey').value = '';
+    notice('Đã lưu cấu hình AI. Áp dụng cho lần chấm bài tiếp theo.');
+    refreshAfterSave();
+}
+
+async function testAi() {
+    const box = byId('aiTestResult'), button = byId('testAi');
+    const provider = byId('aiProvider').value;
+    const payload = {provider, model: byId('aiModel').value.trim(), apiKey: byId('aiApiKey').value.trim(), baseUrl: provider === 'CUSTOM' ? byId('aiBaseUrl').value.trim() : ''};
+    box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang gửi câu hỏi thử tới AI…'; button.disabled = true;
+    try {
+        showResult(box, await slowPost(AI_PATH + '/test', payload));
+    } catch (error) {
+        box.dataset.tone = 'danger'; box.textContent = '✗ ' + (error.name === 'TimeoutError' ? 'AI không phản hồi sau 45 giây.' : error.message);
+    } finally { button.disabled = false; }
+}
+
+// ----- Lưu trữ đám mây (chuẩn S3). Khóa không bao giờ hiện lại; để trống = giữ khóa đang dùng. -----
+const STORAGE_PATH = base + '/settings/cloud-storage';
+/** Gợi ý endpoint và vùng theo nhà cung cấp; Admin vẫn sửa được. */
+const STORAGE_HINTS = {
+    R2: {endpoint: 'https://<account-id>.r2.cloudflarestorage.com', region: 'auto', note: 'Cloudflare: R2 › Manage R2 API Tokens, tạo token quyền Object Read & Write. Account ID nằm trên trang tổng quan R2.'},
+    S3: {endpoint: 'https://s3.ap-southeast-1.amazonaws.com', region: 'ap-southeast-1', note: 'Amazon S3: IAM › Users › Security credentials › Create access key. Endpoint và vùng phải khớp vùng của bucket.'},
+    B2: {endpoint: 'https://s3.us-west-004.backblazeb2.com', region: 'us-west-004', note: 'Backblaze B2: App Keys › Add a New Application Key. Endpoint ghi ở trang chi tiết bucket.'},
+    WASABI: {endpoint: 'https://s3.ap-southeast-1.wasabisys.com', region: 'ap-southeast-1', note: 'Wasabi: Access Keys › Create new access key. Endpoint theo vùng của bucket.'},
+    OTHER: {endpoint: 'https://', region: 'auto', note: 'Dịch vụ bất kỳ hỗ trợ API chuẩn S3 (MinIO, DigitalOcean Spaces…). Nhập endpoint theo tài liệu của dịch vụ.'}
+};
+let storageDirty = false, copyTimer = null;
+
+function renderStorage(data) {
+    state.storage = data;
+    const select = byId('storageProvider');
+    if (!storageDirty) {
+        select.replaceChildren(...data.providers.map(item => { const option = text('option', item.label); option.value = item.code; return option; }));
+        select.value = data.provider; byId('storageEndpoint').value = data.endpoint; byId('storageRegion').value = data.region;
+        byId('storageBucket').value = data.bucket; byId('storageAccessKey').value = ''; byId('storageSecretKey').value = '';
+    }
+    const where = data.providerLabel + ' · bucket ' + data.bucket;
+    let current = !data.configured ? 'Chưa dùng lưu trữ đám mây: tệp đang lưu trên máy chủ.'
+        : data.source === 'server' ? 'Đang dùng: ' + where + ' (cấu hình server, biến môi trường R2_*).' : 'Đang dùng: ' + where + '.';
+    if (data.configured && !data.active) current += ' Cần khởi động lại backend một lần để bật lưu trữ đám mây.';
+    // Tải file nghe của gia sư (phần của nhóm) chỉ chạy khi server bật R2_ENABLED=true.
+    if (data.source === 'admin' && !data.serverR2Enabled) current += ' Lưu ý: chức năng tải file nghe của gia sư cần server đặt R2_ENABLED=true.';
+    byId('storageCurrent').textContent = current;
+    const reset = byId('resetStorage');
+    reset.hidden = !(data.source === 'admin' && data.serverDefault);
+    reset.title = data.serverDefault ? 'Dùng lại ' + data.serverDefault + ' như lúc nhóm cài đặt (biến môi trường R2_*).' : '';
+    byId('storageCopyBox').hidden = !data.previous;
+    byId('storageCopyInfo').textContent = data.previous ? 'Kho trước đó: ' + data.previous + '. Tệp cũ vẫn nằm ở kho này và vẫn mở được (hệ thống tự đọc ở kho cũ khi kho mới chưa có). Nên chép sang để sau này có thể ngừng dùng kho cũ. Không xóa gì ở kho cũ, tệp đã có thì bỏ qua.' : '';
+    syncStorageNote();
+}
+
+function syncStorageNote() {
+    const hint = STORAGE_HINTS[byId('storageProvider').value] || STORAGE_HINTS.OTHER;
+    byId('storageEndpoint').placeholder = hint.endpoint;
+    const has = state.storage?.configured;
+    byId('storageAccessKey').placeholder = has ? 'Đã có ' + state.storage.maskedAccessKey + ', để trống nếu giữ nguyên' : 'Dán access key ID';
+    byId('storageSecretKey').placeholder = has ? 'Để trống nếu giữ nguyên' : 'Dán secret access key';
+    byId('storageNote').textContent = hint.note + ' Đổi sang kho khác thì nhập khóa của kho mới.';
+}
+
+function storagePayload() {
+    return {provider: byId('storageProvider').value, endpoint: byId('storageEndpoint').value.trim(), region: byId('storageRegion').value.trim(),
+        bucket: byId('storageBucket').value.trim(), accessKey: byId('storageAccessKey').value.trim(), secretKey: byId('storageSecretKey').value.trim()};
+}
+
+async function testStorage() {
+    const box = byId('storageResult'), button = byId('testStorage');
+    box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang thử ghi, đọc và xóa một tệp nhỏ trên kho…'; button.disabled = true;
+    try { showResult(box, await slowPost(STORAGE_PATH + '/test', storagePayload())); }
+    catch (error) {
+        if (error.status === 401) throw error;
+        box.dataset.tone = 'danger'; box.textContent = '✗ ' + (error.name === 'TimeoutError' ? 'Kho lưu trữ không phản hồi sau 45 giây.' : error.message);
+    } finally { button.disabled = false; }
+}
+
+async function saveStorage() {
+    const payload = storagePayload(), box = byId('storageResult');
+    const label = state.storage.providers.find(item => item.code === payload.provider)?.label || payload.provider;
+    if (!confirm('Chuyển lưu trữ sang ' + label + ' · bucket ' + payload.bucket + '?\n\n'
+        + '• Tệp tải lên từ giờ lưu ở kho mới.\n'
+        + '• Tệp cũ vẫn mở được: hệ thống tự đọc ở kho cũ khi kho mới chưa có.\n'
+        + '• Nên bấm "Chép tệp sang kho mới" sau khi chuyển, và đừng xóa kho cũ trước khi chép xong.')) return;
+    const button = document.querySelector('#storageForm [type="submit"]'); if (button) button.disabled = true;
+    box.hidden = false; box.dataset.tone = ''; box.textContent = 'Đang thử kết nối kho mới và lưu…';
+    try { await slowPost(STORAGE_PATH, {...payload, expectedVersion: state.storage.version, reason: byId('storageReason').value}, 'PUT'); }
+    catch (error) {
+        if (error.status === 401) throw error;
+        box.dataset.tone = 'danger'; box.textContent = '✗ ' + (error.name === 'TimeoutError' ? 'Kho lưu trữ không phản hồi sau 45 giây. Chưa lưu cấu hình.' : error.message);
+        return;
+    } finally { if (button) button.disabled = false; }
+    storageDirty = false; byId('storageReason').value = ''; byId('storageAccessKey').value = ''; byId('storageSecretKey').value = '';
+    box.dataset.tone = 'success'; box.textContent = '✓ Đã lưu. Tệp tải lên từ giờ lưu ở ' + label + ' · ' + payload.bucket + '.';
+    showToast('Đã chuyển kho lưu trữ đám mây.', 'success');
+    refreshAfterSave();
+}
+
+async function resetStorage() {
+    const box = byId('storageResult'), reason = byId('storageReason').value.trim();
+    if (!reason) { box.hidden = false; box.dataset.tone = 'danger'; box.textContent = '✗ Vui lòng nhập lý do thay đổi.'; byId('storageReason').focus(); return; }
+    if (!confirm('Quay về kho mặc định ' + state.storage.serverDefault + '? Tệp tải lên trong thời gian dùng kho kia có thể chép về bằng nút "Chép tệp sang kho mới".')) return;
+    const button = byId('resetStorage'); button.disabled = true;
+    try { await slowPost(STORAGE_PATH + '/reset', {expectedVersion: state.storage.version, reason}); }
+    catch (error) {
+        if (error.status === 401) throw error;
+        box.hidden = false; box.dataset.tone = 'danger'; box.textContent = '✗ ' + error.message; return;
+    } finally { button.disabled = false; }
+    storageDirty = false; byId('storageReason').value = '';
+    box.hidden = false; box.dataset.tone = 'success'; box.textContent = '✓ Đã quay về kho mặc định ' + state.storage.serverDefault + '.';
+    showToast('Đã quay về kho lưu trữ mặc định.', 'success');
+    refreshAfterSave();
+}
+
+function renderCopy(status) {
+    const box = byId('storageCopyResult'), button = byId('startStorageCopy');
+    clearTimeout(copyTimer);
+    if (!status || status.state === 'IDLE') { box.hidden = true; button.disabled = false; return; }
+    box.hidden = false;
+    const counts = 'Đã xem ' + status.scanned + ' tệp · chép ' + status.copied + ' · bỏ qua (đã có) ' + status.skipped + (status.failed ? ' · lỗi ' + status.failed : '');
+    const ok = status.state === 'DONE' && !status.failed;
+    box.dataset.tone = status.state === 'RUNNING' ? '' : ok ? 'success' : 'danger';
+    box.replaceChildren(text('strong', status.state === 'RUNNING' ? 'Đang chép từ ' + status.from + ' sang ' + status.to + '…' : (ok ? '✓ ' : '✗ ') + (status.message || '')), text('p', counts));
+    button.disabled = status.state === 'RUNNING';
+    if (status.state === 'RUNNING') copyTimer = setTimeout(() => api(STORAGE_PATH + '/copy').then(renderCopy).catch(() => { button.disabled = false; }), 2000);
+}
+
+async function startCopy() {
+    if (!confirm('Chép toàn bộ tệp từ kho cũ sang kho đang dùng? Việc này chạy nền, có thể mất vài phút; không xóa gì ở kho cũ.')) return;
+    try { renderCopy(await api(STORAGE_PATH + '/copy', 'POST')); }
+    catch (error) { const box = byId('storageCopyResult'); box.hidden = false; box.dataset.tone = 'danger'; box.textContent = '✗ ' + error.message; }
+}
+
+const page = createOperationsPage(load);
+page.bind('configForm', 'submit', save);
+page.bind('senderForm', 'submit', saveSender);
+page.bind('aiForm', 'submit', saveAi);
+byId('testAi').addEventListener('click', testAi);
+page.bind('storageForm', 'submit', saveStorage);
+byId('testStorage').addEventListener('click', testStorage);
+byId('startStorageCopy').addEventListener('click', startCopy);
+byId('resetStorage').addEventListener('click', resetStorage);
+// Endpoint dạng s3.<vùng>.backblazeb2.com / wasabisys.com / amazonaws.com thì tự điền vùng cho khớp (sai vùng sẽ bị từ chối khóa).
+byId('storageEndpoint').addEventListener('input', () => {
+    const match = byId('storageEndpoint').value.trim().match(/s3[.-]([a-z0-9-]+)\.(?:backblazeb2|wasabisys|amazonaws)\.com/i);
+    if (match) byId('storageRegion').value = match[1].toLowerCase();
+});
+byId('storageForm').addEventListener('input', () => { storageDirty = true; byId('storageResult').hidden = true; });
+byId('storageProvider').addEventListener('change', () => {
+    const hint = STORAGE_HINTS[byId('storageProvider').value] || STORAGE_HINTS.OTHER;
+    if (byId('storageProvider').value !== state.storage?.provider) { byId('storageEndpoint').value = ''; byId('storageRegion').value = hint.region; }
+    syncStorageNote();
+});
+byId('configForm').addEventListener('input', () => { state.dirty = true; });
+byId('senderForm').addEventListener('input', () => { state.senderDirty = true; byId('senderResult').hidden = true; });
+// Gõ email Gmail/Outlook thì tự điền máy chủ SMTP tương ứng.
+byId('senderEmail').addEventListener('change', () => {
+    const domain = byId('senderEmail').value.split('@')[1]?.toLowerCase() || '';
+    const host = {'gmail.com': 'smtp.gmail.com', 'googlemail.com': 'smtp.gmail.com', 'outlook.com': 'smtp.office365.com', 'hotmail.com': 'smtp.office365.com', 'live.com': 'smtp.office365.com', 'yahoo.com': 'smtp.mail.yahoo.com'}[domain];
+    if (host) { byId('smtpHost').value = host; byId('smtpPort').value = 587; }
+    else if (domain) { byId('smtpHost').value = ''; showSmtp(true); }
+    syncMailPlaceholder();
+});
+/** Máy chủ và cổng tự điền với Gmail/Outlook/Yahoo nên ẩn đi; chỉ mở khi email thuộc dịch vụ khác. */
+function showSmtp(show) {
+    document.querySelectorAll('[data-smtp-field]').forEach(field => { field.hidden = !show; });
+    byId('toggleSmtp').hidden = show;
+}
+byId('toggleSmtp').addEventListener('click', () => showSmtp(true));
+
+byId('aiForm').addEventListener('input', () => { state.aiDirty = true; });
+byId('aiProvider').addEventListener('change', () => {
+    const chosen = state.ai?.providers.find(item => item.code === byId('aiProvider').value);
+    if (chosen && chosen.code !== state.ai.provider) byId('aiModel').value = chosen.defaultModel;
+    byId('aiApiKey').value = '';
+    syncAiNote();
+});
+page.bind('configHistoryPrev', 'click', async () => { state.historyPage = Math.max(0, state.historyPage - 1); await load(); });
+page.bind('configHistoryNext', 'click', async () => { state.historyPage++; await load(); });
+page.start();

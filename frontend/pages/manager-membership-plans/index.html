@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gói hội viên gia sư - KizunaTutor</title><link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/variables.css"><link rel="stylesheet" href="/styles/global.css"><link rel="stylesheet" href="/styles/components.css"><link rel="stylesheet" href="/styles/utilities.css"><link rel="stylesheet" href="/styles/admin.css"><link rel="stylesheet" href="/styles/operations.css"><link rel="stylesheet" href="/styles/admin-portal.css">
+</head>
+<!-- FE-09 (UC-99, UC-100): Quản lý cấu hình giá và quyền lợi gói hội viên gia sư (chuyển từ Cấu hình hệ thống của Admin). -->
+<body class="admin-dashboard operations-page">
+<a class="skip-link" href="#dashboardMain">Đến nội dung chính</a>
+<main id="dashboardMain" class="dashboard-main">
+<div id="operationsContent" class="operations-content" aria-busy="true"><div class="operations-page-heading"><span class="role-badge">Kinh doanh</span><h1>Gói hội viên gia sư</h1><p>Thêm gói, chỉnh giá, quyền lợi và mở bán / ngừng bán gói hội viên của gia sư.</p></div>
+<p id="operationsNotice" role="status" tabindex="-1" aria-live="polite">Đang tải dữ liệu…</p><button id="retryLoad" type="button" hidden>Thử tải lại</button>
+
+<section class="operations-card" aria-labelledby="plansTitle">
+    <div class="staff-section-head"><h2 id="plansTitle">Gói hội viên gia sư</h2><button id="createPlan" type="button" class="primary">Thêm gói</button></div>
+    <p class="staff-help">Gia sư đã mua gói vẫn dùng được đến hết hạn khi gói bị ngừng bán hoặc đổi giá.</p>
+    <div class="table-scroll"><table class="staff-table"><caption class="sr-only">Gói hội viên gia sư</caption><thead><tr><th scope="col">Tên gói</th><th scope="col">Thời hạn</th><th scope="col">Giá</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="planRows"></tbody></table></div>
+</section>
+</div>
+</main>
+<dialog id="planDialog" class="staff-dialog portal-dialog plan-dialog" aria-labelledby="planDialogTitle">
+  <form id="planForm" novalidate><div class="portal-dialog-head"><h2 id="planDialogTitle">Thêm gói hội viên</h2><button id="closePlan" class="portal-dialog-close" type="button" aria-label="Đóng biểu mẫu">Đóng</button></div>
+    <div class="portal-dialog-body">
+      <div class="plan-field"><label for="planName">Tên gói</label><input id="planName" maxlength="100" placeholder="Ví dụ: Gói 3 tháng" autocomplete="off"><p class="plan-error" data-error="planName"></p></div>
+      <div class="plan-field"><span class="plan-label" id="planMonthsLabel">Thời hạn</span>
+        <div class="plan-chips" role="radiogroup" aria-labelledby="planMonthsLabel" id="planMonthChips">
+          <button type="button" data-months="1">1 tháng</button><button type="button" data-months="3">3 tháng</button><button type="button" data-months="6">6 tháng</button><button type="button" data-months="12">12 tháng</button><button type="button" data-months="other">Khác</button>
+        </div>
+        <div id="planMonthsOther" class="plan-inline" hidden><input id="planMonths" type="number" min="1" max="36" step="1" inputmode="numeric" aria-label="Số tháng"><span>tháng (1–36)</span></div>
+        <p class="plan-hint" id="planMonthsLocked" hidden>Thời hạn không đổi được sau khi tạo, để không ảnh hưởng gia sư đã mua gói.</p>
+        <p class="plan-error" data-error="durationMonths"></p></div>
+      <div class="plan-field"><label for="planPrice">Giá bán</label>
+        <div class="plan-money"><input id="planPrice" inputmode="numeric" autocomplete="off" placeholder="199.000"><span>đ</span></div>
+        <div class="plan-chips plan-chips-small"><button type="button" data-price="99000">99.000 đ</button><button type="button" data-price="199000">199.000 đ</button><button type="button" data-price="499000">499.000 đ</button><button type="button" data-price="1490000">1.490.000 đ</button></div>
+        <p class="plan-hint" id="planPerMonth"></p>
+        <p class="plan-error" data-error="price"></p></div>
+      <div class="plan-field"><span class="plan-label">Quyền lợi của gia sư</span>
+        <ul id="planBenefitList" class="plan-benefits"></ul>
+        <button id="addBenefit" type="button" class="link-button">+ Thêm quyền lợi</button>
+        <p class="plan-error" data-error="benefits"></p></div>
+      <p id="planNotice" class="staff-dialog-notice" role="alert"></p>
+    </div>
+    <div class="portal-dialog-actions"><button id="savePlan" class="primary" type="submit">Lưu gói</button><button id="cancelPlan" type="button">Hủy</button></div>
+  </form>
+</dialog>
+<script type="module" src="/js/main.js"></script>
+<script type="module" src="./manager-membership-plans.js"></script>
+</body></html>

@@ -1,0 +1,40 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      VERIFICATION_STORAGE_DIR: /root/kizuna-data/verification-docs
+      AVATAR_STORAGE_DIR: /root/kizuna-data/avatars
+    volumes:
+      - kizuna_data:/root/kizuna-data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      BACKEND_HOST: backend
+      BACKEND_PORT: "8085"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles:
+      - tunnel
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
+volumes:
+  kizuna_data:

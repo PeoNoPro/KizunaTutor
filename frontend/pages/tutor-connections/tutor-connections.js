@@ -1,0 +1,1063 @@
+/**
+ * KizunaTutor - Quản lý Yêu cầu kết nối dành cho Gia sư (tutor-connections.js)
+ * Phân hệ Gia sư - Sử dụng layout Stitch Tutor Dashboard
+ */
+
+import { API, ApiError } from '/js/api.js';
+import { contactHtml, learningModeHtml } from '/js/contact-card.js';
+import { mountTutorLayout, setTutorIdentity } from '/components/tutor-layout/tutor-layout.js';
+// Sắp xếp theo từng nhóm: chờ phản hồi (hạn phản hồi gần nhất) → đã xác nhận (buổi gần nhất) → lịch sử (mới nhất)
+import { sortTrials, sortDirect, trialDeadline, directDeadline, responseDeadlineHtml } from '/js/request-sorting.js';
+
+const $ = (id) => document.getElementById(id);
+
+let bookingsList = [];
+let currentFilter = 'ALL';
+let activeBooking = null;
+let activeCompleteBooking = null;
+// Lớp đang học (ACTIVE/PAUSED) của gia sư theo học viên — từ FE-06 GET /api/classrooms — để biết đã tạo lớp chưa
+let openClassByLearner = new Map();
+
+function setVisible(el, visible) {
+  if (!el) return;
+  el.classList.toggle('hidden', !visible);
+}
+
+// ---------------------------------------------------------------- Phân trang (7 mục mỗi trang)
+const PAGE_SIZE = 7;
+let bookingsPage = 0;
+let directPage = 0;
+
+/** Cắt danh sách theo trang; trả về { items, page } với page đã được giới hạn trong khoảng hợp lệ. */
+function pageSlice(list, page) {
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const p = Math.min(Math.max(0, page), totalPages - 1);
+  return { items: list.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE), page: p };
+}
+
+/** Vẽ thanh phân trang: « ‹ 1 2 3 … › » kèm "Hiển thị 1–7 / 20". Ẩn nếu chỉ có 1 trang. */
+function renderPager(containerId, total, page, onChange) {
+  const el = $(containerId);
+  if (!el) return;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (totalPages <= 1) {
+    el.classList.add('hidden');
+    el.innerHTML = '';
+    return;
+  }
+  el.classList.remove('hidden');
+
+  const pages = [];
+  for (let i = 0; i < totalPages; i++) {
+    if (i === 0 || i === totalPages - 1 || Math.abs(i - page) <= 1) pages.push(i);
+    else if (pages[pages.length - 1] !== '…') pages.push('…');
+  }
+  const btnBase = 'min-w-9 h-9 px-2.5 rounded-xl text-label-md font-semibold inline-flex items-center justify-center transition-all';
+  const idle = 'border border-outline-variant/40 bg-surface-container-lowest text-on-surface hover:bg-surface-container';
+  const from = page * PAGE_SIZE + 1;
+  const to = Math.min(total, (page + 1) * PAGE_SIZE);
+
+  el.innerHTML = `
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+      <p class="text-body-sm text-on-surface-variant">Hiển thị <strong class="text-on-surface">${from}–${to}</strong> / ${total} yêu cầu</p>
+      <nav class="flex items-center gap-1.5" aria-label="Phân trang">
+        <button type="button" data-page="${page - 1}" ${page === 0 ? 'disabled' : ''}
+          class="${btnBase} ${idle} disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer" aria-label="Trang trước">
+          <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        </button>
+        ${pages.map(p => p === '…'
+          ? `<span class="px-1 text-body-sm text-on-surface-variant">…</span>`
+          : `<button type="button" data-page="${p}" ${p === page ? 'aria-current="page"' : ''}
+              class="${btnBase} cursor-pointer ${p === page ? 'bg-primary text-on-primary shadow-xs' : idle}">${p + 1}</button>`).join('')}
+        <button type="button" data-page="${page + 1}" ${page >= totalPages - 1 ? 'disabled' : ''}
+          class="${btnBase} ${idle} disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer" aria-label="Trang sau">
+          <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+        </button>
+      </nav>
+    </div>`;
+  el.querySelectorAll('button[data-page]').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    onChange(Number(btn.dataset.page));
+  }));
+}
+
+function scrollToList(listId) {
+  const el = $(listId);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** " • 8 buổi (17/11 – 11/12/2026)" cho yêu cầu kết nối có buổi cụ thể; rỗng với yêu cầu cũ. */
+function courseRangeText(r) {
+  if (!r || !r.totalSessions || !r.startDate || !r.endDate) return '';
+  const [, sm, sd] = String(r.startDate).split('-');
+  const [ey, em, ed] = String(r.endDate).split('-');
+  return ` • ${r.totalSessions} buổi (${sd}/${sm} – ${ed}/${em}/${ey})`;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text == null ? '' : String(text);
+  return div.innerHTML;
+}
+
+function formatBookingTime(startTimeStr, durationMinutes = 50) {
+  if (!startTimeStr) return 'Chưa định dạng';
+  const start = new Date(startTimeStr);
+  if (Number.isNaN(start.getTime())) return 'Chưa định dạng';
+
+  const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+  const DAYS = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+
+  const startTime = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+  const endTime = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+  const dayName = DAYS[start.getDay()];
+  const dateStr = `${pad(start.getDate())}/${pad(start.getMonth() + 1)}/${start.getFullYear()}`;
+
+  return `${startTime} - ${endTime} • ${dayName}, ${dateStr}`;
+}
+
+function showToast(message, type = 'success') {
+  const toast = $('toastNotification');
+  const msgEl = $('toastMsg');
+  const iconEl = $('toastIcon');
+  if (!toast || !msgEl || !iconEl) return;
+
+  msgEl.textContent = message;
+  if (type === 'error') {
+    toast.className = 'fixed bottom-6 right-6 z-50 max-w-sm px-4 py-3 rounded-xl shadow-lg text-body-sm font-semibold flex items-center gap-2 transition-all bg-error text-on-error';
+    iconEl.textContent = 'error';
+  } else {
+    toast.className = 'fixed bottom-6 right-6 z-50 max-w-sm px-4 py-3 rounded-xl shadow-lg text-body-sm font-semibold flex items-center gap-2 transition-all bg-[#0F2545] text-white';
+    iconEl.textContent = 'check_circle';
+  }
+
+  toast.classList.remove('hidden');
+  clearTimeout(toast.__timer);
+  toast.__timer = setTimeout(() => {
+    toast.classList.add('hidden');
+  }, 3500);
+}
+
+/**
+ * Cập nhật số liệu thống kê trên các thẻ KPI và nhãn của từng Tab
+ */
+// Trạng thái từ backend: từ chối = DECLINED (giữ REJECTED cho dữ liệu cũ), dời lịch = RESCHEDULED, quá hạn = EXPIRED
+const CONFIRMED_STATUSES = ['CONFIRMED', 'RESCHEDULED'];
+const HISTORY_STATUSES = ['COMPLETED', 'REJECTED', 'DECLINED', 'CANCELLED', 'EXPIRED'];
+
+function updateCounts() {
+  const total = bookingsList.length;
+  const pending = bookingsList.filter(b => b.bookingStatus === 'PENDING').length;
+  const confirmed = bookingsList.filter(b => CONFIRMED_STATUSES.includes(b.bookingStatus)).length;
+  const history = bookingsList.filter(b => HISTORY_STATUSES.includes(b.bookingStatus)).length;
+
+  if ($('typeCountTrial')) {
+    $('typeCountTrial').textContent = pending;
+    $('typeCountTrial').title = `${pending} yêu cầu học thử đang chờ bạn phản hồi`;
+    $('typeCountTrial').classList.toggle('hidden', pending === 0);
+  }
+  if ($('statPending')) $('statPending').textContent = pending;
+  if ($('statConfirmed')) $('statConfirmed').textContent = confirmed;
+  if ($('statTotal')) $('statTotal').textContent = total;
+
+  if ($('tabCountAll')) $('tabCountAll').textContent = total;
+  if ($('tabCountPending')) $('tabCountPending').textContent = pending;
+  if ($('tabCountConfirmed')) $('tabCountConfirmed').textContent = confirmed;
+  if ($('tabCountHistory')) $('tabCountHistory').textContent = history;
+}
+
+/**
+ * Hiển thị danh sách thẻ yêu cầu kết nối
+ */
+function renderBookings() {
+  const listEl = $('bookingsList');
+  const emptyEl = $('emptyState');
+  if (!listEl || !emptyEl) return;
+
+  let filtered = bookingsList;
+  if (currentFilter === 'PENDING') {
+    filtered = bookingsList.filter(b => b.bookingStatus === 'PENDING');
+  } else if (currentFilter === 'CONFIRMED') {
+    filtered = bookingsList.filter(b => CONFIRMED_STATUSES.includes(b.bookingStatus));
+  } else if (currentFilter === 'HISTORY') {
+    filtered = bookingsList.filter(b => HISTORY_STATUSES.includes(b.bookingStatus));
+  }
+
+  if (filtered.length === 0) {
+    setVisible(listEl, false);
+    setVisible(emptyEl, true);
+    renderPager('bookingsPager', 0, 0, () => {});
+    const msgEl = $('emptyMessage');
+    if (msgEl) {
+      if (currentFilter === 'PENDING') {
+        msgEl.textContent = 'Bạn không có yêu cầu học thử nào đang chờ phản hồi.';
+      } else if (currentFilter === 'CONFIRMED') {
+        msgEl.textContent = 'Chưa có buổi học thử nào được xác nhận.';
+      } else {
+        msgEl.textContent = 'Chưa có yêu cầu nào trong danh mục này.';
+      }
+    }
+    return;
+  }
+
+  setVisible(emptyEl, false);
+  setVisible(listEl, true);
+
+  const paged = pageSlice(filtered, bookingsPage);
+  bookingsPage = paged.page;
+  renderPager('bookingsPager', filtered.length, bookingsPage, (p) => {
+    bookingsPage = p;
+    renderBookings();
+    scrollToList('bookingsList');
+  });
+
+  listEl.innerHTML = paged.items.map(item => {
+    const isPending = item.bookingStatus === 'PENDING';
+    const isConfirmed = CONFIRMED_STATUSES.includes(item.bookingStatus);
+    const isRescheduled = item.bookingStatus === 'RESCHEDULED';
+    const isRejected = item.bookingStatus === 'REJECTED' || item.bookingStatus === 'DECLINED';
+    const isCancelled = item.bookingStatus === 'CANCELLED';
+    const isCompleted = item.bookingStatus === 'COMPLETED';
+    const isExpired = item.bookingStatus === 'EXPIRED';
+
+    const avatarSrc = item.partnerAvatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
+    const partnerName = escapeHtml(item.partnerName || 'Học viên');
+    const timeFormatted = formatBookingTime(item.scheduledStartTime, item.durationMinutes);
+    const isOnline = item.learningMode === 'ONLINE';
+
+    // Badge trạng thái
+    let badgeHtml = '';
+    if (isPending) {
+      badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-amber-100 text-amber-800 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">hourglass_top</span>Chờ phản hồi</span>`;
+    } else if (isRescheduled) {
+      badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">event_repeat</span>Đã dời lịch</span>`;
+    } else if (isConfirmed) {
+      badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span>Đã xác nhận</span>`;
+    } else if (isRejected) {
+      badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-error-container text-error flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">cancel</span>Đã từ chối</span>`;
+    } else if (isCancelled) {
+      badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-surface-container text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">close</span>Đã hủy</span>`;
+    } else if (isExpired) {
+      badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-surface-container text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">timer_off</span>Đã quá hạn</span>`;
+    } else if (isCompleted) {
+      badgeHtml = `<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-primary-fixed text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">task_alt</span>Đã hoàn thành</span>`;
+    }
+    // Học viên đề xuất giờ ngoài lịch rảnh của gia sư
+    if (item.offSchedule) {
+      badgeHtml = `<span class="flex flex-wrap items-center gap-1.5">${badgeHtml}<span class="px-2.5 py-1 rounded-full text-caption font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1" title="Giờ này nằm ngoài lịch rảnh bạn đã khai báo"><span class="material-symbols-outlined text-[14px]">edit_calendar</span>Ngoài lịch rảnh</span></span>`;
+    }
+
+    // Các nút hành động
+    let actionsHtml = '';
+    if (isPending) {
+      actionsHtml = `
+        <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-outline-variant/40">
+          <button type="button" class="btn-open-accept px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all" data-id="${item.bookingId}">
+            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+            <span>Chấp nhận</span>
+          </button>
+          <button type="button" class="btn-open-decline px-4 py-2 rounded-xl bg-surface-container hover:bg-error-container hover:text-error text-on-surface text-label-md font-semibold inline-flex items-center gap-1.5 transition-all" data-id="${item.bookingId}">
+            <span class="material-symbols-outlined text-[18px]">cancel</span>
+            <span>Từ chối</span>
+          </button>
+          <span class="ml-auto">${responseDeadlineHtml(trialDeadline(item))}</span>
+        </div>
+      `;
+    } else if (isConfirmed) {
+      const sTime = item.scheduledStartTime ? new Date(item.scheduledStartTime) : null;
+      const eTime = item.scheduledEndTime
+        ? new Date(item.scheduledEndTime)
+        : (sTime ? new Date(sTime.getTime() + (item.durationMinutes || 60) * 60000) : null);
+      const isEnded = eTime ? (Date.now() >= eTime.getTime()) : true;
+      const padNum = (n) => String(n).padStart(2, '0');
+      const endTimeStr = eTime ? `${padNum(eTime.getHours())}:${padNum(eTime.getMinutes())}` : '';
+
+      actionsHtml = `
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          ${item.meetingLink ? `
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">video_camera_front</span>
+              <div class="min-w-0">
+                <p class="text-caption text-emerald-800 font-bold">Phòng học Google Meet đã sẵn sàng:</p>
+                <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="text-body-sm text-emerald-700 hover:text-emerald-900 font-medium underline truncate block">
+                  ${escapeHtml(item.meetingLink)}
+                </a>
+              </div>
+            </div>
+          ` : `
+            <div class="flex items-center gap-2 text-body-sm text-emerald-800 font-medium">
+              <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">verified</span>
+              <span>Buổi học thử đã được xác nhận.</span>
+            </div>
+          `}
+          <div class="flex items-center gap-2 shrink-0">
+            ${item.meetingLink ? `
+              <button type="button" class="btn-copy-link px-3 py-1.5 rounded-lg bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-label-sm font-semibold inline-flex items-center gap-1 transition-all" data-link="${escapeHtml(item.meetingLink)}">
+                <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                <span>Sao chép</span>
+              </button>
+              <a href="${item.meetingLink}" target="_blank" rel="noopener noreferrer" class="px-4 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-label-sm font-semibold inline-flex items-center gap-1 shadow-xs transition-all no-underline">
+                <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                <span>Vào lớp</span>
+              </a>
+            ` : ''}
+            ${isEnded ? `
+              <button type="button" class="btn-complete-booking px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-label-sm font-semibold inline-flex items-center gap-1 transition-all cursor-pointer" data-id="${item.bookingId}" data-ended="true" title="Xác nhận hoàn thành buổi học thử">
+                <span class="material-symbols-outlined text-[16px]">task_alt</span>
+                <span>Hoàn thành</span>
+              </button>
+            ` : `
+              <button type="button" class="btn-complete-booking px-3.5 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-400 text-label-sm font-semibold inline-flex items-center gap-1 transition-all cursor-not-allowed opacity-80" data-id="${item.bookingId}" data-ended="false" data-endtime="${endTimeStr}" title="Chỉ có thể xác nhận sau khi kết thúc buổi học lúc ${endTimeStr}">
+                <span class="material-symbols-outlined text-[16px]">schedule</span>
+                <span>Chưa kết thúc (${endTimeStr})</span>
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+    } else if (isCompleted) {
+      const createClassUrl = `/tutor/classrooms?taoLop=1&learnerId=${encodeURIComponent(item.learnerId || '')}`;
+      const openClass = item.officialArrangementAgreed ? openClassByLearner.get(String(item.learnerId)) : null;
+      actionsHtml = openClass ? `
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          <div class="flex items-center gap-2 text-body-sm text-emerald-900 font-medium min-w-0">
+            <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">school</span>
+            <span class="min-w-0 [overflow-wrap:anywhere]">Đã tạo lớp học <strong>${escapeHtml(openClass.title || '')}</strong> với học viên này.</span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="/tutor/classrooms?space=${encodeURIComponent(openClass.spaceId)}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all no-underline">
+              <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+              <span>Vào lớp học</span>
+            </a>
+          </div>
+        </div>
+      ` : item.officialArrangementAgreed ? `
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          <div class="flex items-center gap-2 text-body-sm text-emerald-900 font-medium">
+            <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">handshake</span>
+            <span>Bạn đã đồng ý kết nối với học viên này. Hãy tạo lớp học và xếp lịch học hằng tuần.</span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="${createClassUrl}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all no-underline">
+              <span class="material-symbols-outlined text-[18px]">add_circle</span>
+              <span>Tạo lớp học</span>
+            </a>
+          </div>
+          <p class="w-full text-caption text-on-surface-variant">Đang thỏa thuận lịch học chính thức với học viên? Hãy tạm tắt khung giờ đó trong <a href="/tutor/schedule" class="text-primary font-semibold hover:underline">Lịch rảnh</a> để người khác không đặt mất trước khi bạn tạo lớp.</p>
+        </div>
+      ` : `
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 bg-sky-50/50 p-3 rounded-xl border border-sky-200/60">
+          <div class="flex items-center gap-2 text-body-sm text-sky-900 font-medium">
+            <span class="material-symbols-outlined text-sky-700 text-[20px] shrink-0">task_alt</span>
+            <span>Buổi học thử đã hoàn thành. Nếu muốn dạy chính thức học viên này, hãy đồng ý kết nối rồi tạo lớp học.</span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" class="btn-agree-connection px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all" data-id="${item.bookingId}">
+              <span class="material-symbols-outlined text-[18px]">handshake</span>
+              <span>Đồng ý kết nối</span>
+            </button>
+          </div>
+          <p class="w-full text-caption text-on-surface-variant">Đang thỏa thuận lịch học chính thức với học viên? Hãy tạm tắt khung giờ đó trong <a href="/tutor/schedule" class="text-primary font-semibold hover:underline">Lịch rảnh</a> để người khác không đặt mất trước khi bạn tạo lớp.</p>
+        </div>
+      `;
+    } else if (isRejected) {
+      actionsHtml = `
+        <div class="pt-2 text-caption text-error flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">info</span>
+          <span>Yêu cầu học thử này đã được từ chối.</span>
+        </div>
+      `;
+    } else if (isExpired) {
+      actionsHtml = `
+        <div class="pt-2 text-caption text-on-surface-variant flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">info</span>
+          <span>Yêu cầu học thử này đã quá hạn phản hồi.</span>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="bg-surface-container-lowest rounded-2xl p-5 sm:p-6 shadow-sm border border-outline-variant/40 hover:border-primary/40 transition-all space-y-4">
+        <!-- Hàng đầu: Thông tin học viên + Trạng thái -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <img src="${avatarSrc}" alt="${partnerName}" class="w-12 h-12 rounded-2xl object-cover ring-2 ring-surface-container shrink-0">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-title-md font-bold text-on-surface">${partnerName}</h3>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary-fixed text-primary">Học viên</span>
+              </div>
+              <p class="text-caption text-on-surface-variant mt-0.5">${item.durationMinutes || 50} phút • Học thử miễn phí 0đ</p>
+            </div>
+          </div>
+          <div class="self-start sm:self-center">
+            ${badgeHtml}
+          </div>
+        </div>
+
+        <!-- Khối chi tiết lịch hẹn -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 text-body-sm">
+          <div class="flex items-center gap-2 text-on-surface font-medium">
+            <span class="material-symbols-outlined text-[20px] text-primary shrink-0">calendar_today</span>
+            <span>${timeFormatted}</span>
+          </div>
+          <div class="flex items-center gap-2 text-on-surface-variant">
+            <span class="material-symbols-outlined text-[20px] text-primary shrink-0">${isOnline ? 'laptop_chromebook' : 'pin_drop'}</span>
+            <span>${isOnline ? 'Trực tuyến (Google Meet)' : `Trực tiếp tại ${escapeHtml(item.locationDetails || 'địa chỉ hẹn')}`}</span>
+          </div>
+
+          ${item.currentLevel ? `
+            <div class="flex items-center gap-2 text-on-surface-variant">
+              <span class="material-symbols-outlined text-[20px] text-amber-700 shrink-0">school</span>
+              <span>Trình độ hiện tại: <strong class="text-on-surface font-semibold">${escapeHtml(item.currentLevel)}</strong></span>
+            </div>
+          ` : ''}
+
+          ${item.learningGoals ? `
+            <div class="flex items-center gap-2 text-on-surface-variant">
+              <span class="material-symbols-outlined text-[20px] text-primary shrink-0">flag</span>
+              <span>Mục tiêu: <span class="text-on-surface font-medium">${escapeHtml(item.learningGoals)}</span></span>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Lời nhắn ban đầu của học viên -->
+        ${(item.initialMessage && item.initialMessage.trim()) ? `
+          <div class="text-body-sm text-on-surface-variant bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/30 italic">
+            "${escapeHtml(item.initialMessage)}"
+          </div>
+        ` : ''}
+
+        <!-- Hàng nút hành động -->
+        ${contactHtml(item, 'Liên hệ học viên')}
+        ${actionsHtml}
+      </div>
+    `;
+  }).join('');
+
+  bindCardActionEvents();
+}
+
+/**
+ * Gắn sự kiện cho các nút trên từng thẻ yêu cầu
+ */
+function bindCardActionEvents() {
+  // Nút mở modal Chấp nhận
+  document.querySelectorAll('.btn-open-accept').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const booking = bookingsList.find(b => String(b.bookingId) === String(id));
+      if (!booking) return;
+      openAcceptModal(booking);
+    });
+  });
+
+  // Nút mở modal Từ chối
+  document.querySelectorAll('.btn-open-decline').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const booking = bookingsList.find(b => String(b.bookingId) === String(id));
+      if (!booking) return;
+      openDeclineModal(booking);
+    });
+  });
+
+  // Nút sao chép link Google Meet
+  document.querySelectorAll('.btn-copy-link').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const link = btn.dataset.link;
+      if (!link) return;
+      try {
+        await navigator.clipboard.writeText(link);
+        showToast('Đã sao chép link Google Meet vào bộ nhớ tạm!');
+      } catch (e) {
+        showToast('Không thể sao chép link', 'error');
+      }
+    });
+  });
+
+  // Nút đồng ý kết nối sau khi học thử xong → chuyển sang trang Lớp học (FE-06) để tạo lớp + lịch học
+  document.querySelectorAll('.btn-agree-connection').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const booking = bookingsList.find(b => String(b.bookingId) === String(id));
+      if (!booking) return;
+      btn.disabled = true;
+      try {
+        await API.trialBookings.agreeConnection(id);
+        showToast('Đã đồng ý kết nối. Đang chuyển sang trang tạo lớp học...');
+        setTimeout(() => {
+          window.location.href = `/tutor/classrooms?taoLop=1&learnerId=${encodeURIComponent(booking.learnerId || '')}`;
+        }, 900);
+      } catch (err) {
+        showToast(err.message || 'Không thể đồng ý kết nối lúc này. Vui lòng thử lại.', 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // Nút xác nhận hoàn thành buổi học
+  document.querySelectorAll('.btn-complete-booking').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      if (!id) return;
+      if (btn.dataset.ended === 'false') {
+        const endTimeStr = btn.dataset.endtime || 'kết thúc';
+        showToast(`Buổi học chưa kết thúc. Bạn chỉ có thể xác nhận hoàn thành sau ${endTimeStr}.`, 'error');
+        return;
+      }
+      const booking = bookingsList.find(b => String(b.bookingId) === String(id));
+      if (!booking) return;
+      openCompleteModal(booking);
+    });
+  });
+}
+
+/**
+ * Mở modal Chấp nhận
+ */
+function openAcceptModal(booking) {
+  activeBooking = booking;
+  $('acceptStudentName').textContent = booking.partnerName || 'Học viên';
+  $('acceptTimeStr').textContent = formatBookingTime(booking.scheduledStartTime, booking.durationMinutes);
+
+  const meetInput = $('acceptMeetingLink');
+  meetInput.value = booking.meetingLink || '';
+  meetInput.classList.remove('has-error');
+  $('acceptMeetingLinkError').classList.add('hidden');
+  $('acceptNote').value = '';
+
+  $('modalAcceptBooking').classList.remove('hidden');
+  meetInput.focus();
+}
+
+/**
+ * Mở modal Từ chối
+ */
+function openDeclineModal(booking) {
+  activeBooking = booking;
+  $('declineStudentName').textContent = booking.partnerName || 'Học viên';
+  $('declineTimeStr').textContent = formatBookingTime(booking.scheduledStartTime, booking.durationMinutes);
+
+  $('declineReasonSelect').value = 'Trùng lịch với ca dạy hoặc công việc khác';
+  $('declineCustomReason').value = '';
+  $('declineCustomReason').classList.add('hidden');
+
+  $('modalDeclineBooking').classList.remove('hidden');
+}
+
+/**
+ * Mở modal Xác nhận hoàn thành
+ */
+function openCompleteModal(booking) {
+  activeCompleteBooking = booking;
+  if ($('completeStudentName')) {
+    $('completeStudentName').textContent = booking.partnerName || 'Học viên';
+  }
+  if ($('completeTimeStr')) {
+    $('completeTimeStr').textContent = formatBookingTime(booking.scheduledStartTime, booking.durationMinutes);
+  }
+  $('modalConfirmComplete')?.classList.remove('hidden');
+}
+
+/**
+ * Đóng tất cả modal
+ */
+function closeModals() {
+  $('modalAcceptBooking')?.classList.add('hidden');
+  $('modalDeclineBooking')?.classList.add('hidden');
+  $('modalConfirmComplete')?.classList.add('hidden');
+  $('modalDirectRespond')?.classList.add('hidden');
+  activeBooking = null;
+  activeCompleteBooking = null;
+  activeDirect = null;
+  directAction = null;
+}
+
+// ====================================================================
+// Kết nối trực tiếp (không học thử): học viên chọn ca hằng tuần, gia sư đồng ý / từ chối
+// ====================================================================
+let directRequests = [];
+let directFilter = 'PENDING';
+let activeDirect = null;
+let directAction = null; // 'ACCEPT' | 'DECLINE'
+let directLoaded = false;
+
+const DIRECT_HISTORY = ['DECLINED', 'CANCELLED', 'EXPIRED'];
+
+function slotText(s) {
+  // Yêu cầu đang chờ chưa có độ dài ca: gia sư chọn khi đồng ý
+  return s.endTime
+    ? `${s.dayName} ${s.startTime}–${s.endTime} (${s.durationMinutes} phút)`
+    : `${s.dayName} ${s.startTime} (bạn chọn độ dài khi đồng ý)`;
+}
+
+// ---- Độ dài ca: gia sư chọn khi đồng ý, gợi ý theo bảng học phí (môn học viên chọn) trong bài đăng của chính gia sư
+const SLOT_DURATIONS = [60, 90, 120];
+const priceItemsCache = new Map(); // tutorId -> Promise<priceItems[]>
+function myPriceItems(tutorId) {
+  if (!priceItemsCache.has(tutorId)) {
+    priceItemsCache.set(tutorId, API.tutors.getDetail(tutorId)
+      .then(t => (Array.isArray(t?.priceItems) ? t.priceItems : []))
+      .catch(() => []));
+  }
+  return priceItemsCache.get(tutorId);
+}
+/** Độ dài gợi ý: môn đầu tiên học viên chọn có trong bảng học phí; không khớp thì null (gia sư tự chọn). */
+function suggestedMinutes(priceItems, learningGoals) {
+  const goals = String(learningGoals || '').split(',').map(g => g.trim()).filter(Boolean);
+  for (const g of goals) {
+    const item = priceItems.find(p => p && String(p.levelLabel || p.level).trim() === g);
+    if (item && SLOT_DURATIONS.includes(Number(item.sessionMinutes))) return Number(item.sessionMinutes);
+  }
+  return null;
+}
+function durationPickerHtml(s) {
+  const options = SLOT_DURATIONS.map(m =>
+    `<option value="${m}" ${Number(s.durationMinutes) === m ? 'selected' : ''}>${m} phút</option>`).join('');
+  return `
+    <li class="flex flex-wrap items-center justify-between gap-2 list-none -ml-5">
+      <span class="font-semibold">${escapeHtml(`${s.dayName} ${s.startTime}`)}</span>
+      <select data-slot-duration="${s.slotId}" aria-label="Độ dài ca ${escapeHtml(`${s.dayName} ${s.startTime}`)}"
+        class="px-2.5 py-1.5 rounded-lg border border-outline-variant bg-surface text-body-sm">
+        <option value="" ${s.durationMinutes ? '' : 'selected'}>Chọn độ dài ca</option>${options}
+      </select>
+    </li>`;
+}
+
+function renderDirect() {
+  const listEl = $('directList');
+  if (!listEl || !directLoaded) return;
+
+  const pending = directRequests.filter(r => r.status === 'PENDING').length;
+  const badge = $('directPendingBadge');
+  if (badge) {
+    badge.textContent = pending;
+    badge.title = `${pending} yêu cầu kết nối đang chờ bạn phản hồi`;
+    badge.classList.toggle('hidden', pending === 0);
+  }
+
+  const filtered = directRequests.filter(r =>
+    directFilter === 'HISTORY' ? DIRECT_HISTORY.includes(r.status) : r.status === directFilter);
+  const paged = pageSlice(filtered, directPage);
+  directPage = paged.page;
+  renderPager('directPager', filtered.length, directPage, (p) => {
+    directPage = p;
+    renderDirect();
+    scrollToList('directList');
+  });
+
+  if (!filtered.length) {
+    const emptyText = directFilter === 'PENDING'
+      ? 'Chưa có yêu cầu kết nối nào đang chờ bạn phản hồi.'
+      : directFilter === 'ACCEPTED' ? 'Bạn chưa đồng ý kết nối trực tiếp với học viên nào.' : 'Chưa có yêu cầu nào trong mục này.';
+    listEl.innerHTML = `
+      <div class="bg-surface-container-lowest rounded-2xl p-6 text-center shadow-sm border border-outline-variant/30 text-body-sm text-on-surface-variant">
+        ${emptyText}
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = paged.items.map(r => {
+    const name = escapeHtml(r.partnerName || 'Học viên');
+    const avatarSrc = r.partnerAvatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
+    const badgeCls = r.status === 'PENDING' ? 'bg-amber-100 text-amber-800'
+      : r.status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-800'
+      : r.status === 'DECLINED' ? 'bg-error-container text-error' : 'bg-surface-container text-on-surface-variant';
+    const slotsHtml = (r.slots || []).map(s => `
+      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-fixed text-primary text-caption font-semibold">
+        <span class="material-symbols-outlined text-[14px]">event_repeat</span>${escapeHtml(slotText(s))}
+      </span>`).join('');
+
+    let actionsHtml = '';
+    if (r.status === 'PENDING') {
+      actionsHtml = `
+        <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-outline-variant/40">
+          <button type="button" class="btn-direct-accept px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all" data-id="${r.requestId}">
+            <span class="material-symbols-outlined text-[18px]">handshake</span><span>Đồng ý kết nối</span>
+          </button>
+          <button type="button" class="btn-direct-decline px-4 py-2 rounded-xl bg-surface-container hover:bg-error-container hover:text-error text-on-surface text-label-md font-semibold inline-flex items-center gap-1.5 transition-all" data-id="${r.requestId}">
+            <span class="material-symbols-outlined text-[18px]">cancel</span><span>Từ chối</span>
+          </button>
+          <span class="ml-auto">${responseDeadlineHtml(directDeadline(r))}</span>
+        </div>`;
+    } else if (r.status === 'ACCEPTED') {
+      const openClass = openClassByLearner.get(String(r.learnerId));
+      actionsHtml = openClass ? `
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          <span class="text-body-sm text-emerald-900 font-medium [overflow-wrap:anywhere]">Đã tạo lớp học <strong>${escapeHtml(openClass.title || '')}</strong> với học viên này.</span>
+          <a href="/tutor/classrooms?space=${encodeURIComponent(openClass.spaceId)}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm no-underline">
+            <span class="material-symbols-outlined text-[18px]">arrow_forward</span><span>Vào lớp học</span>
+          </a>
+        </div>` : `
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200/60">
+          <span class="text-body-sm text-emerald-900 font-medium">Đã kết nối. Hãy tạo lớp học và xếp lịch theo các ca học viên đã chọn.</span>
+          <a href="/tutor/classrooms?taoLop=1&learnerId=${encodeURIComponent(r.learnerId || '')}" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-label-md font-semibold inline-flex items-center gap-1.5 shadow-sm no-underline">
+            <span class="material-symbols-outlined text-[18px]">add_circle</span><span>Tạo lớp học</span>
+          </a>
+        </div>`;
+    } else if (r.responseMessage) {
+      actionsHtml = `<div class="text-caption text-on-surface-variant">Lý do: ${escapeHtml(r.responseMessage)}</div>`;
+    }
+
+    return `
+      <div class="bg-surface-container-lowest rounded-2xl p-5 sm:p-6 shadow-sm border border-outline-variant/40 hover:border-primary/40 transition-all space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <img src="${avatarSrc}" alt="${name}" class="w-12 h-12 rounded-2xl object-cover ring-2 ring-surface-container shrink-0">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-title-md font-bold text-on-surface">${name}</h3>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary-fixed text-primary">Kết nối trực tiếp</span>
+              </div>
+              <p class="text-caption text-on-surface-variant mt-0.5">${(r.slots || []).length} ca mỗi tuần${courseRangeText(r)} • Không qua học thử</p>
+            </div>
+          </div>
+          <span class="self-start sm:self-center px-2.5 py-1 rounded-full text-caption font-bold ${badgeCls}">${escapeHtml(r.statusLabel || '')}</span>
+        </div>
+        <div class="flex flex-wrap gap-2">${slotsHtml}</div>
+        ${(r.currentLevel || r.learningGoals) ? `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 text-body-sm">
+            ${r.currentLevel ? `<div class="text-on-surface-variant">Trình độ hiện tại: <strong class="text-on-surface">${escapeHtml(r.currentLevel)}</strong></div>` : ''}
+            ${r.learningGoals ? `<div class="text-on-surface-variant">Mục tiêu: <span class="text-on-surface font-medium">${escapeHtml(r.learningGoals)}</span></div>` : ''}
+          </div>` : ''}
+        ${r.initialMessage ? `<div class="text-body-sm text-on-surface-variant bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/30 italic">"${escapeHtml(r.initialMessage)}"</div>` : ''}
+        ${r.slotWarning ? `<div class="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-body-sm text-amber-900"><span class="material-symbols-outlined text-[18px] text-amber-600 shrink-0">warning</span><span>${escapeHtml(r.slotWarning)}</span></div>` : ''}
+        ${learningModeHtml(r)}
+        ${contactHtml(r, 'Liên hệ học viên')}
+        ${actionsHtml}
+      </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('.btn-direct-accept').forEach(btn =>
+    btn.addEventListener('click', () => openDirectRespond(btn.dataset.id, 'ACCEPT')));
+  listEl.querySelectorAll('.btn-direct-decline').forEach(btn =>
+    btn.addEventListener('click', () => openDirectRespond(btn.dataset.id, 'DECLINE')));
+}
+
+function openDirectRespond(requestId, action) {
+  activeDirect = directRequests.find(r => String(r.requestId) === String(requestId));
+  if (!activeDirect) return;
+  directAction = action;
+  const accept = action === 'ACCEPT';
+  $('directRespondTitle').textContent = accept ? 'Đồng ý kết nối' : 'Từ chối yêu cầu kết nối';
+  $('directRespondSubtitle').textContent = accept
+    ? 'Chọn độ dài từng ca. Các ca sẽ được giữ cho học viên này và học viên sẽ thấy số điện thoại, email của bạn.'
+    : 'Học viên sẽ nhận được lý do bạn gửi';
+  $('directRespondIcon').textContent = accept ? 'handshake' : 'cancel';
+  $('directRespondIconWrap').className = `w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accept ? 'bg-primary-fixed text-primary' : 'bg-error-container text-error'}`;
+  $('directRespondLearner').textContent = activeDirect.partnerName || 'Học viên';
+  // Đồng ý yêu cầu chỉ có ca hằng tuần: gia sư chọn độ dài từng ca
+  const pickDurations = accept && !(activeDirect.sessions || []).length && (activeDirect.slots || []).length > 0;
+  if (pickDurations) {
+    const request = activeDirect;
+    myPriceItems(request.tutorId).then(items => {
+      const minutes = suggestedMinutes(items, request.learningGoals);
+      if (!minutes || activeDirect !== request) return;
+      document.querySelectorAll('#directRespondSlots [data-slot-duration]').forEach(sel => { if (!sel.value) sel.value = String(minutes); });
+    });
+  }
+  $('directRespondSlots').innerHTML = (activeDirect.slots || [])
+    .map(s => pickDurations ? durationPickerHtml(s) : `<li>${escapeHtml(slotText(s))}</li>`).join('')
+    + ((activeDirect.sessions || []).length
+      ? `<li class="font-semibold">${activeDirect.sessions.length} buổi: ${activeDirect.sessions.map(s => {
+          const [, m, d] = String(s.date).split('-');
+          return `${d}/${m}`;
+        }).join(', ')}</li>`
+      : '');
+  $('directRespondMessageLabel').textContent = accept ? 'Lời nhắn gửi học viên (tùy chọn)' : 'Lý do từ chối';
+  const msg = $('directRespondMessage');
+  msg.value = '';
+  msg.placeholder = accept ? 'Ví dụ: Chào em, thầy sẽ tạo lớp và gửi tài liệu trước buổi đầu tiên.' : 'Ví dụ: Ca này thầy vừa kín lịch, em có thể chọn ca khác giúp thầy nhé.';
+  const btn = $('btnSubmitDirectRespond');
+  btn.className = `px-5 py-2.5 rounded-xl text-label-md font-semibold inline-flex items-center gap-2 shadow-sm transition-all ${accept ? 'bg-primary hover:bg-primary-container text-on-primary' : 'bg-error hover:opacity-90 text-on-error'}`;
+  $('btnSubmitDirectRespondText').textContent = accept ? 'Xác nhận đồng ý' : 'Xác nhận từ chối';
+  $('modalDirectRespond').classList.remove('hidden');
+}
+
+async function submitDirectRespond() {
+  if (!activeDirect || !directAction) return;
+  const message = $('directRespondMessage').value.trim();
+  if (directAction === 'DECLINE' && !message) {
+    showToast('Vui lòng nhập lý do từ chối để học viên biết.', 'error');
+    $('directRespondMessage').focus();
+    return;
+  }
+  // Độ dài từng ca gia sư chọn (chỉ khi đồng ý yêu cầu có ca hằng tuần)
+  const pickers = [...document.querySelectorAll('#directRespondSlots [data-slot-duration]')];
+  if (directAction === 'ACCEPT' && pickers.some(sel => !sel.value)) {
+    showToast('Vui lòng chọn độ dài cho từng ca học.', 'error');
+    pickers.find(sel => !sel.value).focus();
+    return;
+  }
+  const slotDurations = directAction === 'ACCEPT' && pickers.length
+    ? pickers.map(sel => ({ slotId: sel.dataset.slotDuration, durationMinutes: Number(sel.value) }))
+    : null;
+  const btn = $('btnSubmitDirectRespond');
+  const btnText = $('btnSubmitDirectRespondText');
+  const original = btnText.textContent;
+  btn.disabled = true;
+  btnText.textContent = 'Đang xử lý...';
+  try {
+    await API.connectionRequests.respond(activeDirect.requestId, { action: directAction, message: message || null, slotDurations });
+    const accepted = directAction === 'ACCEPT';
+    closeModals();
+    showToast(accepted ? 'Đã đồng ý kết nối. Bạn có thể tạo lớp học cho học viên.' : 'Đã từ chối yêu cầu kết nối.');
+    await Promise.all([loadDirect(), loadBookings()]);
+  } catch (err) {
+    showToast(err.message || 'Không thể xử lý yêu cầu lúc này. Vui lòng thử lại.', 'error');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = original;
+  }
+}
+
+async function loadDirect() {
+  const listEl = $('directList');
+  try {
+    const res = await API.connectionRequests.getMyRequests('ALL', 0, 100);
+    directRequests = sortDirect(res?.items || [], 'tutor');
+    directLoaded = true;
+    renderDirect();
+  } catch (err) {
+    console.error('Lỗi tải yêu cầu kết nối trực tiếp:', err);
+    if (listEl) {
+      listEl.innerHTML = `
+        <div class="bg-surface-container-lowest rounded-2xl p-6 text-center shadow-sm border border-outline-variant/30 text-body-sm text-on-surface-variant">
+          ${escapeHtml(err.message || 'Không thể tải yêu cầu kết nối. Vui lòng thử lại sau.')}
+        </div>`;
+    }
+  }
+}
+
+function initDirectEvents() {
+  const tabBtns = document.querySelectorAll('#directTabs .direct-tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => {
+        b.className = 'direct-tab-btn px-3 py-1.5 rounded-xl text-on-surface-variant hover:bg-surface-container transition-all';
+      });
+      btn.className = 'direct-tab-btn px-3 py-1.5 rounded-xl bg-primary text-on-primary transition-all';
+      directFilter = btn.dataset.status;
+      directPage = 0;
+      renderDirect();
+    });
+  });
+  $('btnSubmitDirectRespond')?.addEventListener('click', submitDirectRespond);
+  $('btnRefresh')?.addEventListener('click', loadDirect);
+}
+
+/**
+ * Tải danh sách yêu cầu học thử từ máy chủ
+ */
+async function loadBookings() {
+  setVisible($('loadingState'), true);
+  setVisible($('errorState'), false);
+  setVisible($('emptyState'), false);
+  setVisible($('bookingsList'), false);
+
+  try {
+    const [res, classrooms] = await Promise.all([
+      API.trialBookings.getMyRequests('ALL', 0, 100),
+      API.classrooms.list().catch(() => [])
+    ]);
+    bookingsList = sortTrials(res?.items || res?.content || res?.data?.items || res?.data?.content || (Array.isArray(res) ? res : []), 'tutor');
+    openClassByLearner = new Map((Array.isArray(classrooms) ? classrooms : [])
+      .filter(c => c.status === 'ACTIVE' || c.status === 'PAUSED')
+      .map(c => [String(c.learnerId), c]));
+
+    updateCounts();
+    renderBookings();
+    renderDirect(); // cập nhật nút "Tạo lớp / Vào lớp" theo danh sách lớp mới nhất
+  } catch (err) {
+    console.error('Lỗi tải danh sách yêu cầu kết nối:', err);
+    $('errorMessage').textContent = err instanceof ApiError ? err.message : 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
+    setVisible($('errorState'), true);
+  } finally {
+    setVisible($('loadingState'), false);
+  }
+}
+
+/**
+ * Khởi tạo sự kiện chung trên trang
+ */
+function initEvents() {
+  // Tabs lọc trạng thái
+  const tabBtns = document.querySelectorAll('#statusTabs .tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => {
+        b.className = 'tab-btn px-4 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all flex items-center gap-1.5';
+      });
+      btn.className = 'tab-btn px-4 py-2 rounded-xl bg-primary text-on-primary shadow-xs transition-all flex items-center gap-1.5';
+
+      currentFilter = btn.dataset.status;
+      bookingsPage = 0;
+      renderBookings();
+    });
+  });
+
+  // Nút làm mới & thử lại
+  $('btnRefresh')?.addEventListener('click', loadBookings);
+  $('btnRetry')?.addEventListener('click', loadBookings);
+
+  // Đóng modal
+  document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', closeModals);
+  });
+
+  // Tạo link Meet mẫu
+  $('btnQuickSampleMeet')?.addEventListener('click', () => {
+    const randPart = () => Math.random().toString(36).substring(2, 6);
+    const sampleLink = `https://meet.google.com/kzt-${randPart()}-${randPart()}`;
+    $('acceptMeetingLink').value = sampleLink;
+    $('acceptMeetingLink').classList.remove('has-error');
+    $('acceptMeetingLinkError').classList.add('hidden');
+  });
+
+  // Đổi lựa chọn lý do từ chối
+  $('declineReasonSelect')?.addEventListener('change', (e) => {
+    const isCustom = e.target.value === 'Khác';
+    $('declineCustomReason').classList.toggle('hidden', !isCustom);
+    if (isCustom) $('declineCustomReason').focus();
+  });
+
+  // Gửi xác nhận Chấp nhận (ACCEPT)
+  $('btnSubmitAccept')?.addEventListener('click', async () => {
+    if (!activeBooking) return;
+
+    const meetInput = $('acceptMeetingLink');
+    const meetingLink = meetInput.value.trim();
+    const note = $('acceptNote').value.trim();
+
+    if (!meetingLink) {
+      meetInput.classList.add('has-error');
+      const errEl = $('acceptMeetingLinkError');
+      errEl.textContent = 'Vui lòng nhập đường link Google Meet để hai bên gặp gỡ.';
+      errEl.classList.remove('hidden');
+      meetInput.focus();
+      return;
+    }
+
+    const btn = $('btnSubmitAccept');
+    const btnText = $('btnSubmitAcceptText');
+    btn.disabled = true;
+    btnText.textContent = 'Đang xử lý...';
+
+    try {
+      await API.trialBookings.respond(activeBooking.bookingId, {
+        action: 'ACCEPT',
+        meetingLink: meetingLink,
+        note: note || null
+      });
+
+      closeModals();
+      showToast('Đã chấp nhận lịch học thử thành công! Link Google Meet đã được gửi cho học viên.');
+      await loadBookings();
+    } catch (err) {
+      showToast(err.message || 'Không thể chấp nhận yêu cầu lúc này', 'error');
+    } finally {
+      btn.disabled = false;
+      btnText.textContent = 'Xác nhận chấp nhận';
+    }
+  });
+
+  // Gửi xác nhận Từ chối (DECLINE)
+  $('btnSubmitDecline')?.addEventListener('click', async () => {
+    if (!activeBooking) return;
+
+    const select = $('declineReasonSelect');
+    let reason = select.value;
+    if (reason === 'Khác') {
+      const customVal = $('declineCustomReason').value.trim();
+      reason = customVal || 'Bận việc đột xuất không thể sắp xếp ca học';
+    }
+
+    const btn = $('btnSubmitDecline');
+    const btnText = $('btnSubmitDeclineText');
+    btn.disabled = true;
+    btnText.textContent = 'Đang xử lý...';
+
+    try {
+      await API.trialBookings.respond(activeBooking.bookingId, {
+        action: 'DECLINE',
+        declineReason: reason
+      });
+
+      closeModals();
+      showToast('Đã từ chối yêu cầu học thử.');
+      await loadBookings();
+    } catch (err) {
+      showToast(err.message || 'Không thể từ chối yêu cầu lúc này', 'error');
+    } finally {
+      btn.disabled = false;
+      btnText.textContent = 'Xác nhận từ chối';
+    }
+  });
+
+  // Gửi xác nhận Hoàn thành buổi học (COMPLETE)
+  $('btnSubmitComplete')?.addEventListener('click', async () => {
+    if (!activeCompleteBooking) return;
+    const btn = $('btnSubmitComplete');
+    const btnText = $('btnSubmitCompleteText');
+    btn.disabled = true;
+    if (btnText) btnText.textContent = 'Đang xử lý...';
+
+    try {
+      await API.trialBookings.complete(activeCompleteBooking.bookingId);
+      closeModals();
+      showToast('Đã xác nhận hoàn thành buổi học thành công!');
+      await loadBookings();
+    } catch (err) {
+      showToast(err.message || 'Không thể hoàn thành buổi học lúc này', 'error');
+    } finally {
+      btn.disabled = false;
+      if (btnText) btnText.textContent = 'Xác nhận hoàn thành';
+    }
+  });
+}
+
+// Khởi chạy khi tài liệu sẵn sàng
+mountTutorLayout('connections');
+
+// Tải thông tin hồ sơ gia sư để đồng bộ Sidebar & Topbar
+API.tutorVerification.getMine()
+  .then(data => {
+    if (data?.profile) {
+      setTutorIdentity({
+        fullName: data.profile.fullName,
+        jlptLevel: data.profile.highestJlptLevel,
+        statusLabel: data.statusLabel
+      });
+    }
+  })
+  .catch(() => {});
+
+// ---------------------------------------------------------------- Chọn loại yêu cầu: Học thử | Kết nối trực tiếp
+const TYPE_ACTIVE = 'type-btn px-4 py-2.5 rounded-xl bg-surface-container-lowest text-on-surface shadow-xs font-bold text-label-md flex items-center gap-2 cursor-pointer';
+const TYPE_IDLE = 'type-btn px-4 py-2.5 rounded-xl text-on-surface-variant hover:text-on-surface font-semibold text-label-md flex items-center gap-2 cursor-pointer';
+
+function switchType(type) {
+  const isDirect = type === 'direct';
+  document.querySelectorAll('#typeTabs .type-btn').forEach(b => {
+    b.className = b.dataset.type === type ? TYPE_ACTIVE : TYPE_IDLE;
+  });
+  setVisible($('trialPanel'), !isDirect);
+  setVisible($('directPanel'), isDirect);
+  // Ghi nhớ tab trên URL để tải lại trang vẫn mở đúng tab
+  const url = new URL(window.location.href);
+  url.searchParams.set('tab', isDirect ? 'direct' : 'trial');
+  window.history.replaceState(null, '', url);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('#typeTabs .type-btn').forEach(btn =>
+    btn.addEventListener('click', () => switchType(btn.dataset.type)));
+  switchType(new URLSearchParams(window.location.search).get('tab') === 'direct' ? 'direct' : 'trial');
+  initEvents();
+  initDirectEvents();
+  loadDirect();
+  loadBookings();
+});
+

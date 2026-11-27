@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lịch sử thi - KizunaTutor</title>
+  <link rel="icon" type="image/png" href="/assets/logos/kizuna-logo.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/practice.css?v=20261117">
+  <style id="practice-history-style">
+    .ph-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .ph-head h1{font-size:26px;line-height:34px;font-weight:800;color:#0F172A;margin:0}
+    .pl-history{display:flex;flex-direction:column;gap:8px}
+    .pl-attempt{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 16px;border:1px solid #E2E8F0;border-radius:14px;background:#fff;text-decoration:none;color:inherit}
+    .pl-attempt:hover{border-color:#BAE6FD;background:#F0F9FF}
+    .pl-attempt strong{color:#0F172A;font-size:15px}
+    .pl-attempt small{display:block;color:#64748B;font-size:12px;margin-top:2px}
+    .pl-score{font-weight:800;font-size:18px;color:#0F172A;text-align:right}
+    .pl-score small{font-weight:600}
+    @media(max-width:860px){.pl-attempt{grid-template-columns:minmax(0,1fr) auto}.pl-attempt .pl-go{display:none}}
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-[#334155] antialiased" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif">
+  <div class="flex h-screen overflow-hidden bg-[#F8FAFC]">
+    <div id="learnerSidebarContainer"></div>
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div id="learnerHeaderContainer"></div>
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-6xl mx-auto">
+        <div data-practice-page="history" class="flex flex-col gap-5">
+          <div class="ph-head">
+            <div class="flex items-center gap-3">
+              <a href="/learner/practice" class="pr-btn" aria-label="Về Luyện đề"><span class="material-symbols-outlined">arrow_back</span></a>
+              <h1>Lịch sử thi</h1>
+            </div>
+            <span id="historyCount" class="text-[14px] text-[#64748B]"></span>
+          </div>
+          <section class="pr-card flex flex-col gap-4">
+            <div id="historyList" class="pl-history"><p class="pr-empty">Đang tải…</p></div>
+            <div id="historyPaginationContainer" class="mt-2"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="/components/learner-layout/learner-layout.js"></script>
+  <script type="module" src="/pages/practice-history/practice-history.js"></script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+package com.kizuna.features.booking.dto.response;
+
+import lombok.*;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
+/** Yêu cầu kết nối trực tiếp, nhìn từ phía người đang xem (học viên hoặc gia sư). */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ConnectionRequestResponseDTO {
+
+    private UUID requestId;
+
+    private UUID tutorId;
+    private String tutorName;
+    private UUID learnerId;
+
+    // Đối tác: học viên xem thì là gia sư, gia sư xem thì là học viên
+    private UUID partnerId;
+    private String partnerName;
+    private String partnerAvatarUrl;
+    private String partnerRole;
+
+    private List<SlotView> slots;
+    /** Các buổi học cụ thể (rỗng với yêu cầu cũ chỉ có ca hằng tuần). */
+    private List<SessionView> sessions;
+    private Integer totalSessions;
+    /** Ngày buổi đầu / buổi cuối (null với yêu cầu cũ). */
+    private java.time.LocalDate startDate;
+    private java.time.LocalDate endDate;
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class SessionView {
+        private java.time.LocalDate date;
+        private Integer dayOfWeek;
+        private String dayName;
+        /** "HH:mm" */
+        private String startTime;
+        private String endTime;
+    }
+
+    /** ONLINE | OFFLINE */
+    private String learningMode;
+    private String locationDetails;
+
+    private String currentLevel;
+    private String learningGoals;
+    private String initialMessage;
+    private String responseMessage;
+
+    private String status;
+    /** Nhãn tiếng Việt: "Chờ gia sư xác nhận", "Đã kết nối", "Đã từ chối", "Đã hủy"... */
+    private String statusLabel;
+
+    private OffsetDateTime createdAt;
+    private OffsetDateTime respondedAt;
+
+
+    /** Cho gia sư: ca nào trong yêu cầu đang chờ đã bị lịch đã chấp nhận chiếm (null nếu không có). */
+    private String slotWarning;
+
+    /**
+     * Liên hệ của người bên kia: gia sư xem liên hệ học viên (trừ khi đã từ chối / hủy / hết hạn);
+     * học viên xem liên hệ gia sư khi gia sư đã đồng ý. Null nếu chưa được xem.
+     */
+    private String partnerEmail;
+    private String partnerPhone;
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class SlotView {
+        /** Gia sư gửi kèm khi đồng ý để chọn độ dài từng ca */
+        private java.util.UUID slotId;
+        /** 1 = Chủ nhật, 2 = Thứ Hai ... 7 = Thứ Bảy */
+        private Integer dayOfWeek;
+        private String dayName;
+        /** "HH:mm" */
+        private String startTime;
+        /** null khi gia sư chưa đồng ý (chưa chọn độ dài ca) */
+        private String endTime;
+        private Integer durationMinutes;
+    }
+}

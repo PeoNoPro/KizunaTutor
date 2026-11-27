@@ -1,0 +1,139 @@
+package com.kizuna.features.learning_support;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kizuna.features.admin.service.SystemSettingService;
+import org.mockito.Mockito;
+import com.kizuna.features.learning_support.dto.AiWritingCheckRequest;
+import com.kizuna.features.learning_support.dto.AiWritingCheckResponse;
+import com.kizuna.features.learning_support.dto.AiWritingPromptDto;
+import com.kizuna.features.learning_support.service.impl.AiWritingServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class AiWritingServiceTest {
+
+    private AiWritingServiceImpl aiWritingService;
+
+    @BeforeEach
+    void setUp() {
+        // Cấu hình AI giờ đọc từ trang Cấu hình (FE-11); test không có API key nên luôn chạy bộ chấm dự phòng.
+        SystemSettingService settings = Mockito.mock(SystemSettingService.class);
+        Mockito.when(settings.aiChoice()).thenReturn(new SystemSettingService.AiChoice("GEMINI", "gemini-2.5-flash", "", ""));
+        aiWritingService = new AiWritingServiceImpl(new ObjectMapper(), settings);
+    }
+
+    @Test
+    @DisplayName("Kiểm tra bộ đánh giá câu tiếng Nhật dự phòng nhận diện lỗi trợ từ chính xác")
+    void testFallbackEvaluation_detectsParticleError() {
+        AiWritingCheckRequest request = AiWritingCheckRequest.builder()
+                .text("私わ昨日寿司を食べました。")
+                .jlptLevel("N5")
+                .formality("POLITE")
+                .build();
+
+        AiWritingCheckResponse response = aiWritingService.checkWriting(request);
+
+        assertNotNull(response);
+        assertNotNull(response.getCorrectedText());
+        assertTrue(response.getScore() > 0 && response.getScore() <= 100);
+        assertFalse(response.getErrors().isEmpty(), "Phải phát hiện lỗi trợ từ '私わ'");
+        assertEquals("Trợ từ", response.getErrors().get(0).getErrorType());
+        assertFalse(response.getSuggestedVocabulary().isEmpty(), "Phải có gợi ý từ vựng");
+    }
+
+    @Test
+    @DisplayName("Lấy danh sách mẫu câu gợi ý theo cấp độ JLPT")
+    void testGetGrammarPrompts() {
+        List<AiWritingPromptDto> promptsN5 = aiWritingService.getGrammarChallengePrompts("N5");
+        assertNotNull(promptsN5);
+        assertFalse(promptsN5.isEmpty());
+        assertEquals("N5", promptsN5.get(0).getLevel());
+        assertNotNull(promptsN5.get(0).getGrammarPattern());
+
+        List<AiWritingPromptDto> promptsN4 = aiWritingService.getGrammarChallengePrompts("N4");
+        assertNotNull(promptsN4);
+        assertFalse(promptsN4.isEmpty());
+        assertEquals("N4", promptsN4.get(0).getLevel());
+    }
+
+    @Test
+    @DisplayName("UTCID03 (Abnormal): Văn bản rỗng / khoảng trắng -> Trả điểm 0 và thông báo yêu cầu nhập bài")
+    void testFallbackEvaluation_whenBlankOrEmptyText_shouldReturnScoreZero() {
+        AiWritingCheckRequest request = AiWritingCheckRequest.builder()
+                .text("   ")
+                .jlptLevel("N5")
+                .formality("POLITE")
+                .build();
+
+        AiWritingCheckResponse response = aiWritingService.checkWriting(request);
+
+        assertNotNull(response);
+        assertEquals(0, response.getScore());
+        assertTrue(response.getErrors().isEmpty());
+        assertTrue(response.getSuggestedVocabulary().isEmpty());
+        assertTrue(response.getNativeAlternatives().isEmpty());
+        assertEquals("Vui lòng nhập văn bản tiếng Nhật cần đánh giá.", response.getOverallComment());
+    }
+
+    @Test
+    @DisplayName("UTCID04 (Negative): Nhập linh tinh không có nghĩa (gibberish/keyboard smash) -> Điểm 0, phát cảnh báo nội dung vô nghĩa")
+    void testGibberishInput_shouldReturnZeroScoreAndWarning() {
+        AiWritingCheckRequest request = AiWritingCheckRequest.builder()
+                .text("asdfghjk")
+                .jlptLevel("N5")
+                .formality("POLITE")
+                .build();
+
+        AiWritingCheckResponse response = aiWritingService.checkWriting(request);
+
+        assertNotNull(response);
+        assertEquals(0, response.getScore());
+        assertTrue(response.getRatingBadge().contains("Cảnh báo") || response.getRatingBadge().contains("vô nghĩa"));
+        assertTrue(response.getOverallComment().contains("Cảnh báo") || response.getOverallComment().contains("vô nghĩa"));
+        assertFalse(response.getErrors().isEmpty());
+        assertEquals("Nội dung vô nghĩa", response.getErrors().get(0).getErrorType());
+    }
+
+    @Test
+    @DisplayName("UTCID05 (Negative): Nhập văn bản không phải tiếng Nhật (tiếng Việt/tiếng Anh) -> Nhắc nhở và trừ điểm nặng")
+    void testNonJapaneseInput_shouldReturnReminderAndLowScore() {
+        AiWritingCheckRequest request = AiWritingCheckRequest.builder()
+                .text("Tôi là sinh viên đại học.")
+                .jlptLevel("N5")
+                .formality("POLITE")
+                .build();
+
+        AiWritingCheckResponse response = aiWritingService.checkWriting(request);
+
+        assertNotNull(response);
+        assertTrue(response.getScore() <= 20, "Điểm khi không nhập tiếng Nhật phải <= 20");
+        assertTrue(response.getRatingBadge().contains("tiếng Nhật") || response.getRatingBadge().contains("ngôn ngữ"));
+        assertTrue(response.getOverallComment().contains("Nhắc nhở") || response.getOverallComment().contains("tiếng Nhật"));
+        assertFalse(response.getErrors().isEmpty());
+        assertEquals("Ngôn ngữ chưa phù hợp", response.getErrors().get(0).getErrorType());
+    }
+
+    @Test
+    @DisplayName("UTCID06 (Normal): Ký tự lỗi gõ sai chữ nhỏ âm ghép (とうきよう) -> Báo lỗi ký tự và trừ điểm")
+    void testTypoCharacterError_shouldDetectAndDeductScore() {
+        AiWritingCheckRequest request = AiWritingCheckRequest.builder()
+                .text("明日とうきようへ行きます。")
+                .jlptLevel("N5")
+                .formality("POLITE")
+                .build();
+
+        AiWritingCheckResponse response = aiWritingService.checkWriting(request);
+
+        assertNotNull(response);
+        assertTrue(response.getScore() < 96, "Điểm phải bị trừ do lỗi ký tự");
+        boolean hasCharError = response.getErrors().stream()
+                .anyMatch(e -> e.getErrorType().contains("Ký tự lỗi") || e.getErrorType().contains("chính tả"));
+        assertTrue(hasCharError, "Phải phát hiện lỗi ký tự âm ghép とうきよう");
+        assertTrue(response.getCorrectedText().contains("とうきょう"));
+    }
+}

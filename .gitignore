@@ -68,3 +68,33 @@ secrets/
 # OS
 Thumbs.db
 .DS_Store
+
+# Environment
+.env
+.env.local
+
+# Backend
+backend/target/
+backend/*.log
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+frontend/build/
+frontend/kanjivg/
+
+# AI Service
+ai-service/__pycache__/
+ai-service/*.pyc
+ai-service/.venv/
+ai-service/venv/
+
+# FE-03: thu muc luu giay to xac minh gia su (khong dua len git)
+kizuna-data/
+
+# Git Worktrees
+.worktrees/
+worktrees/
+

@@ -1,4 +1,4 @@
-# Quickstart: FE-16 — Nộp lại sau 7 ngày bị từ chối
+# Quickstart: FE-16 — Nộp lại sau 3 ngày bị từ chối
 
 ## 1. Kiểm tra tự động
 
@@ -11,7 +11,7 @@ node --test "frontend/tests/*.test.mjs"
 
 ## 2. Kiểm tra thủ công (backend 8085, frontend 3000)
 
-Không có DB test; để thử thời gian chờ mà không đợi 7 ngày, dùng một tài khoản gia sư thử và **chỉ trên dữ liệu thử** lùi mốc từ chối bằng DBeaver (người phụ trách tự chạy):
+Không có DB test; để thử thời gian chờ mà không đợi 3 ngày, dùng một tài khoản gia sư thử và **chỉ trên dữ liệu thử** lùi mốc từ chối bằng DBeaver (người phụ trách tự chạy):
 
 ```sql
 -- Hồ sơ: lùi dòng từ chối mới nhất của gia sư thử 8 ngày

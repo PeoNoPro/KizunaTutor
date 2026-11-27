@@ -313,7 +313,7 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
     public TutorVerificationResponse submit(SubmitVerificationRequest request) {
         Tutor tutor = tutorRepository.findLockedByUserId(currentUserId())
                 .orElseThrow(VerificationException::notFound);
-        // FE-16: hồ sơ bị từ chối được nộp lại khi đã hết thời gian chờ 7 ngày
+        // FE-16: hồ sơ bị từ chối được nộp lại khi đã hết thời gian chờ 3 ngày
         OffsetDateTime resubmitAvailableAt = VerificationStateMachine.resubmitAvailableAt(tutor, historyRepository);
         OffsetDateTime now = OffsetDateTime.now();
         VerificationStateMachine.requireEditable(tutor, resubmitAvailableAt, now);
@@ -356,7 +356,7 @@ public class TutorVerificationServiceImpl implements TutorVerificationService {
         Tutor tutor = tutorRepository.findLockedByUserId(currentUserId())
                 .orElseThrow(VerificationException::notFound);
         if (!isApproved(tutor)) {
-            // FE-16: hồ sơ bị từ chối mở lại sau 7 ngày
+            // FE-16: hồ sơ bị từ chối mở lại sau 3 ngày
             VerificationStateMachine.requireEditable(tutor,
                     VerificationStateMachine.resubmitAvailableAt(tutor, historyRepository), OffsetDateTime.now());
         }

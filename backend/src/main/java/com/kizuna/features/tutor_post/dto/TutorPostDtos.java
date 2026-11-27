@@ -55,7 +55,7 @@ public final class TutorPostDtos {
      */
     /**
      * editable = được soạn và gửi: chưa có bài, cán bộ học vụ yêu cầu bổ sung, sửa bài đã duyệt,
-     * hoặc bài đầu tiên bị từ chối đã quá 7 ngày (và gói còn hạn).
+     * hoặc bài đầu tiên bị từ chối đã quá 3 ngày (và gói còn hạn).
      * resubmitAvailableAt (FE-16) = thời điểm được gửi bài mới khi bài đầu tiên bị từ chối; null ở các trường hợp khác.
      */
     public record MyPostView(boolean canPost, String blockedReason, boolean editable, OffsetDateTime resubmitAvailableAt,

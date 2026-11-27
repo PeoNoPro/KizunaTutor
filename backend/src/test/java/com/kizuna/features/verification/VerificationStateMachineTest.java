@@ -212,7 +212,7 @@ class VerificationStateMachineTest {
                         tutor(TutorVerificationStatus.REJECTED, TutorState.REJECTED))).getCode());
     }
 
-    // ===== FE-16: hồ sơ bị từ chối mở lại sau 7 ngày =====
+    // ===== FE-16: hồ sơ bị từ chối mở lại sau 3 ngày =====
 
     @Test
     void fe16_rejectedProfileLockedBeforeCooldownEndsWithResubmitTime() {
@@ -258,14 +258,14 @@ class VerificationStateMachineTest {
     }
 
     @Test
-    void fe16_resubmitTimeIsLatestRejectionPlusSevenDays() {
+    void fe16_resubmitTimeIsLatestRejectionPlusThreeDays() {
         Tutor tutor = tutor(TutorVerificationStatus.REJECTED, TutorState.REJECTED);
         java.time.OffsetDateTime rejectedAt = java.time.OffsetDateTime.parse("2026-11-20T08:30:00+07:00");
         when(historyRepository.findFirstByTutor_TutorIdAndActionInOrderByCreatedAtDesc(eq(tutor.getTutorId()), any()))
                 .thenReturn(java.util.Optional.of(TutorVerificationHistory.builder()
                         .action(TutorVerifAction.REJECT).createdAt(rejectedAt).build()));
 
-        assertEquals(rejectedAt.plusDays(7), VerificationStateMachine.resubmitAvailableAt(tutor, historyRepository));
+        assertEquals(rejectedAt.plusDays(3), VerificationStateMachine.resubmitAvailableAt(tutor, historyRepository));
         assertNull(VerificationStateMachine.resubmitAvailableAt(
                 tutor(TutorVerificationStatus.APPROVED, TutorState.APPROVED_UNPAID), historyRepository));
     }

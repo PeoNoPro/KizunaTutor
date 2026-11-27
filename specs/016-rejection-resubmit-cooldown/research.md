@@ -1,4 +1,4 @@
-# Research: FE-16 — Nộp lại sau 7 ngày bị từ chối
+# Research: FE-16 — Nộp lại sau 3 ngày bị từ chối
 
 ## R1. Lấy thời điểm từ chối hồ sơ từ đâu?
 
@@ -14,7 +14,7 @@
 
 ## R3. Đặt quy tắc ở đâu?
 
-- **Quyết định**: hằng `RESUBMIT_COOLDOWN = Duration.ofDays(7)` và hàm tính đặt riêng trong mỗi feature: `VerificationStateMachine` (verification) và `TutorPostService` (tutor_post).
+- **Quyết định**: hằng `RESUBMIT_COOLDOWN = Duration.ofDays(3)` và hàm tính đặt riêng trong mỗi feature: `VerificationStateMachine` (verification) và `TutorPostService` (tutor_post).
 - **Lý do**: luật 3 AGENTS.md — feature không gọi thẳng nội bộ của nhau; hai feature hiện độc lập. Lặp một hằng số chấp nhận được hơn tạo phụ thuộc chéo.
 - Hàm tính nhận tham số `now` để test được mốc biên mà không cần giả lập đồng hồ.
 

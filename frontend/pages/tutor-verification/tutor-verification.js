@@ -269,7 +269,7 @@ function renderStatus(data) {
   const badge = $('statusBadge');
   badge.className = `tv-badge text-sm ${style.css}`;
   badge.innerHTML = `<span class="material-symbols-outlined text-base">${style.icon}</span>${escapeHtml(data.statusLabel)}`;
-  // FE-16: hồ sơ bị từ chối được nộp lại sau 7 ngày
+  // FE-16: hồ sơ bị từ chối được nộp lại sau 3 ngày
   $('statusHint').textContent = data.status === 'REJECTED' ? rejectedProfileHint(data) : style.hint;
   $('submittedAtText').textContent = formatDate(data.submittedAt);
   $('verifiedAtText').textContent = formatDate(data.verifiedAt);

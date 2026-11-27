@@ -30,17 +30,17 @@ public class VerificationStateMachine {
 
     /**
      * Chỉ hồ sơ chưa nộp hoặc được yêu cầu bổ sung mới chỉnh sửa/nộp được.
-     * "Bị từ chối" khóa trong 7 ngày rồi được sửa / nộp lại (FE-16, 2026-11-26; trước đó là quyết định cuối cùng).
+     * "Bị từ chối" khóa trong 3 ngày rồi được sửa / nộp lại (FE-16, 2026-11-26; trước đó là quyết định cuối cùng).
      */
     private static final Set<TutorVerificationStatus> EDITABLE = EnumSet.of(
             TutorVerificationStatus.UNVERIFIED,
             TutorVerificationStatus.ADDITIONAL_INFO_REQUIRED);
 
     /**
-     * FE-16 (2026-11-26): hồ sơ bị từ chối được sửa và nộp lại sau 7 ngày kể từ lúc cán bộ học vụ từ chối
+     * FE-16 (2026-11-26): hồ sơ bị từ chối được sửa và nộp lại sau 3 ngày kể từ lúc cán bộ học vụ từ chối
      * (specs/016-rejection-resubmit-cooldown, thay quy tắc "từ chối là cuối cùng").
      */
-    public static final Duration RESUBMIT_COOLDOWN = Duration.ofDays(7);
+    public static final Duration RESUBMIT_COOLDOWN = Duration.ofDays(3);
 
     private final TutorVerificationHistoryRepository historyRepository;
     private final TutorCredentialRepository credentialRepository;
@@ -66,7 +66,7 @@ public class VerificationStateMachine {
     }
 
     /**
-     * FE-16: thời điểm hồ sơ bị từ chối được nộp lại = lần từ chối mới nhất + 7 ngày.
+     * FE-16: thời điểm hồ sơ bị từ chối được nộp lại = lần từ chối mới nhất + 3 ngày.
      * Hồ sơ không ở trạng thái bị từ chối, hoặc không tìm thấy lần từ chối, trả null.
      * Hồ sơ bị từ chối không thể có yêu cầu cập nhật (chỉ hồ sơ đã duyệt mới gửi được), nên dòng REJECT mới nhất là lần từ chối hồ sơ.
      */
@@ -118,7 +118,7 @@ public class VerificationStateMachine {
     }
 
     /**
-     * FE-16: nộp có tính thời gian chờ: thêm "Bị từ chối (đã hết 7 ngày)" → Đang chờ thẩm định.
+     * FE-16: nộp có tính thời gian chờ: thêm "Bị từ chối (đã hết 3 ngày)" → Đang chờ thẩm định.
      */
     public TutorVerificationHistory submit(Tutor tutor, OffsetDateTime resubmitAvailableAt, OffsetDateTime now) {
         requireEditable(tutor, resubmitAvailableAt, now);

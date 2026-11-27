@@ -51,12 +51,12 @@ public class VerificationNotificationService {
         rejectedAfterCommit(toEmail, fullName, reasonLabel, feedback, null);
     }
 
-    /** FE-16: email từ chối nêu thời điểm gia sư được chỉnh sửa và nộp lại (null = nêu chung "sau 7 ngày"). */
+    /** FE-16: email từ chối nêu thời điểm gia sư được chỉnh sửa và nộp lại (null = nêu chung "sau 3 ngày"). */
     public void rejectedAfterCommit(String toEmail, String fullName, String reasonLabel, String feedback,
                                     java.time.OffsetDateTime resubmitAvailableAt) {
         String detail = feedback == null || feedback.isBlank() ? "" : "<p>Nhận xét của cán bộ học vụ: " + escape(feedback) + "</p>";
         String when = resubmitAvailableAt == null
-                ? "sau 7 ngày kể từ hôm nay"
+                ? "sau 3 ngày kể từ hôm nay"
                 : "từ " + VerificationException.formatResubmitTime(resubmitAvailableAt);
         afterCommit(toEmail, "Kết quả xét duyệt hồ sơ gia sư của bạn",
                 greeting(fullName)

@@ -1,8 +1,8 @@
 ---
-description: "Danh sách công việc triển khai FE-16 — Nộp lại sau 7 ngày bị từ chối"
+description: "Danh sách công việc triển khai FE-16 — Nộp lại sau 3 ngày bị từ chối"
 ---
 
-# Tasks: FE-16 — Nộp lại sau 7 ngày bị từ chối
+# Tasks: FE-16 — Nộp lại sau 3 ngày bị từ chối
 
 **Input**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/rejection-cooldown-api.md](contracts/rejection-cooldown-api.md), [quickstart.md](quickstart.md).
 
@@ -20,7 +20,7 @@ description: "Danh sách công việc triển khai FE-16 — Nộp lại sau 7 n
 
 ## Phase 2: Foundational
 
-- [x] T002 `VER/service/VerificationStateMachine.java`: hằng `RESUBMIT_COOLDOWN` (7 ngày), `resubmitAvailableAt(...)` từ lần từ chối mới nhất, overload `isEditable(status, availableAt, now)` / `requireEditable(tutor, availableAt, now)`; giữ hàm cũ
+- [x] T002 `VER/service/VerificationStateMachine.java`: hằng `RESUBMIT_COOLDOWN` (3 ngày), `resubmitAvailableAt(...)` từ lần từ chối mới nhất, overload `isEditable(status, availableAt, now)` / `requireEditable(tutor, availableAt, now)`; giữ hàm cũ
 - [x] T003 `VER/service/VerificationException.java`: `rejectedUntil(availableAt)` — mã `VERIFICATION_REJECTED`, lời nhắn có thời điểm
 
 ## Phase 3: User Story 1 — Nộp lại hồ sơ xác minh (P1)
@@ -28,12 +28,12 @@ description: "Danh sách công việc triển khai FE-16 — Nộp lại sau 7 n
 - [x] T004 [US1] `VER/dto/response/TutorVerificationResponse.java`: trường `resubmitAvailableAt`
 - [x] T005 [US1] `VER/service/VerificationViewAssembler.java`: trả `resubmitAvailableAt`, `editable` theo thời gian chờ; `check` bỏ giấy tờ `REJECTED`
 - [x] T006 [US1] `VER/service/impl/TutorVerificationServiceImpl.java`: sửa / giấy tờ / nộp dùng overload mới
-- [x] T007 [P] [US1] `VT/VerificationStateMachineTest.java`: cập nhật test "từ chối là cuối cùng" → trong thời gian chờ khóa, đúng mốc 7 ngày mở, không có lịch sử mở
-- [x] T008 [P] [US1] `VT/TutorVerificationServiceTest.java`: nộp lại trước / sau 7 ngày; giấy tờ bị từ chối không tính
+- [x] T007 [P] [US1] `VT/VerificationStateMachineTest.java`: cập nhật test "từ chối là cuối cùng" → trong thời gian chờ khóa, đúng mốc 3 ngày mở, không có lịch sử mở
+- [x] T008 [P] [US1] `VT/TutorVerificationServiceTest.java`: nộp lại trước / sau 3 ngày; giấy tờ bị từ chối không tính
 - [x] T009 [US1] `FE/js/verification-update-helpers.js` + `FE/tests/verification-update-helpers.test.mjs`: lời nhắc hồ sơ bị từ chối theo thời điểm
 - [x] T010 [US1] `FE/pages/tutor-verification/tutor-verification.js`: lời nhắc trạng thái, ghi chú chỉ xem, nút "Nộp lại hồ sơ"
 
-## Phase 4: User Story 2 — Gửi bài đăng mới sau 7 ngày (P1)
+## Phase 4: User Story 2 — Gửi bài đăng mới sau 3 ngày (P1)
 
 - [x] T011 [US2] `POST/dto/TutorPostDtos.java`: `MyPostView.resubmitAvailableAt`
 - [x] T012 [US2] `POST/service/TutorPostService.java`: `isEditable` theo thời gian chờ, `resubmitAvailableAt`, lời nhắn 409 có thời điểm

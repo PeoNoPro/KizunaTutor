@@ -54,8 +54,8 @@ public class TutorPostService {
     public static final String MSG_UPDATE_SUBMITTED =
             "Đã gửi bản cập nhật. Học viên vẫn thấy bài đang hiển thị cho tới khi cán bộ học vụ duyệt bản mới.";
 
-    /** FE-16: bài đầu tiên bị từ chối được thay bằng bài mới sau 7 ngày kể từ lúc từ chối. */
-    public static final java.time.Duration RESUBMIT_COOLDOWN = java.time.Duration.ofDays(7);
+    /** FE-16: bài đầu tiên bị từ chối được thay bằng bài mới sau 3 ngày kể từ lúc từ chối. */
+    public static final java.time.Duration RESUBMIT_COOLDOWN = java.time.Duration.ofDays(3);
 
     /** FE-16: lời nhắn khi gửi bài trong thời gian chờ. */
     public static String rejectedUntilMessage(OffsetDateTime availableAt) {
@@ -98,7 +98,7 @@ public class TutorPostService {
     }
 
     /**
-     * FE-16: thời điểm được gửi bài mới khi bài mới nhất bị từ chối và chưa có bản đã duyệt = lúc từ chối + 7 ngày.
+     * FE-16: thời điểm được gửi bài mới khi bài mới nhất bị từ chối và chưa có bản đã duyệt = lúc từ chối + 3 ngày.
      * Có bản đã duyệt (bản cập nhật bị từ chối) hoặc bài không có thời điểm duyệt (dữ liệu cũ) thì null = gửi được ngay.
      */
     private OffsetDateTime resubmitAvailableAt(TutorPost latest, UUID tutorId) {
@@ -122,7 +122,7 @@ public class TutorPostService {
     /**
      * Gia sư gửi được khi: chưa có bài; được yêu cầu bổ sung; bài đã duyệt (gửi bản cập nhật);
      * bản cập nhật bị từ chối nhưng vẫn còn bản đã duyệt đang hiển thị;
-     * hoặc (FE-16) bài đầu tiên bị từ chối đã quá 7 ngày. Bài đang chờ duyệt thì không gửi được.
+     * hoặc (FE-16) bài đầu tiên bị từ chối đã quá 3 ngày. Bài đang chờ duyệt thì không gửi được.
      */
     private boolean isEditable(TutorPost latest, UUID tutorId, OffsetDateTime now) {
         if (latest == null) {
@@ -236,7 +236,7 @@ public class TutorPostService {
     }
 
     /**
-     * Từ chối: bài này không gửi lại được. FE-16: chưa có bản đã duyệt thì gia sư gửi bài mới sau 7 ngày;
+     * Từ chối: bài này không gửi lại được. FE-16: chưa có bản đã duyệt thì gia sư gửi bài mới sau 3 ngày;
      * là bản cập nhật của bài đã duyệt thì gửi bản khác được ngay.
      */
     @Transactional

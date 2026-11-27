@@ -1,4 +1,4 @@
-# Specification Quality Checklist: FE-16 — Nộp lại sau 7 ngày bị từ chối
+# Specification Quality Checklist: FE-16 — Nộp lại sau 3 ngày bị từ chối
 
 **Purpose**: Kiểm tra chất lượng spec trước khi lập kế hoạch
 **Created**: 2026-11-26
@@ -16,9 +16,9 @@
 - [x] Yêu cầu kiểm thử được, không mơ hồ
 - [x] Tiêu chí thành công đo được
 - [x] Kịch bản chấp nhận đầy đủ cho US1–US3
-- [x] Đã nêu trường hợp biên (dữ liệu cũ thiếu thời điểm, đúng mốc 7 ngày, gói hết hạn, từ chối lặp lại)
+- [x] Đã nêu trường hợp biên (dữ liệu cũ thiếu thời điểm, đúng mốc 3 ngày, gói hết hạn, từ chối lặp lại)
 - [x] Phạm vi rõ ràng (chỉ hồ sơ bị từ chối và bài đầu tiên bị từ chối)
-- [x] Đã nêu giả định (7 ngày cố định, không migration)
+- [x] Đã nêu giả định (3 ngày cố định, không migration)
 
 ## Feature Readiness
 

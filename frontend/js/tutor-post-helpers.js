@@ -85,7 +85,7 @@ export function priceRowsFromContent(content) {
  * nhưng phải bấm "Chỉnh sửa bài đăng" trước để tránh sửa nhầm.
  */
 export function isUpdateMode(editable, post) {
-  // FE-16: bài đầu tiên bị từ chối (chưa có bản đã duyệt) mở lại sau 7 ngày thì soạn bài mới, không phải bản cập nhật
+  // FE-16: bài đầu tiên bị từ chối (chưa có bản đã duyệt) mở lại sau 3 ngày thì soạn bài mới, không phải bản cập nhật
   return Boolean(editable && post
     && (post.reviewStatus === 'APPROVED' || (post.reviewStatus === 'REJECTED' && post.published)));
 }

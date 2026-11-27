@@ -195,14 +195,14 @@ class TutorPostServiceTest {
         }
 
         @Test
-        void fe16_firstPostRejectedLessThanSevenDaysAgoIsLockedWithResubmitTime() {
-            TutorPost rejected = rejectedFirstPostAgo(java.time.Duration.ofDays(7).minusMinutes(1));
+        void fe16_firstPostRejectedLessThanThreeDaysAgoIsLockedWithResubmitTime() {
+            TutorPost rejected = rejectedFirstPostAgo(java.time.Duration.ofDays(3).minusMinutes(1));
 
             MyPostView mine = service.getMine(user);
             assertFalse(mine.editable());
-            assertEquals(rejected.getReviewedAt().plusDays(7), mine.resubmitAvailableAt());
+            assertEquals(rejected.getReviewedAt().plusDays(3), mine.resubmitAvailableAt());
             String message = assertThrows(ConflictException.class, () -> service.submit(user, validRequest())).getMessage();
-            assertEquals(TutorPostService.rejectedUntilMessage(rejected.getReviewedAt().plusDays(7)), message);
+            assertEquals(TutorPostService.rejectedUntilMessage(rejected.getReviewedAt().plusDays(3)), message);
             assertTrue(message.startsWith("Bài đăng của bạn đã bị từ chối. Bạn có thể gửi bài đăng mới từ "), message);
             verify(postRepository, never()).saveAndFlush(any());
         }
@@ -282,9 +282,9 @@ class TutorPostServiceTest {
         @Test
         void reject() {
             service.reject(pending.getPostId(), officer, new RejectPostRequest("Nội dung không phù hợp"));
-            // FE-16: bài đầu tiên bị từ chối → email nêu thời điểm gửi bài mới = lúc từ chối + 7 ngày
+            // FE-16: bài đầu tiên bị từ chối → email nêu thời điểm gửi bài mới = lúc từ chối + 3 ngày
             verify(mail).rejectedAfterCommit("gs@kizuna.test", "Gia sư A", "Luyện thi JLPT N3 cấp tốc", "Nội dung không phù hợp",
-                    pending.getReviewedAt().plusDays(7));
+                    pending.getReviewedAt().plusDays(3));
             verifyInApp("Bài đăng không được duyệt");
         }
     }

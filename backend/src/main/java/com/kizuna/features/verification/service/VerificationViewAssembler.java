@@ -95,7 +95,7 @@ public class VerificationViewAssembler {
         if (forOfficer) {
             builder.tutorId(tutor.getTutorId()).email(user != null ? user.getEmail() : null);
         } else {
-            // FE-16: hồ sơ bị từ chối mở lại sau 7 ngày; trả kèm thời điểm để trang gia sư hiển thị
+            // FE-16: hồ sơ bị từ chối mở lại sau 3 ngày; trả kèm thời điểm để trang gia sư hiển thị
             OffsetDateTime resubmitAvailableAt = VerificationStateMachine.resubmitAvailableAt(tutor, historyRepository);
             boolean editable = VerificationStateMachine.isEditable(status, resubmitAvailableAt, OffsetDateTime.now());
             builder.editable(editable);

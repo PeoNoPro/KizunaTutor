@@ -208,7 +208,7 @@ public class VerificationReviewServiceImpl implements VerificationReviewService 
         Tutor tutor = lockTutor(tutorId);
         TutorVerificationHistory rejection = stateMachine.reject(tutor, currentOfficer(), reason, feedback, internalNote);
         tutorRepository.save(tutor);
-        // FE-16: gia sư được nộp lại sau 7 ngày kể từ lần từ chối này
+        // FE-16: gia sư được nộp lại sau 3 ngày kể từ lần từ chối này
         java.time.OffsetDateTime rejectedAt = rejection != null && rejection.getCreatedAt() != null
                 ? rejection.getCreatedAt() : java.time.OffsetDateTime.now();
         java.time.OffsetDateTime resubmitAvailableAt = rejectedAt.plus(VerificationStateMachine.RESUBMIT_COOLDOWN);

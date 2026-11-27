@@ -1,4 +1,4 @@
-# Implementation Plan: FE-16 — Nộp lại sau 7 ngày bị từ chối
+# Implementation Plan: FE-16 — Nộp lại sau 3 ngày bị từ chối
 
 **Branch**: `han` | **Date**: 2026-11-26 | **Spec**: [spec.md](spec.md)
 
@@ -6,7 +6,7 @@
 
 ## Summary
 
-Bỏ quy tắc "từ chối là cuối cùng" ở hồ sơ xác minh và bài đăng đầu tiên, thay bằng thời gian chờ 7 ngày tính từ lúc cán bộ học vụ từ chối. Backend tính thời điểm được nộp lại từ dữ liệu sẵn có (lịch sử thẩm định, `tutor_posts.reviewed_at`), mở khóa sửa / nộp khi hết chờ, trả trường `resubmitAvailableAt` cho trang gia sư và nêu thời điểm trong email / thông báo. Frontend hiển thị thời điểm và mở biểu mẫu khi hết chờ. Không migration, không endpoint mới.
+Bỏ quy tắc "từ chối là cuối cùng" ở hồ sơ xác minh và bài đăng đầu tiên, thay bằng thời gian chờ 3 ngày tính từ lúc cán bộ học vụ từ chối. Backend tính thời điểm được nộp lại từ dữ liệu sẵn có (lịch sử thẩm định, `tutor_posts.reviewed_at`), mở khóa sửa / nộp khi hết chờ, trả trường `resubmitAvailableAt` cho trang gia sư và nêu thời điểm trong email / thông báo. Frontend hiển thị thời điểm và mở biểu mẫu khi hết chờ. Không migration, không endpoint mới.
 
 ## Technical Context
 
@@ -42,7 +42,7 @@ Bỏ quy tắc "từ chối là cuối cùng" ở hồ sơ xác minh và bài đ
 
 ```text
 backend/src/main/java/com/kizuna/features/verification/
-├── service/VerificationStateMachine.java            (hằng 7 ngày, tính thời điểm, overload isEditable / requireEditable)
+├── service/VerificationStateMachine.java            (hằng 3 ngày, tính thời điểm, overload isEditable / requireEditable)
 ├── service/VerificationException.java               (lỗi chờ nộp lại có thời điểm)
 ├── service/VerificationViewAssembler.java           (trả resubmitAvailableAt, editable mới, bỏ giấy tờ REJECTED khi kiểm tra)
 ├── service/VerificationNotificationService.java     (email từ chối nêu thời điểm)
@@ -68,15 +68,15 @@ frontend/tests/verification-update-helpers.test.mjs
 
 | Chỗ | Sửa thành |
 | --- | --- |
-| GBR-41 | A rejected profile, or a rejected first post, can be resubmitted 7 days after the rejection. A rejected update of an approved post can be resubmitted at once. |
-| UC 3.2 PRE-2 | The profile is "Not submitted", "Needs more information", or "Rejected" and 7 days have passed since the rejection. |
-| UC 3.2 AF-3 | If it was rejected less than 7 days ago, the form is read-only and the system shows when the tutor can resubmit (MSG-164). |
+| GBR-41 | A rejected profile, or a rejected first post, can be resubmitted 3 days after the rejection. A rejected update of an approved post can be resubmitted at once. |
+| UC 3.2 PRE-2 | The profile is "Not submitted", "Needs more information", or "Rejected" and 3 days have passed since the rejection. |
+| UC 3.2 AF-3 | If it was rejected less than 3 days ago, the form is read-only and the system shows when the tutor can resubmit (MSG-164). |
 | UC 3.3 PRE-2 | Như UC 3.2 PRE-2. |
-| UC 3.11 POST-2 | The tutor can edit and resubmit a rejected profile 7 days after the rejection, with new documents. |
-| UC 4.3 PRE-2 | Thêm: "The post is "Rejected", has no approved version, and 7 days have passed since the rejection." |
-| UC 4.3 AF-2 | Rejected, no approved version, less than 7 days: editing is locked and the system shows when the tutor can send a new post (MSG-165). |
-| UC 4.5 POST-2 | A rejected first post can be replaced by a new post 7 days after the rejection. |
-| BF-01, BF-02 | Nhánh "Reject" vẫn kết thúc luồng; ghi chú "tutor may resubmit after 7 days". |
+| UC 3.11 POST-2 | The tutor can edit and resubmit a rejected profile 3 days after the rejection, with new documents. |
+| UC 4.3 PRE-2 | Thêm: "The post is "Rejected", has no approved version, and 3 days have passed since the rejection." |
+| UC 4.3 AF-2 | Rejected, no approved version, less than 3 days: editing is locked and the system shows when the tutor can send a new post (MSG-165). |
+| UC 4.5 POST-2 | A rejected first post can be replaced by a new post 3 days after the rejection. |
+| BF-01, BF-02 | Nhánh "Reject" vẫn kết thúc luồng; ghi chú "tutor may resubmit after 3 days". |
 | System Messages | MSG-164: "Your profile was rejected. You can edit and resubmit it from [time]." · MSG-165: "Your post was rejected. You can send a new post from [time]." |
 
 ## Ghi chú triển khai
@@ -91,8 +91,14 @@ frontend/tests/verification-update-helpers.test.mjs
   - Frontend `node --test "frontend/tests/*.test.mjs"`: 105/106; test đỏ duy nhất là `learning-tools-access` (thiếu `/learner/practice-history` trong `LOCKED_PATHS`, lỗi cũ của dev, không thuộc feature này).
 - Chưa xác minh: mở hai trang trên trình duyệt với dữ liệu thật (T019) — làm theo [quickstart.md](quickstart.md) mục 2.
 
+2026-11-28 — đổi thời gian chờ 7 ngày → 3 ngày (khớp GBR-41 trong SRS):
+
+- Chỉ đổi giá trị `RESUBMIT_COOLDOWN` (`VerificationStateMachine`, `TutorPostService`) từ `Duration.ofDays(7)` sang `Duration.ofDays(3)`, câu email "sau 3 ngày kể từ hôm nay", các chú thích và lời nhắc trên giao diện (`tutor-dashboard.js`, `academic-posts.js`, `academic-verification-detail/index.html`); không đổi logic, API hay dữ liệu.
+- Test cập nhật mốc 3 ngày (đổi tên 3 test `…SevenDays…` → `…ThreeDays…`). Kết quả: `TutorPostServiceTest` 35, `TutorVerificationServiceTest` 35, `VerificationReviewServiceTest` 38, `VerificationStateMachineTest` 36, `VerificationSummaryTest` 5, `TutorPostMailServiceTest` 4, `TutorPostSummaryTest` 2 — 0 failure, 0 error.
+- Frontend `node --test`: 199/200; test đỏ duy nhất vẫn là `learning-tools-access` (lỗi cũ, không thuộc feature này).
+
 ## Complexity Tracking
 
 | Lệch | Vì sao | Phương án đơn giản hơn bị loại vì |
 | --- | --- | --- |
-| Hằng 7 ngày lặp ở 2 feature | Giữ verification và tutor_post độc lập (luật 3) | Dùng chung hằng tạo phụ thuộc từ tutor_post sang nội bộ verification |
+| Hằng 3 ngày lặp ở 2 feature | Giữ verification và tutor_post độc lập (luật 3) | Dùng chung hằng tạo phụ thuộc từ tutor_post sang nội bộ verification |

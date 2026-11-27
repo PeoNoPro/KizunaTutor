@@ -30,8 +30,8 @@ const DIALOGS = {
   },
   reject: {
     title: 'Từ chối bài đăng',
-    // FE-16: bài đầu tiên bị từ chối được gửi bài mới sau 7 ngày; bản cập nhật bị từ chối gửi lại ngay
-    hint: (name) => `Gia sư ${name} sẽ nhận lý do từ chối. Nếu đây là bài đầu tiên, gia sư chỉ gửi được bài mới sau 7 ngày; nếu là bản cập nhật, bài đang hiển thị vẫn giữ nguyên. Nếu bài chỉ cần sửa, hãy dùng "Yêu cầu bổ sung".`,
+    // FE-16: bài đầu tiên bị từ chối được gửi bài mới sau 3 ngày; bản cập nhật bị từ chối gửi lại ngay
+    hint: (name) => `Gia sư ${name} sẽ nhận lý do từ chối. Nếu đây là bài đầu tiên, gia sư chỉ gửi được bài mới sau 3 ngày; nếu là bản cập nhật, bài đang hiển thị vẫn giữ nguyên. Nếu bài chỉ cần sửa, hãy dùng "Yêu cầu bổ sung".`,
     placeholder: 'Ví dụ: Bài đăng chứa thông tin liên hệ ngoài hệ thống, nội dung không phù hợp...',
     confirm: 'Từ chối',
     confirmClass: 'bg-error',

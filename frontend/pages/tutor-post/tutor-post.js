@@ -54,7 +54,7 @@ function renderStatus(post) {
       $('statusTitle').textContent = 'Bản cập nhật bị từ chối';
       text = `Lý do: ${post.reviewFeedback || '—'}${keepShown}\nBạn có thể chỉnh sửa và gửi bản cập nhật khác.`;
     } else {
-      // FE-16: bài đầu tiên bị từ chối được thay bằng bài mới sau 7 ngày
+      // FE-16: bài đầu tiên bị từ chối được thay bằng bài mới sau 3 ngày
       text = `Lý do: ${post.reviewFeedback || '—'}\n${rejectedFirstPostHint(pageState.allowed, pageState.resubmitAvailableAt)}`;
     }
   } else {

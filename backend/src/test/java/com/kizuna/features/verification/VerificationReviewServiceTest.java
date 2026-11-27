@@ -119,14 +119,14 @@ class VerificationReviewServiceTest {
         verify(historyRepository).save(captor.capture());
         assertEquals(RejectionReason.INFORMATION_MISMATCH, captor.getValue().getReasonCode());
         assertEquals("Đã đối chiếu CCCD", captor.getValue().getInternalNote());
-        // FE-16: email nêu thời điểm được nộp lại = lúc từ chối + 7 ngày
+        // FE-16: email nêu thời điểm được nộp lại = lúc từ chối + 3 ngày
         ArgumentCaptor<java.time.OffsetDateTime> availableAt = ArgumentCaptor.forClass(java.time.OffsetDateTime.class);
         verify(notificationService).rejectedAfterCommit(org.mockito.ArgumentMatchers.eq("gs@kizuna.test"),
                 org.mockito.ArgumentMatchers.eq("Gia sư B"),
                 org.mockito.ArgumentMatchers.eq("Thông tin không trùng khớp với giấy tờ"),
                 org.mockito.ArgumentMatchers.eq("Họ tên không khớp"), availableAt.capture());
         long days = java.time.Duration.between(java.time.OffsetDateTime.now(), availableAt.getValue()).toHours();
-        assertTrue(days >= 167 && days <= 168, "khoảng 7 ngày sau, thực tế " + days + " giờ");
+        assertTrue(days >= 71 && days <= 72, "khoảng 3 ngày sau, thực tế " + days + " giờ");
     }
 
     @Test

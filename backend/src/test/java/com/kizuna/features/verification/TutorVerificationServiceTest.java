@@ -165,8 +165,8 @@ class TutorVerificationServiceTest {
     }
 
     @Test
-    void fe16_rejectedProfileReopensAfterSevenDaysAndCanBeResubmittedWithNewDocuments() {
-        rejectedAgo(java.time.Duration.ofDays(7).plusMinutes(1));
+    void fe16_rejectedProfileReopensAfterThreeDaysAndCanBeResubmittedWithNewDocuments() {
+        rejectedAgo(java.time.Duration.ofDays(3).plusMinutes(1));
         fillCompleteProfile();
         // giấy tờ cũ đã bị đánh dấu "Không được chấp nhận" khi từ chối
         addDocument(CredentialType.IDENTITY_DOCUMENT);
